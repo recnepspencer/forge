@@ -40,6 +40,7 @@ mod performance;
 pub mod performance_api;
 mod profiles;
 pub mod profiles_api;
+mod responsibilities;
 mod transitions;
 mod values;
 

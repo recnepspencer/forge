@@ -13,8 +13,11 @@
 
 #[cfg(test)]
 mod adversarial {
-    use crate::algorithms::boundary_cert::eval::*;
-    use crate::algorithms::boundary_cert::schema::*;
+    use crate::algorithms::boundary_cert::eval::certify_boundary;
+    use crate::algorithms::boundary_cert::schema::{
+        BoundaryRejectReason, ProjectedBoundary2D, ProjectionFrame2D, Segment2D,
+        WeakSimpleCertificate,
+    };
 
     // ── 1. Near-coincident crossing vs. endpoint touch ────────────────────────
     //

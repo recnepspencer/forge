@@ -1,9 +1,10 @@
 use super::{
     unique_test_sqlite_path, unique_test_store_path, RawSupportProgramAction,
     SubscriptionSupportFamilyId, SubscriptionSupportFamilyKind, SubscriptionSupportFetchRequest,
-    SubscriptionSupportOperationalVerdict, SubscriptionSupportRetentionDecision,
-    SupportActionBreadthBudget, SupportActionId, SupportActionRecoveryDisposition,
-    SupportAllocationScope, SupportPathClass, SupportProgramDensityClass, WORTHStoreBuilder,
+    SubscriptionSupportOperationalVerdict, SubscriptionSupportRetentionBatchRequest,
+    SubscriptionSupportRetentionDecision, SupportActionBreadthBudget, SupportActionId,
+    SupportActionRecoveryDisposition, SupportAllocationScope, SupportPathClass,
+    SupportProgramDensityClass, SupportProgramPathPolicy, WORTHStoreBuilder,
 };
 
 use super::{raw_exact, retention_basis};
@@ -141,16 +142,18 @@ fn subscription_support_action_publication_recovery_reopens_published_consequenc
             .build()
             .unwrap();
         let plan = store
-            .admit_subscription_support_retention_batch(
-                action_id.clone(),
-                vec![retention_basis("published-recovery")],
-                SubscriptionSupportRetentionDecision::retain_exact(),
-                SupportPathClass::OperationalPlanning,
-                SupportProgramDensityClass::FamilyLocalBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            .admit_subscription_support_retention_batch(SubscriptionSupportRetentionBatchRequest {
+                action_id: action_id.clone(),
+                affected_bases: vec![retention_basis("published-recovery")],
+                decision: SubscriptionSupportRetentionDecision::retain_exact(),
+                path: crate::SupportProgramPathPolicy {
+                    path_class: SupportPathClass::OperationalPlanning,
+                    density_class: SupportProgramDensityClass::FamilyLocalBatch,
+                    allocation_scope: SupportAllocationScope::FamilyLocalBatch,
+                    budget: SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                    payload_header_bytes: 128,
+                },
+            })
             .unwrap();
         store
             .publish_subscription_support_retention_consequence(plan)

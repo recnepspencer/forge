@@ -4,8 +4,13 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::algorithms::boundary_cert::eval::*;
-    use crate::algorithms::boundary_cert::schema::*;
+    use crate::algorithms::boundary_cert::eval::{
+        build_projection_frame, certify_boundary, project_boundary_to_2d,
+    };
+    use crate::algorithms::boundary_cert::schema::{
+        BoundaryRejectReason, ProjectedBoundary2D, ProjectionFrame2D, Segment2D,
+        WeakSimpleCertificate,
+    };
 
     /// Helper: build a projected boundary from 2D vertex positions.
     ///

@@ -1,11 +1,31 @@
 use super::{
     unique_test_sqlite_path, unique_test_store_path, StoreErrorKind,
-    SubscriptionSupportMaintenanceDecision, SubscriptionSupportOperationalVerdict,
-    SupportActionBreadthBudget, SupportActionId, SupportAllocationScope, SupportPathClass,
-    SupportProgramDensityClass, WORTHStoreBuilder,
+    SubscriptionSupportMaintenanceBatchRequest, SubscriptionSupportMaintenanceDecision,
+    SubscriptionSupportOperationalVerdict, SupportActionBreadthBudget, SupportActionId,
+    SupportAllocationScope, SupportPathClass, SupportProgramDensityClass, SupportProgramPathPolicy,
+    WORTHStoreBuilder,
 };
 
 use super::maintenance_basis;
+
+fn maintenance_request(
+    action_id: SupportActionId,
+    affected_bases: Vec<crate::SubscriptionSupportOperationalBasis>,
+    decision: SubscriptionSupportMaintenanceDecision,
+) -> SubscriptionSupportMaintenanceBatchRequest {
+    SubscriptionSupportMaintenanceBatchRequest {
+        action_id,
+        affected_bases,
+        decision,
+        path: SupportProgramPathPolicy {
+            path_class: SupportPathClass::MaintenanceExecution,
+            density_class: SupportProgramDensityClass::MaintenanceKeyBatch,
+            allocation_scope: SupportAllocationScope::FamilyLocalBatch,
+            budget: SupportActionBreadthBudget::new(4, 1024).unwrap(),
+            payload_header_bytes: 128,
+        },
+    }
+}
 
 #[test]
 fn subscription_support_maintenance_delay_report_persists_without_publishing_action() {
@@ -18,19 +38,14 @@ fn subscription_support_maintenance_delay_report_persists_without_publishing_act
         let basis = maintenance_basis("delayed-local");
         let retained_basis_digest = basis.basis_digest().to_string();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:delayed-local").unwrap(),
                 vec![basis],
                 SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
                     retained_basis_digest,
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
 
         let report = store
@@ -91,19 +106,14 @@ fn subscription_support_maintenance_descriptor_records_survive_local_file_reopen
         let basis = maintenance_basis("local-reopen");
         let retained_basis_digest = basis.basis_digest().to_string();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:local-reopen").unwrap(),
                 vec![basis],
                 SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
                     retained_basis_digest,
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let declaration_id = plan.maintenance_receipt().admitted_declarations()[0]
             .declaration()
@@ -146,19 +156,14 @@ fn subscription_support_maintenance_descriptor_records_survive_sqlite_reopen() {
         let basis = maintenance_basis("sqlite-reopen");
         let retained_basis_digest = basis.basis_digest().to_string();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:sqlite-reopen").unwrap(),
                 vec![basis],
                 SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
                     retained_basis_digest,
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let declaration_id = plan.maintenance_receipt().admitted_declarations()[0]
             .declaration()
@@ -201,19 +206,14 @@ fn local_file_subscription_support_maintenance_descriptor_drift_fails_open() {
         let basis = maintenance_basis("drift");
         let retained_basis_digest = basis.basis_digest().to_string();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:drift").unwrap(),
                 vec![basis],
                 SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
                     retained_basis_digest,
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         store
             .publish_subscription_support_maintenance_consequence(plan)
@@ -255,19 +255,14 @@ fn local_file_subscription_support_maintenance_debt_drift_fails_open() {
         let basis = maintenance_basis("debt-drift");
         let retained_basis_digest = basis.basis_digest().to_string();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:debt-drift").unwrap(),
                 vec![basis],
                 SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
                     retained_basis_digest,
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         store
             .report_delayed_subscription_support_maintenance(

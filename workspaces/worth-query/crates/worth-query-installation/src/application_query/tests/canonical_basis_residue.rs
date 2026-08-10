@@ -97,8 +97,22 @@ fn phase_six_semantic_families_share_the_foundational_digest_slot() {
     );
     let evidence_slot =
         include_str!("../../../../worth-query/src/evidence_identity/foundational.rs");
-    let capability = include_str!(
-        "../../../../worth-query/src/domain_capabilities/payloads/invariant_capability.rs"
+    let capability = concat!(
+        include_str!(
+            "../../../../worth-query/src/domain_capabilities/payloads/invariant_capability/mod.rs"
+        ),
+        include_str!(
+            "../../../../worth-query/src/domain_capabilities/payloads/invariant_capability/graph_semantics.rs"
+        ),
+        include_str!(
+            "../../../../worth-query/src/domain_capabilities/payloads/invariant_capability/payload.rs"
+        ),
+        include_str!(
+            "../../../../worth-query/src/domain_capabilities/payloads/invariant_capability/posture.rs"
+        ),
+        include_str!(
+            "../../../../worth-query/src/domain_capabilities/payloads/invariant_capability/registration_semantics.rs"
+        ),
     );
     let aftermath =
         include_str!("../../../../worth-query/src/domain_capabilities/payloads/aftermath.rs");

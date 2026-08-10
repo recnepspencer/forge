@@ -1,0 +1,57 @@
+#[cfg(test)]
+use super::*;
+
+#[cfg(test)]
+pub(crate) fn causal_test_compose_bridge_causal_denial_for_reporting(
+    denial: &BridgeCausalEnvelopeDenial,
+) -> String {
+    let composed = compose_bridge_causal_denial_identity(denial);
+    composed.reporting_projection().to_string()
+}
+
+#[cfg(test)]
+pub(crate) fn causal_test_compose_bridge_causal_explanation_envelope_identity_for_reporting(
+    envelope: &BridgeCausalExplanationEnvelope,
+) -> String {
+    let composed = compose_bridge_causal_explanation_envelope_identity(envelope);
+    composed.reporting_projection().to_string()
+}
+
+#[cfg(test)]
+pub(crate) fn causal_test_compose_bridge_causal_envelope_identity_for_reporting(
+    envelope: &BridgeCausalExplanationEnvelope,
+) -> String {
+    let composed = compose_bridge_causal_envelope_identity(envelope.identity());
+    composed.reporting_projection().to_string()
+}
+
+#[cfg(test)]
+pub(crate) fn causal_test_compose_bridge_causal_envelope_receipt_identity_for_reporting(
+    receipt: &BridgeCausalEnvelopeReceipt,
+) -> String {
+    let composed = compose_bridge_causal_envelope_receipt_identity(receipt);
+    composed.reporting_projection().to_string()
+}
+
+#[cfg(test)]
+pub(crate) fn causal_test_bridge_binding_reference_for_reporting(
+    owner: &str,
+    family: &str,
+    bridge_reference: worth_runtime_bridge::facade::BridgeIdentityEvidence,
+) -> String {
+    let composed = WorthQueryEvidenceIdentity::compose(
+        WorthQueryEvidenceScope::CausalEvidenceReferenceReceipt,
+    )
+    .field_shape(
+        WorthQueryEvidenceTag::new("role"),
+        "bridge-causal-evidence-reference",
+    )
+    .field_shape(WorthQueryEvidenceTag::new("owner"), owner)
+    .field_shape(WorthQueryEvidenceTag::new("family"), family)
+    .field_bridge_retained_evidence_identity(
+        WorthQueryEvidenceTag::new("reference"),
+        &bridge_reference,
+    )
+    .seal();
+    composed.reporting_projection().to_string()
+}

@@ -1,11 +1,65 @@
-use crate::authorized_projection::PolicyInfluenceSet;
+use crate::authorized_projection::{AuthorizedProjectionArtifact, PolicyInfluenceSet};
 use crate::canonicalization::CanonicalQueryBundle;
-use crate::relationship_proof::RelationshipProofDescriptorSet;
+use crate::identity::hash_parts;
+use crate::relationship_proof::{RelationshipProofAdmission, RelationshipProofDescriptorSet};
 
 use super::{
     PolicyNarrowingCounters, PolicyNarrowingError, PolicyNarrowingFailureClass,
     PolicyNarrowingWorkBudget,
 };
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PolicyAwareValidationReport {
+    digest: String,
+    failure_digests: Vec<String>,
+    counter_snapshot_digest: String,
+}
+
+impl PolicyAwareValidationReport {
+    pub(crate) fn success(
+        authorized_projection: &AuthorizedProjectionArtifact,
+        relationship_proof: &RelationshipProofAdmission,
+        counters: &PolicyNarrowingCounters,
+    ) -> Self {
+        let counter_snapshot_digest = hash_parts(&counters.digest_parts());
+        let parts = vec![
+            format!(
+                "authorized_projection:{}",
+                authorized_projection.identity().as_str()
+            ),
+            format!(
+                "authorized_influence:{}",
+                authorized_projection.influence_set().digest()
+            ),
+            format!(
+                "narrowed_shape:{}",
+                authorized_projection.narrowed_result_shape_digest()
+            ),
+            format!(
+                "relationship_proof:{}",
+                relationship_proof.identity().as_str()
+            ),
+            format!("counter_snapshot:{counter_snapshot_digest}"),
+        ];
+        Self {
+            digest: hash_parts(&parts),
+            failure_digests: Vec::new(),
+            counter_snapshot_digest,
+        }
+    }
+
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub fn failure_digests(&self) -> &[String] {
+        &self.failure_digests
+    }
+
+    pub fn counter_snapshot_digest(&self) -> &str {
+        &self.counter_snapshot_digest
+    }
+}
 
 pub(crate) fn validate_narrowing_budget(
     canonical: &CanonicalQueryBundle,

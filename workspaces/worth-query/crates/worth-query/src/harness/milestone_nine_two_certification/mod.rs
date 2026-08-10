@@ -1,4 +1,12 @@
-mod builders;
+mod active_lifecycle;
+mod bundle_projection;
+mod canonical_rows;
+mod delivery_evidence;
+mod preview_lifecycle;
+mod rejection_evidence;
+mod rejection_rows;
+mod sharing_lifecycle;
+mod subscription_fixtures;
 #[cfg(test)]
 mod tests;
 
@@ -217,8 +225,10 @@ impl MilestoneNineTwoCertificationMatrix {
     pub fn into_milestone_nine_two_artifact(self) -> MilestoneNineTwoCertificationArtifact {
         MilestoneNineTwoCertificationArtifact {
             suite_name: self.suite_name,
-            certification_bundle_digest: digest_parts(&builders::bundle_digest_parts(&self)),
-            coverage_matrix_digest: digest_parts(&builders::coverage_digest_parts(&self)),
+            certification_bundle_digest: digest_parts(&bundle_projection::bundle_digest_parts(
+                &self,
+            )),
+            coverage_matrix_digest: digest_parts(&bundle_projection::coverage_digest_parts(&self)),
             matrix: self,
         }
     }
@@ -237,8 +247,8 @@ impl MilestoneNineTwoCertificationAdapter {
     ) -> MilestoneNineTwoCertificationMatrix {
         MilestoneNineTwoCertificationMatrix {
             suite_name: "Subscription Lifecycle Sharing And Preview Parity Test",
-            rows: builders::canonical_rows(),
-            rejection_rows: builders::rejection_rows(),
+            rows: canonical_rows::canonical_rows(),
+            rejection_rows: rejection_rows::rejection_rows(),
         }
     }
 }

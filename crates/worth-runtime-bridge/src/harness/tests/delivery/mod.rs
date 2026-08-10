@@ -1,10 +1,6 @@
-use worth_harness::facade::{ExecutionProfile, ExecutionRequest, MutationBatch, ScenarioPlan};
-use worth_harness::runtime::HarnessAdapter;
-
 use crate::facade::{
     BridgeBulkWorkloadRequest, BridgeBulkWorkloadSegment, BridgeDeliveryErrorKind,
-    BridgeFailureClass, BridgePreparationMode, BridgeRouteRequest, RuntimeBridgeBuilder,
-    TruthSnapshotIdentity,
+    BridgePreparationMode, BridgeRouteRequest, TruthSnapshotIdentity,
 };
 use crate::routing::BridgeParallelAdmissionClass;
 
@@ -12,11 +8,7 @@ use super::support::{
     build_runtime, build_runtime_with_aspects, committed_patch, field_aspect_registration,
     registration, snapshot, CountingSnapshotReaderPool,
 };
-use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessMutation, BridgeHarnessTargetId};
-use crate::harness::fixtures::{
-    BridgeHarnessFixture, InMemoryRelationalBridgeSource, RecordingSignalBridgeSink,
-    SnapshotFixture,
-};
+use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use crate::truth_identity_fixtures::{truth_commit, truth_patch, truth_snapshot};
 
 fn commit_a() -> crate::facade::TruthCommitIdentity {

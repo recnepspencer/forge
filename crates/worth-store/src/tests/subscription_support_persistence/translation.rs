@@ -1,30 +1,52 @@
 use super::{
     unique_test_store_path, RawSupportProgramAction, StoreErrorKind,
     SubscriptionSupportActionOrigin, SubscriptionSupportArtifactId, SubscriptionSupportFamilyId,
-    SubscriptionSupportFamilyKind, SubscriptionSupportMaintenanceDecision,
-    SubscriptionSupportOperationalBasis, SubscriptionSupportOperationalVerdict,
-    SubscriptionSupportOperationalVerdictTranslationRequest, SubscriptionSupportRetentionDecision,
+    SubscriptionSupportFamilyKind, SubscriptionSupportMaintenanceBatchRequest,
+    SubscriptionSupportMaintenanceDecision, SubscriptionSupportOperationalBasis,
+    SubscriptionSupportOperationalVerdict, SubscriptionSupportOperationalVerdictTranslationRequest,
+    SubscriptionSupportRetentionBatchRequest, SubscriptionSupportRetentionDecision,
     SubscriptionSupportRole, SupportActionBreadthBudget, SupportActionId,
     SupportActionPublicationState, SupportAllocationScope, SupportPathClass,
-    SupportProgramDensityClass, WORTHStoreBuilder,
+    SupportProgramDensityClass, SupportProgramPathPolicy, WORTHStoreBuilder,
 };
 
 use super::{maintenance_basis, retention_basis};
+
+fn maintenance_request(
+    action_id: SupportActionId,
+    affected_bases: Vec<SubscriptionSupportOperationalBasis>,
+    decision: SubscriptionSupportMaintenanceDecision,
+) -> SubscriptionSupportMaintenanceBatchRequest {
+    SubscriptionSupportMaintenanceBatchRequest {
+        action_id,
+        affected_bases,
+        decision,
+        path: SupportProgramPathPolicy {
+            path_class: SupportPathClass::MaintenanceExecution,
+            density_class: SupportProgramDensityClass::MaintenanceKeyBatch,
+            allocation_scope: SupportAllocationScope::FamilyLocalBatch,
+            budget: SupportActionBreadthBudget::new(4, 1024).unwrap(),
+            payload_header_bytes: 128,
+        },
+    }
+}
 
 #[test]
 fn subscription_support_translation_rejects_WORTHd_report_basis() {
     let mut store = WORTHStoreBuilder::new().in_memory().build().unwrap();
     let plan = store
-        .admit_subscription_support_retention_batch(
-            SupportActionId::new("support-retention:WORTHd-translation-basis").unwrap(),
-            vec![retention_basis("WORTHd-translation-basis")],
-            SubscriptionSupportRetentionDecision::retain_exact(),
-            SupportPathClass::OperationalPlanning,
-            SupportProgramDensityClass::FamilyLocalBatch,
-            SupportAllocationScope::FamilyLocalBatch,
-            SupportActionBreadthBudget::new(4, 1024).unwrap(),
-            128,
-        )
+        .admit_subscription_support_retention_batch(SubscriptionSupportRetentionBatchRequest {
+            action_id: SupportActionId::new("support-retention:WORTHd-translation-basis").unwrap(),
+            affected_bases: vec![retention_basis("WORTHd-translation-basis")],
+            decision: SubscriptionSupportRetentionDecision::retain_exact(),
+            path: SupportProgramPathPolicy {
+                path_class: SupportPathClass::OperationalPlanning,
+                density_class: SupportProgramDensityClass::FamilyLocalBatch,
+                allocation_scope: SupportAllocationScope::FamilyLocalBatch,
+                budget: SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                payload_header_bytes: 128,
+            },
+        })
         .unwrap();
     let report = store
         .publish_subscription_support_retention_consequence(plan)
@@ -64,19 +86,14 @@ fn subscription_support_maintenance_debt_translation_requires_reported_basis() {
     let mut store = WORTHStoreBuilder::new().in_memory().build().unwrap();
     let basis = maintenance_basis("delayed-exact-translation");
     let plan = store
-        .admit_subscription_support_maintenance_batch(
+        .admit_subscription_support_maintenance_batch(maintenance_request(
             SupportActionId::new("support-maintenance:delayed-exact-translation").unwrap(),
             vec![basis.clone()],
             SubscriptionSupportMaintenanceDecision::refresh_descriptor_admitted(
                 "maintenance refresh deferred by operator pacing",
             )
             .unwrap(),
-            SupportPathClass::MaintenanceExecution,
-            SupportProgramDensityClass::MaintenanceKeyBatch,
-            SupportAllocationScope::FamilyLocalBatch,
-            SupportActionBreadthBudget::new(4, 1024).unwrap(),
-            128,
-        )
+        ))
         .unwrap();
     let report = store
         .report_delayed_subscription_support_maintenance(
@@ -133,7 +150,7 @@ fn local_file_interrupted_refresh_maintenance_work_kind_drift_fails_open() {
             .build()
             .unwrap();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:restart-refresh-drift").unwrap(),
                 vec![maintenance_basis("restart-refresh-drift")],
                 SubscriptionSupportMaintenanceDecision::interrupted_restart_recovered(
@@ -141,12 +158,7 @@ fn local_file_interrupted_refresh_maintenance_work_kind_drift_fails_open() {
                     "maintenance-restart:refresh-drift",
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         store
             .publish_subscription_support_maintenance_consequence(plan)

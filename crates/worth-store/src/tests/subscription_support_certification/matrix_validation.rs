@@ -1,12 +1,11 @@
 use super::{
-    fetched_exact_report, publish_exact, retention_basis, StoreErrorKind,
+    fetched_exact_report, publish_exact, retention_basis, retention_batch_request, StoreErrorKind,
     SubscriptionSupportCatalog, SubscriptionSupportCertificationBundle,
     SubscriptionSupportCertificationLaneKind, SubscriptionSupportCertificationLaneOutcome,
     SubscriptionSupportClassificationPlan, SubscriptionSupportCounterSnapshot,
     SubscriptionSupportFamilyId, SubscriptionSupportFamilyKind, SubscriptionSupportFetchRequest,
     SubscriptionSupportResumeEvidence, SubscriptionSupportResumeRequest,
-    SubscriptionSupportRetentionDecision, SupportActionBreadthBudget, SupportActionId,
-    SupportAllocationScope, SupportPathClass, SupportProgramDensityClass, WORTHStoreBuilder,
+    SubscriptionSupportRetentionDecision, SupportActionId, WORTHStoreBuilder,
 };
 
 #[test]
@@ -79,16 +78,11 @@ fn durable_subscription_support_certification_matrix_rejects_mislabeled_lane_evi
 fn durable_subscription_support_certification_matrix_rejects_mislabeled_retention_lane() {
     let mut store = WORTHStoreBuilder::new().in_memory().build().unwrap();
     let plan = store
-        .admit_subscription_support_retention_batch(
+        .admit_subscription_support_retention_batch(retention_batch_request(
             SupportActionId::new("support-retention:mislabeled").unwrap(),
             vec![retention_basis("mislabeled")],
             SubscriptionSupportRetentionDecision::retain_exact(),
-            SupportPathClass::OperationalPlanning,
-            SupportProgramDensityClass::FamilyLocalBatch,
-            SupportAllocationScope::FamilyLocalBatch,
-            SupportActionBreadthBudget::new(4, 1024).unwrap(),
-            128,
-        )
+        ))
         .unwrap();
     let report = store
         .publish_subscription_support_retention_consequence(plan)

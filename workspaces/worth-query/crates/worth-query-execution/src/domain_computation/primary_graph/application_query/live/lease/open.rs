@@ -1,5 +1,4 @@
 use std::marker::PhantomData;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use worth_query_declaration::facade::{
     application_capability::ApplicationCapabilityRequest,
@@ -8,6 +7,9 @@ use worth_query_declaration::facade::{
 };
 use worth_query_installation::facade::WorthQueryInstalledApplicationQuery;
 
+mod managed_basis_admission;
+
+use self::managed_basis_admission::admit_live_managed_basis;
 use super::super::{
     controls::WorthQueryApplicationLiveControls,
     outcome::{WorthQueryApplicationLiveOpenDenial, WorthQueryApplicationLiveOpenDenialKind},
@@ -18,26 +20,18 @@ use super::validation::{
     validate_live_resource_controls,
 };
 use super::WorthQueryApplicationLiveLease;
-use crate::domain_computation::{
-    managed_run::{
-        admit_managed_lower_execution_basis, WorthQueryManagedLowerBinding,
-        WorthQueryManagedLowerExecutionBasis, WorthQueryManagedTruthReadRequest,
+use crate::domain_computation::primary_graph::{
+    application_query::{
+        admission::prepare_governed_access,
+        authorized_read::{execute_authorized_read, refresh_governed_authorization},
+        disclosure::WorthQueryPendingApplicationQueryGovernance,
+        WorthQueryApplicationProjection, WorthQueryApplicationQueryAccessContext,
+        WorthQueryApplicationQueryControls,
     },
-    primary_graph::{
-        application_query::{
-            admission::prepare_governed_access,
-            authorized_read::{execute_authorized_read, refresh_governed_authorization},
-            disclosure::WorthQueryPendingApplicationQueryGovernance,
-            WorthQueryApplicationProjection, WorthQueryApplicationQueryAccessContext,
-            WorthQueryApplicationQueryControls,
-        },
-        live_delivery::WorthQueryLiveCauseQueue,
-        WorthQueryApplicationEntityIdentity, WorthQueryAuthenticatedPrincipal,
-        WorthQueryPrimaryGraphApplicationRuntime,
-    },
+    live_delivery::WorthQueryLiveCauseQueue,
+    WorthQueryApplicationEntityIdentity, WorthQueryAuthenticatedPrincipal,
+    WorthQueryPrimaryGraphApplicationRuntime,
 };
-
-static NEXT_APPLICATION_QUERY_LIVE_LEASE: AtomicU64 = AtomicU64::new(1);
 
 struct WorthQueryApplicationLiveOpenRequest<
     'principal,
@@ -359,50 +353,5 @@ where
         read_proof,
         initial_read_work,
         basis_release,
-    })
-}
-
-fn admit_live_managed_basis<Schema>(
-    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
-    live: &worth_query_installation::facade::WorthQueryInstalledApplicationLiveContract,
-    graph_work: &crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
-    subject: &str,
-) -> Result<WorthQueryManagedLowerExecutionBasis, WorthQueryApplicationLiveOpenDenial> {
-    let version = application
-        .primary_provider
-        .graph
-        .with_runtime(|runtime| {
-            runtime
-                .history()
-                .latest_commit()
-                .map(|head| head.version_id)
-        })
-        .ok_or_else(|| {
-            open_denial(
-                WorthQueryApplicationLiveOpenDenialKind::ProviderVersionUnavailable,
-                subject,
-            )
-        })?;
-    let attempt = NEXT_APPLICATION_QUERY_LIVE_LEASE.fetch_add(1, Ordering::Relaxed);
-    let attempt_identity = format!("application-query-live:{attempt}");
-    let binding =
-        WorthQueryManagedLowerBinding::new(subject, &attempt_identity, live.resource_envelope());
-    let request = WorthQueryManagedTruthReadRequest::new(
-        version,
-        graph_work.branch().truth().clone(),
-        worth_runtime_bridge::facade::SnapshotReadPacket::new(Vec::new()),
-    );
-    let request_bridge = application.bridge.fork_managed_request_lane();
-    admit_managed_lower_execution_basis(
-        &request_bridge,
-        &application.relational_source,
-        binding,
-        request,
-    )
-    .map_err(|failure| {
-        open_denial(
-            WorthQueryApplicationLiveOpenDenialKind::BridgeBasisRejected,
-            failure.detail.as_ref(),
-        )
     })
 }

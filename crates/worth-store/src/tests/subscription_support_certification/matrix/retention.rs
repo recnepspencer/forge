@@ -1,25 +1,40 @@
 use super::super::{
     retention_basis, SubscriptionSupportCertificationLaneKind,
-    SubscriptionSupportCertificationLaneOutcome, SubscriptionSupportRetentionDecision,
-    SupportActionBreadthBudget, SupportActionId, SupportAllocationScope, SupportPathClass,
-    SupportProgramDensityClass, WORTHStoreBuilder,
+    SubscriptionSupportCertificationLaneOutcome, SubscriptionSupportRetentionBatchRequest,
+    SubscriptionSupportRetentionDecision, SupportActionBreadthBudget, SupportActionId,
+    SupportAllocationScope, SupportPathClass, SupportProgramDensityClass, SupportProgramPathPolicy,
+    WORTHStoreBuilder,
 };
 use super::evidence::CertificationMatrixEvidence;
+
+fn retention_request(
+    action_id: SupportActionId,
+    affected_bases: Vec<crate::SubscriptionSupportOperationalBasis>,
+    decision: SubscriptionSupportRetentionDecision,
+) -> SubscriptionSupportRetentionBatchRequest {
+    SubscriptionSupportRetentionBatchRequest {
+        action_id,
+        affected_bases,
+        decision,
+        path: SupportProgramPathPolicy {
+            path_class: SupportPathClass::OperationalPlanning,
+            density_class: SupportProgramDensityClass::FamilyLocalBatch,
+            allocation_scope: SupportAllocationScope::FamilyLocalBatch,
+            budget: SupportActionBreadthBudget::new(4, 1024).unwrap(),
+            payload_header_bytes: 128,
+        },
+    }
+}
 
 pub(super) fn record_retention(evidence: &mut CertificationMatrixEvidence) {
     let retention_exact = {
         let mut store = WORTHStoreBuilder::new().in_memory().build().unwrap();
         let plan = store
-            .admit_subscription_support_retention_batch(
+            .admit_subscription_support_retention_batch(retention_request(
                 SupportActionId::new("support-retention:cert-exact").unwrap(),
                 vec![retention_basis("exact-a"), retention_basis("exact-b")],
                 SubscriptionSupportRetentionDecision::retain_exact(),
-                SupportPathClass::OperationalPlanning,
-                SupportProgramDensityClass::FamilyLocalBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let report = store
             .publish_subscription_support_retention_consequence(plan)
@@ -47,17 +62,12 @@ pub(super) fn record_retention(evidence: &mut CertificationMatrixEvidence) {
     let retention_compacted = {
         let mut store = WORTHStoreBuilder::new().in_memory().build().unwrap();
         let plan = store
-            .admit_subscription_support_retention_batch(
+            .admit_subscription_support_retention_batch(retention_request(
                 SupportActionId::new("support-retention:cert-compacted").unwrap(),
                 vec![retention_basis("compact-a"), retention_basis("compact-b")],
                 SubscriptionSupportRetentionDecision::compact_exact("compacted-basis:cert")
                     .unwrap(),
-                SupportPathClass::OperationalPlanning,
-                SupportProgramDensityClass::FamilyLocalBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let report = store
             .publish_subscription_support_retention_consequence(plan)
@@ -77,7 +87,7 @@ pub(super) fn record_retention(evidence: &mut CertificationMatrixEvidence) {
     let retention_reclaimed = {
         let mut store = WORTHStoreBuilder::new().in_memory().build().unwrap();
         let plan = store
-            .admit_subscription_support_retention_batch(
+            .admit_subscription_support_retention_batch(retention_request(
                 SupportActionId::new("support-retention:cert-reclaim").unwrap(),
                 vec![retention_basis("reclaim")],
                 SubscriptionSupportRetentionDecision::reclaim_with_rebuild(
@@ -85,12 +95,7 @@ pub(super) fn record_retention(evidence: &mut CertificationMatrixEvidence) {
                     "maintenance:key:cert-reclaim",
                 )
                 .unwrap(),
-                SupportPathClass::OperationalPlanning,
-                SupportProgramDensityClass::FamilyLocalBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let report = store
             .publish_subscription_support_retention_consequence(plan)
@@ -110,17 +115,12 @@ pub(super) fn record_retention(evidence: &mut CertificationMatrixEvidence) {
     let retention_expired = {
         let mut store = WORTHStoreBuilder::new().in_memory().build().unwrap();
         let plan = store
-            .admit_subscription_support_retention_batch(
+            .admit_subscription_support_retention_batch(retention_request(
                 SupportActionId::new("support-retention:cert-expired").unwrap(),
                 vec![retention_basis("expired")],
                 SubscriptionSupportRetentionDecision::expire_by_policy("policy-expired:cert")
                     .unwrap(),
-                SupportPathClass::OperationalPlanning,
-                SupportProgramDensityClass::FamilyLocalBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let report = store
             .publish_subscription_support_retention_consequence(plan)

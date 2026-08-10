@@ -25,6 +25,7 @@ pub use lifecycle::{
     MaintenanceReadmissionStatus, MaintenanceReservationTransition, MaintenanceStatusReport,
     RecoveredMaintenanceIntakeReport, RecoveredMaintenanceLaneIntake,
 };
+pub(crate) use lifecycle::MaintenanceStatusReportBasis;
 pub use scheduler::{
     AdmittedMaintenanceWork, BackgroundPacedMaintenancePlan, BackgroundReservationFamily,
     CancelledMaintenanceWork, CpuBudgetUnits, DeferredMaintenancePlan, DiscoveredMaintenanceWork,
@@ -42,4 +43,8 @@ pub use scheduler::{
     PlanGeneration, PublicationSlotBudget, QuantumBudgetReceipt, RecoveredMaintenanceDescriptor,
     ReservedMaintenanceWork, RestartMaintenanceAdmission, SupersededMaintenanceWitness,
     SupersessionEpoch, TierWorkContainerClass,
+};
+pub(crate) use scheduler::{
+    MaintenanceQueueSummaryBasis, MaintenanceResourceBudgetSummaryBasis,
+    MaintenanceWorkDescriptorBasis,
 };

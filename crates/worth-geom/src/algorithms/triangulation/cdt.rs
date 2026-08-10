@@ -20,6 +20,8 @@ use worth_math::predicates::incircle::incircle;
 use worth_math::predicates::orient2d::orient2d;
 use worth_math::sign::TriSign;
 
+mod geometry;
+
 /// Result of a CDT computation.
 pub struct CdtResult {
     /// Triangle index triples into the original vertex array.
@@ -100,7 +102,7 @@ impl CdtState {
     fn new(original_verts: &[[f64; 2]]) -> Self {
         let n = original_verts.len();
 
-        let (min, max) = bounding_box(original_verts);
+        let (min, max) = geometry::bounding_box(original_verts);
         let dx = (max[0] - min[0]).max(1e-15);
         let dy = (max[1] - min[1]).max(1e-15);
         let margin = (dx + dy) * 10.0;
@@ -186,7 +188,7 @@ impl CdtState {
                 let shared_with_other_bad = bad.iter().any(|&other| {
                     other != ti
                         && self.triangles[other].alive
-                        && triangle_has_edge(&self.triangles[other], a, b)
+                        && geometry::triangle_has_edge(&self.triangles[other], a, b)
                 });
 
                 if !shared_with_other_bad {
@@ -254,7 +256,7 @@ impl CdtState {
     fn edge_exists(&self, a: usize, b: usize) -> bool {
         self.triangles
             .iter()
-            .any(|tri| tri.alive && triangle_has_edge(tri, a, b))
+            .any(|tri| tri.alive && geometry::triangle_has_edge(tri, a, b))
     }
 
     /// Find triangle edges that cross the constraint edge (a, b).
@@ -273,7 +275,7 @@ impl CdtState {
                 if ea == a || ea == b || eb == a || eb == b {
                     continue;
                 }
-                if segments_cross(pa, pb, self.vertices[ea], self.vertices[eb]) {
+                if geometry::segments_cross(pa, pb, self.vertices[ea], self.vertices[eb]) {
                     result.push((ti, ea, eb));
                 }
             }
@@ -299,8 +301,8 @@ impl CdtState {
         let tri = self.triangles[tri_idx];
         let adj_tri = self.triangles[adj];
 
-        let apex_1 = triangle_opposite_vertex(&tri, edge_a, edge_b);
-        let apex_2 = triangle_opposite_vertex(&adj_tri, edge_a, edge_b);
+        let apex_1 = geometry::triangle_opposite_vertex(&tri, edge_a, edge_b);
+        let apex_2 = geometry::triangle_opposite_vertex(&adj_tri, edge_a, edge_b);
 
         let Some(v1) = apex_1 else { return Ok(()) };
         let Some(v2) = apex_2 else { return Ok(()) };
@@ -323,7 +325,7 @@ impl CdtState {
     /// Find the triangle sharing edge (a, b) with triangle `ti`.
     fn find_adjacent_triangle(&self, ti: usize, a: VIdx, b: VIdx) -> Option<usize> {
         for (i, tri) in self.triangles.iter().enumerate() {
-            if i != ti && tri.alive && triangle_has_edge(tri, a, b) {
+            if i != ti && tri.alive && geometry::triangle_has_edge(tri, a, b) {
                 return Some(i);
             }
         }
@@ -360,13 +362,13 @@ impl CdtState {
             if !tri.alive {
                 continue;
             }
-            let centroid = triangle_centroid(
+            let centroid = geometry::triangle_centroid(
                 self.vertices[tri.v[0]],
                 self.vertices[tri.v[1]],
                 self.vertices[tri.v[2]],
             );
 
-            let inside = point_in_polygon_2d(&centroid, &self.vertices, boundary)?;
+            let inside = geometry::point_in_polygon_2d(&centroid, &self.vertices, boundary)?;
             if !inside {
                 tri.alive = false;
             }
@@ -385,187 +387,5 @@ impl CdtState {
     }
 }
 
-// ── Geometry helpers ─────────────────────────────────────────────────────────
-
-/// Compute the bounding box of a point set.
-fn bounding_box(vertices: &[[f64; 2]]) -> ([f64; 2], [f64; 2]) {
-    let mut min = [f64::INFINITY, f64::INFINITY];
-    let mut max = [f64::NEG_INFINITY, f64::NEG_INFINITY];
-    for v in vertices {
-        min[0] = min[0].min(v[0]);
-        min[1] = min[1].min(v[1]);
-        max[0] = max[0].max(v[0]);
-        max[1] = max[1].max(v[1]);
-    }
-    (min, max)
-}
-
-/// Check if triangle `tri` contains edge (a, b) in either direction.
-fn triangle_has_edge(tri: &Triangle, a: VIdx, b: VIdx) -> bool {
-    for i in 0..3 {
-        let ea = tri.v[i];
-        let eb = tri.v[(i + 1) % 3];
-        if (ea == a && eb == b) || (ea == b && eb == a) {
-            return true;
-        }
-    }
-    false
-}
-
-/// Find the vertex of `tri` opposite to edge (a, b).
-fn triangle_opposite_vertex(tri: &Triangle, a: VIdx, b: VIdx) -> Option<VIdx> {
-    for &v in &tri.v {
-        if v != a && v != b {
-            return Some(v);
-        }
-    }
-    None
-}
-
-/// Centroid of a triangle in 2D.
-fn triangle_centroid(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> [f64; 2] {
-    [(a[0] + b[0] + c[0]) / 3.0, (a[1] + b[1] + c[1]) / 3.0]
-}
-
-/// Test if two line segments properly cross (not just touch).
-///
-/// Uses exact `orient2d` predicates for robustness.
-fn segments_cross(a: [f64; 2], b: [f64; 2], c: [f64; 2], d: [f64; 2]) -> bool {
-    let o1 = orient2d(a, b, c).ok().map(|(s, _)| s.sign());
-    let o2 = orient2d(a, b, d).ok().map(|(s, _)| s.sign());
-    let o3 = orient2d(c, d, a).ok().map(|(s, _)| s.sign());
-    let o4 = orient2d(c, d, b).ok().map(|(s, _)| s.sign());
-
-    match (o1, o2, o3, o4) {
-        (Some(s1), Some(s2), Some(s3), Some(s4)) => {
-            s1 != s2
-                && s1 != TriSign::Zero
-                && s2 != TriSign::Zero
-                && s3 != s4
-                && s3 != TriSign::Zero
-                && s4 != TriSign::Zero
-        }
-        _ => false,
-    }
-}
-
-/// Point-in-polygon test using winding number with exact orient2d.
-fn point_in_polygon_2d(
-    pt: &[f64; 2],
-    vertices: &[[f64; 2]],
-    boundary: &[usize],
-) -> Result<bool, worth_math::error::MathError> {
-    let n = boundary.len();
-    let mut winding = 0i32;
-
-    for i in 0..n {
-        let a = vertices[boundary[i]];
-        let b = vertices[boundary[(i + 1) % n]];
-
-        if a[1] <= pt[1] {
-            if b[1] > pt[1] {
-                let (s, _) = orient2d(a, b, *pt)?;
-                if s.sign() == TriSign::Pos {
-                    winding += 1;
-                }
-            }
-        } else if b[1] <= pt[1] {
-            let (s, _) = orient2d(a, b, *pt)?;
-            if s.sign() == TriSign::Neg {
-                winding -= 1;
-            }
-        }
-    }
-
-    Ok(winding != 0)
-}
-
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn triangulate_square() {
-        let verts = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]];
-        let boundary = vec![0, 1, 2, 3];
-        let constraints: Vec<[usize; 2]> = vec![[0, 1], [1, 2], [2, 3], [3, 0]];
-
-        let result = triangulate_polygon_2d(&verts, &constraints, &boundary).unwrap();
-        assert_eq!(
-            result.triangles.len(),
-            2,
-            "Square should produce 2 triangles, got {}",
-            result.triangles.len()
-        );
-    }
-
-    #[test]
-    fn triangulate_square_with_diagonal_cut() {
-        let verts = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]];
-        let result = triangulate_face_with_cut(&verts, 0, 2).unwrap();
-        assert_eq!(result.triangles.len(), 2);
-
-        let has_diagonal = result
-            .triangles
-            .iter()
-            .any(|t| t.contains(&0) && t.contains(&2));
-        assert!(
-            has_diagonal,
-            "Cut diagonal 0-2 should appear as triangle edge"
-        );
-    }
-
-    #[test]
-    fn triangulate_l_shape() {
-        let verts = [
-            [0.0, 0.0],
-            [2.0, 0.0],
-            [2.0, 1.0],
-            [1.0, 1.0],
-            [1.0, 2.0],
-            [0.0, 2.0],
-        ];
-        let boundary = vec![0, 1, 2, 3, 4, 5];
-        let constraints: Vec<[usize; 2]> = (0..6).map(|i| [i, (i + 1) % 6]).collect();
-
-        let result = triangulate_polygon_2d(&verts, &constraints, &boundary).unwrap();
-        assert!(
-            result.triangles.len() >= 4,
-            "L-shape needs at least 4 triangles, got {}",
-            result.triangles.len()
-        );
-
-        for tri in &result.triangles {
-            let centroid = triangle_centroid(verts[tri[0]], verts[tri[1]], verts[tri[2]]);
-            assert!(
-                point_in_polygon_2d(&centroid, &verts, &boundary).unwrap(),
-                "Triangle centroid should be inside L-shape"
-            );
-        }
-    }
-
-    #[test]
-    fn concave_polygon_with_reentrant_cut() {
-        let verts = [
-            [0.0, 0.0],
-            [3.0, 0.0],
-            [3.0, 3.0],
-            [2.0, 1.0],
-            [1.0, 3.0],
-            [0.0, 3.0],
-        ];
-        let result = triangulate_face_with_cut(&verts, 0, 2).unwrap();
-
-        assert!(
-            result.triangles.len() >= 4,
-            "Concave polygon with cut needs at least 4 triangles, got {}",
-            result.triangles.len()
-        );
-
-        let has_cut = result
-            .triangles
-            .iter()
-            .any(|t| t.contains(&0) && t.contains(&2));
-        assert!(has_cut, "Cut edge 0-2 should appear as triangle edge");
-    }
-}
+mod tests;

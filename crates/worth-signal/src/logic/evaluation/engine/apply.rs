@@ -1,24 +1,26 @@
+mod dependency_inputs;
+mod effect_lowering;
+mod mutation;
+mod telemetry;
+mod verdict;
+
 use crate::data::comparator::ComparatorPolicyResolver;
-use crate::data::dependency::{
-    CommittedSnapshotUpdate, DependencyEdge, DependencyInputScan, DependencySnapshot,
-    ReplacementSnapshotUpdate, SnapshotDeltaRecord, StableShapeSnapshotBasis,
-    VersionOnlySnapshotUpdate, VersionVector,
-};
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::output::{MemoizedResultOrigin, NodeEvaluationResult};
-use crate::data::reuse::{
-    ReuseBoundaryAuthority, ReuseBoundaryContext, ReuseCertificationRecord, ReuseOrigin,
-};
+use crate::data::output::NodeEvaluationResult;
+use crate::data::reuse::{ReuseBoundaryAuthority, ReuseBoundaryContext, ReuseCertificationRecord};
 use crate::logic::evaluation::{
-    DiagnosticEnvelope, EffectDependencyInputs, EffectRuntimeMetadata, EvaluationEffect,
-    EvaluationVerdict, OperationalEffect, PreparedApplyResult, PreviousArtifactWarmSnapshot,
-    SuppressionReason,
+    EffectDependencyInputs, EvaluationVerdict, PreparedApplyResult, PreviousArtifactWarmSnapshot,
 };
 use crate::logic::prepared::PreparedKeyedContext;
 
 use super::metadata::EvaluationExecutionMetadata;
+
+pub(crate) use dependency_inputs::collect_effect_dependency_inputs_iter;
+#[cfg(feature = "parallel")]
+pub(crate) use effect_lowering::build_evaluation_effect;
+pub(crate) use verdict::verdict_for_evaluated_result;
 
 pub(crate) fn apply_effect_with_policy_and_condition(
     graph: &mut SignalGraph,
@@ -37,8 +39,9 @@ pub(crate) fn apply_effect_with_policy_and_condition(
     defer_snapshot_commit: bool,
     previous_artifact_warm: Option<PreviousArtifactWarmSnapshot>,
 ) -> Result<PreparedApplyResult, SignalError> {
-    let dependency_inputs = resolve_effect_dependency_inputs(graph, node, dependency_inputs)?;
-    let effect = build_evaluation_effect(
+    let dependency_inputs =
+        dependency_inputs::resolve_effect_dependency_inputs(graph, node, dependency_inputs)?;
+    let effect = effect_lowering::build_evaluation_effect(
         node,
         result,
         execution_metadata,
@@ -52,8 +55,9 @@ pub(crate) fn apply_effect_with_policy_and_condition(
         dependency_inputs,
         previous_artifact_warm,
     );
-    let comparator = resolve_effect_comparator(graph, node, comparator_resolver)?;
-    let (report, pending_snapshot) = graph.apply_effect(
+    let comparator = effect_lowering::resolve_effect_comparator(graph, node, comparator_resolver)?;
+    let (report, pending_snapshot) = mutation::apply_evaluation_effect(
+        graph,
         effect,
         comparator,
         comparator_resolver,
@@ -65,340 +69,4 @@ pub(crate) fn apply_effect_with_policy_and_condition(
         pending_snapshot,
         temporal_eligibility: None,
     })
-}
-
-fn resolve_effect_dependency_inputs(
-    graph: &mut SignalGraph,
-    node: NodeId,
-    dependency_inputs: Option<EffectDependencyInputs>,
-) -> Result<EffectDependencyInputs, SignalError> {
-    match dependency_inputs {
-        Some(inputs) if dependency_inputs_match_graph(graph, node, &inputs)? => {
-            graph.telemetry_mut().execution.dependency_input_reuse_count += 1;
-            Ok(inputs)
-        }
-        Some(_) => {
-            graph
-                .telemetry_mut()
-                .execution
-                .dependency_input_rebuild_count += 1;
-            build_effect_dependency_inputs(graph, node)
-        }
-        None => build_effect_dependency_inputs(graph, node),
-    }
-}
-
-fn dependency_inputs_match_graph(
-    graph: &SignalGraph,
-    node: NodeId,
-    dependency_inputs: &EffectDependencyInputs,
-) -> Result<bool, SignalError> {
-    let (dependency_set_id, dependency_snapshot_id) = graph.node_dependency_ids(node)?;
-    Ok(
-        dependency_inputs.context.dependency_set_id == dependency_set_id
-            && dependency_inputs.context.dependency_snapshot_id == dependency_snapshot_id,
-    )
-}
-
-pub(crate) fn build_evaluation_effect(
-    node: NodeId,
-    result: NodeEvaluationResult,
-    execution_metadata: Option<&EvaluationExecutionMetadata>,
-    verdict: EvaluationVerdict,
-    recomputed: bool,
-    reuse_boundary_authority: ReuseBoundaryAuthority,
-    reuse_boundary_detail: Option<ReuseBoundaryContext>,
-    keyed_context: Option<PreparedKeyedContext>,
-    causality: Option<crate::data::trace::CausalityMetadata>,
-    reuse_certification: Option<ReuseCertificationRecord>,
-    dependency_inputs: EffectDependencyInputs,
-    previous_artifact_warm: Option<PreviousArtifactWarmSnapshot>,
-) -> EvaluationEffect {
-    let memoized_origin = execution_metadata
-        .map(|metadata| metadata.memoized_origin)
-        .unwrap_or(MemoizedResultOrigin::DirectCompute);
-    let reuse_basis = execution_metadata
-        .map(|metadata| metadata.reuse_basis.clone())
-        .unwrap_or_else(crate::data::reuse::ReuseBasis::fresh_compute);
-    let reuse_origin = execution_metadata
-        .map(|metadata| metadata.reuse_origin)
-        .unwrap_or(ReuseOrigin::FreshCompute);
-    EvaluationEffect {
-        operational: OperationalEffect {
-            node,
-            verdict,
-            aspect_version: result.aspect_version,
-            output_change: result.output_change,
-            reuse_basis,
-            reuse_origin,
-            reuse_boundary_authority,
-            dependency_snapshot_update: dependency_inputs.dependency_snapshot_update,
-            snapshot_delta: dependency_inputs.snapshot_delta,
-            meaningful_input_changes: dependency_inputs.meaningful_input_changes,
-        },
-        diagnostics: DiagnosticEnvelope::from_parts(
-            result.output_identity,
-            result.continuity_token,
-            result.changed_regions,
-            result.labels,
-        ),
-        runtime_metadata: EffectRuntimeMetadata {
-            memoized_origin,
-            recomputed,
-            keyed_context,
-            causality,
-            reuse_certification,
-            reuse_boundary_detail,
-            previous_artifact_warm,
-        },
-    }
-}
-
-fn resolve_effect_comparator(
-    graph: &SignalGraph,
-    node: NodeId,
-    comparator_resolver: &mut impl ComparatorPolicyResolver,
-) -> Result<crate::data::comparator::VersionComparatorPolicy, SignalError> {
-    let config = graph.node_eval_config(node)?;
-    Ok(comparator_resolver.policy_for_node(node, config.comparator.as_ref()))
-}
-
-pub(crate) fn collect_effect_dependency_inputs_iter<I>(
-    graph: &mut SignalGraph,
-    nodes: I,
-) -> Result<Vec<EffectDependencyInputs>, SignalError>
-where
-    I: IntoIterator<Item = NodeId>,
-{
-    nodes
-        .into_iter()
-        .map(|node| build_effect_dependency_inputs(graph, node))
-        .collect()
-}
-
-pub(crate) fn verdict_for_evaluated_result(
-    previous_trace: Option<&PreviousArtifactWarmSnapshot>,
-    result: &NodeEvaluationResult,
-    meaningful_output_change: bool,
-) -> Result<EvaluationVerdict, SignalError> {
-    let previous_output_identity = previous_trace.and_then(|trace| trace.output_identity.as_ref());
-    let previous_continuity_token =
-        previous_trace.and_then(|trace| trace.continuity_token.as_ref());
-
-    let output_identity_unchanged = matches!(
-        (previous_output_identity, result.output_identity.as_ref()),
-        (Some(previous), Some(current)) if previous == current
-    );
-    let continuity_token_unchanged = matches!(
-        (previous_continuity_token, result.continuity_token.as_ref()),
-        (Some(previous), Some(current)) if previous == current
-    );
-
-    // Suppression precedence is part of the runtime contract:
-    // 1. output identity continuity
-    // 2. explicit continuity token continuity
-    // 3. comparator-match suppression when no recompute occurred
-    // 4. otherwise the result is authoritative recomputation
-    let verdict = if meaningful_output_change {
-        EvaluationVerdict::Recomputed
-    } else if output_identity_unchanged {
-        EvaluationVerdict::Suppressed {
-            reason: SuppressionReason::OutputIdentityUnchanged,
-        }
-    } else if continuity_token_unchanged
-        && previous_output_identity.is_none()
-        && result.output_identity.is_none()
-    {
-        EvaluationVerdict::Suppressed {
-            reason: SuppressionReason::ContinuityTokenUnchanged,
-        }
-    } else {
-        EvaluationVerdict::Suppressed {
-            reason: SuppressionReason::ComparatorMatch,
-        }
-    };
-
-    Ok(verdict)
-}
-
-fn build_effect_dependency_inputs(
-    graph: &mut SignalGraph,
-    node: NodeId,
-) -> Result<EffectDependencyInputs, SignalError> {
-    let (dependency_set_id, dependency_snapshot_id) = graph.node_dependency_ids(node)?;
-    let context = crate::logic::evaluation::DependencyInputContext {
-        dependency_set_id,
-        dependency_snapshot_id,
-    };
-    graph.refresh_runtime_dependencies_of(node)?;
-    let dependencies = graph.current_runtime_dependencies_of(node)?.to_vec();
-    build_effect_dependency_inputs_for_dependencies(graph, node, context, dependencies.as_slice())
-}
-
-pub(crate) fn build_effect_dependency_inputs_for_dependencies(
-    graph: &mut SignalGraph,
-    node: NodeId,
-    context: crate::logic::evaluation::DependencyInputContext,
-    dependencies: &[DependencyEdge],
-) -> Result<EffectDependencyInputs, SignalError> {
-    let shape_handle_lookup_start = crate::clock::RuntimeInstant::now();
-    let previous_shape_handle =
-        graph.dependency_snapshot_shape_handle(context.dependency_snapshot_id);
-    let shape_handle_lookup_nanos = shape_handle_lookup_start.elapsed().as_nanos();
-    let previous_snapshot_fetch_start = crate::clock::RuntimeInstant::now();
-    let previous_snapshot = graph.get_dep_snapshot(node)?;
-    let previous_snapshot_fetch_nanos = previous_snapshot_fetch_start.elapsed().as_nanos();
-    let (stable_shape_proved, inputs) = {
-        let previous_entries = previous_snapshot.entries();
-        let mut previous_index = 0usize;
-        let mut shape_stable = dependencies.len() == previous_entries.len();
-        let mut changes = 0_u32;
-        let mut stable_shape_versions = Vec::with_capacity(dependencies.len());
-        let version_scan_start = crate::clock::RuntimeInstant::now();
-        for dep in dependencies {
-            let source = dep.source();
-            let aspect = dep.aspect();
-            let Some(previous_entry) = previous_entries.get(previous_index) else {
-                shape_stable = false;
-                break;
-            };
-            if !graph.is_alive(source) {
-                shape_stable = false;
-                break;
-            }
-
-            let version = graph.node_version_for_scope(source, aspect, dep.scope_ref())?;
-            stable_shape_versions.push(version);
-            if previous_entry.sort_key() != dep.sort_key() {
-                shape_stable = false;
-                break;
-            }
-            if previous_entry.cached_version != version {
-                changes += 1;
-            }
-            previous_index += 1;
-        }
-        let version_scan_nanos = version_scan_start.elapsed().as_nanos();
-
-        if shape_stable && previous_index == previous_entries.len() {
-            let stable_proof_start = crate::clock::RuntimeInstant::now();
-            let scan = DependencyInputScan::stable_shape(
-                node,
-                context.dependency_snapshot_id,
-                previous_entries.len(),
-                stable_shape_versions.len(),
-                stable_shape_versions,
-            );
-            let basis =
-                StableShapeSnapshotBasis::prove(&scan, previous_shape_handle).ok_or_else(|| {
-                    SignalError::internal("stable-shape dependency scan failed to produce a proof")
-                })?;
-            let versions = VersionVector::from_scan(&basis, &scan);
-            let stable_proof_nanos = stable_proof_start.elapsed().as_nanos();
-            let version_delta_start = crate::clock::RuntimeInstant::now();
-            let snapshot_delta = SnapshotDeltaRecord::for_version_update(
-                node,
-                previous_snapshot,
-                scan.stable_shape_versions(),
-            );
-            let dependency_snapshot_update = CommittedSnapshotUpdate::VersionOnly(
-                VersionOnlySnapshotUpdate::from_basis_and_versions(basis, versions),
-            );
-            let version_delta_nanos = version_delta_start.elapsed().as_nanos();
-            {
-                let execution = &mut graph.telemetry_mut().execution;
-                execution.dependency_input_shape_handle_lookup_nanos += shape_handle_lookup_nanos;
-                execution.dependency_input_previous_snapshot_fetch_nanos +=
-                    previous_snapshot_fetch_nanos;
-                execution.dependency_input_version_scan_nanos += version_scan_nanos;
-                execution.dependency_input_stable_proof_nanos += stable_proof_nanos;
-                execution.dependency_input_version_delta_nanos += version_delta_nanos;
-                execution.dependency_input_stable_shape_count += 1;
-            }
-            (
-                true,
-                EffectDependencyInputs {
-                    context,
-                    snapshot_delta,
-                    dependency_snapshot_update,
-                    meaningful_input_changes: changes,
-                },
-            )
-        } else {
-            // `runtime_dependencies_of(node)` must preserve canonical dependency order
-            // by `DependencyEdge::sort_key()`. Snapshot reuse and delta detection rely
-            // on stable ordering between the current dependency view and the prior
-            // snapshot entries.
-            let mut snapshot = DependencySnapshot::empty();
-            let snapshot_entries = previous_entries;
-            let mut snapshot_index = 0usize;
-            changes = 0_u32;
-
-            let replacement_build_start = crate::clock::RuntimeInstant::now();
-            for dep in dependencies {
-                let source = dep.source();
-                let aspect = dep.aspect();
-                if graph.is_alive(source) {
-                    let ver = graph.node_version_for_scope(source, aspect, dep.scope_ref())?;
-                    snapshot.record(source, aspect, ver, dep.scope_ref().cloned());
-                    while snapshot_index < snapshot_entries.len()
-                        && snapshot_entries[snapshot_index].sort_key() < dep.sort_key()
-                    {
-                        snapshot_index += 1;
-                    }
-                    if snapshot_index < snapshot_entries.len()
-                        && snapshot_entries[snapshot_index].sort_key() == dep.sort_key()
-                    {
-                        if snapshot_entries[snapshot_index].cached_version != ver {
-                            changes += 1;
-                        }
-                        snapshot_index += 1;
-                    }
-                } else {
-                    changes += 1;
-                }
-            }
-
-            let replacement_snapshot =
-                crate::data::dependency::SharedDependencySnapshot::new(snapshot.clone());
-            let snapshot_delta =
-                SnapshotDeltaRecord::between(node, previous_snapshot, &replacement_snapshot);
-            let dependency_snapshot_update =
-                CommittedSnapshotUpdate::Replace(ReplacementSnapshotUpdate::from_snapshot(
-                    snapshot,
-                    graph.dependency_snapshot_shapes_mut(),
-                ));
-            let replacement_build_nanos = replacement_build_start.elapsed().as_nanos();
-            {
-                let execution = &mut graph.telemetry_mut().execution;
-                execution.dependency_input_shape_handle_lookup_nanos += shape_handle_lookup_nanos;
-                execution.dependency_input_previous_snapshot_fetch_nanos +=
-                    previous_snapshot_fetch_nanos;
-                execution.dependency_input_version_scan_nanos += version_scan_nanos;
-                execution.dependency_input_replacement_build_nanos += replacement_build_nanos;
-                execution.dependency_input_replacement_count += 1;
-            }
-            (
-                false,
-                EffectDependencyInputs {
-                    context,
-                    snapshot_delta,
-                    dependency_snapshot_update,
-                    meaningful_input_changes: changes,
-                },
-            )
-        }
-    };
-    if stable_shape_proved {
-        graph
-            .telemetry_mut()
-            .storage
-            .stable_shape_snapshot_proof_count += 1;
-    } else {
-        graph
-            .telemetry_mut()
-            .storage
-            .stable_shape_snapshot_proof_failure_count += 1;
-    }
-    Ok(inputs)
 }
