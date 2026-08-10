@@ -14,12 +14,11 @@ use worth_ui_dsl::{
 #[test]
 fn bootstrap_app_exposes_milestone32_closeout_report() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let report = app.declaration_closeout_report();
 
@@ -43,16 +42,15 @@ fn bootstrap_app_exposes_milestone32_closeout_report() {
 #[test]
 fn caller_authored_app_exposes_same_closeout_contract() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.closeout")
                 .with_semantic_artifact_spec(control_closeout_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let _artifact = artifact_from_file_provenance(&app, "app/closeout.wui", 0);
     let report = app.declaration_closeout_report();

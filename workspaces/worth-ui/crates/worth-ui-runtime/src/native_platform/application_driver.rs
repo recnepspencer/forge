@@ -1,7 +1,7 @@
 use crate::facade::{WorthUiApp, WorthUiNativeApplicationShell};
 use worth_ui_host_native::{
-    UiNativeEventLoopClient, UiNativeEventLoopDirective, UiNativeReadinessGrant,
-    WorthUiNativeEventLoop,
+    UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
+    UiNativeEventLoopDirective, UiNativeReadinessGrant, WorthUiNativeEventLoop,
 };
 
 pub(crate) struct UiNativeApplicationDriver {
@@ -10,6 +10,15 @@ pub(crate) struct UiNativeApplicationDriver {
     last_ready_generation: u64,
     scale_factor_milli: Option<u32>,
     attribution: Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
+    consumed_application_cleanup_complete: bool,
+    pending_cleanup: Option<UiNativeApplicationDriverCleanup>,
+}
+
+enum UiNativeApplicationDriverCleanup {
+    RuntimeLaunch(crate::runtime::WorthUiRuntimeLaunchDenial),
+    Application(crate::facade::WorthUiNativeApplicationCleanup),
+    HostSession(crate::facade::WorthUiHostSessionReleaseRecovery),
+    UnresolvedApplication,
 }
 
 impl UiNativeApplicationDriver {
@@ -20,6 +29,8 @@ impl UiNativeApplicationDriver {
             last_ready_generation: 0,
             scale_factor_milli: None,
             attribution: None,
+            consumed_application_cleanup_complete: false,
+            pending_cleanup: None,
         }
     }
 
@@ -43,11 +54,29 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             return Err(());
         }
         let application = self.application.take().ok_or(())?;
-        self.shell = Some(
-            application
-                .launch_native_surface_at_scale(grant.scale_factor_milli())
-                .map_err(|_| ())?,
-        );
+        self.shell = match application.launch_native_surface_at_scale(grant.scale_factor_milli()) {
+            Ok(shell) => Some(shell),
+            Err(
+                crate::facade::WorthUiNativeApplicationShellLaunchDenial::RuntimeLaunchCleanup(
+                    cleanup,
+                ),
+            ) => {
+                self.pending_cleanup =
+                    Some(UiNativeApplicationDriverCleanup::RuntimeLaunch(cleanup));
+                return Err(());
+            }
+            Err(crate::facade::WorthUiNativeApplicationShellLaunchDenial::ApplicationCleanup(
+                cleanup,
+            )) => {
+                self.pending_cleanup = Some(UiNativeApplicationDriverCleanup::Application(cleanup));
+                return Err(());
+            }
+            Err(denial) => {
+                let _ = denial;
+                self.consumed_application_cleanup_complete = true;
+                return Err(());
+            }
+        };
         self.scale_factor_milli = Some(grant.scale_factor_milli());
         Ok(UiNativeEventLoopDirective::Continue)
     }
@@ -79,15 +108,58 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
         self.attribution
     }
 
-    fn close(mut self) -> Result<(), ()> {
+    fn close(mut self) -> UiNativeEventLoopClientClose {
+        if let Some(cleanup) = self.pending_cleanup.take() {
+            match cleanup.retry() {
+                Ok(()) => self.consumed_application_cleanup_complete = true,
+                Err(cleanup) => return UiNativeEventLoopClientClose::Incomplete(Box::new(cleanup)),
+            }
+        }
         let Some(shell) = self.shell.take() else {
-            return self.application.take().map(|_| ()).ok_or(());
+            return if self.application.take().is_some()
+                || self.consumed_application_cleanup_complete
+            {
+                UiNativeEventLoopClientClose::Complete
+            } else {
+                UiNativeEventLoopClientClose::Incomplete(Box::new(
+                    UiNativeApplicationDriverCleanup::UnresolvedApplication,
+                ))
+            };
         };
         let shutdown = shell.shutdown();
         if shutdown.host_session_released() && shutdown.released_surface_count() == 1 {
-            Ok(())
+            UiNativeEventLoopClientClose::Complete
+        } else if let Some(cleanup) = shutdown.into_host_cleanup() {
+            UiNativeEventLoopClientClose::Incomplete(Box::new(
+                UiNativeApplicationDriverCleanup::HostSession(cleanup),
+            ))
         } else {
-            Err(())
+            UiNativeEventLoopClientClose::Incomplete(Box::new(
+                UiNativeApplicationDriverCleanup::UnresolvedApplication,
+            ))
+        }
+    }
+}
+
+impl UiNativeEventLoopClientCleanup for UiNativeApplicationDriverCleanup {
+    fn retry(self: Box<Self>) -> UiNativeEventLoopClientClose {
+        match (*self).retry() {
+            Ok(()) => UiNativeEventLoopClientClose::Complete,
+            Err(cleanup) => UiNativeEventLoopClientClose::Incomplete(Box::new(cleanup)),
+        }
+    }
+}
+
+impl UiNativeApplicationDriverCleanup {
+    fn retry(self) -> Result<(), Self> {
+        match self {
+            Self::RuntimeLaunch(cleanup) => cleanup
+                .retry_host_session_cleanup()
+                .map(|_| ())
+                .map_err(Self::RuntimeLaunch),
+            Self::Application(cleanup) => cleanup.retry().map_err(Self::Application),
+            Self::HostSession(cleanup) => cleanup.retry().map(|_| ()).map_err(Self::HostSession),
+            Self::UnresolvedApplication => Err(Self::UnresolvedApplication),
         }
     }
 }

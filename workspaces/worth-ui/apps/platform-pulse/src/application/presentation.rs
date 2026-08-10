@@ -34,14 +34,9 @@ const PLATFORM_PULSE_STRUCTURAL_BYTES_PER_RECEIPT: u64 = 256 << 10;
 const PLATFORM_PULSE_RETAINED_STRUCTURAL_BYTES: u64 =
     2 * PLATFORM_PULSE_STRUCTURAL_BYTES_PER_RECEIPT;
 
-pub(super) fn register_structure<HostBindingState>(
-    builder: WorthUiApplicationBuilder<
-        UiChangeProfileInstalled,
-        UiIntentWiringSatisfied,
-        HostBindingState,
-    >,
-) -> WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied, HostBindingState>
-{
+pub(super) fn register_structure(
+    builder: WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied>,
+) -> WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied> {
     let background_allocation = ComponentAllocationMeasurementContract::fill_viewport();
     let target_allocation = ComponentAllocationMeasurementContract::viewport_inset(
         ComponentViewportInset::symmetric(48, 24),
@@ -109,14 +104,9 @@ pub(super) fn register_structure<HostBindingState>(
         ))
 }
 
-pub(super) fn register_theme_tokens<HostBindingState>(
-    builder: WorthUiApplicationBuilder<
-        UiChangeProfileInstalled,
-        UiIntentWiringSatisfied,
-        HostBindingState,
-    >,
-) -> WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied, HostBindingState>
-{
+pub(super) fn register_theme_tokens(
+    builder: WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied>,
+) -> WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied> {
     builder
         .register_theme_token(ThemeTokenDescriptor::define(
             token_id(WHITE_TOKEN),

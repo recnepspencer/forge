@@ -140,9 +140,11 @@ pub(super) fn stale_dependency_candidate_denial() -> WorthUiReplacementCandidate
         candidate_artifact,
         stale_metadata,
         WorthUi::app()
-            .bind_certification_host()
             .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed")
             .capabilities()
             .digest(),

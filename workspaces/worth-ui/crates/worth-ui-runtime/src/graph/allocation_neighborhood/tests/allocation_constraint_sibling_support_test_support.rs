@@ -37,6 +37,7 @@ pub(super) fn mosaic_peer_app_with_contracts(
         include_alternate_contract,
     )
     .freeze()
+    .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
     .expect("application preparation should succeed");
     let submission = runtime_from_artifact(empty_artifact())
         .source_event_ingress(source_provider)
@@ -48,6 +49,7 @@ pub(super) fn mosaic_peer_app_with_contracts(
     mosaic_peer_builder(world_profile, include_alternate_contract)
         .with_candidate_submission(submission)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 
@@ -56,7 +58,6 @@ fn mosaic_peer_builder(
     include_alternate_contract: bool,
 ) -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     let mut builder = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .register_component(component_descriptor("workspace.component.workflow_editor"))

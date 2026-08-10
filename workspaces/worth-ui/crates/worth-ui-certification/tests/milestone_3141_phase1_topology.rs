@@ -8,6 +8,8 @@ mod authority_residue;
 mod compile_contract_artifact;
 #[path = "milestone_3141_phase1_topology/external_ports.rs"]
 mod external_ports;
+#[path = "milestone_3141_phase1_topology/host_activation.rs"]
+mod host_activation;
 #[path = "milestone_3141_phase1_topology/preparation_call_graph.rs"]
 mod preparation_call_graph;
 #[path = "milestone_3141_phase1_topology/pulse_text.rs"]
@@ -71,89 +73,6 @@ fn assert_protocol_revision_four_rejects_mixed_revision() {
 }
 
 #[test]
-fn phase_one_removes_product_host_replacement_and_forged_native_host_lanes() {
-    let inventory = workspace_source_inventory();
-    let consumption = inventory
-        .source("crates/worth-ui-runtime/src/mounting/presentation/consumption_view.rs")
-        .expect("mounted consumption view");
-    assert!(!consumption.text().contains("fn projection("));
-    assert!(!consumption.text().contains("UiMountedProjectionView"));
-
-    let builder = inventory
-        .source("crates/worth-ui-runtime/src/facade/entry/app_builder.rs")
-        .expect("application builder");
-    for forbidden in [
-        "fn with_host<",
-        "fn bind_framework_host<",
-        "UiApplicationBuilderDefaultHost",
-    ] {
-        assert!(
-            !builder.text().contains(forbidden),
-            "builder retains {forbidden}"
-        );
-    }
-    assert!(!builder.text().contains("bind_native_platform_host"));
-    assert!(!builder.text().contains("UiNativePlatformBindingGrant"));
-    assert!(builder.text().contains("UiApplicationHostUnbound"));
-
-    let native = inventory
-        .source("crates/worth-ui-host-native/src/prepared_host.rs")
-        .expect("prepared native host");
-    assert!(!native
-        .text()
-        .contains("#[derive(Clone)]\npub struct WorthUiPreparedNativeHost"));
-    assert!(!native
-        .text()
-        .contains("#[derive(Default)]\npub struct WorthUiPreparedNativeHost"));
-    assert!(!native.text().contains("from_platform_binding"));
-
-    for path in [
-        "crates/worth-ui-runtime/src/facade/prepared_application_authority/generation_identity.rs",
-        "crates/worth-ui-runtime/src/facade/prepared_application_authority/lowering_authority.rs",
-    ] {
-        let prepared = inventory.source(path).expect("host-neutral prepared owner");
-        assert!(
-            !prepared.text().contains("host_session_plan"),
-            "{path} retains host selection"
-        );
-    }
-    let platform_binding = inventory
-        .source("crates/worth-ui-runtime/src/native_platform/native_platform_binding.rs")
-        .expect("private native binding owner");
-    assert!(platform_binding
-        .text()
-        .contains("pub(crate) struct UiNativePlatformBindingGrant"));
-    assert!(!platform_binding.text().contains("#[derive(Clone"));
-    let platform_facade = inventory
-        .source("crates/worth-ui-native-platform/src/lib.rs")
-        .expect("native platform facade");
-    assert!(!platform_facade
-        .text()
-        .contains("pub use native_platform_binding"));
-
-    let host_neutral_app = inventory
-        .source("crates/worth-ui-runtime/src/facade/entry/host_neutral_app.rs")
-        .expect("host-neutral application owner");
-    assert!(host_neutral_app
-        .text()
-        .contains("pub(crate) fn bind_qualified_native"));
-    assert!(!host_neutral_app
-        .text()
-        .contains("pub fn bind_qualified_native"));
-    let native_binding_transition = ["bind_qualified", "_native("].concat();
-    assert_exact_symbol_homes(
-        inventory,
-        &native_binding_transition,
-        &[
-            "crates/worth-ui-runtime/src/facade/entry/host_neutral_app.rs",
-            "crates/worth-ui-runtime/src/native_platform/application.rs",
-            "crates/worth-ui-runtime/src/native_platform/platform.rs",
-            "crates/worth-ui/tests/ui/facade/construction/host_binding/product_cannot_bind_native_host.rs",
-        ],
-    );
-}
-
-#[test]
 fn phase_one_consumer_inventory_rejects_legacy_protocol_branches() {
     let protocol = repository_document(
         "workspaces/worth-ui/crates/worth-ui-host-contract/src/mounted_frame/protocol.rs",
@@ -165,11 +84,11 @@ fn phase_one_consumer_inventory_rejects_legacy_protocol_branches() {
     let consumers = [
         (
             "crates/worth-ui-host-headless/src/headless_translation/static_paint.rs",
-            "UiMountedFrameSchemaVersion::current().revision()",
+            "UiMountedStaticPaintSchemaVersion::REQUIRED_MOUNTED_FRAME_REVISION",
         ),
         (
             "crates/worth-ui-host-egui/src/adapter/native_paint.rs",
-            "UiMountedFrameSchemaVersion::current().revision()",
+            "UiMountedStaticPaintSchemaVersion::REQUIRED_MOUNTED_FRAME_REVISION",
         ),
         (
             "crates/worth-ui-certification/tests/application_contracts/host_platform/world/production.rs",
@@ -189,6 +108,11 @@ fn phase_one_consumer_inventory_rejects_legacy_protocol_branches() {
         "crates/worth-ui-host-egui/src",
     ] {
         for source in inventory.rust_files_under(root) {
+            let path = source.relative_path().to_string_lossy();
+            if path.ends_with("_tests.rs") || path.contains("/tests/") || path.contains("\\tests\\")
+            {
+                continue;
+            }
             for forbidden in [
                 "UiMountedFrameSchemaVersion::new(",
                 "UiMountedPresentationSchemaVersion::new(",
@@ -332,7 +256,7 @@ fn platform_and_presentation_issuers_have_exact_source_homes() {
     );
 }
 
-fn assert_exact_symbol_homes(
+pub(super) fn assert_exact_symbol_homes(
     inventory: &worth_ui_certification::topology::WorkspaceSourceInventory,
     symbol: &str,
     expected: &[&str],

@@ -50,18 +50,18 @@ pub(super) fn observe(
 }
 
 impl ScriptedPresentationHost {
-    pub(crate) fn set_visual_capture_capability(
+    pub fn set_visual_capture_capability(
         &self,
         capability: worth_ui_host_contract::UiHostCaptureCapability,
     ) {
         self.state.lock().unwrap().visual_capture_capability = capability;
     }
 
-    pub(crate) fn push_visual_capture_pending(&self) {
+    pub fn push_visual_capture_pending(&self) {
         self.push_visual_script(ScriptedVisualCapture::Pending);
     }
 
-    pub(crate) fn push_visual_capture(
+    pub fn push_visual_capture(
         &self,
         transform: worth_ui_host_contract::UiHostCoordinateTransform,
         pixels: Option<worth_ui_host_contract::UiHostPixelArtifact>,
@@ -74,7 +74,7 @@ impl ScriptedPresentationHost {
         );
     }
 
-    pub(crate) fn push_visual_capture_with_regions(
+    pub fn push_visual_capture_with_regions(
         &self,
         transform: worth_ui_host_contract::UiHostCoordinateTransform,
         regions: Vec<worth_ui_host_contract::UiHostRealizedRegion>,
@@ -88,7 +88,7 @@ impl ScriptedPresentationHost {
         );
     }
 
-    pub(crate) fn push_visual_capture_with_wrong_request(
+    pub fn push_visual_capture_with_wrong_request(
         &self,
         transform: worth_ui_host_contract::UiHostCoordinateTransform,
         pixels: Option<worth_ui_host_contract::UiHostPixelArtifact>,
@@ -101,7 +101,7 @@ impl ScriptedPresentationHost {
         );
     }
 
-    pub(crate) fn push_visual_capture_with_wrong_epoch(
+    pub fn push_visual_capture_with_wrong_epoch(
         &self,
         transform: worth_ui_host_contract::UiHostCoordinateTransform,
         pixels: Option<worth_ui_host_contract::UiHostPixelArtifact>,
@@ -114,36 +114,34 @@ impl ScriptedPresentationHost {
         );
     }
 
-    pub(crate) fn push_visual_capture_superseded(&self) {
+    pub fn push_visual_capture_superseded(&self) {
         self.push_visual_terminal(ScriptedVisualTerminal::SupersededBeforeReadback);
     }
 
-    pub(crate) fn push_visual_capture_affinity_indeterminate(&self) {
+    pub fn push_visual_capture_affinity_indeterminate(&self) {
         self.push_visual_terminal(ScriptedVisualTerminal::CaptureAffinityIndeterminate);
     }
 
-    pub(crate) fn push_visual_capture_unsupported(&self) {
+    pub fn push_visual_capture_unsupported(&self) {
         self.push_visual_terminal(ScriptedVisualTerminal::Unsupported);
     }
 
-    pub(crate) fn push_visual_capture_capacity_exceeded(&self) {
+    pub fn push_visual_capture_capacity_exceeded(&self) {
         self.push_visual_terminal(ScriptedVisualTerminal::CapacityExceeded);
     }
 
-    pub(crate) fn visual_capture_calls(
-        &self,
-    ) -> Vec<worth_ui_host_contract::UiHostVisualCaptureRequest> {
+    pub fn visual_capture_calls(&self) -> Vec<worth_ui_host_contract::UiHostVisualCaptureRequest> {
         self.state.lock().unwrap().visual_capture_calls.clone()
     }
 
-    pub(crate) fn set_visual_cancellation_outcome(
+    pub fn set_visual_cancellation_outcome(
         &self,
         outcome: worth_ui_host_contract::UiHostCaptureCancellationOutcome,
     ) {
         self.state.lock().unwrap().visual_cancellation_outcome = outcome;
     }
 
-    pub(crate) fn visual_cancellation_calls(
+    pub fn visual_cancellation_calls(
         &self,
     ) -> Vec<worth_ui_host_contract::UiHostVisualCaptureRequest> {
         self.state.lock().unwrap().visual_cancellation_calls.clone()

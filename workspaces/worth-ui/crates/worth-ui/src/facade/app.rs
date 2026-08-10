@@ -1,9 +1,11 @@
 pub use worth_ui_runtime::facade::application::{
     WorthUiVisibleRange, WorthUiVisibleRangeDenial, WorthUiVisibleRangeDenialReason,
 };
+#[cfg(feature = "legacy-egui-migration")]
+pub use worth_ui_runtime::facade::entry::WorthUiLegacyEguiApplicationTransition;
 pub use worth_ui_runtime::facade::entry::{
-    UiApplicationHostBound, UiApplicationHostUnbound, UiIntentWiringSatisfied,
-    WorthUiApplicationCutoverRetry, WorthUiApplicationPublicationObservation,
+    UiIntentWiringSatisfied, WorthUiApplicationCutoverRetry,
+    WorthUiApplicationPublicationObservation,
 };
 pub use worth_ui_runtime::facade::lifecycle::{
     WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
@@ -32,10 +34,10 @@ pub use worth_ui_runtime::facade::{
     WorthUiMountedFrameExecutionStop, WorthUiMountedFrameFrameworkTransitionStop,
     WorthUiMountedReplacementAdmissionDenial, WorthUiMountedReplacementCompletionDenial,
     WorthUiMountedReplacementPreparationOutcome, WorthUiMountedReplacementRetentionDenial,
-    WorthUiNativeApplicationShell, WorthUiNativeApplicationShellLaunchDenial,
-    WorthUiNativeApplicationShutdownReceipt, WorthUiNativeIntentAttemptPrepared,
-    WorthUiNativeIntentConfirmationRequired, WorthUiNativeIntentIngress,
-    WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind,
+    WorthUiNativeApplicationCleanup, WorthUiNativeApplicationShell,
+    WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
+    WorthUiNativeIntentAttemptPrepared, WorthUiNativeIntentConfirmationRequired,
+    WorthUiNativeIntentIngress, WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind,
     WorthUiNativeIntentPosturePublicationCompletion, WorthUiNativeIntentPosturePublicationOutcome,
     WorthUiNativeIntentPosturePublicationRecovery, WorthUiNativeIntentPosturePublicationStop,
     WorthUiNativeIntentStop, WorthUiNativeIntentStopped, WorthUiNativeIntentTerminalPostureOutcome,

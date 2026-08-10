@@ -5,15 +5,15 @@ use std::sync::Arc;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow};
-use winit::window::{Window, WindowId};
+use winit::window::WindowId;
 
 use crate::UiNativeWindowConfiguration;
 
-use super::{
-    UiNativeGraphicsObservation, UiNativeGraphicsPort, UiNativeHostState, UiWgpuNativeGraphicsPort,
-};
+use super::{UiNativeGraphicsPort, UiNativeHostState, UiWgpuNativeGraphicsPort};
 
+mod cleanup;
 mod contract;
+mod finish;
 mod run;
 mod terminal_cleanup;
 #[cfg(test)]
@@ -23,12 +23,14 @@ mod window_port;
 #[cfg(test)]
 use run::stop_before_callbacks;
 
+pub use cleanup::UiNativeEventLoopCleanup;
 pub use contract::{
-    UiNativeClientPresentationAttribution, UiNativeEventLoopClient, UiNativeEventLoopDirective,
-    UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport, UiNativeEventLoopStopReport,
-    UiNativeReadinessGrant,
+    UiNativeClientPresentationAttribution, UiNativeEventLoopClient, UiNativeEventLoopClientCleanup,
+    UiNativeEventLoopClientClose, UiNativeEventLoopDirective, UiNativeEventLoopRunDenial,
+    UiNativeEventLoopRunReport, UiNativeEventLoopStopReport, UiNativeReadinessGrant,
 };
 use terminal_cleanup::terminal_cleanup_complete;
+pub(crate) use window_port::UiNativeOwnedWindow;
 use window_port::{UiNativeWindowPort, UiWinitNativeWindowPort};
 
 pub struct WorthUiNativeEventLoop {
@@ -39,7 +41,6 @@ pub struct WorthUiNativeEventLoop {
 struct UiNativeEventLoopApplication<Client> {
     shared: Rc<RefCell<UiNativeHostState>>,
     configuration: UiNativeWindowConfiguration,
-    window: Option<Arc<Window>>,
     client: Option<Client>,
     first_frame_presented: bool,
     readiness: super::UiNativeReadinessRegistry,
@@ -52,7 +53,6 @@ struct UiNativeEventLoopApplication<Client> {
     run_thread: std::thread::ThreadId,
     thread_observation: Option<UiNativeEventLoopThreadObservation>,
     loop_resources: Vec<super::UiNativeResourceOwner>,
-    window_resource: Option<super::UiNativeResourceOwner>,
     port_crossings: u8,
 }
 
@@ -92,6 +92,8 @@ impl<Client: UiNativeEventLoopClient> ApplicationHandler for UiNativeEventLoopAp
         event: WindowEvent,
     ) {
         if self
+            .shared
+            .borrow()
             .window
             .as_ref()
             .is_none_or(|window| window.id() != window_id)
@@ -101,28 +103,49 @@ impl<Client: UiNativeEventLoopClient> ApplicationHandler for UiNativeEventLoopAp
         match event {
             WindowEvent::RedrawRequested => self.redraw(event_loop),
             WindowEvent::Resized(size) if size.width > 0 && size.height > 0 => {
-                let changed = self
-                    .shared
-                    .borrow_mut()
-                    .graphics
-                    .as_mut()
-                    .is_some_and(|graphics| graphics.resize([size.width, size.height]));
-                if changed {
-                    self.commit_readiness(event_loop);
+                let replacement = {
+                    let mut shared = self.shared.borrow_mut();
+                    let UiNativeHostState {
+                        graphics,
+                        resources,
+                        ..
+                    } = &mut *shared;
+                    graphics.as_mut().map_or(Ok(false), |graphics| {
+                        graphics.resize([size.width, size.height], resources)
+                    })
+                };
+                match replacement {
+                    Ok(true) => self.commit_readiness(event_loop),
+                    Ok(false) => {}
+                    Err(()) => {
+                        self.fail(event_loop, UiNativeEventLoopRunDenial::GraphicsPreparation)
+                    }
                 }
             }
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                let changed = if let (Some(window), Some(graphics)) = (
-                    self.window.as_ref(),
-                    self.shared.borrow_mut().graphics.as_mut(),
-                ) {
-                    let size = window.inner_size();
-                    graphics.rebind_scale(scale_factor, [size.width, size.height])
-                } else {
-                    false
-                };
-                if changed {
-                    self.commit_readiness(event_loop);
+                let mut shared = self.shared.borrow_mut();
+                let size = shared.window.as_ref().map(|window| window.inner_size());
+                let UiNativeHostState {
+                    graphics,
+                    resources,
+                    ..
+                } = &mut *shared;
+                let replacement =
+                    size.zip(graphics.as_mut())
+                        .map_or(Ok(false), |(size, graphics)| {
+                            graphics.rebind_scale(
+                                scale_factor,
+                                [size.width, size.height],
+                                resources,
+                            )
+                        });
+                drop(shared);
+                match replacement {
+                    Ok(true) => self.commit_readiness(event_loop),
+                    Ok(false) => {}
+                    Err(()) => {
+                        self.fail(event_loop, UiNativeEventLoopRunDenial::GraphicsPreparation)
+                    }
                 }
             }
             WindowEvent::CloseRequested => event_loop.exit(),
@@ -175,48 +198,51 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         event_loop: &ActiveEventLoop,
         _admission: UiNativeEventLoopThreadObservation,
     ) {
-        if self.window.is_some() {
+        if self.shared.borrow().window.is_some() {
             return;
         }
-        let native_resources = self.shared.borrow_mut().resources.reserve(&[
-            super::UiNativeResourceClass::Window,
-            super::UiNativeResourceClass::Surface,
-            super::UiNativeResourceClass::Adapter,
-            super::UiNativeResourceClass::Device,
-            super::UiNativeResourceClass::Queue,
-            super::UiNativeResourceClass::RetainedTarget,
-        ]);
-        let Ok(mut native_resources) = native_resources else {
+        if !self.shared.borrow().resources.admits(6) {
             return self.fail(event_loop, UiNativeEventLoopRunDenial::IncompleteCleanup);
-        };
-        let window = match UiWinitNativeWindowPort::open(event_loop, &self.configuration) {
+        }
+        let opened_window = match UiWinitNativeWindowPort::open(event_loop, &self.configuration) {
             Ok(window) => window,
-            Err(_) => {
-                self.shared
-                    .borrow_mut()
-                    .resources
-                    .release_all(native_resources)
-                    .expect("preflight owners remain exact");
-                return self.fail(event_loop, UiNativeEventLoopRunDenial::WindowCreation);
+            Err(_) => return self.fail(event_loop, UiNativeEventLoopRunDenial::WindowCreation),
+        };
+        let registered_window = {
+            let mut shared = self.shared.borrow_mut();
+            opened_window.register(&mut shared.resources)
+        };
+        let (window, window_crossings) = match registered_window {
+            Ok(window) => window,
+            Err(()) => {
+                return self.fail(event_loop, UiNativeEventLoopRunDenial::IncompleteCleanup);
             }
         };
-        self.port_crossings = self.port_crossings.saturating_add(1);
-        let graphics = match UiWgpuNativeGraphicsPort::prepare(Arc::clone(&window)) {
+        self.port_crossings = self.port_crossings.saturating_add(window_crossings);
+        let prepared_graphics = match UiWgpuNativeGraphicsPort::prepare(Arc::clone(&window)) {
             Ok(graphics) => graphics,
             Err(_) => {
-                self.shared
-                    .borrow_mut()
-                    .resources
-                    .release_all(native_resources)
-                    .expect("preflight owners remain exact");
+                window.close(&mut self.shared.borrow_mut().resources);
                 return self.fail(event_loop, UiNativeEventLoopRunDenial::GraphicsPreparation);
             }
         };
-        self.port_crossings = self.port_crossings.saturating_add(1);
-        self.window_resource = Some(native_resources.remove(0));
+        let (graphics, graphics_crossings) = prepared_graphics.into_parts();
+        self.port_crossings = self.port_crossings.saturating_add(graphics_crossings);
+        let registered_graphics = {
+            let mut shared = self.shared.borrow_mut();
+            super::UiNativeOwnedGraphics::register(graphics, &mut shared.resources)
+        };
+        let graphics = match registered_graphics {
+            Ok(graphics) => graphics,
+            Err(graphics) => {
+                drop(graphics);
+                window.close(&mut self.shared.borrow_mut().resources);
+                return self.fail(event_loop, UiNativeEventLoopRunDenial::IncompleteCleanup);
+            }
+        };
         let mut state = self.shared.borrow_mut();
-        state.graphics_resources = native_resources;
         state.graphics = Some(graphics);
+        state.window = Some(window);
         drop(state);
         let preparation = self.shared.borrow().graphics.as_ref().map(|graphics| {
             UiNativeReadinessGrant::issued(
@@ -236,7 +262,6 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         if apply_directive(event_loop, directive.expect("checked directive")) {
             return event_loop.exit();
         }
-        self.window = Some(window);
         self.commit_readiness(event_loop);
     }
 
@@ -283,9 +308,14 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         {
             return self.fail(event_loop, UiNativeEventLoopRunDenial::ApplicationDriver);
         }
-        let window = self.window.as_ref();
+        let window = self
+            .shared
+            .borrow()
+            .window
+            .as_ref()
+            .map(|window| Arc::clone(window));
         match super::readiness::signal_committed(&mut self.readiness, self.readiness_owner, || {
-            if let Some(window) = window {
+            if let Some(window) = &window {
                 window.request_redraw();
             }
         }) {
@@ -302,105 +332,5 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
     fn fail(&mut self, event_loop: &ActiveEventLoop, denial: UiNativeEventLoopRunDenial) {
         self.failure = Some(denial);
         event_loop.exit();
-    }
-
-    fn finish(mut self) -> Result<UiNativeEventLoopRunReport, UiNativeEventLoopStopReport> {
-        let presentation = self.shared.borrow().last_presentation.clone();
-        let client_attribution = self
-            .client
-            .as_ref()
-            .and_then(UiNativeEventLoopClient::presentation_attribution);
-        let peak_census = self.shared.borrow().resources.peak();
-        let effect_posture = self.shared.borrow().effect_posture;
-        let graphics = self
-            .shared
-            .borrow()
-            .graphics
-            .as_ref()
-            .map(UiNativeGraphicsObservation::from_graphics);
-        let client_closed = self
-            .client
-            .take()
-            .is_some_and(|client| client.close().is_ok());
-        let readiness_owner_count = self.readiness.close();
-        self.window = None;
-        let mut shared = self.shared.borrow_mut();
-        if let Some(owner) = self.window_resource.take() {
-            shared
-                .resources
-                .release(owner)
-                .expect("window owner must remain exact");
-        }
-        shared
-            .resources
-            .release_all(self.loop_resources.drain(..))
-            .expect("event-loop owners must remain exact");
-        let host_census = shared.close();
-        drop(shared);
-        let cleanup_complete =
-            terminal_cleanup_complete(client_closed, readiness_owner_count == 1, &host_census);
-        let failure = if !cleanup_complete {
-            Some(UiNativeEventLoopRunDenial::IncompleteCleanup)
-        } else {
-            self.failure
-                .or_else(|| {
-                    presentation
-                        .is_none()
-                        .then_some(UiNativeEventLoopRunDenial::ApplicationDriver)
-                })
-                .or_else(|| {
-                    graphics
-                        .is_none()
-                        .then_some(UiNativeEventLoopRunDenial::GraphicsPreparation)
-                })
-                .or_else(|| {
-                    self.thread_observation
-                        .is_none()
-                        .then_some(UiNativeEventLoopRunDenial::EventLoopRun)
-                })
-                .or_else(|| {
-                    self.thread_observation
-                        .is_some_and(|observation| !observation.matches_launch)
-                        .then_some(UiNativeEventLoopRunDenial::EventLoopRun)
-                })
-                .or_else(|| {
-                    client_attribution
-                        .zip(presentation.as_ref())
-                        .is_none_or(|(attribution, observed)| !attribution.matches(observed))
-                        .then_some(UiNativeEventLoopRunDenial::ApplicationDriver)
-                })
-        };
-        if let Some(cause) = failure {
-            return Err(UiNativeEventLoopStopReport {
-                cause,
-                effect_posture,
-                peak_census,
-                terminal_census: host_census,
-                client_cleanup_complete: client_closed,
-            });
-        }
-        let presentation = presentation.expect("validated presentation");
-        let port_crossings = self
-            .port_crossings
-            .saturating_add(presentation.port_crossings());
-        let graphics = graphics.expect("validated graphics");
-        let client_attribution = client_attribution.expect("validated client attribution");
-        let thread = self
-            .thread_observation
-            .expect("validated event-loop thread");
-        Ok(UiNativeEventLoopRunReport {
-            presentation,
-            graphics,
-            event_loop_thread: format!("{:?}", thread.thread).into_boxed_str(),
-            event_loop_thread_matches_launch: thread.matches_launch,
-            client_attribution,
-            readiness_signals: self.readiness_signals,
-            redraw_turns: self.redraw_turns,
-            idle_wait_turns: self.idle_wait_turns,
-            coalesced_wakes: self.coalesced_wakes,
-            peak_census,
-            terminal_census: host_census,
-            port_crossings,
-        })
     }
 }

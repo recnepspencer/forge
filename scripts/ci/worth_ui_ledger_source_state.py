@@ -78,7 +78,10 @@ def source_state_paths() -> list[str]:
     return sorted(set(GOVERNANCE_PATHS) | local_package_paths())
 
 
-def source_state_digest(revision: str) -> str:
+def source_state_digest(
+    revision: str, excluded_paths: set[str] | None = None
+) -> str:
+    excluded = excluded_paths or set()
     digest = hashlib.sha256()
     digest.update(revision.encode("ascii"))
     digest.update(b"\0repository-content-v2\0")
@@ -90,6 +93,8 @@ def source_state_digest(revision: str) -> str:
     for encoded_identity in identities:
         identity = encoded_identity.decode("utf-8")
         normalized = Path(identity).as_posix()
+        if normalized in excluded:
+            continue
         if normalized == LEDGER.as_posix() or normalized.startswith(
             EVIDENCE_ROOT.as_posix() + "/"
         ):

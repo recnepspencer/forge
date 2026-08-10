@@ -6,9 +6,9 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::windows::EventLoopBuilderExtWindows;
 
 use super::{
-    terminal_cleanup_complete, UiNativeEventLoopApplication, UiNativeEventLoopClient,
-    UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport, UiNativeEventLoopStopReport,
-    WorthUiNativeEventLoop,
+    terminal_cleanup_complete, UiNativeEventLoopApplication, UiNativeEventLoopCleanup,
+    UiNativeEventLoopClient, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
+    UiNativeEventLoopStopReport, WorthUiNativeEventLoop,
 };
 use crate::native::{UiNativeHostState, UiNativeReadinessRegistry, UiNativeResourceClass};
 
@@ -64,7 +64,6 @@ impl WorthUiNativeEventLoop {
         let mut application = UiNativeEventLoopApplication {
             shared: self.state,
             configuration: self.window,
-            window: None,
             client: Some(client),
             first_frame_presented: false,
             readiness,
@@ -77,7 +76,6 @@ impl WorthUiNativeEventLoop {
             run_thread: std::thread::current().id(),
             thread_observation: None,
             loop_resources,
-            window_resource: None,
             port_crossings: 0,
         };
         if event_loop.run_app(&mut application).is_err() {
@@ -96,8 +94,11 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
 ) -> UiNativeEventLoopStopReport {
     let peak_census = state.borrow().resources.peak();
     let effect_posture = state.borrow().effect_posture;
-    let client_cleanup_complete = client.close().is_ok();
+    let client_cleanup = client.close().into_cleanup();
+    let client_cleanup_complete = client_cleanup.is_none();
     let terminal_census = state.borrow_mut().close();
+    let cleanup =
+        UiNativeEventLoopCleanup::retain(Rc::clone(&state), terminal_census, client_cleanup);
     UiNativeEventLoopStopReport {
         cause: if terminal_cleanup_complete(client_cleanup_complete, true, &terminal_census) {
             cause
@@ -108,5 +109,6 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
         peak_census,
         terminal_census,
         client_cleanup_complete,
+        cleanup,
     }
 }

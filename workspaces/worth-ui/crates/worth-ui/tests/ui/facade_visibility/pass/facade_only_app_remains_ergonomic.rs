@@ -8,7 +8,6 @@ fn main() {
     let component_id = ComponentId::new("workspace.editor").expect("valid component id");
 
     let app = WorthUi::app()
-        .bind_certification_host_adapter(worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(), worth_ui_host_headless::WorthUiHeadlessHost)
         .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(CommandDescriptor::new(command_id.clone(), "Save"))
         .register_component(ComponentDescriptor::new(
@@ -17,7 +16,11 @@ fn main() {
             ComponentChildPolicy::no_children(),
             ComponentStateOwnership::runtime_owned(),
         ))
-        .freeze().expect("application preparation should succeed");
+        .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
+        .expect("application preparation should succeed");
 
     let command_lookup = app.capabilities().index().commands().lookup(&command_id);
 

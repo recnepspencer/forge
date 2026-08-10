@@ -1,4 +1,3 @@
-use super::{malformed, UiNativePresentationFailure};
 use crate::native::UiNativeGraphics;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -14,7 +13,7 @@ pub(super) struct RasterRect {
 pub(super) fn raster_rect(
     mechanic: worth_ui_host_contract::UiMountedFilledRectMechanic,
     graphics: &UiNativeGraphics,
-) -> Result<RasterRect, UiNativePresentationFailure> {
+) -> Result<RasterRect, ()> {
     let bounds = mechanic.bounds();
     let clip = mechanic.clip_bounds();
     raster_from_basis(
@@ -30,7 +29,7 @@ fn raster_from_basis(
     clip: [f32; 4],
     extent: [u32; 2],
     scale: f32,
-) -> Result<RasterRect, UiNativePresentationFailure> {
+) -> Result<RasterRect, ()> {
     if !scale.is_finite()
         || scale <= 0.0
         || bounds
@@ -39,7 +38,7 @@ fn raster_from_basis(
             .any(|value| !value.is_finite())
         || extent.contains(&0)
     {
-        return Err(malformed());
+        return Err(());
     }
     let viewport = [extent[0] as f32 / scale, extent[1] as f32 / scale];
     let left = bounds[0].max(clip[0]).max(0.0);
@@ -51,7 +50,7 @@ fn raster_from_basis(
         .min(clip[1] + clip[3])
         .min(viewport[1]);
     if right <= left || bottom <= top {
-        return Err(malformed());
+        return Err(());
     }
     let (physical_left, physical_right) = snap_axis(left, right, scale, extent[0])?;
     let (physical_top, physical_bottom) = snap_axis(top, bottom, scale, extent[1])?;
@@ -70,16 +69,14 @@ fn snap_axis(
     logical_max: f32,
     scale: f32,
     physical_limit: u32,
-) -> Result<(u32, u32), UiNativePresentationFailure> {
+) -> Result<(u32, u32), ()> {
     let minimum = (logical_min * scale)
         .floor()
         .clamp(0.0, physical_limit as f32) as u32;
     let maximum = (logical_max * scale)
         .ceil()
         .clamp(0.0, physical_limit as f32) as u32;
-    (maximum > minimum)
-        .then_some((minimum, maximum))
-        .ok_or_else(malformed)
+    (maximum > minimum).then_some((minimum, maximum)).ok_or(())
 }
 
 #[cfg(test)]

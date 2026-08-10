@@ -289,7 +289,7 @@ fn exact_execution_contract_rejects_main_control_and_feature_swaps() {
             target_kind: "lib".to_owned(),
             target_name: "lib".to_owned(),
             features: Vec::new(),
-            test_name: "native::readiness::tests::readiness_is_bounded_level_triggered_and_generation_checked".to_owned(),
+            test_name: "native::readiness::tests::committed_readiness_requests_exactly_one_redraw_and_preserves_the_latest_generation".to_owned(),
         }),
     };
     validate_execution_identity(&binding).unwrap();
@@ -302,7 +302,7 @@ fn exact_execution_contract_rejects_main_control_and_feature_swaps() {
         target_kind: "test".to_owned(),
         target_name: "executable_world".to_owned(),
         features: vec!["executable-world".to_owned()],
-        test_name: "native_platform::windows::capture_region::tests::capture_transition_rejects_expected_pixel_substitution".to_owned(),
+        test_name: "native_platform::windows::independent_window_capture_rejects_monitor_pixel_substitution".to_owned(),
     });
     validate_execution_identity(&binding).unwrap();
     binding.control.as_mut().unwrap().features.clear();

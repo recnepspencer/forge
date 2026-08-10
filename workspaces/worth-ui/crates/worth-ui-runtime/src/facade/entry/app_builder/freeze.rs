@@ -1,18 +1,13 @@
 use super::*;
 
-struct HostNeutralFreeze<HostBindingState> {
+struct HostNeutralFreeze {
     prepared: crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
-    host_binding: HostBindingState,
     mounted_frame_retention_budget: crate::mounting::UiMountedFrameRetentionBudget,
     host_observation_capacity: crate::facade::observation_report::UiHostObservationCapacity,
 }
 
-impl<HostBindingState>
-    WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied, HostBindingState>
-{
-    fn freeze_host_neutral(
-        self,
-    ) -> Result<HostNeutralFreeze<HostBindingState>, WorthUiApplicationPreparationDenial> {
+impl WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied> {
+    fn freeze_host_neutral(self) -> Result<HostNeutralFreeze, WorthUiApplicationPreparationDenial> {
         let capability_snapshot = self
             .inner
             .freeze_with_registration_report()
@@ -50,20 +45,13 @@ impl<HostBindingState>
         })?;
         Ok(HostNeutralFreeze {
             prepared,
-            host_binding: self.host_binding,
             mounted_frame_retention_budget: self.mounted_frame_retention_budget,
             host_observation_capacity: self.host_observation_capacity,
         })
     }
 }
 
-impl
-    WorthUiApplicationBuilder<
-        UiChangeProfileInstalled,
-        UiIntentWiringSatisfied,
-        UiApplicationHostUnbound,
-    >
-{
+impl WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied> {
     pub fn freeze(
         self,
     ) -> Result<crate::facade::entry::WorthUiHostNeutralApp, WorthUiApplicationPreparationDenial>
@@ -73,25 +61,6 @@ impl
             frozen.prepared,
             frozen.mounted_frame_retention_budget,
             frozen.host_observation_capacity,
-        ))
-    }
-}
-
-impl
-    WorthUiApplicationBuilder<
-        UiChangeProfileInstalled,
-        UiIntentWiringSatisfied,
-        UiApplicationHostBound,
-    >
-{
-    pub fn freeze(self) -> Result<WorthUiApp, WorthUiApplicationPreparationDenial> {
-        let frozen = self.freeze_host_neutral()?;
-        let mut host_session_plan = frozen.host_binding.plan;
-        host_session_plan.set_mounted_frame_retention_budget(frozen.mounted_frame_retention_budget);
-        host_session_plan.set_host_observation_capacity(frozen.host_observation_capacity);
-        Ok(WorthUiApp::from_prepared_authority(
-            frozen.prepared,
-            host_session_plan,
         ))
     }
 }

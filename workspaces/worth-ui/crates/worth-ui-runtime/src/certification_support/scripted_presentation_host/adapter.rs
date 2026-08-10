@@ -1,10 +1,10 @@
 use std::collections::VecDeque;
 
-use worth_ui_host_contract::WorthUiHostContract;
-use worth_ui_runtime::facade::host::{
+use crate::facade::host::{
     UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
     WorthUiOperationalHostAdapter,
 };
+use worth_ui_host_contract::WorthUiHostContract;
 
 use super::*;
 
@@ -292,10 +292,10 @@ fn clear_token_state(state: &mut ScriptedPresentationState, identity: u64) {
 
 fn dispatch_queued_ingress(
     host: &ScriptedPresentationHost,
-    observation: Option<worth_ui::facade::observation_report::UiHostObservationBatch>,
+    observation: Option<crate::facade::observation_report::UiHostObservationBatch>,
     measurement: Option<(
-        worth_ui::facade::measurement_exchange::WorthUiHostMeasurementIngress,
-        worth_ui::facade::measurement_exchange::UiHostMeasurementCompletion,
+        crate::facade::measurement_exchange::WorthUiHostMeasurementIngress,
+        crate::facade::measurement_exchange::UiHostMeasurementCompletion,
     )>,
 ) {
     if let Some(batch) = observation {

@@ -194,9 +194,9 @@ fn candidate_from_bundle(
 
 fn default_snapshot_digest() -> crate::capability::CapabilitySnapshotDigest {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
         .capabilities()
         .digest()
@@ -272,9 +272,9 @@ fn canonical_artifact_from_input(
     artifact_input: worth_ui_dsl::WorthUiSealedSemanticPackage,
 ) -> WorthUiArtifact {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let snapshot = app.capabilities();
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)

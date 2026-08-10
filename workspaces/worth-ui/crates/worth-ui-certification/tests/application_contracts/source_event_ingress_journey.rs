@@ -6,12 +6,11 @@ use worth_ui::facade::source::{
 #[test]
 fn named_source_event_ingress_produces_a_preparable_replacement() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("empty application preparation should succeed");
     let session = app.launch().expect("empty application should launch");
     let provider =

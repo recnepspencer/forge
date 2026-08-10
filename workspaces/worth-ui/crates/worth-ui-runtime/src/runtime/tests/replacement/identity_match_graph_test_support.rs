@@ -22,7 +22,6 @@ use crate::{capability::*, facade::WorthUiApp};
 
 pub(super) fn identity_match_app() -> WorthUiApp {
     crate::facade::WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(component("workspace.component.dashboard"))
         .register_component(component("workspace.component.panel"))
@@ -35,6 +34,7 @@ pub(super) fn identity_match_app() -> WorthUiApp {
             "workspace.component.dashboard",
         ))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

@@ -27,21 +27,23 @@ pub(crate) fn source_backed_scaled_component_session(
 }
 
 pub(crate) fn source_backed_component_app() -> WorthUiApp {
-    let builder = component_builder().bind_certification_host_adapter(
-        worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-        crate::certification_support::UiCertificationBuilderHost,
-    );
-    source_backed_component_app_from_builder(builder)
+    source_backed_component_app_from_builder(component_builder(), |application| {
+        crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host(
+            application,
+        )
+    })
 }
 
 pub(crate) fn source_backed_component_app_with_host<Host>(host: Host) -> WorthUiApp
 where
     Host: crate::facade::host::WorthUiHostAdapter + 'static,
 {
-    source_backed_component_app_from_builder(component_builder().bind_certification_host_adapter(
-        worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-        host,
-    ))
+    source_backed_component_app_from_builder(component_builder(), move |application| {
+        crate::facade::entry::WorthUiCertificationApplicationTransition::activate_test_host(
+            application,
+            host,
+        )
+    })
 }
 
 pub(crate) fn source_backed_component_app_with_host_and_scalar_projection<Host>(
@@ -52,25 +54,23 @@ where
     Host: crate::facade::host::WorthUiHostAdapter + 'static,
 {
     let builder = component_builder()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            host,
-        )
         .register_scalar_projection(registration)
         .expect("test projection registration should match its installed Query view");
-    source_backed_component_app_from_builder(builder)
+    source_backed_component_app_from_builder(builder, move |application| {
+        crate::facade::entry::WorthUiCertificationApplicationTransition::activate_test_host(
+            application,
+            host,
+        )
+    })
 }
 
 fn source_backed_component_app_from_builder(
-    builder: crate::facade::entry::WorthUiApplicationBuilder<
-        crate::facade::entry::UiChangeProfileInstalled,
-        crate::facade::entry::UiIntentWiringSatisfied,
-        crate::facade::entry::UiApplicationHostBound,
-    >,
+    builder: crate::facade::entry::WorthUiCertificationApplicationBuilder,
+    activate: impl FnOnce(crate::facade::entry::WorthUiHostNeutralApp) -> WorthUiApp,
 ) -> WorthUiApp {
     let snapshot = component_builder()
-        .bind_certification_host()
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("component snapshot should prepare");
     builder
         .with_candidate_submission(component_submission(
@@ -79,6 +79,7 @@ fn source_backed_component_app_from_builder(
             snapshot.capabilities(),
         ))
         .freeze()
+        .map(activate)
         .expect("component source application should prepare")
 }
 
@@ -157,6 +158,7 @@ fn source_backed_scaled_component_app(unrelated_component_count: usize) -> Worth
     let builder = scaled_component_builder(unrelated_component_count);
     let snapshot = scaled_component_builder(unrelated_component_count)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("scaled component snapshot should prepare");
     builder
         .with_candidate_submission(scaled_component_submission(
@@ -166,6 +168,7 @@ fn source_backed_scaled_component_app(unrelated_component_count: usize) -> Worth
             snapshot.capabilities(),
         ))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("scaled component source application should prepare")
 }
 
@@ -177,7 +180,6 @@ fn scaled_component_builder(
             "scaled-active-application-session",
         );
     let mut builder = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .register_component(source_backed_package_component(

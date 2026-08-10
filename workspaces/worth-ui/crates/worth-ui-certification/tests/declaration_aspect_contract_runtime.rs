@@ -16,16 +16,15 @@ use worth_ui_dsl::{
 #[test]
 fn public_freeze_exposes_typed_aspect_contract_and_coverage_report() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.aspect.coverage")
                 .with_semantic_artifact_spec(aspectful_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/aspect_contracts.wui", 0);
 
@@ -69,10 +68,6 @@ fn public_freeze_exposes_typed_aspect_contract_and_coverage_report() {
 #[test]
 fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
     let baseline = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -84,12 +79,11 @@ fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
             )),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let equivalent = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -101,6 +95,9 @@ fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
             )),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let baseline_artifact =
         artifact_from_file_provenance(&baseline, "app/aspect_equivalence.wui", 0);
@@ -120,16 +117,15 @@ fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
 #[test]
 fn renderer_labels_and_queryish_noise_do_not_satisfy_aspect_contract_authority() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.aspect.noise")
                 .with_semantic_artifact_spec(noise_only_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/aspect_noise.wui", 0);
 
@@ -166,10 +162,6 @@ fn renderer_labels_and_queryish_noise_do_not_satisfy_aspect_contract_authority()
 #[test]
 fn unsupported_authored_aspects_deny_through_public_freeze_path() {
     let denial = match WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -178,6 +170,9 @@ fn unsupported_authored_aspects_deny_through_public_freeze_path() {
             .with_semantic_artifact_spec(unsupported_aspect_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
     {
         Ok(_) => panic!("unsupported aspect slices must deny application preparation"),
         Err(denial) => denial,

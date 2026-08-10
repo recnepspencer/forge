@@ -114,12 +114,12 @@ def lifecycle_proofs(control_type, proof_factory):
             ),
         ),
         "P2-PORTS-01": proof_factory(
-            f"{HOST}/mechanics_adapter.rs::settle_presentation_failure",
+            f"{HOST}/presentation.rs::settle_port_result",
             control(
                 control_type,
                 "worth-ui-host-native",
-                "native::mechanics_adapter::tests::external_port_orchestration_and_effect_postures_are_exact",
-                f"{HOST}/mechanics_adapter.rs",
+                "native::presentation::tests::external_port_failures_cross_the_real_framework_settlement_transition",
+                f"{HOST}/presentation.rs",
             ),
             f"{HOST}/event_loop/window_port.rs",
             f"{HOST}/graphics/port.rs",

@@ -275,7 +275,8 @@ fn validate_native_resources(observation: &Value) -> Result<(), String> {
     let classes = worth_ui_host_native::UiNativeResourceCensus::field_names().collect::<Vec<_>>();
     require_exact_resource_schema(peak, &classes)?;
     for class in &classes {
-        require_u64(peak, class, 1)?;
+        let expected = if *class == "retained_targets" { 2 } else { 1 };
+        require_u64(peak, class, expected)?;
     }
     let terminal = observation
         .get("terminal_census")

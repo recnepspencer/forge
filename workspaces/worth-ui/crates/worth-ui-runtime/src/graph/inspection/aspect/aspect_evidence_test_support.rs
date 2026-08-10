@@ -27,7 +27,6 @@ pub(super) const COMPETING_CONSUMED_ASPECT: &str = "interaction.operability";
 
 pub(super) fn aspect_identity_app() -> WorthUiApp {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.aspect-evidence-index")
@@ -67,6 +66,7 @@ pub(super) fn aspect_identity_app() -> WorthUiApp {
                 ),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

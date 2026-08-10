@@ -1,14 +1,11 @@
-use std::sync::Arc;
-
-use winit::window::Window;
-
 mod adapter_selection;
+mod ownership;
 mod port;
 
+pub(crate) use ownership::UiNativeOwnedGraphics;
+#[cfg(test)]
+pub(crate) use port::QUALIFIED_DX12_PRESENTATION_SYSTEM;
 pub(crate) use port::{UiNativeGraphicsPort, UiWgpuNativeGraphicsPort};
-
-pub(crate) const QUALIFIED_DX12_PRESENTATION_SYSTEM: wgpu::Dx12SwapchainKind =
-    wgpu::Dx12SwapchainKind::DxgiFromVisual;
 
 pub(crate) struct UiNativeGraphics {
     pub(crate) _instance: wgpu::Instance,
@@ -16,73 +13,17 @@ pub(crate) struct UiNativeGraphics {
     pub(crate) _adapter: wgpu::Adapter,
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
-    pub(crate) retained_target: wgpu::Texture,
+    retained_target: Option<wgpu::Texture>,
     pub(crate) surface_configuration: wgpu::SurfaceConfiguration,
     pub(crate) scale_factor: f64,
     pub(crate) adapter_info: wgpu::AdapterInfo,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct UiNativeGraphicsPreparationDenial;
-
 impl UiNativeGraphics {
-    pub(crate) fn prepare(window: Arc<Window>) -> Result<Self, UiNativeGraphicsPreparationDenial> {
-        let mut descriptor = wgpu::InstanceDescriptor::new_without_display_handle();
-        descriptor.backends = wgpu::Backends::DX12;
-        descriptor.backend_options.dx12.presentation_system = QUALIFIED_DX12_PRESENTATION_SYSTEM;
-        let instance = wgpu::Instance::new(descriptor);
-        let surface = instance
-            .create_surface(Arc::clone(&window))
-            .map_err(|_| UiNativeGraphicsPreparationDenial)?;
-        let adapter = select_adapter(&instance, &surface)?;
-        let adapter_info = adapter.get_info();
-        let capabilities = surface.get_capabilities(&adapter);
-        validate_surface_capabilities(&capabilities)?;
-        let required_limits = qualified_required_limits(&adapter);
-        let device_descriptor = wgpu::DeviceDescriptor {
-            label: Some("worth-ui-windows-dx12-v1-device"),
-            required_features: wgpu::Features::empty(),
-            required_limits,
-            ..Default::default()
-        };
-        let (device, queue) = pollster::block_on(adapter.request_device(&device_descriptor))
-            .map_err(|_| UiNativeGraphicsPreparationDenial)?;
-        let size = window.inner_size();
-        let extent = [size.width.max(1), size.height.max(1)];
-        let surface_configuration = surface_configuration(extent);
-        surface.configure(&device, &surface_configuration);
-        let retained_target = retained_target(&device, extent);
-        Ok(Self {
-            _instance: instance,
-            surface,
-            _adapter: adapter,
-            device,
-            queue,
-            retained_target,
-            surface_configuration,
-            scale_factor: window.scale_factor(),
-            adapter_info,
-        })
-    }
-
-    pub(crate) fn resize(&mut self, extent: [u32; 2]) -> bool {
-        let extent = [extent[0].max(1), extent[1].max(1)];
-        if !basis_changed(self.scale_factor, self.extent(), self.scale_factor, extent) {
-            return false;
-        }
-        self.surface_configuration.width = extent[0];
-        self.surface_configuration.height = extent[1];
-        self.surface
-            .configure(&self.device, &self.surface_configuration);
-        self.retained_target = retained_target(&self.device, extent);
-        true
-    }
-
-    pub(crate) fn rebind_scale(&mut self, scale_factor: f64, extent: [u32; 2]) -> bool {
-        let changed = basis_changed(self.scale_factor, self.extent(), scale_factor, extent);
-        self.scale_factor = scale_factor;
-        self.resize(extent);
-        changed
+    pub(crate) fn retained_target(&self) -> &wgpu::Texture {
+        self.retained_target
+            .as_ref()
+            .expect("live graphics retains its presentation target")
     }
 
     pub(crate) const fn extent(&self) -> [u32; 2] {
@@ -93,95 +34,13 @@ impl UiNativeGraphics {
     }
 }
 
-fn basis_changed(
+pub(super) fn basis_changed(
     current_scale: f64,
     current_extent: [u32; 2],
     next_scale: f64,
     next_extent: [u32; 2],
 ) -> bool {
     (current_scale - next_scale).abs() > f64::EPSILON || current_extent != next_extent
-}
-
-pub(crate) fn qualified_required_limits(adapter: &wgpu::Adapter) -> wgpu::Limits {
-    wgpu::Limits::downlevel_defaults().using_resolution(adapter.limits())
-}
-
-fn select_adapter(
-    instance: &wgpu::Instance,
-    surface: &wgpu::Surface<'_>,
-) -> Result<wgpu::Adapter, UiNativeGraphicsPreparationDenial> {
-    let candidates = pollster::block_on(instance.enumerate_adapters(wgpu::Backends::DX12));
-    let observed = candidates
-        .into_iter()
-        .map(|adapter| {
-            let info = adapter.get_info();
-            (
-                adapter_selection::AdapterCandidate {
-                    surface_supported: adapter.is_surface_supported(surface),
-                    device_type: info.device_type,
-                    limits: adapter.limits(),
-                    vendor: info.vendor,
-                    device: info.device,
-                    name: info.name,
-                    driver_info: info.driver_info,
-                },
-                adapter,
-            )
-        })
-        .collect::<Vec<_>>();
-    adapter_selection::select_eligible_adapter(observed)
-        .map(|(_, adapter)| adapter)
-        .ok_or(UiNativeGraphicsPreparationDenial)
-}
-
-fn validate_surface_capabilities(
-    capabilities: &wgpu::SurfaceCapabilities,
-) -> Result<(), UiNativeGraphicsPreparationDenial> {
-    if !capabilities
-        .formats
-        .contains(&wgpu::TextureFormat::Bgra8UnormSrgb)
-        || !capabilities
-            .present_modes
-            .contains(&wgpu::PresentMode::Fifo)
-        || !capabilities
-            .alpha_modes
-            .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
-    {
-        return Err(UiNativeGraphicsPreparationDenial);
-    }
-    Ok(())
-}
-
-fn surface_configuration(extent: [u32; 2]) -> wgpu::SurfaceConfiguration {
-    wgpu::SurfaceConfiguration {
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        format: wgpu::TextureFormat::Bgra8UnormSrgb,
-        width: extent[0],
-        height: extent[1],
-        present_mode: wgpu::PresentMode::Fifo,
-        desired_maximum_frame_latency: 2,
-        alpha_mode: wgpu::CompositeAlphaMode::PreMultiplied,
-        view_formats: Vec::new(),
-    }
-}
-
-fn retained_target(device: &wgpu::Device, extent: [u32; 2]) -> wgpu::Texture {
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("worth-ui-retained-presentation-target"),
-        size: wgpu::Extent3d {
-            width: extent[0].max(1),
-            height: extent[1].max(1),
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8UnormSrgb,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-            | wgpu::TextureUsages::COPY_SRC
-            | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[],
-    })
 }
 
 #[cfg(test)]
@@ -229,6 +88,25 @@ mod tests {
         assert_eq!(observation.device_type, wgpu::DeviceType::DiscreteGpu);
     }
 
+    #[test]
+    fn qualified_adapter_tie_break_uses_the_complete_frozen_observation_key() {
+        let mut limits = wgpu::Limits::downlevel_defaults();
+        limits.max_texture_dimension_2d = 16_384;
+        let candidates = vec![
+            (ranked_candidate(&limits, (2, 1, "a", "a")), "vendor"),
+            (ranked_candidate(&limits, (1, 5, "a", "a")), "device"),
+            (ranked_candidate(&limits, (1, 4, "z", "a")), "name"),
+            (ranked_candidate(&limits, (1, 4, "a", "z")), "driver"),
+            (ranked_candidate(&limits, (1, 4, "a", "a")), "exact"),
+        ];
+        let (observation, selected) = select_eligible_adapter(candidates).unwrap();
+        assert_eq!(selected, "exact");
+        assert_eq!(observation.vendor, 1);
+        assert_eq!(observation.device, 4);
+        assert_eq!(observation.name, "a");
+        assert_eq!(observation.driver_info, "a");
+    }
+
     fn candidate(
         surface_supported: bool,
         device_type: wgpu::DeviceType,
@@ -243,6 +121,19 @@ mod tests {
             device,
             name: format!("candidate-{device}"),
             driver_info: String::new(),
+        }
+    }
+
+    fn ranked_candidate(limits: &wgpu::Limits, key: (u32, u32, &str, &str)) -> AdapterCandidate {
+        let (vendor, device, name, driver_info) = key;
+        AdapterCandidate {
+            surface_supported: true,
+            device_type: wgpu::DeviceType::DiscreteGpu,
+            limits: limits.clone(),
+            vendor,
+            device,
+            name: name.to_owned(),
+            driver_info: driver_info.to_owned(),
         }
     }
 }

@@ -46,11 +46,17 @@ fn validate_cases(
 #[test]
 fn compile_case_deletion_reopens_its_own_requirement() {
     let required = super::execution_contract::compile_cases_for("P1-ORDER-SOURCE-01");
-    let lawful = serde_json::json!({"cases": [{
-        "owner": required[0].owner,
-        "kind": required[0].kind,
-        "target": required[0].target,
-    }]});
+    let cases = required
+        .iter()
+        .map(|case| {
+            serde_json::json!({
+                "owner": case.owner,
+                "kind": case.kind,
+                "target": case.target,
+            })
+        })
+        .collect::<Vec<_>>();
+    let lawful = serde_json::json!({"cases": cases});
     validate_cases(&lawful, required).unwrap();
     let deleted = serde_json::json!({"cases": []});
     assert!(validate_cases(&deleted, required).is_err());

@@ -36,7 +36,6 @@ pub(super) fn admitted_app() -> WorthUiApp {
     .expect("query definition should admit");
 
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.dashboard"))
         .register_component(component_descriptor("workspace.component.inspector_panel"))
@@ -68,14 +67,15 @@ pub(super) fn admitted_app() -> WorthUiApp {
             ThemeTokenAlias::to(ThemeTokenId::new("theme.text.primary").unwrap()),
         ))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 
 pub(in crate::source::tests) fn empty_snapshot() -> WorthUiApp {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

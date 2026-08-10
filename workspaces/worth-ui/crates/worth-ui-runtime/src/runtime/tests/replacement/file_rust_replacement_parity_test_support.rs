@@ -81,9 +81,9 @@ pub(super) fn candidate_for_lane(
     lane: WorthUiCandidateAuthoringLane,
 ) -> WorthUiReplacementCandidate {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     candidate_for_artifact(&app, lane, rust_import_artifact())
 }

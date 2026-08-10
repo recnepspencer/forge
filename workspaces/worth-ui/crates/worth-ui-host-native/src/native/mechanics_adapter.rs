@@ -12,9 +12,7 @@ use worth_ui_host_contract::{
 };
 
 use super::{
-    presentation::{
-        UiNativePresentationFailure, UiNativePresentationPort, UiWgpuNativePresentationPort,
-    },
+    presentation::{present_initial, UiNativePresentationFailure, UiWgpuNativePresentationPort},
     UiNativeHostState,
 };
 
@@ -132,9 +130,9 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
                 worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined,
             );
         };
-        let result = UiWgpuNativePresentationPort::present(graphics, resources, view);
+        let result = present_initial::<UiWgpuNativePresentationPort>(graphics, resources, view);
         let (observation, cost) = match result {
-            Ok(presented) => presented,
+            Ok(presented) => presented.into_parts(),
             Err(failure) => return settle_presentation_failure(&mut state, failure),
         };
         state.effect_posture = super::UiNativeEffectPosture::Presented;
@@ -253,32 +251,7 @@ mod tests {
 
     #[test]
     fn external_port_orchestration_and_effect_postures_are_exact() {
-        assert_eq!(
-            include_str!("event_loop.rs")
-                .matches("UiWinitNativeWindowPort::open(")
-                .count(),
-            1
-        );
-        assert_eq!(
-            include_str!("event_loop.rs")
-                .matches("UiWgpuNativeGraphicsPort::prepare(")
-                .count(),
-            1
-        );
-        assert_eq!(
-            include_str!("mechanics_adapter.rs")
-                .matches(concat!("UiWgpuNativePresentationPort", "::present("))
-                .count(),
-            1
-        );
-        assert_eq!(
-            include_str!("presentation.rs")
-                .matches("UiWgpuNativeReadbackPort::read_two_pixels(")
-                .count(),
-            1
-        );
-        assert!(!include_str!("event_loop.rs").contains(concat!("UiNativeGraphics", "::prepare(")));
-        assert!(!include_str!("mechanics_adapter.rs").contains(concat!("present_", "initial(")));
+        super::super::presentation::prove_nonuniform_readback_port();
         let mut state = UiNativeHostState::new();
         let external_dropped = std::rc::Rc::new(std::cell::Cell::new(false));
         let pending = UiNativePendingPresentation::scripted(

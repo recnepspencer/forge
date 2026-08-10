@@ -20,7 +20,6 @@ use worth_ui_certification::topology::{
     audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option,
     expected_phase3_lifecycle_subsystems,
 };
-use worth_ui_host_headless::WorthUiHeadlessHost as HeadlessHost;
 
 #[path = "topology_audit/immutable_inspection.rs"]
 mod immutable_inspection;
@@ -295,12 +294,11 @@ fn lifecycle_aggregate_audit_rejects_known_bad_default_and_option_fixture() {
 #[test]
 fn lifecycle_inventories_match_phase3_closure_inventory() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            HeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let expected = expected_phase3_lifecycle_subsystems();
 

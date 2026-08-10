@@ -6,18 +6,12 @@ use crate::capability::{
 
 use super::{UiIntentProviderRequired, UiIntentWiringSatisfied, WorthUiApplicationBuilder};
 
-impl<ChangeProfileState, HostBindingState>
-    WorthUiApplicationBuilder<ChangeProfileState, UiIntentWiringSatisfied, HostBindingState>
-{
+impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState, UiIntentWiringSatisfied> {
     pub fn register_intent_definition<I: UiIntent>(
         mut self,
         definition: UiIntentDefinition<I, UiApplicationEffectDestination>,
     ) -> Result<
-        WorthUiApplicationBuilder<
-            ChangeProfileState,
-            UiIntentProviderRequired<I>,
-            HostBindingState,
-        >,
+        WorthUiApplicationBuilder<ChangeProfileState, UiIntentProviderRequired<I>>,
         UiIntentDefinitionRegistrationError,
     > {
         self.inner = self.inner.register_intent_definition(definition)?;
@@ -50,14 +44,14 @@ impl<ChangeProfileState, HostBindingState>
     }
 }
 
-impl<ChangeProfileState, HostBindingState, I: UiIntent>
-    WorthUiApplicationBuilder<ChangeProfileState, UiIntentProviderRequired<I>, HostBindingState>
+impl<ChangeProfileState, I: UiIntent>
+    WorthUiApplicationBuilder<ChangeProfileState, UiIntentProviderRequired<I>>
 {
     pub fn register_intent_provider<Provider>(
         mut self,
         provider: Provider,
     ) -> Result<
-        WorthUiApplicationBuilder<ChangeProfileState, UiIntentWiringSatisfied, HostBindingState>,
+        WorthUiApplicationBuilder<ChangeProfileState, UiIntentWiringSatisfied>,
         crate::runtime::intent_execution::UiIntentExecutionBindingPreparationDenial,
     >
     where
@@ -69,18 +63,16 @@ impl<ChangeProfileState, HostBindingState, I: UiIntent>
     }
 }
 
-impl<ChangeProfileState, IntentWiringState, HostBindingState>
-    WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState, HostBindingState>
+impl<ChangeProfileState, IntentWiringState>
+    WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState>
 {
     fn transition_intent_wiring<NextIntentWiringState>(
         self,
         intent_wiring: NextIntentWiringState,
-    ) -> WorthUiApplicationBuilder<ChangeProfileState, NextIntentWiringState, HostBindingState>
-    {
+    ) -> WorthUiApplicationBuilder<ChangeProfileState, NextIntentWiringState> {
         WorthUiApplicationBuilder {
             inner: self.inner,
             preparation_source: self.preparation_source,
-            host_binding: self.host_binding,
             mounted_frame_retention_budget: self.mounted_frame_retention_budget,
             host_observation_capacity: self.host_observation_capacity,
             visual_inspection_policy: self.visual_inspection_policy,

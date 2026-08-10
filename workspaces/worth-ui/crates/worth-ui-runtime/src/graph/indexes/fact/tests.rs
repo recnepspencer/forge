@@ -157,7 +157,6 @@ fn rebuild_is_deterministic_and_foreign_basis_is_rejected() {
 
 fn foreign_indexed_app() -> crate::facade::WorthUiApp {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(UiGraphWorldProfile::preview_session_label(
             UiGraphSessionLabel::new("fact-index-foreign")
@@ -170,6 +169,7 @@ fn foreign_indexed_app() -> crate::facade::WorthUiApp {
                 .with_semantic_artifact_spec(appearance_consumer_spec()),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("foreign fact-index fixture should prepare")
 }
 
@@ -256,7 +256,6 @@ fn prepared_rebuild_reconstructs_nonempty_aspect_and_fact_projections() {
 
 fn indexed_app(package: &str) -> crate::facade::WorthUiApp {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(package)
@@ -265,13 +264,13 @@ fn indexed_app(package: &str) -> crate::facade::WorthUiApp {
                 .with_semantic_artifact_spec(appearance_consumer_spec()),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("fact-index fixture should prepare")
 }
 
 fn static_paint_app() -> crate::facade::WorthUiApp {
     let token = ThemeTokenId::new(STATIC_PAINT_TOKEN).unwrap();
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(
             ComponentDescriptor::new(
@@ -306,6 +305,7 @@ fn static_paint_app() -> crate::facade::WorthUiApp {
                 ),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("static-paint fact-index fixture should prepare")
 }
 

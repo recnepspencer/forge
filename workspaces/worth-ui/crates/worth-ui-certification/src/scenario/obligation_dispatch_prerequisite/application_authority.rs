@@ -12,10 +12,6 @@ use super::query_prerequisites::settled_query_world_profile;
 
 pub fn structural_touch_app() -> WorthUiApp {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -25,15 +21,12 @@ pub fn structural_touch_app() -> WorthUiApp {
             .with_semantic_artifact_spec(service_control_spec()),
         )
         .freeze()
+        .map(worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless)
         .expect("application preparation should succeed")
 }
 
 pub fn query_touch_app() -> WorthUiApp {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(settled_query_world_profile(
             "snapshot:phase5-dispatch-prereq",
@@ -46,15 +39,12 @@ pub fn query_touch_app() -> WorthUiApp {
             .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .map(worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless)
         .expect("application preparation should succeed")
 }
 
 pub fn service_touch_app() -> WorthUiApp {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -63,15 +53,12 @@ pub fn service_touch_app() -> WorthUiApp {
             .with_semantic_artifact_spec(service_control_spec()),
         )
         .freeze()
+        .map(worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless)
         .expect("application preparation should succeed")
 }
 
 pub fn focus_touch_app() -> WorthUiApp {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -80,15 +67,12 @@ pub fn focus_touch_app() -> WorthUiApp {
             .with_semantic_artifact_spec(focus_control_spec()),
         )
         .freeze()
+        .map(worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless)
         .expect("application preparation should succeed")
 }
 
 pub fn motion_touch_app() -> WorthUiApp {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -97,6 +81,7 @@ pub fn motion_touch_app() -> WorthUiApp {
             .with_semantic_artifact_spec(motion_control_spec()),
         )
         .freeze()
+        .map(worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless)
         .expect("application preparation should succeed")
 }
 

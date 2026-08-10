@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use super::oracle::{adjudicate, removal_expectation, OracleExpectation, OracleRect};
 
+mod attribution;
 mod production;
 
 pub(super) use production::{produce_maximum_overlap, ProducedMaximumDelta, ProducedUnchanged};
@@ -10,11 +11,16 @@ pub(super) struct MountedPresentationWorld {
     identity: String,
     version: u16,
     baseline: Box<[OracleRect]>,
+    authored_instances: Box<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
+    semantic_surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    initial_frame: worth_ui_host_contract::UiMountedFrameIdentity,
 }
 
 impl MountedPresentationWorld {
     pub(super) fn maximum_overlap(
         transcript: &worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
+        authored_instances: Box<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
+        semantic_surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
     ) -> Self {
         let manifest = include_str!("control_points.toml")
             .parse::<toml::Value>()
@@ -30,10 +36,14 @@ impl MountedPresentationWorld {
             .collect::<Vec<_>>();
         assert_exact_rows(transcript, &baseline);
         assert_exact_order(transcript, &baseline);
+        attribution::assert_initial_attribution(transcript, &authored_instances, semantic_surface);
         Self {
             identity,
             version,
             baseline: baseline.into_boxed_slice(),
+            authored_instances,
+            semantic_surface,
+            initial_frame: transcript.frame(),
         }
     }
 
@@ -63,6 +73,19 @@ impl MountedPresentationWorld {
             &self.baseline[..count],
             expected_successor.first(),
         );
+        attribution::assert_exact_attribution(
+            &delta.transcript,
+            &delta.authored_instances,
+            self.semantic_surface,
+        );
+        assert_eq!(
+            delta.authored_instances.as_ref(),
+            &self.authored_instances[count..]
+        );
+        attribution::assert_exact_frame_attribution(
+            &delta.transcript,
+            &vec![self.initial_frame; delta.authored_instances.len()],
+        );
     }
 
     pub(super) fn assert_unchanged(&self, unchanged: &ProducedUnchanged) {
@@ -83,6 +106,29 @@ impl MountedPresentationWorld {
             delta.delta_rows_carried,
             (delta.changed_rows * 4 + 2) as u64
         );
+        attribution::assert_exact_attribution(
+            &delta.transcript,
+            &delta.authored_instances,
+            self.semantic_surface,
+        );
+        assert!(delta.authored_instances[..delta.changed_rows]
+            .iter()
+            .zip(&self.authored_instances[..delta.changed_rows])
+            .all(|(restored, original)| restored != original));
+        assert_eq!(
+            delta.authored_instances[delta.changed_rows..],
+            self.authored_instances[delta.changed_rows..]
+        );
+        let expected_frames = (0..self.baseline.len())
+            .map(|index| {
+                if index < delta.changed_rows {
+                    delta.transcript.frame()
+                } else {
+                    self.initial_frame
+                }
+            })
+            .collect::<Vec<_>>();
+        attribution::assert_exact_frame_attribution(&delta.transcript, &expected_frames);
     }
 }
 

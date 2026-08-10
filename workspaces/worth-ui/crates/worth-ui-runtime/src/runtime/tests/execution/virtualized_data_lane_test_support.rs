@@ -72,11 +72,13 @@ impl VirtualizedDataFixture {
         let mut query =
             worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture::new(label);
         let snapshot = WorthUi::app()
-            .bind_certification_host()
             .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .register_query_view(query.installed_view())
             .expect("installed view registers")
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("query snapshot prepares");
         let submission = lower_file_submission(
             WorthUiSourceProvider::in_memory(label)
@@ -85,12 +87,14 @@ impl VirtualizedDataFixture {
             snapshot.capabilities(),
         );
         let mut session = WorthUi::app()
-            .bind_certification_host()
             .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .register_query_view(query.installed_view())
             .expect("installed view registers for active app")
             .with_candidate_submission(submission)
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("query source app prepares")
             .launch()
             .expect("query source app launches");

@@ -17,17 +17,18 @@ egui = "=0.35.0"
 
 [dependencies]
 worth-foundational = { path = "../../../../../../../crates/worth-foundational" }
-worth-ui = { path = "../../../../worth-ui" }
+worth-ui = { path = "../../../../worth-ui", features = ["legacy-egui-migration"] }
 worth-ui-dsl = { path = "../../../../worth-ui-dsl" }
-worth-ui-host-contract = { path = "../../../../worth-ui-host-contract", features = ["certification-host-binding-authority", "legacy-egui-host-binding-authority"] }
+worth-ui-host-contract = { path = "../../../../worth-ui-host-contract" }
 worth-ui-host-native = { path = "../../../../worth-ui-host-native" }
 worth-ui-host-headless = { path = "../../../../worth-ui-host-headless" }
 worth-ui-host-egui = { path = "../../../../worth-ui-host-egui" }
 worth-ui-native-platform = { path = "../../../../worth-ui-native-platform" }
 worth-ui-inspection = { path = "../../../../worth-ui-inspection" }
 worth-ui-query-binding = { path = "../../../../worth-ui-query-binding", features = ["certification-construction"] }
-worth-ui-runtime = { path = "../../../../worth-ui-runtime" }
+worth-ui-runtime = { path = "../../../../worth-ui-runtime", features = ["certification-support", "legacy-egui-migration"] }
 worth-ui-test-support = { path = "../../../../worth-ui-test-support" }
+egui.workspace = true
 
 [[bin]]
 name = "product-runtime-authority"
@@ -44,6 +45,10 @@ path = "../../../../worth-ui-host-contract/tests/ui/presentation_mechanics_consu
 [[bin]]
 name = "product-paint-identities-non-orderable"
 path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/paint_identities_are_not_orderable.rs"
+
+[[bin]]
+name = "product-paint-identities-lawful-correlation"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/paint_identities_support_lawful_correlation.rs"
 
 [[bin]]
 name = "product-raw-protocol-consumer-substitution"
@@ -222,8 +227,20 @@ name = "product-collection-change-publication-token-affine"
 path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/collection_change_publication_token_is_affine.rs"
 
 [[bin]]
-name = "certification-second-host-adapter"
-path = "../../ui/host/second_adapter_implements_contract.rs"
+name = "certification-caller-defined-host-rejected"
+path = "../../ui/host/caller_defined_certification_host_is_rejected.rs"
+
+[[bin]]
+name = "certification-fixed-headless-host"
+path = "../../ui/host/fixed_certification_headless_host_is_lawful.rs"
+
+[[bin]]
+name = "certification-alternate-legacy-egui-host-rejected"
+path = "../../ui/host/alternate_host_cannot_enter_legacy_egui_transition.rs"
+
+[[bin]]
+name = "certification-fixed-legacy-egui-host"
+path = "../../ui/host/fixed_legacy_egui_host_is_lawful.rs"
 
 [[bin]]
 name = "certification-mounted-consumption-authority"

@@ -198,25 +198,20 @@ fn declaration_correspondence_lookup_handles_zero_one_many_nodes_honestly() {
 
 fn lookup_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-lookup")
                 .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
 }
 
 fn absent_lookup_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -225,6 +220,9 @@ fn absent_lookup_app() -> worth_ui::facade::app::WorthUiApp {
             .with_semantic_artifact_spec(absent_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
 }
 

@@ -127,7 +127,6 @@ fn query_intrinsic_policy() -> UiDeclaredMeasurementPolicyPosture {
 
 fn multi_child_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUiApp {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(
@@ -139,6 +138,7 @@ fn multi_child_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUi
             .with_semantic_artifact_spec(control_spec("workflow_editor.control.right", 2)),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

@@ -27,10 +27,6 @@ use support::{
 #[test]
 fn only_sealed_graph_handoffs_instantiate_graph_truth_through_public_plan() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -39,6 +35,9 @@ fn only_sealed_graph_handoffs_instantiate_graph_truth_through_public_plan() {
             .with_semantic_artifact_spec(control_graph_input_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
         .graph_handoff()
@@ -162,10 +161,6 @@ fn only_sealed_graph_handoffs_instantiate_graph_truth_through_public_plan() {
 #[test]
 fn basis_free_duplicate_handoffs_deny_before_snapshot_mutation() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -174,6 +169,9 @@ fn basis_free_duplicate_handoffs_deny_before_snapshot_mutation() {
             .with_semantic_artifact_spec(control_graph_input_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
         .graph_handoff()
@@ -197,10 +195,6 @@ fn basis_free_duplicate_handoffs_deny_before_snapshot_mutation() {
 #[test]
 fn freeze_path_returns_the_exact_graph_handoff_denial() {
     let denial = match WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -210,6 +204,9 @@ fn freeze_path_returns_the_exact_graph_handoff_denial() {
             .with_semantic_artifact_spec(invalid_graph_input_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
     {
         Ok(_) => panic!("denied graph handoff must deny application preparation"),
         Err(denial) => denial,
@@ -236,10 +233,6 @@ fn freeze_path_returns_the_exact_graph_handoff_denial() {
 #[test]
 fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
     let baseline = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -248,12 +241,11 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
             .with_semantic_artifact_spec(graph_input_without_non_graph_obligations()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let enriched = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -262,6 +254,9 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
             .with_semantic_artifact_spec(graph_input_with_non_graph_obligations()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
 
     let baseline_handoff =

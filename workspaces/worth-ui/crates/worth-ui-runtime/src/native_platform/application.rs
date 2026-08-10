@@ -1,20 +1,14 @@
-use crate::facade::entry::{UiApplicationHostUnbound, UiIntentWiringSatisfied};
+use crate::facade::entry::UiIntentWiringSatisfied;
 use crate::facade::{
     UiChangeProfileInstalled, UiChangeProfileMissing, WorthUi, WorthUiApplicationBuilder,
     WorthUiHostNeutralApp,
 };
 
 use super::native_platform_binding::UiNativePlatformBindingGrant;
-type UiNativeBuilderMissingProfile = WorthUiApplicationBuilder<
-    UiChangeProfileMissing,
-    UiIntentWiringSatisfied,
-    UiApplicationHostUnbound,
->;
-type UiNativeBuilderReady = WorthUiApplicationBuilder<
-    UiChangeProfileInstalled,
-    UiIntentWiringSatisfied,
-    UiApplicationHostUnbound,
->;
+type UiNativeBuilderMissingProfile =
+    WorthUiApplicationBuilder<UiChangeProfileMissing, UiIntentWiringSatisfied>;
+type UiNativeBuilderReady =
+    WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied>;
 
 enum UiNativeBuilderState {
     MissingProfile(UiNativeBuilderMissingProfile),

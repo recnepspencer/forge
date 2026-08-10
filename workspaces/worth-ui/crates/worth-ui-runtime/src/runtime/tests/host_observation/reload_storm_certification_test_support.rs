@@ -21,7 +21,6 @@ pub(super) fn rich_storm_app() -> WorthUiApp {
         "reload-storm-query-app",
     );
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(component("workspace.component.dashboard"))
         .register_surface(surface("workspace.surface.main"))
@@ -33,6 +32,7 @@ pub(super) fn rich_storm_app() -> WorthUiApp {
         .register_theme_token(theme_token("theme.text.primary", "#101820"))
         .register_theme_token(theme_token("theme.text.secondary", "#C7492A"))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

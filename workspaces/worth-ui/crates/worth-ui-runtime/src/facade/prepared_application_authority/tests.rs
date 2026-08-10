@@ -14,15 +14,18 @@ use crate::runtime::rebind::{UiChangeProfile, UiRebindProfile};
 fn declaration_and_graph_drift_change_prepared_generation_identity() {
     let baseline = app_with_package("prepared-baseline", "ui.prepared.baseline")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("baseline should prepare");
     let declaration_drift = app_with_package("prepared-drift", "ui.prepared.drift")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("declaration drift should prepare");
     let graph_drift = app_with_package("prepared-baseline", "ui.prepared.baseline")
         .with_graph_world_profile(UiGraphWorldProfile::preview_session_label(
             UiGraphSessionLabel::new("prepared-preview").expect("valid graph session label"),
         ))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("graph drift should prepare");
 
     assert_eq!(
@@ -52,17 +55,19 @@ fn query_drift_changes_identity_while_host_selection_remains_outside_it() {
     let left_query = query_app("prepared-query-left");
     let right_query = query_app("prepared-query-right");
     let headless = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("headless app should prepare");
     let egui = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            EguiPlanAdapter,
-        )
         .freeze()
+        .map(|application| {
+            crate::facade::entry::WorthUiCertificationApplicationTransition::activate_test_host(
+                application,
+                EguiPlanAdapter,
+            )
+        })
         .expect("egui app should prepare");
 
     assert_eq!(
@@ -120,6 +125,7 @@ impl crate::host::adapter::WorthUiOperationalHostAdapter for EguiPlanAdapter {
 fn every_prepared_derived_index_rebuilds_from_owned_authority() {
     let mut app = app_with_package("prepared-rebuild", "ui.prepared.rebuild")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("rebuild fixture should prepare");
     let before = (
         app.authored_evidence_index().clone(),
@@ -170,14 +176,14 @@ fn exact_change_profile_is_generation_identity_and_prepared_authority() {
     .expect("smaller observation profile should be valid");
     let custom = UiChangeProfile::new(observation, UiRebindProfile::platform_pulse());
     let baseline = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("baseline should prepare");
     let configured = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(custom)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("configured app should prepare");
 
     assert_ne!(
@@ -192,7 +198,6 @@ fn app_with_package(
     semantic_key: &str,
 ) -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(package_name).with_semantic_artifact_spec(
@@ -213,10 +218,10 @@ fn query_app(installed_domain: &str) -> crate::facade::WorthUiApp {
         .live_measurement_view("workspace.view_binding.prepared")
         .expect("installed query view should admit");
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(WorthUiQueryViewRegistration::new(view))
         .expect("query view should register")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("query app should prepare")
 }

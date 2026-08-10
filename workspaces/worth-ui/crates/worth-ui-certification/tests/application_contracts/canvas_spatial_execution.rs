@@ -1,28 +1,16 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiApplicationBuilder};
 
-type BoundBuilder = WorthUiApplicationBuilder<
-    worth_ui::facade::app::UiChangeProfileInstalled,
-    worth_ui::facade::app::UiIntentWiringSatisfied,
-    worth_ui::facade::app::UiApplicationHostBound,
->;
+type BoundBuilder = worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder;
 use worth_ui::facade::declaration::{
     ComponentCanvasSpatialContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
     ComponentPropSchema, ComponentStateOwnership,
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
-use worth_ui_host_contract::{
-    UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostCapability,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
-};
-use worth_ui_host_headless::WorthUiHeadlessHost;
+use worth_ui_host_headless::{WorthUiHeadlessCapabilityProfileHost, WorthUiHeadlessHost};
 use worth_ui_runtime::facade::execution::{
     WorthUiCanvasSpatialFrameTarget, WorthUiCanvasSpatialLane,
     WorthUiCanvasSpatialPlanAvailability, WorthUiCanvasViewportRequest,
     WorthUiHandleResolutionOutcome, WorthUiSpatialHitTestRequest, WorthUiSpatialViewportPoint,
-};
-use worth_ui_runtime::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiOperationalHostAdapter,
 };
 use worth_ui_runtime::facade::runtime_handoff::WorthUiRuntimeLaunchDenial;
 use worth_ui_test_support::{
@@ -247,10 +235,7 @@ fn lawful_source_reordering_preserves_spatial_plan_behavior() {
 }
 
 fn canvas_builder() -> BoundBuilder {
-    canvas_descriptor_builder().bind_certification_host_adapter(
-        worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-        WorthUiHeadlessHost,
-    )
+    BoundBuilder::new(canvas_descriptor_builder(), WorthUiHeadlessHost)
 }
 
 fn canvas_builder_with_ordinary(count: usize) -> BoundBuilder {
@@ -264,9 +249,9 @@ fn canvas_builder_with_ordinary(count: usize) -> BoundBuilder {
 }
 
 fn unsupported_canvas_builder() -> BoundBuilder {
-    canvas_descriptor_builder().bind_certification_host_adapter(
-        worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-        MissingHitTestHost,
+    BoundBuilder::new(
+        canvas_descriptor_builder(),
+        WorthUiHeadlessCapabilityProfileHost::missing_canvas_hit_test(),
     )
 }
 
@@ -309,41 +294,4 @@ fn file_app(
         .with_candidate_submission(submission)
         .freeze()
         .expect("file-authored application should prepare")
-}
-
-#[derive(Clone, Copy, Default)]
-struct MissingHitTestHost;
-
-impl WorthUiMeasurementHostAdapter for MissingHitTestHost {
-    fn observe_measurement(
-        &self,
-        _request: &UiHostMeasurementRequest,
-    ) -> UiHostMeasurementObservationValue {
-        unreachable!("missing host capabilities deny before observation")
-    }
-}
-
-impl WorthUiOperationalHostAdapter for MissingHitTestHost {
-    fn operational_host_contract(&self) -> WorthUiHostContract {
-        WorthUiHostContract::headless()
-    }
-
-    fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::available(vec![
-            WorthUiHostCapability::CanvasSpatialDraw,
-            WorthUiHostCapability::CanvasSpatialOverlay,
-            WorthUiHostCapability::CanvasSpatialToolState,
-            WorthUiHostCapability::CanvasSpatialRenderResource,
-        ])
-    }
-
-    fn release_host_session(
-        &self,
-        authority: &UiHostAdapterSessionAuthority,
-    ) -> UiHostSessionReleaseOutcome {
-        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
-            authority.host_session_identity(),
-            0,
-        ))
-    }
 }

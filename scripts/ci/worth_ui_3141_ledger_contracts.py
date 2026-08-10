@@ -42,7 +42,7 @@ COUNTERS = {
     "P1-HEADLESS-01": ("headless", 1),
     "P1-HEADLESS-COST-01": ("carrier-cost", 0),
     "P1-ORDER-01": ("order", 2),
-    "P1-ORDER-SOURCE-01": ("order-source", 1),
+    "P1-ORDER-SOURCE-01": ("order-source", 2),
     "P1-PLATFORM-AUTHORITY-01": ("grant", 2),
     "P1-PREPARATION-LIFECYCLE-01": ("effect-surface", 0),
     "P1-PRESENTATION-AUTHORITY-01": ("authority", 2),

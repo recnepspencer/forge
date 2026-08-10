@@ -8,6 +8,8 @@ mod app;
 mod app_builder;
 mod application_replacement;
 mod builder;
+#[cfg(any(test, feature = "certification-support"))]
+mod certification_application_transition;
 mod host_neutral_app;
 mod intent_admission;
 mod intent_confirmation;
@@ -21,6 +23,8 @@ mod intent_payload;
 mod intent_resource_census;
 mod intent_routing;
 mod interaction;
+#[cfg(feature = "legacy-egui-migration")]
+mod legacy_egui_application_transition;
 mod local_interaction_recipient;
 mod measurement_exchange;
 mod mounted_allocation_denial;
@@ -74,9 +78,8 @@ pub use app::{WorthUi, WorthUiApp};
 #[cfg(test)]
 pub(crate) use app_builder::WorthUiCertificationApplicationBuilder;
 pub use app_builder::{
-    UiApplicationHostBound, UiApplicationHostUnbound, UiChangeProfileInstalled,
-    UiChangeProfileMissing, UiIntentProviderRequired, UiIntentWiringSatisfied,
-    WorthUiApplicationBuilder, WorthUiProjectionRegistrationError,
+    UiChangeProfileInstalled, UiChangeProfileMissing, UiIntentProviderRequired,
+    UiIntentWiringSatisfied, WorthUiApplicationBuilder, WorthUiProjectionRegistrationError,
     WorthUiQueryViewRegistrationError,
 };
 pub use application_replacement::{
@@ -94,11 +97,15 @@ pub use application_replacement::{
     WorthUiReplacementPlannedCostEnvelope,
 };
 pub use builder::CapabilityRegistrationBuilder;
+#[cfg(any(test, feature = "certification-support"))]
+pub use certification_application_transition::WorthUiCertificationApplicationTransition;
 pub use host_neutral_app::WorthUiHostNeutralApp;
 pub use intent_consequence_publication::{
     UiIntentConsequencePublicationCompletion, UiIntentConsequencePublicationOutcome,
     UiIntentConsequencePublicationRecovery,
 };
+#[cfg(feature = "legacy-egui-migration")]
+pub use legacy_egui_application_transition::WorthUiLegacyEguiApplicationTransition;
 #[cfg(any(test, feature = "certification-support"))]
 pub use local_interaction_recipient::WorthUiLocalInputRecipientCertificationExt;
 pub use mounted_allocation_denial::{
@@ -133,8 +140,8 @@ pub use mounted_preview::{
     WorthUiPreparedMountedPreview, WorthUiResolvedMountedPreview,
 };
 pub use native_application_shell::{
-    WorthUiNativeApplicationShell, WorthUiNativeApplicationShellLaunchDenial,
-    WorthUiNativeApplicationShutdownReceipt,
+    WorthUiNativeApplicationCleanup, WorthUiNativeApplicationShell,
+    WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
 };
 pub use native_intent::{
     WorthUiNativeIntentAttemptPrepared, WorthUiNativeIntentConfirmationRequired,

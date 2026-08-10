@@ -1,7 +1,7 @@
 use eframe::egui;
 use worth_ui::facade::app::WorthUiApplicationPreparationDenial;
 use worth_ui::facade::app::{
-    UiApplicationHostBound, UiChangeProfileInstalled, UiIntentWiringSatisfied, WorthUi, WorthUiApp,
+    UiChangeProfileInstalled, UiIntentWiringSatisfied, WorthUi, WorthUiApp,
     WorthUiApplicationBuilder,
 };
 use worth_ui::facade::intent::{
@@ -104,29 +104,34 @@ pub(crate) fn prepare(
         let initial_source = snapshot.source_revision().clone();
         let host = WorthUiHostEgui::new(context);
         let capability_app = builder(
-            host.clone(),
             registration.clone(),
             action_view.clone(),
             &intent_initial,
             intent_provider.clone(),
         )?
         .freeze()
+        .map(|application| {
+            worth_ui::facade::app::WorthUiLegacyEguiApplicationTransition::activate(
+                application,
+                host.clone(),
+            )
+        })
         .map_err(PlatformPulsePreparationDenial::CapabilityApplication)?;
         let submission = snapshot
             .attempt_source_rebind(capability_app.capabilities())
             .into_candidate_submission()
             .map_err(PlatformPulsePreparationDenial::InitialSourceLowering)?;
-        builder(
-            host.clone(),
-            registration,
-            action_view,
-            &intent_initial,
-            intent_provider,
-        )?
-        .with_candidate_submission(submission)
-        .freeze()
-        .map_err(PlatformPulsePreparationDenial::FileApplication)
-        .map(|app| (app, host, initial_source))
+        builder(registration, action_view, &intent_initial, intent_provider)?
+            .with_candidate_submission(submission)
+            .freeze()
+            .map(|application| {
+                worth_ui::facade::app::WorthUiLegacyEguiApplicationTransition::activate(
+                    application,
+                    host.clone(),
+                )
+            })
+            .map_err(PlatformPulsePreparationDenial::FileApplication)
+            .map(|app| (app, host, initial_source))
     })();
     match result {
         Ok((app, host, initial_source)) => Ok(PreparedPlatformPulse {
@@ -184,26 +189,17 @@ impl std::fmt::Display for PlatformPulsePreparationDenial {
 }
 
 fn builder(
-    host: WorthUiHostEgui,
     registration: worth_ui::facade::query_binding::UiScalarProjectionRegistration,
     action_view: WorthUiInstalledQueryView,
     intent: &PlatformPulseIntentInputRecord,
     provider: PlatformPulseActionProvider,
 ) -> Result<
-    WorthUiApplicationBuilder<
-        UiChangeProfileInstalled,
-        UiIntentWiringSatisfied,
-        UiApplicationHostBound,
-    >,
+    WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied>,
     PlatformPulsePreparationDenial,
 > {
     let builder = register_structure(
         WorthUi::app()
-            .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-            .bind_legacy_egui_migration_host(
-                worth_ui_host_egui::UiLegacyEguiHostBindingGrant::for_migration(),
-                host,
-            ),
+            .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse()),
     );
     let builder = register_theme_tokens(builder)
         .register_intent_boolean_fact(platform_pulse_action_mutability_fact(), intent.mutable())

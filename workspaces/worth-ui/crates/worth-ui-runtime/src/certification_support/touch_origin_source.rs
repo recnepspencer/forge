@@ -34,22 +34,20 @@ pub(super) fn touch_runtime_app() -> WorthUiApp {
         .attempt_candidate_for_certification(support_app.capabilities())
         .expect("touch-origin graph provider should lower to a composition");
 
-    touch_runtime_builder()
+    let application = touch_runtime_builder()
         .with_candidate_submission(submission)
         .freeze()
-        .expect("application preparation should succeed")
+        .expect("application preparation should succeed");
+    crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host(
+        application,
+    )
 }
 
 fn touch_runtime_builder() -> crate::facade::entry::WorthUiApplicationBuilder<
     crate::facade::entry::UiChangeProfileInstalled,
     crate::facade::entry::UiIntentWiringSatisfied,
-    crate::facade::entry::UiApplicationHostBound,
 > {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            crate::certification_support::UiCertificationBuilderHost,
-        )
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(ComponentDescriptor::new(
             ComponentId::new("workspace.component.dashboard").expect("valid component id"),
@@ -104,9 +102,12 @@ pub(super) fn launch_runtime(
 }
 
 fn touch_runtime_support_app() -> WorthUiApp {
-    touch_runtime_builder()
+    let application = touch_runtime_builder()
         .freeze()
-        .expect("application preparation should succeed")
+        .expect("application preparation should succeed");
+    crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host(
+        application,
+    )
 }
 
 fn runtime_origin_artifact(

@@ -17,19 +17,22 @@ const UNCONDITIONAL_DEPENDENCIES: &[&str] = &[
     "worth-query-host",
     "worth-ui",
     "worth-ui-host-egui",
+    "worth-ui-native-platform",
 ];
-const WINDOWS_DEV_DEPENDENCIES: &[&str] = &["uiautomation", "winsafe", "xcap"];
+const WINDOWS_DEV_DEPENDENCIES: &[&str] = &["uiautomation", "win32job", "winsafe", "xcap"];
 const ALLOWED_DEPENDENCIES: &[&str] = &[
     "eframe",
     "notify",
     "serde",
     "serde_json",
     "uiautomation",
+    "win32job",
     "winsafe",
     "worth-query-decl",
     "worth-query-host",
     "worth-ui",
     "worth-ui-host-egui",
+    "worth-ui-native-platform",
     "xcap",
 ];
 pub(super) const EFRAME_VERSION: &str = "=0.35.0";

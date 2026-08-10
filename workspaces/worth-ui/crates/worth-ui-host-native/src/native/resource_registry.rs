@@ -40,6 +40,13 @@ impl UiNativeResourceRegistry {
         Ok(UiNativeResourceOwner { identity, class })
     }
 
+    pub(crate) fn admits(&self, additional: usize) -> bool {
+        self.live
+            .len()
+            .checked_add(additional)
+            .is_some_and(|total| total <= RESOURCE_CAPACITY)
+    }
+
     pub(crate) fn reserve(
         &mut self,
         classes: &[UiNativeResourceClass],

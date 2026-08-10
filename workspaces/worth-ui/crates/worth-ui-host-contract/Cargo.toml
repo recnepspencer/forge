@@ -11,8 +11,6 @@ path = "src/lib.rs"
 
 [features]
 default = []
-certification-host-binding-authority = []
-legacy-egui-host-binding-authority = []
 
 [lints]
 workspace = true

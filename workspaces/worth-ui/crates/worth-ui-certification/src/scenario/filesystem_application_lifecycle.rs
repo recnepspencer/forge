@@ -1,10 +1,10 @@
+use crate::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui::facade::app::{
     WorthUiActiveApplicationSession, WorthUiApp, WorthUiApplicationCutoverReceipt,
 };
 use worth_ui::facade::diagnostics::CapabilitySnapshot;
 use worth_ui::facade::source::{WorthUiSettledSourceSnapshot, WorthUiWatchedCandidateSubmission};
 use worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture;
-use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
 
 use super::application_authority_closure::application_definition::{
@@ -162,7 +162,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         application_builder_with_host(&self.query, host)
             .with_candidate_submission(submission)
@@ -177,7 +177,7 @@ impl FilesystemApplicationLifecycleScenario {
         retention_budget: worth_ui_runtime::facade::mounted::UiMountedFrameRetentionBudget,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         application_builder_with_host(&self.query, host)
             .with_mounted_frame_retention_budget(retention_budget)
@@ -194,7 +194,7 @@ impl FilesystemApplicationLifecycleScenario {
         observation_capacity: worth_ui::facade::observation_report::UiHostObservationCapacity,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         application_builder_with_host(&self.query, host)
             .with_mounted_frame_retention_budget(retention_budget)
@@ -210,7 +210,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         preview_application_builder_with_host(&self.query, host)
             .with_candidate_submission(submission)
@@ -220,7 +220,7 @@ impl FilesystemApplicationLifecycleScenario {
 
     pub fn cross_lane_capability_application<Host>(&self, host: Host) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         cross_lane_application_builder_with_host(&self.query, host)
             .freeze()
@@ -229,7 +229,7 @@ impl FilesystemApplicationLifecycleScenario {
 
     pub fn preview_capability_application<Host>(&self, host: Host) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         preview_application_builder_with_host(&self.query, host)
             .freeze()
@@ -238,7 +238,7 @@ impl FilesystemApplicationLifecycleScenario {
 
     pub fn preview_cross_lane_capability_application<Host>(&self, host: Host) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         preview_cross_lane_application_builder_with_host(&self.query, host)
             .freeze()
@@ -251,7 +251,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         cross_lane_application_builder_with_host(&self.query, host)
             .with_candidate_submission(submission)
@@ -265,7 +265,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         preview_cross_lane_application_builder_with_host(&self.query, host)
             .with_candidate_submission(submission)

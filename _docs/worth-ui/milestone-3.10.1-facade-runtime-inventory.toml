@@ -37,7 +37,7 @@ responsibility = "application construction and lifecycle"
 disposition = "retain"
 # Successor milestones add curated mounted, observation, rebind, Query, and
 # intent composition contracts while preserving the single application lifecycle.
-fingerprint = "051d158fe669f54b"
+fingerprint = "071eb7226854c01c"
 forbidden_shortcut = "export raw runtime, host, lane, planner, or mid-protocol authority"
 
 [[surface]]
@@ -94,7 +94,7 @@ responsibility = "curated declaration contract"
 disposition = "retain"
 # Milestone 3.11 exposes static paint, hit-test, and viewport-inset contracts.
 # Milestone 3.13 adds typed projection requirements without reopening source authority.
-fingerprint = "a346bae9ee1f4b99"
+fingerprint = "887bf7368792fbef"
 forbidden_shortcut = "reopen declaration source authority"
 
 [[surface]]
@@ -231,7 +231,7 @@ id = "certification-rust-authored-declaration-fixture"
 path = "rust_authored_declaration_fixture.rs"
 match = "exact"
 expected_files = 1
-content_fingerprint = "7d6a6f37d5ad3f41"
+content_fingerprint = "e063d7f79ffcaa69"
 audience = "certification-support"
 responsibility = "compiler-backed Rust-authored declaration fixture and builder extension"
 disposition = "retain"
@@ -263,12 +263,12 @@ forbidden_shortcut = "make certification reports runtime lifecycle authority"
 id = "certification-scenario"
 path = "scenario"
 match = "directory"
-expected_files = 26
+expected_files = 28
 # Milestone 3.11 extracts the two-node platform pulse application builder into
 # its named scenario home and adds visual-identity capability and filesystem
 # lifecycle worlds; later scale certification adds one named scaled-canvas
 # scenario while preserving certification-only construction.
-content_fingerprint = "56c931a282f18fde"
+content_fingerprint = "6966be34e94ee5c5"
 audience = "certification-support"
 responsibility = "real-boundary certification scenario construction, including the Milestone 3.10.2 platform pulse"
 disposition = "retain"
@@ -308,7 +308,7 @@ expected_files = 62
 # the typed intent provider as exact successor exclusions with hostile neighbors.
 # Milestone 3.14 moves authored intent admission into the declaration owner and
 # admits only that exact source file while a hostile sibling remains forbidden.
-content_fingerprint = "cd5deafb0b237aa8"
+content_fingerprint = "970a877b9a6bc414"
 audience = "certification-support"
 responsibility = "source, topology, public-surface, and authority audits"
 disposition = "retain"
@@ -331,7 +331,7 @@ expected_files = 8
 # observations. Milestone 3.14 keeps the Pulse manifest honest about its direct
 # notify and Query audience-facade dependencies, and the audit now consumes the
 # canonical workspace inventory rather than reconstructing a parallel view.
-content_fingerprint = "dfbcd9f8a58e1e02"
+content_fingerprint = "49a78bd150ab2884"
 audience = "certification-support"
 responsibility = "Milestone 3.10.2 source-to-pixel inventory and courtroom freeze"
 disposition = "retain"
@@ -360,7 +360,7 @@ expected_files = 6
 # receipt-derived projection, shutdown, visual-state, and hostile-fixture audits.
 # Its named source-topology owner preserves predecessor laws while adjudicating
 # lawful successor files.
-content_fingerprint = "b01c05f9ea559cdf"
+content_fingerprint = "f111a679e6ea1134"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 live product launch, observation provenance, facade, target, and anti-feature topology"
 disposition = "retain"
@@ -374,7 +374,7 @@ expected_files = 4
 # The cumulative journey now proves its recovered typestate is consumed by the
 # named cleanup owner before the exact native close transition, with courtroom
 # evidence aggregated across the complete named owner.
-content_fingerprint = "5a8a0979845f97b5"
+content_fingerprint = "eb392861578d6ae5"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 real executable process, native boundary, teardown, and external observation topology"
 disposition = "retain"
@@ -388,7 +388,7 @@ expected_files = 4
 # The cumulative watched contract now follows Query-aware typestate through a
 # separately positive-controlled visual journey and typed cleanup owner. Visual
 # cardinality follows the governed Pulse constants instead of stale literals.
-content_fingerprint = "7e73cc8cfd6df33e"
+content_fingerprint = "c66127789697bbc2"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 watched replacement, denial preservation, recovery, and normal-close topology"
 disposition = "retain"
@@ -527,7 +527,7 @@ disposition = "retain"
 [[subsystem]]
 name = "facade"
 owner = "runtime audience aggregation"
-allowed_dependencies = ["admission", "capability", "declaration", "evidence", "fact_contract", "graph", "host", "host_exchange", "inspection", "lifecycle", "mounting", "obligations", "runtime", "source"]
+allowed_dependencies = ["admission", "capability", "certification_support", "declaration", "evidence", "fact_contract", "graph", "host", "host_exchange", "inspection", "lifecycle", "mounting", "obligations", "runtime", "source"]
 target = "split audience facades"
 disposition = "split"
 exit_phase = 5

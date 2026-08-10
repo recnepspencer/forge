@@ -24,9 +24,9 @@ use candidate_admission_artifact_nodes::{import_node, module_id};
 #[test]
 fn same_candidate_and_same_active_basis_admit_equivalently() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let left = replacement_candidate(&app, ["app/panels/inspector.wui"]);
     let right = replacement_candidate(&app, ["app/panels/inspector.wui"]);
@@ -47,9 +47,9 @@ fn same_candidate_and_same_active_basis_admit_equivalently() {
 #[test]
 fn snapshot_mismatch_rejected_before_equivalence_comparison() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime.replacement_admission_basis();
@@ -80,9 +80,9 @@ fn snapshot_mismatch_rejected_before_equivalence_comparison() {
 #[test]
 fn deferred_runtime_posture_rejected_before_plan_lowering() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime
@@ -108,9 +108,9 @@ fn deferred_runtime_posture_rejected_before_plan_lowering() {
 #[test]
 fn unsupported_runtime_posture_rejected_before_plan_lowering() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime

@@ -217,12 +217,11 @@ fn graph_ref_from_unrelated_same_generation_app_is_not_reported_as_available() {
         .evidence_ref_for_node(first_graph_node_identity(&source))
         .expect("source graph should derive its node evidence ref");
     let unrelated = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("unrelated empty application should prepare");
     assert_eq!(
         unrelated.graph().generation(),

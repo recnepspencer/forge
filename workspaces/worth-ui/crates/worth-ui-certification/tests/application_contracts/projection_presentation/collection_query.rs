@@ -298,11 +298,13 @@ pub(crate) fn collection_app(
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([
             collection_module(false),
         ]))
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            recorder,
-        )
         .freeze()
+        .map(|application| {
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_recorder(
+                application,
+                recorder,
+            )
+        })
         .expect("collection content application freezes")
 }
 

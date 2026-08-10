@@ -32,11 +32,14 @@ pub(in crate::host_platform) struct ProducedMaximumOverlap {
     pub deltas: Box<[ProducedMaximumDelta]>,
     pub unchanged: ProducedUnchanged,
     pub restorations: Box<[ProducedMaximumDelta]>,
+    pub authored_instances: Box<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
+    pub semantic_surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
 }
 
 pub(in crate::host_platform) struct ProducedMaximumDelta {
     pub changed_rows: usize,
     pub transcript: worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
+    pub authored_instances: Box<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
     pub delta_rows_carried: u64,
     pub draw_mutations: u64,
     pub order_mutations: u64,
@@ -68,6 +71,11 @@ pub(crate) fn produce_maximum_overlap(
     execute_frame(&mut session, 10);
     let initial = one_transcript(&recorder, "maximum-overlap initial transcript");
     let unchanged = produce_unchanged(&mut session, &recorder, 11);
+    let authored_instances = mounted
+        .rows
+        .iter()
+        .map(|row| row.instance)
+        .collect::<Vec<_>>();
     let mut deltas = Vec::new();
     let mut restorations = Vec::new();
     for (index, count) in [1, RECTANGLE_COUNT / 2, RECTANGLE_COUNT]
@@ -86,6 +94,7 @@ pub(crate) fn produce_maximum_overlap(
             restorations.push(produce_restoration(
                 &mut session,
                 &recorder,
+                &mounted,
                 count,
                 21 + index as u64 * 2,
             ));
@@ -97,6 +106,8 @@ pub(crate) fn produce_maximum_overlap(
         deltas: deltas.into_boxed_slice(),
         unchanged,
         restorations: restorations.into_boxed_slice(),
+        authored_instances: authored_instances.into_boxed_slice(),
+        semantic_surface: mounted.surface,
     }
 }
 
@@ -116,6 +127,7 @@ fn produce_unchanged(
 fn produce_restoration(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
     recorder: &worth_ui_host_headless::WorthUiHeadlessRecorder,
+    mounted: &MountedMaximumRows,
     count: usize,
     tick: u64,
 ) -> ProducedMaximumDelta {
@@ -123,6 +135,12 @@ fn produce_restoration(
     ProducedMaximumDelta {
         changed_rows: count,
         transcript: one_transcript(recorder, "maximum-overlap restoration transcript"),
+        authored_instances: mounted
+            .rows
+            .iter()
+            .map(|row| row.instance)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
         delta_rows_carried: cost.delta_rows_carried(),
         draw_mutations: cost.draw_list_mutations(),
         order_mutations: cost.order_mutations(),
@@ -144,6 +162,13 @@ fn produce_removal_delta(
     ProducedMaximumDelta {
         changed_rows: count,
         transcript: one_transcript(recorder, "maximum-overlap removal transcript"),
+        authored_instances: mounted
+            .rows
+            .iter()
+            .skip(count)
+            .map(|row| row.instance)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
         delta_rows_carried: cost.delta_rows_carried(),
         draw_mutations: cost.draw_list_mutations(),
         order_mutations: cost.order_mutations(),
@@ -261,17 +286,13 @@ fn execute_frame(
 
 fn application_builder(
     recorder: worth_ui_host_headless::WorthUiHeadlessRecorder,
-) -> worth_ui::facade::app::WorthUiApplicationBuilder<
-    worth_ui::facade::app::UiChangeProfileInstalled,
-    worth_ui::facade::app::UiIntentWiringSatisfied,
-    worth_ui::facade::app::UiApplicationHostBound,
-> {
-    worth_ui::facade::app::WorthUi::app()
-        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            recorder,
-        )
+) -> worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder{
+    let builder = worth_ui::facade::app::WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse());
+    worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder::new(
+        builder,
+        recorder,
+    )
 }
 
 fn component(identity: &str, index: usize) -> ComponentDescriptor {

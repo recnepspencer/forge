@@ -1,6 +1,6 @@
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
+use worth_ui_certification::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
-use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiSurfaceBindingCoordinatePosture, UiSurfaceBindingProfile,
 };
@@ -32,7 +32,7 @@ pub(crate) fn mounted_application_with_host<Host>(
     host: Host,
 ) -> worth_ui::facade::app::WorthUiApp
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding + 'static,
 {
     let scenario = FilesystemApplicationLifecycleScenario::new(label);
     let submission = mounted_submission(
@@ -49,7 +49,7 @@ pub(crate) fn mounted_application_with_host_and_visual_policy<Host>(
     policy: worth_ui::facade::inspection::UiVisualInspectionPolicy,
 ) -> worth_ui::facade::app::WorthUiApp
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding + 'static,
 {
     let scenario = FilesystemApplicationLifecycleScenario::new(label);
     let submission = mounted_submission(
@@ -66,7 +66,7 @@ pub(crate) fn mounted_application_with_host_and_retention_budget<Host>(
     retention_budget: worth_ui_runtime::facade::mounted::UiMountedFrameRetentionBudget,
 ) -> worth_ui::facade::app::WorthUiApp
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding + 'static,
 {
     let scenario = FilesystemApplicationLifecycleScenario::new(label);
     let submission = mounted_submission(
@@ -84,7 +84,7 @@ pub(crate) fn mounted_application_with_host_and_capacities<Host>(
     observation_capacity: worth_ui::facade::observation_report::UiHostObservationCapacity,
 ) -> worth_ui::facade::app::WorthUiApp
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding + 'static,
 {
     let scenario = FilesystemApplicationLifecycleScenario::new(label);
     let submission = mounted_submission(

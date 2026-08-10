@@ -177,7 +177,6 @@ fn child_posture_app(
     child_bounded: bool,
 ) -> crate::facade::WorthUiApp {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(
@@ -196,6 +195,7 @@ fn child_posture_app(
             )),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

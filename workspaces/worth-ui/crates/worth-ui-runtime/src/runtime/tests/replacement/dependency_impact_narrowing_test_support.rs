@@ -20,7 +20,6 @@ pub(super) fn query_bound_app() -> WorthUiApp {
         "dependency-impact-query-app",
     );
     let builder = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(query_view(&installed, "workspace.view_binding.selection"))
         .expect("installed selection view registers");
@@ -28,6 +27,7 @@ pub(super) fn query_bound_app() -> WorthUiApp {
         .register_query_view(query_view(&installed, "workspace.view_binding.detail"))
         .expect("installed detail view registers")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 
@@ -37,7 +37,6 @@ pub(super) fn query_bound_surface_app() -> WorthUiApp {
         "dependency-impact-surface-query-app",
     );
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_command(CommandDescriptor::new(
             command_id("workspace.command.save"),
@@ -62,6 +61,7 @@ pub(super) fn query_bound_surface_app() -> WorthUiApp {
         .register_query_view(query_view(&installed, "workspace.view_binding.selection"))
         .expect("installed selection view registers")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

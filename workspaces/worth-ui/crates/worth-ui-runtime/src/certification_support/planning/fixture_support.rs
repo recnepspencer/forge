@@ -93,16 +93,15 @@ pub(super) fn query_app() -> WorthUiApp {
     let view = installed
         .measurement_view("workspace.view_binding.selection")
         .expect("suite Query view should install");
-    WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            crate::certification_support::UiCertificationBuilderHost,
-        )
+    let application = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(WorthUiQueryViewRegistration::new(view))
         .expect("installed suite Query view should register")
         .freeze()
-        .expect("application preparation should succeed")
+        .expect("application preparation should succeed");
+    crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host(
+        application,
+    )
 }
 
 pub(super) fn artifact_from_modules<const N: usize>(
@@ -179,16 +178,15 @@ fn multi_control_app(
         }
         module = module.with_semantic_declaration(declaration);
     }
-    WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            crate::certification_support::UiCertificationBuilderHost,
-        )
+    let application = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
         .freeze()
-        .expect("application preparation should succeed")
+        .expect("application preparation should succeed");
+    crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host(
+        application,
+    )
 }
 
 pub(super) fn declaration_identity_for(

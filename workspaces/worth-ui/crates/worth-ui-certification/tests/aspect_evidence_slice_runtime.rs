@@ -76,10 +76,6 @@ fn provenance_expanded_aspect_slices_keep_exact_public_shape_and_replay_stabilit
 
 fn aspect_slice_app() -> WorthUiApp {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -95,6 +91,9 @@ fn aspect_slice_app() -> WorthUiApp {
             ),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
 }
 

@@ -70,7 +70,6 @@ pub(super) fn artifact_from_modules<const N: usize>(
 
 pub(super) fn impact_test_app() -> WorthUiApp {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_command(CommandDescriptor::new(
             command_id("workspace.command.save"),
@@ -110,6 +109,7 @@ pub(super) fn impact_test_app() -> WorthUiApp {
         .register_theme_token(theme_token("theme.text.primary", "#101820"))
         .register_theme_token(theme_token("theme.text.secondary", "#C7492A"))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

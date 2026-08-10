@@ -12,9 +12,9 @@ use super::{prepare_semantic_handoff, WorthUiSemanticHandoffPreparationStop};
 #[test]
 fn unsupported_protocol_stops_before_candidate_material_can_exist() {
     let capability_app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("capability authority should prepare");
     let package = WorthUiDslCompiler::compile_source(
         WorthUiAuthoredSourceInput::rooted_at(PathBuf::from("workspace"))

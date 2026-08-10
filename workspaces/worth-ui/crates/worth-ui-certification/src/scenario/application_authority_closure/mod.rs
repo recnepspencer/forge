@@ -2,6 +2,11 @@ pub(crate) mod application_definition;
 pub(crate) mod authored_composition;
 pub mod candidate_catalog;
 mod execution;
+mod fixed_application_builder;
+pub use fixed_application_builder::{
+    FixedCertificationApplicationBuilder, FixedCertificationIntentProviderBuilder,
+};
+pub mod fixed_host;
 mod foreign_graph_authority;
 mod operational_host;
 mod platform_pulse_application;

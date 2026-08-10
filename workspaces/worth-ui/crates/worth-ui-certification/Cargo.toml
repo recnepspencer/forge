@@ -20,11 +20,12 @@ syn = { version = "2.0", features = ["full", "visit"] }
 toml = "0.8"
 worth-ui = { path = "../worth-ui" }
 worth-ui-dsl = { path = "../worth-ui-dsl" }
-worth-ui-host-contract = { path = "../worth-ui-host-contract", features = ["certification-host-binding-authority"] }
+worth-ui-host-contract = { path = "../worth-ui-host-contract" }
+worth-ui-host-egui = { path = "../worth-ui-host-egui" }
 worth-ui-host-headless = { path = "../worth-ui-host-headless" }
 worth-ui-host-native = { path = "../worth-ui-host-native" }
 worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }
-worth-ui-runtime = { path = "../worth-ui-runtime" }
+worth-ui-runtime = { path = "../worth-ui-runtime", features = ["certification-support", "legacy-egui-migration"] }
 worth-ui-test-support = { path = "../worth-ui-test-support" }
 
 [dev-dependencies]
@@ -38,7 +39,6 @@ worth-query-host = { path = "../../../worth-query/crates/worth-query-host" }
 worth-runtime-bridge = { workspace = true, features = ["certification-construction"] }
 worth-signal.workspace = true
 worth-ui-inspection = { path = "../worth-ui-inspection" }
-worth-ui-host-egui = { path = "../worth-ui-host-egui" }
 worth-ui-platform-pulse = { path = "../../apps/platform-pulse" }
 worth-ui-native-platform = { path = "../worth-ui-native-platform" }
 

@@ -63,10 +63,11 @@ pub use entry::{
     WorthUiMountedPreviewPreparationDenial, WorthUiMountedPreviewPreparationRejection,
     WorthUiMountedPreviewRetentionRejection, WorthUiMountedReplacementAdmissionDenial,
     WorthUiMountedReplacementCompletionDenial, WorthUiMountedReplacementPreparationOutcome,
-    WorthUiMountedReplacementRetentionDenial, WorthUiNativeApplicationShell,
-    WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
-    WorthUiNativeIntentAttemptPrepared, WorthUiNativeIntentConfirmationRequired,
-    WorthUiNativeIntentIngress, WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind,
+    WorthUiMountedReplacementRetentionDenial, WorthUiNativeApplicationCleanup,
+    WorthUiNativeApplicationShell, WorthUiNativeApplicationShellLaunchDenial,
+    WorthUiNativeApplicationShutdownReceipt, WorthUiNativeIntentAttemptPrepared,
+    WorthUiNativeIntentConfirmationRequired, WorthUiNativeIntentIngress,
+    WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind,
     WorthUiNativeIntentPosturePublicationCompletion, WorthUiNativeIntentPosturePublicationOutcome,
     WorthUiNativeIntentPosturePublicationRecovery, WorthUiNativeIntentPosturePublicationStop,
     WorthUiNativeIntentStop, WorthUiNativeIntentStopped, WorthUiNativeIntentTerminalPostureOutcome,
@@ -82,6 +83,6 @@ pub(crate) use host_session_authority::WorthUiHostSessionAuthority;
 pub(crate) use host_session_authority::{UiHostEffectPort, WorthUiHostPlanBinding};
 pub use host_session_authority::{
     WorthUiHostMeasurementCapability, WorthUiHostMeasurementSessionInput,
-    WorthUiHostSessionIdentity,
+    WorthUiHostSessionIdentity, WorthUiHostSessionReleaseRecovery,
 };
 pub use lifecycle::{WorthUiRuntimeSupportInventory, RUNTIME_SUPPORT_INVENTORY};

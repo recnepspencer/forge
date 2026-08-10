@@ -1,19 +1,22 @@
 use worth_ui::facade::app::WorthUi;
-use worth_ui_runtime::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiOperationalHostAdapter,
-};
 use worth_ui_host_contract::{
     UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostCapabilityReport,
     WorthUiHostContract, WorthUiMeasurementHostAdapter,
+};
+use worth_ui_runtime::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    WorthUiOperationalHostAdapter,
 };
 
 #[derive(Default)]
 struct AlternateHost;
 
 impl WorthUiMeasurementHostAdapter for AlternateHost {
-    fn observe_measurement(&self, _request: &UiHostMeasurementRequest) -> UiHostMeasurementObservationValue {
-        unreachable!("headless configuration denies measurement construction")
+    fn observe_measurement(
+        &self,
+        _request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
+        unreachable!("the caller-defined host must never be admitted")
     }
 }
 
@@ -38,11 +41,13 @@ impl WorthUiOperationalHostAdapter for AlternateHost {
 }
 
 fn main() {
-    let app = WorthUi::app()
+    let application = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .bind_certification_host_adapter(worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(), AlternateHost::default())
         .freeze()
-        .expect("application preparation should succeed");
-    let session = app.launch().expect("active session claims the adapter lease");
-    let _ = session.shutdown();
+        .expect("host-neutral application should prepare");
+    let _ =
+        worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_recorder(
+            application,
+            AlternateHost,
+        );
 }

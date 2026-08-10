@@ -8,7 +8,7 @@ pub enum UiNativePlatformStopReason {
     IncompleteCleanup,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct UiNativePlatformStopReport {
     report: worth_ui_host_native::UiNativeEventLoopStopReport,
 }
@@ -85,7 +85,7 @@ impl UiNativePlatformCloseReceipt {
 }
 
 impl UiNativePlatformStopReport {
-    pub(crate) const fn from_native_report(
+    pub(crate) fn from_native_report(
         report: worth_ui_host_native::UiNativeEventLoopStopReport,
     ) -> Self {
         Self { report }
@@ -128,5 +128,9 @@ impl UiNativePlatformStopReport {
 
     pub const fn client_cleanup_complete(&self) -> bool {
         self.report.client_cleanup_complete()
+    }
+
+    pub fn into_cleanup(self) -> Option<worth_ui_host_native::UiNativeEventLoopCleanup> {
+        self.report.into_cleanup()
     }
 }

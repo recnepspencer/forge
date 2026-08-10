@@ -45,22 +45,22 @@ fn phase_two_close_surface_is_affine_and_bound_to_the_real_native_report() {
         .text()
         .contains("#[derive(Clone, Copy)]\npub struct UiNativePlatformCloseReceipt"));
 
-    let state = inventory
-        .source("crates/worth-ui-host-native/src/native/resource_census.rs")
-        .expect("real native resource census owner");
-    for field in [
-        "windows",
-        "surfaces",
-        "adapters",
-        "devices",
-        "queues",
-        "retained_targets",
-        "registrations",
-        "readback_buffers",
-        "pending_submissions",
-        "event_wake_registrations",
-        "application_drivers",
-    ] {
-        assert!(state.text().contains(&format!("pub {field}: usize")));
-    }
+    let fields =
+        worth_ui_host_native::UiNativeResourceCensus::field_names().collect::<BTreeSet<_>>();
+    assert_eq!(
+        fields,
+        BTreeSet::from([
+            "windows",
+            "surfaces",
+            "adapters",
+            "devices",
+            "queues",
+            "retained_targets",
+            "registrations",
+            "readback_buffers",
+            "pending_submissions",
+            "event_wake_registrations",
+            "application_drivers",
+        ])
+    );
 }

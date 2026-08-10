@@ -125,7 +125,7 @@ pub(super) fn assert_hiding_mutations_fail_topology_verdict() {
         (
             "crates/worth-ui-runtime/Cargo.toml",
             "target.'cfg(windows)'.dependencies",
-            "worth-ui-host-headless",
+            "worth-ui-components",
         ),
         (
             "crates/worth-ui-theme/Cargo.toml",
@@ -185,13 +185,38 @@ fn validate_runtime(manifests: &Manifests) -> Result<(), String> {
         .get("crates/worth-ui-runtime/Cargo.toml")
         .ok_or("missing runtime manifest")?;
     let dependencies = worth_ui_dependencies(runtime)?;
-    for forbidden in ["worth-ui-host-headless", "worth-ui-host-egui"] {
-        if dependencies.contains(forbidden) {
-            return Err(format!("runtime imports {forbidden}"));
-        }
-    }
     if !dependencies.contains("worth-ui-host-native") {
         return Err("runtime omits the fixed qualified native activation facade".to_owned());
+    }
+    validate_optional_transition(runtime, "worth-ui-host-headless", "certification-support")?;
+    validate_optional_transition(runtime, "worth-ui-host-egui", "legacy-egui-migration")
+}
+
+fn validate_optional_transition(
+    manifest: &str,
+    dependency: &str,
+    feature: &str,
+) -> Result<(), String> {
+    let value = manifest
+        .parse::<toml::Value>()
+        .map_err(|error| error.to_string())?;
+    let declaration = &value["dependencies"][dependency];
+    if declaration["optional"].as_bool() != Some(true) {
+        return Err(format!(
+            "runtime {dependency} transition must remain optional"
+        ));
+    }
+    let feature_members = value["features"][feature]
+        .as_array()
+        .ok_or_else(|| format!("runtime omits {feature} transition feature"))?;
+    let expected = format!("dep:{dependency}");
+    if !feature_members
+        .iter()
+        .any(|member| member.as_str() == Some(&expected))
+    {
+        return Err(format!(
+            "runtime {feature} does not own exact {dependency} edge"
+        ));
     }
     Ok(())
 }

@@ -20,11 +20,7 @@ use worth_ui::facade::{
 use worth_ui_dsl::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 use worth_ui_runtime::certification_support::WorthUiIntentExecutionBindingCertificationExt;
 
-type BoundBuilder = worth_ui::facade::app::WorthUiApplicationBuilder<
-    worth_ui::facade::app::UiChangeProfileInstalled,
-    worth_ui::facade::app::UiIntentWiringSatisfied,
-    worth_ui::facade::app::UiApplicationHostBound,
->;
+type BoundBuilder = worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder;
 
 struct EmptyPayload;
 
@@ -242,12 +238,8 @@ fn register_beta(builder: BoundBuilder) -> BoundBuilder {
 }
 
 fn base_builder() -> BoundBuilder {
-    WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
-        .with_change_profile(UiChangeProfile::platform_pulse())
+    let builder = WorthUi::app().with_change_profile(UiChangeProfile::platform_pulse());
+    BoundBuilder::new(builder, worth_ui_host_headless::WorthUiHeadlessHost)
 }
 
 fn assert_registration_metrics(application: &WorthUiApp, expected: usize) {

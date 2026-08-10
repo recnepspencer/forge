@@ -2,6 +2,7 @@ use super::super::{
     UiNativeEffectPosture, UiNativeGraphicsObservation, UiNativePresentationObservation,
     UiNativeResourceCensus,
 };
+use super::UiNativeEventLoopCleanup;
 
 pub trait UiNativeEventLoopClient {
     fn native_surface_ready(
@@ -13,7 +14,25 @@ pub trait UiNativeEventLoopClient {
         grant: UiNativeReadinessGrant,
     ) -> Result<UiNativeEventLoopDirective, ()>;
     fn presentation_attribution(&self) -> Option<UiNativeClientPresentationAttribution>;
-    fn close(self) -> Result<(), ()>;
+    fn close(self) -> UiNativeEventLoopClientClose;
+}
+
+pub trait UiNativeEventLoopClientCleanup {
+    fn retry(self: Box<Self>) -> UiNativeEventLoopClientClose;
+}
+
+pub enum UiNativeEventLoopClientClose {
+    Complete,
+    Incomplete(Box<dyn UiNativeEventLoopClientCleanup>),
+}
+
+impl UiNativeEventLoopClientClose {
+    pub(super) fn into_cleanup(self) -> Option<Box<dyn UiNativeEventLoopClientCleanup>> {
+        match self {
+            Self::Complete => None,
+            Self::Incomplete(cleanup) => Some(cleanup),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -50,13 +69,14 @@ pub enum UiNativeEventLoopRunDenial {
     IncompleteCleanup,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct UiNativeEventLoopStopReport {
     pub(super) cause: UiNativeEventLoopRunDenial,
     pub(super) effect_posture: UiNativeEffectPosture,
     pub(super) peak_census: UiNativeResourceCensus,
     pub(super) terminal_census: UiNativeResourceCensus,
     pub(super) client_cleanup_complete: bool,
+    pub(super) cleanup: Option<UiNativeEventLoopCleanup>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -197,6 +217,10 @@ impl UiNativeEventLoopStopReport {
 
     pub const fn client_cleanup_complete(&self) -> bool {
         self.client_cleanup_complete
+    }
+
+    pub fn into_cleanup(self) -> Option<UiNativeEventLoopCleanup> {
+        self.cleanup
     }
 }
 

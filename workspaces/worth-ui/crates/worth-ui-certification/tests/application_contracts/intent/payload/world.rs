@@ -6,6 +6,7 @@ use worth_ui::facade::intent::{
     UiIntentDefinition, UiIntentMutabilitySource, UiIntentOperabilityContract,
     UiIntentPolicySource, UiIntentReadinessSource, UiIntentText, UiIntentUnsigned64,
 };
+use worth_ui_certification::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui_dsl::{
     WorthUiIntentInteractionFamily, WorthUiIntentInteractionRoute,
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
@@ -15,7 +16,6 @@ use worth_ui_query_binding::{
     UiCollectionProjectionRegistration, UiProjectionInputSlot, UiScalarProjectionRegistration,
     WorthUiQueryBindingPlan,
 };
-use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 use worth_ui_runtime::facade::measurement_exchange::UiViewportExtentObservation;
 use worth_ui_runtime::facade::mounted::UiHostSurfacePresentationMode;
 
@@ -25,11 +25,7 @@ use super::super::super::filesystem_mounted_world::{
 use super::super::interaction_world::InteractionWorld;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 
-type BoundBuilder = worth_ui::facade::app::WorthUiApplicationBuilder<
-    worth_ui::facade::app::UiChangeProfileInstalled,
-    worth_ui::facade::app::UiIntentWiringSatisfied,
-    worth_ui::facade::app::UiApplicationHostBound,
->;
+type BoundBuilder = worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder;
 
 pub(in crate::intent) const DECLARATION: &str = "phase3.payload.route";
 const PAINT_ONLY: &str = "visual.identity.component.paint_only";
@@ -162,7 +158,7 @@ fn prepare_with_host<I, Host>(
 >
 where
     I: UiIntent,
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding + 'static,
 {
     let scenario = FilesystemApplicationLifecycleScenario::new("phase-3-payload-world");
     let builder = scenario

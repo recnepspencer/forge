@@ -1,6 +1,6 @@
-use worth_ui::facade::app::{
-    UiApplicationHostBound, UiChangeProfileInstalled, UiIntentWiringSatisfied, WorthUi,
-};
+use super::fixed_application_builder::FixedCertificationApplicationBuilder;
+use super::fixed_host::FixedCertificationHostBinding;
+use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
     ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
     ComponentPropSchema, ComponentStateOwnership, ComponentStaticPaintContract,
@@ -8,13 +8,8 @@ use worth_ui::facade::declaration::{
     SurfacePlacementClass, SurfaceStateClass, ThemeColorValue, ThemeTokenAlias,
     ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
 };
-use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 
-type WorthUiApplicationBuilder = worth_ui::facade::app::WorthUiApplicationBuilder<
-    UiChangeProfileInstalled,
-    UiIntentWiringSatisfied,
-    UiApplicationHostBound,
->;
+type WorthUiApplicationBuilder = FixedCertificationApplicationBuilder;
 
 pub(crate) const PLATFORM_PULSE_BACKGROUND_COMPONENT: &str = "platform.pulse.component.seed";
 pub(crate) const PLATFORM_PULSE_IDENTITY_TARGET_COMPONENT: &str =
@@ -33,7 +28,7 @@ pub(crate) fn platform_pulse_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     platform_pulse_application_builder_with_host_and_unrelated_width(host, 0)
 }
@@ -43,14 +38,10 @@ pub(crate) fn platform_pulse_application_builder_with_host_and_unrelated_width<H
     unrelated_width: usize,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     let mut builder = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            host,
-        )
         .register_component(
             component(PLATFORM_PULSE_BACKGROUND_COMPONENT).with_static_paint(
                 ComponentStaticPaintContract::opaque_fill(
@@ -100,7 +91,7 @@ where
     for index in 0..unrelated_width {
         builder = builder.register_component(component(&unrelated_component_id(index)));
     }
-    builder
+    FixedCertificationApplicationBuilder::new(builder, host)
 }
 
 fn component(id: &str) -> ComponentDescriptor {

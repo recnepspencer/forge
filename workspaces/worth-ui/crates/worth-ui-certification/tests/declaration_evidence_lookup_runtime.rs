@@ -124,10 +124,6 @@ fn authored_provenance_query(provenance: UiAuthoredSourceProvenanceRef) -> UiIns
 fn authored_source_generation_tracks_source_artifact_generation_not_declaration_digest() {
     let baseline = declaration_lookup_app("ui.workflow.editor", "control:workflow");
     let changed = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -157,6 +153,9 @@ fn authored_source_generation_tracks_source_artifact_generation_not_declaration_
             ),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let baseline_artifact = authored_artifact(&baseline);
     let changed_artifact = authored_artifact(&changed);
@@ -230,10 +229,6 @@ fn admit_semantic_artifact_returns_package_authoritative_source_generation() {
 
 fn declaration_lookup_app(semantic_key: &str, structural_token: &str) -> WorthUiApp {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -252,6 +247,9 @@ fn declaration_lookup_app(semantic_key: &str, structural_token: &str) -> WorthUi
             ),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
 }
 

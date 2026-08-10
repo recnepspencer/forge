@@ -2,7 +2,6 @@ use super::FilesystemApplicationLifecycleScenario;
 use crate::scenario::application_authority_closure::application_definition::{
     application_builder, application_builder_with_change_profile,
 };
-use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
 
 impl FilesystemApplicationLifecycleScenario {
     pub fn prepare_application_with_runtime_instance_bases(

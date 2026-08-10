@@ -40,7 +40,6 @@ impl WorthUi {
     pub fn app() -> crate::facade::entry::WorthUiApplicationBuilder<
         crate::facade::entry::UiChangeProfileMissing,
         crate::facade::entry::UiIntentWiringSatisfied,
-        crate::facade::entry::UiApplicationHostUnbound,
     > {
         crate::facade::entry::WorthUiApplicationBuilder::new()
     }

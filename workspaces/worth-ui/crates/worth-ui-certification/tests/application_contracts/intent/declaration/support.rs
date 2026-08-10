@@ -171,10 +171,6 @@ pub(super) fn freeze_module(
     module: WorthUiRustAuthoredArtifactInputModule,
 ) -> Result<WorthUiApp, WorthUiApplicationPreparationDenial> {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(ComponentDescriptor::new(
             ComponentId::new("routed.control").expect("fixture component identity is valid"),
@@ -195,6 +191,9 @@ pub(super) fn freeze_module(
         .expect("test operability fact should register")
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
 }
 
 pub(super) fn declaration(

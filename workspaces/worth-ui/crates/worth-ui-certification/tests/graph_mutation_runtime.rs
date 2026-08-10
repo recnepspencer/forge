@@ -83,10 +83,6 @@ fn denied_graph_mutation_publishes_no_replacement_snapshot() {
 #[test]
 fn public_freeze_denies_graph_commit_before_publishing_graph_authority() {
     let denial = match WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -96,6 +92,9 @@ fn public_freeze_denies_graph_commit_before_publishing_graph_authority() {
             .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
     {
         Ok(_) => panic!("invalid root topology must deny application preparation"),
         Err(denial) => denial,
@@ -119,16 +118,15 @@ fn public_freeze_denies_graph_commit_before_publishing_graph_authority() {
 
 fn mutation_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-mutation")
                 .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
 }
 

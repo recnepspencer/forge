@@ -52,6 +52,7 @@ fn fixture_dependencies(path: &str) -> Option<&'static [&'static str]> {
             "worth-ui",
             "worth-ui-dsl",
             "worth-ui-host-contract",
+            "worth-ui-host-egui",
             "worth-ui-host-headless",
             "worth-ui-host-native",
             "worth-ui-inspection",
@@ -97,6 +98,8 @@ fn crate_dependencies(path: &str) -> Option<&'static [&'static str]> {
         "crates/worth-ui-runtime/Cargo.toml" => &[
             "worth-ui-dsl",
             "worth-ui-host-contract",
+            "worth-ui-host-egui",
+            "worth-ui-host-headless",
             "worth-ui-host-native",
             "worth-ui-inspection",
             "worth-ui-query-binding",

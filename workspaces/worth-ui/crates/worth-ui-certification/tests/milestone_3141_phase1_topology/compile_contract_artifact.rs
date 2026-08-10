@@ -42,7 +42,13 @@ fn phase_one_compile_contract_artifact_matches_every_executed_case() {
             "product-native-preparation-valid",
         ],
     );
-    let order_source = count_targets(&observed, &["product-paint-identities-non-orderable"]);
+    let order_source = count_targets(
+        &observed,
+        &[
+            "product-paint-identities-non-orderable",
+            "product-paint-identities-lawful-correlation",
+        ],
+    );
     let platform = count_targets(
         &observed,
         &[

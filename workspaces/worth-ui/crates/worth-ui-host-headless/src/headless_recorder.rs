@@ -65,6 +65,17 @@ impl WorthUiHeadlessRecorder {
         )
     }
 
+    pub fn with_viewport_extent_and_dpi(
+        capacity: UiHeadlessRecorderCapacity,
+        viewport: UiViewportExtentObservation,
+        dpi_scale: worth_ui_host_contract::UiDpiScaleFactorObservation,
+    ) -> Self {
+        Self::with_measurement_environment(
+            capacity,
+            UiHeadlessMeasurementEnvironment::fixed_viewport_and_dpi(viewport, dpi_scale),
+        )
+    }
+
     fn with_measurement_environment(
         capacity: UiHeadlessRecorderCapacity,
         measurement: UiHeadlessMeasurementEnvironment,

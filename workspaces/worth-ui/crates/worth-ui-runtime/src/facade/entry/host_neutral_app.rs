@@ -2,11 +2,9 @@
 /// selected. This value is move-only and has no public host-binding operation.
 #[must_use]
 pub struct WorthUiHostNeutralApp {
-    pub(crate) prepared:
-        crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
-    pub(crate) mounted_frame_retention_budget: crate::mounting::UiMountedFrameRetentionBudget,
-    pub(crate) host_observation_capacity:
-        crate::facade::observation_report::UiHostObservationCapacity,
+    prepared: crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
+    mounted_frame_retention_budget: crate::mounting::UiMountedFrameRetentionBudget,
+    host_observation_capacity: crate::facade::observation_report::UiHostObservationCapacity,
 }
 
 impl WorthUiHostNeutralApp {
@@ -51,6 +49,16 @@ impl WorthUiHostNeutralApp {
         self,
         host: worth_ui_host_native::WorthUiNativeMechanicsAdapter,
     ) -> crate::facade::WorthUiApp {
+        self.bind_exact_host(host)
+    }
+
+    pub(in crate::facade::entry) fn bind_exact_host<Host>(
+        self,
+        host: Host,
+    ) -> crate::facade::WorthUiApp
+    where
+        Host: crate::facade::measurement_exchange::WorthUiOperationalHostAdapter + 'static,
+    {
         let mut plan =
             crate::facade::prepared_application_authority::WorthUiHostSessionPlan::prepare(host);
         plan.set_mounted_frame_retention_budget(self.mounted_frame_retention_budget);

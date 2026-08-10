@@ -17,10 +17,6 @@ use worth_ui_dsl::{
 #[test]
 fn aspect_indexes_are_many_to_many_and_graph_owned() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-aspects")
@@ -32,6 +28,9 @@ fn aspect_indexes_are_many_to_many_and_graph_owned() {
                 .with_semantic_artifact_spec(competing_consuming_region_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let graph = app.graph();
     let first_publisher = artifact_from_file_provenance(&app, "app/graph_aspect_runtime.wui", 0);

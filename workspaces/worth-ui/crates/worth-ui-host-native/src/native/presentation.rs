@@ -1,6 +1,6 @@
 use worth_ui_host_contract::{
-    UiHostPresentationCostInput, UiHostPresentationCostReport, UiHostSurfacePresentationDenial,
-    UiMountedFrameConsumptionView, UiMountedPaintCommand, UiMountedPresentationWorkView,
+    UiHostPresentationCostReport, UiHostSurfacePresentationDenial, UiMountedFrameConsumptionView,
+    UiMountedPaintCommand, UiMountedPresentationWorkView,
 };
 
 use super::{
@@ -12,12 +12,19 @@ mod pipeline;
 mod port;
 mod raster;
 mod readback_port;
+mod retained_evidence_copy;
 
 use pipeline::{draw_rectangle, draw_retained_to_surface, pipeline, retained_transfer};
-use raster::{raster_rect, rectangle_shader};
+use raster::{raster_rect, rectangle_shader, RasterRect};
+#[cfg(test)]
+pub(crate) use readback_port::prove_nonuniform_readback_port;
 use readback_port::{UiNativeReadbackPort, UiWgpuNativeReadbackPort};
+use retained_evidence_copy::copy_evidence_pixels;
 
-pub(crate) use port::{UiNativePresentationPort, UiWgpuNativePresentationPort};
+pub(crate) use port::{
+    UiNativePresentationPort, UiNativePresentationPortFailure, UiNativePresentationPortPlan,
+    UiWgpuNativePresentationPort,
+};
 
 pub(crate) const GPU_WAIT_DEADLINE: std::time::Duration = std::time::Duration::from_millis(5_000);
 
@@ -26,47 +33,68 @@ pub(crate) enum UiNativePresentationFailure {
     Indeterminate(UiNativePendingPresentation),
 }
 
-impl std::fmt::Debug for UiNativePresentationFailure {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::BeforeEffects(denial) => formatter
-                .debug_tuple("BeforeEffects")
-                .field(denial)
-                .finish(),
-            Self::Indeterminate(_) => formatter.write_str("Indeterminate(..)"),
-        }
-    }
+pub(crate) struct UiNativePresentedFrame {
+    observation: UiNativePresentationObservation,
+    cost: UiHostPresentationCostReport,
+}
+
+struct UiNativePresentationOwners {
+    readback: super::UiNativeResourceOwner,
+    submission: super::UiNativeResourceOwner,
 }
 
 pub(crate) struct UiNativePendingPresentation {
-    _external: Box<dyn UiNativePendingExternalObligation>,
-    _readback_owner: super::UiNativeResourceOwner,
-    _submission_owner: super::UiNativeResourceOwner,
+    external: Box<dyn UiNativePendingExternalObligation>,
+    readback_owner: super::UiNativeResourceOwner,
+    submission_owner: super::UiNativeResourceOwner,
 }
 
-trait UiNativePendingExternalObligation {}
+pub(super) trait UiNativePendingExternalObligation {
+    fn try_settle(&mut self, device: Option<&wgpu::Device>) -> bool;
+}
 
-struct UiNativePendingWgpuObligation {
+pub(super) struct UiNativePendingWgpuObligation {
     _readback: wgpu::Buffer,
     _submission: wgpu::SubmissionIndex,
 }
 
-impl UiNativePendingExternalObligation for UiNativePendingWgpuObligation {}
+impl UiNativePendingWgpuObligation {
+    pub(super) fn new(readback: wgpu::Buffer, submission: wgpu::SubmissionIndex) -> Self {
+        Self {
+            _readback: readback,
+            _submission: submission,
+        }
+    }
+}
+
+impl UiNativePendingExternalObligation for UiNativePendingWgpuObligation {
+    fn try_settle(&mut self, device: Option<&wgpu::Device>) -> bool {
+        let Some(device) = device else {
+            return false;
+        };
+        let settled = device
+            .poll(wgpu::PollType::Wait {
+                submission_index: Some(self._submission.clone()),
+                timeout: Some(GPU_WAIT_DEADLINE),
+            })
+            .is_ok();
+        if settled {
+            self._readback.unmap();
+        }
+        settled
+    }
+}
 
 impl UiNativePendingPresentation {
-    fn wgpu(
-        readback: wgpu::Buffer,
-        submission: wgpu::SubmissionIndex,
+    fn external(
+        external: Box<dyn UiNativePendingExternalObligation>,
         readback_owner: super::UiNativeResourceOwner,
         submission_owner: super::UiNativeResourceOwner,
     ) -> Self {
         Self {
-            _external: Box::new(UiNativePendingWgpuObligation {
-                _readback: readback,
-                _submission: submission,
-            }),
-            _readback_owner: readback_owner,
-            _submission_owner: submission_owner,
+            external,
+            readback_owner,
+            submission_owner,
         }
     }
 
@@ -75,168 +103,158 @@ impl UiNativePendingPresentation {
         resources: &mut UiNativeResourceRegistry,
         dropped: std::rc::Rc<std::cell::Cell<bool>>,
     ) -> Self {
+        Self::scripted_controllable(
+            resources,
+            dropped,
+            std::rc::Rc::new(std::cell::Cell::new(false)),
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn scripted_controllable(
+        resources: &mut UiNativeResourceRegistry,
+        dropped: std::rc::Rc<std::cell::Cell<bool>>,
+        settles: std::rc::Rc<std::cell::Cell<bool>>,
+    ) -> Self {
         let mut owners = resources
             .reserve(&[
-                UiNativeResourceClass::ReadbackBuffer,
-                UiNativeResourceClass::PendingSubmission,
+                crate::native::UiNativeResourceClass::ReadbackBuffer,
+                crate::native::UiNativeResourceClass::PendingSubmission,
             ])
             .expect("scripted indeterminate presentation reserves exact owners");
         let submission_owner = owners.pop().expect("submission owner");
         let readback_owner = owners.pop().expect("readback owner");
         Self {
-            _external: Box::new(UiNativePendingDropProbe(dropped)),
-            _readback_owner: readback_owner,
-            _submission_owner: submission_owner,
+            external: Box::new(UiNativePendingDropProbe { dropped, settles }),
+            readback_owner,
+            submission_owner,
         }
     }
-}
 
-#[cfg(test)]
-struct UiNativePendingDropProbe(std::rc::Rc<std::cell::Cell<bool>>);
+    pub(crate) fn try_settle(&mut self, device: Option<&wgpu::Device>) -> bool {
+        self.external.try_settle(device)
+    }
 
-#[cfg(test)]
-impl UiNativePendingExternalObligation for UiNativePendingDropProbe {}
-
-#[cfg(test)]
-impl Drop for UiNativePendingDropProbe {
-    fn drop(&mut self) {
-        self.0.set(true);
+    pub(crate) fn release(self, resources: &mut UiNativeResourceRegistry) {
+        let Self {
+            external,
+            readback_owner,
+            submission_owner,
+        } = self;
+        drop(external);
+        resources
+            .release(readback_owner)
+            .expect("settled readback owner must remain exact");
+        resources
+            .release(submission_owner)
+            .expect("settled submission owner must remain exact");
     }
 }
 
-pub(crate) fn present_initial(
+impl UiNativePresentedFrame {
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        UiNativePresentationObservation,
+        UiHostPresentationCostReport,
+    ) {
+        (self.observation, self.cost)
+    }
+}
+
+pub(crate) fn present_initial<Port: UiNativePresentationPort>(
     graphics: &mut UiNativeGraphics,
     resources: &mut UiNativeResourceRegistry,
     view: &UiMountedFrameConsumptionView<'_>,
-) -> Result<
-    (
-        UiNativePresentationObservation,
-        UiHostPresentationCostReport,
-    ),
-    UiNativePresentationFailure,
-> {
+) -> Result<UiNativePresentedFrame, UiNativePresentationFailure> {
     let (frame, mechanic) =
         validate_initial(view).map_err(UiNativePresentationFailure::BeforeEffects)?;
-    let source_rgba8 = mechanic.color().channels();
-    let rect = raster_rect(mechanic, graphics)?;
-    let mut presentation_resources = resources
+    let rect = raster_rect(mechanic, graphics).map_err(|_| {
+        UiNativePresentationFailure::BeforeEffects(
+            UiHostSurfacePresentationDenial::MalformedProjection,
+        )
+    })?;
+    let owners = reserve_presentation_owners(resources)?;
+    let result = Port::present(
+        graphics,
+        UiNativePresentationPortPlan {
+            rect,
+            source_rgba8: mechanic.color().channels(),
+        },
+    );
+    let external = settle_port_result(resources, owners, result)?;
+    Ok(build_presented_frame(
+        view, graphics, frame, mechanic, external,
+    ))
+}
+
+fn reserve_presentation_owners(
+    resources: &mut UiNativeResourceRegistry,
+) -> Result<UiNativePresentationOwners, UiNativePresentationFailure> {
+    let mut owners = resources
         .reserve(&[
             UiNativeResourceClass::ReadbackBuffer,
             UiNativeResourceClass::PendingSubmission,
         ])
-        .map_err(|_| malformed())?;
-    let readback_resource = presentation_resources.remove(0);
-    let submission_resource = presentation_resources.remove(0);
-    let rectangle_shader = rectangle_shader(rect, source_rgba8);
-    let shader = graphics
-        .device
-        .create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("worth-ui-attributed-filled-rectangle"),
-            source: wgpu::ShaderSource::Wgsl(rectangle_shader.into()),
-        });
-    let retained_pipeline = pipeline(
-        &graphics.device,
-        &shader,
-        wgpu::TextureFormat::Rgba8UnormSrgb,
-    );
-    let (surface_pipeline, surface_bind_group) = retained_transfer(graphics);
-    let output = match graphics.surface.get_current_texture() {
-        wgpu::CurrentSurfaceTexture::Success(output)
-        | wgpu::CurrentSurfaceTexture::Suboptimal(output) => output,
-        wgpu::CurrentSurfaceTexture::Timeout
-        | wgpu::CurrentSurfaceTexture::Occluded
-        | wgpu::CurrentSurfaceTexture::Outdated
-        | wgpu::CurrentSurfaceTexture::Lost
-        | wgpu::CurrentSurfaceTexture::Validation => {
+        .map_err(|_| {
+            UiNativePresentationFailure::BeforeEffects(
+                UiHostSurfacePresentationDenial::CapacityExceeded,
+            )
+        })?;
+    Ok(UiNativePresentationOwners {
+        readback: owners.remove(0),
+        submission: owners.remove(0),
+    })
+}
+
+fn settle_port_result(
+    resources: &mut UiNativeResourceRegistry,
+    owners: UiNativePresentationOwners,
+    result: Result<port::UiNativePresentationPortObservation, UiNativePresentationPortFailure>,
+) -> Result<port::UiNativePresentationPortObservation, UiNativePresentationFailure> {
+    match result {
+        Ok(observation) => {
             resources
-                .release(readback_resource)
-                .expect("readback reservation must remain exact");
-            resources
-                .release(submission_resource)
-                .expect("submission reservation must remain exact");
-            return Err(UiNativePresentationFailure::BeforeEffects(
-                UiHostSurfacePresentationDenial::AdapterDeclined,
-            ));
-        }
-    };
-    let retained_view = graphics
-        .retained_target
-        .create_view(&wgpu::TextureViewDescriptor::default());
-    let surface_view = output
-        .texture
-        .create_view(&wgpu::TextureViewDescriptor::default());
-    let readback = graphics.device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("worth-ui-retained-evidence-readback"),
-        size: 512,
-        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-        mapped_at_creation: false,
-    });
-    let mut encoder = graphics
-        .device
-        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("worth-ui-initial-presentation"),
-        });
-    draw_rectangle(&mut encoder, &retained_view, &retained_pipeline);
-    draw_retained_to_surface(
-        &mut encoder,
-        &surface_view,
-        &surface_pipeline,
-        &surface_bind_group,
-    );
-    copy_evidence_pixels(
-        &mut encoder,
-        &graphics.retained_target,
-        &readback,
-        graphics.extent(),
-    );
-    let submission = graphics.queue.submit([encoder.finish()]);
-    output.present();
-    let retained_pixels =
-        UiWgpuNativeReadbackPort::read_two_pixels(&graphics.device, &readback, &submission);
-    let [retained_baseline_rgba8, retained_center_rgba8] = match retained_pixels {
-        Ok(pixels) => {
-            resources
-                .release(readback_resource)
+                .release(owners.readback)
                 .expect("readback owner must remain exact");
             resources
-                .release(submission_resource)
+                .release(owners.submission)
                 .expect("submission owner must remain exact");
-            pixels
+            Ok(observation)
         }
-        Err(_) => {
-            return Err(UiNativePresentationFailure::Indeterminate(
-                UiNativePendingPresentation::wgpu(
-                    readback,
-                    submission,
-                    readback_resource,
-                    submission_resource,
-                ),
-            ));
+        Err(UiNativePresentationPortFailure::SurfaceUnavailable) => {
+            resources
+                .release(owners.readback)
+                .expect("readback reservation must remain exact");
+            resources
+                .release(owners.submission)
+                .expect("submission reservation must remain exact");
+            Err(UiNativePresentationFailure::BeforeEffects(
+                UiHostSurfacePresentationDenial::AdapterDeclined,
+            ))
         }
-    };
-    let extent = graphics.extent();
-    let pixels = u64::from(extent[0]) * u64::from(extent[1]);
-    let cost = UiHostPresentationCostReport::from_adapter(UiHostPresentationCostInput {
-        presented_surfaces: 1,
-        translated_rows: 1,
-        native_resource_cache_misses: 1,
-        intersecting_commands: 1,
-        replayed_commands: 1,
-        cleared_pixels: pixels,
-        rendered_pixels: u64::from(rect.physical_width) * u64::from(rect.physical_height),
-        presented_pixels: pixels,
-        gpu_writes: 3,
-        render_passes: 2,
-        surface_acquisitions: 1,
-        queue_submissions: 1,
-        presents: 1,
-        ..Default::default()
-    });
+        Err(UiNativePresentationPortFailure::ReadbackUnsettled(external)) => {
+            Err(UiNativePresentationFailure::Indeterminate(
+                UiNativePendingPresentation::external(external, owners.readback, owners.submission),
+            ))
+        }
+    }
+}
+
+fn build_presented_frame(
+    view: &UiMountedFrameConsumptionView<'_>,
+    graphics: &UiNativeGraphics,
+    frame: u64,
+    mechanic: worth_ui_host_contract::UiMountedFilledRectMechanic,
+    external: port::UiNativePresentationPortObservation,
+) -> UiNativePresentedFrame {
+    let (pixels, cost, port_crossings) = external.into_parts();
+    let [retained_baseline_rgba8, retained_center_rgba8] = pixels;
     let bounds = mechanic.bounds();
     let observation = UiNativePresentationObservation::new(UiNativePresentationInput {
-        client_physical_size: extent,
+        client_physical_size: graphics.extent(),
         scale_factor_milli: (graphics.scale_factor * 1_000.0).round() as u32,
-        source_rgba8,
+        source_rgba8: mechanic.color().channels(),
         retained_center_rgba8,
         retained_baseline_rgba8,
         presented_frame: frame,
@@ -252,64 +270,34 @@ pub(crate) fn present_initial(
             milli(bounds.height()),
         ],
         order_ordinal: 0,
-        port_crossings: 1,
+        port_crossings,
         cost,
     });
-    Ok((observation, cost))
+    UiNativePresentedFrame { observation, cost }
+}
+
+#[cfg(test)]
+struct UiNativePendingDropProbe {
+    dropped: std::rc::Rc<std::cell::Cell<bool>>,
+    settles: std::rc::Rc<std::cell::Cell<bool>>,
+}
+
+#[cfg(test)]
+impl UiNativePendingExternalObligation for UiNativePendingDropProbe {
+    fn try_settle(&mut self, _device: Option<&wgpu::Device>) -> bool {
+        self.settles.get()
+    }
+}
+
+#[cfg(test)]
+impl Drop for UiNativePendingDropProbe {
+    fn drop(&mut self) {
+        self.dropped.set(true);
+    }
 }
 
 fn milli(value: f32) -> i64 {
     (f64::from(value) * 1_000.0).round() as i64
-}
-
-fn copy_evidence_pixels(
-    encoder: &mut wgpu::CommandEncoder,
-    texture: &wgpu::Texture,
-    buffer: &wgpu::Buffer,
-    extent: [u32; 2],
-) {
-    copy_pixel(encoder, texture, buffer, [0, 0], 0);
-    copy_pixel(
-        encoder,
-        texture,
-        buffer,
-        [extent[0] / 2, extent[1] / 2],
-        256,
-    );
-}
-
-fn copy_pixel(
-    encoder: &mut wgpu::CommandEncoder,
-    texture: &wgpu::Texture,
-    buffer: &wgpu::Buffer,
-    origin: [u32; 2],
-    offset: u64,
-) {
-    encoder.copy_texture_to_buffer(
-        wgpu::TexelCopyTextureInfo {
-            texture,
-            mip_level: 0,
-            origin: wgpu::Origin3d {
-                x: origin[0],
-                y: origin[1],
-                z: 0,
-            },
-            aspect: wgpu::TextureAspect::All,
-        },
-        wgpu::TexelCopyBufferInfo {
-            buffer,
-            layout: wgpu::TexelCopyBufferLayout {
-                offset,
-                bytes_per_row: Some(256),
-                rows_per_image: None,
-            },
-        },
-        wgpu::Extent3d {
-            width: 1,
-            height: 1,
-            depth_or_array_layers: 1,
-        },
-    );
 }
 
 fn validate_initial(
@@ -345,6 +333,51 @@ fn validate_initial(
     Ok((initial.affinity().successor().diagnostic_value(), *mechanic))
 }
 
-fn malformed() -> UiNativePresentationFailure {
-    UiNativePresentationFailure::BeforeEffects(UiHostSurfacePresentationDenial::MalformedProjection)
+#[cfg(test)]
+mod tests {
+    use super::{
+        reserve_presentation_owners, settle_port_result, UiNativePendingDropProbe,
+        UiNativePresentationFailure, UiNativePresentationPortFailure,
+    };
+
+    #[test]
+    fn external_port_failures_cross_the_real_framework_settlement_transition() {
+        let mut resources = crate::native::UiNativeResourceRegistry::new();
+        let owners = reserve_presentation_owners(&mut resources)
+            .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
+        let denied = settle_port_result(
+            &mut resources,
+            owners,
+            Err(UiNativePresentationPortFailure::SurfaceUnavailable),
+        );
+        assert!(matches!(
+            denied,
+            Err(UiNativePresentationFailure::BeforeEffects(
+                worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined
+            ))
+        ));
+        assert!(resources.current().is_zero());
+
+        let dropped = std::rc::Rc::new(std::cell::Cell::new(false));
+        let owners = reserve_presentation_owners(&mut resources)
+            .unwrap_or_else(|_| panic!("released registry must reserve presentation owners"));
+        let pending = Box::new(UiNativePendingDropProbe {
+            dropped: std::rc::Rc::clone(&dropped),
+            settles: std::rc::Rc::new(std::cell::Cell::new(false)),
+        });
+        let unsettled = settle_port_result(
+            &mut resources,
+            owners,
+            Err(UiNativePresentationPortFailure::ReadbackUnsettled(pending)),
+        );
+        let Err(UiNativePresentationFailure::Indeterminate(pending)) = unsettled else {
+            panic!("readback failure must remain indeterminate");
+        };
+        assert_eq!(resources.current().readback_buffers, 1);
+        assert_eq!(resources.current().pending_submissions, 1);
+        assert!(!dropped.get());
+        pending.release(&mut resources);
+        assert!(dropped.get());
+        assert!(resources.current().is_zero());
+    }
 }

@@ -17,13 +17,13 @@ use super::UiAdmissionBoundary;
 #[test]
 fn owner_boundary_can_prove_missing_declaration_artifact_denial() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.admission.denied")
                 .with_semantic_artifact_spec(admitted_control_spec()),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let admitted = artifact_from_file_provenance(&app, "app/admission_denied.wui", 0);
     let support_artifacts = app.declaration_artifacts().to_vec();

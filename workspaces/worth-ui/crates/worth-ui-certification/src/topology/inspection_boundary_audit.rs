@@ -4,12 +4,13 @@ use super::dependency_audit::{
 };
 use super::workspace_source_inventory::WorkspaceSourceInventory;
 
-const INSPECTION_OWNER_CRATES: [&str; 5] = [
+const INSPECTION_OWNER_CRATES: [&str; 6] = [
     "worth-ui",
     "worth-ui-runtime",
     "worth-ui-inspection",
     "worth-ui-certification",
     "worth-ui-test-support",
+    "worth-ui-native-platform",
 ];
 
 const FORBIDDEN_INSPECTION_BYPASS_DEPS: [&str; 2] = ["worth-ui-runtime", "worth-ui-inspection"];

@@ -22,6 +22,7 @@ fn real_source_schema_edit_compiles_typed_stop_and_preserves_mounted_value() {
     let registration = status_registration();
     let capability_app = schema_app_builder(registration.clone())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("schema capability application prepares");
     let active = source_submission(
         "schema-active-status",
@@ -31,6 +32,7 @@ fn real_source_schema_edit_compiles_typed_stop_and_preserves_mounted_value() {
     let mut session = schema_app_builder(registration)
         .with_candidate_submission(active)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("real status source prepares")
         .launch()
         .expect("real status source launches");
@@ -111,6 +113,7 @@ fn equivalent_schema_recovery_prepares_authored_content_without_structural_alloc
     let registration = status_registration();
     let capability_app = schema_app_builder(registration.clone())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("schema capability application prepares");
     let active = source_submission(
         "schema-active-revision",
@@ -120,6 +123,7 @@ fn equivalent_schema_recovery_prepares_authored_content_without_structural_alloc
     let mut session = schema_app_builder(registration)
         .with_candidate_submission(active)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("real mismatched revision source prepares")
         .launch()
         .expect("real mismatched revision source launches");
@@ -167,7 +171,6 @@ fn schema_app_builder(
     registration: UiScalarProjectionRegistration,
 ) -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     crate::facade::WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(ComponentDescriptor::new(
             ComponentId::new(COMPONENT).unwrap(),

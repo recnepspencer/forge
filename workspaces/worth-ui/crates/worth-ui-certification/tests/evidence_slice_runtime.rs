@@ -177,10 +177,6 @@ fn obligation_slice_replay_preserves_omission_detail_and_cost_posture() {
 
 fn declaration_lookup_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.evidence-slice")
@@ -194,6 +190,9 @@ fn declaration_lookup_app() -> worth_ui::facade::app::WorthUiApp {
                 ),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
 }
 

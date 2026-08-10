@@ -87,7 +87,7 @@ pub(super) fn retained_transfer(
         wgpu::TextureFormat::Bgra8UnormSrgb,
     );
     let view = graphics
-        .retained_target
+        .retained_target()
         .create_view(&wgpu::TextureViewDescriptor::default());
     let bind_group = graphics
         .device

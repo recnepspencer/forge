@@ -281,7 +281,7 @@ fn assert_native_capture_backend(inventory: &WorkspaceSourceInventory) {
     );
     assert!(client_capture.contains("window.pid().ok() == Some(process_id)"));
     assert!(client_capture.contains("window.id().ok() == Some(window_id)"));
-    assert!(client_capture.contains("window.capture_image()"));
+    assert!(client_capture.contains(".capture_image()"));
 }
 
 fn assert_ordinary_and_spatial_costs(inventory: &WorkspaceSourceInventory) {

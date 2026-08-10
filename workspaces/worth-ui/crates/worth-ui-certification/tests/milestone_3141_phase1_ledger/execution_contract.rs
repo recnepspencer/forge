@@ -91,7 +91,7 @@ pub(super) fn control_for(requirement: &str) -> Option<TestIdentity> {
             features: EXECUTABLE_WORLD,
             test_name: "native_platform::windows::independent_window_capture_rejects_monitor_pixel_substitution",
         },
-        "P2-PORTS-01" => library("worth-ui-host-native", "native::mechanics_adapter::tests::external_port_orchestration_and_effect_postures_are_exact"),
+        "P2-PORTS-01" => library("worth-ui-host-native", "native::presentation::tests::external_port_failures_cross_the_real_framework_settlement_transition"),
         "P2-PRESENT-01" => library("worth-ui-host-native", "native::presentation::raster::tests::geometry_and_color_are_derived_from_the_admitted_command"),
         "P2-WORLD-01" => integration("worth-ui-certification", "topology_contracts", "milestone_3141_phase1_ledger::result_artifact::mutation_tests::phase_two_boundary_observation_rejects_each_causal_mutation"),
         "P2-READINESS-01" => library("worth-ui-host-native", "native::readiness::tests::committed_readiness_requests_exactly_one_redraw_and_preserves_the_latest_generation"),
@@ -108,11 +108,14 @@ const AUTHORITY_CASES: &[CompileCase] = &[
     ),
     case("product", "pass", "product-native-preparation-valid"),
 ];
-const ORDER_CASES: &[CompileCase] = &[case(
-    "product",
-    "fail",
-    "product-paint-identities-non-orderable",
-)];
+const ORDER_CASES: &[CompileCase] = &[
+    case("product", "fail", "product-paint-identities-non-orderable"),
+    case(
+        "product",
+        "pass",
+        "product-paint-identities-lawful-correlation",
+    ),
+];
 const PLATFORM_CASES: &[CompileCase] = &[
     case("product", "fail", "product-cannot-bind-native-host"),
     case("product", "pass", "product-native-preparation-valid"),
@@ -160,7 +163,7 @@ pub(super) fn counter_amount(requirement: &str) -> Option<u64> {
         | "P1-PLATFORM-AUTHORITY-01"
         | "P1-PRESENTATION-AUTHORITY-01"
         | "P1-PROFILE-01" => 2,
-        "P1-ORDER-SOURCE-01" => 1,
+        "P1-ORDER-SOURCE-01" => 2,
         "P1-PROTOCOL-01" => 4,
         "P1-HEADLESS-COST-01"
         | "P1-PRODUCER-COST-01"

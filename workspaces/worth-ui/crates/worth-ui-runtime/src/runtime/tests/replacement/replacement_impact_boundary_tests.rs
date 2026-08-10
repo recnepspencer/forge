@@ -171,9 +171,9 @@ fn comparison_from_different_active_basis_rejected_before_impact_classification(
 #[test]
 fn import_insertion_classifies_as_bounded_structure_without_mutating_active_state() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_before = runtime.inspect_active();
@@ -232,9 +232,9 @@ fn same_module_node_retirement_remains_bounded_structural_replacement() {
 #[test]
 fn broad_replacement_without_state_drop_receipts_rejected() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let candidate = admitted_candidate(&app, &runtime, two_module_import_artifact());

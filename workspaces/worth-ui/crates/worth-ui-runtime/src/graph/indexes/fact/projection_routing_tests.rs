@@ -111,7 +111,6 @@ fn projection_app(registration: UiCollectionProjectionRegistration) -> crate::fa
         )
         .unwrap();
     crate::facade::WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(ComponentDescriptor::new(
             ComponentId::new(COMPONENT).unwrap(),
@@ -123,6 +122,7 @@ fn projection_app(registration: UiCollectionProjectionRegistration) -> crate::fa
         .expect("product projection registration")
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("projection content application")
 }
 

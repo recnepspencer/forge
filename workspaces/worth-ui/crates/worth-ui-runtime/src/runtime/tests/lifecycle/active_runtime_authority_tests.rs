@@ -15,9 +15,9 @@ use crate::source::{
 #[test]
 fn equivalent_runtime_hosts_start_with_equivalent_active_state() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let left = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let right = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
@@ -30,9 +30,9 @@ fn equivalent_runtime_hosts_start_with_equivalent_active_state() {
 #[test]
 fn different_canonical_artifact_meaning_changes_active_runtime_truth() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let inspector_runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let settings_runtime = launch_runtime(&app, import_artifact(["app/panels/settings.wui"]));
@@ -54,9 +54,9 @@ fn different_canonical_artifact_meaning_changes_active_runtime_truth() {
 #[test]
 fn last_valid_state_exists_before_first_reload_candidate() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active = runtime.inspect_active();
@@ -71,9 +71,9 @@ fn last_valid_state_exists_before_first_reload_candidate() {
 #[test]
 fn diagnostic_policy_does_not_change_active_runtime_truth() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let artifact = import_artifact(["app/panels/inspector.wui", "app/panels/settings.wui"]);
     let minimal = app
@@ -96,9 +96,9 @@ fn diagnostic_policy_does_not_change_active_runtime_truth() {
 #[test]
 fn shutdown_receipt_preserves_final_frame_epoch() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let frame_epoch = runtime.frame_epoch();

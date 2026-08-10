@@ -15,10 +15,10 @@ workspace = true
 default = []
 # Enables public re-export of SUPPORT AUTHORITY fixtures for worth-ui-test-support only.
 certification-support = [
-    "worth-ui-host-contract/certification-host-binding-authority",
+    "dep:worth-ui-host-headless",
     "worth-ui-query-binding/certification-construction",
 ]
-legacy-egui-migration = []
+legacy-egui-migration = ["dep:worth-ui-host-egui"]
 
 [dependencies]
 notify = { workspace = true }
@@ -28,10 +28,13 @@ worth-ui-dsl = { path = "../worth-ui-dsl" }
 worth-ui-inspection = { path = "../worth-ui-inspection" }
 worth-ui-query-binding = { path = "../worth-ui-query-binding" }
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
+worth-ui-host-egui = { path = "../worth-ui-host-egui", optional = true }
+worth-ui-host-headless = { path = "../worth-ui-host-headless", optional = true }
 worth-ui-host-native = { path = "../worth-ui-host-native" }
 
 [dev-dependencies]
-worth-ui-host-contract = { path = "../worth-ui-host-contract", features = ["certification-host-binding-authority"] }
+worth-ui-host-contract = { path = "../worth-ui-host-contract" }
+worth-ui-host-headless = { path = "../worth-ui-host-headless" }
 worth-query-host = { path = "../../../worth-query/crates/worth-query-host" }
 worth-ui-dsl = { path = "../worth-ui-dsl", features = ["certification-support"] }
 worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }

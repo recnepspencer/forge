@@ -21,9 +21,9 @@ use crate::source::{
 #[test]
 fn same_artifact_equivalence_basis_produces_same_runtime_comparison() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let left = admitted_candidate(&app, &runtime, ["app/panels/inspector.wui"]);
@@ -54,9 +54,9 @@ fn same_artifact_equivalence_basis_produces_same_runtime_comparison() {
 #[test]
 fn diagnostic_richness_does_not_change_runtime_artifact_comparison() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let minimal_runtime = launch_runtime_with_diagnostics(
         &app,
@@ -102,9 +102,9 @@ fn diagnostic_richness_does_not_change_runtime_artifact_comparison() {
 #[test]
 fn runtime_comparison_consumes_canonical_meaning_not_authored_source_order() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let file_artifact = file_authored_import_artifact("app/panels/inspector.wui");
     let runtime = launch_runtime(&app, file_artifact);
@@ -141,9 +141,9 @@ fn runtime_comparison_consumes_canonical_meaning_not_authored_source_order() {
 #[test]
 fn meaningful_artifact_difference_classified_before_impact_narrowing() {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let candidate = admitted_candidate(&app, &runtime, ["app/panels/settings.wui"]);
@@ -230,9 +230,9 @@ fn canonical_artifact_from_input(
     artifact_input: worth_ui_dsl::WorthUiSealedSemanticPackage,
 ) -> WorthUiArtifact {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let snapshot = app.capabilities();
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)

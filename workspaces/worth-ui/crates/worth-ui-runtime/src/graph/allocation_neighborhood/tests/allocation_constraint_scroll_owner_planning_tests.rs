@@ -248,7 +248,6 @@ fn scroll_owner_policy() -> UiDeclaredMeasurementPolicyPosture {
 
 fn scroll_owner_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUiApp {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(
@@ -258,6 +257,7 @@ fn scroll_owner_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthU
             .with_semantic_artifact_spec(scroll_owner_spec()),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

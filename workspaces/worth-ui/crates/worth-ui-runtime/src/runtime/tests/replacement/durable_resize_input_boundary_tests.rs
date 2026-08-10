@@ -197,7 +197,6 @@ pub(crate) fn splitter_pending_activation_with_query_view_and_provenance(
 ) {
     let binding_id = view.definition().identity().as_str().to_owned();
     let app = crate::facade::WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(component("workspace.component.dashboard"))
         .register_component(component("workspace.component.panel"))
@@ -212,6 +211,7 @@ pub(crate) fn splitter_pending_activation_with_query_view_and_provenance(
         .register_query_view(view)
         .expect("installed Query view registers for the splitter fixture")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("Query-bound splitter application should prepare");
     let query_artifact =
         super::query_binding_comparison_test_support::query_artifact(&app, &binding_id);

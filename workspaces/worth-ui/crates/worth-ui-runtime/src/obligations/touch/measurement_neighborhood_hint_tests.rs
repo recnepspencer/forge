@@ -116,7 +116,6 @@ fn query_fact_touch_origins_deny_outside_query_world_before_touch_construction()
 
 fn touch_neighborhood_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUiApp {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(
@@ -139,6 +138,7 @@ fn touch_neighborhood_app(world_profile: UiGraphWorldProfile) -> crate::facade::
             )),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

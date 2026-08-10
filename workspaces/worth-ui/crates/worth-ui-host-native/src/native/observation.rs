@@ -128,10 +128,6 @@ impl UiNativePresentationObservation {
         self.order_ordinal
     }
 
-    pub(crate) fn record_presentation_port_crossing(&mut self) {
-        self.port_crossings = self.port_crossings.saturating_add(1);
-    }
-
     pub const fn port_crossings(&self) -> u8 {
         self.port_crossings
     }

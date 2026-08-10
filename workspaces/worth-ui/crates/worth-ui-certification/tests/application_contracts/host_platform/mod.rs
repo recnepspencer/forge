@@ -15,7 +15,11 @@ fn maximum_overlap_removals_cross_public_runtime_and_headless_with_exact_work() 
         },
     );
     let production = produce_maximum_overlap(recorder);
-    let world = MountedPresentationWorld::maximum_overlap(&production.initial);
+    let world = MountedPresentationWorld::maximum_overlap(
+        &production.initial,
+        production.authored_instances,
+        production.semantic_surface,
+    );
     assert_eq!(world.identity(), "mounted-presentation-world");
     assert_eq!(world.version(), 1);
     assert_eq!(world.baseline().len(), 2_048);

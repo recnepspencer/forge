@@ -22,10 +22,6 @@ use specs::*;
 #[test]
 fn topology_rows_and_indexes_agree_for_every_admitted_non_root_family() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -39,6 +35,9 @@ fn topology_rows_and_indexes_agree_for_every_admitted_non_root_family() {
             .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let graph = app.graph();
     let root_page_id = graph_node_identity(graph, root_page_artifact(&app));
@@ -195,10 +194,6 @@ fn topology_rows_and_indexes_agree_for_every_admitted_non_root_family() {
 #[test]
 fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -207,6 +202,9 @@ fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
             .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let control_handoff =
         artifact_from_file_provenance(&app, "app/graph_topology_authority.wui", 0)
@@ -235,10 +233,6 @@ fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
 #[test]
 fn public_freeze_returns_typed_root_cardinality_denial() {
     let denial = match WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -248,6 +242,9 @@ fn public_freeze_returns_typed_root_cardinality_denial() {
             .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
     {
         Ok(_) => panic!("ambiguous root topology must deny application preparation"),
         Err(denial) => denial,

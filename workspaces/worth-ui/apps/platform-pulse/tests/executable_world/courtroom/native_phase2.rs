@@ -230,7 +230,7 @@ fn assert_exact_native_evidence(
             "adapters": 1,
             "devices": 1,
             "queues": 1,
-            "retained_targets": 1,
+            "retained_targets": 2,
             "registrations": 1,
             "readback_buffers": 1,
             "pending_submissions": 1,

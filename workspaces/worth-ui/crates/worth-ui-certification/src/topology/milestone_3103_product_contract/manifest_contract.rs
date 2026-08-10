@@ -101,7 +101,7 @@ fn audit_phase3_successor_test_surface(manifest: &toml::Value) -> Result<(), Str
         .ok_or_else(|| {
             "pulse should declare Windows-only native courtroom dependencies".to_owned()
         })?;
-    let expected = ["uiautomation", "winsafe", "xcap"]
+    let expected = ["uiautomation", "win32job", "winsafe", "xcap"]
         .into_iter()
         .collect::<BTreeSet<_>>();
     let observed = windows.keys().map(String::as_str).collect::<BTreeSet<_>>();
@@ -133,6 +133,7 @@ fn audit_dependencies(manifest: &toml::Value) -> Result<(), String> {
         "worth-query-host",
         "worth-ui",
         "worth-ui-host-egui",
+        "worth-ui-native-platform",
     ]
     .into_iter()
     .collect::<BTreeSet<_>>();

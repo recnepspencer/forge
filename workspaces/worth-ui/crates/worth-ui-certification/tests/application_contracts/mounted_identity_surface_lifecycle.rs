@@ -2,15 +2,7 @@ use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportOutcome,
 };
-use worth_ui_host_contract::{
-    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiHostSurfaceRegistrationDenial,
-    UiHostSurfaceRegistrationRequest, WorthUiHostCapabilityReport, WorthUiHostContract,
-    WorthUiMeasurementHostAdapter,
-};
-use worth_ui_runtime::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiOperationalHostAdapter,
-};
+use worth_ui_host_headless::WorthUiHeadlessBaselineUnavailableHost;
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedIdentityDenial,
     UiMountedPresentationAdmissionDenial, UiPresentationDeadline,
@@ -88,7 +80,10 @@ fn surface_recreation_preserves_semantic_instance_but_retires_frame_affinity() {
 
 #[test]
 fn registration_without_known_empty_truth_is_denied_before_binding() {
-    let app = mounted_application_with_host("mounted-no-baseline", NoBaselineHost);
+    let app = mounted_application_with_host(
+        "mounted-no-baseline",
+        WorthUiHeadlessBaselineUnavailableHost,
+    );
     let mut session = app.launch().expect("runtime should launch");
     let surface = session.create_semantic_surface().unwrap();
     assert_eq!(
@@ -317,46 +312,4 @@ fn assert_binding_truth(
         binding.host_surface_identity()
     );
     assert_eq!(baseline.presentation_mode(), binding.presentation_mode());
-}
-
-#[derive(Clone, Copy, Default)]
-struct NoBaselineHost;
-
-impl WorthUiMeasurementHostAdapter for NoBaselineHost {
-    fn observe_measurement(
-        &self,
-        _request: &UiHostMeasurementRequest,
-    ) -> UiHostMeasurementObservationValue {
-        unreachable!("no measurement capability")
-    }
-}
-
-impl WorthUiOperationalHostAdapter for NoBaselineHost {
-    fn operational_host_contract(&self) -> WorthUiHostContract {
-        WorthUiHostContract::headless()
-    }
-
-    fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::available(Vec::new())
-    }
-
-    fn register_surface(
-        &self,
-        _authority: &UiHostAdapterSessionAuthority,
-        _request: UiHostSurfaceRegistrationRequest,
-    ) -> worth_ui_host_contract::UiHostSurfaceRegistrationOutcome {
-        worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RejectedBeforeEffects(
-            UiHostSurfaceRegistrationDenial::KnownEmptyBaselineUnavailable,
-        )
-    }
-
-    fn release_host_session(
-        &self,
-        authority: &UiHostAdapterSessionAuthority,
-    ) -> UiHostSessionReleaseOutcome {
-        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
-            authority.host_session_identity(),
-            0,
-        ))
-    }
 }

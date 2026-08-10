@@ -5215,6 +5215,8 @@ dependencies = [
  "worth-query-host",
  "worth-ui-dsl",
  "worth-ui-host-contract",
+ "worth-ui-host-egui",
+ "worth-ui-host-headless",
  "worth-ui-host-native",
  "worth-ui-inspection",
  "worth-ui-query-binding",

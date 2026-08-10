@@ -21,7 +21,6 @@ use crate::capability::{
 use crate::facade::{WorthUi, WorthUiApp};
 pub(crate) fn identity_test_app() -> WorthUiApp {
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_command(
             CommandDescriptor::new(
@@ -97,6 +96,7 @@ pub(crate) fn identity_test_app() -> WorthUiApp {
         .register_mosaic_state_slot(overlay_pinned_state())
         .register_mosaic_state_slot(primary_surface_state())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

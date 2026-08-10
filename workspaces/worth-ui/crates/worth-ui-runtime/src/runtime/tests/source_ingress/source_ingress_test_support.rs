@@ -61,9 +61,9 @@ pub(crate) fn framework_from_artifact(
     artifact: WorthUiArtifact,
 ) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let candidate = crate::runtime::replacement::candidate::rust_authored_replacement_candidate(
         artifact,
@@ -88,9 +88,9 @@ fn canonical_artifact_from_input(
     artifact_input: worth_ui_dsl::WorthUiSealedSemanticPackage,
 ) -> WorthUiArtifact {
     let app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let snapshot = app.capabilities();
     let resolved = WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)

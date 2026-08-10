@@ -57,8 +57,6 @@ register_theme_token = "crates/worth-ui-runtime/src/source/tests/phase7_identity
 register_unsupported_intent_definition = "crates/worth-ui-certification/tests/application_contracts/intent/operability/topology/application.rs"
 with_candidate_submission = "crates/worth-ui-certification/tests/application_contracts/canvas_spatial_execution.rs"
 with_change_profile = "crates/worth-ui-certification/src/scenario/application_authority_closure/application_definition.rs"
-bind_certification_host_adapter = "crates/worth-ui-certification/src/scenario/application_authority_closure/application_definition.rs"
-bind_legacy_egui_migration_host = "apps/platform-pulse/src/application.rs"
 with_host_observation_capacity = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs"
 with_minimal_registration_diagnostics = "crates/worth-ui/tests/registration_diagnostics.rs"
 with_mounted_frame_retention_budget = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs"
@@ -93,6 +91,7 @@ inspection_support_report = "crates/worth-ui-certification/tests/declaration_sup
 inspection_support_report_for = "crates/worth-ui-runtime/src/declaration/support_inspection_tests.rs"
 launch = "crates/worth-ui-certification/tests/application_contracts/realtime_overlay_replacement.rs"
 launch_native_surface = "crates/worth-ui-certification/tests/application_contracts/platform_pulse.rs"
+launch_native_surface_at_scale = "crates/worth-ui-runtime/src/native_platform/application_driver.rs"
 obligation_closeout_report = "crates/worth-ui-certification/tests/obligation_closeout_runtime.rs"
 resolve_query_view = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle/settled_snapshot_preservation.rs"
 runtime_support_inventory = "crates/worth-ui-certification/tests/topology_audit.rs"
@@ -164,6 +163,7 @@ audience = "ordinary-app-and-immutable-observation"
 feature = "production-default"
 sources = [
   "crates/worth-ui-runtime/src/facade/entry/active_application_session.rs",
+  "crates/worth-ui-runtime/src/facade/entry/active_application_session/shutdown.rs",
   "crates/worth-ui-runtime/src/facade/entry/intent_admission.rs",
   "crates/worth-ui-runtime/src/facade/entry/intent_confirmation.rs",
   "crates/worth-ui-runtime/src/facade/entry/intent_consequence.rs",
@@ -220,7 +220,7 @@ execute_mounted_frame = "crates/worth-ui/tests/ui/facade/app_journey_pass/mounte
 expand_evidence_ref = "crates/worth-ui-runtime/src/runtime/tests/source_ingress/active_application_launch_tests.rs"
 generation_identity = "crates/worth-ui-certification/src/scenario/application_authority_closure/foreign_graph_authority.rs"
 graph = "crates/worth-ui-query-binding/src/operation_live_tests.rs"
-host_session_identity = "crates/worth-ui-certification/src/scenario/application_authority_closure/operational_host.rs"
+host_session_identity = "crates/worth-ui-certification/src/scenario/application_authority_closure/execution.rs"
 inspect = "crates/worth-ui-certification/src/scenario/application_authority_closure/execution.rs"
 inspect_mounted_frame = "crates/worth-ui-certification/tests/application_contracts/arrival_schedule.rs"
 intent_admission_metrics = "crates/worth-ui-certification/tests/application_contracts/intent/admission/phase3/scale.rs"

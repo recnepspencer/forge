@@ -165,8 +165,6 @@ stability = "evolving-product-contract"
 authority = "application lifecycle and affine execution"
 caller = "ordinary-mounted-app"
 symbols = [
-  "UiApplicationHostBound",
-  "UiApplicationHostUnbound",
   "UiChangeProfileInstalled",
   "UiChangeProfileMissing",
   "UiHostSurfaceBaselineIdentity",
@@ -174,6 +172,8 @@ symbols = [
   "UiMountedFrameOutcome",
   "UiMountedFramePublicationReceipt",
   "UiMountedFrameRequest",
+  "UiMountedFrameRetentionBudget",
+  "UiMountedFrameRetentionBudgetInput",
   "UiMountedFrameRetentionRejection",
   "UiMountedIndeterminateFrame",
   "UiMountedPresentationAdmissionRejection",
@@ -201,6 +201,7 @@ symbols = [
   "WorthUiApplicationSemanticNoOpReceipt",
   "WorthUiCandidateInspectionReceipt",
   "WorthUiLoweredApplicationReplacement",
+  "WorthUiLegacyEguiApplicationTransition",
   "WorthUiMountedApplicationReplacementInFlight",
   "WorthUiMountedApplicationReplacementIndeterminate",
   "WorthUiMountedApplicationReplacementOutcome",
@@ -211,6 +212,7 @@ symbols = [
   "WorthUiMountedReplacementPreparationOutcome",
   "WorthUiMountedReplacementRetentionDenial",
   "WorthUiNativeApplicationShell",
+  "WorthUiNativeApplicationCleanup",
   "WorthUiNativeApplicationShellLaunchDenial",
   "WorthUiNativeApplicationShutdownReceipt",
   "WorthUiNativeProjectionRebindDenial",
@@ -485,6 +487,8 @@ symbols = [
   "ViewBindingId",
   "VisibleStateBindingDeclaration",
   "WorthUiHostCapability",
+  "WorthUiRustAuthoredArtifactInput",
+  "WorthUiRustAuthoredArtifactInputModule",
   "WorthUiViewBindingIdentity",
 ]
 

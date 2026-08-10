@@ -46,7 +46,7 @@ error[E0616]: field `commands` of struct `CapabilitySnapshotIndex` is private
 error[E0599]: no method named `with_label` found for struct `CommandProjectionDescriptor` in the current scope
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/command_projection/construction/projection_command_meaning_methods_are_not_available.rs
 
-error: cannot construct `WorthUiApplicationBuilder<_, _, _>` with struct literal syntax due to private fields
+error: cannot construct `WorthUiApplicationBuilder<_, _>` with struct literal syntax due to private fields
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/construction/sealed_lifecycle/direct_builder_construction_fails.rs
  help: you might have meant to use the `new` associated function
 
@@ -179,9 +179,9 @@ error[E0277]: the trait bound `WorthUiQueryViewRegistration: From<WorthUiQueryVi
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/construction/query_registration_requires_installed_view.rs
  help: the following other types implement trait `From<T>`
  note: required for `WorthUiQueryViewDefinition` to implement `Into<WorthUiQueryViewRegistration>`
- note: required by a bound in `entry::app_builder::query_registration::<impl WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState, HostBindingState>>::register_query_view`
+ note: required by a bound in `entry::app_builder::query_registration::<impl WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState>>::register_query_view`
 
-error[E0599]: no method named `register_view_binding` found for struct `WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState, HostBindingState>` in the current scope
+error[E0599]: no method named `register_view_binding` found for struct `WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState>` in the current scope
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/construction/direct_view_binding_registration_is_not_public.rs
  help: there is a method `register_setting` with a similar name
 

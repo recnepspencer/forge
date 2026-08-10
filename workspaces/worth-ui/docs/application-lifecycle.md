@@ -116,8 +116,9 @@ do not create dummy Query work.
 
 The following is the exact downstream program used by the compiler-contract
 matrix and the application-contract runtime suite. It uses only the ordinary
-product facade, branches over every mounted outcome and start-stop family, and
-executes the real empty-application path.
+product facade plus its concrete legacy-egui transition, branches over every
+mounted outcome and start-stop family, and executes the real empty-application
+path.
 
 <!-- compile-run:ordinary-mounted-frame -->
 ```rust
@@ -126,7 +127,7 @@ use worth_ui::facade::app::{
     UiMountedFrameRetentionRejection, UiMountedIndeterminateFrame,
     UiMountedPresentationAdmissionRejection, UiMountedPresentationCompletionDenial,
     UiMountedPresentationInFlight, UiMountedRejectedFrame, UiPresentationDeadline, WorthUi,
-    WorthUiMountedFrameExecutionStop,
+    WorthUiLegacyEguiApplicationTransition, WorthUiMountedFrameExecutionStop,
 };
 
 fn main() {
@@ -135,12 +136,14 @@ fn main() {
 
 pub fn run() {
     let app = WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            worth_ui_host_headless::WorthUiHeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(|application| {
+            WorthUiLegacyEguiApplicationTransition::activate(
+                application,
+                worth_ui_host_egui::WorthUiHostEgui::new(egui::Context::default()),
+            )
+        })
         .expect("empty application preparation should succeed");
     let mut session = app.launch().expect("empty application should launch");
     let outcome = match session.execute_mounted_frame(

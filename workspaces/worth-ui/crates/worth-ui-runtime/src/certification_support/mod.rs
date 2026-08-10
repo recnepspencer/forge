@@ -25,6 +25,7 @@ mod planning;
 mod presentation_mechanics;
 mod rebind_identity_lifecycle;
 mod runtime_launch;
+mod scripted_presentation_host;
 mod semantic_text_projection;
 mod touch_origin;
 mod touch_origin_source;
@@ -92,6 +93,10 @@ pub use rebind_identity_lifecycle::{
     WorthUiNodeLifecycleTransition,
 };
 pub use runtime_launch::launch_empty_runtime_for_certification;
+pub use scripted_presentation_host::{
+    presented_completion, recorded_effects, scripted_presentation_epoch, ScriptedPresentationHost,
+    ScriptedSurfaceCompletion,
+};
 pub use semantic_text_projection::{
     semantic_text_projection_for_certification,
     semantic_text_projection_for_certification_with_capability,

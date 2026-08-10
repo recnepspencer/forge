@@ -286,8 +286,15 @@ def file_digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def compile_source_snapshot(cases: list[Case]) -> dict[str, object]:
+def compile_source_snapshot(
+    cases: list[Case], ignore_snapshot_updates: bool = False
+) -> dict[str, object]:
     revision = source_revision()
+    excluded_snapshots = {
+        case.snapshot.relative_to(ROOT).as_posix()
+        for case in cases
+        if ignore_snapshot_updates and case.kind == "fail"
+    }
     records = []
     for case in sorted(cases, key=lambda item: (item.owner, item.kind, item.target)):
         records.append({
@@ -301,12 +308,14 @@ def compile_source_snapshot(cases: list[Case]) -> dict[str, object]:
                 if case.kind == "fail" else None
             ),
             "snapshot_sha256": (
-                file_digest(case.snapshot) if case.kind == "fail" else None
+                file_digest(case.snapshot)
+                if case.kind == "fail" and not ignore_snapshot_updates
+                else None
             ),
         })
     return {
         "source_revision": revision,
-        "source_state_digest": source_state_digest(revision),
+        "source_state_digest": source_state_digest(revision, excluded_snapshots),
         "cases": records,
     }
 
@@ -365,8 +374,11 @@ def publish_artifact_if_unchanged(
 
 def main() -> int:
     arguments = parse_args()
+    if arguments.bless and arguments.artifact:
+        print("--bless cannot publish a result artifact", file=sys.stderr)
+        return 2
     cases = load_cases()
-    source_snapshot = compile_source_snapshot(cases)
+    source_snapshot = compile_source_snapshot(cases, arguments.bless)
     failing = [case for case in cases if case.kind == "fail"]
     passing = [case for case in cases if case.kind == "pass"]
     fail_status, fail_diagnostics = cargo_check(failing)
@@ -394,7 +406,7 @@ def main() -> int:
         arguments.artifact,
         payload,
         source_snapshot,
-        compile_source_snapshot(cases),
+        compile_source_snapshot(cases, arguments.bless),
     ):
         print("compile-contract governed sources changed during execution", file=sys.stderr)
         return 1

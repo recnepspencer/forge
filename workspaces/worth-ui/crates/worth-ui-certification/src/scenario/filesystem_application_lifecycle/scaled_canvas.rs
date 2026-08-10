@@ -1,6 +1,6 @@
+use crate::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui::facade::app::WorthUiApp;
 use worth_ui::facade::source::WorthUiWatchedCandidateSubmission;
-use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 
 use super::FilesystemApplicationLifecycleScenario;
 use crate::scenario::application_authority_closure::application_definition::scaled_canvas_application_builder_with_host;
@@ -25,7 +25,7 @@ impl FilesystemApplicationLifecycleScenario {
         canvas_count: usize,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         scaled_canvas_application_builder_with_host(&self.query, host, canvas_count)
             .freeze()
@@ -39,7 +39,7 @@ impl FilesystemApplicationLifecycleScenario {
         canvas_count: usize,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         scaled_canvas_application_builder_with_host(&self.query, host, canvas_count)
             .with_candidate_submission(submission)
@@ -55,7 +55,7 @@ impl FilesystemApplicationLifecycleScenario {
         retention_budget: worth_ui_runtime::facade::mounted::UiMountedFrameRetentionBudget,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         scaled_canvas_application_builder_with_host(&self.query, host, canvas_count)
             .with_mounted_frame_retention_budget(retention_budget)

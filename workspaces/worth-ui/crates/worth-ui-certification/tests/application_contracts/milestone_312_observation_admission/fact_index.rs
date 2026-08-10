@@ -31,16 +31,18 @@ fn fact_indexes_join_real_consumption_authority() {
     let host = ScriptedPresentationHost::default();
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            host.clone(),
-        )
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("phase-312-fact-index")
                 .with_semantic_artifact_spec(appearance_consumer_spec())
                 .with_semantic_artifact_spec(content_consumer_spec()),
         )
         .freeze()
+        .map(|application| {
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_scripted_presentation(
+                application,
+                host.clone(),
+            )
+        })
         .expect("fact-index application should prepare");
     let graph = app.graph();
     let appearance_artifact = app

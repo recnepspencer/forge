@@ -6,7 +6,8 @@ mod prepared_host;
 mod text_profile;
 
 pub use native::{
-    UiNativeClientPresentationAttribution, UiNativeEffectPosture, UiNativeEventLoopClient,
+    UiNativeClientPresentationAttribution, UiNativeEffectPosture, UiNativeEventLoopCleanup,
+    UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
     UiNativeEventLoopDirective, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
     UiNativeEventLoopStopReport, UiNativeGraphicsObservation, UiNativePresentationObservation,
     UiNativeReadinessGrant, UiNativeResourceCensus, WorthUiNativeEventLoop,

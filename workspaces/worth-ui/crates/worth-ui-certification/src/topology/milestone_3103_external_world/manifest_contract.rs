@@ -50,7 +50,7 @@ fn audit_windows_dev_dependencies(manifest: &toml::Value) -> Result<(), String> 
         .and_then(|windows| windows.get("dev-dependencies"))
         .and_then(toml::Value::as_table)
         .ok_or_else(|| "Windows courtroom dev dependencies should exist".to_owned())?;
-    let expected = ["uiautomation", "winsafe", "xcap"]
+    let expected = ["uiautomation", "win32job", "winsafe", "xcap"]
         .into_iter()
         .collect::<BTreeSet<_>>();
     let observed = dependencies
@@ -113,13 +113,20 @@ fn audit_workspace_native_contracts(workspace: &toml::Value) -> Result<(), Strin
         "uiautomation",
         "=0.25.0",
         Some(false),
-        &["control", "input"],
+        &["control", "input", "screenshot"],
     )?;
+    let win32job = dependencies
+        .get("win32job")
+        .and_then(toml::Value::as_str)
+        .ok_or_else(|| "workspace dependency `win32job` should be an exact version".to_owned())?;
+    if win32job != "=2.0.3" {
+        return Err("workspace dependency `win32job` contract drifted".to_owned());
+    }
     audit_dependency(
         dependencies,
         "winsafe",
         "=0.0.28",
-        None,
+        Some(false),
         &["dwm", "kernel", "user"],
     )?;
     audit_dependency(dependencies, "xcap", "=0.9.7", Some(false), &[])

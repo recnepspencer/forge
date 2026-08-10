@@ -184,11 +184,13 @@ pub(super) fn projection_app(
         .register_scalar_projection(registration)
         .expect("product scalar projection registers")
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            recorder,
-        )
         .freeze()
+        .map(|application| {
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_recorder(
+                application,
+                recorder,
+            )
+        })
         .expect("projection application freezes")
 }
 

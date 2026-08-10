@@ -58,13 +58,13 @@ component workspace.component.source_backed_boundary {
 
 fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> WorthUiApp {
     let support_app = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(source_backed_boundary_component())
         .register_component(source_backed_boundary_peer_component())
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(source_backed_boundary_sizing())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let submission = runtime_from_artifact(empty_artifact())
         .source_event_ingress(
@@ -77,7 +77,6 @@ fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> Worth
         .attempt_candidate_for_certification(support_app.capabilities())
         .expect("source-backed graph reorder provider should lower through ingress");
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_candidate_submission(submission)
         .register_component(source_backed_boundary_component())
@@ -85,6 +84,7 @@ fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> Worth
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(source_backed_boundary_sizing())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

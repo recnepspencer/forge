@@ -1,6 +1,6 @@
+use crate::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui::facade::app::WorthUiApp;
 use worth_ui::facade::source::WorthUiWatchedCandidateSubmission;
-use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 
 use super::FilesystemApplicationLifecycleScenario;
 use crate::scenario::application_authority_closure::application_definition::application_builder_with_host;
@@ -13,7 +13,7 @@ impl FilesystemApplicationLifecycleScenario {
         policy: worth_ui::facade::inspection::UiVisualInspectionPolicy,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         application_builder_with_host(&self.query, host)
             .with_visual_inspection_policy(policy)

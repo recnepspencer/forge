@@ -2731,6 +2731,7 @@ dependencies = [
 name = "worth-ui-compile-contract-fixture"
 version = "0.0.0"
 dependencies = [
+ "egui",
  "worth-foundational",
  "worth-ui",
  "worth-ui-dsl",
@@ -2812,6 +2813,8 @@ dependencies = [
  "worth-proof",
  "worth-ui-dsl",
  "worth-ui-host-contract",
+ "worth-ui-host-egui",
+ "worth-ui-host-headless",
  "worth-ui-host-native",
  "worth-ui-inspection",
  "worth-ui-query-binding",

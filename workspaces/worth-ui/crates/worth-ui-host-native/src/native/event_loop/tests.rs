@@ -3,9 +3,12 @@ use std::rc::Rc;
 
 use super::{
     stop_before_callbacks, transition_callback_thread, UiNativeEventLoopClient,
-    UiNativeEventLoopDirective, UiNativeEventLoopRunDenial, UiNativeReadinessGrant,
+    UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose, UiNativeEventLoopDirective,
+    UiNativeEventLoopRunDenial, UiNativeReadinessGrant,
 };
-use crate::native::{UiNativeEffectPosture, UiNativeHostState, UiNativeResourceClass};
+use crate::native::{
+    UiNativeEffectPosture, UiNativeHostState, UiNativePendingPresentation, UiNativeResourceClass,
+};
 
 struct CleanupClient {
     completes: bool,
@@ -53,8 +56,18 @@ impl UiNativeEventLoopClient for CleanupClient {
         None
     }
 
-    fn close(self) -> Result<(), ()> {
-        self.completes.then_some(()).ok_or(())
+    fn close(self) -> UiNativeEventLoopClientClose {
+        if self.completes {
+            UiNativeEventLoopClientClose::Complete
+        } else {
+            UiNativeEventLoopClientClose::Incomplete(Box::new(self))
+        }
+    }
+}
+
+impl UiNativeEventLoopClientCleanup for CleanupClient {
+    fn retry(self: Box<Self>) -> UiNativeEventLoopClientClose {
+        UiNativeEventLoopClientClose::Incomplete(self)
     }
 }
 
@@ -114,4 +127,34 @@ fn incomplete_client_without_held_resources_cannot_report_a_clean_stop() {
     );
     assert!(report.terminal_census().is_zero());
     assert!(!report.client_cleanup_complete());
+}
+
+#[test]
+fn indeterminate_external_work_moves_into_retryable_cleanup_authority() {
+    let state = Rc::new(RefCell::new(UiNativeHostState::new()));
+    let dropped = Rc::new(std::cell::Cell::new(false));
+    let settles = Rc::new(std::cell::Cell::new(false));
+    {
+        let mut state = state.borrow_mut();
+        let pending = UiNativePendingPresentation::scripted_controllable(
+            &mut state.resources,
+            Rc::clone(&dropped),
+            Rc::clone(&settles),
+        );
+        state.pending_presentations.push(pending);
+    }
+    let report = stop_before_callbacks(
+        state,
+        CleanupClient { completes: true },
+        UiNativeEventLoopRunDenial::EventLoopRun,
+    );
+    assert_eq!(
+        report.cause(),
+        UiNativeEventLoopRunDenial::IncompleteCleanup
+    );
+    assert!(!dropped.get());
+    let cleanup = report.into_cleanup().expect("pending cleanup authority");
+    settles.set(true);
+    assert!(cleanup.retry().expect("settled cleanup").is_zero());
+    assert!(dropped.get());
 }

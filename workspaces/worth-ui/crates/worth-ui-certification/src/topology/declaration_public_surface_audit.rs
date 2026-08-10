@@ -114,6 +114,10 @@ pub fn audit_declaration_facades_are_curated_and_glob_free(workspace_root: &Path
     descriptor_names.remove("WorthUiQueryViewRegistration");
     let mut expected_product_names = runtime_names.clone();
     expected_product_names.extend(descriptor_names);
+    expected_product_names.extend([
+        "WorthUiRustAuthoredArtifactInput".to_owned(),
+        "WorthUiRustAuthoredArtifactInputModule".to_owned(),
+    ]);
     if expected_product_names != product_names {
         violations.push(format!(
             "{} must equal the curated declaration and authored registry descriptor facades; product names: {:?}, expected names: {:?}",
@@ -147,6 +151,7 @@ pub fn audit_declaration_facades_are_curated_and_glob_free(workspace_root: &Path
         &[
             &["worth_ui_runtime", "facade", "declaration"],
             &["worth_ui_runtime", "facade", "registry", "descriptor"],
+            &["worth_ui_dsl"],
         ],
     ) {
         violations.push(format!("{} {reason}", product_path.display()));

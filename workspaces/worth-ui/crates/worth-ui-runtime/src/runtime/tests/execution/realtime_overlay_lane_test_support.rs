@@ -64,10 +64,10 @@ pub(super) fn realtime_launch_denial(
 fn realtime_app(row_limit: u16, declared_cost: u16, budget: u32) -> crate::facade::WorthUiApp {
     let descriptor = || realtime_descriptor(row_limit, declared_cost, budget);
     let capabilities = WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(descriptor())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("fixture capability application freezes");
     let submission = lower_file_submission(
         WorthUiSourceProvider::in_memory("realtime-overlay.fixture")
@@ -78,11 +78,11 @@ fn realtime_app(row_limit: u16, declared_cost: u16, budget: u32) -> crate::facad
         capabilities.capabilities(),
     );
     WorthUi::app()
-        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(descriptor())
         .with_candidate_submission(submission)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("fixture source application freezes")
 }
 

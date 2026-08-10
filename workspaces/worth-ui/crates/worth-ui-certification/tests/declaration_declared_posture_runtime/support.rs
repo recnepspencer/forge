@@ -1,5 +1,5 @@
 use super::{
-    HeadlessHost, UiDslSemanticArtifactSpec, WorthUi, WorthUiApplicationPreparationDenial,
+    UiDslSemanticArtifactSpec, WorthUi, WorthUiApplicationPreparationDenial,
     WorthUiRustAuthoredDeclarationFixture,
 };
 use worth_ui_certification::WorthUiCertificationBuilderExt;
@@ -9,16 +9,15 @@ pub(super) fn freeze_denial(
     spec: UiDslSemanticArtifactSpec,
 ) -> WorthUiApplicationPreparationDenial {
     match WorthUi::app()
-        .bind_certification_host_adapter(
-            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
-            HeadlessHost,
-        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(package_name)
                 .with_semantic_artifact_spec(spec),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
     {
         Ok(_) => panic!("invalid declaration authority must deny application preparation"),
         Err(denial) => denial,
