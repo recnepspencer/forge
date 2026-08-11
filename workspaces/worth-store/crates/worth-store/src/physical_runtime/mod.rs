@@ -241,11 +241,13 @@ pub use worth_store_physical_backend::{
     CompletedScheduledRecoveryStagingWrite, DeniedScheduledRecoveryReopenRead,
     FilesystemAccessPosture, IndeterminateRecoveryStagingWrite, MediaOwnerIdentity,
     ObservedRecoveryArtifact, ObservedWalArtifact, PhysicalRecoveryMediaGeneration,
-    QualifiedPhysicalBackendProfile, QualifiedRecoveryFilesystemMedia, RecoveryDiscoveryArtifact,
-    RecoveryDiscoveryByteLimitScope, RecoveryDiscoveryCounters, RecoveryDiscoveryFailure,
-    RecoveryFilesystemQualificationError, RecoveryReopenReadOutcome,
-    RecoveryRootProtocolPublicationDenial, RecoveryRootProtocolPublicationPlan,
-    RecoveryStagingWriteDisposition, RecoveryStagingWriteOutcome,
+    QualifiedPhysicalBackendProfile, QualifiedRecoveryFilesystemMedia,
+    RecoveryCleanupArtifactRevalidationDenial, RecoveryCleanupArtifactRevalidationProgress,
+    RecoveryCleanupRemovalDenialCause, RecoveryDiscoveryArtifact, RecoveryDiscoveryByteLimitScope,
+    RecoveryDiscoveryCounters, RecoveryDiscoveryFailure, RecoveryFilesystemQualificationError,
+    RecoveryReopenReadOutcome, RecoveryRootProtocolPublicationDenial,
+    RecoveryRootProtocolPublicationPlan, RecoveryStagingWriteDisposition,
+    RecoveryStagingWriteOutcome,
 };
 
 pub(in crate::physical_runtime) use work::{

@@ -25,6 +25,11 @@ pub(super) const BACKEND_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
+        "CompletedScheduledRecoveryCleanupRemoval::revalidation",
+        "worth-store-physical-backend/recovery-media/cleanup",
+        "phase-7",
+    ),
+    (
         "DeniedScheduledRecoveryCleanupRemoval",
         "worth-store-physical-backend/recovery-media/cleanup",
         "phase-7",
@@ -40,7 +45,17 @@ pub(super) const BACKEND_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
+        "DeniedScheduledRecoveryCleanupRemoval::cause",
+        "worth-store-physical-backend/recovery-media/cleanup",
+        "phase-7",
+    ),
+    (
         "DeniedScheduledRecoveryCleanupRemoval::queue",
+        "worth-store-physical-backend/recovery-media/cleanup",
+        "phase-7",
+    ),
+    (
+        "DeniedScheduledRecoveryCleanupRemoval::revalidation",
         "worth-store-physical-backend/recovery-media/cleanup",
         "phase-7",
     ),
@@ -61,6 +76,46 @@ pub(super) const BACKEND_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "IndeterminateScheduledRecoveryCleanupRemoval::queue",
+        "worth-store-physical-backend/recovery-media/cleanup",
+        "phase-7",
+    ),
+    (
+        "IndeterminateScheduledRecoveryCleanupRemoval::revalidation",
+        "worth-store-physical-backend/recovery-media/cleanup",
+        "phase-7",
+    ),
+    (
+        "RecoveryCleanupArtifactRevalidationDenial",
+        "worth-store-physical-backend/recovery-media/cleanup/revalidation",
+        "phase-7",
+    ),
+    (
+        "RecoveryCleanupArtifactRevalidationProgress",
+        "worth-store-physical-backend/recovery-media/cleanup/revalidation",
+        "phase-7",
+    ),
+    (
+        "RecoveryCleanupArtifactRevalidationProgress::bytes_read",
+        "worth-store-physical-backend/recovery-media/cleanup/revalidation",
+        "phase-7",
+    ),
+    (
+        "RecoveryCleanupArtifactRevalidationProgress::reads_attempted",
+        "worth-store-physical-backend/recovery-media/cleanup/revalidation",
+        "phase-7",
+    ),
+    (
+        "RecoveryCleanupArtifactRevalidationProgress::reads_completed",
+        "worth-store-physical-backend/recovery-media/cleanup/revalidation",
+        "phase-7",
+    ),
+    (
+        "RecoveryCleanupRemovalDenialCause",
+        "worth-store-physical-backend/recovery-media/cleanup",
+        "phase-7",
+    ),
+    (
+        "RecoveryCleanupRemovalDenialCause::failure",
         "worth-store-physical-backend/recovery-media/cleanup",
         "phase-7",
     ),

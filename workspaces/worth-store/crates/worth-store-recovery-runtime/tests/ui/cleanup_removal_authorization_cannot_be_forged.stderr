@@ -1,8 +1,16 @@
-error[E0432]: unresolved import `worth_store::physical_runtime::PhysicalRecoveryCleanupAuthorization`
- --> tests/ui/cleanup_removal_authorization_cannot_be_forged.rs:1:5
+error[E0624]: associated function `admit` is private
+ --> tests/ui/cleanup_removal_authorization_cannot_be_forged.rs:8:58
   |
-1 | use worth_store::physical_runtime::PhysicalRecoveryCleanupAuthorization;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------------------------
-  |     |                              |
-  |     |                              help: a similar name exists in the module: `PhysicalRecoveryCleanupAdmissionDenial`
-  |     no `PhysicalRecoveryCleanupAuthorization` in `physical_runtime`
+8 |       let _forged = PhysicalRecoveryCleanupRemovalCommand::admit(
+  |                                                            ^^^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-store/src/physical_runtime/recovery_coordination/cleanup/removal.rs
+  |
+  | /     pub(in crate::physical_runtime) fn admit(
+  | |         media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
+  | |         coordination: &PhysicalRecoveryCoordination,
+  | |         cleanup_plan_identity: [u8; 32],
+... |
+  | |         wal: WalSegmentInspection,
+  | |     ) -> Option<Self> {
+  | |_____________________- private associated function defined here

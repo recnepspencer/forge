@@ -1,5 +1,6 @@
 use worth_store::physical_runtime::{
     PhysicalRecoveryCleanupFreshnessReadDenialKind, PhysicalRecoveryCleanupRemovalDenialKind,
+    RecoveryCleanupArtifactRevalidationDenial, RecoveryCleanupArtifactRevalidationProgress,
     StoreRecoveryCleanupFreshnessFailure, StoreRecoveryCleanupFreshnessSample,
 };
 
@@ -90,12 +91,14 @@ impl RecoveryCleanupAccounting {
         &mut self,
         bytes: u64,
         performed: PerformedRecoveryCleanupRemoval,
+        revalidation: RecoveryCleanupArtifactRevalidationProgress,
     ) {
         self.counters.actions_attempted += 1;
         self.counters.actions_completed += 1;
         self.counters.bytes_completed += bytes;
         self.counters.performed_effects += 1;
         self.record_removal_scheduler(true, false, false, true);
+        self.record_revalidation(revalidation, None);
         self.performed.push(performed);
     }
 
@@ -120,15 +123,25 @@ impl RecoveryCleanupAccounting {
                     PhysicalRecoveryCleanupRemovalDenialKind::Execution(_) => {
                         self.record_removal_scheduler(true, false, true, false);
                     }
-                    PhysicalRecoveryCleanupRemovalDenialKind::Media => {
+                    PhysicalRecoveryCleanupRemovalDenialKind::Media(cause) => {
                         self.record_removal_scheduler(true, false, false, true);
+                        if let Some(physical) = denial.physical() {
+                            let revalidation_denial = match cause {
+                                worth_store::physical_runtime::RecoveryCleanupRemovalDenialCause::Revalidation(
+                                    denial,
+                                ) => Some(*denial),
+                                _ => None,
+                            };
+                            self.record_revalidation(physical.revalidation(), revalidation_denial);
+                        }
                     }
                 }
             }
-            RecoveryCleanupDeferralEvidence::IndeterminateEffect { .. } => {
+            RecoveryCleanupDeferralEvidence::IndeterminateEffect { evidence, .. } => {
                 self.counters.actions_attempted += 1;
                 self.counters.indeterminate_effects += 1;
                 self.record_removal_scheduler(true, false, false, true);
+                self.record_revalidation(evidence.revalidation(), None);
             }
             RecoveryCleanupDeferralEvidence::PublishedGenerationChanged { .. }
             | RecoveryCleanupDeferralEvidence::EligibilityChanged { .. }
@@ -189,6 +202,28 @@ impl RecoveryCleanupAccounting {
         self.counters.scheduler_commands_deferred += u64::from(deferred);
         self.counters.scheduler_commands_cancelled += u64::from(cancelled);
         self.counters.scheduler_commands_settled += u64::from(settled);
+    }
+
+    fn record_revalidation(
+        &mut self,
+        progress: RecoveryCleanupArtifactRevalidationProgress,
+        denial: Option<RecoveryCleanupArtifactRevalidationDenial>,
+    ) {
+        self.counters.artifact_revalidation_reads_attempted += progress.reads_attempted();
+        self.counters.artifact_revalidation_reads_completed += progress.reads_completed();
+        self.counters.artifact_revalidation_bytes_read += progress.bytes_read();
+        match denial {
+            Some(RecoveryCleanupArtifactRevalidationDenial::Read(_)) => {
+                self.counters.artifact_revalidation_read_failures += 1;
+            }
+            Some(
+                RecoveryCleanupArtifactRevalidationDenial::LengthMismatch { .. }
+                | RecoveryCleanupArtifactRevalidationDenial::DigestMismatch { .. },
+            ) => {
+                self.counters.artifact_revalidation_mismatches += 1;
+            }
+            None => {}
+        }
     }
 
     pub(super) fn finish(mut self, plan: RecoveryCleanupPlan) -> RecoveryCleanupPosture {
