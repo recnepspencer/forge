@@ -138,7 +138,13 @@ fn phase_seven_cleanup_process() {
     assert_selected_wal_is_retained(&root, &handoff, evidence);
     assert_selected_base_is_retained(&root, &handoff, evidence);
     assert_eq!(evidence.counters().eligible_after_cleanup, 0);
-    assert_expected_posture(posture, disposition, expected_identity, expected_deferred);
+    assert_expected_posture(
+        posture,
+        disposition,
+        expected_identity,
+        expected_deferred,
+        cleanup_bytes,
+    );
 }
 
 pub(crate) struct ProcessWorld {

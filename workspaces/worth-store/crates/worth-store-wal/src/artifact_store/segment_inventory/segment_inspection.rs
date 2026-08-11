@@ -6,7 +6,6 @@ use crate::{LogSequenceNumber, WalArtifactStoreDenial, WalLsnRange};
 use crate::artifact_store::frame_codec::{decode_header, FOOTER_BYTES, HEADER_BYTES};
 
 mod denial;
-mod inspection_accessors;
 mod owned_artifact;
 mod owned_frame;
 
@@ -55,9 +54,6 @@ pub struct InterruptedWalTail {
     observed_bytes: u64,
 }
 
-/// Proof that the complete observed artifact is a strict prefix of its first
-/// WAL frame. This does not prove that the artifact is a lawful segment; the
-/// Store must still bind it to an exact active successor before cleanup.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InterruptedWalSegmentStart {
     observed_bytes: u64,
@@ -377,5 +373,27 @@ impl InterruptedWalTail {
 impl InterruptedWalSegmentStart {
     pub const fn observed_bytes(self) -> u64 {
         self.observed_bytes
+    }
+}
+
+impl WalSegmentInspection {
+    pub const fn identity(self) -> WalSegmentArtifactIdentity {
+        self.identity
+    }
+
+    pub const fn lsn_range(self) -> WalLsnRange {
+        self.lsn_range
+    }
+
+    pub const fn frame_count(self) -> u64 {
+        self.frame_count
+    }
+
+    pub const fn byte_count(self) -> u64 {
+        self.byte_count
+    }
+
+    pub const fn artifact_digest(self) -> [u8; 32] {
+        self.artifact_digest
     }
 }

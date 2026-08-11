@@ -1,12 +1,24 @@
-use worth_store::physical_runtime::PhysicalRecoveryFreshnessPort;
+use worth_store::physical_runtime::{
+    AdmittedRecoveryFilesystemMedia, CompletedPhysicalRecoveryFreshReopen,
+    PhysicalRecoveryCoordination, PhysicalRecoveryFreshnessPort,
+};
+use worth_store_physical_format::VerifiedCheckpointStream;
+use worth_store_recovery_physics::WalSegmentInspection;
 
-fn substitute_source_generation_and_policy() {
+fn substitute_raw_wal_inspection(
+    coordination: &PhysicalRecoveryCoordination,
+    media: &AdmittedRecoveryFilesystemMedia,
+    reopened: &CompletedPhysicalRecoveryFreshReopen,
+    checkpoint: &VerifiedCheckpointStream,
+    raw: WalSegmentInspection,
+) {
     let _ = PhysicalRecoveryFreshnessPort::sample_cleanup(
-        7_u64,
-        [0_u8; 32],
+        coordination,
+        media,
         [1_u8; 32],
-        [2_u8; 32],
-        [3_u8; 32],
+        reopened,
+        checkpoint,
+        raw,
     );
 }
 

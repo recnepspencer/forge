@@ -40,6 +40,11 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
+        "CompletedPhysicalRecoveryCleanupRemoval::revalidation",
+        "worth-store/recovery-coordination/cleanup/removal",
+        "phase-7",
+    ),
+    (
         "PhysicalRecoveryCleanupAdmissionDenial",
         "worth-store/recovery-coordination/cleanup/admission/denial",
         "phase-7",
@@ -72,11 +77,6 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
     (
         "PhysicalRecoveryCleanupCommandStage",
         "worth-store/recovery-coordination/cleanup",
-        "phase-7",
-    ),
-    (
-        "PhysicalRecoveryCleanupAuthorization",
-        "worth-store/recovery-freshness/cleanup",
         "phase-7",
     ),
     (
@@ -140,11 +140,6 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
-        "PhysicalRecoveryCleanupRemovalCommand::new",
-        "worth-store/recovery-coordination/cleanup/removal",
-        "phase-7",
-    ),
-    (
         "PhysicalRecoveryCleanupRemovalDenial",
         "worth-store/recovery-coordination/cleanup/removal",
         "phase-7",
@@ -181,6 +176,11 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "PhysicalRecoveryCleanupRemovalIndeterminate",
+        "worth-store/recovery-coordination/cleanup/removal",
+        "phase-7",
+    ),
+    (
+        "PhysicalRecoveryCleanupRemovalIndeterminate::revalidation",
         "worth-store/recovery-coordination/cleanup/removal",
         "phase-7",
     ),
@@ -291,6 +291,11 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "StoreRecoveryCleanupFreshnessFailure::denial",
+        "worth-store/recovery-freshness/cleanup",
+        "phase-7",
+    ),
+    (
+        "StoreRecoveryCleanupFreshnessFailure::binding",
         "worth-store/recovery-freshness/cleanup",
         "phase-7",
     ),

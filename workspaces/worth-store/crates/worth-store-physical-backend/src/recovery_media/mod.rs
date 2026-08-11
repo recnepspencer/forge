@@ -17,8 +17,9 @@ pub use admitted::{AdmittedRecoveryFilesystemMedia, RecoveryMediaHandleObservati
 #[cfg(feature = "recovery-runtime-owner")]
 pub use cleanup::{
     CompletedScheduledRecoveryCleanupRemoval, DeniedScheduledRecoveryCleanupRemoval,
-    IndeterminateScheduledRecoveryCleanupRemoval, RecoveryCleanupRemovalOutcome,
-    RecoveryWalArtifactCoordinate,
+    IndeterminateScheduledRecoveryCleanupRemoval, RecoveryCleanupArtifactRevalidationDenial,
+    RecoveryCleanupArtifactRevalidationProgress, RecoveryCleanupRemovalDenialCause,
+    RecoveryCleanupRemovalOutcome, RecoveryWalArtifactCoordinate,
 };
 pub use discovery::{
     BoundedRecoveryFilesystemDiscovery, ObservedRecoveryArtifact, ObservedWalArtifact,

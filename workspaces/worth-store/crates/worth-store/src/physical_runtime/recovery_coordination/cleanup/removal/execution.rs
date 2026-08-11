@@ -28,6 +28,7 @@ struct RemovalExecution {
 
 struct CompletedRemovalSettlement {
     physical: worth_store_physical_backend::CompletedArtifactTreePublicationEffect,
+    revalidation: worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress,
     work: crate::physical_runtime::PhysicalWorkIdentity,
     coordinate: RecoveryWalArtifactCoordinate,
     posture: PhysicalWorkSchedulerPosture,
@@ -164,6 +165,7 @@ fn complete_removal(
         return PhysicalRecoveryCleanupRemovalOutcome::Indeterminate(
             PhysicalRecoveryCleanupRemovalIndeterminate::Scheduler {
                 physical: settlement.physical,
+                revalidation: settlement.revalidation,
                 posture: settlement.posture,
                 signal: settlement.signal,
             },
@@ -173,6 +175,7 @@ fn complete_removal(
         return PhysicalRecoveryCleanupRemovalOutcome::Indeterminate(
             PhysicalRecoveryCleanupRemovalIndeterminate::Signal {
                 physical: settlement.physical,
+                revalidation: settlement.revalidation,
                 posture: settlement.posture,
                 outcome: settlement.signal,
             },
@@ -201,6 +204,7 @@ fn complete_removal(
     );
     PhysicalRecoveryCleanupRemovalOutcome::Completed(CompletedPhysicalRecoveryCleanupRemoval {
         performed,
+        revalidation: settlement.revalidation,
     })
 }
 
@@ -211,6 +215,7 @@ fn settle_completed_removal(
     completed: worth_store_physical_backend::CompletedScheduledRecoveryCleanupRemoval,
 ) -> CompletedRemovalSettlement {
     let physical = completed.physical().clone();
+    let revalidation = completed.revalidation();
     let queue = completed.queue();
     #[cfg(feature = "certification-test-authority")]
     let queue = if coordination.take_certification_cleanup_scheduler_failure(
@@ -238,6 +243,7 @@ fn settle_completed_removal(
     );
     CompletedRemovalSettlement {
         physical,
+        revalidation,
         work: execution.work,
         coordinate: execution.coordinate,
         posture,
@@ -250,6 +256,7 @@ fn deny_removal(
     execution: RemovalExecution,
     denied: Box<worth_store_physical_backend::DeniedScheduledRecoveryCleanupRemoval>,
 ) -> PhysicalRecoveryCleanupRemovalOutcome {
+    let cause = denied.cause();
     let scheduler = denied
         .queue()
         .map(|queue| scheduler_posture(&execute_ready_queue_plan(execution.plan, queue)));
@@ -266,7 +273,7 @@ fn deny_removal(
     );
     PhysicalRecoveryCleanupRemovalOutcome::DeniedBeforeEffect(
         PhysicalRecoveryCleanupRemovalDenial {
-            kind: PhysicalRecoveryCleanupRemovalDenialKind::Media,
+            kind: PhysicalRecoveryCleanupRemovalDenialKind::Media(cause),
             physical: Some(*denied),
             work: Some(execution.work),
             scheduler,

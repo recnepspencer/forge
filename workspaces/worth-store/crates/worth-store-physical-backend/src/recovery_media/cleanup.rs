@@ -1,15 +1,17 @@
+use super::AdmittedRecoveryFilesystemMedia;
 use crate::filesystem_media::{
-    ArtifactTreeDirectory, ArtifactTreeFailure, ArtifactTreeFile,
-    ArtifactTreePublicationEffectOutcome, CompletedArtifactTreePublicationEffect,
-    IndeterminateArtifactTreePublicationEffect,
+    ArtifactTreeDirectory, ArtifactTreeFailure, ArtifactTreePublicationEffectOutcome,
+    CompletedArtifactTreePublicationEffect, IndeterminateArtifactTreePublicationEffect,
 };
 use crate::{
     BackendQueueExecutionAdaptation, BackendQueueExecutionCompletion,
     BackendQueueExecutionPlanBinding,
 };
-use sha2::{Digest, Sha256};
 
-use super::AdmittedRecoveryFilesystemMedia;
+mod revalidation;
+pub use revalidation::{
+    RecoveryCleanupArtifactRevalidationDenial, RecoveryCleanupArtifactRevalidationProgress,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecoveryWalArtifactCoordinate {
@@ -22,13 +24,15 @@ pub struct CompletedScheduledRecoveryCleanupRemoval {
     coordinate: RecoveryWalArtifactCoordinate,
     physical: CompletedArtifactTreePublicationEffect,
     queue: BackendQueueExecutionCompletion,
+    revalidation: RecoveryCleanupArtifactRevalidationProgress,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeniedScheduledRecoveryCleanupRemoval {
     coordinate: RecoveryWalArtifactCoordinate,
-    failure: ArtifactTreeFailure,
+    cause: RecoveryCleanupRemovalDenialCause,
     queue: Option<BackendQueueExecutionCompletion>,
+    revalidation: RecoveryCleanupArtifactRevalidationProgress,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,6 +40,14 @@ pub struct IndeterminateScheduledRecoveryCleanupRemoval {
     coordinate: RecoveryWalArtifactCoordinate,
     physical: IndeterminateArtifactTreePublicationEffect,
     queue: BackendQueueExecutionCompletion,
+    revalidation: RecoveryCleanupArtifactRevalidationProgress,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RecoveryCleanupRemovalDenialCause {
+    Preparation(ArtifactTreeFailure),
+    Revalidation(RecoveryCleanupArtifactRevalidationDenial),
+    Removal(ArtifactTreeFailure),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -97,39 +109,24 @@ impl AdmittedRecoveryFilesystemMedia {
             Ok(ticket) => ticket,
             Err(_) => return denied_without_queue(coordinate),
         };
-        if let Err(failure) =
-            self.verify_cleanup_artifact(&artifact, expected_bytes, expected_digest)
-        {
-            return denied_with_queue(
-                coordinate,
-                failure,
-                ticket.begin_completion().observe_queue_depth(1).complete(),
-            );
-        }
+        let revalidation =
+            match revalidation::verify(self, &artifact, expected_bytes, expected_digest) {
+                Ok(progress) => progress,
+                Err(failure) => {
+                    return denied_with_queue(
+                        coordinate,
+                        RecoveryCleanupRemovalDenialCause::Revalidation(failure.denial()),
+                        failure.progress(),
+                        ticket.begin_completion().observe_queue_depth(1).complete(),
+                    );
+                }
+            };
         let physical = self
             .parts
             .artifact_tree()
             .remove_file_durably_observed(&artifact);
         let queue = ticket.begin_completion().observe_queue_depth(1).complete();
-        lower_cleanup_removal(coordinate, physical, queue)
-    }
-
-    fn verify_cleanup_artifact(
-        &self,
-        artifact: &ArtifactTreeFile,
-        expected_bytes: u64,
-        expected_digest: [u8; 32],
-    ) -> Result<(), ArtifactTreeFailure> {
-        let observed = self
-            .parts
-            .artifact_tree()
-            .read_bounded(artifact, expected_bytes)?;
-        if observed.len() as u64 != expected_bytes
-            || <[u8; 32]>::from(Sha256::digest(&observed)) != expected_digest
-        {
-            return Err(ArtifactTreeFailure::recovery_denial());
-        }
-        Ok(())
+        lower_cleanup_removal(coordinate, physical, queue, revalidation)
     }
 }
 
@@ -137,6 +134,7 @@ fn lower_cleanup_removal(
     coordinate: RecoveryWalArtifactCoordinate,
     physical: ArtifactTreePublicationEffectOutcome,
     queue: BackendQueueExecutionCompletion,
+    revalidation: RecoveryCleanupArtifactRevalidationProgress,
 ) -> RecoveryCleanupRemovalOutcome {
     match physical {
         ArtifactTreePublicationEffectOutcome::Completed(physical) => {
@@ -145,6 +143,7 @@ fn lower_cleanup_removal(
                     coordinate,
                     physical,
                     queue,
+                    revalidation,
                 },
             ))
         }
@@ -152,8 +151,9 @@ fn lower_cleanup_removal(
             RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(Box::new(
                 DeniedScheduledRecoveryCleanupRemoval {
                     coordinate,
-                    failure,
+                    cause: RecoveryCleanupRemovalDenialCause::Removal(failure),
                     queue: Some(queue),
+                    revalidation,
                 },
             ))
         }
@@ -163,6 +163,7 @@ fn lower_cleanup_removal(
                     coordinate,
                     physical,
                     queue,
+                    revalidation,
                 },
             ))
         }
@@ -171,14 +172,16 @@ fn lower_cleanup_removal(
 
 fn denied_with_queue(
     coordinate: RecoveryWalArtifactCoordinate,
-    failure: ArtifactTreeFailure,
+    cause: RecoveryCleanupRemovalDenialCause,
+    revalidation: RecoveryCleanupArtifactRevalidationProgress,
     queue: BackendQueueExecutionCompletion,
 ) -> RecoveryCleanupRemovalOutcome {
     RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(Box::new(
         DeniedScheduledRecoveryCleanupRemoval {
             coordinate,
-            failure,
+            cause,
             queue: Some(queue),
+            revalidation,
         },
     ))
 }
@@ -189,8 +192,11 @@ fn denied_without_queue(
     RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(Box::new(
         DeniedScheduledRecoveryCleanupRemoval {
             coordinate,
-            failure: ArtifactTreeFailure::recovery_denial(),
+            cause: RecoveryCleanupRemovalDenialCause::Preparation(
+                ArtifactTreeFailure::recovery_denial(),
+            ),
             queue: None,
+            revalidation: RecoveryCleanupArtifactRevalidationProgress::default(),
         },
     ))
 }
@@ -205,6 +211,9 @@ impl CompletedScheduledRecoveryCleanupRemoval {
     pub const fn queue(&self) -> BackendQueueExecutionCompletion {
         self.queue
     }
+    pub const fn revalidation(&self) -> RecoveryCleanupArtifactRevalidationProgress {
+        self.revalidation
+    }
 }
 
 impl DeniedScheduledRecoveryCleanupRemoval {
@@ -212,10 +221,16 @@ impl DeniedScheduledRecoveryCleanupRemoval {
         self.coordinate
     }
     pub const fn failure(&self) -> ArtifactTreeFailure {
-        self.failure
+        self.cause.failure()
+    }
+    pub const fn cause(&self) -> RecoveryCleanupRemovalDenialCause {
+        self.cause
     }
     pub const fn queue(&self) -> Option<BackendQueueExecutionCompletion> {
         self.queue
+    }
+    pub const fn revalidation(&self) -> RecoveryCleanupArtifactRevalidationProgress {
+        self.revalidation
     }
 }
 
@@ -228,5 +243,17 @@ impl IndeterminateScheduledRecoveryCleanupRemoval {
     }
     pub const fn queue(&self) -> BackendQueueExecutionCompletion {
         self.queue
+    }
+    pub const fn revalidation(&self) -> RecoveryCleanupArtifactRevalidationProgress {
+        self.revalidation
+    }
+}
+
+impl RecoveryCleanupRemovalDenialCause {
+    pub const fn failure(self) -> ArtifactTreeFailure {
+        match self {
+            Self::Preparation(failure) | Self::Removal(failure) => failure,
+            Self::Revalidation(_) => ArtifactTreeFailure::recovery_denial(),
+        }
     }
 }

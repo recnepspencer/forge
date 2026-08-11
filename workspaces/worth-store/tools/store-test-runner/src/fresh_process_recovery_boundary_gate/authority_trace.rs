@@ -70,7 +70,7 @@ const FATES: &[&str] = &[
 const CONCRETE_AUTHORITIES: &[&str] = &[
     "PhysicalRecoveryPlatformAuthority",
     "PhysicalRecoveryConstructionAuthority",
-    "PhysicalRecoveryCleanupAuthorization",
+    "PhysicalRecoveryCleanupRemovalCommand",
 ];
 const PHASE_CONTROLS: &[&str] = &["PhysicalRecoveryCleanupCancellation"];
 

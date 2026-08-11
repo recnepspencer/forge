@@ -2,6 +2,8 @@
 
 #[allow(dead_code)]
 mod phase_three_support;
+#[path = "phase_seven_faults/revalidation.rs"]
+mod revalidation;
 #[path = "phase_seven_faults/world.rs"]
 mod world;
 
@@ -99,63 +101,6 @@ use worth_store_recovery_runtime::{
     PhysicalRecoveryOutcome, RecoveryCleanupDeferralEvidence, RecoveryCleanupDispositionKind,
     RecoveryCleanupPosture,
 };
-
-#[test]
-fn cleanup_denial_retains_the_artifact_and_exact_backend_failure() {
-    let world = cleanup_world("cleanup-denied");
-    let candidate = world.oldest_wal();
-    let schedule = cleanup_fault(MediaFaultDirective::FailBefore {
-        kind: std::io::ErrorKind::PermissionDenied,
-        raw_os_error: None,
-    });
-    let handoff = recover_with_schedule(&world.root, schedule);
-    let RecoveryCleanupPosture::Deferred(evidence) = handoff.cleanup_posture() else {
-        panic!("cleanup denial produces deferred recovered handoff")
-    };
-    assert!(candidate.exists());
-    assert!(evidence.performed_removals().is_empty());
-    assert_eq!(evidence.counters().denied_before_effect, 1);
-    let [RecoveryCleanupDeferralEvidence::DeniedBeforeEffect { denial, .. }] = evidence.deferrals()
-    else {
-        panic!("one exact denied cleanup settlement")
-    };
-    let physical = denial.physical().expect("backend denial is retained");
-    assert_eq!(
-        physical.failure().kind(),
-        worth_store::physical_runtime::ArtifactTreeFailureKind::DeniedBeforeEffect
-    );
-    assert_eq!(
-        physical.failure().io_kind(),
-        Some(std::io::ErrorKind::PermissionDenied)
-    );
-}
-
-#[test]
-fn cleanup_revalidates_exact_wal_bytes_before_deletion() {
-    let world = cleanup_world("cleanup-wal-substitution");
-    let candidate = world.oldest_wal();
-    let reopened = reopen_with_schedule(&world.root, empty_fault_schedule());
-    let mut substituted = std::fs::read(&candidate).unwrap();
-    let last = substituted.last_mut().expect("candidate WAL is nonempty");
-    *last ^= 0xff;
-    std::fs::write(&candidate, substituted).unwrap();
-
-    let PhysicalRecoveryOutcome::Recovered(handoff) = reopened.finish() else {
-        panic!("stale WAL bytes remain deferred cleanup debt")
-    };
-    let RecoveryCleanupPosture::Deferred(evidence) = handoff.cleanup_posture() else {
-        panic!("substituted WAL bytes must deny cleanup")
-    };
-    assert!(candidate.exists());
-    assert!(evidence.performed_removals().is_empty());
-    assert_eq!(evidence.counters().actions_attempted, 1);
-    assert_eq!(evidence.counters().denied_before_effect, 1);
-    assert!(matches!(
-        evidence.deferrals(),
-        [RecoveryCleanupDeferralEvidence::DeniedBeforeEffect { denial, .. }]
-            if matches!(denial.kind(), PhysicalRecoveryCleanupRemovalDenialKind::Media)
-    ));
-}
 
 #[test]
 fn ambiguous_cleanup_effect_is_deferred_without_performed_authority() {

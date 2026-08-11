@@ -34,6 +34,7 @@ pub struct PhysicalRecoveryCleanupRemovalCommand {
 
 pub struct CompletedPhysicalRecoveryCleanupRemoval {
     performed: PerformedRecoveryPhysicalEffect<RecoveryCleanupRemovalAction>,
+    revalidation: worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress,
 }
 
 pub struct PhysicalRecoveryCleanupRemovalDenial {
@@ -48,7 +49,7 @@ pub enum PhysicalRecoveryCleanupRemovalDenialKind {
     InvalidCommand,
     Admission(super::admission::PhysicalRecoveryCleanupAdmissionDenial),
     Execution(crate::physical_runtime::PhysicalWorkPreEffectDenial),
-    Media,
+    Media(worth_store_physical_backend::RecoveryCleanupRemovalDenialCause),
 }
 
 pub enum PhysicalRecoveryCleanupRemovalIndeterminate {
@@ -59,11 +60,13 @@ pub enum PhysicalRecoveryCleanupRemovalIndeterminate {
     },
     Scheduler {
         physical: worth_store_physical_backend::CompletedArtifactTreePublicationEffect,
+        revalidation: worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress,
         posture: PhysicalWorkSchedulerPosture,
         signal: crate::physical_runtime::PhysicalSignalSettlementOutcome,
     },
     Signal {
         physical: worth_store_physical_backend::CompletedArtifactTreePublicationEffect,
+        revalidation: worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress,
         posture: PhysicalWorkSchedulerPosture,
         outcome: crate::physical_runtime::PhysicalSignalSettlementOutcome,
     },
@@ -131,6 +134,11 @@ impl CompletedPhysicalRecoveryCleanupRemoval {
     pub fn into_performed(self) -> PerformedRecoveryPhysicalEffect<RecoveryCleanupRemovalAction> {
         self.performed
     }
+    pub const fn revalidation(
+        &self,
+    ) -> worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress {
+        self.revalidation
+    }
 }
 
 impl PhysicalRecoveryCleanupRemovalDenial {
@@ -150,5 +158,18 @@ impl PhysicalRecoveryCleanupRemovalDenial {
     }
     pub const fn signal(&self) -> Option<crate::physical_runtime::PhysicalSignalSettlementOutcome> {
         self.signal
+    }
+}
+
+impl PhysicalRecoveryCleanupRemovalIndeterminate {
+    pub const fn revalidation(
+        &self,
+    ) -> worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress {
+        match self {
+            Self::Media { physical, .. } => physical.revalidation(),
+            Self::Scheduler { revalidation, .. } | Self::Signal { revalidation, .. } => {
+                *revalidation
+            }
+        }
     }
 }

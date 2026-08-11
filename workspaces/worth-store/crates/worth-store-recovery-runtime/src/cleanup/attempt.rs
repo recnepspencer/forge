@@ -15,6 +15,7 @@ pub(super) enum RecoveryCleanupAttempt {
     Completed {
         freshness: StoreRecoveryCleanupFreshnessSample,
         performed: PerformedRecoveryCleanupRemoval,
+        revalidation: worth_store::physical_runtime::RecoveryCleanupArtifactRevalidationProgress,
     },
     Deferred {
         freshness: Option<StoreRecoveryCleanupFreshnessSample>,
@@ -134,9 +135,11 @@ fn lower_removal_outcome(
         .execute_cleanup_removal(&reopened.state.authority.media, command)
     {
         PhysicalRecoveryCleanupRemovalOutcome::Completed(completed) => {
+            let revalidation = completed.revalidation();
             RecoveryCleanupAttempt::Completed {
                 freshness,
                 performed: PerformedRecoveryCleanupRemoval::new(completed.into_performed()),
+                revalidation,
             }
         }
         PhysicalRecoveryCleanupRemovalOutcome::DeniedBeforeEffect(denial) => {

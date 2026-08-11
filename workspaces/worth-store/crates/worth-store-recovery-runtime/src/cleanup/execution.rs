@@ -49,10 +49,11 @@ pub(crate) fn execute(
             RecoveryCleanupAttempt::Completed {
                 freshness,
                 performed,
+                revalidation,
             } => {
                 policy.get_or_insert(freshness.policy_identity());
                 accounting.record_freshness_sample(freshness);
-                accounting.record_completed(byte_count, performed);
+                accounting.record_completed(byte_count, performed, revalidation);
                 debug_assert!(
                     plan.transition_candidate(
                         artifact,

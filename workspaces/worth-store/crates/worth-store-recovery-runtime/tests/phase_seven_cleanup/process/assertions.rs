@@ -63,10 +63,16 @@ pub(super) fn assert_expected_posture(
     disposition: &RecoveryCleanupDisposition,
     expected_identity: WalSegmentArtifactIdentity,
     expected_deferred: u64,
+    expected_revalidation_bytes: u64,
 ) {
     let evidence = posture.evidence();
     match required_text(EXPECTED_POSTURE).as_str() {
-        "complete" => assert_complete(posture, disposition, expected_identity),
+        "complete" => assert_complete(
+            posture,
+            disposition,
+            expected_identity,
+            expected_revalidation_bytes,
+        ),
         "byte-limit" => assert_deferred(
             posture,
             disposition,
@@ -130,6 +136,7 @@ fn assert_complete(
     posture: &RecoveryCleanupPosture,
     disposition: &RecoveryCleanupDisposition,
     expected_identity: WalSegmentArtifactIdentity,
+    expected_revalidation_bytes: u64,
 ) {
     let evidence = posture.evidence();
     assert!(matches!(posture, RecoveryCleanupPosture::Complete(_)));
@@ -147,6 +154,14 @@ fn assert_complete(
     assert_eq!(
         occurrence.artifact().generation(),
         expected_identity.generation().get()
+    );
+    assert_eq!(evidence.counters().artifact_revalidation_reads_attempted, 1);
+    assert_eq!(evidence.counters().artifact_revalidation_reads_completed, 1);
+    assert_eq!(evidence.counters().artifact_revalidation_read_failures, 0);
+    assert_eq!(evidence.counters().artifact_revalidation_mismatches, 0);
+    assert_eq!(
+        evidence.counters().artifact_revalidation_bytes_read,
+        expected_revalidation_bytes
     );
 }
 
