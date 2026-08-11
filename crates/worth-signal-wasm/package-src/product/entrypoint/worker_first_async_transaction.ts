@@ -7,6 +7,7 @@ export async function runWorkerFirstAsyncTransaction(rootSession, callback, oper
   const tx = createWorkerFirstAsyncTransaction(rootSession, operation);
   try {
     callback(tx);
+    // applyActiveTransaction stages host tip + notify before the worker queue.
     return await rootSession.applyActiveTransaction(tx.drain());
   } finally {
     tx.free();

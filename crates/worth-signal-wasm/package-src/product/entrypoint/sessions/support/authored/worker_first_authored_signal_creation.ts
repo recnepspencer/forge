@@ -7,6 +7,7 @@ import {
   createWorkerFirstAuthoredReadableState,
   updateWorkerFirstAuthoredReadables,
 } from "./worker_first_authored_readable_state.js";
+import { authoredReadableDependencyIds } from "./worker_first_authored_readable_reads.js";
 import {
   createWorkerFirstAuthoredCallbackState,
   nextWorkerFirstCallbackBackingInputId,
@@ -55,7 +56,7 @@ export async function createStandaloneAuthoredReadable(deps, id, family, spec) {
   const state = createWorkerFirstAuthoredReadableState(
     family,
     signal.value,
-    spec.reads ?? [],
+    authoredReadableDependencyIds(spec.reads),
     [],
     [],
     "ready",
@@ -91,13 +92,14 @@ export function createEagerStandaloneAuthoredReadable(
       spec,
     ),
   );
-  const initializePublishedReadable = spec?.when === undefined || spec?.when === null
-    ? deps.bridge.publishPortableGraph(createAuthoredReadablePublication(id, family, spec))
-    : deps.bridge.publishPortableGraph(createAuthoredReadablePublication(id, family, spec))
-      .then(() => deps.bridge.readSignals({ signalIds: [id] }))
-      .then((signalPacket) => {
-        updateWorkerFirstAuthoredReadables(deps.authoredReadables, signalPacket.signals);
-      });
+  // Always read after publish. Uninitialized worker recipes force-dirty on
+  // DEFAULT_ASPECT at first readback, which collapses aspect-filtered edges.
+  const initializePublishedReadable = deps.bridge
+    .publishPortableGraph(createAuthoredReadablePublication(id, family, spec))
+    .then(() => deps.bridge.readSignals({ signalIds: [id] }))
+    .then((signalPacket) => {
+      updateWorkerFirstAuthoredReadables(deps.authoredReadables, signalPacket.signals);
+    });
   deps.trackEagerPublication(
     [id],
     initializePublishedReadable,

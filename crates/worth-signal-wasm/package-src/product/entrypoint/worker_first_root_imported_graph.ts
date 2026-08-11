@@ -340,6 +340,10 @@ class WorkerFirstRootImportedGraph {
 
   #readCachedInput(id) {
     this.#requireHydrated("input.get");
+    const tipped = this.#readImportContextTip(id);
+    if (tipped.present) {
+      return tipped.value;
+    }
     if (!this.#cachedInputs.has(id)) {
       throw new TypeError(
         `worker-first imported graph ${this.#graphId} has no cached input readback for \`${id}\``,
@@ -350,12 +354,26 @@ class WorkerFirstRootImportedGraph {
 
   #readCachedOutput(id) {
     this.#requireHydrated("output.get");
+    const tipped = this.#readImportContextTip(id);
+    if (tipped.present) {
+      return tipped.value;
+    }
     if (!this.#cachedOutputs.has(id)) {
       throw new TypeError(
         `worker-first imported graph ${this.#graphId} has no cached output readback for \`${id}\``,
       );
     }
     return this.#cachedOutputs.get(id);
+  }
+
+  #readImportContextTip(id) {
+    const context = typeof this.#rootSession.peekActiveImportContext === "function"
+      ? this.#rootSession.peekActiveImportContext()
+      : null;
+    if (!context?.signalValueById?.has(id)) {
+      return { present: false, value: undefined };
+    }
+    return { present: true, value: context.signalValueById.get(id) };
   }
 
   #requireActive(operation) {

@@ -125,6 +125,18 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
     settleAuthoredWork() {
       return rootSession.settleAuthoredWork();
     },
+    authoredSettleInvocationCount() {
+      return rootSession.authoredSettleInvocationCount();
+    },
+    commitHostTipAndNotify(tipWrites) {
+      return rootSession.commitHostTipAndNotify(tipWrites);
+    },
+    applyCommittedTipWorkerBatch(tipWrites) {
+      return rootSession.applyCommittedTipWorkerBatch(tipWrites);
+    },
+    publishAuthoredTipProjection(changedIds) {
+      return rootSession.publishAuthoredTipProjection(changedIds);
+    },
     controller(definitionOrBuilder) {
       return namespace().controller(definitionOrBuilder);
     },
