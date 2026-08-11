@@ -162,7 +162,7 @@ impl PhysicalRecoveryCoordination {
         )
     }
 
-    fn reconcile_signal_settlements(&self) -> u64 {
+    pub(in crate::physical_runtime) fn reconcile_signal_settlements(&self) -> u64 {
         self.signal
             .reconcile_settlements()
             .into_iter()

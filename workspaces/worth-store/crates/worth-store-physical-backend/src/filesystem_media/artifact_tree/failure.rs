@@ -36,7 +36,7 @@ impl ArtifactTreeFailure {
     }
 
     #[cfg(feature = "recovery-runtime-owner")]
-    pub(crate) const fn recovery_staging_denial() -> Self {
+    pub(crate) const fn recovery_denial() -> Self {
         Self::structural(ArtifactTreeFailureKind::DeniedBeforeEffect)
     }
 

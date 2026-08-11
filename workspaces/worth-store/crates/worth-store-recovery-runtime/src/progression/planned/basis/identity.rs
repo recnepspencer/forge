@@ -99,6 +99,10 @@ pub(super) fn plan_identity(
             digest.update(segment.generation().get().to_le_bytes());
         }
     }
+    digest.update((staging.base.source_artifacts.len() as u64).to_le_bytes());
+    for artifact in &staging.base.source_artifacts {
+        hash_artifact(&mut digest, *artifact);
+    }
     digest.finalize().into()
 }
 

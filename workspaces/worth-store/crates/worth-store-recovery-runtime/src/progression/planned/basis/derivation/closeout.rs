@@ -28,19 +28,21 @@ pub(super) fn seal(
         &staging,
     );
     let publication_identity = publication_identity(basis_identity);
-    let candidate = match publication_source {
-        Some(source) => super::super::publication_candidate::build(
+    let candidate = if pending.projections.is_empty() {
+        super::super::publication_candidate::RecoveryCandidateBasis {
+            root: selection.root().selected().manifest().clone(),
+            artifacts: Box::new([]),
+        }
+    } else {
+        let source = publication_source.ok_or(ExecutionBasisDenial::Invalid)?;
+        super::super::publication_candidate::build(
             store,
             staging.base_image(),
             source,
             selection.root().selected().selector().format(),
             publication_identity,
         )
-        .map_err(|_| ExecutionBasisDenial::Invalid)?,
-        None => super::super::publication_candidate::RecoveryCandidateBasis {
-            root: selection.root().selected().manifest().clone(),
-            artifacts: Box::new([]),
-        },
+        .map_err(|_| ExecutionBasisDenial::Invalid)?
     };
     let plan_identity = super::super::identity::bind_publication_candidates(
         basis_identity,

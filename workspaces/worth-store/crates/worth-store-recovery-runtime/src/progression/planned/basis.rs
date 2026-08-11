@@ -34,6 +34,7 @@ pub(crate) struct RecoveryPublicationSourceInventory {
     pub(crate) free_space: DurableFreeSpaceManifestHeader,
     pub(crate) segment_entries: Box<[RecordSegmentPageManifestEntry]>,
     pub(crate) free_entries: Box<[RecordFreeSpaceManifestEntry]>,
+    pub(crate) source_artifacts: Box<[RecordArtifactFile]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,6 +71,7 @@ pub struct RecoveryBaseImagePlan {
     segment_updates: Box<[RecoverySegmentRoutingAction]>,
     manifests: Box<[RecoveryPayloadManifestAction]>,
     root_states: Box<[PersistedPhysicalRecoveryRootState]>,
+    source_artifacts: Box<[RecordArtifactFile]>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -235,6 +237,9 @@ impl RecoveryBaseImagePlan {
     }
     pub fn root_states(&self) -> &[PersistedPhysicalRecoveryRootState] {
         &self.root_states
+    }
+    pub fn source_artifacts(&self) -> &[RecordArtifactFile] {
+        &self.source_artifacts
     }
 }
 

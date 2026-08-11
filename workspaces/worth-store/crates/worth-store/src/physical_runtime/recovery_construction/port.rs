@@ -40,6 +40,7 @@ impl PhysicalRecoveryConstructionPort {
             let _ = coordination.shutdown_is_quiescent();
             return Err(RecoveredPhysicalRuntimeConstructionDenial::BindingMismatch);
         }
+        let _ = coordination.reconcile_signal_settlements();
         if !coordination.is_ready() {
             let _ = coordination.shutdown_is_quiescent();
             return Err(RecoveredPhysicalRuntimeConstructionDenial::CoordinationNotQuiescent);

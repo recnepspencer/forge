@@ -1,10 +1,16 @@
 #![forbid(unsafe_code)]
 
+mod cleanup;
+
 mod entry;
 mod handoff;
 mod orchestration;
 mod progression;
 
+pub use cleanup::{
+    PerformedRecoveryCleanupRemoval, RecoveryCleanupDeferralReason, RecoveryCleanupDisposition,
+    RecoveryCleanupDispositionKind, RecoveryCleanupEligibility, RecoveryCleanupTarget,
+};
 pub use entry::{
     PhysicalManifestObservationDenial, PhysicalRecoveryAdmissionCounters, PhysicalRecoveryBlock,
     PhysicalRecoveryBlockEvidence, PhysicalRecoveryBlockKind, PhysicalRecoveryEntryBindingDrift,
@@ -21,7 +27,10 @@ pub use entry::{
     PhysicalRecoveryStagingSettlement, PhysicalRecoveryStagingSettlementLedger,
     PhysicalRecoveryStaticConfiguration,
 };
-pub use handoff::{RecoveredPhysicalRuntimeHandoff, RecoveryOperationFateSet};
+pub use handoff::{
+    RecoveredPhysicalRuntimeHandoff, RecoveryCleanupCounters, RecoveryCleanupDeferralEvidence,
+    RecoveryCleanupEvidence, RecoveryCleanupPosture, RecoveryOperationFateSet,
+};
 pub use progression::{
     AdmittedPhysicalRecovery, ClosedRecoveryStagingGeneration, DiscoveredPhysicalRecovery,
     NamespaceDurablePhysicalRecovery, PhysicalRecoveryDiscoveryCounters,

@@ -3,6 +3,7 @@ mod backend_residue_rejection;
 mod candidate;
 mod checkpoint_base;
 mod checkpoint_base_admission;
+mod checkpoint_covered_wal;
 mod compaction_product;
 mod compaction_visibility;
 mod contiguous_wal_tail;
@@ -32,6 +33,7 @@ pub use candidate::{
 };
 pub use checkpoint_base::{PhysicalCheckpointBase, PhysicalCheckpointBaseDenial};
 pub use checkpoint_base_admission::CheckpointBaseAdmission;
+pub use checkpoint_covered_wal::CheckpointCoveredWalArtifact;
 pub use compaction_product::SelectedCompactionProduct;
 pub use compaction_visibility::{
     AdmittedCompactionCutoverDurability, AdmittedCompactionCutoverRecord,

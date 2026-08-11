@@ -2,7 +2,10 @@ use crate::entry::{PhysicalRecoveryOutcome, PhysicalRecoveryPublicationIndetermi
 use crate::handoff::{RecoveredPhysicalRuntimeHandoff, RecoveredPhysicalRuntimeHandoffEvidence};
 use crate::progression::ReopenedPhysicalRecovery;
 
-pub(crate) fn finish_recovery(reopened: ReopenedPhysicalRecovery) -> PhysicalRecoveryOutcome {
+pub(crate) fn finish_recovery_without_cleanup(
+    reopened: ReopenedPhysicalRecovery,
+    cleanup: crate::handoff::RecoveryCleanupPosture,
+) -> PhysicalRecoveryOutcome {
     let ReopenedPhysicalRecovery {
         state,
         expectation,
@@ -42,6 +45,7 @@ pub(crate) fn finish_recovery(reopened: ReopenedPhysicalRecovery) -> PhysicalRec
                     publication: publication_counters,
                     publication_settlement,
                     reopen: reopen_counters,
+                    cleanup,
                 },
             ))
         }

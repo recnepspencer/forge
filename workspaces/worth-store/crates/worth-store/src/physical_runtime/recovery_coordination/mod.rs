@@ -1,4 +1,5 @@
 mod capacity;
+mod cleanup;
 mod effect;
 mod owner;
 mod publication;
@@ -8,8 +9,20 @@ mod settlement;
 mod staging;
 
 pub use capacity::PhysicalRecoveryCoordinationCapacity;
+pub use cleanup::{
+    CompletedPhysicalRecoveryCleanupFreshnessRead, CompletedPhysicalRecoveryCleanupRemoval,
+    PhysicalRecoveryCleanupAdmissionDenial, PhysicalRecoveryCleanupAdmissionDenialKind,
+    PhysicalRecoveryCleanupCommandStage, PhysicalRecoveryCleanupCompactionBasis,
+    PhysicalRecoveryCleanupFreshnessReadDenial, PhysicalRecoveryCleanupFreshnessReadDenialKind,
+    PhysicalRecoveryCleanupFreshnessReadOutcome, PhysicalRecoveryCleanupFreshnessReadProgress,
+    PhysicalRecoveryCleanupPublicationBasis, PhysicalRecoveryCleanupRemovalCommand,
+    PhysicalRecoveryCleanupRemovalDenial, PhysicalRecoveryCleanupRemovalDenialKind,
+    PhysicalRecoveryCleanupRemovalIndeterminate, PhysicalRecoveryCleanupRemovalOutcome,
+    PhysicalRecoveryCleanupWalBasis,
+};
 pub use effect::{
-    PerformedRecoveryPhysicalEffect, RecoveryFreshReopenAction, RecoveryFreshReopenOccurrence,
+    PerformedRecoveryPhysicalEffect, RecoveryCleanupRemovalAction,
+    RecoveryCleanupRemovalOccurrence, RecoveryFreshReopenAction, RecoveryFreshReopenOccurrence,
     RecoveryPhysicalEffectOccurrence, RecoveryPublicationCandidateMaterializationAction,
     RecoveryPublicationCandidateMaterializationOccurrence, RecoveryPublicationCandidateOccurrence,
     RecoveryPublicationCandidateSynchronizationAction,
@@ -17,6 +30,9 @@ pub use effect::{
     RecoveryRecordNamespaceSynchronizationAction, RecoveryRootProtocolReplacementAction,
     RecoveryStagingSynchronizationAction, RecoveryStagingSynchronizationOccurrence,
     RecoveryStagingWriteAction, RecoveryStagingWriteOccurrence,
+};
+pub(in crate::physical_runtime::recovery_coordination) use effect::{
+    RecoveryCleanupRemovalBinding, RecoveryCleanupRemovalSettlement, RecoveryCleanupRemovalTarget,
 };
 pub use owner::{
     PhysicalRecoveryCoordination, PhysicalRecoveryCoordinationAdmissionError,

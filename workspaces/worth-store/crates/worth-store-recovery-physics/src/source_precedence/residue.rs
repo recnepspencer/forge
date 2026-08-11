@@ -5,7 +5,7 @@ pub struct PhysicalRecoveryResidue {
     observed_bytes: u64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PhysicalRecoveryResidueKind {
     NonCanonicalWalArtifact,
     NonRegularWalEntry,

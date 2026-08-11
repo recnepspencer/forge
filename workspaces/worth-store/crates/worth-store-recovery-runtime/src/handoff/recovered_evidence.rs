@@ -11,7 +11,7 @@ use crate::progression::{
     RecoveryPublicationExpectation, RecoveryQuiescencePlan,
 };
 
-use super::RecoveryOperationFateSet;
+use super::{RecoveryCleanupPosture, RecoveryOperationFateSet};
 
 pub(crate) struct RecoveredPhysicalRuntimeHandoffEvidence {
     pub(crate) session: RecoveredRecoverySessionReceipt,
@@ -29,4 +29,5 @@ pub(crate) struct RecoveredPhysicalRuntimeHandoffEvidence {
     pub(crate) publication: PhysicalRecoveryPublicationCounters,
     pub(crate) publication_settlement: PhysicalRecoveryPublicationSettlementLedger,
     pub(crate) reopen: PhysicalRecoveryReopenCounters,
+    pub(crate) cleanup: RecoveryCleanupPosture,
 }

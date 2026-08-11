@@ -257,22 +257,23 @@ pub use source_precedence::{
     inspect_physical_wal_artifacts, select_current_previous_root, select_physical_recovery_sources,
     AdmittedCompactionCutoverDurability, AdmittedCompactionCutoverRecord, AdmittedRecoverySource,
     BackendResidueKind, BackendResidueRejection, CheckpointBaseAdmission,
-    CompactionArtifactResidueReason, CompactionArtifactResidueRejection,
-    CompactionCutoverRecoveryPosture, CompactionGenerationIdentity, CompactionGenerationVisibility,
-    CompactionVisibleProductEvidence, CompactionVisibleProductEvidenceDenial,
-    ContiguousWalTailProof, InspectedPhysicalWalArtifacts, PageLsnSkipApplyDecision,
-    PhysicalCheckpointBase, PhysicalCheckpointBaseDenial, PhysicalManifestBlockCandidate,
-    PhysicalPageFactDenial, PhysicalRecoveryResidue, PhysicalRecoveryResidueKind,
-    PhysicalRecoverySource, PhysicalRootCandidateDenial, PhysicalRootSelectionDenial,
-    PhysicalRootSlotObservation, PhysicalRootSourceCandidate, PhysicalSourceSelection,
-    PhysicalSourceSelectionDenial, PhysicalSourceSelectionTrace, PhysicalWalArtifactCorruption,
-    PhysicalWalArtifactInspectionDenial, PhysicalWalSegmentCandidate,
-    RecoverableOldCompactionGeneration, RecoveryCandidateDiscoveryTrace,
-    RecoverySourceApplicationRole, RecoverySourceCandidate, RecoverySourceDecisionKind,
-    RecoverySourceDecisionOutcome, RecoverySourceDecisionRow, RecoverySourceDecisionTrace,
-    SelectedCompactionProduct, SelectedPhysicalPageFacts, SelectedPhysicalRoot,
-    SelectedPhysicalRootRole, SelectedPhysicalWalTail, SelectedPhysicalWalTailDenial,
-    WalOnlyTailProof, WalOnlyTailProofDenial, WalTailIntegrityQuarantineHandoff, WalTailRedoSource,
+    CheckpointCoveredWalArtifact, CompactionArtifactResidueReason,
+    CompactionArtifactResidueRejection, CompactionCutoverRecoveryPosture,
+    CompactionGenerationIdentity, CompactionGenerationVisibility, CompactionVisibleProductEvidence,
+    CompactionVisibleProductEvidenceDenial, ContiguousWalTailProof, InspectedPhysicalWalArtifacts,
+    PageLsnSkipApplyDecision, PhysicalCheckpointBase, PhysicalCheckpointBaseDenial,
+    PhysicalManifestBlockCandidate, PhysicalPageFactDenial, PhysicalRecoveryResidue,
+    PhysicalRecoveryResidueKind, PhysicalRecoverySource, PhysicalRootCandidateDenial,
+    PhysicalRootSelectionDenial, PhysicalRootSlotObservation, PhysicalRootSourceCandidate,
+    PhysicalSourceSelection, PhysicalSourceSelectionDenial, PhysicalSourceSelectionTrace,
+    PhysicalWalArtifactCorruption, PhysicalWalArtifactInspectionDenial,
+    PhysicalWalSegmentCandidate, RecoverableOldCompactionGeneration,
+    RecoveryCandidateDiscoveryTrace, RecoverySourceApplicationRole, RecoverySourceCandidate,
+    RecoverySourceDecisionKind, RecoverySourceDecisionOutcome, RecoverySourceDecisionRow,
+    RecoverySourceDecisionTrace, SelectedCompactionProduct, SelectedPhysicalPageFacts,
+    SelectedPhysicalRoot, SelectedPhysicalRootRole, SelectedPhysicalWalTail,
+    SelectedPhysicalWalTailDenial, WalOnlyTailProof, WalOnlyTailProofDenial,
+    WalTailIntegrityQuarantineHandoff, WalTailRedoSource,
 };
 pub use staged_wal_application::{
     StagedWalApplicationDenial, StagedWalApplicationPort, StagedWalApplicationProviderReceipt,
@@ -287,6 +288,8 @@ pub use wal_recovery_basis::{
     WalDurabilityObservation, WalDurabilityObservationBasis, WalDurabilityObservationDenial,
     WalDurabilityObservationDenialKind, WalFrameDigest,
 };
-pub use wal_topology::{LogSequenceNumber, WalLsnRange, WalSegmentGeneration, WalSegmentId};
+pub use wal_topology::{
+    LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity, WalSegmentGeneration, WalSegmentId,
+};
 pub use worth_store_contracts::CorruptionHandoffDamageCase;
 pub use worth_store_wal::AdmittedReplayTailCursor;

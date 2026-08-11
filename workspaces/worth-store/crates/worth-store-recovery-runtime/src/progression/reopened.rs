@@ -84,6 +84,37 @@ impl ReopenedPhysicalRecovery {
     /// Consumes the recovery-only runtime and returns the narrow Store-owned
     /// recovered-runtime handoff after publication and fresh reopen close.
     pub fn finish(self) -> crate::entry::PhysicalRecoveryOutcome {
-        crate::orchestration::finish_recovery(self)
+        crate::cleanup::execute(self)
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub fn certification_shift_cleanup_generation(&self) {
+        self.state
+            .coordination
+            .shift_cleanup_generation_for_certification();
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub fn certification_fail_cleanup_freshness_signal_settlement(&self) {
+        self.state
+            .coordination
+            .fail_cleanup_freshness_signal_settlement_for_certification();
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub fn certification_fail_cleanup_scheduler_settlement_at(
+        &self,
+        stage: worth_store::physical_runtime::PhysicalRecoveryCleanupCommandStage,
+    ) {
+        self.state
+            .coordination
+            .fail_cleanup_scheduler_settlement_at_for_certification(stage);
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub fn certification_defer_cleanup_background(&self) {
+        self.state
+            .coordination
+            .defer_cleanup_background_for_certification();
     }
 }

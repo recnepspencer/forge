@@ -32,7 +32,13 @@ pub(crate) fn derive_execution_basis(
     )?;
     let materialization = materialization::collect(&pending);
     let actions = actions::derive(redo, &materialization, pending.staging_generation)?;
-    let staging = layout::assemble(selection, &pending, materialization, actions)?;
+    let staging = layout::assemble(
+        selection,
+        publication_source,
+        &pending,
+        materialization,
+        actions,
+    )?;
     closeout::seal(
         store,
         selection,

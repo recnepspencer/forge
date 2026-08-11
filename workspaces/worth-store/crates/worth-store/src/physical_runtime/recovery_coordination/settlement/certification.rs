@@ -2,8 +2,9 @@ use crate::physical_runtime::work::PhysicalExecutorDispatch;
 use crate::physical_runtime::{PhysicalSignalSettlementOutcome, SettledPhysicalWork};
 
 use super::super::{
-    PhysicalRecoveryCoordination, PhysicalRecoveryFreshReopenStage,
-    PhysicalRecoveryPublicationCommandStage, PhysicalRecoveryStagingCommandStage,
+    PhysicalRecoveryCleanupCommandStage, PhysicalRecoveryCoordination,
+    PhysicalRecoveryFreshReopenStage, PhysicalRecoveryPublicationCommandStage,
+    PhysicalRecoveryStagingCommandStage,
 };
 
 #[derive(Clone, Copy)]
@@ -12,6 +13,7 @@ pub(in crate::physical_runtime::recovery_coordination) enum PhysicalRecoverySett
     Staging(PhysicalRecoveryStagingCommandStage),
     Publication(PhysicalRecoveryPublicationCommandStage),
     FreshReopen(PhysicalRecoveryFreshReopenStage),
+    Cleanup(PhysicalRecoveryCleanupCommandStage),
 }
 
 pub(in crate::physical_runtime::recovery_coordination) fn settle_with_certification(

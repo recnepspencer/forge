@@ -80,6 +80,31 @@ impl RecoveryCoordination {
             .certification_fail_publication_signal_settlement_at(stage);
     }
 
+    #[cfg(feature = "certification-test-authority")]
+    pub(crate) fn shift_cleanup_generation_for_certification(&self) {
+        self.owner.certification_shift_cleanup_generation();
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(crate) fn fail_cleanup_freshness_signal_settlement_for_certification(&self) {
+        self.owner
+            .certification_fail_cleanup_freshness_signal_settlement();
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(crate) fn fail_cleanup_scheduler_settlement_at_for_certification(
+        &self,
+        stage: worth_store::physical_runtime::PhysicalRecoveryCleanupCommandStage,
+    ) {
+        self.owner
+            .certification_fail_cleanup_scheduler_settlement_at(stage);
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(crate) fn defer_cleanup_background_for_certification(&self) {
+        self.owner.certification_defer_cleanup_background();
+    }
+
     pub(crate) fn shutdown_is_quiescent(self) -> bool {
         self.owner.shutdown_is_quiescent()
     }

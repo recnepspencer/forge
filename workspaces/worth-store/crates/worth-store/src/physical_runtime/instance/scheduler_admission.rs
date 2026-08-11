@@ -8,6 +8,8 @@ use worth_store_physical_backend::QualifiedFilesystemMedia;
 
 mod checkpoint;
 mod reclamation;
+#[cfg(feature = "recovery-runtime-owner")]
+pub(in crate::physical_runtime) use reclamation::PhysicalWalReclamationSchedulerAdmissionDenial;
 mod root_publication;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

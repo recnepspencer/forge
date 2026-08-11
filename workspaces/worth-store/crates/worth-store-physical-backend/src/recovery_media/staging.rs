@@ -265,7 +265,7 @@ fn denied_without_queue() -> RecoveryStagingWriteOutcome {
 }
 
 fn structural_denial() -> ArtifactTreeFailure {
-    ArtifactTreeFailure::recovery_staging_denial()
+    ArtifactTreeFailure::recovery_denial()
 }
 
 impl CompletedScheduledRecoveryStagingWrite {

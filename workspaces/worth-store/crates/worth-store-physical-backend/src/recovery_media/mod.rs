@@ -1,4 +1,6 @@
 mod admitted;
+#[cfg(feature = "recovery-runtime-owner")]
+mod cleanup;
 mod discovery;
 mod generation;
 mod profile;
@@ -12,6 +14,12 @@ mod reopen;
 mod staging;
 
 pub use admitted::{AdmittedRecoveryFilesystemMedia, RecoveryMediaHandleObservation};
+#[cfg(feature = "recovery-runtime-owner")]
+pub use cleanup::{
+    CompletedScheduledRecoveryCleanupRemoval, DeniedScheduledRecoveryCleanupRemoval,
+    IndeterminateScheduledRecoveryCleanupRemoval, RecoveryCleanupRemovalOutcome,
+    RecoveryWalArtifactCoordinate,
+};
 pub use discovery::{
     BoundedRecoveryFilesystemDiscovery, ObservedRecoveryArtifact, ObservedWalArtifact,
     RecoveryDiscoveryArtifact, RecoveryDiscoveryByteLimitScope, RecoveryDiscoveryCounters,

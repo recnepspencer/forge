@@ -1,8 +1,8 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use super::super::{
-    PhysicalRecoveryFreshReopenStage, PhysicalRecoveryPublicationCommandStage,
-    PhysicalRecoveryStagingCommandStage,
+    PhysicalRecoveryCleanupCommandStage, PhysicalRecoveryFreshReopenStage,
+    PhysicalRecoveryPublicationCommandStage, PhysicalRecoveryStagingCommandStage,
 };
 
 pub(super) struct RecoveryCoordinationCertificationFaults {
@@ -11,6 +11,10 @@ pub(super) struct RecoveryCoordinationCertificationFaults {
     reopen_signal_failure_stage: AtomicU8,
     publication_scheduler_failure_stage: AtomicU8,
     reopen_scheduler_failure_stage: AtomicU8,
+    cleanup_generation_shift: AtomicU8,
+    cleanup_signal_failure_stage: AtomicU8,
+    cleanup_scheduler_failure_stage: AtomicU8,
+    cleanup_background_deferral: AtomicU8,
 }
 
 impl RecoveryCoordinationCertificationFaults {
@@ -21,6 +25,10 @@ impl RecoveryCoordinationCertificationFaults {
             reopen_signal_failure_stage: AtomicU8::new(0),
             publication_scheduler_failure_stage: AtomicU8::new(0),
             reopen_scheduler_failure_stage: AtomicU8::new(0),
+            cleanup_generation_shift: AtomicU8::new(0),
+            cleanup_signal_failure_stage: AtomicU8::new(0),
+            cleanup_scheduler_failure_stage: AtomicU8::new(0),
+            cleanup_background_deferral: AtomicU8::new(0),
         }
     }
 
@@ -58,6 +66,25 @@ impl RecoveryCoordinationCertificationFaults {
             .store(publication_stage(stage), Ordering::Release);
     }
 
+    pub(super) fn fail_cleanup_freshness_signal_settlement(&self) {
+        self.cleanup_signal_failure_stage.store(
+            cleanup_stage(PhysicalRecoveryCleanupCommandStage::FreshnessRead),
+            Ordering::Release,
+        );
+    }
+
+    pub(super) fn fail_cleanup_scheduler_settlement_at(
+        &self,
+        stage: PhysicalRecoveryCleanupCommandStage,
+    ) {
+        self.cleanup_scheduler_failure_stage
+            .store(cleanup_stage(stage), Ordering::Release);
+    }
+
+    pub(super) fn defer_cleanup_background(&self) {
+        self.cleanup_background_deferral.store(1, Ordering::Release);
+    }
+
     pub(super) fn take_signal_failure(
         &self,
         stage: super::super::settlement::PhysicalRecoverySettlementCertificationStage,
@@ -75,6 +102,12 @@ impl RecoveryCoordinationCertificationFaults {
             super::super::settlement::PhysicalRecoverySettlementCertificationStage::FreshReopen(
                 stage,
             ) => take(&self.reopen_signal_failure_stage, reopen_stage(stage)),
+            super::super::settlement::PhysicalRecoverySettlementCertificationStage::Cleanup(
+                stage,
+            ) => {
+                stage == PhysicalRecoveryCleanupCommandStage::FreshnessRead
+                    && take(&self.cleanup_signal_failure_stage, cleanup_stage(stage))
+            }
         }
     }
 
@@ -94,6 +127,25 @@ impl RecoveryCoordinationCertificationFaults {
             publication_stage(stage),
         )
     }
+
+    pub(super) fn shift_cleanup_generation(&self) {
+        self.cleanup_generation_shift.store(1, Ordering::Release);
+    }
+
+    pub(super) fn take_cleanup_generation_shift(&self) -> bool {
+        take(&self.cleanup_generation_shift, 1)
+    }
+
+    pub(super) fn take_cleanup_scheduler_failure(
+        &self,
+        stage: PhysicalRecoveryCleanupCommandStage,
+    ) -> bool {
+        take(&self.cleanup_scheduler_failure_stage, cleanup_stage(stage))
+    }
+
+    pub(super) fn take_cleanup_background_deferral(&self) -> bool {
+        take(&self.cleanup_background_deferral, 1)
+    }
 }
 
 fn take(stage: &AtomicU8, expected: u8) -> bool {
@@ -106,6 +158,13 @@ const fn staging_stage(stage: PhysicalRecoveryStagingCommandStage) -> u8 {
     match stage {
         PhysicalRecoveryStagingCommandStage::Materialization => 1,
         PhysicalRecoveryStagingCommandStage::Synchronization => 2,
+    }
+}
+
+const fn cleanup_stage(stage: PhysicalRecoveryCleanupCommandStage) -> u8 {
+    match stage {
+        PhysicalRecoveryCleanupCommandStage::FreshnessRead => 1,
+        PhysicalRecoveryCleanupCommandStage::Removal => 2,
     }
 }
 

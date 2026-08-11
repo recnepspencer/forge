@@ -5,8 +5,14 @@ use worth_store_physical_backend::{
     CompletedArtifactTreePublicationEffect, CompletedRecoveryStagingWrite,
 };
 
+mod cleanup;
 mod publication_candidate;
 mod reopen;
+
+pub use cleanup::{RecoveryCleanupRemovalAction, RecoveryCleanupRemovalOccurrence};
+pub(in crate::physical_runtime::recovery_coordination) use cleanup::{
+    RecoveryCleanupRemovalBinding, RecoveryCleanupRemovalSettlement, RecoveryCleanupRemovalTarget,
+};
 
 worth_proof::authority_marker!(RecoveryPhysicalEffectAuthority);
 
@@ -46,6 +52,7 @@ pub enum RecoveryPhysicalEffectOccurrence {
     PublicationCandidateMaterialization(RecoveryPublicationCandidateMaterializationOccurrence),
     PublicationCandidateSynchronization(RecoveryPublicationCandidateSynchronizationOccurrence),
     FreshReopen(RecoveryFreshReopenOccurrence),
+    CleanupRemoval(RecoveryCleanupRemovalOccurrence),
     RootProtocolReplacement(RecoveryPublicationOccurrence),
     RecordNamespaceSynchronization(RecoveryPublicationOccurrence),
 }

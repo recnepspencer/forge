@@ -1,0 +1,11 @@
+error[E0451]: fields `artifact`, `range` and `byte_count` of struct `RecoveryCleanupEligibility` are private
+ --> tests/ui/cleanup_eligibility_cannot_be_forged.rs:5:9
+  |
+4 |     let _forged = RecoveryCleanupEligibility {
+  |                   -------------------------- in this type
+5 |         artifact: fake(),
+  |         ^^^^^^^^ private field
+6 |         range: fake(),
+  |         ^^^^^ private field
+7 |         byte_count: 1,
+  |         ^^^^^^^^^^ private field

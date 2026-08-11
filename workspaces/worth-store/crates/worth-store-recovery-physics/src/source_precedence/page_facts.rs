@@ -18,6 +18,7 @@ pub struct SelectedPhysicalPageFacts {
     root_generation: u64,
     manifest_block_count: u64,
     distinct_pages_and_extents: u64,
+    routing_blocks: Vec<ManifestBlockReference>,
     placements: Vec<CurrentPhysicalRecordPlacement>,
 }
 
@@ -58,6 +59,10 @@ impl SelectedPhysicalPageFacts {
     pub fn placements(&self) -> &[CurrentPhysicalRecordPlacement] {
         &self.placements
     }
+
+    pub fn routing_blocks(&self) -> &[ManifestBlockReference] {
+        &self.routing_blocks
+    }
 }
 
 pub fn admit_physical_page_facts(
@@ -76,12 +81,14 @@ pub fn admit_physical_page_facts(
     let manifest = root.manifest();
     let mut pending = manifest.routing_root().into_iter().collect::<VecDeque<_>>();
     let mut visited = BTreeSet::new();
+    let mut routing_blocks = Vec::new();
     let mut placements = Vec::new();
     let mut distinct_pages_and_extents = BTreeSet::new();
     while let Some(reference) = pending.pop_front() {
         if !visited.insert(reference_key(reference)) {
             return Err(PhysicalPageFactDenial::DuplicateManifestBlock);
         }
+        routing_blocks.push(reference);
         let candidate = candidates
             .remove(&reference_key(reference))
             .ok_or(PhysicalPageFactDenial::MissingManifestBlock)?;
@@ -134,8 +141,9 @@ pub fn admit_physical_page_facts(
     let distinct_pages_and_extents = distinct_pages_and_extents.len() as u64;
     Ok(SelectedPhysicalPageFacts {
         root_generation: manifest.generation(),
-        manifest_block_count: visited.len() as u64,
+        manifest_block_count: routing_blocks.len() as u64,
         distinct_pages_and_extents,
+        routing_blocks,
         placements,
     })
 }

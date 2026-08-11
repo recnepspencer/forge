@@ -5,8 +5,9 @@ use worth_store_physical_format::VerifiedCheckpointStream;
 use worth_store_wal::VerifiedWalFrame;
 
 use super::{
-    binding, PhysicalRecoveryFreshnessAuthority, StoreRecoveryBindingFreshnessSample,
-    StoreRecoveryBindingSampleFailure,
+    binding, cleanup, PhysicalRecoveryFreshnessAuthority, StoreRecoveryBindingFreshnessSample,
+    StoreRecoveryBindingSampleFailure, StoreRecoveryCleanupFreshnessFailure,
+    StoreRecoveryCleanupFreshnessSample,
 };
 
 /// The sole Store-owned construction port for recovery freshness authority.
@@ -36,6 +37,21 @@ impl PhysicalRecoveryFreshnessPort {
             wal_frames,
             maximum_operation_bindings,
             maximum_redo_bytes,
+        )
+    }
+
+    pub fn sample_cleanup(
+        coordination: &crate::physical_runtime::PhysicalRecoveryCoordination,
+        media: &AdmittedRecoveryFilesystemMedia,
+        cleanup_plan_identity: [u8; 32],
+        sealed_publication_basis: [u8; 32],
+    ) -> Result<StoreRecoveryCleanupFreshnessSample, StoreRecoveryCleanupFreshnessFailure> {
+        cleanup::sample(
+            coordination.freshness(),
+            coordination,
+            media,
+            cleanup_plan_identity,
+            sealed_publication_basis,
         )
     }
 }

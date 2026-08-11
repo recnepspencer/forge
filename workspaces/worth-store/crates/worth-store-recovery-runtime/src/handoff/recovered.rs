@@ -11,7 +11,9 @@ use crate::progression::{
     RecoveryPublicationExpectation, RecoveryQuiescencePlan,
 };
 
-use super::{RecoveredPhysicalRuntimeHandoffEvidence, RecoveryOperationFateSet};
+use super::{
+    RecoveredPhysicalRuntimeHandoffEvidence, RecoveryCleanupPosture, RecoveryOperationFateSet,
+};
 
 pub struct RecoveredPhysicalRuntimeHandoff {
     core: RecoveredPhysicalRuntimeCore,
@@ -75,6 +77,9 @@ impl RecoveredPhysicalRuntimeHandoff {
     }
     pub const fn reopen_counters(&self) -> PhysicalRecoveryReopenCounters {
         self.evidence.reopen
+    }
+    pub const fn cleanup_posture(&self) -> &RecoveryCleanupPosture {
+        &self.evidence.cleanup
     }
 }
 

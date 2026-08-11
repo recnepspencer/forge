@@ -23,12 +23,23 @@ pub(super) fn observe(
 ) -> Result<RecoveryPublicationSourceInventory, PageObservationFailure> {
     budget.admit_pending_block_read()?;
     let free_space = read_free_space_header(discovery, root, format, byte_limit)?;
-    let segment_entries = read_segment_entries(discovery, root, format, budget, byte_limit)?;
-    let free_entries = read_free_entries(discovery, &free_space, format, budget, byte_limit)?;
+    let (segment_entries, segment_artifacts) =
+        read_segment_entries(discovery, root, format, budget, byte_limit)?;
+    let (free_entries, free_artifacts) =
+        read_free_entries(discovery, &free_space, format, budget, byte_limit)?;
+    let mut source_artifacts = BTreeSet::from([RecordArtifactFile::FreeSpaceManifest {
+        generation: root.generation(),
+    }]);
+    source_artifacts.extend(segment_artifacts);
+    source_artifacts.extend(free_artifacts);
     Ok(RecoveryPublicationSourceInventory {
         free_space,
         segment_entries: segment_entries.into_boxed_slice(),
         free_entries: free_entries.into_boxed_slice(),
+        source_artifacts: source_artifacts
+            .into_iter()
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
     })
 }
 
@@ -64,9 +75,16 @@ fn read_segment_entries(
     format: PhysicalRecordFormatDeclaration,
     budget: &mut ManifestEntryBudget,
     byte_limit: u64,
-) -> Result<Vec<RecordSegmentPageManifestEntry>, PageObservationFailure> {
+) -> Result<
+    (
+        Vec<RecordSegmentPageManifestEntry>,
+        BTreeSet<RecordArtifactFile>,
+    ),
+    PageObservationFailure,
+> {
     let mut pending = root.segment_root().into_iter().collect::<VecDeque<_>>();
     let mut visited = BTreeSet::new();
+    let mut artifacts = BTreeSet::new();
     let mut entries = Vec::new();
     while let Some(reference) = pending.pop_front() {
         budget.admit_pending_block_read()?;
@@ -74,6 +92,7 @@ fn read_segment_entries(
             generation: reference.generation(),
             block: reference.block(),
         };
+        artifacts.insert(artifact);
         if !visited.insert((reference.generation(), reference.block())) {
             return Err(invalid(artifact));
         }
@@ -119,7 +138,7 @@ fn read_segment_entries(
             generation: root.generation(),
         }));
     }
-    Ok(entries)
+    Ok((entries, artifacts))
 }
 
 fn read_free_entries(
@@ -128,9 +147,16 @@ fn read_free_entries(
     format: PhysicalRecordFormatDeclaration,
     budget: &mut ManifestEntryBudget,
     byte_limit: u64,
-) -> Result<Vec<RecordFreeSpaceManifestEntry>, PageObservationFailure> {
+) -> Result<
+    (
+        Vec<RecordFreeSpaceManifestEntry>,
+        BTreeSet<RecordArtifactFile>,
+    ),
+    PageObservationFailure,
+> {
     let mut pending = header.root().into_iter().collect::<VecDeque<_>>();
     let mut visited = BTreeSet::new();
+    let mut artifacts = BTreeSet::new();
     let mut entries = Vec::new();
     while let Some(reference) = pending.pop_front() {
         budget.admit_pending_block_read()?;
@@ -138,6 +164,7 @@ fn read_free_entries(
             generation: reference.generation(),
             block: reference.block(),
         };
+        artifacts.insert(artifact);
         if !visited.insert((reference.generation(), reference.block())) {
             return Err(invalid(artifact));
         }
@@ -182,7 +209,7 @@ fn read_free_entries(
             generation: header.generation(),
         }));
     }
-    Ok(entries)
+    Ok((entries, artifacts))
 }
 
 fn segment_denial(

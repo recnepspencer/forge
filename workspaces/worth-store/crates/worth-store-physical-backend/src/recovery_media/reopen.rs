@@ -132,5 +132,5 @@ fn denied_without_queue(artifact: RecordArtifactFile) -> RecoveryReopenReadOutco
 }
 
 fn structural_denial() -> ArtifactTreeFailure {
-    ArtifactTreeFailure::recovery_staging_denial()
+    ArtifactTreeFailure::recovery_denial()
 }

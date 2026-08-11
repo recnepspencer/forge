@@ -15,6 +15,7 @@ pub struct PhysicalWalSegmentCandidate {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectedPhysicalWalTail {
     segments: Vec<PhysicalWalSegmentCandidate>,
+    checkpoint_covered: Vec<super::CheckpointCoveredWalArtifact>,
     frame_count: u64,
     byte_count: u64,
 }
@@ -129,10 +130,26 @@ pub fn admit_physical_wal_tail(
     mut candidates: Vec<PhysicalWalSegmentCandidate>,
 ) -> Result<SelectedPhysicalWalTail, SelectedPhysicalWalTailDenial> {
     candidates.sort_unstable_by_key(|candidate| candidate.identity());
-    candidates = candidates
-        .into_iter()
-        .filter_map(|candidate| candidate.trim_before(checkpoint_frontier).transpose())
-        .collect::<Result<Vec<_>, _>>()?;
+    if candidates
+        .windows(2)
+        .any(|pair| pair[0].identity() == pair[1].identity())
+    {
+        return Err(SelectedPhysicalWalTailDenial::DuplicateArtifact);
+    }
+    let mut checkpoint_covered = Vec::new();
+    let mut retained = Vec::new();
+    for candidate in candidates {
+        if candidate.inspection().lsn_range().end_exclusive().get() <= checkpoint_frontier {
+            checkpoint_covered.push(super::CheckpointCoveredWalArtifact::from_candidate(
+                &candidate,
+            ));
+            continue;
+        }
+        if let Some(candidate) = candidate.trim_before(checkpoint_frontier)? {
+            retained.push(candidate);
+        }
+    }
+    candidates = retained;
     let mut frame_count = 0_u64;
     let mut byte_count = 0_u64;
     for (index, candidate) in candidates.iter().enumerate() {
@@ -175,6 +192,7 @@ pub fn admit_physical_wal_tail(
     };
     Ok(SelectedPhysicalWalTail {
         segments: candidates,
+        checkpoint_covered,
         frame_count: facts.frame_count,
         byte_count: facts.byte_count,
     })
@@ -197,6 +215,10 @@ fn map_prefix_denial(
 impl SelectedPhysicalWalTail {
     pub fn segments(&self) -> &[PhysicalWalSegmentCandidate] {
         &self.segments
+    }
+
+    pub fn checkpoint_covered(&self) -> &[super::CheckpointCoveredWalArtifact] {
+        &self.checkpoint_covered
     }
 
     pub const fn frame_count(&self) -> u64 {
@@ -229,6 +251,46 @@ mod tests {
         assert_eq!(selected.segments()[0].identity().segment().get(), 1);
         assert_eq!(selected.segments()[1].identity().segment().get(), 2);
         assert_eq!(selected.frame_count(), 2);
+    }
+
+    #[test]
+    fn whole_checkpoint_covered_artifacts_are_retained_as_cleanup_facts() {
+        let covered = complete_candidate(1, 0, 10);
+        let retained = complete_candidate(2, 10, 20);
+        let selected = admit_physical_wal_tail(10, vec![retained, covered]).unwrap();
+
+        assert_eq!(selected.segments().len(), 1);
+        assert_eq!(selected.segments()[0].identity().segment().get(), 2);
+        assert_eq!(selected.checkpoint_covered().len(), 1);
+        assert_eq!(
+            selected.checkpoint_covered()[0].identity().segment().get(),
+            1
+        );
+        assert_eq!(
+            selected.checkpoint_covered()[0].lsn_range().start().get(),
+            0
+        );
+        assert_eq!(
+            selected.checkpoint_covered()[0]
+                .lsn_range()
+                .end_exclusive()
+                .get(),
+            10
+        );
+        assert!(selected.checkpoint_covered()[0].byte_count() > 0);
+        assert!(selected.checkpoint_covered()[0].cleanup_safe());
+    }
+
+    #[test]
+    fn interrupted_checkpoint_covered_artifact_remains_an_unsafe_cleanup_fact() {
+        let covered = interrupted_candidate(1, 0, 10, 20);
+        let observed = covered.interrupted_tail().unwrap().observed_bytes();
+        let retained = complete_candidate(2, 10, 20);
+        let selected = admit_physical_wal_tail(10, vec![retained, covered]).unwrap();
+
+        assert_eq!(selected.checkpoint_covered().len(), 1);
+        assert!(!selected.checkpoint_covered()[0].cleanup_safe());
+        assert_eq!(selected.checkpoint_covered()[0].byte_count(), observed);
     }
 
     #[test]

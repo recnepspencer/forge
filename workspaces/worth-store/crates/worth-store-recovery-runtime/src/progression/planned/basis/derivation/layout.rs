@@ -5,6 +5,7 @@ use super::pending::PendingProjectionBasis;
 
 pub(super) fn assemble(
     selection: &PhysicalSourceSelection,
+    publication_source: Option<&RecoveryPublicationSourceInventory>,
     pending: &PendingProjectionBasis<'_>,
     materialization: ProjectedMaterializationBasis,
     actions: StagingActionBasis,
@@ -20,7 +21,7 @@ pub(super) fn assemble(
         bytes.checked_add(command.byte_count())
     });
     let write_bytes = write_bytes.ok_or(ExecutionBasisDenial::Invalid)?;
-    let base = base_image(selection, pending, materialization);
+    let base = base_image(selection, publication_source, pending, materialization);
     Ok(RecoveryStagingLayoutPlan {
         source_generation: pending.source_generation,
         staging_generation: pending.staging_generation,
@@ -35,6 +36,7 @@ pub(super) fn assemble(
 
 fn base_image(
     selection: &PhysicalSourceSelection,
+    publication_source: Option<&RecoveryPublicationSourceInventory>,
     pending: &PendingProjectionBasis<'_>,
     materialization: ProjectedMaterializationBasis,
 ) -> RecoveryBaseImagePlan {
@@ -59,6 +61,7 @@ fn base_image(
         .map(|(ordinal, placement)| base_action(ordinal, placement, &projected_records))
         .collect::<Vec<_>>()
         .into_boxed_slice();
+    let source_artifacts = selected_source_artifacts(selection, publication_source);
     RecoveryBaseImagePlan {
         selected_selector: selection.root().selected().selector(),
         selected_root: selection.root().selected().manifest().clone(),
@@ -83,7 +86,77 @@ fn base_image(
             .collect::<Vec<_>>()
             .into_boxed_slice(),
         root_states: root_states.into_boxed_slice(),
+        source_artifacts,
     }
+}
+
+fn selected_source_artifacts(
+    selection: &PhysicalSourceSelection,
+    publication_source: Option<&RecoveryPublicationSourceInventory>,
+) -> Box<[RecordArtifactFile]> {
+    let selected = selection.root().selected();
+    let mut artifacts = BTreeSet::from([
+        match selected.selector().role() {
+            worth_store_physical_format::RootSelectorRole::Current => {
+                RecordArtifactFile::CurrentRootSelector
+            }
+            worth_store_physical_format::RootSelectorRole::Previous => {
+                RecordArtifactFile::PreviousRootSelector
+            }
+        },
+        RecordArtifactFile::RootManifest {
+            generation: selected.manifest().generation(),
+        },
+    ]);
+    artifacts.extend(
+        selection
+            .page_facts()
+            .routing_blocks()
+            .iter()
+            .map(|reference| RecordArtifactFile::RootRoutingBlock {
+                generation: reference.generation(),
+                block: reference.block(),
+            }),
+    );
+    artifacts.extend(
+        selection
+            .page_facts()
+            .placements()
+            .iter()
+            .flat_map(placement_artifacts),
+    );
+    if let Some(previous) = selection.root().retained_previous() {
+        artifacts.insert(RecordArtifactFile::PreviousRootSelector);
+        artifacts.insert(RecordArtifactFile::RootManifest {
+            generation: previous.manifest().generation(),
+        });
+    }
+    if let Some(source) = publication_source {
+        artifacts.extend(source.source_artifacts.iter().copied());
+    }
+    artifacts.into_iter().collect::<Vec<_>>().into_boxed_slice()
+}
+
+fn placement_artifacts(
+    placement: &CurrentPhysicalRecordPlacement,
+) -> impl Iterator<Item = RecordArtifactFile> {
+    let artifacts = match placement {
+        CurrentPhysicalRecordPlacement::Inline(inline) => vec![RecordArtifactFile::Segment {
+            segment: inline.segment().get(),
+            generation: inline.segment_generation(),
+        }],
+        CurrentPhysicalRecordPlacement::Extent(extent) => vec![
+            RecordArtifactFile::Extent {
+                extent: extent.extent().get(),
+                generation: extent.extent_generation(),
+            },
+            RecordArtifactFile::ExtentManifest {
+                extent: extent.extent().get(),
+                generation: extent.extent_generation(),
+            },
+        ],
+    };
+    artifacts.into_iter()
 }
 
 fn base_action(
