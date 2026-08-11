@@ -5,12 +5,12 @@
 **2026-08-08** under the
 [`Runtime Phase 8 Finish Plan`](./milestone-9.16-runtime-phase-8-finish-plan.md).
 Developer guidance lives in
-[`Application Aftermath, External Effects, And Recovery`](./features/application-aftermath-and-recovery.md).
+[`Application Aftermath, External Effects, And Recovery`](../../workspaces/worth-query/crates/worth-query/docs/execution/application-aftermath-and-recovery.md).
 The finish plan remains the governing current-state and correction reference.
 This specification records the broader historical Phase 8 design, but its undo
 and redo product sections are **provisional** and form no part of the accepted
-closure. Their final semantics belong to a future, separately governed Query
-Undo/Redo Semantics milestone. Existing code may remain while that decision is
+closure. Their final semantics belong to
+[Milestone 9.18](./milestone-9.18.md). Existing code may remain while that decision is
 pending; it may not become a second history authority or a settled public
 contract by implication.
 **Canonical milestone:** [`milestone-9.16.md`](./milestone-9.16.md)
@@ -1056,7 +1056,7 @@ terminal path.
 
 **Product status:** this gate records the current experiment and its regression
 evidence. Its undo/compensation product semantics are not accepted Phase 8
-closure and must be re-decided by the Query Undo/Redo Semantics successor.
+closure and must be re-decided by Milestone 9.18.
 
 **Entry.** 8.3 closed, which supplies C1. C3 and C4 supplied by 8.2.
 
@@ -1451,15 +1451,18 @@ import checks are mechanical, not reviewed.
 
 - A Query-owned commit graph, lineage store, mutable history head, or raw
   parent-causality append API. Relational history is consumed, never rebuilt.
-- Runtime Bridge ownership of undo/redo legality, semantic target selection,
-  current-head admission, or commit publication. Bridge transport begins only
-  when an already-admitted causal projection crosses runtimes.
-- Branch-, tree-, or graph-shaped undo/redo navigation; branch-local inversion;
-  merge; conflict resolution. These belong to the cross-runtime
-  merging-and-branching roadmap and get no placeholder, directory, parameter,
-  support posture, or implied authority here. Not implementing them is the
-  non-goal; foreclosing them in the causal-relation or redo-intent types is a
-  defect (R8.45).
+- Runtime Bridge ownership inside Phase 8 of undo/redo legality, semantic
+  target selection, composite current-head admission, or publication. Phase 8
+  Bridge transport begins only when an already-admitted causal projection
+  crosses runtimes; Milestone 9.17 later adds composite branch correspondence
+  and orchestration without giving Bridge correction meaning or component
+  currentness.
+- Branch-, tree-, or graph-shaped undo/redo navigation and branch-local
+  inversion before Milestone 9.18, or merge/rebase and semantic conflict
+  resolution before their cross-runtime milestones. They get no placeholder,
+  directory, parameter, support posture, or implied authority here. Not
+  implementing them is the non-goal; foreclosing them in the causal-relation
+  or redo-intent types is a defect (R8.45).
 - Populating the deterministic re-derivation mechanism, and amending
   architectural law 14 to admit it. Both wait for the first CAD, EDA, or
   simulation consumer. The **axis** that makes them a leaf addition is built
@@ -1532,7 +1535,7 @@ public contract governed by dx law 20 deprecation and law 21 compatibility
 windows, and every consumer domain's generated schema names it — so the rename
 converts from a mechanical sweep into a permanent migration surface. The
 widening to precision, tolerance, rounding, and reference frame is new generic
-capability, so it takes its own phase; Milestone 9.17 is its natural owner
+capability, so it takes its own phase; Milestone 9.19 is its natural owner
 given that milestone's geometry-kernel handoff. The split is safe because the
 declared marker can gain those dimensions as marker constants or added
 parameters without reshaping the slot.
@@ -1560,8 +1563,8 @@ One production inline literal, `bootstrap_publication.rs:158`, duplicating the
 existing named constant `PRIMARY_APPLICATION_BRANCH`
 (`primary_graph/application_branch.rs:4`). The named constant is the honest
 form of the milestone's permitted single-branch implementation limit; the
-second literal means Milestone 9.17's per-branch MVCC work has two sites to
-find instead of one.
+second literal means Milestone 9.17's composite product-branch and branch-local
+MVCC cutover has two sites to find instead of one.
 
 Four further literals construct `BranchId("main")` inside `#[cfg(test)]` blocks
 (`managed_run/semantic_basis.rs:150`, `managed_run/truth_read_request.rs:78`,

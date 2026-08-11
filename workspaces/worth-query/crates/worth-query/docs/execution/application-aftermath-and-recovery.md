@@ -2,12 +2,12 @@
 
 ## What This Feature Is
 
-This feature lets an application describe what must remain knowable after a
-mutation commits, send one bounded typed effect to an external owner, recover
-when the commit or delivery result is uncertain, and publish a safe description
-of the result. Application code declares meaning; Query owns execution and
-recovery; Relational owns commit history; the external service owns whether its
-effect completed.
+This feature lets an application declare what can happen after a mutation
+commits, send one bounded typed effect to an external service, and recover when
+the commit or delivery result is uncertain. Application code declares the
+meaning. Query owns execution and runtime-local recovery. Relational owns the
+commit history. The external service alone decides whether its effect
+completed.
 
 ## Why You Use It
 
@@ -27,8 +27,11 @@ Declaration consumers use `worth_query_decl::facade`:
 - `application_schema::ApplicationExternalEffectPayload`
 - `application_schema::ApplicationExternalEffectProtocol`
 - `application_schema::ApplicationOperationDefinitionBuilder::external_effect`
+- `application_schema::ApplicationOperationDefinitionBuilder::no_external_effect`
 - `application_aftermath::DeclaredApplicationAftermathContract`
 - `application_aftermath::DeclaredPreImageDemand`
+- `application_schema::ApplicationOperationDefinitionBuilder::aftermath`
+- `application_schema::ApplicationOperationDefinitionBuilder::no_aftermath`
 
 Hosts use `worth_query_host::facade`:
 
@@ -65,10 +68,27 @@ anything.
 Published aftermath is deliberately weaker. It describes accepted posture,
 external observation, or recovery support, but cannot authorize a transition.
 
+Every operation definition makes two explicit choices. It selects either one
+external-effect contract or `no_external_effect()`, and either one aftermath
+contract or `no_aftermath()`. Method presence is not a default. The builder
+cannot finish until both choices are made.
+
+An aftermath contract declares two independent facts:
+
+- **correction authority** — whether Query can correct the operation alone,
+  must coordinate with an external owner, or cannot correct it;
+- **correction mechanism** — a recorded inverse, compensation, reconciliation,
+  or no corrective mechanism.
+
+Installation validates those facts and derives one closed published posture:
+`Reversible`, `Compensatable`, `Reconcilable`, or `Irreversible`. An operation
+with an escaping external effect cannot be published as reversible.
+
 ## How It Executes
 
-1. The schema declares one typed emission and at most one external-effect
-   contract for an operation.
+1. The schema declares one typed emission and exactly chooses an external-effect
+   slot and an aftermath slot for the operation. Either choice may explicitly
+   be `none`.
 2. The payload implementation supplies a stable version-free protocol family,
    an exact positive produced version, a maximum byte count, and the exact
    bytes to send.
@@ -86,6 +106,11 @@ external observation, or recovery support, but cannot authorize a transition.
    progression requires fresh effect authority.
 9. Publication projects the sealed commit or admitted inspection into closed
    consumer-facing values.
+
+The local commit and the external consequence are different facts. Query may
+know that the outbox row committed while the external result remains pending or
+unresolved. Acknowledgement is not completion. Timeout, disconnect, and lost
+response never let Query guess what the external owner did.
 
 When an installed contract demands a pre-image, Query reads Relational's opaque
 validated mutation footprint before commit. The exact record, aspect, and field
@@ -135,6 +160,28 @@ The schema must also declare the typed emission and bind that emission to an
 external-effect correlation family with the operation definition's
 `external_effect` transition. A payload implementation alone does not create a
 dispatch lane.
+
+Assume `InvoiceReadyEffect` is the schema's typed effect reference and
+`declared_aftermath` is its installed declaration contract. The operation
+builder then makes both static choices before `finish()` becomes available:
+
+```rust
+let definition = operation
+    .definition()
+    .external_effect(InvoiceReadyEffect::reference(), "billing-rail")
+    .aftermath(declared_aftermath)
+    .finish();
+```
+
+An ordinary operation with neither feature states that just as explicitly:
+
+```rust
+let definition = operation
+    .definition()
+    .no_external_effect()
+    .no_aftermath()
+    .finish();
+```
 
 ## Real Example
 
@@ -192,6 +239,48 @@ A lost response can therefore leave Query unresolved even when the rail has
 completed the effect; safe retry relies on the rail's idempotent correlation,
 not on Query guessing what happened.
 
+## Recovery Call Sequence
+
+Recovery re-enters the ordinary admission path. Assume the host has re-admitted
+the same operation under current truth and has obtained both
+`admitted_operation` and its disclosure-admitted `capability_access`. The public
+host sequence is:
+
+```rust
+use worth_query_host::facade::primary_graph::{
+    inspect_recovery_handle, resolve_recovery_handle,
+};
+use worth_query_host::facade::publication::application_aftermath::{
+    publish_recovery_support,
+};
+
+let handle = runtime.mint_recovery_handle(&commit_receipt)?;
+
+let disclosure =
+    runtime.admit_recovery_inspection_disclosure(&capability_access)?;
+let inspect_authority = runtime.admit_recovery_inspect_authority(
+    &handle,
+    &admitted_operation,
+    &disclosure,
+)?;
+let inspection = inspect_recovery_handle(&handle, &inspect_authority)?;
+let published_support = publish_recovery_support(&inspection);
+
+let effect_authority =
+    runtime.admit_recovery_effect_authority(&handle, &admitted_operation)?;
+let idempotency = runtime.resolve_admitted_application_idempotency(
+    &admitted_operation,
+    handle.binding().idempotency(),
+)?;
+let resolution =
+    resolve_recovery_handle(handle, &effect_authority, idempotency)?;
+```
+
+Inspection borrows the live handle and returns descriptive, publishable state.
+Resolution consumes the handle after a fresh owner-issued effect authority and
+an admitted idempotency read agree with its exact binding. A domain host should
+normally wrap this generic sequence in domain-named methods, as Bank does.
+
 ## How It Relates To Other Features
 
 - Pair external effects with ordinary Query mutation and idempotency. The outbox
@@ -205,6 +294,9 @@ not on Query guessing what happened.
   description, but it does not decide any of those facts.
 - Exact pre-image retention is stable infrastructure. What an eventual undo or
   redo product may lawfully do with retained truth is still deferred.
+- `worth-proof` supplies generic progression and proof-bearing carriers. Query
+  operations still require the exact Query-owned authority values returned by
+  the owning workflow; a caller-defined generic marker opens no recovery door.
 
 ## Inspection And Debugging
 
@@ -232,6 +324,8 @@ owner's ledger.
 - Do not treat acknowledgement, silence, timeout, or response loss as completion.
 - Do not construct publication from copied enums or raw receipt fields.
 - Do not serialize a recovery handle and treat the bytes as live authority.
+- Do not treat `WorthQueryRecoveryBrief` or ordinary stop-remediation guidance
+  as an application-aftermath recovery handle.
 - Do not add Query-local lineage, parent selection, branch heads, or publication
   order. Those are Relational responsibilities.
 - Do not use `provisional_aftermath` as a stable product contract.
@@ -240,6 +334,8 @@ owner's ledger.
 
 - Recovery handles are process-local and not restart-durable. Published recovery
   support reports when a Store capability is still required.
+- Reconciliation and compensation currently produce exact owner-bound admission
+  values. No accepted Query surface executes those corrective effects yet.
 - The accepted external-effect lane carries one declared typed effect per
   operation contract.
 - Durable cross-runtime recovery, branch-aware reversal, merge interaction,
@@ -249,7 +345,9 @@ owner's ledger.
 
 ## Related Docs
 
-- [Runtime Phase 8 Finish Plan](../milestone-9.16-runtime-phase-8-finish-plan.md)
-- [Runtime Phase 8 Specification](../milestone-9.16-runtime-phase-8.md)
-- [Milestone 9.16](../milestone-9.16.md)
-- [Cross-Runtime Merging And Branching Roadmap](../../cross-runtime/merging-and-branching-roadmap.md)
+- [Canonical Graph Obligation Progression](../domain-capabilities/canonical-graph-obligation-progression.md)
+- [Provider Sessions And Decision Read-Sets](../domain-capabilities/provider-sessions-and-decision-read-sets.md)
+- [Authoritative Mutation Evidence](../capabilities/authoritative-mutation-evidence.md)
+- [Query Operating Modes](../foundations/query-operating-modes.md)
+- [Typed Stops And Remediation Guidance](../domain-capabilities/typed-stops-and-remediation-guidance.md)
+- [worth-proof Authority And Workflow Contracts](../../../../../../crates/worth-proof/docs/features/authority-and-workflow-contracts.md)

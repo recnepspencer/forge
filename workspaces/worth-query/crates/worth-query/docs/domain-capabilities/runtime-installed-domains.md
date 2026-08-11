@@ -61,9 +61,9 @@ There are four distinct things:
 The portable operation definition is authoritative for semantics. It includes
 the canonical query and result shape, graph-read contract, workflow and
 conditional declarations, replay comparator posture, reversal and
-postcondition contract, lineage and promotion contract, publication posture,
-terminal states, failure classes, support requirements, cost contract, and
-lowering identity.
+postcondition contract, external-effect and application-aftermath contracts,
+lineage and promotion contract, publication posture, terminal states, failure
+classes, support requirements, cost contract, and lowering identity.
 
 The executor is authoritative only for volatile lowering mechanics. It must
 report the same lowering family, determinism, read declaration, and cost shape
@@ -82,6 +82,7 @@ declare portable package and operation meaning
   -> create one operating world from an admitted basis
   -> borrow an operation-family view and bind
   -> execute directly or advance the installed workflow
+  -> retain commit, aftermath, and external-dispatch posture
   -> publish, consume, and settle when publication is declared
 ```
 
@@ -444,6 +445,8 @@ Useful surfaces include:
 - `executed.graph_receipts()`
 - `executed.conditional_provenance()`
 - `executed.counters()`
+- the host receipt's published aftermath and external-effect posture when the
+  installed application operation declares them
 - `settled.publication_receipt()`
 - `settled.result_state()`
 - `settled.warnings()`
@@ -474,6 +477,8 @@ a new handle.
 ## Current Limits
 
 - Runtime installation occurs before runtime publication.
+- Runtime-local application-aftermath recovery does not imply Store-backed
+  handle reload or restart recovery.
 - Handles and bound operations are not portable across runtimes or installation
   generations, even when packages are semantically equivalent.
 - Collection windows and query-shaped patch delivery still require their
@@ -490,6 +495,7 @@ a new handle.
 
 - [Conditional Installed Operations](./conditional-installed-operations.md)
 - [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
 - [Installed Operation Lineage And Promotion](./installed-operation-lineage-and-promotion.md)
 - [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)

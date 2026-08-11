@@ -249,7 +249,7 @@ That means:
   may present it as settled;
 - no current cleanup slice may deepen its semantics merely because the current
   implementation already chose a shape;
-- a future, separately governed **Query Undo/Redo Semantics milestone** decides
+- [Milestone 9.18](./milestone-9.18.md) decides
   whether to keep, revise, or remove it.
 
 The later milestone must re-decide at least: eligible operations, inverse versus
@@ -267,12 +267,18 @@ Two pieces remain useful outside that unsettled product decision:
   exact prior truth may close here; claiming that undo restores it correctly
   may not.
 
-### 3.3 Branch and tree behavior stays elsewhere
+### 3.3 Branch and tree behavior stays outside Phase 8
 
-Branch selection, branch-local inversion, branch-shaped redo, merge interaction,
-rebase, history navigation, and durable cross-runtime recovery remain owned by
-the [cross-runtime merging and branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
-Phase 8 creates no placeholder, dormant authority, or Query-local substitute.
+Milestone 9.17 owns the successor cut from Relational-only product history to
+Runtime Bridge composite product branches over exact Relational and Signal
+bases while preserving each runtime's internal branch authority. Milestone
+9.18 owns ordinary tree-based semantic reversal, reapplication, exact composite
+source/target selection, and history navigation over that truth. Semantic
+merge, rebase, multi-parent publication, offline synchronization, and durable
+cross-runtime recovery remain owned by the
+[cross-runtime merging and branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
+Phase 8 creates no placeholder, dormant authority, or Query-local substitute
+for either successor.
 
 ## 4. Current-State Ledger
 
@@ -1093,7 +1099,7 @@ Runtime Phase 8 cleanup is finished only when:
 8. accepted, provisional, and deferred claims are consistent across every
    governing document.
 
-The successor **Query Undo/Redo Semantics milestone** begins from the explicit
+The successor [Milestone 9.18](./milestone-9.18.md) begins from the explicit
 provisional inventory in section 4.2. It may reuse code only after independently
 accepting its authority model and courtroom. This plan hands it evidence, not a
 pre-decided architecture.

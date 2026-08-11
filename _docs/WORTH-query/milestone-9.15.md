@@ -12,10 +12,12 @@ invariants against that state.
 
 This milestone deliberately stops before public application authoring,
 authentication and authorization, and compare-and-commit. Those capabilities
-are governed by [Milestone 9.16](./milestone-9.16.md). Advanced access products,
-realized footprints, correlated paths, bulk conflict partitioning, reuse, and
-provider-independent domain certification are governed by
-[Milestone 9.17](./milestone-9.17.md).
+are governed by [Milestone 9.16](./milestone-9.16.md). Advanced access products
+and realized footprints are governed by
+[Milestone 9.19](./milestone-9.19.md); correlated paths and bulk conflict
+partitioning by [Milestone 9.20](./milestone-9.20.md); governed decision
+evidence by [Milestone 9.21](./milestone-9.21.md); and occurrence-safe reuse by
+[Milestone 9.22](./milestone-9.22.md).
 
 ## Roadmap Placement
 
@@ -513,7 +515,7 @@ The following are not incomplete 9.15 work:
 - stage/subartifact reuse, eviction, and rebuild; and
 - geometry, netlist, or research provider certification.
 
-Their governing homes are Milestones 9.16 and 9.17.
+Their governing homes are Milestone 9.16 and Milestones 9.19 through 9.22.
 
 ## Acceptance Evidence
 
@@ -545,6 +547,8 @@ authority-local and consumer certification suites.
 and proves that a real authenticated asynchronous application can reach an
 atomic outcome through the ordinary Query front door.
 
-[Milestone 9.17](./milestone-9.17.md) consumes that honest public front door and
-adds advanced access and computation capabilities without reopening the
-authority model completed here.
+[Milestones 9.19 through 9.22](./milestone-9.19.md) consume that honest public
+front door and add advanced access, set execution, governed decision evidence,
+and reuse without reopening the authority model completed here. Milestones
+9.17 and 9.18 first settle composite product-branch/history truth and tree-based
+semantic correction.

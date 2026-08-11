@@ -106,7 +106,8 @@ running run admits installed graph participation
   -> caller requests every installed decision fact
   -> provider returns bound evidence
   -> Query compares every captured fact
-  -> fresh continues; stale replans; failure aborts or preserves recovery
+  -> fresh continues; stale replans; lower failure remains typed for the
+     installed application-operation owner
 ```
 
 Provider rejection or panic is caught at the exact protocol stage. Abort and
@@ -199,12 +200,16 @@ occurred.
   set before runtime construction can preserve this lane.
 - Freshness covers the installed fact closure, not undeclared application
   state.
-- Public provider commit is not part of this progression.
+- This document stops at the provider-session worker boundary. The higher
+  installed application-operation progression owns compare-and-commit,
+  idempotency, co-committed outbox meaning, external dispatch, aftermath, and
+  receipt-bound recovery.
 
 ## Related Docs
 
 - [Canonical Graph Obligation Progression](./canonical-graph-obligation-progression.md)
 - [Execution Resource Admission And Managed Runs](./execution-resource-admission-and-managed-runs.md)
 - [Provisional State And Invariant Execution](./provisional-state-and-invariant-execution.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
 - [Conditional Installed Operations](./conditional-installed-operations.md)
 - [Basis Capability Lifecycle](../capabilities/basis-capability-lifecycle.md)

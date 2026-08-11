@@ -207,6 +207,8 @@ Prefer typed posture and retained context over parsing `reason()`.
 - The surface explains stops and recommends actions; it does not perform them.
 - Recommendations do not prove idempotency, external completion, or effect
   safety.
+- Receipt-bound recovery after a committed application operation belongs to
+  the application-aftermath surface; a recovery brief remains descriptive.
 - Route-plan and receipt products retain less aspect context than continuation,
   Signal, contribution, and grouped proof products.
 - Materialization is intentionally lean unless the source carries a stronger
@@ -220,3 +222,4 @@ Prefer typed posture and retained context over parsing `reason()`.
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Grouped Authoring](./grouped-authoring.md)
 - [Inspection](../capabilities/inspection.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
