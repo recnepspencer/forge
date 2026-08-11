@@ -1,6 +1,6 @@
 //! Same-runtime recovery authority remains affine to one exact handle (Q8.20).
 
-use bank_external_rail::FaultScript;
+use bank_external_rail::test_control::FaultScript;
 use worth_query_host::facade::primary_graph::{
     expire_recovery_handle, inspect_recovery_handle, reconcile_recovery_handle,
     WorthQueryRecoveryExpiryEvaluation, WorthQueryRecoveryHandleDenialKind,

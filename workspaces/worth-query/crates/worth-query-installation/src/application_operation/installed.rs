@@ -1,5 +1,16 @@
-mod aftermath_compilation;
+mod operation_compilation;
 mod reinstallation_match;
+
+pub(in crate::application_operation) use operation_compilation::WorthQuerySealedOperationContractCompilation;
+
+#[cfg(test)]
+pub(super) use operation_compilation::compile_contract_projection_fixture;
+
+#[cfg(test)]
+pub(crate) mod aftermath_install_fixture;
+
+#[cfg(test)]
+mod operation_compilation_tests;
 
 use std::marker::PhantomData;
 
@@ -7,23 +18,15 @@ use worth_query_declaration::facade::application_schema::{
     ApplicationSchema, ApplicationSchemaBindingIdentity,
 };
 
-use self::aftermath_compilation::compile_operation_aftermath;
-use super::contract_resolution::{
-    ability_requirements, operation_decision_fact_budget, operation_decision_reads,
-    operation_execution_posture, operation_external_effect, operation_mutation_preconditions,
-    operation_program, operation_projection_work_budget,
-};
-use super::contracts::WorthQueryApplicationOperationContractSources;
+use super::contract_resolution::ability_requirements;
 use super::installed_contract_support::{
-    authority_identity, graph_obligation_denial, operation_authorization,
-    operation_capability_requirements, operation_denial,
+    authority_identity, graph_obligation_denial, operation_capability_requirements,
 };
 use super::operation_declaration_resolution::{
     resolve_operation_declaration, ResolvedApplicationOperationDeclaration,
 };
 use super::{
     WorthQueryApplicationOperationInstallationDenial,
-    WorthQueryApplicationOperationInstallationDenialKind,
     WorthQueryCompiledApplicationOperationContracts,
 };
 use crate::application_schema::WorthQueryInstalledApplicationSchema;
@@ -33,6 +36,35 @@ use crate::graph_obligation::{
     WorthQueryApplicationOperationObligationSource, WorthQueryInstalledGraphCapabilityRequirement,
     WorthQueryInstalledGraphObligationInspection, WorthQueryInstalledGraphObligationSet,
 };
+
+mod aftermath_installation_source_seal {
+    pub trait Sealed {}
+}
+
+/// Read-only view of one whole candidate operation for aftermath installation.
+///
+/// The private supertrait keeps candidate construction with this installed-
+/// operation owner. The aftermath owner may read the already-resolved axes,
+/// but no other module can implement or recombine this source.
+pub(crate) trait WorthQueryOperationAftermathInstallationSource:
+    aftermath_installation_source_seal::Sealed
+{
+    fn binding(&self) -> &ApplicationSchemaBindingIdentity;
+
+    fn operation(&self) -> &str;
+
+    fn decision_reads(
+        &self,
+    ) -> &[worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget];
+
+    fn external_effect(&self) -> &crate::application_aftermath::InstalledExternalEffectContract;
+
+    fn portable_aftermath(
+        &self,
+    ) -> Option<
+        &worth_query_declaration::facade::application_aftermath::PortableApplicationAftermathContract,
+    >;
+}
 
 pub struct WorthQueryInstalledApplicationOperation<Schema, Operation, Input> {
     binding_identity: ApplicationSchemaBindingIdentity,
@@ -153,80 +185,16 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
         let operation = declaration.operation();
         let input_type = declaration.input_type();
         let abilities = ability_requirements(schema, operation)?;
-        let authorization = operation_authorization(
-            operation,
-            abilities.len(),
-            schema.installed_capability_count_for_operation(operation, input_type),
-        )?;
-        let program = operation_program(schema, operation, input_type);
-        let decision_reads = operation_decision_reads(schema, operation, input_type);
-        let mutation_preconditions = super::precondition_contract::compile_precondition_contract(
-            operation_mutation_preconditions(schema.installed_declaration().members(), operation),
-            &decision_reads,
-            &abilities,
-        )
-        .map_err(|()| {
-            operation_denial(
-                WorthQueryApplicationOperationInstallationDenialKind::InvalidMutationPreconditionContract,
-                operation,
-            )
-        })?;
-        if program.is_empty() && decision_reads.is_empty() {
-            return Err(operation_denial(
-                WorthQueryApplicationOperationInstallationDenialKind::MissingProgram,
-                operation,
-            ));
-        }
-        let decision_fact_budget =
-            operation_decision_fact_budget(schema.installed_declaration().members(), operation)
-                .ok_or_else(|| {
-                    operation_denial(
-                WorthQueryApplicationOperationInstallationDenialKind::MissingDecisionFactBudget,
-                operation,
-            )
-                })?;
-        let projection_work_budget =
-            operation_projection_work_budget(schema.installed_declaration().members(), operation)
-                .ok_or_else(|| {
-                operation_denial(
-                WorthQueryApplicationOperationInstallationDenialKind::MissingProjectionWorkBudget,
-                operation,
-            )
-            })?;
-        // One resolution of the escaping lane, shared by the aftermath install
-        // and the compiled contracts. The aftermath's external posture is a
-        // projection of this value, never a second declaration (Q8.25-C1).
-        let external_effect =
-            operation_external_effect(schema.installed_declaration().members(), operation)
-                .map_err(|denial| operation_denial(denial.installation_kind(), operation))?;
-        let decision_reads_for_coverage = &decision_reads;
-        let aftermath = compile_operation_aftermath(
-            schema,
-            operation,
-            decision_reads_for_coverage,
-            &external_effect,
-        )?;
-        let contracts = WorthQueryCompiledApplicationOperationContracts::compile(
-            WorthQueryApplicationOperationContractSources {
-                authorization,
-                ability_requirements: abilities,
-                program,
-                decision_reads,
-                decision_fact_budget,
-                projection_work_budget,
-                additional_authorization_fact_count: schema
-                    .progression_support_fact_count(operation, input_type),
-                mutation_preconditions,
-                execution_posture: operation_execution_posture(
-                    schema.installed_declaration().members(),
-                    operation,
-                    input_type,
-                ),
-                external_effect,
-                aftermath,
-            },
-        );
         let binding_identity = schema.binding_identity();
+        let compilation =
+            operation_compilation::WorthQueryApplicationOperationCompilation::resolve(
+                binding_identity.clone(),
+                schema.installed_declaration().members(),
+                operation,
+                input_type,
+            )?;
+        let contracts = compilation.compile_contracts(abilities)?;
+        let authorization = contracts.authorization();
         let capability_requirements =
             operation_capability_requirements(schema, operation, input_type);
         let obligations = bind_operation_obligations(

@@ -13,7 +13,6 @@ pub(super) fn admit_transformation(
     contract: &WorthQueryTransformationEvidenceContract,
     summary: Option<WorthQueryTransformationSummary>,
     records: Option<&[WorthQueryTransformationRecord]>,
-    output_occurrence_identity: &str,
 ) -> Result<Option<WorthQueryTransformationSummary>, WorthQueryDomainEvidenceAdmissionDenial> {
     let WorthQueryTransformationEvidenceContract::Declared {
         source_occurrence,
@@ -38,7 +37,6 @@ pub(super) fn admit_transformation(
     let parts = summary.parts();
     if parts.source_occurrence.family() != source_occurrence.identity_family()
         || !portable(parts.source_occurrence.value())
-        || parts.output_occurrence_identity != output_occurrence_identity
         || parts.transformation_family != transformation.family()
         || parts.transformation_version != transformation.version()
         || parts.correspondence != outcome.correspondence()

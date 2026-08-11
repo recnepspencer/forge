@@ -4,6 +4,7 @@ use worth_proof::{ActionMarker, Performed};
 
 use crate::domain_computation::application_aftermath::recovery_handle::WorthQueryRecoveryHandleAuthorityIdentity;
 use crate::domain_computation::application_aftermath::WorthQueryExternalEffectDispatch;
+use crate::domain_computation::primary_graph::WorthQueryPerformedExternalRedispatchSeal;
 
 worth_proof::authority_marker!(WorthQueryExternalRedispatchAuthority);
 
@@ -28,10 +29,8 @@ pub struct WorthQueryPerformedExternalRedispatch {
 }
 
 impl WorthQueryPerformedExternalRedispatch {
-    pub(crate) fn record(
-        handle: WorthQueryRecoveryHandleAuthorityIdentity,
-        dispatch: WorthQueryExternalEffectDispatch,
-    ) -> Self {
+    pub(crate) fn record(seal: WorthQueryPerformedExternalRedispatchSeal) -> Self {
+        let (handle, dispatch) = seal.into_parts();
         Self {
             performed: Performed::record(
                 &WorthQueryExternalRedispatchAuthority::witness(),

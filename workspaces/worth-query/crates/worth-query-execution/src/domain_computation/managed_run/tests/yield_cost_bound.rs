@@ -192,7 +192,7 @@ fn execute_target(unrelated_width: usize) -> YieldCostEvidence {
     let (paused, unrelated, suspension_count, retained_probe_count) =
         prepared_target(unrelated_width);
     let yielded = yield_target(paused);
-    let work = yielded.provider_work();
+    let work = yielded.inspection().provider_work();
     let evidence = YieldCostEvidence {
         provider_steps: work.provider_step_attempt_count(),
         safe_point_lookups: work.safe_point_request_lookup_count(),
@@ -200,8 +200,8 @@ fn execute_target(unrelated_width: usize) -> YieldCostEvidence {
         output_capacity_classifications: work.output_capacity_classification_count(),
         suspension_count: suspension_count.load(Ordering::Relaxed),
         retained_probe_count: retained_probe_count.load(Ordering::Relaxed),
-        retained_capacity_count: yielded.retained_capacity_reservation_count(),
-        yield_counters: yielded.yield_counters(),
+        retained_capacity_count: yielded.inspection().retained_capacity_reservation_count(),
+        yield_counters: yielded.inspection().yield_counters(),
     };
     let _ = yielded.cleanup();
     drop(unrelated);
@@ -216,7 +216,10 @@ fn measured_workflow_target(unrelated_width: usize) -> stats_alloc::Stats {
         _ => panic!("eligible workflow cost target did not yield"),
     };
     let stats = region.change();
-    assert_eq!(yielded.yield_counters(), expected_workflow_yield_counters());
+    assert_eq!(
+        yielded.inspection().yield_counters(),
+        expected_workflow_yield_counters()
+    );
     match yielded.cleanup() {
         crate::domain_computation::WorthQueryWorkflowYieldCleanupOutcome::Complete(_) => {}
         _ => panic!("artifact-free workflow cost target did not clean up"),

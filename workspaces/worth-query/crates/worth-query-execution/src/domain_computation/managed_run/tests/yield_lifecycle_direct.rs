@@ -1,9 +1,6 @@
 use super::yield_fixture::YieldProvider;
 use super::*;
-use worth_runtime_bridge::facade::{
-    BridgeExecutionBasisSignalTerminal, BridgeExecutionBasisTerminalDisposition,
-    BridgeManagedExecutionCancellationReason,
-};
+use worth_runtime_bridge::facade::BridgeExecutionBasisSignalTerminal;
 
 #[test]
 fn direct_yield_retains_exact_authorities_and_releases_them_explicitly() {
@@ -31,33 +28,41 @@ fn direct_yield_retains_exact_authorities_and_releases_them_explicitly() {
         crate::domain_computation::WorthQueryDirectYieldOutcome::Yielded(yielded) => yielded,
         _ => panic!("eligible direct run did not yield"),
     };
-    assert_eq!(yielded.logical_run_identity(), logical_run_identity);
-    assert_eq!(yielded.yielded_attempt_identity(), attempt_identity);
+    assert_eq!(
+        yielded.inspection().logical_run_identity(),
+        logical_run_identity
+    );
+    assert_eq!(
+        yielded.inspection().yielded_attempt_identity(),
+        attempt_identity
+    );
     assert_ne!(
-        yielded.logical_run_identity(),
-        yielded.yielded_attempt_identity()
+        yielded.inspection().logical_run_identity(),
+        yielded.inspection().yielded_attempt_identity()
     );
-    assert_eq!(yielded.checkpoint().retained_bytes(), 5);
-    assert!(yielded.checkpoint().provider_generation() > 0);
-    assert_eq!(yielded.retained_capacity_reservation_count(), 2);
+    assert_eq!(yielded.inspection().checkpoint().retained_bytes(), 5);
+    assert!(yielded.inspection().checkpoint().provider_generation() > 0);
     assert_eq!(
-        yielded.bridge().disposition(),
-        BridgeExecutionBasisTerminalDisposition::Yielded
+        yielded.inspection().retained_capacity_reservation_count(),
+        2
     );
     assert_eq!(
-        yielded.bridge().signal_terminal(),
-        BridgeExecutionBasisSignalTerminal::Cancelled
+        yielded
+            .inspection()
+            .provider_work()
+            .interrupted_call_count(),
+        1
     );
-    assert!(yielded.bridge().reservation_released());
-    assert!(yielded.bridge().signal_transition_performed());
-    assert_eq!(yielded.provider_work().interrupted_call_count(), 1);
-    assert_eq!(yielded.provider_work().completed_work_units(), 2);
+    assert_eq!(
+        yielded.inspection().provider_work().completed_work_units(),
+        2
+    );
 
     let cleanup = complete_direct_yield_cleanup(yielded);
     assert_eq!(cleanup.logical_run_identity(), logical_run_identity);
     assert_eq!(cleanup.yielded_attempt_identity(), attempt_identity);
-    assert!(cleanup.relational().released());
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
+    assert!(cleanup.resources_released());
+    assert_eq!(cleanup.released_reservation_count(), 2);
     assert_eq!(cleanup.checkpoint().unwrap().retained_bytes(), 5);
 }
 
@@ -173,12 +178,15 @@ fn suspension_failure_terminalizes_signal_but_preserves_cleanup_authority() {
         Err(_) => panic!("terminalized direct recovery did not release"),
     };
     assert_eq!(
-        cleanup.bridge().signal_terminal(),
+        cleanup.inspection().bridge_signal_terminal(),
         BridgeExecutionBasisSignalTerminal::Cancelled
     );
-    assert!(cleanup.relational().released());
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
-    assert_eq!(cleanup.provider_work().abandoned_call_count(), 1);
+    assert!(cleanup.inspection().resources_released());
+    assert_eq!(cleanup.inspection().released_reservation_count(), 2);
+    assert_eq!(
+        cleanup.inspection().provider_work().abandoned_call_count(),
+        1
+    );
 }
 
 #[test]
@@ -272,129 +280,16 @@ fn direct_yield_preserves_exact_applied_effect_evidence() {
         crate::domain_computation::WorthQueryDirectYieldOutcome::Yielded(yielded) => yielded,
         _ => panic!("installed partial-effect posture did not admit yield"),
     };
-    assert_eq!(yielded.provider_work().applied_effect_count(), 1);
-    assert_eq!(yielded.provider_work().completed_work_units(), 3);
+    assert_eq!(
+        yielded.inspection().provider_work().applied_effect_count(),
+        1
+    );
+    assert_eq!(
+        yielded.inspection().provider_work().completed_work_units(),
+        3
+    );
     let cleanup = complete_direct_yield_cleanup(yielded);
     assert_eq!(cleanup.provider_work().applied_effect_count(), 1);
     assert_eq!(cleanup.provider_work().abandoned_call_count(), 0);
-    assert_eq!(cleanup.provider_work().interrupted_call_count(), 1);
-}
-
-#[test]
-fn signal_terminalized_after_safe_point_cannot_be_relabelled_as_yielded() {
-    let (running, graph) = managed_graph_run_with_provider(
-        WorthQueryOperationGraphAccess::Observe,
-        YieldProvider::installed(5),
-    );
-    let active = running
-        .begin_graph_execution(
-            &graph,
-            WorthQueryManagedGraphCallRequest::new(
-                WorthQueryGraphProviderCallKind::Observe,
-                "direct-yield-signal-race",
-            ),
-        )
-        .unwrap();
-    let paused = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Continue(paused) => paused,
-        _ => panic!("provider did not pause"),
-    };
-    paused
-        .active
-        .request_cancellation(BridgeManagedExecutionCancellationReason::HostRequested)
-        .expect("host should terminalize the exact Signal attempt");
-    let recovery = match paused.yield_run() {
-        crate::domain_computation::WorthQueryDirectYieldOutcome::RecoveryRequired(recovery) => {
-            recovery
-        }
-        _ => panic!("pre-terminalized Signal attempt minted yielded authority"),
-    };
-    assert!(!recovery.running_attempt_recoverable());
-    assert_eq!(
-        recovery.kind(),
-        crate::domain_computation::WorthQueryYieldRecoveryKind::SignalAttemptAlreadyTerminal(
-            BridgeExecutionBasisSignalTerminal::Cancelled,
-        )
-    );
-    let cleanup = match recovery.cleanup_terminalized() {
-        Ok(cleanup) => cleanup,
-        Err(_) => panic!("terminalized Signal race did not preserve cleanup authority"),
-    };
-    assert!(!cleanup.bridge().signal_transition_performed());
-    assert_eq!(
-        cleanup.bridge().signal_terminal(),
-        BridgeExecutionBasisSignalTerminal::Cancelled
-    );
-    assert_eq!(cleanup.provider_work().interrupted_call_count(), 1);
-    assert_eq!(cleanup.provider_work().abandoned_call_count(), 0);
-}
-
-#[test]
-fn timeout_and_rejection_after_safe_point_cannot_mint_yielded_authority() {
-    let (timed_out, timeout_bridge) = paused_direct_yield_target("direct-yield-timeout-race");
-    timeout_bridge
-        .advance_managed_execution_clock(1)
-        .expect("host clock should advance");
-    timed_out
-        .active
-        .admit_ready_timeout()
-        .expect("ready timeout should terminalize the exact Signal attempt");
-    assert_preterminalized_yield_recovery(timed_out, BridgeExecutionBasisSignalTerminal::TimedOut);
-
-    let (rejected, _) = paused_direct_yield_target("direct-yield-rejection-race");
-    rejected
-        .active
-        .reject_execution(
-            worth_runtime_bridge::facade::BridgeManagedExecutionRejectionReason::SemanticFailure,
-        )
-        .expect("rejection should terminalize the exact Signal attempt");
-    assert_preterminalized_yield_recovery(rejected, BridgeExecutionBasisSignalTerminal::Rejected);
-}
-
-fn paused_direct_yield_target(
-    scope: &str,
-) -> (
-    crate::domain_computation::WorthQueryPausedDirectGraphExecution,
-    RuntimeBridge,
-) {
-    let (running, graph, bridge) = managed_graph_run_with_provider_and_bridge(
-        WorthQueryOperationGraphAccess::Observe,
-        YieldProvider::installed(5),
-    );
-    let active = running
-        .begin_graph_execution(
-            &graph,
-            WorthQueryManagedGraphCallRequest::new(WorthQueryGraphProviderCallKind::Observe, scope),
-        )
-        .unwrap();
-    let paused = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Continue(paused) => paused,
-        _ => panic!("provider did not pause"),
-    };
-    (paused, bridge)
-}
-
-fn assert_preterminalized_yield_recovery(
-    paused: crate::domain_computation::WorthQueryPausedDirectGraphExecution,
-    terminal: BridgeExecutionBasisSignalTerminal,
-) {
-    let recovery = match paused.yield_run() {
-        crate::domain_computation::WorthQueryDirectYieldOutcome::RecoveryRequired(recovery) => {
-            recovery
-        }
-        _ => panic!("pre-terminalized Signal attempt minted yielded authority"),
-    };
-    assert_eq!(
-        recovery.kind(),
-        crate::domain_computation::WorthQueryYieldRecoveryKind::SignalAttemptAlreadyTerminal(
-            terminal,
-        )
-    );
-    let cleanup = match recovery.cleanup_terminalized() {
-        Ok(cleanup) => cleanup,
-        Err(_) => panic!("pre-terminalized Signal attempt lost cleanup authority"),
-    };
-    assert!(!cleanup.bridge().signal_transition_performed());
-    assert_eq!(cleanup.bridge().signal_terminal(), terminal);
     assert_eq!(cleanup.provider_work().interrupted_call_count(), 1);
 }

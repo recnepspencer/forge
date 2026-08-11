@@ -5,7 +5,6 @@ use bank_server::{
     BankOperationAdmissionError, BankOperationProposalError, BankOperationProposals,
     BankPrincipalSeed, BankWorldSeed,
 };
-use worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind;
 
 use super::fixture::{funded_personal_world, id, key};
 use crate::support::{block_on, request_scope, runtime, CausalCredential, DynamicIdentity};
@@ -64,7 +63,7 @@ fn unauthorized_account_and_admitted_scope_drift_both_deny() {
     assert!(matches!(
         creation_denial,
         BankOperationAdmissionError::Authorization(ref denial)
-            if denial.kind() == WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+            if denial.code() == "permission-denied"
     ));
     let denial = world
         .runtime
@@ -74,7 +73,7 @@ fn unauthorized_account_and_admitted_scope_drift_both_deny() {
     assert!(matches!(
         denial,
         BankOperationAdmissionError::Authorization(ref denial)
-            if denial.kind() == WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+            if denial.code() == "permission-denied"
     ));
 
     let admission = world

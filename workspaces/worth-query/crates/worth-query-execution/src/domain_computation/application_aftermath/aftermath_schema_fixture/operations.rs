@@ -3,7 +3,7 @@
 use worth_query_declaration::facade::application_aftermath::{
     DeclaredAftermathPostcondition, DeclaredApplicationAftermathContract, DeclaredCompensation,
     DeclaredCorrectionMechanism, DeclaredLoweringCorrespondenceRef, DeclaredPreImageDemand,
-    DeclaredReconciliationProcedure, DeclaredRecordedInverse,
+    DeclaredPreImageLocus, DeclaredReconciliationProcedure, DeclaredRecordedInverse,
 };
 use worth_query_declaration::facade::application_schema::{
     ApplicationAbilityRef, ApplicationOperationRef, ApplicationSchemaDeclaration,
@@ -13,8 +13,9 @@ use worth_query_declaration::facade::application_schema::{
 use super::declaration::{
     principal_read, AftermathFixtureSchema, ApproveEmergencyAccess, AuditRetention, BalanceRead,
     Charge, DeathNoticeEffect, FixtureAbility, FixtureEntity, FixtureInput, FreezeAccount,
-    FreezeBalance, FreezeNote, FrozenRead, LegalHold, NoteRead, NotifyDeath, ReleaseEstate,
-    Transfer, TransferLarge, TransferSmall, WireInstructionEffect, WireTransferFinal,
+    FreezeAccountFields, FreezeBalance, FreezeNote, FrozenRead, LegalHold, NoteRead, NotifyDeath,
+    ReleaseEstate, Transfer, TransferLarge, TransferSmall, WireInstructionEffect,
+    WireTransferFinal,
 };
 
 /// The rail the fixture's death notices escape through.
@@ -39,11 +40,14 @@ fn op<Operation>(
     ApplicationOperationRef::from_schema_identifier(name)
 }
 
-fn not_correctable() -> DeclaredApplicationAftermathContract {
+fn not_correctable() -> DeclaredApplicationAftermathContract<AftermathFixtureSchema> {
     DeclaredApplicationAftermathContract::not_correctable()
 }
 
-fn compensation(slot: &str, identity: &str) -> DeclaredApplicationAftermathContract {
+fn compensation(
+    slot: &str,
+    identity: &str,
+) -> DeclaredApplicationAftermathContract<AftermathFixtureSchema> {
     DeclaredApplicationAftermathContract::runtime_alone(DeclaredCorrectionMechanism::Compensation(
         DeclaredCompensation::new(
             slot,
@@ -55,14 +59,18 @@ fn compensation(slot: &str, identity: &str) -> DeclaredApplicationAftermathContr
     ))
 }
 
-fn inverse(field: &str, bound: usize, lowering: &str) -> DeclaredApplicationAftermathContract {
+fn inverse(
+    loci: impl IntoIterator<Item = DeclaredPreImageLocus<AftermathFixtureSchema>>,
+    bound: usize,
+    lowering: &str,
+) -> DeclaredApplicationAftermathContract<AftermathFixtureSchema> {
     DeclaredApplicationAftermathContract::runtime_alone(
         DeclaredCorrectionMechanism::RecordedInverse(
             DeclaredRecordedInverse::new(
                 "unfreeze",
                 DeclaredLoweringCorrespondenceRef::new(lowering).unwrap(),
                 DeclaredAftermathPostcondition::ExactPriorTruth,
-                DeclaredPreImageDemand::new([field], bound).unwrap(),
+                DeclaredPreImageDemand::new(loci, bound).unwrap(),
             )
             .unwrap(),
         ),
@@ -203,7 +211,11 @@ fn bind_inverse_ops(
             freeze
                 .definition()
                 .no_external_effect()
-                .aftermath(inverse("frozen", 64, "account-freeze-inverse"))
+                .aftermath(inverse(
+                    [DeclaredPreImageLocus::from_field(reads.frozen)],
+                    64,
+                    "account-freeze-inverse",
+                ))
                 .finish(),
         )
         .operation_decision_fact_budget(freeze, 1)
@@ -216,7 +228,11 @@ fn bind_inverse_ops(
             note_op
                 .definition()
                 .no_external_effect()
-                .aftermath(inverse("note", 4, "geometry-inverse"))
+                .aftermath(inverse(
+                    [DeclaredPreImageLocus::from_field(reads.note)],
+                    4,
+                    "geometry-inverse",
+                ))
                 .finish(),
         )
         .operation_decision_fact_budget(note_op, 1)
@@ -224,18 +240,43 @@ fn bind_inverse_ops(
         .operation_requires_ability(note_op, ability)
         .operation_read_field(note_op, reads.note);
     let balance_op = op::<FreezeBalance>("freeze-balance");
-    schema
+    let schema = schema
         .operation(
             balance_op
                 .definition()
                 .no_external_effect()
-                .aftermath(inverse("balance", 256, "inverse-v2"))
+                .aftermath(inverse(
+                    [DeclaredPreImageLocus::from_field(reads.balance)],
+                    256,
+                    "inverse-v2",
+                ))
                 .finish(),
         )
         .operation_decision_fact_budget(balance_op, 1)
         .operation_projection_work_budget(balance_op, 16)
         .operation_requires_ability(balance_op, ability)
-        .operation_read_field(balance_op, reads.balance)
+        .operation_read_field(balance_op, reads.balance);
+    let fields_op = op::<FreezeAccountFields>("freeze-account-fields");
+    schema
+        .operation(
+            fields_op
+                .definition()
+                .no_external_effect()
+                .aftermath(inverse(
+                    [
+                        DeclaredPreImageLocus::from_field(reads.frozen),
+                        DeclaredPreImageLocus::from_field(reads.note),
+                    ],
+                    256,
+                    "account-fields-inverse",
+                ))
+                .finish(),
+        )
+        .operation_decision_fact_budget(fields_op, 2)
+        .operation_projection_work_budget(fields_op, 24)
+        .operation_requires_ability(fields_op, ability)
+        .operation_read_field(fields_op, reads.frozen)
+        .operation_read_field(fields_op, reads.note)
 }
 
 /// The two fixture operations that actually escape the runtime.

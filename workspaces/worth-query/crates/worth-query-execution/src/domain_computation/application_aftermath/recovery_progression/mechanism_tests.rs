@@ -50,6 +50,7 @@ fn probe_handle(aftermath: WorthQueryInstalledAftermathContract) -> WorthQueryRe
             idempotency: WorthQueryApplicationIdempotencyBinding::new([0x55; 32], [0x56; 32]),
             provider_posture: None,
             dispatch_outbox: None,
+            dispatch_outbox_record_ref: None,
             installed_aftermath: aftermath,
             // Far future on purpose. Recovery authority now re-checks this
             // deadline on every use, so a probe carrying a 1970 timestamp would

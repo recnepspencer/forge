@@ -7,12 +7,12 @@ use std::time::Duration;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 
-use crate::protocol::fault_script::FaultScript;
 use crate::protocol::notice::decode_notice_for_profile;
 use crate::protocol::request::{RailDispatch, RailRequest};
 use crate::protocol::response::{LedgerStatus, RailResponseFrame};
 use crate::protocol::support_profile::RailProtocolSupportProfile;
 use crate::protocol::wire::{read_frame, write_frame, FrameRead};
+use crate::test_control::{FaultScript, FaultSelection};
 
 use super::completed_effects::CompletedEffects;
 use super::fault_behavior;
@@ -23,6 +23,34 @@ use super::ledger::RailAdmission;
 struct DispatchOwners<'a> {
     ledger: &'a Ledger,
     completed_effects: &'a CompletedEffects,
+}
+
+pub(super) struct RailDispatchState {
+    ledger: Arc<Ledger>,
+    completed_effects: Arc<CompletedEffects>,
+    fault_selection: Arc<FaultSelection>,
+    protocol_support: RailProtocolSupportProfile,
+}
+
+impl RailDispatchState {
+    pub(super) fn new(
+        fault_selection: Arc<FaultSelection>,
+        protocol_support: RailProtocolSupportProfile,
+    ) -> Self {
+        Self {
+            ledger: Arc::new(Ledger::new()),
+            completed_effects: Arc::new(CompletedEffects::default()),
+            fault_selection,
+            protocol_support,
+        }
+    }
+
+    fn owners(&self) -> DispatchOwners<'_> {
+        DispatchOwners {
+            ledger: &self.ledger,
+            completed_effects: &self.completed_effects,
+        }
+    }
 }
 
 impl<'a> DispatchOwners<'a> {
@@ -36,49 +64,38 @@ impl<'a> DispatchOwners<'a> {
 /// A malformed or absent request is itself a legitimate boundary event, not
 /// a server bug: a real network peer can always fail to send anything
 /// coherent, and the rail must not panic in response.
-pub async fn handle_connection(
-    mut stream: TcpStream,
-    ledger: Arc<Ledger>,
-    completed_effects: Arc<CompletedEffects>,
-    protocol_support: RailProtocolSupportProfile,
-) {
+pub async fn handle_connection(mut stream: TcpStream, state: Arc<RailDispatchState>) {
     let request = match read_frame::<_, RailRequest>(&mut stream).await {
         Ok(FrameRead::Frame(request)) => request,
         Ok(FrameRead::Disconnected) | Err(_) => return,
     };
 
     let _ = match request {
-        RailRequest::Dispatch(dispatch) => {
-            serve_dispatch(
-                &mut stream,
-                &dispatch,
-                DispatchOwners {
-                    ledger: &ledger,
-                    completed_effects: &completed_effects,
-                },
-                protocol_support,
-            )
-            .await
-        }
+        RailRequest::Dispatch(dispatch) => serve_dispatch(&mut stream, &dispatch, &state).await,
         RailRequest::InquireStatus { correlation } => {
-            fault_behavior::report_status(&mut stream, &correlation, &ledger).await
+            fault_behavior::report_status(&mut stream, &correlation, &state.ledger).await
         }
         RailRequest::InquireNotice { correlation } => {
-            fault_behavior::report_notice(&mut stream, &correlation, &ledger).await
+            fault_behavior::report_notice(&mut stream, &correlation, &state.ledger).await
         }
         RailRequest::InquireAdmissionCount => {
             write_frame(
                 &mut stream,
-                &RailResponseFrame::AdmissionCount(ledger.admission_count()),
+                &RailResponseFrame::AdmissionCount(state.ledger.admission_count()),
             )
             .await
         }
         RailRequest::InquireCompletedEffectCount => {
-            fault_behavior::report_completed_effect_count(&mut stream, &completed_effects).await
+            fault_behavior::report_completed_effect_count(&mut stream, &state.completed_effects)
+                .await
         }
         RailRequest::InquireCompletedNotice { correlation } => {
-            fault_behavior::report_completed_notice(&mut stream, &correlation, &completed_effects)
-                .await
+            fault_behavior::report_completed_notice(
+                &mut stream,
+                &correlation,
+                &state.completed_effects,
+            )
+            .await
         }
     };
 
@@ -93,21 +110,22 @@ pub async fn handle_connection(
 async fn serve_dispatch(
     stream: &mut TcpStream,
     dispatch: &RailDispatch,
-    owners: DispatchOwners<'_>,
-    protocol_support: RailProtocolSupportProfile,
+    state: &RailDispatchState,
 ) -> std::io::Result<()> {
+    let owners = state.owners();
+    let fault_script = state.fault_selection.current();
     let correlation = &dispatch.correlation;
-    let notice = match decode_notice_for_profile(&dispatch.payload, protocol_support) {
+    let notice = match decode_notice_for_profile(&dispatch.payload, state.protocol_support) {
         Ok(notice) => notice,
         Err(rejection) => return fault_behavior::reject(stream, rejection).await,
     };
-    let reserve_new = dispatch.fault_script != FaultScript::DisappearMidDispatch;
+    let reserve_new = fault_script != FaultScript::DisappearMidDispatch;
     match owners
         .ledger
         .admit(correlation, &dispatch.payload, notice, reserve_new)
     {
         RailAdmission::Reserved(reservation) => {
-            apply_fault_script(stream, reservation, dispatch.fault_script, owners).await
+            apply_fault_script(stream, reservation, fault_script, owners).await
         }
         RailAdmission::Replay(status) => replay_status(stream, status).await,
         RailAdmission::MeaningDrift => {

@@ -2,10 +2,10 @@ use super::fixture::{workflow_epoch_fixture, FixtureDisposition, WORKFLOW_STAGE}
 use crate::domain_computation::{
     WorthQueryConvergenceEpochDenialKind, WorthQueryConvergenceIterationStartFailureKind,
     WorthQueryConvergenceTerminalKind, WorthQueryGraphProviderCallKind,
-    WorthQueryManagedGraphCallRequest, WorthQueryManagedRunTerminalKind,
-    WorthQueryManagedStepContractDenialKind, WorthQueryWorkflowConvergenceCleanupOutcome,
-    WorthQueryWorkflowConvergenceIterationOutcome,
-    WorthQueryWorkflowGraphExecutionStartFailureKind, WorthQueryWorkflowGraphStepOutcome,
+    WorthQueryManagedGraphCallRequest, WorthQueryManagedStepContractDenialKind,
+    WorthQueryStartedWorkflowConvergenceIteration, WorthQueryWorkflowConvergenceCleanupOutcome,
+    WorthQueryWorkflowConvergenceIterationOutcome, WorthQueryWorkflowConvergenceStepOutcome,
+    WorthQueryWorkflowGraphExecutionStartFailureKind,
 };
 
 #[test]
@@ -36,14 +36,9 @@ fn real_installed_workflow_seals_its_evidence_stage_and_converges() {
         Ok(started) => started,
         Err(_) => panic!("the sealed workflow evidence stage must start iteration"),
     };
-    let (pending, active) = started.into_parts();
-    let completion = match active.advance() {
-        WorthQueryWorkflowGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("single-step workflow fixture provider must complete"),
-    };
-    let outcome = match pending.admit_completion(completion) {
-        Ok(outcome) => outcome,
-        Err(_) => panic!("exact workflow completion must rejoin the pending epoch"),
+    let outcome = match started.advance() {
+        WorthQueryWorkflowConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("single-step workflow fixture provider must complete and rejoin its epoch"),
     };
     let terminal = match outcome {
         WorthQueryWorkflowConvergenceIterationOutcome::Converged(terminal) => terminal,
@@ -54,16 +49,20 @@ fn real_installed_workflow_seals_its_evidence_stage_and_converges() {
         WorthQueryConvergenceTerminalKind::Converged
     );
     assert_eq!(terminal.incumbents().len(), 1);
+    let incumbent = &terminal.incumbents()[0];
+    let report = terminal
+        .latest_report()
+        .expect("workflow comparison must retain its report");
     assert_eq!(
-        terminal.incumbents()[0].domain_evidence().stage_identity(),
-        Some(WORKFLOW_STAGE)
+        incumbent.report_evidence_identity(),
+        report.evidence_identity()
     );
     assert_eq!(
-        terminal.incumbents()[0]
-            .domain_evidence()
-            .output_occurrence_identity(),
-        "candidate-1"
+        incumbent.state_identity(),
+        report.decision().state_identity()
     );
+    assert_ne!(incumbent.occurrence_identity(), "candidate-1");
+    assert_eq!(report.decision().candidate_selection_key(), "candidate-1");
     let cleanup = terminal.cleanup();
     assert_eq!(cleanup.counters().iteration_count(), 1);
     assert_eq!(cleanup.counters().provider_work_unit_count(), 1);
@@ -71,6 +70,51 @@ fn real_installed_workflow_seals_its_evidence_stage_and_converges() {
         cleanup,
         WorthQueryWorkflowConvergenceCleanupOutcome::Complete(_)
     ));
+}
+
+#[test]
+fn same_semantic_candidate_in_same_stage_workflow_peers_has_distinct_occurrences() {
+    let first = start_workflow_peer("workflow-peer");
+    let second = start_workflow_peer("workflow-peer");
+    let first = complete_workflow_peer(first);
+    let second = complete_workflow_peer(second);
+
+    assert_ne!(first, second);
+}
+
+fn start_workflow_peer(scope: &str) -> WorthQueryStartedWorkflowConvergenceIteration {
+    let epoch = workflow_epoch_fixture(FixtureDisposition::Converged);
+    epoch
+        .begin_stage_iteration(
+            WORKFLOW_STAGE,
+            WorthQueryManagedGraphCallRequest::new(WorthQueryGraphProviderCallKind::Observe, scope),
+        )
+        .unwrap_or_else(|_| panic!("real workflow peer must begin"))
+}
+
+fn complete_workflow_peer(started: WorthQueryStartedWorkflowConvergenceIteration) -> String {
+    let outcome = match started.advance() {
+        WorthQueryWorkflowConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("real workflow peer must complete"),
+    };
+    let terminal = match outcome {
+        WorthQueryWorkflowConvergenceIterationOutcome::Converged(terminal) => terminal,
+        _ => panic!("real workflow peer must converge"),
+    };
+    let incumbent = &terminal.incumbents()[0];
+    assert_eq!(
+        incumbent.report_evidence_identity(),
+        terminal.latest_report().unwrap().evidence_identity()
+    );
+    assert_eq!(
+        terminal
+            .latest_report()
+            .unwrap()
+            .decision()
+            .candidate_selection_key(),
+        "candidate-1"
+    );
+    incumbent.occurrence_identity().to_owned()
 }
 
 #[test]
@@ -104,24 +148,14 @@ fn incompatible_stage_queue_contract_denies_before_iteration_and_terminates_clea
         _ => panic!("an irrecoverable managed start denial must fail closed as indeterminate"),
     };
     assert_eq!(
-        terminal.managed_terminal().kind(),
-        WorthQueryManagedRunTerminalKind::Failed
+        terminal.kind(),
+        WorthQueryConvergenceTerminalKind::Indeterminate
     );
-    assert_eq!(
-        terminal
-            .managed_terminal()
-            .provider_work()
-            .provider_step_attempt_count(),
-        0
-    );
-    assert_eq!(
-        terminal
-            .managed_terminal()
-            .provider_work()
-            .completed_work_units(),
-        0
-    );
+    assert_eq!(terminal.counters().iteration_count(), 0);
+    assert_eq!(terminal.counters().provider_work_unit_count(), 0);
     let cleanup = terminal.cleanup();
+    assert_eq!(cleanup.counters().cleanup_attempt_count(), 1);
+    assert_eq!(cleanup.counters().cleanup_completion_count(), 1);
     assert!(matches!(
         cleanup,
         WorthQueryWorkflowConvergenceCleanupOutcome::Complete(_)

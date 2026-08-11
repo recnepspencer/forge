@@ -57,6 +57,8 @@ struct PublishedApplicationGraph {
     runtime: WorthQueryExecutionRuntime,
     publication: super::WorthQueryPrimaryGraphPublication,
     relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
+    execution_basis_source:
+        worth_relational::facade::runtime::RelationalApplicationCommitBasisSource,
     bridge: worth_runtime_bridge::facade::RuntimeBridge,
     primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     primary_graph_authority: WorthQueryInstalledGraphParticipationAuthority,
@@ -110,6 +112,7 @@ where
         .retain_primary_graph_integration_handle()
         .expect("publishing the primary graph installs its integration authority");
     let relational_source = graph.relational_bridge_source();
+    let execution_basis_source = graph.relational_execution_basis_source();
     let bridge = super::super::managed_bridge::install_application_bridge(
         installed_schema,
         relational_source.clone(),
@@ -121,6 +124,7 @@ where
         runtime,
         publication,
         relational_source,
+        execution_basis_source,
         bridge,
         primary_provider,
         primary_graph_authority,
@@ -175,6 +179,7 @@ fn assemble_application_runtime<Schema>(
         authorization_clock,
         authentication_clock: WorthQueryAuthenticationClock::system(),
         relational_source: graph.relational_source,
+        execution_basis_source: graph.execution_basis_source,
         bridge: graph.bridge,
         primary_provider: graph.primary_provider,
         primary_graph_authority: graph.primary_graph_authority,

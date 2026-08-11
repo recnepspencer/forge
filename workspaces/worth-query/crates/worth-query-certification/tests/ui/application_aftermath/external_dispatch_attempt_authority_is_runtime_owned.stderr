@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_query_host::facade::primary_graph::WorthQueryAdmittedExternalDispatchAttempt`
+ --> tests/ui/application_aftermath/external_dispatch_attempt_authority_is_runtime_owned.rs:1:5
+  |
+1 | use worth_query_host::facade::primary_graph::WorthQueryAdmittedExternalDispatchAttempt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryAdmittedExternalDispatchAttempt` in `facade::primary_graph`

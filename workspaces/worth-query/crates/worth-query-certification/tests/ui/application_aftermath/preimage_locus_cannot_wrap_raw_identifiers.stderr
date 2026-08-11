@@ -1,0 +1,16 @@
+error[E0599]: no function or associated item named `from_schema_identifiers` found for struct `ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>` in the current scope
+  --> tests/ui/application_aftermath/preimage_locus_cannot_wrap_raw_identifiers.rs:10:73
+   |
+10 |     let _ = ApplicationFieldRef::<Schema, Account, State, Status, u64>::from_schema_identifiers(
+   |                                                                         ^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `ApplicationFieldRef<Schema, Account, State, Status, u64>`
+   |
+note: if you're trying to build a new `ApplicationFieldRef<Schema, Account, State, Status, u64>`, consider using `ApplicationFieldRef::<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>::from_schema_types` which returns `ApplicationFieldRef<_, _, _, _, _, _, _, _>`
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_schema/field_reference.rs
+   |
+   |     pub const fn from_schema_types() -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is an associated function `from_schema_types` with a similar name
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_schema/field_reference.rs
+   |
+   |     pub const fn from_schema_types() -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

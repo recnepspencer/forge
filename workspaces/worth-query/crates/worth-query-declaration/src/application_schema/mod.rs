@@ -20,6 +20,7 @@ mod effect_authoring;
 mod effect_payload;
 mod external_effect_protocol;
 mod field_presence;
+mod field_reference;
 mod identifier_validation;
 mod member_closure;
 mod mutation_authoring;
@@ -28,6 +29,7 @@ mod mutation_precondition;
 mod mutation_precondition_authoring;
 mod operation_contract_cardinality;
 mod operation_definition;
+pub(crate) use operation_definition::AftermathAssociationAuthority;
 mod operation_program;
 mod principal_binding_authoring;
 mod principal_binding_reference;
@@ -52,6 +54,8 @@ mod external_effect_closure_tests;
 mod field_presence_tests;
 #[cfg(test)]
 mod operation_contract_cardinality_tests;
+#[cfg(test)]
+mod preimage_canonical_identity_tests;
 
 pub use authoring_context::{
     ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenial,
@@ -83,6 +87,10 @@ pub use effect_authoring::{TypedEffectIntent, TypedEffectIntentBuilder};
 pub use effect_payload::{ApplicationEffectPayload, ApplicationExternalEffectPayload};
 pub use external_effect_protocol::ApplicationExternalEffectProtocol;
 pub use field_presence::ApplicationFieldPresence;
+pub use field_reference::{
+    ApplicationAspectMarkerIdentity, ApplicationEntityMarkerIdentity,
+    ApplicationFieldMarkerIdentity, ApplicationFieldRef,
+};
 pub use mutation_authoring::{
     TypedMutationIntent, TypedMutationIntentBuilder, TypedMutationWrite, TypedOperationBuilder,
     TypedRelationMutation,
@@ -106,8 +114,7 @@ pub use read_authoring::{
 };
 pub use references::{
     ApplicationAbilityRef, ApplicationAspectRef, ApplicationEffectRef, ApplicationEntityRef,
-    ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef, ApplicationRelationRef,
-    ApplicationUnitRef,
+    ApplicationOperationRef, ApplicationPolicyRef, ApplicationRelationRef, ApplicationUnitRef,
 };
 pub use schema_identity::ApplicationSchemaIdentity;
 pub use schema_member::{

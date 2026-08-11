@@ -2,9 +2,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use super::{
-    WorthQueryProviderExecutionPlanContract, WorthQueryProviderSessionDenialKind,
-    WorthQueryProviderSessionFailure, WorthQueryProviderSessionProtocolCounters,
-    WorthQueryProviderSessionProtocolStage,
+    WorthQueryProviderExecutionPlanContract, WorthQueryProviderSessionAffinityIdentity,
+    WorthQueryProviderSessionDenialKind, WorthQueryProviderSessionFailure,
+    WorthQueryProviderSessionProtocolCounters, WorthQueryProviderSessionProtocolStage,
 };
 
 static NEXT_PROTOCOL_SESSION: AtomicU64 = AtomicU64::new(1);
@@ -130,6 +130,13 @@ pub struct WorthQueryProviderSessionView<'session> {
 }
 
 impl WorthQueryProviderSessionView<'_> {
+    #[allow(dead_code)]
+    pub(in crate::domain_computation) fn affinity_identity(
+        self,
+    ) -> WorthQueryProviderSessionAffinityIdentity {
+        WorthQueryProviderSessionAffinityIdentity::from_token(self.token)
+    }
+
     pub fn identity(&self) -> &str {
         self.token.identity()
     }

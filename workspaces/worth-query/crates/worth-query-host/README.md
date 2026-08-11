@@ -26,7 +26,13 @@ Host code may:
 - admit application queries and operations through current capability,
   purpose, disclosure, conflict, and graph-obligation evidence;
 - execute managed provider sessions and consume typed terminal outcomes;
-- publish governed results;
+- consume fresh, recovered, partial-effect, and indeterminate commit outcomes;
+- publish governed results and closed application-aftermath posture;
+- dispatch declared external effects only from co-committed outbox facts;
+- inspect, resolve, safely retry, dispose, or expire an exact receipt-bound
+  runtime recovery handle;
+- admit reconciliation or compensation against exact owner authority without
+  claiming that Query executes the corrective effect;
 - run ordinary installed workflow re-execution;
 - inspect trace-bound lineage and request sparse promotion from an exact
   carrying publication.
@@ -40,6 +46,11 @@ Host code must not:
 - import certification replay through the host facade;
 - construct lineage outcomes or promoted graph identities from raw identity
   material.
+- treat acknowledgement, timeout, disconnect, or lost response as external
+  completion;
+- serialize a recovery handle or treat its opaque wire identity as live
+  authority;
+- teach `facade::provisional_aftermath` as accepted undo/redo support.
 
 ## Related Docs
 
@@ -51,3 +62,4 @@ Host code must not:
 - [Installed Operation Re-Execution And Replay](../worth-query/docs/domain-capabilities/installed-operation-reexecution-and-replay.md)
 - [Typed Stops And Remediation Guidance](../worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md)
 - [Installed Operation Lineage And Promotion](../worth-query/docs/domain-capabilities/installed-operation-lineage-and-promotion.md)
+- [Application Aftermath, External Effects, And Recovery](../worth-query/docs/execution/application-aftermath-and-recovery.md)

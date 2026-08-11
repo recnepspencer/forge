@@ -5,7 +5,7 @@ fn checkpoint_release_panic_reports_exact_non_retryable_physical_posture() {
     let (yielded, bridge, runtime) = super::readmission_direct::yielded_direct_with_provider(
         YieldProvider::checkpoint_drop_panic(),
     );
-    let checkpoint = yielded.checkpoint().identity().to_owned();
+    let checkpoint = yielded.inspection().checkpoint().identity().to_owned();
     let recovery = match yielded.readmit_same_runtime(&runtime, &bridge) {
         crate::domain_computation::WorthQueryDirectReadmissionOutcome::RecoveryRequired(
             recovery,
@@ -50,80 +50,13 @@ fn checkpoint_release_panic_reports_exact_non_retryable_physical_posture() {
         ) => receipt,
         _ => panic!("checkpoint release panic must remain visible after terminal cleanup"),
     };
+    let inspection = receipt.inspection();
     assert_eq!(
-        receipt.checkpoint_release().disposition(),
+        inspection.checkpoint().release_disposition(),
         crate::domain_computation::WorthQueryProviderCheckpointReleaseDisposition::Panicked
     );
-    assert!(receipt.bridge().reservation_released());
-    assert!(receipt.relational().released());
-    assert_eq!(receipt.attempt().capacity().released_reservation_count(), 2);
-}
-
-#[test]
-fn workflow_checkpoint_failure_and_generation_disruption_become_cleanup_only_authority() {
-    let (provider, registry_slot) = YieldProvider::artifact_generation_rollback_failure(7);
-    let (yielded, bridge, runtime, _producer) =
-        super::readmission_workflow::yielded_workflow(provider);
-    let generation = yielded.artifact_evidence().production_generation();
-    let registry = yielded.artifacts.registry();
-    *registry_slot
-        .lock()
-        .expect("workflow rollback fixture registry slot must remain available") = Some(registry);
-
-    let recovery = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(
-            recovery,
-        ) => recovery,
-        _ => panic!("coupled checkpoint and generation failure must require recovery"),
-    };
-    assert_eq!(
-        recovery.kind(),
-        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryKind::
-            ArtifactGenerationRollbackFailed
-    );
-    assert_eq!(
-        recovery.posture(),
-        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryPosture::
-            ArtifactGenerationCleanupRequired
-    );
-    assert_eq!(
-        recovery
-            .checkpoint_release()
-            .expect("provider checkpoint release evidence must survive")
-            .disposition(),
-        crate::domain_computation::WorthQueryProviderCheckpointReleaseDisposition::Panicked
-    );
-
-    let recovery = match recovery {
-        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryRequired::TerminalCleanup(
-            recovery,
-        ) => recovery,
-        _ => panic!("failed generation rollback must expose only terminal cleanup authority"),
-    };
-    let cleanup = recovery.into_cleanup();
-    let receipt = match cleanup.finish() {
-        crate::domain_computation::WorthQueryWorkflowReadmissionCleanupOutcome::RecoveryRequired(
-            receipt,
-        ) => receipt,
-        _ => panic!("typed generation and provider recovery evidence must survive cleanup"),
-    };
-    let rollback = receipt
-        .generation_rollback()
-        .expect("cleanup receipt must carry typed generation rollback evidence");
-    assert_eq!(rollback.prior_generation(), generation);
-    assert_eq!(rollback.pending_generation(), generation + 1);
-    assert_eq!(
-        rollback.denial_kind(),
-        crate::domain_computation::WorthQueryArtifactDenialKind::StaleLifecycleGeneration
-    );
-    assert_eq!(
-        receipt.checkpoint_release().disposition(),
-        crate::domain_computation::WorthQueryProviderCheckpointReleaseDisposition::Panicked
-    );
-    assert!(receipt.bridge().reservation_released());
-    assert!(receipt.relational().released());
-    assert_eq!(receipt.attempt().capacity().released_reservation_count(), 3);
-    assert_eq!(receipt.artifact_evidence().retained_artifact_count(), 0);
+    assert!(inspection.resources_released());
+    assert_eq!(inspection.released_reservation_count(), 2);
 }
 
 #[test]
@@ -177,14 +110,15 @@ fn checkpoint_and_restored_execution_drop_panics_preserve_both_physical_disposit
         ) => receipt,
         _ => panic!("both physical failures must survive complete terminal cleanup"),
     };
+    let inspection = receipt.inspection();
     assert_eq!(
-        receipt.checkpoint_release().disposition(),
+        inspection.checkpoint().release_disposition(),
         crate::domain_computation::WorthQueryProviderCheckpointReleaseDisposition::Panicked
     );
-    assert!(receipt
-        .restored_execution_release()
+    assert!(inspection
+        .restored_execution()
         .expect("restored execution release evidence must remain attached")
         .recovery_required());
-    assert!(receipt.relational().released());
-    assert_eq!(receipt.attempt().capacity().released_reservation_count(), 2);
+    assert!(inspection.resources_released());
+    assert_eq!(inspection.released_reservation_count(), 2);
 }

@@ -9,12 +9,17 @@ use super::{
     WorthQueryPrimaryGraphApplicationDecisionFact, WorthQueryPrimaryGraphProvider,
 };
 use crate::domain_computation::application_aftermath::{
-    dispatch_outbox_create_intent, WorthQueryDispatchOutboxRecord,
+    bind_dispatch_outbox_create_intent, WorthQueryDispatchOutboxRecord,
+    WorthQueryPendingDispatchOutbox,
 };
+use crate::domain_computation::primary_graph::application_attempt::WorthQueryProviderEffectRegistrationSeal;
 
 pub(in crate::domain_computation::primary_graph) struct WorthQueryApplicationAttemptRegistration<'a>
 {
-    pub(in crate::domain_computation::primary_graph) session_identity: &'a str,
+    pub(in crate::domain_computation::primary_graph) effect_owner:
+        WorthQueryProviderEffectRegistrationSeal,
+    pub(in crate::domain_computation::primary_graph) provider_session_binding:
+        crate::domain_computation::provider_session::WorthQueryProviderSessionTerminalBinding,
     pub(in crate::domain_computation::primary_graph) facts:
         Vec<WorthQueryPrimaryGraphApplicationDecisionFact>,
     pub(in crate::domain_computation::primary_graph) expected_steps:
@@ -42,7 +47,6 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryApplicationAtt
 }
 
 struct WorthQueryPreparedApplicationAttempt {
-    session_identity: String,
     attempt: WorthQueryPrimaryGraphApplicationAttempt,
     dispatch_outbox: Option<WorthQueryDispatchOutboxRecord>,
 }
@@ -55,30 +59,24 @@ impl WorthQueryPrimaryGraphProvider {
     ) -> Result<Option<WorthQueryDispatchOutboxRecord>, &'static str> {
         let prepared = self.prepare_application_attempt(registration)?;
         let WorthQueryPreparedApplicationAttempt {
-            session_identity,
             attempt,
             dispatch_outbox,
         } = prepared;
-        let mut sessions = self
-            .sessions
+        self.application_attempt_work.observe_attempt_registration();
+        self.attempts
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if sessions
-            .application_attempts
-            .insert(session_identity, attempt)
-            .is_some()
-        {
-            return Err("provider session already owns an application attempt");
-        }
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .register(attempt)?;
         Ok(dispatch_outbox)
     }
 
-    fn prepare_application_attempt(
+    fn prepare_application_attempt<'a>(
         &self,
-        registration: WorthQueryApplicationAttemptRegistration<'_>,
+        registration: WorthQueryApplicationAttemptRegistration<'a>,
     ) -> Result<WorthQueryPreparedApplicationAttempt, &'static str> {
         let WorthQueryApplicationAttemptRegistration {
-            session_identity,
+            effect_owner: _effect_owner,
+            provider_session_binding,
             facts,
             expected_steps,
             mut batch,
@@ -129,9 +127,12 @@ impl WorthQueryPrimaryGraphProvider {
             &graph_work_session,
             retained_authorization_fact_count,
         )?;
+        let dispatch_outbox_record = dispatch_outbox
+            .as_ref()
+            .map(|pending| pending.record().clone());
         Ok(WorthQueryPreparedApplicationAttempt {
-            session_identity: session_identity.to_owned(),
             attempt: WorthQueryPrimaryGraphApplicationAttempt {
+                provider_session_binding,
                 outcome_identity,
                 facts,
                 expected_steps,
@@ -143,8 +144,9 @@ impl WorthQueryPrimaryGraphProvider {
                 decision_fact_count,
                 preimage_demand: preimage_demand.cloned(),
                 aftermath_causality,
+                dispatch_outbox,
             },
-            dispatch_outbox,
+            dispatch_outbox: dispatch_outbox_record,
         })
     }
 
@@ -155,19 +157,20 @@ impl WorthQueryPrimaryGraphProvider {
     ) -> Result<
         (
             worth_relational::facade::transactions::WorkerIntentBatch,
-            Option<WorthQueryDispatchOutboxRecord>,
+            Option<WorthQueryPendingDispatchOutbox>,
         ),
         &'static str,
     > {
         let record = derive_dispatch_outbox_record(basis)
             .map_err(|_| "external-effect correlation derivation failed")?;
-        if let Some(intent) = dispatch_outbox_create_intent(
+        let pending = bind_dispatch_outbox_create_intent(
             Some(self.graph.layout.provider_dispatch_outbox()),
             record.as_ref(),
-        ) {
-            batch = batch.push(intent);
+        );
+        if let Some((intent, _)) = &pending {
+            batch = batch.push(intent.clone());
         }
-        Ok((batch, record))
+        Ok((batch, pending.map(|(_, pending)| pending)))
     }
 }
 

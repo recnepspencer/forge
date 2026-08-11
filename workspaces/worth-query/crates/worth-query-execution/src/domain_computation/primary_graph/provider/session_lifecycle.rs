@@ -14,6 +14,8 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
         _plan: &WorthQueryProviderExecutionPlanView<'_>,
         admission: WorthQueryProviderSessionTokenAdmission,
     ) -> Result<WorthQueryProviderSessionToken, WorthQueryProviderSessionFailure> {
+        self.application_attempt_work
+            .observe_provider_session_readmission();
         admission.admit("primary-application-relational-session")
     }
 
@@ -21,6 +23,8 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
         &self,
         _session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<(), WorthQueryProviderSessionFailure> {
+        self.application_attempt_work
+            .observe_provider_session_preparation();
         #[cfg(test)]
         if self.take_rejected_session_prepare() {
             return Err(super::session_commit::provider_failure(
@@ -35,11 +39,13 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
         &self,
         session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<(), WorthQueryProviderSessionFailure> {
-        let sessions = self
-            .sessions
+        self.application_attempt_work
+            .observe_staged_session_preparation();
+        let attempts = self
+            .attempts
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if sessions.session_overlays.contains_key(session.identity()) {
+        if attempts.is_staged_session_preparable(session.affinity_identity()) {
             Ok(())
         } else {
             Err(super::session_commit::provider_failure(
@@ -53,23 +59,19 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
         &self,
         session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<String, WorthQueryProviderSessionFailure> {
-        super::session_commit::commit_prepared_session(self, session.identity())
+        self.application_attempt_work.observe_prepared_commit();
+        super::session_commit::commit_prepared_session(self, session.affinity_identity())
     }
 
     fn abort_provider_session(
         &self,
         session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<String, WorthQueryProviderSessionFailure> {
-        let mut sessions = self
-            .sessions
+        self.application_attempt_work.observe_attempt_abort();
+        self.attempts
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(overlay) = sessions.session_overlays.remove(session.identity()) {
-            sessions.overlays.remove(&overlay);
-        }
-        sessions.application_attempts.remove(session.identity());
-        sessions.validated_mutations.remove(session.identity());
-        sessions.invariant_work.remove(session.identity());
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .abort(session.affinity_identity());
         Ok(format!("primary-application-abort:{}", session.identity()))
     }
 }

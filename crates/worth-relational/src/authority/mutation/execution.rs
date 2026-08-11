@@ -13,6 +13,7 @@ use super::{
 pub(crate) struct MutationApplyOutcome {
     pub(crate) effect: MutationEffect,
     pub(crate) preparation_telemetry: MutationPreparationTelemetry,
+    pub(crate) created_entities: crate::transactions::data::CommitCreatedEntityBindings,
 }
 
 pub(crate) fn apply_plan_to_working_state(
@@ -42,9 +43,12 @@ pub(crate) fn apply_plan_to_working_state(
         effect.accumulate(assemble_effect(child, &mut workspace)?);
     }
 
+    let preparation_telemetry = workspace.preparation_telemetry();
+    let created_entities = workspace.into_created_entity_bindings();
     Ok(MutationApplyOutcome {
         effect,
-        preparation_telemetry: workspace.preparation_telemetry(),
+        preparation_telemetry,
+        created_entities,
     })
 }
 

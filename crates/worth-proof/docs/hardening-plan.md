@@ -114,41 +114,36 @@ hands over, which is why practice is inconsistent.
 with a private constructor plus an owner-only mint. There is precedent for
 macro-based compile-time enforcement here already (`band_guard!` in `band.rs`).
 
-## H5 — Certify the crate's own shape mechanically
+## H5 — Certify authority boundaries and supported workflows
 
-Two rules, as tests, because both defect classes above are mechanically
-detectable and were found only by a human reading source:
+Authority-bearing operations accept only the concrete proof, authority, and
+capability values issued by their owning worth-proof workflows. Maintained
+downstream compile-fail contracts prove that counterfeit values and direct
+sealed construction cannot satisfy those operations. Each supported public
+workflow named in the feature contract has downstream compile-pass or
+executable documentation evidence.
 
-1. **Every publicly exported type has at least one reachable public
-   constructor.** Catches H2 outright.
-2. **Every sealed constructor has a compile-fail covering *every* construction
-   door** — struct literal *and* each associated fn. The witness seal proved one
-   of two doors; Phase 8's `recovery_authority_constructor_is_private` proves
-   both, and is the standard to copy.
+Two bounded catalogs own this guarantee:
 
-**Landed as** `tests/public_surface_reachability_certification.rs`, implementing
-rule 1. Rule 2 remains a review standard rather than a test.
+1. **Authority boundary contracts.** Each sensitive operation has an
+   owner-issued compile-pass case, a structurally similar counterfeit local
+   value that fails at the protected call, and direct-construction compile-fail
+   evidence when privacy is load-bearing.
+2. **Supported workflow contracts.** Caller-level evidence covers checked
+   `DisjointPair` construction, scoped brand usage, proof/capability
+   progression, recipe resolution through execution readiness, trust-boundary
+   bridging, and the primary transition workflow.
 
-**What building it taught, recorded because the guard nearly shipped useless:**
+The negative authority oracle is the protected operation's concrete type
+signature, not merely a private field. Private construction evidence closes the
+additional minting door where possession of the marker value is the authority.
+BC7001 also requires named production imports and reexports for governed crates;
+glob imports and reexports are denied so the authority surface remains explicit.
 
-- A line-wise scan of `pub use` found **a tenth** of the export surface. Caught
-  only by a sanity assertion that refuses to pass when the scan looks
-  implausibly small. **A guard needs a guard against finding nothing.**
-- `in_test_module` latched on the first `#[cfg(test)]`, which after H3 sits on
-  an *item* rather than a module — blinding the scan to everything below it. My
-  own H3 change broke my own H5 test.
-- Signatures and `impl` headers wrap in this codebase, so `pub fn new(` and
-  `-> Self` are on different lines, as are `impl<A, B, C>` and the type it
-  implements. Every one of these read as "nothing produces this."
-- **Negative control:** the door on `DisjointPair` was temporarily removed and
-  the guard flagged it, then restored. A certification test that has never been
-  observed failing is a claim, not evidence.
-
-Known limits, stated so the exemption list is not mistaken for a clean bill:
-the scan does not follow type aliases (hence `BoundaryBridged`), and it is
-string matching rather than parsing. It reliably catches the `DisjointPair`
-shape — an exported struct sealed by private fields that nothing public
-returns — and is not a general reachability prover.
+This scope deliberately does not maintain a universal registry of public Rust
+types or reconstruct Rust name resolution. Public data shape is not itself an
+authority boundary. The durable caller contract is documented in
+`docs/features/authority-and-workflow-contracts.md`.
 
 ---
 

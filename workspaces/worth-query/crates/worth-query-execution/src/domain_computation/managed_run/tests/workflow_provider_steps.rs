@@ -165,7 +165,13 @@ fn workflow_stage_provider_call_uses_stage_resources_and_receipt_evidence() {
         .expect("step-bound stage work should complete");
     assert_eq!(terminal.provider_work().completed_work_units(), 3);
     let cleanup = workflow_cleanup(terminal.cleanup());
-    assert_eq!(cleanup.provider_work().admitted_receipt_count(), 1);
+    assert_eq!(
+        cleanup
+            .inspection()
+            .provider_work()
+            .admitted_receipt_count(),
+        1
+    );
 }
 
 #[test]
@@ -232,7 +238,7 @@ fn workflow_step_derives_artifact_and_checkpoint_evidence_from_governed_ports() 
     assert_workflow_artifact_evidence(terminal.artifact_evidence(), (1, 0, 1, 0));
     let cleanup = workflow_cleanup(terminal.cleanup());
     assert_eq!(
-        cleanup.disposition(),
+        cleanup.inspection().disposition(),
         WorthQueryManagedRunCleanupDisposition::CleanupComplete
     );
 }
@@ -284,7 +290,9 @@ fn failed_workflow_stage_preserves_governed_work_and_requires_recovery() {
     assert_eq!(terminal.provider_work().abandoned_call_count(), 1);
     assert_eq!(terminal.provider_work().completed_work_units(), 3);
     assert_eq!(
-        workflow_cleanup(terminal.cleanup()).disposition(),
+        workflow_cleanup(terminal.cleanup())
+            .inspection()
+            .disposition(),
         WorthQueryManagedRunCleanupDisposition::RecoveryRequired
     );
 }

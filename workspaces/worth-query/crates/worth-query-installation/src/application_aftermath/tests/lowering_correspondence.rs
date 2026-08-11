@@ -2,16 +2,23 @@
 
 use worth_query_declaration::facade::application_aftermath::DeclaredApplicationAftermathContract;
 
-use super::super::{PublishedAftermathPosture, WorthQueryAftermathInstallationDenialKind};
-use super::{binding, digest, geometry_catalog, protocol, recorded_inverse, AftermathInstall};
+use super::super::{
+    AftermathLoweringCorrespondenceCatalog, InstalledLoweringCorrespondence,
+    LoweringCorrespondenceResolutionDenial, PublishedAftermathPosture,
+    WorthQueryAftermathInstallationDenialKind,
+};
+use super::{
+    binding, digest, protocol, recorded_inverse, recorded_inverse_at, Account, AftermathInstall,
+    Balance, FixtureSchema, OtherAccount, OtherAccountBalance, OtherAccountState, OtherBalance,
+    OtherState, OtherStateBalance, SecretField, State,
+};
 
 #[test]
 fn preimage_demand_must_be_covered_by_declared_reads() {
     let denial = AftermathInstall::new(binding(digest(17), digest(18), 1), "freeze-account")
-        .reads(["balance"])
-        .catalog(geometry_catalog(1, digest(18)))
-        .install(&DeclaredApplicationAftermathContract::runtime_alone(
-            recorded_inverse("secret-field"),
+        .reads::<Balance>()
+        .install(DeclaredApplicationAftermathContract::runtime_alone(
+            recorded_inverse::<SecretField>(),
         ))
         .expect_err("uncovered pre-image demand must deny");
     assert_eq!(
@@ -28,9 +35,8 @@ fn an_operation_declaring_no_reads_denies_distinctly_from_a_missed_slot() {
     // missing its `graph_reads` entirely. Behind the per-slot loop this arm was
     // unreachable, so the denial kind existed without ever being able to fire.
     let denial = AftermathInstall::new(binding(digest(21), digest(22), 1), "freeze-account")
-        .catalog(geometry_catalog(1, digest(22)))
-        .install(&DeclaredApplicationAftermathContract::runtime_alone(
-            recorded_inverse("balance"),
+        .install(DeclaredApplicationAftermathContract::runtime_alone(
+            recorded_inverse::<Balance>(),
         ))
         .expect_err("an operation with no declared reads cannot cover a demand");
     assert_eq!(
@@ -42,15 +48,64 @@ fn an_operation_declaring_no_reads_denies_distinctly_from_a_missed_slot() {
 #[test]
 fn preimage_covered_demand_installs() {
     let installed = AftermathInstall::new(binding(digest(19), digest(20), 1), "freeze-account")
-        .reads(["balance"])
-        .catalog(geometry_catalog(1, digest(20)))
-        .install(&DeclaredApplicationAftermathContract::runtime_alone(
-            recorded_inverse("balance"),
+        .reads::<Balance>()
+        .install(DeclaredApplicationAftermathContract::runtime_alone(
+            recorded_inverse::<Balance>(),
         ))
         .expect("covered pre-image demand must install");
     assert_eq!(
         installed.published_posture(),
         PublishedAftermathPosture::Reversible
+    );
+}
+
+#[test]
+fn same_named_field_on_another_entity_or_aspect_cannot_cover_demand() {
+    let owner = binding(digest(41), digest(42), 1);
+    let entity_denial = AftermathInstall::new(owner.clone(), "freeze-account")
+        .reads_at::<OtherAccount, OtherAccountState, OtherAccountBalance>()
+        .install(DeclaredApplicationAftermathContract::runtime_alone(
+            recorded_inverse::<Balance>(),
+        ))
+        .expect_err("same field name on another entity must not cover demand");
+    let aspect_denial = AftermathInstall::new(owner, "freeze-account")
+        .reads_at::<Account, OtherState, OtherStateBalance>()
+        .install(DeclaredApplicationAftermathContract::runtime_alone(
+            recorded_inverse::<Balance>(),
+        ))
+        .expect_err("same field name on another aspect must not cover demand");
+    for denial in [entity_denial, aspect_denial] {
+        assert_eq!(
+            denial.kind(),
+            WorthQueryAftermathInstallationDenialKind::PreImageDemandNotCoveredByDeclaredReads
+        );
+    }
+}
+
+#[test]
+fn installed_identity_carries_every_exact_preimage_axis_and_bound() {
+    let owner = binding(digest(43), digest(44), 1);
+    let baseline = install_exact::<Account, State, Balance>(&owner, 64);
+    for changed in [
+        install_exact::<OtherAccount, OtherAccountState, OtherAccountBalance>(&owner, 64),
+        install_exact::<Account, OtherState, OtherStateBalance>(&owner, 64),
+        install_exact::<Account, State, OtherBalance>(&owner, 64),
+        install_exact::<Account, State, Balance>(&owner, 65),
+    ] {
+        assert_ne!(baseline.identity().bytes(), changed.identity().bytes());
+    }
+    let locus = &baseline
+        .mechanism()
+        .and_then(|mechanism| match mechanism {
+            super::super::InstalledCorrectionMechanism::RecordedInverse(inverse) => {
+                inverse.preimage_demand().loci().first()
+            }
+            _ => None,
+        })
+        .expect("baseline installs one exact pre-image locus");
+    assert_eq!(
+        (locus.entity(), locus.aspect(), locus.field()),
+        ("Account", "State", "balance")
     );
 }
 
@@ -66,11 +121,10 @@ fn preimage_covered_demand_installs() {
 #[test]
 fn an_operation_that_escapes_cannot_install_as_reversible() {
     let denial = AftermathInstall::new(binding(digest(19), digest(20), 1), "freeze-account")
-        .reads(["balance"])
-        .catalog(geometry_catalog(1, digest(20)))
+        .reads::<Balance>()
         .escaping()
-        .install(&DeclaredApplicationAftermathContract::runtime_alone(
-            recorded_inverse("balance"),
+        .install(DeclaredApplicationAftermathContract::runtime_alone(
+            recorded_inverse::<Balance>(),
         ))
         .expect_err("an escaping operation cannot be reversible");
     assert_eq!(
@@ -84,6 +138,32 @@ fn an_operation_that_escapes_cannot_install_as_reversible() {
     );
 }
 
+fn install_exact<Entity, Aspect, Field>(
+    owner: &worth_query_declaration::facade::application_schema::ApplicationSchemaBindingIdentity,
+    bound: usize,
+) -> super::super::WorthQueryInstalledAftermathContract
+where
+    Entity: worth_query_declaration::facade::application_schema::ApplicationEntityMarkerIdentity<
+        Schema = FixtureSchema,
+    >,
+    Aspect: worth_query_declaration::facade::application_schema::ApplicationAspectMarkerIdentity<
+        Schema = FixtureSchema,
+        Entity = Entity,
+    >,
+    Field: worth_query_declaration::facade::application_schema::ApplicationFieldMarkerIdentity<
+        Schema = FixtureSchema,
+        Entity = Entity,
+        Aspect = Aspect,
+    >,
+{
+    AftermathInstall::new(owner.clone(), "freeze-account")
+        .reads_at::<Entity, Aspect, Field>()
+        .install(DeclaredApplicationAftermathContract::runtime_alone(
+            recorded_inverse_at::<Entity, Aspect, Field>(bound),
+        ))
+        .unwrap()
+}
+
 /// Q8.25-C1: the installed posture is the operation's lane, not a second claim.
 ///
 /// Two installs of the *same* declared aftermath contract differ only in whether
@@ -95,11 +175,11 @@ fn the_installed_external_posture_follows_the_operation_lane() {
 
     let declared = DeclaredApplicationAftermathContract::not_correctable();
     let quiet = AftermathInstall::new(binding(digest(31), digest(32), 1), "release-estate")
-        .install(&declared)
+        .install(declared.clone())
         .expect("a non-escaping operation installs");
     let escaping = AftermathInstall::new(binding(digest(31), digest(32), 1), "release-estate")
         .escaping()
-        .install(&declared)
+        .install(declared)
         .expect("an escaping operation installs when it is not reversible");
 
     assert_eq!(
@@ -125,11 +205,11 @@ fn stable_wire_type_drift_changes_installed_aftermath_identity() {
     let owner = binding(digest(33), digest(34), 1);
     let left = AftermathInstall::new(owner.clone(), "same-operation")
         .escaping_with_protocol(protocol(1))
-        .install(&declared)
+        .install(declared.clone())
         .expect("the first protocol installs");
     let right = AftermathInstall::new(owner, "same-operation")
         .escaping_with_protocol(protocol(2))
-        .install(&declared)
+        .install(declared)
         .expect("the second protocol installs");
 
     assert_ne!(left.identity().bytes(), right.identity().bytes());
@@ -142,11 +222,11 @@ fn rust_payload_type_drift_changes_only_the_in_process_installed_axis() {
     let protocol = protocol(1);
     let left = AftermathInstall::new(owner.clone(), "same-operation")
         .escaping_with_contract("original::EscapingPayload", protocol.clone())
-        .install(&declared)
+        .install(declared.clone())
         .expect("the original Rust type installs");
     let right = AftermathInstall::new(owner, "same-operation")
         .escaping_with_contract("moved::EscapingPayload", protocol)
-        .install(&declared)
+        .install(declared)
         .expect("the moved Rust type installs");
 
     assert_ne!(left.identity().bytes(), right.identity().bytes());
@@ -158,10 +238,10 @@ fn identical_declared_different_operation_slots_produce_distinct_identities() {
     let schema = digest(28);
     let declared = DeclaredApplicationAftermathContract::not_correctable();
     let left = AftermathInstall::new(binding(package, schema, 1), "operation-alpha")
-        .install(&declared)
+        .install(declared.clone())
         .unwrap();
     let right = AftermathInstall::new(binding(package, schema, 1), "operation-beta")
-        .install(&declared)
+        .install(declared)
         .unwrap();
     assert_ne!(left.identity().bytes(), right.identity().bytes());
 }
@@ -198,10 +278,10 @@ fn owner_identity_digest_binds_classification_to_domain_identity() {
     assert_ne!(left_owner.bytes(), right_owner.bytes());
     let declared = DeclaredApplicationAftermathContract::not_correctable();
     let left = AftermathInstall::new(binding(left_owner, left_owner, 1), "same-operation")
-        .install(&declared)
+        .install(declared.clone())
         .unwrap();
     let right = AftermathInstall::new(binding(right_owner, right_owner, 1), "same-operation")
-        .install(&declared)
+        .install(declared)
         .unwrap();
     assert_ne!(left.identity().bytes(), right.identity().bytes());
 }
@@ -249,45 +329,28 @@ fn irreversible_next_action_contract_has_no_undo_method_in_source() {
 }
 
 #[test]
-fn lowering_correspondence_unresolved_denies_at_install() {
-    let denial = AftermathInstall::new(binding(digest(21), digest(22), 1), "freeze-account")
-        .reads(["balance"])
-        .install(&DeclaredApplicationAftermathContract::runtime_alone(
-            recorded_inverse("balance"),
-        ))
-        .expect_err("unresolved catalog must deny");
-    assert_eq!(
-        denial.kind(),
-        WorthQueryAftermathInstallationDenialKind::LoweringCorrespondenceUnresolved
-    );
-}
+fn lowering_catalog_denials_remain_exact_at_the_catalog_owner() {
+    use LoweringCorrespondenceResolutionDenial as Denial;
 
-#[test]
-fn lowering_correspondence_wrong_generation_denies_at_install() {
-    let denial = AftermathInstall::new(binding(digest(23), digest(24), 1), "freeze-account")
-        .reads(["balance"])
-        .catalog(geometry_catalog(9, digest(24)))
-        .install(&DeclaredApplicationAftermathContract::runtime_alone(
-            recorded_inverse("balance"),
-        ))
-        .expect_err("wrong generation must deny");
+    let graph = digest(24);
+    let candidate =
+        InstalledLoweringCorrespondence::new("geometry-inverse", digest(23), 1, graph).unwrap();
     assert_eq!(
-        denial.kind(),
-        WorthQueryAftermathInstallationDenialKind::LoweringCorrespondenceWrongGeneration
+        AftermathLoweringCorrespondenceCatalog::empty().resolve("geometry-inverse", 1, &graph,),
+        Err(Denial::Unresolved)
     );
-}
-
-#[test]
-fn lowering_correspondence_mismatched_graph_participation_denies_at_install() {
-    let denial = AftermathInstall::new(binding(digest(25), digest(26), 1), "freeze-account")
-        .reads(["balance"])
-        .catalog(geometry_catalog(1, digest(99)))
-        .install(&DeclaredApplicationAftermathContract::runtime_alone(
-            recorded_inverse("balance"),
-        ))
-        .expect_err("mismatched graph participation must deny");
+    let catalog = AftermathLoweringCorrespondenceCatalog::new([candidate.clone()]);
     assert_eq!(
-        denial.kind(),
-        WorthQueryAftermathInstallationDenialKind::LoweringCorrespondenceMismatchedGraphParticipation
+        catalog.resolve("geometry-inverse", 9, &graph),
+        Err(Denial::WrongGeneration)
+    );
+    assert_eq!(
+        catalog.resolve("geometry-inverse", 1, &digest(99)),
+        Err(Denial::MismatchedGraphParticipation)
+    );
+    let ambiguous = AftermathLoweringCorrespondenceCatalog::new([candidate.clone(), candidate]);
+    assert_eq!(
+        ambiguous.resolve("geometry-inverse", 1, &graph),
+        Err(Denial::Ambiguous)
     );
 }

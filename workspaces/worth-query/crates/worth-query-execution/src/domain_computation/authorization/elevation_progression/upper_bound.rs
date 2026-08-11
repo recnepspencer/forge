@@ -2,7 +2,7 @@ use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequestProjection;
 use worth_relational::facade::identity::EntityId;
 
-use super::super::capability_request_resolution::WorthQueryResolvedCapabilityRequest;
+use super::super::capability_admission::WorthQueryResolvedCapabilityRequest;
 use super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 
 #[derive(Clone)]
@@ -25,7 +25,7 @@ impl std::fmt::Debug for WorthQueryElevationUpperBound {
 }
 
 impl WorthQueryElevationUpperBound {
-    pub(super) fn capture<Schema, Scope, Context>(
+    pub(in crate::domain_computation::authorization) fn capture<Schema, Scope, Context>(
         capability_identity: [u8; 32],
         principal: EntityId,
         projection: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,

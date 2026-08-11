@@ -11,11 +11,10 @@ use bank_domain::{
     schema::PostingPurpose,
 };
 use bank_server::{
-    queries, BankAuthenticatedPrincipal, BankCommitReceipt, BankEstateProgressionDenial,
-    BankMutationCommitOutcome, BankReadControls,
+    queries, BankAuthenticatedPrincipal, BankCommitDenialKind, BankCommitDenialStage,
+    BankCommitReceipt, BankEstateProgressionDenial, BankMutationCommitOutcome, BankReadControls,
 };
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
     WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationQueryControls,
 };
 
@@ -121,7 +120,7 @@ fn assert_equivalent_retry(
     let BankMutationCommitOutcome::AlreadyCommitted(recovered) = retry else {
         panic!("the retry must recover the authoritative commit: {retry:?}");
     };
-    assert!(committed.is_same_authoritative_commit(&recovered));
+    assert_eq!(committed.aftermath(), recovered.aftermath());
 }
 
 fn assert_authoritative_activity(fixture: &DisbursementFixture) {
@@ -243,8 +242,8 @@ fn assert_drift(
     assert!(matches!(
         outcome,
         BankMutationCommitOutcome::Denied {
-            kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
-            stage: WorthQueryApplicationCommitDenialStage::Idempotency,
+            kind: BankCommitDenialKind::IdempotencyIntentDrift,
+            stage: BankCommitDenialStage::Idempotency,
         }
     ));
 }

@@ -27,13 +27,19 @@ Key methods:
 - `Pair::right()`
 - `NonEmpty::new(head, tail)`
 - `NonEmpty::try_from_vec(items)`
+- `DisjointPair::try_from_disjoint(left, right)`
 - `DisjointPair::left()`
 - `DisjointPair::right()`
+- `DisjointPair::pair()`
 - `DisjointPair::proof()`
+- `DisjointPair::into_parts()`
 
 Good to know:
 
-- `DisjointPair` construction is sealed because it carries a real proof fact
+- public callers construct `DisjointPair` through `try_from_disjoint`, which
+  checks `left != right` before minting the carried fact
+- equal inputs are rejected as the original `Pair<T>`, so neither value is lost
+- stronger constructors that accept an already-minted proof remain sealed
 
 ## DX Posture
 
@@ -61,18 +67,26 @@ Typical usage:
 1. construct the smallest honest shape wrapper
 2. use its typed accessors instead of raw tuple or vector indexing
 3. preserve or extract owned state explicitly
-4. for proof-bearing wrappers like `DisjointPair`, let stronger surfaces construct them
+4. for `DisjointPair`, use the public checked constructor when raw values are
+   available; use stronger proof-bearing progression only when that authority
+   already exists
 
 ## Small Example
 
 ```rust
-use worth_proof::{ExactlyOne, Pair};
+use worth_proof::{DisjointPair, ExactlyOne, Pair};
 
 let only = ExactlyOne::new("only");
 let pair = Pair::new("left", "right");
+let disjoint = DisjointPair::try_from_disjoint("left", "right")
+    .expect("unequal values are disjoint");
+let rejected = DisjointPair::try_from_disjoint("same", "same")
+    .expect_err("equal values are not disjoint");
 
 assert_eq!(only.get(), &"only");
 assert_eq!(pair.left(), &"left");
+assert_eq!(disjoint.right(), &"right");
+assert_eq!(rejected.into_array(), ["same", "same"]);
 ```
 
 This is the smallest honest example because both wrappers are public, direct, and encode real shape constraints.
@@ -119,7 +133,8 @@ What this shows:
 ## Current Limits
 
 - fixed-shape wrappers are intentionally small and static
-- `DisjointPair` sealing means public callers consume it more often than they mint it
+- `DisjointPair::try_from_disjoint` is the public minting door; callers cannot
+  bypass its equality check or supply arbitrary proof authority
 - these wrappers do not replace higher-level composition flows; they support them
 
 ## Related Docs

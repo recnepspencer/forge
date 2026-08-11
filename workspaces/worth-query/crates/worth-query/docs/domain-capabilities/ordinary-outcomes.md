@@ -26,6 +26,10 @@ Declaration-entry convenience methods that return `Result` should keep their
 typed error. Convert to an ordinary outcome only when the owning public API
 explicitly exposes that lane.
 
+Despite the method name, `recover_from_outcome(...)` derives descriptive
+remediation guidance. It does not mint the receipt-bound
+`WorthQueryRecoveryHandle` used by committed application-aftermath recovery.
+
 ## Core Mental Model
 
 An ordinary outcome does not erase the boundary. `Bound` retains the public
@@ -64,6 +68,7 @@ match (outcome.bound(), context.recover_from_outcome(&outcome)) {
 ## How It Relates To Other Features
 
 - [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md) derives descriptive next-step guidance.
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md) owns operational recovery after commit.
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
   exposes an ordinary outcome lane.
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
@@ -91,3 +96,4 @@ by the owning API.
 - [Domain Capabilities](./README.md)
 - [Runtime-Installed Domains](./runtime-installed-domains.md)
 - [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)

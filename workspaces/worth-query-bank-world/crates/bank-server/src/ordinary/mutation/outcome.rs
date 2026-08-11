@@ -1,24 +1,32 @@
-use worth_query_host::facade::domain::WorthQueryApplicationOperationInstallationDenialKind;
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationUnresolvedCommitEvidence, WorthQueryEntityResolutionDenialKind,
-    WorthQueryInvariantProjectionWork, WorthQueryOperationAuthorizationDenial,
+mod admission_denial;
+mod projection_work;
+mod proposal_denial;
+
+pub use admission_denial::{
+    BankAuthorizationDenial, BankAuthorizationDenialKind, BankEntityResolutionDenial,
+    BankEntityResolutionDenialKind, BankOperationInstallationDenial,
+    BankOperationInstallationDenialKind,
 };
+pub use projection_work::BankMutationProjectionWork;
+pub use proposal_denial::{BankIdempotencyResolutionDenialKind, BankMutationProposalDenial};
 
 use bank_domain::proposals::BankProposalDenial;
 
-use crate::{BankCommitPreparationDenial, BankCommitReceipt, BankOperationProposalError};
+use crate::{
+    BankCommitDenialKind, BankCommitDenialStage, BankCommitPreparationDenial, BankCommitReceipt,
+    BankOperationProposalError, BankUnresolvedCommitEvidence,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BankMutationDenial {
-    Scope(WorthQueryEntityResolutionDenialKind),
-    Installation(WorthQueryApplicationOperationInstallationDenialKind),
-    Authorization(Box<WorthQueryOperationAuthorizationDenial>),
-    Proposal(BankOperationProposalError),
+    Scope(BankEntityResolutionDenial),
+    Installation(BankOperationInstallationDenial),
+    Authorization(BankAuthorizationDenial),
+    Proposal(BankMutationProposalDenial),
     Preparation(BankCommitPreparationDenial),
     Commit {
-        kind: WorthQueryApplicationCommitDenialKind,
-        stage: WorthQueryApplicationCommitDenialStage,
+        kind: BankCommitDenialKind,
+        stage: BankCommitDenialStage,
     },
     IdempotencyIntentDrift,
 }
@@ -33,17 +41,17 @@ pub enum BankMutationStatus {
     Denied(BankMutationDenial),
     InvariantViolated(BankProposalDenial),
     Aborted,
-    PartialEffect(WorthQueryApplicationUnresolvedCommitEvidence),
-    Indeterminate(WorthQueryApplicationUnresolvedCommitEvidence),
+    PartialEffect(BankUnresolvedCommitEvidence),
+    Indeterminate(BankUnresolvedCommitEvidence),
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct BankMutationMetadata {
-    projection_work: Option<WorthQueryInvariantProjectionWork>,
+    projection_work: Option<BankMutationProjectionWork>,
 }
 
 impl BankMutationMetadata {
-    pub const fn projection_work(self) -> Option<WorthQueryInvariantProjectionWork> {
+    pub const fn projection_work(self) -> Option<BankMutationProjectionWork> {
         self.projection_work
     }
 
@@ -64,7 +72,7 @@ pub struct BankMutationOutcome {
 impl BankMutationOutcome {
     pub(super) fn new(
         status: BankMutationStatus,
-        projection_work: Option<WorthQueryInvariantProjectionWork>,
+        projection_work: Option<BankMutationProjectionWork>,
     ) -> Self {
         let status = normalize_status(status);
         Self {
@@ -85,10 +93,7 @@ impl BankMutationOutcome {
         self.status
     }
 
-    /// Query's retained evidence when this mutation did not resolve.
-    pub const fn unresolved_evidence(
-        &self,
-    ) -> Option<&WorthQueryApplicationUnresolvedCommitEvidence> {
+    pub const fn unresolved_evidence(&self) -> Option<&BankUnresolvedCommitEvidence> {
         match &self.status {
             BankMutationStatus::PartialEffect(evidence)
             | BankMutationStatus::Indeterminate(evidence) => Some(evidence),
@@ -103,10 +108,16 @@ impl BankMutationStatus {
     }
 }
 
+impl BankMutationDenial {
+    pub(super) fn from_proposal(error: BankOperationProposalError) -> Self {
+        Self::Proposal(BankMutationProposalDenial::from_query(error))
+    }
+}
+
 fn normalize_status(status: BankMutationStatus) -> BankMutationStatus {
     match status {
         BankMutationStatus::Denied(BankMutationDenial::Proposal(
-            BankOperationProposalError::Invariant(violation),
+            BankMutationProposalDenial::Invariant(violation),
         )) => BankMutationStatus::InvariantViolated(violation),
         other => other,
     }

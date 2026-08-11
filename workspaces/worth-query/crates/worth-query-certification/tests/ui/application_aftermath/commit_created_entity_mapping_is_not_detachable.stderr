@@ -1,0 +1,11 @@
+error[E0616]: field `created_entities` of struct `CommitResult` is private
+ --> tests/ui/application_aftermath/commit_created_entity_mapping_is_not_detachable.rs:4:12
+  |
+4 |     target.created_entities = other.created_entities.clone();
+  |            ^^^^^^^^^^^^^^^^ private field
+
+error[E0616]: field `created_entities` of struct `CommitResult` is private
+ --> tests/ui/application_aftermath/commit_created_entity_mapping_is_not_detachable.rs:4:37
+  |
+4 |     target.created_entities = other.created_entities.clone();
+  |                                     ^^^^^^^^^^^^^^^^ private field

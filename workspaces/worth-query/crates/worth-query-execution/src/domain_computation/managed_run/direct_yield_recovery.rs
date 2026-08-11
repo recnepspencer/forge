@@ -4,20 +4,18 @@ use worth_relational::facade::runtime::RelationalExecutionBasisLease;
 use worth_runtime_bridge::facade::BridgeYieldedExecutionBasis;
 
 use super::{
-    direct_yield_cleanup::{self, WorthQueryDirectYieldCleanupReceiptParts},
+    direct_yield_cleanup::{self, WorthQueryDirectYieldCleanupPermit},
+    run_affinity::WorthQueryDirectRunTerminalAffinity,
     WorthQueryDirectYieldCleanupReceipt, WorthQueryDirectYieldOutcome,
     WorthQueryManagedProviderWorkEvidence, WorthQueryManagedRunCounters,
     WorthQueryPausedDirectGraphExecution, WorthQueryYieldRecoveryKind,
     WorthQueryYieldRecoveryResourceEvidence, WorthQueryYieldTransitionCounters,
 };
-use crate::domain_computation::WorthQueryDirectExecutionResourceAttempt;
 
 pub(super) enum WorthQueryDirectYieldRecoveryState {
     Running(WorthQueryPausedDirectGraphExecution),
     Terminalized {
-        logical_run_identity: Arc<str>,
-        attempt_identity: Arc<str>,
-        resource_attempt: WorthQueryDirectExecutionResourceAttempt,
+        affinity: WorthQueryDirectRunTerminalAffinity,
         relational_basis: RelationalExecutionBasisLease,
         bridge: BridgeYieldedExecutionBasis,
         run_counters: WorthQueryManagedRunCounters,
@@ -25,6 +23,7 @@ pub(super) enum WorthQueryDirectYieldRecoveryState {
     },
 }
 
+#[must_use = "direct yield recovery retains paused or terminal-cleanup authority"]
 pub struct WorthQueryDirectYieldRecoveryRequired {
     kind: WorthQueryYieldRecoveryKind,
     detail: Arc<str>,
@@ -61,6 +60,7 @@ impl WorthQueryDirectYieldRecoveryRequired {
         matches!(self.state, WorthQueryDirectYieldRecoveryState::Running(_))
     }
 
+    #[must_use = "recovering a direct yielded run returns the exact paused owner or recovery owner"]
     pub fn into_paused(self) -> Result<WorthQueryPausedDirectGraphExecution, Self> {
         match self.state {
             WorthQueryDirectYieldRecoveryState::Running(paused) => Ok(paused),
@@ -74,11 +74,31 @@ impl WorthQueryDirectYieldRecoveryRequired {
         }
     }
 
+    #[must_use = "terminalized direct yield cleanup returns a closed receipt or recovery owner"]
     pub fn cleanup_terminalized(self) -> Result<WorthQueryDirectYieldCleanupReceipt, Self> {
+        direct_yield_cleanup::cleanup_terminalized(self)
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub(super) fn owner_into_terminal_cleanup_parts(
+        self,
+        _owner: &WorthQueryDirectYieldCleanupPermit,
+    ) -> Result<
+        (
+            Arc<str>,
+            Arc<str>,
+            WorthQueryDirectRunTerminalAffinity,
+            RelationalExecutionBasisLease,
+            BridgeYieldedExecutionBasis,
+            WorthQueryManagedRunCounters,
+            WorthQueryManagedProviderWorkEvidence,
+            WorthQueryYieldTransitionCounters,
+            WorthQueryYieldRecoveryResourceEvidence,
+        ),
+        Self,
+    > {
         let WorthQueryDirectYieldRecoveryState::Terminalized {
-            logical_run_identity,
-            attempt_identity,
-            resource_attempt,
+            affinity,
             relational_basis,
             bridge,
             run_counters,
@@ -87,18 +107,17 @@ impl WorthQueryDirectYieldRecoveryRequired {
         else {
             return Err(self);
         };
-        Ok(direct_yield_cleanup::terminalized_cleanup_receipt(
-            WorthQueryDirectYieldCleanupReceiptParts {
-                logical_run_identity,
-                attempt_identity,
-                bridge: bridge.release(),
-                relational: relational_basis.release(),
-                attempt: resource_attempt.release(),
-                run_counters,
-                provider_work,
-                yield_counters: self.counters,
-                recovery_evidence: Some(self.resource_evidence),
-            },
+        let (logical_run_identity, attempt_identity) = affinity.terminal_descriptions();
+        Ok((
+            logical_run_identity,
+            attempt_identity,
+            affinity,
+            relational_basis,
+            bridge,
+            run_counters,
+            provider_work,
+            self.counters,
+            self.resource_evidence,
         ))
     }
 }
@@ -119,9 +138,7 @@ pub(super) fn running_recovery(
 }
 
 pub(super) struct WorthQueryTerminalizedDirectYieldRecovery {
-    pub(super) logical_run_identity: Arc<str>,
-    pub(super) attempt_identity: Arc<str>,
-    pub(super) resource_attempt: WorthQueryDirectExecutionResourceAttempt,
+    pub(super) affinity: WorthQueryDirectRunTerminalAffinity,
     pub(super) relational_basis: RelationalExecutionBasisLease,
     pub(super) bridge: BridgeYieldedExecutionBasis,
     pub(super) run_counters: WorthQueryManagedRunCounters,
@@ -141,9 +158,7 @@ pub(super) fn terminalized_recovery(
         counters,
         resource_evidence,
         state: WorthQueryDirectYieldRecoveryState::Terminalized {
-            logical_run_identity: state.logical_run_identity,
-            attempt_identity: state.attempt_identity,
-            resource_attempt: state.resource_attempt,
+            affinity: state.affinity,
             relational_basis: state.relational_basis,
             bridge: state.bridge,
             run_counters: state.run_counters,

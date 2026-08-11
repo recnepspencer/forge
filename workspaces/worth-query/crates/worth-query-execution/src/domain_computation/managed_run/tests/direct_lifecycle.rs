@@ -31,20 +31,15 @@ fn causal_lower_authorities_admit_one_managed_direct_run_and_cleanup_every_owner
         .expect("owner-thread completion cleanup should succeed");
 
     assert_eq!(
-        cleanup.disposition(),
+        cleanup.inspection().disposition(),
         WorthQueryManagedRunCleanupDisposition::CleanupComplete
     );
-    assert!(cleanup.bridge().reservation_released());
+    assert!(cleanup.inspection().resources_released());
     assert_eq!(
-        cleanup.bridge().signal_terminal(),
-        BridgeExecutionBasisSignalTerminal::Fulfilled
-    );
-    assert!(cleanup.relational().released());
-    assert_eq!(
-        cleanup.attempt().capacity().scope(),
+        cleanup.inspection().capacity_scope(),
         WorthQueryExecutionCapacityReservationScope::Direct
     );
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 1);
+    assert_eq!(cleanup.inspection().released_reservation_count(), 1);
 }
 
 #[test]
@@ -86,9 +81,9 @@ fn cleanup_thread_failure_returns_all_authority_for_owner_thread_retry() {
         .retry()
         .expect("Signal owner thread should complete the same cleanup");
     assert_eq!(
-        cleanup.disposition(),
+        cleanup.inspection().disposition(),
         WorthQueryManagedRunCleanupDisposition::CleanupComplete
     );
-    assert!(cleanup.relational().released());
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 1);
+    assert!(cleanup.inspection().resources_released());
+    assert_eq!(cleanup.inspection().released_reservation_count(), 1);
 }

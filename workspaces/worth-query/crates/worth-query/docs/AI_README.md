@@ -15,15 +15,17 @@ name, an internal module, a digest, a report, or a neighboring runtime.
 ## Query In One Sentence
 
 WORTH Query turns typed application intent and proof from the runtimes that own
-truth into an admitted, bounded operation whose execution and publication
-retain the exact authority, basis, and causality that made it lawful.
+truth into an admitted, bounded operation whose execution, aftermath, recovery,
+and publication retain the exact authority, basis, and causality that made it
+lawful.
 
 Query is not a database, policy engine, identity provider, or storage system.
 It is the application-facing composition authority over those owners.
 
 ## The Runtime Stack
 
-The ordinary application path is:
+The ordinary application path shares one admitted session spine and then
+branches by operation kind:
 
 ```text
 application schema and declarations
@@ -32,8 +34,13 @@ application schema and declarations
     -> capability, purpose, disclosure, and conflict admission
     -> graph obligation and access-plan admission
     -> provider-session execution
-    -> typed terminal outcome
-    -> governed publication and downstream consumption
+       |-> read result -> governed disclosure and publication
+       `-> validated mutation candidate
+            -> compare-and-commit
+            -> idempotency and optional co-committed dispatch outbox
+            -> external-effect observation and typed commit outcome
+            -> aftermath publication
+            -> optional receipt-bound runtime recovery
 ```
 
 Each arrow is a proof transition. A later product may retain evidence from an
@@ -45,12 +52,14 @@ identifiers, or equivalent-looking reports.
 | Owner | Owns | Does not own |
 |---|---|---|
 | Application domain | Business vocabulary, schema meaning, operations, invariants, capability intent, and disclosure classifications | Runtime proof or lower-runtime truth |
-| Foundational | Exact canonical values, keys, paths, portable bases, and proof primitives | Application permission or relational truth |
+| Proof substrate (`worth-proof`) | Generic proof-bearing progression, freshness, readmission, composition, and capability carriers | Query permission, live runtime state, or owner-specific authority |
+| Foundational | Exact canonical values, keys, paths, portable bases, provenance, receipts, and shared boundary vocabulary | Proof progression, application permission, or relational truth |
 | Relational | Entities, relations, aspects, versions, snapshots, transactions, graph observations, and commit mechanics | Product authorization or application operation meaning |
 | Runtime Bridge | Installed correspondence and lawful lowering between Query and lower runtimes | Relational facts, Signal decisions, or application policy |
 | Signal | Policy evaluation, decision evidence, local evaluation slots, and condition outcomes | Application capability admission or relational mutation |
-| Query | Installed application meaning, authority composition, admission, typed progression, execution products, and publication | Authentication truth, graph truth, policy truth, or persistence |
-| Store | Durable persistence, journals, checkpoints, and reconstructive state | Ordinary Query admission or live application authority |
+| Query | Installed application meaning, authority composition, admission, typed progression, execution products, idempotency/outbox meaning, runtime-local recovery, and publication | Authentication truth, graph truth, policy truth, external completion, or durable reconstruction |
+| Store | Durable persistence, journals, restart checkpoints, and reconstructive state | Ordinary Query admission, live recovery authority, or external completion |
+| External effect owner | Whether an escaping consequence was accepted or completed | Query commit, application authorization, or recovery authority |
 
 The distinction between **truth** and **authority** is fundamental. A lower
 runtime can truthfully report that it can perform an action without proving
@@ -72,6 +81,11 @@ Skipping any of those steps creates a parallel authority lane.
 An admitted object carries the identities and evidence needed by its legal
 successor. Downstream code must pass the typed product forward rather than
 re-querying state and trying to rebuild authority.
+
+`worth-proof` supplies reusable progression law, but a generic proof or a
+caller-defined `AuthorityMarker` cannot open a Query operation. Authority-
+bearing Query methods accept the exact Query-owned types returned by their
+owning workflows.
 
 ### Narrowing cannot widen
 
@@ -100,6 +114,20 @@ capability grants, lifecycle state, branch, snapshot, and version may change.
 Query binds them to a request and revalidates the relevant dependencies before
 governed work or commit.
 
+### Commit and external completion are separate facts
+
+A committed mutation or dispatch-outbox row proves local state. It does not
+prove that an external consequence completed. Acknowledgement, silence,
+timeout, disconnect, and lost response retain their exact typed posture. Query
+never guesses completion from transport behavior.
+
+### Product support is explicit
+
+An exported type may be accepted, provisional, deferred, or vocabulary-only.
+The owning facade documentation and support/admission contract decide which.
+In particular, `provisional_aftermath` is a compiled undo/redo experiment, not
+an accepted Phase 8 product contract.
+
 ## Public Audience Facades
 
 Application code consumes Query through audience crates. It does not import
@@ -110,7 +138,11 @@ the internal authority packages that implement the progression.
 Use `worth-query-decl` for application schema and declaration code:
 
 ```rust
-use worth_query_decl::facade::{application_query, application_schema};
+use worth_query_decl::facade::{
+    application_aftermath,
+    application_query,
+    application_schema,
+};
 ```
 
 This facade re-exports declaration types and macros without adding another
@@ -129,6 +161,9 @@ use worth_query_host::facade::{admission, domain, primary_graph, publication, ru
 
 The host facade exposes the production authority graph. It intentionally does
 not expose raw primary-graph handles that would let a consumer bypass Query.
+Stable application aftermath and recovery enter through `primary_graph` and
+`publication::application_aftermath`. Do not teach
+`facade::provisional_aftermath` as stable undo/redo support.
 
 ### Certification audience
 
@@ -160,6 +195,7 @@ An application schema gives Query typed references for:
 - aspects and fields;
 - queries and result slots;
 - operations and their graph effects;
+- operation external-effect and aftermath slots;
 - capabilities and purposes;
 - policies and principal bindings;
 - context slots used by capability rules.
@@ -176,6 +212,7 @@ A declaration states portable intent. Depending on the family, it can describe:
 - predicates, ordering, traversal, grouping, and aggregation;
 - result shape and disclosure requirements;
 - operation inputs, reads, writes, links, unlinks, creates, and deletes;
+- one explicit external-effect choice and one explicit aftermath choice;
 - graph obligations and access requirements;
 - capability requirements and composition rules;
 - workflow or continuation meaning;
@@ -200,11 +237,21 @@ admission:
 - graph obligations;
 - graph-read access requirements;
 - effect and invariant contracts;
+- external-effect protocol, correlation, payload-bound, and outbox contracts;
+- aftermath correction authority, correction mechanism, pre-image demand, and
+  published posture;
 - publication and consumer-support posture.
 
 Installation is the point where domain meaning becomes executable runtime
 meaning. Hosts may supply adapters and resources, but they may not add or alter
 application semantics after installation.
+
+Operation definitions use typestate to make both static choices explicit. A
+builder must call either `external_effect(...)` or `no_external_effect()`, and
+either `aftermath(...)` or `no_aftermath()`, before `finish()` is available.
+Installation derives the accepted aftermath posture as `Reversible`,
+`Compensatable`, `Reconcilable`, or `Irreversible`; an escaping external effect
+cannot be reversible.
 
 ## Request, Authentication, And Principal Resolution
 
@@ -458,7 +505,11 @@ admitted application operation
     -> invariant execution
     -> authorization revalidation
     -> provider compare-and-commit
-    -> typed terminal outcome
+    -> idempotency resolution
+    -> committed mutation and optional dispatch-outbox fact
+    -> external dispatch observation
+    -> typed commit outcome and published aftermath
+    -> optional receipt-bound recovery
 ```
 
 A proposed state is not committed truth. A selected invariant is not an
@@ -469,14 +520,42 @@ operation unlawful. Commit authority remains bound to its originating
 admission and serialization proof; it cannot be paired with another admitted
 operation.
 
-### Transaction rollback
+When an external effect is declared, the local mutation and dispatch intent
+share one Relational commit. Query dispatches only from that committed fact.
+`Committed` and `AlreadyCommitted` preserve idempotency meaning;
+`PartialEffect` and `Indeterminate` preserve uncertainty rather than flattening
+it. Even an operation with no domain mutation must commit its outbox and
+idempotency fact before an external consequence may escape.
+
+External dispatch has its own published posture: `NotDeclared`,
+`PendingDispatch`, `Acknowledged`, `Completed`, or `Unresolved`. The external
+owner decides completion. Query records what it observed.
+
+### Provisional discard is not committed aftermath
 
 Relational savepoints and rollback discard provisional transaction work. They
-do not create application authority or alter committed history.
+do not create application authority or alter committed history. They are not
+recorded inverse, compensation, reconciliation, or recovery.
+
+### Application aftermath and recovery
+
+After commit, the installed aftermath contract determines whether the result
+is reversible, compensatable, reconcilable, or irreversible. Runtime-local
+recovery opens from the exact sealed commit receipt and remains bound to the
+originating runtime, operation, principal, action, scope, idempotency record,
+outbox observation, and currentness evidence. A wire identity or published
+recovery report is not the live handle.
+
+The accepted recovery surface supports inspection, resolution, safe retry,
+disposal, and expiry through exact typed authority. Reconciliation and
+compensation currently stop at owner-bound admission products; Query does not
+yet execute those corrective effects. Undo and redo remain under
+`provisional_aftermath`; they are not accepted product contracts.
 
 See [Provider Sessions And Decision Read-Sets](./domain-capabilities/provider-sessions-and-decision-read-sets.md),
 [Provisional State And Invariant Execution](./domain-capabilities/provisional-state-and-invariant-execution.md),
-and [Authoritative Mutation Evidence](./capabilities/authoritative-mutation-evidence.md).
+[Authoritative Mutation Evidence](./capabilities/authoritative-mutation-evidence.md),
+and [Application Aftermath, External Effects, And Recovery](./execution/application-aftermath-and-recovery.md).
 
 ## Basis, Branch, And Currentness
 
@@ -543,6 +622,8 @@ Installed computation can include:
 - required lower-runtime observations;
 - effect programs;
 - invariant programs;
+- external-effect protocol and correlation contracts;
+- aftermath correction, pre-image, and next-action contracts;
 - conditional nodes;
 - workflow stages;
 - publication contracts;
@@ -636,10 +717,16 @@ and [Async Resources And Result State](./capabilities/async-resources-and-result
 
 Publication is an authority boundary, not serialization convenience.
 
-The publication layer takes a completed Query-owned result and derives the
-consumer-facing product allowed by its disclosure, purpose, basis, and
-publication contract. It preserves omission evidence and enough identity for a
-downstream consumer to verify what it received.
+The publication layer takes a completed or recovered Query-owned terminal and
+derives the consumer-facing product allowed by its disclosure, purpose, basis,
+and publication contract. It preserves omission evidence and enough identity
+for a downstream consumer to verify what it received.
+
+For application mutations, publication can describe the commit, accepted
+aftermath posture, external dispatch posture, and disclosure-admitted recovery
+support. Those values are intentionally weaker than execution authority. They
+cannot mint a recovery handle, redispatch an effect, compensate a commit, or
+resolve an indeterminate result.
 
 Downstream runtimes consume bound projections or publication receipts. They do
 not reach behind the facade to recover raw Query or Relational state.
@@ -650,6 +737,7 @@ authority.
 
 See [Projection Consumption](./capabilities/projection-consumption.md),
 [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md),
+[Application Aftermath, External Effects, And Recovery](./execution/application-aftermath-and-recovery.md),
 and [Bound Projection Sharing And Invalidation](./domain-capabilities/bound-projection-sharing-and-invalidation.md).
 
 ## Outcomes, Stops, And Managed Resources
@@ -665,16 +753,21 @@ Important distinctions include:
 - cancelled versus timed out;
 - skipped versus suppressed;
 - pending versus terminal;
-- published versus internally completed.
+- published versus internally completed;
+- committed versus already committed;
+- partial effect versus indeterminate;
+- external dispatch pending, acknowledged, completed, or unresolved;
+- live recovery authority versus published recovery support.
 
 Do not flatten these into `bool`, `Option`, or a generic error string when the
 distinction changes legal next actions, effects, inspection, or resource
 release.
 
 Managed resources include provider sessions, runs, subscriptions, continuations,
-leases, checkpoints, and admitted capacity. Every terminal path must release or
-transfer them explicitly. Dropping a report does not prove that the underlying
-resource was released.
+leases, checkpoints, recovery handles, and admitted capacity. Every terminal
+path must release or transfer them explicitly. Dropping a report or serializing
+an opaque recovery identity does not prove that the underlying resource was
+released or transferred.
 
 See [Ordinary Outcomes](./domain-capabilities/ordinary-outcomes.md),
 [State](./foundations/state.md), and
@@ -797,12 +890,18 @@ Use this table when deciding where a change belongs.
 | What transaction committed and at which version? | Relational |
 | How does installed Query meaning correspond to lower-runtime structures? | Runtime Bridge |
 | What did an installed policy condition evaluate to? | Signal |
-| What exact canonical value or portable basis represents this meaning? | Foundational |
+| What generic proof progression or readmission law applies? | `worth-proof` |
+| What exact canonical value, provenance, receipt, or portable basis represents this meaning? | Foundational |
 | What application operation or query was declared? | Application domain |
 | Is this principal authorized for this operation, purpose, and scope? | Query composition over owner evidence |
 | May this field be disclosed to this consumer? | Query publication over installed disclosure meaning |
 | Which lifecycle transition is legal now? | Query typed progression over current owner evidence |
-| How is state persisted or reconstructed? | Store |
+| What idempotency and dispatch-outbox meaning belongs to this operation? | Query over committed Relational facts |
+| Did an escaping consequence complete? | External effect owner |
+| Is a receipt-bound recovery action legal now? | Query runtime |
+| Can recovery survive restart or cross a process boundary? | Store-backed capability; currently deferred |
+| How is committed graph state persisted and versioned? | Relational |
+| How are durable reconstructive artifacts retained? | Store |
 | How is a published product encoded for another process? | Transport adapter |
 
 Put pure meaning in the domain schema. Put lower-runtime truth and mechanics in
@@ -822,6 +921,8 @@ Do not:
   command;
 - reconstruct proof from a digest, ID, report, serialized document, or copied
   fields;
+- use a generic proof marker where a Query operation requires its concrete
+  owner-issued proof, authority, or capability type;
 - combine independently valid proofs when no installed composition contract
   authorizes the combination;
 - expose internal Query authority packages to application consumers;
@@ -829,12 +930,21 @@ Do not:
 - import replay into ordinary code;
 - read Relational directly to bypass graph obligations or access planning;
 - accept a Signal decision as effect authority;
+- dispatch an external effect without its co-committed local outbox and
+  idempotency fact;
+- treat acknowledgement, silence, timeout, disconnect, or lost response as
+  external completion;
+- serialize a recovery handle or reuse its opaque wire identity as live
+  authority;
+- use `provisional_aftermath` as accepted undo/redo support;
 - treat proposed state as committed truth;
 - treat selected invariants as executed invariants;
 - publish protected fields and mask them afterward;
 - use a cursor outside its query, ordering, branch, and basis;
 - reuse consumed lifecycle or commit authority;
 - infer support from method presence;
+- add production glob imports or glob reexports to an authority-governed
+  surface; keep those bindings explicit and named;
 - hide typed denial, stale, cancellation, or resource state inside a generic
   success/failure flag;
 - treat Relational rollback as an application-level authority transition.
@@ -853,10 +963,13 @@ Start with the guide that owns the concept you are changing:
 - [Graph Read Access Planning](./authoring/graph-read-access-planning.md)
 - [Provider Sessions And Decision Read-Sets](./domain-capabilities/provider-sessions-and-decision-read-sets.md)
 - [Provisional State And Invariant Execution](./domain-capabilities/provisional-state-and-invariant-execution.md)
+- [Application Aftermath, External Effects, And Recovery](./execution/application-aftermath-and-recovery.md)
 - [Lower-Runtime Capability Routing](./domain-capabilities/lower-runtime-capability-routing.md)
 - [Projection Consumption](./capabilities/projection-consumption.md)
 - [Inspection](./capabilities/inspection.md)
 - [Hard Prohibitions](./foundations/hard-prohibitions.md)
+- [Operational Identity Authority](./foundations/operational-identity-authority.md)
+- [worth-proof Authority And Workflow Contracts](../../../../../crates/worth-proof/docs/features/authority-and-workflow-contracts.md)
 
 Feature guides explain usage. Generated `AGENT_CONTEXT.md` files explain local
 crate dependencies and enforcement. Specifications and engineering ledgers are
@@ -881,6 +994,13 @@ Before changing Query, answer these questions:
     the path?
 11. Does a lower-runtime observation remain evidence rather than application
     authority?
-12. Do the focused tests fail if the disputed authority check is bypassed?
+12. If an external effect exists, what local fact was co-committed before it
+    escaped, and which owner decides completion?
+13. Does an uncertain result remain acknowledged, unresolved, partial, or
+    indeterminate instead of being guessed into success or failure?
+14. Is the API accepted, provisional, deferred, or vocabulary-only?
+15. Is the authority an exact owner-issued type rather than a generic proof
+    substrate value?
+16. Do the focused tests fail if the disputed authority check is bypassed?
 
 If any answer is unclear, stop and identify the semantic owner before editing.

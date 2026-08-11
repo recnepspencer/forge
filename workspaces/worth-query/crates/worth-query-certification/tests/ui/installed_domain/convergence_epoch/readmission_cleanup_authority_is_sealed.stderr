@@ -1,0 +1,19 @@
+error[E0599]: no method named `managed_cleanup` found for reference `&WorthQueryDirectConvergenceReadmissionCleanupRequired` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/readmission_cleanup_authority_is_sealed.rs:14:66
+   |
+14 |     let _: &WorthQueryDirectReadmissionCleanupRequired = cleanup.managed_cleanup();
+   |                                                                  ^^^^^^^^^^^^^^^ method not found in `&WorthQueryDirectConvergenceReadmissionCleanupRequired`
+
+error[E0599]: no method named `managed_cleanup` found for reference `&WorthQueryWorkflowConvergenceReadmissionCleanupRequired` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/readmission_cleanup_authority_is_sealed.rs:20:68
+   |
+20 |     let _: &WorthQueryWorkflowReadmissionCleanupRequired = cleanup.managed_cleanup();
+   |                                                                    ^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowConvergenceReadmissionCleanupRequired`
+
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/convergence_epoch/readmission_cleanup_authority_is_sealed.rs:26:5
+   |
+25 | ) -> WorthQueryDirectConvergenceReadmissionCleanupPending {
+   |      ---------------------------------------------------- expected `WorthQueryDirectConvergenceReadmissionCleanupPending` because of return type
+26 |     pending
+   |     ^^^^^^^ expected `WorthQueryDirectConvergenceReadmissionCleanupPending`, found `WorthQueryWorkflowConvergenceReadmissionCleanupPending`

@@ -5,7 +5,7 @@ use super::fixture::{
 };
 use crate::domain_computation::{
     WorthQueryConvergenceEpochDenialKind, WorthQueryDirectConvergenceIterationOutcome,
-    WorthQueryDirectGraphStepOutcome, WorthQueryExecutionRuntimeInstaller,
+    WorthQueryDirectConvergenceStepOutcome, WorthQueryExecutionRuntimeInstaller,
     WorthQueryGraphProviderCallKind, WorthQueryManagedGraphCallRequest,
 };
 
@@ -306,14 +306,9 @@ fn finish_epoch(epoch: crate::domain_computation::WorthQueryIteratingDirectConve
         Ok(started) => started,
         Err(_) => panic!("recovered exact graph authority must start"),
     };
-    let (pending, active) = started.into_parts();
-    let completion = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("fixture provider must complete"),
-    };
-    let outcome = match pending.admit_completion(completion) {
-        Ok(outcome) => outcome,
-        Err(_) => panic!("recovered completion must rejoin"),
+    let outcome = match started.advance() {
+        WorthQueryDirectConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("fixture provider must complete and rejoin"),
     };
     let terminal = match outcome {
         WorthQueryDirectConvergenceIterationOutcome::Converged(terminal) => terminal,

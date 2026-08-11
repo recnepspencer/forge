@@ -93,6 +93,11 @@ result shape, snapshot, basis, runtime, and generation. `consume` returns a
 progression wrapper around `WorthQueryConsumedProjectionAuthority`; it does not
 implement a second extraction path.
 
+For a mutation that declares application aftermath or an external effect, the
+owning host operation first retains its commit and aftermath posture.
+Projection consumption uses the resulting published product; it cannot mint a
+recovery handle or reinterpret external dispatch posture.
+
 Do not combine a consumer contract from one bind with a publication from an
 equivalent-looking bind. The capability identity is part of admission.
 
@@ -223,3 +228,4 @@ and counters. These accessors explain an authority; they cannot recreate one.
 - [Consumer Kit](../foundations/consumer-kit.md)
 - [Basis Capability Lifecycle](basis-capability-lifecycle.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)

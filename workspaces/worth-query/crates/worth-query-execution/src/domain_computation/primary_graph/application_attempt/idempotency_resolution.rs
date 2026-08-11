@@ -3,8 +3,18 @@ use worth_query_installation::facade::ApplicationSchema;
 use super::{
     provider_recomparison::recover_equivalent_commit_evidence,
     WorthQueryApplicationCommitAuthorityBinding, WorthQueryApplicationCommitReceipt,
-    WorthQueryApplicationIdempotencyBinding,
+    WorthQueryApplicationIdempotencyBinding, WorthQueryCommittedReceiptProjection,
 };
+
+pub(super) struct WorthQueryIdempotencyReadCommitReceiptPermit {
+    _owner_mint: (),
+}
+
+impl WorthQueryIdempotencyReadCommitReceiptPermit {
+    fn mint() -> Self {
+        Self { _owner_mint: () }
+    }
+}
 use crate::domain_computation::application_aftermath::WorthQueryAdmittedIdempotencyRead;
 use crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolution;
 use crate::domain_computation::primary_graph::{
@@ -115,18 +125,20 @@ where
                 ))
             }
             Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
+                let projection =
+                    WorthQueryCommittedReceiptProjection::resolve(receipt).map_err(|_| {
+                        WorthQueryApplicationIdempotencyResolutionDenial::provider_unavailable()
+                    })?;
+                let receipt = WorthQueryApplicationCommitReceipt::from_idempotency_read(
+                    WorthQueryIdempotencyReadCommitReceiptPermit::mint(),
+                    projection,
+                    recover_equivalent_commit_evidence(admission.mutation_preconditions()),
+                    admission.canonical_work(),
+                    WorthQueryApplicationCommitAuthorityBinding::from_admission(admission, binding),
+                );
                 Ok(WorthQueryAdmittedIdempotencyRead::mint(
                     read_for,
-                    WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(
-                        WorthQueryApplicationCommitReceipt::from_recovered_provider(
-                            receipt,
-                            recover_equivalent_commit_evidence(admission.mutation_preconditions()),
-                            admission.canonical_work(),
-                            WorthQueryApplicationCommitAuthorityBinding::from_admission(
-                                admission, binding,
-                            ),
-                        ),
-                    ),
+                    WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(receipt),
                 ))
             }
             Ok(WorthQueryProviderIdempotencyResolution::Drift) => {

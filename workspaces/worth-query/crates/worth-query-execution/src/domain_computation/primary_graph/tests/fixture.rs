@@ -223,6 +223,7 @@ worth_query_application_schema! {
                 .ability(EditAccount::reference())
                 .ability(ManageOwnership::reference())
                 .effect(AccountActivityEffect::reference())
+                .effect(RetainedStatusEffect::reference())
                 .effect(LiveActivityEffect::reference());
             let schema = operation_contracts::install(schema)
                 .policy(AccountAccessPolicy::reference())

@@ -29,9 +29,6 @@ pub enum WorthQueryWorkflowAdvanceDenialKind {
     OutputContract,
     TerminalContract,
     DomainEvidence(super::WorthQueryDomainEvidenceAdmissionDenialKind),
-    DomainEvidenceBinding(
-        worth_query_execution::facade::domain_computation::WorthQueryDomainEvidenceBindingDenial,
-    ),
     ParallelFrontierShape,
     NonDeterministicLowering,
     ParallelProvider(String),

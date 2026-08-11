@@ -3,6 +3,7 @@ use worth_query_execution::facade::primary_graph::WorthQueryApplicationCommitRec
 use super::WorthQueryApplicationCommitPublicationInspection;
 use crate::application_aftermath::{
     publish_application_aftermath, WorthQueryPublishedApplicationAftermath,
+    WorthQueryPublishedApplicationCommitBoundaryEvidence,
 };
 
 /// Publication receipt derived from one execution-owned commit terminal.
@@ -14,7 +15,11 @@ use crate::application_aftermath::{
 /// fn counterfeit(
 ///     terminal: WorthQueryApplicationCommitReceipt,
 /// ) -> WorthQueryApplicationCommitPublicationReceipt {
-///     WorthQueryApplicationCommitPublicationReceipt { terminal }
+///     let _ = terminal;
+///     WorthQueryApplicationCommitPublicationReceipt {
+///         aftermath: todo!(),
+///         boundary_evidence: todo!(),
+///     }
 /// }
 /// ```
 ///
@@ -42,24 +47,30 @@ use crate::application_aftermath::{
 /// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationCommitPublicationReceipt {
-    terminal: WorthQueryApplicationCommitReceipt,
     aftermath: WorthQueryPublishedApplicationAftermath,
+    boundary_evidence: WorthQueryPublishedApplicationCommitBoundaryEvidence,
 }
 
 impl WorthQueryApplicationCommitPublicationReceipt {
-    pub(crate) const fn from_terminal(terminal: WorthQueryApplicationCommitReceipt) -> Self {
+    pub(super) fn from_terminal(terminal: WorthQueryApplicationCommitReceipt) -> Self {
         let aftermath = publish_application_aftermath(&terminal);
+        let boundary_evidence =
+            WorthQueryPublishedApplicationCommitBoundaryEvidence::from_owner(&terminal);
         Self {
-            terminal,
             aftermath,
+            boundary_evidence,
         }
     }
 
     pub const fn inspect(&self) -> WorthQueryApplicationCommitPublicationInspection<'_> {
-        WorthQueryApplicationCommitPublicationInspection::new(&self.terminal)
+        WorthQueryApplicationCommitPublicationInspection::new(&self.boundary_evidence)
     }
 
     pub const fn aftermath(&self) -> &WorthQueryPublishedApplicationAftermath {
         &self.aftermath
+    }
+
+    pub const fn boundary_evidence(&self) -> &WorthQueryPublishedApplicationCommitBoundaryEvidence {
+        &self.boundary_evidence
     }
 }

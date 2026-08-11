@@ -1,5 +1,6 @@
 use super::capabilities::{ApplicationFieldUnit, OperationExpectsFact, OperationExpectsVersion};
-use super::references::{ApplicationFieldRef, ApplicationOperationRef};
+use super::field_reference::ApplicationFieldRef;
+use super::references::ApplicationOperationRef;
 use super::values::TypedApplicationValue;
 use super::{
     ApplicationMutationPreconditionFamily, ApplicationMutationPreconditionTarget,

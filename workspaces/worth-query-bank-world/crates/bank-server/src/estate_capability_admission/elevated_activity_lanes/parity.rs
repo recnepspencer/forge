@@ -1,17 +1,22 @@
-use worth_query_host::facade::admission::application_query::WorthQueryApplicationQueryLane;
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationLiveCloseOutcome, WorthQueryApplicationLiveControls,
-    WorthQueryApplicationQueryBasisPosture, WorthQueryApplicationQueryResumeControls,
+    WorthQueryApplicationLiveControls, WorthQueryApplicationQueryResumeControls,
+};
+use worth_query_host::facade::publication::domain_computation::{
+    WorthQueryApplicationQueryPublicationReceipt,
+    WorthQueryPublishedApplicationQueryReleasePosture,
+    WorthQueryPublishedApplicationQueryResultBufferRelease,
 };
 
 use super::support::{
     activity_request, activity_world, approve_first, assert_resources_released, controls, items,
     take_first_requested,
 };
-use crate::{BankEstateEmergencyAccessActivityLiveOutcome, BankReadControls};
+use crate::{
+    BankApplicationLiveCloseOutcome, BankEstateEmergencyAccessActivityLiveOutcome, BankReadControls,
+};
 
 #[test]
-fn exact_activity_meaning_and_identity_survive_every_public_lane() {
+fn exact_activity_meaning_survives_every_public_lane() {
     let mut world = activity_world("estate-emergency-activity-lane-parity");
     let one_shot = ready(&world, controls(8))
         .execute_with_approved_elevation(&world.approved)
@@ -30,19 +35,10 @@ fn exact_activity_meaning_and_identity_survive_every_public_lane() {
         })
         .expect("preview activity should preserve current meaning");
     let expected = items(one_shot.rows());
-    let identity = one_shot.receipt().query_identity();
-    assert!(one_shot.receipt().inspect().terminal_resources_released());
-    assert!(historical.receipt().inspect().terminal_resources_released());
-    assert!(preview.receipt().inspect().terminal_resources_released());
-    assert_eq!(
-        one_shot.receipt().lane(),
-        WorthQueryApplicationQueryLane::OneShot
-    );
-    assert_eq!(
-        one_shot.receipt().basis_posture(),
-        WorthQueryApplicationQueryBasisPosture::Current
-    );
-    let paged = collect_pages(&world, identity);
+    assert_terminal_release(one_shot.receipt());
+    assert_terminal_release(historical.receipt());
+    assert_terminal_release(preview.receipt());
+    let paged = collect_pages(&world);
     assert_eq!(
         expected.len(),
         2,
@@ -53,24 +49,6 @@ fn exact_activity_meaning_and_identity_survive_every_public_lane() {
     assert_eq!(historical.rows(), one_shot.rows());
     assert_eq!(preview.rows(), one_shot.rows());
     assert_eq!(paged, expected);
-    assert_eq!(historical.receipt().query_identity(), identity);
-    assert_eq!(preview.receipt().query_identity(), identity);
-    assert_eq!(
-        historical.receipt().lane(),
-        WorthQueryApplicationQueryLane::Historical
-    );
-    assert_eq!(
-        historical.receipt().basis_posture(),
-        WorthQueryApplicationQueryBasisPosture::Historical
-    );
-    assert_eq!(
-        preview.receipt().lane(),
-        WorthQueryApplicationQueryLane::Preview
-    );
-    assert_eq!(
-        preview.receipt().basis_posture(),
-        WorthQueryApplicationQueryBasisPosture::Preview
-    );
     assert!(preview_session.discard().unwrap().discarded());
 
     let live_controls = WorthQueryApplicationLiveControls::bounded(
@@ -107,35 +85,20 @@ fn exact_activity_meaning_and_identity_survive_every_public_lane() {
         delivered.first(),
         "live and current one-shot must assign identical meaning to the changed child"
     );
-    assert_eq!(update.receipt().query_identity(), identity);
-    assert!(update.receipt().inspect().terminal_resources_released());
-    assert_eq!(
-        update.receipt().lane(),
-        WorthQueryApplicationQueryLane::Live
-    );
-    assert_eq!(
-        update.receipt().basis_posture(),
-        WorthQueryApplicationQueryBasisPosture::Current
-    );
-    let WorthQueryApplicationLiveCloseOutcome::Completed(completion) = live.close() else {
+    assert_terminal_release(update.receipt());
+    let BankApplicationLiveCloseOutcome::Completed = live.close() else {
         panic!("the live lane must release its opening graph-read session");
     };
-    assert_eq!(completion.release().released_reservation_count(), 1);
     assert_resources_released(&world);
 }
 
 fn collect_pages(
     world: &super::support::ActivityWorld,
-    expected_identity: &worth_query_host::facade::domain::WorthQueryInstalledApplicationQueryIdentity,
 ) -> Vec<bank_domain::queries::EstateEmergencyAccessActivityItem> {
     let first = ready(world, controls(1))
         .page_with_approved_elevation(&world.approved)
         .expect("the first activity page should execute");
-    assert_continuation_receipt(
-        first.receipt(),
-        expected_identity,
-        WorthQueryApplicationQueryBasisPosture::Current,
-    );
+    assert_continuation_receipt(first.receipt());
     assert_page_scope(first.rows());
     let mut collected = items(first.rows());
     let (_, mut continuation) = first.into_parts();
@@ -151,11 +114,7 @@ fn collect_pages(
                 ),
             )
             .expect("every activity continuation should readmit and execute");
-        assert_continuation_receipt(
-            page.receipt(),
-            expected_identity,
-            WorthQueryApplicationQueryBasisPosture::Pinned,
-        );
+        assert_continuation_receipt(page.receipt());
         assert_page_scope(page.rows());
         collected.extend(items(page.rows()));
         (_, continuation) = page.into_parts();
@@ -168,15 +127,32 @@ fn assert_page_scope(rows: &[bank_domain::queries::EstateEmergencyAccessActivity
     assert_eq!(rows[0].estate(), super::super::fixture::ESTATE);
 }
 
-fn assert_continuation_receipt(
-    receipt: &worth_query_host::facade::publication::domain_computation::WorthQueryApplicationQueryPublicationReceipt,
-    expected_identity: &worth_query_host::facade::domain::WorthQueryInstalledApplicationQueryIdentity,
-    expected_basis: WorthQueryApplicationQueryBasisPosture,
-) {
-    assert!(receipt.inspect().terminal_resources_released());
-    assert_eq!(receipt.query_identity(), expected_identity);
-    assert_eq!(receipt.lane(), WorthQueryApplicationQueryLane::Continuation);
-    assert_eq!(receipt.basis_posture(), expected_basis);
+fn assert_continuation_receipt(receipt: &WorthQueryApplicationQueryPublicationReceipt) {
+    assert_terminal_release(receipt);
+}
+
+fn assert_terminal_release(receipt: &WorthQueryApplicationQueryPublicationReceipt) {
+    let inspection = receipt.inspect();
+    let release = inspection.terminal_release();
+    assert_eq!(
+        release.application_basis(),
+        WorthQueryPublishedApplicationQueryReleasePosture::Released
+    );
+    assert_eq!(
+        release.graph_read_basis(),
+        WorthQueryPublishedApplicationQueryReleasePosture::Released
+    );
+    let WorthQueryPublishedApplicationQueryResultBufferRelease::Released {
+        limit_bytes,
+        peak_bytes,
+    } = release.result_buffer()
+    else {
+        panic!("every delivered lane must publish released result-buffer evidence")
+    };
+    assert!(peak_bytes > 0);
+    assert!(peak_bytes <= limit_bytes);
+    assert_eq!(release.released_graph_capacity_reservation_count(), 1);
+    assert!(inspection.terminal_resources_released());
 }
 
 fn ready<'a>(

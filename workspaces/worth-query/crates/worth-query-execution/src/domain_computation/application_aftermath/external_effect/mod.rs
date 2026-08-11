@@ -17,6 +17,8 @@ mod transport;
 #[cfg(test)]
 pub(crate) mod tests;
 
+pub use causal_event::ExternalEffectPosture;
+pub(in crate::domain_computation) use causal_event::WorthQueryAdmittedExternalDispatchAttempt;
 pub use classification::{ExternalEffectClassification, ExternalRailTransportFault};
 pub use correlation::{
     derive_external_effect_correlation_identity, ExternalEffectCorrelationBasis,
@@ -24,15 +26,19 @@ pub use correlation::{
 };
 pub(in crate::domain_computation) use dispatch::dispatch_external_effect;
 pub use dispatch::{
-    WorthQueryExternalDispatchPosture, WorthQueryExternalDispatchPostureKind,
-    WorthQueryExternalEffectCausalLadder, WorthQueryExternalEffectDispatch,
+    WorthQueryExternalDispatchCausalRelation, WorthQueryExternalDispatchPosture,
+    WorthQueryExternalDispatchPostureKind, WorthQueryExternalEffectCausalLadder,
+    WorthQueryExternalEffectDispatch,
 };
 pub use identity::{ExternalEffectCausalLink, ExternalEffectPostureIdentity};
-pub(crate) use outbox::WorthQueryDispatchOutboxRestoredFields;
-pub use outbox::{
-    dispatch_outbox_create_intent, WorthQueryDispatchOutboxLayout, WorthQueryDispatchOutboxRecord,
+#[cfg(test)]
+pub(crate) use outbox::dispatch_outbox_create_intent;
+pub(crate) use outbox::{
+    bind_dispatch_outbox_create_intent, WorthQueryDispatchOutboxRestoredFields,
+    WorthQueryPendingDispatchOutbox,
 };
-pub use posture::{ExternalEffectPosture, ExternalEffectPostureKind};
+pub use outbox::{WorthQueryDispatchOutboxLayout, WorthQueryDispatchOutboxRecord};
+pub use posture::ExternalEffectPostureKind;
 pub use transport::{
     WorthQueryExternalDispatchRequest, WorthQueryExternalEffectTransport,
     WorthQueryExternalTransportOutcome,

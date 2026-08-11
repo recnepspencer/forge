@@ -106,7 +106,7 @@ fn workflow_stage_uses_stage_resources_and_scope_in_the_same_protocol() {
             .abort();
         assert!(matches!(
             outcome,
-            WorthQuerySessionCommitOrAbortOutcome::Aborted { .. }
+            WorthQuerySessionCommitOrAbortOutcome::Aborted(_)
         ));
     }
     cleanup_workflow(running);

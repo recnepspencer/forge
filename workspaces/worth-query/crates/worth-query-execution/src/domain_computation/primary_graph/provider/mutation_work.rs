@@ -25,12 +25,6 @@ impl WorthQueryTouchedRecordIdentity {
     pub const fn record(&self) -> &RecordRef {
         &self.record
     }
-
-    /// Named corruption fixture for exact-target admission tests.
-    #[cfg(test)]
-    pub(crate) const fn axis_probe(record: RecordRef) -> Self {
-        Self { record }
-    }
 }
 
 /// Invariant-phase counters retained until commit attaches touched records.
@@ -48,7 +42,8 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryPrimaryMutatio
 }
 
 impl WorthQueryPrimaryMutationWorkCounters {
-    pub(in crate::domain_computation::primary_graph) const fn new(
+    pub(super) const fn new(
+        _mint: super::invariant_execution::WorthQueryInvariantWorkMint,
         decision_facts: usize,
         proposed_facts: usize,
         invariant_state_facts: usize,
@@ -87,6 +82,11 @@ pub struct WorthQueryPrimaryMutationWorkEvidence {
     invariant_work_units: u64,
     relational_invariant_executions: usize,
     relational_invariant_results: usize,
+    preimage_validated_intents_examined: usize,
+    preimage_mutation_targets_materialized: usize,
+    preimage_decision_facts_examined: usize,
+    preimage_candidates_materialized: usize,
+    preimage_demanded_loci_examined: usize,
     touched_records: Vec<WorthQueryTouchedRecordIdentity>,
 }
 
@@ -95,13 +95,12 @@ impl WorthQueryPrimaryMutationWorkEvidence {
     ///
     /// `changed_records` must be the exact slice Relational published on the
     /// commit that produced this work. Callers cannot invent identities.
-    pub(in crate::domain_computation::primary_graph) fn from_commit(
-        counters: WorthQueryPrimaryMutationWorkCounters,
-        changed_records: &[RecordRef],
+    pub(in crate::domain_computation::primary_graph) fn from_commit_seal(
+        seal: super::session_commit::WorthQueryMutationWorkCommitSeal,
     ) -> Self {
+        let (counters, changed_records, preimage) = seal.into_parts();
         let touched_records = changed_records
-            .iter()
-            .cloned()
+            .into_iter()
             .map(WorthQueryTouchedRecordIdentity::from_commit_record)
             .collect();
         Self {
@@ -111,6 +110,11 @@ impl WorthQueryPrimaryMutationWorkEvidence {
             invariant_work_units: counters.invariant_work_units,
             relational_invariant_executions: counters.relational_invariant_executions,
             relational_invariant_results: counters.relational_invariant_results,
+            preimage_validated_intents_examined: preimage.validated_intents_examined(),
+            preimage_mutation_targets_materialized: preimage.mutation_targets_materialized(),
+            preimage_decision_facts_examined: preimage.decision_facts_examined(),
+            preimage_candidates_materialized: preimage.candidates_materialized(),
+            preimage_demanded_loci_examined: preimage.demanded_loci_examined(),
             touched_records,
         }
     }
@@ -137,6 +141,26 @@ impl WorthQueryPrimaryMutationWorkEvidence {
 
     pub const fn relational_invariant_result_count(&self) -> usize {
         self.relational_invariant_results
+    }
+
+    pub const fn preimage_validated_intents_examined(&self) -> usize {
+        self.preimage_validated_intents_examined
+    }
+
+    pub const fn preimage_mutation_targets_materialized(&self) -> usize {
+        self.preimage_mutation_targets_materialized
+    }
+
+    pub const fn preimage_decision_facts_examined(&self) -> usize {
+        self.preimage_decision_facts_examined
+    }
+
+    pub const fn preimage_candidates_materialized(&self) -> usize {
+        self.preimage_candidates_materialized
+    }
+
+    pub const fn preimage_demanded_loci_examined(&self) -> usize {
+        self.preimage_demanded_loci_examined
     }
 
     /// Records this mutation touched, derived from the commit (C2).

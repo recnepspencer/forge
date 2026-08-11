@@ -256,10 +256,10 @@ pub(super) fn relational_oracle_row() -> EffectLifecyclePhase4CertificationRow {
         .expect("mutation artifact should exist");
     let oracle = RelationalExecutionOracle::new(
         "branch-a",
-        commit.outcome.commit.commit_id.0,
-        commit.outcome.commit.version_id.0,
+        commit.outcome().commit.commit_id.0,
+        commit.outcome().commit.version_id.0,
         commit
-            .outcome
+            .outcome()
             .commit
             .parents
             .iter()

@@ -4,9 +4,9 @@
 use std::net::SocketAddr;
 use std::time::Duration;
 
+use bank_external_rail::test_control::{select_fault, FaultScript};
 use bank_external_rail::{
-    FaultScript, RailCorrelation, RailDispatch, RailEffectPayload, RailProcessHandle,
-    RailProtocolSupportProfile,
+    RailCorrelation, RailDispatch, RailEffectPayload, RailProcessHandle, RailProtocolSupportProfile,
 };
 use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
 
@@ -32,11 +32,18 @@ pub const FRAME_TIMEOUT: Duration = Duration::from_secs(2);
 pub struct RailWorld {
     process: RailProcessHandle,
     pub addr: SocketAddr,
+    pub test_control_addr: SocketAddr,
 }
 
 impl RailWorld {
     pub fn pid(&self) -> u32 {
         self.process.pid()
+    }
+
+    pub async fn select_fault(&self, script: FaultScript) {
+        select_fault(self.test_control_addr, script, FRAME_TIMEOUT)
+            .await
+            .expect("the separate test-control listener selects the rail posture");
     }
 }
 
@@ -55,7 +62,12 @@ pub fn spawn_rail_with_protocol_support(protocol_support: RailProtocolSupportPro
     )
     .expect("exit-proof fixture: rail process spawns and reports its bound address");
     let addr = process.local_addr();
-    RailWorld { process, addr }
+    let test_control_addr = process.test_control_addr();
+    RailWorld {
+        process,
+        addr,
+        test_control_addr,
+    }
 }
 
 /// A fresh correlation for one test's dispatch attempt, scoped by the
@@ -65,17 +77,16 @@ pub fn correlation_for(scenario: &str) -> RailCorrelation {
     RailCorrelation::new("gate-8-2-exit-proof", scenario.as_bytes().to_vec())
 }
 
-/// One well-formed dispatch: a scenario's correlation, a decodable notice,
-/// and the fault the rail should exhibit.
+/// One well-formed production dispatch: a scenario's correlation and a
+/// decodable notice.
 ///
 /// Every fault test sends a real notice because the rail decodes before it
 /// runs any script — a fault path is only reachable by a payload the rail
 /// could read.
-pub fn attempt_for(scenario: &str, fault_script: FaultScript) -> RailDispatch {
+pub fn attempt_for(scenario: &str) -> RailDispatch {
     RailDispatch {
         correlation: correlation_for(scenario),
         payload: notice_payload(),
-        fault_script,
     }
 }
 

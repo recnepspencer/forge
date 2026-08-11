@@ -1,6 +1,8 @@
 use std::marker::PhantomData;
 
-use super::contract_slots::{DeclaredAftermathSlot, DeclaredExternalEffectSlot};
+use crate::application_aftermath::PortableApplicationAftermathContract;
+
+use super::contract_slots::DeclaredExternalEffectSlot;
 
 /// One operation declaration with every statically knowable singleton contract
 /// selected exactly once.
@@ -13,7 +15,7 @@ pub struct ApplicationOperationDefinition<Schema, Operation, Input> {
     pub(super) operation: &'static str,
     pub(super) input_type: &'static str,
     pub(super) external_effect: Option<DeclaredExternalEffectSlot>,
-    pub(super) aftermath: Option<DeclaredAftermathSlot>,
+    pub(super) aftermath: Option<PortableApplicationAftermathContract>,
     pub(super) marker: PhantomData<fn(Input) -> (Schema, Operation)>,
 }
 

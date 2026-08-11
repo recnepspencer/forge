@@ -24,6 +24,30 @@ use crate::publication::patch::data::{
 use crate::replay::data::CanonicalCommitAuthorityKind;
 use crate::transactions::data::{MergedCommitPlan, TransactionId};
 
+pub(crate) struct LineageDurableAppendAdmission {
+    runtime_instance_id: u64,
+    commit_id: crate::history::data::CommitId,
+    branch_id: BranchId,
+}
+
+impl LineageDurableAppendAdmission {
+    fn new(
+        runtime: &crate::logic::runtime::RelationalRuntime,
+        commit_id: crate::history::data::CommitId,
+        branch_id: &BranchId,
+    ) -> Self {
+        Self {
+            runtime_instance_id: runtime.runtime_instance_id(),
+            commit_id,
+            branch_id: branch_id.clone(),
+        }
+    }
+
+    pub(crate) fn into_parts(self) -> (u64, crate::history::data::CommitId, BranchId) {
+        (self.runtime_instance_id, self.commit_id, self.branch_id)
+    }
+}
+
 impl<'runtime> LineageAuthority<'runtime> {
     pub(super) fn authorize_promotion_execution(
         &self,
@@ -95,13 +119,16 @@ impl<'runtime> LineageAuthority<'runtime> {
         )
         .map_err(|_| CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed)?;
 
-        append_durable_commit(
-            self.runtime,
-            &envelope,
-            promotion_commit.commit_id,
-            &promotion_commit.branch_id,
-        )
-        .map_err(|_| CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed)?;
+        let append_authority = crate::durability::authority::DurableAppendAuthority::from_lineage(
+            LineageDurableAppendAdmission::new(
+                self.runtime,
+                promotion_commit.commit_id,
+                &promotion_commit.branch_id,
+            ),
+        );
+        append_durable_commit(self.runtime, append_authority, &envelope).map_err(|_| {
+            CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed
+        })?;
 
         let published_lineage = envelope.published_lineage().clone();
         let patch_position = envelope.patch.position;

@@ -128,11 +128,7 @@ fn forged_string_identity_binding() -> ApplicationPrincipalBindingRef<
         WorthQueryExternalPrincipalIdentity,
         ReadOnly,
         EqualityPredicate,
-    >::from_schema_identifiers(
-        "ExternalMapping",
-        "ExternalIdentity",
-        "ExternalIdentityField",
-    );
+    >::from_schema_types();
     let status = ApplicationFieldRef::<
         IdentitySchema,
         ExternalMapping,
@@ -141,9 +137,7 @@ fn forged_string_identity_binding() -> ApplicationPrincipalBindingRef<
         WorthQueryPrincipalMappingStatus,
         ReadWrite,
         EqualityPredicate,
-    >::from_schema_identifiers(
-        "ExternalMapping", "ExternalIdentity", "MappingStatusField"
-    );
+    >::from_schema_types();
     let target = ApplicationRelationRef::<
         IdentitySchema,
         MappingTarget,
@@ -158,9 +152,7 @@ fn forged_string_identity_binding() -> ApplicationPrincipalBindingRef<
         String,
         ReadOnly,
         EqualityPredicate,
-    >::from_schema_identifiers(
-        "Principal", "PrincipalIdentity", "PrincipalIdentityField"
-    );
+    >::from_schema_types();
     ApplicationPrincipalBindingRef::from_requirements(
         "IdentityBinding",
         ApplicationPrincipalBindingRequirements {

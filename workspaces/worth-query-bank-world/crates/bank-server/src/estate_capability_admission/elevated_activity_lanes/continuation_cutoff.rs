@@ -1,7 +1,4 @@
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationContinuationDenialKind, WorthQueryApplicationQueryResumeControls,
-    WorthQueryOperationAuthorizationDenialKind,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryResumeControls;
 
 use super::support::{
     activity_request, activity_world, assert_exact_revoked_alternate_active,
@@ -52,8 +49,8 @@ fn exact_support_loss_after_continuation_readmission_denies_before_payload() {
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryApplicationContinuationDenialKind::Authorization(
-            WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
+        crate::BankApplicationContinuationDenialKind::Authorization(
+            crate::BankAuthorizationDenialKind::StaleAuthorization,
         )
     );
     assert_exact_revoked_alternate_active(&world);

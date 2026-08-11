@@ -27,6 +27,10 @@ pub enum WorthQueryPublishedExternalEffectFailure {
     LostResponse,
     DuplicatedAcknowledgement,
     PayloadRejected,
+    InitialDispatchOwnerReadDenied,
+    InitialDispatchAttemptAdmissionDenied,
+    InitialDispatchCanonicalDerivationDenied,
+    InitialDispatchTimeObservationDenied,
     UnsupportedProtocolVersion {
         produced: u32,
         posture: WorthQueryPublishedUnsupportedProtocolVersionPosture,
@@ -60,7 +64,7 @@ impl WorthQueryPublishedExternalEffectPosture {
     }
 }
 
-pub(super) const fn publish_external_effect(
+pub(super) fn publish_external_effect(
     receipt: &WorthQueryApplicationCommitReceipt,
 ) -> WorthQueryPublishedExternalEffectPosture {
     match receipt.external_dispatch() {
@@ -82,10 +86,36 @@ pub(super) const fn publish_external_effect(
                 }
             }
         },
-        None if receipt.dispatch_outbox().is_some() => {
-            WorthQueryPublishedExternalEffectPosture::PendingDispatch
+        None => match receipt.external_dispatch_preparation_denial() {
+            Some(denial) => WorthQueryPublishedExternalEffectPosture::Unresolved(
+                publish_preparation_failure(denial),
+            ),
+            None if receipt.dispatch_outbox().is_some() => {
+                WorthQueryPublishedExternalEffectPosture::PendingDispatch
+            }
+            None => WorthQueryPublishedExternalEffectPosture::NotDeclared,
+        },
+    }
+}
+
+const fn publish_preparation_failure(
+    denial: worth_query_execution::facade::primary_graph::WorthQueryExternalDispatchPreparationDenial,
+) -> WorthQueryPublishedExternalEffectFailure {
+    use worth_query_execution::facade::primary_graph::WorthQueryExternalDispatchPreparationDenial as Execution;
+
+    match denial {
+        Execution::OwnerReadDenied(_) => {
+            WorthQueryPublishedExternalEffectFailure::InitialDispatchOwnerReadDenied
         }
-        None => WorthQueryPublishedExternalEffectPosture::NotDeclared,
+        Execution::AttemptAdmissionDenied => {
+            WorthQueryPublishedExternalEffectFailure::InitialDispatchAttemptAdmissionDenied
+        }
+        Execution::CanonicalDerivationDenied => {
+            WorthQueryPublishedExternalEffectFailure::InitialDispatchCanonicalDerivationDenied
+        }
+        Execution::TimeObservationDenied => {
+            WorthQueryPublishedExternalEffectFailure::InitialDispatchTimeObservationDenied
+        }
     }
 }
 
@@ -130,11 +160,75 @@ mod tests {
         BoundaryProtocolCompatibilityWindow, BoundaryProtocolVersion,
     };
     use worth_query_execution::facade::primary_graph::ExternalRailTransportFault;
+    use worth_query_execution::facade::primary_graph::{
+        WorthQueryCommittedDispatchOutboxReadDenial, WorthQueryExternalDispatchPreparationDenial,
+    };
 
     use super::{
-        publish_failure, WorthQueryPublishedExternalEffectFailure,
+        publish_failure, publish_preparation_failure, WorthQueryPublishedExternalEffectFailure,
         WorthQueryPublishedUnsupportedProtocolVersionPosture,
     };
+
+    #[test]
+    fn every_non_version_transport_fault_is_preserved_exactly() {
+        let cases = [
+            (
+                ExternalRailTransportFault::Timeout,
+                WorthQueryPublishedExternalEffectFailure::Timeout,
+            ),
+            (
+                ExternalRailTransportFault::Disconnect,
+                WorthQueryPublishedExternalEffectFailure::Disconnect,
+            ),
+            (
+                ExternalRailTransportFault::LostResponse,
+                WorthQueryPublishedExternalEffectFailure::LostResponse,
+            ),
+            (
+                ExternalRailTransportFault::DuplicatedAcknowledgement,
+                WorthQueryPublishedExternalEffectFailure::DuplicatedAcknowledgement,
+            ),
+            (
+                ExternalRailTransportFault::PayloadRejected,
+                WorthQueryPublishedExternalEffectFailure::PayloadRejected,
+            ),
+            (
+                ExternalRailTransportFault::UnknownProviderOutcome,
+                WorthQueryPublishedExternalEffectFailure::UnknownProviderOutcome,
+            ),
+        ];
+
+        for (owner_fault, expected) in cases {
+            assert_eq!(publish_failure(owner_fault), expected);
+        }
+    }
+
+    #[test]
+    fn every_initial_dispatch_preparation_denial_is_preserved_exactly() {
+        let cases = [
+            (
+                WorthQueryExternalDispatchPreparationDenial::OwnerReadDenied(
+                    WorthQueryCommittedDispatchOutboxReadDenial::RecordMismatch,
+                ),
+                WorthQueryPublishedExternalEffectFailure::InitialDispatchOwnerReadDenied,
+            ),
+            (
+                WorthQueryExternalDispatchPreparationDenial::AttemptAdmissionDenied,
+                WorthQueryPublishedExternalEffectFailure::InitialDispatchAttemptAdmissionDenied,
+            ),
+            (
+                WorthQueryExternalDispatchPreparationDenial::CanonicalDerivationDenied,
+                WorthQueryPublishedExternalEffectFailure::InitialDispatchCanonicalDerivationDenied,
+            ),
+            (
+                WorthQueryExternalDispatchPreparationDenial::TimeObservationDenied,
+                WorthQueryPublishedExternalEffectFailure::InitialDispatchTimeObservationDenied,
+            ),
+        ];
+        for (denial, expected) in cases {
+            assert_eq!(publish_preparation_failure(denial), expected);
+        }
+    }
 
     #[test]
     fn every_unsupported_version_posture_maps_exhaustively_and_exactly() {

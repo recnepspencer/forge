@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::domain_computation::{
-    WorthQueryDomainEvidenceBindingDenial, WorthQueryManagedRunDenial,
+    WorthQueryConvergenceDomainEvidenceBindingDenial, WorthQueryManagedRunDenial,
     WorthQueryManagedRunTerminalKind,
 };
 
@@ -63,7 +63,7 @@ impl WorthQueryConvergenceDomainInvocationFailure {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryConvergenceIndeterminateCause {
     DomainInvocation(WorthQueryConvergenceDomainInvocationFailure),
-    DomainEvidenceBinding(WorthQueryDomainEvidenceBindingDenial),
+    DomainEvidenceBinding(WorthQueryConvergenceDomainEvidenceBindingDenial),
     ReportAdmission(WorthQueryConvergenceEpochDenial),
     ManagedCompletion(WorthQueryManagedRunDenial),
     ManagedTerminal(WorthQueryManagedRunTerminalKind),

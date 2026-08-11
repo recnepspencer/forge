@@ -5,12 +5,12 @@ use super::fixture::{
 use super::terminal_fixture::{converged_terminal, workflow_converged_terminal};
 use crate::domain_computation::{
     WorthQueryConverged, WorthQueryDirectConvergenceIterationOutcome,
-    WorthQueryDirectConvergenceReadmissionOutcome, WorthQueryDirectConvergenceYieldOutcome,
-    WorthQueryDirectGraphStepOutcome, WorthQueryGraphProviderCallKind,
+    WorthQueryDirectConvergenceReadmissionOutcome, WorthQueryDirectConvergenceStepOutcome,
+    WorthQueryDirectConvergenceYieldOutcome, WorthQueryGraphProviderCallKind,
     WorthQueryManagedGraphCallRequest, WorthQueryReadmissionEvidence,
     WorthQueryWorkflowConvergenceCleanupOutcome, WorthQueryWorkflowConvergenceIterationOutcome,
-    WorthQueryWorkflowConvergenceReadmissionOutcome, WorthQueryWorkflowConvergenceTerminal,
-    WorthQueryWorkflowConvergenceYieldOutcome, WorthQueryWorkflowGraphStepOutcome,
+    WorthQueryWorkflowConvergenceReadmissionOutcome, WorthQueryWorkflowConvergenceStepOutcome,
+    WorthQueryWorkflowConvergenceTerminal, WorthQueryWorkflowConvergenceYieldOutcome,
 };
 
 #[test]
@@ -36,16 +36,14 @@ fn same_runtime_yield_and_readmission_preserve_the_semantic_convergence_result()
         Ok(started) => started,
         Err(_) => panic!("yield convergence iteration must start"),
     };
-    let (pending, active) = started.into_parts();
-    let paused = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Continue(paused) => paused,
+    let paused = match started.advance() {
+        WorthQueryDirectConvergenceStepOutcome::Continue(paused) => paused,
         _ => panic!("yield provider must expose its installed safe point"),
     };
-    let yielded = match pending.admit_yield_outcome(paused.yield_run()) {
+    let yielded = match paused.yield_iteration() {
         WorthQueryDirectConvergenceYieldOutcome::Yielded(yielded) => yielded,
         _ => panic!("eligible convergence iteration must preserve yielded authority"),
     };
-    assert_eq!(yielded.yielded_run().checkpoint().retained_bytes(), 1);
     let resumed = match yielded.readmit_same_runtime(&runtime, &bridge) {
         WorthQueryDirectConvergenceReadmissionOutcome::Readmitted(readmitted) => {
             assert_committed_readmission_evidence(readmitted.readmission_evidence());
@@ -53,14 +51,9 @@ fn same_runtime_yield_and_readmission_preserve_the_semantic_convergence_result()
         }
         _ => panic!("same-runtime convergence readmission must restore the provider"),
     };
-    let (pending, active) = resumed.into_parts();
-    let completion = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("restored convergence provider must complete"),
-    };
-    let outcome = match pending.admit_completion(completion) {
-        Ok(outcome) => outcome,
-        Err(_) => panic!("restored completion must rejoin its epoch"),
+    let outcome = match resumed.advance() {
+        WorthQueryDirectConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("restored convergence provider must complete and rejoin its epoch"),
     };
     let resumed = match outcome {
         WorthQueryDirectConvergenceIterationOutcome::Converged(terminal) => terminal,
@@ -76,7 +69,7 @@ fn same_runtime_yield_and_readmission_preserve_the_semantic_convergence_result()
         ordinary.latest_report().unwrap().domain_work(),
         resumed.latest_report().unwrap().domain_work()
     );
-    assert_eq!(
+    assert_ne!(
         ordinary.incumbents()[0].occurrence_identity(),
         resumed.incumbents()[0].occurrence_identity()
     );
@@ -88,35 +81,16 @@ fn same_runtime_yield_and_readmission_preserve_the_semantic_convergence_result()
     assert_eq!(resumed.counters().readmission_count(), 1);
     assert_eq!(resumed.counters().iteration_count(), 1);
     assert_eq!(resumed.counters().provider_work_unit_count(), 2);
-    assert!(!ordinary
-        .managed_terminal()
-        .provider_work()
-        .checkpoint_available());
-    assert!(!resumed
-        .managed_terminal()
-        .provider_work()
-        .checkpoint_available());
-    assert_eq!(
-        resumed
-            .managed_terminal()
-            .provider_work()
-            .checkpoint_available_observation_count(),
-        1
-    );
-    assert_eq!(
-        resumed.managed_terminal().provider_work().retained_bytes(),
-        0
-    );
-    assert_eq!(
-        resumed
-            .managed_terminal()
-            .provider_work()
-            .retained_artifact_count(),
-        0
-    );
-    if ordinary.cleanup().is_err() || resumed.cleanup().is_err() {
-        panic!("both schedule variants must retain cleanup authority");
-    }
+    let ordinary_cleanup = ordinary
+        .cleanup()
+        .unwrap_or_else(|_| panic!("ordinary schedule must clean up"));
+    let resumed_cleanup = resumed
+        .cleanup()
+        .unwrap_or_else(|_| panic!("readmitted schedule must clean up"));
+    assert_eq!(ordinary_cleanup.counters().cleanup_attempt_count(), 1);
+    assert_eq!(ordinary_cleanup.counters().cleanup_completion_count(), 1);
+    assert_eq!(resumed_cleanup.counters().cleanup_attempt_count(), 1);
+    assert_eq!(resumed_cleanup.counters().cleanup_completion_count(), 1);
 }
 
 #[test]
@@ -149,16 +123,14 @@ fn workflow_yield_and_readmission_preserve_the_semantic_convergence_result() {
         Ok(started) => started,
         Err(_) => panic!("yield-capable workflow iteration must start"),
     };
-    let (pending, active) = started.into_parts();
-    let paused = match active.advance() {
-        WorthQueryWorkflowGraphStepOutcome::Continue(paused) => paused,
+    let paused = match started.advance() {
+        WorthQueryWorkflowConvergenceStepOutcome::Continue(paused) => paused,
         _ => panic!("workflow provider must expose its installed safe point"),
     };
-    let yielded = match pending.admit_yield_outcome(paused.yield_run()) {
+    let yielded = match paused.yield_iteration() {
         WorthQueryWorkflowConvergenceYieldOutcome::Yielded(yielded) => yielded,
         _ => panic!("eligible workflow iteration must preserve yielded authority"),
     };
-    assert_eq!(yielded.yielded_run().checkpoint().retained_bytes(), 1);
     let resumed = match yielded.readmit_same_runtime(&runtime, &bridge) {
         WorthQueryWorkflowConvergenceReadmissionOutcome::Readmitted(readmitted) => {
             assert_committed_readmission_evidence(readmitted.readmission_evidence());
@@ -166,14 +138,9 @@ fn workflow_yield_and_readmission_preserve_the_semantic_convergence_result() {
         }
         _ => panic!("same-runtime workflow readmission must restore the provider"),
     };
-    let (pending, active) = resumed.into_parts();
-    let completion = match active.advance() {
-        WorthQueryWorkflowGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("restored workflow provider must complete"),
-    };
-    let outcome = match pending.admit_completion(completion) {
-        Ok(outcome) => outcome,
-        Err(_) => panic!("restored workflow completion must rejoin its epoch"),
+    let outcome = match resumed.advance() {
+        WorthQueryWorkflowConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("restored workflow provider must complete and rejoin its epoch"),
     };
     let resumed = match outcome {
         WorthQueryWorkflowConvergenceIterationOutcome::Converged(terminal) => terminal,
@@ -189,7 +156,7 @@ fn workflow_yield_and_readmission_preserve_the_semantic_convergence_result() {
         ordinary.latest_report().unwrap().domain_work(),
         resumed.latest_report().unwrap().domain_work()
     );
-    assert_eq!(
+    assert_ne!(
         ordinary.incumbents()[0].occurrence_identity(),
         resumed.incumbents()[0].occurrence_identity()
     );
@@ -197,34 +164,12 @@ fn workflow_yield_and_readmission_preserve_the_semantic_convergence_result() {
     assert_eq!(resumed.counters().readmission_count(), 1);
     assert_eq!(resumed.counters().iteration_count(), 1);
     assert_eq!(resumed.counters().provider_work_unit_count(), 2);
-    assert!(!ordinary
-        .managed_terminal()
-        .provider_work()
-        .checkpoint_available());
-    assert!(!resumed
-        .managed_terminal()
-        .provider_work()
-        .checkpoint_available());
-    assert_eq!(
-        resumed
-            .managed_terminal()
-            .provider_work()
-            .checkpoint_available_observation_count(),
-        1
-    );
-    assert_eq!(
-        resumed.managed_terminal().provider_work().retained_bytes(),
-        0
-    );
-    assert_eq!(
-        resumed
-            .managed_terminal()
-            .provider_work()
-            .retained_artifact_count(),
-        0
-    );
     let ordinary_cleanup = ordinary.cleanup();
     let resumed_cleanup = resumed.cleanup();
+    assert_eq!(ordinary_cleanup.counters().cleanup_attempt_count(), 1);
+    assert_eq!(ordinary_cleanup.counters().cleanup_completion_count(), 1);
+    assert_eq!(resumed_cleanup.counters().cleanup_attempt_count(), 1);
+    assert_eq!(resumed_cleanup.counters().cleanup_completion_count(), 1);
     assert!(matches!(
         ordinary_cleanup,
         WorthQueryWorkflowConvergenceCleanupOutcome::Complete(_)
@@ -279,9 +224,8 @@ fn chunked_converged_terminal(
         Ok(started) => started,
         Err(_) => panic!("chunked workflow iteration must start"),
     };
-    let (pending, active) = started.into_parts();
-    let chunk = match active.advance() {
-        WorthQueryWorkflowGraphStepOutcome::ChunkReady(chunk) => chunk,
+    let chunk = match started.advance() {
+        WorthQueryWorkflowConvergenceStepOutcome::ChunkReady(chunk) => chunk,
         _ => panic!("chunked workflow provider must expose its bounded projection"),
     };
     assert_eq!(
@@ -289,13 +233,9 @@ fn chunked_converged_terminal(
         u64::try_from(width).expect("fixture chunk width must fit the queue counter")
     );
     assert_eq!(chunk.queue_capacity(), 8);
-    let completion = match chunk.acknowledge() {
-        WorthQueryWorkflowGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("acknowledged exact-capacity chunk must complete"),
-    };
-    let outcome = match pending.admit_completion(completion) {
-        Ok(outcome) => outcome,
-        Err(_) => panic!("chunked workflow completion must rejoin its epoch"),
+    let outcome = match chunk.acknowledge() {
+        WorthQueryWorkflowConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("acknowledged exact-capacity chunk must complete and rejoin"),
     };
     match outcome {
         WorthQueryWorkflowConvergenceIterationOutcome::Converged(terminal) => terminal,

@@ -10,19 +10,16 @@ use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope,
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
-use crate::history::data::{BranchId, CommitId, CommitReference};
-use crate::identity::data::VersionId;
+use crate::history::data::CommitId;
 use crate::logic::planning::RelationalExecutionModel;
 use crate::logic::runtime::RelationalRuntime;
 use crate::publication::patch::data::{
     PatchOrdering, PatchPublicationMode, PatchStreamPosition, PublishedAuthoritativePatchEnvelope,
     PublishedAuthoritativeRecordPatch,
 };
-use crate::storage::logic::state::{PartitionState, PublicationArtifacts};
 use crate::transactions::data::RecordRef;
 use rayon::prelude::*;
 use std::collections::BTreeSet;
-use std::sync::Arc;
 
 #[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -293,99 +290,3 @@ pub(super) fn diagnostics_summary_artifact(
 
 #[cfg(test)]
 mod tests;
-
-pub(super) fn finalize_published_commit(
-    runtime: &mut RelationalRuntime,
-    clone_mode: crate::storage::overlay::PartitionCloneMode,
-    committed_partitions: std::collections::BTreeMap<
-        crate::identity::data::PartitionId,
-        (
-            PartitionState,
-            crate::storage::overlay::PartitionMutationJournal,
-        ),
-    >,
-    changed_records: &[RecordRef],
-    version_id: VersionId,
-    previous_branch_head_version: Option<VersionId>,
-    commit_id: CommitId,
-    commit_reference: &CommitReference,
-    canonical_commit_envelope: Arc<crate::replay::data::CanonicalCommitEnvelope>,
-    branch_id: &BranchId,
-    merge_base_commits: &[CommitId],
-    artifacts: PublicationArtifacts,
-    merge_parent_branches: &[BranchId],
-    phase_timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
-) {
-    let phase_started = std::time::Instant::now();
-    runtime
-        .storage_authority()
-        .publish_partition_commits(clone_mode, committed_partitions);
-    phase_timing.storage_commit_micros = phase_started.elapsed().as_micros() as u64;
-
-    let phase_started = std::time::Instant::now();
-    runtime
-        .index_authority()
-        .refresh_unique_entity_aspect_field_index_for_records(changed_records, version_id);
-    phase_timing.index_refresh_micros = phase_started.elapsed().as_micros() as u64;
-
-    let phase_started = std::time::Instant::now();
-    runtime.history_authority().publish_commit(
-        commit_id,
-        commit_reference.clone(),
-        branch_id.clone(),
-        canonical_commit_envelope.patch.position,
-        canonical_commit_envelope,
-    );
-    phase_timing.history_publish_micros = phase_started.elapsed().as_micros() as u64;
-
-    let phase_started = std::time::Instant::now();
-    runtime
-        .visibility_pins()
-        .move_branch_head_visibility_residency(previous_branch_head_version, Some(version_id));
-    runtime
-        .visibility_pins()
-        .advance_branch_pins_for_changed_records(
-            previous_branch_head_version,
-            version_id,
-            changed_records,
-        );
-    phase_timing.visibility_pin_micros = phase_started.elapsed().as_micros() as u64;
-
-    let phase_started = std::time::Instant::now();
-    runtime
-        .retention()
-        .trim_live_history_for_records(changed_records, version_id);
-    phase_timing.retention_trim_micros = phase_started.elapsed().as_micros() as u64;
-
-    let phase_started = std::time::Instant::now();
-    runtime.durability_authority().compact_log_if_needed();
-    phase_timing.compaction_micros = phase_started.elapsed().as_micros() as u64;
-
-    let phase_started = std::time::Instant::now();
-    let snapshot_id = runtime
-        .publication_authority()
-        .publish_artifacts(version_id, artifacts);
-    phase_timing.bundle_publish_micros = phase_started.elapsed().as_micros() as u64;
-
-    if runtime.config.storage.mvcc.auto_reclaim_deleted_records
-        || runtime.config.storage.mvcc.snapshot_release_policy
-            == crate::config::data::SnapshotReleasePolicy::ReleaseOnRetentionPass
-    {
-        let phase_started = std::time::Instant::now();
-        let _ = runtime.retention().run_pass();
-        phase_timing.retention_pass_micros = phase_started.elapsed().as_micros() as u64;
-    }
-
-    let phase_started = std::time::Instant::now();
-    runtime
-        .publication_authority()
-        .consume_post_commit_artifacts(
-            commit_id,
-            snapshot_id,
-            branch_id.clone(),
-            &commit_reference.parents,
-            merge_parent_branches,
-            merge_base_commits,
-        );
-    phase_timing.post_commit_consumer_micros = phase_started.elapsed().as_micros() as u64;
-}

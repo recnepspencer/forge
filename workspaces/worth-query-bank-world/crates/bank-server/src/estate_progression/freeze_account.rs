@@ -36,19 +36,13 @@ type FreezeEffectProgram = WorthQueryApplicationEffectProgram<
 
 #[derive(Debug)]
 pub enum BankEstateFreezeProjectionDenial {
-    RelationCardinality {
-        expected: usize,
-        observed: usize,
-    },
+    RelationCardinality { expected: usize, observed: usize },
     MissingAccountIdentity,
-    RelatedAccountMismatch {
-        expected: AccountId,
-        observed: AccountId,
-    },
+    RelatedAccountMismatch,
     MissingAccountStatus,
-    AccountNotOpen(AccountStatus),
-    DecisionPlan(WorthQueryInvariantDecisionPlanDenial),
-    Traversal(WorthQueryInvariantProjectionTraversalDenial),
+    AccountNotOpen,
+    DecisionPlan(crate::BankInvariantDecisionPlanDenial),
+    Traversal(crate::BankInvariantProjectionTraversalDenial),
 }
 
 impl BankIdentityRuntime {
@@ -86,16 +80,16 @@ impl BankIdentityRuntime {
                 FreezeEstateAccountCapability::reference(),
                 FreezeEstateAccountOperation::reference(),
             )
-            .map_err(BankEstateProgressionDenial::CapabilityInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_capability_installation)?;
         let access = self
             .application_runtime()
             .admit_capability_access(principal.query(), &capability, action, request)
-            .map_err(BankEstateProgressionDenial::Authorization)?;
+            .map_err(BankEstateProgressionDenial::from_authorization)?;
         let operation = self
             .application_runtime()
             .installed_schema()
             .installed_operation(FreezeEstateAccountOperation::reference())
-            .map_err(BankEstateProgressionDenial::OperationInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_operation_installation)?;
         self.application_runtime()
             .authorize_capability_operation(
                 access,
@@ -106,7 +100,7 @@ impl BankIdentityRuntime {
                     EstateCase,
                 >::default(),
             )
-            .map_err(BankEstateProgressionDenial::Authorization)
+            .map_err(BankEstateProgressionDenial::from_authorization)
     }
 
     fn materialize_freeze_effect(
@@ -119,29 +113,29 @@ impl BankIdentityRuntime {
             .project_admitted_operation(&admission, |reader, estate| {
                 project_freeze_account(reader, estate, account)
             })
-            .map_err(BankEstateProgressionDenial::Projection)?;
+            .map_err(BankEstateProgressionDenial::from_projection)?;
         let (projection_result, projection, _) = projected.into_parts();
         projection_result.map_err(BankEstateProgressionDenial::FreezeProjection)?;
         let reads = self
             .application_runtime()
             .begin_projected_application_read_attempt(admission, projection)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let account = reads
             .resolve_entity(AccountIdentity::reference(), account)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let mut effects = reads
             .complete_projected_dependencies()
-            .map_err(BankEstateProgressionDenial::Attempt)?
+            .map_err(BankEstateProgressionDenial::from_attempt)?
             .begin_effect_program();
         let account = effects
             .existing_entity(&account)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         effects
             .write_field(&account, Status::reference(), AccountStatus::Frozen)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let program = effects
             .finish()
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         Ok(program)
     }
 }
@@ -175,29 +169,30 @@ fn project_freeze_account(
         .decision_field(&account, AccountIdentity::reference())?
         .ok_or(BankEstateFreezeProjectionDenial::MissingAccountIdentity)?;
     if observed_account != expected_account {
-        return Err(BankEstateFreezeProjectionDenial::RelatedAccountMismatch {
-            expected: expected_account,
-            observed: observed_account,
-        });
+        return Err(BankEstateFreezeProjectionDenial::RelatedAccountMismatch);
     }
     let status = reader
         .decision_field(&account, Status::reference())?
         .ok_or(BankEstateFreezeProjectionDenial::MissingAccountStatus)?;
     if status != AccountStatus::Open {
-        return Err(BankEstateFreezeProjectionDenial::AccountNotOpen(status));
+        return Err(BankEstateFreezeProjectionDenial::AccountNotOpen);
     }
     Ok(())
 }
 
 impl From<WorthQueryInvariantDecisionPlanDenial> for BankEstateFreezeProjectionDenial {
     fn from(denial: WorthQueryInvariantDecisionPlanDenial) -> Self {
-        Self::DecisionPlan(denial)
+        Self::DecisionPlan(crate::BankInvariantDecisionPlanDenial::from_query(
+            denial.kind(),
+        ))
     }
 }
 
 impl From<WorthQueryInvariantProjectionTraversalDenial> for BankEstateFreezeProjectionDenial {
     fn from(denial: WorthQueryInvariantProjectionTraversalDenial) -> Self {
-        Self::Traversal(denial)
+        Self::Traversal(crate::BankInvariantProjectionTraversalDenial::from_query(
+            denial.kind(),
+        ))
     }
 }
 
@@ -211,16 +206,13 @@ impl std::fmt::Display for BankEstateFreezeProjectionDenial {
             Self::MissingAccountIdentity => {
                 write!(formatter, "estate account is missing its typed identity")
             }
-            Self::RelatedAccountMismatch { expected, observed } => write!(
-                formatter,
-                "freeze command account {expected:?} does not match estate account {observed:?}"
-            ),
+            Self::RelatedAccountMismatch => {
+                formatter.write_str("freeze command account does not match estate account")
+            }
             Self::MissingAccountStatus => {
                 write!(formatter, "estate account is missing its current status")
             }
-            Self::AccountNotOpen(status) => {
-                write!(formatter, "estate account is not open: {status:?}")
-            }
+            Self::AccountNotOpen => formatter.write_str("estate account is not open"),
             Self::DecisionPlan(denial) => denial.fmt(formatter),
             Self::Traversal(denial) => denial.fmt(formatter),
         }

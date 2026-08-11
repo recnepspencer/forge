@@ -643,6 +643,33 @@ authority and only the exact predecessor capability becomes residue.
 | Facade adapters and aliases | Preserve the ordinary caller workflow and source behavior; an adapter must lower one way into the destination and mint no authority. | Declaration/Host facades retain the ordinary workflow as one-way re-exports. Boundary enforcement rejected and eliminated a local Host wrapper; residue and dependency checks find no alias that mints covered authority. | **PROVED** |
 | Unrelated `worth-query` monolith responsibilities | Full Query, public declarative, Worth UI, and Bank suites prove no unsupported feature deletion or semantic drift. | No cutover or retirement is authorized by 9.16.1; broader findings require an explicit phase amendment or successor milestone. | **N/A** — preserve |
 
+## C6 Terminal-Release Evidence Correction
+
+The historical Phase 5 snapshots and migration rows correctly record the
+publication authority cutover, but their terminal-release wording was broader
+than the evidence then retained. Application-query publication derived one
+aggregate from basis and graph-capacity release while omitting the result
+buffer. Application-commit publication encoded not-attempted, released, and
+release-failed cleanup as `Option<bool>`.
+
+The closed publication products now retain typed, non-authoritative terminal
+release projections. Application-query publication records application-basis
+release, graph-read-basis release, result-buffer presence and release with its
+limit and observed peak, and the exact released graph-capacity reservation
+count; its aggregate is derived from every axis. Application-commit
+publication records the exhaustive posture `NotAttempted`, `Released`, or
+`ReleaseFailed`. Bank current-read and all-lane parity proofs consume the
+query projection, Bank fresh and early-equivalent mutation paths distinguish
+the commit postures, and owner-local real interleaving retains the late
+equivalent-after-provider cleanup case. Private capture and compiler evidence
+prevent callers from constructing either projection.
+The adjacent closed disclosure identity is the typed tuple of its posture and
+four public counts; application-result publication performs no digest or
+canonical derivation after copying the terminal's metered publication work.
+
+This is an append-only evidence correction. It changes neither the completed
+Phase 5 authority cutover nor any unrelated milestone status.
+
 ## Evidence Selection Policy
 
 Evidence is selected from the causal ledger rather than multiplied across every

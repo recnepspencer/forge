@@ -112,6 +112,7 @@ impl WorthQueryExecutionInstallationAuthority {
             .install(additions)
             .map_err(map_initial_schema_installation_denial)?;
         let graph = WorthQueryPrimaryGraph::new(
+            runtime.authority_identity(),
             installed_schema.binding_identity(),
             layout,
             relational_runtime,

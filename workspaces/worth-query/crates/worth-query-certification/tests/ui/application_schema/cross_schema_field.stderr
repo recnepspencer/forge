@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/application_schema/cross_schema_field.rs:25:62
+  --> tests/ui/application_schema/cross_schema_field.rs:44:62
    |
-25 |     let _ = TypedReadDeclarationBuilder::new(entity).project(foreign);
+44 |     let _ = TypedReadDeclarationBuilder::new(entity).project(foreign);
    |                                                      ------- ^^^^^^^ expected `ApplicationFieldRef<..., ..., _, _, _, _, _, _>`, found `ApplicationFieldRef<..., ..., ..., ..., u64, ..., ...>`
    |                                                      |
    |                                                      arguments to this method are incorrect

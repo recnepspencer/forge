@@ -1,7 +1,7 @@
 //! Installed recorded-inverse mechanism.
 
 use worth_query_declaration::facade::application_aftermath::{
-    DeclaredPreImageDemand, DeclaredRecordedInverse,
+    PortablePreImageDemand, PortablePreImageLocus, PortableRecordedInverse,
 };
 
 use super::super::lowering_correspondence::InstalledLoweringCorrespondence;
@@ -34,24 +34,58 @@ impl InstalledLoweringCorrespondenceRef {
 /// Installed pre-image demand bound by the operation's declared reads.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InstalledPreImageDemand {
-    field_slots: Vec<String>,
+    loci: Vec<InstalledPreImageLocus>,
     maximum_encoded_bytes: usize,
 }
 
 impl InstalledPreImageDemand {
-    pub fn from_declared(declared: &DeclaredPreImageDemand) -> Self {
+    pub(crate) fn from_portable(portable: &PortablePreImageDemand) -> Self {
         Self {
-            field_slots: declared.field_slots().to_vec(),
-            maximum_encoded_bytes: declared.maximum_encoded_bytes(),
+            loci: portable
+                .loci()
+                .iter()
+                .map(InstalledPreImageLocus::from_portable)
+                .collect(),
+            maximum_encoded_bytes: portable.maximum_encoded_bytes(),
         }
     }
 
-    pub fn field_slots(&self) -> &[String] {
-        &self.field_slots
+    pub fn loci(&self) -> &[InstalledPreImageLocus] {
+        &self.loci
     }
 
     pub const fn maximum_encoded_bytes(&self) -> usize {
         self.maximum_encoded_bytes
+    }
+}
+
+/// Exact application field identity sealed into an installed inverse demand.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InstalledPreImageLocus {
+    entity: String,
+    aspect: String,
+    field: String,
+}
+
+impl InstalledPreImageLocus {
+    fn from_portable(portable: &PortablePreImageLocus) -> Self {
+        Self {
+            entity: portable.entity().to_owned(),
+            aspect: portable.aspect().to_owned(),
+            field: portable.field().to_owned(),
+        }
+    }
+
+    pub fn entity(&self) -> &str {
+        &self.entity
+    }
+
+    pub fn aspect(&self) -> &str {
+        &self.aspect
+    }
+
+    pub fn field(&self) -> &str {
+        &self.field
     }
 }
 
@@ -65,17 +99,17 @@ pub struct InstalledRecordedInverse {
 }
 
 impl InstalledRecordedInverse {
-    pub(crate) fn from_declared(
-        declared: &DeclaredRecordedInverse,
+    pub(crate) fn from_portable(
+        portable: &PortableRecordedInverse,
         lowering_correspondence: InstalledLoweringCorrespondence,
     ) -> Self {
         Self {
-            inverse_operation_slot: declared.inverse_operation_slot().to_owned(),
+            inverse_operation_slot: portable.inverse_operation_slot().to_owned(),
             lowering_correspondence: InstalledLoweringCorrespondenceRef::from_resolved(
                 lowering_correspondence,
             ),
-            postcondition: InstalledAftermathPostcondition::from_declared(declared.postcondition()),
-            preimage_demand: InstalledPreImageDemand::from_declared(declared.preimage_demand()),
+            postcondition: InstalledAftermathPostcondition::from_declared(portable.postcondition()),
+            preimage_demand: InstalledPreImageDemand::from_portable(portable.preimage_demand()),
         }
     }
 

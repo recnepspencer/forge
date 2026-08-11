@@ -15,8 +15,8 @@ use worth_query_installation::facade::{
 
 use declaration::{
     AftermathFixtureSchema, ApproveEmergencyAccess, AuditRetention, Charge, FixtureInput,
-    FreezeAccount, FreezeBalance, FreezeNote, LegalHold, NotifyDeath, ReleaseEstate, Transfer,
-    TransferLarge, TransferSmall, WireTransferFinal,
+    FreezeAccount, FreezeAccountFields, FreezeBalance, FreezeNote, LegalHold, NotifyDeath,
+    ReleaseEstate, Transfer, TransferLarge, TransferSmall, WireTransferFinal,
 };
 
 fn op<Operation>(
@@ -74,6 +74,9 @@ pub(crate) fn transfer_large() -> WorthQueryInstalledAftermathContract {
 }
 pub(crate) fn freeze_account() -> WorthQueryInstalledAftermathContract {
     aftermath_of::<FreezeAccount>("freeze-account")
+}
+pub(crate) fn freeze_account_fields() -> WorthQueryInstalledAftermathContract {
+    aftermath_of::<FreezeAccountFields>("freeze-account-fields")
 }
 pub(crate) fn notify_death() -> WorthQueryInstalledAftermathContract {
     aftermath_of::<NotifyDeath>("notify-death")

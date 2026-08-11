@@ -1,5 +1,6 @@
-use std::sync::Arc;
+use std::sync::{mpsc::Sender, Arc};
 
+use crate::domain_computation::artifact_owner::WorthQueryMoveOnlyArtifactHandle;
 use crate::domain_computation::{
     WorthQueryCandidateSemanticFamilies, WorthQueryConvergenceAssessment,
     WorthQueryConvergenceComparison, WorthQueryConvergenceDisposition,
@@ -10,10 +11,24 @@ use crate::domain_computation::{
 };
 
 use super::disposition::{FixtureDisposition, FixtureFamilyMismatch as Family};
+use super::domain_port_probe::FixtureDomainPortProbe;
+use super::report_history_probe::FixtureReportHistoryProbe;
+use super::yield_recovery::{FixtureYieldRecoveryArtifact, FixtureYieldRecoveryProbe};
+
+#[derive(Clone)]
+pub(super) struct FixtureCleanupArtifact {
+    pub(super) sender: Sender<WorthQueryMoveOnlyArtifactHandle>,
+    pub(super) behavior: FixtureYieldRecoveryArtifact,
+    pub(super) probe: FixtureYieldRecoveryProbe,
+}
 
 pub(in crate::domain_computation::convergence_epoch::tests::fixture) struct ConvergentProvider {
     families: WorthQueryConvergenceProviderFamilies,
     disposition: FixtureDisposition,
+    cleanup_artifact: Option<FixtureCleanupArtifact>,
+    yield_recovery_probe: Option<FixtureYieldRecoveryProbe>,
+    domain_port_probe: Option<FixtureDomainPortProbe>,
+    report_history_probe: Option<FixtureReportHistoryProbe>,
 }
 
 impl ConvergentProvider {
@@ -37,13 +52,76 @@ impl ConvergentProvider {
         Self {
             families: WorthQueryConvergenceProviderFamilies::new(candidate, iteration),
             disposition,
+            cleanup_artifact: None,
+            yield_recovery_probe: None,
+            domain_port_probe: None,
+            report_history_probe: None,
         }
+    }
+
+    pub(in crate::domain_computation::convergence_epoch::tests::fixture) fn with_domain_port_probe(
+        mut self,
+        probe: FixtureDomainPortProbe,
+    ) -> Self {
+        self.domain_port_probe = Some(probe);
+        self
+    }
+
+    pub(in crate::domain_computation::convergence_epoch::tests::fixture) fn with_report_history_probe(
+        mut self,
+        probe: FixtureReportHistoryProbe,
+    ) -> Self {
+        self.report_history_probe = Some(probe);
+        self
+    }
+
+    pub(in crate::domain_computation::convergence_epoch::tests::fixture) fn with_cleanup_artifact_handle_sender(
+        mut self,
+        sender: Sender<WorthQueryMoveOnlyArtifactHandle>,
+    ) -> Self {
+        self.cleanup_artifact = Some(FixtureCleanupArtifact {
+            sender,
+            behavior: FixtureYieldRecoveryArtifact::Cooperative,
+            probe: FixtureYieldRecoveryProbe::default(),
+        });
+        self
+    }
+
+    pub(in crate::domain_computation::convergence_epoch::tests::fixture) fn with_yield_recovery_probe(
+        mut self,
+        probe: FixtureYieldRecoveryProbe,
+    ) -> Self {
+        self.yield_recovery_probe = Some(probe);
+        self
+    }
+
+    pub(in crate::domain_computation::convergence_epoch::tests::fixture) fn with_yield_recovery_artifact(
+        mut self,
+        sender: Sender<WorthQueryMoveOnlyArtifactHandle>,
+        behavior: FixtureYieldRecoveryArtifact,
+        probe: FixtureYieldRecoveryProbe,
+    ) -> Self {
+        self.cleanup_artifact = Some(FixtureCleanupArtifact {
+            sender,
+            behavior,
+            probe: probe.clone(),
+        });
+        self.yield_recovery_probe = Some(probe);
+        self
     }
 
     pub(in crate::domain_computation::convergence_epoch::tests::fixture) const fn disposition(
         &self,
     ) -> FixtureDisposition {
         self.disposition
+    }
+
+    pub(super) fn cleanup_artifact(&self) -> Option<FixtureCleanupArtifact> {
+        self.cleanup_artifact.clone()
+    }
+
+    pub(super) fn yield_recovery_probe(&self) -> Option<FixtureYieldRecoveryProbe> {
+        self.yield_recovery_probe.clone()
     }
 }
 
@@ -60,6 +138,12 @@ impl WorthQueryConvergenceDomainProvider for ConvergentProvider {
         &self,
         assessment: &WorthQueryConvergenceAssessment<'_>,
     ) -> Result<WorthQueryConvergenceComparison, WorthQueryConvergenceDomainFailure> {
+        if let Some(probe) = &self.domain_port_probe {
+            probe.entered_comparator();
+        }
+        if let Some(probe) = &self.report_history_probe {
+            probe.observe(assessment);
+        }
         assert!(
             !matches!(self.disposition, FixtureDisposition::ComparatorPanic),
             "fixture convergence comparator panic"
@@ -71,10 +155,10 @@ impl WorthQueryConvergenceDomainProvider for ConvergentProvider {
         }
         let iteration_ordinal = assessment.iteration_ordinal();
         let (disposition, feasibility, _, _) = decision_axes(self.disposition, iteration_ordinal);
-        let (candidate_occurrence_identity, incumbent_update) =
-            incumbent_transition(self.disposition, iteration_ordinal);
+        let (candidate_selection_key, incumbent_update) =
+            incumbent_transition(self.disposition, assessment);
         WorthQueryConvergenceComparison::new(
-            candidate_occurrence_identity,
+            candidate_selection_key,
             format!("state-{iteration_ordinal}"),
             disposition,
             feasibility,
@@ -88,6 +172,9 @@ impl WorthQueryConvergenceDomainProvider for ConvergentProvider {
         assessment: &WorthQueryConvergenceAssessment<'_>,
         _comparison: &WorthQueryConvergenceComparison,
     ) -> Result<WorthQueryConvergenceProgress, WorthQueryConvergenceDomainFailure> {
+        if let Some(probe) = &self.domain_port_probe {
+            probe.entered_progress();
+        }
         assert!(
             !matches!(self.disposition, FixtureDisposition::ProgressPanic),
             "fixture convergence progress panic"
@@ -107,6 +194,9 @@ impl WorthQueryConvergenceDomainProvider for ConvergentProvider {
         _comparison: &WorthQueryConvergenceComparison,
         _progress: WorthQueryConvergenceProgress,
     ) -> Result<WorthQueryConvergenceRepeatedState, WorthQueryConvergenceDomainFailure> {
+        if let Some(probe) = &self.domain_port_probe {
+            probe.entered_repeated_state();
+        }
         assert!(
             !matches!(self.disposition, FixtureDisposition::RepeatedStatePanic),
             "fixture convergence repeated-state panic"
@@ -144,6 +234,22 @@ fn decision_axes(
         FixtureDisposition::Continue | FixtureDisposition::RepeatedContinue => {
             WorthQueryConvergenceDisposition::Continue
         }
+        FixtureDisposition::HistoryRetain
+        | FixtureDisposition::HistoryClear
+        | FixtureDisposition::HistoryInvalidTransition
+        | FixtureDisposition::HistoryInvalidDomain
+            if iteration_ordinal == 1 =>
+        {
+            WorthQueryConvergenceDisposition::Continue
+        }
+        FixtureDisposition::HistoryInvalidDomain => {
+            WorthQueryConvergenceDisposition::StableWithoutProof
+        }
+        FixtureDisposition::HistoryRetain
+        | FixtureDisposition::HistoryClear
+        | FixtureDisposition::HistoryInvalidTransition => {
+            WorthQueryConvergenceDisposition::Converged
+        }
         FixtureDisposition::Converged
         | FixtureDisposition::ComparatorFailure
         | FixtureDisposition::ComparatorPanic
@@ -152,7 +258,11 @@ fn decision_axes(
         | FixtureDisposition::RepeatedStateFailure
         | FixtureDisposition::RepeatedStatePanic
         | FixtureDisposition::FamilyInspectionPanic
+        | FixtureDisposition::YieldThenCheckpointUnavailable
         | FixtureDisposition::YieldThenConverged
+        | FixtureDisposition::YieldThenRestorePanic
+        | FixtureDisposition::YieldThenCheckpointDropPanic
+        | FixtureDisposition::YieldThenSuspensionFailure
         | FixtureDisposition::ChunkedConverged(_)
         | FixtureDisposition::StageQueueContractMismatch
         | FixtureDisposition::FamilyMismatch(_) => WorthQueryConvergenceDisposition::Converged,
@@ -164,6 +274,10 @@ fn decision_axes(
         FixtureDisposition::ParetoReplacement | FixtureDisposition::ParetoCollision => {
             WorthQueryConvergenceDisposition::Converged
         }
+        FixtureDisposition::ParetoPartialReplacement if iteration_ordinal < 3 => {
+            WorthQueryConvergenceDisposition::Continue
+        }
+        FixtureDisposition::ParetoPartialReplacement => WorthQueryConvergenceDisposition::Converged,
         FixtureDisposition::StableWithoutProof | FixtureDisposition::IncoherentStable => {
             WorthQueryConvergenceDisposition::StableWithoutProof
         }
@@ -205,8 +319,9 @@ fn decision_axes(
 
 fn incumbent_transition(
     fixture: FixtureDisposition,
-    iteration_ordinal: usize,
+    assessment: &WorthQueryConvergenceAssessment<'_>,
 ) -> (String, WorthQueryConvergenceIncumbentUpdate) {
+    let iteration_ordinal = assessment.iteration_ordinal();
     match fixture {
         FixtureDisposition::ParetoReplacement if iteration_ordinal == 1 => (
             "candidate-1".into(),
@@ -215,11 +330,37 @@ fn incumbent_transition(
         FixtureDisposition::ParetoReplacement => (
             format!("candidate-{iteration_ordinal}"),
             WorthQueryConvergenceIncumbentUpdate::RemoveCandidatesAndAdd {
-                removed_occurrence_identities: vec![Arc::from("candidate-1")],
+                removed_occurrence_identities: vec![Arc::from(
+                    assessment.incumbents()[0].occurrence_identity(),
+                )],
             },
         ),
         FixtureDisposition::ParetoCollision => (
             "candidate-pareto".into(),
+            WorthQueryConvergenceIncumbentUpdate::AddCandidate,
+        ),
+        FixtureDisposition::ParetoPartialReplacement if iteration_ordinal < 3 => (
+            format!("candidate-{iteration_ordinal}"),
+            WorthQueryConvergenceIncumbentUpdate::AddCandidate,
+        ),
+        FixtureDisposition::ParetoPartialReplacement => (
+            format!("candidate-{iteration_ordinal}"),
+            WorthQueryConvergenceIncumbentUpdate::RemoveCandidatesAndAdd {
+                removed_occurrence_identities: vec![Arc::from(
+                    assessment.incumbents()[0].occurrence_identity(),
+                )],
+            },
+        ),
+        FixtureDisposition::HistoryRetain if iteration_ordinal > 1 => (
+            format!("candidate-{iteration_ordinal}"),
+            WorthQueryConvergenceIncumbentUpdate::Retain,
+        ),
+        FixtureDisposition::HistoryClear if iteration_ordinal > 1 => (
+            format!("candidate-{iteration_ordinal}"),
+            WorthQueryConvergenceIncumbentUpdate::Clear,
+        ),
+        FixtureDisposition::HistoryInvalidTransition if iteration_ordinal > 1 => (
+            format!("candidate-{iteration_ordinal}"),
             WorthQueryConvergenceIncumbentUpdate::AddCandidate,
         ),
         FixtureDisposition::Oscillating => (

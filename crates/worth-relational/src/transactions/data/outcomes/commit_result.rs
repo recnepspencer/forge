@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use std::sync::Arc;
 
-use super::{CommitValidation, CommitValidationSummary};
+use super::{CommitCreatedEntityBindings, CommitValidation, CommitValidationSummary};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommitOutcome {
@@ -89,15 +89,28 @@ pub struct CommitExecution {
     pub complexity_delta: RuntimeComplexityCounters,
 }
 
+/// Immutable association produced by one authoritative commit execution.
+///
+/// Commit axes are observable through read-only methods, but cannot be swapped
+/// across results after the authority owner seals them.
+///
+/// ```compile_fail
+/// use worth_relational::facade::transactions::CommitResult;
+///
+/// fn cannot_swap_outcomes(target: &mut CommitResult, other: &CommitResult) {
+///     target.outcome = other.outcome().clone();
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommitResult {
-    pub outcome: CommitOutcome,
-    pub summary: CommitSummary,
-    pub structural_summary: CommitStructuralSummary,
-    pub schema_summary: CommitSchemaSummary,
-    pub publication: CommitPublication,
-    pub validation: CommitValidation,
-    pub execution: CommitExecution,
+    outcome: CommitOutcome,
+    summary: CommitSummary,
+    structural_summary: CommitStructuralSummary,
+    schema_summary: CommitSchemaSummary,
+    publication: CommitPublication,
+    validation: CommitValidation,
+    execution: CommitExecution,
+    created_entities: CommitCreatedEntityBindings,
 }
 
 impl Deref for CommitResult {
@@ -139,6 +152,53 @@ impl CommitOutcome {
 }
 
 impl CommitResult {
+    /// Seals one authoritative commit result together with the create-reference
+    /// correspondence produced by that same commit execution.
+    ///
+    /// The commit pipeline is the sole minter of the sealed input. Every result
+    /// axis remains private so no caller can detach or replace part of the
+    /// authoritative association after construction.
+    pub(crate) fn from_authoritative_commit(
+        seal: crate::authority::commit::CommitResultSeal,
+    ) -> Self {
+        let (
+            outcome,
+            summary,
+            structural_summary,
+            schema_summary,
+            publication,
+            validation,
+            execution,
+            created_entities,
+        ) = seal.into_parts();
+        Self {
+            outcome,
+            summary,
+            structural_summary,
+            schema_summary,
+            publication,
+            validation,
+            execution,
+            created_entities,
+        }
+    }
+
+    pub fn outcome(&self) -> &CommitOutcome {
+        &self.outcome
+    }
+
+    /// Resolves the record identity Relational assigned to this exact create
+    /// reference while applying this commit.
+    ///
+    /// The correspondence stays inseparable from the `CommitResult`; callers
+    /// cannot replace its map or rebuild a lookup from decomposed axes.
+    pub fn created_entity(
+        &self,
+        created: &crate::transactions::data::CreatedEntityRef,
+    ) -> Option<crate::identity::data::EntityId> {
+        self.created_entities.resolve(created)
+    }
+
     pub fn commit_log(&self) -> &CommitLog {
         &self.outcome.commit_log
     }

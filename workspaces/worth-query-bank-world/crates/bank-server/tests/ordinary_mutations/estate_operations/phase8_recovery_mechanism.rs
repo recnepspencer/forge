@@ -1,6 +1,6 @@
 //! Mechanism and authority transitions consume the handle-carried contract.
 
-use bank_external_rail::FaultScript;
+use bank_external_rail::test_control::FaultScript;
 
 use super::phase8_cross_gate::world::{cross_gate_world, PATIENT};
 use crate::support::request_scope;

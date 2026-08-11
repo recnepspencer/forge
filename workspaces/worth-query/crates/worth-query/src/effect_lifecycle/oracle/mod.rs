@@ -82,10 +82,10 @@ impl ExecutedEffectBatchPlan {
         verify_relational_subject(
             self.batch_identity(),
             target_branch.0,
-            aggregate.outcome.commit.commit_id.0,
-            aggregate.outcome.commit.version_id.0,
+            aggregate.outcome().commit.commit_id.0,
+            aggregate.outcome().commit.version_id.0,
             aggregate
-                .outcome
+                .outcome()
                 .commit
                 .parents
                 .iter()
@@ -124,10 +124,10 @@ fn relational_subject_for_plan(
             .expect("mutation lowering should retain mutation artifact");
         return Ok((
             branch.0,
-            commit.outcome.commit.commit_id.0,
-            commit.outcome.commit.version_id.0,
+            commit.outcome().commit.commit_id.0,
+            commit.outcome().commit.version_id.0,
             commit
-                .outcome
+                .outcome()
                 .commit
                 .parents
                 .iter()
@@ -142,11 +142,11 @@ fn relational_subject_for_plan(
             .expect("merge lowering should retain merge artifact");
         return Ok((
             merge.merge_request().target_branch.0.clone(),
-            outcome.commit.outcome.commit.commit_id.0,
-            outcome.commit.outcome.commit.version_id.0,
+            outcome.commit.outcome().commit.commit_id.0,
+            outcome.commit.outcome().commit.version_id.0,
             outcome
                 .commit
-                .outcome
+                .outcome()
                 .commit
                 .parents
                 .iter()

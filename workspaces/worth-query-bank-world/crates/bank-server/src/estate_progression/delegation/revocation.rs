@@ -38,16 +38,13 @@ mod tests;
 
 #[derive(Debug)]
 pub enum BankCapabilityRevocationProjectionDenial {
-    EntityResolution(WorthQueryEntityResolutionDenial),
+    EntityResolution(crate::BankEntityResolutionDenial),
     MissingGrantIdentity,
-    GrantIdentityMismatch {
-        expected: CapabilityGrantId,
-        observed: CapabilityGrantId,
-    },
+    GrantIdentityMismatch,
     MissingGrantStatus,
-    GrantNotActive(CapabilityGrantStatus),
-    DecisionPlan(WorthQueryInvariantDecisionPlanDenial),
-    Traversal(WorthQueryInvariantProjectionTraversalDenial),
+    GrantNotActive,
+    DecisionPlan(crate::BankInvariantDecisionPlanDenial),
+    Traversal(crate::BankInvariantProjectionTraversalDenial),
 }
 
 impl std::fmt::Display for BankCapabilityRevocationProjectionDenial {
@@ -55,14 +52,11 @@ impl std::fmt::Display for BankCapabilityRevocationProjectionDenial {
         match self {
             Self::EntityResolution(denial) => denial.fmt(formatter),
             Self::MissingGrantIdentity => formatter.write_str("missing capability grant identity"),
-            Self::GrantIdentityMismatch { expected, observed } => write!(
-                formatter,
-                "capability grant identity mismatch: expected {expected:?}, observed {observed:?}"
-            ),
-            Self::MissingGrantStatus => formatter.write_str("missing capability grant status"),
-            Self::GrantNotActive(status) => {
-                write!(formatter, "capability grant is not active: {status:?}")
+            Self::GrantIdentityMismatch => {
+                formatter.write_str("capability grant identity mismatch")
             }
+            Self::MissingGrantStatus => formatter.write_str("missing capability grant status"),
+            Self::GrantNotActive => formatter.write_str("capability grant is not active"),
             Self::DecisionPlan(denial) => denial.fmt(formatter),
             Self::Traversal(denial) => denial.fmt(formatter),
         }
@@ -106,14 +100,14 @@ impl BankIdentityRuntime {
                 RevokeEstateCapability::reference(),
                 RevokeEstateCapabilityOperation::reference(),
             )
-            .map_err(BankEstateProgressionDenial::CapabilityInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_capability_installation)?;
         let access = application
             .admit_capability_access(principal.query(), &capability, action, request)
-            .map_err(BankEstateProgressionDenial::Authorization)?;
+            .map_err(BankEstateProgressionDenial::from_authorization)?;
         let operation = application
             .installed_schema()
             .installed_operation(RevokeEstateCapabilityOperation::reference())
-            .map_err(BankEstateProgressionDenial::OperationInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_operation_installation)?;
         application
             .authorize_capability_revocation(
                 access,
@@ -125,7 +119,7 @@ impl BankIdentityRuntime {
                     EstateCase,
                 >::default(),
             )
-            .map_err(BankEstateProgressionDenial::Authorization)
+            .map_err(BankEstateProgressionDenial::from_authorization)
     }
 
     fn materialize_capability_revocation(
@@ -138,21 +132,21 @@ impl BankIdentityRuntime {
             .project_admitted_operation(&admission, |reader, estate| {
                 project_active_estate_grant(reader, estate, expected_grant)
             })
-            .map_err(BankEstateProgressionDenial::Projection)?;
+            .map_err(BankEstateProgressionDenial::from_projection)?;
         let (result, projection, _) = projected.into_parts();
         result.map_err(BankEstateProgressionDenial::CapabilityRevocationProjection)?;
         let reads = self
             .application_runtime()
             .begin_projected_application_read_attempt(admission, projection)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let grant = reads
             .resolve_entity(CapabilityGrantIdentityField::reference(), expected_grant)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         reads
             .complete_projected_dependencies()
-            .map_err(BankEstateProgressionDenial::Attempt)?
+            .map_err(BankEstateProgressionDenial::from_attempt)?
             .materialize_capability_revocation_program(&grant)
-            .map_err(BankEstateProgressionDenial::Attempt)
+            .map_err(BankEstateProgressionDenial::from_attempt)
     }
 }
 
@@ -180,34 +174,29 @@ fn project_active_estate_grant(
         .decision_field(&grant, CapabilityGrantIdentityField::reference())?
         .ok_or(BankCapabilityRevocationProjectionDenial::MissingGrantIdentity)?;
     if observed_grant != expected_grant {
-        return Err(
-            BankCapabilityRevocationProjectionDenial::GrantIdentityMismatch {
-                expected: expected_grant,
-                observed: observed_grant,
-            },
-        );
+        return Err(BankCapabilityRevocationProjectionDenial::GrantIdentityMismatch);
     }
     reader.require_decision_relation(CapabilityEstate::reference(), &grant, estate)?;
     let status = reader
         .decision_field(&grant, CapabilityGrantStatusField::reference())?
         .ok_or(BankCapabilityRevocationProjectionDenial::MissingGrantStatus)?;
     if status != CapabilityGrantStatus::Active {
-        return Err(BankCapabilityRevocationProjectionDenial::GrantNotActive(
-            status,
-        ));
+        return Err(BankCapabilityRevocationProjectionDenial::GrantNotActive);
     }
     Ok(())
 }
 
 impl From<WorthQueryEntityResolutionDenial> for BankCapabilityRevocationProjectionDenial {
     fn from(denial: WorthQueryEntityResolutionDenial) -> Self {
-        Self::EntityResolution(denial)
+        Self::EntityResolution(crate::BankEntityResolutionDenial::from_query(denial.kind()))
     }
 }
 
 impl From<WorthQueryInvariantDecisionPlanDenial> for BankCapabilityRevocationProjectionDenial {
     fn from(denial: WorthQueryInvariantDecisionPlanDenial) -> Self {
-        Self::DecisionPlan(denial)
+        Self::DecisionPlan(crate::BankInvariantDecisionPlanDenial::from_query(
+            denial.kind(),
+        ))
     }
 }
 
@@ -215,6 +204,8 @@ impl From<WorthQueryInvariantProjectionTraversalDenial>
     for BankCapabilityRevocationProjectionDenial
 {
     fn from(denial: WorthQueryInvariantProjectionTraversalDenial) -> Self {
-        Self::Traversal(denial)
+        Self::Traversal(crate::BankInvariantProjectionTraversalDenial::from_query(
+            denial.kind(),
+        ))
     }
 }

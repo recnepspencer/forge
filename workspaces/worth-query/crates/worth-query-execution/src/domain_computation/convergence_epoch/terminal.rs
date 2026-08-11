@@ -53,7 +53,7 @@ where
     State: WorthQueryConvergenceTerminalState,
 {
     pub(super) core: WorthQueryConvergenceEpochCore,
-    pub(super) managed: WorthQueryDirectRunTerminal,
+    pub(super) run_terminal: WorthQueryDirectRunTerminal,
     pub(super) indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     pub(super) terminal_state: PhantomData<State>,
 }
@@ -64,12 +64,12 @@ where
 {
     pub(super) fn new(
         core: WorthQueryConvergenceEpochCore,
-        managed: WorthQueryDirectRunTerminal,
+        run_terminal: WorthQueryDirectRunTerminal,
         indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     ) -> Self {
         Self {
             core,
-            managed,
+            run_terminal,
             indeterminate_cause,
             terminal_state: PhantomData,
         }
@@ -98,18 +98,15 @@ where
     pub fn indeterminate_cause(&self) -> Option<&WorthQueryConvergenceIndeterminateCause> {
         self.indeterminate_cause.as_ref()
     }
-
-    pub fn managed_terminal(&self) -> &WorthQueryDirectRunTerminal {
-        &self.managed
-    }
 }
 
+#[must_use = "a workflow convergence terminal retains resources that must be cleaned up"]
 pub struct WorthQueryWorkflowConvergenceTerminal<State>
 where
     State: WorthQueryConvergenceTerminalState,
 {
     pub(super) core: WorthQueryConvergenceEpochCore,
-    pub(super) managed: WorthQueryWorkflowRunTerminal,
+    pub(super) run_terminal: WorthQueryWorkflowRunTerminal,
     pub(super) indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     pub(super) terminal_state: PhantomData<State>,
 }
@@ -120,12 +117,12 @@ where
 {
     pub(super) fn new(
         core: WorthQueryConvergenceEpochCore,
-        managed: WorthQueryWorkflowRunTerminal,
+        run_terminal: WorthQueryWorkflowRunTerminal,
         indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     ) -> Self {
         Self {
             core,
-            managed,
+            run_terminal,
             indeterminate_cause,
             terminal_state: PhantomData,
         }
@@ -153,9 +150,5 @@ where
 
     pub fn indeterminate_cause(&self) -> Option<&WorthQueryConvergenceIndeterminateCause> {
         self.indeterminate_cause.as_ref()
-    }
-
-    pub fn managed_terminal(&self) -> &WorthQueryWorkflowRunTerminal {
-        &self.managed
     }
 }

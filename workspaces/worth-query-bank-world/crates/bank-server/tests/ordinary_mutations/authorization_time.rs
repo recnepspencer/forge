@@ -19,13 +19,13 @@ use crate::support::{
 
 #[derive(Clone)]
 pub struct AuthorizationTimeController {
-    current: Arc<Mutex<SystemTime>>,
+    current: Arc<Mutex<Option<SystemTime>>>,
 }
 
 impl AuthorizationTimeController {
     pub fn at_epoch_seconds(seconds: u64) -> Self {
         Self {
-            current: Arc::new(Mutex::new(UNIX_EPOCH + Duration::from_secs(seconds))),
+            current: Arc::new(Mutex::new(Some(UNIX_EPOCH + Duration::from_secs(seconds)))),
         }
     }
 
@@ -34,16 +34,24 @@ impl AuthorizationTimeController {
             .current
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) =
-            UNIX_EPOCH + Duration::from_secs(seconds);
+            Some(UNIX_EPOCH + Duration::from_secs(seconds));
+    }
+
+    pub fn make_unavailable(&self) {
+        *self
+            .current
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
     }
 }
 
 impl WorthQueryRuntimeTimeSource for AuthorizationTimeController {
     fn current_time(&self) -> Result<SystemTime, WorthQueryRuntimeTimeSourceDenial> {
-        Ok(*self
+        (*self
             .current
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()))
+        .ok_or(WorthQueryRuntimeTimeSourceDenial::Unavailable)
     }
 }
 

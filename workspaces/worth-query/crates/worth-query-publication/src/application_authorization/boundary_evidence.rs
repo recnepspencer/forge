@@ -1,3 +1,4 @@
+use sha2::{Digest, Sha256};
 use worth_foundational::facade::{
     boundary_evidence, boundary_receipt_category_of, BoundaryArtifactField, BoundaryArtifactId,
     BoundaryArtifactLocator, BoundaryProfiledArtifact, FoundationalBoundaryArtifactCategory,
@@ -11,10 +12,8 @@ use worth_foundational::facade::{
 };
 use worth_proof::TransitionOutcome;
 use worth_query_execution::facade::primary_graph::{
-    WorthQueryApplicationCommitOutcomeIdentity, WorthQueryApplicationCommitReceipt,
-    WorthQueryApplicationDisclosureOutcomeIdentity, WorthQueryApprovedElevation,
-    WorthQueryElevationClosureKind, WorthQueryMandatoryReview,
-    WorthQueryOperationAuthorizationDenialIdentity, WorthQueryRequestedElevation,
+    WorthQueryApplicationCommitReceipt, WorthQueryApprovedElevation,
+    WorthQueryElevationClosureKind, WorthQueryMandatoryReview, WorthQueryRequestedElevation,
     WorthQueryReviewedElevation,
 };
 
@@ -39,30 +38,25 @@ pub(super) struct WorthQueryApplicationAuthorizationBoundaryIdentity {
 }
 
 impl WorthQueryApplicationAuthorizationBoundaryIdentity {
-    fn from_commit(identity: WorthQueryApplicationCommitOutcomeIdentity) -> Self {
-        Self {
-            locator: BoundaryArtifactLocator::new(
-                BoundaryArtifactId::new(identity.get()),
-                BoundaryArtifactField::Payload,
-            ),
-        }
-    }
-
-    pub(super) fn from_denial(identity: WorthQueryOperationAuthorizationDenialIdentity) -> Self {
-        Self {
-            locator: BoundaryArtifactLocator::new(
-                BoundaryArtifactId::new(identity.get()),
-                BoundaryArtifactField::Payload,
-            ),
-        }
-    }
-
-    pub(super) fn from_disclosure(
-        identity: WorthQueryApplicationDisclosureOutcomeIdentity,
+    pub(super) fn from_closed_publication(
+        family: &'static str,
+        axes: &[String],
+        profile: WorthQueryApplicationAuthorizationPublicationProfile,
     ) -> Self {
+        let mut digest = Sha256::new();
+        append_identity_axis(&mut digest, b"worth.query.publication.authorization.v1");
+        append_identity_axis(&mut digest, family.as_bytes());
+        for axis in axes {
+            append_identity_axis(&mut digest, axis.as_bytes());
+        }
+        append_profile(&mut digest, profile);
+        let digest = digest.finalize();
+        let mut prefix = [0_u8; 8];
+        prefix.copy_from_slice(&digest[..8]);
+        let identity = u64::from_be_bytes(prefix).max(1);
         Self {
             locator: BoundaryArtifactLocator::new(
-                BoundaryArtifactId::new(identity.get()),
+                BoundaryArtifactId::new(identity),
                 BoundaryArtifactField::Payload,
             ),
         }
@@ -77,9 +71,65 @@ impl WorthQueryApplicationAuthorizationBoundaryIdentity {
     }
 }
 
+fn append_identity_axis(digest: &mut Sha256, value: &[u8]) {
+    digest.update((value.len() as u64).to_be_bytes());
+    digest.update(value);
+}
+
+fn append_profile(
+    digest: &mut Sha256,
+    profile: WorthQueryApplicationAuthorizationPublicationProfile,
+) {
+    for profile in [
+        profile.requested(),
+        profile.admitted(),
+        profile.materialized(),
+    ] {
+        append_identity_axis(digest, profile_axis(profile).as_bytes());
+    }
+}
+
+fn profile_axis(profile: worth_foundational::facade::FoundationalProfileSet) -> String {
+    use worth_foundational::facade::{
+        AdmissionReadinessProfile as Admission, CertificationPostureProfile as Certification,
+        CompatibilityPostureProfile as Compatibility, DiagnosticRichnessProfile as Diagnostic,
+        RetentionDeliveryProfile as Retention, SupportPostureProfile as Support,
+    };
+    let diagnostic = match profile.diagnostic_richness() {
+        Diagnostic::OperationalMinimal => "operational-minimal",
+        Diagnostic::Standard => "standard",
+        Diagnostic::Forensic => "forensic",
+    };
+    let support = match profile.support_posture() {
+        Support::InternalOnly => "internal-only",
+        Support::SupportReady => "support-ready",
+        Support::CertificationReady => "certification-ready",
+    };
+    let compatibility = match profile.compatibility_posture() {
+        Compatibility::NativeOnly => "native-only",
+        Compatibility::CompatibilityLowered => "compatibility-lowered",
+        Compatibility::CompatibilityRequired => "compatibility-required",
+    };
+    let admission = match profile.admission_readiness() {
+        Admission::CandidateOnly => "candidate-only",
+        Admission::Admitted => "admitted",
+        Admission::ProductionGateReady => "production-gate-ready",
+    };
+    let retention = match profile.retention_delivery() {
+        Retention::Ephemeral => "ephemeral",
+        Retention::Retained => "retained",
+        Retention::Durable => "durable",
+    };
+    let certification = match profile.certification_posture() {
+        Certification::Uncertified => "uncertified",
+        Certification::EvidenceBacked => "evidence-backed",
+        Certification::ProductionCertified => "production-certified",
+    };
+    format!("{diagnostic}/{support}/{compatibility}/{admission}/{retention}/{certification}")
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryApplicationAuthorizationPublicationDenial {
-    OutcomeIdentityUnavailable,
     OutcomeNotPublishable,
     BoundaryCategory(FoundationalBoundaryCategoryConstructionDenial),
     ProfileAdmission(FoundationalProfileProgressionDenial),
@@ -218,15 +268,16 @@ fn publish_transition(
     WorthQueryPublishedApplicationAuthorization,
     WorthQueryApplicationAuthorizationPublicationDenial,
 > {
-    let outcome_identity = commit
-        .outcome_identity()
-        .ok_or(WorthQueryApplicationAuthorizationPublicationDenial::OutcomeIdentityUnavailable)?;
-    let identity =
-        WorthQueryApplicationAuthorizationBoundaryIdentity::from_commit(outcome_identity);
+    let identity = WorthQueryApplicationAuthorizationBoundaryIdentity::from_closed_publication(
+        kind.diagnostic_code(),
+        &[commit.emitted_effect_count().to_string()],
+        profile,
+    );
     let lowered = lower_boundary_material(kind, identity, commit.emitted_effect_count(), profile)?;
     Ok(WorthQueryPublishedApplicationAuthorization {
         kind,
-        query_receipt: WorthQueryApplicationCommitPublicationReceipt::from_terminal(commit.clone()),
+        query_receipt: crate::domain_computation::publish_application_commit(commit.clone())
+            .into_receipt(),
         boundary: lowered.boundary,
         explanation: lowered.explanation,
         provenance: lowered.provenance,

@@ -1,22 +1,22 @@
 error[E0277]: the trait bound `UsdCurrency: ApplicationUnitMarker<EUR>` is not satisfied
-  --> tests/ui/application_schema/wrong_unit_value.rs:47:9
+  --> tests/ui/application_schema/wrong_unit_value.rs:62:9
    |
-47 |     > = ApplicationFieldRef::from_schema_identifiers("Entity", "Aspect", "Balance");
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+62 |     > = ApplicationFieldRef::from_schema_types();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
    |
 help: the trait `ApplicationUnitMarker<EUR>` is not implemented for `UsdCurrency`
       but trait `ApplicationUnitMarker<USD>` is implemented for it
-  --> tests/ui/application_schema/wrong_unit_value.rs:18:1
+  --> tests/ui/application_schema/wrong_unit_value.rs:36:1
    |
-18 | impl ApplicationUnitMarker<USD> for UsdCurrency {
+36 | impl ApplicationUnitMarker<USD> for UsdCurrency {
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: for that trait implementation, expected `USD`, found `EUR`
    = note: required for `DeclaredApplicationUnit<UsdCurrency, EUR>` to implement `ApplicationFieldUnit`
-note: required by a bound in `ApplicationFieldRef::<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>::from_schema_identifiers`
-  --> $WORKSPACE/crates/worth-query-declaration/src/application_schema/references.rs
+note: required by a bound in `ApplicationFieldRef::<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>::from_schema_types`
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_schema/field_reference.rs
    |
    |     Unit: ApplicationFieldUnit,
-   |           ^^^^^^^^^^^^^^^^^^^^ required by this bound in `ApplicationFieldRef::<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>::from_schema_identifiers`
+   |           ^^^^^^^^^^^^^^^^^^^^ required by this bound in `ApplicationFieldRef::<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>::from_schema_types`
 ...
-   |     pub const fn from_schema_identifiers(
-   |                  ----------------------- required by a bound in this associated function
+   |     pub const fn from_schema_types() -> Self {
+   |                  ----------------- required by a bound in this associated function

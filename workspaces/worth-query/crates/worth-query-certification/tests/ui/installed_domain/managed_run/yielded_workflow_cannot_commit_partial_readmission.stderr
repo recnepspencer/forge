@@ -1,0 +1,5 @@
+error[E0599]: no method named `commit` found for struct `WorthQueryYieldedWorkflowRun` in the current scope
+ --> tests/ui/installed_domain/managed_run/yielded_workflow_cannot_commit_partial_readmission.rs:4:9
+  |
+4 |     run.commit();
+  |         ^^^^^^ method not found in `WorthQueryYieldedWorkflowRun`

@@ -1,7 +1,9 @@
+mod application_commit_execution_basis;
 mod aspect_patch_publication;
 mod branch_snapshot_affinity;
 mod bulk_mutation_planning;
 mod commit_artifact_summaries;
+mod created_entity_correspondence;
 mod entity_field_patch_denials;
 mod entity_field_patch_evidence;
 mod exact_commit_snapshots;

@@ -6,7 +6,10 @@
 //! (R8.25 / R8.55). Lost-response recovery resolves by idempotency; a retry
 //! emits the rail effect exactly once (counted at the rail, not the request).
 
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use std::time::Duration;
 
 use bank_domain::estate::{
@@ -22,7 +25,8 @@ use bank_domain::model::{
 };
 use bank_domain::proposals::BankSnapshotBuilder;
 use bank_domain::schema::AccountStatus;
-use bank_external_rail::{FaultScript, RailProcessHandle};
+use bank_external_rail::test_control::FaultScript;
+use bank_external_rail::RailProcessHandle;
 use bank_server::{
     queries, BankCommitReceipt, BankEmployeeAssignmentSeed, BankMutationCommitOutcome,
     BankPrincipalSeed, BankReadControls, BankWorldSeed,
@@ -80,11 +84,37 @@ fn mutation_free_external_effect_co_commits_outbox_recovers_lost_response_once()
         Some(WorthQueryPublishedExternalEffectFailure::LostResponse)
     );
 
+    assert_equivalent_retry_skips_rail_and_unseen_request_consumes_sentinel(
+        &world, binding, &receipt,
+    );
+}
+
+fn assert_equivalent_retry_skips_rail_and_unseen_request_consumes_sentinel(
+    world: &MutationFreeWorld,
+    binding: WorthQueryApplicationIdempotencyBinding,
+    receipt: &BankCommitReceipt,
+) {
+    let correlation = world.transport.attempts()[0].clone();
+    let completed = world
+        .transport
+        .completed_notice(&correlation)
+        .expect("the rail completed the response-lost retransmission");
+    assert_eq!(completed.estate(), world.estate.get());
+    assert_eq!(completed.notice(), world.notice.get());
+    assert_eq!(completed.subject(), world.deceased.get());
+    let dispatched = Arc::new(AtomicBool::new(false));
+    let armed = dispatched.clone();
+    world
+        .transport
+        .after_next_dispatch(move || armed.store(true, Ordering::Release));
     let retry = world.retransmit(binding);
     let BankMutationCommitOutcome::AlreadyCommitted(recovered) = retry else {
         panic!("lost-response retry must resolve by idempotency: {retry:?}");
     };
-    assert!(receipt.is_same_authoritative_commit(&recovered));
+    super::external_effect_dispatch::publication_assertions::assert_recovered_commit_axes(
+        receipt, &recovered,
+    );
+    assert!(recovered.co_committed_dispatch_outbox());
     assert_eq!(
         recovered.emitted_effect_count(),
         receipt.emitted_effect_count()
@@ -94,9 +124,22 @@ fn mutation_free_external_effect_co_commits_outbox_recovers_lost_response_once()
         1,
         "retry must emit the external effect exactly once at the rail"
     );
+    assert!(!dispatched.load(Ordering::Acquire));
     assert_eq!(
         world.notice_status(),
         DeathNoticeStatus::NotificationRequested
+    );
+
+    world.transport.under(FaultScript::Succeed, PATIENT);
+    assert!(matches!(
+        world.retransmit(idempotency(62)),
+        BankMutationCommitOutcome::Committed(_)
+    ));
+    assert!(dispatched.load(Ordering::Acquire));
+    assert_eq!(world.transport.attempts().len(), 2);
+    assert_eq!(
+        world.transport.completed_notice(&correlation),
+        Some(completed)
     );
 }
 
@@ -154,7 +197,10 @@ impl MutationFreeWorld {
 
 fn mutation_free_world(scenario: &str) -> MutationFreeWorld {
     let rail = spawn_rail();
-    let transport = Arc::new(BankEstateRailTransport::connected_to(rail.local_addr()));
+    let transport = Arc::new(BankEstateRailTransport::connected_to(
+        rail.local_addr(),
+        rail.test_control_addr(),
+    ));
     let identities = [
         DynamicIdentity::new(&format!("{scenario}-deceased")),
         DynamicIdentity::new(&format!("{scenario}-specialist")),

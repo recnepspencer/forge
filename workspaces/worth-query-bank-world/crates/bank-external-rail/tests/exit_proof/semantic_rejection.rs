@@ -1,7 +1,7 @@
 //! Hostile protocol semantics must fail before the external owner admits work.
 
 use bank_external_rail::{
-    dispatch, inquire_admission_count, inquire_notice, inquire_status, FaultScript, LedgerStatus,
+    dispatch, inquire_admission_count, inquire_notice, inquire_status, LedgerStatus,
     RailCorrelation, RailDispatch, RailEffectPayload, RailExchangeOutcome, RailRejection,
 };
 use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
@@ -162,7 +162,6 @@ fn attempt(correlation: RailCorrelation, payload: RailEffectPayload) -> RailDisp
     RailDispatch {
         correlation,
         payload,
-        fault_script: FaultScript::Succeed,
     }
 }
 

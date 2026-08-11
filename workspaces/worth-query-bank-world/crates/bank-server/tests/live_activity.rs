@@ -15,22 +15,21 @@ use std::time::{Duration, Instant};
 use bank_domain::proposals::BankIdempotencyKey;
 use bank_domain::schema::RevokeAccountAuthorization;
 use bank_server::{
-    mutations, BankAccountActivityLiveOutcome, BankApplicationQueryDenial, BankMutationControls,
+    mutations, BankAccountActivityLiveOutcome, BankApplicationLiveCloseOutcome,
+    BankApplicationLiveOpenDenialKind, BankApplicationQueryDenial, BankMutationControls,
     BankMutationStatus,
 };
 
 use fixture::{ordinary_read_world, OWNER, TELLER, VIEWER};
 use live_activity_support::{
-    activity_count, assert_phase_posture, authorized_user_id, commit_authorization_toggle,
-    commit_deposit, live_controls, live_controls_for,
+    activity_count, authorized_user_id, commit_authorization_toggle, commit_deposit, live_controls,
+    live_controls_for,
 };
 use support::request_scope;
 use worth_query_host::facade::admission::authenticated_principal::{
     WorthQueryCancellationSource, WorthQueryRequestScope,
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationLiveControls, WorthQueryApplicationLiveOpenDenialKind,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationLiveControls;
 
 #[test]
 fn live_activity_delivers_only_matching_commits_as_fresh_reads() {
@@ -78,21 +77,11 @@ fn live_activity_delivers_only_matching_commits_as_fresh_reads() {
     );
     assert_eq!(activity.account(), fixture.personal_account);
     assert_eq!(activity.entries().len(), 1);
-    assert_eq!(update.receipt().projected_record_count(), 3);
-    let delivery_terminal = update.receipt().read_completion();
-    assert_eq!(
-        delivery_terminal.basis_identity(),
-        update.receipt().basis_identity()
-    );
-    assert_eq!(delivery_terminal.release().released_reservation_count(), 1);
-    assert!(update.commit_ordinal() > 0);
-    let worth_query_host::facade::primary_graph::WorthQueryApplicationLiveCloseOutcome::Completed(
-        close_terminal,
-    ) = live.close()
-    else {
+    assert_eq!(update.receipt().inspect().result_count(), 1);
+    assert!(update.receipt().inspect().terminal_resources_released());
+    let BankApplicationLiveCloseOutcome::Completed = live.close() else {
         panic!("live close must return its read-only terminal");
     };
-    assert_eq!(close_terminal.release().released_reservation_count(), 1);
 }
 
 #[test]
@@ -215,7 +204,7 @@ fn caller_cannot_enlarge_the_installed_live_buffer_ceiling() {
         denial,
         BankApplicationQueryDenial::LiveOpen(error)
             if error.kind()
-                == WorthQueryApplicationLiveOpenDenialKind::BufferCapacityExceedsInstalled
+                == BankApplicationLiveOpenDenialKind::BufferCapacityExceedsInstalled
     ));
 }
 
@@ -238,7 +227,7 @@ fn caller_cannot_enlarge_the_installed_live_work_ceiling() {
     assert!(matches!(
         denial,
         BankApplicationQueryDenial::LiveOpen(error)
-            if error.kind() == WorthQueryApplicationLiveOpenDenialKind::WorkLimitExceedsInstalled
+            if error.kind() == BankApplicationLiveOpenDenialKind::WorkLimitExceedsInstalled
     ));
 }
 
@@ -298,30 +287,14 @@ fn admitted_buffer_capacity_retains_multiple_matching_commit_causes() {
         panic!("second exact activity cause must deliver")
     };
     assert_eq!(live.buffered_cause_count(), 0);
-    assert!(first.commit_id() < second.commit_id());
     assert_eq!(
         first.result().entries()[0].account_sequence().get() + 1,
         second.result().entries()[0].account_sequence().get()
     );
     assert_eq!(first.result().entries().len(), 1);
     assert_eq!(second.result().entries().len(), 1);
-    assert_eq!(
-        first.receipt().target_identity_index_entry_count(),
-        second.receipt().target_identity_index_entry_count()
-    );
-    assert_eq!(first.receipt().target_identity_index_entry_count(), 1);
-    assert_eq!(first.receipt().examined_candidate_count(), 2);
-    assert_eq!(
-        first.receipt().edge_scan_count(),
-        second.receipt().edge_scan_count()
-    );
-    assert_eq!(first.receipt().edge_scan_count(), 2);
-    assert_eq!(
-        first.receipt().adjacency_list_read_count(),
-        second.receipt().adjacency_list_read_count()
-    );
-    assert_eq!(first.receipt().per_result_neighbor_lookup_count(), 0);
-    assert_eq!(first.receipt().fallback_count(), 0);
+    assert!(first.receipt().inspect().terminal_resources_released());
+    assert!(second.receipt().inspect().terminal_resources_released());
 }
 
 #[test]

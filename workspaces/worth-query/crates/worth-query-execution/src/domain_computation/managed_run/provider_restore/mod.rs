@@ -7,5 +7,6 @@ pub(super) use recovery::{
 };
 pub(super) use transition::{
     restore, WorthQueryManagedGraphRestoreAbortOutcome, WorthQueryManagedGraphRestoreCommitOutcome,
-    WorthQueryManagedGraphRestoreOutcome, WorthQueryManagedGraphRestorePending,
+    WorthQueryManagedGraphRestoreDenied, WorthQueryManagedGraphRestoreOutcome,
+    WorthQueryManagedGraphRestorePending,
 };

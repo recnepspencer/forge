@@ -34,6 +34,7 @@ pub use intents::{
 };
 pub use mutation_planning::CommitTopology;
 pub(crate) use outcomes::merge_commit_mutation_plan_token;
+pub(crate) use outcomes::CommitCreatedEntityBindings;
 #[cfg(test)]
 pub(crate) use outcomes::EntityUpdateMissingState;
 pub use outcomes::{

@@ -1,13 +1,10 @@
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationLiveCloseOutcome, WorthQueryApplicationLiveControls,
-    WorthQueryOperationAuthorizationDenialKind,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationLiveControls;
 
 use super::support::{
     activity_request, activity_world, approve_first, assert_exact_revoked_alternate_active,
     assert_resources_released, controls, revoke_exact_support, take_first_requested,
 };
-use crate::BankEstateEmergencyAccessActivityLiveOutcome;
+use crate::{BankApplicationLiveCloseOutcome, BankEstateEmergencyAccessActivityLiveOutcome};
 
 #[test]
 fn queued_real_lifecycle_cause_is_cut_off_before_live_payload_and_closes() {
@@ -37,18 +34,17 @@ fn queued_real_lifecycle_cause_is_cut_off_before_live_payload_and_closes() {
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization
+        crate::BankAuthorizationDenialKind::StaleAuthorization
     );
-    assert!(denial.identity().is_some());
+    assert!(denial.contributing_cause_count() > 0);
     assert!(matches!(
         live.poll(),
         BankEstateEmergencyAccessActivityLiveOutcome::Closed
     ));
     assert_eq!(live.buffered_cause_count(), 0);
-    let WorthQueryApplicationLiveCloseOutcome::Completed(completion) = live.close() else {
+    let BankApplicationLiveCloseOutcome::Completed = live.close() else {
         panic!("the denied live lane must release its opening graph-read session");
     };
-    assert_eq!(completion.release().released_reservation_count(), 1);
     assert_exact_revoked_alternate_active(&world);
     assert_resources_released(&world);
 }

@@ -114,9 +114,11 @@ impl WorthQueryBoundWorkflowGraphStart {
                 running,
             ));
         };
-        if running.stage_graph_resource_support(stage_identity, graph_authority.role())
-            != Some(anchor.resource_support())
-        {
+        if !running.stage_graph_support_matches(
+            stage_identity,
+            graph_authority.role(),
+            anchor.resource_support(),
+        ) {
             return Err(start_failure(
                 WorthQueryWorkflowGraphExecutionStartFailureKind::ProviderSupportMismatch,
                 "admitted stage graph support was not minted from the installed provider's exact support authority",
@@ -166,15 +168,12 @@ impl WorthQueryBoundWorkflowGraphStart {
                 ))
             }
         };
-        let contract = match super::step_contract_admission::admit_managed_step_contract(
-            contract,
-            self.running.bridge_basis().step_contract(),
-        ) {
+        let contract = match self.running.admit_bridge_step_contract(contract) {
             Ok(contract) => contract,
             Err(denial) => return Err(step_contract_failure(denial, self.running)),
         };
-        let artifact_authority = match self.running.artifacts.production_authority(stage_identity) {
-            Ok(authority) => authority,
+        let artifact_context = match self.running.stage_artifact_context(stage_identity) {
+            Ok(context) => context,
             Err(denial) => {
                 return Err(start_failure(
                     WorthQueryWorkflowGraphExecutionStartFailureKind::ArtifactAuthority,
@@ -183,12 +182,6 @@ impl WorthQueryBoundWorkflowGraphStart {
                 ))
             }
         };
-        let artifact_context = artifact_authority.map(|authority| {
-            WorthQueryGraphProviderStepArtifactContext::new(
-                authority,
-                self.running.provider_artifact_occurrences(),
-            )
-        });
         Ok(WorthQueryReadyWorkflowGraphStart {
             bound: self,
             contract,
@@ -202,7 +195,7 @@ impl WorthQueryReadyWorkflowGraphStart {
         mut self,
     ) -> Result<WorthQueryActiveWorkflowGraphExecution, WorthQueryWorkflowGraphExecutionStartFailure>
     {
-        self.bound.running.provider_work_mut().begin_step_call();
+        self.bound.running.begin_provider_step_call();
         let started = match super::provider_start::start_managed_provider(
             &self.bound.anchor,
             &self.bound.call,
@@ -220,14 +213,10 @@ impl WorthQueryReadyWorkflowGraphStart {
                 if let Some(release) = &provider_execution_release {
                     self.bound
                         .running
-                        .provider_work_mut()
                         .record_provider_execution_release(release);
                 }
-                self.bound
-                    .running
-                    .provider_work_mut()
-                    .retain_provider_memory(memory);
-                self.bound.running.provider_work_mut().abandon();
+                self.bound.running.retain_provider_memory(memory);
+                self.bound.running.abandon_provider_step_call();
                 return Err(provider_start_failure(
                     kind,
                     detail,
@@ -239,7 +228,6 @@ impl WorthQueryReadyWorkflowGraphStart {
         };
         self.bound
             .running
-            .provider_work_mut()
             .observe_active_provider_memory(started.memory.snapshot());
         Ok(WorthQueryActiveWorkflowGraphExecution::new(
             self.bound.running,

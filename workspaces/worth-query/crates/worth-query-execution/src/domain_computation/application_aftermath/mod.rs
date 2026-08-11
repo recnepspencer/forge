@@ -15,11 +15,11 @@ pub mod redo_denial;
 pub mod redo_intent;
 pub mod redo_progression;
 pub mod redo_recovery;
+pub mod retained_preimage;
 pub mod undo_admission;
 pub mod undo_denial;
 mod undo_evidence;
 pub mod undo_intent;
-pub mod undo_preimage;
 pub mod undo_progression;
 
 pub use derivation_failure::WorthQueryAftermathDerivationFailure;
@@ -27,16 +27,22 @@ pub use derivation_failure::WorthQueryAftermathDerivationFailure;
 pub(crate) use causal_fact::WorthQueryPendingAftermathCausality;
 pub use causal_fact::{WorthQueryAftermathCausalRole, WorthQueryCommittedAftermathCausality};
 pub(in crate::domain_computation) use external_effect::dispatch_external_effect;
-pub(crate) use external_effect::WorthQueryDispatchOutboxRestoredFields;
+#[cfg(test)]
+pub(crate) use external_effect::dispatch_outbox_create_intent;
+pub(crate) use external_effect::{
+    bind_dispatch_outbox_create_intent, WorthQueryDispatchOutboxRestoredFields,
+    WorthQueryPendingDispatchOutbox,
+};
 pub use external_effect::{
-    derive_external_effect_correlation_identity, dispatch_outbox_create_intent,
-    ExternalEffectCausalLink, ExternalEffectClassification, ExternalEffectCorrelationBasis,
+    derive_external_effect_correlation_identity, ExternalEffectCausalLink,
+    ExternalEffectClassification, ExternalEffectCorrelationBasis,
     ExternalEffectCorrelationIdentity, ExternalEffectPosture, ExternalEffectPostureIdentity,
     ExternalEffectPostureKind, ExternalRailTransportFault, WorthQueryDispatchOutboxLayout,
-    WorthQueryDispatchOutboxRecord, WorthQueryExternalDispatchPosture,
-    WorthQueryExternalDispatchPostureKind, WorthQueryExternalDispatchRequest,
-    WorthQueryExternalEffectCausalLadder, WorthQueryExternalEffectDispatch,
-    WorthQueryExternalEffectTransport, WorthQueryExternalTransportOutcome,
+    WorthQueryDispatchOutboxRecord, WorthQueryExternalDispatchCausalRelation,
+    WorthQueryExternalDispatchPosture, WorthQueryExternalDispatchPostureKind,
+    WorthQueryExternalDispatchRequest, WorthQueryExternalEffectCausalLadder,
+    WorthQueryExternalEffectDispatch, WorthQueryExternalEffectTransport,
+    WorthQueryExternalTransportOutcome,
 };
 pub use recovery_handle::{
     WorthQueryOpaqueRecoveryWireIdentity, WorthQueryRecoveryHandle,
@@ -65,22 +71,19 @@ pub use redo_progression::{
     map_ordinary_commit_conflict_to_redo, progress_admitted_redo, WorthQueryRedoProgressionHandoff,
 };
 pub use redo_recovery::WorthQueryRedoRecovery;
+pub use retained_preimage::{
+    demanded_field_slot, WorthQueryPreImageRetentionDenial, WorthQueryRetainedPreImage,
+};
 pub use undo_admission::{
     admit_undo, deny_irreversible_undo_attempt, WorthQueryUndoAdmission,
     WorthQueryUndoDerivedRequest,
 };
 pub use undo_denial::{WorthQueryUndoDenial, WorthQueryUndoDenialKind};
 pub use undo_intent::WorthQueryUndoIntentIdentity;
-pub use undo_preimage::{
-    demanded_field_slot, WorthQueryPreImageRetentionDenial, WorthQueryRetainedPreImage,
-};
-pub(in crate::domain_computation) use undo_preimage::{
-    retain_preimage_from_observed_facts, WorthQueryObservedPreImageCandidate,
-};
 // `WorthQueryPreImageRetentionDenial` is re-exported as of slice 10: the
 // provider session now maps each retention denial onto a refused commit
 // (Q8.26-C2), so it is consumed by name. `WorthQueryRetainedPreImageField`
-// remains reachable only through `undo_preimage` (a `pub mod`) — nothing
+// remains reachable only through `retained_preimage` (a `pub mod`) — nothing
 // consumes it by name, and this phase does not export for consumers that do
 // not exist.
 pub use undo_progression::{
@@ -94,6 +97,6 @@ mod redo_admission_tests;
 #[cfg(test)]
 mod redo_intent_tests;
 #[cfg(test)]
-mod undo_admission_tests;
+mod retained_preimage_tests;
 #[cfg(test)]
-mod undo_preimage_tests;
+mod undo_admission_tests;

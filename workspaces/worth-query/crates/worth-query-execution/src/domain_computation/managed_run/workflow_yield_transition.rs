@@ -4,8 +4,8 @@ use worth_relational::facade::runtime::RelationalExecutionBasisLease;
 use worth_runtime_bridge::facade::BridgeYieldedExecutionBasis;
 
 use super::managed_graph_execution::WorthQueryManagedGraphExecution;
-use super::provider_work::WorthQueryManagedProviderWorkLedger;
 use super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution;
+use super::workflow::WorthQueryWorkflowRunAffinity;
 use super::workflow_yield_eligibility::classify_workflow_yield_denial;
 use super::workflow_yield_freeze::freeze_and_finalize_workflow_yield;
 use super::workflow_yield_recovery::{
@@ -20,7 +20,6 @@ use super::{
 use crate::domain_computation::artifact_owner::{
     WorthQueryArtifactOccurrenceLedger, WorthQueryFrozenWorkflowArtifactAuthority,
 };
-use crate::domain_computation::WorthQueryWorkflowExecutionResourceAttempt;
 
 pub(super) fn yield_workflow_run(
     paused: WorthQueryPausedWorkflowGraphExecution,
@@ -47,13 +46,10 @@ pub(super) fn yield_workflow_run(
 }
 
 pub(super) struct WorthQueryWorkflowYieldCheckpointPending {
-    pub(super) logical_run_identity: Arc<str>,
-    pub(super) attempt_identity: Arc<str>,
-    pub(super) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
+    pub(super) affinity: WorthQueryWorkflowRunAffinity,
     pub(super) relational_basis: RelationalExecutionBasisLease,
     pub(super) run_counters: WorthQueryManagedRunCounters,
     pub(super) artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
-    pub(super) provider_work: WorthQueryManagedProviderWorkLedger,
     pub(super) provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
     pub(super) execution: WorthQueryManagedGraphExecution,
     pub(super) bridge: BridgeYieldedExecutionBasis,
@@ -65,13 +61,10 @@ impl WorthQueryWorkflowYieldCheckpointPending {
         self,
     ) -> Result<WorthQueryWorkflowYieldRetained, WorthQueryWorkflowYieldOutcome> {
         let Self {
-            logical_run_identity,
-            attempt_identity,
-            resource_attempt,
+            mut affinity,
             relational_basis,
             run_counters,
             artifacts,
-            mut provider_work,
             provider_artifact_occurrences,
             execution,
             bridge,
@@ -81,17 +74,15 @@ impl WorthQueryWorkflowYieldCheckpointPending {
         let retained = match execution.suspend() {
             Ok(suspension) => {
                 yield_counters.observed_checkpoint_retained_bytes(1);
-                provider_work
-                    .record_provider_execution_release(&suspension.provider_execution_release);
+                affinity.record_provider_execution_release(&suspension.provider_execution_release);
                 suspension.retained
             }
             Err(failure) => {
                 yield_counters.observed_checkpoint_retained_bytes(
                     failure.checkpoint_retained_byte_probe_count(),
                 );
-                provider_work
-                    .record_provider_execution_release(failure.provider_execution_release());
-                provider_work.abandon();
+                affinity.record_provider_execution_release(failure.provider_execution_release());
+                affinity.abandon_provider_work();
                 let kind = failure.kind();
                 let detail = Arc::from(failure.detail());
                 return Err(terminalized_recovery(
@@ -99,14 +90,11 @@ impl WorthQueryWorkflowYieldCheckpointPending {
                     detail,
                     yield_counters,
                     WorthQueryTerminalizedWorkflowYieldRecovery {
-                        logical_run_identity,
-                        attempt_identity,
-                        resource_attempt,
+                        affinity: affinity.finish_yield(),
                         relational_basis,
                         artifacts,
                         bridge,
                         run_counters,
-                        provider_work: provider_work.into_evidence(),
                     },
                     WorthQueryYieldRecoveryResourceEvidence::provider_checkpoint_suspension(
                         failure,
@@ -115,13 +103,10 @@ impl WorthQueryWorkflowYieldCheckpointPending {
             }
         };
         Ok(WorthQueryWorkflowYieldRetained {
-            logical_run_identity,
-            attempt_identity,
-            resource_attempt,
+            affinity,
             relational_basis,
             run_counters,
             artifacts,
-            provider_work,
             provider_artifact_occurrences,
             bridge,
             yield_counters,
@@ -139,14 +124,11 @@ impl WorthQueryWorkflowYieldCheckpointPending {
             detail,
             self.yield_counters,
             WorthQueryTerminalizedWorkflowYieldRecovery {
-                logical_run_identity: self.logical_run_identity,
-                attempt_identity: self.attempt_identity,
-                resource_attempt: self.resource_attempt,
+                affinity: self.affinity.finish_yield(),
                 relational_basis: self.relational_basis,
                 artifacts: self.artifacts,
                 bridge: self.bridge,
                 run_counters: self.run_counters,
-                provider_work: self.provider_work.into_evidence(),
             },
             WorthQueryYieldRecoveryResourceEvidence::default(),
         )
@@ -154,17 +136,40 @@ impl WorthQueryWorkflowYieldCheckpointPending {
 }
 
 struct WorthQueryWorkflowYieldRetained {
-    logical_run_identity: Arc<str>,
-    attempt_identity: Arc<str>,
-    resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
+    affinity: WorthQueryWorkflowRunAffinity,
     relational_basis: RelationalExecutionBasisLease,
     run_counters: WorthQueryManagedRunCounters,
     artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
-    provider_work: WorthQueryManagedProviderWorkLedger,
     provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
     bridge: BridgeYieldedExecutionBasis,
     yield_counters: WorthQueryYieldTransitionCounters,
     retained: WorthQueryRetainedManagedGraphExecution,
+}
+
+pub(super) struct WorthQueryWorkflowYieldMint {
+    _owner: (),
+}
+
+pub(super) struct WorthQueryWorkflowYieldMintedOwner {
+    pub(super) affinity: super::workflow::WorthQueryWorkflowRunAffinity,
+    pub(super) relational_basis: worth_relational::facade::runtime::RelationalExecutionBasisLease,
+    pub(super) bridge: worth_runtime_bridge::facade::BridgeYieldedExecutionBasis,
+    pub(super) execution: super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution,
+    pub(super) artifacts:
+        crate::domain_computation::artifact_owner::WorthQueryFrozenWorkflowArtifactAuthority,
+    pub(super) artifact_evidence:
+        crate::domain_computation::artifact_owner::WorthQueryWorkflowArtifactRegistryEvidence,
+    pub(super) run_counters: super::WorthQueryManagedRunCounters,
+    pub(super) provider_artifact_occurrences: std::sync::Arc<
+        crate::domain_computation::artifact_owner::WorthQueryArtifactOccurrenceLedger,
+    >,
+    pub(super) yield_counters: super::WorthQueryYieldTransitionCounters,
+}
+
+impl WorthQueryWorkflowYieldMint {
+    fn mint() -> Self {
+        Self { _owner: () }
+    }
 }
 
 impl WorthQueryWorkflowYieldRetained {
@@ -172,7 +177,7 @@ impl WorthQueryWorkflowYieldRetained {
         self.yield_counters.observed_artifact_registry();
         let artifact_evidence = self.artifacts.evidence();
         let ceiling = self
-            .resource_attempt
+            .affinity
             .operation_resources()
             .envelope()
             .yield_contract()
@@ -187,35 +192,34 @@ impl WorthQueryWorkflowYieldRetained {
         if retained_total > ceiling {
             return self.recover_retained_bytes_exceeded();
         }
-        self.provider_work.interrupt_step_call();
-        self.provider_work
-            .settle_artifacts(self.provider_artifact_occurrences.snapshot());
+        self.affinity.interrupt_provider_step_call();
+        self.affinity
+            .settle_provider_artifacts(self.provider_artifact_occurrences.snapshot());
         self.yield_counters.minted_yielded_capability();
-        WorthQueryWorkflowYieldOutcome::Yielded(WorthQueryYieldedWorkflowRun {
-            logical_run_identity: self.logical_run_identity,
-            attempt_identity: self.attempt_identity,
-            resource_attempt: self.resource_attempt,
-            relational_basis: self.relational_basis,
-            bridge: self.bridge,
-            execution: self.retained,
-            artifacts: self.artifacts,
-            artifact_evidence,
-            run_counters: self.run_counters,
-            provider_work: self.provider_work,
-            provider_artifact_occurrences: self.provider_artifact_occurrences,
-            yield_counters: self.yield_counters,
-        })
+        WorthQueryWorkflowYieldOutcome::Yielded(
+            WorthQueryYieldedWorkflowRun::owner_from_yield_transition(
+                WorthQueryWorkflowYieldMintedOwner {
+                    affinity: self.affinity,
+                    relational_basis: self.relational_basis,
+                    bridge: self.bridge,
+                    execution: self.retained,
+                    artifacts: self.artifacts,
+                    artifact_evidence,
+                    run_counters: self.run_counters,
+                    provider_artifact_occurrences: self.provider_artifact_occurrences,
+                    yield_counters: self.yield_counters,
+                },
+                WorthQueryWorkflowYieldMint::mint(),
+            ),
+        )
     }
 
     fn recover_retained_bytes_exceeded(self) -> WorthQueryWorkflowYieldOutcome {
         let Self {
-            logical_run_identity,
-            attempt_identity,
-            resource_attempt,
+            mut affinity,
             relational_basis,
             run_counters,
             artifacts,
-            mut provider_work,
             provider_artifact_occurrences: _,
             bridge,
             yield_counters,
@@ -223,7 +227,7 @@ impl WorthQueryWorkflowYieldRetained {
         } = self;
         let checkpoint_release = retained.release();
         let release_recovery_required = checkpoint_release.disposition().recovery_required();
-        provider_work.abandon();
+        affinity.abandon_provider_work();
         terminalized_recovery(
             WorthQueryYieldRecoveryKind::RetainedBytesExceeded,
             Arc::from(if release_recovery_required {
@@ -233,14 +237,11 @@ impl WorthQueryWorkflowYieldRetained {
             }),
             yield_counters,
             WorthQueryTerminalizedWorkflowYieldRecovery {
-                logical_run_identity,
-                attempt_identity,
-                resource_attempt,
+                affinity: affinity.finish_yield(),
                 relational_basis,
                 artifacts,
                 bridge,
                 run_counters,
-                provider_work: provider_work.into_evidence(),
             },
             WorthQueryYieldRecoveryResourceEvidence::retained_bytes_exceeded(checkpoint_release),
         )

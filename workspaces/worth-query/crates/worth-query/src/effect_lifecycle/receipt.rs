@@ -203,14 +203,14 @@ impl EffectExecutionReceipt {
             EffectExecutionReceiptArtifact::Scalar(executed) => match executed.artifact() {
                 ExecutedEffectAuthorityArtifact::Mutation(result) => {
                     EffectReceiptTargetEvidence::MutationCommit {
-                        commit_id: result.outcome.commit.commit_id.0,
-                        version_id: result.outcome.commit.version_id.0,
+                        commit_id: result.outcome().commit.commit_id.0,
+                        version_id: result.outcome().commit.version_id.0,
                     }
                 }
                 ExecutedEffectAuthorityArtifact::Merge(result) => {
                     EffectReceiptTargetEvidence::MergeCommit {
-                        commit_id: result.commit.outcome.commit.commit_id.0,
-                        version_id: result.commit.outcome.commit.version_id.0,
+                        commit_id: result.commit.outcome().commit.commit_id.0,
+                        version_id: result.commit.outcome().commit.version_id.0,
                     }
                 }
                 ExecutedEffectAuthorityArtifact::Writeback { execution } => {
@@ -236,8 +236,8 @@ impl EffectExecutionReceipt {
                     .aggregate_mutation()
                     .expect("phase 5 batch receipts remain mutation-only");
                 EffectReceiptTargetEvidence::BatchMutation {
-                    commit_id: aggregate.outcome.commit.commit_id.0,
-                    version_id: aggregate.outcome.commit.version_id.0,
+                    commit_id: aggregate.outcome().commit.commit_id.0,
+                    version_id: aggregate.outcome().commit.version_id.0,
                     component_count: executed.components().len(),
                 }
             }

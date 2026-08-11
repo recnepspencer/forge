@@ -1,0 +1,172 @@
+error: unused `WorthQueryDirectReadmissionCleanupOutcome` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:10:5
+   |
+10 |     std::convert::identity(value);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: direct readmission cleanup retains its receipt or unfinished cleanup authority
+note: the lint level is defined here
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:1:9
+   |
+ 1 | #![deny(unused_must_use)]
+   |         ^^^^^^^^^^^^^^^
+help: use `let _ = ...` to ignore the resulting value
+   |
+10 |     let _ = std::convert::identity(value);
+   |     +++++++
+
+error: unused `WorthQueryWorkflowReadmissionCleanupOutcome` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:13:5
+   |
+13 |     std::convert::identity(value);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: workflow readmission cleanup retains its receipt or unfinished cleanup authority
+help: use `let _ = ...` to ignore the resulting value
+   |
+13 |     let _ = std::convert::identity(value);
+   |     +++++++
+
+error: unused `WorthQueryDirectReadmissionCleanupRequired` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:16:5
+   |
+16 |     std::convert::identity(value);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: direct readmission cleanup must be finished
+help: use `let _ = ...` to ignore the resulting value
+   |
+16 |     let _ = std::convert::identity(value);
+   |     +++++++
+
+error: unused `WorthQueryWorkflowReadmissionCleanupRequired` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:19:5
+   |
+19 |     std::convert::identity(value);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: workflow readmission cleanup must be finished
+help: use `let _ = ...` to ignore the resulting value
+   |
+19 |     let _ = std::convert::identity(value);
+   |     +++++++
+
+error: unused `WorthQueryDirectReadmissionCleanupPending` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:22:5
+   |
+22 |     std::convert::identity(value);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: pending direct readmission cleanup retains Bridge cleanup authority
+help: use `let _ = ...` to ignore the resulting value
+   |
+22 |     let _ = std::convert::identity(value);
+   |     +++++++
+
+error: unused `WorthQueryWorkflowReadmissionCleanupPending` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:25:5
+   |
+25 |     std::convert::identity(value);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: pending workflow readmission cleanup retains unfinished owner authority
+help: use `let _ = ...` to ignore the resulting value
+   |
+25 |     let _ = std::convert::identity(value);
+   |     +++++++
+
+error: unused `WorthQueryDirectReadmissionCleanupOutcome` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:28:5
+   |
+28 |     value.finish();
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: direct readmission cleanup retains its receipt or unfinished cleanup authority
+help: use `let _ = ...` to ignore the resulting value
+   |
+28 |     let _ = value.finish();
+   |     +++++++
+
+error: unused return value of `WorthQueryDirectReadmissionCleanupRequired::finish` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:28:5
+   |
+28 |     value.finish();
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: finishing direct readmission cleanup returns the exact cleanup posture
+help: use `let _ = ...` to ignore the resulting value
+   |
+28 |     let _ = value.finish();
+   |     +++++++
+
+error: unused `WorthQueryWorkflowReadmissionCleanupOutcome` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:31:5
+   |
+31 |     value.finish();
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: workflow readmission cleanup retains its receipt or unfinished cleanup authority
+help: use `let _ = ...` to ignore the resulting value
+   |
+31 |     let _ = value.finish();
+   |     +++++++
+
+error: unused return value of `WorthQueryWorkflowReadmissionCleanupRequired::finish` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:31:5
+   |
+31 |     value.finish();
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: finishing workflow readmission cleanup returns the exact cleanup posture
+help: use `let _ = ...` to ignore the resulting value
+   |
+31 |     let _ = value.finish();
+   |     +++++++
+
+error: unused `WorthQueryDirectReadmissionCleanupOutcome` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:34:5
+   |
+34 |     value.retry();
+   |     ^^^^^^^^^^^^^
+   |
+   = note: direct readmission cleanup retains its receipt or unfinished cleanup authority
+help: use `let _ = ...` to ignore the resulting value
+   |
+34 |     let _ = value.retry();
+   |     +++++++
+
+error: unused return value of `WorthQueryDirectReadmissionCleanupPending::retry` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:34:5
+   |
+34 |     value.retry();
+   |     ^^^^^^^^^^^^^
+   |
+   = note: retrying direct readmission cleanup returns the exact cleanup posture
+help: use `let _ = ...` to ignore the resulting value
+   |
+34 |     let _ = value.retry();
+   |     +++++++
+
+error: unused `WorthQueryWorkflowReadmissionCleanupOutcome` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:37:5
+   |
+37 |     value.retry();
+   |     ^^^^^^^^^^^^^
+   |
+   = note: workflow readmission cleanup retains its receipt or unfinished cleanup authority
+help: use `let _ = ...` to ignore the resulting value
+   |
+37 |     let _ = value.retry();
+   |     +++++++
+
+error: unused return value of `WorthQueryWorkflowReadmissionCleanupPending::retry` that must be used
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs:37:5
+   |
+37 |     value.retry();
+   |     ^^^^^^^^^^^^^
+   |
+   = note: retrying workflow readmission cleanup returns the exact cleanup posture
+help: use `let _ = ...` to ignore the resulting value
+   |
+37 |     let _ = value.retry();
+   |     +++++++

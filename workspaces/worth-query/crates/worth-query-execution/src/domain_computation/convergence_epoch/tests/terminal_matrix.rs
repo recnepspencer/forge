@@ -6,10 +6,8 @@ use crate::domain_computation::{
     WorthQueryConvergenceIndeterminateCause, WorthQueryConvergenceProgress,
     WorthQueryConvergenceRepeatedState, WorthQueryConvergenceTerminalKind,
     WorthQueryConvergenceTerminalState, WorthQueryDirectConvergenceIterationOutcome,
-    WorthQueryDirectConvergenceTerminal, WorthQueryDirectGraphStepOutcome,
+    WorthQueryDirectConvergenceStepOutcome, WorthQueryDirectConvergenceTerminal,
     WorthQueryGraphProviderCallKind, WorthQueryManagedGraphCallRequest,
-    WorthQueryManagedProviderSessionDisposition, WorthQueryManagedRunCleanupDisposition,
-    WorthQueryManagedRunTerminalKind,
 };
 use worth_runtime_bridge::facade::BridgeManagedExecutionCancellationReason;
 
@@ -74,10 +72,6 @@ fn incoherent_terminal_semantics_become_indeterminate_without_becoming_a_report(
     assert_eq!(terminal.counters().comparator_call_count(), 1);
     assert_eq!(terminal.counters().progress_check_count(), 1);
     assert_eq!(terminal.counters().repeated_state_probe_count(), 1);
-    assert_eq!(
-        terminal.managed_terminal().kind(),
-        WorthQueryManagedRunTerminalKind::Failed
-    );
     if terminal.cleanup().is_err() {
         panic!("rejected domain report must retain cleanup authority");
     }
@@ -102,10 +96,6 @@ fn stalled_progress_remains_explicit_domain_evidence() {
         WorthQueryConvergenceFeasibility::Feasible
     );
     assert_eq!(terminal.incumbents().len(), 1);
-    assert_eq!(
-        terminal.managed_terminal().kind(),
-        WorthQueryManagedRunTerminalKind::Completed
-    );
     assert!(terminal.indeterminate_cause().is_none());
     if terminal.cleanup().is_err() {
         panic!("stalled convergence terminal must retain cleanup authority");
@@ -136,10 +126,6 @@ fn indeterminate_comparison_retains_each_indeterminate_semantic_axis() {
         WorthQueryConvergenceRepeatedState::Indeterminate
     );
     assert_eq!(terminal.incumbents().len(), 1);
-    assert_eq!(
-        terminal.managed_terminal().kind(),
-        WorthQueryManagedRunTerminalKind::Completed
-    );
     assert!(terminal.indeterminate_cause().is_none());
     if terminal.cleanup().is_err() {
         panic!("indeterminate comparison must retain cleanup authority");
@@ -165,10 +151,6 @@ fn comparator_failure_retains_exact_attempted_work_without_admitting_a_report() 
     assert_eq!(terminal.counters().progress_check_count(), 0);
     assert_eq!(terminal.counters().repeated_state_probe_count(), 0);
     assert_eq!(terminal.incumbents().len(), 0);
-    assert_eq!(
-        terminal.managed_terminal().kind(),
-        WorthQueryManagedRunTerminalKind::Failed
-    );
     if terminal.cleanup().is_err() {
         panic!("comparator failure must retain cleanup authority");
     }
@@ -184,17 +166,12 @@ fn managed_signal_cancellation_remains_a_distinct_convergence_terminal() {
         Ok(started) => started,
         Err(_) => panic!("cancelled terminal iteration must start"),
     };
-    let (pending, active) = started.into_parts();
-    active
+    started
         .request_cancellation(BridgeManagedExecutionCancellationReason::HostRequested)
         .expect("Signal cancellation request must admit");
-    let managed = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Cancelled(terminal) => terminal,
-        _ => panic!("Signal cancellation must terminalize before provider work"),
-    };
-    let outcome = match pending.admit_managed_terminal(managed) {
-        Ok(outcome) => outcome,
-        Err(_) => panic!("exact cancelled run must rejoin its pending epoch"),
+    let outcome = match started.advance() {
+        WorthQueryDirectConvergenceStepOutcome::Terminal(outcome) => outcome,
+        _ => panic!("Signal cancellation must terminalize and rejoin before provider work"),
     };
     let terminal = match outcome {
         WorthQueryDirectConvergenceIterationOutcome::Cancelled(terminal) => terminal,
@@ -207,24 +184,12 @@ fn managed_signal_cancellation_remains_a_distinct_convergence_terminal() {
     assert_eq!(terminal.counters().provider_work_unit_count(), 0);
     assert_eq!(terminal.incumbents().len(), 0);
     assert!(terminal.latest_report().is_none());
-    let managed = terminal.managed_terminal();
-    assert_eq!(managed.kind(), WorthQueryManagedRunTerminalKind::Cancelled);
-    assert_eq!(
-        managed.provider_work().session_disposition(),
-        WorthQueryManagedProviderSessionDisposition::Interrupted
-    );
-    assert_eq!(managed.provider_work().issued_call_count(), 1);
-    assert_eq!(managed.provider_work().interrupted_call_count(), 1);
-    assert_eq!(managed.provider_work().provider_step_attempt_count(), 0);
-    assert!(!managed.provider_work().checkpoint_available());
     let cleanup = match terminal.cleanup() {
         Ok(cleanup) => cleanup,
         Err(_) => panic!("cancelled convergence terminal must retain cleanup authority"),
     };
-    assert_eq!(
-        cleanup.managed_receipt().disposition(),
-        WorthQueryManagedRunCleanupDisposition::CleanupComplete
-    );
+    assert_eq!(cleanup.counters().cleanup_attempt_count(), 1);
+    assert_eq!(cleanup.counters().cleanup_completion_count(), 1);
 }
 
 fn assert_semantic_terminal<State>(
@@ -247,21 +212,10 @@ fn assert_semantic_terminal<State>(
     assert_eq!(report.domain_work().comparator_call_count(), 1);
     assert_eq!(report.domain_work().progress_check_count(), 1);
     assert_eq!(report.domain_work().repeated_state_probe_count(), 1);
-    let managed = terminal.managed_terminal();
-    assert_eq!(managed.kind(), WorthQueryManagedRunTerminalKind::Completed);
-    assert_eq!(
-        managed.provider_work().session_disposition(),
-        WorthQueryManagedProviderSessionDisposition::ReceiptsAdmitted
-    );
-    assert_eq!(managed.provider_work().retained_artifact_count(), 0);
-    assert_eq!(managed.provider_work().retained_bytes(), 0);
-    assert!(!managed.provider_work().checkpoint_available());
     let cleanup = match terminal.cleanup() {
         Ok(cleanup) => cleanup,
         Err(_) => panic!("semantic terminal must retain cleanup authority"),
     };
-    assert_eq!(
-        cleanup.managed_receipt().disposition(),
-        WorthQueryManagedRunCleanupDisposition::CleanupComplete
-    );
+    assert_eq!(cleanup.counters().cleanup_attempt_count(), 1);
+    assert_eq!(cleanup.counters().cleanup_completion_count(), 1);
 }

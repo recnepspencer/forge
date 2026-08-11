@@ -20,8 +20,8 @@ use crate::domain_computation::authorization::{
     WorthQueryPrincipalCurrentnessDependency, WorthQueryRetainedAuthorizationDecisionFacts,
 };
 use crate::domain_computation::primary_graph::{
-    entity_resolution::validate_entity_freshness_at_snapshot, validate_freshness_at_snapshot,
-    WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionDenialKind,
+    validate_freshness_at_snapshot, WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryPrincipalResolutionDenialKind, WorthQueryPrincipalResolutionMode,
 };
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
@@ -216,6 +216,7 @@ where
             principal,
             &principal_layout,
         );
+        let entity_resolution = graph.retain_entity_resolution_context();
         let policy = graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime.snapshots().snapshot();
             let result = if !graph_work.admits_snapshot(&snapshot) {
@@ -238,12 +239,19 @@ where
                     )
                 })
                 .and_then(|()| {
-                    validate_entity_freshness_at_snapshot(runtime, &snapshot, scope).map_err(|_| {
-                        denial(
-                            WorthQueryApplicationQueryAdmissionDenialKind::StaleScope,
-                            query.name(),
+                    entity_resolution
+                        .at_snapshot(
+                            runtime,
+                            &snapshot,
+                            WorthQueryPrincipalResolutionMode::Ordinary,
                         )
-                    })
+                        .and_then(|truth| truth.validate_entity_freshness(scope))
+                        .map_err(|_| {
+                            denial(
+                                WorthQueryApplicationQueryAdmissionDenialKind::StaleScope,
+                                query.name(),
+                            )
+                        })
                 })
                 .and_then(|()| {
                     self.observe_query_authorization(

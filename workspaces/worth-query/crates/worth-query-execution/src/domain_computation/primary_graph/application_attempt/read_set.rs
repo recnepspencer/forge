@@ -17,7 +17,8 @@ use super::{WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDeni
 use crate::domain_computation::primary_graph::{
     WorthQueryAdmittedApplicationOperation, WorthQueryApplicationEntityIdentity,
     WorthQueryApplicationOperationInvariantProjectionSnapshot,
-    WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionMode,
+    WorthQueryInstalledEntityResolutionContext, WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryPrincipalResolutionMode,
 };
 
 mod observation_admission;
@@ -34,8 +35,7 @@ pub struct WorthQueryApplicationReadAttempt<
     admission: WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
     lease: WorthQueryApplicationSnapshotLease,
     layout: Arc<super::super::schema_layout::WorthQueryPrimaryGraphLayout>,
-    runtime_authority:
-        crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
+    entity_resolution: WorthQueryInstalledEntityResolutionContext,
     read_scope: WorthQueryApplicationReadScope,
     expected_facts: Option<BTreeSet<WorthQueryApplicationFactKey>>,
     facts: BTreeMap<WorthQueryApplicationFactKey, WorthQueryApplicationObservedFact>,
@@ -117,7 +117,7 @@ where
             admission,
             lease,
             layout: Arc::clone(&graph.layout),
-            runtime_authority: self.runtime.authority_identity(),
+            entity_resolution: graph.retain_entity_resolution_context(),
             read_scope,
             expected_facts: None,
             facts: BTreeMap::new(),
@@ -192,6 +192,12 @@ where
                 admission.operation(),
             )
         })?;
+        let graph = self.runtime.primary_graph().ok_or_else(|| {
+            denial(
+                WorthQueryApplicationAttemptDenialKind::ForeignApplication,
+                admission.operation(),
+            )
+        })?;
         let root = admission.scope_entity_id();
         let (lease, projected_scope, expected_facts) = projection.into_lease_and_realized_scope();
         let layout = Arc::clone(&lease.layout);
@@ -199,7 +205,7 @@ where
             admission,
             lease,
             layout,
-            runtime_authority: self.runtime.authority_identity(),
+            entity_resolution: graph.retain_entity_resolution_context(),
             read_scope: WorthQueryApplicationReadScope::projected(root, projected_scope),
             expected_facts: Some(expected_facts),
             facts: BTreeMap::new(),
@@ -234,30 +240,24 @@ impl<Schema, Operation, Input, Scope, Phase>
         Write: WritePosture,
         Unit: ApplicationFieldUnit,
     {
-        let layout = self
-            .layout
-            .equality_field(field.entity(), field.aspect(), field.field())
-            .ok_or_else(|| {
-                denial(
-                    WorthQueryApplicationAttemptDenialKind::MissingAuthoritativeFact,
-                    field.field(),
-                )
-            })?;
-        let evidence = self
+        let resolved = self
             .lease
             .handle()
             .with_runtime(|runtime| {
-                super::super::entity_resolution::resolve_at_snapshot(
-                    runtime,
-                    self.lease.snapshot(),
-                    layout,
-                    value.into_foundational_value(),
-                    WorthQueryPrincipalResolutionMode::Ordinary,
-                    self.runtime_authority,
-                    self.admission.binding_identity().clone(),
-                    field.entity(),
-                    field.field(),
-                )
+                self.entity_resolution
+                    .at_snapshot(
+                        runtime,
+                        self.lease.snapshot(),
+                        WorthQueryPrincipalResolutionMode::Ordinary,
+                    )
+                    .and_then(|truth| {
+                        truth.resolve(
+                            field.entity(),
+                            field.aspect(),
+                            field.field(),
+                            value.into_foundational_value(),
+                        )
+                    })
             })
             .map_err(|_| {
                 denial(
@@ -265,13 +265,13 @@ impl<Schema, Operation, Input, Scope, Phase>
                     field.field(),
                 )
             })?;
-        if !self.read_scope.admits(evidence.entity_id) {
+        if !self.read_scope.admits(resolved.entity_id()) {
             return Err(denial(
                 WorthQueryApplicationAttemptDenialKind::OutsideRealizedReadScope,
                 field.entity(),
             ));
         }
-        Ok(WorthQueryApplicationEntityIdentity::mint(evidence))
+        Ok(resolved.into_application_identity())
     }
 
     pub fn complete(

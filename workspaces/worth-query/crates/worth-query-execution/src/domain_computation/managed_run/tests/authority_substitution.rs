@@ -46,9 +46,8 @@ fn same_runtime_foreign_bridge_adapter_denies_before_lower_authority_admission()
         .terminal(WorthQueryManagedRunTerminalKind::Cancelled)
         .cleanup()
         .expect("owner-thread cleanup should release the exact admitted run");
-    assert!(cleanup.bridge().reservation_released());
-    assert!(cleanup.relational().released());
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 1);
+    assert!(cleanup.inspection().resources_released());
+    assert_eq!(cleanup.inspection().released_reservation_count(), 1);
 }
 
 #[test]

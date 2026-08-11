@@ -29,7 +29,7 @@ pub(super) fn authorize_target(
                 .application_runtime()
                 .installed_schema()
                 .capability(<$capability>::reference(), <$operation>::reference())
-                .map_err(BankEstateProgressionDenial::CapabilityInstallation)?;
+                .map_err(BankEstateProgressionDenial::from_capability_installation)?;
             runtime
                 .application_runtime()
                 .authorize_capability_delegation(
@@ -38,7 +38,7 @@ pub(super) fn authorize_target(
                     operation,
                     TypedMutationPreconditions::default(),
                 )
-                .map_err(BankEstateProgressionDenial::Authorization)
+                .map_err(BankEstateProgressionDenial::from_authorization)
         }};
     }
     match (child.scope.operation, child.scope.purpose) {

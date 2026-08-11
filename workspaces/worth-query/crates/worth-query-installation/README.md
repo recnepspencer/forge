@@ -22,6 +22,9 @@ This crate owns:
 - typed domain operation definitions and semantic closures
 - workflow DAG declarations
 - portable conditional-node declarations
+- installed external-effect protocol, correlation, and payload-bound contracts
+- installed aftermath correction authority, correction mechanism, pre-image,
+  next-action, and published-posture contracts
 - semantic truth dependencies
 - validation, admission inputs, conflict denials, and rebuildable installed
   indexes
@@ -43,9 +46,9 @@ Portable definitions must remain callback-free and runtime-independent.
 and family marker types to `WorthQueryDomainOperationSemanticClosure`.
 
 The closure states parameters, canonical query and result shape, graph reads,
-touches/effects, workflow, conditional nodes, replay, lineage,
-promotion, publication, support, terminal states, failure classes, cost, and
-deterministic lowering identity.
+touches/effects, external-effect and aftermath meaning, workflow, conditional
+nodes, replay, lineage, promotion, publication, support, terminal states,
+failure classes, cost, and deterministic lowering identity.
 
 Use typed `NotRequired` variants for absent capabilities. Provider absence and
 empty labels are not semantic declarations.
@@ -73,4 +76,5 @@ from portable installed artifacts without changing identity or denial outcomes.
 - [Installed Operation Re-Execution And Replay](../worth-query/docs/domain-capabilities/installed-operation-reexecution-and-replay.md)
 - [Typed Stops And Remediation Guidance](../worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md)
 - [Installed Operation Lineage And Promotion](../worth-query/docs/domain-capabilities/installed-operation-lineage-and-promotion.md)
+- [Application Aftermath, External Effects, And Recovery](../worth-query/docs/execution/application-aftermath-and-recovery.md)
 - [Worth Query Orientation](../worth-query/docs/AI_README.md)

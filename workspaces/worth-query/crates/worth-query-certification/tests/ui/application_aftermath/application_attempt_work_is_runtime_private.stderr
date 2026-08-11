@@ -1,0 +1,5 @@
+error[E0599]: no method named `application_attempt_work` found for reference `&WorthQueryPrimaryGraphApplicationRuntime<Schema>` in the current scope
+ --> tests/ui/application_aftermath/application_attempt_work_is_runtime_private.rs:7:21
+  |
+7 |     let _ = runtime.application_attempt_work();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryPrimaryGraphApplicationRuntime<Schema>`

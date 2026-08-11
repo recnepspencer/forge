@@ -9,7 +9,6 @@ use bank_server::{
     BankBusinessOwnerSeed, BankEmployeeAssignmentSeed, BankOperationAdmissionError,
     BankOperationProposalError, BankOperationProposals, BankPrincipalSeed, BankWorldSeed,
 };
-use worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind;
 
 use business_authorization_fixture::{binding, id, key, pending_business_payment_world};
 use support::{block_on, request_scope, runtime, CausalCredential, DynamicIdentity};
@@ -76,7 +75,7 @@ fn real_graph_allows_distinct_approver_and_deny_precedence_blocks_initiator() {
     assert!(matches!(
         denial,
         BankOperationAdmissionError::Authorization(ref denial)
-            if denial.kind() == WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+            if denial.code() == "permission-denied"
     ));
 }
 
@@ -235,6 +234,6 @@ fn assert_permission_denied<T>(result: Result<T, BankOperationAdmissionError>) {
     assert!(matches!(
         result,
         Err(BankOperationAdmissionError::Authorization(ref denial))
-            if denial.kind() == WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+            if denial.code() == "permission-denied"
     ));
 }

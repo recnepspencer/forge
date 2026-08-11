@@ -7,9 +7,8 @@ use super::capabilities::{
     ApplicationFieldUnit, CreatableBy, OperationCreates, OperationDeletes, OperationLinks,
     OperationUnlinks, OperationWrites, WritableCapability,
 };
-use super::references::{
-    ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef, ApplicationRelationRef,
-};
+use super::field_reference::ApplicationFieldRef;
+use super::references::{ApplicationEntityRef, ApplicationOperationRef, ApplicationRelationRef};
 use super::values::TypedApplicationValue;
 use super::{
     ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenial,

@@ -1,12 +1,29 @@
 use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
 use worth_query_declaration::facade::application_aftermath::DeclaredApplicationAftermathContract;
 use worth_query_declaration::facade::application_schema::{
-    ApplicationExternalEffectProtocol, ApplicationSchemaMember,
+    ApplicationExternalEffectProtocol, ApplicationOperationRef, ApplicationSchema,
+    ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember,
 };
 
 use super::{
     operation_aftermath, operation_external_effect, WorthQueryOperationContractCardinalityDenial,
 };
+
+struct Schema;
+
+impl ApplicationSchema for Schema {
+    const OWNER: &'static str = "worth-query-installation-tests";
+    const NAME: &'static str = "ContractResolutionFixture";
+    const MAJOR: u32 = 1;
+    const MINOR: u32 = 0;
+
+    fn declaration() -> Result<
+        ApplicationSchemaDeclaration<Self>,
+        worth_query_declaration::facade::application_schema::ApplicationSchemaDeclarationDenial,
+    > {
+        ApplicationSchemaDeclarationBuilder::<Self>::for_schema().build()
+    }
+}
 
 #[test]
 fn external_effect_resolution_rejects_ambiguity_instead_of_selecting_first() {
@@ -58,9 +75,21 @@ fn external_effect(operation: &str, effect: &str) -> ApplicationSchemaMember {
     }
 }
 
-fn aftermath(operation: &str) -> ApplicationSchemaMember {
-    ApplicationSchemaMember::OperationAftermath {
-        operation: operation.to_owned(),
-        contract: DeclaredApplicationAftermathContract::not_correctable(),
-    }
+fn aftermath(operation: &'static str) -> ApplicationSchemaMember {
+    let definition = ApplicationOperationRef::<Schema, (), ()>::from_schema_identifier(operation)
+        .definition()
+        .no_external_effect()
+        .aftermath(DeclaredApplicationAftermathContract::not_correctable())
+        .finish();
+    let declaration = ApplicationSchemaDeclarationBuilder::<Schema>::for_schema()
+        .operation(definition)
+        .build()
+        .expect("the matching operation builder associates the aftermath");
+    declaration
+        .erased()
+        .members()
+        .iter()
+        .find(|member| matches!(member, ApplicationSchemaMember::OperationAftermath { .. }))
+        .expect("the matching operation emits its portable aftermath member")
+        .clone()
 }

@@ -10,10 +10,10 @@ use bank_domain::{
     reads::{EstateCapabilityContext, EstateEmergencyContext, EstateGovernanceContext},
 };
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationOneShotResult,
-    WorthQueryElevationCloseOutcome, WorthQueryMandatoryReviewOutcome,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryApplicationIdempotencyBinding, WorthQueryElevationCloseOutcome,
+    WorthQueryMandatoryReviewOutcome,
 };
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 
 use super::{
     fixture::{
@@ -30,7 +30,7 @@ use crate::{
 };
 
 type GovernanceResult =
-    WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>;
+    WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>;
 
 #[test]
 fn revoked_support_cuts_active_use_but_not_close_or_mandatory_review() {
@@ -98,7 +98,7 @@ fn revoked_support_cuts_active_use_but_not_close_or_mandatory_review() {
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization
+        crate::BankAuthorizationDenialKind::StaleAuthorization
     );
 
     let closed = fixture
@@ -187,8 +187,8 @@ fn revoked_request_support_cannot_be_replaced_during_approval() {
         panic!("stale request support must fail during approval authorization: {denial:?}");
     };
     assert_eq!(
-        denial.denial().kind(),
-        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization
+        denial.kind(),
+        crate::BankAuthorizationDenialKind::StaleAuthorization
     );
 
     let observed = governance_readback(&fixture, &requester);

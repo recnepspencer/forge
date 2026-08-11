@@ -27,16 +27,16 @@ impl BankIdentityRuntime {
                 RequestEstateEmergencyAccessCapability::reference(),
                 RequestEstateEmergencyAccessOperation::reference(),
             )
-            .map_err(BankEstateProgressionDenial::CapabilityInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_capability_installation)?;
         let access = self
             .application_runtime()
             .admit_capability_access(principal.query(), &capability, action, request)
-            .map_err(BankEstateProgressionDenial::Authorization)?;
+            .map_err(BankEstateProgressionDenial::from_authorization)?;
         let operation = self
             .application_runtime()
             .installed_schema()
             .installed_operation(RequestEstateEmergencyAccessOperation::reference())
-            .map_err(BankEstateProgressionDenial::OperationInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_operation_installation)?;
         let admission = self
             .application_runtime()
             .authorize_elevation_request(
@@ -48,23 +48,23 @@ impl BankIdentityRuntime {
                     bank_domain::schema::EstateCase,
                 >::default(),
             )
-            .map_err(BankEstateProgressionDenial::Authorization)?;
+            .map_err(BankEstateProgressionDenial::from_authorization)?;
         let projected = self
             .invariant_projection()
             .project_admitted_operation(&admission, |reader, estate| {
                 reader.require_decision_field(estate, EstateCaseIdentityField::reference())
             })
-            .map_err(BankEstateProgressionDenial::Projection)?;
+            .map_err(BankEstateProgressionDenial::from_projection)?;
         let (field_result, projection, _) = projected.into_parts();
-        field_result.map_err(BankEstateProgressionDenial::DecisionProjection)?;
+        field_result.map_err(BankEstateProgressionDenial::from_decision_projection)?;
         let program = self
             .application_runtime()
             .begin_projected_application_read_attempt(admission, projection)
-            .map_err(BankEstateProgressionDenial::Attempt)?
+            .map_err(BankEstateProgressionDenial::from_attempt)?
             .complete_projected_dependencies()
-            .map_err(BankEstateProgressionDenial::Attempt)?
+            .map_err(BankEstateProgressionDenial::from_attempt)?
             .materialize_elevation_request_program()
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         Ok(self
             .application_runtime()
             .compare_and_commit_elevation_request(program, idempotency))

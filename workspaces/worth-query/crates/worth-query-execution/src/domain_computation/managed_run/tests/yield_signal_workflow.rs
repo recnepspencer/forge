@@ -91,9 +91,10 @@ fn workflow_signal_terminalized_after_safe_point_preserves_exact_recovery_eviden
         ) => panic!("artifact-free Signal recovery gained artifact recovery"),
         Err(_) => panic!("Signal-race workflow recovery did not release"),
     };
-    assert_eq!(release.logical_run_identity(), logical_run_identity);
-    assert_eq!(release.yielded_attempt_identity(), attempt_identity);
-    assert!(!release.bridge().signal_transition_performed());
-    assert_eq!(release.provider_work().interrupted_call_count(), 1);
-    assert_eq!(release.provider_work().completed_work_units(), 2);
+    let inspection = release.inspection();
+    assert_eq!(inspection.logical_run_identity(), logical_run_identity);
+    assert_eq!(inspection.yielded_attempt_identity(), attempt_identity);
+    assert!(!inspection.bridge_signal_transition_performed());
+    assert_eq!(inspection.provider_work().interrupted_call_count(), 1);
+    assert_eq!(inspection.provider_work().completed_work_units(), 2);
 }

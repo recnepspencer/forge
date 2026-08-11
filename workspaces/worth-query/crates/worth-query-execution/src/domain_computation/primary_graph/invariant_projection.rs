@@ -19,7 +19,10 @@ use worth_relational::facade::identity::{EntityId, KindId, RelationId, VersionId
 use worth_relational::facade::storage::RecordLifecycleState;
 
 use super::schema_layout::WorthQueryPrimaryGraphLayout;
-use super::{WorthQueryPrimaryGraphBootstrap, WorthQueryPrimaryGraphIntegrationHandle};
+use super::{
+    WorthQueryInstalledEntityResolutionContext, WorthQueryPrimaryGraphBootstrap,
+    WorthQueryPrimaryGraphIntegrationHandle,
+};
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
 
 pub use aggregate::{
@@ -56,6 +59,7 @@ pub struct WorthQueryApplicationInvariantProjectionAuthority<Schema> {
     layout: Arc<WorthQueryPrimaryGraphLayout>,
     runtime_authority: WorthQueryRuntimeAuthorityIdentity,
     binding_identity: ApplicationSchemaBindingIdentity,
+    entity_resolution: WorthQueryInstalledEntityResolutionContext,
     authority_identity: u64,
     _schema: PhantomData<fn() -> Schema>,
 }
@@ -100,6 +104,7 @@ where
             layout: Arc::clone(&self.graph.layout),
             runtime_authority: self.runtime_authority,
             binding_identity: self.graph.binding_identity().clone(),
+            entity_resolution: self.graph.retain_entity_resolution_context(),
             authority_identity: NEXT_INVARIANT_PROJECTION_AUTHORITY
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
             _schema: PhantomData,

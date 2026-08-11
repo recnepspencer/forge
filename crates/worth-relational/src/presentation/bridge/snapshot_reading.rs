@@ -11,7 +11,7 @@ use super::snapshot_values::{
 
 #[derive(Debug, Clone)]
 pub(crate) struct RuntimePublicationSnapshotReader {
-    runtime: super::runtime_source::runtime_authority::RelationalBridgeRuntimeAuthority,
+    runtime: crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority,
     snapshot_identity: TruthSnapshotIdentity,
     version_id: VersionId,
     partition: Option<crate::identity::data::PartitionId>,
@@ -25,7 +25,7 @@ impl RuntimePublicationSnapshotReader {
         version_id: VersionId,
     ) -> Self {
         Self::from_authority(
-            super::runtime_source::runtime_authority::RelationalBridgeRuntimeAuthority::immutable(
+            crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority::immutable(
                 runtime,
             ),
             snapshot_identity,
@@ -34,7 +34,7 @@ impl RuntimePublicationSnapshotReader {
     }
 
     pub(super) fn from_authority(
-        runtime: super::runtime_source::runtime_authority::RelationalBridgeRuntimeAuthority,
+        runtime: crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority,
         snapshot_identity: TruthSnapshotIdentity,
         version_id: VersionId,
     ) -> Self {
@@ -47,7 +47,7 @@ impl RuntimePublicationSnapshotReader {
     }
 
     pub(super) fn for_partition_authority(
-        runtime: super::runtime_source::runtime_authority::RelationalBridgeRuntimeAuthority,
+        runtime: crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority,
         snapshot_identity: TruthSnapshotIdentity,
         version_id: VersionId,
         partition: crate::identity::data::PartitionId,

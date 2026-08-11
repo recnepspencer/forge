@@ -122,6 +122,10 @@ continuation, async/result state, recovery, inspection, projection consumption,
 dependency impact, sharing, invalidation, collection delivery, and conditional
 evaluation/comparator/trigger posture.
 
+The word `recovery` in a consumer-support dimension does not mint a live
+application-aftermath recovery handle. Receipt-bound recovery has its own
+currentness, disclosure, effect-authority, and lifecycle checks.
+
 Use `WorthQuerySupportRequirement::NotRequired` when the operation does not
 need a dimension. Provider presence and downstream defaults cannot promote a
 dimension to supported.
@@ -449,6 +453,7 @@ For deeper checks:
 - [Canonical Graph Obligation Progression](../domain-capabilities/canonical-graph-obligation-progression.md)
 - [Workspace Overview](workspace-overview.md)
 - [State](state.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
 - [Intent Admission](../execution/intent-admission.md)
 - [Inspection](../capabilities/inspection.md)
 - [Writes And Intents](../execution/writes-and-intents.md)

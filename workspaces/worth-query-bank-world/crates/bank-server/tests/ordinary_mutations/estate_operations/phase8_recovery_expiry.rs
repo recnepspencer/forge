@@ -1,6 +1,6 @@
 //! Recovery expiry through the runtime clock (R8.7 M2/M3 / R8.29).
 
-use bank_external_rail::FaultScript;
+use bank_external_rail::test_control::FaultScript;
 use bank_server::BankEstateProgressionDenial;
 use worth_query_host::facade::primary_graph::{
     expire_recovery_handle, WorthQueryRecoveryExpiryEvaluation, WorthQueryRecoveryHandleDenialKind,

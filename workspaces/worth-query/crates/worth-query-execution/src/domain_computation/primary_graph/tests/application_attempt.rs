@@ -25,10 +25,16 @@ mod idempotency_behavior;
 mod mutation_terminal_lifecycle;
 #[path = "application_attempt/mutation_work_scale.rs"]
 mod mutation_work_scale;
+#[path = "application_attempt/preimage_evidence.rs"]
+pub(in crate::domain_computation::primary_graph) mod preimage_evidence;
 #[path = "application_attempt/preimage_retention.rs"]
 mod preimage_retention;
 #[path = "application_attempt/program_fixture.rs"]
 mod program_fixture;
+#[path = "application_attempt/provider_receipt_axes.rs"]
+mod provider_receipt_axes;
+#[path = "application_attempt/retry_outbox_rebind.rs"]
+mod retry_outbox_rebind;
 #[path = "application_attempt/terminal_failures.rs"]
 mod terminal_failures;
 #[path = "application_attempt/touched_graph_closure.rs"]
@@ -201,6 +207,10 @@ fn response_loss_resolves_the_published_commit_before_returning() {
         WorthQueryApplicationCommitTerminalKind::Executed
     );
     assert_eq!(
+        first_receipt.terminal().attempt_resources_released(),
+        Some(true)
+    );
+    assert_eq!(
         receipt.terminal().kind(),
         WorthQueryApplicationCommitTerminalKind::Recovered
     );
@@ -250,11 +260,14 @@ fn preparation_commit_recovery_and_retry_perform_no_execution_digest_derivation(
     );
 }
 
-pub(super) fn idempotency(key: u8, intent: u8) -> WorthQueryApplicationIdempotencyBinding {
+pub(in crate::domain_computation::primary_graph) fn idempotency(
+    key: u8,
+    intent: u8,
+) -> WorthQueryApplicationIdempotencyBinding {
     WorthQueryApplicationIdempotencyBinding::new([key; 32], [intent; 32])
 }
 
-pub(super) fn authenticated_principal(
+pub(in crate::domain_computation::primary_graph) fn authenticated_principal(
     world: &super::fixture::AuthorizationWorld,
     request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
 ) -> crate::domain_computation::primary_graph::WorthQueryAuthenticatedPrincipal<
@@ -274,7 +287,7 @@ pub(super) fn authenticated_principal(
         .unwrap()
 }
 
-pub(super) fn resolved_account(
+pub(in crate::domain_computation::primary_graph) fn resolved_account(
     world: &super::fixture::AuthorizationWorld,
     status: &str,
     request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,

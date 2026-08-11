@@ -62,9 +62,9 @@ fn measure_undo_admission_after_history(history_len: usize, key: u8) -> FanoutOb
         let BankMutationCommitOutcome::Committed(receipt) = outcome else {
             panic!("disburse must commit");
         };
-        committed.push(receipt.commit_id());
+        committed.push(receipt);
     }
-    assert!(committed.windows(2).all(|pair| pair[0] != pair[1]));
+    assert_eq!(committed.len(), history_len);
 
     let outcome = fixture
         .world

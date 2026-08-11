@@ -109,11 +109,12 @@ pub mod facade {
         InstalledCorrectionAuthority, InstalledCorrectionMechanism,
         InstalledExternalEffectContract, InstalledExternalEffectPosture,
         InstalledLoweringCorrespondence, InstalledLoweringCorrespondenceRef,
-        InstalledPreImageDemand, InstalledRecordedInverse, IrreversibleNextActionContract,
-        PublishedAftermathPosture, ReconcilableNextActionContract, ReconcileNextAction,
-        ReversibleNextActionContract, UndoViaRecordedInverse, WorthQueryAftermathCanonicalArtifact,
-        WorthQueryAftermathInstallationDenial, WorthQueryAftermathInstallationDenialKind,
-        WorthQueryInstalledAftermathContract, WorthQueryInstalledAftermathIdentity,
+        InstalledPreImageDemand, InstalledPreImageLocus, InstalledRecordedInverse,
+        IrreversibleNextActionContract, PublishedAftermathPosture, ReconcilableNextActionContract,
+        ReconcileNextAction, ReversibleNextActionContract, UndoViaRecordedInverse,
+        WorthQueryAftermathCanonicalArtifact, WorthQueryAftermathInstallationDenial,
+        WorthQueryAftermathInstallationDenialKind, WorthQueryInstalledAftermathContract,
+        WorthQueryInstalledAftermathIdentity,
     };
     pub use crate::application_capability::{
         derive_capability_revocation_proposal_identity, derive_delegation_proposal_identity,

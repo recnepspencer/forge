@@ -151,7 +151,9 @@ impl BankIdentityRuntime {
         let redo_recovery = match &mutation {
             BankMutationCommitOutcome::Committed(receipt)
             | BankMutationCommitOutcome::AlreadyCommitted(receipt) => Some(
-                WorthQueryRedoRecovery::from_completed_undo(handoff, receipt.application())
+                receipt
+                    .recovery_evidence()
+                    .seal_redo_recovery(handoff)
                     .map_err(
                         |_| BankEstateProgressionDenial::Undo(WorthQueryUndoDenial::stale()),
                     )?,
@@ -198,16 +200,16 @@ impl BankIdentityRuntime {
             .project_admitted_operation(&admission, |reader, estate| {
                 project_inverse_restore_account(reader, estate, account)
             })
-            .map_err(BankEstateProgressionDenial::Projection)?;
+            .map_err(BankEstateProgressionDenial::from_projection)?;
         let (projection_result, projection, _) = projected.into_parts();
         projection_result.map_err(BankEstateProgressionDenial::FreezeProjection)?;
         let reads = self
             .application_runtime()
             .begin_projected_application_read_attempt(admission, projection)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let account = reads
             .resolve_entity(AccountIdentity::reference(), account)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         if !preimage
             .target_record()
             .is_some_and(|target| account.matches_record(target))
@@ -218,25 +220,25 @@ impl BankIdentityRuntime {
         }
         let mut effects = reads
             .complete_projected_dependencies()
-            .map_err(BankEstateProgressionDenial::Attempt)?
+            .map_err(BankEstateProgressionDenial::from_attempt)?
             .begin_effect_program();
         let account = effects
             .existing_entity(&account)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         // R8.2 — restore uses the retained pre-image value, not a live re-read.
         effects
             .write_field(&account, Status::reference(), prior)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         effects
             .finish()
-            .map_err(BankEstateProgressionDenial::Attempt)
+            .map_err(BankEstateProgressionDenial::from_attempt)
     }
 }
 
 fn prior_status_from_preimage(
     preimage: &WorthQueryRetainedPreImage,
 ) -> Result<AccountStatus, BankEstateProgressionDenial> {
-    let Some(field) = preimage.field("Status") else {
+    let Some(field) = preimage.field_for(Status::reference()) else {
         return Err(BankEstateProgressionDenial::Undo(
             WorthQueryUndoDenial::retained_preimage_required(),
         ));
@@ -275,17 +277,14 @@ fn project_inverse_restore_account(
         .decision_field(&account, AccountIdentity::reference())?
         .ok_or(BankEstateFreezeProjectionDenial::MissingAccountIdentity)?;
     if observed_account != expected_account {
-        return Err(BankEstateFreezeProjectionDenial::RelatedAccountMismatch {
-            expected: expected_account,
-            observed: observed_account,
-        });
+        return Err(BankEstateFreezeProjectionDenial::RelatedAccountMismatch);
     }
     let status = reader
         .decision_field(&account, Status::reference())?
         .ok_or(BankEstateFreezeProjectionDenial::MissingAccountStatus)?;
     // Inverse restore requires a frozen account; reuse AccountNotOpen for wrong posture.
     if status != AccountStatus::Frozen {
-        return Err(BankEstateFreezeProjectionDenial::AccountNotOpen(status));
+        return Err(BankEstateFreezeProjectionDenial::AccountNotOpen);
     }
     Ok(())
 }

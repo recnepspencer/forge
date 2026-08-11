@@ -1,0 +1,299 @@
+error[E0277]: the trait bound `WorthQueryYieldedDirectRun: Deref` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:16:27
+   |
+16 |             require_deref(&run);
+   |             ------------- ^^^^ the trait `Deref` is not implemented for `WorthQueryYieldedDirectRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+38 | deny_direct_target!(direct_attempt, WorthQueryDirectExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `direct_attempt::require_deref`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:13:33
+   |
+13 |             fn require_deref<T: Deref<Target = $target>>(_: &T) {}
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `require_deref`
+...
+38 | deny_direct_target!(direct_attempt, WorthQueryDirectExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_direct_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryYieldedDirectRun: AsRef<WorthQueryDirectExecutionResourceAttempt>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:17:28
+   |
+17 |             require_as_ref(&run);
+   |             -------------- ^^^^ the trait `AsRef<WorthQueryDirectExecutionResourceAttempt>` is not implemented for `WorthQueryYieldedDirectRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+38 | deny_direct_target!(direct_attempt, WorthQueryDirectExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `direct_attempt::require_as_ref`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:14:34
+   |
+14 |             fn require_as_ref<T: AsRef<$target>>(_: &T) {}
+   |                                  ^^^^^^^^^^^^^^ required by this bound in `require_as_ref`
+...
+38 | deny_direct_target!(direct_attempt, WorthQueryDirectExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_direct_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryYieldedDirectRun: Borrow<WorthQueryDirectExecutionResourceAttempt>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:18:28
+   |
+18 |             require_borrow(&run);
+   |             -------------- ^^^^ the trait `Borrow<WorthQueryDirectExecutionResourceAttempt>` is not implemented for `WorthQueryYieldedDirectRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+38 | deny_direct_target!(direct_attempt, WorthQueryDirectExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `direct_attempt::require_borrow`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:15:34
+   |
+15 |             fn require_borrow<T: Borrow<$target>>(_: &T) {}
+   |                                  ^^^^^^^^^^^^^^^ required by this bound in `require_borrow`
+...
+38 | deny_direct_target!(direct_attempt, WorthQueryDirectExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_direct_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryDirectExecutionResourceAttempt: From<WorthQueryYieldedDirectRun>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:19:34
+   |
+19 |             let _: $target = run.into();
+   |                                  ^^^^ the trait `From<WorthQueryYieldedDirectRun>` is not implemented for `WorthQueryDirectExecutionResourceAttempt`
+...
+38 | deny_direct_target!(direct_attempt, WorthQueryDirectExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------- in this macro invocation
+   |
+   = note: required for `WorthQueryYieldedDirectRun` to implement `Into<WorthQueryDirectExecutionResourceAttempt>`
+   = note: this error originates in the macro `deny_direct_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryYieldedDirectRun: Deref` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:16:27
+   |
+16 |             require_deref(&run);
+   |             ------------- ^^^^ the trait `Deref` is not implemented for `WorthQueryYieldedDirectRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+39 | deny_direct_target!(direct_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | ---------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `direct_checkpoint::require_deref`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:13:33
+   |
+13 |             fn require_deref<T: Deref<Target = $target>>(_: &T) {}
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `require_deref`
+...
+39 | deny_direct_target!(direct_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | ---------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_direct_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryYieldedDirectRun: AsRef<WorthQueryProviderCheckpointEvidence>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:17:28
+   |
+17 |             require_as_ref(&run);
+   |             -------------- ^^^^ the trait `AsRef<WorthQueryProviderCheckpointEvidence>` is not implemented for `WorthQueryYieldedDirectRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+39 | deny_direct_target!(direct_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | ---------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `direct_checkpoint::require_as_ref`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:14:34
+   |
+14 |             fn require_as_ref<T: AsRef<$target>>(_: &T) {}
+   |                                  ^^^^^^^^^^^^^^ required by this bound in `require_as_ref`
+...
+39 | deny_direct_target!(direct_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | ---------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_direct_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryYieldedDirectRun: Borrow<WorthQueryProviderCheckpointEvidence>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:18:28
+   |
+18 |             require_borrow(&run);
+   |             -------------- ^^^^ the trait `Borrow<WorthQueryProviderCheckpointEvidence>` is not implemented for `WorthQueryYieldedDirectRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+39 | deny_direct_target!(direct_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | ---------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `direct_checkpoint::require_borrow`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:15:34
+   |
+15 |             fn require_borrow<T: Borrow<$target>>(_: &T) {}
+   |                                  ^^^^^^^^^^^^^^^ required by this bound in `require_borrow`
+...
+39 | deny_direct_target!(direct_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | ---------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_direct_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryProviderCheckpointEvidence: From<WorthQueryYieldedDirectRun>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:19:34
+   |
+19 |             let _: $target = run.into();
+   |                                  ^^^^ the trait `From<WorthQueryYieldedDirectRun>` is not implemented for `WorthQueryProviderCheckpointEvidence`
+...
+39 | deny_direct_target!(direct_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | ---------------------------------------------------------------------------- in this macro invocation
+   |
+   = note: required for `WorthQueryYieldedDirectRun` to implement `Into<WorthQueryProviderCheckpointEvidence>`
+   = note: this error originates in the macro `deny_direct_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryYieldedWorkflowRun: Deref` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:30:27
+   |
+30 |             require_deref(&run);
+   |             ------------- ^^^^ the trait `Deref` is not implemented for `WorthQueryYieldedWorkflowRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+40 | deny_workflow_target!(workflow_attempt, WorthQueryWorkflowExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `workflow_attempt::require_deref`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:27:33
+   |
+27 |             fn require_deref<T: Deref<Target = $target>>(_: &T) {}
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `require_deref`
+...
+40 | deny_workflow_target!(workflow_attempt, WorthQueryWorkflowExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_workflow_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryYieldedWorkflowRun: AsRef<WorthQueryWorkflowExecutionResourceAttempt>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:31:28
+   |
+31 |             require_as_ref(&run);
+   |             -------------- ^^^^ the trait `AsRef<WorthQueryWorkflowExecutionResourceAttempt>` is not implemented for `WorthQueryYieldedWorkflowRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+40 | deny_workflow_target!(workflow_attempt, WorthQueryWorkflowExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `workflow_attempt::require_as_ref`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:28:34
+   |
+28 |             fn require_as_ref<T: AsRef<$target>>(_: &T) {}
+   |                                  ^^^^^^^^^^^^^^ required by this bound in `require_as_ref`
+...
+40 | deny_workflow_target!(workflow_attempt, WorthQueryWorkflowExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_workflow_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryYieldedWorkflowRun: Borrow<WorthQueryWorkflowExecutionResourceAttempt>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:32:28
+   |
+32 |             require_borrow(&run);
+   |             -------------- ^^^^ the trait `Borrow<WorthQueryWorkflowExecutionResourceAttempt>` is not implemented for `WorthQueryYieldedWorkflowRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+40 | deny_workflow_target!(workflow_attempt, WorthQueryWorkflowExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `workflow_attempt::require_borrow`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:29:34
+   |
+29 |             fn require_borrow<T: Borrow<$target>>(_: &T) {}
+   |                                  ^^^^^^^^^^^^^^^ required by this bound in `require_borrow`
+...
+40 | deny_workflow_target!(workflow_attempt, WorthQueryWorkflowExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_workflow_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryWorkflowExecutionResourceAttempt: From<WorthQueryYieldedWorkflowRun>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:33:34
+   |
+33 |             let _: $target = run.into();
+   |                                  ^^^^ the trait `From<WorthQueryYieldedWorkflowRun>` is not implemented for `WorthQueryWorkflowExecutionResourceAttempt`
+...
+40 | deny_workflow_target!(workflow_attempt, WorthQueryWorkflowExecutionResourceAttempt);
+   | ----------------------------------------------------------------------------------- in this macro invocation
+   |
+   = note: required for `WorthQueryYieldedWorkflowRun` to implement `Into<WorthQueryWorkflowExecutionResourceAttempt>`
+   = note: this error originates in the macro `deny_workflow_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryYieldedWorkflowRun: Deref` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:30:27
+   |
+30 |             require_deref(&run);
+   |             ------------- ^^^^ the trait `Deref` is not implemented for `WorthQueryYieldedWorkflowRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+41 | deny_workflow_target!(workflow_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | -------------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `workflow_checkpoint::require_deref`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:27:33
+   |
+27 |             fn require_deref<T: Deref<Target = $target>>(_: &T) {}
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `require_deref`
+...
+41 | deny_workflow_target!(workflow_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | -------------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_workflow_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryYieldedWorkflowRun: AsRef<WorthQueryProviderCheckpointEvidence>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:31:28
+   |
+31 |             require_as_ref(&run);
+   |             -------------- ^^^^ the trait `AsRef<WorthQueryProviderCheckpointEvidence>` is not implemented for `WorthQueryYieldedWorkflowRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+41 | deny_workflow_target!(workflow_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | -------------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `workflow_checkpoint::require_as_ref`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:28:34
+   |
+28 |             fn require_as_ref<T: AsRef<$target>>(_: &T) {}
+   |                                  ^^^^^^^^^^^^^^ required by this bound in `require_as_ref`
+...
+41 | deny_workflow_target!(workflow_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | -------------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_workflow_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryYieldedWorkflowRun: Borrow<WorthQueryProviderCheckpointEvidence>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:32:28
+   |
+32 |             require_borrow(&run);
+   |             -------------- ^^^^ the trait `Borrow<WorthQueryProviderCheckpointEvidence>` is not implemented for `WorthQueryYieldedWorkflowRun`
+   |             |
+   |             required by a bound introduced by this call
+...
+41 | deny_workflow_target!(workflow_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | -------------------------------------------------------------------------------- in this macro invocation
+   |
+note: required by a bound in `workflow_checkpoint::require_borrow`
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:29:34
+   |
+29 |             fn require_borrow<T: Borrow<$target>>(_: &T) {}
+   |                                  ^^^^^^^^^^^^^^^ required by this bound in `require_borrow`
+...
+41 | deny_workflow_target!(workflow_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | -------------------------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `deny_workflow_target` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `WorthQueryProviderCheckpointEvidence: From<WorthQueryYieldedWorkflowRun>` is not satisfied
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs:33:34
+   |
+33 |             let _: $target = run.into();
+   |                                  ^^^^ the trait `From<WorthQueryYieldedWorkflowRun>` is not implemented for `WorthQueryProviderCheckpointEvidence`
+...
+41 | deny_workflow_target!(workflow_checkpoint, WorthQueryProviderCheckpointEvidence);
+   | -------------------------------------------------------------------------------- in this macro invocation
+   |
+   = note: required for `WorthQueryYieldedWorkflowRun` to implement `Into<WorthQueryProviderCheckpointEvidence>`
+   = note: this error originates in the macro `deny_workflow_target` (in Nightly builds, run with -Z macro-backtrace for more info)

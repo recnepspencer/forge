@@ -257,7 +257,6 @@ fn layout() -> WorthQueryDispatchOutboxLayout {
         maximum_payload_bytes_locator: locator("maximum-payload-bytes"),
         payload_locator: locator("payload-hex"),
         outcome_identity_locator: locator("outcome-identity"),
-        correlation_index_id: worth_relational::facade::indexes::DerivedIndexId(1),
     }
 }
 

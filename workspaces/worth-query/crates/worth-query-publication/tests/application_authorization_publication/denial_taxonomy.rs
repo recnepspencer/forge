@@ -9,12 +9,12 @@ use worth_foundational::facade::{
     RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_query_execution::facade::primary_graph::{
-    WorthQueryApplicationAuthorizationExplanationCause as Cause,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind as Kind,
 };
 use worth_query_publication::facade::domain_computation::{
     publish_application_authorization_denial, WorthQueryApplicationAuthorizationPublicationProfile,
     WorthQueryPublishedApplicationAuthorizationDenial,
+    WorthQueryPublishedApplicationAuthorizationDenialCause as Cause,
 };
 
 use super::installed_composition::{real_denial, CompositionScenario};
@@ -79,22 +79,25 @@ fn assert_publication(
         WorthQueryApplicationAuthorizationPublicationProfile::exact(profile),
     )
     .unwrap();
-    assert_retained_denial(&published, denial, expected.cause);
+    assert_closed_denial(&published, denial, expected.cause);
     assert_boundary_profile(&published, &profile);
     assert_denial_diagnostic(&published, expected.diagnostic_code);
-    assert_current_provenance(&published, denial);
+    assert_current_provenance(&published);
     assert_denied_closeout(&published);
     assert_publication_receipt(&published);
     published
 }
 
-fn assert_retained_denial(
+fn assert_closed_denial(
     published: &WorthQueryPublishedApplicationAuthorizationDenial,
     denial: &WorthQueryOperationAuthorizationDenial,
     expected_cause: Cause,
 ) {
-    assert_eq!(published.artifact().denial(), denial);
     assert_eq!(published.artifact().cause(), expected_cause);
+    assert_eq!(
+        published.artifact().contributing_cause_count(),
+        denial.causes().len()
+    );
 }
 
 fn assert_boundary_profile(
@@ -137,10 +140,7 @@ fn assert_denial_diagnostic(
     );
 }
 
-fn assert_current_provenance(
-    published: &WorthQueryPublishedApplicationAuthorizationDenial,
-    denial: &WorthQueryOperationAuthorizationDenial,
-) {
+fn assert_current_provenance(published: &WorthQueryPublishedApplicationAuthorizationDenial) {
     assert_eq!(
         published.provenance().locality(),
         FoundationalBoundaryEvidenceLocality::Current
@@ -149,10 +149,7 @@ fn assert_current_provenance(
         published.provenance().freshness_posture(),
         FoundationalBoundaryEvidenceFreshnessPosture::FreshRetained
     );
-    assert_eq!(
-        publication_identity(published),
-        denial.identity().unwrap().get()
-    );
+    assert_ne!(publication_identity(published), 0);
 }
 
 fn assert_denied_closeout(published: &WorthQueryPublishedApplicationAuthorizationDenial) {

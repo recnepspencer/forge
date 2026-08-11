@@ -128,6 +128,9 @@ let discard = inspection.discard();
 Inspection does not expose a commit method. Discard consumes the proposal and
 cleans both overlay and provider session.
 
+Discard is pre-commit cleanup. It does not reverse committed history and is not
+an application aftermath, compensation, reconciliation, or recovery action.
+
 ## Real Example
 
 ```rust
@@ -197,8 +200,8 @@ state or authoritative graph.
 - This low-level provisional-state feature does not expose commit. The higher
   installed application-operation progression consumes its sealed validated
   candidate through provider compare-and-commit.
-- Multi-authority publication requires a later boundary with genuine atomic
-  authority or explicit compensation semantics.
+- Multi-owner consequences require the higher installed-operation boundary to
+  declare correction semantics and co-commit any external dispatch intent.
 - Invariant progression proves only the exact proposal and attempt generation
   named by its receipts.
 
@@ -206,6 +209,7 @@ state or authoritative graph.
 
 - [Canonical Graph Obligation Progression](./canonical-graph-obligation-progression.md)
 - [Provider Sessions And Decision Read-Sets](./provider-sessions-and-decision-read-sets.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
 - [Installed Computation Artifact Contracts](./installed-computation-artifact-contracts.md)
 - [Capability Gaps And Invariant Denials](./invariants/capability-gaps-and-invariant-denials.md)
 - [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)

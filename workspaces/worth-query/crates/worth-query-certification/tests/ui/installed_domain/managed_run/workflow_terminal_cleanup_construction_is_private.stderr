@@ -1,0 +1,23 @@
+error[E0451]: field `inspection` of struct `WorthQueryWorkflowRunCleanupReceipt` is private
+ --> tests/ui/installed_domain/managed_run/workflow_terminal_cleanup_construction_is_private.rs:9:45
+  |
+9 |     WorthQueryWorkflowRunCleanupReceipt { ..value }
+  |                                             ^^^^^ field `inspection` is private
+
+error[E0451]: fields `logical_run_identity`, `identity`, `terminal`, `disposition`, `bridge_reservation_released`, `relational_basis_released`, `provider_session_identity`, `resource_plan_identity`, `capacity_scope`, `released_reservation_count`, `artifact_evidence`, `counters` and `provider_work` of struct `WorthQueryWorkflowRunCleanupInspection` are private
+  --> tests/ui/installed_domain/managed_run/workflow_terminal_cleanup_construction_is_private.rs:15:48
+   |
+15 |     WorthQueryWorkflowRunCleanupInspection { ..value }
+   |                                                ^^^^^ fields `logical_run_identity`, `identity`, `terminal`, `disposition`, `bridge_reservation_released`, `relational_basis_released`, `provider_session_identity`, `resource_plan_identity`, `capacity_scope`, `released_reservation_count`, `artifact_evidence`, `counters` and `provider_work` are private
+
+error[E0451]: fields `artifact_evidence`, `provider_retained_bytes` and `terminal` of struct `WorthQueryWorkflowRunCleanupPending` are private
+  --> tests/ui/installed_domain/managed_run/workflow_terminal_cleanup_construction_is_private.rs:21:45
+   |
+21 |     WorthQueryWorkflowRunCleanupPending { ..value }
+   |                                             ^^^^^ fields `artifact_evidence`, `provider_retained_bytes` and `terminal` are private
+
+error[E0451]: fields `failure_kind`, `failure_detail`, `artifact_evidence` and `terminal` of struct `WorthQueryWorkflowRunCleanupFailure` are private
+  --> tests/ui/installed_domain/managed_run/workflow_terminal_cleanup_construction_is_private.rs:27:45
+   |
+27 |     WorthQueryWorkflowRunCleanupFailure { ..value }
+   |                                             ^^^^^ fields `failure_kind`, `failure_detail`, `artifact_evidence` and `terminal` are private

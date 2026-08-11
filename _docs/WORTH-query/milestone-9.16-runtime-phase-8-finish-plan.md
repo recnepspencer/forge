@@ -1,12 +1,15 @@
 # Runtime Phase 8 Finish Plan
 
-**Status:** **OPEN — hostile QA reopened F1-F6A on 2026-08-08.**
+**Status:** **OPEN — corrections C1-C6 are closed; C7-C8 remain open.**
 The earlier F6A closure is historical evidence, not current authority. The
-current checkout still contains compile-time contract collapse, facade escape,
-copied publication truth, non-exact outbox observation, hidden ordinary-lane
-work, string identity authority, and proof fixtures that cannot support the
-claims made for them. Undo and redo remain compiled but provisional; this plan
-neither accepts nor redesigns their product semantics.
+opening audit found compile-time contract collapse, facade escape, copied
+publication truth, non-exact outbox observation, hidden ordinary-lane work,
+string identity authority, and dishonest proof fixtures. C1-C6 have now closed
+their respective facade, authoring, protocol, outbox, retention, and publication
+defects through independent hostile review. C7 remains open for provider phase
+affinity and C8 remains open for final-source verification. Undo and redo remain
+compiled but provisional;
+this plan neither accepts nor redesigns their product semantics.
 
 **Opened:** 2026-08-07 after the correction-slice implementation was reviewed
 against the current tree.
@@ -246,7 +249,7 @@ That means:
   may present it as settled;
 - no current cleanup slice may deepen its semantics merely because the current
   implementation already chose a shape;
-- a future, separately governed **Query Undo/Redo Semantics milestone** decides
+- [Milestone 9.18](./milestone-9.18.md) decides
   whether to keep, revise, or remove it.
 
 The later milestone must re-decide at least: eligible operations, inverse versus
@@ -264,12 +267,18 @@ Two pieces remain useful outside that unsettled product decision:
   exact prior truth may close here; claiming that undo restores it correctly
   may not.
 
-### 3.3 Branch and tree behavior stays elsewhere
+### 3.3 Branch and tree behavior stays outside Phase 8
 
-Branch selection, branch-local inversion, branch-shaped redo, merge interaction,
-rebase, history navigation, and durable cross-runtime recovery remain owned by
-the [cross-runtime merging and branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
-Phase 8 creates no placeholder, dormant authority, or Query-local substitute.
+Milestone 9.17 owns the successor cut from Relational-only product history to
+Runtime Bridge composite product branches over exact Relational and Signal
+bases while preserving each runtime's internal branch authority. Milestone
+9.18 owns ordinary tree-based semantic reversal, reapplication, exact composite
+source/target selection, and history navigation over that truth. Semantic
+merge, rebase, multi-parent publication, offline synchronization, and durable
+cross-runtime recovery remain owned by the
+[cross-runtime merging and branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
+Phase 8 creates no placeholder, dormant authority, or Query-local substitute
+for either successor.
 
 ## 4. Current-State Ledger
 
@@ -638,67 +647,170 @@ wire behavior or canonical protocol meaning.
 
 ### F3 - Committed outbox and causal ladder
 
-**Historical status (2026-08-08): CLOSED; CURRENT STATUS: REOPENED.** Dispatch and safe re-dispatch consumed a
-fresh, provider-sealed observation of the committed Relational row. The seal is
-private to the provider owner module, so production dispatch cannot rebuild it
-from the receipt copy. Provider commit, co-committed emission, dispatch attempt,
-and external-owner observation are distinct stage-typed events with exact
-predecessors; public posture and the outer completion wrapper are opaque.
+**CLOSED FOR C4 (2026-08-08); C8 FINAL-SOURCE REBINDING REMAINS OPEN.** The historical “fresh” read was a current-head
+correlation-index search that could certify later-mutated bytes under an older
+creation commit. The corrected authority begins inside Relational's
+authoritative `CommitResult`: the mutation owner carries its already-resolved
+create-reference-to-`RecordRef` correspondence into a pipeline-only
+`CommitResultSeal`. Every result axis is private and the result owner can only
+consume that seal, so a sibling cannot splice correspondence, outcome,
+publication, validation, or execution evidence across commits. Query supplies the outbox's
+pending create reference and record as one value, resolves that reference
+through the Relational-owned correspondence after commit, and seals the exact
+record value with the returned `RecordRef`. That affine pair moves through
+commit evidence, receipt, recovery handle, and exact retained-commit
+projection. Query never content-matches patches or reconstructs record identity
+from correlation, and the obsolete correlation index is not installed or
+maintained.
 
-1. Replace the in-memory "persistence" proof with a real commit followed by a
-   fresh owner read of the committed outbox row.
-2. Give provider commit, admitted/co-committed emission, dispatch attempt, and
-   external observation distinct event identities.
-3. Seal each successor from its exact predecessor. A posture constructor may
-   not accept a free identity bag.
-4. Preserve indeterminate outcomes: missing/lost responses do not guess external
-   completion. Safe retry remains rail-idempotent and owner-observed.
-5. Split identity derivation, transport orchestration, and observation
-   classification into their destination responsibilities.
+1. Relational alone resolves an already-published snapshot for the whole exact
+   `CommitReference`; pruning is a typed unavailable result and performs no
+   reconstruction or replay.
+2. Query asks Relational for one exact retained-commit entity projection,
+   directly keyed by the carried `RecordRef`. Relational validates the expected
+   kind and exposes only live records; Query validates all eight stored fields,
+   exact record equality, creation commit, runtime, and branch, then seals the
+   owner observation together with Relational-owned structural work. Later
+   update or deletion may not change target-commit truth.
+3. The Query runtime consumes that observation into a move-only dispatch
+   admission that owns runtime identity, the attempt ordinal, and the installed
+   clock. No transport function accepts those axes independently.
+4. Provider commit, co-committed emission, attempt, and owner observation remain
+   distinct stage types. The causal root binds Query runtime, exact record
+   identity, whole commit, and correlation; an unforgeable progression-only
+   capability seals identities, kinds, and predecessors.
+5. Initial dispatch and redispatch preserve typed owner-read, attempt-admission,
+   and canonical-derivation failures. Performed redispatch binds private handle
+   authority to the owner dispatch rather than comparing stale record copies.
+6. The independent rail atomically reserves correlation plus immutable payload
+   meaning, rejects same-key drift, and exposes an independent physical-
+   consequence oracle. Test faults use a separate control port and are absent
+   from the production dispatch vocabulary.
+7. Relational's authoritative commit is a consuming, owner-private phase
+   progression. Durable append consumes a non-cloneable authority bound to the
+   runtime, commit, and branch, and publication finalization is callable only
+   beneath the typed publication owner.
 
-**Exit:** Courtrooms D and F pass. The final QA loop caught and corrected an
-initial crate-wide observation sealer: a receipt-copy substitution first kept
-the behavioral courtrooms green, but after moving the seal into the provider
-owner the same mutation fails to compile with `E0624`. Commit-id, version,
-branch, runtime, later-head, ambiguity, malformed-field, predecessor, retry
-ordinal, completion-opacity, and canonical-work attacks are pinned by the F3
-closure ledger. F4 is now admissible.
+**Exit:** C4 may close only after the fresh hostile review confirms the exact-
+commit selector, direct-record structural counters, eight-field restoration and
+later-mutation matrix, cross-runtime and cross-record causal twins, real Bank
+initial-to-retry comparison, concurrent rail idempotency, compiler ownership,
+composition advisories, line caps, and focused verification. C8 must later
+rebind those results to the final source fingerprint; no C4 green run closes
+Phase 8 by itself.
 
 ### F4 - Retention fidelity and commit composition
 
-**Historical status (2026-08-08): CLOSED; CURRENT STATUS: REOPENED.** Relational derives an opaque validated
-mutation footprint from its invariant-validated merged plan. Query can ask only
-whether that concrete owner value mutates an exact record/aspect/field; it
-cannot author or reinterpret the footprint. Retention consumes admitted facts,
-fails closed before commit, and its production-path wrong-field denial preserves
-the Relational head. Provider handoff is an affine mutation-work/pre-image bundle
-keyed by exact Relational commit identity rather than singleton completed slots.
-The commit path is decomposed into named responsibilities and clears fatal
-composition, line-cap, all-feature, boundary, and adversarial mutation gates.
+**Historical status (2026-08-08): CLOSED; CURRENT STATUS: C5 CORRECTION
+CLOSED; C8 FINAL REBINDING OPEN.** The historical implementation established useful owner primitives,
+but hostile review found that the end-to-end contract still erases exact demand
+identity, performs hidden ordinary-lane work, loses evidence on equivalent
+receipts, and remains wrapper-deep. The following plan supersedes the historical
+closure text.
 
-1. Bind a demanded pre-image to the exact changed field on the exact mutated
-   record, not merely a same-named observed field on a mutated record. Consume
-   a read-only footprint derived by Relational from its invariant-validated
-   merged plan; Query must not reinterpret the earlier worker batch as owner
-   truth.
-2. Preserve fail-closed behavior for missing, ambiguous, over-bound, and
-   multi-segment demands.
-3. Move retention, outbox preparation, aftermath-causality preparation,
-   Relational commit, and receipt assembly out of the mixed commit orchestrator
-   into named responsibilities.
-4. Keep the orchestrator linear and small: prepare owner-derived components,
-   perform one Relational commit, then seal the receipt from that result.
+#### F4.1 - Exact declared and installed demand identity
 
-**Exit:** Courtrooms G and J pass. Exact-field, other-aspect, other-record,
-endpoint-only, whole-mutation, fail-closed, no-write, wrong-commit, interleaving,
-lost-response, and stale-bundle attacks are recorded in the F4 closure ledger.
-These prove exact retained prior truth and ordinary-lane noninterference; undo
-and redo remain provisional and this slice does not prove their product
-semantics. F5 is admissible.
+1. Replace `Vec<String>` field slots with a declared pre-image locus constructed
+   only from an existing typed application field reference. The schema witness
+   remains in the authoring type until the matching operation builder consumes
+   the contract; the resulting portable value remains under that schema member
+   and carries entity/aspect/field meaning. No positional string constructor or
+   caller-visible erasure door remains on the ordinary authoring surface.
+2. Preserve the complete entity/aspect/field locus through installation,
+   reinstallation, installed identity, and runtime retention. Installation
+   compares the complete locus against the operation's complete declared-read
+   target. Runtime selection requires both that exact declared target and the
+   Relational-owned physical record/locator footprint.
+3. Reject duplicate loci. Until a separately specified multi-record inverse
+   contract exists, every locus in one demand must name one declared entity
+   role and every retained field must resolve to one concrete `RecordRef`.
+   Cross-record multi-field retention fails before commit.
+4. Include the exact locus axes and byte bound in declared and installed
+   canonical bases. An entity-only, aspect-only, field-only, or bound-only drift
+   changes identity and fails reinstallation.
+
+#### F4.2 - Demand-gated owner footprint and honest work
+
+1. Test for an installed demand before asking Relational to project a mutation
+   footprint or scanning decision facts. A no-demand operation constructs no
+   footprint, materializes no footprint target, and collects no retention
+   candidate regardless of mutation breadth.
+2. Relational remains the only footprint author. Its opaque footprint carries
+   owner-measured work: validated intents examined and exact targets
+   materialized. Query carries the demand/candidate work with the exact commit
+   work evidence so both demanded and zero-demand receipts expose honest,
+   operation-local counters.
+3. Replace tuple-authored footprint proofs with real
+   `ValidatedRelationalMutation::mutation_footprint` journeys. The matrix covers
+   exact field, same-name other entity/aspect, same-aspect other record,
+   whole-aspect, whole-record, create-only, endpoint-only, and mixed-intent
+   breadth.
+
+#### F4.3 - Reusable exact-commit evidence and equivalent receipts
+
+1. The Relational commit owner mints one immutable evidence artifact containing
+   the whole `CommitReference`, mutation work, retention work, optional retained
+   pre-image, and optional committed outbox binding. Its fields and mint are
+   private to the commit owner.
+2. The completed-evidence store derives its lookup key from that artifact and
+   returns an owner observation only after the whole `CommitReference` matches.
+   There is no separate raw key, public axis constructor, `with_preimage`, or
+   `with_outbox` receipt builder that can splice commits.
+3. Evidence observation is repeatable for the lifetime of the provider's
+   retained idempotency result. Initial, equivalent, response-lost, and
+   interleaved resolution all consume the same immutable commit evidence.
+   Equivalent receipts preserve mutation work, retained pre-image, committed
+   outbox, and commit affinity exactly; they never default an owned axis to
+   `None`.
+4. This correction deliberately does not replace the raw application-attempt
+   session key or seal the broader provider phases. Those remain C7-owned.
+
+#### F4.4 - Same-level commit and aggregate composition
+
+1. Split the hidden commit engine into owner-derived preparation, one
+   Relational commit, exact-evidence sealing, required post-commit publication,
+   and provider-result encoding. The coordinator is a short linear progression;
+   irreversible publication is not skipped by fallible evidence assembly.
+2. Decompose invariant aggregate projection into private validated-plan,
+   cache-result, and completed-scan transitions. One owner performs budget/work
+   accounting, and publication accepts only the completed aggregate result.
+   No free cache, scan, scalar, or accounting bag is constructible by siblings.
+
+**Exit:** Courtrooms G and J are rebuilt rather than reused. Exact typed-locus
+install/reinstall and canonical-identity twins, duplicate and mixed-record
+denials, the production Relational footprint matrix, no-write retention
+denials, demanded/no-demand breadth counters, exact reusable commit evidence,
+normal/equivalent/lost-response/interleaved receipts, and outbox preservation
+all pass. Eager footprint construction, slot-only matching, first-entry evidence
+selection, lossy recovered-receipt construction, aggregate cache bypass,
+overflow, and budget mutations each fail a named proof. Compiler attacks reject
+bare-string demand construction and cross-commit evidence/receipt splicing.
+Composition scrutiny, dirty line caps, focused owner suites, workspace checks,
+boundary check, and agent-context check pass. Undo and redo remain provisional;
+this slice proves retained prior truth and receipt carriage, not product undo or
+redo semantics. Only then is C6 admissible.
+
+**C5 close record (2026-08-08): CLOSED.** Three independent frozen-tree hostile
+reviews closed authority/spec fidelity, mutation-sensitive evidence, and the
+complete dirty-set composition audit. Schema-affine aftermath authoring can be
+erased only by its matching operation builder; installation consumes only
+constructor-free portable meaning through its private whole-operation compiler.
+Retained selection consumes a real decision fact and Relational-owner footprint;
+no-demand work is exactly zero; equivalent and lost-response receipts reuse the
+same whole-commit evidence. The outbox owner alone decides denial/absence/bound
+and mints an unforgeable success seal consumed by both receipt paths. Aggregate
+projection is a private typed progression with one accounting owner. Final
+verification recorded 148 declaration tests, 190 installation tests plus five
+doctests, 638 execution tests, ten Relational footprint tests, Bank-domain all
+targets, all three compiler courts, strict Clippy, formatting, dirty line caps,
+boundary check, agent-context check, and `git diff --check`. C7's broader
+provider/session phase bags and C8's final-source fingerprint remain open. C6
+is admissible.
 
 ### F5 - Publication owner and facade cutover
 
-**Historical status (2026-08-08): CLOSED; CURRENT STATUS: REOPENED.** Publication was described as owning the closed committed
+**Historical status (2026-08-08): CLOSED; CURRENT STATUS: CLOSED FOR C6 ON
+2026-08-09; C8 FINAL-SOURCE REBINDING REMAINS OPEN.** Publication was described as owning the closed committed
 aftermath, external-effect, and recovery-support descriptions. Its only sources
 are one sealed commit receipt or one disclosure-admitted recovery inspection
 view. The generic receipt no longer dereferences to or returns its execution
@@ -724,6 +836,102 @@ outside the accepted publication/`primary_graph` contract.
 noninterference, 13 compile-fail contracts, both mutation probes, the explicit
 21-file composition audit, dirty line cap, all-feature check, clippy, boundary
 check, and agent-context check pass. F6 is admissible.
+
+**C6 close record (2026-08-09): CLOSED.** Publication now consumes execution
+objects only at the crossing and stores publication-owned commit, query,
+authorization, omission, recovery, and external-effect descriptions. Public
+receipts and Bank outcomes retain no execution receipt, raw identity, protected
+fact, or execution-owned work descriptor; any operational continuation or
+recovery carrier remains private and is deferred to C7. Recovery maps all owner
+support, durability, posture, and work axes exhaustively. The all-fields privacy
+compiler case, complete-surface hidden-value twins, decision-relevant denial
+twin, real protected-status denial worlds, external-fault matrix, and
+Executed-versus-Recovered retry twins are mutation-sensitive. Publication tests
+passed 12 unit, 4 integration, and 14 doctests; the 50-case aftermath compiler
+court, Bank `ordinary_mutations` 91/91, all-target check, strict Clippy,
+formatting, dirty line caps, boundary check, agent-context check, and scoped
+diff check passed. Three independent reviews closed boundary fidelity, test
+honesty, and composition. The final composition pass split admission,
+projection, and estate denial taxonomies into dedicated owners with
+aggregation-only facade roots. Eight unrelated delegation-activation library
+failures remain known non-C6 debt and are not reused as C6 evidence. C7 and C8
+remain open.
+
+### C7 - Provider attempt affinity and owner-sealed progression
+
+**Status (2026-08-09): OPEN; implementation plan frozen after three independent
+boundary, test-evidence, and composition audits.** C7 is an architectural
+correction, not a visibility-only cleanup. The current application provider
+copies an admitted session into a string, joins four independently mutable maps
+with that string, and passes sibling-constructible phase bags. Capability and
+effect lowering preserve association only through parallel mutable collections.
+Bank also aliases Query preview/continuation authority and exposes a generic
+internal execution-receipt getter.
+
+The correction is implemented and reviewed one vertical slice at a time:
+
+1. **Affinity mint.** Add a move-only, runtime/provider-owned
+   `WorthQueryApplicationAttemptAffinity` minted from the live admitted provider
+   session, exact operation attempt, installed plan, snapshot, graph-work
+   session, and Relational branch. Bridge may carry a descriptive projection but
+   cannot satisfy Query admission. Raw `String`/`&str` values open no provider
+   registration, lookup, commit, abort, cleanup, or retry door.
+2. **Single provider attempt state.** Replace the parallel string-key overlay,
+   application-attempt, validated-mutation, and invariant-work maps with one
+   private affinity-keyed aggregate and atomic owner transitions. Registration
+   and overlay staging use vacant-entry semantics; duplicate registration cannot
+   overwrite, a second overlay cannot orphan the first, and abort/commit consume
+   the exact aggregate while completed durable evidence remains separate.
+3. **Consuming progression.** Put prepared, running, registered, fresh,
+   authorized, and progressed application-commit phases under
+   `provider_execution/phase/`. Fields and constructors are private to their
+   transition owners; the coordinator calls consuming transitions and cannot
+   destructure or recombine axes. Seal the lower provider-session protocol
+   stages used by this route and replace raw terminal identity strings with
+   typed closed disposition evidence.
+4. **Cleanup and routing.** Carry the same affinity through direct commit,
+   stale/read-set paths, provider failures, response loss, abort, cancellation,
+   and abandonment. Equivalent retry must resolve through retained committed
+   evidence without registering or running the provider again. Workflow
+   yield/readmission using the same provider-session protocol must not remain a
+   parallel raw-string authority lane; artifact product semantics remain owned
+   by their later milestone.
+5. **Authorization contexts.** Replace independent entity-resolution,
+   capability observation/admission, currentness/revalidation, and delegation
+   activation tuples with private owner contexts. Query carries Relational's
+   admitted snapshot/branch truth; neither Query nor Runtime Bridge invents
+   history or lineage.
+6. **Atomic lowering.** Add private capability-rule and provider-effect
+   accumulators. One semantic append atomically records a rule with its ordered
+   paths/indices, or an effect with its exact provisional step, Relational
+   intent, and emission. Only a sealed completed product exposes collections.
+7. **Bank operational facade and closure.** Wrap preview and continuation
+   authority in Bank-owned opaque, consuming types with no `Deref` or raw Query
+   accessor. Replace the generic internal execution-receipt getter with
+   purpose-affine operations for recovery, historical basis, C4 observation,
+   and mechanically-carried provisional paths. Prove the complete cross-runtime,
+   cross-snapshot, cross-plan, cross-session, cross-branch, wrong-phase, cleanup,
+   lowering-order, initial/retry, and Bank-wrapper attack matrix; then run the
+   complete composition and standing gates.
+
+**Explicit exclusions.** C7 does not redesign C4's post-commit external-dispatch
+token or causal ladder. It does not accept or redesign provisional undo/redo,
+successor-head policy, inverse/compensation semantics, redo lifecycle, or the
+later workflow-artifact product. Narrow mechanical carriage changes are allowed
+only where required to eliminate a generic authority escape.
+
+**C7 exit evidence.** Compiler attacks must fail for affinity construction,
+raw-string substitution, cross-runtime/snapshot/plan/session/branch use,
+sibling phase construction/destructuring, and wrong-phase progression. Runtime
+proofs must interleave two real attempts, preserve the rightful peer across
+every denial, prove duplicate/overlay overwrite impossible, and cover
+readmission, preparation, registration, read-set, invariant, pre-transaction,
+commit, abort, cancellation, response-loss, index-publication, and abandonment
+cleanup. Lowering proofs cover every rule/effect arm and insertion order from an
+independent semantic model. Bank proofs exercise preview, historical,
+continuation, live, and recovery routes only through Bank-owned authority.
+Strict checks, focused and broad suites, dirty line caps, boundary/context, and
+three independent hostile reviews are required before C7 closes.
 
 ### F6 - Closure audit
 
@@ -891,7 +1099,7 @@ Runtime Phase 8 cleanup is finished only when:
 8. accepted, provisional, and deferred claims are consistent across every
    governing document.
 
-The successor **Query Undo/Redo Semantics milestone** begins from the explicit
+The successor [Milestone 9.18](./milestone-9.18.md) begins from the explicit
 provisional inventory in section 4.2. It may reuse code only after independently
 accepting its authority model and courtroom. This plan hands it evidence, not a
 pre-decided architecture.

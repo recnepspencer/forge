@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/application_schema/unsupported_equality_operator.rs:22:66
+  --> tests/ui/application_schema/unsupported_equality_operator.rs:39:66
    |
-22 |     let _ = TypedReadDeclarationBuilder::new(entity).where_equal(field, 7_u64);
+39 |     let _ = TypedReadDeclarationBuilder::new(entity).where_equal(field, 7_u64);
    |                                                      ----------- ^^^^^ expected `ApplicationFieldRef<..., ..., _, _, u64, _, ..., _>`, found `ApplicationFieldRef<..., ..., ..., ..., u64>`
    |                                                      |
    |                                                      arguments to this method are incorrect

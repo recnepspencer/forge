@@ -76,6 +76,15 @@ fn baseline_parts() -> WorthQueryRecoveryHandleBindingAxisProbe {
             vec![1, 2, 3],
             9,
         ),
+        dispatch_outbox_record_ref: Some(
+            worth_relational::facade::transactions::RecordRef::Entity(
+                worth_relational::facade::identity::EntityId::new(
+                    worth_relational::facade::identity::PartitionId::main(),
+                    77,
+                    1,
+                ),
+            ),
+        ),
         installed_aftermath:
             crate::domain_computation::application_aftermath::aftermath_schema_fixture::notify_death(
             ),

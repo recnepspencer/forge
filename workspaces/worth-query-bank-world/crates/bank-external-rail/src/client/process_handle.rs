@@ -19,6 +19,7 @@ use crate::protocol::support_profile::RailProtocolSupportProfile;
 pub struct RailProcessHandle {
     child: Child,
     local_addr: SocketAddr,
+    test_control_addr: SocketAddr,
 }
 
 /// Failure to spawn the rail process or discover its bound address.
@@ -64,12 +65,16 @@ impl RailProcessHandle {
             Some(Err(error)) => return Err(RailSpawnError::ReadLine(error)),
             None => return Err(RailSpawnError::ProcessExitedBeforeListening),
         };
-        let local_addr = match parse_listening_line(&listening_line) {
-            Some(addr) => addr,
+        let (local_addr, test_control_addr) = match parse_listening_line(&listening_line) {
+            Some(addresses) => addresses,
             None => return Err(RailSpawnError::MalformedListeningLine(listening_line)),
         };
 
-        Ok(Self { child, local_addr })
+        Ok(Self {
+            child,
+            local_addr,
+            test_control_addr,
+        })
     }
 
     pub fn pid(&self) -> u32 {
@@ -78,6 +83,10 @@ impl RailProcessHandle {
 
     pub fn local_addr(&self) -> SocketAddr {
         self.local_addr
+    }
+
+    pub fn test_control_addr(&self) -> SocketAddr {
+        self.test_control_addr
     }
 }
 
@@ -88,6 +97,8 @@ impl Drop for RailProcessHandle {
     }
 }
 
-fn parse_listening_line(line: &str) -> Option<SocketAddr> {
-    line.strip_prefix("LISTENING ")?.trim().parse().ok()
+fn parse_listening_line(line: &str) -> Option<(SocketAddr, SocketAddr)> {
+    let addresses = line.strip_prefix("LISTENING ")?;
+    let (production, test_control) = addresses.split_once(" TEST_CONTROL ")?;
+    Some((production.parse().ok()?, test_control.parse().ok()?))
 }
