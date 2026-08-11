@@ -1,7 +1,7 @@
 [package]
 name = "worth-signal-wasm"
 edition.workspace = true
-version = "1.3.0"
+version = "1.4.0"
 description = "WebAssembly facade for Worth Signal"
 repository = "https://github.com/recnepspencer/forge"
 license = "UNLICENSED"
@@ -35,3 +35,12 @@ trybuild.workspace = true
 
 [lints]
 workspace = true
+
+# Track 6: disable wasm-pack's implicit Binaryen pass for known profiles.
+# Custom `--profile release-wasm` is optimized by
+# scripts/wasm/optimize-worth-signals-wasm.mjs after wasm-pack exits.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.profiling]
+wasm-opt = false

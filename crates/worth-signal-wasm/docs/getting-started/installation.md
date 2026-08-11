@@ -13,6 +13,29 @@ import { createSignals } from "worth-signals-wasm";
 const signals = await createSignals();
 ```
 
+## Vite And Bundler Assets
+
+Zero-config is valid on modern Vite (8+) when the package files remain
+fetchable and the consumer sets `worker: { format: "es" }`.
+
+When the bundler relocates modules (Vite 7 optimizeDeps, webpack, CDN hashes),
+inject emitted asset URLs:
+
+```ts
+import { createSignals } from "worth-signals-wasm";
+import wasmUrl from "worth-signals-wasm/wasm?url";
+import workerUrl from "worth-signals-wasm/worker?worker&url";
+
+const signals = await createSignals({
+  assets: { wasmUrl, workerUrl },
+});
+```
+
+Host rule: missing `.wasm` / worker routes must return 404, not SPA
+`index.html`. Do not use `optimizeDeps.exclude` as the primary fix; keep it only
+as a legacy Vite workaround. See [Support Status](../reference/support-status.md)
+for the host/bundler matrix.
+
 ## The Default Is Worker-First
 
 `createSignals()` selects the dedicated-worker deployment. The promise resolves

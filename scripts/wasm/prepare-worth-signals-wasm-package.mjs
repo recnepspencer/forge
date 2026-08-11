@@ -1,11 +1,18 @@
 import { execFile } from "node:child_process";
-import { access, copyFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { stripTypeScriptTypes } from "node:module";
+import { access, copyFile, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createRequire, stripTypeScriptTypes } from "node:module";
+import { tmpdir } from "node:os";
 import { promisify } from "node:util";
 import path from "node:path";
 import process from "node:process";
 
+import { bundleWorthSignalsWasmProduct } from "./bundle-worth-signals-wasm-product.mjs";
+import { writeBundlerCompatibleWasmEntrypoint } from "./write-worth-signals-wasm-entrypoint.mjs";
+
 const execFileAsync = promisify(execFile);
+const crateRequire = createRequire(
+  path.resolve("crates/worth-signal-wasm/package.json"),
+);
 const scope = process.env.WORTH_SIGNAL_WASM_SCOPE ?? null;
 const packageNameOverride = process.env.WORTH_SIGNAL_WASM_PACKAGE_NAME ?? null;
 const publishRegistry = process.env.WORTH_SIGNAL_WASM_REGISTRY
@@ -31,9 +38,6 @@ const readmePath = path.resolve("crates/worth-signal-wasm/README.md");
 const licensePath = path.resolve("crates/worth-signal-wasm/LICENSE");
 const docsDirPath = path.resolve("crates/worth-signal-wasm/docs");
 const cargoManifestPath = path.resolve("crates/worth-signal-wasm/Cargo.toml");
-const reactTypeDeclarationsPath = path.resolve(
-  "crates/worth-signal-wasm/react/index.d.ts",
-);
 const reactDeclarationsDirPath = path.resolve("crates/worth-signal-wasm/react");
 const reactTsConfigPath = path.resolve("crates/worth-signal-wasm/tsconfig.react.json");
 const reactCrateDir = path.resolve("crates/worth-signal-wasm");
@@ -72,6 +76,24 @@ async function copyDirectoryRecursive(sourceDir, destinationDir) {
     }
     await copyFile(sourcePath, destinationPath);
   }
+}
+
+async function ensureCratePublishToolingInstalled() {
+  // TypeScript is vendored in-tree for React emit; esbuild is lockfile-pinned and
+  // platform-native, so install on demand when missing from a clean checkout.
+  try {
+    crateRequire.resolve("esbuild");
+    return;
+  } catch {
+    // continue to install
+  }
+  const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+  await execFileAsync(
+    npmCommand,
+    ["install", "--no-fund", "--no-audit"],
+    { cwd: reactCrateDir },
+  );
+  crateRequire.resolve("esbuild");
 }
 
 async function transpilePackageSourcesRecursive(sourceDir, destinationDir) {
@@ -130,8 +152,11 @@ async function copyReactDeclarationsRecursive(sourceDir, destinationDir) {
   }
 }
 
-async function compileReactEntryPoints() {
+async function compileReactEntryPoints(reactOutDir) {
   const reactTsConfigArg = path.relative(reactCrateDir, reactTsConfigPath) || "tsconfig.react.json";
+  // tsc emits to pkg/react per tsconfig; override by compiling then moving when needed.
+  const defaultOutDir = path.join(pkgDir, "react");
+  await mkdir(defaultOutDir, { recursive: true });
   try {
     await access(reactTscBinaryPath);
     await execFileAsync(
@@ -139,127 +164,43 @@ async function compileReactEntryPoints() {
       [reactTscBinaryPath, "-p", reactTsConfigArg],
       { cwd: reactCrateDir },
     );
-    return;
   } catch (error) {
     if (error?.code !== "ENOENT") {
       throw error;
     }
+    if (process.platform === "win32") {
+      await execFileAsync(
+        "cmd.exe",
+        [
+          "/d",
+          "/s",
+          "/c",
+          `npx --yes -p typescript -p react -p @types/react tsc -p ${reactTsConfigArg}`,
+        ],
+        { cwd: reactCrateDir },
+      );
+    } else {
+      await execFileAsync(
+        "npx",
+        [
+          "--yes",
+          "-p",
+          "typescript",
+          "-p",
+          "react",
+          "-p",
+          "@types/react",
+          "tsc",
+          "-p",
+          reactTsConfigArg,
+        ],
+        { cwd: reactCrateDir },
+      );
+    }
   }
-
-  if (process.platform === "win32") {
-    await execFileAsync(
-      "cmd.exe",
-      [
-        "/d",
-        "/s",
-        "/c",
-        `npx --yes -p typescript -p react -p @types/react tsc -p ${reactTsConfigArg}`,
-      ],
-      { cwd: reactCrateDir },
-    );
-    return;
+  if (path.resolve(reactOutDir) !== path.resolve(defaultOutDir)) {
+    await copyDirectoryRecursive(defaultOutDir, reactOutDir);
   }
-
-  await execFileAsync(
-    "npx",
-    [
-      "--yes",
-      "-p",
-      "typescript",
-      "-p",
-      "react",
-      "-p",
-      "@types/react",
-      "tsc",
-      "-p",
-      reactTsConfigArg,
-    ],
-    { cwd: reactCrateDir },
-  );
-}
-
-async function writeBundlerCompatibleWasmEntrypoint() {
-  const source = `/* @ts-self-types="./worth_signal_wasm.d.ts" */
-
-import * as imports from "./worth_signal_wasm_bg.js";
-import { __wbg_set_wasm } from "./worth_signal_wasm_bg.js";
-
-let wasmInitialized = false;
-let wasmInitPromise = null;
-
-async function init(input) {
-  if (wasmInitialized) {
-    return imports;
-  }
-  if (wasmInitPromise !== null) {
-    return wasmInitPromise;
-  }
-  wasmInitPromise = initializeWasm(input);
-  return wasmInitPromise;
-}
-
-async function initializeWasm(input) {
-  const importObject = { "./worth_signal_wasm_bg.js": imports };
-  const wasm = input === undefined
-    ? await instantiateDefaultWasm(importObject)
-    : (await instantiateWasm(input, importObject)).exports;
-  __wbg_set_wasm(wasm);
-  wasm.__wbindgen_start();
-  wasmInitialized = true;
-  return imports;
-}
-
-async function instantiateDefaultWasm(importObject) {
-  return (await instantiateWasm(
-    new URL("./worth_signal_wasm_bg.wasm", import.meta.url),
-    importObject,
-  )).exports;
-}
-
-async function instantiateWasm(source, importObject) {
-  if (source instanceof WebAssembly.Module) {
-    return new WebAssembly.Instance(source, importObject);
-  }
-  if (source instanceof WebAssembly.Instance) {
-    return source;
-  }
-  if (source instanceof Response) {
-    return instantiateResponse(source, importObject);
-  }
-  if (source instanceof URL && source.protocol === "file:") {
-    return instantiateFileUrl(source, importObject);
-  }
-  if (source instanceof URL || typeof source === "string" || source instanceof Request) {
-    return instantiateResponse(fetch(source), importObject);
-  }
-  const result = await WebAssembly.instantiate(source, importObject);
-  return result instanceof WebAssembly.Instance ? result : result.instance;
-}
-
-async function instantiateFileUrl(url, importObject) {
-  const nodeFsPromises = "node:fs/promises";
-  const { readFile } = await import(/* @vite-ignore */ nodeFsPromises);
-  const result = await WebAssembly.instantiate(await readFile(url), importObject);
-  return result instanceof WebAssembly.Instance ? result : result.instance;
-}
-
-async function instantiateResponse(responseOrPromise, importObject) {
-  const response = await responseOrPromise;
-  if (WebAssembly.instantiateStreaming && response.headers.get("Content-Type") === "application/wasm") {
-    const result = await WebAssembly.instantiateStreaming(response, importObject);
-    return result.instance;
-  }
-  const bytes = await response.arrayBuffer();
-  const result = await WebAssembly.instantiate(bytes, importObject);
-  return result.instance;
-}
-
-export default init;
-export {
-    ComputedSignal, DisposableHandle, InputSignal, OutputSignal, SignalAdapters, SignalApp, SignalDiagnostics, SignalHistory, SignalRuntime, SignalSpecialist, SignalWorkerRuntime, Signals, SignalsTransaction, createSignals, WorthSignalCoreProfile, WorthSignalMaxAspects, start
-} from "./worth_signal_wasm_bg.js";
-`;
-  await writeFile(path.join(pkgDir, "worth_signal_wasm.js"), source, "utf8");
 }
 
 packageJson.name = packageNameOverride
@@ -289,6 +230,7 @@ packageJson.files = [
   "raw_surface.js",
   "raw_surface.d.ts",
   "product",
+  "chunks",
   "types",
   "README.md",
   "LICENSE",
@@ -301,6 +243,8 @@ packageJson.exports = {
     types: "./index.d.ts",
     import: "./index.js",
   },
+  "./wasm": "./worth_signal_wasm_bg.wasm",
+  "./worker": "./product/entrypoint/bridge/worker_runtime_bridge_worker.js",
   "./raw": {
     types: "./raw_surface.d.ts",
     import: "./raw_surface.js",
@@ -322,9 +266,14 @@ packageJson.peerDependenciesMeta = {
     optional: true,
   },
 };
+packageJson.sideEffects = [
+  "./worth_signal_wasm.js",
+  "./product/entrypoint/bridge/worker_runtime_bridge_worker.js",
+  "./snippets/*",
+];
 
 await resetPackageStage();
-await writeBundlerCompatibleWasmEntrypoint();
+await writeBundlerCompatibleWasmEntrypoint(pkgDir);
 
 const noticePath = path.join(pkgDir, "PROPRIETARY.md");
 if (publishNoticeMode === "proprietary") {
@@ -360,13 +309,43 @@ await copyFile(
   rawSurfaceDeclarationsPath,
   path.join(pkgDir, "raw_surface.d.ts"),
 );
-await transpilePackageSourcesRecursive(packageSourceDirPath, pkgDir);
+
+await ensureCratePublishToolingInstalled();
+
+const transpileRoot = await mkdtemp(path.join(tmpdir(), "worth-signals-transpile-"));
+const reactEmitRoot = await mkdtemp(path.join(tmpdir(), "worth-signals-react-emit-"));
+try {
+  await transpilePackageSourcesRecursive(packageSourceDirPath, transpileRoot);
+  // Wasm glue must be resolvable while bundling even though it stays external.
+  await copyFile(
+    path.join(pkgDir, "worth_signal_wasm.js"),
+    path.join(transpileRoot, "worth_signal_wasm.js"),
+  );
+  await copyFile(
+    path.join(pkgDir, "worth_signal_wasm_bg.js"),
+    path.join(transpileRoot, "worth_signal_wasm_bg.js"),
+  );
+
+  await compileReactEntryPoints(path.join(pkgDir, "react"));
+  await copyDirectoryRecursive(path.join(pkgDir, "react"), reactEmitRoot);
+  // Clear tsc forest before writing the react bundle entry.
+  await rm(path.join(pkgDir, "react"), { recursive: true, force: true });
+
+  await bundleWorthSignalsWasmProduct({
+    transpileRoot,
+    reactEmitRoot,
+    pkgDir,
+  });
+} finally {
+  await rm(transpileRoot, { recursive: true, force: true });
+  await rm(reactEmitRoot, { recursive: true, force: true });
+}
+
 await copyFile(readmePath, path.join(pkgDir, "README.md"));
 await copyFile(licensePath, path.join(pkgDir, "LICENSE"));
 await copyDirectoryRecursive(docsDirPath, path.join(pkgDir, "docs"));
 await copyDirectoryRecursive(typesDirPath, path.join(pkgDir, "types"));
 await mkdir(path.join(pkgDir, "react"), { recursive: true });
-await compileReactEntryPoints();
 await copyReactDeclarationsRecursive(
   reactDeclarationsDirPath,
   path.join(pkgDir, "react"),

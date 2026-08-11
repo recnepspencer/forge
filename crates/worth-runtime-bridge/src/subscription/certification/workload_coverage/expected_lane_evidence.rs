@@ -73,3 +73,7 @@ pub(super) fn expected_evidence_for_lane(
         },
     })
 }
+use super::super::{
+    BridgeSubscriptionCertificationComparisonOutcome,
+    BridgeSubscriptionCertificationFailureBoundary,
+};

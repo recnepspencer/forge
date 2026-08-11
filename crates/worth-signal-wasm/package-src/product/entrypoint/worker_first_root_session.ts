@@ -9,7 +9,16 @@ import { createWorkerFirstRootObservationManager } from "./worker_first_root_obs
 import { createWorkerFirstResourceBranchLifecycle } from "./worker_first_resource_branch_lifecycle.js";
 import { createWorkerFirstRootRuntimeReplacement } from "./worker_first_root_runtime_replacement.js";
 import { createWorkerFirstRootAuthoredRuntime } from "./sessions/support/authored/worker_first_root_authored_runtime.js";
+import { tipBranchId } from "./sessions/support/authored/worker_first_authored_tip_catalog.js";
 import { buildActiveImportContext } from "./sessions/support/worker_first_root_import_context.js";
+import { createWorkerFirstRootLiveDiagnostics } from "./worker_first_root_live_diagnostics.js";
+import {
+  refreshWorkerFirstRootBranchCache,
+  resolveRootBridgeOptions,
+} from "./worker_first_root_session_bridge_options.js";
+import { createWorkerFirstRootSessionHistoryDelegates } from "./worker_first_root_session_history_delegates.js";
+import { resolveWorkerFirstRootWhy } from "./worker_first_root_why.js";
+import { assertWorkerFirstHandleOwnership } from "./worker_first_handle_ownership.js";
 
 export function createWorkerFirstRootSession(options = {}) {
   return new WorkerFirstRootSession(options);
@@ -29,14 +38,14 @@ class WorkerFirstRootSession {
   #mutation;
   #runtimeReplacement;
   #resourceBranches;
+  #liveDiagnostics;
   #cachedCurrentBranch;
   #cachedBranches;
   #terminated;
 
   constructor(options) {
-    this.#bridge = createWorkerRuntimeBridge(
-      options.workerUrl === undefined ? {} : { workerUrl: options.workerUrl },
-    );
+    this.#bridge = createWorkerRuntimeBridge(resolveRootBridgeOptions(options));
+    this.#liveDiagnostics = createWorkerFirstRootLiveDiagnostics(this.#bridge);
     this.#activeImportController = null;
     this.#activeImportDependents = new Set();
     this.#activeImportContext = null;
@@ -65,6 +74,8 @@ class WorkerFirstRootSession {
       refreshBranchCache: () => this.#refreshBranchCache(),
       refreshActiveImportContext: () => this.refreshActiveImportContext(),
       refreshAfterHistoryMutation: (operation, activeImportContext) => this.#refreshAfterHistoryMutation(operation, activeImportContext),
+      readCachedCurrentBranch: () => this.#cachedCurrentBranch,
+      publishDiagnosticsChanged: () => this.publishDiagnosticsChanged(),
     });
     this.#mutation = createWorkerFirstRootMutation({
       ready: () => this.ready(),
@@ -80,6 +91,7 @@ class WorkerFirstRootSession {
       currentImportContext: () => this.currentImportContext(),
       hasMutableInputId: (id) => this.hasMutableInputId(id),
       applyImportMutation: (controller, transactionOps, outputIds) => this.applyImportMutation(controller, transactionOps, outputIds),
+      publishDiagnosticsChanged: () => this.publishDiagnosticsChanged(),
     });
     this.#resourceBranches = createWorkerFirstResourceBranchLifecycle({
       ready: () => this.ready(),
@@ -88,6 +100,11 @@ class WorkerFirstRootSession {
       settlePendingMutations: () => this.#mutation.settlePendingMutations(),
       bridge: this.#bridge,
       refreshBranchCache: () => this.#refreshBranchCache(),
+      readCurrentTipBranchId: () => tipBranchId(this.#cachedCurrentBranch),
+      markActiveTipCatalogChanged: () => this.#authoredRuntime.markActiveTipCatalogChanged(),
+      readmitReadyAuthoredOntoActiveTip: () => (
+        this.#authoredRuntime.readmitReadyAuthoredOntoActiveTip()
+      ),
     });
     this.#cachedCurrentBranch = null;
     this.#cachedBranches = [];
@@ -103,20 +120,64 @@ class WorkerFirstRootSession {
     });
     this.#bootstrap = this.#bootstrapBridge();
     this.#terminated = false;
+    Object.assign(
+      this,
+      createWorkerFirstRootSessionHistoryDelegates({
+        historyLifecycle: this.#historyLifecycle,
+        resourceBranches: this.#resourceBranches,
+        runtimeReplacement: this.#runtimeReplacement,
+      }),
+    );
   }
 
   bridge() { return this.#bridge; }
+  peekLiveRootDiagnostics() { return this.#liveDiagnostics.peek(); }
+  subscribeDiagnostics(listener) {
+    this.#requireActive("diagnostics.subscribe");
+    return this.#liveDiagnostics.subscribe(listener);
+  }
+  requireActiveDiagnostics(operation) {
+    this.#requireActive(operation);
+  }
+  async publishDiagnosticsChanged() {
+    if (this.#activeImportContext === null) {
+      await this.#liveDiagnostics.refresh();
+      return;
+    }
+    this.#liveDiagnostics.notify();
+  }
+  why(id) {
+    this.#requireActive("diagnostics.why");
+    return resolveWorkerFirstRootWhy({
+      id,
+      activeImportContext: this.#activeImportContext,
+      authoredRuntime: this.#authoredRuntime,
+      bridge: this.#bridge,
+    });
+  }
   ready() { return this.#bootstrap; }
   async settleAuthoredPublications() {
     await this.ready();
     await this.#authoredRuntime.settlePendingPublications();
   }
+
+  async settleAuthoredWork() {
+    await this.ready();
+    await this.#authoredRuntime.settlePendingPublications();
+    await this.#mutation.settlePendingMutations();
+  }
   hostSurface() { return this.#hostCapabilities.host; }
   latestHostCapabilityEvent() { return this.#hostCapabilities.latestEvent(); }
   recentHostCapabilityEvents() { return this.#hostCapabilities.recentEvents(); }
   hostCapabilityReport() { return this.#hostCapabilities.report(this.#authoredRuntime.hostDependencyReport()); }
-  watch(target, callback) { return this.#observations.watch(this.#bridge, target, callback); }
-  effect(target, callback) { return this.#observations.effect(this.#bridge, target, callback); }
+  watch(target, callback) {
+    assertWorkerFirstHandleOwnership(this, target, "worker-first root watch(...)");
+    return this.#observations.watch(this.#bridge, target, callback);
+  }
+  effect(target, callback) {
+    assertWorkerFirstHandleOwnership(this, target, "worker-first root effect(...)");
+    return this.#observations.effect(this.#bridge, target, callback);
+  }
   nuke(handle) { return this.#observations.nuke(this.#bridge, handle); }
 
   beginExactImport(definition, snapshot, controller) {
@@ -152,6 +213,7 @@ class WorkerFirstRootSession {
         snapshot,
       );
       await this.#observations.replaceContext(this.#bridge, this.#activeImportContext);
+      await this.publishDiagnosticsChanged();
       this.#requireControllerActive(controller, "importGraph");
     });
     this.#importChain = importPromise.catch(() => {});
@@ -171,6 +233,11 @@ class WorkerFirstRootSession {
         "worker-first root surface requires an active imported graph; await importedGraph.ready() first",
       );
     }
+    return this.#activeImportContext;
+  }
+
+  /** Null when no importGraph has been admitted yet (empty worker-first roots). */
+  peekActiveImportContext() {
     return this.#activeImportContext;
   }
 
@@ -231,49 +298,6 @@ class WorkerFirstRootSession {
     this.#authoredRuntime.createEagerStandaloneCallbackReadable(id, family, callback);
   }
 
-  async replaceRuntimeEnvelope(envelope) {
-    return this.#runtimeReplacement.replaceRuntimeEnvelope(envelope);
-  }
-
-  async restoreExactRuntimeEnvelope(envelope) {
-    return this.#runtimeReplacement.restoreExactRuntimeEnvelope(envelope);
-  }
-
-  async createHistoryBranch(name) { return this.#historyLifecycle.createBranch(name); }
-  async switchHistoryBranch(branchId) { return this.#historyLifecycle.switchBranch(branchId); }
-  async restoreHistorySnapshotEnvelope(envelope) { return this.#historyLifecycle.restoreSnapshotEnvelope(envelope); }
-  async restoreExactHistorySnapshotEnvelope(token) { return this.#historyLifecycle.restoreExactSnapshotEnvelope(token); }
-  async restorePortableHistorySnapshotEnvelope(wire) { return this.#historyLifecycle.restorePortableSnapshotEnvelope(wire); }
-  async restoreHistoryBranchSnapshot(branchId, snapshot) { return this.#historyLifecycle.restoreBranchSnapshot(branchId, snapshot); }
-  async restoreExactHistoryBranchSnapshot(branchId, token) { return this.#historyLifecycle.restoreExactBranchSnapshot(branchId, token); }
-  async restorePortableHistoryBranchSnapshot(branchId, wire) { return this.#historyLifecycle.restorePortableBranchSnapshot(branchId, wire); }
-
-  async restoreHistoryBranchSnapshotById(branchId, snapshotId) {
-    return this.#historyLifecycle.restoreBranchSnapshotById(branchId, snapshotId);
-  }
-
-  async mergeHistoryBranches(sourceBranchId, targetBranchId) {
-    return this.#historyLifecycle.mergeBranches(sourceBranchId, targetBranchId);
-  }
-
-  async mergeHistoryBranchesWithProof(sourceBranchId, targetBranchId) {
-    return this.#historyLifecycle.mergeBranchesWithProof(sourceBranchId, targetBranchId);
-  }
-
-  async mergeHistoryBranchesPolicyPreview(request) { return this.#historyLifecycle.mergeBranchesPolicyPreview(request); }
-  async mergeHistoryBranchesPolicyPreviewWithProof(request) { return this.#historyLifecycle.mergeBranchesPolicyPreviewWithProof(request); }
-
-  workerBranchBasis(branchId) { return this.#resourceBranches.basis(branchId); }
-  forkResourceBranch(request) { return this.#resourceBranches.fork(request); }
-  applyResourceBranchTransaction(request) { return this.#resourceBranches.applyTransaction(request); }
-  retireResourceBranch(request) { return this.#resourceBranches.retire(request); }
-  retireResourceBranches(request) { return this.#resourceBranches.retireBatch(request); }
-  closeoutResourceEffectBranch(request) { return this.#resourceBranches.closeoutEffect(request); }
-
-  async evaluateDirty() {
-    return this.#historyLifecycle.evaluateDirty();
-  }
-
   async terminate() {
     if (this.#terminated) {
       return;
@@ -285,6 +309,7 @@ class WorkerFirstRootSession {
     this.#invalidateActiveImport("worker-first root session terminated");
     this.#authoredRuntime.invalidate("worker-first root session terminated");
     this.#activeImportContext = null;
+    this.#liveDiagnostics.reset();
     await this.#observations.clearContext(this.#bridge);
     await this.#observations.clearObservers(this.#bridge);
     await this.#bridge.terminate();
@@ -303,6 +328,7 @@ class WorkerFirstRootSession {
       activeImportContext.snapshot,
     );
     await this.#observations.replaceContext(this.#bridge, this.#activeImportContext);
+    await this.publishDiagnosticsChanged();
     if (typeof activeImportController.refreshFromRootRuntime === "function") {
       await activeImportController.refreshFromRootRuntime();
     }
@@ -375,7 +401,9 @@ class WorkerFirstRootSession {
           this.#activeImportContext = context;
         },
         refreshBranchCache: () => this.#refreshBranchCache(),
+        readCachedCurrentBranch: () => this.#cachedCurrentBranch,
         requireControllerActive: (controller, action) => this.#requireControllerActive(controller, action),
+        publishDiagnosticsChanged: () => this.publishDiagnosticsChanged(),
       },
       operation,
       activeImportContext,
@@ -383,16 +411,9 @@ class WorkerFirstRootSession {
   }
 
   async #refreshBranchCache() {
-    let currentBranch = await this.#bridge.currentBranch();
-    if (currentBranch !== null && currentBranch.head_snapshot_id === null) {
-      try {
-        currentBranch = {
-          ...currentBranch,
-          head_snapshot_id: await this.#bridge.branchSnapshotId(currentBranch.id),
-        };
-      } catch {}
-    }
-    this.#cachedCurrentBranch = currentBranch;
-    this.#cachedBranches = await this.#bridge.branches();
+    await refreshWorkerFirstRootBranchCache(this.#bridge, (currentBranch, branches) => {
+      this.#cachedCurrentBranch = currentBranch;
+      this.#cachedBranches = branches;
+    });
   }
 }

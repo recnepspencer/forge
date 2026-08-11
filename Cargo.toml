@@ -131,3 +131,14 @@ opt-level = 2
 [profile.perf]
 inherits = "dev"
 opt-level = 2
+
+# Publish-only WASM size profile for worth-signal-wasm (Track 6).
+# Do not use for ordinary crate release builds; invoke via
+# `wasm-pack build --profile release-wasm`.
+[profile.release-wasm]
+inherits = "release"
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"

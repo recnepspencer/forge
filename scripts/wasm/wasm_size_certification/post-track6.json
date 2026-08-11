@@ -1,0 +1,27 @@
+{
+  "gate": "gate6-wasm-size",
+  "generatedAt": "2026-08-07T20:02:49.723Z",
+  "package": {
+    "name": "worth-signals-wasm",
+    "version": "1.4.0",
+    "exportsWasm": "./worth_signal_wasm_bg.wasm"
+  },
+  "policy": {
+    "baselineWasmBytes": 13092002,
+    "maxWasmBytes": 10112755
+  },
+  "bytes": {
+    "wasm": 9631322,
+    "tarball": 3374056
+  },
+  "tarball": {
+    "name": "worth-signals-wasm-1.4.0.tgz",
+    "bytes": 3374056
+  },
+  "magic": "00 61 73 6d",
+  "tools": {
+    "wasmPack": "wasm-pack 0.14.0",
+    "wasmOpt": "wasm-opt version 123 (version_123)",
+    "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)"
+  }
+}

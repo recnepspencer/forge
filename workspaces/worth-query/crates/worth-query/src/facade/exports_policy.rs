@@ -92,13 +92,12 @@ pub use crate::program::{
 };
 pub(crate) use crate::query_context::admit_query_basis_context;
 pub use crate::query_context::{
-    attach_diff_query_metadata, attach_query_basis_metadata, build_query_basis_result_bundle,
-    build_query_diff_result_bundle, compose_construction_branch_basis_preparation_digest,
-    shape_query_diff_change_set, AdmittedDiffQueryContext, ComparisonBasisFamily,
-    DiffQueryMetadata, HistoricalAdmissionClass, HistoricalMaterializationCostClass,
-    QueryBasisMetadata, QueryBasisResultBundle, QueryContextAdmissionError,
-    QueryContextAdmissionFailureClass, QueryContextBindingSource, QueryContextBudgetClass,
-    QueryContextCostClass, QueryContextCounters, QueryContextDriftOutcome,
+    attach_query_basis_metadata, build_query_basis_result_bundle,
+    compose_construction_branch_basis_preparation_digest, shape_query_diff_change_set,
+    AdmittedDiffQueryContext, ComparisonBasisFamily, DiffQueryMetadata, HistoricalAdmissionClass,
+    HistoricalMaterializationCostClass, QueryBasisMetadata, QueryBasisResultBundle,
+    QueryContextAdmissionError, QueryContextAdmissionFailureClass, QueryContextBindingSource,
+    QueryContextBudgetClass, QueryContextCostClass, QueryContextCounters, QueryContextDriftOutcome,
     QueryContextExecutionArtifact, QueryContextExecutionCounters, QueryContextExecutionFamily,
     QueryContextFamily, QueryContextPredictionDriftOutcome, QueryContextPredictionReport,
     QueryDiffChangeFamily, QueryDiffChangeRow, QueryDiffChangeSetArtifact, QueryDiffResultBundle,

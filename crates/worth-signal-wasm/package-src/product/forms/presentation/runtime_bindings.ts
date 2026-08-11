@@ -13,6 +13,7 @@ export function createPresentationRuntimeBindings({
   scopeRegistry,
   collaborationDeclaration,
   collaborations,
+  readResourceSource = null,
 }) {
   return Object.freeze({
     reportExit(update) {
@@ -86,7 +87,12 @@ export function createPresentationRuntimeBindings({
       return artifact;
     },
     reportCollaboration(update) {
-      return collaborations.report(normalizeCollaborationUpdate(collaborationDeclaration, update));
+      const resourceSource = typeof readResourceSource === "function"
+        ? readResourceSource()
+        : null;
+      return collaborations.report(
+        normalizeCollaborationUpdate(collaborationDeclaration, update, resourceSource),
+      );
     },
     clearCollaboration(options = {}) {
       return collaborations.clear(options.reason ?? undefined);

@@ -11,7 +11,7 @@ export function createReactiveFormBindings(signalNamespace, formId, formRef) {
   );
 
   function noteMutation() {
-    summaryState.set(readSummary(formRef()));
+    return summaryState.set(readSummary(formRef()));
   }
 
   function summarySignalHandle() {
@@ -105,12 +105,17 @@ function wrapMutationMethod(target, methodName, noteMutation) {
     value(...args) {
       const result = original.apply(this, args);
       if (result && typeof result.then === "function") {
-        return result.then((resolved) => {
-          noteMutation();
+        return result.then(async (resolved) => {
+          await Promise.resolve(noteMutation());
           return resolved;
         });
       }
-      noteMutation();
+      const noted = noteMutation();
+      if (noted && typeof noted.then === "function") {
+        // Worker-first summary publish is async — return a thenable so callers
+        // can await honesty instead of a sync lie that races settlement.
+        return noted.then(() => result);
+      }
       return result;
     },
   });

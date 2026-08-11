@@ -1,5 +1,5 @@
 import React from "react";
-import { createSignals } from "worth-signals-wasm";
+import { createDemoSignals } from "../platform/createDemoSignals";
 import { createReactSignalsStore, useResourceLine } from "worth-signals-wasm/react";
 import { DxCorner } from "./DxCorner";
 import { ResourceLinesSectionCodeSample } from "./ResourceLinesSectionCodeSample";
@@ -30,7 +30,7 @@ interface ResourceLinesSectionProps {
   onNavigate: (path: string) => void;
 }
 
-type SignalsRuntime = Awaited<ReturnType<typeof createSignals>>;
+type SignalsRuntime = Awaited<ReturnType<typeof createDemoSignals>>;
 
 type Phase = "booting" | "settled" | "ambush" | "revealed";
 
@@ -512,7 +512,7 @@ export function ResourceLinesSection({ onNavigate }: ResourceLinesSectionProps):
 
   React.useEffect(() => {
     let active = true;
-    createSignals({ deployment: "mainThreadCompatibility" })
+    createDemoSignals({ deployment: "mainThreadCompatibility" })
       .then((signals) => {
         if (!active) return;
         setWORTH(buildWORTH(signals, createStorefrontServer()));

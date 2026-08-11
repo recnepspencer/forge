@@ -1,58 +1,70 @@
 import { freezeObject } from "../graph_support.js";
 import { buildHostCapabilityTransportReport } from "../host_capability_reports.js";
+import { assertWorkerFirstHandleOwnership } from "./worker_first_handle_ownership.js";
 
 export function createRootDiagnosticsFacade(rootSession) {
   return freezeObject({
     why(id) {
-      const context = rootSession.currentImportContext();
-      if (!context.whyById.has(id)) {
-        throw new TypeError(
-          `worker-first root diagnostics().why(${JSON.stringify(id)}) requires an id from the active imported graph`,
-        );
-      }
-      return context.whyById.get(id);
+      return rootSession.why(id);
     },
     health() {
-      return rootSession.currentImportContext().health;
+      rootSession.requireActiveDiagnostics("diagnostics.health");
+      return diagnosticsContextOrLive(rootSession).health;
     },
     summaryNow() {
-      return rootSession.currentImportContext().diagnosticsSummary;
+      rootSession.requireActiveDiagnostics("diagnostics.summaryNow");
+      return diagnosticsContextOrLive(rootSession).diagnosticsSummary;
     },
     historyNow() {
-      return rootSession.currentImportContext().diagnosticsHistory;
+      rootSession.requireActiveDiagnostics("diagnostics.historyNow");
+      return diagnosticsContextOrLive(rootSession).diagnosticsHistory;
     },
     latestFlow() {
-      return rootSession.currentImportContext().latestFlow;
+      rootSession.requireActiveDiagnostics("diagnostics.latestFlow");
+      return diagnosticsContextOrLive(rootSession).latestFlow;
     },
     latestObservation() {
-      return rootSession.currentImportContext().latestObservation;
+      rootSession.requireActiveDiagnostics("diagnostics.latestObservation");
+      return diagnosticsContextOrLive(rootSession).latestObservation;
     },
     latestHostCapabilityEvent() {
+      rootSession.requireActiveDiagnostics("diagnostics.latestHostCapabilityEvent");
       return rootSession.latestHostCapabilityEvent();
     },
     recentHostCapabilityEvents() {
+      rootSession.requireActiveDiagnostics("diagnostics.recentHostCapabilityEvents");
       return rootSession.recentHostCapabilityEvents();
     },
     performanceSummary() {
-      return rootSession.currentImportContext().performanceSummary;
+      rootSession.requireActiveDiagnostics("diagnostics.performanceSummary");
+      return diagnosticsContextOrLive(rootSession).performanceSummary;
     },
     latestFailure() {
-      return rootSession.currentImportContext().latestFailure;
+      rootSession.requireActiveDiagnostics("diagnostics.latestFailure");
+      return diagnosticsContextOrLive(rootSession).latestFailure;
     },
     latestRollback() {
-      return rootSession.currentImportContext().latestRollback;
+      rootSession.requireActiveDiagnostics("diagnostics.latestRollback");
+      return diagnosticsContextOrLive(rootSession).latestRollback;
     },
     latestFrontierExecution() {
-      return rootSession.currentImportContext().latestFrontierExecution;
+      rootSession.requireActiveDiagnostics("diagnostics.latestFrontierExecution");
+      return diagnosticsContextOrLive(rootSession).latestFrontierExecution;
     },
     latestInvalidationTraceRecords() {
-      return rootSession.currentImportContext().latestInvalidationTraceRecords;
+      rootSession.requireActiveDiagnostics("diagnostics.latestInvalidationTraceRecords");
+      return diagnosticsContextOrLive(rootSession).latestInvalidationTraceRecords;
     },
     recentHistory() {
-      return rootSession.currentImportContext().recentHistory;
+      rootSession.requireActiveDiagnostics("diagnostics.recentHistory");
+      return diagnosticsContextOrLive(rootSession).recentHistory;
     },
     hostCapabilityReport() {
+      rootSession.requireActiveDiagnostics("diagnostics.hostCapabilityReport");
       return rootSession.hostCapabilityReport();
+    },
+    subscribe(listener) {
+      return rootSession.subscribeDiagnostics(listener);
     },
   });
 }
@@ -110,8 +122,13 @@ export function createRootSpecialistFacade(rootSession) {
 }
 
 export function readRootSignalValue(rootSession, target) {
+  assertWorkerFirstHandleOwnership(rootSession, target, "worker-first root read(...)");
   const id = normalizeRootReadableTargetId(target);
   return rootSession.readSignalValue(id);
+}
+
+function diagnosticsContextOrLive(rootSession) {
+  return rootSession.peekActiveImportContext() ?? rootSession.peekLiveRootDiagnostics();
 }
 
 function normalizeRootReadableTargetId(target) {

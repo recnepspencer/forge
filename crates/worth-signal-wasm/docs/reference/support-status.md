@@ -22,8 +22,10 @@ evidence needed to perform it honestly.
 
 | Import | Status | Use |
 | --- | --- | --- |
-| `worth-signals-wasm` named exports | Stable | `createSignals`, callable signals, resources, forms, router, Local Truth, and shared public types. |
-| `worth-signals-wasm/react` | Stable | React subscriptions and form bindings over Worth-owned state. |
+| `worth-signals-wasm` named exports | Stable | `createSignals`, callable signals, resources, forms, router, Local Truth, and shared public types. Published as a bundled ESM entry (not a deep `product/**` forest). |
+| `worth-signals-wasm/react` | Stable | React subscriptions and form bindings over Worth-owned state (bundled adapter entry). |
+| `worth-signals-wasm/wasm` | Stable | Package WASM asset for bundler `?url` imports. |
+| `worth-signals-wasm/worker` | Stable | Worker-first runtime worker entry for bundler `?worker&url` imports (colocated bridge/worker shells). |
 | `worth-signals-wasm` default export | Compatibility-only | Initialize the lower-level Wasm module. It is not `createSignals()`. |
 | `worth-signals-wasm/raw` | Compatibility-only | Raw runtime and structural authoring for migration or specialist tooling. |
 | `worth-signals-wasm/raw_surface.js` | Compatibility-only | Alias of the published raw entrypoint. |
@@ -33,6 +35,7 @@ evidence needed to perform it honestly.
 | Surface | Status | Important boundary |
 | --- | --- | --- |
 | `await createSignals()` | Stable | Selects worker-first and never silently falls back to the main thread. |
+| `createSignals({ assets: { wasmUrl, workerUrl } })` | Stable portable bundler path | Injects bundler-emitted asset URLs. Required on hosts that relocate package modules away from the `.wasm` / worker files (for example Vite 7 optimizeDeps). Optional on Vite 8+ when defaults work. |
 | `createSignals({ deployment: "mainThreadCompatibility" })` | Stable deployment choice | Explicitly constructs the callable facade on the main thread. The deployment is compatibility posture even though construction is supported. |
 | `createCallableSignals()` | Compatibility-only | Always selects `mainThreadCompatibility`, including when its options request another deployment. |
 | `wrapSignals(rawSignals)` | Compatibility-only | Wraps an already-created raw runtime; it does not create worker ownership. |
@@ -43,6 +46,24 @@ If the environment has no `Worker` constructor, default construction rejects
 with `artifactFamily: "workerUnavailableConstruction"`. The error includes an
 explicit `mainThreadCompatibility` recovery, but the package does not take that
 recovery on your behalf.
+
+## Host And Bundler Asset Loading
+
+Measured against a packed npm tarball install (not a workspace `file:` symlink).
+Missing `.wasm` or worker routes must return **404**, never SPA `index.html`
+(`3c 21 64 6f` / `<!do`). HTML bodies are rejected with a package diagnostic.
+
+| Host / bundler | Status | Recipe |
+| --- | --- | --- |
+| Node ESM / no bundler rewrite | Stable | Default relative URLs beside the package files. No `assets` required. |
+| Vite 8+ with `worker.format: "es"` | Stable zero-config | Default relative URLs after optimizeDeps when package files remain fetchable. |
+| Vite 7 with forced optimizeDeps | Broken without assets | Default relative URLs resolve beside `.vite/deps` and often receive SPA HTML. |
+| Vite 7 + `createSignals({ assets })` | Stable portable path | `import wasmUrl from "worth-signals-wasm/wasm?url"` and `worker?worker&url`. |
+| Vite / webpack / CDN-hashed assets | Stable portable path | Always prefer explicit `assets` when the bundler emits hashed or relocated URLs. |
+| `optimizeDeps.exclude: ["worth-signals-wasm"]` | Compatibility-only workaround | Legacy escape hatch for older Vite; not the supported long-term recipe. |
+
+Vite consumers must set `worker: { format: "es" }` because the worker entry uses
+top-level await.
 
 ## Product Surfaces
 

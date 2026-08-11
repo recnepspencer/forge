@@ -5,6 +5,9 @@ export function createWorkerFirstResourceBranchLifecycle({
   settlePendingMutations,
   bridge,
   refreshBranchCache,
+  readCurrentTipBranchId,
+  markActiveTipCatalogChanged,
+  readmitReadyAuthoredOntoActiveTip,
 }) {
   async function settle(operation) {
     requireActive(operation);
@@ -15,8 +18,16 @@ export function createWorkerFirstResourceBranchLifecycle({
 
   async function runMutation(method, request) {
     await settle(method);
+    const previousTipBranchId = readCurrentTipBranchId();
     const receipt = await bridge[method](request);
     await refreshBranchCache();
+    // Authored catalogs track the active tip branch. Head advances on the same
+    // branch keep published graphs; only a tip branch identity change orphans.
+    const nextTipBranchId = readCurrentTipBranchId();
+    if (previousTipBranchId !== nextTipBranchId) {
+      markActiveTipCatalogChanged();
+      await readmitReadyAuthoredOntoActiveTip();
+    }
     return receipt;
   }
 

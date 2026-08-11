@@ -1,6 +1,7 @@
 export const RAW_SIGNAL_HANDLE = Symbol("WorthSignal.rawSignalHandle");
 export const RAW_SIGNALS = Symbol("WorthSignal.rawSignals");
 export const PRODUCT_SIGNAL_KIND = Symbol("WorthSignal.productSignalKind");
+export const WORKER_FIRST_ROOT_SESSION = Symbol("WorthSignal.workerFirstRootSession");
 export const GRAPH_SCOPE_ID = Symbol("WorthSignal.graphScopeId");
 export const GRAPH_OWNER_ID = Symbol("WorthSignal.graphOwnerId");
 export const GRAPH_SCOPE_DESCRIPTOR = Symbol("WorthSignal.graphScopeDescriptor");

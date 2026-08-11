@@ -1,11 +1,25 @@
 import init, { SignalWorkerRuntime } from "../../../raw_surface.js";
 import { createWorkerLocalTruthRuntime } from "../../local_truth/protocol/worker_local_truth_runtime.js";
+import {
+  isWorkerRuntimeWasmBootstrapMessage,
+} from "./worker_runtime_wasm_bootstrap.js";
 
 const earlyBrowserMessages = [];
 let browserMessageHandler = null;
+let browserBootstrapResolver = null;
 
 if (typeof globalThis.addEventListener === "function") {
   globalThis.addEventListener("message", (event) => {
+    if (isWorkerRuntimeWasmBootstrapMessage(event.data)) {
+      if (browserBootstrapResolver) {
+        const resolve = browserBootstrapResolver;
+        browserBootstrapResolver = null;
+        resolve(event.data);
+        return;
+      }
+      earlyBrowserMessages.unshift(event.data);
+      return;
+    }
     if (browserMessageHandler) {
       browserMessageHandler(event.data);
       return;
@@ -14,7 +28,8 @@ if (typeof globalThis.addEventListener === "function") {
   });
 }
 
-await init();
+const bootstrap = await receiveWasmBootstrap();
+await init(bootstrap.wasmUrl ?? undefined);
 
 const runtime = new SignalWorkerRuntime();
 const localTruthRuntime = createWorkerLocalTruthRuntime(runtime);
@@ -22,6 +37,9 @@ const port = await resolveWorkerPort();
 
 port.listen(async (message) => {
   if (!message || typeof message !== "object") {
+    return;
+  }
+  if (isWorkerRuntimeWasmBootstrapMessage(message)) {
     return;
   }
   const { id, method, args = [] } = message;
@@ -42,6 +60,60 @@ port.listen(async (message) => {
     });
   }
 });
+
+async function receiveWasmBootstrap() {
+  const queued = takeQueuedBootstrapMessage();
+  if (queued) {
+    return queued;
+  }
+  const nodeBootstrap = await receiveNodeWasmBootstrap();
+  if (nodeBootstrap) {
+    return nodeBootstrap;
+  }
+  return await new Promise((resolve) => {
+    browserBootstrapResolver = resolve;
+    const raced = takeQueuedBootstrapMessage();
+    if (raced && browserBootstrapResolver === resolve) {
+      browserBootstrapResolver = null;
+      resolve(raced);
+    }
+  });
+}
+
+function takeQueuedBootstrapMessage() {
+  const index = earlyBrowserMessages.findIndex((message) =>
+    isWorkerRuntimeWasmBootstrapMessage(message)
+  );
+  if (index < 0) {
+    return null;
+  }
+  return earlyBrowserMessages.splice(index, 1)[0];
+}
+
+async function receiveNodeWasmBootstrap() {
+  if (typeof globalThis.process !== "object") {
+    return null;
+  }
+  try {
+    const workerThreads = await import("node:worker_threads");
+    if (!workerThreads.parentPort) {
+      return null;
+    }
+    return await new Promise((resolve) => {
+      const onMessage = (message) => {
+        if (!isWorkerRuntimeWasmBootstrapMessage(message)) {
+          earlyBrowserMessages.push(message);
+          return;
+        }
+        workerThreads.parentPort.off("message", onMessage);
+        resolve(message);
+      };
+      workerThreads.parentPort.on("message", onMessage);
+    });
+  } catch {
+    return null;
+  }
+}
 
 function serializeError(error) {
   if (error instanceof Error) {
@@ -178,6 +250,9 @@ async function resolveNodeWorkerPort() {
     return {
       listen(handler) {
         workerThreads.parentPort.on("message", handler);
+        for (const message of earlyBrowserMessages.splice(0)) {
+          handler(message);
+        }
       },
       postMessage(message) {
         workerThreads.parentPort.postMessage(message);

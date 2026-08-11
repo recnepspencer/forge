@@ -1,6 +1,7 @@
 import { freezeObject } from "../graph_support.js";
 import { PRODUCT_SIGNAL_KIND } from "../symbols.js";
 import { readWorkerFirstTrackedSignal } from "./worker_first_callback_tracking.js";
+import { brandWorkerFirstRootHandle } from "./worker_first_handle_ownership.js";
 
 export function createWorkerFirstAsyncReadableHandle(rootSession, id, family, debugName = null) {
   const read = () => readWorkerFirstTrackedSignal(rootSession, id, () => rootSession.readSignalValue(id));
@@ -14,5 +15,5 @@ export function createWorkerFirstAsyncReadableHandle(rootSession, id, family, de
   handle.id = id;
   handle.debugName = debugName;
   handle[PRODUCT_SIGNAL_KIND] = family;
-  return freezeObject(handle);
+  return freezeObject(brandWorkerFirstRootHandle(handle, rootSession));
 }

@@ -117,6 +117,9 @@ function createNamespace(rootSession, path) {
       history ??= readRootHistoryFacade(rootSession);
       return history;
     },
+    settleAuthoredWork() {
+      return rootSession.settleAuthoredWork();
+    },
     ...createWorkerFirstObservationNamespace(rootSession),
     scope(localScopeId) {
       requireNonEmptyString(localScopeId, `${operationPrefix}.scope`);

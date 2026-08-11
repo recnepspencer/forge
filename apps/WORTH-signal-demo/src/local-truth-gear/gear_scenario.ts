@@ -1,10 +1,12 @@
-import { createSignals, localTruthSchema } from "worth-signals-wasm";
+import { localTruthSchema } from "worth-signals-wasm";
 import type {
   LocalTruthMergePreviewOutcome,
   LocalTruthMergeReview,
   LocalTruthMutationRequest,
   LocalTruthOutcome,
 } from "worth-signals-wasm";
+
+import { createDemoSignals } from "../platform/createDemoSignals.ts";
 
 import type {
   GearBranchRole,
@@ -39,7 +41,7 @@ const schema = localTruthSchema<GearTruth>({
 });
 
 export async function createGearScenario() {
-  const signals = await createSignals();
+  const signals = await createDemoSignals();
   const gearInput = signals.input(initialGearTruth, {
     debugName: "demo6.gear",
     producesAspects: Object.values(gearAspectMap),

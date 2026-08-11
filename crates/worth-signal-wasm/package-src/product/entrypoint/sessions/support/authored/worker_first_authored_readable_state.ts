@@ -1,4 +1,5 @@
 import { materializeWorkerCachedValue } from "../worker_cached_value.js";
+import { isAuthoredPublicationReady } from "./worker_first_authored_publication_tracking.js";
 
 export function createAuthoredReadablePublication(id, family, spec) {
   return {
@@ -20,12 +21,29 @@ export function createAuthoredReadablePublication(id, family, spec) {
   };
 }
 
+export function cloneAuthoredPublicationSpec(spec) {
+  if (!spec || typeof spec !== "object") {
+    return null;
+  }
+  return {
+    reads: Array.isArray(spec.reads) ? [...spec.reads] : [],
+    expr: spec.expr ?? null,
+    when: spec.when ?? null,
+    identity: spec.identity ?? null,
+    ...(spec.producesAspects === undefined
+      ? {}
+      : { producesAspects: spec.producesAspects }),
+  };
+}
+
 export function createWorkerFirstAuthoredReadableState(
   family,
   value,
   dependencyIds = [],
   hostDependencyIds = [],
   hostDependencies = [],
+  publicationState = "ready",
+  publicationSpec = null,
 ) {
   return {
     family,
@@ -34,7 +52,14 @@ export function createWorkerFirstAuthoredReadableState(
     hostDependencyIds: Array.isArray(hostDependencyIds) ? [...hostDependencyIds] : [],
     hostDependencies: Array.isArray(hostDependencies) ? [...hostDependencies] : [],
     invalidatedMessage: null,
+    publicationState,
+    publicationSpec: cloneAuthoredPublicationSpec(publicationSpec),
+    admittedTipEpoch: 0,
   };
+}
+
+export function isWorkerFirstAuthoredReadablePublicationReady(authoredReadables, id) {
+  return isAuthoredPublicationReady(authoredReadables.get(id));
 }
 
 export function invalidateWorkerFirstAuthoredReadables(authoredReadables, message) {

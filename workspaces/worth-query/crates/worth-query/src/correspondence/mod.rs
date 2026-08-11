@@ -1,6 +1,10 @@
 mod ambiguity;
 #[cfg(test)]
 mod bridge_lowering;
+#[cfg(test)]
+mod bridge_lowering_fixtures;
+#[cfg(test)]
+mod bridge_lowering_tests;
 mod candidate_set;
 mod contracts;
 mod cost;

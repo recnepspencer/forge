@@ -1,0 +1,106 @@
+{
+  "gate": "gate5-js-footprint",
+  "generatedAt": "2026-08-07T20:02:50.085Z",
+  "package": {
+    "name": "worth-signals-wasm",
+    "version": "1.4.0",
+    "exports": {
+      ".": {
+        "types": "./index.d.ts",
+        "import": "./index.js"
+      },
+      "./wasm": "./worth_signal_wasm_bg.wasm",
+      "./worker": "./product/entrypoint/bridge/worker_runtime_bridge_worker.js",
+      "./raw": {
+        "types": "./raw_surface.d.ts",
+        "import": "./raw_surface.js"
+      },
+      "./raw_surface.js": {
+        "types": "./raw_surface.d.ts",
+        "import": "./raw_surface.js"
+      },
+      "./react": {
+        "types": "./react/index.d.ts",
+        "import": "./react/index.js"
+      }
+    },
+    "sideEffects": [
+      "./worth_signal_wasm.js",
+      "./product/entrypoint/bridge/worker_runtime_bridge_worker.js",
+      "./snippets/*"
+    ]
+  },
+  "counts": {
+    "jsFiles": 7,
+    "productJsFiles": 2,
+    "reactJsFiles": 1,
+    "chunkJsFiles": 0,
+    "bridgeJsFiles": 2
+  },
+  "bytes": {
+    "jsTotal": 1462332,
+    "productJsTotal": 103371,
+    "tarball": null
+  },
+  "tarball": null,
+  "files": [
+    {
+      "path": "index.js",
+      "bytes": 1099884
+    },
+    {
+      "path": "worth_signal_wasm_bg.js",
+      "bytes": 231913
+    },
+    {
+      "path": "product/entrypoint/bridge/worker_runtime_bridge_worker.js",
+      "bytes": 51819
+    },
+    {
+      "path": "product/entrypoint/bridge/worker_runtime_bridge.js",
+      "bytes": 51552
+    },
+    {
+      "path": "react/index.js",
+      "bytes": 21943
+    },
+    {
+      "path": "worth_signal_wasm.js",
+      "bytes": 4300
+    },
+    {
+      "path": "raw_surface.js",
+      "bytes": 921
+    }
+  ],
+  "topJsFiles": [
+    {
+      "path": "index.js",
+      "bytes": 1099884
+    },
+    {
+      "path": "worth_signal_wasm_bg.js",
+      "bytes": 231913
+    },
+    {
+      "path": "product/entrypoint/bridge/worker_runtime_bridge_worker.js",
+      "bytes": 51819
+    },
+    {
+      "path": "product/entrypoint/bridge/worker_runtime_bridge.js",
+      "bytes": 51552
+    },
+    {
+      "path": "react/index.js",
+      "bytes": 21943
+    },
+    {
+      "path": "worth_signal_wasm.js",
+      "bytes": 4300
+    },
+    {
+      "path": "raw_surface.js",
+      "bytes": 921
+    }
+  ]
+}

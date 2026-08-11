@@ -4,6 +4,7 @@ import {
   createAuthoredInputPublication,
   createWorkerFirstAuthoredInputState,
   hasMutableWorkerFirstAuthoredInputId,
+  isWorkerFirstAuthoredInputPublicationReady,
   readWorkerFirstAuthoredInputBaseline,
   invalidateWorkerFirstAuthoredInputs,
   nextGeneratedStandaloneSignalId,
@@ -12,22 +13,36 @@ import {
 } from "./worker_first_authored_input_state.js";
 import {
   createAuthoredReadablePublication,
-  createWorkerFirstAuthoredReadableState,
   hasWorkerFirstAuthoredReadableId,
   invalidateWorkerFirstAuthoredReadables,
   readWorkerFirstAuthoredReadableValue,
-  updateWorkerFirstAuthoredReadables,
 } from "./worker_first_authored_readable_state.js";
 import {
   captureWorkerFirstAuthoredCallback,
-  createWorkerFirstAuthoredCallbackState,
-  nextWorkerFirstCallbackBackingInputId,
 } from "./worker_first_authored_callback_authoring.js";
 import { buildWorkerFirstHostDependencyReport } from "./worker_first_host_dependency_report.js";
 import {
   refreshWorkerFirstAuthoredCallbackReadables,
   refreshWorkerFirstAuthoredReadableSignals,
 } from "./worker_first_authored_readable_refresh.js";
+import {
+  createAuthoredPublicationTracker,
+  markAuthoredPublicationFailed,
+  markAuthoredPublicationReady,
+} from "./worker_first_authored_publication_tracking.js";
+import {
+  createEagerStandaloneAuthoredCallbackReadable,
+  createEagerStandaloneAuthoredInput,
+  createEagerStandaloneAuthoredReadable,
+  createStandaloneAuthoredCallbackReadable,
+  createStandaloneAuthoredInput,
+  createStandaloneAuthoredReadable,
+} from "./worker_first_authored_signal_creation.js";
+import {
+  createAuthoredTipCatalogAdmission,
+  ensureAuthoredInputsPresentOnWorkerTip,
+  readmitStaleAuthoredOntoActiveTip,
+} from "./worker_first_authored_tip_catalog.js";
 import { materializeWorkerCachedValue } from "../worker_cached_value.js";
 import { outputProjectionSpec } from "../../../../output_projection_ids.js";
 
@@ -54,7 +69,9 @@ class WorkerFirstRootAuthoredRuntime {
   #authoredReadables;
   #authoredCallbacks;
   #generatedStandaloneSignalCounters;
-  #pendingPublications;
+  #publications;
+  #tipCatalog;
+  #creationDeps;
 
   constructor(bridge, activeImportContext, requireActive, runtimeMarker) {
     this.#bridge = bridge;
@@ -65,7 +82,31 @@ class WorkerFirstRootAuthoredRuntime {
     this.#authoredReadables = new Map();
     this.#authoredCallbacks = new Map();
     this.#generatedStandaloneSignalCounters = new Map();
-    this.#pendingPublications = new Set();
+    this.#publications = createAuthoredPublicationTracker();
+    this.#tipCatalog = createAuthoredTipCatalogAdmission();
+    this.#creationDeps = {
+      bridge: this.#bridge,
+      authoredInputs: this.#authoredInputs,
+      authoredReadables: this.#authoredReadables,
+      authoredCallbacks: this.#authoredCallbacks,
+      generatedStandaloneSignalCounters: this.#generatedStandaloneSignalCounters,
+      requireActive: (operation) => this.#requireActive(operation),
+      assertUnusedId: (id, operation) => this.#assertUnusedId(id, operation),
+      assertSupportedReadableSpec: (family, spec) => this.#assertSupportedReadableSpec(family, spec),
+      captureCallback: (callback, family) => this.#captureCallback(callback, family),
+      trackEagerPublication: (ids, publication, failureMessage) => {
+        this.#trackEagerPublication(ids, publication, failureMessage);
+      },
+      publishAuthoredInput: (id, initial, options) => this.#publishAuthoredInput(id, initial, options),
+      publishCallbackReadableGraph: (id, family, hiddenInputId, initialValue) => (
+        this.#publishCallbackReadableGraph(id, family, hiddenInputId, initialValue)
+      ),
+      hasKnownSignalId: (id) => this.hasKnownSignalId(id),
+      currentTipEpoch: () => this.#tipCatalog.currentEpoch(),
+      stampAdmittedIfEpoch: (state, publishEpoch) => (
+        this.#tipCatalog.stampAdmittedIfEpoch(state, publishEpoch)
+      ),
+    };
   }
 
   nextGeneratedStandaloneSignalId(family, scopeId = null) {
@@ -81,6 +122,10 @@ class WorkerFirstRootAuthoredRuntime {
   hasMutableInputId(id) {
     return this.#activeImportContext()?.inputDescriptorBySourceId.has(id) === true
       || hasMutableWorkerFirstAuthoredInputId(this.#authoredInputs, id);
+  }
+
+  isAuthoredInputPublicationReady(id) {
+    return isWorkerFirstAuthoredInputPublicationReady(this.#authoredInputs, id);
   }
 
   readSignalValue(id) {
@@ -99,159 +144,48 @@ class WorkerFirstRootAuthoredRuntime {
     );
   }
 
-  readAuthoredInputBaseline(id) { return readWorkerFirstAuthoredInputBaseline(this.#authoredInputs, id); }
+  readAuthoredInputBaseline(id) {
+    return readWorkerFirstAuthoredInputBaseline(this.#authoredInputs, id);
+  }
 
-  async createStandaloneInput(id, initial, options = {}) {
-    this.#requireActive("inputAsync");
-    if (typeof id !== "string" || id.length === 0) {
-      throw new TypeError("worker-first inputAsync(...) requires a non-empty authored input id");
-    }
-    this.#assertUnusedId(id, "inputAsync");
-    await this.#publishAuthoredInput(id, initial, options);
+  createStandaloneInput(id, initial, options = {}) {
+    return createStandaloneAuthoredInput(this.#creationDeps, id, initial, options);
   }
 
   createEagerStandaloneInput(id, initial, options = {}) {
-    this.#requireActive("input");
-    if (typeof id !== "string" || id.length === 0) {
-      throw new TypeError("worker-first input(...) requires a non-empty authored input id");
-    }
-    this.#assertUnusedId(id, "input");
-    this.#authoredInputs.set(id, createWorkerFirstAuthoredInputState(initial));
-    this.#trackPendingPublication(
-      this.#bridge.publishPortableGraph(createAuthoredInputPublication(id, initial, options)),
-      () => invalidateAuthoredInput(this.#authoredInputs, id, "worker-first input(...) background publication failed"),
-    );
+    createEagerStandaloneAuthoredInput(this.#creationDeps, id, initial, options);
   }
 
-  async createStandaloneReadable(id, family, spec) {
-    this.#requireActive(`${family}Async`);
-    if (typeof id !== "string" || id.length === 0) {
-      throw new TypeError(`worker-first ${family}Async(...) requires a non-empty authored ${family} id`);
-    }
-    this.#assertUnusedId(id, `${family}Async`);
-    this.#assertSupportedReadableSpec(family, spec);
-    await this.#bridge.publishPortableGraph(createAuthoredReadablePublication(id, family, spec));
-    const signalPacket = await this.#bridge.readSignals({ signalIds: [id] });
-    const signal = signalPacket.signals[0];
-    if (!signal || signal.id !== id) {
-      throw new TypeError(
-        `worker-first ${family}Async(...) could not read committed worker truth for \`${id}\` after authoring`,
-      );
-    }
-    this.#authoredReadables.set(
-      id,
-      createWorkerFirstAuthoredReadableState(family, signal.value, spec.reads ?? []),
-    );
+  createStandaloneReadable(id, family, spec) {
+    return createStandaloneAuthoredReadable(this.#creationDeps, id, family, spec);
   }
 
   createEagerStandaloneReadable(id, family, spec, initialValue, dependencyIds) {
-    this.#requireActive(`${family}`);
-    if (typeof id !== "string" || id.length === 0) {
-      throw new TypeError(`worker-first ${family}(...) requires a non-empty authored ${family} id`);
-    }
-    this.#assertUnusedId(id, `${family}`);
-    this.#assertSupportedReadableSpec(family, spec);
-    this.#authoredReadables.set(
+    createEagerStandaloneAuthoredReadable(
+      this.#creationDeps,
       id,
-      createWorkerFirstAuthoredReadableState(family, initialValue, dependencyIds),
-    );
-    const initializePublishedReadable = spec?.when === undefined || spec?.when === null
-      ? this.#bridge.publishPortableGraph(createAuthoredReadablePublication(id, family, spec))
-      : this.#bridge.publishPortableGraph(createAuthoredReadablePublication(id, family, spec))
-        .then(() => this.#bridge.readSignals({ signalIds: [id] }))
-        .then((signalPacket) => {
-          updateWorkerFirstAuthoredReadables(this.#authoredReadables, signalPacket.signals);
-        });
-    this.#trackPendingPublication(
-      initializePublishedReadable,
-      () => invalidateAuthoredReadable(this.#authoredReadables, id, `worker-first ${family}(...) background publication failed`),
+      family,
+      spec,
+      initialValue,
+      dependencyIds,
     );
   }
 
-  async createStandaloneCallbackReadable(id, family, callback) {
-    this.#requireActive(`${family}Async`);
-    if (typeof id !== "string" || id.length === 0) {
-      throw new TypeError(`worker-first ${family}Async(...) requires a non-empty authored ${family} id`);
-    }
-    if (typeof callback !== "function") {
-      throw new TypeError(`worker-first ${family}Async(...) callback form requires a function`);
-    }
-    this.#assertUnusedId(id, `${family}Async`);
-    const capture = this.#captureCallback(callback, family);
-    const hiddenInputId = nextWorkerFirstCallbackBackingInputId(
-      this.#generatedStandaloneSignalCounters,
-      family,
-      id,
-    );
-    await this.#publishAuthoredInput(hiddenInputId, capture.value, {});
-    await this.#bridge.publishPortableGraph(
-      createAuthoredReadablePublication(id, family, outputProjectionSpec(hiddenInputId)),
-    );
-    const signalPacket = await this.#bridge.readSignals({ signalIds: [id] });
-    const signal = signalPacket.signals[0];
-    if (!signal || signal.id !== id) {
-      throw new TypeError(
-        `worker-first ${family}Async(...) could not read committed worker truth for \`${id}\` after callback authoring`,
-      );
-    }
-    this.#authoredReadables.set(
-      id,
-      createWorkerFirstAuthoredReadableState(
-        family,
-        signal.value,
-        capture.reads,
-        capture.hostDependencyIds,
-        capture.hostDependencies,
-      ),
-    );
-    this.#authoredCallbacks.set(
-      id,
-      createWorkerFirstAuthoredCallbackState(family, callback, hiddenInputId, capture),
-    );
+  createStandaloneCallbackReadable(id, family, callback) {
+    return createStandaloneAuthoredCallbackReadable(this.#creationDeps, id, family, callback);
   }
 
   createEagerStandaloneCallbackReadable(id, family, callback) {
-    this.#requireActive(`${family}`);
-    if (typeof id !== "string" || id.length === 0) {
-      throw new TypeError(`worker-first ${family}(...) requires a non-empty authored ${family} id`);
-    }
-    if (typeof callback !== "function") {
-      throw new TypeError(`worker-first ${family}(...) callback form requires a function`);
-    }
-    this.#assertUnusedId(id, `${family}`);
-    const capture = this.#captureCallback(callback, family);
-    const hiddenInputId = nextWorkerFirstCallbackBackingInputId(
-      this.#generatedStandaloneSignalCounters,
-      family,
-      id,
-    );
-    this.#authoredInputs.set(hiddenInputId, createWorkerFirstAuthoredInputState(capture.value));
-    this.#authoredReadables.set(
-      id,
-      createWorkerFirstAuthoredReadableState(
-        family,
-        capture.value,
-        capture.reads,
-        capture.hostDependencyIds,
-        capture.hostDependencies,
-      ),
-    );
-    this.#authoredCallbacks.set(
-      id,
-      createWorkerFirstAuthoredCallbackState(family, callback, hiddenInputId, capture),
-    );
-    this.#trackPendingPublication(
-      this.#publishCallbackReadableGraph(id, family, hiddenInputId, capture.value),
-      () => {
-        invalidateAuthoredInput(this.#authoredInputs, hiddenInputId, `worker-first ${family}(...) background publication failed`);
-        invalidateAuthoredReadable(this.#authoredReadables, id, `worker-first ${family}(...) background publication failed`);
-      },
-    );
+    createEagerStandaloneAuthoredCallbackReadable(this.#creationDeps, id, family, callback);
   }
 
   beginAuthoredInputMutation(id, mutation) {
     const authoredInput = this.#authoredInputs.get(id);
-    if (!authoredInput || authoredInput.invalidatedMessage !== null) {
+    if (
+      !authoredInput
+      || authoredInput.invalidatedMessage !== null
+      || authoredInput.publicationState === "failed"
+    ) {
       throw new TypeError(
         `worker-first inputAsync(...) can mutate only currently available worker-first authored inputs; \`${id}\` is not currently available`,
       );
@@ -267,9 +201,29 @@ class WorkerFirstRootAuthoredRuntime {
     });
   }
 
-  applyCommittedInputs(transactionOps) { applyCommittedWorkerFirstAuthoredInputs(this.#authoredInputs, transactionOps); }
+  requireAuthoredInputPublicationReady(id) {
+    if (!this.#authoredInputs.has(id)) {
+      return;
+    }
+    if (!isWorkerFirstAuthoredInputPublicationReady(this.#authoredInputs, id)) {
+      const authoredInput = this.#authoredInputs.get(id);
+      const detail = authoredInput?.invalidatedMessage
+        ?? (authoredInput?.publicationState === "pending"
+          ? "background publication has not completed"
+          : "it is not currently available");
+      throw new TypeError(
+        `worker-first authored input \`${id}\` cannot be mutated on the worker because ${detail}`,
+      );
+    }
+  }
 
-  writeAuthoredInputBaseline(id, value) { writeWorkerFirstAuthoredInputBaseline(this.#authoredInputs, id, value); }
+  applyCommittedInputs(transactionOps) {
+    applyCommittedWorkerFirstAuthoredInputs(this.#authoredInputs, transactionOps);
+  }
+
+  writeAuthoredInputBaseline(id, value) {
+    writeWorkerFirstAuthoredInputBaseline(this.#authoredInputs, id, value);
+  }
 
   async refreshReadables(changedIds = [], changedHostDependencyIds = []) {
     await refreshWorkerFirstAuthoredCallbackReadables({
@@ -280,21 +234,59 @@ class WorkerFirstRootAuthoredRuntime {
       changedIds,
       changedHostDependencyIds,
       captureCallback: (callback, family) => this.#captureCallback(callback, family),
+      awaitPublication: (id) => this.#publications.awaitPublication(id),
     });
     await refreshWorkerFirstAuthoredReadableSignals({
       bridge: this.#bridge,
       authoredReadables: this.#authoredReadables,
+      awaitPublication: (id) => this.#publications.awaitPublication(id),
     });
   }
 
-  hostDependencyReport() { return buildWorkerFirstHostDependencyReport(this.#authoredCallbacks); }
+  hostDependencyReport() {
+    return buildWorkerFirstHostDependencyReport(this.#authoredCallbacks);
+  }
 
-  invalidate(message) { invalidateWorkerFirstAuthoredInputs(this.#authoredInputs, message); invalidateWorkerFirstAuthoredReadables(this.#authoredReadables, message); }
+  invalidate(message) {
+    invalidateWorkerFirstAuthoredInputs(this.#authoredInputs, message);
+    invalidateWorkerFirstAuthoredReadables(this.#authoredReadables, message);
+  }
 
   async settlePendingPublications() {
-    while (this.#pendingPublications.size > 0) {
-      await Promise.all([...this.#pendingPublications]);
-    }
+    await this.#publications.settlePendingPublications();
+  }
+
+  async awaitPublication(id) {
+    await this.#publications.awaitPublication(id);
+  }
+
+  /**
+   * Tip-changing branch/history ops must call this so ordinary set()/apply does
+   * not pay a speculative readSignals probe on every mutation.
+   */
+  markActiveTipCatalogChanged() {
+    this.#tipCatalog.markActiveTipCatalogChanged();
+  }
+
+  async readmitReadyAuthoredOntoActiveTip() {
+    await readmitStaleAuthoredOntoActiveTip({
+      bridge: this.#bridge,
+      authoredInputs: this.#authoredInputs,
+      authoredReadables: this.#authoredReadables,
+      tipCatalog: this.#tipCatalog,
+    });
+  }
+
+  /**
+   * Epoch-gated recovery: no bridge work when the id is already stamped for the
+   * active tip. Used as a race safety net if apply runs before tip readmit.
+   */
+  async ensureAuthoredInputsPresentOnWorker(ids) {
+    await ensureAuthoredInputsPresentOnWorkerTip({
+      bridge: this.#bridge,
+      authoredInputs: this.#authoredInputs,
+      tipCatalog: this.#tipCatalog,
+    }, ids);
   }
 
   hasAuthoredSignalId(id) {
@@ -303,10 +295,12 @@ class WorkerFirstRootAuthoredRuntime {
   }
 
   async refreshAllReadables() {
-    await refreshWorkerFirstAuthoredReadableSignals({
+    const refreshDeps = {
       bridge: this.#bridge,
       authoredReadables: this.#authoredReadables,
-    });
+      awaitPublication: (id) => this.#publications.awaitPublication(id),
+    };
+    await refreshWorkerFirstAuthoredReadableSignals(refreshDeps);
     await refreshWorkerFirstAuthoredCallbackReadables({
       bridge: this.#bridge,
       authoredInputs: this.#authoredInputs,
@@ -316,11 +310,9 @@ class WorkerFirstRootAuthoredRuntime {
       changedHostDependencyIds: null,
       captureCallback: (callback, family) => this.#captureCallback(callback, family),
       skipDirectReadableRefresh: true,
+      awaitPublication: (id) => this.#publications.awaitPublication(id),
     });
-    await refreshWorkerFirstAuthoredReadableSignals({
-      bridge: this.#bridge,
-      authoredReadables: this.#authoredReadables,
-    });
+    await refreshWorkerFirstAuthoredReadableSignals(refreshDeps);
   }
 
   #assertUnusedId(id, operation) {
@@ -336,15 +328,21 @@ class WorkerFirstRootAuthoredRuntime {
   }
 
   async #publishAuthoredInput(id, initial, options) {
+    const publishEpoch = this.#tipCatalog.currentEpoch();
     await this.#bridge.publishPortableGraph(createAuthoredInputPublication(id, initial, options));
-    this.#authoredInputs.set(id, createWorkerFirstAuthoredInputState(initial));
+    const state = createWorkerFirstAuthoredInputState(initial, "ready", options);
+    this.#tipCatalog.stampAdmittedIfEpoch(state, publishEpoch);
+    this.#authoredInputs.set(id, state);
   }
 
   async #publishCallbackReadableGraph(id, family, hiddenInputId, initialValue) {
+    const publishEpoch = this.#tipCatalog.currentEpoch();
     await this.#bridge.publishPortableGraph(createAuthoredInputPublication(hiddenInputId, initialValue, {}));
+    this.#tipCatalog.stampAdmittedIfEpoch(this.#authoredInputs.get(hiddenInputId), publishEpoch);
     await this.#bridge.publishPortableGraph(
       createAuthoredReadablePublication(id, family, outputProjectionSpec(hiddenInputId)),
     );
+    this.#tipCatalog.stampAdmittedIfEpoch(this.#authoredReadables.get(id), publishEpoch);
   }
 
   #assertSupportedReadableSpec(family, spec) {
@@ -378,19 +376,22 @@ class WorkerFirstRootAuthoredRuntime {
     );
   }
 
-  #trackPendingPublication(publication, onFailure) {
-    const tracked = Promise.resolve(publication).catch((error) => {
-      onFailure(error);
-    }).finally(() => {
-      this.#pendingPublications.delete(tracked);
+  #trackEagerPublication(ids, publication, failureMessage) {
+    const publishEpoch = this.#tipCatalog.currentEpoch();
+    this.#publications.trackPendingPublication(ids, publication, (outcome) => {
+      for (const id of ids) {
+        const input = this.#authoredInputs.get(id);
+        const readable = this.#authoredReadables.get(id);
+        if (outcome === "ready") {
+          markAuthoredPublicationReady(input);
+          markAuthoredPublicationReady(readable);
+          this.#tipCatalog.stampAdmittedIfEpoch(input, publishEpoch);
+          this.#tipCatalog.stampAdmittedIfEpoch(readable, publishEpoch);
+        } else {
+          markAuthoredPublicationFailed(input, failureMessage);
+          markAuthoredPublicationFailed(readable, failureMessage);
+        }
+      }
     });
-    this.#pendingPublications.add(tracked);
-  }
-}
-
-function invalidateAuthoredInput(authoredInputs, id, message) {
-  const authoredInput = authoredInputs.get(id);
-  if (authoredInput) {
-    authoredInput.invalidatedMessage = message;
   }
 }

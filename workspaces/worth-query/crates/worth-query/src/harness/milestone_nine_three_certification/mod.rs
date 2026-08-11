@@ -1,4 +1,8 @@
 mod builders;
+mod evidence;
+mod lane_fixtures;
+mod lanes;
+mod rows;
 #[cfg(test)]
 mod tests;
 

@@ -2,7 +2,6 @@ import {
   applyCommittedWorkerFirstAuthoredInputs,
 } from "./worker_first_authored_input_state.js";
 import {
-  invalidateWorkerFirstAuthoredReadables,
   updateWorkerFirstAuthoredReadables,
 } from "./worker_first_authored_readable_state.js";
 import { hostDependenciesIntersect } from "./worker_first_host_dependency_records.js";
@@ -18,6 +17,7 @@ export async function refreshWorkerFirstAuthoredCallbackReadables(deps) {
     changedHostDependencyIds = [],
     captureCallback,
     skipDirectReadableRefresh = false,
+    awaitPublication = null,
   } = deps;
   const refreshAll = !Array.isArray(changedIds) || !Array.isArray(changedHostDependencyIds);
   if (
@@ -48,6 +48,7 @@ export async function refreshWorkerFirstAuthoredCallbackReadables(deps) {
       authoredReadables,
       readableIds: directlyChangedReadableIds,
       invalidationMessage: "worker-first authored readable no longer exists after worker runtime history mutation",
+      awaitPublication,
     });
   }
   const hiddenTransactionOps = [];
@@ -112,19 +113,47 @@ export async function refreshWorkerFirstAuthoredReadableSignals(deps) {
     authoredReadables: deps.authoredReadables,
     readableIds: activeReadableIds,
     invalidationMessage: "worker-first authored readable no longer exists after worker runtime mutation",
+    awaitPublication: deps.awaitPublication ?? null,
   });
 }
 
 async function refreshWorkerFirstAuthoredReadableIds(deps) {
   const refreshedSignals = [];
   for (const readableId of deps.readableIds) {
+    const authoredReadable = deps.authoredReadables.get(readableId);
+    if (!authoredReadable || authoredReadable.invalidatedMessage !== null) {
+      continue;
+    }
+    if (authoredReadable.publicationState === "pending") {
+      if (typeof deps.awaitPublication === "function") {
+        try {
+          await deps.awaitPublication(readableId);
+        } catch {
+          // Publication failure already invalidated via tracker onFailure path.
+          continue;
+        }
+      } else {
+        // Still publishing — unknown-id must not sticky-kill this readable.
+        continue;
+      }
+    }
+    const refreshed = deps.authoredReadables.get(readableId);
+    if (!refreshed || refreshed.invalidatedMessage !== null) {
+      continue;
+    }
+    if (refreshed.publicationState === "pending") {
+      continue;
+    }
     try {
       const signalPacket = await deps.bridge.readSignals({
         signalIds: [readableId],
       });
       refreshedSignals.push(...signalPacket.signals);
     } catch (error) {
-      if (isUnknownSignalIdError(error, readableId)) {
+      if (
+        isUnknownSignalIdError(error, readableId)
+        && refreshed.publicationState !== "pending"
+      ) {
         invalidateAuthoredReadable(deps.authoredReadables, readableId, deps.invalidationMessage);
         continue;
       }
@@ -140,6 +169,9 @@ function invalidateAuthoredReadable(authoredReadables, id, message) {
   const authoredReadable = authoredReadables.get(id);
   if (authoredReadable) {
     authoredReadable.invalidatedMessage = message;
+    if (authoredReadable.publicationState === "pending") {
+      authoredReadable.publicationState = "failed";
+    }
   }
 }
 

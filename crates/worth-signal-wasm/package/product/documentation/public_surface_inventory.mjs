@@ -22,15 +22,20 @@ function publishedEntrypointId(exportPath) {
 
 function readEntrypointDefinitions(crateDir) {
   const publishedManifest = JSON.parse(readFileSync(path.join(crateDir, "pkg", "package.json"), "utf8"));
-  return Object.entries(publishedManifest.exports).map(([exportPath, definition]) => {
-    if (typeof definition.types !== "string") {
+  return Object.entries(publishedManifest.exports).flatMap(([exportPath, definition]) => {
+    // Asset-only exports (for example ./wasm and ./worker) are string paths with
+    // no TypeScript declaration surface.
+    if (typeof definition === "string") {
+      return [];
+    }
+    if (!definition || typeof definition !== "object" || typeof definition.types !== "string") {
       throw new Error(`Published entrypoint ${exportPath} lacks a declaration path`);
     }
-    return {
+    return [{
       declarationPath: sourceDeclarationPath(definition.types),
       id: publishedEntrypointId(exportPath),
       publishedDeclarationPath: `pkg/${definition.types.replace(/^\.\//u, "")}`,
-    };
+    }];
   });
 }
 

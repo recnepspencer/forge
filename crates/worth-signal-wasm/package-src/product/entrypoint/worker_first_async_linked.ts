@@ -10,6 +10,7 @@ import {
   denyWorkerFirstMutationDuringCallbackAuthoring,
   readWorkerFirstTrackedSignal,
 } from "./worker_first_callback_tracking.js";
+import { brandWorkerFirstRootHandle } from "./worker_first_handle_ownership.js";
 
 export async function createWorkerFirstAsyncLinkedHandle(
   rootSession,
@@ -88,7 +89,7 @@ function createWorkerFirstLinkedHandleState(
     denyWorkerFirstMutationDuringCallbackAuthoring();
     return applyLinkedCommit("relink");
   };
-  return freezeObject(handle);
+  return freezeObject(brandWorkerFirstRootHandle(handle, rootSession));
 
   async function applyLinkedCommit(mode) {
     const nextSourceValue = evaluateLinkedSource(rootSession, source);

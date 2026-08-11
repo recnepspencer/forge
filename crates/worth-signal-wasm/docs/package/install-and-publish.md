@@ -51,6 +51,17 @@ Package-preparation and proof entrypoints:
 
 - `scripts/wasm/publish-worth-signals-wasm.ps1 -SkipPublish`
 - `scripts/wasm/verify-worth-signals-wasm-package.mjs`
+- `scripts/wasm/verify-worth-signals-demo-packed.mjs` (demo builds from `npm pack`)
+- `scripts/wasm/measure-worth-signals-wasm-js-footprint.mjs` (published JS count oracle)
+- `scripts/wasm/measure-worth-signals-wasm-size.mjs` (published WASM byte oracle)
+- `scripts/wasm/optimize-worth-signals-wasm.mjs` (Binaryen `-Oz` size pass; required on publish)
+
+The published package is a **multi-entry ESM bundle**: root, raw, and React
+entries plus colocated worker/bridge shells. The `.wasm` binary and prepared
+wasm-bindgen glue remain separate assets (Track 6 size-optimized via
+`release-wasm` + `wasm-opt`). Publish JS entries are minified; deep
+`product/**` modules are not part of the published layout — import only the
+documented export map.
 
 ## Install Shapes
 
@@ -71,8 +82,13 @@ npm install worth-signals-wasm react
 Build from the Worth workspace root:
 
 ```powershell
-wasm-pack build crates/worth-signal-wasm --target bundler --out-dir pkg
+wasm-pack build crates/worth-signal-wasm --target bundler --profile release-wasm --no-opt --out-dir pkg
+node scripts/wasm/optimize-worth-signals-wasm.mjs crates/worth-signal-wasm/pkg
 ```
+
+Publish builds use the workspace `release-wasm` Cargo profile, skip wasm-pack's
+implicit Binaryen pass (`--no-opt`), and require Binaryen `wasm-opt` on PATH for
+the Track 6 size pass.
 
 Prepare the package:
 
@@ -101,7 +117,8 @@ Then consume the local folder:
 If you are publishing from this workspace, use this flow:
 
 ```powershell
-wasm-pack build crates/worth-signal-wasm --target bundler --out-dir pkg
+wasm-pack build crates/worth-signal-wasm --target bundler --profile release-wasm --no-opt --out-dir pkg
+node scripts/wasm/optimize-worth-signals-wasm.mjs crates/worth-signal-wasm/pkg
 node scripts/wasm/prepare-worth-signals-wasm-package.mjs crates/worth-signal-wasm/pkg
 node scripts/wasm/verify-worth-signals-wasm-package.mjs crates/worth-signal-wasm/pkg
 cd crates/worth-signal-wasm/pkg
@@ -128,6 +145,35 @@ Good to know:
 ```ts
 import { createSignals } from "worth-signals-wasm";
 ```
+
+### Bundler asset URLs (Vite / webpack)
+
+```ts
+import { createSignals } from "worth-signals-wasm";
+import wasmUrl from "worth-signals-wasm/wasm?url";
+import workerUrl from "worth-signals-wasm/worker?worker&url";
+
+const signals = await createSignals({
+  assets: { wasmUrl, workerUrl },
+});
+```
+
+Vite consumers must set `worker: { format: "es" }`. Prefer this explicit
+`assets` path on Vite 7 and other bundlers that prebundle dependencies away from
+the package WASM file. Vite 8 often works without it when the package files
+remain fetchable.
+
+Host rule: missing `.wasm` or worker script routes must return **404**, never
+SPA `index.html`. An HTML body for a WASM URL produces the fingerprint
+`3c 21 64 6f` (`<!do`) and fails construction with a package remediation error.
+
+`optimizeDeps.exclude: ["worth-signals-wasm"]` is a legacy Vite workaround only.
+It is not the supported long-term recipe once `assets` or a modern Vite rebase
+is available.
+
+Workspace `file:…/pkg` installs (and `preserveSymlinks`) are convenient for
+local demo work. They are not proof that a real npm consumer works. Use
+`npm pack` / the packed demo verify path for that claim.
 
 ### Host capability helpers
 

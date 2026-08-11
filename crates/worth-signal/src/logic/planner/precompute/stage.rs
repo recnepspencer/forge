@@ -83,7 +83,6 @@ fn run_snapshot_pass(graph: &mut SignalGraph) -> SnapshotPass {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn run_precompute_dispatch_pass(
     graph: &mut SignalGraph,
     summary: &PlanSummary,

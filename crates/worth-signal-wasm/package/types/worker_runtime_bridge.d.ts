@@ -183,6 +183,8 @@ export interface WorkerMainThreadHostBridgeCertificationPackage {
 
 export interface CreateWorkerRuntimeBridgeOptions {
   workerUrl?: string | URL;
+  /** Optional explicit WASM URL forwarded to the worker before runtime bootstrap. */
+  wasmUrl?: string | URL;
 }
 
 export interface WorkerRuntimeBridge {

@@ -4,7 +4,7 @@ import { Layout } from "./ui/Layout";
 import { LandingPage } from "./ui/LandingPage";
 import { DocsPage } from "./ui/DocsPage";
 import { DemosContainer } from "./ui/Demos";
-import { createSignals } from "worth-signals-wasm";
+import { createDemoSignals } from "./platform/createDemoSignals";
 import "./ui/landingShell.css";
 import "./ui/landingPage.css";
 import "./ui/landingMarketing.css";
@@ -23,7 +23,7 @@ function App() {
   };
 
   useEffect(() => {
-    createSignals({ deployment: "mainThreadCompatibility" })
+    createDemoSignals({ deployment: "mainThreadCompatibility" })
       .then(() => undefined)
       .catch((err) => console.error("Failed to boot WASM signals", err));
   }, []);

@@ -1,6 +1,6 @@
-import { createSignals } from "worth-signals-wasm";
+import type { CallableSignals } from "worth-signals-wasm";
 
-type SignalsRuntime = Awaited<ReturnType<typeof createSignals>>;
+type SignalsRuntime = CallableSignals;
 
 interface ReadableSignal<T> {
   (): T;
