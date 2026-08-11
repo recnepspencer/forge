@@ -51,6 +51,7 @@ fn backend_recovery_facade_is_complete_and_store_identity_is_post_admission() {
             "ReopenedPhysicalRecovery::store_identity",
             "SelectedPhysicalRecovery::store_identity",
             "StoreRecoveryBindingFreshnessSample::store_identity",
+            "StoreRecoveryCleanupFreshnessSample::store_identity",
         ])
     );
 }

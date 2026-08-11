@@ -8,6 +8,9 @@ pub(super) fn expected_phase(path: &str) -> &'static str {
     if path.ends_with("worth-store-physical-backend/src/recovery_media/staging.rs") {
         return "phase-5";
     }
+    if path.ends_with("worth-store-physical-backend/src/recovery_media/cleanup.rs") {
+        return "phase-7";
+    }
     if path.ends_with("worth-store-physical-backend/src/recovery_media/publication.rs")
         || path.ends_with("worth-store-physical-backend/src/recovery_media/reopen.rs")
     {
@@ -41,6 +44,11 @@ pub(super) fn expected_phase(path: &str) -> &'static str {
     ) {
         return "phase-4";
     }
+    if path
+        .ends_with("worth-store-recovery-physics/src/source_precedence/checkpoint_covered_wal.rs")
+    {
+        return "phase-7";
+    }
     if path.contains("worth-store-recovery-physics/src/source_precedence/")
         || path.contains("worth-store-recovery-physics/src/wal_prefix/")
     {
@@ -66,7 +74,11 @@ pub(super) fn expected_phase(path: &str) -> &'static str {
         };
     }
     if path.contains("worth-store/src/physical_runtime/recovery_coordination/") {
-        return if path.ends_with("/staging.rs")
+        return if path.contains("/recovery_coordination/cleanup/")
+            || path.ends_with("/recovery_coordination/effect/cleanup.rs")
+        {
+            "phase-7"
+        } else if path.ends_with("/staging.rs")
             || path.contains("/recovery_coordination/staging/")
             || path.ends_with("/recovery_coordination/effect.rs")
         {
@@ -154,6 +166,7 @@ fn runtime_scaffold(path: &str) -> bool {
         || path.ends_with("/orchestration/mod.rs")
 }
 mod phase_four;
+mod phase_seven;
 mod responsibility;
 
 pub(super) use responsibility::expected_responsibility;

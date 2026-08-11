@@ -22,6 +22,40 @@ const GUARANTEES: [&str; 16] = [
     "C8-P5-LEDGER-01",
 ];
 
+const FINDINGS: [(&str, &str); 28] = [
+    ("C8-P5-F01", "C8-P5-SCHEDULER-01 C8-P5-MEDIA-01 C8-P5-API-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F02", "C8-P5-EFFECT-01 C8-P5-COMPILE-01 C8-P5-API-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F03", "C8-P5-FAILURE-01 C8-P5-CANCELLATION-01 C8-P5-COUNTERS-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F04", "C8-P5-PLAN-01 C8-P5-MEDIA-01 C8-P5-MULTIPAGE-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F05", "C8-P5-PLAN-01 C8-P5-COUNTERS-01 C8-P5-LIMITS-01 C8-P5-QUIESCENCE-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F06", "C8-P5-PROGRESSION-01 C8-P5-COMPILE-01 C8-P5-API-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F07", "C8-P5-CONVERGENCE-01 C8-P5-CANCELLATION-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F08", "C8-P5-DURABILITY-01 C8-P5-EFFECT-01 C8-P5-FAILURE-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F09", "C8-P5-SCHEDULER-01 C8-P5-DURABILITY-01 C8-P5-EFFECT-01 C8-P5-FAILURE-01 C8-P5-COUNTERS-01 C8-P5-QUIESCENCE-01 C8-P5-PROGRESSION-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F10", "C8-P5-SCHEDULER-01 C8-P5-MEDIA-01 C8-P5-DURABILITY-01 C8-P5-EFFECT-01 C8-P5-FAILURE-01 C8-P5-COUNTERS-01 C8-P5-QUIESCENCE-01 C8-P5-PROGRESSION-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F11", "C8-P5-PLAN-01 C8-P5-MEDIA-01 C8-P5-DURABILITY-01 C8-P5-MULTIPAGE-01 C8-P5-PROGRESSION-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F12", "C8-P5-SCHEDULER-01 C8-P5-EFFECT-01 C8-P5-FAILURE-01 C8-P5-COUNTERS-01 C8-P5-PROGRESSION-01 C8-P5-API-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F13", "C8-P5-CANCELLATION-01 C8-P5-FAILURE-01 C8-P5-COUNTERS-01 C8-P5-PROGRESSION-01 C8-P5-API-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F14", "C8-P5-COUNTERS-01 C8-P5-QUIESCENCE-01 C8-P5-PROGRESSION-01 C8-P5-API-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F15", "C8-P5-PLAN-01 C8-P5-PROGRESSION-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F16", "C8-P5-PLAN-01 C8-P5-MEDIA-01 C8-P5-DURABILITY-01 C8-P5-CONVERGENCE-01 C8-P5-MULTIPAGE-01 C8-P5-PROGRESSION-01 C8-P5-API-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F17", "C8-P5-PLAN-01 C8-P5-MEDIA-01 C8-P5-MULTIPAGE-01 C8-P5-PROGRESSION-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F18", "C8-P5-PLAN-01 C8-P5-MEDIA-01 C8-P5-MULTIPAGE-01 C8-P5-PROGRESSION-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F19", "C8-P5-PLAN-01 C8-P5-COUNTERS-01 C8-P5-LIMITS-01 C8-P5-PROGRESSION-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F20", "C8-P5-PLAN-01 C8-P5-MEDIA-01 C8-P5-MULTIPAGE-01 C8-P5-PROGRESSION-01 C8-P5-API-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F21", "C8-P5-PLAN-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F22", "C8-P5-LEDGER-01"),
+    ("C8-P5-F23", "C8-P5-PLAN-01 C8-P5-SCHEDULER-01 C8-P5-MEDIA-01 C8-P5-DURABILITY-01 C8-P5-EFFECT-01 C8-P5-FAILURE-01 C8-P5-CANCELLATION-01 C8-P5-CONVERGENCE-01 C8-P5-COUNTERS-01 C8-P5-QUIESCENCE-01 C8-P5-MULTIPAGE-01 C8-P5-PROGRESSION-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F24", "C8-P5-PLAN-01 C8-P5-MULTIPAGE-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F25", "C8-P5-LEDGER-01"),
+    ("C8-P5-F26", "C8-P5-SCHEDULER-01 C8-P5-API-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F27", "C8-P5-API-01 C8-P5-LEDGER-01"),
+    ("C8-P5-F28", "C8-P5-EFFECT-01 C8-P5-FAILURE-01 C8-P5-LEDGER-01"),
+];
+
+const FINDING_HISTORY_SHA256: &str =
+    "69ee3c1c7d5c475988c09f965235e5bf689c1498cd7f6f370df66bf51d1beea7";
+
 #[test]
 fn phase_five_ledger_is_exact_and_source_bound() {
     let root = repository_root();
@@ -30,6 +64,7 @@ fn phase_five_ledger_is_exact_and_source_bound() {
     let closures = parse_closures(&root, &closure);
     let rows = ledger_rows(&ledger);
     assert_eq!(rows.len(), GUARANTEES.len());
+    validate_findings(&ledger);
     let ids = rows
         .iter()
         .map(|row| {
@@ -77,6 +112,13 @@ fn ledger_omission_duplicate_status_and_source_mutants_fail() {
         ledger.replacen(&first, "", 1),
         ledger.replacen(&first, &format!("{first}\n{first}"), 1),
         ledger.replacen("| PROVED |", "| ACTIVE |", 1),
+        ledger.replacen("| C8-P5-F27 | High", "| C8-P5-F99 | High", 1),
+        ledger.replacen("C8-P5-F20 C8-P5-F26 C8-P5-F27", "C8-P5-F20 C8-P5-F26", 1),
+        ledger.replacen(
+            "Phase 7 added the governed cleanup continuation",
+            "Phase 7 added cleanup",
+            1,
+        ),
     ] {
         assert!(std::panic::catch_unwind(|| validate_shape(&root, &mutant, &closure)).is_err());
     }
@@ -102,6 +144,49 @@ fn validate_shape(root: &Path, ledger: &str, closure: &str) {
         .iter()
         .all(|row| matches!(cells(row)[6].as_str(), "IMPLEMENTED" | "PROVED")));
     assert_eq!(closures.len(), GUARANTEES.len());
+    validate_findings(ledger);
+}
+
+fn validate_findings(ledger: &str) {
+    let finding_rows = rows_between(
+        ledger,
+        "## Phase 5 finding history",
+        "## Independent audit history",
+        "| C8-P5-F",
+    );
+    assert_eq!(finding_rows.len(), FINDINGS.len());
+    assert_eq!(
+        format!("{:x}", Sha256::digest(finding_rows.join("\n").as_bytes())),
+        FINDING_HISTORY_SHA256,
+        "Phase 5 finding history content drifted"
+    );
+    let findings = finding_rows
+        .iter()
+        .map(|row| {
+            let values = cells(row);
+            assert_eq!(values.len(), 6);
+            assert!(matches!(values[1].as_str(), "Critical" | "High" | "Medium"));
+            assert!(values[3..].iter().all(|value| !value.is_empty()));
+            (values[0].clone(), values[2].clone())
+        })
+        .collect::<BTreeMap<_, _>>();
+    assert_eq!(
+        findings,
+        FINDINGS
+            .into_iter()
+            .map(|(finding, guarantees)| (finding.to_owned(), guarantees.to_owned()))
+            .collect()
+    );
+    for row in ledger_rows(ledger) {
+        let values = cells(&row);
+        let expected = FINDINGS
+            .iter()
+            .filter(|(_, guarantees)| guarantees.split_whitespace().any(|id| id == values[0]))
+            .map(|(finding, _)| *finding)
+            .collect::<Vec<_>>()
+            .join(" ");
+        assert_eq!(values[7], expected, "finding relation for {}", values[0]);
+    }
 }
 
 fn parse_closures(root: &Path, document: &str) -> BTreeMap<String, BTreeSet<String>> {
