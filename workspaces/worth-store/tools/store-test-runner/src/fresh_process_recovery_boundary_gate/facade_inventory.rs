@@ -9,6 +9,7 @@ mod runtime_phase_five_surface_contract;
 mod runtime_phase_four_plan_surface_contract;
 mod runtime_phase_four_projection_surface_contract;
 mod runtime_phase_four_surface_contract;
+mod runtime_phase_seven_surface_contract;
 mod runtime_phase_six_surface_contract;
 mod runtime_phase_three_surface_contract;
 mod supporting_delivery_surface_contract;
@@ -28,6 +29,7 @@ use runtime_phase_five_surface_contract::PHASE_FIVE_DELIVERY_SURFACES;
 use runtime_phase_four_plan_surface_contract::PHASE_FOUR_PLAN_SURFACES;
 use runtime_phase_four_projection_surface_contract::PHASE_FOUR_PROJECTION_SURFACES;
 use runtime_phase_four_surface_contract::PHASE_FOUR_DELIVERY_SURFACES;
+use runtime_phase_seven_surface_contract::phase_seven_delivery_surfaces;
 use runtime_phase_six_surface_contract::PHASE_SIX_DELIVERY_SURFACES;
 use runtime_phase_three_surface_contract::RUNTIME_PHASE_THREE_SURFACES;
 use supporting_delivery_surface_contract::SUPPORTING_DELIVERY_SURFACES;
@@ -228,7 +230,7 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "RecoveryCleanupPosture",
-        "handoff/cleanup-posture",
+        "handoff/cleanup_posture",
         "phase-7",
     ),
     ("RecoveryReportEnvelope", "observation/report", "phase-8"),
@@ -311,6 +313,7 @@ fn current_facade_and_destination_contract_have_exact_inventory_rows() {
         .chain(PHASE_FOUR_PROJECTION_SURFACES)
         .chain(PHASE_FIVE_DELIVERY_SURFACES)
         .chain(PHASE_SIX_DELIVERY_SURFACES)
+        .chain(phase_seven_delivery_surfaces())
         .chain(BACKEND_RECOVERY_SURFACES)
         .chain(BACKEND_RECOVERY_PUBLICATION_SURFACES)
         .chain(STORE_RECOVERY_COORDINATION_SURFACES)
@@ -331,7 +334,7 @@ fn current_facade_and_destination_contract_have_exact_inventory_rows() {
         .filter(|row| {
             matches!(
                 row.phase.as_str(),
-                "phase-2" | "phase-3" | "phase-4" | "phase-5" | "phase-6"
+                "phase-2" | "phase-3" | "phase-4" | "phase-5" | "phase-6" | "phase-7"
             )
         })
         .map(|row| (row.surface.clone(), row.source_owner.clone()))

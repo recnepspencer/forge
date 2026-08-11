@@ -1,4 +1,5 @@
 use super::phase_four::phase_four_responsibility;
+use super::phase_seven::phase_seven_responsibility;
 
 const STEM_RESPONSIBILITIES: &[(&str, &str)] = &[
     ("request", "persisted-input-request-declaration"),
@@ -113,6 +114,7 @@ fn path_specific_responsibility(path: &str) -> Option<&'static str> {
     physics_or_store_responsibility(path)
         .or_else(|| phase_two_responsibility(path))
         .or_else(|| phase_four_responsibility(path))
+        .or_else(|| phase_seven_responsibility(path))
         .or_else(|| performed_effect_responsibility(path))
 }
 
