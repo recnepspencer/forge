@@ -162,11 +162,7 @@ fn classify_verified_tail(
 ) -> Result<CanonicalArtifactDisposition, PhysicalWalArtifactInspectionDenial> {
     let interruption = active.interrupted_tail();
     let verified = active.into_verified_prefix();
-    let frames = verified
-        .frames()
-        .iter()
-        .map(|frame| frame.to_owned_verified())
-        .collect();
+    let verified_artifact = verified.to_owned_artifact();
     let frames_scanned = verified
         .inspection()
         .frame_count()
@@ -183,10 +179,9 @@ fn classify_verified_tail(
             .saturating_sub(tail.valid_prefix_bytes())
     });
     Ok(CanonicalArtifactDisposition::Verified {
-        candidate: PhysicalWalSegmentCandidate::verified_with_frames(
-            verified.inspection(),
+        candidate: PhysicalWalSegmentCandidate::verified_with_artifact(
+            verified_artifact,
             interruption,
-            frames,
         ),
         frames_scanned,
         torn_suffix_bytes,

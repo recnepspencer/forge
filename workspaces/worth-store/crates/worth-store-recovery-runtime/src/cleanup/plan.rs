@@ -97,7 +97,7 @@ fn admit_checkpoint_covered_wal(
                 .expect("bounded cleanup byte sum");
             admission
                 .candidates
-                .push(RecoveryCleanupEligibility::new(*covered));
+                .push(RecoveryCleanupEligibility::new(covered.clone()));
         }
         admission.dispositions.push(RecoveryCleanupDisposition::new(
             RecoveryCleanupTarget::Wal(covered.identity()),

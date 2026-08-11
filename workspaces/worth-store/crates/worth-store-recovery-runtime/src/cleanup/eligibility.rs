@@ -1,5 +1,5 @@
 use worth_store_recovery_physics::{
-    CheckpointCoveredWalArtifact, WalLsnRange, WalSegmentArtifactIdentity, WalSegmentInspection,
+    CheckpointCoveredWalArtifact, WalLsnRange, WalSegmentArtifactIdentity,
 };
 
 /// Consuming authority for one exact post-publication WAL removal.
@@ -27,7 +27,11 @@ impl RecoveryCleanupEligibility {
         self.covered.byte_count()
     }
 
-    pub(super) const fn inspection(&self) -> WalSegmentInspection {
-        self.covered.inspection()
+    pub(super) fn into_verified_artifact(
+        self,
+    ) -> worth_store_recovery_physics::VerifiedWalArtifact {
+        self.covered
+            .into_verified_artifact()
+            .expect("cleanup eligibility only retains complete verified WAL artifacts")
     }
 }

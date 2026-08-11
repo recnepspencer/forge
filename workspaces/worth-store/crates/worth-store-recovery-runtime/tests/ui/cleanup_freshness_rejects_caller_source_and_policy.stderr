@@ -1,18 +1,33 @@
-error[E0308]: arguments to this function are incorrect
- --> tests/ui/cleanup_freshness_rejects_caller_source_and_policy.rs:4:13
-  |
-4 |     let _ = PhysicalRecoveryFreshnessPort::sample_cleanup(
-  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-5 |         7_u64,
-  |         ----- expected `&PhysicalRecoveryCoordination`, found `u64`
-6 |         [0_u8; 32],
-  |         ---------- expected `&AdmittedRecoveryFilesystemMedia`, found `[u8; 32]`
-...
-9 |         [3_u8; 32],
-  |         ---------- expected `WalSegmentInspection`, found `[u8; 32]`
-  |
+error[E0061]: this function takes 6 arguments but 5 arguments were supplied
+  --> tests/ui/cleanup_freshness_rejects_caller_source_and_policy.rs:4:13
+   |
+ 4 |       let _ = PhysicalRecoveryFreshnessPort::sample_cleanup(
+   |  _____________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
+ 5 | |         7_u64,
+   | |         ----- expected `&PhysicalRecoveryCoordination`, found `u64`
+ 6 | |         [0_u8; 32],
+   | |         ---------- expected `&AdmittedRecoveryFilesystemMedia`, found `[u8; 32]`
+ 7 | |         [1_u8; 32],
+ 8 | |         [2_u8; 32],
+   | |         ---------- expected `&CompletedPhysicalRecoveryFreshReopen`, found `[u8; 32]`
+ 9 | |         [3_u8; 32],
+   | |         ---------- expected `&VerifiedCheckpointStream`, found `[u8; 32]`
+10 | |     );
+   | |_____- argument #6 of type `worth_store_wal::artifact_store::segment_inventory::segment_inspection::VerifiedWalArtifact` is missing
+   |
 note: associated function defined here
- --> $WORKSPACE/crates/worth-store/src/physical_runtime/recovery_freshness/port.rs
-  |
-  |     pub fn sample_cleanup(
-  |            ^^^^^^^^^^^^^^
+  --> $WORKSPACE/crates/worth-store/src/physical_runtime/recovery_freshness/port.rs
+   |
+   |     pub fn sample_cleanup(
+   |            ^^^^^^^^^^^^^^
+help: provide the argument
+   |
+ 4 -     let _ = PhysicalRecoveryFreshnessPort::sample_cleanup(
+ 5 -         7_u64,
+ 6 -         [0_u8; 32],
+ 7 -         [1_u8; 32],
+ 8 -         [2_u8; 32],
+ 9 -         [3_u8; 32],
+10 -     );
+ 4 +     let _ = PhysicalRecoveryFreshnessPort::sample_cleanup(/* &PhysicalRecoveryCoordination */, /* &AdmittedRecoveryFilesystemMedia */, [1_u8; 32], /* &CompletedPhysicalRecoveryFreshReopen */, /* &worth_store_physical_format::checkpoint::inspection::VerifiedCheckpointStream */, /* worth_store_wal::artifact_store::segment_inventory::segment_inspection::VerifiedWalArtifact */);
+   |

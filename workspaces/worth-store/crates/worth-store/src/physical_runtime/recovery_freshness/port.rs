@@ -44,15 +44,17 @@ impl PhysicalRecoveryFreshnessPort {
         coordination: &crate::physical_runtime::PhysicalRecoveryCoordination,
         media: &AdmittedRecoveryFilesystemMedia,
         cleanup_plan_identity: [u8; 32],
-        sealed_publication_basis: [u8; 32],
-        wal: worth_store_wal::WalSegmentInspection,
+        reopened: &crate::physical_runtime::CompletedPhysicalRecoveryFreshReopen,
+        checkpoint: &VerifiedCheckpointStream,
+        wal: worth_store_wal::VerifiedWalArtifact,
     ) -> Result<StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessFailure> {
         cleanup::sample(
             coordination.freshness(),
             coordination,
             media,
             cleanup_plan_identity,
-            sealed_publication_basis,
+            reopened,
+            checkpoint,
             wal,
         )
     }

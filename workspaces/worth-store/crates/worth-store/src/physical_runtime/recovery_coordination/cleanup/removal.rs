@@ -7,7 +7,7 @@ use worth_store_wal::{
 };
 
 use crate::physical_runtime::{
-    CompletedPhysicalRecoveryFreshReopen, PhysicalRecoveryCleanupAuthorization,
+    CompletedPhysicalRecoveryFreshReopen, PhysicalRecoveryCoordination,
     PhysicalWorkSchedulerPosture,
 };
 
@@ -76,14 +76,16 @@ pub enum PhysicalRecoveryCleanupRemovalOutcome {
 }
 
 impl PhysicalRecoveryCleanupRemovalCommand {
-    /// Binds one owner-sampled cleanup authorization to performed reopen and
+    /// Binds one Store-owned freshness decision to performed reopen and
     /// independently verified checkpoint/WAL facts.
     ///
     /// Shape-only coordinates cannot construct this command. The selected
     /// checkpoint must name the independently reopened root, and the complete
     /// WAL artifact must be wholly covered by that checkpoint.
-    pub fn new(
-        authorization: PhysicalRecoveryCleanupAuthorization,
+    pub(in crate::physical_runtime) fn admit(
+        media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
+        coordination: &PhysicalRecoveryCoordination,
+        cleanup_plan_identity: [u8; 32],
         reopened: &CompletedPhysicalRecoveryFreshReopen,
         checkpoint: &VerifiedCheckpointStream,
         wal: WalSegmentInspection,
@@ -95,23 +97,19 @@ impl PhysicalRecoveryCleanupRemovalCommand {
         let retained_boundary = LogSequenceNumber::new(source.wal().covered_end_lsn_exclusive());
         let compaction = checkpoint.compaction_cutover();
         let store = source.identity().store_identity();
-        let admissible = authorization.matches(
-            store,
-            authorization.media_generation(),
-            occurrence.session(),
-            occurrence.generation(),
-            occurrence.plan(),
-            wal,
-        ) && checkpoint_root.generation() <= root.generation()
+        let admissible = cleanup_plan_identity != [0; 32]
+            && store == media.store_identity()
+            && occurrence.session() == coordination.session_identity()
+            && checkpoint_root.generation() <= root.generation()
             && checkpoint_root.tree_identity() == root.tree_identity()
             && wal.byte_count() != 0
             && wal.lsn_range().end_exclusive() <= retained_boundary;
         admissible.then_some(Self {
-            store: authorization.store_identity(),
-            media_generation: authorization.media_generation(),
-            session: authorization.session(),
-            plan: authorization.cleanup_plan_identity(),
-            published_generation: authorization.published_generation(),
+            store,
+            media_generation: media.media_generation(),
+            session: occurrence.session(),
+            plan: cleanup_plan_identity,
+            published_generation: occurrence.generation(),
             checkpoint: source.identity(),
             compaction_generation: compaction.product_generation(),
             compaction_digest: checkpoint.footer().binding_records_digest(),

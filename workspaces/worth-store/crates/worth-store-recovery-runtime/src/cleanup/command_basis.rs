@@ -1,5 +1,6 @@
 use worth_store::physical_runtime::{
-    PhysicalRecoveryCleanupAuthorization, PhysicalRecoveryCleanupRemovalCommand,
+    PhysicalRecoveryFreshnessPort, StoreRecoveryCleanupFreshnessAdmission,
+    StoreRecoveryCleanupFreshnessFailure,
 };
 use worth_store_physical_format::VerifiedCheckpointStream;
 
@@ -23,16 +24,20 @@ impl<'a> RecoveryCleanupCommandBasis<'a> {
         })
     }
 
-    pub(super) fn command(
+    pub(super) fn admit(
         &self,
-        authorization: PhysicalRecoveryCleanupAuthorization,
+        coordination: &worth_store::physical_runtime::PhysicalRecoveryCoordination,
+        media: &worth_store::physical_runtime::AdmittedRecoveryFilesystemMedia,
+        cleanup_plan_identity: [u8; 32],
         candidate: RecoveryCleanupEligibility,
-    ) -> Option<PhysicalRecoveryCleanupRemovalCommand> {
-        PhysicalRecoveryCleanupRemovalCommand::new(
-            authorization,
+    ) -> Result<StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessFailure> {
+        PhysicalRecoveryFreshnessPort::sample_cleanup(
+            coordination,
+            media,
+            cleanup_plan_identity,
             self.reopened,
             self.checkpoint,
-            candidate.inspection(),
+            candidate.into_verified_artifact(),
         )
     }
 }

@@ -11,9 +11,8 @@ pub use binding::{
     StoreRecoveryOperationEvidence, StoreRecoveryOperationFate, StoreRecoveryWalMember,
 };
 pub use cleanup::{
-    PhysicalRecoveryCleanupAuthorization, StoreRecoveryCleanupFreshnessAdmission,
-    StoreRecoveryCleanupFreshnessDenial, StoreRecoveryCleanupFreshnessFailure,
-    StoreRecoveryCleanupFreshnessSample,
+    StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessDenial,
+    StoreRecoveryCleanupFreshnessFailure, StoreRecoveryCleanupFreshnessSample,
 };
 pub use port::PhysicalRecoveryFreshnessPort;
 pub use registration::PhysicalRecoveryRegisteredSessionAuthority;

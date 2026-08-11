@@ -1,6 +1,6 @@
 use worth_store::physical_runtime::{
-    PhysicalRecoveryCleanupRemovalOutcome, PhysicalRecoveryFreshnessPort,
-    StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessSample,
+    PhysicalRecoveryCleanupRemovalOutcome, StoreRecoveryCleanupFreshnessAdmission,
+    StoreRecoveryCleanupFreshnessSample,
 };
 
 use crate::handoff::RecoveryCleanupDeferralEvidence;
@@ -48,7 +48,7 @@ impl<'a> RecoveryCleanupAttemptBasis<'a> {
         candidate: RecoveryCleanupEligibility,
     ) -> RecoveryCleanupAttempt {
         let target = RecoveryCleanupTarget::Wal(candidate.artifact());
-        let admission = match self.sample_freshness(target.clone(), candidate.inspection()) {
+        let admission = match self.sample_freshness(target.clone(), candidate) {
             Ok(admission) => admission,
             Err(attempt) => return attempt,
         };
@@ -62,11 +62,8 @@ impl<'a> RecoveryCleanupAttemptBasis<'a> {
                 stop: true,
             };
         }
-        let (freshness, authorization) = admission.into_parts();
-        let Some(command) = self
-            .command_basis
-            .and_then(|basis| basis.command(authorization, candidate))
-        else {
+        let (freshness, command) = admission.into_parts();
+        let Some(command) = command else {
             return RecoveryCleanupAttempt::Deferred {
                 evidence: RecoveryCleanupDeferralEvidence::EligibilityChanged { target },
                 freshness: Some(freshness),
@@ -79,20 +76,27 @@ impl<'a> RecoveryCleanupAttemptBasis<'a> {
     fn sample_freshness(
         &self,
         target: RecoveryCleanupTarget,
-        wal: worth_store_recovery_physics::WalSegmentInspection,
+        candidate: RecoveryCleanupEligibility,
     ) -> Result<StoreRecoveryCleanupFreshnessAdmission, RecoveryCleanupAttempt> {
-        PhysicalRecoveryFreshnessPort::sample_cleanup(
-            self.reopened.state.coordination.owner(),
-            &self.reopened.state.authority.media,
-            self.plan.identity(),
-            self.reopened.expectation.plan_identity(),
-            wal,
-        )
-        .map_err(|failure| RecoveryCleanupAttempt::Deferred {
-            freshness: None,
-            evidence: RecoveryCleanupDeferralEvidence::Freshness { target, failure },
-            stop: true,
-        })
+        self.command_basis
+            .ok_or_else(|| RecoveryCleanupAttempt::Deferred {
+                freshness: None,
+                evidence: RecoveryCleanupDeferralEvidence::EligibilityChanged {
+                    target: target.clone(),
+                },
+                stop: true,
+            })?
+            .admit(
+                self.reopened.state.coordination.owner(),
+                &self.reopened.state.authority.media,
+                self.plan.identity(),
+                candidate,
+            )
+            .map_err(|failure| RecoveryCleanupAttempt::Deferred {
+                freshness: None,
+                evidence: RecoveryCleanupDeferralEvidence::Freshness { target, failure },
+                stop: true,
+            })
     }
 
     fn changed_evidence(

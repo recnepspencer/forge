@@ -31,12 +31,12 @@ pub use artifact_store::{
     inspect_interrupted_wal_segment_start, inspect_verified_wal_active_tail,
     inspect_verified_wal_segment, observe_checkpoint_artifact, observe_wal_frame_artifact,
     prepare_wal_frame_append, CheckpointArtifactObservation, InterruptedWalSegmentStart,
-    InterruptedWalTail, VerifiedWalActiveTail, VerifiedWalFrame, VerifiedWalFramePayload,
-    VerifiedWalSegment, WalActiveTailInspectionDenial, WalActiveTailInspectionFailure,
-    WalArtifactInventory, WalArtifactInventoryIdentity, WalArtifactInventoryScan,
-    WalArtifactObservation, WalArtifactObservationRead, WalArtifactScanCounters,
-    WalArtifactStoreDenial, WalFrameAppendPlan, WalFrameArtifactObservation,
-    WalSegmentArtifactIdentity, WalSegmentInspection,
+    InterruptedWalTail, VerifiedWalActiveTail, VerifiedWalArtifact, VerifiedWalFrame,
+    VerifiedWalFramePayload, VerifiedWalSegment, WalActiveTailInspectionDenial,
+    WalActiveTailInspectionFailure, WalArtifactInventory, WalArtifactInventoryIdentity,
+    WalArtifactInventoryScan, WalArtifactObservation, WalArtifactObservationRead,
+    WalArtifactScanCounters, WalArtifactStoreDenial, WalFrameAppendPlan,
+    WalFrameArtifactObservation, WalSegmentArtifactIdentity, WalSegmentInspection,
 };
 #[cfg(feature = "certification-authority")]
 pub use artifact_store::{WalAppendPlanner, WalAppendPlannerDenial};

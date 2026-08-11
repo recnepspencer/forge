@@ -294,3 +294,4 @@ pub use wal_topology::{
 };
 pub use worth_store_contracts::CorruptionHandoffDamageCase;
 pub use worth_store_wal::AdmittedReplayTailCursor;
+pub use worth_store_wal::VerifiedWalArtifact;

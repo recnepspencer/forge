@@ -187,13 +187,13 @@ pub use recovery_coordination::{
 };
 #[cfg(feature = "recovery-runtime-owner")]
 pub use recovery_freshness::{
-    PhysicalRecoveryCleanupAuthorization, PhysicalRecoveryFreshnessAuthority,
-    PhysicalRecoveryFreshnessPort, PhysicalRecoveryRegisteredSessionAuthority,
-    StoreRecoveryBindingFreshness, StoreRecoveryBindingFreshnessSample,
-    StoreRecoveryBindingSampleDenial, StoreRecoveryBindingSampleFailure,
-    StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessDenial,
-    StoreRecoveryCleanupFreshnessFailure, StoreRecoveryCleanupFreshnessSample,
-    StoreRecoveryOperationEvidence, StoreRecoveryOperationFate, StoreRecoveryWalMember,
+    PhysicalRecoveryFreshnessAuthority, PhysicalRecoveryFreshnessPort,
+    PhysicalRecoveryRegisteredSessionAuthority, StoreRecoveryBindingFreshness,
+    StoreRecoveryBindingFreshnessSample, StoreRecoveryBindingSampleDenial,
+    StoreRecoveryBindingSampleFailure, StoreRecoveryCleanupFreshnessAdmission,
+    StoreRecoveryCleanupFreshnessDenial, StoreRecoveryCleanupFreshnessFailure,
+    StoreRecoveryCleanupFreshnessSample, StoreRecoveryOperationEvidence,
+    StoreRecoveryOperationFate, StoreRecoveryWalMember,
 };
 pub use runtime::AdmittedPhysicalRuntime;
 pub use shutdown::{AbortedRuntime, ClosedRuntime};
