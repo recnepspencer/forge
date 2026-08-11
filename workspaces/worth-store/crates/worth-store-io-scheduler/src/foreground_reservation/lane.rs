@@ -84,6 +84,11 @@ impl ForegroundLaneDeclaration {
         )
     }
 
+    pub const fn root_candidate_materialization(
+    ) -> Result<Self, ForegroundReservationAdmissionDenial> {
+        Self::root_publication_with(IoSchedulerBackendCapabilityRequirement::BufferedFile)
+    }
+
     pub const fn root_catalog_replacement() -> Result<Self, ForegroundReservationAdmissionDenial> {
         Self::root_publication_with(
             IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDurableRename,
@@ -186,7 +191,8 @@ impl ForegroundLaneDeclaration {
                 IoSchedulerBackendCapabilityRequirement::BufferedFile,
             ) | (
                 ForegroundIoLaneKind::RootPublication,
-                IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync
+                IoSchedulerBackendCapabilityRequirement::BufferedFile
+                    | IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync
                     | IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDurableRename
                     | IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDirectorySync,
             ) | (

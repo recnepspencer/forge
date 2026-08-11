@@ -1,10 +1,11 @@
 use sha2::{Digest, Sha256};
 use worth_proof::{CanonicalVec, NonEmpty};
+use worth_store_physical_format::PersistedPhysicalRecoveryProjection;
 use worth_store_wal::{LogSequenceNumber, WalLsnRange};
 
 use crate::physical_runtime::durability::PhysicalRedoTargetClaim;
 
-const REDO_DOMAIN: &[u8] = b"store.physical.wal.canonical-redo.v1";
+const REDO_DOMAIN: &[u8] = b"store.physical.wal.canonical-redo.v3";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RedoRecord {
@@ -42,6 +43,7 @@ impl CanonicalRedoRecords {
         records: Vec<Vec<u8>>,
         range: WalLsnRange,
         targets: &[CanonicalVec<PhysicalRedoTargetClaim>],
+        projection: &PersistedPhysicalRecoveryProjection,
     ) -> Self {
         let nonempty = NonEmpty::try_from_vec(records)
             .expect("durable mutation preparation rejects an empty record batch");
@@ -81,7 +83,7 @@ impl CanonicalRedoRecords {
             .collect::<Vec<_>>();
         let records = CanonicalVec::try_from_sorted(ordered)
             .expect("monotonic ordinals establish canonical owner order");
-        let encoded = encode(records.as_slice());
+        let encoded = encode(records.as_slice(), projection);
         let digest = Sha256::digest(&encoded).into();
         Self {
             records,
@@ -130,7 +132,7 @@ impl RedoRecord {
     }
 }
 
-fn encode(records: &[RedoRecord]) -> Vec<u8> {
+fn encode(records: &[RedoRecord], projection: &PersistedPhysicalRecoveryProjection) -> Vec<u8> {
     let payload_bytes = records.iter().fold(0_usize, |total, record| {
         total
             .saturating_add(4)
@@ -155,6 +157,7 @@ fn encode(records: &[RedoRecord]) -> Vec<u8> {
         }
         write_field(&mut encoded, &record.bytes);
     }
+    write_field(&mut encoded, &projection.encode());
     encoded
 }
 

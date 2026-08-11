@@ -1,4 +1,6 @@
 use worth_store_io_scheduler::QueueExecutionOutcome;
+#[cfg(feature = "recovery-runtime-owner")]
+use worth_store_physical_backend::CompletedRecoveryStagingWrite;
 use worth_store_physical_backend::{
     ArtifactTreeFailure, CompletedArtifactAppend, CompletedArtifactMetadataRead,
     CompletedArtifactNewWrite, CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
@@ -16,6 +18,7 @@ use super::{
 
 mod classification;
 mod durability;
+mod result;
 
 pub(in crate::physical_runtime::work) use durability::durability_satisfies;
 
@@ -55,6 +58,11 @@ pub enum PhysicalWorkSettlementEvidence {
     NewArtifact {
         physical: CompletedArtifactNewWrite,
         coordinate: worth_store_physical_format::RecordFrameCoordinate,
+        scheduler: QueueExecutionOutcome,
+    },
+    #[cfg(feature = "recovery-runtime-owner")]
+    RecoveryStaging {
+        physical: CompletedRecoveryStagingWrite,
         scheduler: QueueExecutionOutcome,
     },
     PublicationEffect {
@@ -186,24 +194,6 @@ impl PhysicalWorkSettlement {
     }
 }
 
-impl PhysicalWorkSettlementResult {
-    pub(in crate::physical_runtime) fn into_parts(
-        self,
-    ) -> (
-        SettledPhysicalWork,
-        Option<PhysicalWorkHealthRevocation>,
-        super::super::submission::PhysicalEffectActivity,
-        Option<super::PhysicalResidencyWritebackCompletion>,
-    ) {
-        (
-            self.settled,
-            self.health_revocation,
-            self.effect_activity,
-            self.residency_writeback,
-        )
-    }
-}
-
 impl PhysicalWorkSettlementEvidence {
     pub(in crate::physical_runtime) const fn backend_role(&self) -> Option<MediaOperationRole> {
         match self {
@@ -212,6 +202,14 @@ impl PhysicalWorkSettlementEvidence {
             Self::Read { .. } => Some(MediaOperationRole::PositionedRead),
             Self::Write { .. } | Self::Publication { .. } | Self::NewArtifact { .. } => {
                 Some(MediaOperationRole::PositionedWrite)
+            }
+            #[cfg(feature = "recovery-runtime-owner")]
+            Self::RecoveryStaging { physical, .. } => {
+                if physical.created().is_some() {
+                    Some(MediaOperationRole::PositionedWrite)
+                } else {
+                    Some(MediaOperationRole::PositionedRead)
+                }
             }
             Self::WalAppend { .. } | Self::WalSegmentCreate { .. } => {
                 Some(MediaOperationRole::PositionedWrite)
@@ -246,6 +244,14 @@ impl PhysicalWorkSettlementEvidence {
                 }
             }
             Self::NewArtifact { scheduler, .. } | Self::PublicationEffect { scheduler, .. } => {
+                if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
+                    PhysicalWorkEffectFate::PublicationCompleted
+                } else {
+                    PhysicalWorkEffectFate::WrittenButSchedulerRejected
+                }
+            }
+            #[cfg(feature = "recovery-runtime-owner")]
+            Self::RecoveryStaging { scheduler, .. } => {
                 if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
                     PhysicalWorkEffectFate::PublicationCompleted
                 } else {
@@ -293,6 +299,8 @@ impl PhysicalWorkSettlementEvidence {
                 physical.completed_bytes()
             }
             Self::NewArtifact { physical, .. } => physical.completed_bytes(),
+            #[cfg(feature = "recovery-runtime-owner")]
+            Self::RecoveryStaging { physical, .. } => physical.byte_count(),
             Self::WalAppend { physical, .. } => physical.range().byte_count(),
             Self::WalSegmentCreate { physical, .. } => physical.completed_bytes(),
             Self::WalBarrier { .. } => 0,
@@ -319,6 +327,8 @@ impl PhysicalWorkSettlementEvidence {
             | Self::WalAppend { .. }
             | Self::WalSegmentCreate { .. }
             | Self::WalBarrier { .. } => PhysicalWorkRecoveryDisposition::ContinueSettlement,
+            #[cfg(feature = "recovery-runtime-owner")]
+            Self::RecoveryStaging { .. } => PhysicalWorkRecoveryDisposition::ContinueSettlement,
             Self::Checkpoint { .. } | Self::WalReclamation { .. } => {
                 PhysicalWorkRecoveryDisposition::ContinueSettlement
             }

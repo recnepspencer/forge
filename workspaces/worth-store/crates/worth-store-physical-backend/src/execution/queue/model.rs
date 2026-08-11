@@ -133,6 +133,16 @@ impl BackendQueueExecutionPlanBinding {
     pub const fn grouped_writes(self) -> u32 {
         self.grouped_writes
     }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(super) const fn with_foreign_grouping_for_certification(mut self) -> Self {
+        self.grouped_writes = if self.grouped_writes == u32::MAX {
+            0
+        } else {
+            self.grouped_writes + 1
+        };
+        self
+    }
 }
 
 impl BackendQueueExecutionReplayBinding {

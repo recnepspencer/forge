@@ -9,7 +9,8 @@ use super::super::artifact_tree_effects::{
 };
 use super::path::validate_component;
 use super::{
-    ArtifactTreeDirectory, ArtifactTreeFailure, ArtifactTreeFailureKind, ArtifactTreeFile,
+    ArtifactTreeDirectory, ArtifactTreeDirectoryEntry, ArtifactTreeFailure,
+    ArtifactTreeFailureKind, ArtifactTreeFile,
 };
 use crate::filesystem_media::{FilesystemMediaOwner, MediaOperationRole, QualifiedFilesystemMedia};
 
@@ -30,6 +31,74 @@ impl QualifiedFilesystemMedia {
 }
 
 impl ArtifactTreeMedia<'_> {
+    pub fn list_bounded(
+        &self,
+        directory: &ArtifactTreeDirectory,
+        maximum_entries: usize,
+    ) -> Result<Vec<ArtifactTreeDirectoryEntry>, ArtifactTreeFailure> {
+        use worth_store_physical_format::store_namespace::NamespaceEntryType;
+
+        if maximum_entries == 0 {
+            return Err(ArtifactTreeFailure::structural(
+                ArtifactTreeFailureKind::AccessLimitExceeded,
+            ));
+        }
+        let directory = self.open_directory(directory)?;
+        let attempt = begin(self.owner, MediaOperationRole::ListDirectory, 0);
+        if let Some(error) = attempt.fail_before_error() {
+            attempt.denied();
+            return Err(ArtifactTreeFailure::io(
+                ArtifactTreeFailureKind::DeniedBeforeEffect,
+                &error,
+            ));
+        }
+        let entries = match directory.entries() {
+            Ok(entries) => entries,
+            Err(error) => {
+                attempt.denied();
+                return Err(ArtifactTreeFailure::io(
+                    ArtifactTreeFailureKind::DeniedBeforeEffect,
+                    &error,
+                ));
+            }
+        };
+        let mut observed = Vec::with_capacity(maximum_entries.min(4_096));
+        for entry in entries {
+            if observed.len() == maximum_entries {
+                attempt.denied();
+                return Err(ArtifactTreeFailure::limit(
+                    observed.len() as u64 + 1,
+                    maximum_entries as u64,
+                ));
+            }
+            let entry = entry.map_err(|error| {
+                ArtifactTreeFailure::io(ArtifactTreeFailureKind::DeniedBeforeEffect, &error)
+            })?;
+            let file_type = entry.file_type().map_err(|error| {
+                ArtifactTreeFailure::io(ArtifactTreeFailureKind::DeniedBeforeEffect, &error)
+            })?;
+            let entry_type = if file_type.is_file() {
+                NamespaceEntryType::RegularFile
+            } else if file_type.is_dir() {
+                NamespaceEntryType::Directory
+            } else if file_type.is_symlink() {
+                NamespaceEntryType::LinkLike
+            } else {
+                NamespaceEntryType::Other
+            };
+            observed.push(ArtifactTreeDirectoryEntry::new(
+                entry.file_name(),
+                entry_type,
+            ));
+        }
+        self.owner
+            .boundary()
+            .counters()
+            .listing_batch(observed.len());
+        attempt.completed(0);
+        Ok(observed)
+    }
+
     pub fn directory_exists(
         &self,
         directory: &ArtifactTreeDirectory,
@@ -191,9 +260,7 @@ impl ArtifactTreeMedia<'_> {
         };
         let length = artifact_file_length(self.owner, &file)?;
         if length > limit || length > usize::MAX as u64 {
-            return Err(ArtifactTreeFailure::structural(
-                ArtifactTreeFailureKind::AccessLimitExceeded,
-            ));
+            return Err(ArtifactTreeFailure::limit(length, limit));
         }
         let read = begin(self.owner, MediaOperationRole::PositionedRead, length);
         if let Some(error) = read.fail_before_error() {
@@ -257,6 +324,21 @@ impl ArtifactTreeMedia<'_> {
             .map_err(|_| ArtifactTreeFailure::structural(ArtifactTreeFailureKind::Damaged))?;
         let directory = self.open_directory(directory)?;
         directory_has_other_entry(self.owner, &directory, selected)
+    }
+}
+
+impl<'media> ArtifactTreeMedia<'media> {
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(in crate::filesystem_media) fn for_recovery(
+        owner: &'media FilesystemMediaOwner,
+        store: worth_store_physical_format::store_namespace::StableStoreIdentity,
+        execution_capability: &'media crate::AdmittedBackendCapabilityWitness,
+    ) -> Self {
+        Self {
+            owner,
+            store,
+            execution_capability,
+        }
     }
 }
 

@@ -466,12 +466,37 @@ C.8 may derive current physical truth only from:
 
 Phase 1 distinguishes existing persisted producers from required producer
 gaps. A gap row is not persisted authority and cannot be substituted with a
-derived recovery posture. The current format has no durable previous-root
-selector protocol, no raw compaction-cutover record decoder, and no persisted
-WAL or checkpoint security-binding fields reconstructed by their current
-decoders. Phase 1 records all four as explicit owner-assigned producer gaps
-with exact delivery phases so later work cannot silently treat an in-memory
-receipt, identity wrapper, or derived classification as crash-surviving truth.
+derived recovery posture. Phase 2 delivers the durable root-selector protocol:
+genesis persists one unlinked current selector because it has no predecessor;
+each successor publication stages reciprocally linked previous/current
+selectors and publishes both with the bootstrap catalog under one observed
+compound root-protocol effect. Phase 3 persists the compaction-cutover record
+inside the checkpoint binding stream and admits it only after whole-stream
+checkpoint verification. Phase 4 adds the concrete checkpoint security binding
+to that whole-stream format and reconstructs its policy and retention axes only
+after verification. WAL security does not gain a parallel decorative frame
+header: Phase 4 derives it from a verified WAL frame whose payload contains the
+exact persisted C.7 attempt binding and canonical redo digest, decoded by the
+Store owner. The persisted-input inventory binds both producer and decoder
+chains so later work cannot silently substitute an in-memory receipt, identity
+wrapper, or derived classification for crash-surviving truth.
+
+The successor triplet is an ordered compound effect, not one filesystem
+transaction. A crash after publishing only the previous selector, or after
+publishing previous plus current while the bootstrap catalog remains old, is
+an expected indeterminate input. Phase 3 must discover both fixed selector
+slots, validate their reciprocal identity and generation linkage against the
+referenced roots, and apply the selection table below; it must not infer truth
+from triplet completion, the bootstrap catalog alone, filename order, or mtime.
+When the current selector is undecodable, the previous selector may be used
+only when its linked successor selector identity and linked root generation
+both equal the current-root generation in the independently decoded bootstrap
+catalog, and Store plus format identity also agree. This is a combined
+selector-linkage proof: the catalog is corroborating publication evidence and
+never selects a root by itself. A missing, damaged, stale, foreign-Store, or
+wrong-format catalog blocks torn-current fallback. A valid current selector
+continues to outrank an older catalog in the legal two-of-three publication
+prefix.
 
 The recovery request's configuration and qualified platform authority decide
 what may be opened and what budgets apply. They do not decide which persisted
@@ -714,6 +739,22 @@ effect, budget, and recovery-direction context relevant to their cause. A
 poisoned lock, unsupported format, missing range, backend denial, capacity
 deferral, foreign Store, and integrity block must not collapse into `Io`,
 `Invalid`, or `RecoveryFailed`.
+
+Phase 3 carries source denials as typed evidence rather than reconstructing
+them from counters: each rejected root slot retains its expected role, decoded
+Store, observed role and generation when available; checkpoint failures retain
+the exact stream or root-binding denial; and WAL failures retain the canonical
+artifact identity, integrity denial, or continuity denial. One blocked outcome
+may retain several source denials when several canonical artifacts fail. A
+root-slot observation denial does not replace the resulting root-selection
+denial: a torn current selector plus an absent or unlinked previous selector
+retains both causes. Manifest routing observation likewise retains the exact
+addressed reference and distinguishes duplicate reference, missing artifact,
+decode, format identity, tree identity, and reference-integrity failures.
+Backend observation failures retain the typed fixed record, checkpoint, WAL
+directory, or exact WAL member address together with the backend failure kind
+and operating-system error kind when one exists; they never collapse to an
+unattributed media error.
 
 ### Narrow Store freshness port
 
@@ -962,7 +1003,7 @@ workspaces/worth-store/crates/
 │       ├── handoff/                                      [C] quiescent successor
 │       │   ├── mod.rs                                    [C] facade re-exports Store handoff
 │       │   ├── operation_fates.rs                        [C]
-│       │   ├── unsupported_scope.rs                      [C]
+│       │   ├── blocked.rs                                [C] persisted-source blocked terminal
 │       │   └── cleanup_posture.rs                        [C]
 │       ├── cleanup/                                      [C] post-publication only
 │       │   ├── mod.rs                                    [C]
@@ -1133,6 +1174,11 @@ Admission rejects before expensive allocation or effects when a limit can
 already be known. A limit reached after bounded discovery returns the exact
 dimension, observed amount, admitted limit, progress posture, and whether any
 effect escaped. There is no hidden unlimited recovery mode.
+Manifest routing decoders receive the remaining leaf-entry and branch-child
+budgets before collecting either vector. WAL segment inspection receives the
+remaining cumulative frame budget and rejects the crossing frame before it is
+retained. Eventual post-decode or post-allocation comparison is not acceptable
+limit evidence.
 
 The ordinary recovery counter snapshot contains exact:
 
@@ -1140,7 +1186,8 @@ The ordinary recovery counter snapshot contains exact:
 - candidates discovered and admitted by role;
 - manifest bytes and entries read;
 - checkpoints admitted and rejected;
-- WAL segments, frames, and bytes scanned;
+- canonical WAL segments and recognizable frame envelopes scanned, valid
+  segments admitted, and bytes scanned;
 - valid-prefix frames and bytes;
 - torn suffix frames/bytes rejected;
 - middle-corruption and missing-range denials;
@@ -1476,19 +1523,28 @@ runtime-driver API replaced by the new facade.
 `SelectedPhysicalRecovery` without media mutation.
 
 **Consumes:** admitted session, current/previous selector protocol, checkpoints,
-retained WAL inventory, manifests, page facts, compaction cutovers, and residue.
+retained WAL inventory, manifests, manifest-addressed page and extent placement
+facts, compaction cutovers, and residue. Phase 4 admits the addressed page or
+extent bytes and their pageLSNs; Phase 3 does not pre-decode replay targets.
 
 **Establishes:** role-specific candidate admission, exact precedence table,
 selected root/checkpoint/tail/binding basis, rejected-source trace, and discovery
-counters.
+counters. Entry or cancellation denials remain `Refused`; a missing, conflicting,
+unsupported, damaged, corrupt, or over-limit persisted source consumes the
+session into top-level `Blocked(PhysicalRecoveryBlock)` after quiescence. That
+terminal preserves exact Store, session, source/artifact, generation/LSN,
+counter, limit, and zero-effect evidence relevant to the cause.
 
 **Mechanically forbids:** directory-order authority, generation-max selection,
 heuristic fallback, generic source envelopes, whole-tree scanning, and residue
 promotion.
 
 **Evidence:** exhaustive precedence model/property tests, hostile current versus
-previous cases, residue and compaction attacks, deterministic repeated
-selection, exact budget counters, and precedence mutants.
+previous and foreign-Store cases, absent-versus-rejected checkpoint twins,
+terminal partial-first-frame and nonterminal-corruption WAL twins, residue and
+compaction attacks, deterministic repeated selection, cumulative WAL and
+multi-block manifest exact-limit twins, exact terminal counters, and precedence
+mutants.
 
 **Next may trust:** planning receives one immutable authoritative source cut.
 
@@ -1503,17 +1559,25 @@ locked precedence contract.
 **Consumes:** selected basis, page generation/pageLSN facts, WAL record grammar,
 checkpoint binding compaction, retained attempt bindings, the sealed C.7 lease
 bases, owner-sampled selected-checkpoint generation, concrete freshness policy,
-and exact limits.
+the checksum-bound free-space allocation header including its persisted
+segment-page capacity, and exact limits.
 
 **Establishes:** maximal valid WAL prefix, torn-tail versus middle-corruption
 classification, ordered apply/skip decisions, fate set, staging layout,
 publication plan, exact owner-sampled binding-freshness evaluations, expected
-counters, and no-effect/indeterminate boundaries.
+counters, and no-effect/indeterminate boundaries. Absent inline targets obey
+the ordinary producer's exact allocation law: reusable tail pages are consumed
+first, each non-final new segment contains exactly the persisted page capacity,
+and only the final new segment may be partial. The immutable redo plan
+independently binds each pending projection allocation capacity and used-page
+count to that selected allocation truth before staging authority exists.
 
 **Mechanically forbids:** redo redecision during execution, missing-range
 truncation, pageLSN bypass, Store-incarnation omission, absence-as-no-effect,
 caller-supplied generation samples/source/policy, wall-clock lease expiry, and
-plan construction over budget.
+plan construction over budget. A coordinated target and recovery projection
+cannot redefine the persisted segment capacity or spill boundary by remaining
+internally self-consistent.
 
 **Evidence:** independent prefix decoder tests, property tests for gaps/overlaps
 and repeated planning, every-fate identity blender, exact counter oracles,

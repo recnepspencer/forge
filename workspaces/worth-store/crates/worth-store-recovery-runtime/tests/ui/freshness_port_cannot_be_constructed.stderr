@@ -1,0 +1,5 @@
+error[E0451]: field `_private` of struct `PhysicalRecoveryFreshnessPort` is private
+ --> tests/ui/freshness_port_cannot_be_constructed.rs:4:51
+  |
+4 |     let _forged = PhysicalRecoveryFreshnessPort { _private: () };
+  |                                                   ^^^^^^^^ private field

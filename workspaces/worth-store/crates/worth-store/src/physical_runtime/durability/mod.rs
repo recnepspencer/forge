@@ -80,6 +80,8 @@ pub use evidence_projection::{
     PhysicalQueuePerformanceExpectation, PhysicalTrafficPerformanceExpectation,
     ProvenNoEffectPhysicalMutationEvidence, StorePhysicalDurabilityPerformanceReceiptEvidence,
 };
+#[cfg(feature = "recovery-runtime-owner")]
+pub(in crate::physical_runtime) use grouping::reopened_membership_digest;
 pub use grouping::{
     AdmittedPhysicalDurabilityGroup, AdmittedPhysicalDurabilityGroupMember,
     DataSettledPhysicalMutationMembers, IndeterminatePhysicalWalGroupBarrier,
@@ -139,6 +141,11 @@ pub use mutation::{
     RootNamespaceDurablePhysicalMutationMembers, RootPublicationPhysicalMutationMember,
     RootPublicationPreparedPhysicalMutationMembers, RootReplacedPhysicalMutationMembers,
     WalAppendedPhysicalMutation, WalDurablePhysicalMutation, WalRangeReservedPhysicalMutation,
+};
+#[cfg(feature = "recovery-runtime-owner")]
+pub(in crate::physical_runtime) use mutation::{
+    DecodedPhysicalMutationBindingRecord, PersistedPhysicalMutationFate,
+    PhysicalBindingDecodingContext,
 };
 pub use observation::PhysicalMutationObservation;
 pub use observation::{PhysicalDurabilityObservation, PhysicalDurabilityReopenObservation};

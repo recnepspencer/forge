@@ -57,6 +57,7 @@ fn direct_consumer_owner(package: &str) -> &'static str {
         "worth-store-operations" => "worth-store-operations/recovery-workflows",
         "worth-store-physical-isolation" => "worth-store-physical-isolation/recovery-interlocks",
         "worth-store-replication" => "worth-store-replication/recovery-admission",
+        "worth-store-recovery-runtime" => "worth-store-recovery-runtime/orchestration",
         "worth-store-test-support" => "worth-store-test-support/c8-recovery-fixtures",
         other => panic!("unowned C.8 direct consumer package `{other}`"),
     }

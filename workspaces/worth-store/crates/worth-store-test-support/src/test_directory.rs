@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::path::PathBuf;
 
 /// A filesystem root whose lifetime is exactly the lifetime of its test fixture.
 #[derive(Clone, Debug)]
@@ -18,6 +19,14 @@ impl TemporaryDirectory {
 
     pub fn path(&self) -> &Path {
         self.directory.path()
+    }
+
+    /// Retains the directory after the fixture owner exits so another process
+    /// can reopen the exact persisted world.
+    pub fn persist(self) -> PathBuf {
+        let directory = std::sync::Arc::try_unwrap(self.directory)
+            .expect("a retained test directory has one final owner");
+        directory.keep()
     }
 }
 

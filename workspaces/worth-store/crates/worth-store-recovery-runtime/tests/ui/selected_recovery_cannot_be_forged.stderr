@@ -1,0 +1,23 @@
+error[E0308]: mismatched types
+ --> tests/ui/selected_recovery_cannot_be_forged.rs:5:20
+  |
+5 |         authority: (),
+  |                    ^^ expected `AdmittedPlatformAuthority`, found `()`
+
+error[E0308]: mismatched types
+ --> tests/ui/selected_recovery_cannot_be_forged.rs:6:23
+  |
+6 |         coordination: (),
+  |                       ^^ expected `RecoveryCoordination`, found `()`
+
+error[E0308]: mismatched types
+ --> tests/ui/selected_recovery_cannot_be_forged.rs:7:20
+  |
+7 |         selection: (),
+  |                    ^^ expected `PhysicalSourceSelection`, found `()`
+
+error[E0308]: mismatched types
+ --> tests/ui/selected_recovery_cannot_be_forged.rs:8:19
+  |
+8 |         counters: (),
+  |                   ^^ expected `PhysicalRecoveryDiscoveryCounters`, found `()`

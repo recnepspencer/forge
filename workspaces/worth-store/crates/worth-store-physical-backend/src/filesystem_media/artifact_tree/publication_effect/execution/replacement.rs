@@ -128,7 +128,7 @@ impl ArtifactTreeMedia<'_> {
     }
 }
 
-fn mutation_sequence(
+pub(super) fn mutation_sequence(
     media: &ArtifactTreeMedia<'_>,
     file: &cap_std::fs::File,
 ) -> Result<

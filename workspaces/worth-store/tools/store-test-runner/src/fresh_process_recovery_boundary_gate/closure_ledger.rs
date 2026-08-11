@@ -187,14 +187,15 @@ fn validate_ledger(document: &str) -> Result<(), String> {
         if row.phase != "1" || row.status != "PROVED" {
             return Err(format!("C.8 guarantee {} is not closed", row.id));
         }
-        if row.reopened_by != "none"
-            && (!findings.contains(row.reopened_by.as_str())
-                || !finding_applies(&row.reopened_by, &row.id))
-        {
-            return Err(format!(
-                "C.8 guarantee {} names unrelated reopening {}",
-                row.id, row.reopened_by
-            ));
+        if row.reopened_by != "none" {
+            for finding in row.reopened_by.split_whitespace() {
+                if !findings.contains(finding) || !finding_applies(finding, &row.id) {
+                    return Err(format!(
+                        "C.8 guarantee {} names unrelated reopening {}",
+                        row.id, finding
+                    ));
+                }
+            }
         }
         let source_identity = phase_one_source_identity(&row.id)?;
         if row.source_identity != source_identity {
@@ -225,14 +226,14 @@ fn expected_contract(
 ) -> Result<(&'static str, &'static str, &'static str, &'static str), String> {
     match id {
         "C8-P1-TRUTH-01" => Ok(("Fresh recovery distinguishes real persisted Store producers from explicit producer gaps and admits no live or derived proxy", "C8 governing specification", "persisted_input_roles_bind_real_producers_or_explicit_gaps and omitted_foreign_and_derived_proxy_mutants_are_rejected", "none")),
-        "C8-P1-API-01" => Ok(("Every reachable recovery-physics module item associated surface and configuration-scoped export plus every planned facade has one exact disposition", "C8 public API inventory", "current_facade_and_destination_contract_have_exact_inventory_rows plus dispositions_name_one_real_destination_owner", "none")),
+        "C8-P1-API-01" => Ok(("Every reachable recovery-physics item plus every production-reachable delivered Phase 2 through Phase 6 facade surface and every planned facade has one exact disposition", "C8 public API inventory", "live current and delivered facade derivation exact inventory equality supporting-baseline drift checks and dispositions_name_one_real_destination_owner", "none")),
         "C8-P1-AUTHORITY-01" => Ok(("Concrete Store authority retains every entry and admitted-world binding axis beneath private Worth Proof substrate", "C8 authority trace", "authority_trace_locks_every_c8_contract_family_exactly plus performed_and_freshness_axis_substitution_mutants_are_rejected", "none")),
         "C8-P1-SESSION-01" => Ok(("One owner-issued recovery session reaches exactly one of four Store terminals", "C8 authority trace", "authority_trace_locks_every_c8_contract_family_exactly and exact linear-resource substrate", "none")),
         "C8-P1-EFFECT-01" => Ok(("Performed evidence exists only for five exact owner-recorded C4 action kinds with outcome and occurrence bindings", "C8 authority trace", "performed_and_freshness_axis_substitution_mutants_are_rejected", "none")),
         "C8-P1-FRESHNESS-01" => Ok(("Store owners sample checkpoint and published-root generation freshness from sealed bases under two exact policies", "C8 authority trace", "performed_and_freshness_axis_substitution_mutants_are_rejected", "none")),
         "C8-P1-PROTOCOL-01" => Ok(("Recovery and observer reports use distinct version-one Foundational families with one-version windows and no Store authority", "C8 authority trace", "generic_proof_and_report_values_open_no_store_door", "none")),
         "C8-P1-TOPOLOGY-01" => Ok(("Every C8 semantic leaf has one exact destination responsibility and delivery phase while future insertion preserves owner direction", "C8 destination topology", "destination_topology_has_one_exact_semantic_home_per_c8_axis plus topology_rows_have_specific_owners_and_phase_honest_status", "none")),
-        "C8-P1-DEPENDENCY-01" => Ok(("Current recovery dependency edges are frozen while Signal Query replay and ordinary reverse imports remain forbidden", "C8 Cargo graph", "checked_in_recovery_dependency_cut_matches_cargo_metadata plus phase_one_dependency_direction_is_honest", "none")),
+        "C8-P1-DEPENDENCY-01" => Ok(("Current recovery dependency edges are frozen while Signal Query replay and ordinary reverse imports remain forbidden", "C8 Cargo graph", "checked_in_recovery_dependency_cut_matches_cargo_metadata plus delivered_phase_dependency_direction_is_honest", "none")),
         "C8-P1-CUTOVER-01" => Ok(("Every recovery-physics owner syntax-reachable direct consumer nested observer route C7 lineage input and authoritative document has one reconciled disposition", "C8 cutover inventory", "scoped_cutover_inventory_matches_current_source_and_consumer_closure plus syntax_references_reject_globs_comments_and_alias_bypasses", "none")),
         "C8-P1-COMPILE-01" => Ok(("C7 operation facts reports clones and public constructors cannot mint or duplicate the inherited C7 closeout handoff", "worth-store physical runtime authority tests", "phase_ten_c8_recovery_handoff_is_compile_sealed four C7 trybuild attacks", "actual C8 entry and handoff compile sealing belongs to phases 2 and 6")),
         "C8-P1-CLEANUP-01" => Ok(("Parallel cutover names old entry verifier evidence workflow and reverse-dependency deletion gates without creating Phase 2 stubs", "C8 API Cargo and cutover inventories", "exact semantic dispositions plus worth-store-recovery-runtime absence gate", "none")),

@@ -20,7 +20,7 @@ mod durability;
 mod frame_writeback_basis;
 mod publication_basis;
 mod read_basis;
-mod security_admission;
+pub(in crate::physical_runtime) mod security_admission;
 
 const RECORD_ASPECT_REVISION: u64 = 1;
 

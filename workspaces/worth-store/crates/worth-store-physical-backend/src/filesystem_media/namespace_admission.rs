@@ -56,6 +56,70 @@ pub(super) fn create_or_open(
     Ok(namespace.complete_admission(publication_parent, effect_fate))
 }
 
+#[cfg(feature = "recovery-runtime-owner")]
+pub(super) fn open_existing(
+    root: &Path,
+    boundary: &super::fault_interposition::MediaFaultInterposer,
+) -> Result<AdmittedStoreNamespace, NamespaceAdmissionFailure> {
+    let effect_fate = MediaOwnerAdmissionEffectFate::DeniedBeforeEffect;
+    let name = root.file_name().ok_or_else(|| {
+        admission_failure(
+            NamespaceConfinementDenial::structural(
+                NamespaceConfinementDenialKind::MissingParentPublicationBoundary,
+            ),
+            effect_fate,
+        )
+    })?;
+    let parent_path = root
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let publication_parent = super::admitted_namespace::boundary_io_call(
+        boundary,
+        super::MediaOperationRole::OpenRootParent,
+        || Dir::open_ambient_dir(parent_path, ambient_authority()),
+    )
+    .map_err(|error| io_admission_failure(error, effect_fate))?;
+    require_existing_root_entry(&publication_parent, name, boundary, effect_fate)?;
+    let directory = super::admitted_namespace::boundary_io_call(
+        boundary,
+        super::MediaOperationRole::OpenDirectory,
+        || publication_parent.open_dir_nofollow(name),
+    )
+    .map_err(|error| io_admission_failure(error, effect_fate))?;
+    require_opened_root_identity(root, &directory, boundary)
+        .map_err(|denial| admission_failure(denial, effect_fate))?;
+    let classification = classify_root(false, &directory, boundary, effect_fate)?;
+    if !matches!(
+        classification,
+        StoreNamespaceClassification::Initialized { .. }
+    ) {
+        return Err(admission_failure(
+            NamespaceConfinementDenial::structural(classification_denial_kind(&classification)),
+            effect_fate,
+        ));
+    }
+    AdmittedStoreNamespace::from_opened_directory(directory, boundary)
+        .map(|namespace| namespace.complete_existing_admission(publication_parent))
+        .map_err(|denial| admission_failure(denial, effect_fate))
+}
+
+#[cfg(feature = "recovery-runtime-owner")]
+fn require_existing_root_entry(
+    publication_parent: &Dir,
+    name: &std::ffi::OsStr,
+    boundary: &super::fault_interposition::MediaFaultInterposer,
+    effect_fate: MediaOwnerAdmissionEffectFate,
+) -> Result<(), NamespaceAdmissionFailure> {
+    let metadata = super::admitted_namespace::boundary_io_call(
+        boundary,
+        super::MediaOperationRole::InspectNamespaceEntry,
+        || publication_parent.symlink_metadata(name),
+    )
+    .map_err(|error| io_admission_failure(error, effect_fate))?;
+    require_directory_metadata(metadata).map_err(|denial| admission_failure(denial, effect_fate))
+}
+
 fn admit_root_entry(
     publication_parent: &Dir,
     name: &std::ffi::OsStr,

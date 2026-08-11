@@ -104,9 +104,19 @@ mod tests {
 
     #[test]
     fn terminal_identity_value_is_reserved_and_never_advertised_as_allocatable() {
-        let free =
-            DurableFreeSpaceManifestHeader::new(1, 1, 2, 0, u64::MAX, u64::MAX, u64::MAX, 1, None)
-                .unwrap();
+        let free = DurableFreeSpaceManifestHeader::new(
+            1,
+            1,
+            2,
+            4,
+            0,
+            u64::MAX,
+            u64::MAX,
+            u64::MAX,
+            1,
+            None,
+        )
+        .unwrap();
         let mut frontier = RecordAllocationFrontier::new(&free);
         assert_eq!(frontier.allocate_segment(), None);
         assert_eq!(frontier.allocate_page(), None);
@@ -115,7 +125,7 @@ mod tests {
 
     #[test]
     fn disjoint_reservations_never_reuse_abandoned_identity_ranges() {
-        let free = DurableFreeSpaceManifestHeader::new(1, 1, 2, 0, 7, 11, 13, 1, None).unwrap();
+        let free = DurableFreeSpaceManifestHeader::new(1, 1, 2, 4, 0, 7, 11, 13, 1, None).unwrap();
         let mut frontier = RecordAllocationFrontier::new(&free);
         let mut first = frontier.reserve(2, 3, 1).unwrap();
         let mut second = frontier.reserve(1, 1, 2).unwrap();

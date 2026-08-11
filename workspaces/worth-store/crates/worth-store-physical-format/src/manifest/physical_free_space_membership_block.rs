@@ -13,6 +13,29 @@ const BLOCK_PREFIX_BYTES: usize = 40;
 const REFERENCE_BYTES: usize = 56;
 const ENTRY_BYTES: usize = 40;
 
+#[cfg(test)]
+#[path = "physical_free_space_membership_block/bounded_decode_tests.rs"]
+mod bounded_decode_tests;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FreeSpaceMembershipBlockDecodeLimits {
+    pub leaf_entries: u64,
+    pub branch_children: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BoundedFreeSpaceMembershipBlockDecodeDenial {
+    Format(FreeSpaceRoutingDenial),
+    LeafEntries { observed: u64, admitted: u64 },
+    BranchChildren { observed: u64, admitted: u64 },
+}
+
+impl From<FreeSpaceRoutingDenial> for BoundedFreeSpaceMembershipBlockDecodeDenial {
+    fn from(value: FreeSpaceRoutingDenial) -> Self {
+        Self::Format(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PhysicalFreeSpaceMembershipBlock {
     Leaf {
@@ -156,6 +179,29 @@ impl PhysicalFreeSpaceMembershipBlock {
         bytes: &[u8],
         capacity: u16,
     ) -> Result<(Self, PhysicalRecordFormatDeclaration), FreeSpaceRoutingDenial> {
+        match Self::decode_bounded(
+            bytes,
+            capacity,
+            FreeSpaceMembershipBlockDecodeLimits {
+                leaf_entries: u64::MAX,
+                branch_children: u64::MAX,
+            },
+        ) {
+            Ok(decoded) => Ok(decoded),
+            Err(BoundedFreeSpaceMembershipBlockDecodeDenial::Format(denial)) => Err(denial),
+            Err(
+                BoundedFreeSpaceMembershipBlockDecodeDenial::LeafEntries { .. }
+                | BoundedFreeSpaceMembershipBlockDecodeDenial::BranchChildren { .. },
+            ) => unreachable!("unbounded free-space decode cannot exceed cardinality"),
+        }
+    }
+
+    pub fn decode_bounded(
+        bytes: &[u8],
+        capacity: u16,
+        limits: FreeSpaceMembershipBlockDecodeLimits,
+    ) -> Result<(Self, PhysicalRecordFormatDeclaration), BoundedFreeSpaceMembershipBlockDecodeDenial>
+    {
         let (format, frame) =
             decode_durable_frame(bytes, DurableFrameKind::FreeSpaceMembershipBlock)
                 .map_err(FreeSpaceRoutingDenial::Frame)?;
@@ -163,7 +209,7 @@ impl PhysicalFreeSpaceMembershipBlock {
             || frame.payload[21..24] != [0; 3]
             || frame.payload[32..40] != [0; 8]
         {
-            return Err(FreeSpaceRoutingDenial::Malformed);
+            return Err(FreeSpaceRoutingDenial::Malformed.into());
         }
         let tree_identity = read_u64(frame.payload, 0);
         let block = read_u64(frame.payload, 8);
@@ -176,15 +222,30 @@ impl PhysicalFreeSpaceMembershipBlock {
             || count == 0
             || count > capacity
         {
-            return Err(FreeSpaceRoutingDenial::IdentityOrCapacity);
+            return Err(FreeSpaceRoutingDenial::IdentityOrCapacity.into());
         }
         let width = match frame.payload[20] {
             1 if level == 0 => ENTRY_BYTES,
             2 if level != 0 => REFERENCE_BYTES,
-            _ => return Err(FreeSpaceRoutingDenial::Malformed),
+            _ => return Err(FreeSpaceRoutingDenial::Malformed.into()),
         };
         if frame.payload.len() != BLOCK_PREFIX_BYTES + usize::from(count) * width {
-            return Err(FreeSpaceRoutingDenial::Malformed);
+            return Err(FreeSpaceRoutingDenial::Malformed.into());
+        }
+        let observed = u64::from(count);
+        if level == 0 && observed > limits.leaf_entries {
+            return Err(BoundedFreeSpaceMembershipBlockDecodeDenial::LeafEntries {
+                observed,
+                admitted: limits.leaf_entries,
+            });
+        }
+        if level != 0 && observed > limits.branch_children {
+            return Err(
+                BoundedFreeSpaceMembershipBlockDecodeDenial::BranchChildren {
+                    observed,
+                    admitted: limits.branch_children,
+                },
+            );
         }
         let body = &frame.payload[BLOCK_PREFIX_BYTES..];
         let decoded = if level == 0 {
@@ -213,7 +274,7 @@ impl PhysicalFreeSpaceMembershipBlock {
         };
         decoded
             .map(|value| (value, format))
-            .ok_or(FreeSpaceRoutingDenial::CanonicalOrder)
+            .ok_or(FreeSpaceRoutingDenial::CanonicalOrder.into())
     }
     pub fn entries(&self) -> Option<&[RecordFreeSpaceManifestEntry]> {
         match self {

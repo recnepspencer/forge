@@ -1,0 +1,31 @@
+[package]
+workspace = "../.."
+name = "worth-store-recovery-runtime"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Fresh-process physical Store recovery orchestration."
+
+[dependencies]
+sha2 = "0.10"
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store = { workspace = true, features = ["recovery-runtime-owner"] }
+worth-store-physical-format.workspace = true
+worth-store-recovery-physics.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
+trybuild = "1.0"
+syn = { version = "2", features = ["full"] }
+worth-store = { workspace = true, features = ["certification-test-authority"] }
+worth-store-test-support = { workspace = true, features = ["recovery-runtime-fixtures"] }
+
+[features]
+certification-test-authority = ["worth-store/certification-test-authority"]
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "physical_store_recover"
+path = "src/bin/physical_store_recover.rs"

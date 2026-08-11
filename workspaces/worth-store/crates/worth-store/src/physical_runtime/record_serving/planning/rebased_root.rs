@@ -64,6 +64,16 @@ pub(in crate::physical_runtime::record_serving) fn project_settled_root(
         candidate,
         manifest: context.current_root.clone(),
         root_bytes: Vec::new(),
+        previous_selector_candidate: RecordArtifactFile::RootSelectorCandidate {
+            role: worth_store_physical_format::RootSelectorRole::Previous,
+            publication: candidate_publication(candidate),
+        },
+        previous_selector_bytes: Vec::new(),
+        current_selector_candidate: RecordArtifactFile::RootSelectorCandidate {
+            role: worth_store_physical_format::RootSelectorRole::Current,
+            publication: candidate_publication(candidate),
+        },
+        current_selector_bytes: Vec::new(),
         catalog_bytes: Vec::new(),
         observation: prepared.observation,
     };
@@ -71,6 +81,13 @@ pub(in crate::physical_runtime::record_serving) fn project_settled_root(
         assembly::assemble_rebased_publication(publication, context, generation, projected);
     publication.manifests.splice(0..0, payload_manifests);
     Ok((publication, free_space))
+}
+
+fn candidate_publication(candidate: RecordArtifactFile) -> u64 {
+    let RecordArtifactFile::CatalogCandidate { publication } = candidate else {
+        unreachable!("root rebase owns one catalog candidate")
+    };
+    publication
 }
 
 fn successor_generation(current: &DurablePhysicalRootManifest) -> Result<u64, RecordAppendError> {

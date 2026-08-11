@@ -1,5 +1,6 @@
 mod artifact_append;
 mod artifact_append_outcome;
+mod bounded_listing;
 mod directory_listing;
 mod durable_truncation;
 mod exact_read_effect;
@@ -20,7 +21,8 @@ pub use artifact_append_outcome::{
     ArtifactAppendOutcome, ArtifactAppendRange, CompletedArtifactAppend,
     CompletedScheduledArtifactAppend, IndeterminateArtifactAppend, ScheduledArtifactAppendOutcome,
 };
-pub use failure::{ArtifactTreeFailure, ArtifactTreeFailureKind};
+pub use bounded_listing::ArtifactTreeDirectoryEntry;
+pub use failure::{ArtifactTreeAccessLimit, ArtifactTreeFailure, ArtifactTreeFailureKind};
 pub use media::ArtifactTreeMedia;
 pub use metadata_read::{
     CompletedArtifactMetadataRead, CompletedScheduledArtifactMetadataRead,
@@ -34,7 +36,7 @@ pub use new_artifact_write::{
 };
 pub use path::{ArtifactTreeDirectory, ArtifactTreeFile, ArtifactTreePathDenial};
 pub use publication_effect::{
-    ArtifactTreePublicationEffect, ArtifactTreePublicationEffectOutcome,
+    ArtifactTreePublicationEffect, ArtifactTreePublicationEffectOutcome, ArtifactTreeReplacement,
     CompletedArtifactTreePublicationEffect, CompletedScheduledArtifactTreePublicationEffect,
     IndeterminateArtifactTreePublicationEffect, ScheduledArtifactTreePublicationEffectOutcome,
 };

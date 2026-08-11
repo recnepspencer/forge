@@ -28,6 +28,20 @@ impl AdmittedStoreIdentity {
 pub(super) fn admit_store_identity(
     owner: &FilesystemMediaOwner,
 ) -> Result<AdmittedStoreIdentity, MediaQualificationPostOwnershipCause> {
+    admit_store_identity_with_policy(owner, OrdinaryIdentityAdmission)
+}
+
+#[cfg(feature = "recovery-runtime-owner")]
+pub(crate) fn admit_existing_store_identity(
+    owner: &FilesystemMediaOwner,
+) -> Result<AdmittedStoreIdentity, MediaQualificationPostOwnershipCause> {
+    admit_store_identity_with_policy(owner, ExistingRecoveryIdentityAdmission)
+}
+
+fn admit_store_identity_with_policy<P: IdentityAdmissionPolicy>(
+    owner: &FilesystemMediaOwner,
+    policy: P,
+) -> Result<AdmittedStoreIdentity, MediaQualificationPostOwnershipCause> {
     let path = owner.identity_record_path();
     match owner.open_existing(&path).into_result() {
         NamespaceFileOpenResult::Opened { handle, .. } => {
@@ -50,7 +64,7 @@ pub(super) fn admit_store_identity(
             let identity = StoreNamespaceIdentityRecord::decode(&bytes)
                 .map(|record| record.published_identity())
                 .map_err(|_| identity_read(owner))?;
-            reconcile_identity_publication(owner)?;
+            policy.reconcile_existing(owner)?;
             Ok(AdmittedStoreIdentity {
                 stable: identity,
                 owner: owner.identity(),
@@ -59,9 +73,61 @@ pub(super) fn admit_store_identity(
         NamespaceFileOpenResult::Failed(failure)
             if failure.context().io_kind() == Some(std::io::ErrorKind::NotFound) =>
         {
-            publish_store_identity(owner)
+            policy.admit_missing(owner)
         }
         NamespaceFileOpenResult::Failed(_) => Err(identity_read(owner)),
+    }
+}
+
+trait IdentityAdmissionPolicy {
+    fn reconcile_existing(
+        self,
+        owner: &FilesystemMediaOwner,
+    ) -> Result<(), MediaQualificationPostOwnershipCause>;
+
+    fn admit_missing(
+        self,
+        owner: &FilesystemMediaOwner,
+    ) -> Result<AdmittedStoreIdentity, MediaQualificationPostOwnershipCause>;
+}
+
+#[derive(Clone, Copy)]
+struct OrdinaryIdentityAdmission;
+
+impl IdentityAdmissionPolicy for OrdinaryIdentityAdmission {
+    fn reconcile_existing(
+        self,
+        owner: &FilesystemMediaOwner,
+    ) -> Result<(), MediaQualificationPostOwnershipCause> {
+        reconcile_identity_publication(owner)
+    }
+
+    fn admit_missing(
+        self,
+        owner: &FilesystemMediaOwner,
+    ) -> Result<AdmittedStoreIdentity, MediaQualificationPostOwnershipCause> {
+        publish_store_identity(owner)
+    }
+}
+
+#[cfg(feature = "recovery-runtime-owner")]
+#[derive(Clone, Copy)]
+struct ExistingRecoveryIdentityAdmission;
+
+#[cfg(feature = "recovery-runtime-owner")]
+impl IdentityAdmissionPolicy for ExistingRecoveryIdentityAdmission {
+    fn reconcile_existing(
+        self,
+        _owner: &FilesystemMediaOwner,
+    ) -> Result<(), MediaQualificationPostOwnershipCause> {
+        Ok(())
+    }
+
+    fn admit_missing(
+        self,
+        owner: &FilesystemMediaOwner,
+    ) -> Result<AdmittedStoreIdentity, MediaQualificationPostOwnershipCause> {
+        Err(identity_read(owner))
     }
 }
 

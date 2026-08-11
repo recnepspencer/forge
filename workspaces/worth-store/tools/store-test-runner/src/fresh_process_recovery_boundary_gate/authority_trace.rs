@@ -139,7 +139,14 @@ fn generic_proof_and_report_values_open_no_store_door() {
         }
         assert!(matches!(
             row.phase.as_str(),
-            "phase-2" | "phase-3" | "phase-4" | "phase-5" | "phase-6" | "phase-7"
+            "phase-2"
+                | "phase-3"
+                | "phase-4"
+                | "phase-5"
+                | "phase-6"
+                | "phase-7"
+                | "phase-8"
+                | "phase-9"
         ));
         assert!(!row.binding_axes.is_empty());
     }
@@ -166,10 +173,10 @@ fn performed_and_freshness_axis_substitution_mutants_are_rejected() {
 
 fn validate_exact_semantics(row: &TraceRow) -> Result<(), String> {
     let expected = match row.member.as_str() {
-        "staging-write" => ("recovery-runtime/orchestration-staging", "worth-proof-performed", "session-subject-generation-action-kind-outcome-and-effect-occurrence", "next-staged-page-transition"),
-        "recovered-root-replacement" => ("recovery-runtime/orchestration-publication", "worth-proof-performed", "session-root-staging-generation-action-kind-outcome-and-effect-occurrence", "next-namespace-transition"),
-        "namespace-synchronization" => ("recovery-runtime/orchestration-publication", "worth-proof-performed", "session-root-published-generation-action-kind-outcome-and-effect-occurrence", "namespace-durable-transition"),
-        "independent-reopen" => ("recovery-runtime/orchestration-reopen", "worth-proof-performed", "session-root-published-generation-action-kind-outcome-and-effect-occurrence", "reopened-transition"),
+        "staging-write" => ("worth-store/recovery-coordination-effect", "worth-proof-performed", "session-subject-generation-action-kind-outcome-and-effect-occurrence", "next-staged-page-transition"),
+        "recovered-root-replacement" => ("worth-store/recovery-coordination-effect", "worth-proof-performed", "session-root-staging-generation-action-kind-outcome-and-effect-occurrence", "next-namespace-transition"),
+        "namespace-synchronization" => ("worth-store/recovery-coordination-effect", "worth-proof-performed", "session-root-published-generation-action-kind-outcome-and-effect-occurrence", "namespace-durable-transition"),
+        "independent-reopen" => ("worth-store/recovery-coordination-effect-reopen", "worth-proof-performed", "session-root-published-generation-action-kind-outcome-and-effect-occurrence", "reopened-transition"),
         "cleanup-removal" => ("recovery-runtime/cleanup-execution", "worth-proof-performed", "session-cleanup-plan-artifact-action-kind-outcome-and-effect-occurrence", "one-artifact-cleanup-settlement"),
         "idempotency-binding:selected-checkpoint-generation" => ("worth-store/recovery-freshness/binding", "worth-proof-freshness", "stable-store-selected-checkpoint-binding-owner-sampled-generation-sealed-c7-basis-and-policy-identity", "matching-fate-branch-only"),
         "cleanup-plan:current-published-root-generation" => ("worth-store/recovery-freshness/cleanup", "worth-proof-freshness", "stable-store-current-published-root-cleanup-plan-artifact-owner-sampled-generation-sealed-publication-basis-and-policy-identity", "matching-cleanup-effect-only"),

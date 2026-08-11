@@ -1,0 +1,5 @@
+error[E0599]: no method named `clone` found for struct `PhysicalRecoveryPlatformAuthority` in the current scope
+ --> tests/ui/platform_authority_cannot_clone.rs:4:27
+  |
+4 |     let _copy = authority.clone();
+  |                           ^^^^^ method not found in `PhysicalRecoveryPlatformAuthority`

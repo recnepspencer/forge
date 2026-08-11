@@ -49,7 +49,7 @@ workspace_manifest = "workspaces/worth-store/Cargo.toml"
 governed_source_prefixes = ["worth-store"]
 target = "worth-signal"
 allowed_sources = ["worth-store"]
-guidance = "the worth-store composition owner is the sole Store package allowed to own the private physical Signal runtime"
+guidance = "ordinary and recovery physical Signal composition remain behind Store-owned construction ports"
 
 [[dependency_denials]]
 workspace_manifest = "Cargo.toml"

@@ -12,8 +12,8 @@ use worth_store_physical_format::{
 };
 
 use super::super::independent_wal_oracle::{
-    independent_canonical_redo, independent_frame_payload, independent_target_claim,
-    split_member_payload,
+    independent_canonical_redo, independent_frame_payload, independent_recovery_projection,
+    independent_target_claim, split_member_payload,
 };
 
 pub(super) fn assert_encoded_wal_matches_claims(
@@ -52,8 +52,14 @@ pub(super) fn assert_encoded_wal_matches_claims(
                 .collect()
         })
         .collect::<Vec<_>>();
-    let expected =
-        independent_canonical_redo(&records, declaration.lsn_range().start().get(), &targets);
+    let projection = independent_recovery_projection(encoded_redo)
+        .expect("the independent WAL oracle must admit the mandatory recovery projection");
+    let expected = independent_canonical_redo(
+        &records,
+        declaration.lsn_range().start().get(),
+        &targets,
+        projection,
+    );
     assert_eq!(
         encoded_redo, expected,
         "raw WAL must encode the exact logical data-image targets"

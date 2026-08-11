@@ -1,10 +1,10 @@
 use worth_store_physical_backend::{
     ArtifactNewWriteRange, ArtifactRangeWriteDurabilityRequirement, ArtifactTreeDirectory,
-    ArtifactTreeFailure, ArtifactTreeFile, ArtifactTreeMedia, BackendQueueExecutionAdaptation,
-    BackendQueueExecutionPlanBinding, BackendQueueSpeculativeScope, QualifiedFilesystemMedia,
-    ScheduledArtifactMetadataReadOutcome, ScheduledArtifactNewWriteOutcome,
-    ScheduledArtifactRangeReadOutcome, ScheduledArtifactRangeWriteOutcome,
-    ScheduledArtifactTreePublicationEffectOutcome,
+    ArtifactTreeFailure, ArtifactTreeFile, ArtifactTreeMedia, ArtifactTreeReplacement,
+    BackendQueueExecutionAdaptation, BackendQueueExecutionPlanBinding,
+    BackendQueueSpeculativeScope, QualifiedFilesystemMedia, ScheduledArtifactMetadataReadOutcome,
+    ScheduledArtifactNewWriteOutcome, ScheduledArtifactRangeReadOutcome,
+    ScheduledArtifactRangeWriteOutcome, ScheduledArtifactTreePublicationEffectOutcome,
 };
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
@@ -250,9 +250,30 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
         binding: BackendQueueExecutionPlanBinding,
         adaptation: BackendQueueExecutionAdaptation,
     ) -> ScheduledArtifactTreePublicationEffectOutcome {
-        self.tree.replace_scheduled(
-            &self.artifact(candidate),
-            &self.artifact(RecordArtifactFile::BootstrapCatalog),
+        let RecordArtifactFile::CatalogCandidate { publication } = candidate else {
+            unreachable!("root protocol replacement requires its catalog candidate")
+        };
+        let previous_candidate = RecordArtifactFile::RootSelectorCandidate {
+            role: worth_store_physical_format::RootSelectorRole::Previous,
+            publication,
+        };
+        let current_candidate = RecordArtifactFile::RootSelectorCandidate {
+            role: worth_store_physical_format::RootSelectorRole::Current,
+            publication,
+        };
+        self.tree.replace_root_protocol_scheduled(
+            ArtifactTreeReplacement::new(
+                self.artifact(previous_candidate),
+                self.artifact(RecordArtifactFile::PreviousRootSelector),
+            ),
+            ArtifactTreeReplacement::new(
+                self.artifact(current_candidate),
+                self.artifact(RecordArtifactFile::CurrentRootSelector),
+            ),
+            ArtifactTreeReplacement::new(
+                self.artifact(candidate),
+                self.artifact(RecordArtifactFile::BootstrapCatalog),
+            ),
             binding,
             adaptation,
         )
@@ -315,8 +336,11 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
 
     fn artifact_directory(&self, artifact: RecordArtifactFile) -> &ArtifactTreeDirectory {
         match artifact {
-            RecordArtifactFile::BootstrapCatalog => &self.record_family,
-            RecordArtifactFile::CatalogCandidate { .. } => &self.record_staging,
+            RecordArtifactFile::BootstrapCatalog
+            | RecordArtifactFile::CurrentRootSelector
+            | RecordArtifactFile::PreviousRootSelector => &self.record_family,
+            RecordArtifactFile::CatalogCandidate { .. }
+            | RecordArtifactFile::RootSelectorCandidate { .. } => &self.record_staging,
             RecordArtifactFile::RootManifest { .. }
             | RecordArtifactFile::RootRoutingBlock { .. } => &self.root_manifests,
             RecordArtifactFile::Segment { .. } => &self.page_segments,

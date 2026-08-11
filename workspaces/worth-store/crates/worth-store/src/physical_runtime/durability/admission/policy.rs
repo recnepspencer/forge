@@ -100,6 +100,15 @@ impl PhysicalIdempotencyPolicy {
     pub const fn live_binding_limit(self) -> LiveIdempotencyBindingLimit {
         self.live_bindings
     }
+
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(in crate::physical_runtime) fn from_recovery_binding(retention: NonZeroU64) -> Self {
+        Self::new(
+            IdempotencyRetentionGenerations::new(retention),
+            PendingUnresolvedMutationLimit::new(NonZeroU32::MIN),
+            LiveIdempotencyBindingLimit::new(NonZeroU32::MIN),
+        )
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -306,6 +315,11 @@ pub struct PhysicalDurabilityPolicyIdentity([u8; 32]);
 impl PhysicalDurabilityPolicyIdentity {
     pub const fn bytes(self) -> [u8; 32] {
         self.0
+    }
+
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(in crate::physical_runtime) const fn from_recovery_binding(bytes: [u8; 32]) -> Self {
+        Self(bytes)
     }
 }
 

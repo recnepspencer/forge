@@ -8,6 +8,7 @@ description = "Public Worth Store facade and owner of the physical runtime lifec
 
 [features]
 default = []
+recovery-runtime-owner = ["worth-store-physical-backend/recovery-runtime-owner"]
 certification-test-authority = [
     "worth-store-buffer-pool/certification-test-authority",
     "worth-store-physical-backend/certification-test-authority",

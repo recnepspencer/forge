@@ -1,10 +1,12 @@
 use super::identity::{decode_identity, encode_identity};
 use super::record::{read_u64, CheckpointStreamDecodeDenial};
 use super::PhysicalCheckpointIdentity;
+use sha2::{Digest, Sha256};
 
-pub(super) const HEADER_PAYLOAD_BYTES: usize = 72;
-pub const CHECKPOINT_STREAM_HEADER_RECORD_BYTES: usize = 92;
+pub(super) const HEADER_PAYLOAD_BYTES: usize = 144;
+pub const CHECKPOINT_STREAM_HEADER_RECORD_BYTES: usize = 164;
 const CONCURRENT_MUTATION_POSTURE: u8 = 1;
+const SECURITY_BINDING_PRESENT: u8 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CheckpointWalSourceRange {
@@ -61,6 +63,15 @@ pub struct PhysicalCheckpointSource {
     wal: CheckpointWalSourceRange,
     root: CheckpointRootBasis,
     dirty_generation_frontier: u64,
+    security_binding: Option<PhysicalCheckpointSecurityBinding>,
+}
+
+/// Persisted Store policy binding required to interpret C.7 operation leases.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PhysicalCheckpointSecurityBinding {
+    policy_identity: [u8; 32],
+    idempotency_retention_generations: u64,
+    digest: [u8; 32],
 }
 
 impl PhysicalCheckpointSource {
@@ -75,7 +86,32 @@ impl PhysicalCheckpointSource {
             wal,
             root,
             dirty_generation_frontier,
+            security_binding: None,
         }
+    }
+
+    pub fn secured_concurrent(
+        identity: PhysicalCheckpointIdentity,
+        wal: CheckpointWalSourceRange,
+        root: CheckpointRootBasis,
+        dirty_generation_frontier: u64,
+        policy_identity: [u8; 32],
+        idempotency_retention_generations: u64,
+    ) -> Option<Self> {
+        let security_binding = PhysicalCheckpointSecurityBinding::new(
+            identity,
+            wal,
+            root,
+            policy_identity,
+            idempotency_retention_generations,
+        )?;
+        Some(Self {
+            identity,
+            wal,
+            root,
+            dirty_generation_frontier,
+            security_binding: Some(security_binding),
+        })
     }
 
     pub const fn identity(self) -> PhysicalCheckpointIdentity {
@@ -93,6 +129,48 @@ impl PhysicalCheckpointSource {
     pub const fn dirty_generation_frontier(self) -> u64 {
         self.dirty_generation_frontier
     }
+
+    pub const fn security_binding(self) -> Option<PhysicalCheckpointSecurityBinding> {
+        self.security_binding
+    }
+}
+
+impl PhysicalCheckpointSecurityBinding {
+    fn new(
+        identity: PhysicalCheckpointIdentity,
+        wal: CheckpointWalSourceRange,
+        root: CheckpointRootBasis,
+        policy_identity: [u8; 32],
+        idempotency_retention_generations: u64,
+    ) -> Option<Self> {
+        if policy_identity == [0; 32] || idempotency_retention_generations == 0 {
+            return None;
+        }
+        let digest = security_digest(
+            identity,
+            wal,
+            root,
+            policy_identity,
+            idempotency_retention_generations,
+        );
+        Some(Self {
+            policy_identity,
+            idempotency_retention_generations,
+            digest,
+        })
+    }
+
+    pub const fn policy_identity(self) -> [u8; 32] {
+        self.policy_identity
+    }
+
+    pub const fn idempotency_retention_generations(self) -> u64 {
+        self.idempotency_retention_generations
+    }
+
+    pub const fn digest(self) -> [u8; 32] {
+        self.digest
+    }
 }
 
 pub(super) fn encode_header(source: PhysicalCheckpointSource) -> [u8; HEADER_PAYLOAD_BYTES] {
@@ -104,13 +182,20 @@ pub(super) fn encode_header(source: PhysicalCheckpointSource) -> [u8; HEADER_PAY
     payload[48..56].copy_from_slice(&source.root().tree_identity().to_le_bytes());
     payload[56..64].copy_from_slice(&source.dirty_generation_frontier().to_le_bytes());
     payload[64] = CONCURRENT_MUTATION_POSTURE;
+    if let Some(security) = source.security_binding() {
+        payload[65] = SECURITY_BINDING_PRESENT;
+        payload[72..104].copy_from_slice(&security.policy_identity());
+        payload[104..112]
+            .copy_from_slice(&security.idempotency_retention_generations().to_le_bytes());
+        payload[112..144].copy_from_slice(&security.digest());
+    }
     payload
 }
 
 pub(super) fn decode_header(
     payload: &[u8],
 ) -> Result<PhysicalCheckpointSource, CheckpointStreamDecodeDenial> {
-    if payload[65..72] != [0; 7] {
+    if payload[66..72] != [0; 6] {
         return Err(CheckpointStreamDecodeDenial::ReservedFieldNonZero);
     }
     let identity = decode_identity(&payload[..24])?;
@@ -122,10 +207,50 @@ pub(super) fn decode_header(
             payload[64],
         ));
     }
-    Ok(PhysicalCheckpointSource::concurrent(
-        identity,
-        wal,
-        root,
-        read_u64(payload, 56),
-    ))
+    match payload[65] {
+        0 if payload[72..144] == [0; 72] => Ok(PhysicalCheckpointSource::concurrent(
+            identity,
+            wal,
+            root,
+            read_u64(payload, 56),
+        )),
+        SECURITY_BINDING_PRESENT => {
+            let policy_identity = payload[72..104].try_into().unwrap();
+            let retention = read_u64(payload, 104);
+            let source = PhysicalCheckpointSource::secured_concurrent(
+                identity,
+                wal,
+                root,
+                read_u64(payload, 56),
+                policy_identity,
+                retention,
+            )
+            .ok_or(CheckpointStreamDecodeDenial::InvalidSecurityBinding)?;
+            if source.security_binding().unwrap().digest() != payload[112..144] {
+                return Err(CheckpointStreamDecodeDenial::InvalidSecurityBinding);
+            }
+            Ok(source)
+        }
+        _ => Err(CheckpointStreamDecodeDenial::InvalidSecurityBinding),
+    }
+}
+
+fn security_digest(
+    identity: PhysicalCheckpointIdentity,
+    wal: CheckpointWalSourceRange,
+    root: CheckpointRootBasis,
+    policy_identity: [u8; 32],
+    retention: u64,
+) -> [u8; 32] {
+    let mut digest = Sha256::new();
+    digest.update(b"worth.store.checkpoint-security-binding.v1");
+    digest.update(identity.store_identity().bytes());
+    digest.update(identity.sequence().get().to_le_bytes());
+    digest.update(wal.admitted_begin_lsn().to_le_bytes());
+    digest.update(wal.covered_end_lsn_exclusive().to_le_bytes());
+    digest.update(root.generation().to_le_bytes());
+    digest.update(root.tree_identity().to_le_bytes());
+    digest.update(policy_identity);
+    digest.update(retention.to_le_bytes());
+    digest.finalize().into()
 }

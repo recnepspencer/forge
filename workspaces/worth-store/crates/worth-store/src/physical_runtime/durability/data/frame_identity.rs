@@ -1,6 +1,7 @@
 use worth_store_physical_format::{
     decode_extent_chunk, inspect_inline_page, ExtentChunkCoordinate, PageGenerationCell,
-    PhysicalRecordFormatDeclaration, RecordArtifactFile, RecordFrameCoordinate,
+    PersistedPhysicalDataFrameSubject, PhysicalRecordFormatDeclaration, RecordArtifactFile,
+    RecordFrameCoordinate,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -108,10 +109,24 @@ impl PhysicalDataFrameIdentity {
     }
 
     pub(in crate::physical_runtime) fn write_canonical(self, target: &mut Vec<u8>) {
-        write_subject(self.subject, target);
-        write_artifact(self.coordinate.artifact(), target);
-        target.extend_from_slice(&self.coordinate.offset().to_le_bytes());
-        target.extend_from_slice(&self.coordinate.length().to_le_bytes());
+        worth_store_physical_format::write_persisted_physical_data_frame_identity(
+            self.persisted_subject(),
+            self.coordinate,
+            target,
+        );
+    }
+
+    pub(in crate::physical_runtime) const fn persisted_subject(
+        self,
+    ) -> PersistedPhysicalDataFrameSubject {
+        match self.subject {
+            PhysicalDataFrameSubject::InlinePage(page) => {
+                PersistedPhysicalDataFrameSubject::InlinePage(page)
+            }
+            PhysicalDataFrameSubject::ExtentChunk(chunk) => {
+                PersistedPhysicalDataFrameSubject::ExtentChunk(chunk)
+            }
+        }
     }
 }
 
@@ -131,86 +146,5 @@ fn artifact_is_exact_successor(source: RecordArtifactFile, target: RecordArtifac
                 && source_generation.checked_add(1) == Some(target_generation)
         }
         _ => false,
-    }
-}
-
-fn write_subject(subject: PhysicalDataFrameSubject, target: &mut Vec<u8>) {
-    match subject {
-        PhysicalDataFrameSubject::InlinePage(page) => {
-            target.push(PhysicalDataFrameKind::InlinePage as u8);
-            target.extend_from_slice(&page.segment_id().get().to_le_bytes());
-            target.extend_from_slice(&page.page_id().get().to_le_bytes());
-            target.extend_from_slice(&page.generation().get().to_le_bytes());
-        }
-        PhysicalDataFrameSubject::ExtentChunk(chunk) => {
-            target.push(PhysicalDataFrameKind::ExtentChunk as u8);
-            let record = chunk.record();
-            target.extend_from_slice(&record.allocation_epoch());
-            target.extend_from_slice(&record.ordinal().to_le_bytes());
-            target.extend_from_slice(&chunk.extent_cell().extent_id().get().to_le_bytes());
-            target.extend_from_slice(&chunk.extent_cell().generation().get().to_le_bytes());
-            target.extend_from_slice(&chunk.logical_bytes().to_le_bytes());
-            target.extend_from_slice(&chunk.logical_offset().to_le_bytes());
-            target.extend_from_slice(&chunk.ordinal().to_le_bytes());
-        }
-    }
-}
-
-fn write_artifact(artifact: RecordArtifactFile, target: &mut Vec<u8>) {
-    match artifact {
-        RecordArtifactFile::BootstrapCatalog => target.push(1),
-        RecordArtifactFile::CatalogCandidate { publication } => {
-            target.push(2);
-            target.extend_from_slice(&publication.to_le_bytes());
-        }
-        RecordArtifactFile::RootManifest { generation } => {
-            target.push(3);
-            target.extend_from_slice(&generation.to_le_bytes());
-        }
-        RecordArtifactFile::RootRoutingBlock { generation, block } => {
-            target.push(4);
-            target.extend_from_slice(&generation.to_le_bytes());
-            target.extend_from_slice(&block.to_le_bytes());
-        }
-        RecordArtifactFile::Segment {
-            segment,
-            generation,
-        } => {
-            target.push(5);
-            target.extend_from_slice(&segment.to_le_bytes());
-            target.extend_from_slice(&generation.to_le_bytes());
-        }
-        RecordArtifactFile::SegmentManifest {
-            segment,
-            generation,
-        } => {
-            target.push(6);
-            target.extend_from_slice(&segment.to_le_bytes());
-            target.extend_from_slice(&generation.to_le_bytes());
-        }
-        RecordArtifactFile::SegmentMembershipBlock { generation, block } => {
-            target.push(7);
-            target.extend_from_slice(&generation.to_le_bytes());
-            target.extend_from_slice(&block.to_le_bytes());
-        }
-        RecordArtifactFile::Extent { extent, generation } => {
-            target.push(8);
-            target.extend_from_slice(&extent.to_le_bytes());
-            target.extend_from_slice(&generation.to_le_bytes());
-        }
-        RecordArtifactFile::ExtentManifest { extent, generation } => {
-            target.push(9);
-            target.extend_from_slice(&extent.to_le_bytes());
-            target.extend_from_slice(&generation.to_le_bytes());
-        }
-        RecordArtifactFile::FreeSpaceManifest { generation } => {
-            target.push(10);
-            target.extend_from_slice(&generation.to_le_bytes());
-        }
-        RecordArtifactFile::FreeSpaceMembershipBlock { generation, block } => {
-            target.push(11);
-            target.extend_from_slice(&generation.to_le_bytes());
-            target.extend_from_slice(&block.to_le_bytes());
-        }
     }
 }

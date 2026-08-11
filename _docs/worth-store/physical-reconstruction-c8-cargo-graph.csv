@@ -30,6 +30,7 @@ worth-store-recovery-physics,worth-store-readiness,dev,false,narrow,worth-store-
 worth-store-recovery-physics,worth-store-security,normal,false,narrow,worth-store-recovery-physics/security,phase-4
 worth-store-recovery-physics,worth-store-test-support,dev,false,narrow,worth-store-test-support/c8-worlds,phase-8
 worth-store-recovery-physics,worth-store-wal,normal,false,narrow,worth-store-recovery-physics/wal,phase-4
+worth-store-recovery-runtime,worth-store-recovery-physics,normal,false,narrow,worth-store-recovery-runtime/c8-import-cutover,phase-8
 worth-store-replication,worth-store-recovery-physics,dev,false,narrow,worth-store-replication/c8-import-cutover,phase-8
 worth-store-replication,worth-store-recovery-physics,normal,false,narrow,worth-store-replication/c8-import-cutover,phase-8
 worth-store-test-support,worth-store-recovery-physics,normal,true,narrow,worth-store-test-support/c8-import-cutover,phase-8

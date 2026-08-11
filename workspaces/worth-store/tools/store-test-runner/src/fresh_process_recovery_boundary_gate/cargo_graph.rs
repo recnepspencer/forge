@@ -22,7 +22,7 @@ fn checked_in_recovery_dependency_cut_matches_cargo_metadata() {
 }
 
 #[test]
-fn phase_one_dependency_direction_is_honest() {
+fn delivered_phase_dependency_direction_is_honest() {
     let edges = metadata_edges().expect("discover C.8 Cargo graph");
     assert!(!edges.iter().any(|edge| {
         edge.package == PHYSICS
@@ -41,13 +41,36 @@ fn phase_one_dependency_direction_is_honest() {
         "Phase 1 must account for the old reverse edge before Phase 8 removes it"
     );
     let metadata = metadata().expect("read workspace packages");
-    assert!(
-        metadata
-            .packages
-            .iter()
-            .all(|package| package.name != "worth-store-recovery-runtime"),
-        "Phase 1 cannot create the Phase 2 recovery runtime crate"
-    );
+    let runtime = metadata
+        .packages
+        .iter()
+        .find(|package| package.name == "worth-store-recovery-runtime")
+        .expect("Phase 2 must deliver the recovery runtime crate");
+    let dependencies = runtime
+        .dependencies
+        .iter()
+        .map(|dependency| dependency.name.as_str())
+        .collect::<BTreeSet<_>>();
+    for required in ["worth-proof", "worth-store", "worth-store-physical-format"] {
+        assert!(
+            dependencies.contains(required),
+            "missing Phase 2 owner edge {required}"
+        );
+    }
+    assert!(dependencies.iter().all(|dependency| {
+        !matches!(
+            *dependency,
+            "worth-query"
+                | "worth-query-decl"
+                | "worth-query-host"
+                | "worth-query-replay"
+                | "worth-store-buffer-pool"
+                | "worth-store-io-scheduler"
+                | "worth-store-physical-backend"
+                | "worth-store-wal"
+                | "worth-signal"
+        ) && !dependency.starts_with("worthy-")
+    }));
 }
 
 #[test]

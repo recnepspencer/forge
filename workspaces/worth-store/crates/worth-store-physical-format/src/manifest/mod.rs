@@ -41,15 +41,20 @@ pub use durable_root_placement::{
     CurrentPhysicalRecordPlacement, DurableExtentRecordPlacement, DurableInlineRecordPlacement,
 };
 pub use durable_root_routing::{
-    ManifestBlockReference, PhysicalRootRoutingBlock, RootRoutingBlockDenial,
+    BoundedRootRoutingBlockDecodeDenial, ManifestBlockReference, PhysicalRootRoutingBlock,
+    RootRoutingBlockDecodeLimits, RootRoutingBlockDenial,
 };
 pub use durable_segment_routing::{
-    PhysicalSegmentMembershipBlock, SegmentManifestBlockReference, SegmentMembershipBlockDenial,
-    SegmentPageKey,
+    BoundedSegmentMembershipBlockDecodeDenial, PhysicalSegmentMembershipBlock,
+    SegmentManifestBlockReference, SegmentMembershipBlockDecodeLimits,
+    SegmentMembershipBlockDenial, SegmentPageKey,
 };
 pub use entries::*;
 pub use free_space_routing::{FreeSpaceBlockReference, FreeSpaceKey, FreeSpaceRoutingDenial};
-pub use physical_free_space_membership_block::PhysicalFreeSpaceMembershipBlock;
+pub use physical_free_space_membership_block::{
+    BoundedFreeSpaceMembershipBlockDecodeDenial, FreeSpaceMembershipBlockDecodeLimits,
+    PhysicalFreeSpaceMembershipBlock,
+};
 pub use rebuild_source::*;
 pub use reclaim_region::*;
 pub use reclaimed_byte_interpretation::*;

@@ -2,8 +2,8 @@ use worth_store_physical_backend::{ArtifactTreeFailureKind, QualifiedFilesystemM
 use worth_store_physical_format::{
     durable_artifact_checksum, BootstrapCatalog, CurrentRootCatalogEntry,
     CurrentRootCatalogGeneration, DurableFreeSpaceManifestHeader, DurablePhysicalRootManifest,
-    PhysicalFreeSpaceMembershipBlock, RecordAllocationClass, RecordArtifactFile,
-    RecordFreeSpaceManifestEntry,
+    DurableRootSelector, PhysicalFreeSpaceMembershipBlock, RecordAllocationClass,
+    RecordArtifactFile, RecordFreeSpaceManifestEntry, RootSelectorIdentity, RootSelectorRole,
 };
 
 use super::super::residency::initialization_artifacts::InitializationRecordArtifacts;
@@ -62,6 +62,7 @@ pub(in crate::physical_runtime::record_serving) fn initialize(
         1,
         tree_identity,
         placement.manifest_capacity().get(),
+        placement.segment_pages().get(),
         1,
         1,
         1,
@@ -92,6 +93,17 @@ pub(in crate::physical_runtime::record_serving) fn initialize(
         declaration,
         CurrentRootCatalogEntry::new(root_generation),
     )
+    .encode();
+    let current_selector = DurableRootSelector::new(
+        media.store_identity(),
+        declaration,
+        RootSelectorIdentity::new(1).expect("initial selector identity is nonzero"),
+        RootSelectorRole::Current,
+        1,
+        None,
+        None,
+    )
+    .expect("initial root selector has a valid unlinked current role")
     .encode();
 
     artifacts
@@ -144,6 +156,17 @@ pub(in crate::physical_runtime::record_serving) fn initialize(
         .map_err(backend_after_effect)?;
     artifacts
         .synchronize_artifact_parent(free_space_artifact)
+        .map_err(backend_after_effect)?;
+
+    let current_selector_artifact = RecordArtifactFile::CurrentRootSelector;
+    artifacts
+        .write_new(current_selector_artifact, &current_selector)
+        .map_err(backend_after_effect)?;
+    artifacts
+        .synchronize_artifact(current_selector_artifact)
+        .map_err(backend_after_effect)?;
+    artifacts
+        .synchronize_artifact_parent(current_selector_artifact)
         .map_err(backend_after_effect)?;
 
     let candidate = RecordArtifactFile::CatalogCandidate { publication: 1 };

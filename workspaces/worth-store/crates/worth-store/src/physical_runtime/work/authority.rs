@@ -55,6 +55,20 @@ impl PhysicalWorkAdmissionAuthority {
         }
     }
 
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(in crate::physical_runtime) fn from_recovery_media(
+        media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
+        runtime: crate::physical_runtime::RuntimeIdentity,
+        generation: crate::physical_runtime::LifecycleGeneration,
+    ) -> Self {
+        Self {
+            store: media.store_identity(),
+            runtime,
+            generation,
+            media_owner: media.mutation_owner_observation(),
+        }
+    }
+
     pub(super) const fn store(
         &self,
     ) -> worth_store_physical_format::store_namespace::StableStoreIdentity {

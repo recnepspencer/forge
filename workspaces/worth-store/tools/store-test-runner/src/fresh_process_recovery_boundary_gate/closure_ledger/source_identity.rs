@@ -111,11 +111,35 @@ fn add_persisted_sources(root: &Path, paths: &mut BTreeSet<String>) -> Result<()
 
 fn add_api_sources(root: &Path, paths: &mut BTreeSet<String>) -> Result<(), String> {
     add(paths, API_INVENTORY);
+    add(
+        paths,
+        "workspaces/worth-store/tools/store-test-runner/Cargo.toml",
+    );
     for source in [
         "facade_inventory.rs",
+        "facade_inventory/bounded_decode_surface_contract.rs",
+        "facade_inventory/cross_file_surface_contract.rs",
+        "facade_inventory/delivered_api.rs",
+        "facade_inventory/delivered_api/cfg_reachability.rs",
+        "facade_inventory/delivered_api/exactness.rs",
+        "facade_inventory/delivered_api/export_resolution.rs",
+        "facade_inventory/delivered_api/external_resolution.rs",
+        "facade_inventory/delivered_api/facade_exports.rs",
+        "facade_inventory/delivered_api/namespace_exports.rs",
+        "facade_inventory/delivered_api/pre_c8_surface.rs",
+        "facade_inventory/delivered_api/source_layout.rs",
+        "facade_inventory/delivered_api/tests.rs",
+        "facade_inventory/delivered_api/tests/namespace_tests.rs",
         "facade_inventory/destination_surface_contract.rs",
         "facade_inventory/disposition_contract.rs",
         "facade_inventory/reachable_api.rs",
+        "facade_inventory/runtime_phase_three_surface_contract.rs",
+        "facade_inventory/runtime_phase_four_surface_contract.rs",
+        "facade_inventory/runtime_phase_four_plan_surface_contract.rs",
+        "facade_inventory/runtime_phase_four_projection_surface_contract.rs",
+        "facade_inventory/runtime_phase_five_surface_contract.rs",
+        "facade_inventory/runtime_phase_six_surface_contract.rs",
+        "facade_inventory/supporting_delivery_surface_contract.rs",
     ] {
         add(paths, &format!("{GATE_ROOT}/{source}"));
     }
@@ -161,7 +185,19 @@ fn add_freshness_sources(paths: &mut BTreeSet<String>) {
     add(paths, &format!("{GATE_ROOT}/destination_topology.rs"));
     add(
         paths,
+        &format!("{GATE_ROOT}/destination_topology/required_destinations.rs"),
+    );
+    add(
+        paths,
         &format!("{GATE_ROOT}/destination_topology/semantic_contract.rs"),
+    );
+    add(
+        paths,
+        &format!("{GATE_ROOT}/destination_topology/semantic_contract/responsibility.rs"),
+    );
+    add(
+        paths,
+        &format!("{GATE_ROOT}/destination_topology/semantic_tests.rs"),
     );
     add_substrate_files(
         paths,
@@ -203,11 +239,14 @@ fn add_substrate_files(paths: &mut BTreeSet<String>, sources: &[&str]) {
 fn add_topology_sources(paths: &mut BTreeSet<String>) {
     add(paths, DESTINATION_TOPOLOGY);
     add(paths, AUTHORITY_TRACE);
-    add(paths, &format!("{GATE_ROOT}/destination_topology.rs"));
-    add(
+    add_gate_source(paths, "destination_topology.rs");
+    add_gate_source(paths, "destination_topology/required_destinations.rs");
+    add_gate_source(paths, "destination_topology/semantic_contract.rs");
+    add_gate_source(
         paths,
-        &format!("{GATE_ROOT}/destination_topology/semantic_contract.rs"),
+        "destination_topology/semantic_contract/responsibility.rs",
     );
+    add_gate_source(paths, "destination_topology/semantic_tests.rs");
 }
 
 fn add_dependency_sources(paths: &mut BTreeSet<String>) {
@@ -237,32 +276,21 @@ fn add_documentation_sources(paths: &mut BTreeSet<String>) {
 }
 
 fn add_ledger_sources(guarantee: &str, paths: &mut BTreeSet<String>) {
-    add(paths, &format!("{GATE_ROOT}/closure_ledger.rs"));
-    add(
+    add_gate_source(paths, "closure_ledger.rs");
+    add_gate_source(paths, "closure_ledger/history_contract.rs");
+    add_gate_source(paths, "closure_ledger/history_contract/audit_contracts.rs");
+    add_gate_source(
         paths,
-        &format!("{GATE_ROOT}/closure_ledger/history_contract.rs"),
+        "closure_ledger/history_contract/finding_inventory.rs",
     );
-    add(
-        paths,
-        &format!("{GATE_ROOT}/closure_ledger/history_contract/audit_contracts.rs"),
-    );
-    add(
-        paths,
-        &format!("{GATE_ROOT}/closure_ledger/audit_source_manifest.rs"),
-    );
-    add(
-        paths,
-        &format!("{GATE_ROOT}/closure_ledger/audit_source_manifest/tests.rs"),
-    );
+    add_gate_source(paths, "closure_ledger/audit_source_manifest.rs");
+    add_gate_source(paths, "closure_ledger/audit_source_manifest/tests.rs");
     add(paths, QA_AUDITS);
     add(paths, QA_SOURCE_MANIFESTS);
     if guarantee == "C8-P1-LEDGER-01" {
         return;
     }
-    add(
-        paths,
-        &format!("{GATE_ROOT}/closure_ledger/source_identity.rs"),
-    );
+    add_gate_source(paths, "closure_ledger/source_identity.rs");
     for artifact in [
         API_INVENTORY,
         AUTHORITY_TRACE,
@@ -276,6 +304,10 @@ fn add_ledger_sources(guarantee: &str, paths: &mut BTreeSet<String>) {
 }
 fn add(paths: &mut BTreeSet<String>, path: &str) {
     paths.insert(path.replace('\\', "/"));
+}
+
+fn add_gate_source(paths: &mut BTreeSet<String>, relative: &str) {
+    add(paths, &format!("{GATE_ROOT}/{relative}"));
 }
 
 fn collect_persisted_producers(root: &Path, paths: &mut BTreeSet<String>) -> Result<(), String> {

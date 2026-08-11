@@ -86,6 +86,24 @@ impl PhysicalMutationWorkRequest {
         )
     }
 
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(in crate::physical_runtime) fn recovery_exact_write(
+        scope: PhysicalWorkScope,
+        semantic_basis: PhysicalWorkSemanticBasis,
+        security: StoreAuthorityBoundSecurityScopeReceipt,
+        durability: ArtifactRangeWriteDurabilityRequirement,
+    ) -> Result<Self, PhysicalWorkSubmissionDenial> {
+        Self::new(
+            PhysicalWorkOperationFamily::ArtifactRangeWrite,
+            scope,
+            semantic_basis,
+            security,
+            PhysicalWorkEffectClass::IdempotentExactWrite,
+            super::PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(durability),
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
+    }
+
     pub fn publication(
         scope: PhysicalWorkScope,
         semantic_basis: PhysicalWorkSemanticBasis,
@@ -200,6 +218,23 @@ impl PhysicalMutationWorkRequest {
         Self::new(
             PhysicalWorkOperationFamily::RootPublication,
             PhysicalWorkScope::root_publication(scope),
+            semantic_basis,
+            security,
+            PhysicalWorkEffectClass::PublicationBoundary,
+            super::PhysicalWorkDurabilityRequirement::RootPublication,
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
+    }
+
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(in crate::physical_runtime) fn recovery_root_publication(
+        scope: PhysicalWorkScope,
+        semantic_basis: PhysicalWorkSemanticBasis,
+        security: StoreAuthorityBoundSecurityScopeReceipt,
+    ) -> Result<Self, PhysicalWorkSubmissionDenial> {
+        Self::new(
+            PhysicalWorkOperationFamily::RootPublication,
+            scope,
             semantic_basis,
             security,
             PhysicalWorkEffectClass::PublicationBoundary,

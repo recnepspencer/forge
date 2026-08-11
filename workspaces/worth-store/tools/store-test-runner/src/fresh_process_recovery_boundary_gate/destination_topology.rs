@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
+mod required_destinations;
 mod semantic_contract;
+mod semantic_tests;
 
 use super::documents::{
     read_repository_document, split_csv, AUTHORITY_TRACE, DESTINATION_TOPOLOGY,
@@ -8,126 +10,7 @@ use super::documents::{
 use semantic_contract::{expected_phase, expected_responsibility};
 
 const HEADER: &str = "path,owner,responsibility,dependency_posture,phase,status";
-const REQUIRED_DESTINATIONS: &[&str] = &[
-    "crates/worth-store-recovery-runtime",
-    "crates/worth-store-recovery-runtime/Cargo.toml",
-    "crates/worth-store-recovery-runtime/README.md",
-    "crates/worth-store-recovery-runtime/src/lib.rs",
-    "crates/worth-store-recovery-runtime/src/bin/physical_store_recover.rs",
-    "crates/worth-store-recovery-runtime/src/entry/mod.rs",
-    "crates/worth-store-recovery-runtime/src/entry/request.rs",
-    "crates/worth-store-recovery-runtime/src/entry/admission.rs",
-    "crates/worth-store-recovery-runtime/src/entry/authority.rs",
-    "crates/worth-store-recovery-runtime/src/entry/authority_binding.rs",
-    "crates/worth-store-recovery-runtime/src/entry/configuration.rs",
-    "crates/worth-store-recovery-runtime/src/entry/counters.rs",
-    "crates/worth-store-recovery-runtime/src/entry/limits.rs",
-    "crates/worth-store-recovery-runtime/src/entry/session.rs",
-    "crates/worth-store-recovery-runtime/src/entry/outcome.rs",
-    "crates/worth-store-recovery-runtime/src/progression/mod.rs",
-    "crates/worth-store-recovery-runtime/src/progression/admitted.rs",
-    "crates/worth-store-recovery-runtime/src/progression/discovered.rs",
-    "crates/worth-store-recovery-runtime/src/progression/selected.rs",
-    "crates/worth-store-recovery-runtime/src/progression/planned.rs",
-    "crates/worth-store-recovery-runtime/src/progression/staged.rs",
-    "crates/worth-store-recovery-runtime/src/progression/published.rs",
-    "crates/worth-store-recovery-runtime/src/progression/reopened.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/staging/performed_write.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/publication/performed_root_replacement.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/publication/performed_namespace_sync.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/reopen/performed_independent_reopen.rs",
-    "crates/worth-store-recovery-runtime/src/cleanup/performed_removal.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/mod.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/coordination.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/discovery.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/planning.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/staging.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/publication.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/reopen.rs",
-    "crates/worth-store-recovery-runtime/src/handoff/mod.rs",
-    "crates/worth-store-recovery-runtime/src/handoff/operation_fates.rs",
-    "crates/worth-store-recovery-runtime/src/handoff/unsupported_scope.rs",
-    "crates/worth-store-recovery-runtime/src/handoff/cleanup_posture.rs",
-    "crates/worth-store-recovery-runtime/src/cleanup/mod.rs",
-    "crates/worth-store-recovery-runtime/src/cleanup/plan.rs",
-    "crates/worth-store-recovery-runtime/src/cleanup/eligibility.rs",
-    "crates/worth-store-recovery-runtime/src/cleanup/execution.rs",
-    "crates/worth-store-recovery-runtime/src/observation/mod.rs",
-    "crates/worth-store-recovery-runtime/src/observation/counters.rs",
-    "crates/worth-store-recovery-runtime/src/observation/protocol.rs",
-    "crates/worth-store-recovery-runtime/src/observation/report.rs",
-    "crates/worth-store-recovery-physics/src/lib.rs",
-    "crates/worth-store-recovery-physics/src/source_precedence/mod.rs",
-    "crates/worth-store-recovery-physics/src/source_precedence/candidate.rs",
-    "crates/worth-store-recovery-physics/src/source_precedence/admission.rs",
-    "crates/worth-store-recovery-physics/src/source_precedence/current_previous_root.rs",
-    "crates/worth-store-recovery-physics/src/source_precedence/checkpoint_base.rs",
-    "crates/worth-store-recovery-physics/src/source_precedence/wal_tail.rs",
-    "crates/worth-store-recovery-physics/src/source_precedence/compaction_product.rs",
-    "crates/worth-store-recovery-physics/src/source_precedence/residue.rs",
-    "crates/worth-store-recovery-physics/src/source_precedence/selection.rs",
-    "crates/worth-store-recovery-physics/src/wal_prefix/mod.rs",
-    "crates/worth-store-recovery-physics/src/wal_prefix/continuity.rs",
-    "crates/worth-store-recovery-physics/src/wal_prefix/valid_prefix.rs",
-    "crates/worth-store-recovery-physics/src/wal_prefix/torn_tail.rs",
-    "crates/worth-store-recovery-physics/src/wal_prefix/denial.rs",
-    "crates/worth-store-recovery-physics/src/redo_replay/mod.rs",
-    "crates/worth-store-recovery-physics/src/redo_replay/record.rs",
-    "crates/worth-store-recovery-physics/src/redo_replay/plan.rs",
-    "crates/worth-store-recovery-physics/src/redo_replay/cursor.rs",
-    "crates/worth-store-recovery-physics/src/redo_replay/denial.rs",
-    "crates/worth-store-recovery-physics/src/page_redo/mod.rs",
-    "crates/worth-store-recovery-physics/src/page_redo/page_lsn.rs",
-    "crates/worth-store-recovery-physics/src/page_redo/eligibility.rs",
-    "crates/worth-store-recovery-physics/src/page_redo/transition.rs",
-    "crates/worth-store-recovery-physics/src/page_redo/denial.rs",
-    "crates/worth-store-recovery-physics/src/operation_reconciliation/mod.rs",
-    "crates/worth-store-recovery-physics/src/operation_reconciliation/identity.rs",
-    "crates/worth-store-recovery-physics/src/operation_reconciliation/evidence_join.rs",
-    "crates/worth-store-recovery-physics/src/operation_reconciliation/binding_freshness.rs",
-    "crates/worth-store-recovery-physics/src/operation_reconciliation/fate.rs",
-    "crates/worth-store-recovery-physics/src/operation_reconciliation/denial.rs",
-    "crates/worth-store-recovery-physics/src/recovery_budget/mod.rs",
-    "crates/worth-store-recovery-physics/src/recovery_budget/limits.rs",
-    "crates/worth-store-recovery-physics/src/recovery_budget/plan_cost.rs",
-    "crates/worth-store-recovery-physics/src/recovery_budget/counters.rs",
-    "crates/worth-store-recovery-physics/src/recovery_budget/denial.rs",
-    "crates/worth-store-physical-backend/src/recovery_media/mod.rs",
-    "crates/worth-store-physical-backend/src/recovery_media/qualification.rs",
-    "crates/worth-store-physical-backend/src/recovery_media/qualified.rs",
-    "crates/worth-store-physical-backend/src/recovery_media/profile.rs",
-    "crates/worth-store-physical-backend/src/recovery_media/generation.rs",
-    "crates/worth-store-physical-backend/src/recovery_media/admitted.rs",
-    "crates/worth-store-physical-backend/src/recovery_media/discovery.rs",
-    "crates/worth-store/src/physical_runtime/recovery_freshness/mod.rs",
-    "crates/worth-store/src/physical_runtime/recovery_freshness/port.rs",
-    "crates/worth-store/src/physical_runtime/recovery_freshness/authority.rs",
-    "crates/worth-store/src/physical_runtime/recovery_freshness/binding.rs",
-    "crates/worth-store/src/physical_runtime/recovery_freshness/cleanup.rs",
-    "crates/worth-store/src/physical_runtime/recovery_construction/mod.rs",
-    "crates/worth-store/src/physical_runtime/recovery_construction/port.rs",
-    "crates/worth-store/src/physical_runtime/recovery_construction/authority.rs",
-    "crates/worth-store/src/physical_runtime/recovery_construction/runtime_identity.rs",
-    "crates/worth-store/src/physical_runtime/recovery_construction/handoff.rs",
-    "crates/worth-store/src/bin/physical_store_work_courtroom/c8_recovery_writer.rs",
-    "crates/worth-store-offline-verifier/src/c8_recovery_observation/mod.rs",
-    "crates/worth-store-offline-verifier/src/c8_recovery_observation/artifact_walk.rs",
-    "crates/worth-store-offline-verifier/src/c8_recovery_observation/physical_format.rs",
-    "crates/worth-store-offline-verifier/src/c8_recovery_observation/conclusion.rs",
-    "crates/worth-store-offline-verifier/src/c8_recovery_observation/report_protocol.rs",
-    "crates/worth-store-offline-verifier/src/c8_recovery_observation/report.rs",
-    "crates/worth-store-physical-certification/src/c8_fresh_process_recovery/mod.rs",
-    "crates/worth-store-physical-certification/src/c8_fresh_process_recovery/scenario.rs",
-    "crates/worth-store-physical-certification/src/c8_fresh_process_recovery/writer_process.rs",
-    "crates/worth-store-physical-certification/src/c8_fresh_process_recovery/recovery_process.rs",
-    "crates/worth-store-physical-certification/src/c8_fresh_process_recovery/observer_process.rs",
-    "crates/worth-store-physical-certification/src/c8_fresh_process_recovery/crash_matrix.rs",
-    "crates/worth-store-physical-certification/src/c8_fresh_process_recovery/oracle.rs",
-    "crates/worth-store-physical-certification/src/c8_fresh_process_recovery/schedules/mod.rs",
-    "crates/worth-store-physical-certification/src/c8_fresh_process_recovery/schedules/perturbation.rs",
-    "crates/worth-store-physical-certification/src/c8_fresh_process_recovery/mutations/mod.rs",
-    "crates/worth-store-physical-certification/src/c8_fresh_process_recovery/mutations/corpus.rs",
-];
+use required_destinations::REQUIRED_DESTINATIONS;
 
 #[test]
 fn destination_topology_has_one_exact_semantic_home_per_c8_axis() {
@@ -209,17 +92,12 @@ fn assert_core_definition_homes(rows: &[TopologyRow]) {
 
 fn assert_effect_homes(rows: &[TopologyRow]) {
     let effect_homes = [
-        ("orchestration/staging/performed_write.rs", "phase-5"),
         (
-            "orchestration/publication/performed_root_replacement.rs",
-            "phase-6",
+            "physical_runtime/recovery_coordination/effect.rs",
+            "phase-5",
         ),
         (
-            "orchestration/publication/performed_namespace_sync.rs",
-            "phase-6",
-        ),
-        (
-            "orchestration/reopen/performed_independent_reopen.rs",
+            "physical_runtime/recovery_coordination/effect/reopen.rs",
             "phase-6",
         ),
         ("cleanup/performed_removal.rs", "phase-7"),
@@ -280,7 +158,12 @@ fn topology_rows_have_specific_owners_and_phase_honest_status() {
         ));
         assert!(!row.responsibility.contains(" and "));
         assert_eq!(row.responsibility, expected_responsibility(&row.path));
-        assert_eq!(row.phase, expected_phase(&row.path));
+        assert_eq!(
+            row.phase,
+            expected_phase(&row.path),
+            "phase mismatch for {}",
+            row.path
+        );
         assert!(matches!(
             row.phase.as_str(),
             "phase-2"
@@ -297,28 +180,6 @@ fn topology_rows_have_specific_owners_and_phase_honest_status() {
             "create" | "preserve" | "narrow" | "replace"
         ));
     }
-}
-
-#[test]
-fn same_stem_and_page_redo_phase_substitutions_are_rejected() {
-    assert_ne!(
-        expected_responsibility("crates/worth-store-recovery-physics/src/redo_replay/plan.rs"),
-        expected_responsibility("crates/worth-store-recovery-runtime/src/cleanup/plan.rs")
-    );
-    assert_ne!(
-        expected_responsibility(
-            "crates/worth-store-recovery-physics/src/source_precedence/admission.rs"
-        ),
-        expected_responsibility("crates/worth-store-recovery-runtime/src/entry/admission.rs")
-    );
-    assert_eq!(
-        expected_phase("crates/worth-store-recovery-physics/src/page_redo/eligibility.rs"),
-        "phase-4"
-    );
-    assert_eq!(
-        expected_phase("crates/worth-store-recovery-physics/src/page_redo/transition.rs"),
-        "phase-5"
-    );
 }
 
 fn row<'a>(rows: &'a [TopologyRow], path: &str) -> &'a TopologyRow {

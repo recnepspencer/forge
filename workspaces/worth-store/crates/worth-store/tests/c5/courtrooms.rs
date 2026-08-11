@@ -94,7 +94,7 @@ fn record_world_survives_fresh_processes() {
     assert_ne!(writer_completion.positioned_writes, 0);
     assert!(writer_completion.file_barriers >= writer_completion.positioned_writes);
     assert!(writer_completion.directory_barriers >= writer_completion.file_barriers);
-    assert_eq!(writer_completion.catalog_replacements, 4);
+    assert_eq!(writer_completion.catalog_replacements, 12);
     let extent_placements = walk
         .placements()
         .iter()
@@ -170,7 +170,7 @@ fn record_world_survives_fresh_processes() {
         ),
         ScenarioPredicate::equality(
             "writer_catalog_replacement_per_batch",
-            4_u64,
+            12_u64,
             writer_completion.catalog_replacements,
         ),
         ScenarioPredicate::equality(

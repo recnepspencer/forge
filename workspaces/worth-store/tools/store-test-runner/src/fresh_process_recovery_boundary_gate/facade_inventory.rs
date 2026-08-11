@@ -1,14 +1,36 @@
+mod bounded_decode_surface_contract;
+mod cross_file_surface_contract;
+mod delivered_api;
 mod destination_surface_contract;
 pub(super) mod disposition_contract;
+mod inventory_disposition;
 mod reachable_api;
+mod runtime_phase_five_surface_contract;
+mod runtime_phase_four_plan_surface_contract;
+mod runtime_phase_four_projection_surface_contract;
+mod runtime_phase_four_surface_contract;
+mod runtime_phase_six_surface_contract;
+mod runtime_phase_three_surface_contract;
+mod supporting_delivery_surface_contract;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use super::documents::{read_repository_document, split_csv, API_INVENTORY};
-use destination_surface_contract::BACKEND_RECOVERY_SURFACES;
-use disposition_contract::expected_current_disposition;
+use bounded_decode_surface_contract::BOUNDED_DECODE_SURFACES;
+use cross_file_surface_contract::assert_cross_file_surfaces;
+use delivered_api::assert_exact_inventory;
+use destination_surface_contract::{
+    BACKEND_RECOVERY_PUBLICATION_SURFACES, BACKEND_RECOVERY_SURFACES,
+    STORE_RECOVERY_COORDINATION_SURFACES, STORE_RECOVERY_PUBLICATION_SURFACES,
+};
 use reachable_api::current_facade;
-
+use runtime_phase_five_surface_contract::PHASE_FIVE_DELIVERY_SURFACES;
+use runtime_phase_four_plan_surface_contract::PHASE_FOUR_PLAN_SURFACES;
+use runtime_phase_four_projection_surface_contract::PHASE_FOUR_PROJECTION_SURFACES;
+use runtime_phase_four_surface_contract::PHASE_FOUR_DELIVERY_SURFACES;
+use runtime_phase_six_surface_contract::PHASE_SIX_DELIVERY_SURFACES;
+use runtime_phase_three_surface_contract::RUNTIME_PHASE_THREE_SURFACES;
+use supporting_delivery_surface_contract::SUPPORTING_DELIVERY_SURFACES;
 const HEADER: &str = "scope,surface,source_owner,disposition,destination_owner,phase";
 const FACADE: &str = "workspaces/worth-store/crates/worth-store-recovery-physics/src/lib.rs";
 
@@ -16,6 +38,11 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
     ("PhysicalRecoveryOpenRequest", "entry/request", "phase-2"),
     (
         "PhysicalRecoveryOpenRequest::declare",
+        "entry/request",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryOpenRequest::admit",
         "entry/request",
         "phase-2",
     ),
@@ -115,21 +142,10 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
         "progression/admitted",
         "phase-2",
     ),
-    (
-        "DiscoveredPhysicalRecovery",
-        "progression/discovered",
-        "phase-3",
-    ),
-    (
-        "SelectedPhysicalRecovery",
-        "progression/selected",
-        "phase-3",
-    ),
     ("PlannedPhysicalRecovery", "progression/planned", "phase-4"),
-    ("StagedPhysicalRecovery", "progression/staged", "phase-5"),
     (
         "NamespaceDurablePhysicalRecovery",
-        "progression/published",
+        "progression/namespace_durable",
         "phase-6",
     ),
     (
@@ -139,7 +155,7 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "RecoveredPhysicalRuntimeHandoff",
-        "worth-store/recovery-construction/handoff",
+        "handoff/recovered",
         "phase-6",
     ),
     (
@@ -150,6 +166,21 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
     (
         "PhysicalRecoveryFreshnessAuthority",
         "worth-store/recovery-freshness/authority",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryFreshnessAuthority::register_session",
+        "worth-store/recovery-freshness/registration",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryRegisteredSessionAuthority",
+        "worth-store/recovery-freshness/registration",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryRegisteredSessionAuthority::session_identity_bytes",
+        "worth-store/recovery-freshness/registration",
         "phase-2",
     ),
     (
@@ -178,6 +209,11 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
         "phase-6",
     ),
     ("PhysicalRecoveryRefusal", "entry/outcome", "phase-2"),
+    (
+        "PhysicalRecoveryRefusal::recovery_effects",
+        "entry/outcome",
+        "phase-2",
+    ),
     ("PhysicalRecoveryRefusalKind", "entry/outcome", "phase-2"),
     ("PhysicalRecoveryBlock", "entry/outcome", "phase-3"),
     (
@@ -187,7 +223,7 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "RecoveryOperationFateSet",
-        "handoff/operation-fates",
+        "handoff/operation_fates",
         "phase-4",
     ),
     (
@@ -195,11 +231,11 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
         "handoff/cleanup-posture",
         "phase-7",
     ),
-    ("RecoveryReportEnvelope", "observation/report", "phase-6"),
+    ("RecoveryReportEnvelope", "observation/report", "phase-8"),
     (
         "RecoveryObserverReport",
         "worth-store-offline-verifier/c8-recovery-observation/report",
-        "phase-6",
+        "phase-8",
     ),
     (
         "StoreRecoveryBindingFreshnessSample",
@@ -217,6 +253,24 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
 fn current_facade_and_destination_contract_have_exact_inventory_rows() {
     let document = read_repository_document(API_INVENTORY).expect("read C.8 API inventory");
     let rows = parse_inventory(&document).expect("parse C.8 API inventory");
+    let exact_rows = rows
+        .iter()
+        .map(|row| {
+            (
+                row.scope.as_str(),
+                row.surface.as_str(),
+                row.source_owner.as_str(),
+                row.disposition.as_str(),
+                row.destination_owner.as_str(),
+                row.phase.as_str(),
+            )
+        })
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        exact_rows.len(),
+        rows.len(),
+        "C.8 API inventory contains duplicate rows"
+    );
     let current = rows
         .iter()
         .filter(|row| row.scope.starts_with("current"))
@@ -229,19 +283,7 @@ fn current_facade_and_destination_contract_have_exact_inventory_rows() {
         })
         .collect::<BTreeSet<_>>();
     let actual = current_facade().expect("parse recovery-physics facade");
-    for cross_file_surface in [
-        "RecoveryCompletion::execute_publication_recovery_replay",
-        "IntegrityDamageMap::admit_corruption_readmission",
-        "RecoveryPhysicsTimelineAuthority::resolve_candidates",
-        "layout_projection::BoundedWalTailLayoutReport::lookup_tail_range",
-    ] {
-        assert!(
-            actual
-                .iter()
-                .any(|(_, surface, _)| surface == cross_file_surface),
-            "cross-file public impl `{cross_file_surface}` escaped API discovery"
-        );
-    }
+    assert_cross_file_surfaces(&actual);
     let omitted = actual.difference(&current).collect::<Vec<_>>();
     let stale = current.difference(&actual).collect::<Vec<_>>();
     assert!(
@@ -260,66 +302,41 @@ fn current_facade_and_destination_contract_have_exact_inventory_rows() {
             )
         })
         .collect::<BTreeSet<_>>();
-    assert_eq!(
-        destination,
-        DESTINATION_SURFACES
-            .iter()
-            .chain(BACKEND_RECOVERY_SURFACES)
-            .copied()
-            .collect(),
-        "C.8 destination facade inventory is not exact"
+    let contract = DESTINATION_SURFACES
+        .iter()
+        .chain(BOUNDED_DECODE_SURFACES)
+        .chain(RUNTIME_PHASE_THREE_SURFACES)
+        .chain(PHASE_FOUR_DELIVERY_SURFACES)
+        .chain(PHASE_FOUR_PLAN_SURFACES)
+        .chain(PHASE_FOUR_PROJECTION_SURFACES)
+        .chain(PHASE_FIVE_DELIVERY_SURFACES)
+        .chain(PHASE_SIX_DELIVERY_SURFACES)
+        .chain(BACKEND_RECOVERY_SURFACES)
+        .chain(BACKEND_RECOVERY_PUBLICATION_SURFACES)
+        .chain(STORE_RECOVERY_COORDINATION_SURFACES)
+        .chain(STORE_RECOVERY_PUBLICATION_SURFACES)
+        .chain(SUPPORTING_DELIVERY_SURFACES)
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let omitted = contract.difference(&destination).collect::<Vec<_>>();
+    let stale = destination.difference(&contract).collect::<Vec<_>>();
+    assert!(
+        omitted.is_empty() && stale.is_empty(),
+        "C.8 destination facade inventory omitted {omitted:?} or retained stale {stale:?}"
     );
-}
 
-#[test]
-fn dispositions_name_one_real_destination_owner() {
-    let document = read_repository_document(API_INVENTORY).expect("read C.8 API inventory");
-    let rows = parse_inventory(&document).expect("parse C.8 API inventory");
-    let mut surfaces = BTreeMap::new();
-    for row in rows {
-        assert!(
-            surfaces
-                .insert((row.scope.clone(), row.surface.clone()), ())
-                .is_none(),
-            "duplicate C.8 API row for {} {}",
-            row.scope,
-            row.surface
-        );
-        match row.scope.as_str() {
-            "current" | "current-certification" => assert_eq!(
-                (
-                    row.disposition.as_str(),
-                    row.destination_owner.as_str(),
-                    row.phase.as_str(),
-                ),
-                expected_current_disposition(&row.source_owner, &row.surface),
-                "wrong C.8 disposition for {}",
-                row.surface
-            ),
-            "destination" => {
-                assert_eq!(row.disposition, "create");
-                let expected_owner = if row.source_owner.starts_with("worth-") {
-                    row.source_owner.clone()
-                } else {
-                    format!("worth-store-recovery-runtime/{}", row.source_owner)
-                };
-                assert_eq!(row.destination_owner, expected_owner);
-            }
-            other => panic!("unknown C.8 API scope `{other}`"),
-        }
-        assert_valid_owner(&row.destination_owner, row.disposition == "delete");
-        assert!(matches!(
-            row.phase.as_str(),
-            "phase-2"
-                | "phase-3"
-                | "phase-4"
-                | "phase-5"
-                | "phase-6"
-                | "phase-7"
-                | "phase-8"
-                | "phase-9"
-        ));
-    }
+    let delivered_inventory = rows
+        .iter()
+        .filter(|row| row.scope == "destination")
+        .filter(|row| {
+            matches!(
+                row.phase.as_str(),
+                "phase-2" | "phase-3" | "phase-4" | "phase-5" | "phase-6"
+            )
+        })
+        .map(|row| (row.surface.clone(), row.source_owner.clone()))
+        .collect::<BTreeSet<_>>();
+    assert_exact_inventory(delivered_inventory).expect("exact delivered C.8 facade inventory");
 }
 
 fn parse_inventory(document: &str) -> Result<Vec<ApiRow>, String> {
@@ -345,23 +362,7 @@ fn parse_inventory(document: &str) -> Result<Vec<ApiRow>, String> {
         .collect()
 }
 
-fn assert_valid_owner(owner: &str, deletion: bool) {
-    if deletion {
-        assert_eq!(owner, "none");
-        return;
-    }
-    assert_ne!(owner, "none");
-    let leaf = owner.rsplit('/').next().unwrap_or(owner);
-    assert!(
-        !matches!(
-            leaf,
-            "recovery" | "physics" | "support" | "evidence" | "utility"
-        ),
-        "generic C.8 API destination owner `{owner}`"
-    );
-}
-
-struct ApiRow {
+pub(super) struct ApiRow {
     scope: String,
     surface: String,
     source_owner: String,

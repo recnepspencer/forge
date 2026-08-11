@@ -1686,6 +1686,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "worth-store-recovery-runtime"
+version = "0.1.0"
+dependencies = [
+ "sha2",
+ "syn",
+ "tempfile",
+ "trybuild",
+ "worth-proof",
+ "worth-store",
+ "worth-store-physical-format",
+ "worth-store-recovery-physics",
+ "worth-store-test-support",
+]
+
+[[package]]
 name = "worth-store-replication"
 version = "0.1.0"
 dependencies = [

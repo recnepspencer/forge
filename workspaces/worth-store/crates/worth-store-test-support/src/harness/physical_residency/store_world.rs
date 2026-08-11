@@ -23,7 +23,10 @@ use worth_store_physical_backend::{
 
 use crate::TemporaryDirectory;
 
-use super::configuration::{record_publication_configuration, PhysicalResidencyStoreConfiguration};
+use super::configuration::{
+    dense_recovery_planning_configuration, record_publication_configuration,
+    recovery_planning_configuration, PhysicalResidencyStoreConfiguration,
+};
 
 #[derive(Debug)]
 pub enum PhysicalResidencyStoreWorldConstructionFailure {
@@ -51,6 +54,22 @@ pub struct PhysicalResidencyStoreWorld {
 impl PhysicalResidencyStoreWorld {
     pub fn initialize(label: &str) -> Result<Self, PhysicalResidencyStoreWorldConstructionFailure> {
         Self::initialize_with_configuration(label, record_publication_configuration())
+    }
+
+    pub fn initialize_for_recovery(
+        label: &str,
+    ) -> Result<Self, PhysicalResidencyStoreWorldConstructionFailure> {
+        Self::initialize_with_configuration(label, recovery_planning_configuration())
+    }
+
+    pub fn initialize_for_recovery_with_segment_pages(
+        label: &str,
+        segment_pages: u32,
+    ) -> Result<Self, PhysicalResidencyStoreWorldConstructionFailure> {
+        Self::initialize_with_configuration(
+            label,
+            dense_recovery_planning_configuration(segment_pages),
+        )
     }
 
     fn initialize_with_configuration(
@@ -85,6 +104,10 @@ impl PhysicalResidencyStoreWorld {
         self.root.path()
     }
 
+    pub fn retained_root(&self) -> crate::TemporaryDirectory {
+        self.root.clone()
+    }
+
     pub fn serving(&self) -> &ServingPhysicalRuntime {
         self.serving
             .as_ref()
@@ -111,7 +134,7 @@ fn admit_durability(
             GroupCommitDelay::new(NonZeroU64::new(1).unwrap()),
         )
         .wal(PhysicalWalPolicy::segmented(
-            WalSegmentByteLimit::new(NonZeroU64::new(8 * 1024 * 1024).unwrap()),
+            WalSegmentByteLimit::new(NonZeroU64::new(16 * 1024 * 1024).unwrap()),
             WalSegmentInventoryLimit::new(NonZeroU32::new(1_024).unwrap()),
         ))
         .idempotency(PhysicalIdempotencyPolicy::new(

@@ -95,6 +95,14 @@ const CURRENT_MODULE_DISPOSITIONS: &[(&str, Disposition)] = &[
         ),
     ),
     (
+        "operation_reconciliation",
+        (
+            "narrow",
+            "worth-store-recovery-physics/operation-reconciliation",
+            "phase-4",
+        ),
+    ),
+    (
         "entry",
         (
             "replace",
@@ -292,6 +300,16 @@ const CURRENT_MODULE_DISPOSITIONS: &[(&str, Disposition)] = &[
 pub(crate) fn expected_current_disposition(source_owner: &str, surface: &str) -> Disposition {
     if deleted_observer_runtime_surface(source_owner, surface) {
         return ("delete", "none", "phase-8");
+    }
+    if matches!(
+        surface,
+        "PhysicalWalSegmentCandidate::frames" | "SelectedPhysicalWalTail::frames"
+    ) {
+        return (
+            "narrow",
+            "worth-store-recovery-physics/source-precedence",
+            "phase-4",
+        );
     }
     let module = source_owner.split("::").next().unwrap_or(source_owner);
     CURRENT_MODULE_DISPOSITIONS

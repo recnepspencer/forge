@@ -11,7 +11,7 @@ mod publication;
 mod read_work_port;
 mod record_queue_policy;
 pub(in crate::physical_runtime) mod residency;
-mod work_semantics;
+pub(in crate::physical_runtime) mod work_semantics;
 
 pub use access::locate::{PhysicalRecordReader, RecordReadCancellation, RecordReadSession};
 pub use access::read_observation::{

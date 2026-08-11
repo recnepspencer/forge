@@ -1,0 +1,9 @@
+error[E0382]: use of moved value: `discovered`
+ --> tests/ui/discovered_recovery_cannot_clone.rs:5:18
+  |
+3 | fn duplicate(discovered: DiscoveredPhysicalRecovery) {
+  |              ---------- move occurs because `discovered` has type `DiscoveredPhysicalRecovery`, which does not implement the `Copy` trait
+4 |     let first = discovered;
+  |                 ---------- value moved here
+5 |     let second = discovered;
+  |                  ^^^^^^^^^^ value used here after move
