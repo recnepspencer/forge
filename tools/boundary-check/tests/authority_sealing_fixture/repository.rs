@@ -66,7 +66,6 @@ publish = false
         self.write_file("tools/boundary-check/config/road1.toml", config);
         self.write_query_audience_leaf_facades();
         self.write_worth_proof_stub();
-        self.write_public_value_contract_fixture();
         self.write_entry_crate(lib_source, None);
     }
 
@@ -264,26 +263,6 @@ edition = "2021"
 pub struct CapabilityWitness<C>(core::marker::PhantomData<C>);
 pub struct Proof<P, A>(core::marker::PhantomData<(P, A)>);
 "#,
-        );
-    }
-
-    fn write_public_value_contract_fixture(&self) {
-        self.write_file(
-            "vendor/public-value-fixture/Cargo.toml",
-            r#"[package]
-name = "public-value-fixture"
-version = "0.1.0"
-edition = "2021"
-[workspace]
-"#,
-        );
-        self.write_file(
-            "vendor/public-value-fixture/src/lib.rs",
-            "pub trait Open {}\n",
-        );
-        self.write_file(
-            "tools/boundary-check/public_value_witnesses/public_value_fixture/mod.rs",
-            "// No public value definitions exist in the neutral fixture.\n",
         );
     }
 

@@ -9,7 +9,6 @@ mod repository;
 mod repository_cargo;
 mod repository_config;
 mod repository_execution;
-mod repository_public_values;
 mod source_cases;
 mod source_cases_bypass;
 mod source_cases_cargo;

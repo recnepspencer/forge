@@ -35,16 +35,6 @@ domains = ["adoption"]
 
 [rule_contracts]
 
-[rule_contracts.public_value_reachability]
-package = "public-value-fixture"
-crate_root = "vendor/public-value-fixture"
-witness_source = "tools/boundary-check/public_value_witnesses/public_value_fixture/mod.rs"
-worlds = [{{ name = "host-dev-default", target = "host", profile = "dev", default_features = true, features = [] }}]
-host_timeout_ms = 30000
-compilation_timeout_ms = 30000
-max_output_bytes = 65536
-guidance = "Expose a checked public introduction site."
-
 [rule_contracts.query_audience]
 engine_package = "worth-query"
 

@@ -32,6 +32,7 @@ pub struct DocumentationDefaultPathAudit {
     structural_facts_feature_declares_dx_posture: bool,
     transition_outcomes_feature_declares_dx_posture: bool,
     witnesses_feature_declares_dx_posture: bool,
+    authority_and_workflow_contracts_are_explicit: bool,
 }
 
 impl DocumentationDefaultPathAudit {
@@ -162,6 +163,10 @@ impl DocumentationDefaultPathAudit {
     pub fn witnesses_feature_declares_dx_posture(&self) -> bool {
         self.witnesses_feature_declares_dx_posture
     }
+
+    pub fn authority_and_workflow_contracts_are_explicit(&self) -> bool {
+        self.authority_and_workflow_contracts_are_explicit
+    }
 }
 
 const README: &str = include_str!("../../../README.md");
@@ -206,6 +211,8 @@ const STRUCTURAL_FACTS_FEATURE: &str = include_str!("../../../docs/features/stru
 const TRANSITION_OUTCOMES_FEATURE: &str =
     include_str!("../../../docs/features/transition-outcomes.md");
 const WITNESSES_FEATURE: &str = include_str!("../../../docs/features/witnesses.md");
+const AUTHORITY_AND_WORKFLOW_CONTRACTS: &str =
+    include_str!("../../../docs/features/authority-and-workflow-contracts.md");
 
 pub fn documentation_default_path_audit() -> DocumentationDefaultPathAudit {
     DocumentationDefaultPathAudit {
@@ -322,5 +329,11 @@ pub fn documentation_default_path_audit() -> DocumentationDefaultPathAudit {
         witnesses_feature_declares_dx_posture: WITNESSES_FEATURE.contains("## DX Posture")
             && WITNESSES_FEATURE.contains("proof_flow()")
             && WITNESSES_FEATURE.contains("use worth_proof::raw::*;"),
+        authority_and_workflow_contracts_are_explicit: AUTHORITY_AND_WORKFLOW_CONTRACTS
+            .contains("## Authority Boundary Catalog")
+            && AUTHORITY_AND_WORKFLOW_CONTRACTS.contains("## Supported Workflow Catalog")
+            && AUTHORITY_AND_WORKFLOW_CONTRACTS.contains("counterfeit")
+            && AUTHORITY_AND_WORKFLOW_CONTRACTS.contains("checked DisjointPair construction")
+            && AUTHORITY_AND_WORKFLOW_CONTRACTS.contains("trust-boundary bridging"),
     }
 }

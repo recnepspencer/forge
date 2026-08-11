@@ -1,12 +1,11 @@
 //! Compute externally reachable items from a parsed module graph.
 //!
 //! Public means reachable from crate-root (or explicit seeds) through `pub`
-//! visibility chains and same-crate `pub use` re-exports (including renames,
-//! groups, and nested globs). Seeds allow external re-exports to reuse the same
+//! visibility chains and explicit same-crate `pub use` re-exports. Seeds allow external re-exports to reuse the same
 //! closure without re-deriving ownership rules per re-export site.
 
 use super::crate_modules::{is_public_visibility, ModuleGraph};
-use super::module_path_resolution::expand_resolved_use_tree;
+use super::use_binding_resolution::{expand_use_tree, resolve_module_path};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::Path;
 use syn::{Item, Visibility};
@@ -66,7 +65,6 @@ pub(super) fn reachability_from_seeds(
     let mut reachability = Reachability::default();
     let mut public_modules: BTreeSet<Vec<String>> = seeds.modules;
     let mut queue: VecDeque<Vec<String>> = public_modules.iter().cloned().collect();
-    let mut glob_expanded: BTreeSet<Vec<String>> = BTreeSet::new();
 
     for item in seeds.items {
         reachability.items.insert(item);
@@ -80,7 +78,6 @@ pub(super) fn reachability_from_seeds(
             &mut reachability,
             &mut public_modules,
             &mut queue,
-            &mut glob_expanded,
         );
     }
 
@@ -108,7 +105,6 @@ pub(super) fn module_is_public_chain(graph: &ModuleGraph, path: &[String]) -> bo
 fn promote_public_chain_modules(graph: &ModuleGraph, reachability: &mut Reachability) {
     let mut queue: VecDeque<Vec<String>> = VecDeque::new();
     let mut public_modules = reachability.public_modules.clone();
-    let mut glob_expanded: BTreeSet<Vec<String>> = BTreeSet::new();
 
     for path in graph.modules.keys() {
         if path.is_empty() {
@@ -125,7 +121,6 @@ fn promote_public_chain_modules(graph: &ModuleGraph, reachability: &mut Reachabi
             reachability,
             &mut public_modules,
             &mut queue,
-            &mut glob_expanded,
         );
     }
     reachability.public_modules = public_modules;
@@ -137,7 +132,6 @@ fn walk_public_module(
     reachability: &mut Reachability,
     public_modules: &mut BTreeSet<Vec<String>>,
     queue: &mut VecDeque<Vec<String>>,
-    glob_expanded: &mut BTreeSet<Vec<String>>,
 ) {
     let Some(node) = graph.modules.get(module_path) else {
         return;
@@ -153,19 +147,10 @@ fn walk_public_module(
             }
             Item::Use(item_use) if is_public_visibility(&item_use.vis) => {
                 for (target_module, target_name, _export_name) in
-                    expand_resolved_use_tree(graph, module_path, &item_use.tree)
+                    expand_use_tree(module_path, &item_use.tree)
                 {
-                    if target_name == "*" {
-                        promote_all_public_items(
-                            graph,
-                            &target_module,
-                            reachability,
-                            public_modules,
-                            queue,
-                            glob_expanded,
-                        );
-                    } else {
-                        super::public_reexport_promotion::promote_item(
+                    if target_name != "*" {
+                        promote_item(
                             graph,
                             &target_module,
                             &target_name,
@@ -189,72 +174,86 @@ fn walk_public_module(
     }
 }
 
-fn promote_all_public_items(
+fn promote_item(
     graph: &ModuleGraph,
     target_module: &[String],
+    target_name: &str,
     reachability: &mut Reachability,
     public_modules: &mut BTreeSet<Vec<String>>,
     queue: &mut VecDeque<Vec<String>>,
-    glob_expanded: &mut BTreeSet<Vec<String>>,
 ) {
-    if !glob_expanded.insert(target_module.to_vec()) {
+    let mut visited = BTreeSet::new();
+    promote_item_inner(
+        graph,
+        target_module,
+        target_name,
+        reachability,
+        public_modules,
+        queue,
+        &mut visited,
+    );
+}
+
+fn promote_item_inner(
+    graph: &ModuleGraph,
+    target_module: &[String],
+    target_name: &str,
+    reachability: &mut Reachability,
+    public_modules: &mut BTreeSet<Vec<String>>,
+    queue: &mut VecDeque<Vec<String>>,
+    visited: &mut BTreeSet<(Vec<String>, String)>,
+) {
+    let Some(target_module) = resolve_module_path(graph, target_module) else {
+        return;
+    };
+    let target_module = target_module.as_slice();
+    if !visited.insert((target_module.to_vec(), target_name.to_owned())) {
         return;
     }
-    // Glob of a module makes that module's public surface ordinary API.
-    public_modules.insert(target_module.to_vec());
     let Some(node) = graph.modules.get(target_module) else {
         return;
     };
-    let items = node.items.clone();
-    for item in &items {
-        if item_is_public_declaration(item) {
-            if let Some(name) = item_name(item) {
-                reachability.items.insert(ReachableItemKey {
-                    module_path: target_module.to_vec(),
-                    item_name: name,
-                });
-            }
-        }
-        if let Item::Use(item_use) = item {
-            if is_public_visibility(&item_use.vis) {
-                for (nested_module, nested_name, _) in
-                    expand_resolved_use_tree(graph, target_module, &item_use.tree)
-                {
-                    if nested_name == "*" {
-                        promote_all_public_items(
-                            graph,
-                            &nested_module,
-                            reachability,
-                            public_modules,
-                            queue,
-                            glob_expanded,
-                        );
-                    } else {
-                        super::public_reexport_promotion::promote_item(
-                            graph,
-                            &nested_module,
-                            &nested_name,
-                            reachability,
-                            public_modules,
-                            queue,
-                        );
-                    }
-                }
-            }
-        }
-        if let Item::Mod(item_mod) = item {
-            if is_public_visibility(&item_mod.vis) {
+    for item in &node.items {
+        match item {
+            Item::Mod(item_mod) if item_mod.ident == target_name => {
                 let mut child = target_module.to_vec();
-                child.push(item_mod.ident.to_string());
+                child.push(target_name.to_owned());
                 if public_modules.insert(child.clone()) {
                     queue.push_back(child);
                 }
             }
+            other if item_name(other).as_deref() == Some(target_name) => {
+                reachability.items.insert(ReachableItemKey {
+                    module_path: target_module.to_vec(),
+                    item_name: target_name.to_owned(),
+                });
+            }
+            Item::Use(item_use) if is_public_visibility(&item_use.vis) => {
+                for (nested_module, nested_name, public_name) in
+                    expand_use_tree(target_module, &item_use.tree)
+                {
+                    let promoted_name = if public_name == target_name && nested_name != "*" {
+                        nested_name.as_str()
+                    } else {
+                        continue;
+                    };
+                    promote_item_inner(
+                        graph,
+                        &nested_module,
+                        promoted_name,
+                        reachability,
+                        public_modules,
+                        queue,
+                        visited,
+                    );
+                }
+            }
+            _ => {}
         }
     }
 }
 
-pub(super) fn item_is_public_declaration(item: &Item) -> bool {
+fn item_is_public_declaration(item: &Item) -> bool {
     item_visibility(item).is_some_and(is_public_visibility)
 }
 

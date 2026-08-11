@@ -5,6 +5,7 @@
 //! sealing. Keeping that graph here makes the cycle explicit and prevents the
 //! `source_rules` facade from becoming a flat implementation directory.
 
+mod authority_import_explicitness;
 pub(super) mod authority_sealing;
 mod authority_sealing_surface;
 mod authority_value_gate;
@@ -12,11 +13,8 @@ mod authority_value_gate_defs;
 mod authority_value_gate_scan;
 mod authority_value_identity;
 mod blanket_launder;
-mod bounded_process;
 mod callable_surface;
-mod cargo_workspace_profile;
 mod compiled_library_surface;
-mod configured_crate;
 mod crate_modules;
 mod dependency_authority;
 pub(super) mod exported_ceremony_macro;
@@ -25,24 +23,17 @@ mod external_use_target;
 mod forbidden_aliases;
 mod forbidden_bound_scan;
 mod library_target;
-mod module_path_resolution;
 mod module_source;
 mod opaque_attributes;
 mod path_dependencies;
-mod production_attribute_projection;
-mod production_availability;
-mod production_cargo_world;
-mod production_module_graph;
-mod production_world;
 mod public_reachability;
-mod public_reexport_promotion;
-mod public_value_reachability;
 mod query_fence;
 mod source_reachability;
 mod type_alias_reachability;
+mod use_binding_resolution;
 mod workspace_crates;
 
-use crate::config::{PublicValueReachabilityContract, QueryAudienceContract, SubworkspaceConfig};
+use crate::config::{QueryAudienceContract, SubworkspaceConfig};
 use crate::diagnostics::Diagnostic;
 use crate::snapshots::FacadeVocabularyAuthority;
 use std::path::Path;
@@ -54,7 +45,6 @@ pub(super) fn validate(
     root: &Path,
     subworkspaces: &[SubworkspaceConfig],
     query_audience: &QueryAudienceContract,
-    public_value_reachability: &PublicValueReachabilityContract,
     facade_exports: &FacadeVocabularyAuthority<'_>,
 ) -> Result<Vec<Diagnostic>, String> {
     let mut diagnostics = Vec::new();
@@ -85,6 +75,10 @@ pub(super) fn validate(
             &module_graph,
             &additional_targets,
         )?);
+        diagnostics.extend(authority_import_explicitness::enforce_explicit_imports(
+            &governed,
+            &module_graph,
+        ));
         let reachable = match public_reachability::externally_reachable_items(
             &module_graph,
             &governed.crate_root,
@@ -124,9 +118,5 @@ pub(super) fn validate(
             &query_vocabulary,
         ));
     }
-    diagnostics.extend(public_value_reachability::validate(
-        root,
-        public_value_reachability,
-    ));
     Ok(diagnostics)
 }

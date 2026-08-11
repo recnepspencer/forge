@@ -20,7 +20,7 @@
 //! The source remains runtime-owned. This module supplies only the legality
 //! law and typed result; it owns no clock, counter, retry, or live table.
 
-use std::fmt::{self, Debug as FmtDebug};
+use std::fmt::{self, Debug};
 use std::marker::PhantomData;
 
 use super::{
@@ -72,10 +72,10 @@ where
     }
 }
 
-impl<S> FmtDebug for FreshnessSample<S>
+impl<S> Debug for FreshnessSample<S>
 where
     S: FreshnessSource,
-    S::Sample: FmtDebug,
+    S::Sample: Debug,
 {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
@@ -165,12 +165,12 @@ where
     }
 }
 
-impl<S, Policy, Basis> FmtDebug for FreshnessEvaluation<S, Policy, Basis>
+impl<S, Policy, Basis> Debug for FreshnessEvaluation<S, Policy, Basis>
 where
     S: FreshnessSource,
-    S::Sample: FmtDebug,
+    S::Sample: Debug,
     Policy: FreshnessPolicy<S, Basis>,
-    Basis: FmtDebug,
+    Basis: Debug,
 {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter

@@ -248,7 +248,6 @@ fn run(
                 &config.naming,
                 &config.law_substrates,
                 &config.rule_contracts.query_audience,
-                &config.rule_contracts.public_value_reachability,
                 &facade_authority,
             )
             .map_err(|error| {

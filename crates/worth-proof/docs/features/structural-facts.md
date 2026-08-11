@@ -54,8 +54,7 @@ A structural fact usually appears in one of two ways:
 The public API is mostly about consuming or preserving these facts, not minting them directly.
 `StructuralProofAuthority` is a nameable zero-variant enum: it can identify the
 authority in proof types, but no safe runtime value of the authority can exist.
-Its public-value exemption is justified entirely by that representation; uses
-of the name do not need a second source-level posture model.
+Downstream sealed-minting contracts hold that construction boundary directly.
 
 ## Small Example
 

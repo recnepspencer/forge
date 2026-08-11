@@ -114,52 +114,36 @@ hands over, which is why practice is inconsistent.
 with a private constructor plus an owner-only mint. There is precedent for
 macro-based compile-time enforcement here already (`band_guard!` in `band.rs`).
 
-## H5 — Certify the crate's own shape mechanically
+## H5 — Certify authority boundaries and supported workflows
 
-Two rules, enforced at their honest owners because both defect classes above
-are mechanically detectable and were found only by a human reading source:
+Authority-bearing operations accept only the concrete proof, authority, and
+capability values issued by their owning worth-proof workflows. Maintained
+downstream compile-fail contracts prove that counterfeit values and direct
+sealed construction cannot satisfy those operations. Each supported public
+workflow named in the feature contract has downstream compile-pass or
+executable documentation evidence.
 
-1. **Every publicly exported type has at least one reachable public
-   constructor.** Catches H2 outright.
-2. **Every sealed constructor has a compile-fail covering *every* construction
-   door** — struct literal *and* each associated fn. The witness seal proved one
-   of two doors; Phase 8's `recovery_authority_constructor_is_private` proves
-   both, and is the standard to copy.
+Two bounded catalogs own this guarantee:
 
-**Landed as** boundary-check rule `BC7004_PUBLIC_VALUE_REACHABILITY`, configured
-at `[rule_contracts.public_value_reachability]`. It parses the configured crate's
-real module graph and inventories each exact exported public value definition in each
-configured target world. Every non-exempt definition maps to a named downstream
-Rust witness through both its internal definition path and its absolute external
-public type path. One generated consumer assigns each returned value, or each
-callback parameter, to that exact public type and, on the host, runs the
-witnesses to prove value materialization or callback delivery. Rule 2 remains a
-review standard rather than a separate parser.
+1. **Authority boundary contracts.** Each sensitive operation has an
+   owner-issued compile-pass case, a structurally similar counterfeit local
+   value that fails at the protected call, and direct-construction compile-fail
+   evidence when privacy is load-bearing.
+2. **Supported workflow contracts.** Caller-level evidence covers checked
+   `DisjointPair` construction, scoped brand usage, proof/capability
+   progression, recipe resolution through execution readiness, trust-boundary
+   bridging, and the primary transition workflow.
 
-**What building it taught, recorded because the guard nearly shipped useless:**
+The negative authority oracle is the protected operation's concrete type
+signature, not merely a private field. Private construction evidence closes the
+additional minting door where possession of the marker value is the authority.
+BC7001 also requires named production imports and reexports for governed crates;
+glob imports and reexports are denied so the authority surface remains explicit.
 
-- A line-wise scan of `pub use` found **a tenth** of the export surface. Caught
-  only by a sanity assertion that refuses to pass when the scan looks
-  implausibly small. **A guard needs a guard against finding nothing.**
-- `in_test_module` latched on the first `#[cfg(test)]`, which after H3 sits on
-  an *item* rather than a module — blinding the scan to everything below it. My
-  own H3 change broke my own H5 test.
-- Signatures and `impl` headers wrap in this codebase, so `pub fn new(` and
-  `-> Self` are on different lines, as are `impl<A, B, C>` and the type it
-  implements. Every one of these read as "nothing produces this."
-- **Negative control:** the door on `DisjointPair` was temporarily removed and
-  the guard flagged it, then restored. A certification test that has never been
-  observed failing is a claim, not evidence.
-
-The rule deliberately does not approximate Rust callability with a second trait,
-control-flow, or carrier solver. Rustc proves the configured witness expressions;
-the host accepts only its unpredictable nonce and exact completion count on the
-generated consumer's captured stdout, after every typed value was materialized
-and every callback (including `Brand`) delivered. Exact qualified
-exemptions are reserved for exact exported zero-variant enums and fail closed
-when blank, unknown, duplicated, stale, or constructible.
-`DisjointPair` is the checked-constructor specimen and `Brand` is the
-callback-delivery specimen.
+This scope deliberately does not maintain a universal registry of public Rust
+types or reconstruct Rust name resolution. Public data shape is not itself an
+authority boundary. The durable caller contract is documented in
+`docs/features/authority-and-workflow-contracts.md`.
 
 ---
 

@@ -129,6 +129,50 @@ fn cargo_check(manifest: &Path) -> (bool, String) {
 }
 
 #[test]
+fn owner_issued_values_satisfy_the_concrete_ceremony() {
+    let root = unique_temp("owner-issued");
+    let _ = fs::remove_dir_all(&root);
+    write_provider(&root);
+    write_file(
+        &root,
+        "caller/Cargo.toml",
+        r#"[package]
+name = "sealing-legitimate-caller"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sealing-provider = { path = "../provider" }
+
+[workspace]
+"#,
+    );
+    write_file(
+        &root,
+        "caller/src/lib.rs",
+        r#"
+use sealing_provider::{
+    admit, issue_eligibility, issue_entry_admission, issue_entry_execution,
+};
+
+pub fn legitimate_caller() {
+    let authority = issue_entry_admission();
+    let capability = issue_entry_execution();
+    let eligibility = issue_eligibility(&authority);
+    admit(authority, capability, eligibility);
+}
+"#,
+    );
+
+    let (ok, output) = cargo_check(&root.join("caller/Cargo.toml"));
+    let _ = fs::remove_dir_all(&root);
+    assert!(
+        ok,
+        "owner-issued authority, capability, and proof must satisfy the ceremony:\n{output}"
+    );
+}
+
+#[test]
 fn forged_marker_constructs_substrate_witnesses_and_proof() {
     let root = unique_temp("substrate-ok");
     let _ = fs::remove_dir_all(&root);

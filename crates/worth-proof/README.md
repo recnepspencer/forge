@@ -587,16 +587,17 @@ This is verbose on purpose:
 
 If you are new to the crate, read these next:
 
-1. [Artifact](./docs/features/artifact.md)
-2. [Assumption Basis](./docs/features/assumption-basis.md)
-3. [Freshness And Downgrade](./docs/features/freshness-and-downgrade.md)
-4. [Boundary Readmission](./docs/features/boundary-readmission.md)
-5. [Proof Markers And Sets](./docs/features/proof-markers-and-sets.md)
-6. [Structural Facts](./docs/features/structural-facts.md)
-7. [Witnesses](./docs/features/witnesses.md)
-8. [Fixed-Shape Collections](./docs/features/fixed-shape-collections.md)
-9. [Proven Vectors](./docs/features/proven-vectors.md)
-10. [Recipes And Stages](./docs/features/recipes-and-stages.md)
+1. [Authority And Workflow Contracts](./docs/features/authority-and-workflow-contracts.md)
+2. [Artifact](./docs/features/artifact.md)
+3. [Assumption Basis](./docs/features/assumption-basis.md)
+4. [Freshness And Downgrade](./docs/features/freshness-and-downgrade.md)
+5. [Boundary Readmission](./docs/features/boundary-readmission.md)
+6. [Proof Markers And Sets](./docs/features/proof-markers-and-sets.md)
+7. [Structural Facts](./docs/features/structural-facts.md)
+8. [Witnesses](./docs/features/witnesses.md)
+9. [Fixed-Shape Collections](./docs/features/fixed-shape-collections.md)
+10. [Proven Vectors](./docs/features/proven-vectors.md)
+11. [Recipes And Stages](./docs/features/recipes-and-stages.md)
 
 ## Glossary
 
