@@ -45,6 +45,7 @@ impl AuthoritySealingTestRepository {
         let mut displaced = Vec::new();
         for root in [
             self.root.join("cad/workspaces/worth-entry"),
+            self.root.join("crates/worth-proof"),
             self.root.join("vendor"),
         ] {
             collect_displaced_sources(&root, &mut displaced);

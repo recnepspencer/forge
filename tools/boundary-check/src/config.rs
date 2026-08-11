@@ -115,8 +115,68 @@ pub(crate) struct RuleContracts {
     pub(crate) query_audience: QueryAudienceContract,
     pub(crate) replay_surfaces: Vec<ReplaySurfaceConfig>,
     pub(crate) band_rules: Vec<BandRuleConfig>,
+    pub(crate) public_value_reachability: PublicValueReachabilityContract,
     #[serde(default)]
     pub(crate) worth_ui_query_edge: Option<WorthUiQueryEdgeContract>,
+}
+
+/// One exact library whose exported public values require a public introduction site.
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct PublicValueReachabilityContract {
+    pub(crate) package: String,
+    pub(crate) crate_root: String,
+    pub(crate) witness_source: String,
+    pub(crate) worlds: Vec<PublicValueWorld>,
+    pub(crate) host_timeout_ms: u64,
+    pub(crate) compilation_timeout_ms: u64,
+    pub(crate) max_output_bytes: usize,
+    pub(crate) guidance: String,
+    #[serde(default)]
+    pub(crate) witnesses: Vec<PublicValueWitness>,
+    #[serde(default)]
+    pub(crate) exemptions: Vec<PublicValueReachabilityExemption>,
+}
+
+/// One downstream-compiled introduction of an exact public value definition.
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct PublicValueWitness {
+    pub(crate) definition_path: String,
+    pub(crate) public_type_path: String,
+    pub(crate) function: String,
+    pub(crate) posture: PublicValueWitnessPosture,
+    pub(crate) worlds: Vec<String>,
+}
+
+/// One exact Cargo build world whose exported public values are governed.
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct PublicValueWorld {
+    pub(crate) name: String,
+    pub(crate) target: String,
+    pub(crate) profile: String,
+    pub(crate) default_features: bool,
+    #[serde(default)]
+    pub(crate) features: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum PublicValueWitnessPosture {
+    Value,
+    Callback,
+}
+
+/// A resolved exported type that is mechanically impossible to instantiate.
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct PublicValueReachabilityExemption {
+    pub(crate) type_path: String,
+    pub(crate) posture: PublicValueExemptionPosture,
+    pub(crate) reason: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum PublicValueExemptionPosture {
+    UninhabitedType,
 }
 
 #[derive(Clone, Debug, Deserialize)]

@@ -66,6 +66,7 @@ publish = false
         self.write_file("tools/boundary-check/config/road1.toml", config);
         self.write_query_audience_leaf_facades();
         self.write_worth_proof_stub();
+        self.write_public_value_contract_fixture();
         self.write_entry_crate(lib_source, None);
     }
 
@@ -266,6 +267,26 @@ pub struct Proof<P, A>(core::marker::PhantomData<(P, A)>);
         );
     }
 
+    fn write_public_value_contract_fixture(&self) {
+        self.write_file(
+            "vendor/public-value-fixture/Cargo.toml",
+            r#"[package]
+name = "public-value-fixture"
+version = "0.1.0"
+edition = "2021"
+[workspace]
+"#,
+        );
+        self.write_file(
+            "vendor/public-value-fixture/src/lib.rs",
+            "pub trait Open {}\n",
+        );
+        self.write_file(
+            "tools/boundary-check/public_value_witnesses/public_value_fixture/mod.rs",
+            "// No public value definitions exist in the neutral fixture.\n",
+        );
+    }
+
     fn write_query_audience_leaf_facades(&self) {
         self.write_file(
             "crates/worth-query/Cargo.toml",
@@ -309,87 +330,6 @@ worth-query = {{ path = "../worth-query" }}
             self.write_file(&format!("crates/{package}/src/lib.rs"), "pub mod facade;\n");
             self.write_file(&format!("crates/{package}/src/facade.rs"), export);
         }
-    }
-
-    pub fn minimal_config(&self) -> String {
-        self.config_with_law_substrates(
-            r#"
-[[law_substrates]]
-package = "worth-proof"
-tiers = ["worth", "worthy"]
-bands = ["schema", "entry", "derived", "cert", "pack"]
-"#,
-        )
-    }
-
-    /// Build a full road1.toml with a custom `[[law_substrates]]` body fragment.
-    pub fn config_with_law_substrates(&self, law_substrates_toml: &str) -> String {
-        format!(
-            r#"root_manifest = "Cargo.toml"
-forbidden_root_prefixes = ["cad/workspaces/"]
-seed_skeletons = []
-
-[machine_authority]
-canonical_config = "tools/boundary-check/config/road1.toml"
-mirrored_docs = ["cad/docs/worthy-foundations/NAMING.md"]
-
-[naming]
-bands = ["schema", "entry", "derived", "cert", "pack"]
-
-[[naming.reserved_domains]]
-tier = "worth"
-band = "entry"
-domains = ["adoption"]
-
-[rule_contracts]
-
-[rule_contracts.query_audience]
-engine_package = "worth-query"
-
-[[rule_contracts.query_audience.audiences]]
-package = "worth-query-decl"
-label = "declaration"
-allowed_bands = ["entry", "cert"]
-guidance = "declaration artifacts and handles"
-
-[[rule_contracts.query_audience.audiences]]
-package = "worth-query-host"
-label = "host"
-allowed_bands = ["entry", "cert"]
-guidance = "admission, lowering, and execution"
-
-[[rule_contracts.query_audience.audiences]]
-package = "worth-query-replay"
-label = "replay"
-allowed_bands = ["cert"]
-guidance = "cert-only reconstruction and replay"
-
-[[rule_contracts.replay_surfaces]]
-label = "certification replay"
-package_prefixes = ["worth-cert-replay", "worthy-cert-replay"]
-cert_domains = ["replay", "reconstruction"]
-
-[[rule_contracts.band_rules]]
-source_band = "entry"
-allowed_target_bands = ["schema", "resolver", "derived"]
-
-[[born_crates]]
-path = "cad/workspaces/worth-entry/crates/worth-entry-adoption"
-package = "worth-entry-adoption"
-
-[[subworkspaces]]
-path = "cad/workspaces/worth-entry"
-allowed_crate_prefixes = ["worth-entry-"]
-member_lane = "crates/*"
-{law_substrates_toml}
-[legacy_reference_ratchet]
-governed_roots = []
-forbidden_fragments = []
-snapshot = "tools/boundary-check/snapshots/legacy-references.toml"
-exclude_paths = []
-replacement_guidance = "Use the corresponding worth_/worth- spelling instead of the retired name."
-"#
-        )
     }
 
     pub fn write_file(&self, relative: &str, contents: &str) {

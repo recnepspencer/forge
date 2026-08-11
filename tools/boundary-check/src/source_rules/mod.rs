@@ -6,7 +6,10 @@
 mod analysis;
 mod law_substrates;
 
-use crate::config::{LawSubstrateConfig, NamingConfig, QueryAudienceContract, SubworkspaceConfig};
+use crate::config::{
+    LawSubstrateConfig, NamingConfig, PublicValueReachabilityContract, QueryAudienceContract,
+    SubworkspaceConfig,
+};
 use crate::diagnostics::Diagnostic;
 use crate::snapshots::FacadeVocabularyAuthority;
 use std::path::Path;
@@ -28,6 +31,7 @@ pub(crate) fn validate_source_rules(
     naming: &NamingConfig,
     law_substrates: &[LawSubstrateConfig],
     query_audience: &QueryAudienceContract,
+    public_value_reachability: &PublicValueReachabilityContract,
     facade_exports: &FacadeVocabularyAuthority<'_>,
 ) -> Result<Vec<Diagnostic>, String> {
     let mut diagnostics = Vec::new();
@@ -40,6 +44,7 @@ pub(crate) fn validate_source_rules(
         root,
         subworkspaces,
         query_audience,
+        public_value_reachability,
         facade_exports,
     )?);
 

@@ -116,8 +116,8 @@ macro-based compile-time enforcement here already (`band_guard!` in `band.rs`).
 
 ## H5 — Certify the crate's own shape mechanically
 
-Two rules, as tests, because both defect classes above are mechanically
-detectable and were found only by a human reading source:
+Two rules, enforced at their honest owners because both defect classes above
+are mechanically detectable and were found only by a human reading source:
 
 1. **Every publicly exported type has at least one reachable public
    constructor.** Catches H2 outright.
@@ -126,8 +126,15 @@ detectable and were found only by a human reading source:
    of two doors; Phase 8's `recovery_authority_constructor_is_private` proves
    both, and is the standard to copy.
 
-**Landed as** `tests/public_surface_reachability_certification.rs`, implementing
-rule 1. Rule 2 remains a review standard rather than a test.
+**Landed as** boundary-check rule `BC7004_PUBLIC_VALUE_REACHABILITY`, configured
+at `[rule_contracts.public_value_reachability]`. It parses the configured crate's
+real module graph and inventories each exact exported public value definition in each
+configured target world. Every non-exempt definition maps to a named downstream
+Rust witness through both its internal definition path and its absolute external
+public type path. One generated consumer assigns each returned value, or each
+callback parameter, to that exact public type and, on the host, runs the
+witnesses to prove value materialization or callback delivery. Rule 2 remains a
+review standard rather than a separate parser.
 
 **What building it taught, recorded because the guard nearly shipped useless:**
 
@@ -144,11 +151,15 @@ rule 1. Rule 2 remains a review standard rather than a test.
   the guard flagged it, then restored. A certification test that has never been
   observed failing is a claim, not evidence.
 
-Known limits, stated so the exemption list is not mistaken for a clean bill:
-the scan does not follow type aliases (hence `BoundaryBridged`), and it is
-string matching rather than parsing. It reliably catches the `DisjointPair`
-shape — an exported struct sealed by private fields that nothing public
-returns — and is not a general reachability prover.
+The rule deliberately does not approximate Rust callability with a second trait,
+control-flow, or carrier solver. Rustc proves the configured witness expressions;
+the host accepts only its unpredictable nonce and exact completion count on the
+generated consumer's captured stdout, after every typed value was materialized
+and every callback (including `Brand`) delivered. Exact qualified
+exemptions are reserved for exact exported zero-variant enums and fail closed
+when blank, unknown, duplicated, stale, or constructible.
+`DisjointPair` is the checked-constructor specimen and `Brand` is the
+callback-delivery specimen.
 
 ---
 

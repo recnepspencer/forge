@@ -296,7 +296,10 @@ pub fn documentation_default_path_audit() -> DocumentationDefaultPathAudit {
         fixed_shape_collections_feature_declares_dx_posture: FIXED_SHAPE_COLLECTIONS_FEATURE
             .contains("## DX Posture")
             && FIXED_SHAPE_COLLECTIONS_FEATURE.contains("pair(...)")
-            && FIXED_SHAPE_COLLECTIONS_FEATURE.contains("use worth_proof::raw::*;"),
+            && FIXED_SHAPE_COLLECTIONS_FEATURE.contains("use worth_proof::raw::*;")
+            && FIXED_SHAPE_COLLECTIONS_FEATURE
+                .contains("DisjointPair::try_from_disjoint(left, right)")
+            && FIXED_SHAPE_COLLECTIONS_FEATURE.contains("equal inputs are rejected"),
         fork_and_join_feature_declares_dx_posture: FORK_AND_JOIN_FEATURE.contains("## DX Posture")
             && FORK_AND_JOIN_FEATURE.contains("join_ready(...)")
             && FORK_AND_JOIN_FEATURE.contains("use worth_proof::raw::*;"),

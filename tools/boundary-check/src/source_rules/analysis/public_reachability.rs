@@ -6,9 +6,10 @@
 //! closure without re-deriving ownership rules per re-export site.
 
 use super::crate_modules::{is_public_visibility, ModuleGraph};
+use super::module_path_resolution::expand_resolved_use_tree;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::Path;
-use syn::{Item, UseTree, Visibility};
+use syn::{Item, Visibility};
 
 /// One externally reachable declaration site.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -152,7 +153,7 @@ fn walk_public_module(
             }
             Item::Use(item_use) if is_public_visibility(&item_use.vis) => {
                 for (target_module, target_name, _export_name) in
-                    expand_use_tree(module_path, &item_use.tree)
+                    expand_resolved_use_tree(graph, module_path, &item_use.tree)
                 {
                     if target_name == "*" {
                         promote_all_public_items(
@@ -164,7 +165,7 @@ fn walk_public_module(
                             glob_expanded,
                         );
                     } else {
-                        promote_item(
+                        super::public_reexport_promotion::promote_item(
                             graph,
                             &target_module,
                             &target_name,
@@ -217,7 +218,7 @@ fn promote_all_public_items(
         if let Item::Use(item_use) = item {
             if is_public_visibility(&item_use.vis) {
                 for (nested_module, nested_name, _) in
-                    expand_use_tree(target_module, &item_use.tree)
+                    expand_resolved_use_tree(graph, target_module, &item_use.tree)
                 {
                     if nested_name == "*" {
                         promote_all_public_items(
@@ -229,7 +230,7 @@ fn promote_all_public_items(
                             glob_expanded,
                         );
                     } else {
-                        promote_item(
+                        super::public_reexport_promotion::promote_item(
                             graph,
                             &nested_module,
                             &nested_name,
@@ -253,38 +254,7 @@ fn promote_all_public_items(
     }
 }
 
-fn promote_item(
-    graph: &ModuleGraph,
-    target_module: &[String],
-    target_name: &str,
-    reachability: &mut Reachability,
-    public_modules: &mut BTreeSet<Vec<String>>,
-    queue: &mut VecDeque<Vec<String>>,
-) {
-    let Some(node) = graph.modules.get(target_module) else {
-        return;
-    };
-    for item in &node.items {
-        match item {
-            Item::Mod(item_mod) if item_mod.ident == target_name => {
-                let mut child = target_module.to_vec();
-                child.push(target_name.to_owned());
-                if public_modules.insert(child.clone()) {
-                    queue.push_back(child);
-                }
-            }
-            other if item_name(other).as_deref() == Some(target_name) => {
-                reachability.items.insert(ReachableItemKey {
-                    module_path: target_module.to_vec(),
-                    item_name: target_name.to_owned(),
-                });
-            }
-            _ => {}
-        }
-    }
-}
-
-fn item_is_public_declaration(item: &Item) -> bool {
+pub(super) fn item_is_public_declaration(item: &Item) -> bool {
     item_visibility(item).is_some_and(is_public_visibility)
 }
 
@@ -318,62 +288,5 @@ pub(super) fn item_name(item: &Item) -> Option<String> {
         Item::Type(i) => Some(i.ident.to_string()),
         Item::Union(i) => Some(i.ident.to_string()),
         _ => None,
-    }
-}
-
-/// Expand a use tree into (resolved_module_path, imported_name, export_name) triples.
-fn expand_use_tree(
-    current_module: &[String],
-    tree: &UseTree,
-) -> Vec<(Vec<String>, String, String)> {
-    expand_use_tree_rec(current_module, &[], tree)
-}
-
-fn expand_use_tree_rec(
-    current_module: &[String],
-    prefix_module: &[String],
-    tree: &UseTree,
-) -> Vec<(Vec<String>, String, String)> {
-    match tree {
-        UseTree::Path(path) => {
-            let ident = path.ident.to_string();
-            let next = match ident.as_str() {
-                "self" if prefix_module.is_empty() => current_module.to_vec(),
-                "self" => prefix_module.to_vec(),
-                "super" => {
-                    let mut p = if prefix_module.is_empty() {
-                        current_module.to_vec()
-                    } else {
-                        prefix_module.to_vec()
-                    };
-                    p.pop();
-                    p
-                }
-                "crate" => Vec::new(),
-                other => {
-                    let mut p = prefix_module.to_vec();
-                    p.push(other.to_owned());
-                    p
-                }
-            };
-            expand_use_tree_rec(current_module, &next, &path.tree)
-        }
-        UseTree::Name(name) => {
-            let n = name.ident.to_string();
-            vec![(prefix_module.to_vec(), n.clone(), n)]
-        }
-        UseTree::Rename(rename) => {
-            let from = rename.ident.to_string();
-            let to = rename.rename.to_string();
-            vec![(prefix_module.to_vec(), from, to)]
-        }
-        UseTree::Glob(_) => {
-            vec![(prefix_module.to_vec(), "*".to_owned(), "*".to_owned())]
-        }
-        UseTree::Group(group) => group
-            .items
-            .iter()
-            .flat_map(|item| expand_use_tree_rec(current_module, prefix_module, item))
-            .collect(),
     }
 }

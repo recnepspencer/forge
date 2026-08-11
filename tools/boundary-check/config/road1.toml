@@ -432,6 +432,563 @@ domains = ["replay", "scale", "approval", "perf", "workflows"]
 
 [rule_contracts]
 
+[rule_contracts.public_value_reachability]
+package = "worth-proof"
+crate_root = "crates/worth-proof"
+witness_source = "tools/boundary-check/public_value_witnesses/worth_proof/mod.rs"
+worlds = [
+  { name = "host-dev-default", target = "host", profile = "dev", default_features = true, features = [] },
+  { name = "host-release-default", target = "host", profile = "release", default_features = true, features = [] },
+]
+host_timeout_ms = 120000
+compilation_timeout_ms = 120000
+max_output_bytes = 4194304
+guidance = "Expose a checked public introduction site or record a qualified uninhabited-type exemption."
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::readmission::BoundaryBridged"
+function = "assumption::boundary_bridged"
+public_type_path = "::worth_proof::BoundaryBridged<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "brand::Brand"
+function = "brand::brand"
+public_type_path = "::worth_proof::Brand<'_>"
+posture = "callback"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "brand::Branded"
+function = "brand::branded"
+public_type_path = "::worth_proof::Branded<'_, _>"
+posture = "callback"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::checked_recipe::CheckedAdmitRecipeTransition"
+function = "transition::checked_admit"
+public_type_path = "::worth_proof::CheckedAdmitRecipeTransition<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::checked_recipe::CheckedLowerRecipeTransition"
+function = "transition::checked_lower"
+public_type_path = "::worth_proof::CheckedLowerRecipeTransition<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::readiness::ExecutionReadinessContext"
+function = "transition::execution_readiness"
+public_type_path = "::worth_proof::ExecutionReadinessContext<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::recipe::AdmitRecipeTransition"
+function = "transition::admit"
+public_type_path = "::worth_proof::AdmitRecipeTransition<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::recipe::LowerRecipeTransition"
+function = "transition::lower"
+public_type_path = "::worth_proof::LowerRecipeTransition<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::recipe::RecipeResolutionContext"
+function = "transition::resolution_context"
+public_type_path = "::worth_proof::RecipeResolutionContext<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::runtime_readmission::LoweredReadmissionContext"
+function = "transition::lowered_readmission"
+public_type_path = "::worth_proof::LoweredReadmissionContext<_, _, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "artifact::access::ArtifactView"
+function = "artifact::artifact_view"
+public_type_path = "::worth_proof::ArtifactView<'_, _, _, _, _>"
+posture = "callback"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "artifact::carrier::Artifact"
+function = "artifact::artifact"
+public_type_path = "::worth_proof::Artifact<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "artifact::parts::ArtifactParts"
+function = "artifact::artifact_parts"
+public_type_path = "::worth_proof::ArtifactParts<_, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::basis::AssumptionBasis"
+function = "assumption::assumption_basis"
+public_type_path = "::worth_proof::AssumptionBasis<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::freshness::FreshnessScopedBasis"
+function = "assumption::freshness_scoped_basis"
+public_type_path = "::worth_proof::FreshnessScopedBasis<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::source::FreshnessEvaluation"
+function = "assumption::freshness_evaluation"
+public_type_path = "::worth_proof::FreshnessEvaluation<_, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::source::FreshnessSample"
+function = "assumption::freshness_sample"
+public_type_path = "::worth_proof::FreshnessSample<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "binding::axes::Binding"
+function = "binding::binding"
+public_type_path = "::worth_proof::Binding<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "collections::disjoint_pair::DisjointPair"
+function = "collections::disjoint_pair"
+public_type_path = "::worth_proof::DisjointPair<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "collections::exactly_one::ExactlyOne"
+function = "collections::exactly_one"
+public_type_path = "::worth_proof::ExactlyOne<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "collections::non_empty::NonEmpty"
+function = "collections::non_empty"
+public_type_path = "::worth_proof::NonEmpty<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "collections::pair::Pair"
+function = "collections::pair"
+public_type_path = "::worth_proof::Pair<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "collections::proven_vec::CanonicalVec"
+function = "collections::canonical_vec"
+public_type_path = "::worth_proof::CanonicalVec<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "collections::proven_vec::UniqueVec"
+function = "collections::unique_vec"
+public_type_path = "::worth_proof::UniqueVec<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "composition::family::AuthoritativeFamilyMember"
+function = "composition::family_member"
+public_type_path = "::worth_proof::AuthoritativeFamilyMember<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "composition::family::CompositionFamilySymbol"
+function = "composition::family_symbol"
+public_type_path = "::worth_proof::CompositionFamilySymbol<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "composition::family::FamilyResolvedReference"
+function = "composition::family_reference"
+public_type_path = "::worth_proof::FamilyResolvedReference<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "composition::family::LoweredFamilyProgram2"
+function = "composition::lowered_family"
+public_type_path = "::worth_proof::LoweredFamilyProgram2<_, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "composition::fork::ForkOutputs2"
+function = "composition::fork_outputs"
+public_type_path = "::worth_proof::ForkOutputs2<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "composition::join::JoinInputs2"
+function = "composition::join_inputs"
+public_type_path = "::worth_proof::JoinInputs2<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "dx::checked_outcome::ProofOutcome"
+function = "dx::proof_outcome"
+public_type_path = "::worth_proof::ProofOutcome<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "dx::composition_reads::ReadyJoinSummary"
+function = "dx::ready_join_summary"
+public_type_path = "::worth_proof::ReadyJoinSummary<'_, _, _, _, _>"
+posture = "callback"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "dx::scoped_flow::ProofFlow"
+function = "dx::proof_flow"
+public_type_path = "::worth_proof::ProofFlow"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "effect::causality::DerivedFrom"
+function = "effects::derived_from"
+public_type_path = "::worth_proof::DerivedFrom<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "effect::causality::Inverts"
+function = "effects::inverts"
+public_type_path = "::worth_proof::Inverts<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "effect::performed::Performed"
+function = "effects::performed"
+public_type_path = "::worth_proof::Performed<_, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "linear::LinearResource"
+function = "effects::linear_resource"
+public_type_path = "::worth_proof::LinearResource<_, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "linear::TerminalReceipt"
+function = "effects::terminal_receipt"
+public_type_path = "::worth_proof::TerminalReceipt<_, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "proof::sets::Proof"
+function = "proof::proof"
+public_type_path = "::worth_proof::Proof<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "proof::sets::ProofSetCons"
+function = "proof::proof_set_cons"
+public_type_path = "::worth_proof::ProofSetCons<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "proof::witnesses::AuthorityWitness"
+function = "proof::authority_witness"
+public_type_path = "::worth_proof::AuthorityWitness<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "proof::witnesses::CapabilityWitness"
+function = "proof::capability_witness"
+public_type_path = "::worth_proof::CapabilityWitness<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "recipe::execution::ExecutedRecipe"
+function = "recipe::executed_recipe"
+public_type_path = "::worth_proof::ExecutedRecipe<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "recipe::readiness::ExecutionReadyRecipe"
+function = "recipe::execution_ready_recipe"
+public_type_path = "::worth_proof::ExecutionReadyRecipe<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "recipe::stages::Recipe"
+function = "recipe::recipe"
+public_type_path = "::worth_proof::Recipe<_, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::outcomes::SuccessfulTransitionOutcome"
+function = "transition::successful_outcome"
+public_type_path = "::worth_proof::SuccessfulTransitionOutcome<_>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::basis::NoAssumptionBasis"
+function = "assumption::no_assumption_basis"
+public_type_path = "::worth_proof::NoAssumptionBasis"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::freshness::CurrentValidity"
+function = "assumption::current_validity"
+public_type_path = "::worth_proof::CurrentValidity"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::freshness::StaleReadable"
+function = "assumption::stale_readable"
+public_type_path = "::worth_proof::StaleReadable"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::freshness::RebindRequired"
+function = "assumption::rebind_required"
+public_type_path = "::worth_proof::RebindRequired"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::freshness::AuthorityRevalidationRequired"
+function = "assumption::authority_revalidation_required"
+public_type_path = "::worth_proof::AuthorityRevalidationRequired"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::source::EvaluatedFreshness"
+function = "assumption::evaluated_freshness"
+public_type_path = "::worth_proof::EvaluatedFreshness<_, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "assumption::source::FreshnessVerdict"
+function = "assumption::freshness_verdict"
+public_type_path = "::worth_proof::FreshnessVerdict"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "composition::family::FamilyLifecycleAction"
+function = "composition::family_lifecycle_action"
+public_type_path = "::worth_proof::FamilyLifecycleAction<_, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "dx::basis_reads::BasisPostureKind"
+function = "dx::basis_posture_kind"
+public_type_path = "::worth_proof::BasisPostureKind"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "dx::checked_outcome::ProofOutcomeKind"
+function = "dx::proof_outcome_kind"
+public_type_path = "::worth_proof::ProofOutcomeKind"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "dx::composition_reads::FamilyActionKind"
+function = "dx::family_action_kind"
+public_type_path = "::worth_proof::FamilyActionKind"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "dx::stage_reads::RecipeStageKind"
+function = "dx::recipe_stage_kind"
+public_type_path = "::worth_proof::RecipeStageKind"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "proof::sets::NoProofs"
+function = "proof::no_proofs"
+public_type_path = "::worth_proof::NoProofs"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "proof::structural_facts::CanonicalOrder"
+function = "proof::canonical_order"
+public_type_path = "::worth_proof::CanonicalOrder"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "proof::structural_facts::Uniqueness"
+function = "proof::uniqueness"
+public_type_path = "::worth_proof::Uniqueness"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "proof::structural_facts::Disjointness"
+function = "proof::disjointness"
+public_type_path = "::worth_proof::Disjointness"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "proof::structural_facts::Normalization"
+function = "proof::normalization"
+public_type_path = "::worth_proof::Normalization"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "recipe::stages::Unresolved"
+function = "recipe::unresolved"
+public_type_path = "::worth_proof::Unresolved"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "recipe::stages::Resolved"
+function = "recipe::resolved"
+public_type_path = "::worth_proof::Resolved"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "recipe::stages::Lowered"
+function = "recipe::lowered_stage"
+public_type_path = "::worth_proof::Lowered"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "recipe::stages::Admitted"
+function = "recipe::admitted"
+public_type_path = "::worth_proof::Admitted"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::checked_recipe::CheckedResolveRecipeTransition"
+function = "transition::checked_resolve"
+public_type_path = "::worth_proof::CheckedResolveRecipeTransition"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::outcomes::TransitionOutcome"
+function = "transition::transition_outcome"
+public_type_path = "::worth_proof::TransitionOutcome<_, _, _, _, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::readiness::AdmitExecutionReadyRecipeTransition"
+function = "transition::admit_execution_ready"
+public_type_path = "::worth_proof::AdmitExecutionReadyRecipeTransition"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::readiness::CheckedAdmitExecutionReadyRecipeTransition"
+function = "transition::checked_admit_execution_ready"
+public_type_path = "::worth_proof::CheckedAdmitExecutionReadyRecipeTransition"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::readiness::ExecuteReadyRecipeTransition"
+function = "transition::execute_ready"
+public_type_path = "::worth_proof::ExecuteReadyRecipeTransition"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::recipe::ResolveRecipeTransition"
+function = "transition::resolve_recipe"
+public_type_path = "::worth_proof::ResolveRecipeTransition"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::rejection::PreConstructionGate"
+function = "transition::pre_construction_gate"
+public_type_path = "::worth_proof::PreConstructionGate<_, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::rejection::TransitionReadiness"
+function = "transition::transition_readiness"
+public_type_path = "::worth_proof::TransitionReadiness<_, _, _, _, _, _>"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::runtime_readmission::ReadmitLoweredForExecutionReadyTransition"
+function = "transition::readmit_lowered"
+public_type_path = "::worth_proof::ReadmitLoweredForExecutionReadyTransition"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.witnesses]]
+definition_path = "transition::runtime_readmission::CheckedReadmitLoweredForExecutionReadyTransition"
+function = "transition::checked_readmit_lowered"
+public_type_path = "::worth_proof::CheckedReadmitLoweredForExecutionReadyTransition"
+posture = "value"
+worlds = ["host-dev-default", "host-release-default"]
+
+[[rule_contracts.public_value_reachability.exemptions]]
+type_path = "proof::structural_facts::StructuralProofAuthority"
+posture = "uninhabited_type"
+reason = "Structural proof authority is a zero-variant enum and cannot exist as a value."
+
 [rule_contracts.worth_ui_query_edge]
 workspace = "workspaces/worth-ui"
 engine_package = "worth-query"

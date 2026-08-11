@@ -12,6 +12,8 @@ mod forgery;
 mod graph;
 #[path = "authority_sealing_contracts/laundering.rs"]
 mod laundering;
+#[path = "authority_sealing_contracts/public_value_reachability.rs"]
+mod public_value_reachability;
 #[path = "authority_sealing_contracts/resolution.rs"]
 mod resolution;
 #[path = "authority_sealing_contracts/surface.rs"]
