@@ -39,12 +39,14 @@ pub(in crate::physical_runtime::recovery_coordination::cleanup) fn execute(
     media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
     command: PhysicalRecoveryCleanupRemovalCommand,
 ) -> PhysicalRecoveryCleanupRemovalOutcome {
-    let execution = match admit_execution(coordination, &command) {
+    let execution = match admit_execution(coordination, media, &command) {
         Ok(execution) => execution,
         Err(outcome) => return outcome,
     };
     match media.remove_recovery_wal_artifact_scheduled(
         execution.coordinate,
+        command.byte_count,
+        command.artifact_digest,
         execution
             .plan
             .backend_completion_binding()
@@ -64,9 +66,11 @@ pub(in crate::physical_runtime::recovery_coordination::cleanup) fn execute(
 
 fn admit_execution(
     coordination: &PhysicalRecoveryCoordination,
+    media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
     command: &PhysicalRecoveryCleanupRemovalCommand,
 ) -> Result<RemovalExecution, PhysicalRecoveryCleanupRemovalOutcome> {
-    let scope = validated_scope(command).ok_or_else(invalid_command_outcome)?;
+    let scope =
+        validated_scope(coordination, media, command).ok_or_else(invalid_command_outcome)?;
     let work =
         super::super::admission::removal(coordination, scope).map_err(admission_denial_outcome)?;
     let work_identity = work.intent().identity();
@@ -87,8 +91,16 @@ fn admit_execution(
 }
 
 fn validated_scope(
+    coordination: &PhysicalRecoveryCoordination,
+    media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
     command: &PhysicalRecoveryCleanupRemovalCommand,
 ) -> Option<PhysicalWalReclamationScope> {
+    if command.store != media.store_identity()
+        || command.media_generation != media.media_generation()
+        || command.session != coordination.session_identity()
+    {
+        return None;
+    }
     PhysicalWalReclamationScope::new(
         command.checkpoint,
         command.compaction_generation,

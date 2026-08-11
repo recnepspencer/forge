@@ -1,11 +1,13 @@
 use crate::filesystem_media::{
-    ArtifactTreeDirectory, ArtifactTreeFailure, ArtifactTreePublicationEffectOutcome,
-    CompletedArtifactTreePublicationEffect, IndeterminateArtifactTreePublicationEffect,
+    ArtifactTreeDirectory, ArtifactTreeFailure, ArtifactTreeFile,
+    ArtifactTreePublicationEffectOutcome, CompletedArtifactTreePublicationEffect,
+    IndeterminateArtifactTreePublicationEffect,
 };
 use crate::{
     BackendQueueExecutionAdaptation, BackendQueueExecutionCompletion,
     BackendQueueExecutionPlanBinding,
 };
+use sha2::{Digest, Sha256};
 
 use super::AdmittedRecoveryFilesystemMedia;
 
@@ -75,6 +77,8 @@ impl AdmittedRecoveryFilesystemMedia {
     pub fn remove_recovery_wal_artifact_scheduled(
         &self,
         coordinate: RecoveryWalArtifactCoordinate,
+        expected_bytes: u64,
+        expected_digest: [u8; 32],
         binding: BackendQueueExecutionPlanBinding,
     ) -> RecoveryCleanupRemovalOutcome {
         let wal = match ArtifactTreeDirectory::families().child("wal") {
@@ -93,41 +97,90 @@ impl AdmittedRecoveryFilesystemMedia {
             Ok(ticket) => ticket,
             Err(_) => return denied_without_queue(coordinate),
         };
+        if let Err(failure) =
+            self.verify_cleanup_artifact(&artifact, expected_bytes, expected_digest)
+        {
+            return denied_with_queue(
+                coordinate,
+                failure,
+                ticket.begin_completion().observe_queue_depth(1).complete(),
+            );
+        }
         let physical = self
             .parts
             .artifact_tree()
             .remove_file_durably_observed(&artifact);
         let queue = ticket.begin_completion().observe_queue_depth(1).complete();
-        match physical {
-            ArtifactTreePublicationEffectOutcome::Completed(physical) => {
-                RecoveryCleanupRemovalOutcome::Completed(Box::new(
-                    CompletedScheduledRecoveryCleanupRemoval {
-                        coordinate,
-                        physical,
-                        queue,
-                    },
-                ))
-            }
-            ArtifactTreePublicationEffectOutcome::DeniedBeforeEffect(failure) => {
-                RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(Box::new(
-                    DeniedScheduledRecoveryCleanupRemoval {
-                        coordinate,
-                        failure,
-                        queue: Some(queue),
-                    },
-                ))
-            }
-            ArtifactTreePublicationEffectOutcome::Indeterminate(physical) => {
-                RecoveryCleanupRemovalOutcome::Indeterminate(Box::new(
-                    IndeterminateScheduledRecoveryCleanupRemoval {
-                        coordinate,
-                        physical,
-                        queue,
-                    },
-                ))
-            }
+        lower_cleanup_removal(coordinate, physical, queue)
+    }
+
+    fn verify_cleanup_artifact(
+        &self,
+        artifact: &ArtifactTreeFile,
+        expected_bytes: u64,
+        expected_digest: [u8; 32],
+    ) -> Result<(), ArtifactTreeFailure> {
+        let observed = self
+            .parts
+            .artifact_tree()
+            .read_bounded(artifact, expected_bytes)?;
+        if observed.len() as u64 != expected_bytes
+            || <[u8; 32]>::from(Sha256::digest(&observed)) != expected_digest
+        {
+            return Err(ArtifactTreeFailure::recovery_denial());
+        }
+        Ok(())
+    }
+}
+
+fn lower_cleanup_removal(
+    coordinate: RecoveryWalArtifactCoordinate,
+    physical: ArtifactTreePublicationEffectOutcome,
+    queue: BackendQueueExecutionCompletion,
+) -> RecoveryCleanupRemovalOutcome {
+    match physical {
+        ArtifactTreePublicationEffectOutcome::Completed(physical) => {
+            RecoveryCleanupRemovalOutcome::Completed(Box::new(
+                CompletedScheduledRecoveryCleanupRemoval {
+                    coordinate,
+                    physical,
+                    queue,
+                },
+            ))
+        }
+        ArtifactTreePublicationEffectOutcome::DeniedBeforeEffect(failure) => {
+            RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(Box::new(
+                DeniedScheduledRecoveryCleanupRemoval {
+                    coordinate,
+                    failure,
+                    queue: Some(queue),
+                },
+            ))
+        }
+        ArtifactTreePublicationEffectOutcome::Indeterminate(physical) => {
+            RecoveryCleanupRemovalOutcome::Indeterminate(Box::new(
+                IndeterminateScheduledRecoveryCleanupRemoval {
+                    coordinate,
+                    physical,
+                    queue,
+                },
+            ))
         }
     }
+}
+
+fn denied_with_queue(
+    coordinate: RecoveryWalArtifactCoordinate,
+    failure: ArtifactTreeFailure,
+    queue: BackendQueueExecutionCompletion,
+) -> RecoveryCleanupRemovalOutcome {
+    RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(Box::new(
+        DeniedScheduledRecoveryCleanupRemoval {
+            coordinate,
+            failure,
+            queue: Some(queue),
+        },
+    ))
 }
 
 fn denied_without_queue(

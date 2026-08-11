@@ -75,13 +75,8 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
-        "PhysicalRecoveryCleanupCompactionBasis",
-        "worth-store/recovery-coordination/cleanup/removal",
-        "phase-7",
-    ),
-    (
-        "PhysicalRecoveryCleanupCompactionBasis::new",
-        "worth-store/recovery-coordination/cleanup/removal",
+        "PhysicalRecoveryCleanupAuthorization",
+        "worth-store/recovery-freshness/cleanup",
         "phase-7",
     ),
     (
@@ -140,16 +135,6 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
-        "PhysicalRecoveryCleanupPublicationBasis",
-        "worth-store/recovery-coordination/cleanup/removal",
-        "phase-7",
-    ),
-    (
-        "PhysicalRecoveryCleanupPublicationBasis::new",
-        "worth-store/recovery-coordination/cleanup/removal",
-        "phase-7",
-    ),
-    (
         "PhysicalRecoveryCleanupRemovalCommand",
         "worth-store/recovery-coordination/cleanup/removal",
         "phase-7",
@@ -201,16 +186,6 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "PhysicalRecoveryCleanupRemovalOutcome",
-        "worth-store/recovery-coordination/cleanup/removal",
-        "phase-7",
-    ),
-    (
-        "PhysicalRecoveryCleanupWalBasis",
-        "worth-store/recovery-coordination/cleanup/removal",
-        "phase-7",
-    ),
-    (
-        "PhysicalRecoveryCleanupWalBasis::new",
         "worth-store/recovery-coordination/cleanup/removal",
         "phase-7",
     ),
@@ -287,6 +262,21 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
     (
         "RecoveryCleanupRemovalOccurrence::work",
         "worth-store/recovery-coordination/effect/cleanup",
+        "phase-7",
+    ),
+    (
+        "StoreRecoveryCleanupFreshnessAdmission",
+        "worth-store/recovery-freshness/cleanup",
+        "phase-7",
+    ),
+    (
+        "StoreRecoveryCleanupFreshnessAdmission::into_parts",
+        "worth-store/recovery-freshness/cleanup",
+        "phase-7",
+    ),
+    (
+        "StoreRecoveryCleanupFreshnessAdmission::sample",
+        "worth-store/recovery-freshness/cleanup",
         "phase-7",
     ),
     (

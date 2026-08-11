@@ -70,7 +70,9 @@ const FATES: &[&str] = &[
 const CONCRETE_AUTHORITIES: &[&str] = &[
     "PhysicalRecoveryPlatformAuthority",
     "PhysicalRecoveryConstructionAuthority",
+    "PhysicalRecoveryCleanupAuthorization",
 ];
+const PHASE_CONTROLS: &[&str] = &["PhysicalRecoveryCleanupCancellation"];
 
 #[test]
 fn authority_trace_locks_every_c8_contract_family_exactly() {
@@ -86,6 +88,7 @@ fn authority_trace_locks_every_c8_contract_family_exactly() {
     assert_family(&rows, "report-protocol", REPORT_PROTOCOLS);
     assert_family(&rows, "operation-fate", FATES);
     assert_family(&rows, "concrete-authority", CONCRETE_AUTHORITIES);
+    assert_family(&rows, "phase-control", PHASE_CONTROLS);
     assert_eq!(
         rows.len(),
         ENTRY_AXES.len()
@@ -97,7 +100,8 @@ fn authority_trace_locks_every_c8_contract_family_exactly() {
             + FRESHNESS_POLICIES.len()
             + REPORT_PROTOCOLS.len()
             + FATES.len()
-            + CONCRETE_AUTHORITIES.len(),
+            + CONCRETE_AUTHORITIES.len()
+            + PHASE_CONTROLS.len(),
         "C.8 authority trace contains an unclassified row"
     );
 }
@@ -134,7 +138,7 @@ fn generic_proof_and_report_values_open_no_store_door() {
                 assert_eq!(row.substrate, "worth-foundational-boundary-protocol");
                 assert_eq!(row.authorizes, "descriptive-report-interpretation-only");
             }
-            "phase-state" | "operation-fate" | "concrete-authority" => {}
+            "phase-state" | "operation-fate" | "concrete-authority" | "phase-control" => {}
             other => panic!("unknown C.8 authority family `{other}`"),
         }
         assert!(matches!(

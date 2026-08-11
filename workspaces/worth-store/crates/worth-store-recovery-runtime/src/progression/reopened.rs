@@ -84,7 +84,31 @@ impl ReopenedPhysicalRecovery {
     /// Consumes the recovery-only runtime and returns the narrow Store-owned
     /// recovered-runtime handoff after publication and fresh reopen close.
     pub fn finish(self) -> crate::entry::PhysicalRecoveryOutcome {
-        crate::cleanup::execute(self)
+        crate::cleanup::execute(self, None)
+    }
+
+    /// Issues a consuming request to defer cleanup before its first optional
+    /// removal. Recovery success and the reopened root remain unchanged.
+    pub fn cleanup_cancellation_before_first(
+        &self,
+    ) -> Option<crate::cleanup::PhysicalRecoveryCleanupCancellation> {
+        crate::cleanup::before_first(self)
+    }
+
+    /// Issues a consuming request to defer cleanup after one exact zero-based
+    /// removal ordinal has settled and before the next candidate starts.
+    pub fn cleanup_cancellation_after_removal(
+        &self,
+        action_ordinal: u64,
+    ) -> Option<crate::cleanup::PhysicalRecoveryCleanupCancellation> {
+        crate::cleanup::after_action(self, action_ordinal)
+    }
+
+    pub fn finish_with_cleanup_cancellation(
+        self,
+        cancellation: crate::cleanup::PhysicalRecoveryCleanupCancellation,
+    ) -> crate::entry::PhysicalRecoveryOutcome {
+        crate::cleanup::execute(self, Some(cancellation))
     }
 
     #[cfg(feature = "certification-test-authority")]

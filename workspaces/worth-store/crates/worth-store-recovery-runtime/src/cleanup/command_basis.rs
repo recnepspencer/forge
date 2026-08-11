@@ -1,51 +1,38 @@
 use worth_store::physical_runtime::{
-    PhysicalRecoveryCleanupCompactionBasis, PhysicalRecoveryCleanupPublicationBasis,
-    PhysicalRecoveryCleanupRemovalCommand, PhysicalRecoveryCleanupWalBasis,
+    PhysicalRecoveryCleanupAuthorization, PhysicalRecoveryCleanupRemovalCommand,
 };
-use worth_store_recovery_physics::LogSequenceNumber;
+use worth_store_physical_format::VerifiedCheckpointStream;
 
 use crate::progression::ReopenedPhysicalRecovery;
 
-use super::{RecoveryCleanupEligibility, RecoveryCleanupPlan};
+use super::RecoveryCleanupEligibility;
 
-pub(super) struct RecoveryCleanupCommandBasis {
-    compaction_generation: u64,
-    compaction_digest: [u8; 32],
-    retained_boundary: LogSequenceNumber,
+/// Borrowed, proof-bearing Store inputs used to construct one exact cleanup
+/// command. Runtime eligibility narrows the candidate set; the Store command
+/// independently revalidates checkpoint coverage before accepting it.
+pub(super) struct RecoveryCleanupCommandBasis<'a> {
+    reopened: &'a worth_store::physical_runtime::CompletedPhysicalRecoveryFreshReopen,
+    checkpoint: &'a VerifiedCheckpointStream,
 }
 
-impl RecoveryCleanupCommandBasis {
-    pub(super) fn from_reopened(reopened: &ReopenedPhysicalRecovery) -> Option<Self> {
-        let checkpoint = reopened.state.selection.checkpoint()?;
-        let stream = checkpoint.checkpoint();
+impl<'a> RecoveryCleanupCommandBasis<'a> {
+    pub(super) fn from_reopened(reopened: &'a ReopenedPhysicalRecovery) -> Option<Self> {
         Some(Self {
-            compaction_generation: stream.compaction_cutover().product_generation(),
-            compaction_digest: stream.footer().binding_records_digest(),
-            retained_boundary: LogSequenceNumber::new(checkpoint.wal_tail_begin_lsn()),
+            reopened: &reopened.reopened,
+            checkpoint: reopened.state.selection.checkpoint()?.checkpoint(),
         })
     }
 
     pub(super) fn command(
         &self,
-        plan: &RecoveryCleanupPlan,
+        authorization: PhysicalRecoveryCleanupAuthorization,
         candidate: RecoveryCleanupEligibility,
     ) -> Option<PhysicalRecoveryCleanupRemovalCommand> {
         PhysicalRecoveryCleanupRemovalCommand::new(
-            PhysicalRecoveryCleanupPublicationBasis::new(
-                plan.identity(),
-                plan.published_generation(),
-                plan.checkpoint(),
-            ),
-            PhysicalRecoveryCleanupCompactionBasis::new(
-                self.compaction_generation,
-                self.compaction_digest,
-                self.retained_boundary,
-            ),
-            PhysicalRecoveryCleanupWalBasis::new(
-                candidate.artifact(),
-                candidate.range(),
-                candidate.byte_count(),
-            ),
+            authorization,
+            self.reopened,
+            self.checkpoint,
+            candidate.inspection(),
         )
     }
 }

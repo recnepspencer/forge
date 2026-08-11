@@ -12,13 +12,11 @@ pub use capacity::PhysicalRecoveryCoordinationCapacity;
 pub use cleanup::{
     CompletedPhysicalRecoveryCleanupFreshnessRead, CompletedPhysicalRecoveryCleanupRemoval,
     PhysicalRecoveryCleanupAdmissionDenial, PhysicalRecoveryCleanupAdmissionDenialKind,
-    PhysicalRecoveryCleanupCommandStage, PhysicalRecoveryCleanupCompactionBasis,
-    PhysicalRecoveryCleanupFreshnessReadDenial, PhysicalRecoveryCleanupFreshnessReadDenialKind,
-    PhysicalRecoveryCleanupFreshnessReadOutcome, PhysicalRecoveryCleanupFreshnessReadProgress,
-    PhysicalRecoveryCleanupPublicationBasis, PhysicalRecoveryCleanupRemovalCommand,
+    PhysicalRecoveryCleanupCommandStage, PhysicalRecoveryCleanupFreshnessReadDenial,
+    PhysicalRecoveryCleanupFreshnessReadDenialKind, PhysicalRecoveryCleanupFreshnessReadOutcome,
+    PhysicalRecoveryCleanupFreshnessReadProgress, PhysicalRecoveryCleanupRemovalCommand,
     PhysicalRecoveryCleanupRemovalDenial, PhysicalRecoveryCleanupRemovalDenialKind,
     PhysicalRecoveryCleanupRemovalIndeterminate, PhysicalRecoveryCleanupRemovalOutcome,
-    PhysicalRecoveryCleanupWalBasis,
 };
 pub use effect::{
     PerformedRecoveryPhysicalEffect, RecoveryCleanupRemovalAction,

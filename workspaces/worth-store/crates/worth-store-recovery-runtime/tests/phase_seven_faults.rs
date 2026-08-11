@@ -7,21 +7,56 @@ mod world;
 
 use world::{
     assert_child_succeeded, cleanup_fault, cleanup_world, empty_fault_schedule,
-    recover_with_schedule, reopen_with_schedule, required_child_root, run_child,
+    paused_cleanup_schedule, recover_with_schedule, reopen_with_schedule, required_child_root,
+    required_crash_marker, run_child, spawn_crashing_child,
 };
 
 #[test]
-fn ambiguous_cleanup_survives_process_death_and_a_second_fresh_recovery() {
+fn killed_cleanup_after_the_deletion_effect_reopens_in_a_fresh_process() {
     let world = cleanup_world("cleanup-crash-restart");
     let candidate = world.oldest_wal();
-    let first = run_child("phase_seven_indeterminate_cleanup_process", &world.root);
-    assert_child_succeeded("indeterminate cleanup", &first);
+    let marker = world.root.parent().unwrap().join("cleanup-effect-reached");
+    let mut first =
+        spawn_crashing_child("phase_seven_killed_cleanup_process", &world.root, &marker);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    while !marker.exists() {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "cleanup child did not reach the post-effect crash seam"
+        );
+        assert!(
+            first.try_wait().unwrap().is_none(),
+            "cleanup child exited before kill"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    first.kill().unwrap();
+    let killed = first.wait_with_output().unwrap();
+    assert!(
+        !killed.status.success(),
+        "parent must terminate the cleanup child"
+    );
     assert!(
         !candidate.exists(),
-        "the ambiguous removal escaped before death"
+        "the deletion effect must escape before the forced process death"
     );
     let second = run_child("phase_seven_reopen_after_cleanup_process", &world.root);
     assert_child_succeeded("post-cleanup recovery", &second);
+}
+
+#[test]
+#[ignore = "launched and forcibly terminated by the Phase 7 cleanup crash-matrix parent"]
+fn phase_seven_killed_cleanup_process() {
+    let root = required_child_root();
+    let marker = required_crash_marker();
+    let (schedule, gate) = paused_cleanup_schedule();
+    let worker = std::thread::spawn(move || recover_with_schedule(&root, schedule));
+    gate.wait_until_reached();
+    std::fs::write(marker, b"cleanup effect reached before settlement").unwrap();
+    std::hint::black_box(&worker);
+    loop {
+        std::thread::park();
+    }
 }
 
 #[test]
@@ -96,6 +131,33 @@ fn cleanup_denial_retains_the_artifact_and_exact_backend_failure() {
 }
 
 #[test]
+fn cleanup_revalidates_exact_wal_bytes_before_deletion() {
+    let world = cleanup_world("cleanup-wal-substitution");
+    let candidate = world.oldest_wal();
+    let reopened = reopen_with_schedule(&world.root, empty_fault_schedule());
+    let mut substituted = std::fs::read(&candidate).unwrap();
+    let last = substituted.last_mut().expect("candidate WAL is nonempty");
+    *last ^= 0xff;
+    std::fs::write(&candidate, substituted).unwrap();
+
+    let PhysicalRecoveryOutcome::Recovered(handoff) = reopened.finish() else {
+        panic!("stale WAL bytes remain deferred cleanup debt")
+    };
+    let RecoveryCleanupPosture::Deferred(evidence) = handoff.cleanup_posture() else {
+        panic!("substituted WAL bytes must deny cleanup")
+    };
+    assert!(candidate.exists());
+    assert!(evidence.performed_removals().is_empty());
+    assert_eq!(evidence.counters().actions_attempted, 1);
+    assert_eq!(evidence.counters().denied_before_effect, 1);
+    assert!(matches!(
+        evidence.deferrals(),
+        [RecoveryCleanupDeferralEvidence::DeniedBeforeEffect { denial, .. }]
+            if matches!(denial.kind(), PhysicalRecoveryCleanupRemovalDenialKind::Media)
+    ));
+}
+
+#[test]
 fn ambiguous_cleanup_effect_is_deferred_without_performed_authority() {
     let world = cleanup_world("cleanup-indeterminate");
     let candidate = world.oldest_wal();
@@ -149,6 +211,34 @@ fn owner_sampled_generation_change_rejects_the_stale_cleanup_plan() {
             ..
         }] if *observed == expected + 1
     ));
+}
+
+#[test]
+fn cleanup_cancellation_from_another_plan_defers_without_effect() {
+    let first = cleanup_world("cleanup-cancellation-source");
+    let second = cleanup_world("cleanup-cancellation-target");
+    let first_reopened = reopen_with_schedule(&first.root, empty_fault_schedule());
+    let cancellation = first_reopened.cleanup_cancellation_before_first().unwrap();
+    let second_candidate = second.oldest_wal();
+    let second_reopened = reopen_with_schedule(&second.root, empty_fault_schedule());
+    let PhysicalRecoveryOutcome::Recovered(handoff) =
+        second_reopened.finish_with_cleanup_cancellation(cancellation)
+    else {
+        panic!("foreign cleanup cancellation remains optional deferred work")
+    };
+    assert!(second_candidate.exists());
+    assert!(matches!(
+        handoff.cleanup_posture().evidence().deferrals(),
+        [RecoveryCleanupDeferralEvidence::CancellationBindingMismatch { .. }]
+    ));
+    assert_eq!(
+        handoff
+            .cleanup_posture()
+            .evidence()
+            .counters()
+            .performed_effects,
+        0
+    );
 }
 
 #[test]

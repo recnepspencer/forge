@@ -30,6 +30,7 @@ const CLEANUP_CANDIDATES: &str = "WORTH_C8_PHASE7_CLEANUP_CANDIDATES";
 const EXPECTED_WAL: &str = "WORTH_C8_PHASE7_EXPECTED_WAL";
 const EXPECTED_POSTURE: &str = "WORTH_C8_PHASE7_EXPECTED_POSTURE";
 const EXPECTED_DEFERRED: &str = "WORTH_C8_PHASE7_EXPECTED_DEFERRED";
+const CANCEL_AFTER: &str = "WORTH_C8_PHASE7_CANCEL_AFTER";
 const WRITER_MODE: &str = "WORTH_C8_PHASE7_WRITER_MODE";
 const WRITER_TEST: &str = "process::phase_seven_writer_process";
 const CLEANER_TEST: &str = "process::phase_seven_cleanup_process";
@@ -94,7 +95,35 @@ fn phase_seven_cleanup_process() {
     let cleanup_candidates = required_text(CLEANUP_CANDIDATES).parse::<u64>().unwrap();
     let expected_deferred = required_text(EXPECTED_DEFERRED).parse::<u64>().unwrap();
     let limits = cleanup_limits(cleanup_bytes, cleanup_candidates);
-    let outcome = WorthStoreRecovery::recover(recovery_request_with_limits(&root, limits));
+    let request = recovery_request_with_limits(&root, limits);
+    let outcome = match std::env::var(CANCEL_AFTER).ok() {
+        Some(cancel_after) => {
+            let reopened = request
+                .admit()
+                .unwrap()
+                .discover()
+                .unwrap()
+                .select()
+                .unwrap()
+                .plan()
+                .unwrap()
+                .stage()
+                .unwrap()
+                .publish()
+                .unwrap()
+                .reopen()
+                .unwrap();
+            let cancellation = if cancel_after == "0" {
+                reopened.cleanup_cancellation_before_first().unwrap()
+            } else {
+                reopened
+                    .cleanup_cancellation_after_removal(cancel_after.parse::<u64>().unwrap() - 1)
+                    .unwrap()
+            };
+            reopened.finish_with_cleanup_cancellation(cancellation)
+        }
+        None => WorthStoreRecovery::recover(request),
+    };
     let PhysicalRecoveryOutcome::Recovered(handoff) = outcome else {
         panic!("cleanup debt must not invalidate recovered success")
     };
@@ -160,6 +189,27 @@ impl ProcessWorld {
                 (EXPECTED_WAL, candidate.file_name().unwrap().to_os_string()),
                 (EXPECTED_POSTURE, posture.into()),
                 (EXPECTED_DEFERRED, expected_deferred.to_string().into()),
+            ],
+        )
+    }
+
+    pub(crate) fn cleanup_with_cancellation(
+        &self,
+        bytes: u64,
+        cancel_after: u64,
+        candidate: &Path,
+    ) -> Output {
+        run_child(
+            CLEANER_TEST,
+            self.parent.path(),
+            [
+                (CHILD_ROOT, self.root.as_os_str().to_os_string()),
+                (CLEANUP_BYTES, bytes.to_string().into()),
+                (CLEANUP_CANDIDATES, "8".into()),
+                (EXPECTED_WAL, candidate.file_name().unwrap().to_os_string()),
+                (EXPECTED_POSTURE, format!("cancel-{cancel_after}").into()),
+                (EXPECTED_DEFERRED, "0".into()),
+                (CANCEL_AFTER, cancel_after.to_string().into()),
             ],
         )
     }

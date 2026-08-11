@@ -1,11 +1,11 @@
 use std::num::NonZeroU64;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::{Child, Command, Output, Stdio};
 
 use super::phase_three_support::limit_declaration;
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::certification::{
-    MediaFaultDirective, MediaFaultSchedule, MediaOperationRole,
+    MediaFaultDirective, MediaFaultSchedule, MediaOperationRole, MediaPauseGate,
 };
 use worth_store::physical_runtime::{
     FilesystemAccessPosture, FilesystemMediaAdmission, PhysicalCheckpointDeadline,
@@ -20,6 +20,7 @@ use worth_store_test_support::harness::physical_residency::{
 };
 
 const CHILD_ROOT: &str = "WORTH_C8_PHASE7_FAULT_CHILD_ROOT";
+const CRASH_MARKER: &str = "WORTH_C8_PHASE7_CLEANUP_CRASH_MARKER";
 
 pub(crate) struct CleanupWorld {
     _parent: tempfile::TempDir,
@@ -145,6 +146,21 @@ pub(crate) fn empty_fault_schedule() -> MediaFaultSchedule {
         .unwrap()
 }
 
+pub(crate) fn paused_cleanup_schedule() -> (MediaFaultSchedule, MediaPauseGate) {
+    let admission =
+        FilesystemMediaAdmission::certification(FilesystemAccessPosture::CoordinatedServiceAccount);
+    let authority = admission.fault_schedule_authority();
+    let gate = authority.pause_gate();
+    let schedule = authority
+        .schedule(vec![authority.rule(
+            MediaOperationRole::Delete,
+            1,
+            MediaFaultDirective::PauseAfter(gate.clone()),
+        )])
+        .unwrap();
+    (schedule, gate)
+}
+
 fn cleanup_limits() -> PhysicalRecoveryLimits {
     let mut declaration = limit_declaration(4, 16, 4 * 1024 * 1024);
     declaration.manifest_entries = 4_096;
@@ -183,8 +199,23 @@ pub(crate) fn run_child(test: &str, root: &Path) -> Output {
         .unwrap()
 }
 
+pub(crate) fn spawn_crashing_child(test: &str, root: &Path, marker: &Path) -> Child {
+    Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", test, "--ignored", "--nocapture"])
+        .env(CHILD_ROOT, root)
+        .env(CRASH_MARKER, marker)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap()
+}
+
 pub(crate) fn required_child_root() -> PathBuf {
     std::env::var_os(CHILD_ROOT).map(PathBuf::from).unwrap()
+}
+
+pub(crate) fn required_crash_marker() -> PathBuf {
+    std::env::var_os(CRASH_MARKER).map(PathBuf::from).unwrap()
 }
 
 pub(crate) fn assert_child_succeeded(name: &str, output: &Output) {

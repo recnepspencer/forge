@@ -94,8 +94,36 @@ pub(super) fn assert_expected_posture(
                         RecoveryCleanupDeferralReason::CandidateLimit,
                     )));
         }
+        "cancel-0" => assert_cancelled(posture, disposition, 0),
+        "cancel-1" => assert_cancelled(posture, disposition, 1),
         expected => panic!("unsupported expected cleanup posture: {expected}"),
     }
+}
+
+fn assert_cancelled(
+    posture: &RecoveryCleanupPosture,
+    disposition: &RecoveryCleanupDisposition,
+    settled_actions: u64,
+) {
+    let evidence = posture.evidence();
+    assert!(matches!(posture, RecoveryCleanupPosture::Deferred(_)));
+    let expected_kind = if settled_actions == 0 {
+        RecoveryCleanupDispositionKind::Deferred(RecoveryCleanupDeferralReason::Cancelled)
+    } else {
+        RecoveryCleanupDispositionKind::SafelyRemoved
+    };
+    assert_eq!(disposition.kind(), expected_kind);
+    assert_eq!(evidence.counters().cancellation_requests, 1);
+    assert_eq!(evidence.counters().actions_completed, settled_actions);
+    assert!(evidence.counters().actions_cancelled > 0);
+    assert!(evidence.counters().bytes_cancelled > 0);
+    assert!(matches!(
+        evidence.deferrals().last(),
+        Some(worth_store_recovery_runtime::RecoveryCleanupDeferralEvidence::Cancelled {
+            settled_actions: actual,
+            ..
+        }) if *actual == settled_actions
+    ));
 }
 
 fn assert_complete(

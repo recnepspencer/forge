@@ -6,6 +6,9 @@ pub(super) fn phase_seven_responsibility(path: &str) -> Option<&'static str> {
         "crates/worth-store-recovery-runtime/src/cleanup/attempt.rs" => {
             Some("owner-sampled-cleanup-attempt")
         }
+        "crates/worth-store-recovery-runtime/src/cleanup/cancellation.rs" => {
+            Some("plan-bound-cleanup-cancellation")
+        }
         "crates/worth-store-recovery-runtime/src/cleanup/command_basis.rs" => {
             Some("sealed-cleanup-command-basis")
         }

@@ -1,0 +1,21 @@
+error: cannot construct `PhysicalRecoveryCleanupAuthorization` with struct literal syntax due to private fields
+  --> tests/ui/cleanup_removal_authorization_cannot_be_forged.rs:8:19
+   |
+ 8 |     let _forged = PhysicalRecoveryCleanupAuthorization {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 9 |         store: fake(),
+   |         ------------- private field
+10 |         media_generation: fake(),
+   |         ------------------------ private field
+11 |         session: [0; 16],
+   |         ---------------- private field
+12 |         observed_published_generation: 1,
+   |         -------------------------------- private field
+13 |         cleanup_plan_identity: [1; 32],
+   |         ------------------------------ private field
+14 |         sealed_publication_basis: [2; 32],
+   |         --------------------------------- private field
+15 |         policy_identity: [3; 32],
+   |         ------------------------ private field
+   |
+   = note: ...and other private field `wal` that was not provided

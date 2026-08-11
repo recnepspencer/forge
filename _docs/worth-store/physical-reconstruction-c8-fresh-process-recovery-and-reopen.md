@@ -1676,6 +1676,28 @@ matrix, deferred-cleanup recovery journey, freshness source/policy substitution
 attacks, stale-plan rejection, ambiguous-removal evidence attacks, and exact
 cleanup counters.
 
+<!-- c8-phase7-requirements:start -->
+| Guarantee | Normative Phase 7 requirement |
+| --- | --- |
+| C8-P7-PLAN-01 | Every discovered or C.8-created artifact has one exact cleanup disposition derived from the sealed reopened basis. |
+| C8-P7-AUTHORITY-01 | The Store deletion boundary consumes owner-issued authority bound to fresh reopen, verified checkpoint coverage, exact WAL facts, and the cleanup plan; raw coordinates cannot authorize deletion. |
+| C8-P7-ELIGIBILITY-01 | Cleanup eligibility is consuming and per artifact, and is never widened by a batch, filename, age, or generic recovery receipt. |
+| C8-P7-FRESHNESS-01 | The Store owner samples current published generation and concrete policy immediately before each effect. |
+| C8-P7-SCHEDULER-01 | Freshness reads and removals traverse Store Signal, C.5.1 scheduling/execution, and exact C.4 settlement. |
+| C8-P7-SAFETY-01 | Cleanup preserves current, fallback, selected, unresolved, unsupported, quarantined, and last-copy recovery truth. |
+| C8-P7-LIMITS-01 | Candidate and byte limits are independent and reject crossing work before freshness or removal effects. |
+| C8-P7-EFFECT-01 | Performed cleanup evidence exists only after exact C.4 completion, executed scheduling, and terminal Signal settlement. |
+| C8-P7-FAILURE-01 | Denial or indeterminate cleanup remains exact deferred maintenance and never invalidates recovered success. |
+| C8-P7-CANCELLATION-01 | Plan-bound cleanup cancellation is sampled only at declared between-command safe points and retains the exact settled prefix. |
+| C8-P7-CRASH-01 | Forced process death at cleanup effect seams leaves the next fresh process recoverable through renewed validation. |
+| C8-P7-COUNTERS-01 | Cleanup dispositions, bytes, freshness, scheduling, cancellation, settlement, and effect counters are stage-honest and exact. |
+| C8-P7-QUIESCENCE-01 | Cleanup returns to handoff with zero live work, reservations, handles, or pending Signal reconciliation. |
+| C8-P7-PROGRESSION-01 | Only consuming reopened recovery enters cleanup, and complete or deferred cleanup enriches but never defines success. |
+| C8-P7-COMPILE-01 | External code cannot forge, reuse, or substitute cleanup authorization, eligibility, freshness, cancellation, or performed evidence. |
+| C8-P7-API-01 | Every delivered Phase 7 surface has one exact facade and topology disposition with no raw deletion bypass. |
+| C8-P7-LEDGER-01 | The Phase 7 ledger is a bijection with this normative inventory and preserves exact findings, source closure, audits, and inherited continuity. |
+<!-- c8-phase7-requirements:end -->
+
 **Next may trust:** cleanup cannot destroy recovery truth and does not define
 recovery success.
 

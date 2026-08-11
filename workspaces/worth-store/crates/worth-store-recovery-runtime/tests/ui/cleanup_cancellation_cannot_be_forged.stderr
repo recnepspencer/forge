@@ -1,0 +1,9 @@
+error[E0451]: fields `plan` and `settled_actions` of struct `PhysicalRecoveryCleanupCancellation` are private
+ --> tests/ui/cleanup_cancellation_cannot_be_forged.rs:5:9
+  |
+4 |     let _forged = PhysicalRecoveryCleanupCancellation {
+  |                   ----------------------------------- in this type
+5 |         plan: [0; 32],
+  |         ^^^^ private field
+6 |         settled_actions: 0,
+  |         ^^^^^^^^^^^^^^^ private field

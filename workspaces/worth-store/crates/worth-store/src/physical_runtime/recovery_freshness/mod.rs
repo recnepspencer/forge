@@ -11,6 +11,7 @@ pub use binding::{
     StoreRecoveryOperationEvidence, StoreRecoveryOperationFate, StoreRecoveryWalMember,
 };
 pub use cleanup::{
+    PhysicalRecoveryCleanupAuthorization, StoreRecoveryCleanupFreshnessAdmission,
     StoreRecoveryCleanupFreshnessDenial, StoreRecoveryCleanupFreshnessFailure,
     StoreRecoveryCleanupFreshnessSample,
 };
