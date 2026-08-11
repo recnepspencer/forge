@@ -1,7 +1,5 @@
 use std::collections::BTreeSet;
 
-use worth_foundational::facade::ScalarAspectType;
-
 use crate::authentication::{
     WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
 };
@@ -14,15 +12,21 @@ use super::{ApplicationSchemaDeclarationDenial, ApplicationSchemaMember};
 
 mod decision_read_budgets;
 mod member_collections;
+mod principal_binding;
 mod target_closure;
 
 use super::capability_member_closure::validate_application_capability_members;
 use super::query_member_closure::validate_application_query_members;
 use decision_read_budgets::validate_decision_fact_budgets;
 use member_collections::{
-    collect_abilities, collect_aspects, collect_currencies, collect_effects, collect_entities,
-    collect_fields, collect_operations, collect_policies, collect_principal_entities,
-    collect_relations,
+    collect_abilities, collect_aspects, collect_effects, collect_entities, collect_fields,
+    collect_operations, collect_policies, collect_principal_entities, collect_relations,
+    collect_units,
+};
+use principal_binding::{
+    PrincipalBindingClosureRequirements, PrincipalBindingEqualityPosture,
+    PrincipalBindingFieldRequirement, PrincipalBindingRelationRequirement,
+    PrincipalBindingWritePosture,
 };
 
 pub(super) fn validate_member_closure(
@@ -42,7 +46,7 @@ pub(super) struct ClosureIndex<'a> {
     members: &'a [ApplicationSchemaMember],
     entities: BTreeSet<&'a str>,
     aspects: BTreeSet<(&'a str, &'a str)>,
-    currencies: BTreeSet<&'a str>,
+    units: BTreeSet<&'a str>,
     operations: BTreeSet<&'a str>,
     abilities: BTreeSet<(&'a str, &'a str)>,
     policies: BTreeSet<&'a str>,
@@ -58,7 +62,7 @@ impl<'a> ClosureIndex<'a> {
             members,
             entities: collect_entities(members),
             aspects: collect_aspects(members),
-            currencies: collect_currencies(members),
+            units: collect_units(members),
             operations: collect_operations(members),
             abilities: collect_abilities(members),
             policies: collect_policies(members),
@@ -85,10 +89,10 @@ impl<'a> ClosureIndex<'a> {
                 Err(ApplicationSchemaDeclarationDenial::MissingAspect)
             }
             ApplicationSchemaMember::Field {
-                currency: Some(currency),
+                unit: Some(unit),
                 ..
-            } if !self.currencies.contains(currency.as_str()) => {
-                Err(ApplicationSchemaDeclarationDenial::MissingCurrency)
+            } if !self.units.contains(unit.as_str()) => {
+                Err(ApplicationSchemaDeclarationDenial::MissingUnit)
             }
             ApplicationSchemaMember::Relation { from, to, .. }
                 if !self.entities.contains(from.as_str())
@@ -109,19 +113,40 @@ impl<'a> ClosureIndex<'a> {
                 principal_identity_scalar_family,
                 principal_identity_value_type,
                 ..
-            } if !self.principal_binding_dependencies_exist(
-                mapping_entity,
-                identity_aspect,
-                identity_field,
-                status_aspect,
-                status_field,
-                target_relation,
-                principal_entity,
-                principal_identity_aspect,
-                principal_identity_field,
-                *principal_identity_scalar_family,
-                principal_identity_value_type,
-            ) =>
+            } if !self.principal_binding_dependencies_exist(PrincipalBindingClosureRequirements {
+                mapping_identity: PrincipalBindingFieldRequirement {
+                    entity: mapping_entity,
+                    aspect: identity_aspect,
+                    field: identity_field,
+                    scalar_family: worth_foundational::facade::ScalarAspectType::String,
+                    value_type: std::any::type_name::<WorthQueryExternalPrincipalIdentity>(),
+                    write: PrincipalBindingWritePosture::ReadOnly,
+                    equality: PrincipalBindingEqualityPosture::Required,
+                },
+                mapping_status: PrincipalBindingFieldRequirement {
+                    entity: mapping_entity,
+                    aspect: status_aspect,
+                    field: status_field,
+                    scalar_family: worth_foundational::facade::ScalarAspectType::Bool,
+                    value_type: std::any::type_name::<WorthQueryPrincipalMappingStatus>(),
+                    write: PrincipalBindingWritePosture::Writable,
+                    equality: PrincipalBindingEqualityPosture::Unconstrained,
+                },
+                target: PrincipalBindingRelationRequirement {
+                    relation: target_relation,
+                    from: mapping_entity,
+                    to: principal_entity,
+                },
+                principal_identity: PrincipalBindingFieldRequirement {
+                    entity: principal_entity,
+                    aspect: principal_identity_aspect,
+                    field: principal_identity_field,
+                    scalar_family: *principal_identity_scalar_family,
+                    value_type: principal_identity_value_type,
+                    write: PrincipalBindingWritePosture::ReadOnly,
+                    equality: PrincipalBindingEqualityPosture::Required,
+                },
+            }) =>
             {
                 Err(ApplicationSchemaDeclarationDenial::MissingPrincipalBindingDependency)
             }
@@ -151,6 +176,22 @@ impl<'a> ClosureIndex<'a> {
                 Err(ApplicationSchemaDeclarationDenial::MissingOperationDecisionReadDependency)
             }
             ApplicationSchemaMember::OperationProjectionWorkBudget { operation, .. }
+                if !self.operations.contains(operation.as_str()) =>
+            {
+                Err(ApplicationSchemaDeclarationDenial::MissingOperationDecisionReadDependency)
+            }
+            ApplicationSchemaMember::OperationExternalEffect {
+                operation,
+                effect,
+                rust_payload_type,
+                maximum_payload_bytes,
+                ..
+            } if *maximum_payload_bytes == 0
+                || !self.external_effect_dependencies_exist(operation, effect, rust_payload_type) =>
+            {
+                Err(ApplicationSchemaDeclarationDenial::MissingOperationProgramDependency)
+            }
+            ApplicationSchemaMember::OperationAftermath { operation, .. }
                 if !self.operations.contains(operation.as_str()) =>
             {
                 Err(ApplicationSchemaDeclarationDenial::MissingOperationDecisionReadDependency)
@@ -275,54 +316,5 @@ impl<'a> ClosureIndex<'a> {
                     && candidate_field == field
             )
         })
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn principal_binding_dependencies_exist(
-        &self,
-        mapping_entity: &str,
-        identity_aspect: &str,
-        identity_field: &str,
-        status_aspect: &str,
-        status_field: &str,
-        target_relation: &str,
-        principal_entity: &str,
-        principal_identity_aspect: &str,
-        principal_identity_field: &str,
-        principal_identity_scalar_family: ScalarAspectType,
-        principal_identity_value_type: &str,
-    ) -> bool {
-        self.entities.contains(mapping_entity)
-            && self.entities.contains(principal_entity)
-            && self.field_matches(
-                mapping_entity,
-                identity_aspect,
-                identity_field,
-                ScalarAspectType::String,
-                std::any::type_name::<WorthQueryExternalPrincipalIdentity>(),
-                false,
-                true,
-            )
-            && self.field_matches(
-                mapping_entity,
-                status_aspect,
-                status_field,
-                ScalarAspectType::Bool,
-                std::any::type_name::<WorthQueryPrincipalMappingStatus>(),
-                true,
-                false,
-            )
-            && self
-                .relations
-                .contains(&(target_relation, mapping_entity, principal_entity))
-            && self.field_matches(
-                principal_entity,
-                principal_identity_aspect,
-                principal_identity_field,
-                principal_identity_scalar_family,
-                principal_identity_value_type,
-                false,
-                true,
-            )
     }
 }

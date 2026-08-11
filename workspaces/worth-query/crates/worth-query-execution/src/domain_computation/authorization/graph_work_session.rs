@@ -87,7 +87,6 @@ where
 pub(super) fn start_capability_graph_work<Schema, Operation, Input>(
     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     operation: &WorthQueryInstalledApplicationOperationGraphAuthority<Schema, Operation, Input>,
-    resource_binding_identity: &str,
     principal: EntityId,
     access: WorthQueryGraphWorkAccessContextAffinity,
 ) -> Result<WorthQueryManagedGraphWorkSession, WorthQueryOperationAuthorizationDenial>
@@ -123,17 +122,7 @@ where
     let selected = select_installed_graph_obligations(obligations, intent)
         .map_err(|_| graph_work_denial(operation.operation()))?;
     let support = runtime.graph_work_resource_support();
-    let plan =
-        if let Some(request) = operation.contracts().and_then(application_resource_request) {
-            admit_application_operation_graph_work(
-                selected,
-                resource_binding_identity,
-                &request,
-                support,
-            )
-        } else {
-            admit_application_operation_read_graph_work(selected, &support)
-        }
+    let plan = admit_application_operation_read_graph_work(selected, &support)
         .map_err(|_| graph_work_denial(operation.operation()))?;
     WorthQueryManagedGraphWorkSession::start_mutation(
         plan,
@@ -147,6 +136,30 @@ where
         runtime.graph_work_provider_identity(),
     )
     .map_err(|_| graph_work_denial(operation.operation()))
+}
+
+pub(super) fn transition_capability_to_operation_graph_work<Schema, Operation, Input>(
+    runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+    resource_binding_identity: &str,
+    resource: EntityId,
+    capability_graph_work: WorthQueryManagedGraphWorkSession,
+) -> Result<WorthQueryManagedGraphWorkSession, WorthQueryOperationAuthorizationDenial>
+where
+    Schema: ApplicationSchema,
+{
+    let principal = capability_graph_work.principal();
+    let installed_capability = capability_graph_work
+        .capability_access_context()
+        .ok_or_else(|| graph_work_denial(operation.operation()))?;
+    drop(capability_graph_work);
+    start_operation_graph_work(
+        runtime,
+        operation,
+        resource_binding_identity,
+        principal,
+        WorthQueryGraphWorkAccessContextAffinity::governed_entity(resource, installed_capability),
+    )
 }
 
 fn graph_work_denial(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {

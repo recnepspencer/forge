@@ -154,3 +154,37 @@ fn assert_callback_denial(
         AuthentikAuthorizationCallback::new(code, state).expect_err("malformed callback must fail");
     assert_eq!(error, expected);
 }
+
+#[test]
+fn r8_49_http_adapter_deserializes_no_aftermath_authority_and_makes_no_recovery_decision() {
+    // Temporary HTTP boundary stays descriptive: no recovery/undo/redo route-local
+    // decision vocabulary in the adapter crate.
+    let adapter_root = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
+    let forbidden = [
+        "admit_undo",
+        "admit_redo",
+        "open_commit_recovery",
+        "WorthQueryRecoveryHandle",
+        "compensate_recovery",
+        "reconcile_recovery",
+        "rollback",
+        "aftermath",
+    ];
+    let mut hits = Vec::new();
+    for entry in std::fs::read_dir(adapter_root).expect("adapter src") {
+        let entry = entry.expect("entry");
+        let path = entry.path();
+        if path.extension().is_some_and(|ext| ext == "rs") {
+            let text = std::fs::read_to_string(&path).expect("read");
+            for needle in forbidden {
+                if text.contains(needle) {
+                    hits.push(format!("{}:{needle}", path.display()));
+                }
+            }
+        }
+    }
+    assert!(
+        hits.is_empty(),
+        "HTTP adapter must not carry aftermath/recovery authority: {hits:?}"
+    );
+}

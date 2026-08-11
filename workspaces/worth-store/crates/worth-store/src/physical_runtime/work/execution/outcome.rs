@@ -6,6 +6,10 @@ use worth_store_physical_backend::{
     IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
     IndeterminateArtifactTreePublicationEffect,
 };
+#[cfg(feature = "recovery-runtime-owner")]
+use worth_store_physical_backend::{
+    CompletedRecoveryStagingWrite, IndeterminateRecoveryStagingWrite,
+};
 use worth_store_physical_format::RecordArtifactFile;
 
 use super::PhysicalPublicationEffect;
@@ -86,6 +90,11 @@ pub(in crate::physical_runtime) enum PhysicalExecutorOutcome {
         coordinate: worth_store_physical_format::RecordFrameCoordinate,
         scheduler: QueueExecutionOutcome,
     },
+    #[cfg(feature = "recovery-runtime-owner")]
+    RecoveryStagingCompleted {
+        physical: CompletedRecoveryStagingWrite,
+        scheduler: QueueExecutionOutcome,
+    },
     PublicationEffectCompleted {
         physical: CompletedPhysicalPublicationEffect,
         scheduler: QueueExecutionOutcome,
@@ -115,6 +124,8 @@ pub(in crate::physical_runtime) enum PhysicalExecutorOutcome {
         physical: IndeterminateArtifactNewWrite,
         coordinate: worth_store_physical_format::RecordFrameCoordinate,
     },
+    #[cfg(feature = "recovery-runtime-owner")]
+    RecoveryStagingIndeterminate(IndeterminateRecoveryStagingWrite),
     PublicationEffectIndeterminate(IndeterminatePhysicalPublicationEffect),
     WalAppendIndeterminate(IndeterminateArtifactAppend),
     WalSegmentCreateIndeterminate(IndeterminateArtifactNewWrite),

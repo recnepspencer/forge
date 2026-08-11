@@ -1,16 +1,16 @@
 use worth_query_declaration::facade::{
     application_capability::{
         ApplicationCapabilityAcceptedValues, ApplicationCapabilityActorComposition,
-        ApplicationCapabilityAllowRule, ApplicationCapabilityAmountDimension,
-        ApplicationCapabilityCardinalityDimension, ApplicationCapabilityComposition,
-        ApplicationCapabilityConflictRule, ApplicationCapabilityConstraintDefinition,
-        ApplicationCapabilityContract, ApplicationCapabilityContractBuilder,
-        ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDecisionComposition,
-        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
-        ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
-        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityElevationRule,
-        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-        ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRule,
+        ApplicationCapabilityAllowRule, ApplicationCapabilityCardinalityDimension,
+        ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
+        ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContract,
+        ApplicationCapabilityContractBuilder, ApplicationCapabilityCurrentnessDefinition,
+        ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
+        ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
+        ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
+        ApplicationCapabilityElevationRule, ApplicationCapabilityFieldBinding,
+        ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
+        ApplicationCapabilityGraphRule, ApplicationCapabilityMagnitudeDimension,
         ApplicationCapabilityPathContextAnchor, ApplicationCapabilityPropagationComposition,
         ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
         ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
@@ -162,7 +162,13 @@ fn install_capability_operations(
         .capability_context_entity_slot(CapabilityRequestActorSlot::reference())
         .capability_context_entity_slot(CapabilityPriorActorSlot::reference())
         .capability_provenance(CapabilityProvenance::reference())
-        .operation(CapabilityTouchOperation::reference())
+        .operation(
+            CapabilityTouchOperation::reference()
+                .definition()
+                .no_external_effect()
+                .no_aftermath()
+                .finish(),
+        )
         .operation_decision_fact_budget(CapabilityTouchOperation::reference(), 1)
         .operation_projection_work_budget(CapabilityTouchOperation::reference(), 32)
         .operation_read_field(
@@ -173,7 +179,13 @@ fn install_capability_operations(
             CapabilityTouchOperation::reference(),
             AccountLabel::reference(),
         )
-        .operation(ComposedCapabilityTouchOperation::reference())
+        .operation(
+            ComposedCapabilityTouchOperation::reference()
+                .definition()
+                .no_external_effect()
+                .no_aftermath()
+                .finish(),
+        )
         .operation_decision_fact_budget(ComposedCapabilityTouchOperation::reference(), 1)
         .operation_projection_work_budget(ComposedCapabilityTouchOperation::reference(), 32)
         .operation_read_field(
@@ -244,7 +256,7 @@ fn capability_target() -> ApplicationCapabilityTargetDefinition {
 
 fn capability_constraints() -> ApplicationCapabilityConstraintDefinition {
     ApplicationCapabilityConstraintDefinition::new(
-        ApplicationCapabilityAmountDimension::bound(CapabilityAmountField::reference()),
+        ApplicationCapabilityMagnitudeDimension::bound(CapabilityAmountField::reference()),
         ApplicationCapabilityCardinalityDimension::One,
         ApplicationCapabilityCurrentnessDefinition::new(
             ApplicationCapabilityValueBinding::new(

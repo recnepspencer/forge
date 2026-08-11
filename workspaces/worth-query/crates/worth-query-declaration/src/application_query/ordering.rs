@@ -1,6 +1,6 @@
 use worth_foundational::facade::ScalarAspectType;
 
-use crate::application_schema::{ApplicationFieldCurrency, TypedApplicationValue};
+use crate::application_schema::{ApplicationFieldUnit, TypedApplicationValue};
 
 use super::ApplicationQueryResultFieldRef;
 
@@ -34,7 +34,7 @@ impl ApplicationQueryOrderingTerm {
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >(
         selector: ApplicationQueryResultFieldRef<
             Query,
@@ -46,13 +46,13 @@ impl ApplicationQueryOrderingTerm {
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
         direction: ApplicationQueryOrderingDirection,
     ) -> Self
     where
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         Self {
             query_type: selector.query_type(),

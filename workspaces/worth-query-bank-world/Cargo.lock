@@ -111,6 +111,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bank-external-rail"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tokio",
+ "worth-foundational",
+]
+
+[[package]]
 name = "bank-http-adapter"
 version = "0.1.0"
 dependencies = [
@@ -128,6 +138,8 @@ name = "bank-server"
 version = "0.1.0"
 dependencies = [
  "bank-domain",
+ "bank-external-rail",
+ "tokio",
  "worth-foundational",
  "worth-query-host",
 ]
@@ -2817,6 +2829,7 @@ version = "0.1.0"
 dependencies = [
  "sha2",
  "worth-foundational",
+ "worth-proof",
  "worth-query-admission",
  "worth-query-declaration",
  "worth-query-installation",

@@ -1,6 +1,6 @@
 use super::interruption_classification::consumer_terminal_kind;
 use super::workflow_graph_execution::WorthQueryActiveWorkflowGraphExecution;
-use super::workflow_graph_step_outcome::WorthQueryWorkflowGraphStepOutcome;
+use super::workflow_graph_execution::WorthQueryWorkflowGraphStepOutcome;
 use super::WorthQueryManagedRunTerminalKind;
 use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderStepCompletion;
 use crate::domain_computation::{WorthQueryGraphProviderStepReport, WorthQueryGraphReadMaterial};
@@ -132,7 +132,5 @@ fn release_or_retain_queue(
     occupancy: worth_runtime_bridge::facade::BridgeManagedQueueOccupancy,
 ) -> bool {
     let running = &mut active.running;
-    running
-        .provider_work
-        .release_or_retain_queue_occupancy(&mut running.bridge_basis, occupancy)
+    running.release_or_retain_queue_occupancy(occupancy)
 }

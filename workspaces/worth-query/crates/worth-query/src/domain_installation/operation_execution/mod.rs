@@ -16,7 +16,7 @@ pub(crate) mod historical_replay;
 mod operation_input;
 #[path = "direct_execution/output_contract.rs"]
 mod operation_output;
-#[path = "direct_execution/progression.rs"]
+#[path = "direct_execution/progression/mod.rs"]
 mod progression;
 #[path = "direct_execution/evidence.rs"]
 mod progression_evidence;
@@ -66,7 +66,7 @@ mod workflow_parallel_registry;
 mod workflow_predecessor_admission;
 #[path = "workflow_execution/contract/predecessor_receipt.rs"]
 mod workflow_predecessor_receipt;
-#[path = "workflow_execution/progression/stage_progression.rs"]
+#[path = "workflow_execution/progression/stage_completion/mod.rs"]
 mod workflow_progression;
 #[path = "workflow_execution/progression/stage_progression_state.rs"]
 mod workflow_progression_state;
@@ -92,8 +92,6 @@ mod workflow_semantic_value;
 mod workflow_stage_admission;
 #[path = "workflow_execution/evidence/stage_denial.rs"]
 mod workflow_stage_denial;
-#[path = "workflow_execution/progression/stage_evidence_validation.rs"]
-mod workflow_stage_evidence_validation;
 #[path = "workflow_execution/contract/stage_execution_authority.rs"]
 mod workflow_stage_execution_authority;
 #[path = "workflow_execution/contract/stage_execution_context.rs"]

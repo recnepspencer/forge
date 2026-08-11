@@ -100,6 +100,13 @@ impl LifecycleState {
         }
     }
 
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(crate) fn recovery_active(generation: LifecycleGeneration) -> Arc<Self> {
+        Arc::new(Self {
+            state: AtomicU64::new(encode_state(generation, ObservedLifecyclePhase::MediaOwned)),
+        })
+    }
+
     pub(crate) fn snapshot(&self) -> LifecycleStateSnapshot {
         decode_state(self.state.load(Ordering::Acquire))
     }

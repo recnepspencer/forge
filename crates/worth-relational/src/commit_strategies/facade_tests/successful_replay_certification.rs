@@ -47,7 +47,7 @@ fn replay_commit_certifies_strategy_surface_for_strategy_bearing_commit() {
         .replay_authority()
         .replay_commit(RelationalReplayRequest {
             commit_id: commit.commit.commit_id,
-            branch_id: commit.publication.envelope.branch_context.clone(),
+            branch_id: commit.publication().envelope.branch_context.clone(),
             execution_mode: ReplayExecutionMode::SerialDeterministic,
             verification_mode: ReplayVerificationMode::AuditRecoveryVerification,
         });
@@ -130,7 +130,7 @@ fn intent_reconciliation_strategy_commits_and_replays_end_to_end() {
     );
     assert_eq!(
         commit
-            .publication
+            .publication()
             .strategy_artifacts
             .as_ref()
             .expect("strategy artifacts")
@@ -144,7 +144,7 @@ fn intent_reconciliation_strategy_commits_and_replays_end_to_end() {
         .replay_authority()
         .replay_commit(RelationalReplayRequest {
             commit_id: commit.commit.commit_id,
-            branch_id: commit.publication.envelope.branch_context.clone(),
+            branch_id: commit.publication().envelope.branch_context.clone(),
             execution_mode: ReplayExecutionMode::SerialDeterministic,
             verification_mode: ReplayVerificationMode::AuditRecoveryVerification,
         });
@@ -227,7 +227,7 @@ fn entity_replacement_reconciliation_strategy_commits_lineage_sensitive_replace_
         .expect("replacement lineage")
         .lineage_id;
     let strategy_artifacts = commit
-        .publication
+        .publication()
         .strategy_artifacts
         .as_ref()
         .expect("replacement strategy artifacts");
@@ -263,7 +263,7 @@ fn entity_replacement_reconciliation_strategy_commits_lineage_sensitive_replace_
         1
     );
     assert!(commit
-        .publication
+        .publication()
         .envelope
         .lineage_decision_log()
         .iter()
@@ -275,7 +275,7 @@ fn entity_replacement_reconciliation_strategy_commits_lineage_sensitive_replace_
         .replay_authority()
         .replay_commit(RelationalReplayRequest {
             commit_id: commit.commit.commit_id,
-            branch_id: commit.publication.envelope.branch_context.clone(),
+            branch_id: commit.publication().envelope.branch_context.clone(),
             execution_mode: ReplayExecutionMode::SerialDeterministic,
             verification_mode: ReplayVerificationMode::AuditRecoveryVerification,
         });

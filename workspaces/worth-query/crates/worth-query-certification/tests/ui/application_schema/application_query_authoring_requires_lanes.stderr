@@ -1,0 +1,14 @@
+error[E0599]: no method named `public` found for struct `ApplicationQueryLaneAuthoring<Schema, Query, Parameters, QueryResult, Scope, Root>` in the current scope
+  --> tests/ui/application_schema/application_query_authoring_requires_lanes.rs:27:10
+   |
+19 |       let _ = ApplicationQueryDefinitionBuilder::declare(reference)
+   |  _____________-
+20 | |         .root(account)
+21 | |         .scope(account)
+22 | |         .result_shape(shape)
+...  |
+26 | |         .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+27 | |         .public();
+   | |         -^^^^^^ method not found in `ApplicationQueryLaneAuthoring<Schema, Query, Parameters, Result, Account, Account>`
+   | |_________|
+   |

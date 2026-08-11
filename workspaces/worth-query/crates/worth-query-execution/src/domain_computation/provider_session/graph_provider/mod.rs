@@ -10,6 +10,7 @@ mod read_material;
 mod read_product;
 mod read_row;
 mod receipt;
+mod receipt_association;
 mod stream_evidence;
 mod work_report;
 
@@ -30,6 +31,8 @@ pub use read_material::WorthQueryGraphReadMaterial;
 pub use read_product::WorthQueryExecutionGraphReadProduct;
 pub use read_row::{WorthQueryGraphReadRow, WorthQueryGraphReadRowConstructionDenial};
 pub use receipt::{WorthQueryBoundGraphExecutionReceipt, WorthQueryGraphProviderReceipt};
+pub(in crate::domain_computation) use receipt_association::WorthQueryBoundGraphExecutionAssociation;
+pub(in crate::domain_computation) use receipt_association::WorthQueryCompletedDomainEvidenceDerivation;
 pub use stream_evidence::WorthQueryExecutionGraphReadStreamEvidence;
 pub(crate) use stream_evidence::WorthQueryGraphReadStreamAccumulator;
 pub use work_report::WorthQueryProviderWorkReport;

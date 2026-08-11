@@ -188,32 +188,32 @@ pub fn estate_emergency_access_activity_definition() -> ApplicationQueryDefiniti
     .disclose_relation_by(selectors::access_review(), field, no_influence.clone())
     .disclose_field_by(selectors::review_id(), field, no_influence.clone())
     .disclose_field_by(selectors::review_status(), field, no_influence);
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        EstateEmergencyAccessActivityQuery::reference(),
-        EstateCase::reference(),
-        EstateCase::reference(),
-        emergency_access_activity_shape(),
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(3, 2, 8),
-        disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned().with_preview(),
-        ApplicationQueryLaneEligibility::one_shot()
-            .with_historical()
-            .with_preview()
-            .with_live(),
-        ViewEstateCase::reference(),
-    )
-    .order_by(
-        access_issued_at(),
-        ApplicationQueryOrderingDirection::Ascending,
-    )
-    .order_by(access_id(), ApplicationQueryOrderingDirection::Ascending)
-    .continue_by(estate_accesses())
-    .live_by::<EmergencyAccess, EstateEmergencyAccessActivityLiveCause, _, _, _, _, _, _, _, _>(
-        estate_id(),
-        access_id(),
-        ApplicationQueryLiveResourceContract::bounded(64, 2_048, 4_096),
-    )
-    .build()
-    .expect("estate emergency-access activity query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(EstateEmergencyAccessActivityQuery::reference())
+        .root(EstateCase::reference())
+        .scope(EstateCase::reference())
+        .result_shape(emergency_access_activity_shape())
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(3, 2, 8))
+        .disclosure(disclosure)
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned().with_preview())
+        .lanes(
+            ApplicationQueryLaneEligibility::one_shot()
+                .with_historical()
+                .with_preview()
+                .with_live(),
+        )
+        .requires_ability(ViewEstateCase::reference())
+        .order_by(
+            access_issued_at(),
+            ApplicationQueryOrderingDirection::Ascending,
+        )
+        .order_by(access_id(), ApplicationQueryOrderingDirection::Ascending)
+        .continue_by(estate_accesses())
+        .live_by::<EmergencyAccess, EstateEmergencyAccessActivityLiveCause, _, _, _, _, _, _, _, _>(
+            estate_id(),
+            access_id(),
+            ApplicationQueryLiveResourceContract::bounded(64, 2_048, 4_096),
+        )
+        .build()
+        .expect("estate emergency-access activity query is statically canonical")
 }

@@ -1,7 +1,7 @@
 use worth_foundational::facade::AspectValue;
 
 use crate::application_schema::{
-    ApplicationFieldRef, ApplicationRelationRef, EqualityPredicate, NoApplicationCurrency, ReadOnly,
+    ApplicationFieldRef, ApplicationRelationRef, EqualityPredicate, NoApplicationUnit, ReadOnly,
 };
 
 use super::{
@@ -30,7 +30,7 @@ type QueryableField<Entity, Field> = ApplicationFieldRef<
     u64,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 #[derive(Clone, Copy)]
@@ -77,7 +77,7 @@ impl ApplicationCapabilityRequest<Schema, Capability> for Input {
             account_selector,
         ))
         .field(13_u64)
-        .amount(*amount)
+        .magnitude(*amount)
         .cardinality(2))
     }
 }
@@ -95,7 +95,7 @@ fn projection_retains_every_value_from_the_exact_input() {
     assert_eq!(projection.action(), &AspectValue::UInt64(7));
     assert_eq!(projection.purpose(), &AspectValue::UInt64(11));
     assert_eq!(projection.field_value(), Some(&AspectValue::UInt64(13)));
-    assert_eq!(projection.amount_value(), Some(&AspectValue::UInt64(23)));
+    assert_eq!(projection.magnitude_value(), Some(&AspectValue::UInt64(23)));
     assert_eq!(projection.cardinality_value(), 2);
     assert_eq!(
         projection.related().unwrap().selector().value(),

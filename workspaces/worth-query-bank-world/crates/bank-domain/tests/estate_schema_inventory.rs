@@ -84,6 +84,7 @@ fn estate_capabilities_and_installed_phase_seven_programs_are_declared() {
             "RecognizeEstateExecutorOperation",
             "ReleaseEstateOperation",
             "RequestEstateEmergencyAccessOperation",
+            "RetransmitDeathNoticeEstateOperation",
             "RevokeEstateEmergencyAccessOperation",
         ]
         .into_iter()
@@ -316,6 +317,7 @@ fn estate_operations() -> BTreeSet<&'static str> {
         "RecognizeEstateExecutorOperation",
         "ReleaseEstateOperation",
         "RequestEstateEmergencyAccessOperation",
+        "RetransmitDeathNoticeEstateOperation",
         "RevokeEstateCapabilityOperation",
         "RevokeEstateEmergencyAccessOperation",
         "ViewRestrictedEstateOperation",
@@ -336,6 +338,7 @@ fn estate_capabilities() -> BTreeSet<&'static str> {
         "RecognizeEstateExecutorCapability",
         "ReleaseEstateCapability",
         "RequestEstateEmergencyAccessCapability",
+        "RetransmitDeathNoticeEstateCapability",
         "RevokeEstateCapability",
         "RevokeEstateEmergencyAccessCapability",
         "ViewEstateAdministrationCapability",

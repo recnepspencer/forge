@@ -46,24 +46,15 @@ pub enum BankDeathNotificationProjectionDenial {
         observed: usize,
     },
     MissingNoticeIdentity,
-    NoticeMismatch {
-        expected: DeathNoticeId,
-        observed: DeathNoticeId,
-    },
+    NoticeMismatch,
     MissingNoticeStatus,
-    NoticeNotReported(DeathNoticeStatus),
+    NoticeNotReported,
     MissingSubjectIdentity(&'static str),
-    NoticeSubjectMismatch {
-        expected: BankPrincipalId,
-        observed: BankPrincipalId,
-    },
-    EstateSubjectMismatch {
-        expected: BankPrincipalId,
-        observed: BankPrincipalId,
-    },
-    EntityResolution(WorthQueryEntityResolutionDenial),
-    DecisionPlan(WorthQueryInvariantDecisionPlanDenial),
-    Traversal(WorthQueryInvariantProjectionTraversalDenial),
+    NoticeSubjectMismatch,
+    EstateSubjectMismatch,
+    EntityResolution(crate::BankEntityResolutionDenial),
+    DecisionPlan(crate::BankInvariantDecisionPlanDenial),
+    Traversal(crate::BankInvariantProjectionTraversalDenial),
 }
 
 impl BankIdentityRuntime {
@@ -88,7 +79,7 @@ impl BankIdentityRuntime {
             .into())
     }
 
-    fn admit_notification_operation(
+    pub(crate) fn admit_notification_operation(
         &self,
         principal: &BankAuthenticatedPrincipal,
         action: EstateAction,
@@ -101,16 +92,16 @@ impl BankIdentityRuntime {
                 NotifyDeathEstateCapability::reference(),
                 NotifyDeathEstateOperation::reference(),
             )
-            .map_err(BankEstateProgressionDenial::CapabilityInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_capability_installation)?;
         let access = self
             .application_runtime()
             .admit_capability_access(principal.query(), &capability, action, request)
-            .map_err(BankEstateProgressionDenial::Authorization)?;
+            .map_err(BankEstateProgressionDenial::from_authorization)?;
         let operation = self
             .application_runtime()
             .installed_schema()
             .installed_operation(NotifyDeathEstateOperation::reference())
-            .map_err(BankEstateProgressionDenial::OperationInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_operation_installation)?;
         self.application_runtime()
             .authorize_capability_operation(
                 access,
@@ -121,7 +112,7 @@ impl BankIdentityRuntime {
                     EstateCase,
                 >::default(),
             )
-            .map_err(BankEstateProgressionDenial::Authorization)
+            .map_err(BankEstateProgressionDenial::from_authorization)
     }
 
     fn materialize_notification_effect(
@@ -134,32 +125,32 @@ impl BankIdentityRuntime {
             .project_admitted_operation(&admission, |reader, estate| {
                 project_notification(reader, estate, command)
             })
-            .map_err(BankEstateProgressionDenial::Projection)?;
+            .map_err(BankEstateProgressionDenial::from_projection)?;
         let (projection_result, projection, _) = projected.into_parts();
         projection_result.map_err(BankEstateProgressionDenial::DeathNotificationProjection)?;
         let reads = self
             .application_runtime()
             .begin_projected_application_read_attempt(admission, projection)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let notice = reads
             .resolve_entity(DeathNoticeIdentityField::reference(), command.notice)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let mut effects = reads
             .complete_projected_dependencies()
-            .map_err(BankEstateProgressionDenial::Attempt)?
+            .map_err(BankEstateProgressionDenial::from_attempt)?
             .begin_effect_program();
         let notice = effects
             .existing_entity(&notice)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         effects
             .write_field(
                 &notice,
                 DeathNoticeStatusField::reference(),
                 DeathNoticeStatus::NotificationRequested,
             )
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         effects
-            .emit(
+            .emit_external(
                 EstateDeathNotificationEffect::reference(),
                 EstateDeathNotificationRequest::new(
                     command.estate,
@@ -167,10 +158,10 @@ impl BankIdentityRuntime {
                     command.subject,
                 ),
             )
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         effects
             .finish()
-            .map_err(BankEstateProgressionDenial::Attempt)
+            .map_err(BankEstateProgressionDenial::from_attempt)
     }
 }
 
@@ -213,9 +204,7 @@ fn project_notification(
         .decision_field(&notice, DeathNoticeStatusField::reference())?
         .ok_or(BankDeathNotificationProjectionDenial::MissingNoticeStatus)?;
     if status != DeathNoticeStatus::Reported {
-        return Err(BankDeathNotificationProjectionDenial::NoticeNotReported(
-            status,
-        ));
+        return Err(BankDeathNotificationProjectionDenial::NoticeNotReported);
     }
     require_notice_subject(reader, &notice, command.subject)?;
     require_estate_subject(reader, estate, command.subject)
@@ -241,7 +230,7 @@ fn exact_notice(
         .decision_field(&notice, DeathNoticeIdentityField::reference())?
         .ok_or(BankDeathNotificationProjectionDenial::MissingNoticeIdentity)?;
     if observed != expected {
-        return Err(BankDeathNotificationProjectionDenial::NoticeMismatch { expected, observed });
+        return Err(BankDeathNotificationProjectionDenial::NoticeMismatch);
     }
     Ok(notice)
 }
@@ -262,9 +251,7 @@ fn require_notice_subject(
         .decision_field(relation.to(), PrincipalIdentityField::reference())?
         .ok_or(BankDeathNotificationProjectionDenial::MissingSubjectIdentity("death notice"))?;
     if observed != expected {
-        return Err(
-            BankDeathNotificationProjectionDenial::NoticeSubjectMismatch { expected, observed },
-        );
+        return Err(BankDeathNotificationProjectionDenial::NoticeSubjectMismatch);
     }
     Ok(())
 }
@@ -285,9 +272,7 @@ fn require_estate_subject(
         .decision_field(relation.to(), PrincipalIdentityField::reference())?
         .ok_or(BankDeathNotificationProjectionDenial::MissingSubjectIdentity("estate"))?;
     if observed != expected {
-        return Err(
-            BankDeathNotificationProjectionDenial::EstateSubjectMismatch { expected, observed },
-        );
+        return Err(BankDeathNotificationProjectionDenial::EstateSubjectMismatch);
     }
     Ok(())
 }
@@ -305,19 +290,23 @@ fn relation_cardinality(
 
 impl From<WorthQueryEntityResolutionDenial> for BankDeathNotificationProjectionDenial {
     fn from(denial: WorthQueryEntityResolutionDenial) -> Self {
-        Self::EntityResolution(denial)
+        Self::EntityResolution(crate::BankEntityResolutionDenial::from_query(denial.kind()))
     }
 }
 
 impl From<WorthQueryInvariantDecisionPlanDenial> for BankDeathNotificationProjectionDenial {
     fn from(denial: WorthQueryInvariantDecisionPlanDenial) -> Self {
-        Self::DecisionPlan(denial)
+        Self::DecisionPlan(crate::BankInvariantDecisionPlanDenial::from_query(
+            denial.kind(),
+        ))
     }
 }
 
 impl From<WorthQueryInvariantProjectionTraversalDenial> for BankDeathNotificationProjectionDenial {
     fn from(denial: WorthQueryInvariantProjectionTraversalDenial) -> Self {
-        Self::Traversal(denial)
+        Self::Traversal(crate::BankInvariantProjectionTraversalDenial::from_query(
+            denial.kind(),
+        ))
     }
 }
 
@@ -333,25 +322,20 @@ impl std::fmt::Display for BankDeathNotificationProjectionDenial {
                 "{relation} expected {expected} target, observed {observed}"
             ),
             Self::MissingNoticeIdentity => write!(formatter, "death notice has no identity"),
-            Self::NoticeMismatch { expected, observed } => write!(
-                formatter,
-                "estate notice {observed:?} does not match command notice {expected:?}"
-            ),
-            Self::MissingNoticeStatus => write!(formatter, "death notice has no status"),
-            Self::NoticeNotReported(status) => {
-                write!(formatter, "death notice is not reportable: {status:?}")
+            Self::NoticeMismatch => {
+                formatter.write_str("estate notice does not match command notice")
             }
+            Self::MissingNoticeStatus => write!(formatter, "death notice has no status"),
+            Self::NoticeNotReported => formatter.write_str("death notice is not reportable"),
             Self::MissingSubjectIdentity(owner) => {
                 write!(formatter, "{owner} subject has no identity")
             }
-            Self::NoticeSubjectMismatch { expected, observed } => write!(
-                formatter,
-                "notice subject {observed:?} does not match command subject {expected:?}"
-            ),
-            Self::EstateSubjectMismatch { expected, observed } => write!(
-                formatter,
-                "estate subject {observed:?} does not match command subject {expected:?}"
-            ),
+            Self::NoticeSubjectMismatch => {
+                formatter.write_str("notice subject does not match command subject")
+            }
+            Self::EstateSubjectMismatch => {
+                formatter.write_str("estate subject does not match command subject")
+            }
             Self::EntityResolution(denial) => denial.fmt(formatter),
             Self::DecisionPlan(denial) => denial.fmt(formatter),
             Self::Traversal(denial) => denial.fmt(formatter),

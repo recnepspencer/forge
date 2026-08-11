@@ -13,6 +13,40 @@ pub enum ArtifactTreePublicationEffect {
         source: ArtifactTreeFile,
         destination: ArtifactTreeFile,
     },
+    RootProtocolReplacement {
+        previous_selector: ArtifactTreeReplacement,
+        current_selector: ArtifactTreeReplacement,
+        bootstrap_catalog: ArtifactTreeReplacement,
+    },
+}
+
+impl ArtifactTreePublicationEffect {
+    pub const fn is_file_synchronization(&self) -> bool {
+        matches!(self, Self::FileSynchronization(_))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArtifactTreeReplacement {
+    pub(super) source: ArtifactTreeFile,
+    pub(super) destination: ArtifactTreeFile,
+}
+
+impl ArtifactTreeReplacement {
+    pub fn new(source: ArtifactTreeFile, destination: ArtifactTreeFile) -> Self {
+        Self {
+            source,
+            destination,
+        }
+    }
+
+    pub const fn source(&self) -> &ArtifactTreeFile {
+        &self.source
+    }
+
+    pub const fn destination(&self) -> &ArtifactTreeFile {
+        &self.destination
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

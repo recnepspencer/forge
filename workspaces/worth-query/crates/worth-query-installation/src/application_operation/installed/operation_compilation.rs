@@ -1,0 +1,326 @@
+//! One-operation compilation authority shared by install and reinstallation.
+
+use worth_query_declaration::facade::application_aftermath::PortableApplicationAftermathContract;
+use worth_query_declaration::facade::application_schema::{
+    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
+    ApplicationSchemaBindingIdentity, ApplicationSchemaMember,
+};
+
+use crate::application_aftermath::{
+    install_application_aftermath, InstalledExternalEffectContract,
+    WorthQueryInstalledAftermathContract,
+};
+
+use super::super::contract_resolution::{
+    ability_requirement_meaning_matches, operation_aftermath, operation_decision_fact_budget,
+    operation_decision_reads_from_members, operation_execution_posture, operation_external_effect,
+    operation_mutation_preconditions, operation_program_from_members,
+    operation_projection_work_budget,
+};
+use super::super::installed_contract_support::{operation_authorization, operation_denial};
+use super::super::{
+    WorthQueryApplicationOperationInstallationDenial,
+    WorthQueryApplicationOperationInstallationDenialKind,
+    WorthQueryCompiledApplicationOperationContracts, WorthQueryInstalledAbilityRequirement,
+    WorthQueryInstalledApplicationOperationAuthorization,
+    WorthQueryInstalledApplicationOperationExecutionPosture,
+    WorthQueryInstalledMutationPrecondition,
+};
+
+/// Every candidate-derived axis for one exact operation declaration.
+///
+/// The constructor accepts only one member set and one operation/input identity.
+/// Reads, external effect, aftermath, budgets, and executable program cannot be
+/// supplied independently or recombined across sibling operations.
+pub(super) struct WorthQueryApplicationOperationCompilation<'a> {
+    binding: ApplicationSchemaBindingIdentity,
+    operation: String,
+    input_type: String,
+    program: Vec<ApplicationOperationProgramTarget>,
+    decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
+    decision_fact_budget: usize,
+    projection_work_budget: usize,
+    execution_posture: WorthQueryInstalledApplicationOperationExecutionPosture,
+    external_effect: InstalledExternalEffectContract,
+    portable_aftermath: Option<PortableApplicationAftermathContract>,
+    members: &'a [ApplicationSchemaMember],
+}
+
+/// Opaque, whole-operation input accepted by the compiled-contract owner.
+pub(in crate::application_operation) struct WorthQuerySealedOperationContractCompilation {
+    authorization: WorthQueryInstalledApplicationOperationAuthorization,
+    ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
+    program: Vec<ApplicationOperationProgramTarget>,
+    decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
+    decision_fact_budget: usize,
+    projection_work_budget: usize,
+    additional_authorization_fact_count: usize,
+    mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
+    execution_posture: WorthQueryInstalledApplicationOperationExecutionPosture,
+    external_effect: InstalledExternalEffectContract,
+    aftermath: Option<WorthQueryInstalledAftermathContract>,
+}
+
+impl<'a> WorthQueryApplicationOperationCompilation<'a> {
+    pub(super) fn resolve(
+        binding: ApplicationSchemaBindingIdentity,
+        members: &'a [ApplicationSchemaMember],
+        operation: &str,
+        input_type: &str,
+    ) -> Result<Self, WorthQueryApplicationOperationInstallationDenial> {
+        if !members.iter().any(|member| {
+            matches!(
+                member,
+                ApplicationSchemaMember::Operation {
+                    operation: candidate,
+                    input_type: candidate_input,
+                } if candidate == operation && candidate_input == input_type
+            )
+        }) {
+            return Err(operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::OperationNotInstalled,
+                operation,
+            ));
+        }
+        let program = operation_program_from_members(members, operation, input_type);
+        let decision_reads = operation_decision_reads_from_members(members, operation, input_type);
+        if program.is_empty() && decision_reads.is_empty() {
+            return Err(operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::MissingProgram,
+                operation,
+            ));
+        }
+        let decision_fact_budget =
+            operation_decision_fact_budget(members, operation).ok_or_else(|| {
+                operation_denial(
+                    WorthQueryApplicationOperationInstallationDenialKind::MissingDecisionFactBudget,
+                    operation,
+                )
+            })?;
+        let projection_work_budget = operation_projection_work_budget(members, operation)
+            .ok_or_else(|| {
+                operation_denial(
+                    WorthQueryApplicationOperationInstallationDenialKind::MissingProjectionWorkBudget,
+                    operation,
+                )
+            })?;
+        let external_effect = operation_external_effect(members, operation)
+            .map_err(|denial| operation_denial(denial.installation_kind(), operation))?;
+        let portable_aftermath = operation_aftermath(members, operation)
+            .map_err(|denial| operation_denial(denial.installation_kind(), operation))?;
+        Ok(Self {
+            binding,
+            operation: operation.to_owned(),
+            input_type: input_type.to_owned(),
+            program,
+            decision_reads,
+            decision_fact_budget,
+            projection_work_budget,
+            execution_posture: operation_execution_posture(members, operation, input_type),
+            external_effect,
+            portable_aftermath,
+            members,
+        })
+    }
+
+    pub(super) fn compile_contracts(
+        self,
+        ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
+    ) -> Result<
+        WorthQueryCompiledApplicationOperationContracts,
+        WorthQueryApplicationOperationInstallationDenial,
+    > {
+        if !ability_requirement_meaning_matches(
+            self.members,
+            &self.operation,
+            &ability_requirements,
+        ) {
+            return Err(operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::MissingAbilityPolicy,
+                &self.operation,
+            ));
+        }
+        let authorization = operation_authorization(
+            &self.operation,
+            ability_requirements.len(),
+            operation_capability_count(self.members, &self.operation, &self.input_type),
+        )?;
+        let additional_authorization_fact_count =
+            progression_support_fact_count(self.members, &self.operation, &self.input_type);
+        let mutation_preconditions = self.compile_mutation_preconditions(&ability_requirements)?;
+        let aftermath = install_application_aftermath(&self).map_err(|_| {
+            operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::AftermathInstallationDenied,
+                &self.operation,
+            )
+        })?;
+        let sealed = WorthQuerySealedOperationContractCompilation {
+            authorization,
+            ability_requirements,
+            program: self.program,
+            decision_reads: self.decision_reads,
+            decision_fact_budget: self.decision_fact_budget,
+            projection_work_budget: self.projection_work_budget,
+            additional_authorization_fact_count,
+            mutation_preconditions,
+            execution_posture: self.execution_posture,
+            external_effect: self.external_effect,
+            aftermath,
+        };
+        Ok(WorthQueryCompiledApplicationOperationContracts::compile(
+            sealed,
+        ))
+    }
+
+    fn compile_mutation_preconditions(
+        &self,
+        abilities: &[WorthQueryInstalledAbilityRequirement],
+    ) -> Result<
+        Vec<WorthQueryInstalledMutationPrecondition>,
+        WorthQueryApplicationOperationInstallationDenial,
+    > {
+        super::super::precondition_contract::compile_precondition_contract(
+            operation_mutation_preconditions(self.members, &self.operation),
+            &self.decision_reads,
+            abilities,
+        )
+        .map_err(|()| {
+            operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::InvalidMutationPreconditionContract,
+                &self.operation,
+            )
+        })
+    }
+}
+
+impl super::aftermath_installation_source_seal::Sealed
+    for WorthQueryApplicationOperationCompilation<'_>
+{
+}
+
+impl super::WorthQueryOperationAftermathInstallationSource
+    for WorthQueryApplicationOperationCompilation<'_>
+{
+    fn binding(&self) -> &ApplicationSchemaBindingIdentity {
+        &self.binding
+    }
+
+    fn operation(&self) -> &str {
+        &self.operation
+    }
+
+    fn decision_reads(&self) -> &[ApplicationOperationDecisionReadTarget] {
+        &self.decision_reads
+    }
+
+    fn external_effect(&self) -> &InstalledExternalEffectContract {
+        &self.external_effect
+    }
+
+    fn portable_aftermath(&self) -> Option<&PortableApplicationAftermathContract> {
+        self.portable_aftermath.as_ref()
+    }
+}
+
+impl WorthQuerySealedOperationContractCompilation {
+    #[allow(clippy::type_complexity)]
+    pub(in crate::application_operation) fn into_parts(
+        self,
+    ) -> (
+        WorthQueryInstalledApplicationOperationAuthorization,
+        Vec<WorthQueryInstalledAbilityRequirement>,
+        Vec<ApplicationOperationProgramTarget>,
+        Vec<ApplicationOperationDecisionReadTarget>,
+        usize,
+        usize,
+        usize,
+        Vec<WorthQueryInstalledMutationPrecondition>,
+        WorthQueryInstalledApplicationOperationExecutionPosture,
+        InstalledExternalEffectContract,
+        Option<WorthQueryInstalledAftermathContract>,
+    ) {
+        (
+            self.authorization,
+            self.ability_requirements,
+            self.program,
+            self.decision_reads,
+            self.decision_fact_budget,
+            self.projection_work_budget,
+            self.additional_authorization_fact_count,
+            self.mutation_preconditions,
+            self.execution_posture,
+            self.external_effect,
+            self.aftermath,
+        )
+    }
+}
+
+#[cfg(test)]
+pub(in crate::application_operation) fn compile_contract_projection_fixture(
+    posture: WorthQueryInstalledApplicationOperationExecutionPosture,
+    support_count: usize,
+) -> WorthQueryCompiledApplicationOperationContracts {
+    let sealed = WorthQuerySealedOperationContractCompilation {
+        authorization: WorthQueryInstalledApplicationOperationAuthorization::Capability,
+        ability_requirements: Vec::new(),
+        program: vec![ApplicationOperationProgramTarget::Create {
+            entity: "Grant".to_owned(),
+        }],
+        decision_reads: Vec::new(),
+        decision_fact_budget: 1,
+        projection_work_budget: 16,
+        additional_authorization_fact_count: support_count,
+        mutation_preconditions: Vec::new(),
+        execution_posture: posture,
+        external_effect: InstalledExternalEffectContract::None,
+        aftermath: None,
+    };
+    WorthQueryCompiledApplicationOperationContracts::compile(sealed)
+}
+
+fn operation_capability_count(
+    members: &[ApplicationSchemaMember],
+    operation: &str,
+    input_type: &str,
+) -> usize {
+    members
+        .iter()
+        .filter(|member| match member {
+            ApplicationSchemaMember::ApplicationCapability { contract } => {
+                contract.operation() == operation && contract.input_type() == input_type
+            }
+            _ => false,
+        })
+        .count()
+}
+
+fn progression_support_fact_count(
+    members: &[ApplicationSchemaMember],
+    operation: &str,
+    input_type: &str,
+) -> usize {
+    usize::from(members.iter().any(|member| {
+        match member {
+            ApplicationSchemaMember::ApplicationCapability { contract } => {
+                contract.elevation().definition().is_some_and(|definition| {
+                    [
+                        definition.lifecycle().request(),
+                        definition.lifecycle().approve(),
+                    ]
+                    .into_iter()
+                    .any(|transition| {
+                        transition.operation().operation() == operation
+                            && transition.operation().input_type() == input_type
+                    })
+                }) || contract
+                    .delegation()
+                    .activation()
+                    .is_some_and(|activation| {
+                        activation.operation().operation() == operation
+                            && activation.operation().input_type() == input_type
+                    })
+            }
+            _ => false,
+        }
+    }))
+}

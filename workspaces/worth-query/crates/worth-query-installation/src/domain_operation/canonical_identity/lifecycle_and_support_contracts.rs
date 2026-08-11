@@ -1,4 +1,4 @@
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
 
 use crate::canonical_hash_encoding::hash_text_field;
 
@@ -10,7 +10,7 @@ pub(super) fn hash_lifecycle_and_support_contracts(
     semantics: &WorthQueryDomainOperationSemanticClosure,
 ) {
     hash_text_field(hasher, "replay", &replay_name(semantics.replay));
-    hash_reversal(hasher, &semantics.reversal);
+    hash_aftermath(hasher, semantics.aftermath.as_ref());
     hash_text_field(hasher, "lineage", lineage_name(semantics.lineage));
     hash_text_field(hasher, "promotion", promotion_name(semantics.promotion));
     hash_publication(hasher, &semantics.publication);
@@ -35,62 +35,35 @@ pub(super) fn hash_lifecycle_and_support_contracts(
     );
 }
 
-fn hash_reversal(hasher: &mut Sha256, contract: &WorthQueryOperationReversalContract) {
-    match contract {
-        WorthQueryOperationReversalContract::Irreversible => {
-            hash_text_field(hasher, "reversal", "irreversible");
-        }
-        WorthQueryOperationReversalContract::ProvisionalDiscard => {
-            hash_text_field(hasher, "reversal", "provisional-discard");
-        }
-        WorthQueryOperationReversalContract::ExactInverse { lowering_family } => {
-            hash_text_field(hasher, "reversal", "exact-inverse");
-            hash_text_field(hasher, "reversal-lowering", lowering_family);
-        }
-        WorthQueryOperationReversalContract::Compensation { operation } => {
-            hash_text_field(hasher, "reversal", "compensation");
-            hash_text_field(hasher, "compensation-operation", &operation.slot());
-        }
-        WorthQueryOperationReversalContract::ExactInverseWithPostcondition {
-            operation,
-            lowering_family,
-            postcondition,
-        } => {
-            hash_text_field(hasher, "reversal", "exact-inverse-with-postcondition");
-            hash_text_field(hasher, "inverse-operation", &operation.slot());
-            hash_text_field(hasher, "reversal-lowering", lowering_family);
-            hash_aftermath_postcondition(hasher, postcondition);
-        }
-        WorthQueryOperationReversalContract::CompensationWithPostcondition {
-            operation,
-            postcondition,
-        } => {
-            hash_text_field(hasher, "reversal", "compensation-with-postcondition");
-            hash_text_field(hasher, "compensation-operation", &operation.slot());
-            hash_aftermath_postcondition(hasher, postcondition);
-        }
-        WorthQueryOperationReversalContract::RebuildRequired { recovery_family } => {
-            hash_text_field(hasher, "reversal", "rebuild-required");
-            hash_text_field(hasher, "recovery-family", recovery_family);
-        }
-    }
-}
-
-fn hash_aftermath_postcondition(
+fn hash_aftermath(
     hasher: &mut Sha256,
-    postcondition: &WorthQueryAftermathPostcondition,
+    contract: Option<&crate::application_aftermath::WorthQueryInstalledAftermathContract>,
 ) {
-    match postcondition {
-        WorthQueryAftermathPostcondition::ExactPriorTruth => {
-            hash_text_field(hasher, "aftermath-postcondition", "exact-prior-truth");
-        }
-        WorthQueryAftermathPostcondition::InvariantRestored { invariant } => {
-            hash_text_field(hasher, "aftermath-postcondition", "invariant-restored");
-            hash_text_field(hasher, "aftermath-invariant", invariant);
-        }
-        WorthQueryAftermathPostcondition::BusinessPostcondition { identity } => {
-            hash_text_field(hasher, "aftermath-postcondition", "business-postcondition");
-            hash_text_field(hasher, "aftermath-business-postcondition", identity);
+    match contract {
+        None => hash_text_field(hasher, "aftermath", "none"),
+        Some(contract) => {
+            hash_text_field(hasher, "aftermath", "installed");
+            hasher.update(32u64.to_le_bytes());
+            hasher.update(contract.identity().bytes());
+            hash_text_field(hasher, "aftermath-operation", contract.operation_slot());
+            hash_text_field(
+                hasher,
+                "aftermath-posture",
+                match contract.published_posture() {
+                    crate::application_aftermath::PublishedAftermathPosture::Reversible => {
+                        "reversible"
+                    }
+                    crate::application_aftermath::PublishedAftermathPosture::Compensatable => {
+                        "compensatable"
+                    }
+                    crate::application_aftermath::PublishedAftermathPosture::Reconcilable => {
+                        "reconcilable"
+                    }
+                    crate::application_aftermath::PublishedAftermathPosture::Irreversible => {
+                        "irreversible"
+                    }
+                },
+            );
         }
     }
 }

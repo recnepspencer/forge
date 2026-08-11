@@ -1,10 +1,12 @@
 pub(crate) mod authority;
 pub(crate) mod branch_scope;
 pub(crate) mod cache_state;
+pub(crate) mod exact_commit_snapshot;
 pub(crate) mod execution_basis;
 pub(crate) mod materialization;
 pub(crate) mod pins;
 pub(crate) mod residency;
 pub(crate) mod retention;
+pub(crate) mod runtime_authority;
 pub(crate) mod snapshot_states;
 pub(crate) mod store_correlation_reference;

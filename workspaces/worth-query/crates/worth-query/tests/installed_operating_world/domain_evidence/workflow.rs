@@ -42,6 +42,36 @@ fn workflow_run_ledger_denies_a_locally_valid_counter_regression_atomically() {
 }
 
 #[test]
+fn claimed_output_mismatch_denies_before_a_stage_receipt_exists() {
+    let (mut workspace, probe) =
+        evidence_workflow_workspace("domain-evidence-workflow-output-mismatch").unwrap();
+    probe.set(EvidenceWorkflowMode::OutputOccurrenceMismatch);
+
+    let denial = match bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .reexecute(evidence_workflow_intent(), &mut workspace)
+    {
+        TransitionOutcome::Denied(domain::WorthQueryWorkflowReexecutionStop::Advance(denial)) => {
+            denial
+        }
+        TransitionOutcome::Success(_) => panic!("mismatched output produced a stage receipt"),
+        _ => panic!("mismatched output did not deny exact stage completion"),
+    };
+    assert_eq!(
+        denial.kind(),
+        &domain::WorthQueryWorkflowAdvanceDenialKind::DomainEvidence(
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::TransformationSummaryMismatch,
+        )
+    );
+    assert!(denial.completed_stage_receipts().is_empty());
+    assert!(denial.graph_receipts().is_empty());
+}
+
+#[test]
 fn replay_compares_mandatory_core_and_ignores_policy_omitted_sidecars() {
     let (mut workspace, probe) =
         evidence_workflow_workspace("domain-evidence-replay-sidecars").unwrap();

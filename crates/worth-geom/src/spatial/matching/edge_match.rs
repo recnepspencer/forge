@@ -164,32 +164,11 @@ impl EdgeMatcher {
                                 } else if edge_a.group.is_some() && edge_a.group == edge_b.group {
                                     // same group (face) — skip
                                 } else {
-                                    let candidate = match mode {
-                                        MatchMode::FullEndpoint => {
-                                            compute_full_distance(edge_a, edge_b, self.tolerance_sq)
-                                        }
-                                        MatchMode::SingleVertex => compute_single_vertex_distance(
-                                            edge_a,
-                                            edge_b,
-                                            self.tolerance_sq,
-                                        ),
-                                    };
-
-                                    if let Some(dist_sq) = candidate {
-                                        let is_better = match &best {
-                                            None => true,
-                                            Some(prev) => {
-                                                dist_sq < prev.distance_sq
-                                                    || (dist_sq == prev.distance_sq
-                                                        && edge_b.id < prev.edge_b)
-                                            }
-                                        };
-                                        if is_better {
-                                            best = Some(EdgeMatch {
-                                                edge_a: edge_a.id,
-                                                edge_b: edge_b.id,
-                                                distance_sq: dist_sq,
-                                            });
+                                    if let Some(candidate) =
+                                        self.reverse_candidate(idx_a, idx_b, &mode)
+                                    {
+                                        if is_better_match(&best, &candidate) {
+                                            best = Some(candidate);
                                         }
                                     }
                                 }
@@ -201,6 +180,34 @@ impl EdgeMatcher {
         }
 
         best
+    }
+}
+
+impl EdgeMatcher {
+    fn reverse_candidate(&self, idx_a: usize, idx_b: usize, mode: &MatchMode) -> Option<EdgeMatch> {
+        let edge_a = &self.edges[idx_a];
+        let edge_b = &self.edges[idx_b];
+        let distance_sq = match mode {
+            MatchMode::FullEndpoint => compute_full_distance(edge_a, edge_b, self.tolerance_sq),
+            MatchMode::SingleVertex => {
+                compute_single_vertex_distance(edge_a, edge_b, self.tolerance_sq)
+            }
+        }?;
+        Some(EdgeMatch {
+            edge_a: edge_a.id,
+            edge_b: edge_b.id,
+            distance_sq,
+        })
+    }
+}
+
+fn is_better_match(best: &Option<EdgeMatch>, candidate: &EdgeMatch) -> bool {
+    match best {
+        None => true,
+        Some(prev) => {
+            candidate.distance_sq < prev.distance_sq
+                || (candidate.distance_sq == prev.distance_sq && candidate.edge_b < prev.edge_b)
+        }
     }
 }
 
@@ -282,123 +289,6 @@ fn quantize(pos: [f64; 3], inv_cell_size: f64) -> (i64, i64, i64) {
     )
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn make_edge(id: u32, group: Option<u32>, origin: [f64; 3], dest: [f64; 3]) -> DirectedEdge {
-        DirectedEdge {
-            id,
-            group,
-            origin_index: None,
-            dest_index: None,
-            origin,
-            dest,
-        }
-    }
-
-    fn make_edge_with_indices(
-        id: u32,
-        group: Option<u32>,
-        oi: u32,
-        di: u32,
-        origin: [f64; 3],
-        dest: [f64; 3],
-    ) -> DirectedEdge {
-        DirectedEdge {
-            id,
-            group,
-            origin_index: Some(oi),
-            dest_index: Some(di),
-            origin,
-            dest,
-        }
-    }
-
-    #[test]
-    fn exact_reverse_pair_matches() {
-        let edges = vec![
-            make_edge(0, Some(1), [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
-            make_edge(1, Some(2), [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]),
-        ];
-        let matcher = EdgeMatcher::new(edges, 1e-10);
-        let matches = matcher.find_full_matches();
-        assert_eq!(matches.len(), 1);
-        assert_eq!(matches[0].edge_a, 0);
-        assert_eq!(matches[0].edge_b, 1);
-        assert!(matches[0].distance_sq < 1e-20);
-    }
-
-    #[test]
-    fn no_match_when_same_group() {
-        let edges = vec![
-            make_edge(0, Some(1), [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
-            make_edge(1, Some(1), [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]),
-        ];
-        let matcher = EdgeMatcher::new(edges, 1e-10);
-        let matches = matcher.find_full_matches();
-        assert_eq!(matches.len(), 0);
-    }
-
-    #[test]
-    fn no_match_beyond_tolerance() {
-        let edges = vec![
-            make_edge(0, Some(1), [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
-            make_edge(1, Some(2), [1.0, 0.0, 0.0], [0.0, 5.0, 0.0]),
-        ];
-        let matcher = EdgeMatcher::new(edges, 1e-10);
-        let matches = matcher.find_full_matches();
-        assert_eq!(matches.len(), 0);
-    }
-
-    #[test]
-    fn within_tolerance_matches() {
-        let eps = 1e-8;
-        let edges = vec![
-            make_edge(0, Some(1), [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
-            make_edge(1, Some(2), [1.0 + eps, 0.0, 0.0], [0.0 - eps, 0.0, 0.0]),
-        ];
-        let matcher = EdgeMatcher::new(edges, 1e-6);
-        let matches = matcher.find_full_matches();
-        assert_eq!(matches.len(), 1);
-    }
-
-    #[test]
-    fn best_match_chosen_from_multiple_candidates() {
-        let edges = vec![
-            make_edge(0, Some(1), [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
-            make_edge(1, Some(2), [1.0, 0.0, 0.0], [0.1, 0.0, 0.0]),
-            make_edge(2, Some(3), [1.0, 0.0, 0.0], [0.001, 0.0, 0.0]),
-        ];
-        let matcher = EdgeMatcher::new(edges, 1.0);
-        let matches = matcher.find_full_matches();
-        assert_eq!(matches.len(), 1);
-        assert_eq!(matches[0].edge_b, 2);
-    }
-
-    #[test]
-    fn single_vertex_match_origin_shared() {
-        let edges = vec![
-            make_edge_with_indices(0, Some(1), 10, 20, [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
-            make_edge_with_indices(1, Some(2), 30, 10, [1.0 + 1e-9, 0.0, 0.0], [0.0, 0.0, 0.0]),
-        ];
-        let matcher = EdgeMatcher::new(edges, 1e-6);
-        let matches = matcher.find_single_vertex_matches();
-        assert_eq!(matches.len(), 1);
-    }
-
-    #[test]
-    fn single_vertex_no_match_when_neither_index_shared() {
-        let edges = vec![
-            make_edge_with_indices(0, Some(1), 10, 20, [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
-            make_edge_with_indices(1, Some(2), 30, 40, [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]),
-        ];
-        let matcher = EdgeMatcher::new(edges, 1e-6);
-        let matches = matcher.find_single_vertex_matches();
-        assert_eq!(matches.len(), 0);
-    }
-}
-
 /// Select the best candidate edge around a radial junction by sorting normal dot products.
 ///
 /// `candidates` is a list of `(candidate_id, face_normal)`. The candidate with the highest
@@ -416,3 +306,6 @@ pub fn select_best_radial_match(source_normal: [f64; 3], candidates: &[(u32, [f6
     }
     best_id
 }
+
+#[cfg(test)]
+mod tests;

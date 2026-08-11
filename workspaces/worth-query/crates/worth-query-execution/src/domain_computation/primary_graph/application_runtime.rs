@@ -1,4 +1,5 @@
 use std::sync::atomic::AtomicU64;
+use std::sync::Arc;
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryAuthenticatedExternalPrincipal, WorthQueryRequestScope,
 };
@@ -7,12 +8,13 @@ use worth_query_installation::facade::{
     WorthQueryInstalledPrincipalBinding,
 };
 
-use crate::domain_computation::authorization::{
-    WorthQueryAuthorizationClock, WorthQueryAuthorizationTimeSource,
-};
+use crate::domain_computation::application_aftermath::WorthQueryExternalEffectTransport;
+use crate::domain_computation::authorization::WorthQueryRuntimeClock;
 use crate::domain_computation::execution_runtime::{
     WorthQueryExecutionInstallationAuthority, WorthQueryExecutionRuntime,
 };
+use crate::domain_computation::managed_run::WorthQueryRecoveryHandleRegistry;
+use crate::domain_computation::runtime_time::WorthQueryRuntimeTimeSource;
 
 use super::provider::WorthQueryPrimaryGraphProvider;
 use super::{
@@ -23,7 +25,10 @@ use super::{
 };
 use crate::domain_computation::authorization::WorthQueryInstalledAuthorizationRegistry;
 
+mod external_dispatch_attempt;
 mod installation;
+
+pub(in crate::domain_computation) use external_dispatch_attempt::WorthQueryExternalDispatchAttemptOrdinal;
 
 /// Purpose-scoped application runtime published from one typed primary graph.
 ///
@@ -47,9 +52,11 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
         WorthQueryInstalledApplicationSchema<Schema>,
     publication: WorthQueryPrimaryGraphPublication,
     pub(in crate::domain_computation) authorization: WorthQueryInstalledAuthorizationRegistry,
-    pub(in crate::domain_computation) authorization_clock: WorthQueryAuthorizationClock,
+    pub(in crate::domain_computation) authorization_clock: Arc<WorthQueryRuntimeClock>,
     authentication_clock: WorthQueryAuthenticationClock,
     pub(super) relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
+    pub(super) execution_basis_source:
+        worth_relational::facade::runtime::RelationalApplicationCommitBasisSource,
     pub(super) bridge: worth_runtime_bridge::facade::RuntimeBridge,
     pub(super) primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     pub(super) primary_graph_authority:
@@ -59,6 +66,11 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(super) basis_leases:
         super::application_query::resource_lifecycle::WorthQueryApplicationBasisRegistry,
     pub(super) next_preview_session: AtomicU64,
+    pub(super) next_external_dispatch_attempt: AtomicU64,
+    pub(super) external_effect_transport:
+        std::sync::OnceLock<std::sync::Arc<dyn WorthQueryExternalEffectTransport>>,
+    /// Instance-local recovery-handle live set (Q8.9 / R8.29).
+    pub(crate) recovery_handles: Arc<WorthQueryRecoveryHandleRegistry>,
 }
 
 impl<Schema> WorthQueryPrimaryGraphBootstrap<Schema>
@@ -80,7 +92,7 @@ where
                 runtime,
                 authority,
                 installed_schema,
-                authorization_clock: WorthQueryAuthorizationClock::system(),
+                authorization_clock: WorthQueryRuntimeClock::system(),
             },
         )
     }
@@ -95,7 +107,7 @@ where
         runtime: WorthQueryExecutionRuntime,
         authority: WorthQueryExecutionInstallationAuthority,
         installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
-        source: impl WorthQueryAuthorizationTimeSource,
+        source: impl WorthQueryRuntimeTimeSource,
     ) -> Result<
         WorthQueryPrimaryGraphApplicationRuntime<Schema>,
         WorthQueryPrimaryGraphInstallationDenial,
@@ -106,7 +118,7 @@ where
                 runtime,
                 authority,
                 installed_schema,
-                authorization_clock: WorthQueryAuthorizationClock::from_source(source),
+                authorization_clock: WorthQueryRuntimeClock::from_source(source),
             },
         )
     }
@@ -185,28 +197,19 @@ where
 
     #[cfg(test)]
     pub(crate) fn provider_session_resource_count(&self) -> usize {
-        let sessions = self
-            .primary_provider
-            .sessions
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        sessions
-            .application_attempts
-            .len()
-            .saturating_add(sessions.session_overlays.len())
-            .saturating_add(sessions.overlays.len())
+        self.primary_provider.application_attempt_resource_count()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn application_attempt_work(
+        &self,
+    ) -> super::provider::WorthQueryApplicationAttemptWorkSnapshot {
+        self.primary_provider.application_attempt_work()
     }
 
     #[cfg(test)]
     pub(crate) fn fail_next_index_publication(&self) {
         self.primary_provider.fail_next_index_publication();
-    }
-
-    #[cfg(test)]
-    pub(crate) fn completed_mutation_work(
-        &self,
-    ) -> Option<super::provider::WorthQueryPrimaryMutationWorkEvidence> {
-        self.primary_provider.completed_mutation_work()
     }
 
     #[cfg(test)]

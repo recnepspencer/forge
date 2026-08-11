@@ -2,8 +2,8 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
-use crate::domain_computation::authorization::{
-    WorthQueryAuthorizationTimeSource, WorthQueryAuthorizationTimeSourceDenial,
+use crate::domain_computation::runtime_time::{
+    WorthQueryRuntimeTimeSource, WorthQueryRuntimeTimeSourceDenial,
 };
 
 #[derive(Clone, Default)]
@@ -31,8 +31,8 @@ impl AuthorizationTimeController {
     }
 }
 
-impl WorthQueryAuthorizationTimeSource for AuthorizationTimeController {
-    fn current_time(&self) -> Result<SystemTime, WorthQueryAuthorizationTimeSourceDenial> {
+impl WorthQueryRuntimeTimeSource for AuthorizationTimeController {
+    fn current_time(&self) -> Result<SystemTime, WorthQueryRuntimeTimeSourceDenial> {
         let mut state = self
             .state
             .lock()
@@ -41,7 +41,7 @@ impl WorthQueryAuthorizationTimeSource for AuthorizationTimeController {
             AuthorizationTimeState::System => Ok(SystemTime::now()),
             AuthorizationTimeState::Scripted(samples) => samples
                 .pop_front()
-                .ok_or(WorthQueryAuthorizationTimeSourceDenial::Unavailable),
+                .ok_or(WorthQueryRuntimeTimeSourceDenial::Unavailable),
         }
     }
 }

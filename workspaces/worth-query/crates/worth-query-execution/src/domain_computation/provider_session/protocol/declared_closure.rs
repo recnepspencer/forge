@@ -1,10 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use worth_query_installation::facade::{
-    WorthQueryAftermathPostcondition, WorthQueryDomainOperationSemanticClosure,
+    InstalledAftermathPostcondition, InstalledCorrectionMechanism, PublishedAftermathPosture,
+    WorthQueryDomainOperationSemanticClosure, WorthQueryInstalledAftermathContract,
     WorthQueryOperationEffectContract, WorthQueryOperationGraphAccess,
-    WorthQueryOperationInvariantContract, WorthQueryOperationReversalContract,
-    WorthQueryOperationTouchContract, WorthQueryOperationWorkflowContract,
+    WorthQueryOperationInvariantContract, WorthQueryOperationTouchContract,
+    WorthQueryOperationWorkflowContract,
 };
 
 #[derive(Clone, Debug)]
@@ -42,7 +43,7 @@ impl WorthQueryProviderPlanDeclarations {
         let mut declarations = Self {
             decision_fact_families: semantics.decision_facts.required_families().to_vec(),
             invariant_requirements: semantics.invariant_execution.requirements().to_vec(),
-            reconciliation_posture: reversal_posture(&semantics.reversal),
+            reconciliation_posture: reversal_posture(semantics.aftermath.as_ref()),
             ..Self::default()
         };
         declarations.bind_direct(semantics);
@@ -341,46 +342,53 @@ fn invariant_slots(contract: &WorthQueryOperationInvariantContract) -> Vec<Strin
     }
 }
 
-pub(super) fn reversal_posture(contract: &WorthQueryOperationReversalContract) -> String {
-    match contract {
-        WorthQueryOperationReversalContract::Irreversible => "irreversible".to_owned(),
-        WorthQueryOperationReversalContract::ProvisionalDiscard => "provisional-discard".to_owned(),
-        WorthQueryOperationReversalContract::ExactInverse { lowering_family } => {
-            format!("exact-inverse:{lowering_family}")
-        }
-        WorthQueryOperationReversalContract::Compensation { operation } => {
-            format!("compensation:{}", operation.slot())
-        }
-        WorthQueryOperationReversalContract::ExactInverseWithPostcondition {
-            operation,
-            lowering_family,
-            postcondition,
-        } => format!(
-            "exact-inverse:{}:{lowering_family}:{}",
-            operation.slot(),
-            aftermath_postcondition(postcondition)
+pub(super) fn reversal_posture(contract: Option<&WorthQueryInstalledAftermathContract>) -> String {
+    let Some(contract) = contract else {
+        return "none".to_owned();
+    };
+    match (contract.published_posture(), contract.mechanism()) {
+        (PublishedAftermathPosture::Irreversible, _) => "irreversible".to_owned(),
+        (
+            PublishedAftermathPosture::Reversible,
+            Some(InstalledCorrectionMechanism::RecordedInverse(inverse)),
+        ) => format!(
+            "exact-inverse:{}:{}:{}",
+            inverse.inverse_operation_slot(),
+            inverse.lowering_correspondence().correspondence_slot(),
+            aftermath_postcondition(inverse.postcondition())
         ),
-        WorthQueryOperationReversalContract::CompensationWithPostcondition {
-            operation,
-            postcondition,
-        } => format!(
+        (
+            PublishedAftermathPosture::Compensatable,
+            Some(InstalledCorrectionMechanism::Compensation(compensation)),
+        ) => format!(
             "compensation:{}:{}",
-            operation.slot(),
-            aftermath_postcondition(postcondition)
+            compensation.compensating_operation_slot(),
+            aftermath_postcondition(compensation.postcondition())
         ),
-        WorthQueryOperationReversalContract::RebuildRequired { recovery_family } => {
-            format!("rebuild-required:{recovery_family}")
-        }
+        (PublishedAftermathPosture::Reconcilable, mechanism) => match mechanism {
+            Some(InstalledCorrectionMechanism::RecordedInverse(inverse)) => format!(
+                "reconcilable-exact-inverse:{}:{}",
+                inverse.inverse_operation_slot(),
+                aftermath_postcondition(inverse.postcondition())
+            ),
+            Some(InstalledCorrectionMechanism::Compensation(compensation)) => format!(
+                "reconcilable-compensation:{}:{}",
+                compensation.compensating_operation_slot(),
+                aftermath_postcondition(compensation.postcondition())
+            ),
+            None => "reconcilable".to_owned(),
+        },
+        _ => "declaration-incomplete".to_owned(),
     }
 }
 
-fn aftermath_postcondition(postcondition: &WorthQueryAftermathPostcondition) -> String {
+fn aftermath_postcondition(postcondition: &InstalledAftermathPostcondition) -> String {
     match postcondition {
-        WorthQueryAftermathPostcondition::ExactPriorTruth => "exact-prior-truth".to_owned(),
-        WorthQueryAftermathPostcondition::InvariantRestored { invariant } => {
+        InstalledAftermathPostcondition::ExactPriorTruth => "exact-prior-truth".to_owned(),
+        InstalledAftermathPostcondition::InvariantRestored { invariant } => {
             format!("invariant-restored:{invariant}")
         }
-        WorthQueryAftermathPostcondition::BusinessPostcondition { identity } => {
+        InstalledAftermathPostcondition::BusinessPostcondition { identity } => {
             format!("business-postcondition:{identity}")
         }
     }

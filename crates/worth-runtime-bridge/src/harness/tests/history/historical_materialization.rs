@@ -1,0 +1,108 @@
+use super::super::history_assertions::{assert_historical_record, last_historical_record};
+use super::super::support::{committed_patch, registration, snapshot};
+use crate::facade::BridgeHistoricalMaterializationPath;
+use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessTargetId};
+use crate::harness::fixtures::BridgeHarnessFixture;
+use worth_harness::facade::{ExecutionProfile, ExecutionRequest, ScenarioPlan};
+use worth_harness::runtime::HarnessAdapter;
+
+#[test]
+fn bridge_harness_executes_historical_commit_view() {
+    let adapter = BridgeHarnessAdapter;
+    let fixture = ScenarioPlan::new(
+        "bridge-historical-commit-view",
+        BridgeHarnessFixture::new(vec![registration()])
+            .with_committed_patch(committed_patch(
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                worth_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid harness field key"),
+            ))
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
+    )
+    .declare_input("history-commit:main:commit-a")
+    .declare_observation("historical")
+    .compile();
+    let request = ExecutionRequest::target(
+        "historical-commit-a",
+        BridgeHarnessTargetId::historical_commit(
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        ),
+    );
+    let profile = ExecutionProfile::development("development");
+
+    let mut session = adapter.create_runtime().expect("bridge harness runtime");
+    adapter
+        .prepare_runtime(&mut session, &profile)
+        .expect("bridge harness prepare");
+    adapter
+        .load_fixture(&mut session, &fixture)
+        .expect("bridge harness load fixture");
+    let _run = adapter
+        .execute(&mut session, &fixture, &request, &profile)
+        .expect("historical execution should succeed");
+
+    let record = last_historical_record(&session);
+    assert_historical_record(
+        &record,
+        "snapshot-a",
+        "main",
+        "commit-a",
+        BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot,
+    );
+}
+
+#[test]
+fn bridge_harness_executes_branch_head_view() {
+    let adapter = BridgeHarnessAdapter;
+    let fixture = ScenarioPlan::new(
+        "bridge-branch-head-view",
+        BridgeHarnessFixture::new(vec![registration()])
+            .with_committed_patch(committed_patch(
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                worth_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid harness field key"),
+            ))
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
+    )
+    .declare_input("branch-head:main")
+    .declare_observation("historical")
+    .compile();
+    let request = ExecutionRequest::target(
+        "branch-head-main",
+        BridgeHarnessTargetId::branch_head(crate::truth_identity_fixtures::truth_branch_fixture(
+            "main",
+        )),
+    );
+    let profile = ExecutionProfile::development("development");
+
+    let mut session = adapter.create_runtime().expect("bridge harness runtime");
+    adapter
+        .prepare_runtime(&mut session, &profile)
+        .expect("bridge harness prepare");
+    adapter
+        .load_fixture(&mut session, &fixture)
+        .expect("bridge harness load fixture");
+    let _run = adapter
+        .execute(&mut session, &fixture, &request, &profile)
+        .expect("branch-head execution should succeed");
+
+    let record = last_historical_record(&session);
+    assert_historical_record(
+        &record,
+        "snapshot-a",
+        "main",
+        "commit-a",
+        BridgeHistoricalMaterializationPath::BranchHeadEnvelopeSnapshot,
+    );
+}

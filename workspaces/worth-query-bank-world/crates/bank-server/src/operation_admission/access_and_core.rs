@@ -2,7 +2,7 @@ use bank_domain::model::{AccountId, InstitutionId};
 use bank_domain::schema::*;
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestScope;
 use worth_query_host::facade::declaration::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationOperationRef, EqualityPredicate,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationOperationRef, EqualityPredicate,
     TypedApplicationValue, TypedMutationPreconditions, WritePosture,
 };
 use worth_query_host::facade::primary_graph::WorthQueryPrincipalResolutionMode;
@@ -89,7 +89,7 @@ impl BankIdentityRuntime {
         )
     }
 
-    pub(super) fn authorize<Aspect, Scope, Field, Value, Write, Currency, Operation, Input>(
+    pub(super) fn authorize<Aspect, Scope, Field, Value, Write, Unit, Operation, Input>(
         &self,
         actor: &BankAuthenticatedPrincipal,
         field: ApplicationFieldRef<
@@ -100,7 +100,7 @@ impl BankIdentityRuntime {
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
         operation: ApplicationOperationRef<BankSchema, Operation, Input>,
@@ -110,7 +110,7 @@ impl BankIdentityRuntime {
     where
         Value: TypedApplicationValue + Clone + Copy,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         let identity = self
             .application_runtime()
@@ -120,16 +120,28 @@ impl BankIdentityRuntime {
                 request,
                 WorthQueryPrincipalResolutionMode::Ordinary,
             )
-            .map_err(BankOperationAdmissionError::ScopeResolution)?;
+            .map_err(|denial| {
+                BankOperationAdmissionError::ScopeResolution(
+                    crate::BankEntityResolutionDenial::from_query(denial.kind()),
+                )
+            })?;
         let operation = self
             .application_runtime()
             .installed_schema()
             .installed_operation(operation)
-            .map_err(BankOperationAdmissionError::OperationInstallation)?;
+            .map_err(|denial| {
+                BankOperationAdmissionError::OperationInstallation(
+                    crate::BankOperationInstallationDenial::from_query(denial.kind()),
+                )
+            })?;
         let query = self
             .application_runtime()
             .authorize_operation(actor.query(), &identity, &operation, preconditions, request)
-            .map_err(BankOperationAdmissionError::Authorization)?;
+            .map_err(|denial| {
+                BankOperationAdmissionError::Authorization(
+                    crate::BankAuthorizationDenial::from_query(denial),
+                )
+            })?;
         Ok(BankAdmittedOperation {
             actor: actor.principal_id(),
             scope: value,

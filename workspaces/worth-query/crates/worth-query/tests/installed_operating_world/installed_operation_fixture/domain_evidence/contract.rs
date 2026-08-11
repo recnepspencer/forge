@@ -3,7 +3,8 @@ use worth_foundational::facade::{
 };
 use worth_query::facade::domain;
 
-use super::super::{canonical_bundle, semantic_closure, GeometryDomain, ReadFamily, WorkflowRead};
+use super::super::{canonical_bundle, semantic_closure, GeometryDomain};
+use super::graph_receipt::EvidenceGraph;
 use super::{EvidenceFamily, EvidenceRead};
 
 pub(super) struct EvidenceArtifactFamily;
@@ -38,11 +39,24 @@ impl domain::WorthQueryArtifactFamily for EvidenceArtifactFamily {
 pub(super) fn direct_package(
     redaction: domain::WorthQueryArtifactRedactionPosture,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
-    direct_package_with_governance(EvidenceGovernance::retained(redaction))
+    direct_package_with_graph(EvidenceGovernance::retained(redaction), false)
+}
+
+pub(super) fn direct_graph_package(
+    redaction: domain::WorthQueryArtifactRedactionPosture,
+) -> domain::WorthQueryDomainPackage<GeometryDomain> {
+    direct_package_with_graph(EvidenceGovernance::retained(redaction), true)
 }
 
 pub(super) fn direct_package_with_governance(
     governance: EvidenceGovernance,
+) -> domain::WorthQueryDomainPackage<GeometryDomain> {
+    direct_package_with_graph(governance, false)
+}
+
+fn direct_package_with_graph(
+    governance: EvidenceGovernance,
+    graph: bool,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
     let contract = evidence_contract(governance);
     let mut semantics = semantic_closure(
@@ -56,6 +70,10 @@ pub(super) fn direct_package_with_governance(
         family: "domain-evidence-read-v1".into(),
         deterministic: true,
     };
+    if graph {
+        add_evidence_graph_read(&mut semantics.graph_reads);
+        semantics.cost.execution = domain::WorthQueryOperationCostClass::ExternalBoundary;
+    }
     let operation = domain::WorthQueryDomainOperationDefinition::<
         GeometryDomain,
         EvidenceRead,
@@ -64,7 +82,7 @@ pub(super) fn direct_package_with_governance(
         domain::WorthQueryDomainOperationIdentity::new("evidence-read", 1),
         semantics,
     );
-    domain::WorthQueryDomainPackage::declare(
+    let package = domain::WorthQueryDomainPackage::declare(
         GeometryDomain,
         domain::WorthQueryDomainIdentityDeclaration::new(
             domain::WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
@@ -73,59 +91,32 @@ pub(super) fn direct_package_with_governance(
         ),
     )
     .operation(operation)
-    .artifact_contract(contract)
+    .artifact_contract(contract);
+    if graph {
+        package.operation_graph_participation::<EvidenceRead, EvidenceFamily, EvidenceGraph>(
+            "evidence-graph",
+        )
+    } else {
+        package
+    }
 }
 
-pub(super) fn workflow_package(
-    redaction: domain::WorthQueryArtifactRedactionPosture,
-) -> domain::WorthQueryDomainPackage<GeometryDomain> {
-    let contract = evidence_contract(EvidenceGovernance::retained(redaction));
-    let stages = super::super::workflow::valid_stages()
-        .into_iter()
-        .map(|stage| {
-            if !matches!(stage.identity(), "start" | "left") {
-                return stage;
-            }
-            let mut semantics = stage.semantics().clone();
-            semantics.evidence =
-                domain::WorthQueryDomainEvidenceContract::installed_artifact(contract.reference());
-            stage.with_semantics(semantics)
-        })
-        .collect::<Vec<_>>();
-    let workflow = domain::WorthQueryPortableWorkflowDefinition::new("start", stages);
-    let mut semantics = semantic_closure(
-        canonical_bundle("Vertex"),
-        domain::WorthQuerySupportRequirement::Required,
-        true,
-    );
-    semantics.lowering = domain::WorthQueryOperationLoweringContract {
-        family: "domain-evidence-workflow-v1".into(),
-        deterministic: true,
-    };
-    semantics.replay = domain::WorthQueryOperationReplayContract::CertReplayable {
-        comparator: domain::WorthQueryOperationReplayComparatorContract {
-            family: "domain-evidence-workflow-exact-v1",
-        },
-    };
-    semantics.workflow = domain::WorthQueryOperationWorkflowContract::Declared(workflow);
-    let operation = domain::WorthQueryDomainOperationDefinition::<
-        GeometryDomain,
-        WorkflowRead,
-        ReadFamily,
-    >::new(
-        domain::WorthQueryDomainOperationIdentity::new("workflow-read", 1),
-        semantics,
-    );
-    domain::WorthQueryDomainPackage::declare(
-        GeometryDomain,
-        domain::WorthQueryDomainIdentityDeclaration::new(
-            domain::WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
-            domain::WorthQueryDomainIdentityName::new("geometry").unwrap(),
-            domain::WorthQueryDomainSemanticVersion::new(1, 0),
-        ),
-    )
-    .operation(operation)
-    .artifact_contract(contract)
+pub(super) fn add_evidence_graph_read(reads: &mut domain::WorthQueryOperationGraphReadContract) {
+    match reads {
+        domain::WorthQueryOperationGraphReadContract::Declared { roles } => {
+            roles.push(domain::WorthQueryOperationGraphReadRole {
+                role: "evidence-graph".into(),
+                participation: domain::WorthQueryOperationGraphParticipation::SeparateAuthority {
+                    role: "evidence-graph".into(),
+                },
+                access: domain::WorthQueryOperationGraphAccess::Observe,
+                semantic_reads: Vec::new(),
+            });
+        }
+        domain::WorthQueryOperationGraphReadContract::NotRequired => {
+            unreachable!("evidence operations retain the primary graph read")
+        }
+    }
 }
 
 pub(super) fn artifact_support() -> domain::WorthQueryArtifactInstallationSupport {
@@ -136,7 +127,9 @@ pub(super) fn artifact_support() -> domain::WorthQueryArtifactInstallationSuppor
     )
 }
 
-fn evidence_contract(governance: EvidenceGovernance) -> domain::WorthQueryPortableArtifactContract {
+pub(super) fn evidence_contract(
+    governance: EvidenceGovernance,
+) -> domain::WorthQueryPortableArtifactContract {
     domain::WorthQueryPortableArtifactContract::declare::<EvidenceArtifactFamily>(
         domain::WorthQueryArtifactSchemaVersion::new(1),
         domain::WorthQueryArtifactProtocolVersion::new(1),

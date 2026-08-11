@@ -2,7 +2,7 @@ use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequestProjection;
 use worth_relational::facade::identity::EntityId;
 
-use super::super::capability_request_resolution::WorthQueryResolvedCapabilityRequest;
+use super::super::capability_admission::WorthQueryResolvedCapabilityRequest;
 use super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 
 #[derive(Clone)]
@@ -25,7 +25,7 @@ impl std::fmt::Debug for WorthQueryElevationUpperBound {
 }
 
 impl WorthQueryElevationUpperBound {
-    pub(super) fn capture<Schema, Scope, Context>(
+    pub(in crate::domain_computation::authorization) fn capture<Schema, Scope, Context>(
         capability_identity: [u8; 32],
         principal: EntityId,
         projection: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
@@ -71,8 +71,8 @@ impl WorthQueryElevationUpperBound {
         self.request.field.as_ref()
     }
 
-    pub(in crate::domain_computation) const fn amount(&self) -> Option<&AspectValue> {
-        self.request.amount.as_ref()
+    pub(in crate::domain_computation) const fn magnitude(&self) -> Option<&AspectValue> {
+        self.request.magnitude.as_ref()
     }
 
     pub(in crate::domain_computation) const fn cardinality(&self) -> u32 {
@@ -95,7 +95,7 @@ impl WorthQueryElevationUpperBound {
             && request.related_relation == self.request.related_relation
             && request.related == self.request.related
             && request.field == self.request.field
-            && request.amount == self.request.amount
+            && request.magnitude == self.request.magnitude
             && request.cardinality == self.request.cardinality
             && request.context_name == self.request.context_name
             && request.context_type == self.request.context_type

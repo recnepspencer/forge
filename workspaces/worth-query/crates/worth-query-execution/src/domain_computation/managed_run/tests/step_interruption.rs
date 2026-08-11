@@ -1,8 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use worth_runtime_bridge::facade::{
-    BridgeExecutionBasisSignalTerminal, BridgeManagedExecutionCancellationReason,
-};
+use worth_runtime_bridge::facade::BridgeManagedExecutionCancellationReason;
 
 use super::*;
 
@@ -114,10 +112,7 @@ fn signal_cancellation_stops_before_the_next_provider_step() {
     );
     assert_eq!(terminal.provider_work().interrupted_call_count(), 1);
     let cleanup = terminal.cleanup().expect("cancelled step should clean up");
-    assert_eq!(
-        cleanup.bridge().signal_terminal(),
-        BridgeExecutionBasisSignalTerminal::Cancelled
-    );
+    assert!(cleanup.inspection().resources_released());
 }
 
 #[test]
@@ -156,10 +151,7 @@ fn signal_timeout_stops_before_the_next_provider_step() {
         Some(timeout.timeout_wake_identity())
     );
     let cleanup = terminal.cleanup().expect("timed-out step should clean up");
-    assert_eq!(
-        cleanup.bridge().signal_terminal(),
-        BridgeExecutionBasisSignalTerminal::TimedOut
-    );
+    assert!(cleanup.inspection().resources_released());
 }
 
 #[test]
@@ -188,10 +180,7 @@ fn signal_rejection_degrades_before_the_next_provider_step() {
     assert_eq!(advances.load(Ordering::Relaxed), 0);
     assert_eq!(terminal.provider_work().interrupted_call_count(), 1);
     let cleanup = terminal.cleanup().expect("degraded step should clean up");
-    assert_eq!(
-        cleanup.bridge().signal_terminal(),
-        BridgeExecutionBasisSignalTerminal::Rejected
-    );
+    assert!(cleanup.inspection().resources_released());
 }
 
 #[test]
@@ -220,7 +209,7 @@ fn provider_cannot_advance_after_exceeding_the_governed_work_port() {
         .cleanup()
         .expect("failed step should retain cleanup");
     assert_eq!(
-        cleanup.disposition(),
+        cleanup.inspection().disposition(),
         WorthQueryManagedRunCleanupDisposition::RecoveryRequired
     );
 }

@@ -98,7 +98,7 @@ support derived execution later:
 
 - [Declaration Bridge Continuation Routing](../declaration-bridge-continuation-routing.md)
   is one of the lower-authority surfaces continuation preparation may depend on.
-- [Recovery Boundary](../recovery-boundary.md) can preserve different next-step
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md) can preserve different next-step
   actions for signal stops vs continuation stops.
 - [Ordinary Outcomes](../ordinary-outcomes.md) provides the compact result lane
   for orchestration and continuation entry points.
@@ -144,4 +144,4 @@ Use continuation proof when you need:
 - [Declaration Signal Compatibility](../declaration-signal-compatibility.md)
 - [Signal Compatibility Orchestration](../signal-compatibility-orchestration.md)
 - [Continuation Pipeline](../continuation-pipeline.md)
-- [Recovery Boundary](../recovery-boundary.md)
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md)

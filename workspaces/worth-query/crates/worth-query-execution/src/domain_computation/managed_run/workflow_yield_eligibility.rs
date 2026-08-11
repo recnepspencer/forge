@@ -4,23 +4,13 @@ pub(super) fn classify_workflow_yield_denial(
     paused: &WorthQueryPausedWorkflowGraphExecution,
 ) -> Option<(WorthQueryWorkflowYieldDenialKind, &'static str)> {
     let running = &paused.active.running;
-    if !running
-        .resource_attempt
-        .binding_authority()
-        .is_current_installation_generation()
-    {
+    if !running.installation_is_current() {
         return Some((
             WorthQueryWorkflowYieldDenialKind::InstallationGenerationStale,
             "the installed workflow generation changed after the run was admitted",
         ));
     }
-    if running
-        .resource_attempt
-        .operation_resources()
-        .envelope()
-        .yield_contract()
-        .is_none()
-    {
+    if !running.yield_is_installed() {
         return Some((
             WorthQueryWorkflowYieldDenialKind::YieldNotInstalled,
             "the admitted resource envelope does not install provider checkpoint yield",

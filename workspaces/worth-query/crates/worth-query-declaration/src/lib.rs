@@ -6,6 +6,7 @@
 
 #![forbid(unsafe_code)]
 
+mod application_aftermath;
 mod application_capability;
 mod application_query;
 mod application_schema;

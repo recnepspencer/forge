@@ -35,6 +35,10 @@ impl RootProfileQualificationReport {
         self.binding.backend_build_identity
     }
 
+    pub const fn profile_digest(&self) -> [u8; 32] {
+        self.binding.profile_digest
+    }
+
     /// Reports the deployment assumption bound to this qualification. It is
     /// diagnostic policy context, not proof that arbitrary peers cooperate.
     pub const fn access_contract(&self) -> super::FilesystemAccessContract {

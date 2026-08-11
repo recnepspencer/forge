@@ -40,6 +40,17 @@ pub(in crate::physical_runtime::record_serving) fn project_successor_free_space(
         successor_capacity,
         frontier,
     } = context;
+    let segment_page_capacity = touched_segments
+        .first()
+        .map_or(current.segment_page_capacity(), |segment| {
+            segment.page_capacity()
+        });
+    if touched_segments
+        .iter()
+        .any(|segment| segment.page_capacity() != segment_page_capacity)
+    {
+        return Err(damaged());
+    }
     let mut updates = BTreeMap::new();
     for segment in touched_segments {
         let key = FreeSpaceKey::new(
@@ -88,6 +99,7 @@ pub(in crate::physical_runtime::record_serving) fn project_successor_free_space(
         FreeSpaceSuccessorRequest {
             generation: successor_generation,
             node_capacity: successor_capacity,
+            segment_page_capacity,
             next_segment: frontier.next_segment(),
             next_page: frontier.next_page(),
             next_extent: frontier.next_extent(),

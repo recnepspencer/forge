@@ -204,7 +204,7 @@ fn foreign_domain_authority_denies_before_operation_lookup() {
 #[test]
 fn every_downstream_semantic_role_participates_in_atomic_installation() {
     type Mutation = fn(&mut domain::WorthQueryDomainOperationSemanticClosure);
-    let mutations: [(&str, Mutation); 21] = [
+    let mutations: [(&str, Mutation); 20] = [
         ("parameters", |value| {
             value.parameters = domain::WorthQueryOperationParameterContract::Declared {
                 fields: vec![domain::WorthQueryOperationParameterField {
@@ -324,9 +324,6 @@ fn every_downstream_semantic_role_participates_in_atomic_installation() {
         }),
         ("replay", |value| {
             value.replay = domain::WorthQueryOperationReplayContract::NotSupported
-        }),
-        ("reversal", |value| {
-            value.reversal = domain::WorthQueryOperationReversalContract::ProvisionalDiscard
         }),
         ("lineage", |value| {
             value.lineage = domain::WorthQueryOperationLineageContract::Preserve

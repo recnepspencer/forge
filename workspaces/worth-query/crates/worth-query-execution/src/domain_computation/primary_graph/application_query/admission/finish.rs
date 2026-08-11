@@ -173,6 +173,9 @@ where
                 .canonical_basis()
                 .work()
                 .combine(reviewed.work.review().requirements().canonical_work()),
+            worth_query_installation::facade::WorthQueryCanonicalWorkEvidence::zero(),
+            worth_query_installation::facade::WorthQueryCanonicalWorkEvidence::zero(),
+            worth_query_installation::facade::WorthQueryCanonicalWorkEvidence::zero(),
         );
         validate_work_limit(reviewed.work.review(), controls, query.name())?;
         if let Some(denial) = reviewed.work.review().denial() {

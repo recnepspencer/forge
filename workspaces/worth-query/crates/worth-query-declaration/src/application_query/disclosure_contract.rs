@@ -7,8 +7,7 @@ use super::{
 };
 use crate::application_capability::ApplicationCapabilityRef;
 use crate::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldRef, OptionalApplicationFieldValue,
-    TypedApplicationValue,
+    ApplicationFieldRef, ApplicationFieldUnit, OptionalApplicationFieldValue, TypedApplicationValue,
 };
 
 mod influence;
@@ -96,17 +95,17 @@ impl ApplicationQueryDisclosureContract {
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
         DisclosureValue,
     >(
         mut self,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
         disclosure_value: DisclosureValue,
         influence: ApplicationQueryInfluenceContract,
     ) -> Self
     where
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         DisclosureValue: TypedApplicationValue,
     {
         let field_key = FieldKey::new(field.field())
@@ -137,7 +136,7 @@ impl ApplicationQueryDisclosureContract {
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
         DisclosureValue,
     >(
         mut self,
@@ -151,14 +150,14 @@ impl ApplicationQueryDisclosureContract {
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
         disclosure_value: DisclosureValue,
         influence: ApplicationQueryInfluenceContract,
     ) -> Self
     where
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         DisclosureValue: TypedApplicationValue,
     {
         let field = FieldKey::new(selector.field())
@@ -193,7 +192,7 @@ impl ApplicationQueryDisclosureContract {
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
         DisclosureValue,
     >(
         mut self,
@@ -207,7 +206,7 @@ impl ApplicationQueryDisclosureContract {
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
         disclosure_value: DisclosureValue,
         influence: ApplicationQueryInfluenceContract,
@@ -215,7 +214,7 @@ impl ApplicationQueryDisclosureContract {
     where
         Field: OptionalApplicationFieldValue<Value = Value>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         DisclosureValue: TypedApplicationValue,
     {
         let field = FieldKey::new(selector.field())

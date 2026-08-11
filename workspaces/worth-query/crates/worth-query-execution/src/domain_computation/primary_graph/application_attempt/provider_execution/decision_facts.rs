@@ -6,7 +6,7 @@ use worth_query_installation::facade::{
     APPLICATION_AUTHORIZATION_FACT_FAMILY, APPLICATION_DECISION_FACT_FAMILY,
 };
 
-pub(super) fn bind_provider_decision_facts(
+pub(in crate::domain_computation::primary_graph::application_attempt) fn bind_provider_decision_facts(
     application: Vec<WorthQueryApplicationObservedFact>,
     authorization: WorthQueryProviderAuthorizationDecisionFacts,
 ) -> Result<

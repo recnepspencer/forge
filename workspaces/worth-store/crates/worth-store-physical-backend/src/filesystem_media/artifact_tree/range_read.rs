@@ -104,7 +104,7 @@ impl ArtifactTreeMedia<'_> {
         }
     }
 
-    fn read_exact_range(
+    pub(crate) fn read_exact_range(
         &self,
         artifact: &ArtifactTreeFile,
         coordinate: RecordFrameCoordinate,

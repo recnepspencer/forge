@@ -454,6 +454,44 @@ In short:
 - `worth-proof` says what is legal and what has been proven
 - `worth-foundational` says how to describe and package that at boundaries
 
+## Up-Front Contract Vocabulary
+
+When the question is "what must be true before this operation is legal?", use:
+
+```rust
+use worth_proof::contracts::*;
+```
+
+This lane exports six reusable contracts without turning `worth-proof` into a
+runtime framework:
+
+| Contract | What it prevents | Runtime-owned half |
+|---|---|---|
+| `Branded<'id, T>` | values from two scoped instances becoming interchangeable | process identity and counters |
+| `LinearResource<Id, Terminal, Authority>` | a second terminal transition | registries, enumeration, and `Drop` leak checks |
+| `Binding<Axes>` + `binding_axes!` | silently omitting a comparison axis | none |
+| `FreshnessSource` + `evaluate_freshness` | callers choosing the observation moment | the clock or generation source |
+| `Inverts` / `DerivedFrom` | caller-authored causal claims | portable lineage and provenance descriptions |
+| `Performed<Action, Authority, Outcome>` | treating permission to attempt an effect as proof it happened | the transport and its outcome |
+
+The binding macro declares each field, drift variant, comparison, and axis name
+in one entry. Pair it with `binding_axis_drift_certification!` so every declared
+axis also has a positive and one-axis-drift twin. A declarative macro is used
+instead of a derive crate so the certified zero-normal-dependency contract
+remains true.
+
+Freshness evidence retains the exact source and policy types. Code expecting an
+owner clock and owner policy cannot accept a sample or classification produced
+by a caller-defined substitute. Likewise, `Performed` is created only where an
+owner actually observes the action outcome; an admitted action is not a
+performed action.
+
+Query Phase 8 is the reference adoption. Query keeps runtime identities,
+recovery registries, clocks, `Drop` checks, receipts, dispatch, and lineage in
+the runtime owner. Its binding comparison, freshness classification, causal
+undo proof, and performed-redispatch gate use these generic contracts beneath
+the Query facade.
+
 ## Owner-Specific Runtime Types
 
 Runtime crates use Proof progression beneath stronger private-minted types.
@@ -549,16 +587,17 @@ This is verbose on purpose:
 
 If you are new to the crate, read these next:
 
-1. [Artifact](./docs/features/artifact.md)
-2. [Assumption Basis](./docs/features/assumption-basis.md)
-3. [Freshness And Downgrade](./docs/features/freshness-and-downgrade.md)
-4. [Boundary Readmission](./docs/features/boundary-readmission.md)
-5. [Proof Markers And Sets](./docs/features/proof-markers-and-sets.md)
-6. [Structural Facts](./docs/features/structural-facts.md)
-7. [Witnesses](./docs/features/witnesses.md)
-8. [Fixed-Shape Collections](./docs/features/fixed-shape-collections.md)
-9. [Proven Vectors](./docs/features/proven-vectors.md)
-10. [Recipes And Stages](./docs/features/recipes-and-stages.md)
+1. [Authority And Workflow Contracts](./docs/features/authority-and-workflow-contracts.md)
+2. [Artifact](./docs/features/artifact.md)
+3. [Assumption Basis](./docs/features/assumption-basis.md)
+4. [Freshness And Downgrade](./docs/features/freshness-and-downgrade.md)
+5. [Boundary Readmission](./docs/features/boundary-readmission.md)
+6. [Proof Markers And Sets](./docs/features/proof-markers-and-sets.md)
+7. [Structural Facts](./docs/features/structural-facts.md)
+8. [Witnesses](./docs/features/witnesses.md)
+9. [Fixed-Shape Collections](./docs/features/fixed-shape-collections.md)
+10. [Proven Vectors](./docs/features/proven-vectors.md)
+11. [Recipes And Stages](./docs/features/recipes-and-stages.md)
 
 ## Glossary
 

@@ -25,7 +25,7 @@ pub(crate) fn activated_contract() -> ErasedApplicationCapabilityContract {
             ApplicationOperationRef::<Schema, ActivationOperation, ()>::from_schema_identifier(
                 "Activation",
             ),
-            field_binding::<Action>("Action"),
+            field_binding::<Action>(),
         )),
     )
     .composition(composition(None))

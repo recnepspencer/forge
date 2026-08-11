@@ -13,6 +13,7 @@ pub enum EvidenceWorkflowMode {
     OmitSidecars = 1,
     LedgerRegression = 2,
     ReplayCoreDrift = 3,
+    OutputOccurrenceMismatch = 4,
 }
 
 impl EvidenceWorkflowMode {
@@ -22,6 +23,7 @@ impl EvidenceWorkflowMode {
             Self::OmitSidecars => EvidenceScenario::OmitSidecars,
             Self::LedgerRegression => EvidenceScenario::LedgerRegression,
             Self::ReplayCoreDrift => EvidenceScenario::ReplayCoreDrift,
+            Self::OutputOccurrenceMismatch => EvidenceScenario::OutputOccurrenceMismatch,
         }
     }
 
@@ -31,6 +33,7 @@ impl EvidenceWorkflowMode {
             1 => Self::OmitSidecars,
             2 => Self::LedgerRegression,
             3 => Self::ReplayCoreDrift,
+            4 => Self::OutputOccurrenceMismatch,
             _ => panic!("invalid evidence workflow mode"),
         }
     }
@@ -50,6 +53,15 @@ impl EvidenceWorkflowProbe {
 #[derive(Clone)]
 pub(super) struct EvidenceWorkflowExecutor {
     mode: Arc<AtomicU8>,
+}
+
+pub(super) struct EvidenceGraphWorkflowExecutor(EvidenceWorkflowExecutor);
+
+impl EvidenceGraphWorkflowExecutor {
+    pub(super) fn new() -> (Self, EvidenceWorkflowProbe) {
+        let (executor, probe) = EvidenceWorkflowExecutor::new();
+        (Self(executor), probe)
+    }
 }
 
 impl EvidenceWorkflowExecutor {
@@ -131,5 +143,52 @@ impl domain::WorthQueryDomainReplaySemanticComparator<GeometryDomain, WorkflowRe
         _noise: domain::WorthQueryReplayNoiseContract,
     ) -> domain::WorthQueryReplayComparison {
         domain::WorthQueryReplayComparison::Equivalent
+    }
+}
+
+impl domain::WorthQueryDomainWorkflowStageExecutor<GeometryDomain, WorkflowRead, ReadFamily>
+    for EvidenceGraphWorkflowExecutor
+{
+    const LOWERING_FAMILY: &'static str = "domain-evidence-workflow-v1";
+    const DETERMINISTIC: bool = true;
+    const IDEMPOTENT_STAGE_RETRY: bool = true;
+    const EXECUTION_COST: domain::WorthQueryOperationCostClass =
+        domain::WorthQueryOperationCostClass::ExternalBoundary;
+    const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
+        domain::WorthQueryOperationCostClass::DeclaredWidth;
+    const REPLAY_COMPARATOR_FAMILY: Option<&'static str> =
+        Some("domain-evidence-workflow-exact-v1");
+
+    fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
+        self.0.installed_read_declaration()
+    }
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        self.0.execution_resource_support()
+    }
+
+    fn execute_stage(
+        &self,
+        input: domain::WorthQueryWorkflowValue,
+        context: &domain::WorthQueryWorkflowStageExecutionContext<'_>,
+        workspace: &mut domain::WorthQueryWorkflowStageWorkspace<'_>,
+    ) -> Result<
+        domain::WorthQueryWorkflowStageMaterial,
+        domain::WorthQueryWorkflowStageExecutorFailure,
+    > {
+        self.0.execute_stage(input, context, workspace)
+    }
+}
+
+impl domain::WorthQueryDomainReplaySemanticComparator<GeometryDomain, WorkflowRead, ReadFamily>
+    for EvidenceGraphWorkflowExecutor
+{
+    fn compare_replay_semantics(
+        &self,
+        original: &domain::WorthQueryWorkflowTraceSemantics,
+        replay: &domain::WorthQueryWorkflowTraceSemantics,
+        noise: domain::WorthQueryReplayNoiseContract,
+    ) -> domain::WorthQueryReplayComparison {
+        self.0.compare_replay_semantics(original, replay, noise)
     }
 }

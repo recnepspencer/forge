@@ -149,7 +149,12 @@ pub(super) fn compare_after_conditionals(
         work,
     )?;
     require_equal(&left.replay, &right.replay, Dimension::Replay, work)?;
-    require_equal(&left.reversal, &right.reversal, Dimension::Reversal, work)?;
+    require_equal(
+        &left.aftermath,
+        &right.aftermath,
+        Dimension::Aftermath,
+        work,
+    )?;
     require_equal(&left.lineage, &right.lineage, Dimension::Lineage, work)?;
     require_equal(
         &left.promotion,

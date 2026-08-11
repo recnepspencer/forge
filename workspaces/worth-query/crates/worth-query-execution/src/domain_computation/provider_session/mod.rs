@@ -15,6 +15,10 @@ pub use decision_read_set::*;
 pub use direct_attempt::{
     WorthQueryDirectExecutionAttemptReleaseReceipt, WorthQueryDirectExecutionResourceAttempt,
 };
+pub(in crate::domain_computation) use direct_attempt::{
+    WorthQueryDirectProviderWorkRebinding, WorthQueryDirectResourceReadmissionPending,
+};
+pub(in crate::domain_computation) use execution_attempt_identity::WorthQueryClosedExecutionAttemptIdentity;
 pub use execution_attempt_identity::WorthQueryExecutionAttemptIdentity;
 pub use graph_obligation::{
     WorthQueryGraphReadCompletion, WorthQueryGraphReadDependencyEvidence,
@@ -24,20 +28,21 @@ pub use graph_obligation::{
 pub(in crate::domain_computation) use graph_obligation::{
     WorthQueryGraphReadOwnerPort, WorthQueryGraphWorkAccessContextAffinity,
     WorthQueryManagedGraphWorkSession, WorthQueryMutationRunBinding,
-    WorthQueryObservedGraphReadWork, WorthQuerySessionGraphReadProof,
+    WorthQueryObservedGraphReadWork, WorthQueryProviderSessionBoundMutationRun,
+    WorthQuerySessionGraphReadProof,
 };
 pub use graph_provider::*;
 pub use protocol::*;
 pub use provisional_attempt::*;
+pub(in crate::domain_computation) use readmission::WorthQueryWorkflowProviderWorkRebinding;
 pub use session_identity::WorthQueryExecutionProviderSession;
+pub(in crate::domain_computation) use session_identity::WorthQueryExecutionProviderSessionIdentity;
 pub use workflow_attempt::{
     WorthQueryWorkflowExecutionAttemptReleaseReceipt, WorthQueryWorkflowExecutionResourceAttempt,
 };
 
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-mod workflow_attempt_tests;
 #[cfg(test)]
 pub(crate) use tests::execution_resource_support_for_envelope;
 

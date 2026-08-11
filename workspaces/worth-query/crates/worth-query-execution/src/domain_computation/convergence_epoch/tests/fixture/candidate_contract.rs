@@ -2,21 +2,24 @@ use worth_foundational::facade::{
     CanonicalizationRuleVersion, FoundationalPerformanceCounterName, RetentionDeliveryProfile,
 };
 use worth_query_installation::facade::{
-    WorthQueryArtifactCarriageContract, WorthQueryArtifactClassification,
+    WorthQueryArtifactBorrowPosture, WorthQueryArtifactCarriageContract,
+    WorthQueryArtifactClassification, WorthQueryArtifactClonePosture,
     WorthQueryArtifactComparatorFamily, WorthQueryArtifactCompatibilityContract,
     WorthQueryArtifactCompatibilityWindow, WorthQueryArtifactContentIdentityContract,
     WorthQueryArtifactDeletionPosture, WorthQueryArtifactDowngradePosture,
     WorthQueryArtifactEvidenceContract, WorthQueryArtifactGovernanceContract,
     WorthQueryArtifactLegalHoldPosture, WorthQueryArtifactLifecycleContract,
-    WorthQueryArtifactOccurrenceContract, WorthQueryArtifactOwnershipContract,
-    WorthQueryArtifactProtocolVersion, WorthQueryArtifactRedactionPosture,
+    WorthQueryArtifactMovePosture, WorthQueryArtifactOccurrenceContract,
+    WorthQueryArtifactOwnershipContract, WorthQueryArtifactProtocolVersion,
+    WorthQueryArtifactProviderTransferPosture, WorthQueryArtifactRedactionPosture,
     WorthQueryArtifactReproducibilityContract, WorthQueryArtifactRetirementRule,
-    WorthQueryArtifactSchemaVersion, WorthQueryCandidateOptimalityPosture,
-    WorthQueryCandidateSearchContract, WorthQueryCandidateSearchEvidenceFamilies,
-    WorthQueryCandidateSearchPosture, WorthQueryConvergenceContract,
-    WorthQueryConvergenceIncumbentPosture, WorthQueryConvergenceOscillationPosture,
-    WorthQueryDecisionRecordContract, WorthQueryPortableArtifactContract,
-    WorthQueryStructuralCounterContract, WorthQueryTransformationEvidenceContract,
+    WorthQueryArtifactSchemaVersion, WorthQueryArtifactSerializationPosture,
+    WorthQueryCandidateOptimalityPosture, WorthQueryCandidateSearchContract,
+    WorthQueryCandidateSearchEvidenceFamilies, WorthQueryCandidateSearchPosture,
+    WorthQueryConvergenceContract, WorthQueryConvergenceIncumbentPosture,
+    WorthQueryConvergenceOscillationPosture, WorthQueryDecisionRecordContract,
+    WorthQueryPortableArtifactContract, WorthQueryStructuralCounterContract,
+    WorthQueryTransformationEvidenceContract,
 };
 
 use super::fixture_identity::{CandidateFamily, ComparatorFamily, OWNER};
@@ -117,7 +120,13 @@ pub(super) fn candidate_contract(
     .convergence(convergence)
     .transformation(WorthQueryTransformationEvidenceContract::not_a_transformation())
     .access_path(worth_query_installation::facade::WorthQueryArtifactAccessPathContract::denied())
-    .carriage(WorthQueryArtifactCarriageContract::move_only_provider_transfer())
+    .carriage(WorthQueryArtifactCarriageContract::new(
+        WorthQueryArtifactMovePosture::Required,
+        WorthQueryArtifactBorrowPosture::SharedReadOnly,
+        WorthQueryArtifactClonePosture::Forbidden,
+        WorthQueryArtifactProviderTransferPosture::MoveOwnership,
+        WorthQueryArtifactSerializationPosture::CanonicalProjectionOnly,
+    ))
     .lifecycle(WorthQueryArtifactLifecycleContract::ArenaScoped)
     .counters(WorthQueryStructuralCounterContract::required_foundation(
         counter("candidate-bytes"),

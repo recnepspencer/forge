@@ -22,18 +22,16 @@ fn mismatched_scope(
     shape: TypedApplicationQueryResultShape<Schema, Query, Account, Result>,
     ability: ApplicationAbilityRef<Schema, ViewInstitution, Institution>,
 ) {
-    let _ = ApplicationQueryDefinitionBuilder::requires_ability(
-        reference,
-        account,
-        account,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 0),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        ability,
-    );
+    let _ = ApplicationQueryDefinitionBuilder::declare(reference)
+        .root(account)
+        .scope(account)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 0))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(ability);
 }
 
 fn main() {}

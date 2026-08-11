@@ -91,9 +91,9 @@ pub use rule_clause::{
     ApplicationCapabilityScopeGuard,
 };
 pub use scope::{
-    ApplicationCapabilityAmountDimension, ApplicationCapabilityCardinalityDimension,
-    ApplicationCapabilityConstraintDefinition, ApplicationCapabilityDelegationDefinition,
-    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+    ApplicationCapabilityCardinalityDimension, ApplicationCapabilityConstraintDefinition,
+    ApplicationCapabilityDelegationDefinition, ApplicationCapabilityFieldBinding,
+    ApplicationCapabilityFieldDimension, ApplicationCapabilityMagnitudeDimension,
     ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
     ApplicationCapabilityTargetDefinition, ApplicationCapabilityValueBinding,
 };

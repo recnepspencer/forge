@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/application_aftermath/recovery_inspect_rejects_effect_authority.rs:10:45
+   |
+10 |     let _ = inspect_recovery_handle(handle, effect);
+   |             -----------------------         ^^^^^^ expected `&WorthQueryRecoveryInspectAuthority`, found `&WorthQueryRecoveryEffectAuthority`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected reference `&WorthQueryRecoveryInspectAuthority`
+              found reference `&WorthQueryRecoveryEffectAuthority`
+note: function defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/application_aftermath/recovery_progression/inspect.rs
+   |
+   | pub fn inspect_recovery_handle(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^

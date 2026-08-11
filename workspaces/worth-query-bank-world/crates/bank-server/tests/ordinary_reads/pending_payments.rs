@@ -1,6 +1,7 @@
 use bank_domain::model::CustomerRole;
-use bank_server::{queries, BankApplicationQueryDenial, BankReadControls};
-use worth_query_host::facade::primary_graph::WorthQueryApplicationOneShotDenialKind;
+use bank_server::{
+    queries, BankApplicationOneShotDenialKind, BankApplicationQueryDenial, BankReadControls,
+};
 
 use super::fixture::{
     ordinary_read_world, ordinary_read_world_with_pending_payments,
@@ -23,24 +24,10 @@ fn fixed_role_and_status_guards_are_query_owned_and_receipted() {
 
     assert_eq!(result.rows().len(), 1);
     assert_eq!(result.rows()[0].id(), fixture.payment);
-    let mut predicate_fields = result
-        .receipt()
-        .graph_read_plan()
-        .requirements()
-        .rows()
-        .iter()
-        .flat_map(|row| row.predicate_field_authorities())
-        .map(|field| field.native_field_key().as_str())
-        .collect::<Vec<_>>();
-    predicate_fields.sort_unstable();
-    assert_eq!(
-        predicate_fields,
-        ["AuthorizationRole", "PaymentStatusField"]
-    );
-    assert_eq!(result.receipt().examined_candidate_count(), 2);
-    assert_eq!(result.receipt().work().predicate_work_units(), 4);
-    assert_eq!(result.receipt().fallback_count(), 0);
-    assert_eq!(result.receipt().per_result_neighbor_lookup_count(), 0);
+    let inspection = result.receipt().inspect();
+    assert_eq!(inspection.result_count(), 1);
+    assert!(inspection.ordinary_work_units() > 0);
+    assert!(inspection.terminal_resources_released());
 
     for principal in [OWNER, VIEWER] {
         let actor = fixture.authenticate(principal);
@@ -86,7 +73,7 @@ fn pending_roots_are_identity_ordered_and_result_limited_before_projection() {
     assert!(matches!(
         denial,
         Err(BankApplicationQueryDenial::Execution(denial))
-            if denial.kind() == WorthQueryApplicationOneShotDenialKind::ResultLimitExceeded
+            if denial.kind() == BankApplicationOneShotDenialKind::ResultLimitExceeded
     ));
 }
 
@@ -104,7 +91,7 @@ fn guarded_frontier_stops_when_dynamic_work_is_exhausted() {
         .execute();
     match denial {
         Err(BankApplicationQueryDenial::Execution(denial))
-            if denial.kind() == WorthQueryApplicationOneShotDenialKind::WorkLimitExceeded => {}
+            if denial.kind() == BankApplicationOneShotDenialKind::WorkLimitExceeded => {}
         Err(other) => panic!("unexpected denial stage: {other:?}"),
         Ok(_) => panic!("guarded frontier exceeded its admitted dynamic work"),
     }

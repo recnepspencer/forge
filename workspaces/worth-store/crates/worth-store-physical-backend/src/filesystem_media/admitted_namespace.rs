@@ -76,6 +76,12 @@ impl AdmittedStoreNamespace {
         self.admission_effect_fate = effect_fate;
         self
     }
+
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(super) fn complete_existing_admission(mut self, publication_parent: Dir) -> Self {
+        self.publication_parent = Some(publication_parent);
+        self
+    }
     pub(super) fn open_directory(
         &mut self,
         path: &NamespaceRelativePath,

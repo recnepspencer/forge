@@ -4,7 +4,7 @@
 
 Runtime-installed domains let a domain declare stable Query operations once
 and bind them to one concrete runtime. Use this when operation identity,
-parameters, reads, graph participation, workflow, replay, aftermath, lineage,
+parameters, reads, graph participation, workflow, replay, lineage,
 publication, promotion, support, or cost must mean the same thing for every
 caller.
 
@@ -23,8 +23,8 @@ operations.
   evidence through one move-only journey.
 - Publish and consume Query facts without reconstructing authority from rows or
   digests.
-- Re-execute, certify replay equivalence, bind aftermath, and carry identity
-  lineage without starting parallel runtime systems.
+- Re-execute, certify replay equivalence, and carry identity lineage without
+  starting parallel runtime systems.
 
 ## Stable Entry Points
 
@@ -42,7 +42,6 @@ operations.
 - `domain::WorthQueryOperationFamilyView::bind(...)`
 - `domain::WorthQueryBoundDomainOperation`
 - `domain::WorthQueryBoundDomainOperation::reexecute(...)`
-- `domain::WorthQueryCompletedWorkflowTrace::admit_aftermath(...)`
 - `domain::WorthQueryCompletedWorkflowTrace::lineage_report()`
 
 Conditional nodes, graph providers, and workflows extend this same setup and
@@ -62,9 +61,9 @@ There are four distinct things:
 The portable operation definition is authoritative for semantics. It includes
 the canonical query and result shape, graph-read contract, workflow and
 conditional declarations, replay comparator posture, reversal and
-postcondition contract, lineage and promotion contract, publication posture,
-terminal states, failure classes, support requirements, cost contract, and
-lowering identity.
+postcondition contract, external-effect and application-aftermath contracts,
+lineage and promotion contract, publication posture, terminal states, failure
+classes, support requirements, cost contract, and lowering identity.
 
 The executor is authoritative only for volatile lowering mechanics. It must
 report the same lowering family, determinism, read declaration, and cost shape
@@ -83,6 +82,7 @@ declare portable package and operation meaning
   -> create one operating world from an admitted basis
   -> borrow an operation-family view and bind
   -> execute directly or advance the installed workflow
+  -> retain commit, aftermath, and external-dispatch posture
   -> publish, consume, and settle when publication is declared
 ```
 
@@ -378,7 +378,7 @@ installed operation and the runtime support profile. It does not infer support
 from available callbacks.
 
 The contract covers basis, live work, continuation, async/result state,
-recovery, inspection, projection consumption, dependency impact, sharing,
+typed-stop remediation, inspection, projection consumption, dependency impact, sharing,
 invalidation, collection delivery, and conditional capabilities.
 
 Downstream presentation and allocation requirements use
@@ -407,9 +407,9 @@ Query owns:
 Application code advances the returned `WorthQueryWorkflowRun`. It does not
 keep a second stage ledger.
 
-Completed workflow traces also support fresh ordinary re-execution, exact
-aftermath admission, and trace-bound lineage inspection. Certification replay
-is deliberately absent from the ordinary host surface; import it through
+Completed workflow traces also support fresh ordinary re-execution and
+trace-bound lineage inspection. Certification replay is deliberately absent
+from the ordinary host surface; import it through
 `worth_query_replay::facade`.
 
 ## How It Relates To Other Features
@@ -419,8 +419,6 @@ is deliberately absent from the ordinary host surface; import it through
   to the same operation definition and binding path.
 - [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
   explains fresh execution identity and cert-only semantic comparison.
-- [Installed Operation Aftermath](./installed-operation-aftermath.md) explains
-  exact inverse, compensation, and failure recovery evidence.
 - [Installed Operation Lineage And Promotion](./installed-operation-lineage-and-promotion.md)
   explains effect-bound identity evolution, naming, and sparse promotion.
 - [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](./bound-projection-sharing-and-invalidation.md)
@@ -447,6 +445,8 @@ Useful surfaces include:
 - `executed.graph_receipts()`
 - `executed.conditional_provenance()`
 - `executed.counters()`
+- the host receipt's published aftermath and external-effect posture when the
+  installed application operation declares them
 - `settled.publication_receipt()`
 - `settled.result_state()`
 - `settled.warnings()`
@@ -477,6 +477,8 @@ a new handle.
 ## Current Limits
 
 - Runtime installation occurs before runtime publication.
+- Runtime-local application-aftermath recovery does not imply Store-backed
+  handle reload or restart recovery.
 - Handles and bound operations are not portable across runtimes or installation
   generations, even when packages are semantically equivalent.
 - Collection windows and query-shaped patch delivery still require their
@@ -493,7 +495,7 @@ a new handle.
 
 - [Conditional Installed Operations](./conditional-installed-operations.md)
 - [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
-- [Installed Operation Aftermath](./installed-operation-aftermath.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
 - [Installed Operation Lineage And Promotion](./installed-operation-lineage-and-promotion.md)
 - [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)

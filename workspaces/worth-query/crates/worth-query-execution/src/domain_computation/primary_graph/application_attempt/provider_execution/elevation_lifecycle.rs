@@ -21,7 +21,10 @@ where
         &self,
         program: WorthQueryElevationRequestProgram<Schema, Operation, Input, Scope>,
         idempotency: WorthQueryApplicationIdempotencyBinding,
-    ) -> WorthQueryElevationRequestOutcome {
+    ) -> WorthQueryElevationRequestOutcome
+    where
+        Input: Clone + Send + Sync + 'static,
+    {
         let mut program = program.into_inner();
         if validate_elevation_request_program(&program).is_err() {
             return WorthQueryElevationRequestOutcome::Denied(
@@ -52,7 +55,10 @@ where
         &self,
         program: WorthQueryElevationApprovalProgram<Schema, Operation, Input, Scope>,
         idempotency: WorthQueryApplicationIdempotencyBinding,
-    ) -> WorthQueryElevationApprovalOutcome {
+    ) -> WorthQueryElevationApprovalOutcome
+    where
+        Input: Clone + Send + Sync + 'static,
+    {
         let mut program = program.into_inner();
         if validate_elevation_approval_program(&program).is_err() {
             let binding = program
@@ -87,7 +93,10 @@ where
         &self,
         program: WorthQueryElevationCloseProgram<Schema, Operation, Input, Scope>,
         idempotency: WorthQueryApplicationIdempotencyBinding,
-    ) -> WorthQueryElevationCloseOutcome {
+    ) -> WorthQueryElevationCloseOutcome
+    where
+        Input: Clone + Send + Sync + 'static,
+    {
         let mut program = program.into_inner();
         if validate_elevation_close_program(&program).is_err() {
             let Some(binding) = program.read_set.admission.take_elevation_close_binding() else {
@@ -120,7 +129,10 @@ where
         &self,
         program: WorthQueryMandatoryReviewProgram<Schema, Operation, Input, Scope>,
         idempotency: WorthQueryApplicationIdempotencyBinding,
-    ) -> WorthQueryMandatoryReviewOutcome {
+    ) -> WorthQueryMandatoryReviewOutcome
+    where
+        Input: Clone + Send + Sync + 'static,
+    {
         let mut program = program.into_inner();
         if validate_mandatory_review_program(&program).is_err() {
             let Some(binding) = program.read_set.admission.take_mandatory_review_binding() else {

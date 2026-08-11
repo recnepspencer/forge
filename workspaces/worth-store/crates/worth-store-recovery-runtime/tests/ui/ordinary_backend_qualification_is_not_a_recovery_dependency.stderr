@@ -1,0 +1,11 @@
+error[E0432]: unresolved import `worth_store_physical_backend`
+ --> tests/ui/ordinary_backend_qualification_is_not_a_recovery_dependency.rs:1:5
+  |
+1 | use worth_store_physical_backend::qualify_filesystem_media;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `worth_store_physical_backend`
+  |
+help: there is a crate or module with a similar name
+  |
+1 - use worth_store_physical_backend::qualify_filesystem_media;
+1 + use worth_store_physical_format::qualify_filesystem_media;
+  |

@@ -123,7 +123,7 @@ fn execute_initiation(
         Ok(proposal) => proposal,
         Err(denial) => {
             return BankPaymentInitiationOutcome::new(
-                denied(BankMutationDenial::Proposal(denial), None),
+                denied(BankMutationDenial::from_proposal(denial), None),
                 None,
             );
         }

@@ -1,10 +1,14 @@
-use worth_foundational::facade::ScalarAspectType;
+use worth_foundational::facade::{
+    BoundaryProtocolIdentity, BoundaryProtocolVersion, ScalarAspectType,
+};
 
 use super::{
     canonical_identity, ApplicationSchemaCanonicalHeader, ApplicationSchemaIdentity,
     ApplicationSchemaMember,
 };
-use crate::application_schema::ApplicationOperationProgramTarget;
+use crate::application_schema::{
+    ApplicationExternalEffectProtocol, ApplicationOperationProgramTarget,
+};
 use crate::application_schema::{
     ApplicationMutationPreconditionFamily, ApplicationMutationPreconditionTarget,
 };
@@ -66,8 +70,8 @@ fn every_application_schema_member_family_changes_identity() {
         ApplicationSchemaMember::Policy {
             policy: "Policy".to_string(),
         },
-        ApplicationSchemaMember::Currency {
-            currency: "USD".to_string(),
+        ApplicationSchemaMember::Unit {
+            unit: "USD".to_string(),
         },
         ApplicationSchemaMember::Effect {
             effect: "Effect".to_string(),
@@ -238,6 +242,49 @@ fn operation_input_effect_payload_and_schema_version_change_identity() {
 }
 
 #[test]
+fn every_external_effect_contract_dimension_changes_identity() {
+    let base = ApplicationSchemaMember::OperationExternalEffect {
+        operation: "Operation".to_string(),
+        effect: "ExternalEffect".to_string(),
+        rust_payload_type: "Payload".to_string(),
+        protocol: external_protocol(1),
+        maximum_payload_bytes: 64,
+        correlation_family: "external-family".to_string(),
+    };
+    let base_identity = identity(std::slice::from_ref(&base));
+
+    macro_rules! changed {
+        ($field:ident, $value:expr) => {{
+            let mut member = base.clone();
+            let ApplicationSchemaMember::OperationExternalEffect { $field, .. } = &mut member
+            else {
+                unreachable!("external-effect fixture changed member family")
+            };
+            *$field = $value;
+            member
+        }};
+    }
+
+    for member in [
+        changed!(operation, "OtherOperation".to_string()),
+        changed!(effect, "OtherEffect".to_string()),
+        changed!(rust_payload_type, "OtherPayload".to_string()),
+        changed!(protocol, external_protocol(2)),
+        changed!(maximum_payload_bytes, 65),
+        changed!(correlation_family, "other-family".to_string()),
+    ] {
+        assert_ne!(identity(&[member]), base_identity);
+    }
+}
+
+fn external_protocol(version: u32) -> ApplicationExternalEffectProtocol {
+    ApplicationExternalEffectProtocol::new(
+        BoundaryProtocolIdentity::new("test.external-payload"),
+        BoundaryProtocolVersion::new(version),
+    )
+}
+
+#[test]
 fn every_operation_program_action_changes_identity() {
     let base = identity(&[]);
     for target in [
@@ -300,7 +347,7 @@ fn header(minor: u32) -> ApplicationSchemaCanonicalHeader<'static> {
 fn field(
     dimensions: (ScalarAspectType, &str, Option<&str>, bool, bool),
 ) -> ApplicationSchemaMember {
-    let (scalar_family, value_type, currency, writable, equality_queryable) = dimensions;
+    let (scalar_family, value_type, unit, writable, equality_queryable) = dimensions;
     ApplicationSchemaMember::Field {
         entity: "Entity".to_string(),
         aspect: "Aspect".to_string(),
@@ -308,7 +355,7 @@ fn field(
         presence: crate::application_schema::ApplicationFieldPresence::Required,
         scalar_family,
         value_type: value_type.to_string(),
-        currency: currency.map(str::to_string),
+        unit: unit.map(str::to_string),
         writable,
         equality_queryable,
     }

@@ -66,7 +66,7 @@ fn validate_scope(
         || projection.context_name.as_ref() != request.context
         || projection.context_type.as_ref() != request.context_type
         || !cardinality_admitted(request.cardinality, projection.cardinality)
-        || projection.amount.is_some() != request.amount.is_some()
+        || projection.magnitude.is_some() != request.magnitude.is_some()
     {
         return Err(scope_mismatch(installed));
     }

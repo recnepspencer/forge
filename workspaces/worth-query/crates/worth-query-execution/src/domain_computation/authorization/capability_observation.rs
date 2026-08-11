@@ -9,7 +9,7 @@ use super::{
     WorthQueryAuthorizationDecisionFact, WorthQueryOperationAuthorizationDenial,
     WorthQueryOperationAuthorizationDenialKind,
 };
-use crate::domain_computation::authorization::WorthQueryAuthorizationTimeSample;
+use crate::domain_computation::authorization::WorthQueryRuntimeTimeSample;
 
 mod bridge_observation;
 mod decision_denial;
@@ -48,7 +48,7 @@ pub(super) fn observe_capability_policy(
     bridge: &BridgeAuthorizationRuntime,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
     projection_validation::validate_projection_shape(
@@ -94,7 +94,7 @@ pub(super) fn observe_upper_bound_policy(
     bridge: &BridgeAuthorizationRuntime,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: worth_relational::facade::identity::EntityId,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
     let upper_bound = installed
@@ -179,7 +179,7 @@ fn resolve_exact_grant(
     snapshot: worth_relational::facade::snapshots::SnapshotHandle,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
 ) -> Result<
     (

@@ -58,20 +58,18 @@ pub fn estate_mandatory_review_definition() -> ApplicationQueryDefinition<
     EstateMandatoryReviewResult,
     EstateCase,
 > {
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        EstateMandatoryReviewQuery::reference(),
-        EstateCase::reference(),
-        EstateCase::reference(),
-        mandatory_review_shape(),
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(3, 16, 16),
-        disclosure_contract(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        ViewEstateMandatoryReview::reference(),
-    )
-    .build()
-    .expect("bank estate mandatory-review query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(EstateMandatoryReviewQuery::reference())
+        .root(EstateCase::reference())
+        .scope(EstateCase::reference())
+        .result_shape(mandatory_review_shape())
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(3, 16, 16))
+        .disclosure(disclosure_contract())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(ViewEstateMandatoryReview::reference())
+        .build()
+        .expect("bank estate mandatory-review query is statically canonical")
 }
 
 fn disclosure_contract() -> ApplicationQueryDisclosureContract {

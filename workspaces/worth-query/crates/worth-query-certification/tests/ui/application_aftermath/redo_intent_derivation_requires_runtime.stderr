@@ -1,0 +1,13 @@
+error[E0624]: associated function `derive` is private
+  --> tests/ui/application_aftermath/redo_intent_derivation_requires_runtime.rs:14:35
+   |
+14 |       let _ = WorthQueryRedoIntent::derive(proved, caller_chosen);
+   |                                     ^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/application_aftermath/redo_intent.rs
+   |
+   | /     pub(crate) fn derive(
+   | |         proved: &WorthQueryProvedUndo,
+   | |         bound_relational_head: CommitReference,
+   | |     ) -> Result<Self, WorthQueryAftermathDerivationFailure> {
+   | |___________________________________________________________- private associated function defined here

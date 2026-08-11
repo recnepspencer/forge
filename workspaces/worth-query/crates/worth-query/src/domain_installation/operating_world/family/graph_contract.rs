@@ -3,12 +3,12 @@ use super::{
     WorthQueryOperationBindingDenialKind,
 };
 use crate::domain_installation::{
-    WorthQueryGraphBudgetPosture, WorthQueryGraphFailureTopology, WorthQueryGraphIdentityPosture,
-    WorthQueryGraphLocalityPosture, WorthQueryGraphMutationPosture,
+    PublishedAftermathPosture, WorthQueryGraphBudgetPosture, WorthQueryGraphFailureTopology,
+    WorthQueryGraphIdentityPosture, WorthQueryGraphLocalityPosture, WorthQueryGraphMutationPosture,
     WorthQueryGraphObservationPosture, WorthQueryGraphProjectionPosture,
     WorthQueryOperationCostClass, WorthQueryOperationFailureClass, WorthQueryOperationGraphAccess,
     WorthQueryOperationLineageContract, WorthQueryOperationResultState,
-    WorthQueryOperationReversalContract, WorthQueryOperationTouchContract,
+    WorthQueryOperationTouchContract,
 };
 
 pub(super) fn admit_graph_contract<D, O, F>(
@@ -150,12 +150,13 @@ fn failure_is_admitted(
                     .terminal
                     .result_states
                     .contains(&WorthQueryOperationResultState::Partial)
-                && matches!(
-                    &semantics.reversal,
-                    WorthQueryOperationReversalContract::Compensation { .. }
-                        | WorthQueryOperationReversalContract::CompensationWithPostcondition { .. }
-                        | WorthQueryOperationReversalContract::RebuildRequired { .. }
-                )
+                && semantics.aftermath.as_ref().is_some_and(|contract| {
+                    matches!(
+                        contract.published_posture(),
+                        PublishedAftermathPosture::Compensatable
+                            | PublishedAftermathPosture::Reconcilable
+                    )
+                })
         }
     }
 }

@@ -6,7 +6,7 @@ struct ReadOnlyInput;
 struct EmptyOperation;
 struct EmptyInput;
 
-impl OperationReads<ReadOnlyOperation> for PrincipalIdentityField {}
+impl<Schema> OperationReads<ReadOnlyOperation> for FixturePrincipalIdentityField<Schema> {}
 impl OperationRequiresAbility<ReadOnlyOperation> for TestAbility {}
 impl OperationRequiresAbility<EmptyOperation> for TestAbility {}
 
@@ -29,12 +29,17 @@ impl ApplicationSchema for ReadTestSchema {
                 "EmptyOperation",
             );
         let ability =
-            ApplicationAbilityRef::<Self, TestAbility, TestEntity>::from_schema_identifiers(
+            ApplicationAbilityRef::<Self, TestAbility, FixtureEntity<Self>>::from_schema_identifiers(
                 "TestAbility",
                 "TestEntity",
             );
-        test_schema_members::<Self>()
-            .operation(read)
+        test_schema_members::<Self>(None)
+            .operation(
+                read.definition()
+                    .no_external_effect()
+                    .no_aftermath()
+                    .finish(),
+            )
             .operation_decision_fact_budget(read, 1)
             .operation_projection_work_budget(read, 16)
             .operation_requires_ability(read, ability)
@@ -42,19 +47,21 @@ impl ApplicationSchema for ReadTestSchema {
                 read,
                 ApplicationFieldRef::<
                     Self,
-                    TestEntity,
-                    IdentityAspect,
-                    PrincipalIdentityField,
+                    FixtureEntity<Self>,
+                    FixtureIdentityAspect<Self>,
+                    FixturePrincipalIdentityField<Self>,
                     u64,
                     ReadOnly,
                     EqualityPredicate,
-                >::from_schema_identifiers(
-                    "TestEntity",
-                    "IdentityAspect",
-                    "PrincipalIdentityField",
-                ),
+                >::from_schema_types(),
             )
-            .operation(empty)
+            .operation(
+                empty
+                    .definition()
+                    .no_external_effect()
+                    .no_aftermath()
+                    .finish(),
+            )
             .operation_decision_fact_budget(empty, 1)
             .operation_projection_work_budget(empty, 16)
             .operation_requires_ability(empty, ability)

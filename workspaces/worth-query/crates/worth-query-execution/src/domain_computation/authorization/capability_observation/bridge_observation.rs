@@ -130,7 +130,7 @@ fn guard_matches(
         WorthQueryCapabilityRequestValueAxis::Action => Some(&projection.action),
         WorthQueryCapabilityRequestValueAxis::Purpose => Some(&projection.purpose),
         WorthQueryCapabilityRequestValueAxis::Field => projection.field.as_ref(),
-        WorthQueryCapabilityRequestValueAxis::Amount => projection.amount.as_ref(),
+        WorthQueryCapabilityRequestValueAxis::Magnitude => projection.magnitude.as_ref(),
     };
     actual.is_some_and(|actual| values.contains(actual))
 }

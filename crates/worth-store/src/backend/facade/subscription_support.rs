@@ -2,21 +2,20 @@ use crate::{
     failure::StoreError, FetchedSubscriptionSupportArtifact, PostActionResumeClassificationInput,
     PublishableSubscriptionSupportArtifact, PublishedSubscriptionSupportArtifact,
     SubscriptionSupportAccessStructureReport, SubscriptionSupportClassificationReport,
-    SubscriptionSupportCompatibilityDecision, SubscriptionSupportCompatibilityReport,
+    SubscriptionSupportCompatibilityBatchRequest, SubscriptionSupportCompatibilityReport,
     SubscriptionSupportCounterSnapshot, SubscriptionSupportFetchRequest,
-    SubscriptionSupportMaintenanceDebtReport, SubscriptionSupportMaintenanceDecision,
+    SubscriptionSupportMaintenanceBatchRequest, SubscriptionSupportMaintenanceDebtReport,
     SubscriptionSupportMaintenanceReport, SubscriptionSupportMissingSupportRecoveryReport,
-    SubscriptionSupportMissingSupportRecoveryRequest, SubscriptionSupportOperationalBasis,
+    SubscriptionSupportMissingSupportRecoveryRequest,
     SubscriptionSupportOperationalVerdictTranslationRequest,
-    SubscriptionSupportPortabilityDecision, SubscriptionSupportPortabilityReport,
+    SubscriptionSupportPortabilityBatchRequest, SubscriptionSupportPortabilityReport,
     SubscriptionSupportPostActionReport, SubscriptionSupportRestartReconstructionReport,
     SubscriptionSupportRestartReconstructionRequest, SubscriptionSupportResumeRequest,
-    SubscriptionSupportRetentionDecision, SubscriptionSupportRuntimeHandoffReport,
+    SubscriptionSupportRetentionBatchRequest, SubscriptionSupportRuntimeHandoffReport,
     SubscriptionSupportRuntimeHandoffRequest, SupportActionBreadthBudget, SupportActionId,
-    SupportAllocationScope, SupportBatchAdmissionReceipt, SupportCompatibilityBatchPlan,
-    SupportCompatibilityReceiptWitness, SupportMaintenanceBatchPlan, SupportPathClass,
-    SupportPortabilityBatchPlan, SupportPortabilityManifestBudget, SupportProgramDensityClass,
-    SupportProgramPathPlan, SupportReclaimConsequence, SupportRetentionBatchPlan,
+    SupportBatchAdmissionReceipt, SupportCompatibilityBatchPlan, SupportMaintenanceBatchPlan,
+    SupportPortabilityBatchPlan, SupportProgramPathAdmissionRequest, SupportProgramPathPlan,
+    SupportReclaimConsequence, SupportRetentionBatchPlan,
 };
 
 use super::{dispatch_mut, dispatch_ref, StoreBackend};
@@ -100,22 +99,10 @@ impl StoreBackend {
 
     pub fn admit_subscription_support_program_path(
         &mut self,
-        path_class: SupportPathClass,
-        density_class: SupportProgramDensityClass,
-        allocation_scope: SupportAllocationScope,
-        budget: SupportActionBreadthBudget,
-        affected_entries: u64,
-        payload_header_bytes: u64,
+        request: SupportProgramPathAdmissionRequest,
     ) -> Result<SupportProgramPathPlan, StoreError> {
         dispatch_mut!(self, |backend| backend
-            .admit_subscription_support_program_path(
-                path_class,
-                density_class,
-                allocation_scope,
-                budget,
-                affected_entries,
-                payload_header_bytes,
-            ))
+            .admit_subscription_support_program_path(request))
     }
 
     pub fn reuse_subscription_support_batch_receipt<'a>(
@@ -128,26 +115,10 @@ impl StoreBackend {
 
     pub fn admit_subscription_support_retention_batch(
         &mut self,
-        action_id: SupportActionId,
-        affected_bases: Vec<SubscriptionSupportOperationalBasis>,
-        decision: SubscriptionSupportRetentionDecision,
-        path_class: SupportPathClass,
-        density_class: SupportProgramDensityClass,
-        allocation_scope: SupportAllocationScope,
-        budget: SupportActionBreadthBudget,
-        payload_header_bytes: u64,
+        request: SubscriptionSupportRetentionBatchRequest,
     ) -> Result<SupportRetentionBatchPlan, StoreError> {
         dispatch_mut!(self, |backend| backend
-            .admit_subscription_support_retention_batch(
-                action_id,
-                affected_bases,
-                decision,
-                path_class,
-                density_class,
-                allocation_scope,
-                budget,
-                payload_header_bytes,
-            ))
+            .admit_subscription_support_retention_batch(request))
     }
 
     pub fn publish_subscription_support_retention_consequence(
@@ -168,30 +139,10 @@ impl StoreBackend {
 
     pub fn admit_subscription_support_compatibility_batch(
         &mut self,
-        action_id: SupportActionId,
-        affected_bases: Vec<SubscriptionSupportOperationalBasis>,
-        compatibility_receipt: SupportCompatibilityReceiptWitness,
-        semantic_digest: impl Into<String>,
-        decision: SubscriptionSupportCompatibilityDecision,
-        path_class: SupportPathClass,
-        density_class: SupportProgramDensityClass,
-        allocation_scope: SupportAllocationScope,
-        budget: SupportActionBreadthBudget,
-        payload_header_bytes: u64,
+        request: SubscriptionSupportCompatibilityBatchRequest,
     ) -> Result<SupportCompatibilityBatchPlan, StoreError> {
         dispatch_mut!(self, |backend| backend
-            .admit_subscription_support_compatibility_batch(
-                action_id,
-                affected_bases,
-                compatibility_receipt,
-                semantic_digest,
-                decision,
-                path_class,
-                density_class,
-                allocation_scope,
-                budget,
-                payload_header_bytes,
-            ))
+            .admit_subscription_support_compatibility_batch(request))
     }
 
     pub fn publish_subscription_support_compatibility_consequence(
@@ -204,32 +155,10 @@ impl StoreBackend {
 
     pub fn admit_subscription_support_portability_batch(
         &mut self,
-        action_id: SupportActionId,
-        affected_bases: Vec<SubscriptionSupportOperationalBasis>,
-        included_support_count: u64,
-        omitted_support_count: u64,
-        manifest_budget: SupportPortabilityManifestBudget,
-        decision: SubscriptionSupportPortabilityDecision,
-        path_class: SupportPathClass,
-        density_class: SupportProgramDensityClass,
-        allocation_scope: SupportAllocationScope,
-        budget: SupportActionBreadthBudget,
-        manifest_header_bytes: u64,
+        request: SubscriptionSupportPortabilityBatchRequest,
     ) -> Result<SupportPortabilityBatchPlan, StoreError> {
         dispatch_mut!(self, |backend| backend
-            .admit_subscription_support_portability_batch(
-                action_id,
-                affected_bases,
-                included_support_count,
-                omitted_support_count,
-                manifest_budget,
-                decision,
-                path_class,
-                density_class,
-                allocation_scope,
-                budget,
-                manifest_header_bytes,
-            ))
+            .admit_subscription_support_portability_batch(request))
     }
 
     pub fn publish_subscription_support_portability_consequence(
@@ -242,26 +171,10 @@ impl StoreBackend {
 
     pub fn admit_subscription_support_maintenance_batch(
         &mut self,
-        action_id: SupportActionId,
-        affected_bases: Vec<SubscriptionSupportOperationalBasis>,
-        decision: SubscriptionSupportMaintenanceDecision,
-        path_class: SupportPathClass,
-        density_class: SupportProgramDensityClass,
-        allocation_scope: SupportAllocationScope,
-        budget: SupportActionBreadthBudget,
-        payload_header_bytes: u64,
+        request: SubscriptionSupportMaintenanceBatchRequest,
     ) -> Result<SupportMaintenanceBatchPlan, StoreError> {
         dispatch_mut!(self, |backend| backend
-            .admit_subscription_support_maintenance_batch(
-                action_id,
-                affected_bases,
-                decision,
-                path_class,
-                density_class,
-                allocation_scope,
-                budget,
-                payload_header_bytes,
-            ))
+            .admit_subscription_support_maintenance_batch(request))
     }
 
     pub fn publish_subscription_support_maintenance_consequence(

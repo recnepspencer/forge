@@ -125,5 +125,7 @@ fn inspect(source: &WalSegmentLifecycleSources) -> Result<(), String> {
 }
 
 fn read(path: &str) -> String {
-    read_repository_document(path).unwrap_or_else(|error| panic!("{error}"))
+    read_repository_document(path)
+        .unwrap_or_else(|error| panic!("{error}"))
+        .replace("\r\n", "\n")
 }

@@ -38,4 +38,4 @@ Use when you need **evidence or explanation** after a run and are mixing up `wor
 - [Inspection](../../capabilities/inspection.md)
 - [Cross-runtime causal inspection](../../capabilities/cross-runtime-causal-inspection.md)
 - Lower-runtime explanation contributions
-- [Inspection vs readiness vs recovery](./inspection-vs-readiness-vs-recovery.md)
+- [Typed stops and remediation guidance](../typed-stops-and-remediation-guidance.md)

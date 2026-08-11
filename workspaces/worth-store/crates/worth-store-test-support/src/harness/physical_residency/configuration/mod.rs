@@ -7,10 +7,14 @@ use worth_store::physical_runtime::{
 };
 
 mod record_publication;
+mod recovery_planning;
 #[cfg(test)]
 mod successor_scope_pressure;
 
 pub(super) use record_publication::record_publication_configuration;
+pub(super) use recovery_planning::{
+    dense_recovery_planning_configuration, recovery_planning_configuration,
+};
 #[cfg(test)]
 pub(super) use successor_scope_pressure::successor_scope_pressure_configuration;
 
@@ -47,6 +51,11 @@ impl PhysicalResidencyStoreAdmissionBase {
 
     pub(super) const fn format(&self) -> AdmittedPhysicalRecordFormat {
         self.format
+    }
+
+    pub(super) fn with_placement(mut self, placement: AdmittedRecordPlacementPolicy) -> Self {
+        self.placement = placement;
+        self
     }
 }
 

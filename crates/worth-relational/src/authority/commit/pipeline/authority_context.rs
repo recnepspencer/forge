@@ -24,6 +24,9 @@ pub(crate) struct AuthoritativeCommitContext {
     pub(super) authority_input: CommitAuthorityInput,
     pub(super) prepared_scope: Option<PreparedAuthorityScope>,
     pub(super) merge_execution_accounting: Option<MergeExecutionAccounting>,
+    pub(super) merge_execution_diagnostics_plan:
+        Option<crate::merge::data::MergeExecutionDiagnosticsPlan>,
+    pub(super) complexity_baseline: Option<crate::performance::data::RuntimeComplexityCounters>,
     pub(super) bulk_mutation_telemetry: Option<BulkMutationPlanTelemetry>,
     pub(super) prevalidated_commit_boundary: Option<InvariantExecutionResult>,
     pub(super) validated_against_commit_id: Option<crate::history::data::CommitId>,
@@ -77,6 +80,8 @@ impl AuthoritativeCommitContext {
                 phase_timing: prepared.phase_timing,
             }),
             merge_execution_accounting: None,
+            merge_execution_diagnostics_plan: None,
+            complexity_baseline: None,
             bulk_mutation_telemetry,
             prevalidated_commit_boundary: Some(commit_boundary),
             validated_against_commit_id: validated_against_commit,
@@ -105,6 +110,8 @@ impl AuthoritativeCommitContext {
                 phase_timing,
             }),
             merge_execution_accounting: None,
+            merge_execution_diagnostics_plan: None,
+            complexity_baseline: None,
             bulk_mutation_telemetry,
             prevalidated_commit_boundary: None,
             validated_against_commit_id: None,
@@ -116,6 +123,29 @@ impl AuthoritativeCommitContext {
     pub(crate) fn from_merge(
         options: TransactionOptions,
         merge_plan: MergeCommitMutationPlan,
+    ) -> Result<Self, TransactionCommitError> {
+        Self::from_merge_execution(options, merge_plan, None, None)
+    }
+
+    pub(crate) fn from_prepared_merge(
+        options: TransactionOptions,
+        merge_plan: MergeCommitMutationPlan,
+        diagnostics_plan: crate::merge::data::MergeExecutionDiagnosticsPlan,
+        complexity_baseline: crate::performance::data::RuntimeComplexityCounters,
+    ) -> Result<Self, TransactionCommitError> {
+        Self::from_merge_execution(
+            options,
+            merge_plan,
+            Some(diagnostics_plan),
+            Some(complexity_baseline),
+        )
+    }
+
+    fn from_merge_execution(
+        options: TransactionOptions,
+        merge_plan: MergeCommitMutationPlan,
+        diagnostics_plan: Option<crate::merge::data::MergeExecutionDiagnosticsPlan>,
+        complexity_baseline: Option<crate::performance::data::RuntimeComplexityCounters>,
     ) -> Result<Self, TransactionCommitError> {
         validate_merge_context_proof(&options, &merge_plan)?;
 
@@ -129,6 +159,8 @@ impl AuthoritativeCommitContext {
                     .structural_summary
                     .emitted_mutation_intent_count,
             }),
+            merge_execution_diagnostics_plan: diagnostics_plan,
+            complexity_baseline,
             authority_input: CommitAuthorityInput::Merge(merge_plan),
             prepared_scope: None,
             bulk_mutation_telemetry: None,
@@ -157,6 +189,8 @@ impl AuthoritativeCommitContext {
             )),
             prepared_scope: None,
             merge_execution_accounting: None,
+            merge_execution_diagnostics_plan: None,
+            complexity_baseline: None,
             bulk_mutation_telemetry: lowered_plan
                 .bulk_mutation_batch()
                 .map(telemetry_from_strategy_batch),
@@ -193,6 +227,8 @@ impl AuthoritativeCommitContext {
                 phase_timing: CommitPhaseTiming::default(),
             }),
             merge_execution_accounting: None,
+            merge_execution_diagnostics_plan: None,
+            complexity_baseline: None,
             bulk_mutation_telemetry: validated_plan
                 .lowered_plan()
                 .bulk_mutation_batch()

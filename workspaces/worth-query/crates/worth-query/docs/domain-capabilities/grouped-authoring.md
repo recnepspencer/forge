@@ -230,7 +230,7 @@ Useful grouped contribution accessors:
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
   owns the single-declaration contribution engine that grouped contributions
   reuse.
-- [Recovery Boundary](./recovery-boundary.md) owns the next-step repair surface
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md) owns the next-step guidance surface
   when grouped orchestration stops.
 - [Orchestration Inventory](./orchestration-inventory.md) documents the grouped
   helper orchestration lane and its semantic attachments.
@@ -249,5 +249,5 @@ Useful grouped contribution accessors:
 
 - [Family Helpers](./family-helpers.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
-- [Recovery Boundary](./recovery-boundary.md)
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)
 - [Orchestration Inventory](./orchestration-inventory.md)

@@ -1,6 +1,10 @@
 use worth_query_execution::facade::primary_graph::WorthQueryApplicationCommitReceipt;
 
 use super::WorthQueryApplicationCommitPublicationInspection;
+use crate::application_aftermath::{
+    publish_application_aftermath, WorthQueryPublishedApplicationAftermath,
+    WorthQueryPublishedApplicationCommitBoundaryEvidence,
+};
 
 /// Publication receipt derived from one execution-owned commit terminal.
 ///
@@ -11,32 +15,62 @@ use super::WorthQueryApplicationCommitPublicationInspection;
 /// fn counterfeit(
 ///     terminal: WorthQueryApplicationCommitReceipt,
 /// ) -> WorthQueryApplicationCommitPublicationReceipt {
-///     WorthQueryApplicationCommitPublicationReceipt { terminal }
+///     let _ = terminal;
+///     WorthQueryApplicationCommitPublicationReceipt {
+///         aftermath: todo!(),
+///         boundary_evidence: todo!(),
+///     }
+/// }
+/// ```
+///
+/// The publication receipt does not dereference back into execution:
+///
+/// ```compile_fail
+/// use worth_query_execution::facade::primary_graph::WorthQueryApplicationCommitReceipt;
+/// use worth_query_publication::facade::domain_computation::WorthQueryApplicationCommitPublicationReceipt;
+///
+/// fn escape(
+///     published: &WorthQueryApplicationCommitPublicationReceipt,
+/// ) -> &WorthQueryApplicationCommitReceipt {
+///     published
+/// }
+/// ```
+///
+/// Nor does it expose a terminal accessor:
+///
+/// ```compile_fail
+/// use worth_query_publication::facade::domain_computation::WorthQueryApplicationCommitPublicationReceipt;
+///
+/// fn escape(published: &WorthQueryApplicationCommitPublicationReceipt) {
+///     let _ = published.terminal();
 /// }
 /// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationCommitPublicationReceipt {
-    terminal: WorthQueryApplicationCommitReceipt,
-}
-
-impl std::ops::Deref for WorthQueryApplicationCommitPublicationReceipt {
-    type Target = WorthQueryApplicationCommitReceipt;
-
-    fn deref(&self) -> &Self::Target {
-        &self.terminal
-    }
+    aftermath: WorthQueryPublishedApplicationAftermath,
+    boundary_evidence: WorthQueryPublishedApplicationCommitBoundaryEvidence,
 }
 
 impl WorthQueryApplicationCommitPublicationReceipt {
-    pub(crate) const fn from_terminal(terminal: WorthQueryApplicationCommitReceipt) -> Self {
-        Self { terminal }
+    pub(super) fn from_terminal(terminal: WorthQueryApplicationCommitReceipt) -> Self {
+        let aftermath = publish_application_aftermath(&terminal);
+        let boundary_evidence =
+            WorthQueryPublishedApplicationCommitBoundaryEvidence::from_owner(&terminal);
+        Self {
+            aftermath,
+            boundary_evidence,
+        }
     }
 
     pub const fn inspect(&self) -> WorthQueryApplicationCommitPublicationInspection<'_> {
-        WorthQueryApplicationCommitPublicationInspection::new(&self.terminal)
+        WorthQueryApplicationCommitPublicationInspection::new(&self.boundary_evidence)
     }
 
-    pub const fn terminal(&self) -> &WorthQueryApplicationCommitReceipt {
-        &self.terminal
+    pub const fn aftermath(&self) -> &WorthQueryPublishedApplicationAftermath {
+        &self.aftermath
+    }
+
+    pub const fn boundary_evidence(&self) -> &WorthQueryPublishedApplicationCommitBoundaryEvidence {
+        &self.boundary_evidence
     }
 }

@@ -8,11 +8,11 @@ use super::{
     WorthQueryWorkflowConvergenceTerminal,
 };
 use crate::domain_computation::{
-    WorthQueryManagedRunCleanupDisposition, WorthQueryWorkflowRunCleanupFailure,
-    WorthQueryWorkflowRunCleanupOutcome, WorthQueryWorkflowRunCleanupPending,
-    WorthQueryWorkflowRunCleanupReceipt,
+    WorthQueryWorkflowRunCleanupFailure, WorthQueryWorkflowRunCleanupOutcome,
+    WorthQueryWorkflowRunCleanupPending,
 };
 
+#[must_use = "workflow convergence cleanup must resolve Complete, Pending, or RecoveryRequired"]
 pub enum WorthQueryWorkflowConvergenceCleanupOutcome<State>
 where
     State: WorthQueryConvergenceTerminalState,
@@ -26,14 +26,6 @@ impl<State> WorthQueryWorkflowConvergenceCleanupOutcome<State>
 where
     State: WorthQueryConvergenceTerminalState,
 {
-    pub fn disposition(&self) -> WorthQueryManagedRunCleanupDisposition {
-        match self {
-            Self::Complete(receipt) => receipt.managed_receipt().disposition(),
-            Self::Pending(_) => WorthQueryManagedRunCleanupDisposition::CleanupPending,
-            Self::RecoveryRequired(_) => WorthQueryManagedRunCleanupDisposition::RecoveryRequired,
-        }
-    }
-
     pub fn counters(&self) -> &WorthQueryConvergenceEpochCounters {
         match self {
             Self::Complete(receipt) => receipt.counters(),
@@ -49,7 +41,6 @@ where
 {
     core: WorthQueryConvergenceEpochCore,
     indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
-    managed: WorthQueryWorkflowRunCleanupReceipt,
     terminal_state: PhantomData<State>,
 }
 
@@ -80,19 +71,16 @@ where
     pub fn indeterminate_cause(&self) -> Option<&WorthQueryConvergenceIndeterminateCause> {
         self.indeterminate_cause.as_ref()
     }
-
-    pub fn managed_receipt(&self) -> &WorthQueryWorkflowRunCleanupReceipt {
-        &self.managed
-    }
 }
 
+#[must_use = "workflow convergence cleanup pending retains exact retry authority"]
 pub struct WorthQueryWorkflowConvergenceCleanupPending<State>
 where
     State: WorthQueryConvergenceTerminalState,
 {
     core: WorthQueryConvergenceEpochCore,
     indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
-    pending: WorthQueryWorkflowRunCleanupPending,
+    run_cleanup_pending: WorthQueryWorkflowRunCleanupPending,
     terminal_state: PhantomData<State>,
 }
 
@@ -124,29 +112,32 @@ where
         self.indeterminate_cause.as_ref()
     }
 
-    pub fn managed_pending(&self) -> &WorthQueryWorkflowRunCleanupPending {
-        &self.pending
-    }
-
+    #[must_use = "retry returns the next workflow convergence cleanup outcome"]
     pub fn retry(self) -> WorthQueryWorkflowConvergenceCleanupOutcome<State> {
         let Self {
             mut core,
             indeterminate_cause,
-            pending,
+            run_cleanup_pending,
             terminal_state,
         } = self;
-        core.counters_mut().cleaned_up();
-        admit_workflow_cleanup_outcome(core, indeterminate_cause, terminal_state, pending.retry())
+        core.record_lifecycle_event(WorkflowTerminalCleanupLifecycleEvent::attempted());
+        admit_workflow_cleanup_outcome(
+            core,
+            indeterminate_cause,
+            terminal_state,
+            run_cleanup_pending.retry(),
+        )
     }
 }
 
+#[must_use = "workflow convergence cleanup failure retains exact retry authority"]
 pub struct WorthQueryWorkflowConvergenceCleanupFailure<State>
 where
     State: WorthQueryConvergenceTerminalState,
 {
     core: WorthQueryConvergenceEpochCore,
     indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
-    failure: WorthQueryWorkflowRunCleanupFailure,
+    run_cleanup_failure: WorthQueryWorkflowRunCleanupFailure,
     terminal_state: PhantomData<State>,
 }
 
@@ -178,19 +169,21 @@ where
         self.indeterminate_cause.as_ref()
     }
 
-    pub fn managed_failure(&self) -> &WorthQueryWorkflowRunCleanupFailure {
-        &self.failure
-    }
-
+    #[must_use = "retry returns the next workflow convergence cleanup outcome"]
     pub fn retry(self) -> WorthQueryWorkflowConvergenceCleanupOutcome<State> {
         let Self {
             mut core,
             indeterminate_cause,
-            failure,
+            run_cleanup_failure,
             terminal_state,
         } = self;
-        core.counters_mut().cleaned_up();
-        admit_workflow_cleanup_outcome(core, indeterminate_cause, terminal_state, failure.retry())
+        core.record_lifecycle_event(WorkflowTerminalCleanupLifecycleEvent::attempted());
+        admit_workflow_cleanup_outcome(
+            core,
+            indeterminate_cause,
+            terminal_state,
+            run_cleanup_failure.retry(),
+        )
     }
 }
 
@@ -198,20 +191,26 @@ impl<State> WorthQueryWorkflowConvergenceTerminal<State>
 where
     State: WorthQueryConvergenceTerminalState,
 {
+    #[must_use = "cleanup returns workflow convergence authority that must be resolved"]
     pub fn cleanup(self) -> WorthQueryWorkflowConvergenceCleanupOutcome<State> {
         let WorthQueryWorkflowConvergenceTerminal {
             mut core,
-            managed,
+            run_terminal,
             indeterminate_cause,
             terminal_state,
         } = self;
-        core.counters_mut().cleaned_up();
-        admit_workflow_cleanup_outcome(core, indeterminate_cause, terminal_state, managed.cleanup())
+        core.record_lifecycle_event(WorkflowTerminalCleanupLifecycleEvent::attempted());
+        admit_workflow_cleanup_outcome(
+            core,
+            indeterminate_cause,
+            terminal_state,
+            run_terminal.cleanup(),
+        )
     }
 }
 
 fn admit_workflow_cleanup_outcome<State>(
-    core: WorthQueryConvergenceEpochCore,
+    mut core: WorthQueryConvergenceEpochCore,
     indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     terminal_state: PhantomData<State>,
     outcome: WorthQueryWorkflowRunCleanupOutcome,
@@ -220,35 +219,65 @@ where
     State: WorthQueryConvergenceTerminalState,
 {
     match outcome {
-        WorthQueryWorkflowRunCleanupOutcome::Complete(managed) => {
+        WorthQueryWorkflowRunCleanupOutcome::Complete(_run_cleanup_receipt) => {
+            core.record_lifecycle_event(WorkflowTerminalCleanupLifecycleEvent::completed());
             WorthQueryWorkflowConvergenceCleanupOutcome::Complete(
                 WorthQueryWorkflowConvergenceCleanupReceipt {
                     core,
                     indeterminate_cause,
-                    managed,
                     terminal_state,
                 },
             )
         }
-        WorthQueryWorkflowRunCleanupOutcome::Pending(pending) => {
+        WorthQueryWorkflowRunCleanupOutcome::Pending(run_cleanup_pending) => {
             WorthQueryWorkflowConvergenceCleanupOutcome::Pending(
                 WorthQueryWorkflowConvergenceCleanupPending {
                     core,
                     indeterminate_cause,
-                    pending,
+                    run_cleanup_pending,
                     terminal_state,
                 },
             )
         }
-        WorthQueryWorkflowRunCleanupOutcome::RecoveryRequired(failure) => {
+        WorthQueryWorkflowRunCleanupOutcome::RecoveryRequired(run_cleanup_failure) => {
             WorthQueryWorkflowConvergenceCleanupOutcome::RecoveryRequired(
                 WorthQueryWorkflowConvergenceCleanupFailure {
                     core,
                     indeterminate_cause,
-                    failure,
+                    run_cleanup_failure,
                     terminal_state,
                 },
             )
         }
+    }
+}
+
+pub(in crate::domain_computation::convergence_epoch) struct WorkflowTerminalCleanupLifecycleEvent {
+    kind: WorkflowTerminalCleanupLifecycleEventKind,
+}
+
+pub(in crate::domain_computation::convergence_epoch) enum WorkflowTerminalCleanupLifecycleEventKind
+{
+    Attempted,
+    Completed,
+}
+
+impl WorkflowTerminalCleanupLifecycleEvent {
+    fn attempted() -> Self {
+        Self {
+            kind: WorkflowTerminalCleanupLifecycleEventKind::Attempted,
+        }
+    }
+
+    fn completed() -> Self {
+        Self {
+            kind: WorkflowTerminalCleanupLifecycleEventKind::Completed,
+        }
+    }
+
+    pub(in crate::domain_computation::convergence_epoch) fn into_kind(
+        self,
+    ) -> WorkflowTerminalCleanupLifecycleEventKind {
+        self.kind
     }
 }

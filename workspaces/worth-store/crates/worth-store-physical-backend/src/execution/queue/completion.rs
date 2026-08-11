@@ -58,6 +58,12 @@ impl BackendQueueExecutionCompletion {
     }
 
     #[cfg(feature = "certification-test-authority")]
+    pub const fn with_foreign_plan_binding_for_certification(mut self) -> Self {
+        self.binding = self.binding.with_foreign_grouping_for_certification();
+        self
+    }
+
+    #[cfg(feature = "certification-test-authority")]
     pub const fn observe_queue_depth(mut self, queue_depth_sample: u32) -> Self {
         self.queue_depth_sample = queue_depth_sample;
         self

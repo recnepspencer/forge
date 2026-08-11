@@ -6,14 +6,12 @@ use crate::publication_digest::hash_parts;
 
 use super::{
     WorthQueryAdmittedDomainEvidenceSidecar, WorthQueryAdmittedStructuralCounter,
-    WorthQueryCandidateRecord, WorthQueryDecisionRecord, WorthQueryDomainEvidenceBinding,
-    WorthQueryDomainEvidenceCore, WorthQueryDomainEvidenceGovernance,
-    WorthQueryTransformationRecord,
+    WorthQueryCandidateRecord, WorthQueryDecisionRecord, WorthQueryDomainEvidenceCore,
+    WorthQueryDomainEvidenceGovernance, WorthQueryTransformationRecord,
 };
 
-pub(super) fn domain_evidence_identity(
+pub(super) fn domain_evidence_content_identity(
     contract_identity: &str,
-    binding: &WorthQueryDomainEvidenceBinding,
     core: &WorthQueryDomainEvidenceCore,
     counter_sidecar: &WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryAdmittedStructuralCounter>,
     decision_sidecar: &WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryDecisionRecord>,
@@ -23,9 +21,8 @@ pub(super) fn domain_evidence_identity(
     >,
 ) -> String {
     hash_parts(&[
-        "worth_query_admitted_domain_evidence_v1".into(),
+        "worth_query_admitted_domain_evidence_content_v1".into(),
         format!("contract:{contract_identity}"),
-        format!("binding:{}", core::binding_material(binding)),
         format!("core:{}", core::core_material(core)),
         format!(
             "counter_sidecar:{}",
@@ -48,10 +45,6 @@ pub(super) fn domain_evidence_identity(
 
 pub fn domain_evidence_core_material(core: &WorthQueryDomainEvidenceCore) -> String {
     core::core_material(core)
-}
-
-pub fn domain_evidence_binding_material(binding: &WorthQueryDomainEvidenceBinding) -> String {
-    core::binding_material(binding)
 }
 
 pub fn domain_evidence_governance_material(

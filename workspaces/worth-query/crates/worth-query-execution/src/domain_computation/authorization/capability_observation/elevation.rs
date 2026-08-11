@@ -9,14 +9,14 @@ use super::super::capability_registry::{
     WorthQueryCapabilityPathTemplate, WorthQueryInstalledCapabilityPlan,
 };
 use super::super::{
-    WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryRuntimeTimeSample,
 };
 
 pub(super) fn prepare_temporal_path(
     installed: &WorthQueryInstalledCapabilityPlan,
     template: &WorthQueryCapabilityPathTemplate,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     path_index: usize,
 ) -> Result<RelationalAuthorizationPathPlan, WorthQueryOperationAuthorizationDenial> {
     let bindings = installed

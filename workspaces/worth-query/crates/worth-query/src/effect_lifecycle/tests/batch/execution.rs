@@ -55,7 +55,7 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
         executed
             .aggregate_mutation()
             .expect("batch should retain one aggregate mutation commit")
-            .outcome
+            .outcome()
             .changed_records
             .len(),
         2
@@ -63,13 +63,13 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
     let aggregate_commit_id = executed
         .aggregate_mutation()
         .expect("batch should retain one aggregate mutation commit")
-        .outcome
+        .outcome()
         .commit
         .commit_id;
     assert!(executed.components().iter().all(|component| {
         component
             .as_mutation()
-            .is_some_and(|commit| commit.outcome.commit.commit_id == aggregate_commit_id)
+            .is_some_and(|commit| commit.outcome().commit.commit_id == aggregate_commit_id)
     }));
 
     let snapshot = runtime.snapshots().snapshot();
@@ -129,8 +129,8 @@ fn mutation_batch_preserves_branch_scoped_authority_target() {
     let aggregate = executed
         .aggregate_mutation()
         .expect("batch should retain one aggregate mutation commit");
-    assert_eq!(aggregate.outcome.commit.parents, vec![branch_head_before]);
-    assert_ne!(aggregate.outcome.commit.parents, vec![main_head_before]);
+    assert_eq!(aggregate.outcome().commit.parents, vec![branch_head_before]);
+    assert_ne!(aggregate.outcome().commit.parents, vec![main_head_before]);
 }
 
 #[test]
@@ -226,8 +226,8 @@ fn lowered_branch_batch_does_not_deny_when_only_another_branch_moves() {
     let aggregate = executed
         .aggregate_mutation()
         .expect("batch should retain one aggregate mutation commit");
-    assert_ne!(aggregate.outcome.commit.commit_id, main_head_before);
-    assert_eq!(aggregate.outcome.commit.parents.len(), 1);
+    assert_ne!(aggregate.outcome().commit.commit_id, main_head_before);
+    assert_eq!(aggregate.outcome().commit.parents.len(), 1);
 }
 
 fn entity_name(record: &worth_relational::facade::runtime::EntityReadRecord) -> Option<String> {

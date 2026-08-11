@@ -1,6 +1,11 @@
 use sha2::Digest;
 use worth_proof::NonEmpty;
 use worth_store_physical_backend::{ArtifactAppendRange, ArtifactTreeDirectory, ArtifactTreeFile};
+use worth_store_physical_format::{
+    PersistedInlineSegmentAllocation, PersistedPhysicalRecoveryFrame,
+    PersistedPhysicalRecoveryManifest, PersistedPhysicalRecoveryProjection,
+    PersistedPhysicalRecoveryRootState,
+};
 use worth_store_wal::{
     plan_wal_frame_append, LogSequenceNumber, WalAppendFrontier, WalLsnRange,
     WalSegmentArtifactIdentity,
@@ -158,10 +163,12 @@ fn plan_member(
     let binding = admission
         .into_fresh_binding()
         .expect("fresh disposition carries one unallocated WAL binding");
+    let projection = recovery_projection(&data, &root);
     let redo = CanonicalRedoRecords::from_prepared_records(
         batch.into_prepared_record_bytes(),
         lsn_range,
         data.redo_targets(),
+        &projection,
     );
     let member = PhysicalWalMemberBasis::new(
         group.member_identity(),
@@ -232,6 +239,60 @@ fn release_planning(
         root,
         context,
     })
+}
+
+fn recovery_projection(
+    data: &crate::physical_runtime::durability::WalBoundPhysicalDataPlan,
+    root: &PreparedPhysicalRootProjection,
+) -> PersistedPhysicalRecoveryProjection {
+    let frames = data
+        .frames()
+        .iter()
+        .map(|frame| {
+            let target = frame.basis().target();
+            PersistedPhysicalRecoveryFrame::new(
+                target.persisted_subject(),
+                target.coordinate(),
+                frame.bytes(),
+            )
+            .expect("the WAL-bound frame retains its exact admitted materialization")
+        })
+        .collect();
+    let manifests = root
+        .recovery_payload_manifests()
+        .map(|(artifact, bytes)| {
+            PersistedPhysicalRecoveryManifest::new(*artifact, bytes)
+                .expect("the payload projection retains only governed recovery manifests")
+        })
+        .collect();
+    let root_state = PersistedPhysicalRecoveryRootState::new(
+        root.root_publication_allocation_bytes().get(),
+        root.manifest_capacity_transition().identity_code(),
+        root.recovery_manifest_capacity(),
+        root.recovery_inline_allocations()
+            .map(|allocation| {
+                PersistedInlineSegmentAllocation::new(
+                    allocation.segment(),
+                    allocation.page_capacity(),
+                    allocation.used_pages(),
+                )
+                .expect("ordinary planning retains a valid inline allocation")
+            })
+            .collect(),
+        root.recovery_last_inline_record(),
+        root.recovery_last_inline_segment(),
+    )
+    .expect("the prepared root retains an exact recovery root state");
+    PersistedPhysicalRecoveryProjection::new(
+        root.source_root_generation(),
+        root_state,
+        root.recovery_record_identities().collect(),
+        frames,
+        root.recovery_placements().collect(),
+        root.recovery_segment_updates().collect(),
+        manifests,
+    )
+    .expect("a WAL-bound physical mutation has one nonempty recovery projection")
 }
 
 fn release_reserved_member(

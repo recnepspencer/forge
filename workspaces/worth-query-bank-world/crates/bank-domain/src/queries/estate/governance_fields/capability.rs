@@ -1,7 +1,7 @@
 use worth_query_decl::facade::{
     application_query::{ApplicationQueryOptionalResultFieldRef, ApplicationQueryResultFieldRef},
     application_schema::{
-        DeclaredApplicationCurrency, EqualityPredicate, NoApplicationCurrency, NoEqualityPredicate,
+        DeclaredApplicationUnit, EqualityPredicate, NoApplicationUnit, NoEqualityPredicate,
         ReadOnly, ReadWrite,
     },
 };
@@ -61,7 +61,7 @@ macro_rules! selector {
             $value,
             $write,
             EqualityPredicate,
-            NoApplicationCurrency,
+            NoApplicationUnit,
         > {
             ApplicationQueryResultFieldRef::new($alias, <$field>::reference())
         }
@@ -219,7 +219,7 @@ pub(in crate::queries::estate) fn capability_field() -> ApplicationQueryOptional
     RestrictedBankField,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryOptionalResultFieldRef::new("field", CapabilityDisclosureField::reference())
 }
@@ -234,7 +234,7 @@ pub(in crate::queries::estate) fn capability_amount() -> ApplicationQueryOptiona
     Money<USD>,
     ReadWrite,
     NoEqualityPredicate,
-    DeclaredApplicationCurrency<UsdCurrency, USD>,
+    DeclaredApplicationUnit<UsdCurrency, USD>,
 > {
     ApplicationQueryOptionalResultFieldRef::new(
         "amount_ceiling",

@@ -3,6 +3,7 @@ mod artifacts;
 mod catalog;
 mod classification;
 mod compatibility;
+mod compatibility_admission;
 mod declaration;
 mod digest;
 mod evidence;
@@ -10,15 +11,19 @@ mod fetch;
 mod handles;
 mod identity;
 mod maintenance;
+mod maintenance_admission;
 mod participation;
+mod path_admission;
 mod performance;
 mod persistence;
 mod pipeline;
 mod portability;
+mod portability_admission;
 mod records;
 mod restart;
 mod resume;
 mod retention;
+mod retention_admission;
 #[cfg(test)]
 mod tests;
 mod trust;
@@ -57,6 +62,7 @@ pub use compatibility::{
     SupportDecodedRowSemanticAccess, SupportFamilyVersionWindow, SupportManifestAdmissionWitness,
     SupportVersionSkewRejection,
 };
+pub use compatibility_admission::SubscriptionSupportCompatibilityBatchRequest;
 pub use declaration::{
     AdmittedSubscriptionSupportDeclaration, RawSubscriptionSupportDeclaration,
     SubscriptionSupportAuthority, SubscriptionSupportPayloadDigest, SubscriptionSupportScope,
@@ -88,6 +94,7 @@ pub use maintenance::{
     SupportMaintenanceDescriptorRecord, SupportMaintenanceParticipationRecord,
     SupportMaintenanceWorkKind,
 };
+pub use maintenance_admission::SubscriptionSupportMaintenanceBatchRequest;
 pub use participation::{
     DegradedResumePreservationWitness, ExactResumePreservationWitness,
     PostActionResumeClassificationInput, ResumeClassificationTranslationPlan,
@@ -95,6 +102,7 @@ pub use participation::{
     SubscriptionSupportOperationalVerdict, SubscriptionSupportOperationalVerdictTranslationRequest,
     SupportNonResumableWitness, SupportPolicyRejectionWitness, SupportRebuildAdmissionWitness,
 };
+pub use path_admission::{SupportProgramPathAdmissionRequest, SupportProgramPathPolicy};
 pub(crate) use performance::cost_surface_for_program_path;
 pub use performance::{
     SupportActionBreadthBudget, SupportAllocationScope, SupportBatchAdmissionReceipt,
@@ -112,6 +120,7 @@ pub use portability::{
     SupportPortabilityParticipationRecord, SupportPortabilityRejection,
     SupportPortabilityScopeFootprint,
 };
+pub use portability_admission::SubscriptionSupportPortabilityBatchRequest;
 pub use records::{
     SubscriptionSupportArtifactRecord, SubscriptionSupportClassificationRecord,
     SubscriptionSupportLinkageRecord, SubscriptionSupportRestartRecord,
@@ -134,6 +143,7 @@ pub use retention::{
     SupportRetentionBatchPlan, SupportRetentionParticipationRecord,
     SupportRetentionSurvivalWitness,
 };
+pub use retention_admission::SubscriptionSupportRetentionBatchRequest;
 pub use trust::{
     admit_support_trust_request, check_support_trust_coverage, check_support_trust_drift,
     check_support_trust_equivalence, classify_certified_support_trust,

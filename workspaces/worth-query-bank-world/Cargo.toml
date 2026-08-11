@@ -4,12 +4,14 @@ members = [
     "crates/bank-courtroom",
     "crates/bank-domain",
     "crates/bank-estate-certification",
+    "crates/bank-external-rail",
     "crates/bank-http-adapter",
     "crates/bank-server",
 ]
 default-members = [
     "crates/bank-domain",
     "crates/bank-estate-certification",
+    "crates/bank-external-rail",
     "crates/bank-http-adapter",
     "crates/bank-server",
 ]
@@ -24,12 +26,14 @@ worth-foundational = { path = "../../crates/worth-foundational" }
 worth-query-decl = { path = "../worth-query/crates/worth-query-decl" }
 worth-query-host = { path = "../worth-query/crates/worth-query-host" }
 bank-domain = { path = "crates/bank-domain" }
+bank-external-rail = { path = "crates/bank-external-rail" }
 bank-server = { path = "crates/bank-server" }
 bank-http-adapter = { path = "crates/bank-http-adapter" }
 openidconnect = { version = "=4.0.1", features = ["timing-resistant-secret-traits"] }
 rand = "0.8.5"
 reqwest = { version = "0.12.28", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
 sha2 = "0.10.9"
 thirtyfour = { version = "=0.37.4", default-features = false, features = ["reqwest", "rustls"] }
 tokio = { version = "1.48.0", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }

@@ -30,13 +30,12 @@ fn exact_invariant_progression_is_consumed_by_provider_commit() {
     };
 
     let outcome = candidate.compare_and_commit();
-    let WorthQueryProviderCompareAndCommitOutcome::Committed {
-        provider_receipt, ..
-    } = outcome
-    else {
+    let WorthQueryProviderCompareAndCommitOutcome::Committed(committed) = outcome else {
         panic!("fresh invariant-approved state must commit")
     };
-    assert!(provider_receipt.starts_with("provisional-commit:"));
+    assert!(committed
+        .provider_receipt()
+        .starts_with("provisional-commit:"));
     assert_eq!(
         state.lock().unwrap().authoritative.get("base").unwrap(),
         "replaced"

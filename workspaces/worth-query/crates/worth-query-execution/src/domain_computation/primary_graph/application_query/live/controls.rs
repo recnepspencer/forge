@@ -56,4 +56,9 @@ impl WorthQueryApplicationLiveControls {
     pub const fn maximum_work_per_delivery(&self) -> NonZeroUsize {
         self.maximum_work_per_delivery
     }
+
+    #[cfg(test)]
+    pub(crate) fn replace_request(&mut self, request: WorthQueryRequestScope) {
+        self.delivery.replace_request(request);
+    }
 }

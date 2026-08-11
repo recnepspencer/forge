@@ -7,9 +7,9 @@ use worth_relational::facade::authorization::RelationalAuthorizationObservationC
 
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
-    WorthQueryAuthorizationDecisionFact, WorthQueryAuthorizationTimeSample,
-    WorthQueryCapabilitySupportCommitBasis, WorthQueryPrincipalCurrentnessDependency,
-    WorthQueryRetainedCapabilitySupport,
+    WorthQueryAuthorizationDecisionFact, WorthQueryCapabilitySupportCommitBasis,
+    WorthQueryPrincipalCurrentnessDependency, WorthQueryRetainedCapabilitySupport,
+    WorthQueryRuntimeTimeSample,
 };
 
 pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityAuthorization {
@@ -18,7 +18,7 @@ pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityAuthorizati
     capability_authority_identity: Arc<str>,
     grant: worth_relational::facade::identity::EntityId,
     request: WorthQueryRetainedCapabilityRequest,
-    sample: WorthQueryAuthorizationTimeSample,
+    sample: WorthQueryRuntimeTimeSample,
     supporting: Option<WorthQueryRetainedCapabilitySupport>,
 }
 
@@ -29,7 +29,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         capability_authority_identity: Arc<str>,
         grant: worth_relational::facade::identity::EntityId,
         request: WorthQueryRetainedCapabilityRequest,
-        sample: WorthQueryAuthorizationTimeSample,
+        sample: WorthQueryRuntimeTimeSample,
     ) -> Self {
         Self {
             principal,
@@ -162,7 +162,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         &mut self,
         capability_authority_identity: &str,
         grant: worth_relational::facade::identity::EntityId,
-        sample: WorthQueryAuthorizationTimeSample,
+        sample: WorthQueryRuntimeTimeSample,
         decision: WorthQueryAuthorizationDecisionFact,
     ) -> Result<(), ()> {
         if self.capability_authority_identity.as_ref() != capability_authority_identity
@@ -182,7 +182,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
         capability_authority_identity: &str,
         grant: worth_relational::facade::identity::EntityId,
-        sample: WorthQueryAuthorizationTimeSample,
+        sample: WorthQueryRuntimeTimeSample,
         decision: WorthQueryAuthorizationDecisionFact,
     ) -> Result<(), ()> {
         if decision.session_identity() != session {

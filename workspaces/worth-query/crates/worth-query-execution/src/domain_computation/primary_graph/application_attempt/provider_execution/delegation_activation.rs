@@ -14,7 +14,10 @@ where
         &self,
         program: WorthQueryDelegationActivationProgram<Schema, Operation, Input, Scope>,
         idempotency: WorthQueryApplicationIdempotencyBinding,
-    ) -> WorthQueryApplicationCommitOutcome {
+    ) -> WorthQueryApplicationCommitOutcome
+    where
+        Input: Clone + Send + Sync + 'static,
+    {
         self.compare_and_commit_application_inner(program.into_inner(), idempotency)
     }
 }

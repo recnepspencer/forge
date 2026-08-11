@@ -76,7 +76,7 @@ pub(crate) fn managed_admission_context() -> CausalManagedAdmissionContext {
     assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
     let relational = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("model should be a valid graph role");
-    let branch = TruthBranchIdentity::from_relational_branch_id("main");
+    let branch = crate::domain_computation::primary_graph::primary_truth_branch_identity();
     let bridge = bridge_for_source(relational.clone(), branch.clone(), registration_snapshot);
     CausalManagedAdmissionContext {
         bridge,
@@ -98,7 +98,7 @@ pub(super) fn source_profile_substitution_context() -> SourceProfileSubstitution
     assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
     let relational = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("model should be a valid graph role");
-    let branch = TruthBranchIdentity::from_relational_branch_id("main");
+    let branch = crate::domain_computation::primary_graph::primary_truth_branch_identity();
     let exact_bridge = bridge_for_source(
         relational.clone(),
         branch.clone(),
@@ -210,7 +210,7 @@ fn relational_source_and_lease(
             version_id.0,
         ),
     );
-    let branch = TruthBranchIdentity::from_relational_branch_id("main");
+    let branch = crate::domain_computation::primary_graph::primary_truth_branch_identity();
     (source, bridge_basis, substitute, branch, snapshot)
 }
 

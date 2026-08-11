@@ -256,7 +256,7 @@ fn bounded_provider_steps_stream_exact_terminal_work_evidence() {
     assert_eq!(last_safe_point.queue_capacity(), 8);
     let cleanup = terminal.cleanup().expect("settled provider work cleans up");
     assert_eq!(
-        cleanup.disposition(),
+        cleanup.inspection().disposition(),
         WorthQueryManagedRunCleanupDisposition::CleanupComplete
     );
 }
@@ -286,7 +286,7 @@ fn provider_failure_preserves_governed_work_and_recovery_authority() {
         .cleanup()
         .expect("failed provider run retains cleanup authority");
     assert_eq!(
-        cleanup.disposition(),
+        cleanup.inspection().disposition(),
         WorthQueryManagedRunCleanupDisposition::RecoveryRequired
     );
 }
@@ -371,7 +371,7 @@ fn active_abandonment_releases_start_retention_and_preserves_peak_evidence() {
         .cleanup()
         .expect("explicit abandonment preserves cleanup authority");
     assert_eq!(
-        cleanup.disposition(),
+        cleanup.inspection().disposition(),
         WorthQueryManagedRunCleanupDisposition::RecoveryRequired
     );
 }

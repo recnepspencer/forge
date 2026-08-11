@@ -1,7 +1,5 @@
 use std::sync::{atomic::Ordering, Arc};
 
-use crate::physical_runtime::lifecycle::ObservedLifecyclePhase;
-
 use super::{PhysicalEffectActivity, PhysicalSubmissionState, PhysicalWorkSubmissionStale};
 
 impl PhysicalSubmissionState {
@@ -23,9 +21,7 @@ impl PhysicalSubmissionState {
         generation: crate::physical_runtime::LifecycleGeneration,
     ) -> Result<(), PhysicalWorkSubmissionStale> {
         let lifecycle = self.lifecycle.snapshot();
-        if lifecycle.generation != generation
-            || lifecycle.phase != ObservedLifecyclePhase::RecordServing
-        {
+        if lifecycle.generation != generation || lifecycle.phase != self.lifecycle_phase {
             return Err(PhysicalWorkSubmissionStale::LifecycleGenerationAdvanced);
         }
         if !self.accepting.load(Ordering::Acquire) {

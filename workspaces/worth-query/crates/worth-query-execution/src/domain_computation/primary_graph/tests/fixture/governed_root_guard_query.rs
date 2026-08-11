@@ -104,24 +104,23 @@ fn definition<Query: 'static>(
         CapabilityDisclosure::AccountActivity,
         ApplicationQueryInfluenceContract::permit_all(),
     );
-    ApplicationQueryDefinitionBuilder::public(
-        reference,
-        Activity::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::Many,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 1),
-        disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .root_path(
-        ApplicationQueryRootPath::from(Account::reference())
-            .where_equal(AccountLabel::reference(), "guard-match".to_owned())
-            .forward(AccountAllActivity::reference()),
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(reference)
+        .root(Activity::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::Many)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 1))
+        .disclosure(disclosure)
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .root_path(
+            ApplicationQueryRootPath::from(Account::reference())
+                .where_equal(AccountLabel::reference(), "guard-match".to_owned())
+                .forward(AccountAllActivity::reference()),
+        )
+        .build()
+        .unwrap()
 }
 
 impl<Query: 'static> WorthQueryApplicationProjection<IdentityExecutionSchema, Query>
@@ -146,7 +145,7 @@ fn sequence<Query: 'static>() -> ApplicationQueryResultFieldRef<
     u64,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::NoEqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("sequence", ActivitySequence::reference())
 }

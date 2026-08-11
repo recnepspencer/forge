@@ -84,14 +84,23 @@ Identity and denial contracts on the ordinary path are also explicit:
 - `.family(FamilyMarker).bind(&installed_domain, OperationMarker)`
 - `bound.consumer_projection_contract()`
 - `bound.execute(input, &mut workspace)`
+- inspect the exact commit outcome, application aftermath, and external-effect
+  posture returned by the owning host operation
 - `executed.publish()?.consume(contract, request)?.settle()`
 
 Use this path when a domain owns stable operation semantics rather than one
 application-local declaration. Portable definitions contain the canonical
 query, result shape, parameters, graph reads, workflow, conditional nodes,
-publication, support, terminal states, failure classes, and cost. Runtime
+external-effect and aftermath meaning, publication, support, terminal states,
+failure classes, and cost. Runtime
 construction registers exact executors and graph or conditional providers
 separately.
+
+If an installed operation declares an external effect, keep its local commit,
+co-committed outbox fact, external-owner observation, and optional recovery
+handle in the host operation. A downstream delivery adapter consumes only the
+published description; it must not redispatch or reconstruct recovery
+authority.
 
 The operating-world root is the only authority-bearing entry for installed
 operations. Family views borrow it; they do not create another runtime or
@@ -316,6 +325,11 @@ That means:
 If you are publishing live updates to another process, this is the contract to
 use instead of opening retained runtime batches directly.
 
+Application-aftermath publication follows the same authority rule: transport
+may encode a published posture or recovery-support description, but an opaque
+identity is not a live recovery handle and acknowledgement is not external
+completion.
+
 Small example:
 
 ```rust
@@ -379,6 +393,7 @@ If you are onboarding a downstream runtime to Query, read in this order:
 11. [Inspection](../capabilities/inspection.md)
 12. [Projection Consumption](../capabilities/projection-consumption.md)
 13. [Historical Basis, Diff, And Comparison Queries](../capabilities/historical-diff-and-basis.md)
+14. [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
 
 ## Anti-Patterns
 
@@ -402,3 +417,4 @@ If you are onboarding a downstream runtime to Query, read in this order:
 - [Existing Truth](../capabilities/existing-truth.md)
 - [Inspection](../capabilities/inspection.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)

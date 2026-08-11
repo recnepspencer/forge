@@ -275,17 +275,11 @@ fn every_lifecycle_program_installs_one_exact_activity_emission() {
 
     macro_rules! assert_emission {
         ($capability:ty, $operation:ty) => {{
-            let capability = bank
+            let _capability = bank
                 .capability(<$capability>::reference(), <$operation>::reference())
                 .unwrap();
-            let operation = bank
-                .installed_operation_for_capability(&capability)
-                .unwrap();
-            let program = operation
-                .contracts()
-                .expect("lifecycle operation is executable")
-                .program()
-                .to_vec();
+            let operation = bank.installed_operation(<$operation>::reference()).unwrap();
+            let program = operation.contracts().program().to_vec();
             assert_eq!(
                 program
                     .iter()

@@ -5,11 +5,9 @@ use bank_domain::{
     queries::EstateGovernanceQuery,
     reads::{EstateCapabilityContext, EstateGovernanceContext},
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationAttemptDenialKind, WorthQueryApplicationCommitDenialKind,
-    WorthQueryApplicationCommitDenialStage, WorthQueryApplicationIdempotencyBinding,
-    WorthQueryApplicationOneShotResult,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
+use worth_query_host::facade::publication::application_aftermath::WorthQueryPublishedApplicationCommitKind;
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 
 use super::fixture::{
     emergency_request_world_with_alternate_bound, foreign_estate_revocation_world, request_scope,
@@ -17,10 +15,50 @@ use super::fixture::{
     FOREIGN_GRANT, GRANT,
 };
 use crate::estate_progression::BankCapabilityRevocationProjectionDenial;
-use crate::{queries, BankEstateProgressionDenial, BankMutationCommitOutcome, BankReadControls};
+use crate::{
+    queries, BankCommitDenialKind, BankCommitDenialStage, BankEstateProgressionDenial,
+    BankMutationCommitOutcome, BankReadControls,
+};
 
 type GovernanceResult =
-    WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>;
+    WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>;
+
+fn assert_equivalent_commit_semantics(
+    committed: &crate::BankCommitReceipt,
+    recovered: &crate::BankCommitReceipt,
+) {
+    assert_eq!(committed.aftermath(), recovered.aftermath());
+    assert_eq!(
+        committed.changed_record_count(),
+        recovered.changed_record_count()
+    );
+    assert_eq!(
+        committed.emitted_effect_count(),
+        recovered.emitted_effect_count()
+    );
+    assert_eq!(
+        committed.expected_version_count(),
+        recovered.expected_version_count()
+    );
+    assert_eq!(
+        committed.expected_fact_count(),
+        recovered.expected_fact_count()
+    );
+    assert_eq!(
+        committed.decision_fact_count(),
+        recovered.decision_fact_count()
+    );
+    assert_eq!(committed.canonical_work(), recovered.canonical_work());
+    assert_eq!(
+        committed.co_committed_dispatch_outbox(),
+        recovered.co_committed_dispatch_outbox()
+    );
+    assert_eq!(committed.retained_preimage(), recovered.retained_preimage());
+    assert_eq!(
+        committed.performed_preimage_retention_work(),
+        recovered.performed_preimage_retention_work()
+    );
+}
 
 #[test]
 fn equivalent_revocation_retry_recovers_commit_before_fresh_poststate_denial() {
@@ -51,7 +89,15 @@ fn equivalent_revocation_retry_recovers_commit_before_fresh_poststate_denial() {
     let BankMutationCommitOutcome::AlreadyCommitted(recovered) = retry else {
         panic!("the equivalent retry must recover the prior commit: {retry:?}");
     };
-    assert!(committed.is_same_authoritative_commit(&recovered));
+    assert_equivalent_commit_semantics(&committed, &recovered);
+    assert_eq!(
+        committed.publication().inspect().kind(),
+        WorthQueryPublishedApplicationCommitKind::Executed
+    );
+    assert_eq!(
+        recovered.publication().inspect().kind(),
+        WorthQueryPublishedApplicationCommitKind::Recovered
+    );
 
     let target_drift = fixture
         .runtime
@@ -65,8 +111,8 @@ fn equivalent_revocation_retry_recovers_commit_before_fresh_poststate_denial() {
     assert_eq!(
         target_drift,
         BankMutationCommitOutcome::Denied {
-            kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
-            stage: WorthQueryApplicationCommitDenialStage::Idempotency,
+            kind: BankCommitDenialKind::IdempotencyIntentDrift,
+            stage: BankCommitDenialStage::Idempotency,
         }
     );
 
@@ -86,9 +132,7 @@ fn equivalent_revocation_retry_recovers_commit_before_fresh_poststate_denial() {
     assert!(matches!(
         denial,
         BankEstateProgressionDenial::CapabilityRevocationProjection(
-            BankCapabilityRevocationProjectionDenial::GrantNotActive(
-                CapabilityGrantStatus::Revoked
-            )
+            BankCapabilityRevocationProjectionDenial::GrantNotActive
         )
     ));
 
@@ -129,8 +173,10 @@ fn revocation_cannot_substitute_a_target_from_another_estate() {
         panic!("foreign-target denial must come from exact revocation materialization: {denial:?}")
     };
     assert_eq!(
-        denial.kind(),
-        WorthQueryApplicationAttemptDenialKind::CapabilityRevocationProgramMismatch
+        denial,
+        crate::BankCommitPreparationDenial::Application {
+            kind: crate::BankApplicationAttemptDenialKind::CapabilityRevocationProgramMismatch,
+        }
     );
 
     assert_eq!(

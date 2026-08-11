@@ -14,7 +14,7 @@ mod state;
 mod surface;
 
 pub use refresh_context::{WorthQueryRetainedRefreshContext, WorthQueryRetainedRefreshOrigin};
-pub(in crate::runtime) use routing::{
+pub(in crate::runtime) use routing::route_result::{
     admit_derived_view_declaration, insert_derived_runtime,
     retained_live_view_names_for_candidates, route_derived_view_patches,
 };

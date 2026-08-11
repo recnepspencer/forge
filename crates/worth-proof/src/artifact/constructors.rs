@@ -59,7 +59,6 @@ where
 }
 
 impl<P, T, S, A> Artifact<P, T, S, A> {
-    #[allow(dead_code)]
     pub(crate) fn with_state(payload: T, proofs: S, basis: A) -> Self {
         Self {
             payload,

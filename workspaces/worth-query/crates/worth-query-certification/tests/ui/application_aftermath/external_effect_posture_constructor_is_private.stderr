@@ -1,0 +1,10 @@
+error[E0624]: associated function `root` is private
+ --> tests/ui/application_aftermath/external_effect_posture_constructor_is_private.rs:6:36
+  |
+6 |     let _ = ExternalEffectPosture::root(ExternalEffectPostureKind::ProviderCommit, identity);
+  |                                    ^^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/application_aftermath/external_effect/causal_event.rs
+  |
+  |     fn root(kind: ExternalEffectPostureKind, identity: ExternalEffectPostureIdentity) -> Self {
+  |     ----------------------------------------------------------------------------------------- private associated function defined here

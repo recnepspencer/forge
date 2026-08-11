@@ -5,13 +5,12 @@ use worth_query_declaration::facade::application_capability::{
 };
 use worth_relational::facade::authorization::RelationalAuthorizationPathPlan;
 use worth_relational::facade::identity::KindId;
-use worth_runtime_bridge::facade::{
-    BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect,
-};
+use worth_runtime_bridge::facade::BridgeAuthorizationRuleEffect;
 
 use super::ElevationRelations;
 use crate::domain_computation::authorization::capability_binding_lowering::predicate;
-use crate::domain_computation::authorization::capability_lowering::{bridge_rule, clause_identity};
+use crate::domain_computation::authorization::capability_lowering::accumulator::WorthQueryCapabilityRuleLoweringAccumulator;
+use crate::domain_computation::authorization::capability_lowering::clause_identity;
 use crate::domain_computation::authorization::capability_registry::{
     WorthQueryCapabilityPathTemplate, WorthQueryCapabilityRequestGuard,
 };
@@ -26,19 +25,13 @@ pub(super) struct ActiveElevationPathIndices {
     pub(super) self_approval: usize,
 }
 
-pub(super) struct ElevationRuleSinks<'a> {
-    pub(super) paths: &'a mut Vec<WorthQueryCapabilityPathTemplate>,
-    pub(super) rules: &'a mut Vec<BridgeAuthorizationRuleContract>,
-    pub(super) rule_path_indices: &'a mut Vec<Vec<Vec<usize>>>,
-}
-
 pub(super) fn compile(
     layout: &WorthQueryPrimaryGraphLayout,
     capability: &[u8; 32],
     elevation: &ApplicationCapabilityElevationDefinition,
     elevation_kind: KindId,
     relations: &ElevationRelations,
-    mut sinks: ElevationRuleSinks<'_>,
+    lowering: &mut WorthQueryCapabilityRuleLoweringAccumulator,
 ) -> Result<ActiveElevationPathIndices, WorthQueryOperationAuthorizationDenial> {
     let active = push_path(
         active_path(
@@ -46,30 +39,30 @@ pub(super) fn compile(
             capability,
             elevation,
             elevation_kind,
-            sinks.paths.len(),
+            lowering.path_count(),
             relations,
         )?,
         BridgeAuthorizationRuleEffect::Required,
-        &mut sinks,
+        lowering,
     );
-    let not_before = push_temporal_path(capability, relations, &mut sinks)?;
-    let not_after = push_temporal_path(capability, relations, &mut sinks)?;
+    let not_before = push_temporal_path(capability, relations, lowering)?;
+    let not_after = push_temporal_path(capability, relations, lowering)?;
     let expired = push_path(
         expired_path(
             layout,
             capability,
             elevation_kind,
-            sinks.paths.len(),
+            lowering.path_count(),
             relations,
             elevation.states().expired(),
         )?,
         BridgeAuthorizationRuleEffect::Prohibited,
-        &mut sinks,
+        lowering,
     );
     let self_approval = push_path(
-        self_approval_path(capability, sinks.paths.len(), relations),
+        self_approval_path(capability, lowering.path_count(), relations),
         BridgeAuthorizationRuleEffect::Prohibited,
-        &mut sinks,
+        lowering,
     );
     Ok(ActiveElevationPathIndices {
         active,
@@ -83,12 +76,12 @@ pub(super) fn compile(
 fn push_temporal_path(
     capability: &[u8; 32],
     relations: &ElevationRelations,
-    sinks: &mut ElevationRuleSinks<'_>,
+    lowering: &mut WorthQueryCapabilityRuleLoweringAccumulator,
 ) -> Result<usize, WorthQueryOperationAuthorizationDenial> {
     Ok(push_path(
-        temporal_path(capability, sinks.paths.len(), relations),
+        temporal_path(capability, lowering.path_count(), relations),
         BridgeAuthorizationRuleEffect::Required,
-        sinks,
+        lowering,
     ))
 }
 
@@ -189,14 +182,7 @@ fn self_approval_path(
 fn push_path(
     path: WorthQueryCapabilityPathTemplate,
     effect: BridgeAuthorizationRuleEffect,
-    sinks: &mut ElevationRuleSinks<'_>,
+    lowering: &mut WorthQueryCapabilityRuleLoweringAccumulator,
 ) -> usize {
-    let path_index = sinks.paths.len();
-    sinks.paths.push(path);
-    let requirements = vec![vec![path_index]];
-    sinks
-        .rules
-        .push(bridge_rule(effect, requirements.clone(), sinks.paths));
-    sinks.rule_path_indices.push(requirements);
-    path_index
+    lowering.add_elevation(effect, path)
 }

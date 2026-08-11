@@ -3,8 +3,9 @@ use std::ops::Range;
 const FRAME_HEADER_BYTES: usize = 116;
 const FRAME_FOOTER_BYTES: usize = 32;
 const BINDING_DOMAIN: &[u8] = b"store.physical.mutation-attempt-binding.v1";
-const REDO_DOMAIN: &[u8] = b"store.physical.wal.canonical-redo.v1";
 
+#[path = "independent_wal_oracle/canonical_redo.rs"]
+mod canonical_redo;
 #[path = "independent_wal_oracle/segment_inventory.rs"]
 mod segment_inventory;
 #[path = "independent_wal_oracle/target_claim.rs"]
@@ -114,30 +115,15 @@ pub(super) fn independent_canonical_redo(
     records: &[&[u8]],
     lsn_start: u64,
     targets: &[Vec<IndependentRedoTargetClaim>],
+    projection: &[u8],
 ) -> Vec<u8> {
-    assert!(
-        !records.is_empty(),
-        "the independent redo oracle requires a nonempty fixture"
-    );
-    assert_eq!(
-        records.len(),
-        targets.len(),
-        "every redo record requires its exact target claims"
-    );
-    let mut encoded = Vec::new();
-    write_field(&mut encoded, REDO_DOMAIN);
-    encoded.extend_from_slice(&(records.len() as u64).to_le_bytes());
-    for (ordinal, record) in records.iter().enumerate() {
-        encoded.extend_from_slice(&(ordinal as u32).to_le_bytes());
-        encoded.extend_from_slice(&(lsn_start + ordinal as u64).to_le_bytes());
-        encoded.extend_from_slice(&(targets[ordinal].len() as u64).to_le_bytes());
-        for claim in &targets[ordinal] {
-            write_field(&mut encoded, &claim.target);
-            encoded.extend_from_slice(&claim.digest);
-        }
-        write_field(&mut encoded, record);
-    }
-    encoded
+    canonical_redo::independent_canonical_redo(records, lsn_start, targets, projection)
+}
+
+pub(super) fn independent_recovery_projection(
+    canonical_redo: &[u8],
+) -> Result<&[u8], BindingInspectionDenial> {
+    canonical_redo::independent_recovery_projection(canonical_redo)
 }
 
 pub(super) fn split_member_payload(
@@ -371,9 +357,4 @@ fn read_u64_at(bytes: &[u8], offset: usize) -> Result<u64, BindingInspectionDeni
 
 fn array<const N: usize>(bytes: &[u8]) -> [u8; N] {
     bytes.try_into().expect("fixed field length was checked")
-}
-
-fn write_field(target: &mut Vec<u8>, field: &[u8]) {
-    target.extend_from_slice(&(field.len() as u64).to_le_bytes());
-    target.extend_from_slice(field);
 }

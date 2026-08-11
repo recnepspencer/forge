@@ -1,0 +1,5 @@
+error[E0451]: field `performed` of struct `PerformedRecoveryCleanupRemoval` is private
+ --> tests/ui/cleanup_performed_evidence_cannot_be_forged.rs:4:53
+  |
+4 |     let _forged = PerformedRecoveryCleanupRemoval { performed: fake() };
+  |                                                     ^^^^^^^^^ private field

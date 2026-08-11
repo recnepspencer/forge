@@ -117,7 +117,7 @@ fn dependencies() -> Vec<ApplicationSchemaMember> {
             presence: crate::application_schema::ApplicationFieldPresence::Required,
             scalar_family: ScalarAspectType::UInt64,
             value_type: std::any::type_name::<u64>().to_string(),
-            currency: None,
+            unit: None,
             writable: false,
             equality_queryable: true,
         },
@@ -164,25 +164,25 @@ fn governed_query() -> ErasedApplicationQueryDefinition {
         u64,
         ReadOnly,
         EqualityPredicate,
-        crate::application_schema::NoApplicationCurrency,
+        crate::application_schema::NoApplicationUnit,
     >::new("id", field))
     .build();
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        ApplicationQueryReference::<
-            TestSchema,
-            AccountQuery,
-            AccountParameters,
-            AccountResult,
-            Account,
-        >::from_schema_identifier("account"),
-        account,
-        account,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 1),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
+    ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::<
+        TestSchema,
+        AccountQuery,
+        AccountParameters,
+        AccountResult,
+        Account,
+    >::from_schema_identifier("account"))
+    .root(account)
+    .scope(account)
+    .result_shape(shape)
+    .cardinality(ApplicationQueryCardinality::ExactlyOne)
+    .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
+    .disclosure(ApplicationQueryDisclosureContract::public())
+    .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+    .lanes(ApplicationQueryLaneEligibility::one_shot())
+    .requires_ability(
         ApplicationAbilityRef::<TestSchema, ViewAccount, Account>::from_schema_identifiers(
             "ViewAccount",
             "Account",
@@ -216,7 +216,7 @@ fn build_query(
         u64,
         ReadOnly,
         EqualityPredicate,
-        crate::application_schema::NoApplicationCurrency,
+        crate::application_schema::NoApplicationUnit,
     >::new(output_name, field);
     let shape = ApplicationQueryResultShapeBuilder::<
         TestSchema,
@@ -226,23 +226,22 @@ fn build_query(
     >::new(account)
     .field(result_field)
     .build();
-    ApplicationQueryDefinitionBuilder::public(
-        ApplicationQueryReference::<
-            TestSchema,
-            AccountQuery,
-            AccountParameters,
-            AccountResult,
-            Account,
-        >::from_schema_identifier("account"),
-        account,
-        account,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 1),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
+    ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::<
+        TestSchema,
+        AccountQuery,
+        AccountParameters,
+        AccountResult,
+        Account,
+    >::from_schema_identifier("account"))
+    .root(account)
+    .scope(account)
+    .result_shape(shape)
+    .cardinality(ApplicationQueryCardinality::ExactlyOne)
+    .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
+    .disclosure(ApplicationQueryDisclosureContract::public())
+    .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+    .lanes(ApplicationQueryLaneEligibility::one_shot())
+    .public()
     .build()
     .unwrap()
     .into_erased()

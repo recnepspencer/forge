@@ -246,6 +246,12 @@ fn encode_pair(record: &mut [u8; RECOVERY_RECORD_BYTES], first: u64, second: u64
 fn artifact_parts(artifact: RecordArtifactFile) -> (u8, u64, u64) {
     match artifact {
         RecordArtifactFile::BootstrapCatalog => (1, 0, 0),
+        RecordArtifactFile::CurrentRootSelector => (12, 0, 0),
+        RecordArtifactFile::PreviousRootSelector => (13, 0, 0),
+        RecordArtifactFile::RootSelectorCandidate { role, publication } => match role {
+            worth_store_physical_format::RootSelectorRole::Current => (14, publication, 0),
+            worth_store_physical_format::RootSelectorRole::Previous => (15, publication, 0),
+        },
         RecordArtifactFile::CatalogCandidate { publication } => (2, publication, 0),
         RecordArtifactFile::RootManifest { generation } => (3, generation, 0),
         RecordArtifactFile::RootRoutingBlock { generation, block } => (4, generation, block),
@@ -300,6 +306,16 @@ fn decode_artifact(tag: u8, first: u64, second: u64) -> Option<RecordArtifactFil
         11 => Some(RecordArtifactFile::FreeSpaceMembershipBlock {
             generation: first,
             block: second,
+        }),
+        12 if first == 0 && second == 0 => Some(RecordArtifactFile::CurrentRootSelector),
+        13 if first == 0 && second == 0 => Some(RecordArtifactFile::PreviousRootSelector),
+        14 if second == 0 => Some(RecordArtifactFile::RootSelectorCandidate {
+            role: worth_store_physical_format::RootSelectorRole::Current,
+            publication: first,
+        }),
+        15 if second == 0 => Some(RecordArtifactFile::RootSelectorCandidate {
+            role: worth_store_physical_format::RootSelectorRole::Previous,
+            publication: first,
         }),
         _ => None,
     }

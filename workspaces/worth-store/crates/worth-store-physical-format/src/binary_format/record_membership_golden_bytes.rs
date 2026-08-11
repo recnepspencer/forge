@@ -78,11 +78,13 @@ fn membership_authority_artifacts_match_independent_golden_bytes() {
     let free_reference =
         FreeSpaceBlockReference::new(6, 1, 0, block_checksum, first, last).unwrap();
     let free_header =
-        DurableFreeSpaceManifestHeader::new(6, 8, 2, 2, 8, 10, 5, 2, Some(free_reference)).unwrap();
+        DurableFreeSpaceManifestHeader::new(6, 8, 2, 4, 2, 8, 10, 5, 2, Some(free_reference))
+            .unwrap();
     let mut free_header_payload = vec![0_u8; 128];
     free_header_payload[..8].copy_from_slice(&6_u64.to_le_bytes());
     free_header_payload[8..16].copy_from_slice(&8_u64.to_le_bytes());
     free_header_payload[16..18].copy_from_slice(&2_u16.to_le_bytes());
+    free_header_payload[18..22].copy_from_slice(&4_u32.to_le_bytes());
     free_header_payload[24..32].copy_from_slice(&2_u64.to_le_bytes());
     free_header_payload[32..40].copy_from_slice(&8_u64.to_le_bytes());
     free_header_payload[40..48].copy_from_slice(&10_u64.to_le_bytes());

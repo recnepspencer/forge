@@ -82,8 +82,8 @@ impl WorthQueryReviewedElevation {
         self.mandatory.field()
     }
 
-    pub const fn amount(&self) -> Option<&AspectValue> {
-        self.mandatory.amount()
+    pub const fn magnitude(&self) -> Option<&AspectValue> {
+        self.mandatory.magnitude()
     }
 
     pub const fn cardinality(&self) -> u32 {
@@ -138,10 +138,10 @@ pub(in crate::domain_computation::primary_graph) fn reviewed_outcome(
         WorthQueryApplicationCommitOutcome::Aborted => {
             WorthQueryMandatoryReviewOutcome::Aborted(binding.into_mandatory())
         }
-        WorthQueryApplicationCommitOutcome::PartialEffect => {
+        WorthQueryApplicationCommitOutcome::PartialEffect(_) => {
             WorthQueryMandatoryReviewOutcome::PartialEffect
         }
-        WorthQueryApplicationCommitOutcome::Indeterminate => {
+        WorthQueryApplicationCommitOutcome::Indeterminate(_) => {
             WorthQueryMandatoryReviewOutcome::Indeterminate
         }
     }

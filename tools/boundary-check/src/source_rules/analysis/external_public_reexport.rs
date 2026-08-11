@@ -171,6 +171,15 @@ fn load_dependency_surface<'a>(
             relative_crate_root: dep_root.display().to_string(),
         };
         let loaded = parse_crate_modules(&external).and_then(|graph| {
+            let glob_sources =
+                super::authority_import_explicitness::production_glob_sources(&graph);
+            if !glob_sources.is_empty() {
+                return Err(format!(
+                    "path dependency `{crate_ident}` contains production glob imports or reexports \
+at {}; authority-governed dependencies must use named imports and reexports",
+                    glob_sources.into_iter().collect::<Vec<_>>().join(", ")
+                ));
+            }
             let aliases = collect_forbidden_aliases(&graph, dep_root)?;
             Ok(DependencySurface { graph, aliases })
         });
@@ -194,23 +203,10 @@ fn build_external_seeds(
     crate_ident: &str,
 ) -> Result<ReachabilitySeeds, String> {
     if target_name == "*" {
-        // Glob: open the target module as a public root.
-        if !graph.modules.contains_key(module_in_dep) {
-            return Err(format!(
-                "glob re-export from `{crate_ident}::{}` could not resolve the target module",
-                if module_in_dep.is_empty() {
-                    "crate".to_owned()
-                } else {
-                    module_in_dep.join("::")
-                }
-            ));
-        }
-        let mut modules = BTreeSet::new();
-        modules.insert(module_in_dep.to_vec());
-        return Ok(ReachabilitySeeds {
-            modules,
-            items: BTreeSet::new(),
-        });
+        return Err(format!(
+            "glob re-export from `{crate_ident}` is denied; authority-governed surfaces must use \
+named imports and reexports"
+        ));
     }
 
     let item = find_external_item(graph, module_in_dep, target_name).ok_or_else(|| {

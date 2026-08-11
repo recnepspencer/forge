@@ -1,0 +1,68 @@
+error[E0451]: fields `aftermath` and `boundary_evidence` of struct `WorthQueryApplicationCommitPublicationReceipt` are private
+  --> tests/ui/application_aftermath/publication_closed_projection_fields_are_private.rs:19:9
+   |
+18 |     WorthQueryApplicationCommitPublicationReceipt {
+   |     --------------------------------------------- in this type
+19 |         aftermath,
+   |         ^^^^^^^^^ private field
+20 |         boundary_evidence,
+   |         ^^^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `result_count`, `ordinary_work_units`, `disclosure`, `publication_work` and `terminal_release` of struct `WorthQueryApplicationQueryPublicationReceipt` are private
+  --> tests/ui/application_aftermath/publication_closed_projection_fields_are_private.rs:32:9
+   |
+31 |     WorthQueryApplicationQueryPublicationReceipt {
+   |     -------------------------------------------- in this type
+32 |         result_count,
+   |         ^^^^^^^^^^^^ private field
+33 |         ordinary_work_units,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+34 |         disclosure,
+   |         ^^^^^^^^^^ private field
+35 |         publication_work,
+   |         ^^^^^^^^^^^^^^^^ private field
+36 |         terminal_release,
+   |         ^^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `application_basis`, `graph_read_basis`, `result_buffer` and `released_graph_capacity_reservation_count` of struct `WorthQueryPublishedApplicationQueryTerminalRelease` are private
+  --> tests/ui/application_aftermath/publication_closed_projection_fields_are_private.rs:42:9
+   |
+41 |     WorthQueryPublishedApplicationQueryTerminalRelease {
+   |     -------------------------------------------------- in this type
+42 |         application_basis: WorthQueryPublishedApplicationQueryReleasePosture::Released,
+   |         ^^^^^^^^^^^^^^^^^ private field
+43 |         graph_read_basis: WorthQueryPublishedApplicationQueryReleasePosture::Released,
+   |         ^^^^^^^^^^^^^^^^ private field
+44 |         result_buffer: WorthQueryPublishedApplicationQueryResultBufferRelease::Released {
+   |         ^^^^^^^^^^^^^ private field
+...
+48 |         released_graph_capacity_reservation_count: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `identity`, `posture`, `disclosure_decision_count`, `disclosed_value_count`, `omitted_value_count` and `authorization_decision_fact_count` of struct `WorthQueryPublishedApplicationDisclosure` are private
+  --> tests/ui/application_aftermath/publication_closed_projection_fields_are_private.rs:57:9
+   |
+56 |     WorthQueryPublishedApplicationDisclosure {
+   |     ---------------------------------------- in this type
+57 |         identity,
+   |         ^^^^^^^^ private field
+58 |         posture,
+   |         ^^^^^^^ private field
+59 |         disclosure_decision_count: 4,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+60 |         disclosed_value_count: 2,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+61 |         omitted_value_count: 2,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+62 |         authorization_decision_fact_count: 7,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `posture` and `external_effect` of struct `WorthQueryPublishedApplicationAftermath` are private
+  --> tests/ui/application_aftermath/publication_closed_projection_fields_are_private.rs:70:9
+   |
+69 |     WorthQueryPublishedApplicationAftermath {
+   |     --------------------------------------- in this type
+70 |         posture: None,
+   |         ^^^^^^^ private field
+71 |         external_effect,
+   |         ^^^^^^^^^^^^^^^ private field

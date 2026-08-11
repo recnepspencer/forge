@@ -11,7 +11,7 @@ use super::{
     WorthQueryPrimaryGraphProvider,
 };
 use crate::domain_computation::authorization::{
-    WorthQueryAuthorizationClock, WorthQueryInstalledAuthorizationRegistry,
+    WorthQueryInstalledAuthorizationRegistry, WorthQueryRuntimeClock,
 };
 use crate::domain_computation::execution_runtime::{
     WorthQueryExecutionInstallationAuthority, WorthQueryExecutionRuntime,
@@ -23,7 +23,7 @@ pub(super) struct ApplicationRuntimePublication<Schema> {
     pub(super) runtime: WorthQueryExecutionRuntime,
     pub(super) authority: WorthQueryExecutionInstallationAuthority,
     pub(super) installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
-    pub(super) authorization_clock: WorthQueryAuthorizationClock,
+    pub(super) authorization_clock: WorthQueryRuntimeClock,
 }
 
 pub(super) fn publish_application_runtime_with_clock<Schema>(
@@ -57,6 +57,8 @@ struct PublishedApplicationGraph {
     runtime: WorthQueryExecutionRuntime,
     publication: super::WorthQueryPrimaryGraphPublication,
     relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
+    execution_basis_source:
+        worth_relational::facade::runtime::RelationalApplicationCommitBasisSource,
     bridge: worth_runtime_bridge::facade::RuntimeBridge,
     primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     primary_graph_authority: WorthQueryInstalledGraphParticipationAuthority,
@@ -110,6 +112,7 @@ where
         .retain_primary_graph_integration_handle()
         .expect("publishing the primary graph installs its integration authority");
     let relational_source = graph.relational_bridge_source();
+    let execution_basis_source = graph.relational_execution_basis_source();
     let bridge = super::super::managed_bridge::install_application_bridge(
         installed_schema,
         relational_source.clone(),
@@ -121,6 +124,7 @@ where
         runtime,
         publication,
         relational_source,
+        execution_basis_source,
         bridge,
         primary_provider,
         primary_graph_authority,
@@ -154,8 +158,19 @@ fn assemble_application_runtime<Schema>(
     graph: PublishedApplicationGraph,
     installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
     authorization: WorthQueryInstalledAuthorizationRegistry,
-    authorization_clock: WorthQueryAuthorizationClock,
+    authorization_clock: WorthQueryRuntimeClock,
 ) -> WorthQueryPrimaryGraphApplicationRuntime<Schema> {
+    let runtime_authority = graph.runtime.authority_identity();
+    // One clock, shared. The registry hands it back to any handle that needs to
+    // re-check its own deadline, which is why no recovery transition takes a
+    // clock argument (R8.31).
+    let authorization_clock = std::sync::Arc::new(authorization_clock);
+    let recovery_handles = std::sync::Arc::new(
+        crate::domain_computation::managed_run::WorthQueryRecoveryHandleRegistry::for_runtime(
+            runtime_authority,
+            std::sync::Arc::clone(&authorization_clock),
+        ),
+    );
     WorthQueryPrimaryGraphApplicationRuntime {
         runtime: graph.runtime,
         installed_schema,
@@ -164,11 +179,15 @@ fn assemble_application_runtime<Schema>(
         authorization_clock,
         authentication_clock: WorthQueryAuthenticationClock::system(),
         relational_source: graph.relational_source,
+        execution_basis_source: graph.execution_basis_source,
         bridge: graph.bridge,
         primary_provider: graph.primary_provider,
         primary_graph_authority: graph.primary_graph_authority,
         result_buffers: Default::default(),
         basis_leases: Default::default(),
         next_preview_session: std::sync::atomic::AtomicU64::new(1),
+        next_external_dispatch_attempt: std::sync::atomic::AtomicU64::new(1),
+        external_effect_transport: std::sync::OnceLock::new(),
+        recovery_handles,
     }
 }

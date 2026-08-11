@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::history::data::BranchId;
+use crate::history::data::{BranchId, CommitId};
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
 use crate::schema::data::{ProposedSchemaTransition, SchemaReconciliationPolicy};
 use crate::symbols::data::ClientKey;
@@ -42,6 +42,9 @@ pub struct TransactionOptions {
     pub diagnostics_required: bool,
     pub deterministic_merge_required: bool,
     pub target_branch: Option<BranchId>,
+    /// Optional owner-enforced compare-and-commit precondition for the exact
+    /// current target-branch head.
+    pub expected_branch_head: Option<ExpectedBranchHead>,
     pub merge_parent_branches: Vec<BranchId>,
     pub proposed_schema_transition: Option<ProposedSchemaTransition>,
     pub schema_reconciliation_policy: Option<SchemaReconciliationPolicy>,
@@ -54,6 +57,7 @@ impl Default for TransactionOptions {
             diagnostics_required: true,
             deterministic_merge_required: true,
             target_branch: None,
+            expected_branch_head: None,
             merge_parent_branches: Vec::new(),
             proposed_schema_transition: None,
             schema_reconciliation_policy: None,
@@ -74,6 +78,11 @@ impl TransactionOptions {
         self
     }
 
+    pub fn expect_branch_head(mut self, expected: ExpectedBranchHead) -> Self {
+        self.expected_branch_head = Some(expected);
+        self
+    }
+
     pub fn with_schema_transition(
         mut self,
         proposed_schema_transition: ProposedSchemaTransition,
@@ -82,6 +91,22 @@ impl TransactionOptions {
         self.proposed_schema_transition = Some(proposed_schema_transition);
         self.schema_reconciliation_policy = schema_reconciliation_policy;
         self
+    }
+}
+
+/// Exact target-branch head required for one Relational commit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExpectedBranchHead {
+    Empty,
+    Commit(CommitId),
+}
+
+impl ExpectedBranchHead {
+    pub const fn observed_commit(self) -> Option<CommitId> {
+        match self {
+            Self::Empty => None,
+            Self::Commit(commit) => Some(commit),
+        }
     }
 }
 

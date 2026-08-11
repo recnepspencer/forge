@@ -239,6 +239,20 @@ The DX layer is therefore not:
 - a generic builder blob detached from substrate truth
 - a substitute for `worth-foundational`
 
+### History and lineage authority do not move through DX
+
+`worth-proof` may express generic progression, freshness, inversion, and
+authority-composition laws. It does not own canonical commit history, entity
+lineage, branch heads, parent selection, ancestry, or publication order. Those
+remain with Relational. A Query-local chain removed during Runtime Phase 8 must
+not be recreated here or routed into `worth-foundational` as canonical history.
+
+`worth-foundational` may describe an already-established portable fact that
+means the same thing across runtimes. Runtime Bridge may map or transport that
+description. Neither layer may turn description into current legality, choose a
+parent or head, or mint lineage authority. A pleasant proof API must preserve
+this split rather than hiding an authority transfer behind fluent DX.
+
 ### Implementation topology
 
 The default implementation posture should be additive surfaces over the

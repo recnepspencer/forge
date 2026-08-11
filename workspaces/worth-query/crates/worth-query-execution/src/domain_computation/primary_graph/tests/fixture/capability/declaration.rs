@@ -318,6 +318,6 @@ impl CapabilityTouchInput {
             ),
         ))
         .field(self.disclosure)
-        .amount(self.amount))
+        .magnitude(self.amount))
     }
 }

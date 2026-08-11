@@ -61,19 +61,15 @@ mod tests {
             }
         }
 
-        fn with_deadline_after_setup(deadline_after: Duration) -> Self {
-            let setup_cancellation = WorthQueryCancellationSource::new();
-            let setup_request = WorthQueryRequestScope::new(
-                Instant::now() + Duration::from_secs(60),
-                setup_cancellation.token(),
-            );
-            let mut context = Self::new(setup_request);
+        fn with_already_expired_deadline_after_open(&self, lease: &mut TestLiveLease<'_, '_>) {
             let live_cancellation = WorthQueryCancellationSource::new();
-            context.request = WorthQueryRequestScope::new(
-                Instant::now() + deadline_after,
+            // Instant deadline comparison is `now >= deadline`, so binding the
+            // current instant makes the next poll sample DeadlineExceeded
+            // without sleeping or racing open.
+            lease.replace_request(WorthQueryRequestScope::new(
+                Instant::now(),
                 live_cancellation.token(),
-            );
-            context
+            ));
         }
 
         fn open(&self) -> TestLiveLease<'_, '_> {
@@ -207,10 +203,15 @@ mod tests {
             BridgeExecutionBasisLifecycleSignalStatus::Cancelled,
         );
 
-        let deadline_context = LiveContext::with_deadline_after_setup(Duration::from_secs(2));
+        let deadline_context = LiveContext::new(
+            crate::domain_computation::primary_graph::tests::fixture::live_scope(),
+        );
         let mut deadline_lease = deadline_context.open();
         let (deadline_bridge, deadline_relational) = observers(&deadline_lease);
-        std::thread::sleep(Duration::from_millis(2_050));
+        // Live-lease deadlines still sample wall-clock Instant, not the Gate
+        // 8.3 injectable runtime clock. Open under a non-expiring scope, then
+        // bind an already-expired deadline only to the poll phase under test.
+        deadline_context.with_already_expired_deadline_after_open(&mut deadline_lease);
         assert!(matches!(
             deadline_lease.poll(),
             WorthQueryApplicationLiveOutcome::DeadlineExceeded

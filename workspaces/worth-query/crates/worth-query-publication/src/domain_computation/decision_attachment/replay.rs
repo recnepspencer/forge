@@ -1,7 +1,7 @@
 use worth_query_installation::facade::WorthQueryStructuralCounterReplayPosture;
 
 use super::{
-    WorthQueryAdmittedDomainEvidence, WorthQueryAdmittedStructuralCounter,
+    WorthQueryAdmittedDomainEvidenceContent, WorthQueryAdmittedStructuralCounter,
     WorthQueryDomainEvidenceCore,
 };
 
@@ -11,7 +11,7 @@ pub struct WorthQueryDomainEvidenceReplayMeaning {
     core: WorthQueryDomainEvidenceCore,
 }
 
-impl WorthQueryAdmittedDomainEvidence {
+impl WorthQueryAdmittedDomainEvidenceContent {
     pub fn replay_meaning(&self) -> WorthQueryDomainEvidenceReplayMeaning {
         WorthQueryDomainEvidenceReplayMeaning {
             contract_identity: self.contract_identity().to_owned(),

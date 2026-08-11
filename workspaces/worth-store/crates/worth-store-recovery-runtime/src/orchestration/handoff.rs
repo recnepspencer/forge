@@ -1,0 +1,66 @@
+use crate::entry::{PhysicalRecoveryOutcome, PhysicalRecoveryPublicationIndeterminate};
+use crate::handoff::{RecoveredPhysicalRuntimeHandoff, RecoveredPhysicalRuntimeHandoffEvidence};
+use crate::progression::ReopenedPhysicalRecovery;
+
+pub(crate) fn finish_recovery_without_cleanup(
+    reopened: ReopenedPhysicalRecovery,
+    cleanup: crate::handoff::RecoveryCleanupPosture,
+) -> PhysicalRecoveryOutcome {
+    let ReopenedPhysicalRecovery {
+        state,
+        expectation,
+        publication_counters,
+        publication_settlement,
+        reopened,
+        reopen_counters,
+    } = reopened;
+    let store = state.authority.media.store_identity();
+    let session_identity = state.authority.session.identity();
+    let recovery_effects = state.authority.media.recovery_effect_count();
+    let crate::entry::AdmittedPlatformAuthority { media, session, .. } = state.authority;
+    let coordination = state.coordination.into_owner();
+    let construction = worth_store::physical_runtime::PhysicalRecoveryConstructionPort::construct(
+        coordination,
+        media,
+        reopened,
+    );
+    match construction {
+        Ok(core) => {
+            let session = session.recovered();
+            PhysicalRecoveryOutcome::Recovered(RecoveredPhysicalRuntimeHandoff::new(
+                core,
+                RecoveredPhysicalRuntimeHandoffEvidence {
+                    session,
+                    selection: state.selection,
+                    discovery: state.discovery_counters,
+                    freshness: state.freshness,
+                    fates: state.fates,
+                    planning: state.planning_counters,
+                    base: state.base,
+                    quiescence: state.quiescence,
+                    closed: state.closed,
+                    staging: state.staging_counters,
+                    staging_settlements: state.staging_settlements,
+                    publication_expectation: expectation,
+                    publication: publication_counters,
+                    publication_settlement,
+                    reopen: reopen_counters,
+                    cleanup,
+                },
+            ))
+        }
+        Err(denial) => {
+            session.publication_indeterminate();
+            PhysicalRecoveryOutcome::PublicationIndeterminate(
+                PhysicalRecoveryPublicationIndeterminate::new(
+                    store,
+                    session_identity,
+                    publication_counters,
+                    publication_settlement,
+                    recovery_effects,
+                )
+                .with_handoff_failure(denial),
+            )
+        }
+    }
+}

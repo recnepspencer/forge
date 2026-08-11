@@ -18,6 +18,7 @@ use bank_server::{
     BankAuthenticatedPrincipal, BankEmployeeAssignmentSeed, BankPrincipalSeed, BankWorldSeed,
 };
 
+use crate::authorization_time::{runtime_with_authorization_time, AuthorizationTimeController};
 use crate::support::{block_on, runtime, CausalCredential, DynamicIdentity, TestIdentityWorld};
 use snapshot::snapshot;
 use world::estate_world;
@@ -76,25 +77,25 @@ impl DisbursementWorldSpec {
     }
 }
 
-pub(super) struct DisbursementFixture {
-    pub(super) world: TestIdentityWorld,
+pub(crate) struct DisbursementFixture {
+    pub(crate) world: TestIdentityWorld,
     identities: [DynamicIdentity; 5],
-    pub(super) estate: EstateCaseId,
-    pub(super) source: AccountId,
-    pub(super) destination: AccountId,
-    pub(super) beneficiary: BankPrincipalId,
+    pub(crate) estate: EstateCaseId,
+    pub(crate) source: AccountId,
+    pub(crate) destination: AccountId,
+    pub(crate) beneficiary: BankPrincipalId,
 }
 
 impl DisbursementFixture {
-    pub(super) fn authenticate_actor(&self) -> BankAuthenticatedPrincipal {
+    pub(crate) fn authenticate_actor(&self) -> BankAuthenticatedPrincipal {
         self.authenticate(1)
     }
 
-    pub(super) fn authenticate_source_owner(&self) -> BankAuthenticatedPrincipal {
+    pub(crate) fn authenticate_source_owner(&self) -> BankAuthenticatedPrincipal {
         self.authenticate(0)
     }
 
-    pub(super) fn authenticate_beneficiary(&self) -> BankAuthenticatedPrincipal {
+    pub(crate) fn authenticate_beneficiary(&self) -> BankAuthenticatedPrincipal {
         self.authenticate(2)
     }
 
@@ -108,7 +109,7 @@ impl DisbursementFixture {
         .expect("the disbursement fixture principal should authenticate")
     }
 
-    pub(super) fn action(&self, amount: i64) -> EstateAction {
+    pub(crate) fn action(&self, amount: i64) -> EstateAction {
         disbursement_action(
             self.estate,
             self.source,
@@ -119,21 +120,47 @@ impl DisbursementFixture {
     }
 }
 
-pub(super) fn disbursement_world(scenario: &str, source_balance: i64) -> DisbursementFixture {
+pub(crate) fn disbursement_world(scenario: &str, source_balance: i64) -> DisbursementFixture {
     build_world(
         scenario,
         source_balance,
         false,
         DisbursementWorldSpec::ready(),
+        None,
+        None,
+    )
+}
+
+/// Disbursement world with host-owned clock and optional grant expiry (R8.43 A9 / X2).
+pub(crate) fn disbursement_world_with_clock_and_grant_validity(
+    scenario: &str,
+    source_balance: i64,
+    authorization_time: Option<AuthorizationTimeController>,
+    grant_valid_until_epoch: Option<u64>,
+) -> DisbursementFixture {
+    build_world(
+        scenario,
+        source_balance,
+        false,
+        DisbursementWorldSpec::ready(),
+        authorization_time,
+        grant_valid_until_epoch,
     )
 }
 
 pub(super) fn disbursement_drift_world(scenario: &str) -> DisbursementFixture {
-    build_world(scenario, 1_000, true, DisbursementWorldSpec::ready())
+    build_world(
+        scenario,
+        1_000,
+        true,
+        DisbursementWorldSpec::ready(),
+        None,
+        None,
+    )
 }
 
 pub(super) fn hostile_world(scenario: &str, spec: DisbursementWorldSpec) -> DisbursementFixture {
-    build_world(scenario, 1_000, false, spec)
+    build_world(scenario, 1_000, false, spec, None, None)
 }
 
 fn build_world(
@@ -141,6 +168,8 @@ fn build_world(
     source_balance: i64,
     include_drift_authority: bool,
     spec: DisbursementWorldSpec,
+    authorization_time: Option<AuthorizationTimeController>,
+    grant_valid_until_epoch: Option<u64>,
 ) -> DisbursementFixture {
     let identities = [
         DynamicIdentity::new(&format!("{scenario}-deceased")),
@@ -162,7 +191,17 @@ fn build_world(
             ACTOR,
             EmployeeRole::EstateSpecialist,
         ))
-        .estate(estate_world(include_drift_authority, spec)),
+        .employee(BankEmployeeAssignmentSeed::new(
+            EmployeeAssignmentId::new(2).unwrap(),
+            INSTITUTION,
+            ACTOR,
+            EmployeeRole::Teller,
+        ))
+        .estate(estate_world(
+            include_drift_authority,
+            spec,
+            grant_valid_until_epoch,
+        )),
         |seed, (ordinal, identity)| {
             seed.principal(BankPrincipalSeed::enabled(
                 principals[ordinal],
@@ -170,8 +209,12 @@ fn build_world(
             ))
         },
     );
+    let world = match authorization_time {
+        Some(source) => runtime_with_authorization_time(seed, source),
+        None => runtime(seed),
+    };
     DisbursementFixture {
-        world: runtime(seed),
+        world,
         identities,
         estate: ESTATE,
         source: SOURCE,

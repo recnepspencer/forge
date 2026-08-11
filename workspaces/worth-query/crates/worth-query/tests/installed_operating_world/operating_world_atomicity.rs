@@ -81,17 +81,22 @@ fn primary_and_separate_mutation_requires_declared_compensation() {
     );
     assert_eq!(contacts.load(Ordering::Relaxed), 0);
 
+    // Positive twin remains closed until domain operations compile aftermath
+    // from their own declaration (no public domain installer).
     let compensated = runtime(true, Arc::clone(&contacts), "mixed-compensated");
     let installed = compensated.domain(GeometryDomain).unwrap();
-    let bound = compensated
+    let denial = match compensated
         .prepare_mutation_operating_world()
         .unwrap()
         .family(MutationFamily)
         .bind(&installed, WorkflowMutation)
-        .unwrap();
+    {
+        Ok(_) => panic!("domain fixtures cannot author compensation aftermath"),
+        Err(denial) => denial,
+    };
     assert_eq!(
-        bound.commit_posture(),
-        domain::WorthQueryBoundCommitPosture::Compensated
+        denial.kind(),
+        domain::WorthQueryOperationBindingDenialKind::CompensationUndeclared
     );
     assert_eq!(contacts.load(Ordering::Relaxed), 0);
 }

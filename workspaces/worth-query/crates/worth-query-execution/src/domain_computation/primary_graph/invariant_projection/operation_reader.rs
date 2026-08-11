@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationOperationDecisionReadTarget,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationOperationDecisionReadTarget,
     ApplicationRelationRef, ApplicationSchema, EqualityPredicate, OperationReads,
     TypedApplicationReadableValue, TypedApplicationValue, WritePosture,
 };
@@ -217,7 +217,7 @@ where
         self.reader.version()
     }
 
-    pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Currency>(
+    pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Unit>(
         &mut self,
         field: ApplicationFieldRef<
             Schema,
@@ -227,7 +227,7 @@ where
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
     ) -> Result<WorthQueryInvariantEntityIdentity<Schema, Entity>, WorthQueryEntityResolutionDenial>
@@ -235,12 +235,12 @@ where
         Field: OperationReads<Operation>,
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.reader.resolve_entity(field, value)
     }
 
-    pub fn resolve_optional_entity<Aspect, Entity, Field, Value, Write, Currency>(
+    pub fn resolve_optional_entity<Aspect, Entity, Field, Value, Write, Unit>(
         &mut self,
         field: ApplicationFieldRef<
             Schema,
@@ -250,7 +250,7 @@ where
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
     ) -> Result<
@@ -261,21 +261,21 @@ where
         Field: OperationReads<Operation>,
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.reader.resolve_optional_entity(field, value)
     }
 
-    pub fn field<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn field<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &mut self,
         identity: &WorthQueryInvariantEntityIdentity<Schema, Entity>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Option<Value>
     where
         Field: OperationReads<Operation>,
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.reader.field(identity, field)
     }
@@ -317,11 +317,11 @@ where
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >(
         &mut self,
         relation: ApplicationRelationRef<Schema, Relation, From, To>,
-        field: ApplicationFieldRef<Schema, From, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, From, Aspect, Field, Value, Write, Equality, Unit>,
         target: &WorthQueryInvariantEntityIdentity<Schema, To>,
     ) -> Result<super::WorthQueryInvariantAggregate<Value>, WorthQueryInvariantAggregateDenial>
     where
@@ -329,7 +329,7 @@ where
         Field: OperationReads<Operation>,
         Value: worth_query_installation::facade::TypedApplicationSignedAggregateValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.reader
             .summarize_exclusive_incoming(relation, field, target)

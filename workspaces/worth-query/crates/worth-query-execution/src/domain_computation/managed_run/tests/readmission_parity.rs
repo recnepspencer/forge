@@ -141,18 +141,23 @@ fn repeated_readmission_matches_uninterrupted_semantics_and_structural_evidence(
 
 #[test]
 fn readmission_transfers_saturated_capacity_without_a_second_reservation() {
-    let (yielded, bridge, runtime) = super::readmission_direct::yielded_direct();
+    let (yielded, bridge, runtime, mut probes) =
+        super::readmission_direct::yielded_direct_with_plan_observation(|resources| {
+            (0..11)
+                .map(|_| readmit_capacity_probe(resources))
+                .collect::<Vec<_>>()
+        });
     let mut saturation_holders = Vec::new();
-    for probe in (0..8).map(|_| readmit_capacity_probe(yielded.resource_attempt.resources())) {
+    for probe in probes.drain(..8) {
         let Some(reservation) = reserve_execution_resource_plan(probe) else {
             break;
         };
         saturation_holders.push(reservation);
     }
-    let saturation_probe = readmit_capacity_probe(yielded.resource_attempt.resources());
-    let active_probe = readmit_capacity_probe(yielded.resource_attempt.resources());
-    let released_probe = readmit_capacity_probe(yielded.resource_attempt.resources());
-    let retained_reservations = yielded.retained_capacity_reservation_count();
+    let saturation_probe = probes.remove(0);
+    let active_probe = probes.remove(0);
+    let released_probe = probes.remove(0);
+    let retained_reservations = yielded.inspection().retained_capacity_reservation_count();
 
     assert_eq!(
         saturation_holders.len(),
@@ -189,7 +194,7 @@ fn readmission_transfers_saturated_capacity_without_a_second_reservation() {
         .cleanup()
         .expect("completed readmitted run should clean up");
     assert_eq!(
-        cleanup.attempt().capacity().released_reservation_count(),
+        cleanup.inspection().released_reservation_count(),
         retained_reservations
     );
 

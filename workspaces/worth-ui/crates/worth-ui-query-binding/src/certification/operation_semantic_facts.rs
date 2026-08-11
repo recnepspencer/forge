@@ -20,7 +20,7 @@ pub struct WorthUiInstalledOperationCertificationFacts {
     replay: domain::WorthQueryOperationReplayContract,
     conditional_node_count: usize,
     semantic_read_count: usize,
-    reversal: domain::WorthQueryOperationReversalContract,
+    aftermath: Option<domain::WorthQueryInstalledAftermathContract>,
     lineage: domain::WorthQueryOperationLineageContract,
     dependency_impact: domain::WorthQuerySupportRequirement,
     executor_contacts: usize,
@@ -49,7 +49,7 @@ impl WorthUiInstalledQueryTestFixture {
                 .iter()
                 .map(|role| role.semantic_reads.len())
                 .sum(),
-            reversal: snapshot_semantics.reversal.clone(),
+            aftermath: snapshot_semantics.aftermath.clone(),
             lineage: snapshot_semantics.lineage,
             dependency_impact: recording.semantics().support.dependency_impact,
             executor_contacts: settled.counters().executor_contacts,
@@ -124,8 +124,8 @@ impl WorthUiInstalledOperationCertificationFacts {
         self.semantic_read_count
     }
 
-    pub fn reversal(&self) -> &domain::WorthQueryOperationReversalContract {
-        &self.reversal
+    pub fn aftermath(&self) -> Option<&domain::WorthQueryInstalledAftermathContract> {
+        self.aftermath.as_ref()
     }
 
     pub fn lineage(&self) -> domain::WorthQueryOperationLineageContract {

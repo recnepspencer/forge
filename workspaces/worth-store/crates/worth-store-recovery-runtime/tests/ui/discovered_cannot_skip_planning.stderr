@@ -1,0 +1,5 @@
+error[E0599]: no method named `plan` found for struct `DiscoveredPhysicalRecovery` in the current scope
+ --> tests/ui/discovered_cannot_skip_planning.rs:4:24
+  |
+4 |     let _ = discovered.plan();
+  |                        ^^^^ method not found in `DiscoveredPhysicalRecovery`

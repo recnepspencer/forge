@@ -217,39 +217,41 @@ pub(super) fn seed_rocketship_world(
         };
         relation_commit_micros += relation_commit_started_at.elapsed().as_micros();
         relation_commit_phase_timing.draft_preparation_micros +=
-            outcome.execution.phase_timing.draft_preparation_micros;
+            outcome.execution().phase_timing.draft_preparation_micros;
         relation_commit_phase_timing.draft_bulk_admission_micros +=
-            outcome.execution.phase_timing.draft_bulk_admission_micros;
+            outcome.execution().phase_timing.draft_bulk_admission_micros;
         relation_commit_phase_timing.draft_merge_plan_micros +=
-            outcome.execution.phase_timing.draft_merge_plan_micros;
+            outcome.execution().phase_timing.draft_merge_plan_micros;
         relation_commit_phase_timing.draft_structural_summary_micros += outcome
-            .execution
+            .execution()
             .phase_timing
             .draft_structural_summary_micros;
         relation_commit_phase_timing.draft_working_state_clone_micros += outcome
-            .execution
+            .execution()
             .phase_timing
             .draft_working_state_clone_micros;
         relation_commit_phase_timing.working_state_preparation_micros += outcome
-            .execution
+            .execution()
             .phase_timing
             .working_state_preparation_micros;
         relation_commit_phase_timing.invariant_pre_check_micros +=
-            outcome.execution.phase_timing.invariant_pre_check_micros;
-        relation_commit_phase_timing.authoritative_mutation_micros +=
-            outcome.execution.phase_timing.authoritative_mutation_micros;
+            outcome.execution().phase_timing.invariant_pre_check_micros;
+        relation_commit_phase_timing.authoritative_mutation_micros += outcome
+            .execution()
+            .phase_timing
+            .authoritative_mutation_micros;
         relation_commit_phase_timing.history_resolution_micros +=
-            outcome.execution.phase_timing.history_resolution_micros;
+            outcome.execution().phase_timing.history_resolution_micros;
         relation_commit_phase_timing.invariant_post_check_micros +=
-            outcome.execution.phase_timing.invariant_post_check_micros;
+            outcome.execution().phase_timing.invariant_post_check_micros;
         relation_commit_phase_timing.artifact_assembly_micros +=
-            outcome.execution.phase_timing.artifact_assembly_micros;
+            outcome.execution().phase_timing.artifact_assembly_micros;
         relation_commit_phase_timing.durable_append_micros +=
-            outcome.execution.phase_timing.durable_append_micros;
+            outcome.execution().phase_timing.durable_append_micros;
         relation_commit_phase_timing.publication_micros +=
-            outcome.execution.phase_timing.publication_micros;
+            outcome.execution().phase_timing.publication_micros;
         relation_commit_phase_timing.publication_storage_commit_micros += outcome
-            .execution
+            .execution()
             .phase_timing
             .publication_storage_commit_micros;
         assert_eq!(

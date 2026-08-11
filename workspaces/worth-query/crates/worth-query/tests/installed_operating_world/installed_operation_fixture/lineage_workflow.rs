@@ -243,6 +243,7 @@ fn lineage_workflow_operation(
     semantics.effects = domain::WorthQueryOperationEffectContract::Declared {
         effect_families: vec![domain::WorthQueryOperationEffectFamily::Mutation],
     };
+    semantics.aftermath = None;
     semantics.promotion = if promotion_on_reference {
         domain::WorthQueryOperationPromotionContract::OnDurableReference
     } else {

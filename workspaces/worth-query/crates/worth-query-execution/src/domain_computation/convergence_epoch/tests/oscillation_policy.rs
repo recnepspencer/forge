@@ -4,7 +4,7 @@ use super::fixture::{
 use crate::domain_computation::{
     WorthQueryConvergenceEpochDenialKind, WorthQueryConvergenceIndeterminateCause,
     WorthQueryConvergenceTerminalKind, WorthQueryDirectConvergenceIterationOutcome,
-    WorthQueryDirectConvergenceTerminal, WorthQueryDirectGraphStepOutcome,
+    WorthQueryDirectConvergenceStepOutcome, WorthQueryDirectConvergenceTerminal,
     WorthQueryGraphProviderCallKind, WorthQueryIndeterminate, WorthQueryManagedGraphCallRequest,
     WorthQueryOscillating,
 };
@@ -123,14 +123,9 @@ fn terminal_outcome(
         Ok(started) => started,
         Err(_) => panic!("oscillation policy fixture iteration must start"),
     };
-    let (pending, active) = started.into_parts();
-    let completion = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("oscillation policy fixture provider must complete"),
-    };
-    let outcome = match pending.admit_completion(completion) {
-        Ok(outcome) => outcome,
-        Err(_) => panic!("oscillation policy completion must rejoin its epoch"),
+    let outcome = match started.advance() {
+        WorthQueryDirectConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("oscillation policy fixture provider must complete and rejoin its epoch"),
     };
     outcome
 }

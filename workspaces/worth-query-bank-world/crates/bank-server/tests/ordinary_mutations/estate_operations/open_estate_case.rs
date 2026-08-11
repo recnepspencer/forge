@@ -3,13 +3,11 @@ mod fixture;
 
 use bank_domain::estate::{DeathNoticeStatus, EstateCaseStatus, EstateWorkflowStage};
 use bank_server::{
-    queries, BankAuthenticatedPrincipal, BankCommitReceipt, BankEstateCaseOpeningProjectionDenial,
-    BankEstateProgressionDenial, BankMutationCommitOutcome, BankReadControls,
+    queries, BankAuthenticatedPrincipal, BankCommitDenialKind, BankCommitDenialStage,
+    BankCommitReceipt, BankEstateCaseOpeningProjectionDenial, BankEstateProgressionDenial,
+    BankMutationCommitOutcome, BankReadControls,
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationIdempotencyBinding,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
 use self::fixture::{case_opening_world, CaseOpeningFixture};
 use crate::support::request_scope;
@@ -71,7 +69,7 @@ fn assert_equivalent_retry(
     let BankMutationCommitOutcome::AlreadyCommitted(recovered) = retry else {
         panic!("the equivalent retry must recover the exact commit: {retry:?}");
     };
-    assert!(committed.is_same_authoritative_commit(&recovered));
+    assert_eq!(committed.aftermath(), recovered.aftermath());
     assert_zero_canonical_work(recovered.canonical_work());
 }
 
@@ -89,8 +87,8 @@ fn assert_intent_drift(fixture: &CaseOpeningFixture, specialist: &BankAuthentica
     assert!(matches!(
         drift,
         BankMutationCommitOutcome::Denied {
-            kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
-            stage: WorthQueryApplicationCommitDenialStage::Idempotency,
+            kind: BankCommitDenialKind::IdempotencyIntentDrift,
+            stage: BankCommitDenialStage::Idempotency,
         }
     ));
 }
@@ -117,8 +115,8 @@ fn foreign_verified_notice_reaches_projection_but_cannot_open_the_case() {
     assert!(matches!(
         denial,
         BankEstateProgressionDenial::CaseOpeningProjection(
-            BankEstateCaseOpeningProjectionDenial::NoticeMismatch { expected, observed }
-        ) if expected == fixture.foreign_notice && observed == fixture.notice
+            BankEstateCaseOpeningProjectionDenial::NoticeMismatch
+        )
     ));
     assert_case_posture(
         &fixture,
@@ -129,6 +127,7 @@ fn foreign_verified_notice_reaches_projection_but_cannot_open_the_case() {
 
 #[test]
 fn only_a_verified_notice_may_enter_case_opening() {
+    let mut first_public_debug = None;
     for (ordinal, notice_status) in [
         DeathNoticeStatus::Reported,
         DeathNoticeStatus::NotificationRequested,
@@ -156,15 +155,22 @@ fn only_a_verified_notice_may_enter_case_opening() {
         assert!(matches!(
             denial,
             BankEstateProgressionDenial::CaseOpeningProjection(
-                BankEstateCaseOpeningProjectionDenial::NoticeNotVerified(observed)
-            ) if observed == notice_status
+                BankEstateCaseOpeningProjectionDenial::NoticeNotVerified
+            )
         ));
+        let public_debug = format!("{denial:?}");
+        if let Some(first) = &first_public_debug {
+            assert_eq!(first, &public_debug);
+        } else {
+            first_public_debug = Some(public_debug);
+        }
         assert_case_posture(&fixture, EstateCaseStatus::PendingOpening, notice_status);
     }
 }
 
 #[test]
 fn only_a_pending_case_may_enter_case_opening() {
+    let mut first_public_debug = None;
     for (ordinal, case_status) in [
         EstateCaseStatus::Open,
         EstateCaseStatus::Released,
@@ -192,9 +198,15 @@ fn only_a_pending_case_may_enter_case_opening() {
         assert!(matches!(
             denial,
             BankEstateProgressionDenial::CaseOpeningProjection(
-                BankEstateCaseOpeningProjectionDenial::CaseNotPendingOpening(observed)
-            ) if observed == case_status
+                BankEstateCaseOpeningProjectionDenial::CaseNotPendingOpening
+            )
         ));
+        let public_debug = format!("{denial:?}");
+        if let Some(first) = &first_public_debug {
+            assert_eq!(first, &public_debug);
+        } else {
+            first_public_debug = Some(public_debug);
+        }
         assert_case_posture(&fixture, case_status, DeathNoticeStatus::Verified);
     }
 }
@@ -224,9 +236,7 @@ fn idempotency(identity: u8) -> WorthQueryApplicationIdempotencyBinding {
     WorthQueryApplicationIdempotencyBinding::new([identity; 32], [identity + 1; 32])
 }
 
-fn assert_zero_canonical_work(
-    phases: worth_query_host::facade::domain::WorthQueryCanonicalWorkPhases,
-) {
+fn assert_zero_canonical_work(phases: bank_server::BankCommitCanonicalWorkPhases) {
     for work in [
         phases.installation(),
         phases.admission(),

@@ -26,15 +26,18 @@ this roadmap into physical database implementation.
 This roadmap does not preserve the current collaboration extension planned as
 Phases 36 through 41 of Query Milestone 9.3.8. Their valid product obligations
 are redesigned here against the complete semantic, durable, and offline
-problem. Query remains the ordinary product facade, but Query-facing admission,
-witness, classification, recovery, and inspection are built only after the
-lower-authority merge model is real.
+problem. Query remains the ordinary product facade. Query Milestones 9.17 and
+9.18 establish the inherited single-parent composite runtime branch/history and
+tree-based semantic correction surface over exact Relational and Signal bases;
+this roadmap builds Query-facing merge, rebase, collaboration, offline,
+distributed-recovery, and complete semantic-Git workflows only after those
+lower authorities are real.
 
 ## Roadmap Position
 
 ```text
 Query Milestone 9.3.8 Phase 35
-  -> Milestones 1-10: semantic branching and merge authority
+  -> Milestones 1-10: semantic-world branching extensions and merge authority
   -> Milestones 11-15: collaborative control plane and Query product surface
   -> Milestones 16-18: offline, causality, CRDT, and selective replication
   -> Milestones 19-21: lifecycle, extension, and operational truth
@@ -50,23 +53,28 @@ semantic-history, merge, collaboration, offline, or convergence model defined
 here. This roadmap builds the missing authority-owned capabilities in dependency
 order and then joins them through their public contracts.
 
-- Relational begins with transaction, MVCC, visibility, version, identity, and
-  branch-adjacent authority. Milestones 2 through 10 build the composite
-  semantic-world basis, immutable commit and mutable reference graph, canonical
-  change model, definition and lineage history, semantic merge execution,
-  invariant gating, and conflict authority it does not yet have as one complete
-  system.
-- Signal begins with dependency, invalidation, evaluation, and managed-resource
-  substrate. Milestone 12 builds versioned Signal definition worlds,
-  branch-local derived-state lifecycle, and post-merge reconciliation from
-  published authority rather than assuming those capabilities already exist.
-- Runtime Bridge begins with causal crossing and runtime-continuity substrate.
-  Milestones 13 and 14 build the collaboration-specific phase protocol,
-  publication continuity, incomplete-transition recovery, and Store-backed
-  widening points.
-- Query begins with the ordinary declaration and runtime facade. Milestone 15
-  builds the semantic-Git workflow and inspection surface over the completed
-  lower-authority model rather than unifying pre-existing product workflows.
+- Relational begins with the component branch authority, branch-affine MVCC,
+  transaction, visibility, truth version, authoritative commit, ancestry, and
+  owner-local publication accepted by Query Milestone 9.17. Milestones 2
+  through 10 extend that substrate with complete semantic-world components,
+  canonical change, definition and lineage history, semantic merge execution,
+  invariant gating, and conflict authority without replacing its owner-local
+  branch laws.
+- Signal begins with its owner-issued component branch bases, dependency,
+  invalidation, evaluation, snapshot/restore, and managed-resource substrate
+  admitted by Query Milestone 9.17. Milestone 12 extends this into versioned
+  Signal definition worlds and post-merge reconciliation without promoting
+  derived values into authority.
+- Runtime Bridge begins with Milestone 9.17's exact component correspondence,
+  single-parent composite commits, product branch references, and coordinated
+  compare-and-publish. Milestones 2, 3, 13, and 14 extend those foundations into
+  complete semantic-world basis, multi-parent history, collaboration-specific
+  phase protocol, publication continuity, incomplete-transition recovery, and
+  Store-backed widening points.
+- Query begins with the ordinary declaration/runtime facade and the tree-based
+  reversal/reapplication contract accepted by Query Milestone 9.18. Milestone
+  15 integrates those surfaces into the complete semantic-Git workflow over
+  the completed merge/collaboration authorities rather than replacing them.
 - The Store program does not supply missing semantic branch or merge behavior.
   Its Part I physical runtime remains branch-agnostic, and its Part II
   composition consumes the contracts built here to earn Store-backed
@@ -80,8 +88,11 @@ that ownership real.
 
 The relationship to the active Store program is asymmetric:
 
-- this roadmap owns semantic commit, branch, diff, merge, conflict,
-  collaboration, and offline laws in the existing Query runtime authorities
+- Query Milestones 9.17 and 9.18 own ordinary single-parent composite product
+  branch/history and tree-based semantic correction laws over exact component
+  bases; this roadmap owns their complete semantic-world, multi-parent, merge,
+  rebase, collaboration, offline, distributed-recovery, and convergence
+  extensions in the existing runtime authorities
 - the [Physical Database Roadmap](../worth-store/physical-database-roadmap.md)
   and its
   [Physical Foundation Reconstruction Roadmap](../worth-store/physical-foundation-reconstruction-roadmap.md)
@@ -128,31 +139,41 @@ governed resolution. They may not create conflict identity, participant
 authority, durable decision state, branch-aware carry-forward, or resolution
 session recovery.
 
-Query Milestone 9.16 may establish linear current-head undo and redo through a
-freshly admitted inverse or compensating operation. Query Milestone 9.17 may
-preserve that same linear aftermath contract when advanced access or bulk
-execution participated. Neither milestone owns branch selection, branch-local
-inversion, branch-shaped redo, history navigation, merge interaction, or
-branch-aware recovery, and neither may create a placeholder API, directory,
-support posture, or dormant authority for those capabilities.
+Query Milestone 9.16 contains a provisional linear current-head undo and redo
+implementation, but that code is not an accepted product contract. Query
+Milestone 9.17 establishes Runtime Bridge-owned composite product branches over
+exact Relational and Signal bases plus Relational branch-local MVCC. Query
+Milestone 9.18 then accepts ordinary runtime-backed tree-based reversal and
+reapplication as freshly admitted new composite-history operations over exact
+source world commits and target product branch heads. It owns source/target
+selection, component correction posture, branch-local applicability, history
+navigation, and ordinary public DX without owning component or composite
+history. This roadmap owns the later semantic merge, rebase, multi-parent,
+offline, durable, and distributed extensions and may not create a second
+undo/redo product beside Milestone 9.18.
 
 ## Branch-Aware Reversal And Redo Ownership
 
 Branch-aware reversal is a semantic-history operation, not a richer mode on a
-Query-local undo stack. It must name the exact source commit, admitted target
-branch and head generation, semantic-world and definition basis, canonical
-change being inverted or reapplied, current actor authority and policy,
-applicability against intervening history, conflict and invariant posture,
-publication plan, and recovery meaning.
+Query-local undo stack. Milestone 9.18 establishes that invariant for ordinary
+runtime-backed history: it names the exact source composite commit, admitted
+target product branch and head generation, exact Relational and Signal bases,
+semantic-world and definition basis, per-component correction posture, current
+actor authority and policy, applicability against intervening history,
+conflict and invariant posture, coordinated publication plan, and recovery
+meaning.
 
-The capability enters through this roadmap in dependency order:
+This roadmap extends that accepted capability in dependency order:
 
-- Milestone 3 owns the canonical commit, parent, branch, reference, and
-  compare-and-publish truth needed to identify the source and target history.
-- Milestone 4 owns lawful semantic inversion and reapplication as new canonical
-  changes, including non-invertible, revalidation-required, and
-  conflict-requiring posture. It never erases or moves existing history by
-  implication.
+- Query Milestone 9.17 establishes owner-local Relational and Signal branch
+  bases plus Runtime Bridge composition authority for initial single-parent
+  composite commits, product references, ancestry, and compare-and-publish;
+  cross-runtime Milestones 2 and 3 extend those authorities into the complete
+  semantic-world basis and multi-parent history without replacing them.
+- Query Milestone 9.18 owns ordinary lawful inversion, compensation,
+  reconciliation, and reapplication as new composite commits. Cross-runtime
+  Milestone 4 integrates that contract with canonical semantic change/diff and
+  broader applicability without defining another correction lifecycle.
 - Milestones 7 and 8 own aspect-, relationship-, topology-, and
   invariant-sensitive interaction with intervening branch changes.
 - Milestones 10 and 11 own governed conflict resolution and durable
@@ -160,16 +181,19 @@ The capability enters through this roadmap in dependency order:
   automatically applicable.
 - Milestones 13 and 14 own cross-runtime publication, effect fate,
   acknowledgment, indeterminate outcome, and recovery.
-- Milestone 15 owns the ordinary Query-facing branch-aware reversal, redo, and
-  history-navigation product surface over those completed authorities.
+- Milestone 15 integrates the already accepted Milestone 9.18 reversal, redo,
+  and history-navigation surface into the complete Query semantic-Git facade
+  and adds merge/rebase-aware outcomes over the completed lower authorities.
 - Milestone 22 owns hostile certification across divergence, merge, crash,
   authority drift, and Store-backed restart.
 
-A Milestone 9.16 linear receipt or redo intent may later be readmitted as
-descriptive source evidence. It cannot mint a branch basis, canonical inverse,
-reference update, merge decision, publication capability, or recovery
-authority. Until the owning milestones above close, the supported Query
-surface remains explicitly linear and current-head only.
+A provisional Milestone 9.16 linear receipt or redo intent may be accepted,
+revised, or discarded only by Milestone 9.18. It cannot mint a branch basis,
+canonical inverse, reference update, merge decision, publication capability,
+or recovery authority. Milestone 9.18 may ship the ordinary single-parent
+composite tree-based surface after its own courtroom closes; merge-, rebase-,
+offline-, durable-, or distributed-aware correction claims remain unavailable
+until their owning cross-runtime milestones close.
 
 ## Governing Summaries
 
@@ -287,13 +311,16 @@ not grant completion credit to the current implementation.
 
 1. Worth Query is the ordinary authoring, workflow, inspection, and recovery
    facade for collaboration.
-2. Worth Relational owns authoritative semantic version history, branch heads,
-   MVCC visibility, authoritative change application, merge planning inputs,
-   and authoritative merge publication.
-3. Worth Signal owns definition-bound derived graph evaluation, invalidation,
-   branch-local derived state, and post-merge derived reconciliation.
-4. Worth Runtime Bridge owns the causal protocol joining authoritative truth
-   publication to derived evaluation and cross-runtime continuity.
+2. Worth Relational owns authoritative graph truth, Relational component
+   branches and commits, truth-version history, MVCC visibility, authoritative
+   change application, merge planning inputs, and owner-local publication.
+3. Worth Signal owns Signal component branches and bases, versioned
+   definition-bound evaluation meaning, invalidation, branch-local derived
+   state, and post-merge derived reconciliation.
+4. Worth Runtime Bridge owns exact component correspondence, composite runtime-
+   world commits and product references, and the causal protocol joining owner-
+   local publication to derived evaluation and cross-runtime continuity. It
+   coordinates component authorities without absorbing them.
 5. The physical Store instance owns durable bytes, physical access,
    checkpoint/recovery physics, physical transfer, reclamation mechanics, and
    exact physical effect fate. It remains ignorant of branch identity, MVCC
@@ -349,23 +376,29 @@ comparison, and integration. It is not the product feature checklist. WORTH
 uses version-control language only where it names a real semantic responsibility
 or law:
 
-1. A commit is an immutable node in semantic history. It binds ordered parent
-   identity, complete semantic-world basis, canonical authoritative change,
-   definition and policy basis, authoring authority, and provenance. Persisted
-   bytes, display names, or branch labels do not substitute for that identity.
+1. A composite commit is an immutable node in product semantic history. It
+   binds ordered parent identity, exact owner-issued component bases, complete
+   semantic-world basis, canonical authoritative changes, definition and
+   policy basis, authoring authority, correspondence, and provenance. A
+   component commit remains owned by its runtime. Persisted bytes, display
+   names, or branch labels do not substitute for either identity.
 2. A semantic world is the authoritative meaning observed at one admitted
    commit basis. It is not a copied map owned by a branch.
-3. A branch is an authority-governed mutable reference to one commit. Moving,
-   protecting, archiving, or deleting the reference is distinct from creating,
-   mutating, retaining, or reclaiming the commits it can reach.
+3. A product branch is a Runtime Bridge-owned mutable reference to one
+   composite commit. Relational and Signal branches remain owner-local
+   component references. Moving, protecting, archiving, or deleting any
+   reference is distinct from creating, mutating, retaining, or reclaiming the
+   commits and bases it can reach.
 4. A tag or other named reference has its own mutation, authority, and retention
    posture. Reference kind is not inferred from a string convention.
 5. A speculative workspace or preview is based on an exact commit but remains
    distinct from that commit and from any branch reference. Selecting or
    inspecting a basis does not move a reference or grant publication authority.
 6. Every reference update is compare-and-publish against an expected generation
-   and emits an auditable update record. Protection policy, authority, stale
-   head, indeterminate publication, and recovery posture are explicit.
+   and emits an auditable update record. Composite publication consumes exact
+   owner-issued component outcomes; a component head alone cannot make a
+   product world current. Protection policy, authority, stale head,
+   indeterminate publication, and recovery posture are explicit.
 7. Commit parent order is canonical and meaningful. The target lineage is the
    first-parent lineage for an ordinary merge; additional parents preserve the
    admitted source histories in canonical order.
@@ -576,32 +609,36 @@ Detailed spec:
 
 ### Goal
 
-Freeze only the semantic history vocabulary, authority direction, and
-enforcement boundaries required for Milestones 2 through 4 to build world
-basis, commit/reference history, and canonical semantic change without
-competing meanings.
+Freeze the semantic history vocabulary, authority direction, and enforcement
+boundaries inherited from Query Milestones 9.17 and 9.18 that Milestones 2
+through 4 require to extend complete world basis, multi-parent
+commit/reference history, and canonical semantic change without competing
+meanings.
 
 ### Hard Problem
 
 Query, Relational, Signal, and Bridge already contain adjacent notions of
-version, branch, basis, publication, and change. If Milestones 2 through 4
-extend them without one minimal ownership law, later merge work will inherit
-incompatible definitions of commit identity, reference movement, semantic
-world basis, and canonical change.
+version, branch, basis, publication, and change, and Milestone 9.17 adds the
+ordinary composite branch law. If Milestones 2 through 4 generalize those
+surfaces without preserving one minimal ownership law, later merge work will
+inherit incompatible definitions of component identity, composite commit
+identity, reference movement, semantic-world basis, and canonical change.
 
 ### Must Ship
 
-- an authority matrix limited to semantic-world basis, immutable commit,
-  mutable reference, canonical authoritative change, derived ancestry
-  acceleration, and Query projection
+- an authority matrix limited to component and composite semantic-world basis,
+  component and composite immutable commits, mutable references, canonical
+  authoritative change, derived ancestry acceleration, and Query projection
 - a vocabulary decision for world, basis, commit, ordered parent, branch, tag,
   reference, speculative workspace, semantic change, diff, and merge base
 - the minimum typed progression required to admit a world basis, observe or
   compare commits, prepare canonical change, and compare-and-publish a
   reference without caller-minted authority
 - boundary-check rules preventing Query from owning commit or reference truth,
-  Signal from publishing authority, persisted representations from minting
-  semantic authority, and ordinary crates from consuming certification replay
+  Signal or Relational component authority from moving composite product
+  references, Runtime Bridge composition authority from publishing component
+  truth, persisted representations from minting semantic authority, and
+  ordinary crates from consuming certification replay
 - one cross-roadmap handoff law stating that later Store-backed integration may
   consume these semantic contracts through Query provider and adapter
   boundaries while `SemanticClose` remains local to this foundation
@@ -612,10 +649,11 @@ proof enter with the milestone that owns them.
 
 ### Authority And Derivation
 
-This milestone creates architectural contracts, not a new runtime authority.
+This milestone extends architectural contracts, not runtime authority.
 Foundational receives only genuinely shared vocabulary. Proof receives only
-sealed progression or authority types. Existing crates retain their domain
-truth.
+sealed progression or authority types. Relational and Signal retain component
+truth, Runtime Bridge retains composition truth, and Query remains the product
+facade.
 
 ### DX Target
 
@@ -645,8 +683,9 @@ alone does not close this milestone.
 
 ### Goal
 
-Define one proof-bearing basis that identifies the complete semantic world in
-which a read, change, diff, merge, resolution, replay, or synchronization act is
+Extend Milestone 9.17's ordinary Relational-plus-Signal runtime basis into one
+proof-bearing basis that identifies the complete semantic world in which a
+read, change, diff, merge, resolution, replay, or synchronization act is
 interpreted.
 
 ### Hard Problem
@@ -673,10 +712,12 @@ different things under different definition worlds.
 
 ### Authority And Derivation
 
-Relational owns the authoritative truth-version component. Each definition
-authority owns its component. Query carries and projects the admitted composite
-basis. Foundational may carry the shared locator and compatibility vocabulary;
-it may not decide currentness.
+Relational owns the authoritative truth-version component. Signal owns its
+definition and execution-basis components. Each other definition or policy
+authority owns its component. Runtime Bridge joins exact owner-issued evidence
+and owns composite-basis admission/currentness without becoming any component
+owner. Query carries and projects the admitted basis. Foundational may carry
+shared locator and compatibility vocabulary; it may not decide currentness.
 
 ### DX Target
 
@@ -700,13 +741,14 @@ the composite proof-bearing basis. Earn `JoinedClose` later when the basis
 survives restart through the Store-backed composition root and fresh Query and
 Relational readmission without persisted authority promotion.
 
-## Milestone 3: Canonical Branch, Commit, And Reference Graph
+## Milestone 3: Canonical Composite Branch, Commit, And Reference Graph
 
 ### Goal
 
-Create the canonical semantic version DAG and branch-reference model required
-for arbitrary historical forks, multi-parent merges, concurrent writers, and
-long-running branch retention.
+Extend Milestone 9.17's canonical single-parent composite product branch and
+commit substrate into the semantic version DAG and reference model required for
+arbitrary historical forks, multi-parent merges, concurrent writers, and long-
+running branch retention.
 
 ### Hard Problem
 
@@ -717,9 +759,11 @@ semantic parenthood, reference kind, or branch truth.
 
 ### Must Ship
 
-- canonical commit identity, ordered parent identity, world basis, authoring
-  authority, semantic effect identity, and publication metadata
-- branch creation from any admitted retained basis, not only the current head
+- canonical composite commit identity, ordered parent identity, exact component
+  bases, complete world basis, authoring authority, semantic effect identity,
+  correspondence, and publication metadata
+- preservation of Milestone 9.17 branch creation from any admitted retained
+  basis while admitting semantic-world and multi-parent history
 - atomic compare-and-publish branch-head movement with typed stale-head outcome
 - multi-parent commits without flattening parent meaning into one predecessor
 - first-parent target lineage and canonical additional-parent ordering
@@ -740,10 +784,13 @@ semantic parenthood, reference kind, or branch truth.
 
 ### Authority And Derivation
 
-Relational owns semantic commit, reference, and branch truth. The Store-backed
-composition later preserves records and atomic physical evidence through the
-adapter without interpreting them. Ancestry accelerators are derived and
-rebuildable. Query exposes workflows but cannot move heads directly.
+Runtime Bridge owns composite semantic commits, product references, and product-
+branch currentness. Relational and Signal retain their component commit,
+reference, and branch truth; the bridge consumes only owner-issued component
+evidence. The Store-backed composition later preserves records and atomic
+physical evidence through the adapter without interpreting them. Ancestry
+accelerators are derived and rebuildable. Query exposes workflows but cannot
+move component or composite heads directly.
 
 ### DX Target
 
@@ -801,9 +848,10 @@ path/value patch would discard exactly the meaning later merge policy needs.
   typed non-invertible and revalidation-required posture
 - scoped diff planning that declares bases, aspect/relationship selection,
   correspondence requirements, and materialization needs before execution
-- branch-local reversal and reapplication plans bound to an exact source
-  commit, admitted target head generation, canonical source change, current
-  authority and policy, and applicability against intervening history
+- cross-runtime generalization of Milestone 9.18 reversal and reapplication
+  plans, bound to an exact source commit, admitted target head generation,
+  canonical source change, current authority and policy, and applicability
+  against intervening history
 - typed cleanly-applicable, revalidation-required, conflict-requiring,
   non-invertible, stale-head, and unavailable reversal or reapplication
   posture
@@ -835,9 +883,9 @@ changes with basis and ambiguity intact.
   identity, policy, conflict, and invariant drift reject or replan typed
 - composed changes preserve the final semantic world and provenance of their
   ordered source changes
-- branch-local reversal and reapplication create new canonical changes and
-  commits, preserve the original history, and agree with an independent
-  history oracle under intervening disjoint and conflicting changes
+- the generalized reversal and reapplication artifacts preserve Milestone
+  9.18's new-history semantics and agree with its independent history oracle
+  under intervening disjoint and conflicting changes
 - direct diff equals accumulated canonical commit effects after normalization
 - narrow diff work scales with candidate semantic delta plus declared
   dependency closure, not total graph size
@@ -1556,15 +1604,15 @@ projections over the real lower-authority model built in Milestones 1 through
   strategy, and protocol posture
 - semantic compare and diff declarations with aspect-, relationship-,
   definition-, topology-, and policy-level result shaping
-- branch and reference inspection, branch creation from an exact retained
-  basis, tag/reference policy, mutation, fast-forward classification, true
-  merge planning, conflict preview, resolution session, publication, and
-  post-merge inspection workflows
-- branch-aware reversal and redo declarations that select exact source and
-  target history, expose applicability/conflict/invariant posture before
-  publication, create new canonical changes rather than rewriting history, and
-  use the same governed publication and recovery progression as other branch
-  operations
+- integration of Milestone 9.17 composite product-branch and component-basis
+  inspection plus product-branch creation from an exact retained composite
+  basis, together with tag/reference policy, mutation, fast-forward
+  classification, true merge planning, conflict preview, resolution session,
+  publication, and post-merge inspection workflows
+- integration of Milestone 9.18's branch-aware reversal and redo declarations
+  into semantic compare, merge, rebase, publication, and recovery workflows,
+  preserving exact source/target selection and new-history semantics rather
+  than creating a parallel correction surface
 - specialization-neutral governed-resolution authoring, inspection, proposal,
   approval, deferral, replan, cancellation, recovery, and publication
   projection over the Milestones 10-14 authorities
@@ -1600,8 +1648,10 @@ losing access to advanced plan and recovery detail.
   witness, conflict, outcome, and recovery identity
 - hostile tests prove Query cannot synthesize basis, strategy, merge,
   publication, or recovery authority
-- linear Query aftermath receipts cannot be promoted directly into
-  branch-aware reversal, redo, reference movement, or publication authority
+- provisional Milestone 9.16 aftermath receipts cannot be promoted directly
+  into branch-aware reversal, redo, reference movement, or publication
+  authority; only Milestone 9.18's admitted correction artifacts may enter the
+  integrated surface
 - ergonomic helpers are projections over one canonical workflow, not parallel
   execution paths
 - documentation, goldens, support matrices, inventories, and compile-fail
@@ -2198,10 +2248,12 @@ in parallel only after the shared prerequisites below are fixed:
 
 This roadmap is complete only when WORTH can honestly say:
 
-- a semantic world is identified by complete proof-bearing meaning, not a raw
-  branch label or value snapshot
-- commits are immutable semantic-history nodes while branches, tags, and other
-  references retain distinct governed mutation and retention laws
+- a semantic world is identified by complete proof-bearing component meaning,
+  not a raw product, Relational, or Signal branch label or value snapshot
+- composite commits are immutable product semantic-history nodes while
+  component commits remain owner-local and product branches, component
+  branches, tags, and other references retain distinct governed mutation and
+  retention laws
 - fast-forward is reference movement, true merge preserves canonical
   multi-parent history, and multiple-best-base ancestry cannot be collapsed to
   an arbitrary merge base
@@ -2217,16 +2269,19 @@ This roadmap is complete only when WORTH can honestly say:
 - merge conflicts and later foreign-model repair, physical routing, assumption,
   and engineering-advisory problems reuse one governed-resolution lifecycle
   without collapsing their domain semantics or publication authorities
-- one cross-runtime protocol joins semantic preparation, durable publication,
-  branch-head truth, derived reconciliation, acknowledgment, and recovery
+- one cross-runtime protocol joins owner-local semantic preparation, composite
+  product-head publication, derived reconciliation, acknowledgment, and
+  recovery
 - the Store-backed composition closes that protocol through one Query runtime,
   one branch-agnostic physical Store instance, and one narrow adapter without
   creating Store-owned merge semantics
 - Query is the ordinary semantic-Git facade without becoming a second truth or
   merge engine
-- branch-aware reversal and redo are canonical new-history operations with
-  exact source/target bases, current authority, conflict handling, publication,
-  and recovery rather than extensions of a local linear undo stack
+- branch-aware reversal and redo begin as Milestone 9.18 canonical composite-
+  history operations with exact source/target component bases and current
+  authority; this roadmap preserves that contract while adding merge/rebase
+  conflict handling, durable publication, offline synchronization, and
+  distributed recovery
 - offline work crosses trust boundaries through capsules, quarantine, causal
   identity, migration, and fresh readmission
 - CRDT behavior is opt-in, law-proven, invariant-honest, and bounded

@@ -110,7 +110,7 @@ impl WorthQueryConvergenceIncumbentUpdate {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryConvergenceDomainDecision {
-    candidate_occurrence_identity: Arc<str>,
+    candidate_selection_key: Arc<str>,
     state_identity: Arc<str>,
     disposition: WorthQueryConvergenceDisposition,
     feasibility: WorthQueryConvergenceFeasibility,
@@ -125,15 +125,10 @@ impl WorthQueryConvergenceDomainDecision {
         progress: WorthQueryConvergenceProgress,
         repeated_state: WorthQueryConvergenceRepeatedState,
     ) -> Self {
-        let (
-            candidate_occurrence_identity,
-            state_identity,
-            disposition,
-            feasibility,
-            incumbent_update,
-        ) = comparison.into_parts();
+        let (candidate_selection_key, state_identity, disposition, feasibility, incumbent_update) =
+            comparison.into_parts();
         Self {
-            candidate_occurrence_identity,
+            candidate_selection_key,
             state_identity,
             disposition,
             feasibility,
@@ -143,8 +138,8 @@ impl WorthQueryConvergenceDomainDecision {
         }
     }
 
-    pub fn candidate_occurrence_identity(&self) -> &str {
-        &self.candidate_occurrence_identity
+    pub fn candidate_selection_key(&self) -> &str {
+        &self.candidate_selection_key
     }
 
     pub fn state_identity(&self) -> &str {

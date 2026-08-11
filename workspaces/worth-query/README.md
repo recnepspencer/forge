@@ -10,18 +10,19 @@ For architecture and usage, start with:
 - [Runtime-Installed Domains And Operations](./crates/worth-query/docs/domain-capabilities/runtime-installed-domains.md)
 - [Conditional Installed Operations](./crates/worth-query/docs/domain-capabilities/conditional-installed-operations.md)
 - [Installed Operation Re-Execution And Replay](./crates/worth-query/docs/domain-capabilities/installed-operation-reexecution-and-replay.md)
-- [Installed Operation Aftermath](./crates/worth-query/docs/domain-capabilities/installed-operation-aftermath.md)
+- [Typed Stops And Remediation Guidance](./crates/worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md)
 - [Installed Operation Lineage And Promotion](./crates/worth-query/docs/domain-capabilities/installed-operation-lineage-and-promotion.md)
+- [Application Aftermath, External Effects, And Recovery](./crates/worth-query/docs/execution/application-aftermath-and-recovery.md)
 
 Use the smallest package that owns the change. Declaration work does not build
-installation, the remaining engine, replay, or certification:
+installation, execution, publication, replay, or certification:
 
 ```text
 cargo check --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-declaration
 cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-declaration
 ```
 
-Installation work does not build the remaining engine, replay, or
+Installation work does not build execution, publication, replay, or
 certification:
 
 ```text
@@ -29,12 +30,23 @@ cargo check --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-ins
 cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-installation
 ```
 
-For behavior still owned by the remaining engine, choose either a check or a
-test command. Do not pre-run check and `--no-run` before the test:
+For behavior owned by the main `worth-query` runtime package, choose either a
+check or a test command. Do not pre-run check and `--no-run` before the test:
 
 ```text
 cargo check --manifest-path workspaces/worth-query/Cargo.toml -p worth-query --tests
 cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query
+```
+
+Admission, execution, aftermath progression, publication, and host facade
+behavior have separate package owners. Test those owners directly so their
+unit tests and doctests run rather than merely compiling as dependencies:
+
+```text
+cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-admission
+cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-execution
+cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-publication
+cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-host
 ```
 
 Compiler and reconstruction certification are cold and must be selected only

@@ -12,6 +12,9 @@ use crate::physical_runtime::work::{
     PhysicalPublicationEffect, PhysicalRootPublicationWorkAction, PhysicalWorkOperationFamily,
 };
 
+#[cfg(feature = "recovery-runtime-owner")]
+mod recovery;
+
 pub struct DispatchedPhysicalWork {
     pub(in crate::physical_runtime::work::progression) admitted: AdmittedPhysicalWork,
     pub(in crate::physical_runtime::work::progression) signal: PhysicalSignalReadinessEvidence,
@@ -81,10 +84,12 @@ impl DispatchedPhysicalWork {
         &self,
         physical: CompletedArtifactRangeRead,
     ) -> bool {
+        let coordinate = physical.coordinate();
         physical.store() == self.intent().identity().store()
             && physical.owner() == self.admitted.authority().media_owner_observation().owner()
-            && Some(physical.coordinate()) == self.coordinate()
-            && physical.completed_bytes() <= u64::from(physical.coordinate().length())
+            && (Some(coordinate) == self.coordinate()
+                || self.intent().scope().artifact_target() == Some(coordinate.artifact()))
+            && physical.completed_bytes() <= u64::from(coordinate.length())
             && self.intent().operation() == PhysicalWorkOperationFamily::ArtifactRangeRead
     }
 
@@ -120,13 +125,21 @@ impl DispatchedPhysicalWork {
         physical: &CompletedArtifactNewWrite,
         coordinate: RecordFrameCoordinate,
     ) -> bool {
+        self.matches_new_artifact_binding(physical, coordinate)
+            && self.intent().operation() == PhysicalWorkOperationFamily::ArtifactPublication
+    }
+
+    fn matches_new_artifact_binding(
+        &self,
+        physical: &CompletedArtifactNewWrite,
+        coordinate: RecordFrameCoordinate,
+    ) -> bool {
         physical.store() == self.intent().identity().store()
             && physical.owner() == self.admitted.authority().media_owner_observation().owner()
             && Some(coordinate) == self.coordinate()
             && physical.range().byte_count() == u64::from(coordinate.length())
             && physical.completed_bytes() == u64::from(coordinate.length())
             && self.payload_digest == Some(physical.payload_digest())
-            && self.intent().operation() == PhysicalWorkOperationFamily::ArtifactPublication
             && physical.create_operation() != physical.write_operation()
     }
 
@@ -255,13 +268,21 @@ impl DispatchedPhysicalWork {
         physical: &IndeterminateArtifactNewWrite,
         coordinate: RecordFrameCoordinate,
     ) -> bool {
+        self.matches_new_artifact_indeterminate_binding(physical, coordinate)
+            && self.intent().operation() == PhysicalWorkOperationFamily::ArtifactPublication
+    }
+
+    fn matches_new_artifact_indeterminate_binding(
+        &self,
+        physical: &IndeterminateArtifactNewWrite,
+        coordinate: RecordFrameCoordinate,
+    ) -> bool {
         physical.store() == self.intent().identity().store()
             && physical.owner() == self.admitted.authority().media_owner_observation().owner()
             && Some(coordinate) == self.coordinate()
             && physical.range().byte_count() == u64::from(coordinate.length())
             && physical.completed_bytes() <= u64::from(coordinate.length())
             && self.payload_digest == Some(physical.payload_digest())
-            && self.intent().operation() == PhysicalWorkOperationFamily::ArtifactPublication
     }
 
     pub(in crate::physical_runtime) fn matches_publication_effect(
@@ -305,24 +326,32 @@ fn declared_publication_effect_matches(
             intent.scope().artifact_target() == Some(artifact)
         }
         PhysicalWorkOperationFamily::RootPublication => {
-            let Some(scope) = intent.scope().root_publication_target() else {
-                return false;
-            };
-            match scope.action() {
-                PhysicalRootPublicationWorkAction::SynchronizeCandidateArtifact {
-                    artifact: expected,
-                } => {
-                    expected == artifact && effect == PhysicalPublicationEffect::SynchronizeArtifact
-                }
-                PhysicalRootPublicationWorkAction::ReplaceBootstrapCatalog => {
-                    scope.publication().catalog_candidate() == artifact
-                        && effect == PhysicalPublicationEffect::ReplaceCatalog
-                }
-                PhysicalRootPublicationWorkAction::SynchronizeParentNamespace => {
-                    artifact == worth_store_physical_format::RecordArtifactFile::BootstrapCatalog
-                        && effect == PhysicalPublicationEffect::SynchronizeRecordFamily
-                }
+            if let Some(scope) = intent.scope().root_publication_target() {
+                return match scope.action() {
+                    PhysicalRootPublicationWorkAction::SynchronizeCandidateArtifact {
+                        artifact: expected,
+                    } => {
+                        expected == artifact
+                            && effect == PhysicalPublicationEffect::SynchronizeArtifact
+                    }
+                    PhysicalRootPublicationWorkAction::ReplaceBootstrapCatalog => {
+                        scope.publication().catalog_candidate() == artifact
+                            && effect == PhysicalPublicationEffect::ReplaceCatalog
+                    }
+                    PhysicalRootPublicationWorkAction::SynchronizeParentNamespace => {
+                        artifact
+                            == worth_store_physical_format::RecordArtifactFile::BootstrapCatalog
+                            && effect == PhysicalPublicationEffect::SynchronizeRecordFamily
+                    }
+                };
             }
+            intent.scope().artifact_target() == Some(artifact)
+                && matches!(
+                    effect,
+                    PhysicalPublicationEffect::SynchronizeArtifact
+                        | PhysicalPublicationEffect::ReplaceCatalog
+                        | PhysicalPublicationEffect::SynchronizeRecordFamily
+                )
         }
         _ => false,
     }
@@ -344,6 +373,7 @@ fn publication_effect_matches(
         ) | (
             PhysicalPublicationEffect::ReplaceCatalog,
             ArtifactTreePublicationEffect::Replacement { .. }
+                | ArtifactTreePublicationEffect::RootProtocolReplacement { .. }
         )
     )
 }

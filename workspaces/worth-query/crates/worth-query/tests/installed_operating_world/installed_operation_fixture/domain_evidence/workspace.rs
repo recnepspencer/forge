@@ -5,9 +5,11 @@ use worth_query::facade::{domain, runtime};
 
 use super::super::{identity_contract, GeometryDomain};
 use super::contract::{
-    artifact_support, direct_package, direct_package_with_governance, EvidenceGovernance,
+    artifact_support, direct_graph_package, direct_package, direct_package_with_governance,
+    EvidenceGovernance,
 };
-use super::direct_executor::EvidenceDirectExecutor;
+use super::direct_executor::{EvidenceDirectExecutor, EvidenceGraphDirectExecutor};
+use super::graph_receipt::{evidence_graph_definition, EvidenceGraph, EvidenceGraphProvider};
 use super::{EvidenceFamily, EvidenceRead, EvidenceScenario};
 
 pub fn evidence_workspace(
@@ -26,16 +28,32 @@ pub fn evidence_workspace_with_governance(
     build_workspace(name, scenario, direct_package_with_governance(governance))
 }
 
+pub fn evidence_graph_workspace(
+    name: &str,
+) -> Result<runtime::WorthQueryWorkspace, WorthQueryTestBackendError> {
+    in_memory_test_runtime()
+        .with_schema(evidence_schema())
+        .domain_package_with_artifact_support(
+            direct_graph_package(domain::WorthQueryArtifactRedactionPosture::NotRequired),
+            artifact_support(),
+        )
+        .graph_participation(evidence_graph_definition())
+        .graph_participation_provider(EvidenceGraph, EvidenceGraphProvider)
+        .domain_operation_executor(
+            GeometryDomain,
+            EvidenceRead,
+            EvidenceFamily,
+            EvidenceGraphDirectExecutor::honest(),
+        )
+        .workspace(name)
+}
+
 fn build_workspace(
     name: &str,
     scenario: EvidenceScenario,
     package: domain::WorthQueryDomainPackage<GeometryDomain>,
 ) -> Result<runtime::WorthQueryWorkspace, WorthQueryTestBackendError> {
-    let schema = WorthQueryTestBackendSchema::single_collection("Vertex")
-        .aspect_contract(identity_contract())
-        .unwrap()
-        .aspect("identity.id", "identity.id")
-        .unwrap();
+    let schema = evidence_schema();
     in_memory_test_runtime()
         .with_schema(schema)
         .domain_package_with_artifact_support(package, artifact_support())
@@ -46,4 +64,12 @@ fn build_workspace(
             EvidenceDirectExecutor::new(scenario),
         )
         .workspace(name)
+}
+
+fn evidence_schema() -> WorthQueryTestBackendSchema {
+    WorthQueryTestBackendSchema::single_collection("Vertex")
+        .aspect_contract(identity_contract())
+        .unwrap()
+        .aspect("identity.id", "identity.id")
+        .unwrap()
 }

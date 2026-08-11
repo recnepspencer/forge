@@ -9,8 +9,7 @@ use super::super::{
 use crate::physical_runtime::durability::mutation::PhysicalMutationIdentity;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(in crate::physical_runtime::durability::mutation::idempotency) struct PhysicalMutationBindingBasis
-{
+pub(in crate::physical_runtime) struct PhysicalMutationBindingBasis {
     key: PhysicalMutationIdempotencyKey,
     fingerprint: PhysicalMutationRequestFingerprint,
     mutation: PhysicalMutationIdentity,
@@ -100,21 +99,17 @@ impl PhysicalMutationBindingBasis {
         }
     }
 
-    pub(in crate::physical_runtime::durability::mutation::idempotency) fn key(
-        &self,
-    ) -> &PhysicalMutationIdempotencyKey {
+    pub(in crate::physical_runtime) fn key(&self) -> &PhysicalMutationIdempotencyKey {
         &self.key
     }
 
-    pub(in crate::physical_runtime::durability::mutation::idempotency) const fn fingerprint(
+    pub(in crate::physical_runtime) const fn fingerprint(
         &self,
     ) -> PhysicalMutationRequestFingerprint {
         self.fingerprint
     }
 
-    pub(in crate::physical_runtime::durability::mutation::idempotency) const fn mutation(
-        &self,
-    ) -> PhysicalMutationIdentity {
+    pub(in crate::physical_runtime) const fn mutation(&self) -> PhysicalMutationIdentity {
         self.mutation
     }
 

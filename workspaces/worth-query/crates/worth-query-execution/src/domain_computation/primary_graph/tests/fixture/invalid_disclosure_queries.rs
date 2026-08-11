@@ -165,17 +165,16 @@ fn definition<Query: 'static>(
     AccountSummaryResult,
     Account,
 > {
-    let builder = ApplicationQueryDefinitionBuilder::public(
-        reference,
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 2),
-        disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    );
+    let builder = ApplicationQueryDefinitionBuilder::declare(reference)
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 2))
+        .disclosure(disclosure)
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public();
     if predicate {
         builder
             .parameter(status_parameter())

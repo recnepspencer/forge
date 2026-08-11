@@ -1,6 +1,7 @@
 use worth_store_physical_format::{
     BootstrapCatalog, CurrentRootCatalogEntry, CurrentRootCatalogGeneration,
-    DurableFreeSpaceManifestHeader, RecordArtifactFile,
+    DurableFreeSpaceManifestHeader, DurableRootSelector, RecordArtifactFile, RootSelectorIdentity,
+    RootSelectorRole,
 };
 
 use super::{projection::ProjectedSuccessorRoot, RootRebaseContext};
@@ -24,6 +25,35 @@ pub(super) fn assemble_rebased_publication(
             CurrentRootCatalogGeneration::new(generation).expect("successor is nonzero"),
         ),
     )
+    .encode()
+    .to_vec();
+    let previous_generation = context.current_root.generation();
+    let previous_identity = RootSelectorIdentity::new(previous_generation)
+        .expect("published root generation is nonzero");
+    let current_identity =
+        RootSelectorIdentity::new(generation).expect("successor root generation is nonzero");
+    publication.previous_selector_bytes = DurableRootSelector::new(
+        context.media.store_identity(),
+        context.format.declaration(),
+        previous_identity,
+        RootSelectorRole::Previous,
+        previous_generation,
+        Some(current_identity),
+        Some(generation),
+    )
+    .expect("successor-linked previous selector is valid")
+    .encode()
+    .to_vec();
+    publication.current_selector_bytes = DurableRootSelector::new(
+        context.media.store_identity(),
+        context.format.declaration(),
+        current_identity,
+        RootSelectorRole::Current,
+        generation,
+        Some(previous_identity),
+        Some(previous_generation),
+    )
+    .expect("previous-linked current selector is valid")
     .encode()
     .to_vec();
     publication.manifests = projected.manifests;

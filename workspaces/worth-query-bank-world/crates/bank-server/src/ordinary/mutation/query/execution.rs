@@ -1,5 +1,4 @@
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestInterruption;
-use worth_query_host::facade::primary_graph::WorthQueryInvariantProjectionWork;
 
 use super::{mutations, BankMutationContract, BankReadyMutation};
 use crate::ordinary::mutation::{
@@ -7,8 +6,9 @@ use crate::ordinary::mutation::{
 };
 use crate::{
     BankAuthenticatedPrincipal, BankAuthorizedProposal, BankCommitPreparationDenial,
-    BankIdentityRuntime, BankMutationCommitOutcome, BankOperationAdmissionError,
-    BankOperationProposalError, BankOperationProposals, BankSendMoneyPreparation,
+    BankIdentityRuntime, BankMutationCommitOutcome, BankMutationProjectionWork,
+    BankOperationAdmissionError, BankOperationProposalError, BankOperationProposals,
+    BankSendMoneyPreparation,
 };
 use bank_domain::schema::BankSchema;
 use worth_query_host::facade::declaration::application_schema::TypedMutationPreconditions;
@@ -88,13 +88,13 @@ expose_execute!(
 );
 
 trait PreparedMutation {
-    fn projection_work(&self) -> WorthQueryInvariantProjectionWork;
+    fn projection_work(&self) -> BankMutationProjectionWork;
 }
 
 impl<Operation, Input, Scope, ScopeIdentity> PreparedMutation
     for BankAuthorizedProposal<Operation, Input, Scope, ScopeIdentity>
 {
-    fn projection_work(&self) -> WorthQueryInvariantProjectionWork {
+    fn projection_work(&self) -> BankMutationProjectionWork {
         self.projection_work()
     }
 }
@@ -120,7 +120,7 @@ where
     };
     let proposal = match prepare(admission, controls.idempotency_key()) {
         Ok(proposal) => proposal,
-        Err(denial) => return denied(BankMutationDenial::Proposal(denial), None),
+        Err(denial) => return denied(BankMutationDenial::from_proposal(denial), None),
     };
     let work = proposal.projection_work();
     match commit(proposal) {
@@ -274,7 +274,7 @@ impl ExecutableBankMutation for mutations::SendMoneyMutation {
                 BankMutationDenial::IdempotencyIntentDrift,
                 Some(projection_work),
             ),
-            Err(denial) => denied(BankMutationDenial::Proposal(denial), None),
+            Err(denial) => denied(BankMutationDenial::from_proposal(denial), None),
         }
     }
 }
@@ -295,7 +295,7 @@ fn interrupted(controls: &BankMutationControls) -> Option<BankMutationOutcome> {
 
 fn committed(
     outcome: BankMutationCommitOutcome,
-    work: Option<WorthQueryInvariantProjectionWork>,
+    work: Option<BankMutationProjectionWork>,
 ) -> BankMutationOutcome {
     let status = match outcome {
         BankMutationCommitOutcome::Committed(receipt) => BankMutationStatus::Committed(receipt),
@@ -310,29 +310,31 @@ fn committed(
             return denied(BankMutationDenial::Commit { kind, stage }, work)
         }
         BankMutationCommitOutcome::Aborted => BankMutationStatus::Aborted,
-        BankMutationCommitOutcome::PartialEffect => BankMutationStatus::PartialEffect,
-        BankMutationCommitOutcome::Indeterminate => BankMutationStatus::Indeterminate,
+        BankMutationCommitOutcome::PartialEffect(evidence) => {
+            BankMutationStatus::PartialEffect(evidence)
+        }
+        BankMutationCommitOutcome::Indeterminate(evidence) => {
+            BankMutationStatus::Indeterminate(evidence)
+        }
     };
     BankMutationOutcome::new(status, work)
 }
 
 fn denied(
     denial: BankMutationDenial,
-    work: Option<WorthQueryInvariantProjectionWork>,
+    work: Option<BankMutationProjectionWork>,
 ) -> BankMutationOutcome {
     BankMutationOutcome::new(BankMutationStatus::Denied(denial), work)
 }
 
 fn map_admission_denial(denial: BankOperationAdmissionError) -> BankMutationDenial {
     match denial {
-        BankOperationAdmissionError::ScopeResolution(denial) => {
-            BankMutationDenial::Scope(denial.kind())
-        }
+        BankOperationAdmissionError::ScopeResolution(denial) => BankMutationDenial::Scope(denial),
         BankOperationAdmissionError::OperationInstallation(denial) => {
-            BankMutationDenial::Installation(denial.kind())
+            BankMutationDenial::Installation(denial)
         }
         BankOperationAdmissionError::Authorization(denial) => {
-            BankMutationDenial::Authorization(Box::new(denial))
+            BankMutationDenial::Authorization(denial)
         }
     }
 }

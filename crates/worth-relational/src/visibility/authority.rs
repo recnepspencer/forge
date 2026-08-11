@@ -5,6 +5,11 @@ use crate::visibility::cache_state::{
     bump_active_snapshot_ref, cached_state_for_version, evict_cache_if_needed, insert_state,
     residency_for_version, retained_state,
 };
+use crate::visibility::exact_commit_snapshot::{
+    open_retained_commit_snapshot, projection_binding_denial,
+    RelationalRetainedCommitEntityProjection, RelationalRetainedCommitSnapshot,
+    RelationalRetainedCommitSnapshotDenial, RelationalRetainedCommitSnapshotDenialKind,
+};
 use crate::visibility::snapshot_states::build_visibility_state;
 
 pub struct VisibilityAuthority<'runtime> {
@@ -96,6 +101,64 @@ impl<'runtime> VisibilityAuthority<'runtime> {
             self.release_snapshot(&handle);
             None
         }
+    }
+
+    /// Observes the already-published snapshot for one exact canonical commit.
+    ///
+    /// This does not open a current branch head, allocate a snapshot identity,
+    /// reconstruct historical state, or acquire replay retention. A pruned
+    /// publication is therefore a typed denial rather than a reconstruction
+    /// request.
+    pub fn retained_snapshot_for_commit(
+        &self,
+        expected_runtime_instance_id: u64,
+        commit: &crate::history::data::CommitReference,
+    ) -> Result<RelationalRetainedCommitSnapshot, RelationalRetainedCommitSnapshotDenial> {
+        open_retained_commit_snapshot(self.runtime, expected_runtime_instance_id, commit)
+    }
+
+    /// Projects one entity directly from an exact retained canonical commit and reports the
+    /// structural work performed by this owner operation.
+    pub fn project_retained_entity_for_commit<T>(
+        &self,
+        expected_runtime_instance_id: u64,
+        commit: &crate::history::data::CommitReference,
+        entity_id: crate::identity::data::EntityId,
+        expected_kind_id: crate::identity::data::KindId,
+        projection_scope: crate::visibility::materialization::read_records::ProjectionAspectScope,
+        mut project: impl FnMut(
+            crate::visibility::materialization::read_records::EntityProjectionRecord<'_>,
+        ) -> Option<T>,
+    ) -> Result<RelationalRetainedCommitEntityProjection<T>, RelationalRetainedCommitSnapshotDenial>
+    {
+        let retained =
+            open_retained_commit_snapshot(self.runtime, expected_runtime_instance_id, commit)?;
+        let projected_fields = projection_scope
+            .requirements()
+            .iter()
+            .map(|requirement| requirement.mask().paths().len())
+            .sum();
+        let value = self
+            .runtime
+            .read_truth()
+            .project_snapshot(retained.snapshot_handle())
+            .ok_or_else(projection_binding_denial)?
+            .entity_record_of_expected_kind_with_projection_scope(
+                entity_id,
+                expected_kind_id,
+                projection_scope,
+                |record| project(record),
+            )
+            .map_err(|_| {
+                RelationalRetainedCommitSnapshotDenial::new(
+                    RelationalRetainedCommitSnapshotDenialKind::EntityKindMismatch,
+                    "retained entity kind differs from the requested owner projection",
+                )
+            })?;
+        let work = retained
+            .work()
+            .record_projection(usize::from(value.is_some()), projected_fields);
+        Ok(RelationalRetainedCommitEntityProjection::new(value, work))
     }
 
     pub fn pin_snapshot(

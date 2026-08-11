@@ -1,6 +1,31 @@
 use worth_store_physical_backend::{BackendTargetProfile, PhysicalDurabilityAdmissionIdentity};
 
-include!(concat!(env!("OUT_DIR"), "/durability_source_identity.rs"));
+const COMPILED_DURABILITY_SOURCE_IDENTITY: [u8; 32] =
+    decode_source_identity(env!("WORTH_STORE_DURABILITY_SOURCE_IDENTITY"));
+
+const fn decode_source_identity(encoded: &str) -> [u8; 32] {
+    let encoded = encoded.as_bytes();
+    assert!(
+        encoded.len() == 64,
+        "durability source identity must be 32 bytes"
+    );
+    let mut bytes = [0_u8; 32];
+    let mut index = 0;
+    while index < bytes.len() {
+        bytes[index] =
+            (decode_nibble(encoded[index * 2]) << 4) | decode_nibble(encoded[index * 2 + 1]);
+        index += 1;
+    }
+    bytes
+}
+
+const fn decode_nibble(value: u8) -> u8 {
+    match value {
+        b'0'..=b'9' => value - b'0',
+        b'a'..=b'f' => value - b'a' + 10,
+        _ => panic!("durability source identity must be lowercase hexadecimal"),
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PhysicalDurabilitySourceIdentity([u8; 32]);

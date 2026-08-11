@@ -1,45 +1,53 @@
-# Domain Capability Contributions Hub
+# Domain Capability Contributions
 
 ## What This Page Is
 
-A **navigation hub** for contribution lanes—not a full lifecycle feature doc. Each lane has its own page; use [contribution composed orchestration](../contribution-composed-orchestration.md) when multiple lanes compose in one declaration flow.
+This page routes domain authors to the public contribution surfaces that attach
+declaration-scoped meaning without replacing Query admission, support, or
+execution authority.
 
-Contributions declare posture (admission, support, workflow, continuity, aftermath, explanation, invariants) **without** replacing Query admission or support matrices. Not every lane is “fully closed” in certification—check per-lane support reports.
+A contribution describes domain posture associated with a declaration. Query
+validates, composes, and materializes that posture through the installed domain
+boundary. A contribution never authorizes an operation by itself.
 
-## Contribution Lanes
+## Contribution Families
 
-| Lane | Doc |
-|------|-----|
-| Admission (advisory / violation) | advisory-and-violation-contributions.md |
-| Admission targets | declaration-vs-admitted-plan-targets.md |
-| Support (declaration-scoped) | declaration-scoped-support-and-traceability.md |
-| Support (lower-runtime traceability) | lower-runtime-support-and-boundary-traceability.md |
-| Support (admission-local reports) | [admission-local-support-reports.md](../support/admission-local-support-reports.md) |
-| Workflow | [workflow/README.md](../workflow/README.md) |
-| Continuity | continuity-contributions-and-authoritative-successors.md |
-| Continuity vs correspondence | continuity-vs-correspondence.md |
-| Aftermath | aftermath-review-support-eligibility-and-materialization.md |
-| Explanation | lower-runtime-explanation-contributions.md |
-| Explanation gaps | [cross-runtime-fallback-vs-store-backed-replay-gap.md](../explanation/cross-runtime-fallback-vs-store-backed-replay-gap.md) |
-| Invariants (contribution posture) | invariant-and-capability-contributions.md |
-| Invariants (registration) | registering-domain-invariants-through-query.md |
+Use contributions for current declaration-scoped meaning such as:
 
-## Composed Entry
+- admission advice and violations;
+- support and lower-runtime traceability;
+- workflow posture;
+- continuity;
+- explanation;
+- invariant and capability posture.
 
-- [Contribution composed orchestration](../contribution-composed-orchestration.md) — multi-lane materialization and orchestration inventory neighbors
-- [Grouped contributions](../grouped-contributions.md) — neighborhood-scoped contribution shapes
-- [Domain capabilities](../README.md) — the current public domain surface map
-- [Public doc coverage](../public-doc-coverage.md) — documentation and executable-evidence synchronization
+When several families participate in one declaration flow, use
+[Contribution-Composed Orchestration](../contribution-composed-orchestration.md).
+When the declaration describes a neighborhood rather than one isolated member,
+use [Grouped Contributions](../grouped-contributions.md).
+
+## Current Entry Points
+
+- [Contribution-Composed Orchestration](../contribution-composed-orchestration.md)
+- [Grouped Contributions](../grouped-contributions.md)
+- [Admission-Local Support Reports](../support/admission-local-support-reports.md)
+- [Runtime-Preflight Workflow Contributions](../workflow/runtime-preflight-workflow-contributions.md)
+- [Cross-Runtime Explanation Gaps](../explanation/cross-runtime-fallback-vs-store-backed-replay-gap.md)
 
 ## Quick Rules
 
-- **Admission contributions** annotate legality and violations—they do not bypass `admit_*` APIs.
-- **Support contributions** attach traceability to declarations; read `domain_capabilities/support/reports.rs` patterns in code when debugging posture rows.
-- **Explanation contributions** ≠ [cross-runtime causal inspection](../../capabilities/cross-runtime-causal-inspection.md)—runtime causal lane is separate.
-- **Invariant contributions** ≠ invariant **registration**—registration doc owns catalog/builder path.
+- Admission contributions annotate legality; they do not bypass `admit_*` APIs.
+- Support contributions attach traceability; they do not replace the runtime
+  support matrix.
+- Explanation contributions do not replace causal inspection.
+- Invariant contributions do not register or execute invariants.
+- Grouped contributions preserve member-local meaning instead of looping over
+  unrelated single-member declarations.
+- A materialized contribution remains bound to its declaration and installed
+  operating world.
 
 ## Related Docs
 
-- [Domain capabilities README](../README.md)
-- [Choosing the right surface](../choosing/README.md)
-- [Contribution composed orchestration](../contribution-composed-orchestration.md)
+- [Domain Capabilities](../README.md)
+- [Choosing The Right Surface](../choosing/README.md)
+- [Public Documentation Coverage](../public-doc-coverage.md)

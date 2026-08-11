@@ -6,7 +6,7 @@ use worth_query_declaration::facade::application_capability::{
     ApplicationCapabilityRelationBinding, ApplicationCapabilityRequestProjection,
 };
 
-use super::capability_request_resolution::{
+use super::capability_admission::{
     WorthQueryCapabilityContextKey, WorthQueryResolvedCapabilityRequest,
 };
 
@@ -22,7 +22,7 @@ pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityRequest {
     pub(super) related_relation: Option<ApplicationCapabilityRelationBinding>,
     pub(super) related: Option<worth_relational::facade::identity::EntityId>,
     pub(super) field: Option<AspectValue>,
-    pub(super) amount: Option<AspectValue>,
+    pub(super) magnitude: Option<AspectValue>,
     pub(super) cardinality: u32,
     pub(super) context_name: Arc<str>,
     pub(super) context_type: Arc<str>,
@@ -49,21 +49,21 @@ impl WorthQueryRetainedCapabilityRequest {
         Self {
             capability_identity,
             principal,
-            resource: resolved.resource.entity_id(),
+            resource: resolved.resource_entity_id(),
             resource_entity: Arc::from(projection.resource().entity()),
-            elevation: resolved.elevation,
+            elevation: resolved.elevation(),
             action: projection.action().clone(),
             purpose: projection.purpose().clone(),
             related_relation: projection
                 .related()
                 .map(|related| related.relation().clone()),
-            related: resolved.related,
+            related: resolved.related(),
             field: projection.field_value().cloned(),
-            amount: projection.amount_value().cloned(),
+            magnitude: projection.magnitude_value().cloned(),
             cardinality: projection.cardinality_value(),
             context_name: Arc::from(projection.context_value().context()),
             context_type: Arc::from(projection.context_value().context_type()),
-            context: resolved.context.clone(),
+            context: resolved.retained_context(),
         }
     }
 }

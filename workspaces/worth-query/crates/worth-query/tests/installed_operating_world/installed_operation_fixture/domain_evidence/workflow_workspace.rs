@@ -5,8 +5,12 @@ use worth_query::facade::{domain, runtime};
 
 use super::super::workflow_parallel_providers::WorkflowParallelProvider;
 use super::super::{identity_contract, GeometryDomain, ReadFamily, WorkflowRead};
-use super::contract::{artifact_support, workflow_package};
-use super::workflow_executor::{EvidenceWorkflowExecutor, EvidenceWorkflowProbe};
+use super::contract::artifact_support;
+use super::graph_receipt::{evidence_graph_definition, EvidenceGraph, EvidenceGraphProvider};
+use super::workflow_contract::{workflow_graph_package, workflow_package};
+use super::workflow_executor::{
+    EvidenceGraphWorkflowExecutor, EvidenceWorkflowExecutor, EvidenceWorkflowProbe,
+};
 
 pub fn evidence_workflow_workspace(
     name: &str,
@@ -23,6 +27,34 @@ pub fn evidence_workflow_workspace(
             workflow_package(domain::WorthQueryArtifactRedactionPosture::NotRequired),
             artifact_support(),
         )
+        .replayable_workflow_stage_executor(GeometryDomain, WorkflowRead, ReadFamily, executor)
+        .workflow_parallel_admission_provider(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            WorkflowParallelProvider,
+        )
+        .workspace(name)?;
+    Ok((workspace, probe))
+}
+
+pub fn evidence_graph_workflow_workspace(
+    name: &str,
+) -> Result<(runtime::WorthQueryWorkspace, EvidenceWorkflowProbe), WorthQueryTestBackendError> {
+    let schema = WorthQueryTestBackendSchema::single_collection("Vertex")
+        .aspect_contract(identity_contract())
+        .unwrap()
+        .aspect("identity.id", "identity.id")
+        .unwrap();
+    let (executor, probe) = EvidenceGraphWorkflowExecutor::new();
+    let workspace = in_memory_test_runtime()
+        .with_schema(schema)
+        .domain_package_with_artifact_support(
+            workflow_graph_package(domain::WorthQueryArtifactRedactionPosture::NotRequired),
+            artifact_support(),
+        )
+        .graph_participation(evidence_graph_definition())
+        .graph_participation_provider(EvidenceGraph, EvidenceGraphProvider)
         .replayable_workflow_stage_executor(GeometryDomain, WorkflowRead, ReadFamily, executor)
         .workflow_parallel_admission_provider(
             GeometryDomain,

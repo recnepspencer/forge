@@ -1,15 +1,36 @@
+use super::evidence::{WorkflowAuthorityOutcomeArtifact, WorkflowReplayBundle};
 #[cfg(test)]
 use super::identities::{conflict_scope_identity, post_merge_scope_identity};
 use super::identities::{
     delivery_or_failure_identity, workflow_authoritative_outcome_identity,
     workflow_authority_request_identity, workflow_replay_bundle_identity,
 };
-use super::*;
+#[cfg(test)]
+use super::model::{
+    ConflictInspectionFamily, PostMergeInspectionFamily, WorkflowInspectionError,
+    WorkflowInspectionFailureClass,
+};
+use super::model::{WorkflowAuthorityOutcomeFamily, WorkflowStalenessOutcome};
+#[cfg(test)]
+use super::report::{
+    ConflictInspectionRow, PostMergeInspectionRow, QueryConflictInspectionArtifact,
+    QueryPostMergeInspectionArtifact,
+};
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
+#[cfg(test)]
+use crate::workflow::foundation::WorkflowDeclarationFamily;
+use crate::workflow::foundation::{QueryWorkflowDeclaration, WorkflowPredictionDriftOutcome};
 #[cfg(test)]
 use crate::workflow::inspection_projection::{
     relational_merge_class_admission, relational_merge_class_label, relational_merge_class_shape,
 };
+use crate::workflow::lowering::LoweredMergeWorkflowDeclaration;
+use crate::workflow::lowering::{LoweredMutationIntentDeclaration, QueryWritebackDeclaration};
+use crate::workflow::performance::{
+    WorkflowBudgetOutcome, WorkflowLoweringCounters, WorkflowPredictionReport,
+};
+#[cfg(test)]
+use crate::workflow::performance::{WorkflowInspectionBudget, WorkflowInspectionCounters};
 #[cfg(test)]
 use worth_relational::facade::merge::{
     NormalizedRelationalMergeRequest, RelationalMergeInspectionArtifact,

@@ -103,6 +103,8 @@ mod invalid_disclosure_queries;
 pub(super) use invalid_disclosure_queries::{
     ForbiddenInfluenceQuery, IncompleteDisclosureQuery, ResultRulePredicateQuery,
 };
+#[path = "fixture/operation_contracts.rs"]
+mod operation_contracts;
 #[path = "fixture/schema_types.rs"]
 mod schema_types;
 #[path = "fixture/world_authentication.rs"]
@@ -221,84 +223,9 @@ worth_query_application_schema! {
                 .ability(EditAccount::reference())
                 .ability(ManageOwnership::reference())
                 .effect(AccountActivityEffect::reference())
-                .effect(LiveActivityEffect::reference())
-                .operation(TouchAccountOperation::reference())
-                .operation_decision_fact_budget(TouchAccountOperation::reference(), 2)
-                .operation_projection_work_budget(TouchAccountOperation::reference(), 32)
-                .operation_requires_ability(
-                    TouchAccountOperation::reference(),
-                    ViewAccount::reference(),
-                )
-                .operation_write(
-                    TouchAccountOperation::reference(),
-                    AccountStatus::reference(),
-                )
-                .operation_write(
-                    TouchAccountOperation::reference(),
-                    AccountLabel::reference(),
-                )
-                .operation_emit(
-                    TouchAccountOperation::reference(),
-                    AccountActivityEffect::reference(),
-                )
-                .operation_emit(
-                    TouchAccountOperation::reference(),
-                    LiveActivityEffect::reference(),
-                )
-                .operation_read_field(
-                    TouchAccountOperation::reference(),
-                    AccountStatus::reference(),
-                )
-                .operation_read_field(
-                    TouchAccountOperation::reference(),
-                    AccountLabel::reference(),
-                )
-                .operation_expected_fact(
-                    TouchAccountOperation::reference(),
-                    AccountStatus::reference(),
-                )
-                .operation(MultiTouchOperation::reference())
-                .operation_decision_fact_budget(MultiTouchOperation::reference(), 2)
-                .operation_projection_work_budget(MultiTouchOperation::reference(), 32)
-                .operation_requires_ability(
-                    MultiTouchOperation::reference(),
-                    ViewAccount::reference(),
-                )
-                .operation_requires_ability(
-                    MultiTouchOperation::reference(),
-                    EditAccount::reference(),
-                )
-                .operation_write(
-                    MultiTouchOperation::reference(),
-                    AccountStatus::reference(),
-                )
-                .operation_read_field(
-                    MultiTouchOperation::reference(),
-                    AccountStatus::reference(),
-                )
-                .operation(ChangeOwnershipOperation::reference())
-                .operation_decision_fact_budget(ChangeOwnershipOperation::reference(), 2)
-                .operation_projection_work_budget(ChangeOwnershipOperation::reference(), 32)
-                .operation_requires_ability(
-                    ChangeOwnershipOperation::reference(),
-                    ManageOwnership::reference(),
-                )
-                .operation_read_relation(
-                    ChangeOwnershipOperation::reference(),
-                    AccountOwner::reference(),
-                )
-                .operation_read_field(
-                    ChangeOwnershipOperation::reference(),
-                    AccountStatus::reference(),
-                )
-                .operation_link(
-                    ChangeOwnershipOperation::reference(),
-                    AccountOwner::reference(),
-                )
-                .operation_unlink(
-                    ChangeOwnershipOperation::reference(),
-                    AccountOwner::reference(),
-                )
+                .effect(RetainedStatusEffect::reference())
+                .effect(LiveActivityEffect::reference());
+            let schema = operation_contracts::install(schema)
                 .policy(AccountAccessPolicy::reference())
                 .ability_policy(
                     ViewAccount::reference(),

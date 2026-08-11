@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use worth_foundational::facade::ScalarAspectType;
 
 use crate::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldPresence, OptionalApplicationFieldValue,
+    ApplicationFieldPresence, ApplicationFieldUnit, OptionalApplicationFieldValue,
     RequiredApplicationFieldValue, TypedApplicationValue,
 };
 
@@ -188,7 +188,7 @@ impl<Schema, Query, Entity, Result>
         }
     }
 
-    pub fn field<Slot, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn field<Slot, Aspect, Field, Value, Write, Equality, Unit>(
         mut self,
         field: ApplicationQueryResultFieldRef<
             Query,
@@ -200,13 +200,13 @@ impl<Schema, Query, Entity, Result>
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
     ) -> Self
     where
         Field: RequiredApplicationFieldValue<Value = Value>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         Query: 'static,
         Slot: 'static,
     {
@@ -225,7 +225,7 @@ impl<Schema, Query, Entity, Result>
         self
     }
 
-    pub fn optional_field<Slot, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn optional_field<Slot, Aspect, Field, Value, Write, Equality, Unit>(
         mut self,
         field: ApplicationQueryOptionalResultFieldRef<
             Query,
@@ -237,13 +237,13 @@ impl<Schema, Query, Entity, Result>
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
     ) -> Self
     where
         Field: OptionalApplicationFieldValue<Value = Value>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         Query: 'static,
         Slot: 'static,
     {

@@ -2,8 +2,15 @@ use std::marker::PhantomData;
 
 use worth_foundational::facade::ScalarAspectType;
 
+mod authoring;
 mod builder;
 
+pub use authoring::{
+    ApplicationQueryAuthorizationAuthoring, ApplicationQueryBasisAuthoring,
+    ApplicationQueryCardinalityAuthoring, ApplicationQueryDependencyAuthoring,
+    ApplicationQueryDisclosureAuthoring, ApplicationQueryLaneAuthoring,
+    ApplicationQueryResultAuthoring, ApplicationQueryRootAuthoring, ApplicationQueryScopeAuthoring,
+};
 pub use builder::ApplicationQueryDefinitionBuilder;
 
 use super::{

@@ -4,16 +4,18 @@
 >
 > **Roadmap parent:** [merging-and-branching-roadmap.md](merging-and-branching-roadmap.md)
 >
-> **Primary architectural driver:** establish one mechanically enforced
-> semantic-history authority model before world basis, commit/reference
-> history, and canonical semantic change expand independently
+> **Primary architectural driver:** extend the mechanically enforced composite
+> branch/history authority model established by Query Milestones 9.17 and 9.18
+> before complete semantic-world basis, multi-parent history, and canonical
+> semantic change expand independently
 
 ## Goal
 
-Establish the smallest mechanically enforced semantic-history foundation that
-lets Milestones 2 through 4 build one semantic-world basis, one canonical
-commit/reference graph, and one canonical semantic-change model without
-creating competing meanings or authority lanes.
+Extend the smallest mechanically enforced semantic-history foundation that lets
+Milestones 2 through 4 generalize Milestone 9.17's composite runtime basis and
+single-parent product branch into one complete semantic-world basis, one
+canonical multi-parent commit/reference graph, and one canonical semantic-
+change model without creating competing meanings or authority lanes.
 
 Milestone 1 closes laws, ownership, typed authority roles, and migration
 classification. It does not close the runtime algorithms owned by Milestones 2
@@ -39,10 +41,12 @@ as basis, branch, version, commit, change, and publication:
 
 Those surfaces were created for their own runtime responsibilities. Similar
 names therefore do not imply one semantic-history contract. For example, a
-Signal branch identifies a derived execution branch; it is not automatically a
-Relational branch reference. A Bridge truth-commit identity is a transported
-projection; it is not commit-publication authority. A Query branch comparison
-artifact is a product projection; it is not canonical semantic diff.
+Signal branch identifies a Signal-owned definition/execution basis; it is not
+automatically a Relational branch reference or product branch. Milestone 9.17's
+Bridge composite commit and product reference prove exact correspondence but do
+not grant either component owner's internal publication authority. A Query
+branch comparison artifact is a product projection; it is not canonical
+semantic diff.
 
 Milestones 2 through 4 will make these distinctions load-bearing. If they
 extend the current surfaces independently, the platform can end up with
@@ -51,11 +55,11 @@ movement without one publication authority, or Query-shaped change promoted
 into truth. Retrofitting one model after those surfaces expand would be both
 more expensive and less mechanically trustworthy.
 
-Milestone 1 belongs first because it establishes the semantic border that all
-three following milestones cross:
+Milestone 1 belongs first because it freezes and mechanically extends the
+semantic border that all three following milestones cross:
 
 ```text
-Milestone 1: vocabulary + ownership + authority roles + enforcement
+Milestone 1: inherited vocabulary + ownership + authority roles + enforcement
        |
        +--> Milestone 2: build and admit complete semantic-world bases
        +--> Milestone 3: build commit DAGs and governed references
@@ -185,18 +189,20 @@ The quantitative closure rule is:
 - A merge base is the exact best common-ancestor basis or basis set selected
   under canonical ancestry semantics. A convenient common ancestor is not an
   equivalent substitute.
-- Relational owns semantic commit, branch, reference, and authoritative-change
-  truth. It owns the truth-version component of the future composite world
-  basis. Definition authorities remain owners of their meaning-bearing
+- Relational owns Relational component commits, branches, references,
+  authoritative-change truth, and the truth-version component of the composite
+  world basis. Definition authorities remain owners of their meaning-bearing
   components.
 - Query owns declarations, audience-facing context, and projections. It
   carries admitted semantic identity without becoming its source.
-- Signal owns derived execution branches, definition execution, invalidation,
-  and derived results. Similar branch or change terminology remains
-  Signal-local unless an explicit cross-runtime binding admits it.
-- Runtime Bridge owns protocol continuity and transported identity. A bridge
-  projection or receipt proves what crossed the boundary, not what is current
-  or publishable.
+- Signal owns Signal component branches and bases, definition execution,
+  invalidation, and derived results. Similar branch or change terminology
+  remains Signal-local unless an explicit cross-runtime binding admits it.
+- Runtime Bridge owns exact component correspondence, composite runtime-world
+  commits, product branch references, composite currentness, and protocol
+  continuity. A Bridge projection or receipt does not grant Relational or
+  Signal internal publication authority, and lower-runtime currentness cannot
+  be inferred from composite identity alone.
 - The physical Store remains branch-agnostic. Later Store-backed composition
   consumes semantic contracts through Query provider and adapter boundaries;
   no Store implementation milestone is a prerequisite for `SemanticClose`.
@@ -258,10 +264,10 @@ public re-exports and callers:
 
 | Subsystem | Current surfaces to trace | Initial authority reading |
 |---|---|---|
-| Relational | `CommitId`, `CommitReference`, `OrderedParentList`, `BranchId`, `BranchHead`, `VersionNode`, `VersionGraphSnapshot`, `HistoryAccess`, `HistoryAuthority`, commit publication, branch creation, ancestry access, canonical commit envelopes, published authoritative patch envelopes | Relational runtime state is the existing canonical owner. Public ids and DTOs are not authority merely because they describe that state; each mutation or admission surface needs a migration disposition. |
+| Relational | `CommitId`, `CommitReference`, `OrderedParentList`, `BranchId`, `BranchHead`, `VersionNode`, `VersionGraphSnapshot`, `HistoryAccess`, `HistoryAuthority`, commit publication, branch creation, ancestry access, canonical commit envelopes, published authoritative patch envelopes | Relational runtime state is the canonical component owner. Public ids and DTOs are not authority merely because they describe that state; each mutation or admission surface needs a migration disposition. |
 | Query | `ExecutionBasisIntent`, `ResolvedSnapshotBasis`, `LowerRuntimeBasisEvidence`, `WorthQueryCommitIdentity`, `WorthQueryPreviewBasisAdmission`, `DeclarativeBranchCompareArtifact`, and the `worth-query-decl` / `worth-query-host` / `worth-query-replay` facade split | Declaration, admission orchestration, and product projection. Query may carry admitted identity; it is not commit, reference, or canonical-change truth. |
-| Signal | `SignalBranchId`, `SignalSnapshotId`, `SignalBranchBasisArtifact`, `PreviousValueRevision`, and `BatchChange` where they enter a cross-runtime trace | Signal-local derived execution identity or change input. Cross-runtime equality requires an admitted binding; name similarity carries no authority. |
-| Runtime Bridge | `TruthCommitIdentity`, `TruthBranchIdentity`, `BridgeAdmittedTruthCommitIdentity`, `BridgePreviewSessionBasis`, `BridgeSpeculativeBranchBinding`, `BridgeAsyncRequestTruthViewBasis`, and `BridgeCommittedPatchEnvelope` | Transported projection and protocol admission. Bridge admission proves boundary handling, not Relational publication or currentness. |
+| Signal | `SignalBranchId`, `SignalSnapshotId`, `SignalBranchBasisArtifact`, `PreviousValueRevision`, and `BatchChange` where they enter a cross-runtime trace | Signal-local definition/execution basis or change input. Cross-runtime equality requires an admitted binding; name similarity carries no authority. |
+| Runtime Bridge | Milestone 9.17 composite runtime-world basis, commit, product branch, reference-generation, and publication artifacts plus `TruthCommitIdentity`, `TruthBranchIdentity`, `BridgeAdmittedTruthCommitIdentity`, `BridgePreviewSessionBasis`, `BridgeSpeculativeBranchBinding`, `BridgeAsyncRequestTruthViewBasis`, and `BridgeCommittedPatchEnvelope` | Canonical composition correspondence/currentness and protocol admission over owner-issued components. Bridge admission never substitutes for Relational or Signal internal publication authority. |
 | Foundational / Proof | shared identity projections, basis posture, transition outcomes, authority witnesses, and certification lane selectors used by the rows above | Vocabulary and proof substrate only. Public governed doors require concrete semantic-history roles, not generic marker acceptance. |
 | Store handoff | Query provider outputs and adapter inputs that can later carry semantic basis, commits, references, or changes into physical persistence | Downstream consumption. Physical records and receipts remain representations and evidence, never semantic admission or publication authority. |
 
@@ -291,17 +297,18 @@ scaffolding:
 
 ```text
 worth-relational
-  semantic_world_basis/   truth-version component and composite-basis admission seam
-  branch_graph/           immutable history and governed reference authority
+  semantic_world_basis/   truth-version component evidence
+  branch_graph/           Relational component history and reference authority
   semantic_change/        canonical authoritative-change contract
 
 worth-query
   existing legal facades  declaration, host projection, and cert-only replay routing
 
 worth-signal
-  existing branch/basis surfaces classified as derived-runtime authority
+  existing branch/basis surfaces classified as Signal component authority
 
 worth-runtime-bridge
+  runtime_world/          composite-basis admission and product history/reference authority
   existing identity and envelope surfaces classified as protocol transport
 
 worth-foundational
@@ -314,19 +321,20 @@ tools/boundary-check
   dependency rules, public-surface inventory checks, and representative inversion fixtures
 ```
 
-The three Relational destinations are semantic responsibilities that M2, M3,
-and M4 will populate. Milestone 1 installs a destination only when it contains
-a real contract or enforcement surface consumed immediately by one of those
-milestones. Existing `history/`, `publication/`, `basis/`, and facade modules
-remain in place until their inventory disposition authorizes a deliberate
-migration.
+The Relational component destinations and Runtime Bridge composition
+destination are semantic responsibilities that M2, M3, and M4 will populate.
+Milestone 1 installs a destination only when it contains a real contract or
+enforcement surface consumed immediately by one of those milestones. Existing
+`history/`, `publication/`, `basis/`, and facade modules remain in place until
+their inventory disposition authorizes a deliberate migration.
 
 The topology preserves these directions:
 
 ```text
-definition owner evidence ----\
-Relational truth version ------+--> admitted semantic-world basis --> Query projection
-policy / tenant evidence ------/
+definition owner evidence -------\
+Relational truth version --------+
+Signal branch/definition basis --+--> Bridge-admitted semantic-world basis --> Query projection
+policy / tenant evidence --------/
 
 Relational commit + change --> Bridge transport --> Signal invalidation/reconciliation
 
@@ -511,18 +519,21 @@ destinations.
 
    | Responsibility | Canonical owner | Legal consumers | Mutation/admission direction |
    |---|---|---|---|
-   | truth-version component of semantic-world basis | Relational | Query, Runtime Bridge, Signal through admitted projections | only Relational authority admits current truth-version evidence |
-   | definition/policy components of semantic-world basis | each definition or policy owner | composite-basis admission and Query projection | component owner emits evidence; composite admission joins it |
-   | immutable commit and ordered parents | Relational | Query projection, Bridge transport, certification | only Relational commit publication creates canonical history |
-   | mutable references and update records | Relational | Query workflow and inspection, Bridge transport | only Relational reference authority compares and publishes movement |
+   | truth-version component of semantic-world basis | Relational | Runtime Bridge composition; Query and Signal through admitted projections | only Relational authority admits current truth-version evidence |
+   | Signal branch/definition components of semantic-world basis | Signal | Runtime Bridge composition and Query projection | only Signal authority emits current Signal basis evidence |
+   | other definition/policy components of semantic-world basis | each definition or policy owner | Runtime Bridge composite-basis admission and Query projection | component owner emits evidence; Bridge admission joins it |
+   | immutable composite commit and ordered parents | Runtime Bridge | Query projection, component owners through protocol, certification | only Bridge composite publication creates product semantic history; component commits remain owner-local |
+   | mutable product references and update records | Runtime Bridge | Query workflow and inspection, component owners through protocol | only Bridge composition authority compares and publishes product-reference movement |
+   | immutable component commits and component references | Relational or Signal owner | Runtime Bridge composition and legal projections | only the component owner creates or advances its internal history |
    | canonical authoritative change | owning runtime at commit, with Relational history binding | Query projection, Bridge transport, Signal invalidation | owning authority emits; history publication binds |
    | ancestry acceleration | Relational-derived | Relational access, Query projection | rebuilds from canonical commit graph |
    | Query comparison/basis result | Query projection | product and host audiences | never readmitted as lower-runtime authority |
    | Store-backed representation | physical Store through the composition adapter | Query provider, recovery/readmission owner | preserved/readmitted as representation and evidence |
 
 2. Install the minimum real destination module for each immediately consumed
-   Relational responsibility. Each module exposes a narrow contract and a
-   destination for its owning milestone, not a placeholder namespace.
+   component or composition responsibility. Each module exposes a narrow
+   contract and a destination for its owning milestone, not a placeholder
+   namespace.
 3. Route all new cross-runtime use through legal facades. Pure meaning crates
    remain Query-agnostic, and certification replay remains confined to the
    cert band.
@@ -535,8 +546,9 @@ destinations.
 - Relational ownership of the truth-version component does not absorb
   definition authority. Composite-basis admission must preserve every
   component owner.
-- Runtime Bridge may seal transport admission without sealing semantic
-  currentness or publication.
+- Runtime Bridge transport admission alone cannot seal component currentness or
+  owner-local publication. Only the distinct Milestone 9.17 composition
+  authority may admit a composite basis or move a product reference.
 - The Store rule constrains direction only. M1 closeout stays independent of a
   Store runtime integration milestone.
 - Destination modules need one semantic responsibility each; `history_common`,
@@ -596,7 +608,8 @@ domain-complete artifacts.
   mutation workspaces
 - Query `ExecutionBasisIntent`, `ResolvedSnapshotBasis`, and
   `WorthQueryPreviewBasisAdmission`
-- Runtime Bridge `BridgeAdmittedTruthCommitIdentity`
+- Runtime Bridge Milestone 9.17 component correspondence, composite commit,
+  product branch, and `BridgeAdmittedTruthCommitIdentity` surfaces
 
 **Required work**
 
@@ -604,9 +617,10 @@ domain-complete artifacts.
 
    - semantic-world component resolution;
    - semantic-world basis admission;
-   - commit publication;
+   - owner-local component publication;
+   - composite commit publication;
    - canonical-change preparation;
-   - reference comparison and movement.
+   - component-reference and product-reference comparison and movement.
 
 2. Freeze the minimum stage grammar:
 
@@ -839,10 +853,13 @@ legal construction path and that adjacent runtimes cannot create alternatives.
 
 2. Add negative probes for each adjacent runtime:
 
-   - Query projection cannot publish commits or move references;
+   - Query projection cannot publish component or composite commits or move
+     references;
    - Signal branch/basis authority cannot satisfy Relational history roles;
-   - Runtime Bridge admission cannot satisfy semantic currentness or
-     publication;
+   - Runtime Bridge composition authority cannot satisfy Relational or Signal
+     owner-local history roles;
+   - a Bridge transport receipt without composition authority cannot admit
+     semantic currentness or publication;
    - deserialized or persisted representations cannot satisfy admission or
      publication roles.
 
@@ -864,8 +881,8 @@ legal construction path and that adjacent runtimes cannot create alternatives.
 
    | Milestone | Receives from M1 | Must add before its own close |
    |---|---|---|
-   | M2 | world/basis vocabulary, component ownership, admission role, Query projection direction, cost declaration | complete composite basis payload, admission/readmission algorithms, compatibility and drift semantics, basis-use evidence, exact counters |
-   | M3 | commit/reference vocabulary, ordered-parent law, separate publication roles, Relational ownership, ancestry classification | canonical DAG, arbitrary-basis fork, compare-and-publish references, named-reference semantics, ancestry algorithms/indexes, concurrency and exact counters |
+   | M2 | Milestone 9.17 ordinary composite runtime basis, world/basis vocabulary, component ownership, admission role, Query projection direction, cost declaration | complete semantic-world basis payload beyond the ordinary Relational-plus-Signal slice, admission/readmission algorithms, compatibility and drift semantics, basis-use evidence, exact counters |
+   | M3 | Milestone 9.17 single-parent composite commit/reference substrate, ordered-parent law, separate component/composite publication roles, Bridge composition ownership, component ownership, ancestry classification | canonical multi-parent DAG, arbitrary-basis fork, compare-and-publish references, named-reference semantics, ancestry algorithms/indexes, concurrency and exact counters |
    | M4 | semantic-change/diff vocabulary, preparation role, owner/change binding, projection direction, cost declaration | canonical change families, normalization, applicability, composition, inversion where lawful, diff planning/execution, exact counters |
 
 6. Update the roadmap only where implementation discovery changed an

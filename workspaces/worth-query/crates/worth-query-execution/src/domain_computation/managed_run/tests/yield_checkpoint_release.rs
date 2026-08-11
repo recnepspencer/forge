@@ -64,14 +64,14 @@ fn suspension_and_execution_destructor_panics_are_independently_contained() {
             Ok(cleanup) => cleanup,
             Err(_) => panic!("terminalized double-panic recovery was not cleanable"),
         };
-        let release = cleanup.provider_work().provider_execution_release();
+        let release = cleanup.inspection().provider_work().provider_execution_release();
         assert_eq!(release.release_count(), 1);
         assert_eq!(
             release.panicked_destructor_count(),
             1
         );
-        assert!(cleanup.relational().released());
-        assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
+        assert!(cleanup.inspection().resources_released());
+        assert_eq!(cleanup.inspection().released_reservation_count(), 2);
     }
 }
 
@@ -143,8 +143,8 @@ fn execution_destructor_panic_releases_returned_checkpoint_with_exact_dispositio
             Ok(cleanup) => cleanup,
             Err(_) => panic!("terminalized execution-drop recovery was not cleanable"),
         };
-        assert!(cleanup.relational().released());
-        assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
+        assert!(cleanup.inspection().resources_released());
+        assert_eq!(cleanup.inspection().released_reservation_count(), 2);
     }
 }
 
@@ -232,13 +232,14 @@ fn direct_cleanup_contains_and_reports_checkpoint_destructor_panic() {
     };
     assert_eq!(
         cleanup
-            .checkpoint_release()
+            .inspection()
+            .checkpoint()
             .expect("yielded cleanup carries checkpoint release")
-            .disposition(),
+            .release_disposition(),
         crate::domain_computation::WorthQueryProviderCheckpointReleaseDisposition::Panicked
     );
-    assert!(cleanup.relational().released());
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
+    assert!(cleanup.inspection().resources_released());
+    assert_eq!(cleanup.inspection().released_reservation_count(), 2);
 }
 
 #[test]
@@ -312,12 +313,9 @@ fn workflow_cleanup_returns_recovery_required_after_checkpoint_destructor_panic(
         }
     };
     assert_eq!(
-        recovery.checkpoint_release().disposition(),
+        recovery.inspection().checkpoint().release_disposition(),
         crate::domain_computation::WorthQueryProviderCheckpointReleaseDisposition::Panicked
     );
-    assert!(recovery.relational().released());
-    assert_eq!(
-        recovery.attempt().capacity().released_reservation_count(),
-        3
-    );
+    assert!(recovery.inspection().resources_released());
+    assert_eq!(recovery.inspection().released_reservation_count(), 3);
 }

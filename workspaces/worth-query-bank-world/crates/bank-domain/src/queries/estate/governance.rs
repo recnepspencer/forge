@@ -55,18 +55,16 @@ pub fn estate_governance_definition() -> ApplicationQueryDefinition<
     EstateGovernanceContext,
     EstateCase,
 > {
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        EstateGovernanceQuery::reference(),
-        EstateCase::reference(),
-        EstateCase::reference(),
-        governance_shape(),
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(4, 16, 34),
-        governance_disclosure(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        ViewEstateCase::reference(),
-    )
-    .build()
-    .expect("bank estate governance query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(EstateGovernanceQuery::reference())
+        .root(EstateCase::reference())
+        .scope(EstateCase::reference())
+        .result_shape(governance_shape())
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(4, 16, 34))
+        .disclosure(governance_disclosure())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(ViewEstateCase::reference())
+        .build()
+        .expect("bank estate governance query is statically canonical")
 }

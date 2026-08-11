@@ -77,4 +77,4 @@ boundaries may consume the envelope.
 ## Related Docs
 
 - [Runtime-Installed Domains](../runtime-installed-domains.md)
-- [Recovery Boundary](../recovery-boundary.md)
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md)

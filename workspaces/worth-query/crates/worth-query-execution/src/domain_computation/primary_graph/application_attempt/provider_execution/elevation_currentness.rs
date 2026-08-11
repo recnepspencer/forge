@@ -4,8 +4,8 @@ use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityValidityTimeline;
 
 use super::super::super::super::authorization::{
-    WorthQueryAuthorizationClock, WorthQueryElevationApprovalBinding,
-    WorthQueryElevationCloseBinding, WorthQueryElevationRequestBinding,
+    WorthQueryElevationApprovalBinding, WorthQueryElevationCloseBinding,
+    WorthQueryElevationRequestBinding, WorthQueryRuntimeClock,
 };
 use super::super::super::WorthQueryElevationClosureKind;
 
@@ -47,7 +47,7 @@ impl WorthQueryElevationCommitCurrentness {
         }
     }
 
-    pub(super) fn remains_current(&self, clock: &WorthQueryAuthorizationClock) -> bool {
+    pub(super) fn remains_current(&self, clock: &WorthQueryRuntimeClock) -> bool {
         let timeline = match self {
             Self::Window { timeline, .. } | Self::Close { timeline, .. } => *timeline,
         };

@@ -12,10 +12,13 @@ use worth_query_host::facade::admission::authenticated_principal::{
     WorthQueryAuthenticationAdapterAdmission, WorthQueryAuthenticationAudience,
     WorthQueryAuthenticationMethod, WorthQueryRequestScope,
 };
-use worth_query_host::facade::domain::WorthQueryInstalledPrincipalBinding;
+use worth_query_host::facade::declaration::application_schema::ApplicationOperationRef;
+use worth_query_host::facade::domain::{
+    WorthQueryInstalledAftermathContract, WorthQueryInstalledPrincipalBinding,
+};
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationInvariantProjectionAuthority, WorthQueryAuthorizationTimeSource,
-    WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionMode,
+    WorthQueryApplicationInvariantProjectionAuthority, WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryPrincipalResolutionMode, WorthQueryRuntimeTimeSource,
 };
 
 use crate::error::{
@@ -81,7 +84,7 @@ impl BankIdentityRuntime {
     /// authority. Operation callers cannot replace it or provide samples.
     pub fn install_world_with_authorization_time_source(
         seed: BankWorldSeed,
-        source: impl WorthQueryAuthorizationTimeSource,
+        source: impl WorthQueryRuntimeTimeSource,
     ) -> Result<Self, BankIdentityRuntimeBuildError> {
         let (principals, world) = prepare_world(seed)?;
         installation::install_prepared(
@@ -157,13 +160,30 @@ impl BankIdentityRuntime {
     ) -> Result<BankPreviewSession, BankApplicationQueryDenial> {
         self.runtime
             .open_application_preview_session(request)
-            .map_err(BankApplicationQueryDenial::PreviewSession)
+            .map(BankPreviewSession::from_query)
+            .map_err(BankApplicationQueryDenial::from_preview_session)
     }
 
     pub(crate) const fn application_runtime(
         &self,
     ) -> &WorthQueryPrimaryGraphApplicationRuntime<BankSchema> {
         &self.runtime
+    }
+
+    /// Installed aftermath from the live bank schema — integration tests only.
+    #[doc(hidden)]
+    pub fn installed_operation_aftermath<Operation, Input>(
+        &self,
+        operation: ApplicationOperationRef<BankSchema, Operation, Input>,
+    ) -> WorthQueryInstalledAftermathContract {
+        self.application_runtime()
+            .installed_schema()
+            .installed_operation(operation)
+            .expect("operation installed")
+            .contracts()
+            .aftermath()
+            .expect("aftermath declared")
+            .clone()
     }
 
     pub(crate) const fn invariant_projection(

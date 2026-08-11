@@ -47,10 +47,57 @@ impl PreparedPhysicalRootProjection {
         self.manifest_capacity_transition
     }
 
-    pub(in crate::physical_runtime::record_serving) const fn root_publication_allocation_bytes(
+    pub(in crate::physical_runtime) const fn recovery_manifest_capacity(&self) -> u16 {
+        self.placement.manifest_capacity().get()
+    }
+
+    pub(in crate::physical_runtime) fn recovery_placements(
+        &self,
+    ) -> impl ExactSizeIterator<Item = CurrentPhysicalRecordPlacement> + '_ {
+        self.placements.values().copied()
+    }
+
+    pub(in crate::physical_runtime) fn recovery_record_identities(
+        &self,
+    ) -> impl ExactSizeIterator<Item = PersistedRecordIdentity> + '_ {
+        self.records.iter().copied()
+    }
+
+    pub(in crate::physical_runtime) fn recovery_segment_updates(
+        &self,
+    ) -> impl ExactSizeIterator<Item = RecordSegmentPageManifestEntry> + '_ {
+        self.segment_updates.values().copied()
+    }
+
+    pub(in crate::physical_runtime) fn recovery_payload_manifests(
+        &self,
+    ) -> impl ExactSizeIterator<Item = &(RecordArtifactFile, Vec<u8>)> {
+        self.payload_manifests.iter()
+    }
+
+    pub(in crate::physical_runtime) const fn root_publication_allocation_bytes(
         &self,
     ) -> NonZeroU64 {
         self.root_publication_allocation_bytes
+    }
+
+    pub(in crate::physical_runtime) fn recovery_inline_allocations(
+        &self,
+    ) -> impl ExactSizeIterator<Item = super::inline_segment_plan::InlineSegmentAllocation> + '_
+    {
+        self.inline_allocations.iter().copied()
+    }
+
+    pub(in crate::physical_runtime) const fn recovery_last_inline_record(
+        &self,
+    ) -> Option<PersistedRecordIdentity> {
+        self.last_inline_record
+    }
+
+    pub(in crate::physical_runtime) const fn recovery_last_inline_segment(
+        &self,
+    ) -> Option<SegmentGenerationCell> {
+        self.last_inline_segment
     }
 
     pub(in crate::physical_runtime::record_serving) fn completion_projection(

@@ -56,22 +56,20 @@ pub fn institution_audit_definition() -> ApplicationQueryDefinition<
     InstitutionAuditView,
     Institution,
 > {
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        InstitutionAuditQuery::reference(),
-        Institution::reference(),
-        Institution::reference(),
-        institution_audit_shape(),
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(4, 4, 10),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        AuditInstitution::reference(),
-    )
-    .order_by(
-        posting_sequence(),
-        ApplicationQueryOrderingDirection::Ascending,
-    )
-    .build()
-    .expect("bank institution audit query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(InstitutionAuditQuery::reference())
+        .root(Institution::reference())
+        .scope(Institution::reference())
+        .result_shape(institution_audit_shape())
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(4, 4, 10))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(AuditInstitution::reference())
+        .order_by(
+            posting_sequence(),
+            ApplicationQueryOrderingDirection::Ascending,
+        )
+        .build()
+        .expect("bank institution audit query is statically canonical")
 }

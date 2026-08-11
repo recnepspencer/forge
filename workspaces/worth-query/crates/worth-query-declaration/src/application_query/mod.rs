@@ -23,8 +23,12 @@ pub use basis_support::ApplicationQueryBasisSupport;
 pub use canonical_basis::ApplicationQueryCanonicalArtifact;
 pub use continuation::ApplicationQueryContinuationTarget;
 pub use definition::{
-    ApplicationQueryCardinality, ApplicationQueryDefinition, ApplicationQueryDefinitionBuilder,
-    ApplicationQueryDependencyCeiling, ApplicationQueryPredicate,
+    ApplicationQueryAuthorizationAuthoring, ApplicationQueryBasisAuthoring,
+    ApplicationQueryCardinality, ApplicationQueryCardinalityAuthoring, ApplicationQueryDefinition,
+    ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyAuthoring,
+    ApplicationQueryDependencyCeiling, ApplicationQueryDisclosureAuthoring,
+    ApplicationQueryLaneAuthoring, ApplicationQueryPredicate, ApplicationQueryResultAuthoring,
+    ApplicationQueryRootAuthoring, ApplicationQueryScopeAuthoring,
 };
 pub use disclosure_contract::{
     ApplicationQueryDisclosureContract, ApplicationQueryDisclosurePosture,

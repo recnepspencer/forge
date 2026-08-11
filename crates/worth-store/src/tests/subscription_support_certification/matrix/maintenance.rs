@@ -1,10 +1,30 @@
 use super::super::{
     maintenance_basis, SubscriptionSupportCertificationLaneKind,
-    SubscriptionSupportCertificationLaneOutcome, SubscriptionSupportMaintenanceDecision,
-    SupportActionBreadthBudget, SupportActionId, SupportAllocationScope, SupportPathClass,
-    SupportProgramDensityClass, WORTHStoreBuilder,
+    SubscriptionSupportCertificationLaneOutcome, SubscriptionSupportMaintenanceBatchRequest,
+    SubscriptionSupportMaintenanceDecision, SupportActionBreadthBudget, SupportActionId,
+    SupportAllocationScope, SupportPathClass, SupportProgramDensityClass, SupportProgramPathPolicy,
+    WORTHStoreBuilder,
 };
 use super::evidence::CertificationMatrixEvidence;
+
+fn maintenance_request(
+    action_id: SupportActionId,
+    affected_bases: Vec<crate::SubscriptionSupportOperationalBasis>,
+    decision: SubscriptionSupportMaintenanceDecision,
+) -> SubscriptionSupportMaintenanceBatchRequest {
+    SubscriptionSupportMaintenanceBatchRequest {
+        action_id,
+        affected_bases,
+        decision,
+        path: SupportProgramPathPolicy {
+            path_class: SupportPathClass::MaintenanceExecution,
+            density_class: SupportProgramDensityClass::MaintenanceKeyBatch,
+            allocation_scope: SupportAllocationScope::FamilyLocalBatch,
+            budget: SupportActionBreadthBudget::new(4, 1024).unwrap(),
+            payload_header_bytes: 128,
+        },
+    }
+}
 
 pub(super) fn record_maintenance(evidence: &mut CertificationMatrixEvidence) {
     let maintenance_rebuild = {
@@ -12,19 +32,14 @@ pub(super) fn record_maintenance(evidence: &mut CertificationMatrixEvidence) {
         let basis = maintenance_basis("rebuild");
         let retained_basis_digest = basis.basis_digest().to_string();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:cert-rebuild").unwrap(),
                 vec![basis],
                 SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
                     retained_basis_digest,
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let report = store
             .publish_subscription_support_maintenance_consequence(plan)
@@ -52,19 +67,14 @@ pub(super) fn record_maintenance(evidence: &mut CertificationMatrixEvidence) {
     let maintenance_refresh = {
         let mut store = WORTHStoreBuilder::new().in_memory().build().unwrap();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:cert-refresh").unwrap(),
                 vec![maintenance_basis("refresh")],
                 SubscriptionSupportMaintenanceDecision::refresh_descriptor_admitted(
                     "refresh support snapshot projection",
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let report = store
             .publish_subscription_support_maintenance_consequence(plan)
@@ -85,17 +95,14 @@ pub(super) fn record_maintenance(evidence: &mut CertificationMatrixEvidence) {
         let mut store = WORTHStoreBuilder::new().in_memory().build().unwrap();
         let plan = store
             .admit_subscription_support_maintenance_batch(
-                SupportActionId::new("support-maintenance:cert-migration").unwrap(),
-                vec![maintenance_basis("migration")],
-                SubscriptionSupportMaintenanceDecision::compatibility_migration_descriptor_admitted(
-                    "compatibility-migration:cert",
-                )
-                .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
+                maintenance_request(
+                    SupportActionId::new("support-maintenance:cert-migration").unwrap(),
+                    vec![maintenance_basis("migration")],
+                    SubscriptionSupportMaintenanceDecision::compatibility_migration_descriptor_admitted(
+                        "compatibility-migration:cert",
+                    )
+                    .unwrap(),
+                ),
             )
             .unwrap();
         let report = store
@@ -116,19 +123,14 @@ pub(super) fn record_maintenance(evidence: &mut CertificationMatrixEvidence) {
     let maintenance_degradation = {
         let mut store = WORTHStoreBuilder::new().in_memory().build().unwrap();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:cert-degradation").unwrap(),
                 vec![maintenance_basis("degradation")],
                 SubscriptionSupportMaintenanceDecision::degradation_recovery_descriptor_admitted(
                     "degraded continuation support recovered with weakened posture",
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let report = store
             .publish_subscription_support_maintenance_consequence(plan)
@@ -148,7 +150,7 @@ pub(super) fn record_maintenance(evidence: &mut CertificationMatrixEvidence) {
     let maintenance_recovered = {
         let mut store = WORTHStoreBuilder::new().in_memory().build().unwrap();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:cert-restart").unwrap(),
                 vec![maintenance_basis("restart")],
                 SubscriptionSupportMaintenanceDecision::interrupted_restart_recovered(
@@ -156,12 +158,7 @@ pub(super) fn record_maintenance(evidence: &mut CertificationMatrixEvidence) {
                     "maintenance-restart:descriptor-recovered",
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let report = store
             .publish_subscription_support_maintenance_consequence(plan)
@@ -183,19 +180,14 @@ pub(super) fn record_maintenance(evidence: &mut CertificationMatrixEvidence) {
         let basis = maintenance_basis("delayed");
         let retained_basis_digest = basis.basis_digest().to_string();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:cert-delayed").unwrap(),
                 vec![basis],
                 SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
                     retained_basis_digest,
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let report = store
             .report_delayed_subscription_support_maintenance(
@@ -222,19 +214,14 @@ pub(super) fn record_maintenance(evidence: &mut CertificationMatrixEvidence) {
         let basis = maintenance_basis("coalesced");
         let retained_basis_digest = basis.basis_digest().to_string();
         let plan = store
-            .admit_subscription_support_maintenance_batch(
+            .admit_subscription_support_maintenance_batch(maintenance_request(
                 SupportActionId::new("support-maintenance:cert-coalesced").unwrap(),
                 vec![basis.clone(), basis],
                 SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
                     retained_basis_digest,
                 )
                 .unwrap(),
-                SupportPathClass::MaintenanceExecution,
-                SupportProgramDensityClass::MaintenanceKeyBatch,
-                SupportAllocationScope::FamilyLocalBatch,
-                SupportActionBreadthBudget::new(4, 1024).unwrap(),
-                128,
-            )
+            ))
             .unwrap();
         let report = store
             .publish_subscription_support_maintenance_consequence(plan)

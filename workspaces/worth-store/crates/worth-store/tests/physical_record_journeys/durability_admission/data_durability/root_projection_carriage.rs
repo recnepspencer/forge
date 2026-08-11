@@ -74,7 +74,22 @@ fn settled_member_cannot_be_rebound_to_an_unrelated_group() {
 #[test]
 fn exact_settled_group_advances_only_after_replacement_and_namespace_durability() {
     let parent = tempfile::tempdir().unwrap();
-    let serving = serving_from_initialization(&parent.path().join("store"));
+    let root = parent.path().join("store");
+    let serving = serving_from_initialization(&root);
+    let records = root.join("families/records");
+    let genesis_current = worth_store_physical_format::DurableRootSelector::decode(
+        &std::fs::read(records.join("root-current.selector")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        (genesis_current.role(), genesis_current.root_generation()),
+        (worth_store_physical_format::RootSelectorRole::Current, 1)
+    );
+    assert_eq!(genesis_current.linked_selector(), None);
+    assert!(
+        !records.join("root-previous.selector").exists(),
+        "genesis has no predecessor and must not invent a previous selector"
+    );
     let (_, placement, _) = configuration();
     let submission = serving.certification_record_submission();
     let (basis, settled) = settled_member(
@@ -178,6 +193,34 @@ fn exact_settled_group_advances_only_after_replacement_and_namespace_durability(
     assert!(completed.retained_root().supporting_artifacts().contains(
         &worth_store_physical_format::RecordArtifactFile::RootManifest { generation: 1 }
     ));
+    let previous = worth_store_physical_format::DurableRootSelector::decode(
+        &std::fs::read(records.join("root-previous.selector")).unwrap(),
+    )
+    .unwrap();
+    let current = worth_store_physical_format::DurableRootSelector::decode(
+        &std::fs::read(records.join("root-current.selector")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        (previous.role(), previous.root_generation()),
+        (worth_store_physical_format::RootSelectorRole::Previous, 1)
+    );
+    assert_eq!(
+        (current.role(), current.root_generation()),
+        (worth_store_physical_format::RootSelectorRole::Current, 2)
+    );
+    assert_eq!(previous.linked_selector(), Some(current.identity()));
+    assert_eq!(current.linked_selector(), Some(previous.identity()));
+    assert_eq!(
+        previous.linked_root_generation(),
+        Some(current.root_generation())
+    );
+    assert_eq!(
+        current.linked_root_generation(),
+        Some(previous.root_generation())
+    );
+    assert_eq!(previous.store_identity(), current.store_identity());
+    assert_eq!(previous.format(), current.format());
     serving.close();
 }
 

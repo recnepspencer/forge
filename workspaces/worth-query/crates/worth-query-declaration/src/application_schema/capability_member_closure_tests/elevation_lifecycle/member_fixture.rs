@@ -29,7 +29,7 @@ fn typed_field_member(entity: &str, aspect: &str, field: &str) -> ApplicationSch
         presence: ApplicationFieldPresence::Required,
         scalar_family: ScalarAspectType::UInt64,
         value_type: std::any::type_name::<u64>().to_string(),
-        currency: None,
+        unit: None,
         writable: false,
         equality_queryable: true,
     }

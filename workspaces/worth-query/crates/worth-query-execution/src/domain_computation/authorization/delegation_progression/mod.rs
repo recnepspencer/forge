@@ -9,7 +9,7 @@ use worth_query_installation::facade::{
     WorthQueryInstalledApplicationOperation,
 };
 
-use super::capability_operation_progression::{
+use super::capability_admission::{
     progress_capability_operation, WorthQueryCapabilityOperationProgression,
 };
 use super::{
@@ -21,8 +21,6 @@ use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationR
 mod binding;
 use binding::bind_activation;
 pub(in crate::domain_computation) use binding::WorthQueryDelegationActivationBinding;
-mod narrowing;
-use narrowing::observe_narrowing;
 mod support;
 use support::authorize_target_support;
 
@@ -71,19 +69,21 @@ where
         Input: ApplicationCapabilityRequest<Schema, CommandCapability>
             + ApplicationCapabilityDelegationRequest<Schema, TargetCapability>,
     {
-        let proposed = access.input.delegation_request().map_err(|rejection| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::DelegationRejected,
-                rejection.subject(),
-            )
-        })?;
+        let proposed = access
+            .capability_input()
+            .delegation_request()
+            .map_err(|rejection| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::DelegationRejected,
+                    rejection.subject(),
+                )
+            })?;
         let installed = self
             .authorization
             .capability_plan(target)
             .ok_or_else(|| stale(target.contract().name()))?;
         validate_activation_operation(installed, operation)?;
-        let (resolved, supporting) =
-            authorize_target_support(self, target, installed, &access, &proposed)?;
+        let (resolved, supporting) = authorize_target_support(self, target, &access, &proposed)?;
         let required_program_targets = target
             .delegation_activation_program_targets()
             .ok_or_else(|| delegation_denial(installed))?;
@@ -100,6 +100,10 @@ where
             required_program_targets,
             proposal_budget,
         )?;
+        let mut access = access;
+        access
+            .retain_observed_support(supporting)
+            .map_err(|()| inconsistent(operation.operation()))?;
         let mut admitted = progress_capability_operation(
             self,
             access,
@@ -108,13 +112,6 @@ where
             WorthQueryCapabilityOperationProgression::DelegationActivation,
         )?;
         admitted.retain_delegation_proposal_canonical_work(prepared.canonical_work);
-        admitted
-            .authorization_mut()
-            .and_then(|authorization| authorization.capability_authorization_mut())
-            .ok_or_else(|| inconsistent(operation.operation()))?
-            .retain_supporting(supporting)
-            .map_err(|()| inconsistent(operation.operation()))?;
-        admitted.graph_work_mut().record_decision_facts(1);
         admitted.bind_delegation_activation(prepared.binding)
     }
 }

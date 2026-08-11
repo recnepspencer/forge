@@ -63,21 +63,21 @@ macro_rules! worth_query_operation_requires {
 }
 
 #[macro_export]
-macro_rules! worth_query_currency {
-    ($vis:vis $Currency:ident($DomainCurrency:ty) in $Schema:ty) => {
+macro_rules! worth_query_unit {
+    ($vis:vis $Unit:ident($DomainUnit:ty) in $Schema:ty) => {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        $vis struct $Currency;
+        $vis struct $Unit;
 
-        impl $crate::facade::application_schema::ApplicationCurrencyMarker<$DomainCurrency>
-            for $Currency
+        impl $crate::facade::application_schema::ApplicationUnitMarker<$DomainUnit>
+            for $Unit
         {
-            const NAME: &'static str = stringify!($Currency);
+            const NAME: &'static str = stringify!($Unit);
         }
 
-        impl $Currency {
-            pub const fn reference() -> $crate::facade::application_schema::ApplicationCurrencyRef<$Schema, Self> {
-                $crate::facade::application_schema::ApplicationCurrencyRef::from_schema_identifier(
-                    stringify!($Currency),
+        impl $Unit {
+            pub const fn reference() -> $crate::facade::application_schema::ApplicationUnitRef<$Schema, Self> {
+                $crate::facade::application_schema::ApplicationUnitRef::from_schema_identifier(
+                    stringify!($Unit),
                 )
             }
         }

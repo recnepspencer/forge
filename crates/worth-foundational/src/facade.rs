@@ -222,6 +222,12 @@ pub use crate::boundary_evidence::{
     FoundationalMaterializedBoundaryEvidenceAttachmentBundle,
     SupportBasisBoundaryEvidenceAttachmentBundle,
 };
+pub use crate::boundary_protocol::{
+    BoundaryProtocolCompatibilityWindow, BoundaryProtocolCompatibilityWindowDenial,
+    BoundaryProtocolIdentity, BoundaryProtocolIdentityDenial, BoundaryProtocolUnsupportedVersion,
+    BoundaryProtocolUnsupportedVersionPosture, BoundaryProtocolVersion,
+    BoundaryProtocolVersionDenial,
+};
 pub use crate::canonicalization::{
     admit_canonical_bundle_digest_derivation, admit_canonical_bundle_digest_derivation_with_budget,
     admit_canonical_export_digest_derivation, admit_canonical_export_digest_derivation_with_budget,
@@ -653,50 +659,4 @@ pub use crate::values::{
     Symbol,
 };
 
-/// A named implementation home that Milestone 1 expects to remain distinct.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ResponsibilityArea {
-    name: &'static str,
-    owns: &'static str,
-    does_not_own: &'static str,
-}
-
-impl ResponsibilityArea {
-    pub const fn new(name: &'static str, owns: &'static str, does_not_own: &'static str) -> Self {
-        Self {
-            name,
-            owns,
-            does_not_own,
-        }
-    }
-
-    pub const fn name(&self) -> &'static str {
-        self.name
-    }
-
-    pub const fn owns(&self) -> &'static str {
-        self.owns
-    }
-
-    pub const fn does_not_own(&self) -> &'static str {
-        self.does_not_own
-    }
-}
-
-/// Responsibility topology exposed for Phase 1 certification.
-pub fn foundational_responsibilities() -> [ResponsibilityArea; 12] {
-    [
-        crate::values::responsibility(),
-        crate::aspects::responsibility(),
-        crate::identities::responsibility(),
-        crate::locators::responsibility(),
-        crate::compatibility::responsibility(),
-        crate::canonicalization::responsibility(),
-        crate::profiles::responsibility(),
-        crate::boundary_artifacts::responsibility(),
-        crate::transitions::responsibility(),
-        crate::diagnostics::responsibility(),
-        crate::boundary_evidence::responsibility(),
-        crate::performance::responsibility(),
-    ]
-}
+pub use crate::responsibilities::{foundational_responsibilities, ResponsibilityArea};

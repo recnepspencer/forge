@@ -78,6 +78,9 @@ impl<'a> WorthQueryProvisionalEffectProgramView<'a> {
 }
 
 pub struct WorthQueryProvisionalOverlayAdmission {
+    #[allow(dead_code)]
+    affinity:
+        crate::domain_computation::provider_session::WorthQueryProviderSessionAffinityIdentity,
     binding_identity: Arc<str>,
     token_identity: Arc<str>,
     token_generation: u64,
@@ -86,7 +89,8 @@ pub struct WorthQueryProvisionalOverlayAdmission {
 }
 
 impl WorthQueryProvisionalOverlayAdmission {
-    pub(crate) fn new(
+    pub(in crate::domain_computation) fn new(
+        affinity: crate::domain_computation::provider_session::WorthQueryProviderSessionAffinityIdentity,
         binding_identity: &str,
         token_identity: &str,
         token_generation: u64,
@@ -94,6 +98,7 @@ impl WorthQueryProvisionalOverlayAdmission {
         generation: u64,
     ) -> Self {
         Self {
+            affinity,
             binding_identity: binding_identity.into(),
             token_identity: token_identity.into(),
             token_generation,
@@ -119,6 +124,7 @@ impl WorthQueryProvisionalOverlayAdmission {
             ));
         }
         Ok(WorthQueryProvisionalOverlayEvidence {
+            affinity: self.affinity,
             identity: Arc::clone(&physical_overlay_identity),
             proposed_state_identity: Arc::clone(&physical_overlay_identity),
             binding_identity: self.binding_identity,
@@ -133,6 +139,8 @@ impl WorthQueryProvisionalOverlayAdmission {
 }
 
 pub struct WorthQueryProvisionalOverlayEvidence {
+    affinity:
+        crate::domain_computation::provider_session::WorthQueryProviderSessionAffinityIdentity,
     identity: Arc<str>,
     proposed_state_identity: Arc<str>,
     binding_identity: Arc<str>,
@@ -230,6 +238,14 @@ pub struct WorthQueryProvisionalOverlayEvidenceView<'a> {
 }
 
 impl<'a> WorthQueryProvisionalOverlayEvidenceView<'a> {
+    #[allow(dead_code)]
+    pub(in crate::domain_computation) fn affinity_identity(
+        self,
+    ) -> crate::domain_computation::provider_session::WorthQueryProviderSessionAffinityIdentity
+    {
+        self.evidence.affinity
+    }
+
     pub fn identity(self) -> &'a str {
         self.evidence.identity()
     }

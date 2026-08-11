@@ -6,9 +6,9 @@
 derives from it. `worth-query` is how consumers ask for it.
 
 `worth-query` is the typed, composable, aspect-aware query layer for
-graph-native truth systems. It translates developer intent â€” "give me
+graph-native truth systems. It translates developer intent -- "give me
 these entities, with these aspects, filtered by these conditions, projected
-to this shape" â€” into efficient reads against the truth runtime and store,
+to this shape" -- into efficient reads against the truth runtime and store,
 with native support for live subscription promotion, branch-scoped reads,
 time-travel, lineage traversal, and incremental result maintenance.
 
@@ -41,15 +41,15 @@ of the retained declaration-entry pipeline:
 - an orchestration inventory and audit layer that keeps exported orchestration
   verbs, ordinary lanes, transcripts, docs, and certification synchronized as
   one public contract instead of letting those drift independently
-- a recovery boundary that turns ordinary, checked, and proof-visible stop
-  posture into one typed explanation and repair surface without pretending
-  Query already owns automatic repair execution
+- a typed-stop remediation surface that turns ordinary, checked, and
+  proof-visible stop posture into one explanation and recommended application
+  action without granting execution authority
 - a family-helper projection layer that gives major declaration families
   domain-native helper surfaces while still compiling onto the same generic
-  binding, orchestration, ordinary, recovery, and audit lanes
+  binding, orchestration, ordinary, remediation, and audit lanes
 - a grouped-authoring layer that turns meaningful neighborhood-shaped
   declarations into retained grouped artifacts, grouped orchestration, and
-  grouped recovery without degrading into loops over isolated single-member
+  grouped remediation without degrading into loops over isolated single-member
   declarations
 - a public-doc-coverage layer that keeps feature docs, README discovery,
   golden readouts, and teaching journeys synchronized with the live public
@@ -63,7 +63,7 @@ of the retained declaration-entry pipeline:
 ## What This Query Layer Is For
 
 `worth-query` exists for every consumer that needs to read, filter, project,
-traverse, or subscribe to truth â€” whether that consumer is a web frontend,
+traverse, or subscribe to truth -- whether that consumer is a web frontend,
 a server-side handler, an AI agent, a geometry kernel, a CLI tool, or another
 WORTH component.
 
@@ -102,7 +102,7 @@ These are not optional add-ons. They are the capabilities that make
 
 - aspect-aware projection (query specific aspects, not whole entities)
 - typed composable query expressions, not SQL strings
-- native live query promotion (read â†’ subscribe with no API change)
+- native live query promotion (read -> subscribe with no API change)
 - branch-scoped reads as a query parameter, not a separate API
 - time-travel reads as a query parameter (at commit, at snapshot, at time)
 - lineage-aware traversal (follow identity evolution across versions)
@@ -116,8 +116,8 @@ These are not optional add-ons. They are the capabilities that make
 - pagination and cursor-based traversal as first-class query features
 - diff queries across branches, versions, and time ranges
 - correspondence queries across branches via lineage
-- named scopes â€” reusable, composable query fragments
-- view shapes â€” intent-driven query types (table, kanban, timeline, chart)
+- named scopes -- reusable, composable query fragments
+- view shapes -- intent-driven query types (table, kanban, timeline, chart)
 - eager relation loading with depth control
 - query templates with parameter slots
 - saved and named query definitions as workspace artifacts
@@ -126,8 +126,8 @@ These are not optional add-ons. They are the capabilities that make
 - relational rollups and cross-entity computed fields
 - result shape declarations for delivery contracts
 - inspector-pattern entity detail with live aspect projection
-- policy-aware aspect masking â€” aspects the user cannot see are never queried
-- tenant-scoped query narrowing â€” automatic branch scoping per tenant
+- policy-aware aspect masking -- aspects the user cannot see are never queried
+- tenant-scoped query narrowing -- automatic branch scoping per tenant
 
 If these are treated as separate APIs bolted onto traditional read paths,
 the developer experience fractures into "reads here, subscriptions there,
@@ -215,9 +215,9 @@ deliver, cache, and subscribe to.
 
 ## Principles
 
-1. Queries are typed, composable expressions â€” not strings, not magic, not
+1. Queries are typed, composable expressions -- not strings, not magic, not
    framework conventions.
-2. Aspect projection is the default â€” whole-entity reads are a special case,
+2. Aspect projection is the default -- whole-entity reads are a special case,
    not the norm.
 3. A query that works as a one-time read must work as a live subscription
    with no API change.
@@ -259,7 +259,7 @@ These are locked architectural decisions:
 - subgraph scope uses typed boundary expressions, not arbitrary traversal
   predicates
 - diff queries produce structured change sets, not raw deltas
-- the query layer does not cache results â€” caching is a store and server
+- the query layer does not cache results -- caching is a store and server
   responsibility
 - queries carry enough metadata for the signal graph to evaluate
   subscription relevance
@@ -287,7 +287,7 @@ What this enables:
 
 Technical role:
 Every query explicitly declares which aspects it needs. The query layer
-never reads whole entities by default â€” it reads the declared aspect
+never reads whole entities by default -- it reads the declared aspect
 projection and nothing more.
 
 What this enables:
@@ -379,7 +379,7 @@ The promoted subscription receives incremental patches as truth changes.
 
 What this enables:
 
-- the simplest possible developer experience â€” write one query, use it for
+- the simplest possible developer experience -- write one query, use it for
   both read and subscribe
 - no separate "subscription query" API or syntax
 - live dashboards, collaborative surfaces, and real-time lists from the
@@ -391,13 +391,13 @@ What this enables:
 
 Technical role:
 Live query subscriptions must receive incremental patches that correspond
-to the query's projection, filters, and ordering â€” not raw CDC events that
+to the query's projection, filters, and ordering -- not raw CDC events that
 the consumer must re-evaluate.
 
 What this enables:
 
 - consumers receive "row 7 changed field X to value Y" not "entity 42
-  aspect Foo was modified" â€” the result is query-shaped, not event-shaped
+  aspect Foo was modified" -- the result is query-shaped, not event-shaped
 - collection splices ("inserted at position 3," "removed from position 9")
   for ordered live collections
 - filtered subscriptions that suppress changes that do not match the
@@ -460,7 +460,7 @@ What this enables:
 Technical role:
 Diff queries express "what changed between version A and version B" as a
 first-class query type. The result is a structured change set shaped by
-the query's aspect projection, filters, and scope â€” not raw storage deltas.
+the query's aspect projection, filters, and scope -- not raw storage deltas.
 
 What this enables:
 
@@ -552,7 +552,7 @@ What this enables:
 
 Technical role:
 Aggregation queries for live subscriptions can declare tolerance thresholds.
-Changes below the tolerance threshold are suppressed â€” the consumer does
+Changes below the tolerance threshold are suppressed -- the consumer does
 not receive a delivery until the aggregate changes meaningfully.
 
 What this enables:
@@ -568,7 +568,7 @@ What this enables:
 
 Technical role:
 Every query declares its result shape as a typed structure. Results are not
-arbitrary dynamic maps â€” they are typed projections shaped by the query's
+arbitrary dynamic maps -- they are typed projections shaped by the query's
 aspect projection, traversal, and aggregation expressions.
 
 What this enables:
@@ -598,7 +598,7 @@ What this enables:
 #### Scopes as first-class domain vocabulary
 
 Technical role:
-Queries support reusable, composable query fragments â€” named scopes â€” that act as the primary bridge between the typed runtime and pragmatic app development. A scope is not just a convenience filter; it is a schema-validated, policy-aware, composable, and subscription-safe boundary.
+Queries support reusable, composable query fragments -- named scopes -- that act as the primary bridge between the typed runtime and pragmatic app development. A scope is not just a convenience filter; it is a schema-validated, policy-aware, composable, and subscription-safe boundary.
 
 You want developers writing code that reads conceptually like:
 `active()`, `pending_approval()`, `changed_since_divergence()`, `visible_to(actor)`, `assembly_region(root, depth=3)`
@@ -614,8 +614,8 @@ What this enables:
 
 Technical role:
 Query definitions can be persisted as first-class workspace artifacts.
-A saved query captures the full query expression â€” projections, filters,
-scopes, ordering, view shape â€” as a named, shareable, subscribable
+A saved query captures the full query expression -- projections, filters,
+scopes, ordering, view shape -- as a named, shareable, subscribable
 definition.
 
 What this enables:
@@ -659,7 +659,7 @@ What this enables:
 
 Technical role:
 Queries can declare a view shape that communicates the presentation intent
-of the result. View shapes are not just grouping and sorting â€” they
+of the result. View shapes are not just grouping and sorting -- they
 communicate how the consumer will render the results, which the query layer
 and signal graph can use for optimization and narrowing.
 
@@ -717,7 +717,7 @@ What this enables:
 
 Technical role:
 Rich text and structured content are first-class aspect types with
-schema-enforced structure. Content aspects are not opaque blobs â€” they
+schema-enforced structure. Content aspects are not opaque blobs -- they
 are composed of typed content blocks (headings, paragraphs, checklists,
 embedded references, media refs) that can be queried, filtered, and
 projected individually.
@@ -810,7 +810,7 @@ What this enables:
 
 - sensitive data (salary, PII, internal notes) is structurally invisible
   to unauthorized users, not filtered after the fact
-- zero per-query authorization code â€” policies are declared once against
+- zero per-query authorization code -- policies are declared once against
   the schema
 - policy changes take effect immediately on existing live subscriptions
 - CDC narrowing respects policy masks, so unauthorized aspect changes
@@ -841,7 +841,7 @@ Technical role:
 In multi-tenant deployments where tenants are isolated via branches, the
 query layer automatically scopes every query to the resolved tenant's
 branch. Developers writing queries for a multi-tenant application do not
-need to specify or manage branch scoping â€” the tenant context provides it.
+need to specify or manage branch scoping -- the tenant context provides it.
 
 What this enables:
 
@@ -885,7 +885,7 @@ What this enables:
 
 Revolutionary use:
 web developers write one typed query that works for initial load, live
-updates, and historical reads â€” instead of separate REST endpoints, GraphQL
+updates, and historical reads -- instead of separate REST endpoints, GraphQL
 resolvers, WebSocket event handlers, and polling loops.
 
 ### Geometry and CAD
@@ -915,7 +915,7 @@ keep me updated" as a single typed query.
 
 Revolutionary use:
 AI agents can query speculative branches, compare alternatives, trace
-decision lineage, and subscribe to truth changes â€” all through the same
+decision lineage, and subscribe to truth changes -- all through the same
 typed query model, instead of cobbling together separate read, diff, and
 history APIs.
 
@@ -932,7 +932,7 @@ history APIs.
 Revolutionary use:
 chip design tools can express "give me the timing cone from this output pin,
 with connectivity and timing aspects, diff against last week's version" as
-a composable query â€” instead of writing custom traversal and comparison code.
+a composable query -- instead of writing custom traversal and comparison code.
 
 ## Roadmap Direction
 

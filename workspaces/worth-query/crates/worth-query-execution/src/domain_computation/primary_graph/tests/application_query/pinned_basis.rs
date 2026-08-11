@@ -204,16 +204,18 @@ fn foreign_runtime_rejects_and_releases_a_pinned_basis() {
 #[test]
 fn expired_pinned_basis_is_rejected_and_released() {
     let world = installed_authorization_world(true);
-    let pin_request = WorthQueryRequestScope::new(
-        Instant::now() + Duration::from_millis(5),
-        WorthQueryCancellationSource::new().token(),
-    );
+    // Q8.12. Capture the settled deadline *before* pinning, then pin under a
+    // scope that cannot expire. The old form pinned under a 5ms scope and slept
+    // 10ms, so a loaded machine failed the `.unwrap()` below on its own fixture
+    // deadline instead of reaching the expiry under test. Nothing here waits,
+    // and nothing here gets less true as the machine gets slower.
+    let settled = Instant::now();
     let pinned = world
         .application
-        .pin_current_application_query_basis(&pin_request)
-        .unwrap();
+        .pin_current_application_query_basis(&super::super::fixture::live_scope())
+        .unwrap()
+        .with_deadline_settled_at(settled);
     let pinned_identity = pinned.identity().clone();
-    std::thread::sleep(Duration::from_millis(10));
     let request = super::super::fixture::live_scope();
     let external = world.authenticate("alice", Duration::from_secs(60), &request);
     let principal = world

@@ -7,9 +7,7 @@ use super::{
     WorthQueryConvergenceTerminalState, WorthQueryDirectConvergenceTerminal,
     WorthQueryRetainedConvergenceCandidateEvidence,
 };
-use crate::domain_computation::{
-    WorthQueryDirectRunCleanupFailure, WorthQueryDirectRunCleanupReceipt,
-};
+use crate::domain_computation::WorthQueryDirectRunCleanupFailure;
 
 impl<State> WorthQueryDirectConvergenceTerminal<State>
 where
@@ -23,25 +21,56 @@ where
     > {
         let WorthQueryDirectConvergenceTerminal {
             mut core,
-            managed,
+            run_terminal,
             indeterminate_cause,
             terminal_state,
         } = self;
-        core.counters_mut().cleaned_up();
-        match managed.cleanup() {
-            Ok(managed) => Ok(WorthQueryDirectConvergenceCleanupReceipt {
+        core.record_lifecycle_event(DirectTerminalCleanupLifecycleEvent::attempted());
+        match run_terminal.cleanup() {
+            Ok(_run_cleanup_receipt) => {
+                core.record_lifecycle_event(DirectTerminalCleanupLifecycleEvent::completed());
+                Ok(WorthQueryDirectConvergenceCleanupReceipt {
+                    core,
+                    indeterminate_cause,
+                    terminal_state,
+                })
+            }
+            Err(run_cleanup_failure) => Err(WorthQueryDirectConvergenceCleanupFailure {
                 core,
                 indeterminate_cause,
-                managed,
-                terminal_state,
-            }),
-            Err(failure) => Err(WorthQueryDirectConvergenceCleanupFailure {
-                core,
-                indeterminate_cause,
-                failure,
+                run_cleanup_failure,
                 terminal_state,
             }),
         }
+    }
+}
+
+pub(in crate::domain_computation::convergence_epoch) struct DirectTerminalCleanupLifecycleEvent {
+    kind: DirectTerminalCleanupLifecycleEventKind,
+}
+
+pub(in crate::domain_computation::convergence_epoch) enum DirectTerminalCleanupLifecycleEventKind {
+    Attempted,
+    Completed,
+}
+
+impl DirectTerminalCleanupLifecycleEvent {
+    fn attempted() -> Self {
+        Self {
+            kind: DirectTerminalCleanupLifecycleEventKind::Attempted,
+        }
+    }
+
+    fn completed() -> Self {
+        Self {
+            kind: DirectTerminalCleanupLifecycleEventKind::Completed,
+        }
+    }
+
+    pub(in crate::domain_computation::convergence_epoch) fn into_kind(
+        self,
+    ) -> DirectTerminalCleanupLifecycleEventKind {
+        self.kind
     }
 }
 
@@ -51,7 +80,6 @@ where
 {
     core: WorthQueryConvergenceEpochCore,
     indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
-    managed: WorthQueryDirectRunCleanupReceipt,
     terminal_state: PhantomData<State>,
 }
 
@@ -82,10 +110,6 @@ where
     pub fn indeterminate_cause(&self) -> Option<&WorthQueryConvergenceIndeterminateCause> {
         self.indeterminate_cause.as_ref()
     }
-
-    pub fn managed_receipt(&self) -> &WorthQueryDirectRunCleanupReceipt {
-        &self.managed
-    }
 }
 
 pub struct WorthQueryDirectConvergenceCleanupFailure<State>
@@ -94,7 +118,7 @@ where
 {
     core: WorthQueryConvergenceEpochCore,
     indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
-    failure: WorthQueryDirectRunCleanupFailure,
+    run_cleanup_failure: WorthQueryDirectRunCleanupFailure,
     terminal_state: PhantomData<State>,
 }
 
@@ -126,14 +150,10 @@ where
         self.indeterminate_cause.as_ref()
     }
 
-    pub fn managed_failure(&self) -> &WorthQueryDirectRunCleanupFailure {
-        &self.failure
-    }
-
     pub fn retry(self) -> Result<WorthQueryDirectConvergenceCleanupReceipt<State>, Self> {
         WorthQueryDirectConvergenceTerminal::<State>::new(
             self.core,
-            self.failure.into_terminal(),
+            self.run_cleanup_failure.into_terminal(),
             self.indeterminate_cause,
         )
         .cleanup()

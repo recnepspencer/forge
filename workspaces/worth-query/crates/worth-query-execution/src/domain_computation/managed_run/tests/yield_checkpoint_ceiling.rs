@@ -56,16 +56,14 @@ fn checkpoint_memory_mismatch_preserves_exact_release_evidence() {
         };
         assert_eq!(
             release
-                .recovery_evidence()
-                .provider_checkpoint_failure()
-                .expect("release preserves suspension failure evidence")
-                .checkpoint_release()
+                .inspection()
+                .checkpoint()
                 .expect("release preserves checkpoint mismatch evidence")
-                .disposition(),
+                .release_disposition(),
             expected_release
         );
-        assert!(release.relational().released());
-        assert_eq!(release.attempt().capacity().released_reservation_count(), 3);
+        assert!(release.inspection().resources_released());
+        assert_eq!(release.inspection().released_reservation_count(), 3);
     }
 }
 

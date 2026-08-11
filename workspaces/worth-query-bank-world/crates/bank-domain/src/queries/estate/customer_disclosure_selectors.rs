@@ -3,7 +3,7 @@ use worth_query_decl::facade::application_query::{
     ForwardResultTraversal, ManyResults, ReverseResultTraversal,
 };
 use worth_query_decl::facade::application_schema::{
-    EqualityPredicate, NoApplicationCurrency, ReadOnly,
+    EqualityPredicate, NoApplicationUnit, ReadOnly,
 };
 
 use crate::model::BankPrincipalId;
@@ -55,7 +55,7 @@ pub(super) fn customer_identity() -> ApplicationQueryResultFieldRef<
     BankPrincipalId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("customer_identity", PrincipalIdentityField::reference())
 }
@@ -70,7 +70,7 @@ pub(super) fn beneficiary_identity() -> ApplicationQueryResultFieldRef<
     BankPrincipalId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("beneficiary_identity", PrincipalIdentityField::reference())
 }

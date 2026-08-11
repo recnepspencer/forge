@@ -22,12 +22,12 @@ use worth_query_installation::facade::{
     WorthQueryOperationNativeProjectionContract, WorthQueryOperationParameterContract,
     WorthQueryOperationProjectionConsumptionContract, WorthQueryOperationPromotionContract,
     WorthQueryOperationPublicationContract, WorthQueryOperationReplayContract,
-    WorthQueryOperationResultState, WorthQueryOperationReversalContract,
-    WorthQueryOperationSupportRequirements, WorthQueryOperationTerminalContract,
-    WorthQueryOperationTouchContract, WorthQueryOperationWorkflowContract,
-    WorthQueryPortableDomainOperationDefinition, WorthQueryPortableWorkflowDefinition,
-    WorthQueryPortableWorkflowStage, WorthQuerySupportRequirement,
-    WorthQueryWorkflowStageSemantics,
+    WorthQueryOperationResultState, WorthQueryOperationSupportRequirements,
+    WorthQueryOperationTerminalContract, WorthQueryOperationTouchContract,
+    WorthQueryOperationWorkflowContract, WorthQueryPortableDomainOperationDefinition,
+    WorthQueryPortableWorkflowDefinition, WorthQueryPortableWorkflowStage,
+    WorthQuerySupportRequirement, WorthQueryWorkflowStageSemantics,
+    WorthQueryWorkflowValueContract,
 };
 
 use super::fixture_identity::{GRAPH_ROLE, WORKFLOW_STAGE};
@@ -48,7 +48,8 @@ pub(super) fn workflow_operation(
         [],
     )
     .with_semantics(WorthQueryWorkflowStageSemantics {
-        evidence: WorthQueryDomainEvidenceContract::installed_artifact(reference),
+        evidence: WorthQueryDomainEvidenceContract::installed_artifact(reference.clone()),
+        output: WorthQueryWorkflowValueContract::installed_artifact(reference),
         graph_read_roles: vec![GRAPH_ROLE.into()],
         resources: stage_resources,
         terminal_result_states: vec![WorthQueryOperationResultState::Ready],
@@ -98,7 +99,7 @@ pub(super) fn direct_operation(
         invariants: WorthQueryOperationInvariantContract::NotRequired,
         invariant_execution: WorthQueryInvariantExecutionContract::NotRequired,
         replay: WorthQueryOperationReplayContract::ReExecutable,
-        reversal: WorthQueryOperationReversalContract::Irreversible,
+        aftermath: None,
         lineage: WorthQueryOperationLineageContract::NotRequired,
         promotion: WorthQueryOperationPromotionContract::NotRequired,
         publication: WorthQueryOperationPublicationContract::NotRequired,

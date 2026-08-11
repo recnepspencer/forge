@@ -1,3 +1,5 @@
+#![deny(private_interfaces)]
+
 use super::super::{
     WorthQueryExecutionAttemptIdentity, WorthQueryExecutionProviderSession,
     WorthQueryExecutionResourceAttemptEvidence, WorthQueryWorkflowExecutionResourceAttempt,
@@ -9,24 +11,34 @@ use crate::domain_computation::provider_session::graph_provider::{
     WorthQueryGraphProviderCall, WorthQueryGraphProviderCallReadmissionPlan,
 };
 
-pub(crate) struct WorthQueryWorkflowResourceReadmissionPending {
+pub(in crate::domain_computation) struct WorthQueryWorkflowResourceReadmissionPreProvider {
+    yielded_attempt: WorthQueryWorkflowExecutionResourceAttempt,
+    fresh_attempt_identity: WorthQueryExecutionAttemptIdentity,
+    fresh_provider_session: WorthQueryExecutionProviderSession,
+    fresh_evidence: WorthQueryExecutionResourceAttemptEvidence,
+    fresh_call: WorthQueryGraphProviderCall,
+}
+
+pub(in crate::domain_computation) struct WorthQueryWorkflowResourceReadmissionPostProvider {
     yielded_attempt: WorthQueryWorkflowExecutionResourceAttempt,
     fresh_attempt_identity: WorthQueryExecutionAttemptIdentity,
     fresh_provider_session: WorthQueryExecutionProviderSession,
     fresh_evidence: WorthQueryExecutionResourceAttemptEvidence,
 }
 
-impl WorthQueryWorkflowResourceReadmissionPending {
-    pub(crate) fn begin(
+pub(in crate::domain_computation) struct WorthQueryWorkflowProviderWorkRebinding {
+    yielded: super::super::WorthQueryExecutionProviderSessionIdentity,
+    fresh: super::super::WorthQueryExecutionProviderSessionIdentity,
+}
+
+impl WorthQueryWorkflowResourceReadmissionPreProvider {
+    pub(in crate::domain_computation) fn begin(
         yielded_attempt: WorthQueryWorkflowExecutionResourceAttempt,
         stage_resources: Arc<WorthQueryAdmittedExecutionResourcePlan>,
         call: WorthQueryGraphProviderCallReadmissionPlan,
-    ) -> (Self, WorthQueryGraphProviderCall) {
-        let fresh_attempt_identity = WorthQueryExecutionAttemptIdentity::readmission(
-            "workflow",
-            yielded_attempt.resources().identity(),
-            yielded_attempt.attempt_identity().as_str(),
-        );
+        _owner: &crate::domain_computation::managed_run::WorthQueryWorkflowRunTransitionPermit,
+    ) -> Self {
+        let fresh_attempt_identity = WorthQueryExecutionAttemptIdentity::mint();
         let fresh_provider_session = WorthQueryExecutionProviderSession::mint(
             &fresh_attempt_identity,
             yielded_attempt.binding_authority(),
@@ -40,26 +52,68 @@ impl WorthQueryWorkflowResourceReadmissionPending {
             &fresh_provider_session,
         );
         let fresh_call = call.mint(&fresh_provider_session, &stage_evidence);
-        (
-            Self {
-                yielded_attempt,
-                fresh_attempt_identity,
-                fresh_provider_session,
-                fresh_evidence,
-            },
+        Self {
+            yielded_attempt,
+            fresh_attempt_identity,
+            fresh_provider_session,
+            fresh_evidence,
             fresh_call,
-        )
+        }
     }
 
-    pub(crate) fn attempt_identity(&self) -> &WorthQueryExecutionAttemptIdentity {
+    pub(in crate::domain_computation) fn attempt_identity(
+        &self,
+        _owner: &crate::domain_computation::managed_run::WorthQueryWorkflowRunTransitionPermit,
+    ) -> &WorthQueryExecutionAttemptIdentity {
         &self.fresh_attempt_identity
     }
 
-    pub(crate) fn abort(self) -> WorthQueryWorkflowExecutionResourceAttempt {
+    pub(in crate::domain_computation) fn extract_provider_call(
+        self,
+        _owner: &crate::domain_computation::managed_run::WorthQueryWorkflowRunTransitionPermit,
+    ) -> (
+        WorthQueryWorkflowResourceReadmissionPostProvider,
+        WorthQueryGraphProviderCall,
+    ) {
+        (
+            WorthQueryWorkflowResourceReadmissionPostProvider {
+                yielded_attempt: self.yielded_attempt,
+                fresh_attempt_identity: self.fresh_attempt_identity,
+                fresh_provider_session: self.fresh_provider_session,
+                fresh_evidence: self.fresh_evidence,
+            },
+            self.fresh_call,
+        )
+    }
+
+    pub(in crate::domain_computation) fn yielded_binding_authority(
+        &self,
+        _owner: &crate::domain_computation::managed_run::WorthQueryWorkflowRunTransitionPermit,
+    ) -> &crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority
+    {
+        self.yielded_attempt.binding_authority()
+    }
+
+    pub(in crate::domain_computation) fn abort(
+        self,
+        _owner: crate::domain_computation::managed_run::WorthQueryWorkflowRunTransitionPermit,
+    ) -> WorthQueryWorkflowExecutionResourceAttempt {
+        self.yielded_attempt
+    }
+}
+
+impl WorthQueryWorkflowResourceReadmissionPostProvider {
+    pub(in crate::domain_computation) fn abort(
+        self,
+        _owner: crate::domain_computation::managed_run::WorthQueryWorkflowRunTransitionPermit,
+    ) -> WorthQueryWorkflowExecutionResourceAttempt {
         self.yielded_attempt
     }
 
-    pub(crate) fn commit(self) -> WorthQueryWorkflowExecutionResourceAttempt {
+    pub(in crate::domain_computation) fn commit(
+        self,
+        _owner: crate::domain_computation::managed_run::WorthQueryWorkflowRunTransitionPermit,
+    ) -> WorthQueryWorkflowExecutionResourceAttempt {
         let Self {
             yielded_attempt,
             fresh_attempt_identity,
@@ -82,5 +136,30 @@ impl WorthQueryWorkflowResourceReadmissionPending {
             evidence: fresh_evidence,
             artifact_run,
         }
+    }
+
+    pub(in crate::domain_computation) fn provider_work_rebinding(
+        &self,
+        _owner: &crate::domain_computation::managed_run::WorthQueryWorkflowRunTransitionPermit,
+    ) -> WorthQueryWorkflowProviderWorkRebinding {
+        WorthQueryWorkflowProviderWorkRebinding {
+            yielded: self.yielded_attempt.provider_session.closed_identity(),
+            fresh: self.fresh_provider_session.closed_identity(),
+        }
+    }
+}
+
+impl WorthQueryWorkflowProviderWorkRebinding {
+    pub(in crate::domain_computation) fn admits(
+        &self,
+        current: &super::super::WorthQueryExecutionProviderSessionIdentity,
+    ) -> bool {
+        self.yielded == *current
+    }
+
+    pub(in crate::domain_computation) fn into_fresh(
+        self,
+    ) -> super::super::WorthQueryExecutionProviderSessionIdentity {
+        self.fresh
     }
 }

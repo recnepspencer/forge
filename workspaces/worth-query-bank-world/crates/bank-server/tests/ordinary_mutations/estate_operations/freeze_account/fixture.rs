@@ -19,24 +19,24 @@ use bank_server::{
 
 use crate::support::{block_on, runtime, CausalCredential, DynamicIdentity, TestIdentityWorld};
 
-pub(super) struct FreezeFixture {
-    pub(super) world: TestIdentityWorld,
+pub(crate) struct FreezeFixture {
+    pub(crate) world: TestIdentityWorld,
     identities: [DynamicIdentity; 3],
-    pub(super) estate: EstateCaseId,
-    pub(super) estate_account: AccountId,
-    pub(super) foreign_account: AccountId,
+    pub(crate) estate: EstateCaseId,
+    pub(crate) estate_account: AccountId,
+    pub(crate) foreign_account: AccountId,
 }
 
 impl FreezeFixture {
-    pub(super) fn authenticate_specialist(&self) -> BankAuthenticatedPrincipal {
+    pub(crate) fn authenticate_specialist(&self) -> BankAuthenticatedPrincipal {
         self.authenticate(1)
     }
 
-    pub(super) fn authenticate_foreign_owner(&self) -> BankAuthenticatedPrincipal {
+    pub(crate) fn authenticate_foreign_owner(&self) -> BankAuthenticatedPrincipal {
         self.authenticate(2)
     }
 
-    pub(super) const fn action(&self, account: AccountId) -> EstateAction {
+    pub(crate) const fn action(&self, account: AccountId) -> EstateAction {
         EstateAction::FreezeAccount {
             estate: self.estate,
             account,
@@ -54,12 +54,30 @@ impl FreezeFixture {
     }
 }
 
-pub(super) fn exact_freeze_world(scenario: &str, status: AccountStatus) -> FreezeFixture {
-    freeze_world(scenario, status, ESTATE_ACCOUNT)
+pub(crate) fn exact_freeze_world(scenario: &str, status: AccountStatus) -> FreezeFixture {
+    freeze_world(scenario, status, ESTATE_ACCOUNT, AccountStatus::Open)
 }
 
-pub(super) fn foreign_account_freeze_world(scenario: &str) -> FreezeFixture {
-    freeze_world(scenario, AccountStatus::Open, FOREIGN_ACCOUNT)
+pub(crate) fn freeze_world_with_protected_foreign_status(
+    scenario: &str,
+    estate_account_status: AccountStatus,
+    protected_foreign_status: AccountStatus,
+) -> FreezeFixture {
+    freeze_world(
+        scenario,
+        estate_account_status,
+        ESTATE_ACCOUNT,
+        protected_foreign_status,
+    )
+}
+
+pub(crate) fn foreign_account_freeze_world(scenario: &str) -> FreezeFixture {
+    freeze_world(
+        scenario,
+        AccountStatus::Open,
+        FOREIGN_ACCOUNT,
+        AccountStatus::Open,
+    )
 }
 
 const INSTITUTION: InstitutionId = InstitutionId::new(1).unwrap();
@@ -78,6 +96,7 @@ fn freeze_world(
     scenario: &str,
     estate_account_status: AccountStatus,
     granted_account: AccountId,
+    protected_foreign_status: AccountStatus,
 ) -> FreezeFixture {
     let identities = [
         DynamicIdentity::new(&format!("{scenario}-deceased")),
@@ -101,7 +120,7 @@ fn freeze_world(
             INSTITUTION,
             FOREIGN_OWNER,
             AccountName::new("Foreign Operating").unwrap(),
-            AccountStatus::Open,
+            protected_foreign_status,
         )
         .build()
         .expect("the freeze fixture snapshot should be structurally valid");

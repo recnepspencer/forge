@@ -129,8 +129,6 @@ promotion fails with `LineageSubjectEntityBindingUnavailable`.
 
 - [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
   compares the same trace-bound lineage under a fresh execution identity.
-- [Installed Operation Aftermath](./installed-operation-aftermath.md) retains
-  the original lineage report identity during reversal inspection.
 - [Authoritative Mutation Evidence](../capabilities/authoritative-mutation-evidence.md)
   supplies the mutation, continuity, and naming receipts lineage consumes.
 - [Projection Consumption](../capabilities/projection-consumption.md) is the
@@ -176,6 +174,5 @@ or Foundational attachment cannot satisfy persistent naming or promotion.
 
 - [Runtime-Installed Domains And Operations](./runtime-installed-domains.md)
 - [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
-- [Installed Operation Aftermath](./installed-operation-aftermath.md)
 - [Lineage And Correspondence](../capabilities/lineage-and-correspondence.md)
 - [Authoritative Mutation Evidence](../capabilities/authoritative-mutation-evidence.md)

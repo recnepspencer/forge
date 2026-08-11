@@ -78,4 +78,34 @@ impl WorthQueryOperationScopeBinding {
     pub const fn scope(&self) -> WorthQueryOperationScopeEntityBinding {
         self.scope
     }
+
+    /// Raw scope parts for per-axis drift proof (R8.28). Not production.
+    #[cfg(test)]
+    pub(crate) fn axis_probe_scope(
+        runtime_authority: u64,
+        binding_identity: ApplicationSchemaBindingIdentity,
+        operation_authority_identity: &str,
+        principal_partition: u32,
+        principal_slot: u64,
+        principal_generation: u32,
+        scope_partition: u32,
+        scope_slot: u64,
+        scope_generation: u32,
+    ) -> Self {
+        Self {
+            runtime_authority,
+            binding_identity,
+            operation_authority_identity: Arc::from(operation_authority_identity),
+            principal: WorthQueryOperationScopeEntityBinding {
+                partition_id: principal_partition,
+                local_slot: principal_slot,
+                generation: principal_generation,
+            },
+            scope: WorthQueryOperationScopeEntityBinding {
+                partition_id: scope_partition,
+                local_slot: scope_slot,
+                generation: scope_generation,
+            },
+        }
+    }
 }

@@ -1,5 +1,9 @@
 use crate::facade::application_schema::{
-    ApplicationPrincipalBindingRef, ApplicationSchemaDeclarationDenial, ApplicationSchemaMember,
+    ApplicationFieldRef, ApplicationPrincipalBindingRef, ApplicationPrincipalBindingRequirements,
+    ApplicationPrincipalIdentityRequirement, ApplicationPrincipalMappingIdentityRequirement,
+    ApplicationPrincipalMappingStatusRequirement, ApplicationPrincipalTargetRequirement,
+    ApplicationRelationRef, ApplicationSchemaDeclarationDenial, ApplicationSchemaMember,
+    EqualityPredicate, ReadOnly, ReadWrite, TypedApplicationValue,
 };
 use crate::facade::authentication::{
     WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
@@ -90,22 +94,10 @@ fn typed_principal_binding_enters_canonical_schema_members() {
 
 #[test]
 fn forged_principal_binding_dependencies_fail_closed() {
-    let forged = ApplicationPrincipalBindingRef::<
-        IdentitySchema,
-        IdentityBinding,
-        ExternalMapping,
-        Principal,
-        u64,
-    >::from_schema_identifiers(
-        "IdentityBinding",
-        "ExternalMapping",
-        "ExternalIdentity",
+    let forged = forged_binding::<u64>(
         "ExternalIdentityField",
-        "ExternalIdentity",
         "MissingStatusField",
         "MappingTarget",
-        "Principal",
-        "PrincipalIdentity",
         "PrincipalIdentityField",
     );
     let denial = crate::facade::application_schema::ApplicationSchemaDeclarationBuilder::<
@@ -170,22 +162,10 @@ fn principal_binding_rejects_reversed_mapping_target_relation() {
 
 #[test]
 fn principal_binding_rejects_mutable_target_principal_identity() {
-    let forged = ApplicationPrincipalBindingRef::<
-        IdentitySchema,
-        IdentityBinding,
-        ExternalMapping,
-        Principal,
-        u64,
-    >::from_schema_identifiers(
-        "IdentityBinding",
-        "ExternalMapping",
-        "ExternalIdentity",
+    let forged = forged_binding::<u64>(
         "ExternalIdentityField",
-        "ExternalIdentity",
         "MappingStatusField",
         "MappingTarget",
-        "Principal",
-        "PrincipalIdentity",
         "MutablePrincipalIdentityField",
     );
     let denial = identity_declaration_builder()
@@ -204,22 +184,10 @@ fn principal_binding_rejects_mutable_target_principal_identity() {
 
 #[test]
 fn principal_binding_rejects_wrong_target_principal_identity_type() {
-    let forged = ApplicationPrincipalBindingRef::<
-        IdentitySchema,
-        IdentityBinding,
-        ExternalMapping,
-        Principal,
-        String,
-    >::from_schema_identifiers(
-        "IdentityBinding",
-        "ExternalMapping",
-        "ExternalIdentity",
+    let forged = forged_binding::<String>(
         "ExternalIdentityField",
-        "ExternalIdentity",
         "MappingStatusField",
         "MappingTarget",
-        "Principal",
-        "PrincipalIdentity",
         "PrincipalIdentityField",
     );
     let denial = identity_declaration_builder()
@@ -285,22 +253,10 @@ fn identity_declaration_with(
     crate::facade::application_schema::ApplicationSchemaDeclaration<IdentitySchema>,
     ApplicationSchemaDeclarationDenial,
 > {
-    let binding = ApplicationPrincipalBindingRef::<
-        IdentitySchema,
-        IdentityBinding,
-        ExternalMapping,
-        Principal,
-        u64,
-    >::from_schema_identifiers(
-        "IdentityBinding",
-        "ExternalMapping",
-        "ExternalIdentity",
+    let binding = forged_binding::<u64>(
         case.identity_field,
-        "ExternalIdentity",
         case.status_field,
         case.target_relation(),
-        "Principal",
-        "PrincipalIdentity",
         "PrincipalIdentityField",
     );
     let builder = crate::facade::application_schema::ApplicationSchemaDeclarationBuilder::<
@@ -369,4 +325,68 @@ fn identity_declaration_builder(
             ExternalMapping::reference(),
             Principal::reference(),
         )
+}
+
+fn forged_binding<PrincipalIdentityValue>(
+    identity_field: &'static str,
+    status_field: &'static str,
+    target_relation: &'static str,
+    principal_identity_field: &'static str,
+) -> ApplicationPrincipalBindingRef<
+    IdentitySchema,
+    IdentityBinding,
+    ExternalMapping,
+    Principal,
+    PrincipalIdentityValue,
+>
+where
+    PrincipalIdentityValue: TypedApplicationValue,
+{
+    let identity =
+        ApplicationFieldRef::<
+            IdentitySchema,
+            ExternalMapping,
+            ExternalIdentity,
+            ExternalIdentityField,
+            WorthQueryExternalPrincipalIdentity,
+            ReadOnly,
+            EqualityPredicate,
+        >::from_schema_identifiers("ExternalMapping", "ExternalIdentity", identity_field);
+    let status = ApplicationFieldRef::<
+        IdentitySchema,
+        ExternalMapping,
+        ExternalIdentity,
+        MappingStatusField,
+        WorthQueryPrincipalMappingStatus,
+        ReadWrite,
+        EqualityPredicate,
+    >::from_schema_identifiers("ExternalMapping", "ExternalIdentity", status_field);
+    let target = ApplicationRelationRef::<
+        IdentitySchema,
+        MappingTarget,
+        ExternalMapping,
+        Principal,
+    >::from_schema_identifiers(target_relation, "ExternalMapping", "Principal");
+    let principal_identity = ApplicationFieldRef::<
+        IdentitySchema,
+        Principal,
+        PrincipalIdentity,
+        PrincipalIdentityField,
+        PrincipalIdentityValue,
+        ReadOnly,
+        EqualityPredicate,
+    >::from_schema_identifiers(
+        "Principal", "PrincipalIdentity", principal_identity_field
+    );
+    ApplicationPrincipalBindingRef::from_requirements(
+        "IdentityBinding",
+        ApplicationPrincipalBindingRequirements {
+            mapping_identity: ApplicationPrincipalMappingIdentityRequirement::from_field(identity),
+            mapping_status: ApplicationPrincipalMappingStatusRequirement::from_field(status),
+            target: ApplicationPrincipalTargetRequirement::from_relation(target),
+            principal_identity: ApplicationPrincipalIdentityRequirement::from_field(
+                principal_identity,
+            ),
+        },
+    )
 }

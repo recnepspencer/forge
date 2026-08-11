@@ -62,8 +62,8 @@ impl WorthQueryRequestedElevation {
         self.binding.upper_bound.field()
     }
 
-    pub const fn amount(&self) -> Option<&AspectValue> {
-        self.binding.upper_bound.amount()
+    pub const fn magnitude(&self) -> Option<&AspectValue> {
+        self.binding.upper_bound.magnitude()
     }
 
     pub const fn cardinality(&self) -> u32 {
@@ -172,10 +172,10 @@ pub(in crate::domain_computation::primary_graph) fn requested_outcome(
             WorthQueryElevationRequestOutcome::Denied(denial)
         }
         WorthQueryApplicationCommitOutcome::Aborted => WorthQueryElevationRequestOutcome::Aborted,
-        WorthQueryApplicationCommitOutcome::PartialEffect => {
+        WorthQueryApplicationCommitOutcome::PartialEffect(_) => {
             WorthQueryElevationRequestOutcome::PartialEffect
         }
-        WorthQueryApplicationCommitOutcome::Indeterminate => {
+        WorthQueryApplicationCommitOutcome::Indeterminate(_) => {
             WorthQueryElevationRequestOutcome::Indeterminate
         }
     }

@@ -196,10 +196,10 @@ What this example is showing:
   prepared continuation and explicit execution.
 - [Ordinary Outcomes](./ordinary-outcomes.md) provide the concise shared result
   vocabulary for `orchestrate_signal_compatibility_outcome(...)`.
-- [Recovery Boundary](./recovery-boundary.md) is the next-step surface when
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md) is the next-step surface when
   this lane stops at basis mismatch, wrong world, wrong handle, or other typed
   non-success posture.
-- [Recovery Requests And Next-Step Actions](./recovery/recovery-requests-and-next-step-actions.md)
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)
   is the action-oriented follow-up guide for those stops.
 - [Family Helpers](./family-helpers.md) expose geometry-specific preview,
   runtime-route, and truth-view helper verbs that lower onto this same
@@ -277,8 +277,7 @@ Use the recovery lane when the app now needs one typed repair answer:
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
-- [Recovery Boundary](./recovery-boundary.md)
-- [Aspect-Native Recovery](./recovery/aspect-native-recovery.md)
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)
 - [Family Helpers](./family-helpers.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - Runtime-Installed Domain Handles

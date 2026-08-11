@@ -1,30 +1,60 @@
+mod aftermath_causality;
+mod application_attempt_registration;
+mod application_attempt_state;
+mod application_attempt_work;
 mod application_decision_fact;
 mod commit_causality;
 mod committed_application;
+pub(super) mod committed_dispatch_outbox;
 mod decision_facts;
+// The items inside already declare `pub(in ...primary_graph)`; the module
+// declaration is what actually gated them.
+pub(in crate::domain_computation::primary_graph) mod dispatch_outbox;
 mod graph_participation;
 mod idempotency;
 mod invariant_execution;
 mod mutation_work;
 mod provisional_state;
 mod resource_support;
+mod session_commit;
 mod session_lifecycle;
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use super::WorthQueryPrimaryGraphIntegrationHandle;
+pub(super) use application_attempt_registration::WorthQueryApplicationAttemptRegistration;
+#[cfg(test)]
+pub(crate) use application_attempt_work::WorthQueryApplicationAttemptWorkSnapshot;
 pub(super) use application_decision_fact::WorthQueryPrimaryGraphApplicationDecisionFact;
 pub(super) use committed_application::WorthQueryPrimaryGraphCommittedApplication;
+#[cfg(test)]
+pub(in crate::domain_computation::primary_graph) use committed_dispatch_outbox::commit_and_observe_fixture;
+#[cfg(test)]
+pub(in crate::domain_computation) use committed_dispatch_outbox::{
+    commit_distinct_records_and_admit_fixture, commit_observe_and_admit_fixture,
+    commit_observe_and_admit_twice_fixture,
+};
+pub use committed_dispatch_outbox::{
+    WorthQueryCommittedDispatchOutboxObservation, WorthQueryCommittedDispatchOutboxReadDenial,
+    WorthQueryCommittedDispatchOutboxReadWork,
+};
 pub(super) use idempotency::WorthQueryProviderIdempotencyResolution;
-pub use mutation_work::WorthQueryPrimaryMutationWorkEvidence;
+pub use mutation_work::{WorthQueryPrimaryMutationWorkEvidence, WorthQueryTouchedRecordIdentity};
+pub(in crate::domain_computation) use session_commit::WorthQueryCommittedDispatchOutboxBinding;
+pub(crate) use session_commit::WorthQueryRetainedPreImageSeal;
+pub(super) use session_commit::{
+    WorthQueryCommittedDispatchOutboxBindingDenial, WorthQueryCommittedDispatchOutboxReceiptSeal,
+};
 
 pub(super) struct WorthQueryPrimaryGraphProvider {
     pub(super) graph: WorthQueryPrimaryGraphIntegrationHandle,
     resource_support: resource_support::WorthQueryPrimaryGraphResourceSupport,
     commit_serialization: Mutex<()>,
     pub(super) live_delivery: super::live_delivery::WorthQueryLiveDeliverySource,
-    pub(super) sessions: Mutex<WorthQueryPrimaryGraphProviderSessions>,
+    attempts: Mutex<application_attempt_state::WorthQueryPrimaryGraphApplicationAttemptStore>,
+    application_attempt_work: application_attempt_work::WorthQueryApplicationAttemptWorkLedger,
+    completed_commit_evidence: Mutex<session_commit::WorthQueryCompletedCommitEvidenceStore>,
     #[cfg(test)]
     lose_next_commit_response: std::sync::atomic::AtomicBool,
     #[cfg(test)]
@@ -43,23 +73,9 @@ pub(in crate::domain_computation) struct WorthQueryApplicationCommitSerializatio
     _guard: std::sync::MutexGuard<'provider, ()>,
 }
 
-#[derive(Default)]
-pub(super) struct WorthQueryPrimaryGraphProviderSessions {
-    pub(super) overlays: BTreeMap<String, WorthQueryPrimaryGraphOverlay>,
-    pub(super) session_overlays: BTreeMap<String, String>,
-    pub(super) application_attempts: BTreeMap<String, WorthQueryPrimaryGraphApplicationAttempt>,
-    pub(super) validated_mutations:
-        BTreeMap<String, worth_relational::facade::transactions::ValidatedRelationalMutation>,
-    pub(super) invariant_work: BTreeMap<String, WorthQueryPrimaryMutationWorkEvidence>,
-    pub(super) completed_mutation_work: Option<WorthQueryPrimaryMutationWorkEvidence>,
-    pub(super) next_overlay: u64,
-}
-
-pub(super) struct WorthQueryPrimaryGraphOverlay {
-    pub(super) facts: Vec<crate::domain_computation::WorthQueryProposedFact>,
-}
-
 pub(super) struct WorthQueryPrimaryGraphApplicationAttempt {
+    pub(super) provider_session_binding:
+        crate::domain_computation::provider_session::WorthQueryProviderSessionTerminalBinding,
     pub(super) outcome_identity:
         super::application_attempt::WorthQueryApplicationCommitOutcomeIdentity,
     pub(super) facts: BTreeMap<String, WorthQueryPrimaryGraphApplicationDecisionFact>,
@@ -71,9 +87,29 @@ pub(super) struct WorthQueryPrimaryGraphApplicationAttempt {
     pub(super) graph_work_session:
         crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
     pub(super) decision_fact_count: usize,
+    pub(super) preimage_demand: Option<worth_query_installation::facade::InstalledPreImageDemand>,
+    pub(super) aftermath_causality: Option<
+        crate::domain_computation::application_aftermath::WorthQueryPendingAftermathCausality,
+    >,
+    pub(super) dispatch_outbox:
+        Option<crate::domain_computation::application_aftermath::WorthQueryPendingDispatchOutbox>,
 }
 
 impl WorthQueryPrimaryGraphProvider {
+    pub(in crate::domain_computation::primary_graph) fn committed_branch_head(
+        &self,
+        branch: &worth_relational::facade::history::BranchId,
+        expected: worth_relational::facade::history::CommitId,
+    ) -> Option<worth_relational::facade::history::CommitReference> {
+        self.graph.with_runtime(|runtime| {
+            runtime
+                .history()
+                .branch_head(branch)
+                .filter(|head| head.commit_id == expected)
+                .cloned()
+        })
+    }
+
     pub(super) fn install(
         graph: WorthQueryPrimaryGraphIntegrationHandle,
     ) -> (
@@ -85,7 +121,13 @@ impl WorthQueryPrimaryGraphProvider {
             resource_support: resource_support::WorthQueryPrimaryGraphResourceSupport::install(),
             commit_serialization: Mutex::new(()),
             live_delivery: super::live_delivery::WorthQueryLiveDeliverySource::default(),
-            sessions: Mutex::new(WorthQueryPrimaryGraphProviderSessions::default()),
+            attempts: Mutex::new(
+                application_attempt_state::WorthQueryPrimaryGraphApplicationAttemptStore::default(),
+            ),
+            application_attempt_work: Default::default(),
+            completed_commit_evidence: Mutex::new(
+                session_commit::WorthQueryCompletedCommitEvidenceStore::default(),
+            ),
             #[cfg(test)]
             lose_next_commit_response: std::sync::atomic::AtomicBool::new(false),
             #[cfg(test)]
@@ -115,77 +157,6 @@ impl WorthQueryPrimaryGraphProvider {
         self.resource_support.snapshot()
     }
 
-    pub(super) fn register_application_attempt(
-        &self,
-        session_identity: &str,
-        facts: Vec<WorthQueryPrimaryGraphApplicationDecisionFact>,
-        expected_steps: Vec<crate::domain_computation::WorthQueryProvisionalEffectStep>,
-        mut batch: worth_relational::facade::transactions::WorkerIntentBatch,
-        emissions: super::application_attempt::WorthQueryAdmittedApplicationEmissionBatch,
-        idempotency: super::application_attempt::WorthQueryApplicationIdempotencyBinding,
-        branch: worth_relational::facade::history::BranchId,
-        graph_work_session:
-            crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
-        retained_authorization_fact_count: usize,
-    ) -> Result<(), &'static str> {
-        let emitted_effect_count = u64::try_from(emissions.len())
-            .map_err(|_| "application emission count exceeds provider representation")?;
-        let outcome_identity =
-            super::application_attempt::WorthQueryApplicationCommitOutcomeIdentity::mint()
-                .ok_or("application outcome identity space is exhausted")?;
-        batch = batch.push(idempotency::idempotency_create_intent(
-            self.graph.layout.provider_idempotency(),
-            idempotency,
-            outcome_identity,
-            emitted_effect_count,
-        ));
-        if facts
-            .iter()
-            .filter_map(WorthQueryPrimaryGraphApplicationDecisionFact::session_identity)
-            .any(|session| session != graph_work_session)
-            || facts
-                .iter()
-                .filter_map(WorthQueryPrimaryGraphApplicationDecisionFact::session_identity)
-                .count()
-                != retained_authorization_fact_count
-        {
-            return Err("provider decision facts do not close over the graph-work session");
-        }
-        let decision_fact_count = facts.len();
-        let facts = facts
-            .into_iter()
-            .map(|fact| (fact.locator_identity(), fact))
-            .collect::<BTreeMap<_, _>>();
-        if facts.len() != decision_fact_count {
-            return Err("provider decision facts contain duplicate identities");
-        }
-        let mut sessions = self
-            .sessions
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if sessions
-            .application_attempts
-            .insert(
-                session_identity.to_owned(),
-                WorthQueryPrimaryGraphApplicationAttempt {
-                    outcome_identity,
-                    facts,
-                    expected_steps,
-                    batch,
-                    emissions,
-                    idempotency,
-                    branch,
-                    graph_work_session,
-                    decision_fact_count,
-                },
-            )
-            .is_some()
-        {
-            return Err("provider session already owns an application attempt");
-        }
-        Ok(())
-    }
-
     pub(super) fn serialize_application_commit(
         &self,
     ) -> WorthQueryApplicationCommitSerialization<'_> {
@@ -207,6 +178,34 @@ impl WorthQueryPrimaryGraphProvider {
     pub(crate) fn reject_next_session_prepare(&self) {
         self.reject_next_session_prepare
             .store(true, std::sync::atomic::Ordering::Release);
+    }
+
+    #[cfg(test)]
+    pub(super) fn application_attempt_resource_count(&self) -> usize {
+        self.attempts
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .resource_count()
+    }
+
+    #[cfg(test)]
+    pub(super) fn application_attempt_work(&self) -> WorthQueryApplicationAttemptWorkSnapshot {
+        self.application_attempt_work.snapshot()
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn observe_managed_application_bridge_plan(
+        &self,
+    ) {
+        self.application_attempt_work.observe_managed_bridge_plan();
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn observe_managed_application_cleanup(&self) {
+        self.application_attempt_work.observe_managed_cleanup();
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn observe_external_dispatch_admission(&self) {
+        self.application_attempt_work
+            .observe_external_dispatch_admission();
     }
 
     #[cfg(test)]
@@ -257,11 +256,14 @@ impl WorthQueryPrimaryGraphProvider {
             .swap(false, std::sync::atomic::Ordering::AcqRel)
     }
 
-    pub(crate) fn completed_mutation_work(&self) -> Option<WorthQueryPrimaryMutationWorkEvidence> {
-        self.sessions
+    pub(super) fn observe_completed_application(
+        &self,
+        commit: &worth_relational::facade::history::CommitReference,
+    ) -> Option<WorthQueryPrimaryGraphCommittedApplication> {
+        self.completed_commit_evidence
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .completed_mutation_work
+            .observe(commit)
     }
 
     #[cfg(test)]

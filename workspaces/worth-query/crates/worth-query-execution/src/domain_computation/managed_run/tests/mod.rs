@@ -7,6 +7,7 @@ mod decision_read_set;
 mod decision_read_set_admission;
 mod decision_read_set_fixture;
 mod direct_lifecycle;
+mod direct_yield_cleanup_fixture;
 mod effect_posture;
 mod invariant_budget;
 mod invariant_execution;
@@ -20,6 +21,7 @@ mod provider_execution_admission;
 mod provider_execution_release;
 mod provider_memory_cleanup;
 mod provider_session_abandonment;
+mod provider_session_failure_matrix;
 mod provider_session_protocol;
 mod provider_session_protocol_workflow;
 mod provider_session_substitution;
@@ -28,12 +30,16 @@ mod provider_work;
 mod provisional_attempt;
 mod provisional_attempt_fixture;
 mod provisional_provider_failures;
+mod readmission_cleanup_inspection;
 pub(in crate::domain_computation::managed_run) mod readmission_direct;
+mod readmission_direct_association;
+mod readmission_direct_recovery;
 mod readmission_owner_evidence;
 mod readmission_parity;
 mod readmission_preflight;
 mod readmission_recovery_topology;
-mod readmission_workflow;
+pub(in crate::domain_computation::managed_run) mod readmission_workflow;
+mod readmission_workflow_association;
 mod safe_point_observation;
 mod step_cost_bound;
 mod step_interruption;
@@ -56,6 +62,7 @@ mod yield_eligibility_workflow;
 pub(in crate::domain_computation::managed_run) mod yield_fixture;
 mod yield_generation;
 mod yield_lifecycle_direct;
+mod yield_lifecycle_direct_signal_recovery;
 mod yield_lifecycle_workflow;
 mod yield_production_freeze;
 mod yield_provider_artifact;
@@ -63,18 +70,7 @@ mod yield_provider_configuration;
 mod yield_signal_workflow;
 mod yield_workflow_recovery;
 
-fn complete_direct_yield_cleanup(
-    yielded: crate::domain_computation::WorthQueryYieldedDirectRun,
-) -> crate::domain_computation::WorthQueryDirectYieldCleanupReceipt {
-    match yielded.cleanup() {
-        crate::domain_computation::WorthQueryDirectYieldCleanupOutcome::Complete(receipt) => {
-            receipt
-        }
-        crate::domain_computation::WorthQueryDirectYieldCleanupOutcome::RecoveryRequired(_) => {
-            panic!("direct provider checkpoint unexpectedly required cleanup recovery")
-        }
-    }
-}
+pub(super) use direct_yield_cleanup_fixture::complete_direct_yield_cleanup;
 
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -86,9 +82,7 @@ use worth_query_admission::integration::WorthQueryExecutionCapacityReservationSc
 use worth_query_installation::facade::{
     WorthQueryInstalledGraphParticipationAuthority, WorthQueryOperationGraphAccess,
 };
-use worth_runtime_bridge::facade::{
-    BridgeExecutionBasisFinalizationFailureKind, BridgeExecutionBasisSignalTerminal, RuntimeBridge,
-};
+use worth_runtime_bridge::facade::{BridgeExecutionBasisFinalizationFailureKind, RuntimeBridge};
 
 use super::{
     WorthQueryDirectGraphStepOutcome, WorthQueryManagedProviderSessionDisposition,

@@ -7,8 +7,8 @@ use crate::history::data::{BranchId, CommitId};
 use crate::identity::data::VersionId;
 use crate::logic::runtime::RelationalRuntime;
 use crate::transactions::data::{
-    AuthoritativeApplyPlan, CommitResult, CommitValidation, CommitValidationSummary,
-    TransactionCommitError,
+    AuthoritativeApplyPlan, CommitConflict, CommitResult, CommitValidation,
+    CommitValidationSummary, ConflictClass, TransactionCommitError,
 };
 use crate::validation::engine::InvariantExecutionResult;
 
@@ -72,6 +72,17 @@ impl RelationalTransaction<'_> {
             .history()
             .branch_head(&branch)
             .map(|head| head.commit_id);
+        if self
+            .options
+            .expected_branch_head
+            .is_some_and(|expected| expected.observed_commit() != validated_against_commit)
+        {
+            return Err(TransactionCommitError::conflict(CommitConflict::new(
+                ConflictClass::StaleValidationBasis {
+                    detail: "expected branch head differs from Relational owner truth".to_owned(),
+                },
+            )));
+        }
         let validated_against_version = self
             .runtime
             .history()
@@ -174,4 +185,74 @@ fn validate_proposed_state(
         )
         .map_err(TransactionCommitError::publication)?;
     Ok((mutation_sensitive, publication))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tests::support::{create_entity, runtime_with_test_schema};
+    use crate::transactions::data::{ExpectedBranchHead, TransactionOptions};
+
+    #[test]
+    fn expected_head_is_checked_against_owner_truth_during_validation() {
+        let mut runtime = runtime_with_test_schema();
+        let branch = runtime.config.history.main_branch.clone();
+        let stale = runtime
+            .history()
+            .branch_head(&branch)
+            .map(|head| head.commit_id);
+        let _ = create_entity(&mut runtime, "head-advance");
+        let expected = stale.map_or(ExpectedBranchHead::Empty, ExpectedBranchHead::Commit);
+
+        let denied = match runtime
+            .begin_transaction(TransactionOptions::for_branch(branch).expect_branch_head(expected))
+            .validate()
+        {
+            Err(denied) => denied,
+            Ok(_) => panic!("Relational must reject a stale expected head"),
+        };
+
+        assert!(matches!(
+            denied,
+            TransactionCommitError::Conflict {
+                error: CommitConflict {
+                    class: ConflictClass::StaleValidationBasis { .. },
+                    ..
+                },
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn owner_rechecks_head_after_validation_before_commit() {
+        let mut runtime = runtime_with_test_schema();
+        let branch = runtime.config.history.main_branch.clone();
+        let expected = runtime
+            .history()
+            .branch_head(&branch)
+            .map_or(ExpectedBranchHead::Empty, |head| {
+                ExpectedBranchHead::Commit(head.commit_id)
+            });
+        let candidate = runtime
+            .begin_transaction(TransactionOptions::for_branch(branch).expect_branch_head(expected))
+            .validate()
+            .expect("head is current at validation");
+
+        let _ = create_entity(&mut runtime, "post-validation-advance");
+        let denied = runtime
+            .commit_validated_mutation(candidate)
+            .expect_err("Relational must close the validate/commit race");
+
+        assert!(matches!(
+            denied,
+            TransactionCommitError::Conflict {
+                error: CommitConflict {
+                    class: ConflictClass::StaleValidationBasis { .. },
+                    ..
+                },
+                ..
+            }
+        ));
+    }
 }
