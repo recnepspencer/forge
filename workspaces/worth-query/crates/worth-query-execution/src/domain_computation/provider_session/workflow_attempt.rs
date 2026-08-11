@@ -35,10 +35,7 @@ impl WorthQueryWorkflowExecutionResourceAttempt {
         mut reserved: WorthQueryCapacityReservedWorkflowResourcePlan,
         binding_authority: &crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority,
     ) -> Self {
-        let attempt_identity = WorthQueryExecutionAttemptIdentity::initial(
-            "workflow",
-            reserved.resources().identity(),
-        );
+        let attempt_identity = WorthQueryExecutionAttemptIdentity::mint();
         let provider_session =
             WorthQueryExecutionProviderSession::mint(&attempt_identity, binding_authority);
         reserved.resources_mut().record_provider_session_mint();
@@ -69,8 +66,14 @@ impl WorthQueryWorkflowExecutionResourceAttempt {
     /// Legacy operational integration retained until the Phase 19 audience-
     /// facade cutover. Possession of this session does not mint managed-run
     /// admission, terminal, cleanup, or recovery authority.
-    #[doc(hidden)]
     pub fn provider_session(&self) -> &WorthQueryExecutionProviderSession {
+        &self.provider_session
+    }
+
+    pub(in crate::domain_computation) fn provider_session_for_managed_run(
+        &self,
+        _owner: &crate::domain_computation::managed_run::WorthQueryWorkflowRunTransitionPermit,
+    ) -> &WorthQueryExecutionProviderSession {
         &self.provider_session
     }
 
@@ -88,8 +91,26 @@ impl WorthQueryWorkflowExecutionResourceAttempt {
 
     /// Legacy workflow-artifact integration retained until Phase 19 removes
     /// the monolith progression. This authority is not a managed-run proof.
-    #[doc(hidden)]
     pub fn bind_workflow_artifacts(
+        &self,
+    ) -> Result<
+        crate::domain_computation::artifact_owner::WorthQueryWorkflowArtifactAuthority,
+        crate::domain_computation::artifact_owner::WorthQueryArtifactDenial,
+    > {
+        self.bind_workflow_artifacts_owned()
+    }
+
+    pub(in crate::domain_computation) fn bind_workflow_artifacts_for_managed_run(
+        &self,
+        _owner: &crate::domain_computation::managed_run::WorthQueryWorkflowRunTransitionPermit,
+    ) -> Result<
+        crate::domain_computation::artifact_owner::WorthQueryWorkflowArtifactAuthority,
+        crate::domain_computation::artifact_owner::WorthQueryArtifactDenial,
+    > {
+        self.bind_workflow_artifacts_owned()
+    }
+
+    fn bind_workflow_artifacts_owned(
         &self,
     ) -> Result<
         crate::domain_computation::artifact_owner::WorthQueryWorkflowArtifactAuthority,
@@ -133,8 +154,28 @@ impl WorthQueryWorkflowExecutionResourceAttempt {
 
     /// Legacy stage integration retained until the Phase 19 cutover. The
     /// returned evidence cannot substitute for managed-run admission.
-    #[doc(hidden)]
     pub fn stage_resources_and_evidence(
+        &self,
+        stage_identity: &str,
+    ) -> Option<(
+        Arc<WorthQueryAdmittedExecutionResourcePlan>,
+        WorthQueryExecutionResourceAttemptEvidence,
+    )> {
+        self.stage_resources_and_evidence_owned(stage_identity)
+    }
+
+    pub(in crate::domain_computation) fn stage_resources_and_evidence_for_managed_run(
+        &self,
+        stage_identity: &str,
+        _owner: &crate::domain_computation::managed_run::WorthQueryWorkflowRunTransitionPermit,
+    ) -> Option<(
+        Arc<WorthQueryAdmittedExecutionResourcePlan>,
+        WorthQueryExecutionResourceAttemptEvidence,
+    )> {
+        self.stage_resources_and_evidence_owned(stage_identity)
+    }
+
+    fn stage_resources_and_evidence_owned(
         &self,
         stage_identity: &str,
     ) -> Option<(

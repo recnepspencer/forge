@@ -1,10 +1,14 @@
 use std::num::NonZeroUsize;
 
-use bank_server::BankApplicationQueryDenial;
+use bank_server::{
+    BankApplicationQueryAdmissionDenialKind, BankApplicationQueryDenial,
+    BankAuthorizationDenialKind,
+};
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestScope;
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationQueryAdmissionDenialKind, WorthQueryApplicationQueryControls,
-    WorthQueryOperationAuthorizationDenialKind,
+use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryControls;
+use worth_query_host::facade::publication::domain_computation::{
+    WorthQueryPublishedApplicationQueryReleasePosture,
+    WorthQueryPublishedApplicationQueryResultBufferRelease,
 };
 
 use super::fixture::{ordinary_read_world, OWNER, STRANGER};
@@ -43,20 +47,32 @@ fn installed_account_activity_is_a_real_ordered_bank_query() {
         vec![10_000, -2_500]
     );
 
-    let receipt = result.receipt();
-    let requirements = receipt.graph_read_plan().requirements().counters();
-    assert!(requirements.reverse_adjacency_count() >= 2);
-    assert!(requirements.directional_adjacency_count() >= 1);
-    assert!(requirements.ordering_support_count() >= 1);
-    assert!(receipt.ordering_comparison_count() >= 1);
-    assert!(receipt.adjacency_list_read_count() >= 1);
-    assert_eq!(receipt.fallback_count(), 0);
-    assert_eq!(receipt.per_result_neighbor_lookup_count(), 0);
-    assert!(receipt.basis_released());
-    let terminal = receipt.read_completion();
-    assert_eq!(terminal.basis_identity(), receipt.basis_identity());
-    assert!(terminal.basis_release().released());
-    assert_eq!(terminal.release().released_reservation_count(), 1);
+    let inspection = result.receipt().inspect();
+    assert_eq!(inspection.result_count(), 1);
+    assert!(inspection.ordinary_work_units() > 0);
+    assert_eq!(inspection.publication_canonical_entries(), 0);
+    assert_eq!(inspection.publication_sha256_compression_blocks(), 0);
+    assert_eq!(inspection.publication_identity_text_materializations(), 0);
+    assert!(inspection.terminal_resources_released());
+    let release = inspection.terminal_release();
+    assert_eq!(
+        release.application_basis(),
+        WorthQueryPublishedApplicationQueryReleasePosture::Released
+    );
+    assert_eq!(
+        release.graph_read_basis(),
+        WorthQueryPublishedApplicationQueryReleasePosture::Released
+    );
+    let WorthQueryPublishedApplicationQueryResultBufferRelease::Released {
+        limit_bytes,
+        peak_bytes,
+    } = release.result_buffer()
+    else {
+        panic!("a published result must retain exact released-buffer evidence")
+    };
+    assert!(peak_bytes > 0);
+    assert!(peak_bytes <= limit_bytes);
+    assert_eq!(release.released_graph_capacity_reservation_count(), 1);
 }
 
 #[test]
@@ -79,8 +95,8 @@ fn installed_account_activity_denies_a_mapped_stranger_before_plan_authority() {
         denial,
         BankApplicationQueryDenial::Admission(error)
             if error.kind()
-                == WorthQueryApplicationQueryAdmissionDenialKind::Authorization(
-                    WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+                == BankApplicationQueryAdmissionDenialKind::Authorization(
+                    BankAuthorizationDenialKind::PermissionDenied
                 )
     ));
 }

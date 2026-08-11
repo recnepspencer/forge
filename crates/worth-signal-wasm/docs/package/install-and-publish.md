@@ -35,6 +35,8 @@ Package contract note:
 - the published package is ESM-first
 - `import` and bundler resolution are the supported consumer paths
 - CommonJS callers should use dynamic `import(...)` instead of `require(...)`
+- **1.5.0 breaking:** default `awaitSettlement()` is tip-status only — see
+  [migration-1.5](./migration-1.5.md)
 
 ## Stable Entry Points
 

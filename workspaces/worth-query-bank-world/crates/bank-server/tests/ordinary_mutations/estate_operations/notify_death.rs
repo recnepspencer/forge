@@ -3,13 +3,10 @@ pub(super) mod fixture;
 
 use bank_domain::{estate::DeathNoticeStatus, model::BankPrincipalId};
 use bank_server::{
-    queries, BankDeathNotificationProjectionDenial, BankEstateProgressionDenial,
-    BankMutationCommitOutcome, BankReadControls,
+    queries, BankCommitDenialKind, BankCommitDenialStage, BankDeathNotificationProjectionDenial,
+    BankEstateProgressionDenial, BankMutationCommitOutcome, BankReadControls,
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationIdempotencyBinding,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
 use self::fixture::{notification_world, NotificationFixture};
 use crate::support::request_scope;
@@ -65,7 +62,8 @@ fn public_query_observes_one_committed_notification_request() {
     let BankMutationCommitOutcome::AlreadyCommitted(recovered) = retry else {
         panic!("equivalent notification retry must recover: {retry:?}");
     };
-    assert!(receipt.is_same_authoritative_commit(&recovered));
+    assert_eq!(receipt.aftermath(), recovered.aftermath());
+    assert!(recovered.co_committed_dispatch_outbox());
     assert_eq!(recovered.emitted_effect_count(), 1);
     assert_zero_canonical_work(recovered.canonical_work());
 
@@ -82,8 +80,8 @@ fn public_query_observes_one_committed_notification_request() {
     assert!(matches!(
         drift,
         BankMutationCommitOutcome::Denied {
-            kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
-            stage: WorthQueryApplicationCommitDenialStage::Idempotency,
+            kind: BankCommitDenialKind::IdempotencyIntentDrift,
+            stage: BankCommitDenialStage::Idempotency,
         }
     ));
 }
@@ -101,11 +99,8 @@ fn command_authority_cannot_substitute_a_foreign_notice_or_subject() {
     assert!(matches!(
         foreign,
         BankEstateProgressionDenial::DeathNotificationProjection(
-            BankDeathNotificationProjectionDenial::NoticeMismatch {
-                expected,
-                observed,
-            }
-        ) if expected == fixture.foreign_notice && observed == fixture.notice
+            BankDeathNotificationProjectionDenial::NoticeMismatch
+        )
     ));
     assert_eq!(notice_status(&fixture), DeathNoticeStatus::Reported);
 
@@ -114,17 +109,15 @@ fn command_authority_cannot_substitute_a_foreign_notice_or_subject() {
     assert!(matches!(
         wrong_subject,
         BankEstateProgressionDenial::DeathNotificationProjection(
-            BankDeathNotificationProjectionDenial::NoticeSubjectMismatch {
-                expected,
-                observed,
-            }
-        ) if expected == fixture.other_subject && observed == fixture.deceased
+            BankDeathNotificationProjectionDenial::NoticeSubjectMismatch
+        )
     ));
     assert_eq!(notice_status(&fixture), DeathNoticeStatus::Reported);
 }
 
 #[test]
 fn only_reported_notices_may_request_notification_causality() {
+    let mut first_public_debug = None;
     for (ordinal, status) in [
         DeathNoticeStatus::NotificationRequested,
         DeathNoticeStatus::Verified,
@@ -144,9 +137,15 @@ fn only_reported_notices_may_request_notification_causality() {
         assert!(matches!(
             denial,
             BankEstateProgressionDenial::DeathNotificationProjection(
-                BankDeathNotificationProjectionDenial::NoticeNotReported(observed)
-            ) if observed == status
+                BankDeathNotificationProjectionDenial::NoticeNotReported
+            )
         ));
+        let public_debug = format!("{denial:?}");
+        if let Some(first) = &first_public_debug {
+            assert_eq!(first, &public_debug);
+        } else {
+            first_public_debug = Some(public_debug);
+        }
         assert_eq!(notice_status(&fixture), status);
     }
 }
@@ -183,9 +182,7 @@ fn idempotency(identity: u8) -> WorthQueryApplicationIdempotencyBinding {
     WorthQueryApplicationIdempotencyBinding::new([identity; 32], [identity + 1; 32])
 }
 
-fn assert_zero_canonical_work(
-    phases: worth_query_host::facade::domain::WorthQueryCanonicalWorkPhases,
-) {
+fn assert_zero_canonical_work(phases: bank_server::BankCommitCanonicalWorkPhases) {
     for work in [
         phases.installation(),
         phases.admission(),

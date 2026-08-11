@@ -5,6 +5,7 @@
 //! sealing. Keeping that graph here makes the cycle explicit and prevents the
 //! `source_rules` facade from becoming a flat implementation directory.
 
+mod authority_import_explicitness;
 pub(super) mod authority_sealing;
 mod authority_sealing_surface;
 mod authority_value_gate;
@@ -29,6 +30,7 @@ mod public_reachability;
 mod query_fence;
 mod source_reachability;
 mod type_alias_reachability;
+mod use_binding_resolution;
 mod workspace_crates;
 
 use crate::config::{QueryAudienceContract, SubworkspaceConfig};
@@ -73,6 +75,10 @@ pub(super) fn validate(
             &module_graph,
             &additional_targets,
         )?);
+        diagnostics.extend(authority_import_explicitness::enforce_explicit_imports(
+            &governed,
+            &module_graph,
+        ));
         let reachable = match public_reachability::externally_reachable_items(
             &module_graph,
             &governed.crate_root,

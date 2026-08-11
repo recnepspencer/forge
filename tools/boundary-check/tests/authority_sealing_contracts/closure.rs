@@ -1,9 +1,8 @@
 //! Production-binary matrix for externally-callable surface closure (BC7001).
 
 use super::authority_sealing_fixture::{
-    entry_reexport_external_glob, entry_reexport_external_module, entry_reexport_external_type,
-    external_hostile_module_admit, external_hostile_nested_reexport_chain,
-    external_hostile_type_method_admit, external_legal_module_admit,
+    entry_reexport_external_module, entry_reexport_external_type, external_hostile_module_admit,
+    external_hostile_module_glob, external_hostile_type_method_admit, external_legal_module_admit,
     external_legal_type_method_admit, hostile_foreign_fn_authority_marker,
     hostile_foreign_static_capability_marker, hostile_impl_macro_member,
     hostile_macro_export_trait_bound_template, hostile_opaque_attr_on_foreign_fn,
@@ -37,7 +36,7 @@ fn assert_sealing_denial(label: &str, source: &str) {
     );
 }
 
-fn assert_external_reexport_denial(label: &str, entry_lib: &str, external_lib: &str) {
+fn assert_external_reexport_denial(label: &str, entry_lib: &str, external_lib: &str) -> String {
     let repo = AuthoritySealingTestRepository::create(label);
     repo.assemble_with_external_path_dependency(entry_lib, EXTERNAL_PACKAGE, external_lib);
     let (ok, output) = repo.run_boundary_check();
@@ -54,6 +53,7 @@ fn assert_external_reexport_denial(label: &str, entry_lib: &str, external_lib: &
         output.contains("Authority sealing law"),
         "{label}: expected law quote, got:\n{output}"
     );
+    output
 }
 
 fn assert_external_reexport_pass(label: &str, entry_lib: &str, external_lib: &str) {
@@ -74,6 +74,19 @@ fn external_module_reexport_of_generic_ceremony_is_denied() {
         "hostile-ext-module",
         entry_reexport_external_module(),
         external_hostile_module_admit(),
+    );
+}
+
+#[test]
+fn external_module_with_internal_glob_requires_explicit_exports() {
+    let output = assert_external_reexport_denial(
+        "hostile-ext-internal-glob",
+        entry_reexport_external_module(),
+        external_hostile_module_glob(),
+    );
+    assert!(
+        output.contains("authority-governed dependencies must use named imports and reexports"),
+        "expected dependency glob diagnostic:\n{output}"
     );
 }
 
@@ -109,15 +122,6 @@ fn opaque_attribute_on_trait_member_is_denied() {
     assert_sealing_denial(
         "hostile-trait-member-attr",
         hostile_opaque_attr_on_trait_member(),
-    );
-}
-
-#[test]
-fn external_nested_reexport_chain_glob_is_denied() {
-    assert_external_reexport_denial(
-        "hostile-ext-nested-chain",
-        entry_reexport_external_glob(),
-        external_hostile_nested_reexport_chain(),
     );
 }
 

@@ -3,9 +3,8 @@
 
 use std::time::Duration;
 
-use bank_external_rail::{
-    dispatch, inquire_status, FaultScript, LedgerStatus, RailExchangeOutcome,
-};
+use bank_external_rail::test_control::FaultScript;
+use bank_external_rail::{dispatch, inquire_status, LedgerStatus, RailExchangeOutcome};
 
 use crate::support::{attempt_for, correlation_for, spawn_rail};
 
@@ -16,15 +15,14 @@ const RAIL_DELAY_MILLIS: u64 = 1_000;
 async fn late_completion_arrives_after_the_callers_deadline_has_already_elapsed() {
     let rail = spawn_rail();
     let correlation = correlation_for("complete-after-timeout");
+    rail.select_fault(FaultScript::CompleteAfterDelay {
+        delay_millis: RAIL_DELAY_MILLIS,
+    })
+    .await;
 
     let outcome = dispatch(
         rail.addr,
-        attempt_for(
-            "complete-after-timeout",
-            FaultScript::CompleteAfterDelay {
-                delay_millis: RAIL_DELAY_MILLIS,
-            },
-        ),
+        attempt_for("complete-after-timeout"),
         CALLER_DEADLINE,
     )
     .await;

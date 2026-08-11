@@ -24,7 +24,10 @@ mod mandatory_review_program;
 mod observation;
 pub(in crate::domain_computation::primary_graph) mod precondition_binding;
 mod provider_binding;
+pub(in crate::domain_computation::primary_graph) use provider_binding::WorthQueryProviderEffectRegistrationSeal;
 mod provider_execution;
+#[cfg(test)]
+pub(in crate::domain_computation::primary_graph) use provider_execution::parse_provider_receipt;
 mod provider_recomparison;
 mod read_phase;
 mod read_scope;
@@ -38,12 +41,14 @@ pub use commit_outcome_identity::WorthQueryApplicationCommitOutcomeIdentity;
 pub use commit_terminal::{
     WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
 };
-pub(in crate::domain_computation::primary_graph) use compare_and_commit::WorthQueryPendingApplicationCommitReceipt;
 pub use compare_and_commit::{
     WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
     WorthQueryApplicationCommitReceipt, WorthQueryApplicationCommitRecoveryKind,
     WorthQueryApplicationStaleAttempt, WorthQueryApplicationUnresolvedCommitEvidence,
+};
+pub(in crate::domain_computation::primary_graph) use compare_and_commit::{
+    WorthQueryCommittedReceiptProjection, WorthQueryPendingApplicationCommitReceipt,
 };
 pub use delegation_activation_program::WorthQueryDelegationActivationProgram;
 pub use denial::{WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind};
@@ -87,8 +92,12 @@ pub(super) use mandatory_review_program::validate_mandatory_review_program;
 pub use mandatory_review_program::WorthQueryMandatoryReviewProgram;
 pub(in crate::domain_computation::primary_graph) use observation::observe_field_value;
 pub(in crate::domain_computation) use provider_execution::application_resource_request;
+#[cfg(test)]
+pub(in crate::domain_computation) use provider_execution::perform_external_redispatch_owner_fixture;
+pub(crate) use provider_execution::WorthQueryPerformedExternalRedispatchSeal;
 pub use provider_execution::{
-    WorthQueryExternalRedispatchDenial, WorthQueryExternalTransportInstallationDenial,
+    WorthQueryExternalDispatchPreparationDenial, WorthQueryExternalRedispatchDenial,
+    WorthQueryExternalTransportInstallationDenial,
 };
 pub use provider_recomparison::WorthQueryMutationPreconditionComparisonEvidence;
 pub use read_phase::{WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation};

@@ -68,7 +68,7 @@ impl BankAdmittedEstateEmergencyAccountDetailsHistorical<'_> {
         let result = self
             .application
             .execute_application_query_historical(self.plan)
-            .map_err(BankApplicationQueryDenial::HistoricalExecution)?;
+            .map_err(BankApplicationQueryDenial::from_historical_execution)?;
         Ok(publish_application_result(result.into_admitted_disclosed()))
     }
 }
@@ -80,7 +80,7 @@ impl BankAdmittedEstateEmergencyAccountDetailsPreview<'_> {
         let result = self
             .application
             .execute_application_query_preview(self.plan)
-            .map_err(BankApplicationQueryDenial::PreviewExecution)?;
+            .map_err(BankApplicationQueryDenial::from_preview_execution)?;
         Ok(publish_application_result(result.into_admitted_disclosed()))
     }
 }
@@ -113,7 +113,7 @@ impl<'a> BankEstateEmergencyAccountDetailsAdmission<'a> {
         self.with_admitted(controls, |application, plan| {
             let result = application
                 .execute_application_query_one_shot(plan)
-                .map_err(BankApplicationQueryDenial::Execution)?;
+                .map_err(BankApplicationQueryDenial::from_execution)?;
             Ok(publish_application_result(result.into_admitted_disclosed()))
         })
     }
@@ -133,7 +133,7 @@ impl<'a> BankEstateEmergencyAccountDetailsAdmission<'a> {
                 ),
                 self.controls.request(),
             )
-            .map_err(BankApplicationQueryDenial::Admission)?;
+            .map_err(BankApplicationQueryDenial::from_admission)?;
         let controls = WorthQueryApplicationQueryControls::historical(
             basis,
             self.controls.maximum_result_count(),
@@ -157,9 +157,7 @@ impl<'a> BankEstateEmergencyAccountDetailsAdmission<'a> {
             -> Result<Output, BankApplicationQueryDenial>,
     ) -> Result<Output, BankApplicationQueryDenial> {
         let application = self.runtime.application_runtime();
-        let basis = application
-            .admit_application_preview_basis(session, self.controls.request())
-            .map_err(BankApplicationQueryDenial::Admission)?;
+        let basis = session.admit_basis(application, self.controls.request())?;
         let controls = WorthQueryApplicationQueryControls::preview(
             basis,
             self.controls.maximum_result_count(),
@@ -184,14 +182,14 @@ impl<'a> BankEstateEmergencyAccountDetailsAdmission<'a> {
         let query = application
             .installed_schema()
             .application_query(EstateEmergencyAccountDetailsQuery::reference())
-            .map_err(BankApplicationQueryDenial::Installation)?;
+            .map_err(BankApplicationQueryDenial::from_installation)?;
         let capability = application
             .installed_schema()
             .capability(
                 ViewEstateEmergencyProtectionCapability::reference(),
                 ViewRestrictedEstateOperation::reference(),
             )
-            .map_err(BankApplicationQueryDenial::CapabilityInstallation)?;
+            .map_err(BankApplicationQueryDenial::from_capability_installation)?;
         let capability_access = application
             .admit_approved_elevation_access(
                 self.approved,
@@ -200,7 +198,7 @@ impl<'a> BankEstateEmergencyAccountDetailsAdmission<'a> {
                 self.request.capability_request(),
                 controls.request_scope(),
             )
-            .map_err(BankApplicationQueryDenial::CapabilityAdmission)?;
+            .map_err(BankApplicationQueryDenial::from_capability_admission)?;
         let scope = application
             .resolve_entity(
                 EstateCaseIdentityField::reference(),
@@ -208,7 +206,7 @@ impl<'a> BankEstateEmergencyAccountDetailsAdmission<'a> {
                 controls.request_scope(),
                 WorthQueryPrincipalResolutionMode::Ordinary,
             )
-            .map_err(BankApplicationQueryDenial::ScopeResolution)?;
+            .map_err(BankApplicationQueryDenial::from_scope_resolution)?;
         let access = WorthQueryApplicationQueryAccessContext::<
             BankSchema,
             Principal,
@@ -223,7 +221,7 @@ impl<'a> BankEstateEmergencyAccountDetailsAdmission<'a> {
                 ApplicationQueryParameterSet::<EstateEmergencyAccountDetailsQuery>::new(),
                 controls,
             )
-            .map_err(BankApplicationQueryDenial::Admission)?;
+            .map_err(BankApplicationQueryDenial::from_admission)?;
         after_admission(application, plan)
     }
 }

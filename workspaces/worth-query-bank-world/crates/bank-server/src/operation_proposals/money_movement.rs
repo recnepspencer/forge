@@ -189,18 +189,22 @@ impl BankOperationProposals {
         match runtime
             .application_runtime()
             .resolve_admitted_application_idempotency(admission.query(), binding)
-            .map_err(|denial| BankOperationProposalError::Idempotency(denial.kind()))?
+            .map_err(|denial| {
+                BankOperationProposalError::Idempotency(
+                    crate::BankIdempotencyResolutionDenialKind::from_query(denial.kind()),
+                )
+            })?
             .into_resolution()
         {
             WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(receipt) => {
                 return Ok(BankSendMoneyPreparation::AlreadyCommitted {
                     receipt: crate::operation_commit::commit_receipt(receipt),
-                    projection_work: work,
+                    projection_work: crate::BankMutationProjectionWork::from_query(work),
                 });
             }
             WorthQueryApplicationIdempotencyResolution::IntentDrift => {
                 return Ok(BankSendMoneyPreparation::IntentDrift {
-                    projection_work: work,
+                    projection_work: crate::BankMutationProjectionWork::from_query(work),
                 });
             }
             WorthQueryApplicationIdempotencyResolution::Unseen => {}

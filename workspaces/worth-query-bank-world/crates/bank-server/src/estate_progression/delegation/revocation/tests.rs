@@ -98,6 +98,7 @@ fn revocation_retains_its_declared_preimage_without_a_per_operation_opt_in() {
         "RevokeCapability declares RecordedInverse/ExactPriorTruth, so its commit \
          must carry the pre-image its installed contract demands"
     );
+    assert!(receipt.performed_preimage_retention_work());
 }
 
 fn generic_empty_program(

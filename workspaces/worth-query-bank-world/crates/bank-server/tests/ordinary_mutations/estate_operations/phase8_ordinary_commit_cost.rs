@@ -19,7 +19,10 @@ use crate::support::request_scope;
 #[test]
 fn ordinary_commit_pays_zero_aftermath_slots_while_machinery_is_live() {
     let rail = spawn_rail();
-    let transport = Arc::new(BankEstateRailTransport::connected_to(rail.local_addr()));
+    let transport = Arc::new(BankEstateRailTransport::connected_to(
+        rail.local_addr(),
+        rail.test_control_addr(),
+    ));
     let fixture = ordinary_read_world("ordinary-aftermath-cost", 0);
     fixture
         .world
@@ -50,6 +53,10 @@ fn ordinary_commit_pays_zero_aftermath_slots_while_machinery_is_live() {
     let BankMutationStatus::Committed(receipt) = outcome.status() else {
         panic!("the lawful transfer must commit: {outcome:?}");
     };
+    assert!(
+        receipt.changed_record_count() >= 4,
+        "the zero-work claim must cover a genuinely broad money-movement commit"
+    );
 
     assert!(
         !receipt.co_committed_dispatch_outbox(),
@@ -58,6 +65,10 @@ fn ordinary_commit_pays_zero_aftermath_slots_while_machinery_is_live() {
     assert_eq!(
         receipt.aftermath().external_effect(),
         worth_query_host::facade::publication::application_aftermath::WorthQueryPublishedExternalEffectPosture::NotDeclared
+    );
+    assert!(
+        !receipt.performed_preimage_retention_work(),
+        "an ordinary no-demand commit must build no footprint and scan no decision facts"
     );
 
     let phases = receipt.canonical_work();

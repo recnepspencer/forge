@@ -19,4 +19,6 @@ pub enum WorthQueryAftermathDerivationFailure {
     EmptyCorrelationBasis,
     /// A declared external effect did not carry its installed typed emission.
     MissingExternalPayload,
+    /// The installed runtime clock could not supply the classification sample.
+    RuntimeTimeUnavailable,
 }

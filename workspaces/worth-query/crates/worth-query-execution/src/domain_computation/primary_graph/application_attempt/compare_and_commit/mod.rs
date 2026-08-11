@@ -10,4 +10,6 @@ pub use commit_outcome::{
     WorthQueryApplicationUnresolvedCommitEvidence,
 };
 pub use commit_receipt::WorthQueryApplicationCommitReceipt;
-pub(in crate::domain_computation::primary_graph) use commit_receipt::WorthQueryPendingApplicationCommitReceipt;
+pub(in crate::domain_computation::primary_graph) use commit_receipt::{
+    WorthQueryCommittedReceiptProjection, WorthQueryPendingApplicationCommitReceipt,
+};

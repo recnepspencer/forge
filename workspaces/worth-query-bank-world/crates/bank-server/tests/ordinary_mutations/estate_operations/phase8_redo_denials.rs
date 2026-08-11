@@ -38,12 +38,11 @@ fn lawful_redo_admits_and_reenters_ordinary_disbursement() {
         .runtime
         .progress_redo_disbursement(admission)
         .expect("redo progresses");
-    let receipt = match outcome {
-        BankMutationCommitOutcome::Committed(receipt)
-        | BankMutationCommitOutcome::AlreadyCommitted(receipt) => receipt,
+    match outcome {
+        BankMutationCommitOutcome::Committed(_)
+        | BankMutationCommitOutcome::AlreadyCommitted(_) => {}
         other => panic!("redo must commit: {other:?}"),
-    };
-    assert_ne!(receipt.commit_id(), 0);
+    }
 }
 
 #[test]

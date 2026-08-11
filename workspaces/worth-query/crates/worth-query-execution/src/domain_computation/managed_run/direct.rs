@@ -1,10 +1,7 @@
-use std::sync::Arc;
-
 use worth_relational::facade::runtime::RelationalExecutionBasisLease;
 use worth_runtime_bridge::facade::BridgeBoundExecutionBasis;
 
-use super::provider_work::WorthQueryManagedProviderWorkLedger;
-use super::run_identity::WorthQueryManagedRunIdentity;
+use super::run_affinity::WorthQueryDirectRunAffinity;
 use super::{
     WorthQueryDirectRunTerminal, WorthQueryManagedGraphCallRequest, WorthQueryManagedRunCounters,
     WorthQueryManagedRunDenial, WorthQueryManagedRunDenialKind, WorthQueryManagedRunTerminalKind,
@@ -17,9 +14,7 @@ use crate::domain_computation::{
 };
 
 pub struct WorthQueryAdmittedDirectRun {
-    logical_run_identity: Arc<str>,
-    identity: Arc<str>,
-    resource_attempt: WorthQueryDirectExecutionResourceAttempt,
+    affinity: WorthQueryDirectRunAffinity,
     bridge_basis: BridgeBoundExecutionBasis,
     relational_basis: RelationalExecutionBasisLease,
     counters: WorthQueryManagedRunCounters,
@@ -27,24 +22,14 @@ pub struct WorthQueryAdmittedDirectRun {
 
 impl WorthQueryAdmittedDirectRun {
     pub(crate) fn new(
-        operation: &WorthQueryExecutionBoundOperationAuthority,
+        _operation: &WorthQueryExecutionBoundOperationAuthority,
         resource_attempt: WorthQueryDirectExecutionResourceAttempt,
         bridge_basis: BridgeBoundExecutionBasis,
         relational_basis: RelationalExecutionBasisLease,
         counters: WorthQueryManagedRunCounters,
     ) -> Self {
-        let identity = WorthQueryManagedRunIdentity::initial(
-            "direct",
-            operation,
-            resource_attempt.attempt_identity().as_str(),
-            &bridge_basis,
-            &relational_basis,
-        );
-        let (logical_run_identity, identity) = identity.into_parts();
         Self {
-            logical_run_identity,
-            identity,
-            resource_attempt,
+            affinity: WorthQueryDirectRunAffinity::initial(resource_attempt),
             bridge_basis,
             relational_basis,
             counters,
@@ -52,11 +37,11 @@ impl WorthQueryAdmittedDirectRun {
     }
 
     pub fn identity(&self) -> &str {
-        &self.identity
+        self.affinity.attempt_identity()
     }
 
     pub fn logical_run_identity(&self) -> &str {
-        &self.logical_run_identity
+        self.affinity.logical_identity()
     }
 
     pub fn counters(&self) -> &WorthQueryManagedRunCounters {
@@ -67,33 +52,24 @@ impl WorthQueryAdmittedDirectRun {
         &self,
         operation: &WorthQueryExecutionBoundOperationAuthority,
     ) -> bool {
-        self.resource_attempt.binding_authority().binding_identity() == operation.binding_identity()
+        self.affinity.belongs_to_operation(operation)
     }
 
     pub fn start(self) -> WorthQueryRunningDirectRun {
-        let provider_work = WorthQueryManagedProviderWorkLedger::new(
-            self.resource_attempt.provider_session().identity(),
-        );
         WorthQueryRunningDirectRun {
-            logical_run_identity: self.logical_run_identity,
-            identity: self.identity,
-            resource_attempt: self.resource_attempt,
+            affinity: self.affinity,
             bridge_basis: self.bridge_basis,
             relational_basis: self.relational_basis,
             counters: self.counters,
-            provider_work,
         }
     }
 }
 
 pub struct WorthQueryRunningDirectRun {
-    pub(super) logical_run_identity: Arc<str>,
-    pub(super) identity: Arc<str>,
-    pub(super) resource_attempt: WorthQueryDirectExecutionResourceAttempt,
+    pub(super) affinity: WorthQueryDirectRunAffinity,
     pub(super) bridge_basis: BridgeBoundExecutionBasis,
     pub(super) relational_basis: RelationalExecutionBasisLease,
     pub(super) counters: WorthQueryManagedRunCounters,
-    pub(super) provider_work: WorthQueryManagedProviderWorkLedger,
 }
 
 impl WorthQueryRunningDirectRun {
@@ -101,37 +77,34 @@ impl WorthQueryRunningDirectRun {
         &self,
     ) -> Option<crate::domain_computation::operation_binding::WorthQueryApplicationGraphWorkAffinity>
     {
-        self.resource_attempt
-            .binding_authority()
-            .graph_work_affinity()
+        self.affinity.graph_work_affinity()
     }
 
-    pub(crate) fn mutation_resource_release_expectation(&self) -> (&str, usize) {
+    pub(crate) fn mutation_resource_release_expectation(&self) -> (&str, &str, usize) {
+        let (resource_plan, reservation_count) = self.affinity.resource_release_expectation();
         (
-            self.resource_attempt.resources().identity(),
-            self.resource_attempt.retained_capacity_reservation_count(),
+            self.affinity.provider_session_description(),
+            resource_plan,
+            reservation_count,
         )
     }
 
     pub fn identity(&self) -> &str {
-        &self.identity
+        self.affinity.attempt_identity()
     }
 
     pub fn logical_run_identity(&self) -> &str {
-        &self.logical_run_identity
+        self.affinity.logical_identity()
     }
 
     pub fn evidence(&self) -> &WorthQueryExecutionResourceAttemptEvidence {
-        self.resource_attempt.evidence()
+        self.affinity.evidence()
     }
 
     pub fn observe_safe_point(
         &self,
     ) -> Result<WorthQueryManagedSafePointObservation, WorthQueryManagedSafePointFailure> {
-        super::safe_point_observation::observe_managed_run_safe_point(
-            &self.identity,
-            &self.bridge_basis,
-        )
+        self.affinity.observe_safe_point(&self.bridge_basis)
     }
 
     pub fn begin_graph_execution(
@@ -156,14 +129,8 @@ impl WorthQueryRunningDirectRun {
         let request =
             WorthQueryGraphProviderCallRequest::direct(request.kind(), request.scope_identity())
                 .bind_execution_snapshot(self.execution_snapshot_reference());
-        self.resource_attempt
-            .provider_session()
-            .bind_graph_provider_call(
-                graph_authority,
-                request,
-                self.resource_attempt.evidence(),
-                self.resource_attempt.resources().shared_envelope(),
-            )
+        self.affinity
+            .bind_graph_provider_call(graph_authority, request)
     }
 
     pub(crate) fn execution_snapshot_reference(&self) -> String {
@@ -181,25 +148,10 @@ impl WorthQueryRunningDirectRun {
         )
     }
 
-    pub(crate) fn bind_convergence_candidate_evidence(
-        &self,
-        output_occurrence_identity: &str,
-    ) -> Result<
-        crate::domain_computation::WorthQueryDomainEvidenceExecutionBinding,
-        crate::domain_computation::WorthQueryDomainEvidenceBindingDenial,
-    > {
-        self.resource_attempt
-            .provider_session()
-            .bind_direct_domain_evidence(
-                &self.execution_snapshot_reference(),
-                output_occurrence_identity,
-            )
-    }
-
     pub fn completed(
         self,
     ) -> Result<WorthQueryDirectRunTerminal, WorthQueryDirectRunCompletionRejection> {
-        if self.provider_work.has_uncertainty() {
+        if self.affinity.provider_work_has_uncertainty() {
             return Err(WorthQueryDirectRunCompletionRejection {
                 denial: WorthQueryManagedRunDenial::new(
                     WorthQueryManagedRunDenialKind::UnverifiedProviderWork,
@@ -212,8 +164,10 @@ impl WorthQueryRunningDirectRun {
         Ok(self.terminal(WorthQueryManagedRunTerminalKind::Completed))
     }
 
-    pub(super) fn provider_work_mut(&mut self) -> &mut WorthQueryManagedProviderWorkLedger {
-        &mut self.provider_work
+    pub(super) fn provider_work_mut(
+        &mut self,
+    ) -> &mut super::provider_work::WorthQueryManagedProviderWorkLedger {
+        self.affinity.provider_work_mut()
     }
 
     pub(super) fn graph_resource_support(
@@ -222,10 +176,7 @@ impl WorthQueryRunningDirectRun {
     ) -> Option<
         &worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceSupport,
     > {
-        self.resource_attempt
-            .resources()
-            .support_snapshot()
-            .graph_provider(role)
+        self.affinity.graph_resource_support(role)
     }
 
     pub(super) fn bridge_basis(&self) -> &BridgeBoundExecutionBasis {
@@ -236,16 +187,30 @@ impl WorthQueryRunningDirectRun {
         &mut self.bridge_basis
     }
 
+    pub(super) fn provider_session_identity(&self) -> &str {
+        self.affinity.provider_session_description()
+    }
+
+    pub(super) fn retained_capacity_reservation_count(&self) -> usize {
+        self.affinity.retained_capacity_reservation_count()
+    }
+
+    pub(super) fn installation_is_current(&self) -> bool {
+        self.affinity.installation_is_current()
+    }
+
+    pub(super) fn yield_is_installed(&self) -> bool {
+        self.affinity.yield_is_installed()
+    }
+
     pub(super) fn terminal(
         self,
         kind: WorthQueryManagedRunTerminalKind,
     ) -> WorthQueryDirectRunTerminal {
-        let (provider_work, provider_cleanup) = self.provider_work.into_terminal_parts();
+        let (affinity, provider_work, provider_cleanup) = self.affinity.into_terminal_parts();
         WorthQueryDirectRunTerminal {
-            logical_run_identity: self.logical_run_identity,
-            identity: self.identity,
+            affinity,
             kind,
-            resource_attempt: self.resource_attempt,
             bridge_basis: self.bridge_basis,
             relational_basis: self.relational_basis,
             counters: self.counters,

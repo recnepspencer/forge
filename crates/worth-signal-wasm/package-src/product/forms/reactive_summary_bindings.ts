@@ -22,10 +22,19 @@ export function createReactiveFormBindings(signalNamespace, formId, formRef) {
     noteMutation,
     summarySignalHandle,
     wrapFieldHandle(handle) {
-      return createWrappedMutationFacade(handle, FIELD_MUTATION_METHODS, noteMutation);
+      return createWrappedMutationFacade(
+        handle,
+        FIELD_MUTATION_METHODS,
+        noteMutation,
+        { awaitSummaryPublish: true },
+      );
     },
     wrapControllerMutations(form) {
-      wrapMutationMethods(form, FORM_MUTATION_METHODS, noteMutation);
+      wrapMutationMethods(form, FORM_MUTATION_METHODS, noteMutation, {
+        // Action/validation receipts stay sync objects (resultKind/operationId).
+        // Summary publish is still kicked; await settleAuthoredWork for worker drain.
+        awaitSummaryPublish: false,
+      });
       return form;
     },
   });
@@ -87,17 +96,18 @@ const FORM_MUTATION_METHODS = Object.freeze([
   "clearPresentationLane",
 ]);
 
-function wrapMutationMethods(target, methodNames, noteMutation) {
+function wrapMutationMethods(target, methodNames, noteMutation, options) {
   for (const methodName of methodNames) {
-    wrapMutationMethod(target, methodName, noteMutation);
+    wrapMutationMethod(target, methodName, noteMutation, options);
   }
 }
 
-function wrapMutationMethod(target, methodName, noteMutation) {
+function wrapMutationMethod(target, methodName, noteMutation, options) {
   const original = target[methodName];
   if (typeof original !== "function") {
     return;
   }
+  const awaitSummaryPublish = options?.awaitSummaryPublish === true;
   Object.defineProperty(target, methodName, {
     enumerable: false,
     configurable: true,
@@ -112,19 +122,26 @@ function wrapMutationMethod(target, methodName, noteMutation) {
       }
       const noted = noteMutation();
       if (noted && typeof noted.then === "function") {
-        // Worker-first summary publish is async — return a thenable so callers
-        // can await honesty instead of a sync lie that races settlement.
-        return noted.then(() => result);
+        if (awaitSummaryPublish) {
+          // Field mutations: return thenable so callers can await worker publish.
+          return noted.then(() => result);
+        }
+        // Controller receipts stay sync; surface publish failure without swallowing.
+        noted.catch((error) => {
+          if (typeof globalThis.reportError === "function") {
+            globalThis.reportError(error);
+          }
+        });
       }
       return result;
     },
   });
 }
 
-function createWrappedMutationFacade(target, methodNames, noteMutation) {
+function createWrappedMutationFacade(target, methodNames, noteMutation, options) {
   const wrapped = {
     ...target,
   };
-  wrapMutationMethods(wrapped, methodNames, noteMutation);
+  wrapMutationMethods(wrapped, methodNames, noteMutation, options);
   return Object.isFrozen(target) ? Object.freeze(wrapped) : wrapped;
 }

@@ -1,6 +1,5 @@
 use worth_foundational::facade::{aspects, AspectIdentity, ScalarAspectType};
 use worth_relational::facade::identity::KindId;
-use worth_relational::facade::indexes::DerivedIndexId;
 use worth_relational::facade::schema::{
     AspectBinding, DeclaredAspectContractBinding, RelationalSchemaRegistry, SchemaId,
     SchemaVersionId,
@@ -92,7 +91,6 @@ pub(super) fn lower_provider_dispatch_outbox(
             maximum_payload_bytes_locator,
             payload_locator,
             outcome_identity_locator,
-            correlation_index_id: DerivedIndexId(0),
         },
     ))
 }

@@ -47,7 +47,10 @@ uses it to perform I/O; the descriptor does not send a request itself.
 
 - `status()` — pending, fulfilled, rejected, or timed out;
 - `freshness()` — fresh or stale;
-- `awaitSettlement({ timeoutMs? })` — wait for the next settled line truth;
+- `awaitSettlement({ timeoutMs?, drainAuthoredWork? })` — wait for the next
+  settled line tip-status truth; set `drainAuthoredWork: true` to also drain
+  authored publications/mutations after tip status settles
+  ([1.5 migration](../package/migration-1.5.md));
 - `invalidate()` — retain visible value and mark stale;
 - `refresh()` — start a new load;
 - `revalidate()` — run the family's revalidation behavior;

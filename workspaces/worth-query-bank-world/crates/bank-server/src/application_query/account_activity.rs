@@ -10,39 +10,27 @@ use worth_query_host::facade::{
     declaration::application_query::ApplicationQueryParameterSet,
     domain::WorthQueryInstalledApplicationQuery,
     primary_graph::{
-        WorthQueryApplicationContinuationPageResult, WorthQueryApplicationEntityIdentity,
-        WorthQueryApplicationHistoricalRead, WorthQueryApplicationHistoricalResult,
-        WorthQueryApplicationLiveCloseOutcome, WorthQueryApplicationLiveControls,
-        WorthQueryApplicationLiveLease, WorthQueryApplicationLiveOutcome,
-        WorthQueryApplicationOneShotResult, WorthQueryApplicationQueryAccessContext,
-        WorthQueryApplicationQueryContinuation, WorthQueryApplicationQueryControls,
-        WorthQueryApplicationQueryResumeControls, WorthQueryPrincipalResolutionMode,
+        WorthQueryApplicationEntityIdentity, WorthQueryApplicationLiveControls,
+        WorthQueryApplicationLiveLease, WorthQueryApplicationQueryAccessContext,
+        WorthQueryApplicationQueryControls, WorthQueryApplicationQueryResumeControls,
+        WorthQueryPrincipalResolutionMode,
     },
+    publication::domain_computation::publish_application_result,
+};
+
+mod output;
+
+pub use output::{
+    BankAccountActivityContinuation, BankAccountActivityHistoricalResult,
+    BankAccountActivityLiveOutcome, BankAccountActivityLiveUpdate, BankAccountActivityPageResult,
+    BankAccountActivityQueryResult,
 };
 
 use super::{execute_one_shot, BankApplicationQueryDenial, BankApplicationQueryInvocation};
-use crate::{BankAuthenticatedPrincipal, BankCommitReceipt, BankIdentityRuntime};
-
-pub type BankAccountActivityQueryResult =
-    WorthQueryApplicationOneShotResult<AccountActivityQuery, AccountActivityQueryResult>;
-pub type BankAccountActivityHistoricalResult =
-    WorthQueryApplicationHistoricalResult<AccountActivityQuery, AccountActivityQueryResult>;
-pub type BankAccountActivityContinuation = WorthQueryApplicationQueryContinuation<
-    BankSchema,
-    AccountActivityQuery,
-    AccountActivityQueryParameters,
-    AccountActivityQueryResult,
-    Account,
->;
-pub type BankAccountActivityPageResult = WorthQueryApplicationContinuationPageResult<
-    BankSchema,
-    AccountActivityQuery,
-    AccountActivityQueryParameters,
-    AccountActivityQueryResult,
-    Account,
->;
-pub type BankAccountActivityLiveOutcome =
-    WorthQueryApplicationLiveOutcome<AccountActivityQuery, AccountActivityQueryResult>;
+use crate::{
+    BankApplicationLiveCloseOutcome, BankAuthenticatedPrincipal, BankCommitReceipt,
+    BankIdentityRuntime,
+};
 
 type QueryAccountActivityLiveLease<'runtime, 'principal> = WorthQueryApplicationLiveLease<
     'runtime,
@@ -108,10 +96,10 @@ impl<'runtime, 'principal> BankAccountActivityRequestForPrincipal<'runtime, 'pri
             .runtime
             .application_runtime()
             .admit_application_historical_basis(
-                WorthQueryApplicationHistoricalRead::at_application_commit(commit.application()),
+                commit.recovery_evidence().historical_read(),
                 request,
             )
-            .map_err(BankApplicationQueryDenial::Admission)?;
+            .map_err(BankApplicationQueryDenial::from_admission)?;
         let access = prepared.access();
         let plan = prepared
             .runtime
@@ -127,12 +115,13 @@ impl<'runtime, 'principal> BankAccountActivityRequestForPrincipal<'runtime, 'pri
                     request,
                 ),
             )
-            .map_err(BankApplicationQueryDenial::Admission)?;
-        prepared
+            .map_err(BankApplicationQueryDenial::from_admission)?;
+        let result = prepared
             .runtime
             .application_runtime()
             .execute_application_query_historical(plan)
-            .map_err(BankApplicationQueryDenial::HistoricalExecution)
+            .map_err(BankApplicationQueryDenial::from_historical_execution)?;
+        Ok(publish_application_result(result.into_admitted_disclosed()))
     }
 
     pub fn execute(
@@ -167,12 +156,13 @@ impl<'runtime, 'principal> BankAccountActivityRequestForPrincipal<'runtime, 'pri
                 ApplicationQueryParameterSet::<AccountActivityQuery>::new(),
                 controls,
             )
-            .map_err(BankApplicationQueryDenial::Admission)?;
-        prepared
+            .map_err(BankApplicationQueryDenial::from_admission)?;
+        let page = prepared
             .runtime
             .application_runtime()
             .execute_application_query_continuation_page(plan)
-            .map_err(BankApplicationQueryDenial::ContinuationExecution)
+            .map_err(BankApplicationQueryDenial::from_continuation_execution)?;
+        Ok(output::publish_page(page))
     }
 
     pub fn resume(
@@ -189,15 +179,16 @@ impl<'runtime, 'principal> BankAccountActivityRequestForPrincipal<'runtime, 'pri
                 &prepared.query,
                 &access,
                 ApplicationQueryParameterSet::<AccountActivityQuery>::new(),
-                continuation,
+                continuation.into_query(),
                 controls,
             )
-            .map_err(BankApplicationQueryDenial::Admission)?;
-        prepared
+            .map_err(BankApplicationQueryDenial::from_admission)?;
+        let page = prepared
             .runtime
             .application_runtime()
             .execute_application_query_continuation_page(plan)
-            .map_err(BankApplicationQueryDenial::ContinuationExecution)
+            .map_err(BankApplicationQueryDenial::from_continuation_execution)?;
+        Ok(output::publish_page(page))
     }
 
     pub fn subscribe(
@@ -225,7 +216,7 @@ impl<'runtime, 'principal> BankAccountActivityRequestForPrincipal<'runtime, 'pri
                 ApplicationQueryParameterSet::<AccountActivityQuery>::new(),
                 controls,
             )
-            .map_err(BankApplicationQueryDenial::LiveOpen)?;
+            .map_err(BankApplicationQueryDenial::from_live_open)?;
         Ok(BankAccountActivityLiveLease { query })
     }
 
@@ -237,7 +228,7 @@ impl<'runtime, 'principal> BankAccountActivityRequestForPrincipal<'runtime, 'pri
         let query = application
             .installed_schema()
             .application_query(AccountActivityQuery::reference())
-            .map_err(BankApplicationQueryDenial::Installation)?;
+            .map_err(BankApplicationQueryDenial::from_installation)?;
         let scope = application
             .resolve_entity(
                 AccountIdentity::reference(),
@@ -245,7 +236,7 @@ impl<'runtime, 'principal> BankAccountActivityRequestForPrincipal<'runtime, 'pri
                 request,
                 WorthQueryPrincipalResolutionMode::Ordinary,
             )
-            .map_err(BankApplicationQueryDenial::ScopeResolution)?;
+            .map_err(BankApplicationQueryDenial::from_scope_resolution)?;
         Ok(PreparedAccountActivity {
             runtime: self.runtime,
             principal: self.principal,
@@ -261,11 +252,11 @@ impl BankAccountActivityLiveLease<'_, '_> {
     }
 
     pub fn poll(&mut self) -> BankAccountActivityLiveOutcome {
-        self.query.poll()
+        output::publish_live_outcome(self.query.poll())
     }
 
-    pub fn close(self) -> WorthQueryApplicationLiveCloseOutcome {
-        self.query.close()
+    pub fn close(self) -> BankApplicationLiveCloseOutcome {
+        output::publish_close(self.query.close())
     }
 }
 

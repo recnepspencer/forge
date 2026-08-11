@@ -1,4 +1,10 @@
 import { buildActiveImportContext } from "./sessions/support/worker_first_root_import_context.js";
+import {
+  preserveImportTipsAcrossContextReplace,
+  stampTransactionOpsWithTipEpochs,
+  tipWritesFromTransactionOps,
+} from "./sessions/support/authored/worker_first_host_tip_commit.js";
+import { mergeWorkerFirstPatchValue } from "./sessions/support/authored/worker_first_authored_input_state.js";
 
 export function createWorkerFirstRootMutation(deps) {
   const pendingMutations = new Set();
@@ -14,34 +20,86 @@ export function createWorkerFirstRootMutation(deps) {
   };
   return Object.freeze({
     applyImportMutation(controller, transactionOps, outputIds) {
-      return trackMutation(() => applyImportMutation(deps, controller, transactionOps, outputIds));
+      const tipCommit = commitTipsForOps(deps, transactionOps);
+      return trackMutation(async () => {
+        try {
+          return await applyImportMutation(deps, controller, transactionOps, outputIds);
+        } catch (error) {
+          tipCommit?.rollback();
+          throw error;
+        }
+      });
     },
     applyActiveTransaction(transactionOps) {
-      return trackMutation(() => applyActiveTransaction(deps, transactionOps));
+      const tipCommit = commitTipsForOps(deps, transactionOps);
+      return trackMutation(async () => {
+        try {
+          return await applyActiveTransaction(deps, transactionOps);
+        } catch (error) {
+          tipCommit?.rollback();
+          throw error;
+        }
+      });
     },
     applyActiveInputMutation(id, mutation) {
-      return trackMutation(() => applyActiveInputMutation(deps, id, mutation));
+      // Expand reset → set(initial) and patch → merged set so tipWrites carry
+      // complete values (kind:"reset"/patch fragments painted only after worker).
+      const transactionOps = [buildActiveInputMutationOperation(deps, id, mutation)];
+      const tipCommit = commitTipsForOps(deps, transactionOps);
+      return trackMutation(async () => {
+        try {
+          return await applyActiveInputMutation(deps, id, mutation, transactionOps);
+        } catch (error) {
+          tipCommit?.rollback();
+          throw error;
+        }
+      });
     },
     applyAuthoredInputMutation(id, mutation) {
-      // Optimistic local truth must land before the mutation queue schedules the
-      // worker round-trip; otherwise set()/resource binding reads stay stale
-      // across microtasks even though beginAuthoredInputMutation already knows
-      // the next value.
+      // Tip advance lives in beginAuthoredInputMutation; dependent projection +
+      // observer notify go through the same notifyHostTipIds seam used by
+      // commitHostTipAndNotify (import/graph/resource tipWrites).
       deps.requireActive("signals.inputAsync");
       const pendingMutation = deps.authoredRuntime.beginAuthoredInputMutation(id, mutation);
+      commitHostTipNotify(deps, [id]);
       return trackMutation(async () => {
         try {
           await deps.ready();
-          // settle + publication-ready + tip ensure live in applyWorkerOwnedTransaction
           return await applyWorkerOwnedTransaction(
             deps,
             pendingMutation.transactionOps,
           );
         } catch (error) {
-          pendingMutation.rollback();
+          if (pendingMutation.rollback()) {
+            commitHostTipNotify(deps, [id]);
+          }
           throw error;
         }
       });
+    },
+    /**
+     * Tips already advanced via commitHostTipAndNotify — queue one worker apply
+     * without re-tipping / re-notifying.
+     */
+    applyCommittedTipWorkerBatch(tipWrites) {
+      const writes = Array.isArray(tipWrites) ? tipWrites : [];
+      if (writes.length === 0) {
+        return Promise.resolve(null);
+      }
+      const transactionOps = writes.map((write) => {
+        if (!write || typeof write.id !== "string") {
+          throw new TypeError(
+            "worker-first applyCommittedTipWorkerBatch requires { id, value } tip writes",
+          );
+        }
+        return {
+          kind: "set",
+          id: write.id,
+          value: write.value,
+          epochAtWrite: write.epochAtWrite,
+        };
+      });
+      return trackMutation(() => applyWorkerOwnedTransaction(deps, transactionOps));
     },
     async settlePendingMutations() {
       while (pendingMutations.size > 0) {
@@ -68,13 +126,17 @@ async function applyImportMutation(deps, controller, transactionOps, outputIds) 
       "worker-first root importedGraph.apply() requires an active imported graph context",
     );
   }
-  deps.setActiveImportContext(
-    await buildActiveImportContext(
-      deps.bridge,
-      activeImportContext.definition,
-      activeImportContext.snapshot,
-    ),
+  const nextImportContext = await buildActiveImportContext(
+    deps.bridge,
+    activeImportContext.definition,
+    activeImportContext.snapshot,
   );
+  preserveImportTipsAcrossContextReplace(
+    activeImportContext,
+    nextImportContext,
+    transactionOps,
+  );
+  deps.setActiveImportContext(nextImportContext);
   await deps.refreshBranchCache();
   const deliveryPacket = await deps.observations.syncLifecycle(deps.bridge)
     .then(() => deps.bridge.deliverLatestObservation())
@@ -88,7 +150,9 @@ async function applyImportMutation(deps, controller, transactionOps, outputIds) 
     await activeImportController.refreshFromRootRuntime();
   }
   deps.authoredRuntime.applyCommittedInputs(transactionOps);
-  await deps.authoredRuntime.refreshReadables(extractChangedSignalIds(transactionOps));
+  const authoredOpIds = extractChangedSignalIds(transactionOps);
+  await deps.authoredRuntime.refreshReadables(authoredOpIds);
+  // Tip already notified at ingress; replaceContext/deliverCurrent skip equal values.
   deps.requireControllerActive(activeImportController, "importedGraph.apply");
   await deps.publishDiagnosticsChanged();
   return projectionPacket.transaction.runSummary;
@@ -115,7 +179,7 @@ async function applyActiveTransaction(deps, transactionOps) {
   return applyWorkerOwnedTransaction(deps, transactionOps);
 }
 
-async function applyActiveInputMutation(deps, id, mutation) {
+async function applyActiveInputMutation(deps, id, mutation, transactionOps) {
   await deps.ready();
   deps.requireActive("signals.spec.input");
   const activeImportContext = deps.currentImportContext();
@@ -127,11 +191,11 @@ async function applyActiveInputMutation(deps, id, mutation) {
       `worker-first signals.spec.input(...) binds only to input ids from the active imported graph; \`${id}\` is not currently available`,
     );
   }
-  const transactionOps = [buildActiveInputMutationOperation(id, mutation)];
+  const ops = transactionOps ?? [buildActiveInputMutationOperation(deps, id, mutation)];
   return applyImportMutation(
     deps,
     deps.activeImportController(),
-    transactionOps,
+    ops,
     activeImportContext.definition.descriptors.map((entry) => entry.publishedId),
   );
 }
@@ -140,7 +204,6 @@ async function applyWorkerOwnedTransaction(deps, transactionOps) {
   await deps.authoredRuntime.settlePendingPublications();
   requireAuthoredTransactionOpsPublicationReady(deps.authoredRuntime, transactionOps);
   const authoredOpIds = extractChangedSignalIds(transactionOps);
-  // Epoch-gated: no bridge work when tip readmit already stamped these ids.
   await deps.authoredRuntime.ensureAuthoredInputsPresentOnWorker(authoredOpIds);
   const activeImportController = deps.activeImportController();
   const activeImportContext = deps.activeImportContext();
@@ -151,6 +214,7 @@ async function applyWorkerOwnedTransaction(deps, transactionOps) {
     deps.authoredRuntime.applyCommittedInputs(transactionOps);
     await deps.authoredRuntime.refreshReadables(authoredOpIds);
     const deliveryPacket = await deps.bridge.deliverLatestObservation().catch(() => null);
+    // Worker confirmation only — tip already notified; equal values do not re-pulse.
     deps.observations.deliverCurrent(deliveryPacket);
     await deps.publishDiagnosticsChanged();
     return transaction.runSummary;
@@ -175,7 +239,7 @@ function requireAuthoredTransactionOpsPublicationReady(authoredRuntime, transact
   }
 }
 
-function buildActiveInputMutationOperation(id, mutation) {
+function buildActiveInputMutationOperation(deps, id, mutation) {
   if (!mutation || typeof mutation !== "object") {
     throw new TypeError("worker-first signals.spec.input mutation requires an operation object");
   }
@@ -183,12 +247,47 @@ function buildActiveInputMutationOperation(id, mutation) {
     case "set":
       return { kind: "set", id, value: mutation.value };
     case "reset":
-      return { kind: "reset", id };
+      return { kind: "set", id, value: readImportSnapshotSourceValue(deps, id) };
     case "patch":
-      return { kind: "patch", id, value: mutation.value };
+      return {
+        kind: "set",
+        id,
+        value: mergeWorkerFirstPatchValue(readImportTipValue(deps, id), mutation.value),
+      };
     default:
       throw new TypeError("worker-first signals.spec.input mutation kind is unsupported");
   }
+}
+
+function readImportTipValue(deps, id) {
+  const context = typeof deps.activeImportContext === "function"
+    ? deps.activeImportContext()
+    : null;
+  if (!context?.signalValueById?.has(id)) {
+    throw new TypeError(
+      `worker-first signals.spec.input patch requires a current tip value for \`${id}\``,
+    );
+  }
+  return context.signalValueById.get(id);
+}
+
+function readImportSnapshotSourceValue(deps, id) {
+  const context = typeof deps.activeImportContext === "function"
+    ? deps.activeImportContext()
+    : null;
+  const sources = context?.snapshot?.snapshotEnvelope?.state?.sources;
+  if (!Array.isArray(sources)) {
+    throw new TypeError(
+      `worker-first signals.spec.input reset requires an active imported snapshot for \`${id}\``,
+    );
+  }
+  const source = sources.find((entry) => entry && entry.id === id);
+  if (!source) {
+    throw new TypeError(
+      `worker-first signals.spec.input reset cannot recover initial value for \`${id}\``,
+    );
+  }
+  return source.value;
 }
 
 function extractChangedSignalIds(transactionOps) {
@@ -198,4 +297,22 @@ function extractChangedSignalIds(transactionOps) {
   return transactionOps
     .filter((op) => op && typeof op.id === "string")
     .map((op) => op.id);
+}
+
+function commitTipsForOps(deps, transactionOps) {
+  const tipWrites = tipWritesFromTransactionOps(transactionOps);
+  if (tipWrites.length === 0) {
+    return null;
+  }
+  const tipCommit = deps.authoredRuntime.commitHostTipAndNotify(
+    deps.observations,
+    () => deps.activeImportContext(),
+    tipWrites,
+  );
+  stampTransactionOpsWithTipEpochs(transactionOps, tipCommit.epochById);
+  return tipCommit;
+}
+
+function commitHostTipNotify(deps, changedIds) {
+  deps.authoredRuntime.notifyHostTipIds(deps.observations, changedIds);
 }

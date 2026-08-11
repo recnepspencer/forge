@@ -1,0 +1,23 @@
+error[E0599]: no method named `managed_recovery` found for reference `&WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_expose_lower_objects.rs:12:24
+   |
+12 |     let _ = reassembly.managed_recovery();
+   |                        ^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery`
+
+error[E0599]: no method named `managed_recovery` found for reference `&WorthQueryDirectConvergenceReadmissionTerminalRecovery` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_expose_lower_objects.rs:13:22
+   |
+13 |     let _ = terminal.managed_recovery();
+   |                      ^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDirectConvergenceReadmissionTerminalRecovery`
+
+error[E0599]: no method named `managed_recovery` found for reference `&WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_expose_lower_objects.rs:20:24
+   |
+20 |     let _ = reassembly.managed_recovery();
+   |                        ^^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery`
+
+error[E0599]: no method named `managed_recovery` found for reference `&WorthQueryWorkflowConvergenceReadmissionTerminalRecovery` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_expose_lower_objects.rs:21:22
+   |
+21 |     let _ = terminal.managed_recovery();
+   |                      ^^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowConvergenceReadmissionTerminalRecovery`

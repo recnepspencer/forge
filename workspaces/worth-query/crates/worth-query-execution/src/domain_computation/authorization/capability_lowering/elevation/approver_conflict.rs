@@ -8,11 +8,10 @@ use worth_relational::facade::authorization::{
     RelationalAuthorizationFieldOperand, RelationalAuthorizationPathPlan,
     RelationalAuthorizationPredicate, RelationalAuthorizationRelatedEntityConstraint,
 };
-use worth_runtime_bridge::facade::{
-    BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect,
-};
+use worth_runtime_bridge::facade::BridgeAuthorizationRuleEffect;
 
-use super::super::{bridge_rule, clause_identity, grant_ordinal, lower_guard};
+use super::super::accumulator::WorthQueryCapabilityRuleLoweringAccumulator;
+use super::super::{clause_identity, grant_ordinal, lower_guard};
 use super::ElevationRelations;
 use crate::domain_computation::authorization::capability_binding_lowering::lower_context_anchors;
 use crate::domain_computation::authorization::capability_registry::WorthQueryCapabilityPathTemplate;
@@ -22,15 +21,12 @@ use crate::domain_computation::authorization::{
 };
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
-#[allow(clippy::too_many_arguments)]
 pub(super) fn compile(
     contract: &ErasedApplicationCapabilityContract,
     layout: &WorthQueryPrimaryGraphLayout,
     capability: &[u8; 32],
     relations: &ElevationRelations,
-    paths: &mut Vec<WorthQueryCapabilityPathTemplate>,
-    rules: &mut Vec<BridgeAuthorizationRuleContract>,
-    rule_path_indices: &mut Vec<Vec<Vec<usize>>>,
+    lowering: &mut WorthQueryCapabilityRuleLoweringAccumulator,
 ) -> Result<Vec<Vec<usize>>, WorthQueryOperationAuthorizationDenial> {
     let conflict = contract
         .composition()
@@ -38,14 +34,17 @@ pub(super) fn compile(
         .conflict()
         .graph()
         .ok_or_else(|| missing_conflict(contract))?;
-    let requirements = lower_paths(contract, layout, capability, relations, conflict, paths)?;
-    rules.push(bridge_rule(
-        BridgeAuthorizationRuleEffect::Prohibited,
-        requirements.clone(),
-        paths,
-    ));
-    rule_path_indices.push(requirements.clone());
-    Ok(requirements)
+    let requirements = lower_paths(
+        contract,
+        layout,
+        capability,
+        relations,
+        conflict,
+        lowering.path_count(),
+    )?;
+    Ok(lowering
+        .add_rule(BridgeAuthorizationRuleEffect::Prohibited, requirements)
+        .into_path_indices())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -55,13 +54,15 @@ fn lower_paths(
     capability: &[u8; 32],
     relations: &ElevationRelations,
     conflict: &ApplicationCapabilityGraphRule,
-    paths: &mut Vec<WorthQueryCapabilityPathTemplate>,
-) -> Result<Vec<Vec<usize>>, WorthQueryOperationAuthorizationDenial> {
+    first_path_index: usize,
+) -> Result<Vec<Vec<WorthQueryCapabilityPathTemplate>>, WorthQueryOperationAuthorizationDenial> {
     let mut requirements = Vec::with_capacity(conflict.requirements().len());
+    let mut next_path_index = first_path_index;
     for requirement in conflict.requirements() {
-        let mut indices = Vec::with_capacity(requirement.clauses().len());
+        let mut paths = Vec::with_capacity(requirement.clauses().len());
         for clause in requirement.clauses() {
-            let path_index = paths.len();
+            let path_index = next_path_index;
+            next_path_index += 1;
             let base = lower_authorization_path(layout, clause.path())?;
             let mut context_anchors = lower_context_anchors(contract, layout, clause)?;
             for anchor in &mut context_anchors {
@@ -76,9 +77,8 @@ fn lower_paths(
                 elevation_resource_ordinal: None,
                 context_anchors,
             });
-            indices.push(path_index);
         }
-        requirements.push(indices);
+        requirements.push(paths);
     }
     if requirements.is_empty() {
         return Err(authorization_denial(

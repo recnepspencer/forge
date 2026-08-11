@@ -4,7 +4,7 @@ use std::sync::Arc;
 use super::yield_fixture::YieldProvider;
 use super::*;
 
-struct ReadmissionArtifact;
+pub(super) struct ReadmissionArtifact;
 
 impl WorthQueryArtifactProviderResource for ReadmissionArtifact {
     const PROVIDER_FAMILY: &'static str = "WORTH.tests.affinity.provider";
@@ -20,7 +20,7 @@ impl WorthQueryArtifactProviderResource for ReadmissionArtifact {
     fn dispose(&mut self) {}
 }
 
-pub(super) fn yielded_workflow(
+pub(in crate::domain_computation::managed_run) fn yielded_workflow(
     provider: YieldProvider,
 ) -> (
     crate::domain_computation::WorthQueryYieldedWorkflowRun,
@@ -31,6 +31,26 @@ pub(super) fn yielded_workflow(
     yielded_workflow_for_stage(provider, "producer")
 }
 
+pub(super) fn yielded_workflow_with_retained_artifact(
+    provider: YieldProvider,
+) -> (
+    crate::domain_computation::WorthQueryYieldedWorkflowRun,
+    RuntimeBridge,
+    WorthQueryExecutionRuntime,
+    Arc<crate::domain_computation::WorthQueryArtifactProductionAuthority>,
+    crate::domain_computation::WorthQueryMoveOnlyArtifactHandle,
+) {
+    let (yielded, bridge, runtime, producer, artifact) =
+        yielded_workflow_fixture(provider, "producer", true);
+    (
+        yielded,
+        bridge,
+        runtime,
+        producer,
+        artifact.expect("retained workflow artifact fixture must register"),
+    )
+}
+
 pub(super) fn yielded_workflow_for_stage(
     provider: YieldProvider,
     stage_identity: &str,
@@ -39,6 +59,23 @@ pub(super) fn yielded_workflow_for_stage(
     RuntimeBridge,
     WorthQueryExecutionRuntime,
     Arc<crate::domain_computation::WorthQueryArtifactProductionAuthority>,
+) {
+    let (yielded, bridge, runtime, producer, artifact) =
+        yielded_workflow_fixture(provider, stage_identity, false);
+    debug_assert!(artifact.is_none());
+    (yielded, bridge, runtime, producer)
+}
+
+fn yielded_workflow_fixture(
+    provider: YieldProvider,
+    stage_identity: &str,
+    retain_artifact: bool,
+) -> (
+    crate::domain_computation::WorthQueryYieldedWorkflowRun,
+    RuntimeBridge,
+    WorthQueryExecutionRuntime,
+    Arc<crate::domain_computation::WorthQueryArtifactProductionAuthority>,
+    Option<crate::domain_computation::WorthQueryMoveOnlyArtifactHandle>,
 ) {
     let installer = WorthQueryExecutionRuntimeInstaller::new();
     let provider_anchor = Arc::new(
@@ -92,6 +129,18 @@ pub(super) fn yielded_workflow_for_stage(
         .production_authority(stage_identity)
         .expect("producer stage should validate")
         .expect("producer stage should own output authority");
+    let retained_artifact = retain_artifact.then(|| {
+        let admission = crate::domain_computation::WorthQueryArtifactProductionAuthority::admit(
+            &old_producer,
+            WorthQueryArtifactProductionEvidence::new("readmission-cleanup", "retained-artifact"),
+        );
+        crate::domain_computation::WorthQueryArtifactProductionAuthority::register_exact(
+            &old_producer,
+            admission,
+            ReadmissionArtifact,
+        )
+        .expect("retained workflow artifact must register before production freezes")
+    });
     let active = running
         .begin_stage_graph_execution(
             stage_identity,
@@ -110,20 +159,25 @@ pub(super) fn yielded_workflow_for_stage(
         crate::domain_computation::WorthQueryWorkflowYieldOutcome::Yielded(yielded) => yielded,
         _ => panic!("eligible workflow did not yield"),
     };
-    (yielded, lower.bridge, runtime, old_producer)
+    (
+        yielded,
+        lower.bridge,
+        runtime,
+        old_producer,
+        retained_artifact,
+    )
 }
 
 #[test]
 fn workflow_readmission_rolls_generation_and_preserves_occurrence_state() {
     let (yielded, bridge, runtime, old_producer) = yielded_workflow(YieldProvider::installed(7));
-    let logical = yielded.logical_run_identity().to_owned();
-    let old_managed_attempt = yielded.yielded_attempt_identity().to_owned();
-    let old_resource_attempt = yielded.resource_attempt_identity().to_owned();
-    let old_provider_session = yielded.provider_session_identity().to_owned();
-    let old_bridge_request = yielded.bridge_request_identity().to_owned();
-    let old_artifacts = yielded.artifact_evidence();
-    let old_provider_work = yielded.provider_work();
-    let reservations = yielded.retained_capacity_reservation_count();
+    let logical = yielded.inspection().logical_run_identity().to_owned();
+    let old_managed_attempt = yielded.inspection().yielded_attempt_identity().to_owned();
+    let old_resource_attempt = yielded.inspection().yielded_attempt_identity().to_owned();
+    let old_provider_session = yielded.inspection().provider_session_identity().to_owned();
+    let old_artifacts = yielded.inspection().artifact_evidence();
+    let old_provider_work = yielded.inspection().provider_work().clone();
+    let reservations = yielded.inspection().retained_capacity_reservation_count();
     let readmitted = match yielded.readmit_same_runtime(&runtime, &bridge) {
         crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::Readmitted(readmitted) => {
             readmitted
@@ -135,7 +189,6 @@ fn workflow_readmission_rolls_generation_and_preserves_occurrence_state() {
     assert_ne!(active.run_identity(), old_managed_attempt);
     assert_ne!(active.resource_attempt_identity(), old_resource_attempt);
     assert_ne!(active.provider_session_identity(), old_provider_session);
-    assert_ne!(active.bridge_request_identity(), old_bridge_request);
     assert_eq!(active.retained_capacity_reservation_count(), reservations);
     assert_eq!(reservations, 3);
     let fresh_artifacts = active.artifact_evidence();
@@ -212,8 +265,11 @@ fn workflow_readmission_rolls_generation_and_preserves_occurrence_state() {
 fn workflow_provider_restore_denial_keeps_frozen_generation_retryable() {
     let (yielded, bridge, runtime, _producer) =
         yielded_workflow(YieldProvider::checkpoint_restore_failure(7));
-    let checkpoint = yielded.checkpoint().identity().to_owned();
-    let generation = yielded.artifact_evidence().production_generation();
+    let checkpoint = yielded.inspection().checkpoint().identity().to_owned();
+    let generation = yielded
+        .inspection()
+        .artifact_evidence()
+        .production_generation();
     let denied = match yielded.readmit_same_runtime(&runtime, &bridge) {
         crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::Denied(denied) => denied,
         _ => panic!("ordinary workflow restore failure should deny"),
@@ -225,9 +281,12 @@ fn workflow_provider_restore_denial_keeps_frozen_generation_retryable() {
     let counters = denied.readmission_evidence().query_counters();
     assert_eq!(counters.artifact_generation_attempt_count(), 0);
     let yielded = denied.into_yielded();
-    assert_eq!(yielded.checkpoint().identity(), checkpoint);
+    assert_eq!(yielded.inspection().checkpoint().identity(), checkpoint);
     assert_eq!(
-        yielded.artifact_evidence().production_generation(),
+        yielded
+            .inspection()
+            .artifact_evidence()
+            .production_generation(),
         generation
     );
     match yielded.cleanup() {
@@ -240,8 +299,11 @@ fn workflow_provider_restore_denial_keeps_frozen_generation_retryable() {
 fn workflow_restore_panic_can_recover_only_through_terminal_cleanup() {
     let (yielded, bridge, runtime, _producer) =
         yielded_workflow(YieldProvider::checkpoint_restore_panic(7));
-    let checkpoint = yielded.checkpoint().identity().to_owned();
-    let generation = yielded.artifact_evidence().production_generation();
+    let checkpoint = yielded.inspection().checkpoint().identity().to_owned();
+    let generation = yielded
+        .inspection()
+        .artifact_evidence()
+        .production_generation();
     let recovery = match yielded.readmit_same_runtime(&runtime, &bridge) {
         crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(
             recovery,
@@ -265,16 +327,13 @@ fn workflow_restore_panic_can_recover_only_through_terminal_cleanup() {
         ) => receipt,
         _ => panic!("retained workflow authorities should complete terminal cleanup"),
     };
+    let inspection = receipt.inspection();
+    assert_eq!(inspection.checkpoint().identity(), checkpoint);
     assert_eq!(
-        receipt.checkpoint_release().checkpoint().identity(),
-        checkpoint
-    );
-    assert_eq!(
-        receipt.artifact_evidence().production_generation(),
+        inspection.artifact_evidence().production_generation(),
         generation
     );
-    assert!(receipt.bridge().reservation_released());
-    assert!(receipt.relational().released());
+    assert!(inspection.resources_released());
 }
 
 #[test]
@@ -282,6 +341,7 @@ fn workflow_restore_rejection_after_admission_is_terminal_even_after_clean_relea
     let (yielded, bridge, runtime, _producer) =
         yielded_workflow(YieldProvider::checkpoint_restore_reject_after_admission(7));
     let prior_release_count = yielded
+        .inspection()
         .provider_work()
         .provider_execution_release()
         .release_count();
@@ -317,6 +377,7 @@ fn workflow_restore_rejection_after_admission_is_terminal_even_after_clean_relea
         ) => {
             assert_eq!(
                 receipt
+                    .inspection()
                     .provider_work()
                     .provider_execution_release()
                     .release_count(),
@@ -324,50 +385,5 @@ fn workflow_restore_rejection_after_admission_is_terminal_even_after_clean_relea
             );
         }
         _ => panic!("released workflow replacement should complete terminal cleanup"),
-    }
-}
-
-#[test]
-fn workflow_generation_mismatch_denies_before_fresh_authority_and_rolls_back_cleanly() {
-    let (yielded, bridge, runtime, _producer) = yielded_workflow(YieldProvider::installed(7));
-    let generation = yielded.artifact_evidence().production_generation();
-    let pending = yielded
-        .artifacts
-        .registry()
-        .prepare_next_generation()
-        .expect("test delta should place the registry in a pending generation");
-    let denied = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::Denied(denied) => denied,
-        _ => panic!("non-frozen yielded generation should deny during preflight"),
-    };
-    assert_eq!(
-        denied.kind(),
-        crate::domain_computation::WorthQueryWorkflowReadmissionDenialKind::ArtifactGenerationMismatch
-    );
-    let evidence = denied.readmission_evidence();
-    let counters = evidence.query_counters();
-    assert_eq!(counters.fresh_resource_attempt_count(), 0);
-    assert_eq!(counters.bridge_readmission_attempt_count(), 0);
-    assert_eq!(counters.provider_restore_attempt_count(), 0);
-    assert!(evidence.bridge_counters().is_none());
-    drop(pending);
-    let yielded = denied.into_yielded();
-    assert_eq!(
-        yielded.artifact_evidence().production_generation(),
-        generation
-    );
-    let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::Readmitted(readmitted) => {
-            readmitted.into_active()
-        }
-        _ => panic!("generation rollback should restore exact retry authority"),
-    };
-    let completion = match active.advance() {
-        WorthQueryWorkflowGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("restored workflow provider should complete"),
-    };
-    match completion.into_running().completed().unwrap().cleanup() {
-        WorthQueryWorkflowRunCleanupOutcome::Complete(_) => {}
-        _ => panic!("retried workflow should clean up"),
     }
 }

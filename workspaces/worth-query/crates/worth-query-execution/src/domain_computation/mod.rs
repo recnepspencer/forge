@@ -20,9 +20,8 @@ pub use artifact_owner::{
     WorthQueryMoveOnlyArtifactHandle, WorthQueryWorkflowArtifactRegistryEvidence,
 };
 pub use convergence_epoch::*;
-pub use domain_evidence_binding::{
-    WorthQueryDomainEvidenceBindingDenial, WorthQueryDomainEvidenceExecutionBinding,
-};
+pub(crate) use domain_evidence_binding::WorthQueryConvergenceDomainEvidenceBinding;
+pub use domain_evidence_binding::WorthQueryConvergenceDomainEvidenceBindingDenial;
 pub use evidence_material::{canonical_indexed_operation_material, canonical_operation_material};
 pub use execution_runtime::*;
 pub use managed_run::*;

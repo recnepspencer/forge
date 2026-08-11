@@ -310,7 +310,7 @@ fn panic_after_admission_contains_an_independent_destructor_panic() {
         .cleanup()
         .expect("contained start panic preserves lower cleanup authority");
     assert_eq!(
-        cleanup.disposition(),
+        cleanup.inspection().disposition(),
         WorthQueryManagedRunCleanupDisposition::RecoveryRequired
     );
 }

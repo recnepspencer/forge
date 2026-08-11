@@ -9,11 +9,16 @@ mod correction_mechanism;
 mod postcondition;
 mod reconciliation;
 
-pub use contract::DeclaredApplicationAftermathContract;
+#[cfg(test)]
+mod recorded_inverse_tests;
+
+pub use contract::{DeclaredApplicationAftermathContract, PortableApplicationAftermathContract};
 pub use correction_authority::DeclaredCorrectionAuthority;
 pub use correction_mechanism::{
     DeclaredCompensation, DeclaredCorrectionMechanism, DeclaredLoweringCorrespondenceRef,
-    DeclaredPreImageDemand, DeclaredPreImageDemandDenial, DeclaredRecordedInverse,
+    DeclaredPreImageDemand, DeclaredPreImageDemandDenial, DeclaredPreImageLocus,
+    DeclaredRecordedInverse, PortableCorrectionMechanism, PortablePreImageDemand,
+    PortablePreImageLocus, PortableRecordedInverse,
 };
 pub use postcondition::DeclaredAftermathPostcondition;
 pub use reconciliation::DeclaredReconciliationProcedure;

@@ -3,35 +3,45 @@
 /// Bounded structural cost of a successful exact-commit outbox observation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthQueryCommittedDispatchOutboxReadWork {
-    exact_commit_snapshots: usize,
-    examined_index_entries: usize,
-    projected_records: usize,
-    projected_fields: usize,
+    owner: worth_relational::facade::runtime::RelationalRetainedCommitProjectionWork,
 }
 
 impl WorthQueryCommittedDispatchOutboxReadWork {
-    pub(super) const fn exact_read(examined_index_entries: usize) -> Self {
-        Self {
-            exact_commit_snapshots: 1,
-            examined_index_entries,
-            projected_records: 1,
-            projected_fields: 8,
-        }
+    pub(super) const fn from_owner(
+        owner: worth_relational::facade::runtime::RelationalRetainedCommitProjectionWork,
+    ) -> Self {
+        Self { owner }
     }
 
     pub const fn exact_commit_snapshots(self) -> usize {
-        self.exact_commit_snapshots
+        self.owner.retained_snapshot_probes()
+    }
+
+    pub const fn canonical_version_probes(self) -> usize {
+        self.owner.canonical_version_probes()
+    }
+
+    pub const fn projection_views(self) -> usize {
+        self.owner.projection_views()
     }
 
     pub const fn examined_index_entries(self) -> usize {
-        self.examined_index_entries
+        self.owner.examined_index_entries()
+    }
+
+    pub const fn direct_record_probes(self) -> usize {
+        self.owner.direct_record_probes()
     }
 
     pub const fn projected_records(self) -> usize {
-        self.projected_records
+        self.owner.projected_records()
     }
 
     pub const fn projected_fields(self) -> usize {
-        self.projected_fields
+        self.owner.projected_fields()
+    }
+
+    pub const fn reconstruction_requests(self) -> usize {
+        self.owner.reconstruction_requests()
     }
 }

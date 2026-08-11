@@ -17,6 +17,7 @@ import { BUNDLED_JS_FILE_CAP } from "./bundle_worth_signals_wasm_entries.mjs";
 import { measureJsFootprint } from "./measure-worth-signals-wasm-js-footprint.mjs";
 import { verifyAdditionalConsumers } from "./verify-worth-signals-wasm-consumers.mjs";
 import { buildAbortSmokeSource } from "./verify-worth-signals-wasm-abort-smoke-source.mjs";
+import { buildEmptyRootSmokeSource } from "./verify-worth-signals-wasm-empty-root-smoke-source.mjs";
 import { assertPublishedWasmSizeContract } from "./verify-worth-signals-wasm-size-asserts.mjs";
 
 const pkgDir = path.resolve(process.argv[2] ?? "crates/worth-signal-wasm/pkg");
@@ -39,6 +40,19 @@ async function runAbortSmoke(tempDir, packageName) {
   );
   assert.equal(result.rawDenialLooksLikeBoundaryError, true);
   assert.equal(result.stillReadable, true);
+}
+
+async function runEmptyRootSmoke(tempDir, packageName) {
+  const smokePath = path.join(tempDir, "empty-root-smoke.mjs");
+  await writeFile(smokePath, buildEmptyRootSmokeSource(packageName), "utf8");
+  const { stdout } = await execFileAsync("node", [smokePath], { cwd: tempDir });
+  const result = JSON.parse(stdout.trim());
+  assert.equal(result.emptyRootSpecAuthored, true);
+  assert.equal(result.emptyRootSpecMutated, true);
+  assert.equal(result.emptyRootAspectReads, true);
+  assert.equal(result.emptyRootFormSyncReceipt, true);
+  assert.equal(result.emptyRootReactSnapshot, true);
+  assert.equal(result.emptyRootGraphDenied, true);
 }
 
 async function runRuntimeSmoke(tempDir, packageName) {
@@ -402,6 +416,7 @@ async function main() {
   try {
     await installSmokeDependencies(tempDir, tarballPath);
     await runAbortSmoke(tempDir, packageJson.name);
+    await runEmptyRootSmoke(tempDir, packageJson.name);
     await runRuntimeSmoke(tempDir, packageJson.name);
     await runTypeSmoke(tempDir, packageJson.name);
     await assertDocsStayOnCurrentPackageStory(pkgDir, packageJson.name);

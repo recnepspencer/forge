@@ -1,13 +1,9 @@
 use bank_domain::estate::{
     EstateWorkflowStage, LegalAuthorityKind, MandatoryReviewKind, MandatoryReviewStatus,
-    RestrictedBankField,
 };
-use worth_query_host::facade::{
-    declaration::application_schema::TypedApplicationValue,
-    installed::domain_computation::WorthQueryApplicationQueryOmissionPosture,
-    primary_graph::{
-        WorthQueryApplicationDisclosureOutcome, WorthQueryApplicationDisclosureReceiptPosture,
-    },
+use worth_query_host::facade::publication::domain_computation::{
+    WorthQueryPublishedApplicationDisclosurePosture,
+    WorthQueryPublishedApplicationQueryOmissionPosture, WorthQueryPublishedApplicationResult,
 };
 
 use super::fixture::{
@@ -42,7 +38,7 @@ fn public_legal_compliance_query_consumes_legal_compliance_capability() {
         .expect("the selected estate authority should be projected");
     assert_eq!(authority.kind(), LegalAuthorityKind::CourtAppointment);
     assert!(!authority.recognized());
-    assert_governed_receipt(&result, RestrictedBankField::LegalDocument);
+    assert_governed_receipt(&result);
 }
 
 #[test]
@@ -79,37 +75,25 @@ fn public_mandatory_review_query_consumes_mandatory_review_capability() {
         .expect("the completed review should be projected");
     assert_eq!(completed.status(), MandatoryReviewStatus::Completed);
     assert_eq!(completed.kind(), MandatoryReviewKind::EstateRelease);
-    assert_governed_receipt(&result, RestrictedBankField::AuditTrail);
+    assert_governed_receipt(&result);
 }
 
 fn assert_governed_receipt<Query, QueryResult>(
-    result: &worth_query_host::facade::primary_graph::WorthQueryApplicationOneShotResult<
-        Query,
-        QueryResult,
-    >,
-    field: RestrictedBankField,
+    result: &WorthQueryPublishedApplicationResult<Query, QueryResult>,
 ) {
     let receipt = result.receipt();
-    assert_eq!(receipt.fallback_count(), 0);
+    let inspection = receipt.inspect();
     assert_eq!(
-        receipt.omission_posture(),
-        WorthQueryApplicationQueryOmissionPosture::NoOmission
+        inspection.omission_posture(),
+        WorthQueryPublishedApplicationQueryOmissionPosture::NoOmission
     );
     assert_eq!(
         receipt.disclosure().posture(),
-        WorthQueryApplicationDisclosureReceiptPosture::Governed
+        WorthQueryPublishedApplicationDisclosurePosture::Governed
     );
-    assert!(!receipt.disclosure().decisions().is_empty());
-    for decision in receipt.disclosure().decisions() {
-        assert_eq!(
-            decision.required_disclosure(),
-            &field.into_foundational_value()
-        );
-        assert_eq!(
-            decision.outcome(),
-            WorthQueryApplicationDisclosureOutcome::Disclosed
-        );
-    }
+    assert!(receipt.disclosure().disclosure_decision_count() > 0);
+    assert_eq!(receipt.disclosure().omitted_value_count(), 0);
+    assert!(inspection.terminal_resources_released());
 }
 
 #[test]

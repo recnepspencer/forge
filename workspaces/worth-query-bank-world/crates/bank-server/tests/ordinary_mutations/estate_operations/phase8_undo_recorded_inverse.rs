@@ -2,16 +2,16 @@
 
 use bank_domain::{
     estate::EstateWorkflowStage,
-    schema::{AccountStatus, FreezeEstateAccountOperation},
+    schema::{AccountStatus, FreezeEstateAccountOperation, Status},
 };
-use bank_server::{queries, BankIdentityRuntime, BankMutationCommitOutcome, BankReadControls};
+use bank_server::{
+    queries, BankCommitDenialKind, BankIdentityRuntime, BankMutationCommitOutcome, BankReadControls,
+};
 use worth_foundational::facade::{AspectValue, InternedString};
 use worth_query_host::facade::domain::{
     InstalledCorrectionMechanism, PublishedAftermathPosture, WorthQueryInstalledAftermathContract,
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationIdempotencyBinding,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 use worth_query_host::facade::provisional_aftermath::WorthQueryUndoDerivedRequest;
 
 use super::freeze_account::fixture::{exact_freeze_world, FreezeFixture};
@@ -81,7 +81,7 @@ fn recorded_inverse_undo_restores_prior_status_from_retained_preimage() {
     let prior = admission
         .retained_preimage()
         .expect("admission consumes retained pre-image")
-        .field("Status")
+        .field_for(Status::reference())
         .expect("Status slot consumed")
         .value()
         .clone();
@@ -169,7 +169,7 @@ fn aliasing_the_original_binding_denies_and_leaves_the_undo_still_performable() 
         matches!(
             aliased.mutation(),
             BankMutationCommitOutcome::Denied {
-                kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
+                kind: BankCommitDenialKind::IdempotencyIntentDrift,
                 ..
             }
         ),

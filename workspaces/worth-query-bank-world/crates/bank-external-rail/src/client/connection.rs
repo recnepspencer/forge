@@ -23,8 +23,8 @@ pub enum RailTransportFailure {
     TimedOut,
 }
 
-/// Connects to the rail, sends a dispatch request under `fault_script`, and
-/// observes the outcome within `frame_timeout` per frame.
+/// Connects to the rail, sends a production dispatch request, and observes
+/// the outcome within `frame_timeout` per frame.
 ///
 /// The rail's protocol always writes `Ack` first when it writes anything at
 /// all: `CommitThenLoseResponse` and `DisappearMidDispatch` write nothing.

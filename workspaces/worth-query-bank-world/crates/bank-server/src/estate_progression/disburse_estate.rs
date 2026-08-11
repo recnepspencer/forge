@@ -76,16 +76,16 @@ impl BankIdentityRuntime {
                 DisburseEstateCapability::reference(),
                 DisburseEstateOperation::reference(),
             )
-            .map_err(BankEstateProgressionDenial::CapabilityInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_capability_installation)?;
         let access = self
             .application_runtime()
             .admit_capability_access(principal.query(), &capability, action, request)
-            .map_err(BankEstateProgressionDenial::Authorization)?;
+            .map_err(BankEstateProgressionDenial::from_authorization)?;
         let operation = self
             .application_runtime()
             .installed_schema()
             .installed_operation(DisburseEstateOperation::reference())
-            .map_err(BankEstateProgressionDenial::OperationInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_operation_installation)?;
         self.application_runtime()
             .authorize_capability_operation(
                 access,
@@ -96,7 +96,7 @@ impl BankIdentityRuntime {
                     EstateCase,
                 >::default(),
             )
-            .map_err(BankEstateProgressionDenial::Authorization)
+            .map_err(BankEstateProgressionDenial::from_authorization)
     }
 
     pub(crate) fn materialize_estate_disbursement(
@@ -112,7 +112,7 @@ impl BankIdentityRuntime {
             .project_admitted_operation(&admission, |reader, estate| {
                 project_estate_disbursement(reader, estate, &command)
             })
-            .map_err(BankEstateProgressionDenial::Projection)?;
+            .map_err(BankEstateProgressionDenial::from_projection)?;
         let (decision, projection, _) = projected.into_parts();
         let decision =
             decision.map_err(BankEstateProgressionDenial::EstateDisbursementProjection)?;
@@ -134,19 +134,19 @@ impl BankIdentityRuntime {
         let mut reads = self
             .application_runtime()
             .begin_projected_application_read_attempt(admission, projection)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         observe_disbursement_witnesses(&mut reads, &command, authority, executor)?;
         let accounts = resolve_journal_accounts(&mut reads, journal)
             .map_err(BankEstateProgressionDenial::CommitPreparation)?;
         let mut effects = reads
             .complete_projected_dependencies()
-            .map_err(BankEstateProgressionDenial::Attempt)?
+            .map_err(BankEstateProgressionDenial::from_attempt)?
             .begin_effect_program();
         lower_journal(&mut effects, journal, accounts)
             .map_err(BankEstateProgressionDenial::CommitPreparation)?;
         effects
             .finish()
-            .map_err(BankEstateProgressionDenial::Attempt)
+            .map_err(BankEstateProgressionDenial::from_attempt)
     }
 }
 

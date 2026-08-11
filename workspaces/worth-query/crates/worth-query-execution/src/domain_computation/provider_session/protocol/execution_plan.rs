@@ -107,17 +107,18 @@ impl<'run> WorthQueryAdmittedProviderExecutionPlan<'run> {
         })
     }
 
-    pub(crate) fn workflow_stage(
+    pub(in crate::domain_computation) fn workflow_stage(
         run: &'run mut WorthQueryRunningWorkflowRun,
         stage_identity: &str,
         graph: &WorthQueryInstalledGraphParticipationAuthority,
+        owner: &crate::domain_computation::managed_run::WorthQueryWorkflowProviderPlanPermit,
     ) -> Result<Self, WorthQueryProviderSessionFailure> {
         let mut counters = WorthQueryProviderSessionProtocolCounters::default();
         let (resources, evidence) = run
-            .provider_plan_stage_resources(stage_identity)
+            .provider_plan_stage_resources(stage_identity, owner)
             .ok_or_else(|| undeclared_scope(&counters))?;
-        let operation = run.provider_plan_operation();
-        let session = run.provider_plan_session();
+        let operation = run.provider_plan_operation(owner);
+        let session = run.provider_plan_session(owner);
         counters.checked_authority();
         validate_common_authority(
             WorthQueryProviderPlanAuthorityObservation {
@@ -128,7 +129,7 @@ impl<'run> WorthQueryAdmittedProviderExecutionPlan<'run> {
                     .admits_provider_plan_resources(Some(stage_identity), &resources),
                 evidence_session_identity: evidence.provider_session_identity(),
                 evidence_attempt_identity: evidence.provider_session_attempt_identity(),
-                bridge: run.provider_plan_bridge_basis(),
+                bridge: run.provider_plan_bridge_basis(owner),
                 graph,
                 stage_identity: Some(stage_identity),
             },
@@ -141,7 +142,10 @@ impl<'run> WorthQueryAdmittedProviderExecutionPlan<'run> {
                 Some(stage_identity),
                 WorthQueryProviderPlanExecutionBinding {
                     managed_run_identity: run.identity(),
-                    execution_basis_identity: run.provider_plan_bridge_basis().identity().as_str(),
+                    execution_basis_identity: run
+                        .provider_plan_bridge_basis(owner)
+                        .identity()
+                        .as_str(),
                     admitted_session_identity: session.identity(),
                     resource_attempt_identity: session.attempt_identity(),
                     graph,

@@ -93,7 +93,7 @@ pub(crate) fn update_entity_name(
     );
     txn.commit()
         .expect("intervening update should succeed")
-        .outcome
+        .outcome()
         .commit
         .commit_id
 }

@@ -1,5 +1,60 @@
 use super::*;
 
+use worth_query_declaration::facade::application_aftermath::{
+    DeclaredAftermathPostcondition, DeclaredCorrectionMechanism, DeclaredLoweringCorrespondenceRef,
+    DeclaredPreImageDemand, DeclaredPreImageLocus, DeclaredRecordedInverse,
+};
+use worth_query_declaration::facade::application_schema::{
+    ApplicationAspectMarkerIdentity, ApplicationEntityMarkerIdentity,
+    ApplicationFieldMarkerIdentity, ApplicationOperationDecisionReadTarget,
+    ApplicationSchemaMember,
+};
+
+struct OtherEntity;
+struct OtherEntityAspect;
+struct OtherEntityField;
+struct OtherAspect;
+struct OtherAspectField;
+struct OtherField;
+
+impl ApplicationEntityMarkerIdentity for OtherEntity {
+    type Schema = TestSchema;
+    const IDENTIFIER: &'static str = "OtherEntity";
+}
+
+impl ApplicationAspectMarkerIdentity for OtherEntityAspect {
+    type Schema = TestSchema;
+    type Entity = OtherEntity;
+    const IDENTIFIER: &'static str = "IdentityAspect";
+}
+
+impl ApplicationFieldMarkerIdentity for OtherEntityField {
+    type Schema = TestSchema;
+    type Entity = OtherEntity;
+    type Aspect = OtherEntityAspect;
+    const IDENTIFIER: &'static str = "PrincipalIdentityField";
+}
+
+impl ApplicationAspectMarkerIdentity for OtherAspect {
+    type Schema = TestSchema;
+    type Entity = TestEntity;
+    const IDENTIFIER: &'static str = "OtherAspect";
+}
+
+impl ApplicationFieldMarkerIdentity for OtherAspectField {
+    type Schema = TestSchema;
+    type Entity = TestEntity;
+    type Aspect = OtherAspect;
+    const IDENTIFIER: &'static str = "PrincipalIdentityField";
+}
+
+impl ApplicationFieldMarkerIdentity for OtherField {
+    type Schema = TestSchema;
+    type Entity = TestEntity;
+    type Aspect = FixtureIdentityAspect<TestSchema>;
+    const IDENTIFIER: &'static str = "OtherField";
+}
+
 #[test]
 fn installed_application_operation_compiles_existing_authority_contract_families() {
     let index = installed_index();
@@ -71,4 +126,125 @@ fn installed_application_operation_compiles_existing_authority_contract_families
             .as_str(),
         "primary-application-atomic"
     );
+}
+
+#[test]
+fn reinstallation_rejects_each_coherent_preimage_axis_and_bound_drift() {
+    let declaration = test_schema_members::<TestSchema>(Some(recorded_inverse_at::<
+        TestEntity,
+        FixtureIdentityAspect<TestSchema>,
+        FixturePrincipalIdentityField<TestSchema>,
+    >(64)))
+    .build()
+    .unwrap();
+    let index = installed_index_for(declaration.clone());
+    let schema = index.bind_application_schema(declaration.clone()).unwrap();
+    let operation = schema
+        .installed_operation(ApplicationOperationRef::<
+            TestSchema,
+            TestOperation,
+            TestInput,
+        >::from_schema_identifier("TestOperation"))
+        .unwrap();
+
+    assert!(operation.meaning_matches(declaration.erased().members()));
+    for changed in [
+        coherent_candidate::<OtherEntity, OtherEntityAspect, OtherEntityField>(64),
+        coherent_candidate::<TestEntity, OtherAspect, OtherAspectField>(64),
+        coherent_candidate::<TestEntity, FixtureIdentityAspect<TestSchema>, OtherField>(64),
+        coherent_candidate::<
+            TestEntity,
+            FixtureIdentityAspect<TestSchema>,
+            FixturePrincipalIdentityField<TestSchema>,
+        >(65),
+    ] {
+        assert!(
+            !operation.meaning_matches(&changed),
+            "the real reinstallation owner must reject one-axis semantic drift"
+        );
+    }
+}
+
+fn installed_index_for(
+    declaration: ApplicationSchemaDeclaration<TestSchema>,
+) -> WorthQueryInstalledPackageIndex {
+    let package = WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new(
+        "typed-test",
+        1,
+        0,
+    ))
+    .application_schema(declaration)
+    .validate()
+    .unwrap();
+    let admitted = WorthQueryInstallationAdmissionProfile::new("support", "configuration")
+        .admit(package)
+        .unwrap();
+    WorthQueryInstalledPackageIndex::build(
+        WorthQueryInstallationRuntimeIdentity::fresh(),
+        WorthQueryInstallationGeneration::initial(),
+        [admitted],
+    )
+    .unwrap()
+}
+
+fn coherent_candidate<Entity, Aspect, Field>(
+    maximum_encoded_bytes: usize,
+) -> Vec<ApplicationSchemaMember>
+where
+    Entity: ApplicationEntityMarkerIdentity<Schema = TestSchema>,
+    Aspect: ApplicationAspectMarkerIdentity<Schema = TestSchema, Entity = Entity>,
+    Field: ApplicationFieldMarkerIdentity<Schema = TestSchema, Entity = Entity, Aspect = Aspect>,
+{
+    let declaration =
+        test_schema_members::<TestSchema>(Some(recorded_inverse_at::<Entity, Aspect, Field>(
+            maximum_encoded_bytes,
+        )))
+        .build()
+        .unwrap();
+    declaration
+        .erased()
+        .members()
+        .iter()
+        .cloned()
+        .map(|member| match member {
+            ApplicationSchemaMember::OperationDecisionRead { operation, .. }
+                if operation == "TestOperation" =>
+            {
+                ApplicationSchemaMember::OperationDecisionRead {
+                    operation,
+                    target: ApplicationOperationDecisionReadTarget::Field {
+                        entity: Entity::IDENTIFIER.to_owned(),
+                        aspect: Aspect::IDENTIFIER.to_owned(),
+                        field: Field::IDENTIFIER.to_owned(),
+                    },
+                }
+            }
+            member => member,
+        })
+        .collect()
+}
+
+fn recorded_inverse_at<Entity, Aspect, Field>(
+    maximum_encoded_bytes: usize,
+) -> DeclaredApplicationAftermathContract<TestSchema>
+where
+    Entity: ApplicationEntityMarkerIdentity<Schema = TestSchema>,
+    Aspect: ApplicationAspectMarkerIdentity<Schema = TestSchema, Entity = Entity>,
+    Field: ApplicationFieldMarkerIdentity<Schema = TestSchema, Entity = Entity, Aspect = Aspect>,
+{
+    let field = ApplicationFieldRef::<TestSchema, Entity, Aspect, Field, u64>::from_schema_types();
+    let inverse = DeclaredRecordedInverse::new(
+        "restore-test-operation",
+        DeclaredLoweringCorrespondenceRef::new("test-operation-inverse").unwrap(),
+        DeclaredAftermathPostcondition::ExactPriorTruth,
+        DeclaredPreImageDemand::new(
+            [DeclaredPreImageLocus::from_field(field)],
+            maximum_encoded_bytes,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    DeclaredApplicationAftermathContract::runtime_alone(
+        DeclaredCorrectionMechanism::RecordedInverse(inverse),
+    )
 }

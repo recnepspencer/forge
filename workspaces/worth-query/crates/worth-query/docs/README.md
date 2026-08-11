@@ -15,6 +15,9 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
 
 ## Start Here
 
+- [AI Agent Orientation](./AI_README.md)
+  Canonical runtime, substrate, authority, facade, and support model for AI
+  agents and contributors.
 - [Domain Capabilities](./domain-capabilities/README.md)
   Typed domain entry, declaration pipeline, helpers, grouped work, remediation,
   continuation, and certification.
@@ -75,6 +78,9 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
 - if you need installed product authorization, emergency elevation, or the
   command-versus-governed-bound distinction:
   [capabilities/application-authorization-and-emergency-elevation.md](./capabilities/application-authorization-and-emergency-elevation.md)
+- if a mutation declares aftermath, an external effect, idempotent dispatch,
+  or receipt-bound recovery:
+  [execution/application-aftermath-and-recovery.md](./execution/application-aftermath-and-recovery.md)
 - if you need basis capability lifecycle rather than raw identifiers:
   [capabilities/basis-capability-lifecycle.md](./capabilities/basis-capability-lifecycle.md)
 - if you need cross-runtime “why” (not `workspace.inspections()?.inspect` alone):
@@ -117,6 +123,7 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
 - [Writes And Intent Boundaries](./execution/writes-and-intents.md)
 - [Projection consumption and downstream authority](./capabilities/projection-consumption.md)
 - [Authority-scoped effect execution](./execution/authority-scoped-effect-execution.md)
+- [Application aftermath, external effects, and recovery](./execution/application-aftermath-and-recovery.md)
 
 ## Runtime surfaces (feature docs)
 

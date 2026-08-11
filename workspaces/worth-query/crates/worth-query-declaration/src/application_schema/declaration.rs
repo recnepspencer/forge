@@ -4,14 +4,14 @@ use super::authorization_policy::ApplicationAuthorizationPath;
 use super::canonical_identity::{canonical_identity, ApplicationSchemaCanonicalHeader};
 use super::capabilities::{ApplicationFieldUnit, EqualityPosture, WritePosture};
 use super::declaration_denial::ApplicationSchemaDeclarationDenial;
+use super::field_reference::ApplicationFieldRef;
 use super::identifier_validation::{validate_member_identifiers, validate_schema_header};
 use super::member_closure::validate_member_closure;
 use super::operation_contract_cardinality::validate_operation_contract_cardinality;
 use super::principal_binding_reference::ApplicationPrincipalBindingRef;
 use super::references::{
     ApplicationAbilityRef, ApplicationAspectRef, ApplicationEffectRef, ApplicationEntityRef,
-    ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef, ApplicationRelationRef,
-    ApplicationUnitRef,
+    ApplicationOperationRef, ApplicationPolicyRef, ApplicationRelationRef, ApplicationUnitRef,
 };
 use super::schema_identity::ApplicationSchemaIdentity;
 use super::schema_member::ApplicationSchemaMember;

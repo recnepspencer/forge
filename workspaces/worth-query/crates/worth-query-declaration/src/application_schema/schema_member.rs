@@ -1,6 +1,6 @@
 use worth_foundational::facade::ScalarAspectType;
 
-use crate::application_aftermath::DeclaredApplicationAftermathContract;
+use crate::application_aftermath::PortableApplicationAftermathContract;
 use crate::application_capability::ErasedApplicationCapabilityContract;
 use crate::application_query::ErasedApplicationQueryDefinition;
 
@@ -154,7 +154,7 @@ pub enum ApplicationSchemaMember {
     /// supply an installed aftermath identity.
     OperationAftermath {
         operation: String,
-        contract: DeclaredApplicationAftermathContract,
+        contract: PortableApplicationAftermathContract,
     },
     Policy {
         policy: String,

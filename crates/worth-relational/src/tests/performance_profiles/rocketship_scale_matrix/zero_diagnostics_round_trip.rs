@@ -33,7 +33,7 @@ pub(super) fn certify_hundred_k_nodes_zero_diagnostics_narrow_round_trip(
                 "rocket-node-hot-update",
             );
             let hot_update_micros = hot_update_started_at.elapsed().as_micros();
-            let hot_phase_timing = update.execution.phase_timing.clone();
+            let hot_phase_timing = update.execution().phase_timing.clone();
             let snapshot = runtime.visibility_authority().snapshot();
             let half_window = query_target_count / 2;
             let window_start = target_index.saturating_sub(half_window);

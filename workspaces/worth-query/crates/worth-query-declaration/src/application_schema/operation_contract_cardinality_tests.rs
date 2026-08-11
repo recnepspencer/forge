@@ -5,11 +5,13 @@ use crate::application_aftermath::{
 
 use super::operation_contract_cardinality::validate_operation_contract_cardinality;
 use super::{
-    ApplicationSchema, ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
-    ApplicationSchemaDeclarationDenial, ApplicationSchemaMember,
+    ApplicationOperationRef, ApplicationSchema, ApplicationSchemaDeclaration,
+    ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial,
+    ApplicationSchemaMember,
 };
 
 struct CardinalitySchema;
+struct CardinalityOperation;
 
 impl ApplicationSchema for CardinalitySchema {
     const OWNER: &'static str = "CardinalityOwner";
@@ -134,14 +136,14 @@ fn external_effect(operation: &str, effect: &str) -> ApplicationSchemaMember {
     }
 }
 
-fn aftermath(operation: &str) -> ApplicationSchemaMember {
-    ApplicationSchemaMember::OperationAftermath {
-        operation: operation.to_owned(),
-        contract: DeclaredApplicationAftermathContract::not_correctable(),
-    }
+fn aftermath(operation: &'static str) -> ApplicationSchemaMember {
+    aftermath_member(
+        operation,
+        DeclaredApplicationAftermathContract::<CardinalitySchema>::not_correctable(),
+    )
 }
 
-fn correctable_aftermath(operation: &str) -> ApplicationSchemaMember {
+fn correctable_aftermath(operation: &'static str) -> ApplicationSchemaMember {
     let compensation = DeclaredCompensation::new(
         "CompensateOperation",
         DeclaredAftermathPostcondition::InvariantRestored {
@@ -149,10 +151,33 @@ fn correctable_aftermath(operation: &str) -> ApplicationSchemaMember {
         },
     )
     .expect("the compensation fixture is valid");
-    ApplicationSchemaMember::OperationAftermath {
-        operation: operation.to_owned(),
-        contract: DeclaredApplicationAftermathContract::runtime_alone(
+    aftermath_member(
+        operation,
+        DeclaredApplicationAftermathContract::<CardinalitySchema>::runtime_alone(
             DeclaredCorrectionMechanism::Compensation(compensation),
         ),
-    }
+    )
+}
+
+fn aftermath_member(
+    operation: &'static str,
+    contract: DeclaredApplicationAftermathContract<CardinalitySchema>,
+) -> ApplicationSchemaMember {
+    let definition = ApplicationOperationRef::<CardinalitySchema, CardinalityOperation, ()>::
+        from_schema_identifier(operation)
+        .definition()
+        .no_external_effect()
+        .aftermath(contract)
+        .finish();
+    let declaration = ApplicationSchemaDeclarationBuilder::<CardinalitySchema>::for_schema()
+        .operation(definition)
+        .build()
+        .expect("the owner builder accepts one aftermath");
+    declaration
+        .erased()
+        .members()
+        .iter()
+        .find(|member| matches!(member, ApplicationSchemaMember::OperationAftermath { .. }))
+        .expect("the owner builder emits the portable aftermath member")
+        .clone()
 }

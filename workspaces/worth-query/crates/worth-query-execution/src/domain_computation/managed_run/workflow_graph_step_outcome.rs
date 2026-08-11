@@ -1,14 +1,16 @@
-use super::workflow_graph_chunk::WorthQueryPendingWorkflowGraphChunk;
-use super::workflow_graph_execution::WorthQueryActiveWorkflowGraphExecution;
-use super::{
+use super::super::workflow_graph_chunk::WorthQueryPendingWorkflowGraphChunk;
+use super::super::{
     WorthQueryManagedRunTerminalKind, WorthQueryRunningWorkflowRun, WorthQueryWorkflowRunTerminal,
 };
+use super::WorthQueryActiveWorkflowGraphExecution;
+use crate::domain_computation::domain_evidence_binding::WorthQueryBoundExecutionSnapshotIdentity;
 use crate::domain_computation::WorthQueryBoundGraphExecutionReceipt;
 
 #[must_use = "paused graph execution must be advanced, yielded, or explicitly abandoned"]
 pub struct WorthQueryPausedWorkflowGraphExecution {
-    pub(super) active: WorthQueryActiveWorkflowGraphExecution,
-    pub(super) safe_point: super::yield_eligibility::WorthQueryManagedYieldSafePoint,
+    pub(in crate::domain_computation::managed_run) active: WorthQueryActiveWorkflowGraphExecution,
+    pub(in crate::domain_computation::managed_run) safe_point:
+        super::super::yield_eligibility::WorthQueryManagedYieldSafePoint,
 }
 
 impl WorthQueryPausedWorkflowGraphExecution {
@@ -20,8 +22,8 @@ impl WorthQueryPausedWorkflowGraphExecution {
         self.active.advance()
     }
 
-    pub fn yield_run(self) -> super::WorthQueryWorkflowYieldOutcome {
-        super::workflow_yield_transition::yield_workflow_run(self)
+    pub fn yield_run(self) -> super::super::WorthQueryWorkflowYieldOutcome {
+        super::super::workflow_yield_transition::yield_workflow_run(self)
     }
 
     pub fn abandon(self) -> WorthQueryWorkflowGraphStepOutcome {
@@ -34,10 +36,20 @@ pub struct WorthQueryCompletedWorkflowGraphExecution {
     receipt: WorthQueryBoundGraphExecutionReceipt,
 }
 
+pub(in crate::domain_computation) struct WorthQueryCompletedWorkflowEvidenceOwner<'a> {
+    authority: &'a crate::domain_computation::WorthQueryExecutionBoundOperationAuthority,
+    session: &'a crate::domain_computation::WorthQueryExecutionProviderSession,
+    logical_run_identity: &'a str,
+    stage_identity: &'a str,
+    execution_snapshot: WorthQueryBoundExecutionSnapshotIdentity,
+    receipt: &'a WorthQueryBoundGraphExecutionReceipt,
+}
+
 impl WorthQueryCompletedWorkflowGraphExecution {
     pub(super) fn new(
         running: WorthQueryRunningWorkflowRun,
         receipt: WorthQueryBoundGraphExecutionReceipt,
+        _owner: super::WorthQueryWorkflowGraphCompletionPermit,
     ) -> Self {
         Self { running, receipt }
     }
@@ -54,25 +66,58 @@ impl WorthQueryCompletedWorkflowGraphExecution {
         self.running
     }
 
-    pub(crate) fn into_parts(
-        self,
-    ) -> (
-        WorthQueryRunningWorkflowRun,
-        WorthQueryBoundGraphExecutionReceipt,
-    ) {
-        (self.running, self.receipt)
-    }
-
     pub(crate) fn bind_convergence_candidate_evidence(
         &self,
         stage_identity: &str,
-        output_occurrence_identity: &str,
+        candidate_selection_key: &str,
     ) -> Result<
-        crate::domain_computation::WorthQueryDomainEvidenceExecutionBinding,
-        crate::domain_computation::WorthQueryDomainEvidenceBindingDenial,
+        crate::domain_computation::WorthQueryConvergenceDomainEvidenceBinding,
+        crate::domain_computation::WorthQueryConvergenceDomainEvidenceBindingDenial,
     > {
-        self.running
-            .bind_convergence_candidate_evidence(stage_identity, output_occurrence_identity)
+        let owner = WorthQueryCompletedWorkflowEvidenceOwner {
+            authority: self.running.completed_evidence_authority(),
+            session: self.running.completed_evidence_session(),
+            logical_run_identity: self.running.logical_run_identity(),
+            stage_identity,
+            execution_snapshot: WorthQueryBoundExecutionSnapshotIdentity::capture(
+                self.running.execution_snapshot_reference().into(),
+            ),
+            receipt: &self.receipt,
+        };
+        self.receipt
+            .derive_workflow_convergence_evidence(owner, candidate_selection_key)
+    }
+}
+
+impl WorthQueryCompletedWorkflowEvidenceOwner<'_> {
+    pub(in crate::domain_computation) fn authority(
+        &self,
+    ) -> &crate::domain_computation::WorthQueryExecutionBoundOperationAuthority {
+        self.authority
+    }
+
+    pub(in crate::domain_computation) fn session(
+        &self,
+    ) -> &crate::domain_computation::WorthQueryExecutionProviderSession {
+        self.session
+    }
+
+    pub(in crate::domain_computation) fn logical_run_identity(&self) -> &str {
+        self.logical_run_identity
+    }
+
+    pub(in crate::domain_computation) fn stage_identity(&self) -> &str {
+        self.stage_identity
+    }
+
+    pub(in crate::domain_computation) fn execution_snapshot(
+        &self,
+    ) -> &WorthQueryBoundExecutionSnapshotIdentity {
+        &self.execution_snapshot
+    }
+
+    pub(in crate::domain_computation) fn receipt(&self) -> &WorthQueryBoundGraphExecutionReceipt {
+        self.receipt
     }
 }
 

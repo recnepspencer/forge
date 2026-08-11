@@ -37,26 +37,17 @@ type CaseOpeningEffectProgram = WorthQueryApplicationEffectProgram<
 #[derive(Debug)]
 pub enum BankEstateCaseOpeningProjectionDenial {
     MissingEstateIdentity,
-    EstateMismatch {
-        expected: EstateCaseId,
-        observed: EstateCaseId,
-    },
+    EstateMismatch,
     MissingCaseStatus,
-    CaseNotPendingOpening(EstateCaseStatus),
-    NoticeRelationCardinality {
-        expected: usize,
-        observed: usize,
-    },
+    CaseNotPendingOpening,
+    NoticeRelationCardinality { expected: usize, observed: usize },
     MissingNoticeIdentity,
-    NoticeMismatch {
-        expected: DeathNoticeId,
-        observed: DeathNoticeId,
-    },
+    NoticeMismatch,
     MissingNoticeStatus,
-    NoticeNotVerified(DeathNoticeStatus),
-    EntityResolution(WorthQueryEntityResolutionDenial),
-    DecisionPlan(WorthQueryInvariantDecisionPlanDenial),
-    Traversal(WorthQueryInvariantProjectionTraversalDenial),
+    NoticeNotVerified,
+    EntityResolution(crate::BankEntityResolutionDenial),
+    DecisionPlan(crate::BankInvariantDecisionPlanDenial),
+    Traversal(crate::BankInvariantProjectionTraversalDenial),
 }
 
 impl BankIdentityRuntime {
@@ -94,16 +85,16 @@ impl BankIdentityRuntime {
                 OpenEstateCaseCapability::reference(),
                 OpenEstateCaseOperation::reference(),
             )
-            .map_err(BankEstateProgressionDenial::CapabilityInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_capability_installation)?;
         let access = self
             .application_runtime()
             .admit_capability_access(principal.query(), &capability, action, request)
-            .map_err(BankEstateProgressionDenial::Authorization)?;
+            .map_err(BankEstateProgressionDenial::from_authorization)?;
         let operation = self
             .application_runtime()
             .installed_schema()
             .installed_operation(OpenEstateCaseOperation::reference())
-            .map_err(BankEstateProgressionDenial::OperationInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_operation_installation)?;
         self.application_runtime()
             .authorize_capability_operation(
                 access,
@@ -114,7 +105,7 @@ impl BankIdentityRuntime {
                     EstateCase,
                 >::default(),
             )
-            .map_err(BankEstateProgressionDenial::Authorization)
+            .map_err(BankEstateProgressionDenial::from_authorization)
     }
 
     fn materialize_case_opening(
@@ -127,33 +118,33 @@ impl BankIdentityRuntime {
             .project_admitted_operation(&admission, |reader, estate| {
                 project_case_opening(reader, estate, command)
             })
-            .map_err(BankEstateProgressionDenial::Projection)?;
+            .map_err(BankEstateProgressionDenial::from_projection)?;
         let (projection_result, projection, _) = projected.into_parts();
         projection_result.map_err(BankEstateProgressionDenial::CaseOpeningProjection)?;
         let reads = self
             .application_runtime()
             .begin_projected_application_read_attempt(admission, projection)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let estate = reads
             .resolve_entity(EstateCaseIdentityField::reference(), command.estate)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let mut effects = reads
             .complete_projected_dependencies()
-            .map_err(BankEstateProgressionDenial::Attempt)?
+            .map_err(BankEstateProgressionDenial::from_attempt)?
             .begin_effect_program();
         let estate = effects
             .existing_entity(&estate)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         effects
             .write_field(
                 &estate,
                 EstateCaseStatusField::reference(),
                 EstateCaseStatus::Open,
             )
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         effects
             .finish()
-            .map_err(BankEstateProgressionDenial::Attempt)
+            .map_err(BankEstateProgressionDenial::from_attempt)
     }
 }
 
@@ -188,16 +179,13 @@ fn project_case_opening(
         .decision_field(estate, EstateCaseIdentityField::reference())?
         .ok_or(BankEstateCaseOpeningProjectionDenial::MissingEstateIdentity)?;
     if observed_estate != command.estate {
-        return Err(BankEstateCaseOpeningProjectionDenial::EstateMismatch {
-            expected: command.estate,
-            observed: observed_estate,
-        });
+        return Err(BankEstateCaseOpeningProjectionDenial::EstateMismatch);
     }
     let status = reader
         .decision_field(estate, EstateCaseStatusField::reference())?
         .ok_or(BankEstateCaseOpeningProjectionDenial::MissingCaseStatus)?;
     if status != EstateCaseStatus::PendingOpening {
-        return Err(BankEstateCaseOpeningProjectionDenial::CaseNotPendingOpening(status));
+        return Err(BankEstateCaseOpeningProjectionDenial::CaseNotPendingOpening);
     }
     let relations = reader.decision_relations_from(EstateDeathNotice::reference(), estate)?;
     let [relation] = relations.as_slice() else {
@@ -213,37 +201,36 @@ fn project_case_opening(
         .decision_field(notice, DeathNoticeIdentityField::reference())?
         .ok_or(BankEstateCaseOpeningProjectionDenial::MissingNoticeIdentity)?;
     if observed_notice != command.notice {
-        return Err(BankEstateCaseOpeningProjectionDenial::NoticeMismatch {
-            expected: command.notice,
-            observed: observed_notice,
-        });
+        return Err(BankEstateCaseOpeningProjectionDenial::NoticeMismatch);
     }
     let notice_status = reader
         .decision_field(notice, DeathNoticeStatusField::reference())?
         .ok_or(BankEstateCaseOpeningProjectionDenial::MissingNoticeStatus)?;
     if notice_status != DeathNoticeStatus::Verified {
-        return Err(BankEstateCaseOpeningProjectionDenial::NoticeNotVerified(
-            notice_status,
-        ));
+        return Err(BankEstateCaseOpeningProjectionDenial::NoticeNotVerified);
     }
     Ok(())
 }
 
 impl From<WorthQueryEntityResolutionDenial> for BankEstateCaseOpeningProjectionDenial {
     fn from(denial: WorthQueryEntityResolutionDenial) -> Self {
-        Self::EntityResolution(denial)
+        Self::EntityResolution(crate::BankEntityResolutionDenial::from_query(denial.kind()))
     }
 }
 
 impl From<WorthQueryInvariantDecisionPlanDenial> for BankEstateCaseOpeningProjectionDenial {
     fn from(denial: WorthQueryInvariantDecisionPlanDenial) -> Self {
-        Self::DecisionPlan(denial)
+        Self::DecisionPlan(crate::BankInvariantDecisionPlanDenial::from_query(
+            denial.kind(),
+        ))
     }
 }
 
 impl From<WorthQueryInvariantProjectionTraversalDenial> for BankEstateCaseOpeningProjectionDenial {
     fn from(denial: WorthQueryInvariantProjectionTraversalDenial) -> Self {
-        Self::Traversal(denial)
+        Self::Traversal(crate::BankInvariantProjectionTraversalDenial::from_query(
+            denial.kind(),
+        ))
     }
 }
 
@@ -251,27 +238,23 @@ impl std::fmt::Display for BankEstateCaseOpeningProjectionDenial {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::MissingEstateIdentity => write!(formatter, "estate case has no identity"),
-            Self::EstateMismatch { expected, observed } => write!(
-                formatter,
-                "case-opening estate {observed:?} does not match command estate {expected:?}"
-            ),
+            Self::EstateMismatch => {
+                formatter.write_str("case-opening estate does not match command estate")
+            }
             Self::MissingCaseStatus => write!(formatter, "estate case has no status"),
-            Self::CaseNotPendingOpening(status) => {
-                write!(formatter, "estate case is not pending opening: {status:?}")
+            Self::CaseNotPendingOpening => {
+                formatter.write_str("estate case is not pending opening")
             }
             Self::NoticeRelationCardinality { expected, observed } => write!(
                 formatter,
                 "estate notice relation expected {expected} target, observed {observed}"
             ),
             Self::MissingNoticeIdentity => write!(formatter, "estate notice has no identity"),
-            Self::NoticeMismatch { expected, observed } => write!(
-                formatter,
-                "estate notice {observed:?} does not match command notice {expected:?}"
-            ),
-            Self::MissingNoticeStatus => write!(formatter, "estate notice has no status"),
-            Self::NoticeNotVerified(status) => {
-                write!(formatter, "estate notice is not verified: {status:?}")
+            Self::NoticeMismatch => {
+                formatter.write_str("estate notice does not match command notice")
             }
+            Self::MissingNoticeStatus => write!(formatter, "estate notice has no status"),
+            Self::NoticeNotVerified => formatter.write_str("estate notice is not verified"),
             Self::EntityResolution(denial) => denial.fmt(formatter),
             Self::DecisionPlan(denial) => denial.fmt(formatter),
             Self::Traversal(denial) => denial.fmt(formatter),

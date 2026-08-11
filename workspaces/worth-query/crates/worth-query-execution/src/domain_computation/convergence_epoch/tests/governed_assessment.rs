@@ -1,9 +1,14 @@
-use super::fixture::{direct_admission_fixture, FixtureDisposition};
-use super::terminal_fixture::{indeterminate_terminal, workflow_indeterminate_terminal};
+use super::fixture::{
+    direct_admission_fixture, direct_admission_fixture_with_domain_port_probe, FixtureDisposition,
+    FixtureDomainPortProbe,
+};
+use super::terminal_fixture::workflow_indeterminate_terminal;
 use crate::domain_computation::{
     WorthQueryConvergenceDomainInvocationFailureKind as FailureKind,
     WorthQueryConvergenceDomainPhase as Phase, WorthQueryConvergenceEpochDenialKind,
-    WorthQueryConvergenceIndeterminateCause, WorthQueryManagedRunCleanupDisposition,
+    WorthQueryConvergenceIndeterminateCause, WorthQueryDirectConvergenceIterationOutcome,
+    WorthQueryDirectConvergenceStepOutcome, WorthQueryGraphProviderCallKind,
+    WorthQueryManagedGraphCallRequest, WorthQueryManagedRunCleanupDisposition,
     WorthQueryManagedRunTerminalKind, WorthQueryWorkflowConvergenceCleanupOutcome,
 };
 
@@ -49,7 +54,8 @@ fn query_counts_each_governed_domain_port_and_contains_rejection_or_panic() {
     ];
 
     for (disposition, expected_phase, expected_kind, expected_work) in cases {
-        let terminal = indeterminate_terminal(disposition);
+        let (terminal, provider_probe) = indeterminate_terminal_with_probe(disposition);
+        assert_eq!(provider_probe.entries(), expected_work);
         assert_domain_invocation_cause(
             terminal.indeterminate_cause(),
             expected_phase,
@@ -74,11 +80,36 @@ fn query_counts_each_governed_domain_port_and_contains_rejection_or_panic() {
             expected_kind,
             expected_work,
         );
-        assert_eq!(
-            cleanup.managed_receipt().disposition(),
-            WorthQueryManagedRunCleanupDisposition::CleanupComplete
-        );
+        assert_eq!(cleanup.counters().cleanup_attempt_count(), 1);
+        assert_eq!(cleanup.counters().cleanup_completion_count(), 1);
     }
+}
+
+fn indeterminate_terminal_with_probe(
+    disposition: FixtureDisposition,
+) -> (
+    crate::domain_computation::WorthQueryDirectConvergenceTerminal<
+        crate::domain_computation::WorthQueryIndeterminate,
+    >,
+    FixtureDomainPortProbe,
+) {
+    let (fixture, probe) = direct_admission_fixture_with_domain_port_probe(disposition);
+    let epoch = fixture.admit();
+    let started = epoch
+        .begin_iteration(WorthQueryManagedGraphCallRequest::new(
+            WorthQueryGraphProviderCallKind::Observe,
+            "governed-domain-port-probe",
+        ))
+        .unwrap_or_else(|_| panic!("governed probe iteration must start"));
+    let outcome = match started.advance() {
+        WorthQueryDirectConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("governed probe provider must complete"),
+    };
+    let terminal = match outcome {
+        WorthQueryDirectConvergenceIterationOutcome::Indeterminate(terminal) => terminal,
+        _ => panic!("governed probe failure must remain indeterminate"),
+    };
+    (terminal, probe)
 }
 
 #[test]
@@ -132,7 +163,7 @@ fn provider_family_inspection_panic_denies_and_returns_every_admission_authority
         Err(_) => panic!("rejected convergence admission must return managed cleanup authority"),
     };
     assert_eq!(
-        cleanup.disposition(),
+        cleanup.inspection().disposition(),
         WorthQueryManagedRunCleanupDisposition::CleanupComplete
     );
 }

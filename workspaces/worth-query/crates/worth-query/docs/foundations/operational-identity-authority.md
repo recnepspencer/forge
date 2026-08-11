@@ -50,6 +50,8 @@ its own state.
 Crossing a runtime boundary weakens identity. The receiving owner must validate
 the retained source artifact and mint its own authority. A projection, digest,
 label, debug string, or external token cannot perform that transition. A
+recovery wire identity follows the same rule: it can locate a candidate, but
+only the owning Query runtime can readmit it into a live recovery handle. A
 registered backend can return typed Bridge projections, but Query makes a
 mutation receipt current only when the Bridge causality bundle retained by that
 execution matches the exact commit, snapshot, collection, Relational record,
@@ -179,3 +181,5 @@ reconstruct a stronger identity from the diagnostic output.
 - [Installed Operation Re-Execution And Replay](../domain-capabilities/installed-operation-reexecution-and-replay.md)
 - [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](../domain-capabilities/bound-projection-sharing-and-invalidation.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
+- [worth-proof Authority And Workflow Contracts](../../../../../../crates/worth-proof/docs/features/authority-and-workflow-contracts.md)

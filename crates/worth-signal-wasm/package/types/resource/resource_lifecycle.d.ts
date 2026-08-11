@@ -34,6 +34,21 @@ import type {
   ResourceMutationResponseConfirmationKind,
   ResourceMutationResponsePlan,
 } from "./resource_mutation_response.js";
+import type {
+  ResourceLineAwaitSettlementOptions,
+  ResourceLineAwaitSettlementResult,
+  ResourceLineExecution,
+  ResourceLineExecutionOptions,
+} from "./resource_await_settlement.js";
+
+export type {
+  ResourceLineAwaitSettlementFailedResult,
+  ResourceLineAwaitSettlementFulfilledResult,
+  ResourceLineAwaitSettlementOptions,
+  ResourceLineAwaitSettlementResult,
+  ResourceLineExecution,
+  ResourceLineExecutionOptions,
+} from "./resource_await_settlement.js";
 
 export type ResourceLineOperation =
   | "initialLoad"
@@ -105,57 +120,6 @@ export interface ResourceLineStaleFreshness {
 export type ResourceLineFreshness =
   | ResourceLineFresh
   | ResourceLineStaleFreshness;
-
-export interface ResourceLineAwaitSettlementOptions {
-  readonly timeoutMs?: number;
-}
-
-export interface ResourceLineExecutionOptions {
-  readonly freeOnSettle?: boolean;
-}
-
-export interface ResourceLineAwaitSettlementFulfilledResult<
-  TParams = unknown,
-  TValue = SignalValue,
-> {
-  readonly resultKind: "fulfilled" | "partial";
-  readonly status: ResourceLineFulfilledStatus;
-  readonly value: TValue;
-  readonly summary: ResourceLineSummary<TParams>;
-  readonly freshness: ResourceLineFreshness;
-  readonly diagnosticsSummary: ResourceLineDiagnosticsSummary;
-  readonly mutationResponse: ResourceMutationResponsePlan | null;
-  readonly confirmationKind: ResourceMutationResponseConfirmationKind | null;
-}
-
-export interface ResourceLineAwaitSettlementFailedResult<TParams = unknown> {
-  readonly resultKind: "rejected" | "timedOut";
-  readonly status: ResourceLineRejectedStatus | ResourceLineTimedOutStatus;
-  readonly summary: ResourceLineSummary<TParams>;
-  readonly freshness: ResourceLineFreshness;
-  readonly diagnosticsSummary: ResourceLineDiagnosticsSummary;
-  readonly mutationResponse: ResourceMutationResponsePlan | null;
-  readonly confirmationKind: null;
-}
-
-export type ResourceLineAwaitSettlementResult<
-  TParams = unknown,
-  TValue = SignalValue,
-> =
-  | ResourceLineAwaitSettlementFulfilledResult<TParams, TValue>
-  | ResourceLineAwaitSettlementFailedResult<TParams>;
-
-export interface ResourceLineExecution<
-  TParams = unknown,
-  TValue = SignalValue,
-> {
-  readonly line: ResourceLine<TParams, TValue>;
-  settled(
-    options?: ResourceLineAwaitSettlementOptions,
-  ): Promise<ResourceLineAwaitSettlementResult<TParams, TValue>>;
-  free(): void;
-  [Symbol.dispose](): void;
-}
 
 export interface ResourceLineReadyProcessing {
   readonly kind: "ready";

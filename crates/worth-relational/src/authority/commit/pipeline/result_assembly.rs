@@ -1,0 +1,179 @@
+use super::complexity_delta::complexity_delta;
+use super::publication_execution::PublishedCommitExecution;
+use crate::publication::bundle::PublicationStatus;
+use crate::schema::data::SchemaTransitionSummary;
+use crate::transactions::data::{
+    CommitExecution, CommitOutcome, CommitPublication, CommitResult, CommitSchemaSummary,
+    CommitValidation,
+};
+
+struct CommitResultMaterial {
+    transaction_id: crate::transactions::data::TransactionId,
+    phase_timing: crate::transactions::data::CommitPhaseTiming,
+    commit_log: crate::transactions::data::CommitLog,
+    strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
+    diagnostics_start: usize,
+    complexity_before: crate::performance::data::RuntimeComplexityCounters,
+    public_structural_summary: crate::transactions::data::CommitStructuralSummary,
+    invariant_executions: Vec<crate::validation::engine::InvariantExecutionResult>,
+    version_id: crate::identity::data::VersionId,
+    created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+    history: crate::authority::commit::phases::history::ResolvedCommitHistory,
+    canonical_commit_envelope: std::sync::Arc<crate::replay::data::CanonicalCommitEnvelope>,
+    changed_records: Vec<crate::transactions::data::RecordRef>,
+    publication_snapshot: crate::snapshots::data::SnapshotHandle,
+    aspect_evaluation_traces: Vec<crate::transactions::data::AspectEvaluationTrace>,
+    aspect_emission_traces: Vec<crate::transactions::data::AspectEmissionTrace>,
+}
+
+pub(crate) struct CommitResultSeal {
+    outcome: CommitOutcome,
+    summary: crate::transactions::data::CommitSummary,
+    structural_summary: crate::transactions::data::CommitStructuralSummary,
+    schema_summary: CommitSchemaSummary,
+    publication: CommitPublication,
+    validation: CommitValidation,
+    execution: CommitExecution,
+    created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+}
+
+impl CommitResultSeal {
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        CommitOutcome,
+        crate::transactions::data::CommitSummary,
+        crate::transactions::data::CommitStructuralSummary,
+        CommitSchemaSummary,
+        CommitPublication,
+        CommitValidation,
+        CommitExecution,
+        crate::transactions::data::CommitCreatedEntityBindings,
+    ) {
+        (
+            self.outcome,
+            self.summary,
+            self.structural_summary,
+            self.schema_summary,
+            self.publication,
+            self.validation,
+            self.execution,
+            self.created_entities,
+        )
+    }
+}
+
+pub(super) fn assemble_commit_result(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    published: PublishedCommitExecution,
+) -> CommitResult {
+    let material = CommitResultMaterial::from_published(published);
+    let complexity_after = runtime
+        .services
+        .instrumentation
+        .complexity_counters
+        .lock()
+        .expect("complexity counter lock poisoned")
+        .clone();
+    let diagnostics = runtime
+        .publication()
+        .diagnostic_access()
+        .artifacts_since(material.diagnostics_start);
+    material.assemble(diagnostics, complexity_after)
+}
+
+impl CommitResultMaterial {
+    fn from_published(published: PublishedCommitExecution) -> Self {
+        let (
+            admitted,
+            public_structural_summary,
+            invariant_executions,
+            version_id,
+            created_entities,
+            history,
+            canonical_commit_envelope,
+            changed_records,
+            publication_snapshot,
+            aspect_evaluation_traces,
+            aspect_emission_traces,
+        ) = published.into_parts();
+        let (
+            transaction_id,
+            phase_timing,
+            commit_log,
+            strategy_artifacts,
+            diagnostics_start,
+            complexity_before,
+        ) = admitted.into_result_parts();
+        Self {
+            transaction_id,
+            phase_timing,
+            commit_log,
+            strategy_artifacts,
+            diagnostics_start,
+            complexity_before,
+            public_structural_summary,
+            invariant_executions,
+            version_id,
+            created_entities,
+            history,
+            canonical_commit_envelope,
+            changed_records,
+            publication_snapshot,
+            aspect_evaluation_traces,
+            aspect_emission_traces,
+        }
+    }
+
+    fn assemble(
+        self,
+        diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+        complexity_after: crate::performance::data::RuntimeComplexityCounters,
+    ) -> CommitResult {
+        let commit_summary = self.commit_log.summary().clone();
+        let schema_summary = commit_schema_summary(&self.canonical_commit_envelope);
+        let commit_outcome = CommitOutcome {
+            transaction_id: self.transaction_id,
+            commit: self.history.commit_reference,
+            version_id: self.version_id,
+            snapshot: self.publication_snapshot,
+            changed_records: self.changed_records,
+            publication_status: PublicationStatus::Published,
+            commit_log: self.commit_log,
+        };
+        CommitResult::from_authoritative_commit(CommitResultSeal {
+            outcome: commit_outcome,
+            summary: commit_summary,
+            structural_summary: self.public_structural_summary,
+            schema_summary,
+            publication: CommitPublication {
+                diagnostics,
+                envelope: self.canonical_commit_envelope,
+                aspect_evaluation_traces: self.aspect_evaluation_traces,
+                aspect_emission_traces: self.aspect_emission_traces,
+                strategy_artifacts: self.strategy_artifacts,
+            },
+            validation: CommitValidation {
+                summary: CommitValidation::summarize(&self.invariant_executions),
+                invariant_executions: self.invariant_executions,
+            },
+            execution: CommitExecution {
+                phase_timing: self.phase_timing,
+                complexity_delta: complexity_delta(self.complexity_before, complexity_after),
+            },
+            created_entities: self.created_entities,
+        })
+    }
+}
+
+fn commit_schema_summary(
+    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+) -> CommitSchemaSummary {
+    CommitSchemaSummary {
+        transition: envelope
+            .schema_transition
+            .as_ref()
+            .map(SchemaTransitionSummary::from_artifact),
+        descriptor_semantics_version: envelope.descriptor_semantics_version,
+    }
+}

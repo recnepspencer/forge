@@ -2,20 +2,15 @@
 mod fixture;
 
 use bank_domain::{
-    estate::{
-        EstateAction, EstateCaseStatus, LegalAuthorityId, MandatoryReviewId, MandatoryReviewKind,
-        MandatoryReviewStatus,
-    },
+    estate::{EstateAction, EstateCaseStatus, LegalAuthorityId, MandatoryReviewId},
     model::BankPrincipalId,
 };
 use bank_server::{
-    queries, BankAuthenticatedPrincipal, BankCommitReceipt, BankEstateProgressionDenial,
-    BankEstateReleaseProjectionDenial, BankMutationCommitOutcome, BankReadControls,
+    queries, BankAuthenticatedPrincipal, BankCommitDenialKind, BankCommitDenialStage,
+    BankCommitReceipt, BankEstateProgressionDenial, BankEstateReleaseProjectionDenial,
+    BankMutationCommitOutcome, BankReadControls,
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationIdempotencyBinding,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
 use self::fixture::{
     release_world, ActorConflict, ExecutorPosture, ReleaseFixture, ReleaseWorldSpec, ReviewPosture,
@@ -45,7 +40,7 @@ fn public_progression_releases_the_exact_ready_estate_and_recovers_retry() {
     assert!(matches!(
         fresh,
         BankEstateProgressionDenial::EstateReleaseProjection(
-            BankEstateReleaseProjectionDenial::EstateNotOpen(EstateCaseStatus::Released)
+            BankEstateReleaseProjectionDenial::EstateNotOpen
         )
     ));
 }
@@ -169,17 +164,13 @@ fn assert_review_denial(review: ReviewPosture, denial: BankEstateProgressionDeni
         ReviewPosture::Required => assert!(matches!(
             denial,
             BankEstateProgressionDenial::EstateReleaseProjection(
-                BankEstateReleaseProjectionDenial::ReleaseReviewIncomplete(
-                    MandatoryReviewStatus::Required
-                )
+                BankEstateReleaseProjectionDenial::ReleaseReviewIncomplete
             )
         )),
         ReviewPosture::WrongKind => assert!(matches!(
             denial,
             BankEstateProgressionDenial::EstateReleaseProjection(
-                BankEstateReleaseProjectionDenial::ReleaseReviewWrongKind(
-                    MandatoryReviewKind::EmergencyAccess
-                )
+                BankEstateReleaseProjectionDenial::ReleaseReviewWrongKind
             )
         )),
         ReviewPosture::Retargeted => assert!(matches!(
@@ -246,7 +237,7 @@ fn assert_equivalent_retry(
     let BankMutationCommitOutcome::AlreadyCommitted(recovered) = retry else {
         panic!("the retry must recover its exact commit: {retry:?}");
     };
-    assert!(committed.is_same_authoritative_commit(&recovered));
+    assert_eq!(committed.aftermath(), recovered.aftermath());
 
     assert_raw_intent_drift(fixture, specialist, binding);
     assert_release_witness_drift(fixture, specialist, binding);
@@ -270,8 +261,8 @@ fn assert_raw_intent_drift(
     assert!(matches!(
         drift,
         BankMutationCommitOutcome::Denied {
-            kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
-            stage: WorthQueryApplicationCommitDenialStage::Idempotency,
+            kind: BankCommitDenialKind::IdempotencyIntentDrift,
+            stage: BankCommitDenialStage::Idempotency,
         }
     ));
 }
@@ -319,8 +310,8 @@ fn assert_release_witness_drift(
         assert!(matches!(
             outcome,
             BankMutationCommitOutcome::Denied {
-                kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
-                stage: WorthQueryApplicationCommitDenialStage::Idempotency,
+                kind: BankCommitDenialKind::IdempotencyIntentDrift,
+                stage: BankCommitDenialStage::Idempotency,
             }
         ));
     }
@@ -345,9 +336,7 @@ fn idempotency(identity: u8) -> WorthQueryApplicationIdempotencyBinding {
     WorthQueryApplicationIdempotencyBinding::new([identity; 32], [identity + 1; 32])
 }
 
-fn assert_zero_canonical_work(
-    phases: worth_query_host::facade::domain::WorthQueryCanonicalWorkPhases,
-) {
+fn assert_zero_canonical_work(phases: bank_server::BankCommitCanonicalWorkPhases) {
     for work in [
         phases.installation(),
         phases.admission(),

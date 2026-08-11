@@ -1,3 +1,5 @@
+#[path = "estate_operations/c4_retry_outbox_rebind.rs"]
+mod c4_retry_outbox_rebind;
 #[path = "estate_operations/disburse_estate.rs"]
 mod disburse_estate;
 #[path = "estate_operations/external_effect_dispatch.rs"]

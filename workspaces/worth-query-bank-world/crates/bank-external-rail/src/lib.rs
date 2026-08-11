@@ -14,6 +14,7 @@
 mod client;
 mod protocol;
 mod server;
+pub mod test_control;
 
 pub use client::connection::{
     dispatch, inquire_admission_count, inquire_completed_effect_count, inquire_completed_notice,
@@ -22,7 +23,6 @@ pub use client::connection::{
 pub use client::outcome::RailExchangeOutcome;
 pub use client::process_handle::{RailProcessHandle, RailSpawnError};
 pub use protocol::correlation::RailCorrelation;
-pub use protocol::fault_script::FaultScript;
 pub use protocol::notice::{EstateDeathNotice, RailRejection};
 pub use protocol::payload::RailEffectPayload;
 pub use protocol::request::RailDispatch;

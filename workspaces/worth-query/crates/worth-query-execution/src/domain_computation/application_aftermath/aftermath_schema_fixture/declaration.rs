@@ -2,9 +2,10 @@
 
 use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
 use worth_query_declaration::facade::application_schema::{
-    ApplicationAbilityRef, ApplicationAspectRef, ApplicationAuthorizationPathBuilder,
-    ApplicationEffectPayload, ApplicationEntityRef, ApplicationExternalEffectPayload,
-    ApplicationExternalEffectProtocol, ApplicationFieldPresence, ApplicationFieldRef,
+    ApplicationAbilityRef, ApplicationAspectMarkerIdentity, ApplicationAspectRef,
+    ApplicationAuthorizationPathBuilder, ApplicationEffectPayload, ApplicationEntityMarkerIdentity,
+    ApplicationEntityRef, ApplicationExternalEffectPayload, ApplicationExternalEffectProtocol,
+    ApplicationFieldMarkerIdentity, ApplicationFieldPresence, ApplicationFieldRef,
     ApplicationPolicyRef, ApplicationPrincipalBindingRef, ApplicationPrincipalBindingRequirements,
     ApplicationPrincipalIdentityRequirement, ApplicationPrincipalMappingIdentityRequirement,
     ApplicationPrincipalMappingStatusRequirement, ApplicationPrincipalTargetRequirement,
@@ -28,6 +29,7 @@ pub(super) struct Transfer;
 pub(super) struct TransferSmall;
 pub(super) struct TransferLarge;
 pub(super) struct FreezeAccount;
+pub(super) struct FreezeAccountFields;
 pub(super) struct NotifyDeath;
 pub(super) struct LegalHold;
 pub(super) struct AuditRetention;
@@ -49,6 +51,35 @@ pub(super) struct NoteField;
 pub(super) struct BalanceField;
 struct MappingTarget;
 struct PrincipalBinding;
+
+impl ApplicationEntityMarkerIdentity for FixtureEntity {
+    type Schema = AftermathFixtureSchema;
+    const IDENTIFIER: &'static str = "FixtureEntity";
+}
+
+impl ApplicationAspectMarkerIdentity for IdentityAspect {
+    type Schema = AftermathFixtureSchema;
+    type Entity = FixtureEntity;
+    const IDENTIFIER: &'static str = "IdentityAspect";
+}
+
+macro_rules! field_identity {
+    ($field:ty => $identifier:literal) => {
+        impl ApplicationFieldMarkerIdentity for $field {
+            type Schema = AftermathFixtureSchema;
+            type Entity = FixtureEntity;
+            type Aspect = IdentityAspect;
+            const IDENTIFIER: &'static str = $identifier;
+        }
+    };
+}
+
+field_identity!(ExternalIdentityField => "ExternalIdentityField");
+field_identity!(MappingStatusField => "MappingStatusField");
+field_identity!(PrincipalIdentityField => "PrincipalIdentityField");
+field_identity!(FrozenField => "frozen");
+field_identity!(NoteField => "note");
+field_identity!(BalanceField => "balance");
 
 macro_rules! required_field {
     ($field:ty, $value:ty) => {
@@ -82,6 +113,8 @@ reads_principal!(
     Charge,
 );
 impl OperationReads<FreezeAccount> for FrozenField {}
+impl OperationReads<FreezeAccountFields> for FrozenField {}
+impl OperationReads<FreezeAccountFields> for NoteField {}
 impl OperationReads<FreezeNote> for NoteField {}
 impl OperationReads<FreezeBalance> for BalanceField {}
 
@@ -132,6 +165,7 @@ requires_ability!(
     TransferSmall,
     TransferLarge,
     FreezeAccount,
+    FreezeAccountFields,
     NotifyDeath,
     LegalHold,
     AuditRetention,
@@ -180,11 +214,7 @@ pub(super) type BalanceRead = ApplicationFieldRef<
 >;
 
 pub(super) fn principal_read() -> PrincipalRead {
-    ApplicationFieldRef::from_schema_identifiers(
-        "FixtureEntity",
-        "IdentityAspect",
-        "PrincipalIdentityField",
-    )
+    ApplicationFieldRef::from_schema_types()
 }
 
 impl ApplicationSchema for AftermathFixtureSchema {
@@ -205,21 +235,9 @@ impl ApplicationSchema for AftermathFixtureSchema {
                 "FixtureEntity",
             );
         let reads = FixtureReads {
-            frozen: ApplicationFieldRef::from_schema_identifiers(
-                "FixtureEntity",
-                "IdentityAspect",
-                "frozen",
-            ),
-            note: ApplicationFieldRef::from_schema_identifiers(
-                "FixtureEntity",
-                "IdentityAspect",
-                "note",
-            ),
-            balance: ApplicationFieldRef::from_schema_identifiers(
-                "FixtureEntity",
-                "IdentityAspect",
-                "balance",
-            ),
+            frozen: ApplicationFieldRef::from_schema_types(),
+            note: ApplicationFieldRef::from_schema_types(),
+            balance: ApplicationFieldRef::from_schema_types(),
         };
         let schema = bind_entity_shape(entity, &reads);
         let schema = bind_authorization_shape(schema, entity, ability);
@@ -253,11 +271,7 @@ fn bind_entity_shape(entity: FixtureEntityRef, reads: &FixtureReads) -> FixtureB
                 WorthQueryExternalPrincipalIdentity,
                 ReadOnly,
                 EqualityPredicate,
-            >::from_schema_identifiers(
-                "FixtureEntity",
-                "IdentityAspect",
-                "ExternalIdentityField",
-            ),
+            >::from_schema_types(),
         )
         .field(
             entity,
@@ -269,11 +283,7 @@ fn bind_entity_shape(entity: FixtureEntityRef, reads: &FixtureReads) -> FixtureB
                 WorthQueryPrincipalMappingStatus,
                 ReadWrite,
                 NoEqualityPredicate,
-            >::from_schema_identifiers(
-                "FixtureEntity",
-                "IdentityAspect",
-                "MappingStatusField",
-            ),
+            >::from_schema_types(),
         )
         .field(entity, principal_read())
         .field(entity, reads.frozen)
@@ -324,19 +334,16 @@ fn fixture_principal_binding() -> ApplicationPrincipalBindingRef<
         WorthQueryExternalPrincipalIdentity,
         ReadOnly,
         EqualityPredicate,
-    >::from_schema_identifiers(
-        "FixtureEntity", "IdentityAspect", "ExternalIdentityField"
-    );
-    let status =
-        ApplicationFieldRef::<
-            AftermathFixtureSchema,
-            FixtureEntity,
-            IdentityAspect,
-            MappingStatusField,
-            WorthQueryPrincipalMappingStatus,
-            ReadWrite,
-            NoEqualityPredicate,
-        >::from_schema_identifiers("FixtureEntity", "IdentityAspect", "MappingStatusField");
+    >::from_schema_types();
+    let status = ApplicationFieldRef::<
+        AftermathFixtureSchema,
+        FixtureEntity,
+        IdentityAspect,
+        MappingStatusField,
+        WorthQueryPrincipalMappingStatus,
+        ReadWrite,
+        NoEqualityPredicate,
+    >::from_schema_types();
     let target = ApplicationRelationRef::<
         AftermathFixtureSchema,
         MappingTarget,
@@ -351,9 +358,7 @@ fn fixture_principal_binding() -> ApplicationPrincipalBindingRef<
         u64,
         ReadOnly,
         EqualityPredicate,
-    >::from_schema_identifiers(
-        "FixtureEntity", "IdentityAspect", "PrincipalIdentityField"
-    );
+    >::from_schema_types();
     ApplicationPrincipalBindingRef::from_requirements(
         "PrincipalBinding",
         ApplicationPrincipalBindingRequirements {

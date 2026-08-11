@@ -2,24 +2,23 @@
 
 use super::authority_sealing_fixture::{
     entry_reexport_external_admit, entry_reexport_external_admit_renamed,
-    entry_reexport_external_glob, entry_reexport_external_group,
-    external_hostile_aliased_marker_admit, external_hostile_generic_admit,
-    external_legal_concrete_admit, hostile_authority_marker_bound, hostile_authority_proves_bound,
-    hostile_capability_where_clause, hostile_const_type_carrier,
+    entry_reexport_external_group, external_hostile_aliased_marker_admit,
+    external_hostile_generic_admit, external_legal_concrete_admit, hostile_authority_marker_bound,
+    hostile_authority_proves_bound, hostile_capability_where_clause, hostile_const_type_carrier,
     hostile_custom_derive_on_public_type, hostile_enum_named_field_carrier,
     hostile_impl_trait_return, hostile_macro_expanded_public_fn,
     hostile_macro_export_generic_ceremony, hostile_nested_cfg_attr_custom_derive,
-    hostile_nested_cfg_attr_opaque, hostile_nested_module_glob_reexport,
-    hostile_nested_reexport_method, hostile_opaque_attribute_on_public_fn,
-    hostile_parent_alias_in_child_module, hostile_private_trait_alias_bound,
-    hostile_proof_set_authorized_by, hostile_pub_extern_crate, hostile_public_field_carrier,
-    hostile_public_method_impl_trait_param, hostile_reexport_promotion, hostile_renamed_import,
-    hostile_trait_associated_type_bound, hostile_transitive_use_alias,
-    hostile_type_alias_chain_owned_method, hostile_type_alias_owned_method, hostile_type_alias_rhs,
-    legal_cfg_attr_safe_nested, legal_concrete_direct, legal_concrete_reexport,
-    legal_private_macro_rules_with_marker, legal_private_type_alias_method,
-    legal_std_derive_on_public_type, private_generic_bound_is_legal,
-    private_type_public_method_is_legal, AuthoritySealingTestRepository,
+    hostile_nested_cfg_attr_opaque, hostile_nested_reexport_method,
+    hostile_opaque_attribute_on_public_fn, hostile_parent_alias_in_child_module,
+    hostile_private_trait_alias_bound, hostile_proof_set_authorized_by, hostile_pub_extern_crate,
+    hostile_public_field_carrier, hostile_public_method_impl_trait_param,
+    hostile_reexport_promotion, hostile_renamed_import, hostile_trait_associated_type_bound,
+    hostile_transitive_use_alias, hostile_type_alias_chain_owned_method,
+    hostile_type_alias_owned_method, hostile_type_alias_rhs, legal_cfg_attr_safe_nested,
+    legal_concrete_direct, legal_concrete_reexport, legal_private_macro_rules_with_marker,
+    legal_private_type_alias_method, legal_std_derive_on_public_type,
+    private_generic_bound_is_legal, private_type_public_method_is_legal,
+    AuthoritySealingTestRepository,
 };
 
 const EXTERNAL_PACKAGE: &str = "worth-schema-external";
@@ -214,15 +213,6 @@ fn external_group_reexport_of_generic_authority_is_denied() {
 }
 
 #[test]
-fn external_glob_reexport_of_generic_authority_is_denied() {
-    assert_external_reexport_denial(
-        "hostile-ext-glob",
-        entry_reexport_external_glob(),
-        external_hostile_generic_admit(),
-    );
-}
-
-#[test]
 fn external_direct_reexport_of_concrete_ceremony_passes() {
     assert_external_reexport_pass(
         "legal-ext-direct",
@@ -245,15 +235,6 @@ fn external_group_reexport_of_concrete_ceremony_passes() {
     assert_external_reexport_pass(
         "legal-ext-group",
         entry_reexport_external_group(),
-        external_legal_concrete_admit(),
-    );
-}
-
-#[test]
-fn external_glob_reexport_of_concrete_ceremony_passes() {
-    assert_external_reexport_pass(
-        "legal-ext-glob",
-        entry_reexport_external_glob(),
         external_legal_concrete_admit(),
     );
 }
@@ -361,14 +342,6 @@ fn enum_named_field_carrier_is_denied() {
     assert_sealing_denial(
         "hostile-enum-named-field",
         hostile_enum_named_field_carrier(),
-    );
-}
-
-#[test]
-fn nested_module_glob_reexport_is_denied() {
-    assert_sealing_denial(
-        "hostile-nested-glob-reexport",
-        hostile_nested_module_glob_reexport(),
     );
 }
 

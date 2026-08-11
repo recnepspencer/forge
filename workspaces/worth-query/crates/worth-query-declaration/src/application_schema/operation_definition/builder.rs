@@ -1,6 +1,8 @@
 use std::marker::PhantomData;
 
-use crate::application_aftermath::DeclaredApplicationAftermathContract;
+use crate::application_aftermath::{
+    DeclaredApplicationAftermathContract, PortableApplicationAftermathContract,
+};
 
 use super::super::capabilities::OperationEmits;
 use super::super::{
@@ -22,8 +24,21 @@ pub struct ApplicationOperationDefinitionBuilder<
 > {
     operation: &'static str,
     external_effect: Option<DeclaredExternalEffectSlot>,
-    aftermath: Option<DeclaredApplicationAftermathContract>,
+    aftermath: Option<PortableApplicationAftermathContract>,
     marker: PhantomData<fn(Input) -> (Schema, Operation)>,
+}
+
+/// Unforgeable witness that aftermath meaning was associated by this builder.
+pub(crate) struct AftermathAssociationAuthority<Schema> {
+    schema: PhantomData<fn() -> Schema>,
+}
+
+impl<Schema> AftermathAssociationAuthority<Schema> {
+    fn for_matching_builder() -> Self {
+        Self {
+            schema: PhantomData,
+        }
+    }
 }
 
 impl<Schema, Operation, Input> ApplicationOperationRef<Schema, Operation, Input> {
@@ -106,7 +121,7 @@ impl<Schema, Operation, Input, const EXTERNAL_EFFECT_DECIDED: bool>
     /// Selects the operation's one aftermath contract.
     pub fn aftermath(
         self,
-        contract: DeclaredApplicationAftermathContract,
+        contract: DeclaredApplicationAftermathContract<Schema>,
     ) -> ApplicationOperationDefinitionBuilder<
         Schema,
         Operation,
@@ -117,7 +132,12 @@ impl<Schema, Operation, Input, const EXTERNAL_EFFECT_DECIDED: bool>
         ApplicationOperationDefinitionBuilder {
             operation: self.operation,
             external_effect: self.external_effect,
-            aftermath: Some(contract),
+            aftermath:
+                Some(
+                    contract.associate_with_operation(
+                        AftermathAssociationAuthority::for_matching_builder(),
+                    ),
+                ),
             marker: PhantomData,
         }
     }
@@ -134,5 +154,33 @@ impl<Schema, Operation, Input>
             aftermath: self.aftermath,
             marker: PhantomData,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::application_aftermath::{
+        DeclaredApplicationAftermathContract, DeclaredCorrectionAuthority,
+    };
+
+    use super::ApplicationOperationRef;
+
+    struct Schema;
+    struct Operation;
+
+    #[test]
+    fn matching_schema_builder_is_the_portable_aftermath_association_owner() {
+        let definition =
+            ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation")
+                .definition()
+                .no_external_effect()
+                .aftermath(DeclaredApplicationAftermathContract::<Schema>::not_correctable())
+                .finish();
+
+        let contract = definition.aftermath.expect("aftermath was associated");
+        assert_eq!(
+            contract.authority(),
+            DeclaredCorrectionAuthority::NotCorrectable
+        );
     }
 }

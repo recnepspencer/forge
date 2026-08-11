@@ -26,7 +26,10 @@ use super::admitted_basis::{admitted_alternate_basis, admitted_basis};
 use super::candidate_contract::FixtureConvergenceContract;
 use super::fixture_identity::{CandidateFamily, GRAPH_ROLE, OPERATION_SLOT, OWNER};
 use super::package::admitted_package_with_contract;
-use super::provider::{ConvergentProvider, FixtureDisposition, FixtureGraph};
+use super::provider::{
+    ConvergentProvider, FixtureDisposition, FixtureDomainPortProbe, FixtureGraph,
+    FixtureReportHistoryProbe, FixtureYieldRecoveryProbe,
+};
 use super::resource_contract::resource_contract;
 
 pub(crate) fn direct_epoch_fixture(
@@ -63,15 +66,79 @@ pub(crate) fn direct_admission_fixture(disposition: FixtureDisposition) -> Direc
     direct_admission_fixture_with_contract(disposition, FixtureConvergenceContract::Bounded)
 }
 
+pub(crate) fn direct_admission_fixture_with_domain_port_probe(
+    disposition: FixtureDisposition,
+) -> (DirectAdmissionFixture, FixtureDomainPortProbe) {
+    let probe = FixtureDomainPortProbe::default();
+    let provider = ConvergentProvider::new(disposition).with_domain_port_probe(probe.clone());
+    (
+        direct_admission_fixture_with_provider(FixtureConvergenceContract::Bounded, provider),
+        probe,
+    )
+}
+
+pub(crate) fn direct_admission_fixture_with_report_history_probe(
+    disposition: FixtureDisposition,
+) -> (DirectAdmissionFixture, FixtureReportHistoryProbe) {
+    direct_admission_fixture_with_contract_and_report_history_probe(
+        disposition,
+        FixtureConvergenceContract::Bounded,
+    )
+}
+
+pub(crate) fn direct_admission_fixture_with_contract_and_report_history_probe(
+    disposition: FixtureDisposition,
+    convergence_contract: FixtureConvergenceContract,
+) -> (DirectAdmissionFixture, FixtureReportHistoryProbe) {
+    let probe = FixtureReportHistoryProbe::default();
+    let provider = ConvergentProvider::new(disposition).with_report_history_probe(probe.clone());
+    (
+        direct_admission_fixture_with_provider(convergence_contract, provider),
+        probe,
+    )
+}
+
 pub(crate) fn direct_admission_fixture_with_contract(
     disposition: FixtureDisposition,
     convergence_contract: FixtureConvergenceContract,
+) -> DirectAdmissionFixture {
+    direct_admission_fixture_with_provider(
+        convergence_contract,
+        ConvergentProvider::new(disposition),
+    )
+}
+
+pub(crate) fn direct_yield_recovery_admission_fixture(
+) -> (DirectAdmissionFixture, FixtureYieldRecoveryProbe) {
+    let disposition = FixtureDisposition::YieldThenSuspensionFailure;
+    let probe = FixtureYieldRecoveryProbe::default();
+    let provider = ConvergentProvider::new(disposition).with_yield_recovery_probe(probe.clone());
+    (
+        direct_admission_fixture_with_provider(FixtureConvergenceContract::Bounded, provider),
+        probe,
+    )
+}
+
+pub(crate) fn direct_yield_denial_admission_fixture(
+) -> (DirectAdmissionFixture, FixtureYieldRecoveryProbe) {
+    let disposition = FixtureDisposition::YieldThenCheckpointUnavailable;
+    let probe = FixtureYieldRecoveryProbe::default();
+    let provider = ConvergentProvider::new(disposition).with_yield_recovery_probe(probe.clone());
+    (
+        direct_admission_fixture_with_provider(FixtureConvergenceContract::Bounded, provider),
+        probe,
+    )
+}
+
+fn direct_admission_fixture_with_provider(
+    convergence_contract: FixtureConvergenceContract,
+    provider: ConvergentProvider,
 ) -> DirectAdmissionFixture {
     let installer = WorthQueryExecutionRuntimeInstaller::new();
     let anchor = Arc::new(WorthQueryGraphProviderAnchor::install_convergent::<
         FixtureGraph,
         _,
-    >(ConvergentProvider::new(disposition)));
+    >(provider));
     let graph_support = anchor.resource_support().clone();
     let resources = resource_contract(&graph_support);
     let graph = WorthQueryInstalledGraphParticipationAuthority::install(

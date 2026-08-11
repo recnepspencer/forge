@@ -8,7 +8,7 @@ use super::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryConvergenceComparison {
-    candidate_occurrence_identity: Arc<str>,
+    candidate_selection_key: Arc<str>,
     state_identity: Arc<str>,
     disposition: WorthQueryConvergenceDisposition,
     feasibility: WorthQueryConvergenceFeasibility,
@@ -17,21 +17,20 @@ pub struct WorthQueryConvergenceComparison {
 
 impl WorthQueryConvergenceComparison {
     pub fn new(
-        candidate_occurrence_identity: impl Into<Arc<str>>,
+        candidate_selection_key: impl Into<Arc<str>>,
         state_identity: impl Into<Arc<str>>,
         disposition: WorthQueryConvergenceDisposition,
         feasibility: WorthQueryConvergenceFeasibility,
         incumbent_update: WorthQueryConvergenceIncumbentUpdate,
     ) -> Result<Self, &'static str> {
-        let candidate_occurrence_identity = candidate_occurrence_identity.into();
+        let candidate_selection_key = candidate_selection_key.into();
         let state_identity = state_identity.into();
-        if !portable_identity(&candidate_occurrence_identity) || !portable_identity(&state_identity)
-        {
+        if !portable_identity(&candidate_selection_key) || !portable_identity(&state_identity) {
             return Err("invalid-convergence-comparison-identity");
         }
         validate_incumbent_removals(&incumbent_update)?;
         Ok(Self {
-            candidate_occurrence_identity,
+            candidate_selection_key,
             state_identity,
             disposition,
             feasibility,
@@ -39,8 +38,8 @@ impl WorthQueryConvergenceComparison {
         })
     }
 
-    pub fn candidate_occurrence_identity(&self) -> &str {
-        &self.candidate_occurrence_identity
+    pub fn candidate_selection_key(&self) -> &str {
+        &self.candidate_selection_key
     }
 
     pub fn state_identity(&self) -> &str {
@@ -69,7 +68,7 @@ impl WorthQueryConvergenceComparison {
         WorthQueryConvergenceIncumbentUpdate,
     ) {
         (
-            self.candidate_occurrence_identity,
+            self.candidate_selection_key,
             self.state_identity,
             self.disposition,
             self.feasibility,

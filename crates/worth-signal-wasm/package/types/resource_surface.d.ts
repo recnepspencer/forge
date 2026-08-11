@@ -1,5 +1,6 @@
 export * from "./resource/resource_postures.js";
 export * from "./resource/resource_lifecycle.js";
+export * from "./resource/resource_await_settlement.js";
 export * from "./resource/resource_reconciliation.js";
 export * from "./resource/resource_response.js";
 export * from "./resource/resource_declarations.js";

@@ -7,15 +7,17 @@ use super::{
     WorthQueryExecutionAttemptIdentity, WorthQueryExecutionProviderSession,
     WorthQueryExecutionResourceAttemptEvidence,
 };
+
+mod readmission;
+
+pub(in crate::domain_computation) use readmission::{
+    WorthQueryDirectProviderWorkRebinding, WorthQueryDirectResourceReadmissionPending,
+};
 pub struct WorthQueryDirectExecutionResourceAttempt {
-    pub(in crate::domain_computation::provider_session) reserved:
-        WorthQueryCapacityReservedExecutionResourcePlan,
-    pub(in crate::domain_computation::provider_session) attempt_identity:
-        WorthQueryExecutionAttemptIdentity,
-    pub(in crate::domain_computation::provider_session) provider_session:
-        WorthQueryExecutionProviderSession,
-    pub(in crate::domain_computation::provider_session) evidence:
-        WorthQueryExecutionResourceAttemptEvidence,
+    reserved: WorthQueryCapacityReservedExecutionResourcePlan,
+    attempt_identity: WorthQueryExecutionAttemptIdentity,
+    provider_session: WorthQueryExecutionProviderSession,
+    evidence: WorthQueryExecutionResourceAttemptEvidence,
 }
 
 impl WorthQueryDirectExecutionResourceAttempt {
@@ -23,8 +25,7 @@ impl WorthQueryDirectExecutionResourceAttempt {
         mut reserved: WorthQueryCapacityReservedExecutionResourcePlan,
         binding_authority: &crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority,
     ) -> Self {
-        let attempt_identity =
-            WorthQueryExecutionAttemptIdentity::initial("direct", reserved.resources().identity());
+        let attempt_identity = WorthQueryExecutionAttemptIdentity::mint();
         let provider_session =
             WorthQueryExecutionProviderSession::mint(&attempt_identity, binding_authority);
         reserved.resources_mut().record_provider_session_mint();

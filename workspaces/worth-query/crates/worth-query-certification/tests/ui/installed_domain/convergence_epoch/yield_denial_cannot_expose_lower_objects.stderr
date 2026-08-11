@@ -1,0 +1,23 @@
+error[E0599]: no method named `managed_denial` found for reference `&WorthQueryDeniedDirectConvergenceYield` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_denial_cannot_expose_lower_objects.rs:12:50
+   |
+12 |     let _: &WorthQueryDirectYieldDenied = direct.managed_denial();
+   |                                                  ^^^^^^^^^^^^^^ method not found in `&WorthQueryDeniedDirectConvergenceYield`
+
+error[E0599]: no method named `managed_denial` found for reference `&WorthQueryDeniedWorkflowConvergenceYield` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_denial_cannot_expose_lower_objects.rs:13:54
+   |
+13 |     let _: &WorthQueryWorkflowYieldDenied = workflow.managed_denial();
+   |                                                      ^^^^^^^^^^^^^^ method not found in `&WorthQueryDeniedWorkflowConvergenceYield`
+
+error[E0599]: no method named `run_denial` found for reference `&WorthQueryDeniedDirectConvergenceYield` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_denial_cannot_expose_lower_objects.rs:14:50
+   |
+14 |     let _: &WorthQueryDirectYieldDenied = direct.run_denial();
+   |                                                  ^^^^^^^^^^ method not found in `&WorthQueryDeniedDirectConvergenceYield`
+
+error[E0599]: no method named `run_denial` found for reference `&WorthQueryDeniedWorkflowConvergenceYield` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_denial_cannot_expose_lower_objects.rs:15:54
+   |
+15 |     let _: &WorthQueryWorkflowYieldDenied = workflow.run_denial();
+   |                                                      ^^^^^^^^^^ method not found in `&WorthQueryDeniedWorkflowConvergenceYield`

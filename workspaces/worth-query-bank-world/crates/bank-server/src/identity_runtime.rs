@@ -160,7 +160,8 @@ impl BankIdentityRuntime {
     ) -> Result<BankPreviewSession, BankApplicationQueryDenial> {
         self.runtime
             .open_application_preview_session(request)
-            .map_err(BankApplicationQueryDenial::PreviewSession)
+            .map(BankPreviewSession::from_query)
+            .map_err(BankApplicationQueryDenial::from_preview_session)
     }
 
     pub(crate) const fn application_runtime(

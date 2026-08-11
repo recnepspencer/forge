@@ -1,42 +1,48 @@
 use super::*;
 
-pub(super) fn test_principal_binding<Schema>(
-) -> ApplicationPrincipalBindingRef<Schema, PrincipalBinding, TestEntity, TestEntity, u64>
+pub(super) fn test_principal_binding<Schema>() -> ApplicationPrincipalBindingRef<
+    Schema,
+    PrincipalBinding,
+    FixtureEntity<Schema>,
+    FixtureEntity<Schema>,
+    u64,
+>
 where
     Schema: ApplicationSchema,
 {
-    let identity =
-        ApplicationFieldRef::<
-            Schema,
-            TestEntity,
-            IdentityAspect,
-            ExternalIdentityField,
-            WorthQueryExternalPrincipalIdentity,
-            ReadOnly,
-            EqualityPredicate,
-        >::from_schema_identifiers("TestEntity", "IdentityAspect", "ExternalIdentityField");
-    let status =
-        ApplicationFieldRef::<
-            Schema,
-            TestEntity,
-            IdentityAspect,
-            MappingStatusField,
-            WorthQueryPrincipalMappingStatus,
-            ReadWrite,
-            NoEqualityPredicate,
-        >::from_schema_identifiers("TestEntity", "IdentityAspect", "MappingStatusField");
-    let target = ApplicationRelationRef::<Schema, MappingTarget, TestEntity, TestEntity>::
-        from_schema_identifiers("MappingTarget", "TestEntity", "TestEntity");
-    let principal_identity =
-        ApplicationFieldRef::<
-            Schema,
-            TestEntity,
-            IdentityAspect,
-            PrincipalIdentityField,
-            u64,
-            ReadOnly,
-            EqualityPredicate,
-        >::from_schema_identifiers("TestEntity", "IdentityAspect", "PrincipalIdentityField");
+    let identity = ApplicationFieldRef::<
+        Schema,
+        FixtureEntity<Schema>,
+        FixtureIdentityAspect<Schema>,
+        FixtureExternalIdentityField<Schema>,
+        WorthQueryExternalPrincipalIdentity,
+        ReadOnly,
+        EqualityPredicate,
+    >::from_schema_types();
+    let status = ApplicationFieldRef::<
+        Schema,
+        FixtureEntity<Schema>,
+        FixtureIdentityAspect<Schema>,
+        FixtureMappingStatusField<Schema>,
+        WorthQueryPrincipalMappingStatus,
+        ReadWrite,
+        NoEqualityPredicate,
+    >::from_schema_types();
+    let target = ApplicationRelationRef::<
+        Schema,
+        MappingTarget,
+        FixtureEntity<Schema>,
+        FixtureEntity<Schema>,
+    >::from_schema_identifiers("MappingTarget", "TestEntity", "TestEntity");
+    let principal_identity = ApplicationFieldRef::<
+        Schema,
+        FixtureEntity<Schema>,
+        FixtureIdentityAspect<Schema>,
+        FixturePrincipalIdentityField<Schema>,
+        u64,
+        ReadOnly,
+        EqualityPredicate,
+    >::from_schema_types();
     ApplicationPrincipalBindingRef::from_requirements(
         "PrincipalBinding",
         ApplicationPrincipalBindingRequirements {

@@ -6,7 +6,7 @@ use worth_query_installation::facade::{
 };
 use worth_relational::facade::identity::EntityId;
 
-use super::super::capability_operation_progression::{
+use super::super::capability_admission::{
     progress_capability_operation, WorthQueryCapabilityOperationProgression,
 };
 use super::super::capability_registry::{
@@ -17,7 +17,9 @@ use super::super::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
 use super::approval_binding::WorthQueryElevationApprovalDraft;
-use super::context_identity::{resolve_lifecycle_identity, selected_elevation_entity};
+use super::context_identity::{
+    resolve_elevation_identity, resolve_review_identity, selected_elevation_entity,
+};
 use super::operation_role::installed_lifecycle_owner;
 use super::transition_contract::{approval_program_targets, lifecycle_decision_reads};
 use crate::domain_computation::primary_graph::{
@@ -118,7 +120,7 @@ where
 {
     let (capability_identity, installed) = installed_lifecycle_owner(
         runtime,
-        access.authorization.installed_capability_identity(),
+        access.installed_capability_identity(),
         operation,
         WorthQueryElevationLifecycleOperationRole::Approve,
     )?;
@@ -138,7 +140,7 @@ where
     Ok(WorthQueryElevationApprovalDraft {
         elevation,
         review,
-        approver: access.principal_entity_id,
+        approver: access.principal_entity_id(),
         approved_status: lifecycle.lifecycle.approved.clone(),
         elevation_entity: elevation_definition.status().entity().to_string(),
         status_field: lifecycle.lifecycle.status.clone(),
@@ -148,7 +150,7 @@ where
         required_program_targets: approval_program_targets(installed),
         lifecycle_effect: super::lifecycle_effect::derive_lifecycle_effect(
             elevation_definition.lifecycle().approve(),
-            &access.input,
+            access.capability_input(),
             installed.contract.name(),
         )?,
     })
@@ -164,20 +166,21 @@ where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    let definition = installed.contract.elevation().definition().unwrap();
     let elevation = selected_elevation_entity(access, installed)
         .ok_or_else(|| approval_rejected(installed.contract.name()))?;
-    let resolved_elevation = resolve_lifecycle_identity(
+    let resolved_elevation = resolve_elevation_identity(
         runtime,
         access,
-        definition.identity(),
+        requested.capability_identity,
+        installed,
         &requested.elevation_identity,
     )
     .ok_or_else(|| approval_rejected(installed.contract.name()))?;
-    let review = resolve_lifecycle_identity(
+    let review = resolve_review_identity(
         runtime,
         access,
-        definition.review().identity(),
+        requested.capability_identity,
+        installed,
         &requested.review_identity,
     )
     .ok_or_else(|| approval_rejected(installed.contract.name()))?;
@@ -201,7 +204,7 @@ where
 {
     let binding = requested.binding();
     if binding.runtime_authority != runtime.runtime.authority_identity()
-        || binding.branch != *access.graph_work.branch().relational()
+        || binding.branch != *access.graph_work_branch()
         || requested.commit_receipt().terminal().branch() != &binding.branch
         || binding.capability_identity != capability_identity
         || binding.capability_authority_identity.as_ref()

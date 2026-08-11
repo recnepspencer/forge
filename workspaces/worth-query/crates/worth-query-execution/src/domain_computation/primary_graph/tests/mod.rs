@@ -1,4 +1,4 @@
-mod application_attempt;
+pub(in crate::domain_computation::primary_graph) mod application_attempt;
 mod application_outcome_identity;
 mod application_query;
 mod authorization;

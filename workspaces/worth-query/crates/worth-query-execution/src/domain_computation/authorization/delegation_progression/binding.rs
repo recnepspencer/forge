@@ -68,16 +68,12 @@ where
         .ok_or_else(|| delegation_denial(installed))?;
     validate_field_bindings(runtime, installed, proposed, activation)?;
     let fields = child_fields(installed, proposed, &activation.identity)?;
-    let related = match (&installed.delegation.related, resolved.related) {
+    let related = match (&installed.delegation.related, resolved.related()) {
         (Some(relation), Some(entity)) => Some((relation.relation_kind(), entity)),
         (None, None) => None,
         _ => return Err(delegation_denial(installed)),
     };
-    let activation_context = resolved
-        .activation_context
-        .into_iter()
-        .map(|context| (context.traversal.relation_kind(), context.entity))
-        .collect::<Vec<_>>();
+    let activation_context = resolved.activation_context().collect::<Vec<_>>();
     let canonical_activation_context = activation_context
         .iter()
         .copied()
@@ -91,19 +87,19 @@ where
             fields: &fields,
             parent: canonical_relation(
                 installed.delegation.parent.relation_kind(),
-                resolved.parent,
+                resolved.parent(),
             ),
             grantor: canonical_relation(
                 installed.delegation.grantor.relation_kind(),
-                resolved.grantor,
+                resolved.grantor(),
             ),
             grantee: canonical_relation(
                 installed.delegation.grantee.relation_kind(),
-                resolved.grantee,
+                resolved.grantee(),
             ),
             resource: canonical_relation(
                 installed.delegation.resource.relation_kind(),
-                resolved.resource,
+                resolved.resource(),
             ),
             related: related.map(|(relation, entity)| canonical_relation(relation, entity)),
             activation_context: &canonical_activation_context,
@@ -122,10 +118,10 @@ where
         grantee_relation: installed.delegation.grantee.relation_kind(),
         resource_relation: installed.delegation.resource.relation_kind(),
         related_relation: related.map(|(relation, _)| relation),
-        parent: resolved.parent,
-        grantor: resolved.grantor,
-        grantee: resolved.grantee,
-        resource: resolved.resource,
+        parent: resolved.parent(),
+        grantor: resolved.grantor(),
+        grantee: resolved.grantee(),
+        resource: resolved.resource(),
         related: related.map(|(_, entity)| entity),
         activation_context,
     };

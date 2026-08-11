@@ -1,10 +1,8 @@
-use bank_domain::proposals::BankProposalDenial;
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitRecoveryKind,
-};
-
 use super::{BankMutationDenial, BankMutationOutcome, BankMutationStatus};
-use crate::{BankCommitReceipt, BankOperationProposalError};
+use crate::{
+    BankCommitDenialStage, BankCommitReceipt, BankCommitRecoveryKind, BankMutationProposalDenial,
+};
+use bank_domain::proposals::BankProposalDenial;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BankMutationExplanationStage {
@@ -12,7 +10,7 @@ pub enum BankMutationExplanationStage {
     Projection,
     Idempotency,
     EffectPreparation,
-    ProviderCommit(WorthQueryApplicationCommitDenialStage),
+    ProviderCommit(BankCommitDenialStage),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -35,10 +33,10 @@ pub enum BankMutationExplanation<'outcome> {
     /// Some effect may have landed; `recovery` is Query's own verdict on
     /// which repair the operator owes, not a Bank re-derivation.
     PartialEffect {
-        recovery: WorthQueryApplicationCommitRecoveryKind,
+        recovery: BankCommitRecoveryKind,
     },
     Indeterminate {
-        recovery: WorthQueryApplicationCommitRecoveryKind,
+        recovery: BankCommitRecoveryKind,
     },
 }
 
@@ -67,10 +65,10 @@ impl BankMutationOutcome {
             }
             BankMutationStatus::Aborted => BankMutationExplanation::Aborted,
             BankMutationStatus::PartialEffect(evidence) => BankMutationExplanation::PartialEffect {
-                recovery: evidence.recovery(),
+                recovery: evidence.recovery_kind(),
             },
             BankMutationStatus::Indeterminate(evidence) => BankMutationExplanation::Indeterminate {
-                recovery: evidence.recovery(),
+                recovery: evidence.recovery_kind(),
             },
         }
     }
@@ -81,7 +79,7 @@ fn denial_stage(denial: &BankMutationDenial) -> BankMutationExplanationStage {
         BankMutationDenial::Scope(_)
         | BankMutationDenial::Installation(_)
         | BankMutationDenial::Authorization(_) => BankMutationExplanationStage::Admission,
-        BankMutationDenial::Proposal(BankOperationProposalError::Idempotency(_))
+        BankMutationDenial::Proposal(BankMutationProposalDenial::Idempotency(_))
         | BankMutationDenial::IdempotencyIntentDrift => BankMutationExplanationStage::Idempotency,
         BankMutationDenial::Proposal(_) => BankMutationExplanationStage::Projection,
         BankMutationDenial::Preparation(_) => BankMutationExplanationStage::EffectPreparation,

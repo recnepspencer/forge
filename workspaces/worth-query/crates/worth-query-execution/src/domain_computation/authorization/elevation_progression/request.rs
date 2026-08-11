@@ -10,7 +10,7 @@ use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationOperation,
 };
 
-use super::super::capability_operation_progression::{
+use super::super::capability_admission::{
     progress_capability_operation, WorthQueryCapabilityOperationProgression,
 };
 use super::super::capability_registry::{
@@ -57,27 +57,26 @@ where
             + ApplicationCapabilityElevationRequest<Schema, Operation>
             + 'static,
     {
-        let proposed = access.input.elevation_request().map_err(|rejection| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::ElevationRequestRejected,
-                rejection.subject(),
-            )
-        })?;
+        let proposed = access
+            .capability_input()
+            .elevation_request()
+            .map_err(|rejection| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::ElevationRequestRejected,
+                    rejection.subject(),
+                )
+            })?;
         let (capability_identity, installed) =
             installed_request_lifecycle(self, &access, operation)?;
         validate_request_projection::<Schema, Operation, Input>(installed, &proposed)?;
         let (binding, supporting) =
             bind_request(self, capability_identity, installed, &access, &proposed)?;
-        access
-            .authorization
-            .retain_supporting(supporting)
-            .map_err(|()| {
-                denial(
-                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                    installed.contract.name(),
-                )
-            })?;
-        access.graph_work.record_decision_facts(1);
+        access.retain_observed_support(supporting).map_err(|()| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                installed.contract.name(),
+            )
+        })?;
         progress_capability_operation(
             self,
             access,
@@ -112,7 +111,7 @@ where
         ));
     };
     if role != WorthQueryElevationLifecycleOperationRole::Request
-        || access.authorization.installed_capability_identity() != command_capability
+        || access.installed_capability_identity() != command_capability
     {
         return Err(denial(
             WorthQueryOperationAuthorizationDenialKind::ElevationLifecycleRoleMismatch,

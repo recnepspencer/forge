@@ -45,19 +45,13 @@ pub enum BankExecutorRecognitionProjectionDenial {
         observed: usize,
     },
     MissingEstateIdentity,
-    AuthorityEstateMismatch {
-        expected: EstateCaseId,
-        observed: EstateCaseId,
-    },
+    AuthorityEstateMismatch,
     MissingHolderIdentity,
-    AuthorityHolderMismatch {
-        expected: BankPrincipalId,
-        observed: BankPrincipalId,
-    },
+    AuthorityHolderMismatch,
     AlreadyRecognizedExecutor,
-    EntityResolution(WorthQueryEntityResolutionDenial),
-    DecisionPlan(WorthQueryInvariantDecisionPlanDenial),
-    Traversal(WorthQueryInvariantProjectionTraversalDenial),
+    EntityResolution(crate::BankEntityResolutionDenial),
+    DecisionPlan(crate::BankInvariantDecisionPlanDenial),
+    Traversal(crate::BankInvariantProjectionTraversalDenial),
 }
 
 impl BankIdentityRuntime {
@@ -95,16 +89,16 @@ impl BankIdentityRuntime {
                 RecognizeEstateExecutorCapability::reference(),
                 RecognizeEstateExecutorOperation::reference(),
             )
-            .map_err(BankEstateProgressionDenial::CapabilityInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_capability_installation)?;
         let access = self
             .application_runtime()
             .admit_capability_access(principal.query(), &capability, action, request)
-            .map_err(BankEstateProgressionDenial::Authorization)?;
+            .map_err(BankEstateProgressionDenial::from_authorization)?;
         let operation = self
             .application_runtime()
             .installed_schema()
             .installed_operation(RecognizeEstateExecutorOperation::reference())
-            .map_err(BankEstateProgressionDenial::OperationInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_operation_installation)?;
         self.application_runtime()
             .authorize_capability_operation(
                 access,
@@ -115,7 +109,7 @@ impl BankIdentityRuntime {
                     EstateCase,
                 >::default(),
             )
-            .map_err(BankEstateProgressionDenial::Authorization)
+            .map_err(BankEstateProgressionDenial::from_authorization)
     }
 
     fn materialize_recognition_effect(
@@ -128,22 +122,22 @@ impl BankIdentityRuntime {
             .project_admitted_operation(&admission, |reader, estate| {
                 project_recognition(reader, estate, command)
             })
-            .map_err(BankEstateProgressionDenial::Projection)?;
+            .map_err(BankEstateProgressionDenial::from_projection)?;
         let (projection_result, projection, _) = projected.into_parts();
         projection_result.map_err(BankEstateProgressionDenial::ExecutorRecognitionProjection)?;
         let mut reads = self
             .application_runtime()
             .begin_projected_application_read_attempt(admission, projection)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let estate = reads
             .resolve_entity(EstateCaseIdentityField::reference(), command.estate)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let executor = reads
             .resolve_entity(PrincipalIdentityField::reference(), command.executor)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let existing = reads
             .observe_relation(EstateExecutor::reference(), &executor, &estate)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         if !existing.is_absent() {
             return Err(BankEstateProgressionDenial::ExecutorRecognitionProjection(
                 BankExecutorRecognitionProjectionDenial::AlreadyRecognizedExecutor,
@@ -151,14 +145,14 @@ impl BankIdentityRuntime {
         }
         let mut effects = reads
             .complete_projected_dependencies()
-            .map_err(BankEstateProgressionDenial::Attempt)?
+            .map_err(BankEstateProgressionDenial::from_attempt)?
             .begin_effect_program();
         let estate = effects
             .existing_entity(&estate)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let executor = effects
             .existing_entity(&executor)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         effects
             .link(
                 EstateExecutor::reference(),
@@ -170,10 +164,10 @@ impl BankIdentityRuntime {
                 &executor,
                 &estate,
             )
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         effects
             .finish()
-            .map_err(BankEstateProgressionDenial::Attempt)
+            .map_err(BankEstateProgressionDenial::from_attempt)
     }
 }
 
@@ -248,9 +242,7 @@ fn require_authority_estate(
         .decision_field(relation.to(), EstateCaseIdentityField::reference())?
         .ok_or(BankExecutorRecognitionProjectionDenial::MissingEstateIdentity)?;
     if observed != expected {
-        return Err(
-            BankExecutorRecognitionProjectionDenial::AuthorityEstateMismatch { expected, observed },
-        );
+        return Err(BankExecutorRecognitionProjectionDenial::AuthorityEstateMismatch);
     }
     Ok(())
 }
@@ -277,22 +269,22 @@ fn require_authority_holder(
         .decision_field(relation.to(), PrincipalIdentityField::reference())?
         .ok_or(BankExecutorRecognitionProjectionDenial::MissingHolderIdentity)?;
     if observed != expected {
-        return Err(
-            BankExecutorRecognitionProjectionDenial::AuthorityHolderMismatch { expected, observed },
-        );
+        return Err(BankExecutorRecognitionProjectionDenial::AuthorityHolderMismatch);
     }
     Ok(())
 }
 
 impl From<WorthQueryEntityResolutionDenial> for BankExecutorRecognitionProjectionDenial {
     fn from(denial: WorthQueryEntityResolutionDenial) -> Self {
-        Self::EntityResolution(denial)
+        Self::EntityResolution(crate::BankEntityResolutionDenial::from_query(denial.kind()))
     }
 }
 
 impl From<WorthQueryInvariantDecisionPlanDenial> for BankExecutorRecognitionProjectionDenial {
     fn from(denial: WorthQueryInvariantDecisionPlanDenial) -> Self {
-        Self::DecisionPlan(denial)
+        Self::DecisionPlan(crate::BankInvariantDecisionPlanDenial::from_query(
+            denial.kind(),
+        ))
     }
 }
 
@@ -300,7 +292,9 @@ impl From<WorthQueryInvariantProjectionTraversalDenial>
     for BankExecutorRecognitionProjectionDenial
 {
     fn from(denial: WorthQueryInvariantProjectionTraversalDenial) -> Self {
-        Self::Traversal(denial)
+        Self::Traversal(crate::BankInvariantProjectionTraversalDenial::from_query(
+            denial.kind(),
+        ))
     }
 }
 
@@ -317,15 +311,13 @@ impl std::fmt::Display for BankExecutorRecognitionProjectionDenial {
                 "{relation} expected {expected} target, observed {observed}"
             ),
             Self::MissingEstateIdentity => write!(formatter, "authority estate has no identity"),
-            Self::AuthorityEstateMismatch { expected, observed } => write!(
-                formatter,
-                "authority estate {observed:?} does not match command estate {expected:?}"
-            ),
+            Self::AuthorityEstateMismatch => {
+                formatter.write_str("authority estate does not match command estate")
+            }
             Self::MissingHolderIdentity => write!(formatter, "authority holder has no identity"),
-            Self::AuthorityHolderMismatch { expected, observed } => write!(
-                formatter,
-                "authority holder {observed:?} does not match command executor {expected:?}"
-            ),
+            Self::AuthorityHolderMismatch => {
+                formatter.write_str("authority holder does not match command executor")
+            }
             Self::AlreadyRecognizedExecutor => write!(formatter, "executor is already recognized"),
             Self::EntityResolution(denial) => denial.fmt(formatter),
             Self::DecisionPlan(denial) => denial.fmt(formatter),

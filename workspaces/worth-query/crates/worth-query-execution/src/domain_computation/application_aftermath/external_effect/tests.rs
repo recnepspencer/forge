@@ -1,3 +1,8 @@
+use super::*;
+use crate::domain_computation::primary_graph::{
+    commit_distinct_records_and_admit_fixture, commit_observe_and_admit_fixture,
+    commit_observe_and_admit_twice_fixture,
+};
 use worth_foundational::facade::CanonicalDigestId;
 use worth_foundational::facade::{
     BoundaryProtocolCompatibilityWindow, BoundaryProtocolIdentity,
@@ -5,12 +10,6 @@ use worth_foundational::facade::{
 };
 use worth_query_declaration::facade::application_schema::ApplicationExternalEffectProtocol;
 use worth_query_installation::facade::InstalledExternalEffectContract;
-use worth_relational::facade::history::{BranchId, CommitId, CommitReference};
-use worth_relational::facade::identity::{EntityId, PartitionId, VersionId};
-use worth_relational::facade::transactions::RecordRef;
-
-use super::*;
-use crate::domain_computation::primary_graph::WorthQueryCommittedDispatchOutboxObservation;
 
 mod protocol_stability;
 
@@ -29,7 +28,7 @@ impl WorthQueryExternalEffectTransport for FixedTransport {
 fn completed_dispatch_has_four_distinct_exact_predecessors() {
     let dispatch = dispatch::dispatch_external_effect(
         &FixedTransport(WorthQueryExternalTransportOutcome::Completed),
-        admitted(runtime_axis(), committed_outbox(7), 1),
+        admitted_from_fresh_runtime(7),
     )
     .unwrap();
     let ladder = dispatch.causal_ladder();
@@ -81,7 +80,7 @@ fn transport_faults_never_fabricate_owner_observation_or_completion() {
     {
         let dispatch = dispatch::dispatch_external_effect(
             &FixedTransport(outcome),
-            admitted(runtime_axis(), committed_outbox(9), index as u64 + 1),
+            admitted_from_fresh_runtime(index as u64 + 9),
         )
         .unwrap();
         assert!(!dispatch.is_external_completion());
@@ -106,7 +105,7 @@ fn unsupported_protocol_version_preserves_exact_external_owner_causality() {
         &FixedTransport(
             WorthQueryExternalTransportOutcome::UnsupportedProtocolVersion(unsupported),
         ),
-        admitted(runtime_axis(), committed_outbox(10), 1),
+        admitted_from_fresh_runtime(10),
     )
     .unwrap();
 
@@ -122,15 +121,20 @@ fn unsupported_protocol_version_preserves_exact_external_owner_causality() {
 
 #[test]
 fn distinct_attempt_ordinals_produce_distinct_attempt_identities() {
-    let runtime = runtime_axis();
+    let (first_admitted, second_admitted) =
+        commit_observe_and_admit_twice_fixture(&outbox_record(11));
+    assert_ne!(
+        first_admitted.ordinal_for_test(),
+        second_admitted.ordinal_for_test()
+    );
     let first = dispatch::dispatch_external_effect(
         &FixedTransport(WorthQueryExternalTransportOutcome::LostResponse),
-        admitted(runtime, committed_outbox(11), 1),
+        first_admitted,
     )
     .unwrap();
     let second = dispatch::dispatch_external_effect(
         &FixedTransport(WorthQueryExternalTransportOutcome::Completed),
-        admitted(runtime, committed_outbox(11), 2),
+        second_admitted,
     )
     .unwrap();
     assert_eq!(
@@ -145,14 +149,25 @@ fn distinct_attempt_ordinals_produce_distinct_attempt_identities() {
 
 #[test]
 fn equal_attempt_ordinals_in_distinct_query_runtimes_cannot_collide() {
+    let (first_admitted, first_commit, first_record_ref, first_runtime) =
+        commit_observe_and_admit_fixture(&outbox_record(12));
+    let (second_admitted, second_commit, second_record_ref, second_runtime) =
+        commit_observe_and_admit_fixture(&outbox_record(12));
+    assert_eq!(first_commit, second_commit);
+    assert_eq!(first_record_ref, second_record_ref);
+    assert_ne!(first_runtime, second_runtime);
+    assert_eq!(
+        first_admitted.ordinal_for_test(),
+        second_admitted.ordinal_for_test()
+    );
     let first = dispatch::dispatch_external_effect(
         &FixedTransport(WorthQueryExternalTransportOutcome::LostResponse),
-        admitted(runtime_axis(), committed_outbox(12), 1),
+        first_admitted,
     )
     .unwrap();
     let second = dispatch::dispatch_external_effect(
         &FixedTransport(WorthQueryExternalTransportOutcome::LostResponse),
-        admitted(runtime_axis(), committed_outbox(12), 1),
+        second_admitted,
     )
     .unwrap();
 
@@ -167,22 +182,18 @@ fn equal_attempt_ordinals_in_distinct_query_runtimes_cannot_collide() {
 }
 
 #[test]
-fn equal_runtime_commit_and_correlation_cannot_hide_record_ref_drift() {
-    let runtime = runtime_axis();
-    let first_observation = committed_outbox(13);
-    let second_observation = WorthQueryCommittedDispatchOutboxObservation::fixture(
-        first_observation.record().clone(),
-        first_observation.commit_reference().clone(),
-        RecordRef::Entity(EntityId::new(PartitionId::main(), 10, 1)),
-    );
+fn identical_values_at_distinct_record_identities_have_distinct_causal_roots() {
+    let (first_admitted, second_admitted, first_ref, second_ref) =
+        commit_distinct_records_and_admit_fixture(&outbox_record(13));
+    assert_ne!(first_ref, second_ref);
     let first = dispatch::dispatch_external_effect(
         &FixedTransport(WorthQueryExternalTransportOutcome::LostResponse),
-        admitted(runtime, first_observation, 1),
+        first_admitted,
     )
     .unwrap();
     let second = dispatch::dispatch_external_effect(
         &FixedTransport(WorthQueryExternalTransportOutcome::LostResponse),
-        admitted(runtime, second_observation, 1),
+        second_admitted,
     )
     .unwrap();
 
@@ -232,10 +243,8 @@ fn external_effect_source_rejects_cdc_checkpoint_vocabulary() {
     }
 }
 
-pub(crate) fn committed_outbox(
-    outcome_identity: u64,
-) -> WorthQueryCommittedDispatchOutboxObservation {
-    let record = WorthQueryDispatchOutboxRecord::from_installed_contract(
+pub(crate) fn outbox_record(outcome_identity: u64) -> WorthQueryDispatchOutboxRecord {
+    WorthQueryDispatchOutboxRecord::from_installed_contract(
         correlation(outcome_identity),
         &InstalledExternalEffectContract::Declared {
             correlation_family: "estate-death-notice-rail".to_owned(),
@@ -250,17 +259,7 @@ pub(crate) fn committed_outbox(
         vec![0xAB; 8],
         outcome_identity,
     )
-    .unwrap();
-    WorthQueryCommittedDispatchOutboxObservation::fixture(
-        record,
-        CommitReference {
-            commit_id: CommitId(17),
-            version_id: VersionId(17),
-            branch_id: BranchId("main".to_owned()),
-            parents: Vec::new(),
-        },
-        RecordRef::Entity(EntityId::new(PartitionId::main(), 9, 1)),
-    )
+    .unwrap()
 }
 
 fn correlation(outcome_identity: u64) -> ExternalEffectCorrelationIdentity {
@@ -282,30 +281,10 @@ fn assert_predecessor(successor: &ExternalEffectPosture, predecessor: &ExternalE
     );
 }
 
-fn ordinal(
-    value: u64,
-) -> crate::domain_computation::primary_graph::WorthQueryExternalDispatchAttemptOrdinal {
-    crate::domain_computation::primary_graph::WorthQueryExternalDispatchAttemptOrdinal::fixture(
-        value,
-    )
-}
-
-fn runtime_axis() -> crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity
-{
-    crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity::mint_for_test(
-    )
-}
-
-fn admitted(
-    runtime: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
-    committed: WorthQueryCommittedDispatchOutboxObservation,
-    ordinal_value: u64,
+fn admitted_from_fresh_runtime(
+    outcome_identity: u64,
 ) -> crate::domain_computation::primary_graph::WorthQueryAdmittedExternalDispatchAttempt {
-    crate::domain_computation::primary_graph::WorthQueryAdmittedExternalDispatchAttempt::fixture(
-        runtime,
-        committed,
-        ordinal(ordinal_value),
-    )
+    commit_observe_and_admit_fixture(&outbox_record(outcome_identity)).0
 }
 
 #[test]

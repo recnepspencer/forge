@@ -64,28 +64,11 @@ pub struct WorthQueryCompiledApplicationOperationContracts {
     aftermath: Option<WorthQueryInstalledAftermathContract>,
 }
 
-/// Everything compilation needs that is resolved from installed schema members.
-///
-/// Grouping these keeps the compiled-contract constructor honest as the
-/// governed axis set grows: a new axis is a new named field, never another
-/// positional argument that an existing call site can silently mis-order.
-pub(crate) struct WorthQueryApplicationOperationContractSources {
-    pub authorization: WorthQueryInstalledApplicationOperationAuthorization,
-    pub ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
-    pub program: Vec<ApplicationOperationProgramTarget>,
-    pub decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
-    pub decision_fact_budget: usize,
-    pub projection_work_budget: usize,
-    pub additional_authorization_fact_count: usize,
-    pub mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
-    pub execution_posture: WorthQueryInstalledApplicationOperationExecutionPosture,
-    pub external_effect: InstalledExternalEffectContract,
-    pub aftermath: Option<WorthQueryInstalledAftermathContract>,
-}
-
 impl WorthQueryCompiledApplicationOperationContracts {
-    pub(crate) fn compile(sources: WorthQueryApplicationOperationContractSources) -> Self {
-        let WorthQueryApplicationOperationContractSources {
+    pub(in crate::application_operation) fn compile(
+        compilation: super::WorthQuerySealedOperationContractCompilation,
+    ) -> Self {
+        let (
             authorization,
             mut ability_requirements,
             mut program,
@@ -97,7 +80,7 @@ impl WorthQueryCompiledApplicationOperationContracts {
             execution_posture,
             external_effect,
             aftermath,
-        } = sources;
+        ) = compilation.into_parts();
         ability_requirements.sort();
         ability_requirements.dedup();
         program.sort();
@@ -283,10 +266,6 @@ impl WorthQueryCompiledApplicationOperationContracts {
         &self,
     ) -> WorthQueryInstalledApplicationOperationExecutionPosture {
         self.execution_posture
-    }
-
-    pub(crate) const fn additional_authorization_fact_count(&self) -> usize {
-        self.additional_authorization_fact_count
     }
 }
 

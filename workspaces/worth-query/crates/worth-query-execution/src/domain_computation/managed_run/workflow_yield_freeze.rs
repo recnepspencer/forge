@@ -3,24 +3,23 @@ use std::sync::Arc;
 use worth_relational::facade::runtime::RelationalExecutionBasisLease;
 use worth_runtime_bridge::facade::{BridgeBoundExecutionBasis, BridgeExecutionBasisSignalTerminal};
 
-use super::managed_graph_execution::WorthQueryManagedGraphExecution;
-use super::provider_work::WorthQueryManagedProviderWorkLedger;
-use super::workflow_yield_eligibility::classify_workflow_retained_bytes_denial;
-use super::workflow_yield_recovery::running_recovery;
-use super::workflow_yield_transition::WorthQueryWorkflowYieldCheckpointPending;
-use super::yield_eligibility::WorthQueryManagedYieldSafePoint;
-use super::{
+use super::super::managed_graph_execution::WorthQueryManagedGraphExecution;
+use super::super::workflow_yield_eligibility::classify_workflow_retained_bytes_denial;
+use super::super::workflow_yield_recovery::running_recovery;
+use super::super::workflow_yield_transition::WorthQueryWorkflowYieldCheckpointPending;
+use super::super::yield_eligibility::WorthQueryManagedYieldSafePoint;
+use super::super::{
     WorthQueryManagedRunCounters, WorthQueryPausedWorkflowGraphExecution,
     WorthQueryRunningWorkflowRun, WorthQueryWorkflowYieldDenied, WorthQueryWorkflowYieldOutcome,
     WorthQueryYieldRecoveryKind, WorthQueryYieldTransitionCounters,
 };
+use super::WorthQueryWorkflowRunAffinity;
 use crate::domain_computation::artifact_owner::{
     WorthQueryArtifactOccurrenceLedger, WorthQueryWorkflowArtifactAuthority,
     WorthQueryWorkflowArtifactFreezePending,
 };
-use crate::domain_computation::WorthQueryWorkflowExecutionResourceAttempt;
 
-pub(super) fn freeze_and_finalize_workflow_yield(
+pub(in crate::domain_computation::managed_run) fn freeze_and_finalize_workflow_yield(
     paused: WorthQueryPausedWorkflowGraphExecution,
     counters: WorthQueryYieldTransitionCounters,
 ) -> Result<WorthQueryWorkflowYieldCheckpointPending, WorthQueryWorkflowYieldOutcome> {
@@ -30,14 +29,11 @@ pub(super) fn freeze_and_finalize_workflow_yield(
 }
 
 struct WorthQueryWorkflowYieldBridgePending {
-    logical_run_identity: Arc<str>,
-    attempt_identity: Arc<str>,
-    resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
+    affinity: WorthQueryWorkflowRunAffinity,
     bridge_basis: BridgeBoundExecutionBasis,
     relational_basis: RelationalExecutionBasisLease,
     run_counters: WorthQueryManagedRunCounters,
     artifacts: WorthQueryWorkflowArtifactAuthority,
-    provider_work: WorthQueryManagedProviderWorkLedger,
     provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
     execution: WorthQueryManagedGraphExecution,
     safe_point: WorthQueryManagedYieldSafePoint,
@@ -50,27 +46,21 @@ impl WorthQueryWorkflowYieldBridgePending {
         yield_counters: WorthQueryYieldTransitionCounters,
     ) -> Self {
         let WorthQueryPausedWorkflowGraphExecution { active, safe_point } = paused;
-        let super::WorthQueryActiveWorkflowGraphExecution { running, execution } = active;
+        let super::super::WorthQueryActiveWorkflowGraphExecution { running, execution } = active;
         let WorthQueryRunningWorkflowRun {
-            logical_run_identity,
-            identity,
-            resource_attempt,
+            affinity,
             bridge_basis,
             relational_basis,
             counters,
             artifacts,
-            provider_work,
             provider_artifact_occurrences,
         } = running;
         Self {
-            logical_run_identity,
-            attempt_identity: identity,
-            resource_attempt,
+            affinity,
             bridge_basis,
             relational_basis,
             run_counters: counters,
             artifacts,
-            provider_work,
             provider_artifact_occurrences,
             execution,
             safe_point,
@@ -97,7 +87,7 @@ impl WorthQueryWorkflowYieldBridgePending {
         let artifact_evidence = artifacts.evidence();
         self.yield_counters.validated_retained_resources();
         let ceiling = self
-            .resource_attempt
+            .affinity
             .operation_resources()
             .envelope()
             .yield_contract()
@@ -120,14 +110,11 @@ impl WorthQueryWorkflowYieldBridgePending {
             ));
         }
         Ok(WorthQueryWorkflowYieldArtifactFreezePending {
-            logical_run_identity: self.logical_run_identity,
-            attempt_identity: self.attempt_identity,
-            resource_attempt: self.resource_attempt,
+            affinity: self.affinity,
             bridge_basis: self.bridge_basis,
             relational_basis: self.relational_basis,
             run_counters: self.run_counters,
             artifacts,
-            provider_work: self.provider_work,
             provider_artifact_occurrences: self.provider_artifact_occurrences,
             execution: self.execution,
             safe_point: self.safe_point,
@@ -137,16 +124,13 @@ impl WorthQueryWorkflowYieldBridgePending {
 
     fn into_paused(self) -> WorthQueryPausedWorkflowGraphExecution {
         WorthQueryPausedWorkflowGraphExecution {
-            active: super::WorthQueryActiveWorkflowGraphExecution {
+            active: super::super::WorthQueryActiveWorkflowGraphExecution {
                 running: WorthQueryRunningWorkflowRun {
-                    logical_run_identity: self.logical_run_identity,
-                    identity: self.attempt_identity,
-                    resource_attempt: self.resource_attempt,
+                    affinity: self.affinity,
                     bridge_basis: self.bridge_basis,
                     relational_basis: self.relational_basis,
                     counters: self.run_counters,
                     artifacts: self.artifacts,
-                    provider_work: self.provider_work,
                     provider_artifact_occurrences: self.provider_artifact_occurrences,
                 },
                 execution: self.execution,
@@ -157,14 +141,11 @@ impl WorthQueryWorkflowYieldBridgePending {
 }
 
 struct WorthQueryWorkflowYieldArtifactFreezePending {
-    logical_run_identity: Arc<str>,
-    attempt_identity: Arc<str>,
-    resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
+    affinity: WorthQueryWorkflowRunAffinity,
     bridge_basis: BridgeBoundExecutionBasis,
     relational_basis: RelationalExecutionBasisLease,
     run_counters: WorthQueryManagedRunCounters,
     artifacts: WorthQueryWorkflowArtifactFreezePending,
-    provider_work: WorthQueryManagedProviderWorkLedger,
     provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
     execution: WorthQueryManagedGraphExecution,
     safe_point: WorthQueryManagedYieldSafePoint,
@@ -183,14 +164,11 @@ impl WorthQueryWorkflowYieldArtifactFreezePending {
                 let detail = Arc::from(failure.detail());
                 let artifacts = self.artifacts.abort();
                 let running = WorthQueryRunningWorkflowRun {
-                    logical_run_identity: self.logical_run_identity,
-                    identity: self.attempt_identity,
-                    resource_attempt: self.resource_attempt,
+                    affinity: self.affinity,
                     bridge_basis: failure.into_basis(),
                     relational_basis: self.relational_basis,
                     counters: self.run_counters,
                     artifacts,
-                    provider_work: self.provider_work,
                     provider_artifact_occurrences: self.provider_artifact_occurrences,
                 };
                 return Err(running_recovery(
@@ -198,7 +176,7 @@ impl WorthQueryWorkflowYieldArtifactFreezePending {
                     detail,
                     self.yield_counters,
                     WorthQueryPausedWorkflowGraphExecution {
-                        active: super::WorthQueryActiveWorkflowGraphExecution {
+                        active: super::super::WorthQueryActiveWorkflowGraphExecution {
                             running,
                             execution: self.execution,
                         },
@@ -209,13 +187,10 @@ impl WorthQueryWorkflowYieldArtifactFreezePending {
         };
         let artifacts = self.artifacts.commit();
         let mut pending = WorthQueryWorkflowYieldCheckpointPending {
-            logical_run_identity: self.logical_run_identity,
-            attempt_identity: self.attempt_identity,
-            resource_attempt: self.resource_attempt,
+            affinity: self.affinity,
             relational_basis: self.relational_basis,
             run_counters: self.run_counters,
             artifacts,
-            provider_work: self.provider_work,
             provider_artifact_occurrences: self.provider_artifact_occurrences,
             execution: self.execution,
             bridge,
@@ -225,7 +200,7 @@ impl WorthQueryWorkflowYieldArtifactFreezePending {
             || pending.bridge.receipt().signal_terminal()
                 != BridgeExecutionBasisSignalTerminal::Cancelled
         {
-            pending.provider_work.interrupt_step_call();
+            pending.affinity.interrupt_provider_step_call();
             let terminal = pending.bridge.receipt().signal_terminal();
             return Err(pending.recovery(
                 WorthQueryYieldRecoveryKind::SignalAttemptAlreadyTerminal(terminal),

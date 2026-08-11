@@ -192,18 +192,36 @@ fn yielded_cleanup_releases_artifacts_owned_by_the_provider_checkpoint() {
         crate::domain_computation::WorthQueryWorkflowYieldOutcome::Yielded(yielded) => yielded,
         _ => panic!("checkpoint-artifact workflow did not yield"),
     };
-    assert_eq!(yielded.provider_work().produced_artifact_count(), 1);
-    assert_eq!(yielded.provider_work().retained_artifact_count(), 1);
-    assert_eq!(yielded.provider_work().retained_bytes(), 37);
-    assert_eq!(yielded.artifact_evidence().retained_artifact_count(), 1);
-    assert!(!yielded.artifact_run_identity().is_empty());
     assert_eq!(
         yielded
-            .resource_attempt_evidence()
-            .provider_session_identity(),
-        yielded.provider_work().provider_session_identity()
+            .inspection()
+            .provider_work()
+            .produced_artifact_count(),
+        1
     );
-    super::cost_bound::assert_exact_admission_work(yielded.run_counters());
+    assert_eq!(
+        yielded
+            .inspection()
+            .provider_work()
+            .retained_artifact_count(),
+        1
+    );
+    assert_eq!(yielded.inspection().provider_work().retained_bytes(), 37);
+    assert_eq!(
+        yielded
+            .inspection()
+            .artifact_evidence()
+            .retained_artifact_count(),
+        1
+    );
+    assert_eq!(
+        yielded.inspection().provider_session_identity(),
+        yielded
+            .inspection()
+            .provider_work()
+            .provider_session_identity()
+    );
+    super::cost_bound::assert_exact_admission_work(yielded.inspection().run_counters());
     assert_eq!(disposed.load(Ordering::Acquire), 0);
 
     let cleanup = match yielded.cleanup() {
@@ -218,12 +236,13 @@ fn yielded_cleanup_releases_artifacts_owned_by_the_provider_checkpoint() {
         }
     };
     assert_eq!(disposed.load(Ordering::Acquire), 1);
-    assert_eq!(cleanup.artifact_evidence().disposed_artifact_count(), 1);
-    assert_eq!(cleanup.provider_work().produced_artifact_count(), 1);
-    assert_eq!(cleanup.provider_work().retained_artifact_count(), 1);
-    super::cost_bound::assert_exact_admission_work(cleanup.run_counters());
-    assert!(cleanup.relational().released());
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 3);
+    let inspection = cleanup.inspection();
+    assert_eq!(inspection.artifact_evidence().disposed_artifact_count(), 1);
+    assert_eq!(inspection.provider_work().produced_artifact_count(), 1);
+    assert_eq!(inspection.provider_work().retained_artifact_count(), 1);
+    super::cost_bound::assert_exact_admission_work(inspection.run_counters());
+    assert!(inspection.resources_released());
+    assert_eq!(inspection.released_reservation_count(), 3);
 }
 
 fn step_failure(

@@ -3,10 +3,12 @@ use bank_domain::schema::{BankSchema, Principal};
 use worth_query_host::facade::{
     declaration::application_schema::{ApplicationFieldUnit, TypedApplicationValue, WritePosture},
     primary_graph::{
-        WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationOneShotResult,
-        WorthQueryApplicationPreviewResult, WorthQueryApplicationProjection,
+        WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationProjection,
         WorthQueryApplicationQueryAccessContext, WorthQueryPrimaryGraphApplicationRuntime,
         WorthQueryPrincipalResolutionMode,
+    },
+    publication::domain_computation::{
+        publish_application_result, WorthQueryPublishedApplicationResult,
     },
 };
 
@@ -38,7 +40,7 @@ pub(crate) fn execute_one_shot<
         ScopeWrite,
         ScopeUnit,
     >,
-) -> Result<WorthQueryApplicationOneShotResult<Query, QueryResult>, BankApplicationQueryDenial>
+) -> Result<WorthQueryPublishedApplicationResult<Query, QueryResult>, BankApplicationQueryDenial>
 where
     QueryResult: WorthQueryApplicationProjection<BankSchema, Query>,
     ScopeIdentity: TypedApplicationValue,
@@ -46,9 +48,10 @@ where
     ScopeUnit: ApplicationFieldUnit,
 {
     execute_with_lane(runtime, principal, invocation, |application, plan| {
-        application
+        let result = application
             .execute_application_query_one_shot(plan)
-            .map_err(BankApplicationQueryDenial::Execution)
+            .map_err(BankApplicationQueryDenial::from_execution)?;
+        Ok(publish_application_result(result.into_admitted_disclosed()))
     })
 }
 
@@ -77,7 +80,7 @@ pub(crate) fn execute_preview<
         ScopeWrite,
         ScopeUnit,
     >,
-) -> Result<WorthQueryApplicationPreviewResult<Query, QueryResult>, BankApplicationQueryDenial>
+) -> Result<WorthQueryPublishedApplicationResult<Query, QueryResult>, BankApplicationQueryDenial>
 where
     QueryResult: WorthQueryApplicationProjection<BankSchema, Query>,
     ScopeIdentity: TypedApplicationValue,
@@ -85,9 +88,10 @@ where
     ScopeUnit: ApplicationFieldUnit,
 {
     execute_with_lane(runtime, principal, invocation, |application, plan| {
-        application
+        let result = application
             .execute_application_query_preview(plan)
-            .map_err(BankApplicationQueryDenial::PreviewExecution)
+            .map_err(BankApplicationQueryDenial::from_preview_execution)?;
+        Ok(publish_application_result(result.into_admitted_disclosed()))
     })
 }
 
@@ -148,7 +152,7 @@ where
     let query = application
         .installed_schema()
         .application_query(reference)
-        .map_err(BankApplicationQueryDenial::Installation)?;
+        .map_err(BankApplicationQueryDenial::from_installation)?;
     let scope = application
         .resolve_entity(
             scope_field,
@@ -156,7 +160,7 @@ where
             controls.request_scope(),
             WorthQueryPrincipalResolutionMode::Ordinary,
         )
-        .map_err(BankApplicationQueryDenial::ScopeResolution)?;
+        .map_err(BankApplicationQueryDenial::from_scope_resolution)?;
     let access = WorthQueryApplicationQueryAccessContext::<
         BankSchema,
         Principal,
@@ -165,6 +169,6 @@ where
     >::new(principal.query(), &scope);
     let plan = application
         .admit_application_query(&query, &access, parameters, controls)
-        .map_err(BankApplicationQueryDenial::Admission)?;
+        .map_err(BankApplicationQueryDenial::from_admission)?;
     execute(application, plan)
 }

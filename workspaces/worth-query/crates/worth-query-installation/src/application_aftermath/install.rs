@@ -2,7 +2,7 @@
 
 use worth_foundational::facade::CanonicalDigestId;
 use worth_query_declaration::facade::application_aftermath::{
-    DeclaredApplicationAftermathContract, DeclaredCorrectionMechanism,
+    PortableApplicationAftermathContract, PortableCorrectionMechanism,
 };
 use worth_query_declaration::facade::application_schema::ApplicationSchemaBindingIdentity;
 
@@ -12,9 +12,7 @@ use super::correction_mechanism::InstalledCorrectionMechanism;
 use super::denial::{
     WorthQueryAftermathInstallationDenial, WorthQueryAftermathInstallationDenialKind,
 };
-use super::external_effect_contract::{
-    InstalledExternalEffectContract, InstalledExternalEffectPosture,
-};
+use super::external_effect_contract::InstalledExternalEffectPosture;
 use super::install_validation::{
     escaping_effect_subject, validate_axis_pair, validate_preimage_coverage,
     OperationDeclaredReadFields,
@@ -102,22 +100,6 @@ impl WorthQueryInstalledAftermathContract {
     }
 }
 
-/// Every fact about the one operation whose aftermath is being installed.
-///
-/// These travel together because they are all resolved from a single operation
-/// compile â€” the same binding, the same operation slot, the same schema member
-/// list. Bundling them is what lets `external_effect` be the operation's own
-/// installed lane rather than a second posture the aftermath declared for
-/// itself (Q8.25-C1).
-pub(crate) struct OperationAftermathInstallation<'a> {
-    pub binding: &'a ApplicationSchemaBindingIdentity,
-    pub operation_slot: &'a str,
-    pub declared: &'a DeclaredApplicationAftermathContract,
-    pub declared_reads: &'a OperationDeclaredReadFields,
-    pub external_effect: &'a InstalledExternalEffectContract,
-    pub lowering_catalog: &'a AftermathLoweringCorrespondenceCatalog,
-}
-
 /// Install one declared aftermath contract for an application operation.
 ///
 /// Package identity, schema identity, generation, and operation slot are taken
@@ -126,30 +108,30 @@ pub(crate) struct OperationAftermathInstallation<'a> {
 /// escaping posture is derived from that same operation's external-effect
 /// contract. This is the sole aftermath installation door.
 pub(crate) fn install_application_aftermath(
-    operation: OperationAftermathInstallation<'_>,
-) -> Result<WorthQueryInstalledAftermathContract, WorthQueryAftermathInstallationDenial> {
-    let OperationAftermathInstallation {
-        binding,
-        operation_slot,
-        declared,
-        declared_reads,
-        external_effect,
-        lowering_catalog,
-    } = operation;
+    operation: &impl crate::application_operation::WorthQueryOperationAftermathInstallationSource,
+) -> Result<Option<WorthQueryInstalledAftermathContract>, WorthQueryAftermathInstallationDenial> {
+    let Some(portable) = operation.portable_aftermath() else {
+        return Ok(None);
+    };
+    let binding = operation.binding();
+    let operation_slot = operation.operation();
+    let declared_reads = OperationDeclaredReadFields::from_targets(operation.decision_reads());
+    let external_effect = operation.external_effect();
+    let lowering_catalog = derived_lowering_catalog(binding, portable)?;
     let compatibility_generation = binding.generation();
-    validate_axis_pair(declared)?;
-    validate_preimage_coverage(declared, declared_reads)?;
+    validate_axis_pair(portable)?;
+    validate_preimage_coverage(portable, &declared_reads)?;
     let resolved_lowering = resolve_lowering_correspondence(
-        declared,
+        portable,
         compatibility_generation,
         binding.schema_identity(),
-        lowering_catalog,
+        &lowering_catalog,
     )?;
-    let canonical = prepare_aftermath_basis(binding, operation_slot, declared, external_effect)?;
-    let authority = InstalledCorrectionAuthority::from(declared.authority());
-    let mechanism = match declared.mechanism() {
-        Some(declared_mechanism) => Some(
-            InstalledCorrectionMechanism::from_declared(declared_mechanism, resolved_lowering)
+    let canonical = prepare_aftermath_basis(binding, operation_slot, portable, external_effect)?;
+    let authority = InstalledCorrectionAuthority::from(portable.authority());
+    let mechanism = match portable.mechanism() {
+        Some(portable_mechanism) => Some(
+            InstalledCorrectionMechanism::from_portable(portable_mechanism, resolved_lowering)
                 .map_err(|subject| {
                     WorthQueryAftermathInstallationDenial::new(
                         WorthQueryAftermathInstallationDenialKind::LoweringCorrespondenceUnresolved,
@@ -174,7 +156,7 @@ pub(crate) fn install_application_aftermath(
     }
     let next_actions = InstalledAftermathNextActionContract::for_posture(published_posture);
     let recovery = InstalledAftermathRecoveryContract::for_posture(published_posture);
-    Ok(WorthQueryInstalledAftermathContract {
+    Ok(Some(WorthQueryInstalledAftermathContract {
         identity: WorthQueryInstalledAftermathIdentity(*canonical.digest()),
         authority,
         mechanism,
@@ -185,15 +167,15 @@ pub(crate) fn install_application_aftermath(
         canonical,
         operation_slot: operation_slot.to_owned(),
         compatibility_generation,
-    })
+    }))
 }
 
 /// Build a lowering catalog for a recorded-inverse declaration from binding truth.
 pub(crate) fn derived_lowering_catalog(
     binding: &ApplicationSchemaBindingIdentity,
-    declared: &DeclaredApplicationAftermathContract,
+    portable: &PortableApplicationAftermathContract,
 ) -> Result<AftermathLoweringCorrespondenceCatalog, WorthQueryAftermathInstallationDenial> {
-    let Some(DeclaredCorrectionMechanism::RecordedInverse(inverse)) = declared.mechanism() else {
+    let Some(PortableCorrectionMechanism::RecordedInverse(inverse)) = portable.mechanism() else {
         return Ok(AftermathLoweringCorrespondenceCatalog::empty());
     };
     let slot = inverse.lowering_correspondence().correspondence_slot();
@@ -216,12 +198,12 @@ pub(crate) fn derived_lowering_catalog(
 }
 
 fn resolve_lowering_correspondence(
-    declared: &DeclaredApplicationAftermathContract,
+    portable: &PortableApplicationAftermathContract,
     compatibility_generation: u64,
     graph_participation_identity: &CanonicalDigestId,
     lowering_catalog: &AftermathLoweringCorrespondenceCatalog,
 ) -> Result<Option<super::InstalledLoweringCorrespondence>, WorthQueryAftermathInstallationDenial> {
-    let Some(DeclaredCorrectionMechanism::RecordedInverse(inverse)) = declared.mechanism() else {
+    let Some(PortableCorrectionMechanism::RecordedInverse(inverse)) = portable.mechanism() else {
         return Ok(None);
     };
     use super::LoweringCorrespondenceResolutionDenial as D;

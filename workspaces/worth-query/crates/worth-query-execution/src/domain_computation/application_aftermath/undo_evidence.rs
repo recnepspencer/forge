@@ -83,9 +83,9 @@ fn retain_required_preimage(
     };
     if inverse
         .preimage_demand()
-        .field_slots()
+        .loci()
         .iter()
-        .any(|slot| preimage.field(slot).is_none())
+        .any(|locus| preimage.field(locus).is_none())
     {
         return Err(WorthQueryUndoDenial::new(
             WorthQueryUndoDenialKind::RetainedPreImageRequired,

@@ -41,51 +41,91 @@ function patchLineBindingState(binding, patch) {
 }
 
 function publishLineBindingState(binding, nextState, previousState = null) {
+  const tipWrites = [];
   const statusChanged = previousState === null
     || previousState.status !== nextState.status;
   const enteringPending = statusChanged && nextState.status.kind === "pending";
-  if (enteringPending) {
-    binding.statusSignal.set(nextState.status);
+
+  function stage(signal, value, changed) {
+    if (!changed) {
+      return;
+    }
+    tipWrites.push({ signal, value });
   }
-  if (previousState === null || previousState.value !== nextState.value) {
-    binding.valueSignal.set(nextState.value);
+
+  stage(
+    binding.statusSignal,
+    nextState.status,
+    enteringPending,
+  );
+  stage(
+    binding.valueSignal,
+    nextState.value,
+    previousState === null || previousState.value !== nextState.value,
+  );
+  stage(
+    binding.canonicalValueSignal,
+    nextState.canonicalValue,
+    previousState === null || previousState.canonicalValue !== nextState.canonicalValue,
+  );
+  stage(
+    binding.processingSignal,
+    nextState.processing,
+    previousState === null || previousState.processing !== nextState.processing,
+  );
+  stage(
+    binding.uploadSignal,
+    nextState.upload,
+    previousState === null || previousState.upload !== nextState.upload,
+  );
+  stage(
+    binding.downloadSignal,
+    nextState.download,
+    previousState === null || previousState.download !== nextState.download,
+  );
+  stage(
+    binding.freshnessSignal,
+    nextState.freshness,
+    previousState === null || previousState.freshness !== nextState.freshness,
+  );
+  stage(
+    binding.diagnosticsSignal,
+    nextState.diagnostics,
+    previousState === null || previousState.diagnostics !== nextState.diagnostics,
+  );
+  stage(
+    binding.statusSignal,
+    nextState.status,
+    statusChanged && !enteringPending,
+  );
+
+  if (tipWrites.length === 0) {
+    return;
   }
+
+  const batchWrites = tipWrites.map(({ signal, value }) => ({
+    id: signal.id,
+    value,
+  }));
+
+  // One tip epoch + one worker batch — never N independent signal.set()s.
+  const lineScope = binding.lineScope;
   if (
-    previousState === null
-    || previousState.canonicalValue !== nextState.canonicalValue
+    typeof lineScope?.commitHostTipAndNotify !== "function"
+    || typeof lineScope.applyCommittedTipWorkerBatch !== "function"
   ) {
-    binding.canonicalValueSignal.set(nextState.canonicalValue);
+    throw new TypeError(
+      "worker-first line binding publish requires lineScope.commitHostTipAndNotify "
+        + "and lineScope.applyCommittedTipWorkerBatch (tip batch path); "
+        + "silent notify-only or N× signal.set fallbacks are not permitted",
+    );
   }
-  if (
-    previousState === null
-    || previousState.processing !== nextState.processing
-  ) {
-    binding.processingSignal.set(nextState.processing);
-  }
-  if (previousState === null || previousState.upload !== nextState.upload) {
-    binding.uploadSignal.set(nextState.upload);
-  }
-  if (
-    previousState === null
-    || previousState.download !== nextState.download
-  ) {
-    binding.downloadSignal.set(nextState.download);
-  }
-  if (
-    previousState === null
-    || previousState.freshness !== nextState.freshness
-  ) {
-    binding.freshnessSignal.set(nextState.freshness);
-  }
-  if (
-    previousState === null
-    || previousState.diagnostics !== nextState.diagnostics
-  ) {
-    binding.diagnosticsSignal.set(nextState.diagnostics);
-  }
-  if (statusChanged && !enteringPending) {
-    binding.statusSignal.set(nextState.status);
-  }
+  const tipEpoch = lineScope.commitHostTipAndNotify(batchWrites);
+  const stampedWrites = batchWrites.map((write) => ({
+    ...write,
+    epochAtWrite: tipEpoch.epochById?.get?.(write.id),
+  }));
+  void lineScope.applyCommittedTipWorkerBatch(stampedWrites);
 }
 
 export {

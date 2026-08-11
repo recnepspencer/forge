@@ -6,7 +6,7 @@ struct ReadOnlyInput;
 struct EmptyOperation;
 struct EmptyInput;
 
-impl OperationReads<ReadOnlyOperation> for PrincipalIdentityField {}
+impl<Schema> OperationReads<ReadOnlyOperation> for FixturePrincipalIdentityField<Schema> {}
 impl OperationRequiresAbility<ReadOnlyOperation> for TestAbility {}
 impl OperationRequiresAbility<EmptyOperation> for TestAbility {}
 
@@ -29,7 +29,7 @@ impl ApplicationSchema for ReadTestSchema {
                 "EmptyOperation",
             );
         let ability =
-            ApplicationAbilityRef::<Self, TestAbility, TestEntity>::from_schema_identifiers(
+            ApplicationAbilityRef::<Self, TestAbility, FixtureEntity<Self>>::from_schema_identifiers(
                 "TestAbility",
                 "TestEntity",
             );
@@ -47,17 +47,13 @@ impl ApplicationSchema for ReadTestSchema {
                 read,
                 ApplicationFieldRef::<
                     Self,
-                    TestEntity,
-                    IdentityAspect,
-                    PrincipalIdentityField,
+                    FixtureEntity<Self>,
+                    FixtureIdentityAspect<Self>,
+                    FixturePrincipalIdentityField<Self>,
                     u64,
                     ReadOnly,
                     EqualityPredicate,
-                >::from_schema_identifiers(
-                    "TestEntity",
-                    "IdentityAspect",
-                    "PrincipalIdentityField",
-                ),
+                >::from_schema_types(),
             )
             .operation(
                 empty

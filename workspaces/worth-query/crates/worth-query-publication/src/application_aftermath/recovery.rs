@@ -1,8 +1,14 @@
-use super::WorthQueryPublishedAftermathPosture;
+use super::{WorthQueryPublishedAftermathPosture, WorthQueryPublishedCanonicalWork};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryPublishedRecoverySupportTruth {
+    EvidenceBundle,
+    CertificationSummary,
+    ParityArtifact,
     DegradedRecoveryReport,
+    StaleBasisDisclosure,
+    TransientLifecycleEvidence,
+    ResidualDebtStatement,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -15,14 +21,21 @@ pub struct WorthQueryPublishedRecoverySupport {
     support_truth: WorthQueryPublishedRecoverySupportTruth,
     posture: WorthQueryPublishedAftermathPosture,
     durability: WorthQueryPublishedRecoveryDurability,
+    inspection_work: WorthQueryPublishedCanonicalWork,
 }
 
 impl WorthQueryPublishedRecoverySupport {
-    pub(super) const fn new(posture: WorthQueryPublishedAftermathPosture) -> Self {
+    pub(super) const fn new(
+        support_truth: WorthQueryPublishedRecoverySupportTruth,
+        posture: WorthQueryPublishedAftermathPosture,
+        durability: WorthQueryPublishedRecoveryDurability,
+        inspection_work: WorthQueryPublishedCanonicalWork,
+    ) -> Self {
         Self {
-            support_truth: WorthQueryPublishedRecoverySupportTruth::DegradedRecoveryReport,
+            support_truth,
             posture,
-            durability: WorthQueryPublishedRecoveryDurability::StoreCapabilityRequired,
+            durability,
+            inspection_work,
         }
     }
 
@@ -36,5 +49,9 @@ impl WorthQueryPublishedRecoverySupport {
 
     pub const fn durability(&self) -> WorthQueryPublishedRecoveryDurability {
         self.durability
+    }
+
+    pub const fn inspection_work(&self) -> WorthQueryPublishedCanonicalWork {
+        self.inspection_work
     }
 }

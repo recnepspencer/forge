@@ -37,7 +37,7 @@ pub(super) fn certify_geometry_rich_publication_hot_vs_replay_truth(suite: &'sta
                 "hot-cold-geometry-rich-middle-updated",
             );
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
-            let hot_phase_timing = hot_commit.execution.phase_timing.clone();
+            let hot_phase_timing = hot_commit.execution().phase_timing.clone();
 
             let snapshot = runtime.visibility_authority().snapshot();
             let hot_packet = explicit_query_packet(

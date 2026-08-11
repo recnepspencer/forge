@@ -7,8 +7,9 @@ use worth_foundational::facade::{
     InternedString,
 };
 use worth_query_installation::facade::InstalledExternalEffectContract;
-use worth_relational::facade::indexes::DerivedIndexId;
-use worth_relational::facade::transactions::{CreateIntent, EntitySpec, MutationIntent};
+use worth_relational::facade::transactions::{
+    CreateIntent, CreatedEntityRef, EntitySpec, MutationIntent,
+};
 
 use super::correlation::ExternalEffectCorrelationIdentity;
 
@@ -35,6 +36,25 @@ pub(crate) struct WorthQueryDispatchOutboxRestoredFields {
     pub maximum_payload_bytes: u64,
     pub payload: Vec<u8>,
     pub outcome_identity: u64,
+}
+
+/// The Query-owned outbox record and the exact create reference submitted with it.
+///
+/// Keeping these together prevents the post-commit lane from reconstructing record identity
+/// from persisted field content.
+pub(crate) struct WorthQueryPendingDispatchOutbox {
+    record: WorthQueryDispatchOutboxRecord,
+    created_entity: CreatedEntityRef,
+}
+
+impl WorthQueryPendingDispatchOutbox {
+    pub(crate) const fn record(&self) -> &WorthQueryDispatchOutboxRecord {
+        &self.record
+    }
+
+    pub(crate) const fn created_entity(&self) -> &CreatedEntityRef {
+        &self.created_entity
+    }
 }
 
 impl WorthQueryDispatchOutboxRecord {
@@ -129,15 +149,22 @@ pub struct WorthQueryDispatchOutboxLayout {
     pub maximum_payload_bytes_locator: worth_foundational::facade::AspectFieldLocator,
     pub payload_locator: worth_foundational::facade::AspectFieldLocator,
     pub outcome_identity_locator: worth_foundational::facade::AspectFieldLocator,
-    pub correlation_index_id: DerivedIndexId,
 }
 
 /// Build a create intent for a declared external effect. Returns `None` when
 /// the operation declares no external effect (R8.4 — pay exactly zero).
-pub fn dispatch_outbox_create_intent(
+#[cfg(test)]
+pub(crate) fn dispatch_outbox_create_intent(
     layout: Option<&WorthQueryDispatchOutboxLayout>,
     record: Option<&WorthQueryDispatchOutboxRecord>,
 ) -> Option<MutationIntent> {
+    bind_dispatch_outbox_create_intent(layout, record).map(|(intent, _)| intent)
+}
+
+pub(crate) fn bind_dispatch_outbox_create_intent(
+    layout: Option<&WorthQueryDispatchOutboxLayout>,
+    record: Option<&WorthQueryDispatchOutboxRecord>,
+) -> Option<(MutationIntent, WorthQueryPendingDispatchOutbox)> {
     let (layout, record) = match (layout, record) {
         (Some(layout), Some(record)) => (layout, record),
         _ => return None,
@@ -179,14 +206,26 @@ pub fn dispatch_outbox_create_intent(
             AspectValue::UInt64(record.outcome_identity),
         ),
     ]);
-    Some(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+    let created_entity = CreatedEntityRef {
         partition_id: worth_relational::facade::identity::PartitionId::main(),
         kind_id: layout.entity_kind,
         client_key: worth_relational::facade::symbols::ClientKey::raw(format!(
             "worth-query-dispatch-outbox:{correlation_hex}"
         )),
+    };
+    let intent = MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+        partition_id: created_entity.partition_id,
+        kind_id: created_entity.kind_id,
+        client_key: created_entity.client_key.clone(),
         fields: worth_relational::facade::transactions::AspectFieldPatch::from(fields),
-    })))
+    }));
+    Some((
+        intent,
+        WorthQueryPendingDispatchOutbox {
+            record: record.clone(),
+            created_entity,
+        },
+    ))
 }
 
 fn hex_digest(digest: &CanonicalDigestId) -> String {

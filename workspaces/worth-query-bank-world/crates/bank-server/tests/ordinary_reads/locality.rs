@@ -1,7 +1,7 @@
-use bank_server::{queries, BankApplicationQueryDenial, BankReadControls};
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationOneShotDenialKind, WorthQueryApplicationQueryControls,
+use bank_server::{
+    queries, BankApplicationOneShotDenialKind, BankApplicationQueryDenial, BankReadControls,
 };
+use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryControls;
 
 use super::fixture::{ordinary_read_world, over_budget_discovery_world, OWNER};
 use crate::support::request_scope;
@@ -32,10 +32,9 @@ fn discovery_and_account_reads_are_bounded_by_the_touched_neighborhood() {
 
     assert_eq!(baseline_accounts.rows(), expanded_accounts.rows());
     assert_eq!(
-        baseline_accounts.receipt().total_work_units(),
-        expanded_accounts.receipt().total_work_units()
+        baseline_accounts.receipt().inspect().ordinary_work_units(),
+        expanded_accounts.receipt().inspect().ordinary_work_units()
     );
-    assert_eq!(expanded_accounts.receipt().fallback_count(), 0);
     assert_eq!(expanded_accounts.rows().len(), 2);
     let account_ids = expanded_accounts
         .rows()
@@ -59,11 +58,10 @@ fn discovery_and_account_reads_are_bounded_by_the_touched_neighborhood() {
     };
     assert_eq!(summary.current_balance().minor_units(), 7_500);
     assert_eq!(summary.available_balance().minor_units(), 7_500);
-    assert_eq!(summary_result.receipt().fallback_count(), 0);
-    assert_eq!(
-        summary_result.receipt().per_result_neighbor_lookup_count(),
-        0
-    );
+    assert!(summary_result
+        .receipt()
+        .inspect()
+        .terminal_resources_released());
 }
 
 #[test]
@@ -87,7 +85,7 @@ fn activity_limit_is_enforced_and_reported_by_the_public_result() {
 
     assert_eq!(activity.rows()[0].entries().len(), 1);
     assert!(activity.continuation().is_some());
-    assert_eq!(activity.receipt().fallback_count(), 0);
+    assert!(activity.receipt().inspect().terminal_resources_released());
 }
 
 #[test]
@@ -105,7 +103,7 @@ fn account_discovery_result_limit_denies_before_projecting_an_oversized_union() 
     assert!(matches!(
         outcome,
         Err(BankApplicationQueryDenial::Execution(denial))
-            if denial.kind() == WorthQueryApplicationOneShotDenialKind::ResultLimitExceeded
+            if denial.kind() == BankApplicationOneShotDenialKind::ResultLimitExceeded
     ));
 }
 
@@ -126,7 +124,7 @@ fn account_discovery_root_union_stops_when_dynamic_frontier_work_exhausts() {
     assert!(matches!(
         outcome,
         Err(BankApplicationQueryDenial::Execution(denial))
-            if denial.kind() == WorthQueryApplicationOneShotDenialKind::WorkLimitExceeded
+            if denial.kind() == BankApplicationOneShotDenialKind::WorkLimitExceeded
     ));
 }
 

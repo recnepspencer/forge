@@ -244,6 +244,39 @@ fn explicit_profile_progression_can_only_reduce_one_descriptive_family_per_stage
     );
 }
 
+#[test]
+fn publication_identity_depends_only_on_closed_axes_and_profile() {
+    let standard = WorthQueryApplicationAuthorizationPublicationProfile::exact(exact_profile());
+    let forensic = WorthQueryApplicationAuthorizationPublicationProfile::exact(profile(
+        DiagnosticRichnessProfile::Forensic,
+    ));
+    let first = WorthQueryApplicationAuthorizationBoundaryIdentity::from_closed_publication(
+        "closed-family",
+        &["axis-a".into(), "2".into()],
+        standard,
+    );
+    let same = WorthQueryApplicationAuthorizationBoundaryIdentity::from_closed_publication(
+        "closed-family",
+        &["axis-a".into(), "2".into()],
+        standard,
+    );
+    let changed_axis = WorthQueryApplicationAuthorizationBoundaryIdentity::from_closed_publication(
+        "closed-family",
+        &["axis-b".into(), "2".into()],
+        standard,
+    );
+    let changed_profile =
+        WorthQueryApplicationAuthorizationBoundaryIdentity::from_closed_publication(
+            "closed-family",
+            &["axis-a".into(), "2".into()],
+            forensic,
+        );
+
+    assert_eq!(first.artifact_id(), same.artifact_id());
+    assert_ne!(first.artifact_id(), changed_axis.artifact_id());
+    assert_ne!(first.artifact_id(), changed_profile.artifact_id());
+}
+
 fn profile(richness: DiagnosticRichnessProfile) -> FoundationalProfileSet {
     FoundationalProfileSet::new(FoundationalProfileSetInput {
         diagnostic_richness: richness,

@@ -80,7 +80,7 @@ fn unrelated_graph_population_does_not_widen_commit_publication() {
         baseline_work.touched_record_count(),
         expanded_work.touched_record_count()
     );
-    assert!(!baseline_work.touched_records().is_empty());
+    assert!(baseline_work.touched_record_count() > 0);
     assert_eq!(
         baseline_publication.changed_record_count(),
         expanded_publication.changed_record_count()

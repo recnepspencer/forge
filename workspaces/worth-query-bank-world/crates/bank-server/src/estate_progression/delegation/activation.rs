@@ -43,9 +43,9 @@ mod tests;
 
 #[derive(Debug)]
 pub enum BankCapabilityDelegationProjectionDenial {
-    EntityResolution(WorthQueryEntityResolutionDenial),
-    DecisionPlan(WorthQueryInvariantDecisionPlanDenial),
-    Traversal(WorthQueryInvariantProjectionTraversalDenial),
+    EntityResolution(crate::BankEntityResolutionDenial),
+    DecisionPlan(crate::BankInvariantDecisionPlanDenial),
+    Traversal(crate::BankInvariantProjectionTraversalDenial),
 }
 
 impl std::fmt::Display for BankCapabilityDelegationProjectionDenial {
@@ -96,14 +96,14 @@ impl BankIdentityRuntime {
                 DelegateEstateCapability::reference(),
                 DelegateEstateCapabilityOperation::reference(),
             )
-            .map_err(BankEstateProgressionDenial::CapabilityInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_capability_installation)?;
         let access = application
             .admit_capability_access(principal.query(), &capability, action, request)
-            .map_err(BankEstateProgressionDenial::Authorization)?;
+            .map_err(BankEstateProgressionDenial::from_authorization)?;
         let operation = application
             .installed_schema()
             .installed_operation(DelegateEstateCapabilityOperation::reference())
-            .map_err(BankEstateProgressionDenial::OperationInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_operation_installation)?;
         authorize_target(self, access, &operation, child)
     }
 
@@ -117,17 +117,17 @@ impl BankIdentityRuntime {
             .project_admitted_operation(&admission, |reader, estate| {
                 project_delegation(reader, estate, child)
             })
-            .map_err(BankEstateProgressionDenial::Projection)?;
+            .map_err(BankEstateProgressionDenial::from_projection)?;
         let (result, projection, _) = projected.into_parts();
         result.map_err(BankEstateProgressionDenial::CapabilityDelegationProjection)?;
         let reads = self
             .application_runtime()
             .begin_projected_application_read_attempt(admission, projection)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         reads
             .complete_projected_dependencies()?
             .materialize_capability_delegation_program()
-            .map_err(BankEstateProgressionDenial::Attempt)
+            .map_err(BankEstateProgressionDenial::from_attempt)
     }
 }
 
@@ -171,13 +171,15 @@ fn delegation_command(
 
 impl From<WorthQueryEntityResolutionDenial> for BankCapabilityDelegationProjectionDenial {
     fn from(value: WorthQueryEntityResolutionDenial) -> Self {
-        Self::EntityResolution(value)
+        Self::EntityResolution(crate::BankEntityResolutionDenial::from_query(value.kind()))
     }
 }
 
 impl From<WorthQueryInvariantDecisionPlanDenial> for BankCapabilityDelegationProjectionDenial {
     fn from(value: WorthQueryInvariantDecisionPlanDenial) -> Self {
-        Self::DecisionPlan(value)
+        Self::DecisionPlan(crate::BankInvariantDecisionPlanDenial::from_query(
+            value.kind(),
+        ))
     }
 }
 
@@ -185,6 +187,8 @@ impl From<WorthQueryInvariantProjectionTraversalDenial>
     for BankCapabilityDelegationProjectionDenial
 {
     fn from(value: WorthQueryInvariantProjectionTraversalDenial) -> Self {
-        Self::Traversal(value)
+        Self::Traversal(crate::BankInvariantProjectionTraversalDenial::from_query(
+            value.kind(),
+        ))
     }
 }

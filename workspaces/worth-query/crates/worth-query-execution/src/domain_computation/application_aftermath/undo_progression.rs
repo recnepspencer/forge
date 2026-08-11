@@ -6,9 +6,9 @@
 //! provider to repair state.
 
 use super::recovery_handle::RelinquishOnDenial;
+use super::retained_preimage::WorthQueryRetainedPreImage;
 use super::undo_admission::{WorthQueryUndoAdmission, WorthQueryUndoDerivedRequest};
 use super::undo_denial::{WorthQueryUndoDenial, WorthQueryUndoDenialKind};
-use super::undo_preimage::WorthQueryRetainedPreImage;
 
 /// Sealed handoff from undo admission into ordinary mutation progression.
 #[derive(Debug)]

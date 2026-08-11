@@ -9,10 +9,12 @@ use std::net::SocketAddr;
 use std::sync::Mutex;
 use std::time::Duration;
 
+use bank_external_rail::test_control::{select_fault, FaultScript};
 use bank_external_rail::{
-    dispatch, inquire_admission_count, inquire_notice, inquire_status, EstateDeathNotice,
-    FaultScript, LedgerStatus, RailCorrelation, RailDispatch, RailEffectPayload,
-    RailExchangeOutcome, RailProcessHandle, RailProtocolSupportProfile, RailRejection,
+    dispatch, inquire_admission_count, inquire_completed_effect_count, inquire_completed_notice,
+    inquire_notice, inquire_status, EstateDeathNotice, LedgerStatus, RailCorrelation, RailDispatch,
+    RailEffectPayload, RailExchangeOutcome, RailProcessHandle, RailProtocolSupportProfile,
+    RailRejection,
 };
 use worth_query_host::facade::primary_graph::{
     WorthQueryExternalDispatchRequest, WorthQueryExternalEffectTransport,
@@ -60,43 +62,71 @@ fn rail_binary_path() -> std::path::PathBuf {
 
 pub struct BankEstateRailTransport {
     address: SocketAddr,
+    test_control_address: SocketAddr,
     blocking: tokio::runtime::Runtime,
     control: Mutex<RailControl>,
-    attempts: Mutex<Vec<RailCorrelation>>,
+    production_dispatches: Mutex<Vec<RailDispatch>>,
+    after_next_dispatch: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 
 struct RailControl {
-    script: FaultScript,
     frame_timeout: Duration,
 }
 
 impl BankEstateRailTransport {
-    pub fn connected_to(address: SocketAddr) -> Self {
+    pub fn connected_to(address: SocketAddr, test_control_address: SocketAddr) -> Self {
         Self {
             address,
+            test_control_address,
             blocking: tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
                 .expect("the bank rail adapter should build its blocking runtime"),
             control: Mutex::new(RailControl {
-                script: FaultScript::Succeed,
                 frame_timeout: Duration::from_secs(5),
             }),
-            attempts: Mutex::new(Vec::new()),
+            production_dispatches: Mutex::new(Vec::new()),
+            after_next_dispatch: Mutex::new(None),
         }
     }
 
     /// Instructs the rail how to behave on the next dispatch, and how long the
     /// bank will wait for each frame before calling the attempt timed out.
     pub fn under(&self, script: FaultScript, frame_timeout: Duration) {
+        self.blocking
+            .block_on(select_fault(
+                self.test_control_address,
+                script,
+                Duration::from_secs(5),
+            ))
+            .expect("the rail's separate test-control listener should select its posture");
         let mut control = self.lock_control();
-        control.script = script;
         control.frame_timeout = frame_timeout;
     }
 
-    /// Correlations that actually reached the rail, in dispatch order.
+    pub fn after_next_dispatch(&self, action: impl FnOnce() + Send + 'static) {
+        *self
+            .after_next_dispatch
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Box::new(action));
+    }
+
+    /// Correlations projected through the production adapter, in dispatch order.
     pub fn attempts(&self) -> Vec<RailCorrelation> {
-        self.attempts
+        self.production_dispatches
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .iter()
+            .map(|dispatch| dispatch.correlation.clone())
+            .collect()
+    }
+
+    /// Exact requests projected through the production adapter, in order.
+    ///
+    /// Correlation and immutable payload remain paired so retry evidence can
+    /// detect either an accidental new key or same-key/different-meaning drift.
+    pub fn production_dispatches(&self) -> Vec<RailDispatch> {
+        self.production_dispatches
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clone()
@@ -140,6 +170,27 @@ impl BankEstateRailTransport {
             .expect("the rail should answer an admission-count inquiry")
     }
 
+    /// Physical consequences owned by the rail, independent of its ledger.
+    pub fn completed_effect_count(&self) -> u64 {
+        self.blocking
+            .block_on(inquire_completed_effect_count(
+                self.address,
+                Duration::from_secs(5),
+            ))
+            .expect("the rail should answer a completed-effect-count inquiry")
+    }
+
+    /// Physical consequence retained by the rail for one correlation.
+    pub fn completed_notice(&self, correlation: &RailCorrelation) -> Option<EstateDeathNotice> {
+        self.blocking
+            .block_on(inquire_completed_notice(
+                self.address,
+                correlation.clone(),
+                Duration::from_secs(5),
+            ))
+            .expect("the rail should answer a completed-notice inquiry")
+    }
+
     fn lock_control(&self) -> std::sync::MutexGuard<'_, RailControl> {
         self.control
             .lock()
@@ -170,24 +221,28 @@ impl WorthQueryExternalEffectTransport for BankEstateRailTransport {
             request.maximum_payload_bytes(),
             request.payload(),
         );
-        let (script, frame_timeout) = {
-            let control = self.lock_control();
-            (control.script, control.frame_timeout)
+        let frame_timeout = self.lock_control().frame_timeout;
+        let outbound = RailDispatch {
+            correlation: correlation.clone(),
+            payload,
         };
-        self.attempts
+        self.production_dispatches
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .push(correlation.clone());
-        let observed = self.blocking.block_on(dispatch(
-            self.address,
-            RailDispatch {
-                correlation: correlation.clone(),
-                payload,
-                fault_script: script,
-            },
-            frame_timeout,
-        ));
-        self.classify(observed, &correlation)
+            .push(outbound.clone());
+        let observed = self
+            .blocking
+            .block_on(dispatch(self.address, outbound, frame_timeout));
+        let classified = self.classify(observed, &correlation);
+        if let Some(action) = self
+            .after_next_dispatch
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take()
+        {
+            action();
+        }
+        classified
     }
 }
 

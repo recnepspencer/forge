@@ -88,9 +88,16 @@ async function drainWorkerFirstAuthoredWork(lineBacking) {
   await settleAuthoredWork.call(materialization.lineScope);
 }
 
+export function shouldDrainAuthoredWork(options) {
+  return options?.drainAuthoredWork === true;
+}
+
 function awaitLineSettlement(lineBacking, activeWaiterFailures, options = {}) {
   const settled = readAwaitSettlementResult(lineBacking);
   if (settled !== null) {
+    if (!shouldDrainAuthoredWork(options)) {
+      return Promise.resolve(settled);
+    }
     return drainWorkerFirstAuthoredWork(lineBacking).then(() => settled);
   }
   return new Promise((resolve, reject) => {
@@ -125,6 +132,10 @@ function awaitLineSettlement(lineBacking, activeWaiterFailures, options = {}) {
       }
       finished = true;
       cleanup();
+      if (!shouldDrainAuthoredWork(options)) {
+        resolve(result);
+        return;
+      }
       drainWorkerFirstAuthoredWork(lineBacking).then(
         () => resolve(result),
         (error) => reject(error),

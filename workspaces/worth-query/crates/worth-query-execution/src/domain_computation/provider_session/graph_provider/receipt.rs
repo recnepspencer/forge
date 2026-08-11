@@ -2,6 +2,7 @@ use std::any::TypeId;
 use std::sync::Arc;
 
 use super::call_identity::WorthQueryGraphCallAuthorityIdentity;
+use super::receipt_association::WorthQueryBoundGraphExecutionAssociation;
 use super::{
     WorthQueryExecutionGraphReadProduct, WorthQueryExecutionGraphReadStreamEvidence,
     WorthQueryGraphCommitCall, WorthQueryGraphProviderCall, WorthQueryGraphProviderCallKind,
@@ -105,6 +106,7 @@ impl WorthQueryGraphProviderReceipt {
             work_report: self.work_report,
             commit_authority_identity: None,
             commit_graph_roles: Vec::new(),
+            execution_association: Some(WorthQueryBoundGraphExecutionAssociation::capture(call)),
         })
     }
 
@@ -129,6 +131,7 @@ impl WorthQueryGraphProviderReceipt {
             work_report: self.work_report,
             commit_authority_identity: Some(call.commit_authority_identity()),
             commit_graph_roles: roles,
+            execution_association: None,
         })
     }
 }
@@ -143,6 +146,7 @@ pub struct WorthQueryBoundGraphExecutionReceipt {
     work_report: WorthQueryProviderWorkReport,
     commit_authority_identity: Option<(u64, TypeId)>,
     commit_graph_roles: Vec<String>,
+    execution_association: Option<WorthQueryBoundGraphExecutionAssociation>,
 }
 
 impl WorthQueryBoundGraphExecutionReceipt {
@@ -192,6 +196,55 @@ impl WorthQueryBoundGraphExecutionReceipt {
 
     pub fn commit_graph_roles(&self) -> &[String] {
         &self.commit_graph_roles
+    }
+
+    pub(in crate::domain_computation) fn derive_direct_convergence_evidence(
+        &self,
+        owner: crate::domain_computation::managed_run::WorthQueryCompletedDirectEvidenceOwner<'_>,
+        candidate_selection_key: &str,
+    ) -> Result<
+        crate::domain_computation::WorthQueryConvergenceDomainEvidenceBinding,
+        crate::domain_computation::WorthQueryConvergenceDomainEvidenceBindingDenial,
+    > {
+        if !std::ptr::eq(self, owner.receipt()) {
+            return Err(crate::domain_computation::WorthQueryConvergenceDomainEvidenceBindingDenial::ExecutionAssociationMismatch);
+        }
+        let execution = self
+            .execution_association
+            .as_ref()
+            .ok_or(crate::domain_computation::WorthQueryConvergenceDomainEvidenceBindingDenial::ReceiptAssociationRequired)?;
+        Ok(crate::domain_computation::WorthQueryConvergenceDomainEvidenceBinding::from_completed_execution(
+            execution.derive_direct(owner, candidate_selection_key)?,
+        ))
+    }
+
+    pub(in crate::domain_computation) fn derive_workflow_convergence_evidence(
+        &self,
+        owner: crate::domain_computation::managed_run::WorthQueryCompletedWorkflowEvidenceOwner<'_>,
+        candidate_selection_key: &str,
+    ) -> Result<
+        crate::domain_computation::WorthQueryConvergenceDomainEvidenceBinding,
+        crate::domain_computation::WorthQueryConvergenceDomainEvidenceBindingDenial,
+    > {
+        if !std::ptr::eq(self, owner.receipt()) {
+            return Err(crate::domain_computation::WorthQueryConvergenceDomainEvidenceBindingDenial::ExecutionAssociationMismatch);
+        }
+        let execution = self
+            .execution_association
+            .as_ref()
+            .ok_or(crate::domain_computation::WorthQueryConvergenceDomainEvidenceBindingDenial::ReceiptAssociationRequired)?;
+        Ok(crate::domain_computation::WorthQueryConvergenceDomainEvidenceBinding::from_completed_execution(
+            execution.derive_workflow(owner, candidate_selection_key)?,
+        ))
+    }
+
+    pub(in crate::domain_computation) fn admits_domain_evidence(
+        &self,
+        evidence: &crate::domain_computation::WorthQueryConvergenceDomainEvidenceBinding,
+    ) -> bool {
+        self.execution_association
+            .as_ref()
+            .is_some_and(|association| evidence.belongs_to_execution(association))
     }
 }
 

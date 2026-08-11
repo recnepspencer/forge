@@ -2,9 +2,13 @@ mod mutation;
 mod read;
 
 pub use mutation::{
-    mutations, BankApprovePendingPayment, BankMutation, BankMutationControls, BankMutationDenial,
+    mutations, BankApprovePendingPayment, BankAuthorizationDenial, BankAuthorizationDenialKind,
+    BankEntityResolutionDenial, BankEntityResolutionDenialKind,
+    BankIdempotencyResolutionDenialKind, BankMutation, BankMutationControls, BankMutationDenial,
     BankMutationExplanation, BankMutationExplanationStage, BankMutationForPrincipal,
-    BankMutationMetadata, BankMutationOutcome, BankMutationStatus, BankPaymentContinuationDenial,
+    BankMutationMetadata, BankMutationOutcome, BankMutationProjectionWork,
+    BankMutationProposalDenial, BankMutationStatus, BankOperationInstallationDenial,
+    BankOperationInstallationDenialKind, BankPaymentContinuationDenial,
     BankPaymentInitiationOutcome, BankPendingPaymentContinuation, BankReadyMutation,
     BankRejectPendingPayment,
 };

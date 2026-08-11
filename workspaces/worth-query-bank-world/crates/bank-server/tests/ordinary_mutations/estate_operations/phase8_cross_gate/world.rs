@@ -40,7 +40,10 @@ pub(crate) fn cross_gate_world_with_clock_and_grant_validity(
     grant_valid_until_epoch: Option<u64>,
 ) -> CrossGateWorld {
     let rail = spawn_rail();
-    let transport = Arc::new(BankEstateRailTransport::connected_to(rail.local_addr()));
+    let transport = Arc::new(BankEstateRailTransport::connected_to(
+        rail.local_addr(),
+        rail.test_control_addr(),
+    ));
     let fixture = notification_world_with_clock_and_grant_validity(
         &format!("phase8-cross-gate-{scenario}"),
         DeathNoticeStatus::Reported,
@@ -121,6 +124,20 @@ impl CrossGateWorld {
             .rows()[0]
             .accounting_revision()
             .get()
+    }
+
+    pub(crate) fn notice_status(&self) -> DeathNoticeStatus {
+        self.fixture
+            .world
+            .runtime
+            .query(queries::estate_case(self.fixture.estate))
+            .as_principal(&self.fixture.authenticate_specialist())
+            .controls(BankReadControls::current(request_scope(), 16, 20_000).unwrap())
+            .execute()
+            .expect("assigned specialist observes the authoritative death notice")
+            .rows()[0]
+            .death_notice()
+            .status()
     }
 
     pub(crate) fn specialist_action(&self) -> bank_domain::estate::EstateAction {

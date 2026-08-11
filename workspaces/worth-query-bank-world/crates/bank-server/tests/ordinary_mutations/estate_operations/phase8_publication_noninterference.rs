@@ -1,48 +1,78 @@
-//! Public-consumer aftermath noninterference across protected-fact twins.
+//! Complete Bank commit-publication noninterference across protected-fact twins.
 
 use bank_domain::schema::AccountStatus;
-use bank_server::BankMutationCommitOutcome;
+use bank_server::{queries, BankMutationCommitOutcome, BankReadControls};
 use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
-use worth_query_host::facade::publication::application_aftermath::{
-    WorthQueryPublishedAftermathPosture, WorthQueryPublishedApplicationAftermath,
-};
+use worth_query_host::facade::publication::application_aftermath::WorthQueryPublishedAftermathPosture;
 
 use super::freeze_account::fixture::{freeze_world_with_protected_foreign_status, FreezeFixture};
 use crate::support::request_scope;
 
 #[test]
-fn paired_protected_account_detail_worlds_publish_equal_aftermath_surfaces() {
+fn paired_protected_account_detail_worlds_publish_equal_complete_commit_surfaces() {
     let left = freeze_world_with_protected_foreign_status(
-        "r848-left",
+        "r848-protected-twin",
         AccountStatus::Open,
         AccountStatus::Open,
     );
     let right = freeze_world_with_protected_foreign_status(
-        "r848-right",
+        "r848-protected-twin",
         AccountStatus::Open,
         AccountStatus::Closed,
     );
-    assert_ne!(
-        left.protected_foreign_status, right.protected_foreign_status,
-        "paired worlds must genuinely differ in the protected fact"
-    );
+    assert_eq!(protected_foreign_status(&left), AccountStatus::Open);
+    assert_eq!(protected_foreign_status(&right), AccountStatus::Closed);
 
-    let left = publish_freeze_outcome(&left, 31);
-    let right = publish_freeze_outcome(&right, 32);
+    let left = commit_freeze(&left, 31);
+    let right = commit_freeze(&right, 31);
 
     assert_eq!(left, right);
+    assert_eq!(left.publication(), right.publication());
+    assert_eq!(left.changed_record_count(), right.changed_record_count());
+    assert_eq!(left.emitted_effect_count(), right.emitted_effect_count());
     assert_eq!(
-        left.committed.posture(),
+        left.expected_version_count(),
+        right.expected_version_count()
+    );
+    assert_eq!(left.expected_fact_count(), right.expected_fact_count());
+    assert_eq!(left.decision_fact_count(), right.decision_fact_count());
+    assert_eq!(left.canonical_work(), right.canonical_work());
+    assert_eq!(left.aftermath(), right.aftermath());
+    assert_eq!(
+        left.external_dispatch_posture(),
+        right.external_dispatch_posture()
+    );
+    assert_eq!(
+        left.co_committed_dispatch_outbox(),
+        right.co_committed_dispatch_outbox()
+    );
+    assert_eq!(left.retained_preimage(), right.retained_preimage());
+    assert_eq!(
+        left.performed_preimage_retention_work(),
+        right.performed_preimage_retention_work()
+    );
+    assert_eq!(format!("{left:?}"), format!("{right:?}"));
+    assert_eq!(
+        left.aftermath().posture(),
         Some(WorthQueryPublishedAftermathPosture::Reversible)
     );
 }
 
-#[derive(Debug, Eq, PartialEq)]
-struct AftermathPublicationObservation {
-    committed: WorthQueryPublishedApplicationAftermath,
+fn protected_foreign_status(fixture: &FreezeFixture) -> AccountStatus {
+    let owner = fixture.authenticate_foreign_owner();
+    fixture
+        .world
+        .runtime
+        .query(queries::account_summary(fixture.foreign_account))
+        .as_principal(&owner)
+        .controls(BankReadControls::current(request_scope(), 16, 20_000).unwrap())
+        .execute()
+        .expect("the foreign owner reads the authoritative protected account")
+        .rows()[0]
+        .status()
 }
 
-fn publish_freeze_outcome(fixture: &FreezeFixture, key: u8) -> AftermathPublicationObservation {
+fn commit_freeze(fixture: &FreezeFixture, key: u8) -> bank_server::BankCommitReceipt {
     let specialist = fixture.authenticate_specialist();
     let outcome = fixture
         .world
@@ -58,7 +88,5 @@ fn publish_freeze_outcome(fixture: &FreezeFixture, key: u8) -> AftermathPublicat
         panic!("freeze must commit: {outcome:?}");
     };
 
-    AftermathPublicationObservation {
-        committed: receipt.aftermath().clone(),
-    }
+    receipt
 }

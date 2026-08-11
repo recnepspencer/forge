@@ -52,9 +52,9 @@ pub(super) use correspondence_bridge::{
 };
 pub use count_vertices::{CountVertices, CountVerticesInput};
 pub use domain_evidence::{
-    evidence_workflow_intent, evidence_workflow_workspace, evidence_workspace,
-    evidence_workspace_with_governance, EvidenceFamily, EvidenceGovernance, EvidenceRead,
-    EvidenceScenario, EvidenceWorkflowMode,
+    evidence_graph_workflow_workspace, evidence_graph_workspace, evidence_workflow_intent,
+    evidence_workflow_workspace, evidence_workspace, evidence_workspace_with_governance,
+    EvidenceFamily, EvidenceGovernance, EvidenceRead, EvidenceScenario, EvidenceWorkflowMode,
 };
 pub(crate) use execution_resources::resource_admission_workspace;
 use executors::{

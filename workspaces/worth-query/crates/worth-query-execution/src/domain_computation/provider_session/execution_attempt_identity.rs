@@ -6,26 +6,33 @@ static NEXT_EXECUTION_ATTEMPT: AtomicU64 = AtomicU64::new(1);
 #[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryExecutionAttemptIdentity(Arc<str>);
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::domain_computation) struct WorthQueryClosedExecutionAttemptIdentity(Arc<str>);
+
 impl WorthQueryExecutionAttemptIdentity {
-    pub(super) fn initial(_lane: &str, _resource_plan_identity: &str) -> Self {
-        Self::mint()
-    }
-
-    pub(super) fn readmission(
-        _lane: &str,
-        _resource_plan_identity: &str,
-        _yielded_attempt_identity: &str,
-    ) -> Self {
-        Self::mint()
-    }
-
-    fn mint() -> Self {
+    pub(super) fn mint() -> Self {
         let ordinal = next_execution_attempt_ordinal(&NEXT_EXECUTION_ATTEMPT)
             .expect("execution attempt identity space must not be exhausted");
         Self(Arc::from(format!("execution-attempt:{ordinal}")))
     }
 
     pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub(in crate::domain_computation) fn description_arc(&self) -> &Arc<str> {
+        &self.0
+    }
+
+    pub(in crate::domain_computation) fn closed_identity(
+        &self,
+    ) -> WorthQueryClosedExecutionAttemptIdentity {
+        WorthQueryClosedExecutionAttemptIdentity(Arc::clone(&self.0))
+    }
+}
+
+impl WorthQueryClosedExecutionAttemptIdentity {
+    pub(in crate::domain_computation) fn as_str(&self) -> &str {
         &self.0
     }
 }

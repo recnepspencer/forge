@@ -1,0 +1,24 @@
+error[E0308]: mismatched types
+  --> tests/ui/application_aftermath/aftermath_contract_rejects_foreign_schema.rs:53:20
+   |
+53 |         .aftermath(foreign_contract())
+   |          --------- ^^^^^^^^^^^^^^^^^^ expected `schema_a::Schema`, found `schema_b::Schema`
+   |          |
+   |          arguments to this method are incorrect
+   |
+   = note: `schema_b::Schema` and `schema_a::Schema` have similar names, but are actually distinct types
+note: `schema_b::Schema` is defined in module `crate::schema_b` of the current crate
+  --> tests/ui/application_aftermath/aftermath_contract_rejects_foreign_schema.rs:23:5
+   |
+23 |     pub struct Schema;
+   |     ^^^^^^^^^^^^^^^^^
+note: `schema_a::Schema` is defined in module `crate::schema_a` of the current crate
+  --> tests/ui/application_aftermath/aftermath_contract_rejects_foreign_schema.rs:12:5
+   |
+12 |     pub struct Schema;
+   |     ^^^^^^^^^^^^^^^^^
+note: method defined here
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_schema/operation_definition/builder.rs
+   |
+   |     pub fn aftermath(
+   |            ^^^^^^^^^

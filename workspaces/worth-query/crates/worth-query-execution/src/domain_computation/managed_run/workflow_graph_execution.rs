@@ -1,15 +1,31 @@
 use worth_runtime_bridge::facade::BridgeManagedQueueFailureKind;
 
+#[path = "workflow_graph_step_outcome.rs"]
+mod step_outcome;
+
+pub(in crate::domain_computation) use step_outcome::WorthQueryCompletedWorkflowEvidenceOwner;
+pub use step_outcome::{
+    WorthQueryCompletedWorkflowGraphExecution, WorthQueryPausedWorkflowGraphExecution,
+    WorthQueryWorkflowGraphStepOutcome,
+};
+
+struct WorthQueryWorkflowGraphCompletionPermit {
+    _owner: (),
+}
+
+impl WorthQueryWorkflowGraphCompletionPermit {
+    fn mint() -> Self {
+        Self { _owner: () }
+    }
+}
+
+use self::step_outcome::terminal_outcome;
 use super::interruption_classification::producer_terminal_kind;
 use super::managed_graph_execution::{
     WorthQueryManagedGraphExecution, WorthQueryManagedProviderStep,
 };
 use super::workflow_graph_chunk::{
     WorthQueryPendingWorkflowGraphChunk, WorthQueryPendingWorkflowGraphQueueState,
-};
-use super::workflow_graph_step_outcome::{
-    terminal_outcome, WorthQueryCompletedWorkflowGraphExecution,
-    WorthQueryPausedWorkflowGraphExecution, WorthQueryWorkflowGraphStepOutcome,
 };
 use super::{WorthQueryManagedRunTerminalKind, WorthQueryRunningWorkflowRun};
 use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderStepCompletion;
@@ -38,19 +54,19 @@ impl WorthQueryActiveWorkflowGraphExecution {
     }
 
     pub fn resource_attempt_identity(&self) -> &str {
-        self.running.resource_attempt.attempt_identity().as_str()
+        self.running.identity()
     }
 
     pub fn provider_session_identity(&self) -> &str {
-        self.running.resource_attempt.provider_session().identity()
+        self.running.provider_session_description()
     }
 
     pub fn bridge_basis_identity(&self) -> &str {
-        self.running.bridge_basis.identity().as_str()
+        self.running.bridge_basis_identity_projection()
     }
 
     pub fn bridge_request_identity(&self) -> &str {
-        self.running.bridge_basis.request().digest()
+        self.running.bridge_request_identity_projection()
     }
 
     pub fn provider_call_identity(&self) -> &str {
@@ -58,15 +74,13 @@ impl WorthQueryActiveWorkflowGraphExecution {
     }
 
     pub fn retained_capacity_reservation_count(&self) -> usize {
-        self.running
-            .resource_attempt
-            .retained_capacity_reservation_count()
+        self.running.retained_capacity_reservation_count()
     }
 
     pub fn artifact_evidence(
         &self,
     ) -> crate::domain_computation::artifact_owner::WorthQueryWorkflowArtifactRegistryEvidence {
-        self.running.artifacts.registry().evidence()
+        self.running.artifact_registry_evidence()
     }
 
     pub fn artifacts(&self) -> super::WorthQueryManagedWorkflowArtifactAuthority<'_> {
@@ -80,7 +94,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
         worth_runtime_bridge::facade::BridgeManagedExecutionCancellation,
         worth_runtime_bridge::facade::BridgeManagedExecutionInterruptionFailure,
     > {
-        self.running.bridge_basis().request_cancellation(reason)
+        self.running.request_bridge_cancellation(reason)
     }
 
     pub fn admit_ready_timeout(
@@ -89,7 +103,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
         worth_runtime_bridge::facade::BridgeManagedExecutionTimeout,
         worth_runtime_bridge::facade::BridgeManagedExecutionInterruptionFailure,
     > {
-        self.running.bridge_basis().admit_ready_timeout()
+        self.running.admit_bridge_ready_timeout()
     }
 
     pub fn reject_execution(
@@ -99,7 +113,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
         worth_runtime_bridge::facade::BridgeManagedExecutionRejection,
         worth_runtime_bridge::facade::BridgeManagedExecutionInterruptionFailure,
     > {
-        self.running.bridge_basis().reject_execution(reason)
+        self.running.reject_bridge_execution(reason)
     }
 
     pub fn abandon(self) -> WorthQueryWorkflowGraphStepOutcome {
@@ -113,7 +127,6 @@ impl WorthQueryActiveWorkflowGraphExecution {
         };
         let admission = self.execution.admit_provider_step(before);
         self.running
-            .provider_work_mut()
             .record_provider_step_admission(admission.counters());
         let admitted = match admission {
             super::provider_step_admission::WorthQueryProviderStepAdmissionOutcome::Admitted(
@@ -124,9 +137,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
             ) => return self.interrupted_terminal(denied.terminal()),
         };
 
-        self.running
-            .provider_work_mut()
-            .record_provider_step_attempt();
+        self.running.record_provider_step_attempt();
         match self.execution.advance_provider(admitted) {
             WorthQueryManagedProviderStep::Failed(evidence) => {
                 self.admit_provider_step(evidence.into_report())
@@ -166,7 +177,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
     ) -> WorthQueryWorkflowGraphStepOutcome {
         let width = u64::try_from(material.rows().len()).unwrap_or(u64::MAX);
         let retained_bytes = material.owned_allocation_capacity_bytes();
-        let admission = match self.running.bridge_basis_mut().enqueue_managed_queue(width) {
+        let admission = match self.running.enqueue_provider_output(width) {
             Ok(admission) => admission,
             Err(failure) => {
                 if !self.release_pending_chunk(retained_bytes) {
@@ -181,9 +192,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
             }
         };
         let (mutation, occupancy) = admission.into_parts();
-        self.running
-            .provider_work_mut()
-            .record_queue_mutation(mutation.counters());
+        self.running.record_queue_mutation(mutation.counters());
         self.execution.admit_projection_chunk(&material);
         let queue = WorthQueryPendingWorkflowGraphQueueState::new(
             occupancy,
@@ -207,7 +216,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
             Ok(receipt) => receipt,
             Err(()) => return self.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed),
         };
-        self.running.provider_work_mut().complete_step_call();
+        self.running.complete_provider_step_call();
         let after = match self.observe_safe_point() {
             Ok(observation) => observation,
             Err(_) => return self.settled_terminal(WorthQueryManagedRunTerminalKind::Failed),
@@ -219,11 +228,8 @@ impl WorthQueryActiveWorkflowGraphExecution {
         let recovery_required = release.evidence().recovery_required();
         let (release_evidence, memory) = release.into_parts();
         self.running
-            .provider_work_mut()
             .record_provider_execution_release(&release_evidence);
-        self.running
-            .provider_work_mut()
-            .retain_provider_memory(memory);
+        self.running.retain_provider_memory(memory);
         if recovery_required {
             return terminal_outcome(
                 self.running
@@ -232,7 +238,11 @@ impl WorthQueryActiveWorkflowGraphExecution {
             );
         }
         WorthQueryWorkflowGraphStepOutcome::Completed(
-            WorthQueryCompletedWorkflowGraphExecution::new(self.running, receipt),
+            WorthQueryCompletedWorkflowGraphExecution::new(
+                self.running,
+                receipt,
+                WorthQueryWorkflowGraphCompletionPermit::mint(),
+            ),
         )
     }
 
@@ -256,11 +266,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
     }
 
     fn record_report(&mut self, report: &mut WorthQueryGraphProviderStepReport) {
-        let artifact_snapshot = self.running.provider_artifact_occurrences().snapshot();
-        self.running.provider_work_mut().admit_step(report);
-        self.running
-            .provider_work_mut()
-            .settle_artifacts(artifact_snapshot);
+        self.running.record_provider_step_report(report);
         self.execution.admit_report(report);
     }
 
@@ -271,18 +277,13 @@ impl WorthQueryActiveWorkflowGraphExecution {
         super::WorthQueryManagedSafePointFailure,
     > {
         let observation = self.running.observe_safe_point()?;
-        self.running
-            .provider_work_mut()
-            .record_safe_point(&observation);
+        self.running.record_safe_point(&observation);
         Ok(observation)
     }
 
     pub(super) fn release_pending_chunk(&mut self, retained_bytes: usize) -> bool {
         self.execution.release_projection_chunk(retained_bytes)
-            && self
-                .running
-                .provider_work_mut()
-                .release_projection_bytes(retained_bytes)
+            && self.running.release_projection_bytes(retained_bytes)
     }
 
     fn release_unpublished_projection(
@@ -301,7 +302,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
         mut self,
         kind: WorthQueryManagedRunTerminalKind,
     ) -> WorthQueryWorkflowGraphStepOutcome {
-        self.running.provider_work_mut().interrupt_step_call();
+        self.running.interrupt_provider_step_call();
         self.into_terminal_outcome(kind)
     }
 
@@ -309,7 +310,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
         mut self,
         kind: WorthQueryManagedRunTerminalKind,
     ) -> WorthQueryWorkflowGraphStepOutcome {
-        self.running.provider_work_mut().abandon();
+        self.running.abandon_provider_step_call();
         self.into_terminal_outcome(kind)
     }
 
@@ -327,11 +328,8 @@ impl WorthQueryActiveWorkflowGraphExecution {
         let release = self.execution.release_provider_execution();
         let (release_evidence, memory) = release.into_parts();
         self.running
-            .provider_work_mut()
             .record_provider_execution_release(&release_evidence);
-        self.running
-            .provider_work_mut()
-            .retain_provider_memory(memory);
+        self.running.retain_provider_memory(memory);
         terminal_outcome(self.running.terminal(kind), kind)
     }
 }

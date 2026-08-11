@@ -5,7 +5,7 @@ use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationOperation,
 };
 
-use super::super::capability_operation_progression::{
+use super::super::capability_admission::{
     progress_capability_operation, WorthQueryCapabilityOperationProgression,
 };
 use super::super::capability_registry::{
@@ -100,13 +100,13 @@ where
 {
     let (capability_identity, installed) = installed_lifecycle_owner(
         runtime,
-        access.authorization.installed_capability_identity(),
+        access.installed_capability_identity(),
         operation,
         WorthQueryElevationLifecycleOperationRole::Revoke,
     )?;
     if !approved.belongs_to_lifecycle(
         runtime.runtime.authority_identity(),
-        access.graph_work.branch().relational(),
+        access.graph_work_branch(),
         capability_identity,
         installed.capability_authority_identity.as_ref(),
     ) {
@@ -124,7 +124,7 @@ where
     Ok(WorthQueryElevationCloseDraft {
         elevation,
         review,
-        closer: access.principal_entity_id,
+        closer: access.principal_entity_id(),
         closure_kind,
         closed_at,
         closed_status,
@@ -137,7 +137,7 @@ where
         required_program_targets: close_program_targets(installed),
         lifecycle_effect: super::lifecycle_effect::derive_lifecycle_effect(
             definition.lifecycle().revoke(),
-            &access.input,
+            access.capability_input(),
             installed.contract.name(),
         )?,
     })

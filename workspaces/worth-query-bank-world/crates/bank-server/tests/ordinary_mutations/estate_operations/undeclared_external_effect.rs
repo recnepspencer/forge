@@ -19,7 +19,10 @@ use crate::support::request_scope;
 #[test]
 fn an_undeclared_external_effect_costs_no_outbox_and_no_dispatch() {
     let rail = spawn_rail();
-    let transport = Arc::new(BankEstateRailTransport::connected_to(rail.local_addr()));
+    let transport = Arc::new(BankEstateRailTransport::connected_to(
+        rail.local_addr(),
+        rail.test_control_addr(),
+    ));
     let fixture = ordinary_read_world("undeclared-external-effect", 0);
     fixture
         .world

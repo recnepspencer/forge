@@ -24,7 +24,10 @@ pub use crate::transactions::data::{
     WorkerIntentBatch,
 };
 pub use crate::transactions::logic::{
-    RelationalMutationInvariantEvidence, RelationalTransaction, ValidatedMutationFootprint,
-    ValidatedRelationalMutation,
+    RelationalMutationInvariantEvidence, RelationalTransaction, ValidatedRelationalMutation,
+};
+pub use crate::transactions::{
+    ValidatedMutationFootprint, ValidatedMutationFootprintNotRequested,
+    ValidatedMutationFootprintProjection, ValidatedMutationFootprintWork,
 };
 pub use worth_foundational::facade::AspectFieldLocator;

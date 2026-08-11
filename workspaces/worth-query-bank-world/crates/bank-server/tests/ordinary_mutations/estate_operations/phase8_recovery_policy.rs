@@ -4,7 +4,7 @@
 //! `binding_axis_tests` — the default notify-death fixture only authorizes one
 //! specialist principal on recovery re-admission.
 
-use bank_external_rail::FaultScript;
+use bank_external_rail::test_control::FaultScript;
 use bank_server::BankEstateProgressionDenial;
 use worth_query_host::facade::primary_graph::WorthQueryRecoveryHandleDenialKind;
 

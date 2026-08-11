@@ -5,7 +5,7 @@ use worth_query_declaration::facade::application_capability::ApplicationCapabili
 use crate::domain_computation::runtime_time::WorthQueryRuntimeTimeSample;
 
 use super::causal_event::DispatchAttemptEvent;
-use super::posture::ExternalEffectPosture;
+use super::causal_event::ExternalEffectPosture;
 
 /// Observed external-rail transport faults. None of these are completion.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -57,16 +57,19 @@ impl ExternalEffectClassification {
 pub(super) fn classify_transport_fault(
     fault: ExternalRailTransportFault,
     attempt: &DispatchAttemptEvent<'_>,
-    clock: Option<&crate::domain_computation::runtime_time::WorthQueryRuntimeClock>,
-) -> ExternalEffectClassification {
-    let decision_time = clock.and_then(|clock| {
-        clock
-            .sample(ApplicationCapabilityValidityTimeline::UnixEpochMilliseconds)
-            .ok()
-    });
-    ExternalEffectClassification {
+    clock: &crate::domain_computation::runtime_time::WorthQueryRuntimeClock,
+) -> Result<
+    ExternalEffectClassification,
+    crate::domain_computation::application_aftermath::WorthQueryAftermathDerivationFailure,
+> {
+    let decision_time = clock
+        .sample(ApplicationCapabilityValidityTimeline::UnixEpochMilliseconds)
+        .map_err(|_| {
+            crate::domain_computation::application_aftermath::WorthQueryAftermathDerivationFailure::RuntimeTimeUnavailable
+        })?;
+    Ok(ExternalEffectClassification {
         fault,
         attempt: attempt.attempt().clone(),
-        decision_time,
-    }
+        decision_time: Some(decision_time),
+    })
 }

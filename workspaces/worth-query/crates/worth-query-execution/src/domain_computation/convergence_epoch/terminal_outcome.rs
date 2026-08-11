@@ -32,7 +32,7 @@ pub(super) const fn semantic_terminal_kind(
 
 pub(super) fn direct_terminal_outcome(
     core: WorthQueryConvergenceEpochCore,
-    managed: WorthQueryDirectRunTerminal,
+    run_terminal: WorthQueryDirectRunTerminal,
     kind: WorthQueryConvergenceTerminalKind,
     indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
 ) -> WorthQueryDirectConvergenceIterationOutcome {
@@ -41,7 +41,7 @@ pub(super) fn direct_terminal_outcome(
             WorthQueryDirectConvergenceIterationOutcome::Converged(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryConverged>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -50,7 +50,7 @@ pub(super) fn direct_terminal_outcome(
             WorthQueryDirectConvergenceIterationOutcome::StableWithoutProof(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryStableWithoutProof>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -59,7 +59,7 @@ pub(super) fn direct_terminal_outcome(
             WorthQueryDirectConvergenceIterationOutcome::FeasibleIncumbent(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryFeasibleIncumbent>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -68,7 +68,7 @@ pub(super) fn direct_terminal_outcome(
             WorthQueryDirectConvergenceIterationOutcome::Oscillating(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryOscillating>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -77,7 +77,7 @@ pub(super) fn direct_terminal_outcome(
             WorthQueryDirectConvergenceIterationOutcome::Exhausted(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryExhausted>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -86,7 +86,7 @@ pub(super) fn direct_terminal_outcome(
             WorthQueryDirectConvergenceIterationOutcome::Cancelled(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryCancelled>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -95,7 +95,7 @@ pub(super) fn direct_terminal_outcome(
             WorthQueryDirectConvergenceIterationOutcome::Indeterminate(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryIndeterminate>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -105,7 +105,7 @@ pub(super) fn direct_terminal_outcome(
 
 pub(super) fn workflow_terminal_outcome(
     core: WorthQueryConvergenceEpochCore,
-    managed: WorthQueryWorkflowRunTerminal,
+    run_terminal: WorthQueryWorkflowRunTerminal,
     kind: WorthQueryConvergenceTerminalKind,
     indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
 ) -> WorthQueryWorkflowConvergenceIterationOutcome {
@@ -114,7 +114,7 @@ pub(super) fn workflow_terminal_outcome(
             WorthQueryWorkflowConvergenceIterationOutcome::Converged(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryConverged>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -123,7 +123,7 @@ pub(super) fn workflow_terminal_outcome(
             WorthQueryWorkflowConvergenceIterationOutcome::StableWithoutProof(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryStableWithoutProof>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -132,7 +132,7 @@ pub(super) fn workflow_terminal_outcome(
             WorthQueryWorkflowConvergenceIterationOutcome::FeasibleIncumbent(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryFeasibleIncumbent>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -141,7 +141,7 @@ pub(super) fn workflow_terminal_outcome(
             WorthQueryWorkflowConvergenceIterationOutcome::Oscillating(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryOscillating>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -150,7 +150,7 @@ pub(super) fn workflow_terminal_outcome(
             WorthQueryWorkflowConvergenceIterationOutcome::Exhausted(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryExhausted>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -159,7 +159,7 @@ pub(super) fn workflow_terminal_outcome(
             WorthQueryWorkflowConvergenceIterationOutcome::Cancelled(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryCancelled>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )
@@ -168,7 +168,7 @@ pub(super) fn workflow_terminal_outcome(
             WorthQueryWorkflowConvergenceIterationOutcome::Indeterminate(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryIndeterminate>::new(
                     core,
-                    managed,
+                    run_terminal,
                     indeterminate_cause,
                 ),
             )

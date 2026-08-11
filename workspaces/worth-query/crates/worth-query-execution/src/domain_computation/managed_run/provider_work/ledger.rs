@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::domain_computation::artifact_owner::WorthQueryArtifactOccurrenceSnapshot;
 use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderMemorySnapshot;
 use crate::domain_computation::{
@@ -14,7 +12,8 @@ use super::{
 };
 
 pub(crate) struct WorthQueryManagedProviderWorkLedger {
-    provider_session_identity: Arc<str>,
+    provider_session_identity:
+        crate::domain_computation::WorthQueryExecutionProviderSessionIdentity,
     issued_call_count: usize,
     abandoned_call_count: usize,
     interrupted_call_count: usize,
@@ -43,9 +42,11 @@ pub(crate) struct WorthQueryManagedProviderWorkLedger {
 }
 
 impl WorthQueryManagedProviderWorkLedger {
-    pub(crate) fn new(provider_session_identity: impl Into<Arc<str>>) -> Self {
+    pub(crate) fn new(
+        provider_session_identity: crate::domain_computation::WorthQueryExecutionProviderSessionIdentity,
+    ) -> Self {
         Self {
-            provider_session_identity: provider_session_identity.into(),
+            provider_session_identity,
             issued_call_count: 0,
             abandoned_call_count: 0,
             interrupted_call_count: 0,
@@ -219,18 +220,32 @@ impl WorthQueryManagedProviderWorkLedger {
         self.abandoned_call_count != 0
     }
 
-    pub(crate) fn rebind_provider_session(
+    pub(crate) fn rebind_direct_provider_session(
         mut self,
-        provider_session_identity: impl Into<Arc<str>>,
-    ) -> Self {
-        self.provider_session_identity = provider_session_identity.into();
-        self
+        binding: crate::domain_computation::provider_session::WorthQueryDirectProviderWorkRebinding,
+    ) -> Result<Self, Self> {
+        if !binding.admits(&self.provider_session_identity) {
+            return Err(self);
+        }
+        self.provider_session_identity = binding.into_fresh();
+        Ok(self)
+    }
+
+    pub(crate) fn rebind_workflow_provider_session(
+        mut self,
+        binding: crate::domain_computation::provider_session::WorthQueryWorkflowProviderWorkRebinding,
+    ) -> Result<Self, Self> {
+        if !binding.admits(&self.provider_session_identity) {
+            return Err(self);
+        }
+        self.provider_session_identity = binding.into_fresh();
+        Ok(self)
     }
 
     pub(crate) fn snapshot(&self) -> WorthQueryManagedProviderWorkEvidence {
         WorthQueryManagedProviderWorkEvidence::from_parts(
             WorthQueryManagedProviderWorkEvidenceParts {
-                provider_session_identity: Arc::clone(&self.provider_session_identity),
+                provider_session_identity: self.provider_session_identity.description(),
                 issued_call_count: self.issued_call_count,
                 abandoned_call_count: self.abandoned_call_count,
                 interrupted_call_count: self.interrupted_call_count,

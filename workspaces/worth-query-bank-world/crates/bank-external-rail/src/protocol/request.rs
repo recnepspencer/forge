@@ -3,7 +3,6 @@
 use serde::{Deserialize, Serialize};
 
 use super::correlation::RailCorrelation;
-use super::fault_script::FaultScript;
 use super::payload::RailEffectPayload;
 
 /// One message sent by a caller over one TCP connection.
@@ -12,7 +11,7 @@ use super::payload::RailEffectPayload;
 /// rail, mirroring a real one-shot external call.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RailRequest {
-    /// Dispatch an external effect attempt under the given fault script.
+    /// Dispatch an external effect attempt.
     ///
     /// The payload is not optional. A rail that could be handed a bare
     /// correlation would have to source the notice's meaning from somewhere
@@ -44,12 +43,12 @@ pub enum RailRequest {
 
 /// One dispatch attempt as it travels the wire.
 ///
-/// Correlation, payload, and fault script are one value because the rail reads
-/// them as one: it decodes the payload, then runs the script, then admits the
-/// correlation. Nothing downstream may hold a subset of these three.
+/// Correlation and payload are one value because the rail must bind the
+/// idempotency key to the immutable meaning it receives. Test fault selection
+/// is deliberately absent from this production request vocabulary.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RailDispatch {
     pub correlation: RailCorrelation,
     pub payload: RailEffectPayload,
-    pub fault_script: FaultScript,
 }

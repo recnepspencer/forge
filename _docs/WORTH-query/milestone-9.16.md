@@ -7,11 +7,11 @@
 > [Runtime Phase 8 finish plan](./milestone-9.16-runtime-phase-8-finish-plan.md); see the
 > [Phase 8 closure ledger](./milestone-9.16-runtime-phase-8-closure-ledger.md)
 > for closure evidence and the
-> [feature guide](./features/application-aftermath-and-recovery.md) for the
+> [feature guide](../../workspaces/worth-query/crates/worth-query/docs/execution/application-aftermath-and-recovery.md) for the
 > supported developer surface. Historical gate labels remain evidence only.
 > The present undo/redo implementation is provisional: it may remain in the
-> tree, but its product semantics and final public contract require a separate
-> Query Undo/Redo Semantics milestone.
+> tree, but its product semantics and final public contract belong to
+> [Milestone 9.18](./milestone-9.18.md).
 > [Milestone 9.16.1](./milestone-9.16.1.md) is closed, and its canonical
 > graph-progression substrate remains inherited. Gates A-C and the executable
 > release/disbursement slices remain historical prerequisites; Phase 8
@@ -59,8 +59,11 @@ schema-bound typed intent
     -> provisional undo / redo experimentation (not accepted product closure)
 ```
 
-Milestone 9.17 follows this milestone. Advanced access and computation features
-must be built through the same public front door proven here.
+Milestone 9.17 follows with composite Runtime Bridge product branches over
+exact Relational and Signal bases plus Relational branch-local MVCC. Milestone
+9.18 accepts tree-based semantic undo/redo over that composite history.
+Advanced access and computation begin in Milestone 9.19 and must use the same
+public front door.
 
 ## Work Types And Phase Identity
 
@@ -87,7 +90,7 @@ The Runtime Hardening Track owns generic Query product work:
   conflict-of-interest, delegation, and break-glass authority;
 - Runtime Phase 8 establishes the accepted aftermath, external-effect,
   recovery, retention, and publication foundation; its existing undo and redo
-  lane remains provisional for a future, separately governed milestone;
+  lane remains provisional for Milestone 9.18;
   and
 - Runtime Phase 9 performs public policy cutover and workaround deletion.
 
@@ -130,7 +133,7 @@ classify it:
 5. **The discovery changes public cutover, deletion, documentation, or the
    decisive courtroom.** Add the next Closure phase.
 6. **The discovery has an independent advanced-computation purpose.** Assign it
-   to Milestone 9.17 rather than expanding the bank milestone.
+   to Milestones 9.19 through 9.22 rather than expanding the bank milestone.
 
 A new phase must be an appropriate vertical slice with one causal guarantee,
 not a ticket-sized patch. It states what proof it consumes, what architecture it
@@ -614,20 +617,20 @@ F14. Descriptive digests and installation authority seals are different
     invariant posture may deny it.
 65. Milestone 9.16 historically proposed a linear, current-head,
     receipt-linked undo/redo journey. The implementation is now provisional;
-    the Query Undo/Redo Semantics milestone must accept or replace it before it
-    becomes a guarantee.
-    Relational remains the sole owner of commit identity, parents, branch head,
-    ancestry, and publication. Query owns typed `undo-of` / `redo-of` operation
-    meaning and evaluates its linear-lane policy against that Relational truth;
-    it owns no parallel history chain or head. A new divergent operation may
-    invalidate the descriptive redo intent without deleting history. Runtime
-    Bridge may transport completed admitted causality across runtimes but owns
-    neither undo/redo legality nor Relational currentness. Branch selection,
-    branch-local inversion, branch-shaped redo, merge interaction, and history
-    navigation are owned by the
+    Milestone 9.18 must accept, revise, or replace it before it becomes a
+    guarantee.
+    Relational remains the sole owner of its current commit identity, parents,
+    branch head, ancestry, and publication. Query owns typed `undo-of` /
+    `redo-of` operation meaning but owns no parallel history chain or head.
+    Milestone 9.17 adds Runtime Bridge-owned composite product branches over
+    exact Relational and Signal bases while preserving each component owner;
+    Milestone 9.18 owns exact composite source/target selection, tree-based
+    reversal/reapplication, and fresh Query admission as new composite history.
+    Runtime Bridge coordinates component correspondence and publication but
+    owns neither correction meaning nor Relational or Signal internal
+    currentness. Semantic merge, rebase, multi-parent publication, offline
+    synchronization, and distributed recovery remain governed by the
     [cross-runtime merging-and-branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
-    This milestone creates no placeholder API, directory, support posture, or
-    implied authority for them.
 66. Indeterminate and externally unresolved outcomes carry a framework-owned
     recovery handle naming the legal next actions: inspect, resolve by
     idempotency, retry safely, compensate, reconcile, or dispose. A bare status
@@ -3022,9 +3025,11 @@ From this point forward:
 Milestone 9.16 still has one ordinary installed branch and does not implement
 multiple branch heads, branch-local version allocation, concurrent writers on
 different branches, branch creation, merge, rebase, or branch-local inversion.
-Per-branch MVCC and concurrent independent-branch writers begin in Milestone
-9.17. Semantic branch management, merge, and branch-shaped aftermath remain in
-the cross-runtime merging-and-branching roadmap. The prohibition on
+Composite product-branch creation, exact Relational/Signal basis selection, and
+Relational branch-local MVCC begin in Milestone 9.17; tree-based semantic
+reversal and reapplication begin in Milestone 9.18. Semantic merge, rebase,
+multi-parent publication, offline synchronization, and distributed recovery
+remain in the cross-runtime merging-and-branching roadmap. The prohibition on
 branch-shaped aftermath below does not permit branch affinity to be omitted
 from ordinary execution evidence.
 
@@ -3727,15 +3732,16 @@ callback, or result reinterpretation, the front door is not finished.
 - browser UI polish;
 - multi-currency conversion;
 - distributed consensus or multi-bank settlement;
-- branch- or tree-shaped undo/redo navigation, branch-local inversion, branch
-  merge, or conflict resolution. Those are cross-runtime semantic-history
-  capabilities, not a deferred Query-local extension of linear aftermath;
+- branch- or tree-shaped undo/redo navigation and branch-local inversion before
+  Milestone 9.18, or semantic merge, rebase, and conflict resolution before
+  their cross-runtime milestones;
 - multiple branch heads, branch-local version allocation, and concurrent
   writers on different branches before the Milestone 9.17 handoff;
 - durable recovery handles, restart-stable cursors, or restart-stable
   undo/redo history before the Store handoff;
-- advanced domain access products, correlated paths, conflict partitions, or
-  geometry/provider certification governed by Milestone 9.17.
+- advanced domain access products, correlated paths, conflict partitions,
+  decision evidence, reuse, or provider certification governed by Milestones
+  9.19 through 9.22.
 
 The absence of those capabilities cannot justify fake authentication, fake
 money, fake concurrency, or fake authorization in the supported world.
@@ -3788,9 +3794,11 @@ Milestone 9.16 closes only when:
   rejects equal-version cross-branch substitution, and contains no hard-coded
   ordinary-branch authority;
 - revocation prevents subsequent unauthorized live delivery;
-- compensating undo preserves original truth, redo requires fresh authority,
-  divergent or relevant change can deny redo, and irreversible actions expose
-  no fake inverse;
+- provisional compensating undo preserves original truth, provisional redo
+  requires fresh authority, divergent or relevant change can deny it, and
+  irreversible actions expose no fake inverse; these journeys remain
+  regression evidence rather than accepted product semantics until Milestone
+  9.18 closes;
 - every indeterminate outcome exposes an actionable governed recovery posture;
 - Query-owned execution counters lower into honest Foundational
   counter-backed performance evidence at explicit support/certification
@@ -3799,25 +3807,34 @@ Milestone 9.16 closes only when:
 - all workaround deletions and permanent prohibitions are enforced; and
 - the closure ledger has no unresolved high- or critical-impact row.
 
-## Handoff To Milestone 9.17
+## Handoff To Milestones 9.17 Through 9.22
 
-Milestone 9.17 may add advanced computation only through the public typed
-declaration, admission, execution, publication, and certification path proven
-here. Advanced search, spatial access, membership, paths, bulk execution,
-decision attachments, and reuse bind to the installed application-query,
-capability, disclosure, basis, recovery, and aftermath contracts established
-here. It may extend that path; it may not reintroduce a specialist-only
-authority lane, a provider-owned cursor, a field-disclosure bypass, or replay
-disguised as redo.
+Milestone 9.17 replaces the conservative single-product-branch and global-
+coordinator limits with Runtime Bridge-owned composite product branches over
+exact owner-issued Relational and Signal bases plus Relational branch-local
+MVCC. Query continues to carry the branch-affine authority established here;
+it does not become the owner of component truth, composite correspondence,
+version allocation, or conflict mechanics. Product branches may share one
+immutable Signal basis while their Relational branches diverge, and unrelated
+branches must progress concurrently.
 
-Milestone 9.17 also replaces the conservative single-branch/global-coordinator
-implementation limit with Relational-owned per-branch MVCC. Query continues to
-carry the branch-affine authority established here; it does not become the
-owner of branch truth, version allocation, or conflict mechanics. Writers on
-different branches must be able to progress concurrently, while writers on the
-same branch remain governed by that branch's MVCC comparison and commit laws.
-Semantic branch creation, merge, rebase, branch-shaped undo/redo, and conflict
-resolution remain governed by the cross-runtime merging-and-branching roadmap.
+Milestone 9.18 then accepts tree-based semantic undo and redo over exact source
+composite commits and target product-branch heads. Corrections coordinate
+owner-local retain, inverse, compensation, reapplication, and Signal
+reconciliation posture, publish freshly admitted composite commits, and
+preserve every prior history alternative. Query owns correction semantics and
+DX but no component or composite history head. Merge, rebase, multi-parent
+publication, offline synchronization, and distributed recovery remain governed
+by the cross-runtime merging-and-branching roadmap.
+
+Milestones 9.19 through 9.22 add advanced computation only through the public
+typed declaration, admission, execution, publication, and certification path
+proven here and the accepted branch/aftermath paths above. Advanced search,
+spatial access, membership, paths, bulk execution, decision attachments, and
+reuse bind to the installed application-query, capability, disclosure, basis,
+recovery, and aftermath contracts. They may extend that path; they may not
+reintroduce a specialist-only authority lane, provider-owned cursor,
+field-disclosure bypass, or replay disguised as redo.
 
 Geometry and other high-fan-out kernels consume installed typed slots, paths,
 masks, plans, and fixed-width semantic identities. Adding cells, features,

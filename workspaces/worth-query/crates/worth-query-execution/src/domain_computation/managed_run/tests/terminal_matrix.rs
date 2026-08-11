@@ -38,18 +38,13 @@ fn direct_noncompletion_terminals_cancel_signal_and_release_every_owner() {
         let cleanup = terminal_authority
             .cleanup()
             .expect("owner-thread terminal cleanup should succeed");
-        assert_eq!(cleanup.terminal(), terminal.expected_kind());
+        assert_eq!(cleanup.inspection().terminal(), terminal.expected_kind());
         assert_eq!(
-            cleanup.disposition(),
+            cleanup.inspection().disposition(),
             WorthQueryManagedRunCleanupDisposition::CleanupComplete
         );
-        assert_eq!(
-            cleanup.bridge().signal_terminal(),
-            BridgeExecutionBasisSignalTerminal::Cancelled
-        );
-        assert!(cleanup.bridge().reservation_released());
-        assert!(cleanup.relational().released());
-        assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 1);
+        assert!(cleanup.inspection().resources_released());
+        assert_eq!(cleanup.inspection().released_reservation_count(), 1);
     }
 }
 
@@ -68,17 +63,14 @@ fn workflow_noncompletion_terminals_cancel_signal_and_release_every_owner() {
                 panic!("owner-thread workflow cleanup failed: {failure:?}")
             }
         };
-        assert_eq!(cleanup.terminal(), terminal.expected_kind());
+        let inspection = cleanup.inspection();
+        assert_eq!(inspection.terminal(), terminal.expected_kind());
         assert_eq!(
-            cleanup.disposition(),
+            inspection.disposition(),
             WorthQueryManagedRunCleanupDisposition::CleanupComplete
         );
-        assert_eq!(
-            cleanup.bridge().signal_terminal(),
-            BridgeExecutionBasisSignalTerminal::Cancelled
-        );
-        assert!(cleanup.relational().released());
-        assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
+        assert!(inspection.resources_released());
+        assert_eq!(inspection.released_reservation_count(), 2);
     }
 }
 

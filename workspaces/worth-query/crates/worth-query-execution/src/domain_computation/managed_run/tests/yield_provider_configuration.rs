@@ -1,7 +1,7 @@
 use super::yield_fixture::{YieldProvider, YieldSuspension};
 
 impl YieldProvider {
-    pub(super) fn artifact_generation_rollback_failure(
+    pub(in crate::domain_computation::managed_run) fn artifact_generation_rollback_failure(
         retained_bytes: u64,
     ) -> (
         Self,
@@ -32,7 +32,7 @@ impl YieldProvider {
         )
     }
 
-    pub(super) const fn installed(retained_bytes: u64) -> Self {
+    pub(in crate::domain_computation::managed_run) const fn installed(retained_bytes: u64) -> Self {
         Self {
             yield_installed: true,
             checkpoint_available: true,

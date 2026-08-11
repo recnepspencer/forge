@@ -1,8 +1,8 @@
 use super::fixture::{direct_epoch_fixture, FixtureDisposition};
 use crate::domain_computation::{
     WorthQueryConvergenceTerminalKind, WorthQueryDirectConvergenceIterationOutcome,
-    WorthQueryDirectGraphStepOutcome, WorthQueryGraphProviderCallKind,
-    WorthQueryManagedGraphCallRequest, WorthQueryManagedRunTerminalKind,
+    WorthQueryDirectConvergenceStepOutcome, WorthQueryGraphProviderCallKind,
+    WorthQueryManagedGraphCallRequest, WorthQueryStartedDirectConvergenceIteration,
 };
 
 #[test]
@@ -15,14 +15,9 @@ fn real_installed_direct_authorities_progress_to_converged_and_cleanup() {
         Ok(started) => started,
         Err(_) => panic!("real installed graph authority must start the convergence iteration"),
     };
-    let (pending, active) = started.into_parts();
-    let completion = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("single-step fixture provider must complete"),
-    };
-    let outcome = match pending.admit_completion(completion) {
-        Ok(outcome) => outcome,
-        Err(_) => panic!("exact managed completion must rejoin the pending epoch"),
+    let outcome = match started.advance() {
+        WorthQueryDirectConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("single-step fixture provider must complete and rejoin its epoch"),
     };
     let terminal = match outcome {
         WorthQueryDirectConvergenceIterationOutcome::Converged(terminal) => terminal,
@@ -36,22 +31,70 @@ fn real_installed_direct_authorities_progress_to_converged_and_cleanup() {
     assert_eq!(terminal.counters().iteration_count(), 1);
     assert_eq!(terminal.counters().provider_work_unit_count(), 1);
     assert_eq!(terminal.incumbents().len(), 1);
+    let incumbent = &terminal.incumbents()[0];
+    assert_ne!(incumbent.occurrence_identity(), "candidate-1");
+    let report = terminal
+        .latest_report()
+        .expect("completed comparison must retain its report");
     assert_eq!(
-        terminal.incumbents()[0].occurrence_identity(),
-        "candidate-1"
+        incumbent.report_evidence_identity(),
+        report.evidence_identity()
     );
     assert_eq!(
-        terminal.incumbents()[0]
-            .domain_evidence()
-            .output_occurrence_identity(),
-        "candidate-1"
+        incumbent.state_identity(),
+        report.decision().state_identity()
     );
-    assert!(terminal.latest_report().is_some());
+    assert_eq!(report.decision().candidate_selection_key(), "candidate-1");
     let cleanup = match terminal.cleanup() {
         Ok(cleanup) => cleanup,
         Err(_) => panic!("converged direct epoch must retain cleanup authority"),
     };
-    assert_eq!(cleanup.counters().cleanup_count(), 1);
+    assert_eq!(cleanup.counters().cleanup_attempt_count(), 1);
+    assert_eq!(cleanup.counters().cleanup_completion_count(), 1);
+}
+
+#[test]
+fn same_semantic_candidate_in_real_direct_peers_has_distinct_occurrences() {
+    let first = start_direct_peer("direct-peer");
+    let second = start_direct_peer("direct-peer");
+    let first = complete_direct_peer(first);
+    let second = complete_direct_peer(second);
+
+    assert_ne!(first, second);
+}
+
+fn start_direct_peer(scope: &str) -> WorthQueryStartedDirectConvergenceIteration {
+    let epoch = direct_epoch_fixture(FixtureDisposition::Converged);
+    epoch
+        .begin_iteration(WorthQueryManagedGraphCallRequest::new(
+            WorthQueryGraphProviderCallKind::Observe,
+            scope,
+        ))
+        .unwrap_or_else(|_| panic!("real direct peer must begin"))
+}
+
+fn complete_direct_peer(started: WorthQueryStartedDirectConvergenceIteration) -> String {
+    let outcome = match started.advance() {
+        WorthQueryDirectConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("real direct peer must complete"),
+    };
+    let terminal = match outcome {
+        WorthQueryDirectConvergenceIterationOutcome::Converged(terminal) => terminal,
+        _ => panic!("real direct peer must converge"),
+    };
+    assert_eq!(
+        terminal
+            .latest_report()
+            .unwrap()
+            .decision()
+            .candidate_selection_key(),
+        "candidate-1"
+    );
+    assert_eq!(
+        terminal.incumbents()[0].report_evidence_identity(),
+        terminal.latest_report().unwrap().evidence_identity()
+    );
+    terminal.incumbents()[0].occurrence_identity().to_owned()
 }
 
 #[test]
@@ -65,14 +108,9 @@ fn epoch_owned_iteration_bound_terminalizes_continue_as_exhausted() {
             Ok(started) => started,
             Err(_) => panic!("bounded iteration must start"),
         };
-        let (pending, active) = started.into_parts();
-        let completion = match active.advance() {
-            WorthQueryDirectGraphStepOutcome::Completed(completion) => completion,
-            _ => panic!("single-step fixture provider must complete"),
-        };
-        let outcome = match pending.admit_completion(completion) {
-            Ok(outcome) => outcome,
-            Err(_) => panic!("exact managed completion must rejoin the pending epoch"),
+        let outcome = match started.advance() {
+            WorthQueryDirectConvergenceStepOutcome::Completed(outcome) => outcome,
+            _ => panic!("single-step fixture provider must complete and rejoin its epoch"),
         };
         match outcome {
             WorthQueryDirectConvergenceIterationOutcome::Continue(next) if ordinal < 3 => {
@@ -87,34 +125,22 @@ fn epoch_owned_iteration_bound_terminalizes_continue_as_exhausted() {
                 assert_eq!(terminal.counters().provider_work_unit_count(), 3);
                 assert_eq!(terminal.incumbents().len(), 1);
                 assert_eq!(
+                    terminal
+                        .latest_report()
+                        .expect("bounded iteration must retain its latest report")
+                        .decision()
+                        .candidate_selection_key(),
+                    "candidate-3"
+                );
+                assert_ne!(
                     terminal.incumbents()[0].occurrence_identity(),
                     "candidate-3"
                 );
-                assert_eq!(
-                    terminal.managed_terminal().kind(),
-                    WorthQueryManagedRunTerminalKind::Exhausted
-                );
-                assert_eq!(
-                    terminal
-                        .managed_terminal()
-                        .provider_work()
-                        .admitted_receipt_count(),
-                    3
-                );
-                assert_eq!(
-                    terminal
-                        .managed_terminal()
-                        .provider_work()
-                        .retained_artifact_count(),
-                    0
-                );
-                assert!(!terminal
-                    .managed_terminal()
-                    .provider_work()
-                    .checkpoint_available());
-                if terminal.cleanup().is_err() {
-                    panic!("exhausted direct epoch must retain cleanup authority");
-                }
+                let cleanup = terminal
+                    .cleanup()
+                    .unwrap_or_else(|_| panic!("exhausted direct epoch must clean up"));
+                assert_eq!(cleanup.counters().cleanup_attempt_count(), 1);
+                assert_eq!(cleanup.counters().cleanup_completion_count(), 1);
                 return;
             }
             _ => panic!("iteration bound produced the wrong typed progression"),
