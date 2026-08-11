@@ -64,7 +64,7 @@ const FILE_OWNERS: &[(&str, &str)] = &[
 ];
 
 #[test]
-fn delivered_phase_two_through_six_facades_equal_the_destination_inventory() {
+fn delivered_phase_two_through_seven_facades_equal_the_destination_inventory() {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let root = manifest.ancestors().nth(4).expect("repository root");
     let expected = expected_surfaces(root);
@@ -97,7 +97,7 @@ fn expected_surfaces(root: &Path) -> BTreeMap<String, BTreeSet<String>> {
         if cells[0] == "destination"
             && matches!(
                 cells[5],
-                "phase-2" | "phase-3" | "phase-4" | "phase-5" | "phase-6"
+                "phase-2" | "phase-3" | "phase-4" | "phase-5" | "phase-6" | "phase-7"
             )
             && owners.contains(cells[2])
         {

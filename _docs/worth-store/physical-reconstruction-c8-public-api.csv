@@ -1596,6 +1596,7 @@ current,WalReplayReceipt::replayed_through,replay_receipt,narrow,worth-store-rec
 current,WalSegmentGeneration,wal_topology,preserve,worth-store-wal/recovery-read,phase-3
 current,WalSegmentId,wal_topology,preserve,worth-store-wal/recovery-read,phase-3
 current,WalSegmentArtifactIdentity,wal_topology,preserve,worth-store-wal/recovery-read,phase-3
+current,WalSegmentInspection,wal_topology,preserve,worth-store-wal/recovery-read,phase-3
 current,WalTailIntegrityQuarantineHandoff,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,WalTailIntegrityQuarantineHandoff::counters,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,WalTailIntegrityQuarantineHandoff::from_wal_tail_damage_quarantine,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
@@ -1747,6 +1748,8 @@ destination,CompletedRecoveryStagingWrite::payload_digest,worth-store-physical-b
 destination,RecoveryStagingWriteDisposition,worth-store-physical-backend/recovery-media/staging,create,worth-store-physical-backend/recovery-media/staging,phase-5
 destination,RecoveryStagingWriteOutcome,worth-store-physical-backend/recovery-media/staging,create,worth-store-physical-backend/recovery-media/staging,phase-5
 destination,StoreRecoveryBindingFreshnessSample,worth-store/recovery-freshness/binding,create,worth-store/recovery-freshness/binding,phase-4
+destination,PhysicalRecoveryCleanupAuthorization,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
+destination,StoreRecoveryCleanupFreshnessAdmission,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
 destination,StoreRecoveryCleanupFreshnessSample,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
 destination,QualifiedPhysicalBackendProfile,worth-store-physical-backend/recovery-media/profile,create,worth-store-physical-backend/recovery-media/profile,phase-2
 destination,QualifiedRecoveryFilesystemMedia,worth-store-physical-backend/recovery-media/qualified,create,worth-store-physical-backend/recovery-media/qualified,phase-2
@@ -1846,6 +1849,7 @@ current,CheckpointCoveredWalArtifact,source_precedence,narrow,worth-store-recove
 current,CheckpointCoveredWalArtifact::byte_count,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,CheckpointCoveredWalArtifact::cleanup_safe,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,CheckpointCoveredWalArtifact::identity,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
+current,CheckpointCoveredWalArtifact::inspection,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,CheckpointCoveredWalArtifact::lsn_range,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,SelectedPhysicalWalTail::checkpoint_covered,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,admit_physical_wal_tail,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
@@ -2550,6 +2554,9 @@ destination,RecoveryPublicationPlan::staging_generation,progression/planned/basi
 destination,RecoveryPublicationPlan::store_identity,progression/planned/basis/publication_accessors,create,worth-store-recovery-runtime/progression/planned/basis/publication_accessors,phase-4
 destination,RecoveryReopenReadOutcome,worth-store-physical-backend/recovery-media/reopen,create,worth-store-physical-backend/recovery-media/reopen,phase-6
 destination,ReopenedPhysicalRecovery::finish,progression/reopened,create,worth-store-recovery-runtime/progression/reopened,phase-6
+destination,ReopenedPhysicalRecovery::cleanup_cancellation_after_removal,progression/reopened,create,worth-store-recovery-runtime/progression/reopened,phase-7
+destination,ReopenedPhysicalRecovery::cleanup_cancellation_before_first,progression/reopened,create,worth-store-recovery-runtime/progression/reopened,phase-7
+destination,ReopenedPhysicalRecovery::finish_with_cleanup_cancellation,progression/reopened,create,worth-store-recovery-runtime/progression/reopened,phase-7
 destination,ReopenedPhysicalRecovery::fresh_reopen,progression/reopened,create,worth-store-recovery-runtime/progression/reopened,phase-6
 destination,ReopenedPhysicalRecovery::is_quiescent,progression/reopened,create,worth-store-recovery-runtime/progression/reopened,phase-6
 destination,ReopenedPhysicalRecovery::operation_fates,progression/reopened,create,worth-store-recovery-runtime/progression/reopened,phase-6
@@ -2587,6 +2594,7 @@ destination,IndeterminateScheduledRecoveryCleanupRemoval::physical,worth-store-p
 destination,IndeterminateScheduledRecoveryCleanupRemoval::queue,worth-store-physical-backend/recovery-media/cleanup,create,worth-store-physical-backend/recovery-media/cleanup,phase-7
 destination,PerformedRecoveryCleanupRemoval,cleanup/performed_removal,create,worth-store-recovery-runtime/cleanup/performed_removal,phase-7
 destination,PerformedRecoveryCleanupRemoval::occurrence,cleanup/performed_removal,create,worth-store-recovery-runtime/cleanup/performed_removal,phase-7
+destination,PhysicalRecoveryCleanupCancellation,cleanup/cancellation,create,worth-store-recovery-runtime/cleanup/cancellation,phase-7
 destination,PhysicalRecoveryCleanupAdmissionDenial,worth-store/recovery-coordination/cleanup/admission/denial,create,worth-store/recovery-coordination/cleanup/admission/denial,phase-7
 destination,PhysicalRecoveryCleanupAdmissionDenial::cancellation_recorded,worth-store/recovery-coordination/cleanup/admission/denial,create,worth-store/recovery-coordination/cleanup/admission/denial,phase-7
 destination,PhysicalRecoveryCleanupAdmissionDenial::kind,worth-store/recovery-coordination/cleanup/admission/denial,create,worth-store/recovery-coordination/cleanup/admission/denial,phase-7
@@ -2594,8 +2602,6 @@ destination,PhysicalRecoveryCleanupAdmissionDenial::scheduler_deferred,worth-sto
 destination,PhysicalRecoveryCleanupAdmissionDenial::submission_recorded,worth-store/recovery-coordination/cleanup/admission/denial,create,worth-store/recovery-coordination/cleanup/admission/denial,phase-7
 destination,PhysicalRecoveryCleanupAdmissionDenialKind,worth-store/recovery-coordination/cleanup/admission/denial,create,worth-store/recovery-coordination/cleanup/admission/denial,phase-7
 destination,PhysicalRecoveryCleanupCommandStage,worth-store/recovery-coordination/cleanup,create,worth-store/recovery-coordination/cleanup,phase-7
-destination,PhysicalRecoveryCleanupCompactionBasis,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
-destination,PhysicalRecoveryCleanupCompactionBasis::new,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
 destination,PhysicalRecoveryCleanupFreshnessReadDenial,worth-store/recovery-coordination/cleanup/freshness,create,worth-store/recovery-coordination/cleanup/freshness,phase-7
 destination,PhysicalRecoveryCleanupFreshnessReadDenial::completed,worth-store/recovery-coordination/cleanup/freshness,create,worth-store/recovery-coordination/cleanup/freshness,phase-7
 destination,PhysicalRecoveryCleanupFreshnessReadDenial::denied,worth-store/recovery-coordination/cleanup/freshness,create,worth-store/recovery-coordination/cleanup/freshness,phase-7
@@ -2607,8 +2613,6 @@ destination,PhysicalRecoveryCleanupFreshnessReadProgress,worth-store/recovery-co
 destination,PhysicalRecoveryCleanupFreshnessReadProgress::scheduler,worth-store/recovery-coordination/cleanup/freshness,create,worth-store/recovery-coordination/cleanup/freshness,phase-7
 destination,PhysicalRecoveryCleanupFreshnessReadProgress::signal,worth-store/recovery-coordination/cleanup/freshness,create,worth-store/recovery-coordination/cleanup/freshness,phase-7
 destination,PhysicalRecoveryCleanupFreshnessReadProgress::work,worth-store/recovery-coordination/cleanup/freshness,create,worth-store/recovery-coordination/cleanup/freshness,phase-7
-destination,PhysicalRecoveryCleanupPublicationBasis,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
-destination,PhysicalRecoveryCleanupPublicationBasis::new,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
 destination,PhysicalRecoveryCleanupRemovalCommand,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
 destination,PhysicalRecoveryCleanupRemovalCommand::new,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
 destination,PhysicalRecoveryCleanupRemovalDenial,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
@@ -2620,8 +2624,6 @@ destination,PhysicalRecoveryCleanupRemovalDenial::work,worth-store/recovery-coor
 destination,PhysicalRecoveryCleanupRemovalDenialKind,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
 destination,PhysicalRecoveryCleanupRemovalIndeterminate,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
 destination,PhysicalRecoveryCleanupRemovalOutcome,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
-destination,PhysicalRecoveryCleanupWalBasis,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
-destination,PhysicalRecoveryCleanupWalBasis::new,worth-store/recovery-coordination/cleanup/removal,create,worth-store/recovery-coordination/cleanup/removal,phase-7
 destination,PhysicalRecoveryCoordination::execute_cleanup_removal,worth-store/recovery-coordination/cleanup,create,worth-store/recovery-coordination/cleanup,phase-7
 destination,RecoveredPhysicalRuntimeHandoff::cleanup_posture,handoff/recovered,create,worth-store-recovery-runtime/handoff/recovered,phase-7
 destination,RecoveryBaseImagePlan::source_artifacts,progression/planned/basis,create,worth-store-recovery-runtime/progression/planned/basis,phase-7
@@ -2672,6 +2674,8 @@ destination,StoreRecoveryCleanupFreshnessDenial,worth-store/recovery-freshness/c
 destination,StoreRecoveryCleanupFreshnessFailure,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
 destination,StoreRecoveryCleanupFreshnessFailure::denial,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
 destination,StoreRecoveryCleanupFreshnessFailure::read,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
+destination,StoreRecoveryCleanupFreshnessAdmission::into_parts,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
+destination,StoreRecoveryCleanupFreshnessAdmission::sample,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
 destination,StoreRecoveryCleanupFreshnessSample::cleanup_plan_identity,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
 destination,StoreRecoveryCleanupFreshnessSample::observed_published_generation,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
 destination,StoreRecoveryCleanupFreshnessSample::policy_identity,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7

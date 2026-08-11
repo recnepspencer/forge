@@ -21,7 +21,6 @@ mod tests;
 pub(crate) struct RecoveryCleanupPlan {
     identity: [u8; 32],
     published_generation: u64,
-    checkpoint: PhysicalCheckpointIdentity,
     candidates: Vec<RecoveryCleanupEligibility>,
     dispositions: Vec<RecoveryCleanupDisposition>,
 }
@@ -64,7 +63,6 @@ pub(crate) fn build_plan(basis: RecoveryCleanupPlanBasis<'_>) -> RecoveryCleanup
     RecoveryCleanupPlan {
         identity,
         published_generation: publication.recovered_root().generation(),
-        checkpoint,
         candidates,
         dispositions,
     }
@@ -97,11 +95,9 @@ fn admit_checkpoint_covered_wal(
             candidate_bytes = candidate_bytes
                 .checked_add(covered.byte_count())
                 .expect("bounded cleanup byte sum");
-            admission.candidates.push(RecoveryCleanupEligibility::new(
-                covered.identity(),
-                covered.lsn_range(),
-                covered.byte_count(),
-            ));
+            admission
+                .candidates
+                .push(RecoveryCleanupEligibility::new(*covered));
         }
         admission.dispositions.push(RecoveryCleanupDisposition::new(
             RecoveryCleanupTarget::Wal(covered.identity()),
@@ -297,8 +293,10 @@ const fn deferral_reason(reason: RecoveryCleanupDeferralReason) -> u8 {
         RecoveryCleanupDeferralReason::FreshnessUnavailable => 3,
         RecoveryCleanupDeferralReason::PublishedGenerationChanged => 4,
         RecoveryCleanupDeferralReason::EligibilityChanged => 5,
-        RecoveryCleanupDeferralReason::DeniedBeforeEffect => 6,
-        RecoveryCleanupDeferralReason::IndeterminateEffect => 7,
+        RecoveryCleanupDeferralReason::Cancelled => 6,
+        RecoveryCleanupDeferralReason::CancellationBindingMismatch => 7,
+        RecoveryCleanupDeferralReason::DeniedBeforeEffect => 8,
+        RecoveryCleanupDeferralReason::IndeterminateEffect => 9,
     }
 }
 
@@ -331,9 +329,6 @@ impl RecoveryCleanupPlan {
     }
     pub(crate) const fn published_generation(&self) -> u64 {
         self.published_generation
-    }
-    pub(crate) const fn checkpoint(&self) -> PhysicalCheckpointIdentity {
-        self.checkpoint
     }
     pub(crate) fn candidates(&self) -> &[RecoveryCleanupEligibility] {
         &self.candidates

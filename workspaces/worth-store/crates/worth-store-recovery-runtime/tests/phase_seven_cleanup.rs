@@ -51,3 +51,29 @@ fn cleanup_candidate_limit_removes_only_the_admitted_prefix() {
     assert!(wal[1].exists());
     assert!(wal.last().unwrap().exists());
 }
+
+#[test]
+fn cleanup_cancellation_before_first_effect_defers_every_candidate() {
+    let world = ProcessWorld::write("settled");
+    let candidate = world.oldest_wal();
+    let bytes = std::fs::metadata(&candidate).unwrap().len();
+    let cleanup = world.cleanup_with_cancellation(bytes, 0, &candidate);
+    assert_child_succeeded("cleanup cancellation before first", &cleanup);
+    assert!(candidate.exists());
+}
+
+#[test]
+fn cleanup_cancellation_between_effects_retains_the_exact_completed_prefix() {
+    let world = ProcessWorld::write("multiple-settled");
+    let wal = world.wal_files();
+    assert!(wal.len() >= 3);
+    let bytes = wal
+        .iter()
+        .map(|path| std::fs::metadata(path).unwrap().len())
+        .sum();
+    let cleanup = world.cleanup_with_cancellation(bytes, 1, &wal[0]);
+    assert_child_succeeded("cleanup cancellation after one", &cleanup);
+    assert!(!wal[0].exists());
+    assert!(wal[1].exists());
+    assert!(wal.last().unwrap().exists());
+}

@@ -290,6 +290,7 @@ pub use wal_recovery_basis::{
 };
 pub use wal_topology::{
     LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity, WalSegmentGeneration, WalSegmentId,
+    WalSegmentInspection,
 };
 pub use worth_store_contracts::CorruptionHandoffDamageCase;
 pub use worth_store_wal::AdmittedReplayTailCursor;

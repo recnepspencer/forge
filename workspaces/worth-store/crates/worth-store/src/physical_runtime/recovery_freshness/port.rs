@@ -6,8 +6,8 @@ use worth_store_wal::VerifiedWalFrame;
 
 use super::{
     binding, cleanup, PhysicalRecoveryFreshnessAuthority, StoreRecoveryBindingFreshnessSample,
-    StoreRecoveryBindingSampleFailure, StoreRecoveryCleanupFreshnessFailure,
-    StoreRecoveryCleanupFreshnessSample,
+    StoreRecoveryBindingSampleFailure, StoreRecoveryCleanupFreshnessAdmission,
+    StoreRecoveryCleanupFreshnessFailure,
 };
 
 /// The sole Store-owned construction port for recovery freshness authority.
@@ -45,13 +45,15 @@ impl PhysicalRecoveryFreshnessPort {
         media: &AdmittedRecoveryFilesystemMedia,
         cleanup_plan_identity: [u8; 32],
         sealed_publication_basis: [u8; 32],
-    ) -> Result<StoreRecoveryCleanupFreshnessSample, StoreRecoveryCleanupFreshnessFailure> {
+        wal: worth_store_wal::WalSegmentInspection,
+    ) -> Result<StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessFailure> {
         cleanup::sample(
             coordination.freshness(),
             coordination,
             media,
             cleanup_plan_identity,
             sealed_publication_basis,
+            wal,
         )
     }
 }

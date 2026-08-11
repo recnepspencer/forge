@@ -8,11 +8,9 @@ pub use freshness::{
     PhysicalRecoveryCleanupFreshnessReadProgress,
 };
 pub use removal::{
-    CompletedPhysicalRecoveryCleanupRemoval, PhysicalRecoveryCleanupCompactionBasis,
-    PhysicalRecoveryCleanupPublicationBasis, PhysicalRecoveryCleanupRemovalCommand,
+    CompletedPhysicalRecoveryCleanupRemoval, PhysicalRecoveryCleanupRemovalCommand,
     PhysicalRecoveryCleanupRemovalDenial, PhysicalRecoveryCleanupRemovalDenialKind,
     PhysicalRecoveryCleanupRemovalIndeterminate, PhysicalRecoveryCleanupRemovalOutcome,
-    PhysicalRecoveryCleanupWalBasis,
 };
 
 pub use admission::{

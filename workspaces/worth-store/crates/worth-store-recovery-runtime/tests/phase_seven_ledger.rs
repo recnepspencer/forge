@@ -5,11 +5,12 @@ use std::collections::BTreeMap;
 
 use support::{
     cells, ledger_rows, read, repository_root, source_closure_path, source_identity,
-    validate_shape, LedgerContract,
+    validate_requirement_inventory, validate_shape, LedgerContract,
 };
 
-const GUARANTEES: [&str; 15] = [
+const GUARANTEES: [&str; 17] = [
     "C8-P7-PLAN-01",
+    "C8-P7-AUTHORITY-01",
     "C8-P7-ELIGIBILITY-01",
     "C8-P7-FRESHNESS-01",
     "C8-P7-SCHEDULER-01",
@@ -17,6 +18,7 @@ const GUARANTEES: [&str; 15] = [
     "C8-P7-LIMITS-01",
     "C8-P7-EFFECT-01",
     "C8-P7-FAILURE-01",
+    "C8-P7-CANCELLATION-01",
     "C8-P7-CRASH-01",
     "C8-P7-COUNTERS-01",
     "C8-P7-QUIESCENCE-01",
@@ -26,21 +28,26 @@ const GUARANTEES: [&str; 15] = [
     "C8-P7-LEDGER-01",
 ];
 
-const FINDINGS: [(&str, &str); 8] = [
+const FINDINGS: [(&str, &str); 13] = [
     ("C8-P7-F01", "C8-P7-PLAN-01 C8-P7-ELIGIBILITY-01 C8-P7-FRESHNESS-01 C8-P7-SCHEDULER-01 C8-P7-SAFETY-01 C8-P7-LIMITS-01 C8-P7-EFFECT-01 C8-P7-FAILURE-01 C8-P7-CRASH-01 C8-P7-COUNTERS-01 C8-P7-QUIESCENCE-01 C8-P7-PROGRESSION-01 C8-P7-LEDGER-01"),
     ("C8-P7-F02", "C8-P7-PLAN-01 C8-P7-SAFETY-01 C8-P7-LEDGER-01"),
-    ("C8-P7-F03", "C8-P7-ELIGIBILITY-01 C8-P7-FRESHNESS-01 C8-P7-EFFECT-01 C8-P7-COMPILE-01 C8-P7-LEDGER-01"),
+    ("C8-P7-F03", "C8-P7-AUTHORITY-01 C8-P7-ELIGIBILITY-01 C8-P7-FRESHNESS-01 C8-P7-EFFECT-01 C8-P7-COMPILE-01 C8-P7-LEDGER-01"),
     ("C8-P7-F04", "C8-P7-FRESHNESS-01 C8-P7-SCHEDULER-01 C8-P7-LIMITS-01 C8-P7-EFFECT-01 C8-P7-FAILURE-01 C8-P7-COUNTERS-01 C8-P7-QUIESCENCE-01 C8-P7-LEDGER-01"),
     ("C8-P7-F05", "C8-P7-SCHEDULER-01 C8-P7-QUIESCENCE-01 C8-P7-PROGRESSION-01 C8-P7-API-01 C8-P7-LEDGER-01"),
     ("C8-P7-F06", "C8-P7-PLAN-01 C8-P7-SAFETY-01 C8-P7-FAILURE-01 C8-P7-CRASH-01 C8-P7-PROGRESSION-01 C8-P7-LEDGER-01"),
     ("C8-P7-F07", "C8-P7-PLAN-01 C8-P7-SAFETY-01 C8-P7-CRASH-01 C8-P7-COUNTERS-01 C8-P7-LEDGER-01"),
     ("C8-P7-F08", "C8-P7-PLAN-01 C8-P7-COMPILE-01 C8-P7-API-01 C8-P7-LEDGER-01"),
+    ("C8-P7-F09", "C8-P7-AUTHORITY-01 C8-P7-ELIGIBILITY-01 C8-P7-FRESHNESS-01 C8-P7-SAFETY-01 C8-P7-EFFECT-01 C8-P7-COMPILE-01 C8-P7-API-01 C8-P7-LEDGER-01"),
+    ("C8-P7-F10", "C8-P7-PLAN-01 C8-P7-AUTHORITY-01 C8-P7-ELIGIBILITY-01 C8-P7-FRESHNESS-01 C8-P7-SCHEDULER-01 C8-P7-SAFETY-01 C8-P7-LIMITS-01 C8-P7-EFFECT-01 C8-P7-FAILURE-01 C8-P7-CANCELLATION-01 C8-P7-CRASH-01 C8-P7-COUNTERS-01 C8-P7-QUIESCENCE-01 C8-P7-PROGRESSION-01 C8-P7-COMPILE-01 C8-P7-API-01 C8-P7-LEDGER-01"),
+    ("C8-P7-F11", "C8-P7-SCHEDULER-01 C8-P7-FAILURE-01 C8-P7-CANCELLATION-01 C8-P7-COUNTERS-01 C8-P7-QUIESCENCE-01 C8-P7-PROGRESSION-01 C8-P7-COMPILE-01 C8-P7-API-01 C8-P7-LEDGER-01"),
+    ("C8-P7-F12", "C8-P7-SAFETY-01 C8-P7-FAILURE-01 C8-P7-CRASH-01 C8-P7-COUNTERS-01 C8-P7-QUIESCENCE-01 C8-P7-LEDGER-01"),
+    ("C8-P7-F13", "C8-P7-AUTHORITY-01 C8-P7-SAFETY-01 C8-P7-EFFECT-01 C8-P7-FAILURE-01 C8-P7-COUNTERS-01 C8-P7-API-01 C8-P7-LEDGER-01"),
 ];
 
 const CONTRACT: LedgerContract<'static> = LedgerContract {
     guarantees: &GUARANTEES,
     findings: &FINDINGS,
-    finding_history_sha256: "4f7f3d2f165a3f55103c2291e94e3f5f6556627e1efbb9afcb97fa6ba7710680",
+    finding_history_sha256: "abf83ebebc17baaef66b6d650cad1c1234d3fe55cc867e54e862178f781ca51c",
 };
 
 #[test]
@@ -48,6 +55,11 @@ fn phase_seven_ledger_is_exact_source_bound_and_audit_honest() {
     let root = repository_root();
     let ledger = read(&root.join(support::ledger_path()));
     let closure = read(&root.join(source_closure_path()));
+    let specification =
+        read(&root.join(
+            "_docs/worth-store/physical-reconstruction-c8-fresh-process-recovery-and-reopen.md",
+        ));
+    validate_requirement_inventory(&specification, &GUARANTEES);
     let validated = validate_shape(&root, &ledger, &closure, CONTRACT);
     let identities = validated
         .ledger_rows
@@ -84,7 +96,7 @@ fn ledger_and_history_mutants_fail_even_with_coordinated_rebinding() {
         ledger.replacen("| C8-P7-F01 | Critical", "| C8-P7-F99 | Critical", 1),
         ledger.replacen("C8-P7-F06 C8-P7-F07 C8-P7-F08", "C8-P7-F06 C8-P7-F08", 1),
         ledger.replacen("A fully materialized no-op recovery", "A recovery", 1),
-        ledger.replacen("| PENDING | none |", "| CLEAN | none |", 1),
+        ledger.replacen("| DEFECTS | C8-P7-F09", "| CLEAN | C8-P7-F09", 1),
         promoted,
     ] {
         assert!(
@@ -103,6 +115,18 @@ fn ledger_and_history_mutants_fail_even_with_coordinated_rebinding() {
             std::panic::catch_unwind(|| validate_shape(&root, &ledger, &mutant, CONTRACT)).is_err()
         );
     }
+    let specification =
+        read(&root.join(
+            "_docs/worth-store/physical-reconstruction-c8-fresh-process-recovery-and-reopen.md",
+        ));
+    let added_requirement = specification.replace(
+        "<!-- c8-phase7-requirements:end -->",
+        "| C8-P7-OMITTED-99 | A newly normative requirement must have a ledger row. |\n<!-- c8-phase7-requirements:end -->",
+    );
+    assert!(std::panic::catch_unwind(|| {
+        validate_requirement_inventory(&added_requirement, &GUARANTEES)
+    })
+    .is_err());
 }
 
 #[test]

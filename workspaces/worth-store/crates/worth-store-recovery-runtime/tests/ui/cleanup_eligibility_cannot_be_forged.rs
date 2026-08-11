@@ -2,9 +2,7 @@ use worth_store_recovery_runtime::RecoveryCleanupEligibility;
 
 fn main() {
     let _forged = RecoveryCleanupEligibility {
-        artifact: fake(),
-        range: fake(),
-        byte_count: 1,
+        covered: fake(),
     };
 }
 

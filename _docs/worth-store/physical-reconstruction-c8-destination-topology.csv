@@ -88,6 +88,7 @@ crates/worth-store-recovery-runtime/src/cleanup/plan.rs,recovery-runtime/cleanup
 crates/worth-store-recovery-runtime/src/cleanup/eligibility.rs,recovery-runtime/cleanup/eligibility,owner-sampled-cleanup-eligibility,imports-physics-and-store-reconstruction-port,phase-7,create
 crates/worth-store-recovery-runtime/src/cleanup/execution.rs,recovery-runtime/cleanup/execution,one-artifact-cleanup-execution,imports-physics-and-store-reconstruction-port,phase-7,create
 crates/worth-store-recovery-runtime/src/cleanup/accounting.rs,recovery-runtime/cleanup/accounting,exact-cleanup-attempt-accounting,imports-physics-and-store-reconstruction-port,phase-7,create
+crates/worth-store-recovery-runtime/src/cleanup/cancellation.rs,recovery-runtime/cleanup/cancellation,plan-bound-cleanup-cancellation,imports-physics-and-store-reconstruction-port,phase-7,create
 crates/worth-store-recovery-runtime/src/cleanup/attempt.rs,recovery-runtime/cleanup/attempt,owner-sampled-cleanup-attempt,imports-physics-and-store-reconstruction-port,phase-7,create
 crates/worth-store-recovery-runtime/src/cleanup/command_basis.rs,recovery-runtime/cleanup/command-basis,sealed-cleanup-command-basis,imports-physics-and-store-reconstruction-port,phase-7,create
 crates/worth-store-recovery-runtime/src/cleanup/disposition.rs,recovery-runtime/cleanup/disposition,per-artifact-cleanup-disposition,imports-physics-and-store-reconstruction-port,phase-7,create

@@ -1,4 +1,4 @@
-use worth_store_wal::{WalLsnRange, WalSegmentArtifactIdentity};
+use worth_store_wal::{WalLsnRange, WalSegmentArtifactIdentity, WalSegmentInspection};
 
 use super::PhysicalWalSegmentCandidate;
 
@@ -8,8 +8,7 @@ use super::PhysicalWalSegmentCandidate;
 /// artifact is still removable immediately before the effect.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CheckpointCoveredWalArtifact {
-    identity: WalSegmentArtifactIdentity,
-    lsn_range: WalLsnRange,
+    inspection: WalSegmentInspection,
     byte_count: u64,
     cleanup_safe: bool,
 }
@@ -18,8 +17,7 @@ impl CheckpointCoveredWalArtifact {
     pub(super) fn from_candidate(candidate: &PhysicalWalSegmentCandidate) -> Self {
         let interruption = candidate.interrupted_tail();
         Self {
-            identity: candidate.identity(),
-            lsn_range: candidate.inspection().lsn_range(),
+            inspection: candidate.inspection(),
             byte_count: interruption.map_or(candidate.inspection().byte_count(), |tail| {
                 tail.observed_bytes()
             }),
@@ -28,15 +26,23 @@ impl CheckpointCoveredWalArtifact {
     }
 
     pub const fn identity(self) -> WalSegmentArtifactIdentity {
-        self.identity
+        self.inspection.identity()
     }
 
     pub const fn lsn_range(self) -> WalLsnRange {
-        self.lsn_range
+        self.inspection.lsn_range()
     }
 
     pub const fn byte_count(self) -> u64 {
         self.byte_count
+    }
+
+    /// Complete WAL facts retained from the exact verified artifact.
+    ///
+    /// This remains descriptive input. The Store cleanup owner must bind it to
+    /// the independently reopened root and verified checkpoint before removal.
+    pub const fn inspection(self) -> WalSegmentInspection {
+        self.inspection
     }
 
     pub const fn cleanup_safe(self) -> bool {

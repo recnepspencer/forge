@@ -131,8 +131,22 @@ impl RecoveryCleanupAccounting {
                 self.record_removal_scheduler(true, false, false, true);
             }
             RecoveryCleanupDeferralEvidence::PublishedGenerationChanged { .. }
-            | RecoveryCleanupDeferralEvidence::EligibilityChanged { .. } => {}
+            | RecoveryCleanupDeferralEvidence::EligibilityChanged { .. }
+            | RecoveryCleanupDeferralEvidence::Cancelled { .. }
+            | RecoveryCleanupDeferralEvidence::CancellationBindingMismatch { .. } => {}
         }
+        self.deferrals.push(evidence);
+    }
+
+    pub(super) fn record_cancellation(
+        &mut self,
+        actions: u64,
+        bytes: u64,
+        evidence: RecoveryCleanupDeferralEvidence,
+    ) {
+        self.counters.cancellation_requests += 1;
+        self.counters.actions_cancelled += actions;
+        self.counters.bytes_cancelled += bytes;
         self.deferrals.push(evidence);
     }
 

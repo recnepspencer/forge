@@ -1,6 +1,6 @@
 use worth_store::physical_runtime::{
     PhysicalRecoveryCleanupRemovalOutcome, PhysicalRecoveryFreshnessPort,
-    StoreRecoveryCleanupFreshnessSample,
+    StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessSample,
 };
 
 use crate::handoff::RecoveryCleanupDeferralEvidence;
@@ -26,14 +26,14 @@ pub(super) enum RecoveryCleanupAttempt {
 pub(super) struct RecoveryCleanupAttemptBasis<'a> {
     reopened: &'a ReopenedPhysicalRecovery,
     plan: &'a RecoveryCleanupPlan,
-    command_basis: Option<&'a RecoveryCleanupCommandBasis>,
+    command_basis: Option<&'a RecoveryCleanupCommandBasis<'a>>,
 }
 
 impl<'a> RecoveryCleanupAttemptBasis<'a> {
     pub(super) const fn new(
         reopened: &'a ReopenedPhysicalRecovery,
         plan: &'a RecoveryCleanupPlan,
-        command_basis: Option<&'a RecoveryCleanupCommandBasis>,
+        command_basis: Option<&'a RecoveryCleanupCommandBasis<'a>>,
     ) -> Self {
         Self {
             reopened,
@@ -48,20 +48,24 @@ impl<'a> RecoveryCleanupAttemptBasis<'a> {
         candidate: RecoveryCleanupEligibility,
     ) -> RecoveryCleanupAttempt {
         let target = RecoveryCleanupTarget::Wal(candidate.artifact());
-        let freshness = match self.sample_freshness(target.clone()) {
-            Ok(sample) => sample,
+        let admission = match self.sample_freshness(target.clone(), candidate.inspection()) {
+            Ok(admission) => admission,
             Err(attempt) => return attempt,
         };
-        if let Some(evidence) = self.changed_evidence(target.clone(), &freshness, expected_policy) {
+        if let Some(evidence) =
+            self.changed_evidence(target.clone(), admission.sample(), expected_policy)
+        {
+            let (freshness, _) = admission.into_parts();
             return RecoveryCleanupAttempt::Deferred {
                 freshness: Some(freshness),
                 evidence,
                 stop: true,
             };
         }
+        let (freshness, authorization) = admission.into_parts();
         let Some(command) = self
             .command_basis
-            .and_then(|basis| basis.command(self.plan, candidate))
+            .and_then(|basis| basis.command(authorization, candidate))
         else {
             return RecoveryCleanupAttempt::Deferred {
                 evidence: RecoveryCleanupDeferralEvidence::EligibilityChanged { target },
@@ -75,12 +79,14 @@ impl<'a> RecoveryCleanupAttemptBasis<'a> {
     fn sample_freshness(
         &self,
         target: RecoveryCleanupTarget,
-    ) -> Result<StoreRecoveryCleanupFreshnessSample, RecoveryCleanupAttempt> {
+        wal: worth_store_recovery_physics::WalSegmentInspection,
+    ) -> Result<StoreRecoveryCleanupFreshnessAdmission, RecoveryCleanupAttempt> {
         PhysicalRecoveryFreshnessPort::sample_cleanup(
             self.reopened.state.coordination.owner(),
             &self.reopened.state.authority.media,
             self.plan.identity(),
             self.reopened.expectation.plan_identity(),
+            wal,
         )
         .map_err(|failure| RecoveryCleanupAttempt::Deferred {
             freshness: None,

@@ -29,6 +29,9 @@ pub struct RecoveryCleanupCounters {
     pub denied_before_effect: u64,
     pub indeterminate_effects: u64,
     pub performed_effects: u64,
+    pub cancellation_requests: u64,
+    pub actions_cancelled: u64,
+    pub bytes_cancelled: u64,
     pub scheduler_commands_submitted: u64,
     pub scheduler_commands_deferred: u64,
     pub scheduler_commands_cancelled: u64,
@@ -54,6 +57,13 @@ pub enum RecoveryCleanupDeferralEvidence {
         observed: u64,
     },
     EligibilityChanged {
+        target: RecoveryCleanupTarget,
+    },
+    Cancelled {
+        target: RecoveryCleanupTarget,
+        settled_actions: u64,
+    },
+    CancellationBindingMismatch {
         target: RecoveryCleanupTarget,
     },
     DeniedBeforeEffect {
@@ -168,6 +178,8 @@ impl RecoveryCleanupDeferralEvidence {
             Self::Freshness { target, .. }
             | Self::PublishedGenerationChanged { target, .. }
             | Self::EligibilityChanged { target }
+            | Self::Cancelled { target, .. }
+            | Self::CancellationBindingMismatch { target }
             | Self::DeniedBeforeEffect { target, .. }
             | Self::IndeterminateEffect { target, .. } => target,
         }

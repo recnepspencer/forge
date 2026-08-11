@@ -32,6 +32,8 @@ pub enum RecoveryCleanupDeferralReason {
     FreshnessUnavailable,
     PublishedGenerationChanged,
     EligibilityChanged,
+    Cancelled,
+    CancellationBindingMismatch,
     DeniedBeforeEffect,
     IndeterminateEffect,
 }

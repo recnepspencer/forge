@@ -76,6 +76,7 @@ pub(super) const REQUIRED_DESTINATIONS: &[&str] = &[
     "crates/worth-store-recovery-runtime/src/cleanup/execution.rs",
     "crates/worth-store-recovery-runtime/src/cleanup/accounting.rs",
     "crates/worth-store-recovery-runtime/src/cleanup/attempt.rs",
+    "crates/worth-store-recovery-runtime/src/cleanup/cancellation.rs",
     "crates/worth-store-recovery-runtime/src/cleanup/command_basis.rs",
     "crates/worth-store-recovery-runtime/src/cleanup/disposition.rs",
     "crates/worth-store-recovery-runtime/src/observation/mod.rs",

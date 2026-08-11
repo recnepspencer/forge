@@ -1,7 +1,15 @@
-use worth_store_physical_format::PhysicalCheckpointIdentity;
-use worth_store_wal::{LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity};
+use worth_store_physical_backend::PhysicalRecoveryMediaGeneration;
+use worth_store_physical_format::{
+    store_namespace::StableStoreIdentity, PhysicalCheckpointIdentity, VerifiedCheckpointStream,
+};
+use worth_store_wal::{
+    LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity, WalSegmentInspection,
+};
 
-use crate::physical_runtime::PhysicalWorkSchedulerPosture;
+use crate::physical_runtime::{
+    CompletedPhysicalRecoveryFreshReopen, PhysicalRecoveryCleanupAuthorization,
+    PhysicalWorkSchedulerPosture,
+};
 
 use super::super::{PerformedRecoveryPhysicalEffect, RecoveryCleanupRemovalAction};
 
@@ -9,6 +17,9 @@ mod execution;
 pub(super) use execution::execute;
 
 pub struct PhysicalRecoveryCleanupRemovalCommand {
+    store: StableStoreIdentity,
+    media_generation: PhysicalRecoveryMediaGeneration,
+    session: [u8; 16],
     plan: [u8; 32],
     published_generation: u64,
     checkpoint: PhysicalCheckpointIdentity,
@@ -18,24 +29,7 @@ pub struct PhysicalRecoveryCleanupRemovalCommand {
     artifact: WalSegmentArtifactIdentity,
     lsn_range: WalLsnRange,
     byte_count: u64,
-}
-
-pub struct PhysicalRecoveryCleanupPublicationBasis {
-    plan: [u8; 32],
-    published_generation: u64,
-    checkpoint: PhysicalCheckpointIdentity,
-}
-
-pub struct PhysicalRecoveryCleanupCompactionBasis {
-    generation: u64,
-    digest: [u8; 32],
-    retained_boundary: LogSequenceNumber,
-}
-
-pub struct PhysicalRecoveryCleanupWalBasis {
-    artifact: WalSegmentArtifactIdentity,
-    lsn_range: WalLsnRange,
-    byte_count: u64,
+    artifact_digest: [u8; 32],
 }
 
 pub struct CompletedPhysicalRecoveryCleanupRemoval {
@@ -82,68 +76,51 @@ pub enum PhysicalRecoveryCleanupRemovalOutcome {
 }
 
 impl PhysicalRecoveryCleanupRemovalCommand {
+    /// Binds one owner-sampled cleanup authorization to performed reopen and
+    /// independently verified checkpoint/WAL facts.
+    ///
+    /// Shape-only coordinates cannot construct this command. The selected
+    /// checkpoint must name the independently reopened root, and the complete
+    /// WAL artifact must be wholly covered by that checkpoint.
     pub fn new(
-        publication: PhysicalRecoveryCleanupPublicationBasis,
-        compaction: PhysicalRecoveryCleanupCompactionBasis,
-        wal: PhysicalRecoveryCleanupWalBasis,
+        authorization: PhysicalRecoveryCleanupAuthorization,
+        reopened: &CompletedPhysicalRecoveryFreshReopen,
+        checkpoint: &VerifiedCheckpointStream,
+        wal: WalSegmentInspection,
     ) -> Option<Self> {
-        (publication.published_generation != 0
-            && compaction.generation != 0
-            && wal.byte_count != 0
-            && wal.lsn_range.end_exclusive() <= compaction.retained_boundary)
-            .then_some(Self {
-                plan: publication.plan,
-                published_generation: publication.published_generation,
-                checkpoint: publication.checkpoint,
-                compaction_generation: compaction.generation,
-                compaction_digest: compaction.digest,
-                retained_boundary: compaction.retained_boundary,
-                artifact: wal.artifact,
-                lsn_range: wal.lsn_range,
-                byte_count: wal.byte_count,
-            })
-    }
-}
-
-impl PhysicalRecoveryCleanupPublicationBasis {
-    pub const fn new(
-        plan: [u8; 32],
-        published_generation: u64,
-        checkpoint: PhysicalCheckpointIdentity,
-    ) -> Self {
-        Self {
-            plan,
-            published_generation,
-            checkpoint,
-        }
-    }
-}
-
-impl PhysicalRecoveryCleanupCompactionBasis {
-    pub const fn new(
-        generation: u64,
-        digest: [u8; 32],
-        retained_boundary: LogSequenceNumber,
-    ) -> Self {
-        Self {
-            generation,
-            digest,
+        let occurrence = reopened.fresh_reopen_occurrence();
+        let root = reopened.root();
+        let source = checkpoint.source();
+        let checkpoint_root = source.root();
+        let retained_boundary = LogSequenceNumber::new(source.wal().covered_end_lsn_exclusive());
+        let compaction = checkpoint.compaction_cutover();
+        let store = source.identity().store_identity();
+        let admissible = authorization.matches(
+            store,
+            authorization.media_generation(),
+            occurrence.session(),
+            occurrence.generation(),
+            occurrence.plan(),
+            wal,
+        ) && checkpoint_root.generation() <= root.generation()
+            && checkpoint_root.tree_identity() == root.tree_identity()
+            && wal.byte_count() != 0
+            && wal.lsn_range().end_exclusive() <= retained_boundary;
+        admissible.then_some(Self {
+            store: authorization.store_identity(),
+            media_generation: authorization.media_generation(),
+            session: authorization.session(),
+            plan: authorization.cleanup_plan_identity(),
+            published_generation: authorization.published_generation(),
+            checkpoint: source.identity(),
+            compaction_generation: compaction.product_generation(),
+            compaction_digest: checkpoint.footer().binding_records_digest(),
             retained_boundary,
-        }
-    }
-}
-
-impl PhysicalRecoveryCleanupWalBasis {
-    pub const fn new(
-        artifact: WalSegmentArtifactIdentity,
-        lsn_range: WalLsnRange,
-        byte_count: u64,
-    ) -> Self {
-        Self {
-            artifact,
-            lsn_range,
-            byte_count,
-        }
+            artifact: wal.identity(),
+            lsn_range: wal.lsn_range(),
+            byte_count: wal.byte_count(),
+            artifact_digest: wal.artifact_digest(),
+        })
     }
 }
 

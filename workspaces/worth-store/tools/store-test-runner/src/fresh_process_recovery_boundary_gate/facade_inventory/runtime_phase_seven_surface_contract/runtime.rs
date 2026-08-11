@@ -10,6 +10,11 @@ pub(super) const RUNTIME_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
+        "PhysicalRecoveryCleanupCancellation",
+        "cleanup/cancellation",
+        "phase-7",
+    ),
+    (
         "RecoveredPhysicalRuntimeHandoff::cleanup_posture",
         "handoff/recovered",
         "phase-7",
@@ -143,6 +148,21 @@ pub(super) const RUNTIME_SURFACES: &[(&str, &str, &str)] = &[
     (
         "RecoveryCleanupPosture::is_deferred",
         "handoff/cleanup_posture",
+        "phase-7",
+    ),
+    (
+        "ReopenedPhysicalRecovery::cleanup_cancellation_after_removal",
+        "progression/reopened",
+        "phase-7",
+    ),
+    (
+        "ReopenedPhysicalRecovery::cleanup_cancellation_before_first",
+        "progression/reopened",
+        "phase-7",
+    ),
+    (
+        "ReopenedPhysicalRecovery::finish_with_cleanup_cancellation",
+        "progression/reopened",
         "phase-7",
     ),
 ];

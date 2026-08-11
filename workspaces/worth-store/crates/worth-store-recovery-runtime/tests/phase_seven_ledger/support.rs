@@ -51,6 +51,33 @@ pub(super) fn validate_shape(
     }
 }
 
+pub(super) fn validate_requirement_inventory(document: &str, guarantees: &[&str]) {
+    let rows = rows_between(
+        document,
+        "<!-- c8-phase7-requirements:start -->",
+        "<!-- c8-phase7-requirements:end -->",
+        "| C8-P7-",
+    );
+    assert_eq!(rows.len(), guarantees.len());
+    let actual = rows
+        .iter()
+        .map(|row| {
+            let values = cells(row);
+            assert_eq!(values.len(), 2);
+            assert!(!values[1].is_empty());
+            values[0].clone()
+        })
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual.len(), rows.len(), "duplicate Phase 7 requirement");
+    assert_eq!(
+        actual,
+        guarantees
+            .iter()
+            .map(|guarantee| (*guarantee).to_owned())
+            .collect()
+    );
+}
+
 fn validate_findings(ledger: &str, contract: LedgerContract<'_>) {
     let rows = rows_between(
         ledger,

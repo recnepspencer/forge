@@ -8,8 +8,9 @@ mod orchestration;
 mod progression;
 
 pub use cleanup::{
-    PerformedRecoveryCleanupRemoval, RecoveryCleanupDeferralReason, RecoveryCleanupDisposition,
-    RecoveryCleanupDispositionKind, RecoveryCleanupEligibility, RecoveryCleanupTarget,
+    PerformedRecoveryCleanupRemoval, PhysicalRecoveryCleanupCancellation,
+    RecoveryCleanupDeferralReason, RecoveryCleanupDisposition, RecoveryCleanupDispositionKind,
+    RecoveryCleanupEligibility, RecoveryCleanupTarget,
 };
 pub use entry::{
     PhysicalManifestObservationDenial, PhysicalRecoveryAdmissionCounters, PhysicalRecoveryBlock,
