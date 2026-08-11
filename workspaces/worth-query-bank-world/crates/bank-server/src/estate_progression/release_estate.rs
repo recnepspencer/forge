@@ -72,16 +72,16 @@ impl BankIdentityRuntime {
                 ReleaseEstateCapability::reference(),
                 ReleaseEstateOperation::reference(),
             )
-            .map_err(BankEstateProgressionDenial::CapabilityInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_capability_installation)?;
         let access = self
             .application_runtime()
             .admit_capability_access(principal.query(), &capability, action, request)
-            .map_err(BankEstateProgressionDenial::Authorization)?;
+            .map_err(BankEstateProgressionDenial::from_authorization)?;
         let operation = self
             .application_runtime()
             .installed_schema()
             .installed_operation(ReleaseEstateOperation::reference())
-            .map_err(BankEstateProgressionDenial::OperationInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_operation_installation)?;
         self.application_runtime()
             .authorize_capability_operation(
                 access,
@@ -92,7 +92,7 @@ impl BankIdentityRuntime {
                     EstateCase,
                 >::default(),
             )
-            .map_err(BankEstateProgressionDenial::Authorization)
+            .map_err(BankEstateProgressionDenial::from_authorization)
     }
 
     fn materialize_estate_release(
@@ -107,22 +107,22 @@ impl BankIdentityRuntime {
             .project_admitted_operation(&admission, |reader, root| {
                 project_release_readiness(reader, root, command)
             })
-            .map_err(BankEstateProgressionDenial::Projection)?;
+            .map_err(BankEstateProgressionDenial::from_projection)?;
         let (projection_result, projection, _) = projected.into_parts();
         projection_result.map_err(BankEstateProgressionDenial::EstateReleaseProjection)?;
         let mut reads = self
             .application_runtime()
             .begin_projected_application_read_attempt(admission, projection)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let estate = reads
             .resolve_entity(EstateCaseIdentityField::reference(), command.estate)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let executor = reads
             .resolve_entity(PrincipalIdentityField::reference(), command.executor)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         let executor_relation = reads
             .observe_relation(EstateExecutor::reference(), &executor, &estate)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         if executor_relation.count() != 1 {
             return Err(BankEstateProgressionDenial::EstateReleaseProjection(
                 BankEstateReleaseProjectionDenial::ExecutorRelationCardinality {
@@ -132,21 +132,21 @@ impl BankIdentityRuntime {
         }
         let mut effects = reads
             .complete_projected_dependencies()
-            .map_err(BankEstateProgressionDenial::Attempt)?
+            .map_err(BankEstateProgressionDenial::from_attempt)?
             .begin_effect_program();
         let estate = effects
             .existing_entity(&estate)
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         effects
             .write_field(
                 &estate,
                 EstateCaseStatusField::reference(),
                 EstateCaseStatus::Released,
             )
-            .map_err(BankEstateProgressionDenial::Attempt)?;
+            .map_err(BankEstateProgressionDenial::from_attempt)?;
         effects
             .finish()
-            .map_err(BankEstateProgressionDenial::Attempt)
+            .map_err(BankEstateProgressionDenial::from_attempt)
     }
 }
 

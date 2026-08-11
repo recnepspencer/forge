@@ -8,6 +8,8 @@
 //! Safe-retry re-dispatch (Gate 8.7) shares this module so
 //! [`dispatch_external_effect`] remains the single classification site (R8.67).
 
+#![deny(private_interfaces)]
+
 use std::sync::Arc;
 
 use worth_query_installation::facade::ApplicationSchema;
@@ -29,6 +31,17 @@ pub enum WorthQueryExternalTransportInstallationDenial {
     AlreadyInstalled,
 }
 
+/// Exact failure before an initial post-commit transport call could be made.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryExternalDispatchPreparationDenial {
+    OwnerReadDenied(
+        crate::domain_computation::primary_graph::WorthQueryCommittedDispatchOutboxReadDenial,
+    ),
+    AttemptAdmissionDenied,
+    CanonicalDerivationDenied,
+    TimeObservationDenied,
+}
+
 /// Why an admitted re-dispatch could not run.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryExternalRedispatchDenial {
@@ -38,8 +51,73 @@ pub enum WorthQueryExternalRedispatchDenial {
     BindingOutboxMissing,
     /// No host transport is installed on this runtime.
     TransportNotInstalled,
+    /// Relational could not establish the exact committed owner row.
+    OwnerReadDenied(
+        crate::domain_computation::primary_graph::WorthQueryCommittedDispatchOutboxReadDenial,
+    ),
+    /// This runtime could not mint a runtime-affine physical attempt.
+    AttemptAdmissionDenied,
     /// Canonical derivation for the dispatch event identity failed.
-    DerivationFailed,
+    CanonicalDerivationDenied,
+    /// The installed runtime clock could not classify this physical attempt.
+    TimeObservationDenied,
+}
+
+/// Owner-sealed material for one re-dispatch that actually crossed the
+/// runtime's committed-observation dispatch operation.
+///
+/// The fields and constructor stay private to this module. Other crate
+/// siblings may pass the seal to the recovery evidence owner, but cannot mint
+/// one from a free handle identity and dispatch.
+pub(crate) struct WorthQueryPerformedExternalRedispatchSeal {
+    handle: crate::domain_computation::application_aftermath::recovery_handle::WorthQueryRecoveryHandleAuthorityIdentity,
+    dispatch: WorthQueryExternalEffectDispatch,
+}
+
+struct WorthQueryExternalRedispatchMint;
+
+impl WorthQueryExternalRedispatchMint {
+    const fn witness() -> Self {
+        Self
+    }
+}
+
+impl WorthQueryPerformedExternalRedispatchSeal {
+    fn new(
+        _mint: WorthQueryExternalRedispatchMint,
+        handle: crate::domain_computation::application_aftermath::recovery_handle::WorthQueryRecoveryHandleAuthorityIdentity,
+        dispatch: WorthQueryExternalEffectDispatch,
+    ) -> Self {
+        Self { handle, dispatch }
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        crate::domain_computation::application_aftermath::recovery_handle::WorthQueryRecoveryHandleAuthorityIdentity,
+        WorthQueryExternalEffectDispatch,
+    ){
+        (self.handle, self.dispatch)
+    }
+}
+
+#[cfg(test)]
+pub(in crate::domain_computation) fn perform_external_redispatch_owner_fixture(
+    handle: &WorthQueryRecoveryHandle,
+    transport: &dyn WorthQueryExternalEffectTransport,
+    admitted: crate::domain_computation::application_aftermath::external_effect::WorthQueryAdmittedExternalDispatchAttempt,
+) -> Result<
+    WorthQueryPerformedExternalRedispatch,
+    crate::domain_computation::application_aftermath::WorthQueryAftermathDerivationFailure,
+> {
+    let dispatch = dispatch_external_effect(transport, admitted)?;
+    Ok(WorthQueryPerformedExternalRedispatch::record(
+        WorthQueryPerformedExternalRedispatchSeal::new(
+            WorthQueryExternalRedispatchMint::witness(),
+            handle.authority_identity(),
+            dispatch,
+        ),
+    ))
 }
 
 impl From<WorthQueryExternalRedispatchDenial> for WorthQueryRecoveryHandleDenial {
@@ -56,7 +134,10 @@ impl From<WorthQueryExternalRedispatchDenial> for WorthQueryRecoveryHandleDenial
                 )
             }
             WorthQueryExternalRedispatchDenial::TransportNotInstalled
-            | WorthQueryExternalRedispatchDenial::DerivationFailed => {
+            | WorthQueryExternalRedispatchDenial::OwnerReadDenied(_)
+            | WorthQueryExternalRedispatchDenial::AttemptAdmissionDenied
+            | WorthQueryExternalRedispatchDenial::CanonicalDerivationDenied
+            | WorthQueryExternalRedispatchDenial::TimeObservationDenied => {
                 WorthQueryRecoveryHandleDenial::new(
                     WorthQueryRecoveryHandleDenialKind::TransitionNotAdmitted,
                 )
@@ -113,17 +194,32 @@ where
         let committed = self
             .primary_provider
             .committed_dispatch_outbox_for_binding(handle.binding())
-            .map_err(|_| WorthQueryExternalRedispatchDenial::DerivationFailed)?;
+            .map_err(WorthQueryExternalRedispatchDenial::OwnerReadDenied)?;
         let Some(transport) = self.external_effect_transport.get() else {
             return Err(WorthQueryExternalRedispatchDenial::TransportNotInstalled);
         };
         let dispatch = self
-            .dispatch_committed_observation_with_fresh_attempt(transport.as_ref(), committed)
-            .ok_or(WorthQueryExternalRedispatchDenial::DerivationFailed)?
-            .map_err(|_| WorthQueryExternalRedispatchDenial::DerivationFailed)?;
+            .perform_committed_external_dispatch(transport.as_ref(), committed)
+            .map_err(|denial| match denial {
+                WorthQueryExternalDispatchPreparationDenial::AttemptAdmissionDenied => {
+                    WorthQueryExternalRedispatchDenial::AttemptAdmissionDenied
+                }
+                WorthQueryExternalDispatchPreparationDenial::CanonicalDerivationDenied => {
+                    WorthQueryExternalRedispatchDenial::CanonicalDerivationDenied
+                }
+                WorthQueryExternalDispatchPreparationDenial::TimeObservationDenied => {
+                    WorthQueryExternalRedispatchDenial::TimeObservationDenied
+                }
+                WorthQueryExternalDispatchPreparationDenial::OwnerReadDenied(_) => {
+                    unreachable!("owner read occurs before the common dispatch operation")
+                }
+            })?;
         Ok(WorthQueryPerformedExternalRedispatch::record(
-            handle.authority_identity(),
-            dispatch,
+            WorthQueryPerformedExternalRedispatchSeal::new(
+                WorthQueryExternalRedispatchMint::witness(),
+                handle.authority_identity(),
+                dispatch,
+            ),
         ))
     }
 
@@ -140,34 +236,41 @@ where
         let Some(transport) = self.external_effect_transport.get() else {
             return WorthQueryApplicationCommitOutcome::Committed(receipt);
         };
-        let Ok(Some(committed)) = self.observe_committed_dispatch_outbox(&receipt) else {
-            return WorthQueryApplicationCommitOutcome::Committed(receipt);
+        let committed = match self.observe_committed_dispatch_outbox(&receipt) {
+            Ok(Some(committed)) => committed,
+            Ok(None) => return WorthQueryApplicationCommitOutcome::Committed(receipt),
+            Err(denial) => {
+                return WorthQueryApplicationCommitOutcome::Committed(
+                    receipt.with_external_dispatch_preparation_denial(
+                        WorthQueryExternalDispatchPreparationDenial::OwnerReadDenied(denial),
+                    ),
+                );
+            }
         };
-        let Some(dispatch) =
-            self.dispatch_committed_observation_with_fresh_attempt(transport.as_ref(), committed)
-        else {
-            return WorthQueryApplicationCommitOutcome::Committed(receipt);
-        };
-        match dispatch {
+        match self.perform_committed_external_dispatch(transport.as_ref(), committed) {
             Ok(dispatch) => WorthQueryApplicationCommitOutcome::Committed(
                 receipt.with_external_dispatch(dispatch),
             ),
-            Err(_) => WorthQueryApplicationCommitOutcome::Committed(receipt),
+            Err(denial) => WorthQueryApplicationCommitOutcome::Committed(
+                receipt.with_external_dispatch_preparation_denial(denial),
+            ),
         }
     }
 
-    fn dispatch_committed_observation_with_fresh_attempt(
+    fn perform_committed_external_dispatch(
         &self,
         transport: &dyn WorthQueryExternalEffectTransport,
         committed: crate::domain_computation::primary_graph::WorthQueryCommittedDispatchOutboxObservation,
-    ) -> Option<
-        Result<
-            WorthQueryExternalEffectDispatch,
-            crate::domain_computation::application_aftermath::WorthQueryAftermathDerivationFailure,
-        >,
-    > {
-        let admitted = self.admit_external_dispatch_attempt(committed).ok()?;
-        Some(dispatch_external_effect(transport, admitted))
+    ) -> Result<WorthQueryExternalEffectDispatch, WorthQueryExternalDispatchPreparationDenial> {
+        let admitted = self
+            .admit_external_dispatch_attempt(committed)
+            .map_err(|_| WorthQueryExternalDispatchPreparationDenial::AttemptAdmissionDenied)?;
+        dispatch_external_effect(transport, admitted).map_err(|denial| match denial {
+            crate::domain_computation::application_aftermath::WorthQueryAftermathDerivationFailure::RuntimeTimeUnavailable => {
+                WorthQueryExternalDispatchPreparationDenial::TimeObservationDenied
+            }
+            _ => WorthQueryExternalDispatchPreparationDenial::CanonicalDerivationDenied,
+        })
     }
 }
 
@@ -177,10 +280,12 @@ mod tests {
 
     use super::*;
     use crate::domain_computation::application_aftermath::{
-        external_effect::tests::committed_outbox, WorthQueryExternalDispatchRequest,
+        external_effect::tests::outbox_record, WorthQueryExternalDispatchRequest,
         WorthQueryExternalTransportOutcome,
     };
-    use crate::domain_computation::primary_graph::tests::fixture::installed_authorization_world;
+    use crate::domain_computation::primary_graph::{
+        commit_and_observe_fixture, tests::fixture::installed_authorization_world,
+    };
 
     struct RetryTransport(AtomicUsize);
 
@@ -200,21 +305,20 @@ mod tests {
     fn production_fresh_attempt_operation_distinguishes_safe_redispatch() {
         let world = installed_authorization_world(true);
         let transport = RetryTransport(AtomicUsize::new(0));
-        let original_observation = committed_outbox(11);
-        let retry_observation = committed_outbox(11);
+        let original_observation =
+            commit_and_observe_fixture(&world.application.primary_provider, &outbox_record(11));
+        let retry_observation = original_observation.clone();
         assert_eq!(
             original_observation.record().correlation(),
             retry_observation.record().correlation()
         );
         let original = world
             .application
-            .dispatch_committed_observation_with_fresh_attempt(&transport, original_observation)
-            .expect("runtime attempt ordinal")
+            .perform_committed_external_dispatch(&transport, original_observation)
             .expect("original dispatch");
         let retry = world
             .application
-            .dispatch_committed_observation_with_fresh_attempt(&transport, retry_observation)
-            .expect("runtime retry ordinal")
+            .perform_committed_external_dispatch(&transport, retry_observation)
             .expect("safe redispatch");
         assert_eq!(
             original.causal_ladder().emission().identity(),
@@ -225,5 +329,41 @@ mod tests {
             retry.causal_ladder().attempt().identity()
         );
         assert!(retry.is_external_completion());
+    }
+
+    #[test]
+    fn foreign_owner_observation_denies_before_transport_and_preserves_cause() {
+        let world = installed_authorization_world(true);
+        let foreign_world = installed_authorization_world(true);
+        let transport = RetryTransport(AtomicUsize::new(0));
+        let foreign = commit_and_observe_fixture(
+            &foreign_world.application.primary_provider,
+            &outbox_record(17),
+        );
+
+        assert_eq!(
+            world
+                .application
+                .perform_committed_external_dispatch(&transport, foreign),
+            Err(WorthQueryExternalDispatchPreparationDenial::AttemptAdmissionDenied)
+        );
+        assert_eq!(transport.0.load(Ordering::Acquire), 0);
+    }
+
+    #[test]
+    fn unavailable_runtime_time_is_a_typed_dispatch_preparation_denial() {
+        let world = installed_authorization_world(true);
+        world.authorization_time.script([]);
+        let transport = RetryTransport(AtomicUsize::new(0));
+        let observation =
+            commit_and_observe_fixture(&world.application.primary_provider, &outbox_record(18));
+
+        assert_eq!(
+            world
+                .application
+                .perform_committed_external_dispatch(&transport, observation),
+            Err(WorthQueryExternalDispatchPreparationDenial::TimeObservationDenied)
+        );
+        assert_eq!(transport.0.load(Ordering::Acquire), 1);
     }
 }

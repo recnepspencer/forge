@@ -1,4 +1,3 @@
-pub(crate) mod artifacts;
 pub(crate) mod finalize;
 pub(crate) mod history;
 pub(crate) mod mutation;

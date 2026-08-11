@@ -277,10 +277,6 @@ impl WorthQueryPrimaryGraphLayout {
         &self.provider_dispatch_outbox
     }
 
-    pub(super) fn provider_dispatch_outbox_mut(&mut self) -> &mut WorthQueryDispatchOutboxLayout {
-        &mut self.provider_dispatch_outbox
-    }
-
     pub(super) const fn provider_aftermath_causality(&self) -> &WorthQueryAftermathCausalityLayout {
         &self.provider_aftermath_causality
     }

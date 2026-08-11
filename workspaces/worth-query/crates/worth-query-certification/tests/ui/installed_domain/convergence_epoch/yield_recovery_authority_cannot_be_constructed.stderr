@@ -1,0 +1,97 @@
+error[E0451]: field `association` of struct `WorthQueryDirectConvergenceYieldRunningRecovery` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:13:9
+   |
+12 |     let _ = WorthQueryDirectConvergenceYieldRunningRecovery {
+   |             ----------------------------------------------- in this type
+13 |         association: impossible(),
+   |         ^^^^^^^^^^^ private field
+
+error[E0451]: field `association` of struct `WorthQueryDirectConvergenceYieldTerminalCleanupRequired` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:16:9
+   |
+15 |     let _ = WorthQueryDirectConvergenceYieldTerminalCleanupRequired {
+   |             ------------------------------------------------------- in this type
+16 |         association: impossible(),
+   |         ^^^^^^^^^^^ private field
+
+error[E0451]: field `association` of struct `WorthQueryDirectConvergenceYieldRecoveryCleanupReceipt` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:19:9
+   |
+18 |     let _ = WorthQueryDirectConvergenceYieldRecoveryCleanupReceipt {
+   |             ------------------------------------------------------ in this type
+19 |         association: impossible(),
+   |         ^^^^^^^^^^^ private field
+
+error[E0451]: field `association` of struct `WorthQueryWorkflowConvergenceYieldRunningRecovery` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:22:9
+   |
+21 |     let _ = WorthQueryWorkflowConvergenceYieldRunningRecovery {
+   |             ------------------------------------------------- in this type
+22 |         association: impossible(),
+   |         ^^^^^^^^^^^ private field
+
+error[E0451]: field `association` of struct `WorthQueryWorkflowConvergenceYieldTerminalCleanupRequired` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:25:9
+   |
+24 |     let _ = WorthQueryWorkflowConvergenceYieldTerminalCleanupRequired {
+   |             --------------------------------------------------------- in this type
+25 |         association: impossible(),
+   |         ^^^^^^^^^^^ private field
+
+error[E0451]: field `association` of struct `WorthQueryWorkflowConvergenceYieldRecoveryCleanupPending` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:28:9
+   |
+27 |     let _ = WorthQueryWorkflowConvergenceYieldRecoveryCleanupPending {
+   |             -------------------------------------------------------- in this type
+28 |         association: impossible(),
+   |         ^^^^^^^^^^^ private field
+
+error[E0451]: field `association` of struct `WorthQueryWorkflowConvergenceYieldRecoveryCleanupReceipt` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:31:9
+   |
+30 |     let _ = WorthQueryWorkflowConvergenceYieldRecoveryCleanupReceipt {
+   |             -------------------------------------------------------- in this type
+31 |         association: impossible(),
+   |         ^^^^^^^^^^^ private field
+
+error: type `worth_query_execution::domain_computation::convergence_epoch::iteration_owner::direct::association::yield_phase::DirectYieldRunningRecoveryAssociation` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:13:22
+   |
+13 |         association: impossible(),
+   |                      ^^^^^^^^^^^^ private type
+
+error: type `worth_query_execution::domain_computation::convergence_epoch::iteration_owner::direct::association::yield_phase::DirectYieldTerminalCleanupAssociation` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:16:22
+   |
+16 |         association: impossible(),
+   |                      ^^^^^^^^^^^^ private type
+
+error: type `worth_query_execution::domain_computation::convergence_epoch::iteration_owner::direct::association::yield_phase::DirectYieldRecoveryCleanupReceiptAssociation` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:19:22
+   |
+19 |         association: impossible(),
+   |                      ^^^^^^^^^^^^ private type
+
+error: type `worth_query_execution::domain_computation::convergence_epoch::iteration_owner::workflow::association::yield_phase::WorkflowYieldRunningRecoveryAssociation` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:22:22
+   |
+22 |         association: impossible(),
+   |                      ^^^^^^^^^^^^ private type
+
+error: type `worth_query_execution::domain_computation::convergence_epoch::iteration_owner::workflow::association::yield_phase::WorkflowYieldTerminalCleanupAssociation` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:25:22
+   |
+25 |         association: impossible(),
+   |                      ^^^^^^^^^^^^ private type
+
+error: type `worth_query_execution::domain_computation::convergence_epoch::iteration_owner::workflow::association::yield_phase::WorkflowYieldRecoveryCleanupPendingAssociation` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:28:22
+   |
+28 |         association: impossible(),
+   |                      ^^^^^^^^^^^^ private type
+
+error: type `worth_query_execution::domain_computation::convergence_epoch::iteration_owner::workflow::association::yield_phase::WorkflowYieldRecoveryCleanupReceiptAssociation` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_cannot_be_constructed.rs:31:22
+   |
+31 |         association: impossible(),
+   |                      ^^^^^^^^^^^^ private type

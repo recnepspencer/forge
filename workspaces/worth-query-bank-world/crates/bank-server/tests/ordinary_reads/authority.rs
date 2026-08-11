@@ -1,10 +1,11 @@
 use std::time::{Duration, Instant};
 
-use bank_server::{queries, BankApplicationQueryDenial, BankReadControls};
+use bank_server::{
+    queries, BankApplicationQueryDenial, BankEntityResolutionDenialKind, BankReadControls,
+};
 use worth_query_host::facade::admission::authenticated_principal::{
     WorthQueryCancellationSource, WorthQueryRequestScope,
 };
-use worth_query_host::facade::primary_graph::WorthQueryEntityResolutionDenialKind;
 
 use super::fixture::{ordinary_read_world, APPROVER, AUDITOR, OWNER, STRANGER, TELLER, VIEWER};
 use crate::support::request_scope;
@@ -47,8 +48,10 @@ fn account_visibility_does_not_imply_account_access_management() {
         .users()
         .iter()
         .any(|user| user.principal().get() == u64::try_from(VIEWER).unwrap() + 1));
-    assert_eq!(users_result.receipt().fallback_count(), 0);
-    assert_eq!(users_result.receipt().per_result_neighbor_lookup_count(), 0);
+    assert!(users_result
+        .receipt()
+        .inspect()
+        .terminal_resources_released());
     assert!(fixture
         .world
         .runtime
@@ -84,8 +87,7 @@ fn payment_and_audit_reads_preserve_distinct_authority_paths() {
         .execute()
         .expect("approver should discover approval-required payments");
     assert_eq!(pending.rows(), [payment_summary(&fixture)]);
-    assert_eq!(pending.receipt().fallback_count(), 0);
-    assert_eq!(pending.receipt().per_result_neighbor_lookup_count(), 0);
+    assert!(pending.receipt().inspect().terminal_resources_released());
     let owner_pending = fixture
         .world
         .runtime
@@ -104,8 +106,7 @@ fn payment_and_audit_reads_preserve_distinct_authority_paths() {
         .execute()
         .expect("payment participant should read payment detail");
     assert_eq!(payment.rows(), [payment_summary(&fixture)]);
-    assert_eq!(payment.receipt().fallback_count(), 0);
-    assert_eq!(payment.receipt().per_result_neighbor_lookup_count(), 0);
+    assert!(payment.receipt().inspect().terminal_resources_released());
 
     let audit = fixture
         .world
@@ -120,8 +121,7 @@ fn payment_and_audit_reads_preserve_distinct_authority_paths() {
         .accounts()
         .iter()
         .any(|account| !account.entries().is_empty()));
-    assert_eq!(audit.receipt().fallback_count(), 0);
-    assert_eq!(audit.receipt().per_result_neighbor_lookup_count(), 0);
+    assert!(audit.receipt().inspect().terminal_resources_released());
     assert!(matches!(
         fixture
             .world
@@ -158,7 +158,7 @@ fn cancellation_and_deadline_are_typed_before_projection() {
             .controls(cancelled)
             .execute(),
         Err(BankApplicationQueryDenial::ScopeResolution(denial))
-            if denial.kind() == WorthQueryEntityResolutionDenialKind::Cancelled
+            if denial.kind() == BankEntityResolutionDenialKind::Cancelled
     ));
 
     let deadline_source = WorthQueryCancellationSource::new();
@@ -177,7 +177,7 @@ fn cancellation_and_deadline_are_typed_before_projection() {
             .controls(expired)
             .execute(),
         Err(BankApplicationQueryDenial::ScopeResolution(denial))
-            if denial.kind() == WorthQueryEntityResolutionDenialKind::DeadlineExceeded
+            if denial.kind() == BankEntityResolutionDenialKind::DeadlineExceeded
     ));
 }
 

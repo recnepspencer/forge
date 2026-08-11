@@ -1,0 +1,5 @@
+error[E0599]: no method named `domain_evidence` found for reference `&WorthQueryRetainedConvergenceCandidateEvidence` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/retained_candidate_cannot_authorize_publication.rs:11:29
+   |
+11 |         contract: candidate.domain_evidence().contract(),
+   |                             ^^^^^^^^^^^^^^^ method not found in `&WorthQueryRetainedConvergenceCandidateEvidence`

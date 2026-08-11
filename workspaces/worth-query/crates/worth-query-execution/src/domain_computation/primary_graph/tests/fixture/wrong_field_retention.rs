@@ -1,17 +1,31 @@
 use worth_query_declaration::facade::application_aftermath::{
     DeclaredAftermathPostcondition, DeclaredApplicationAftermathContract,
     DeclaredCorrectionMechanism, DeclaredLoweringCorrespondenceRef, DeclaredPreImageDemand,
-    DeclaredRecordedInverse,
+    DeclaredPreImageLocus, DeclaredRecordedInverse,
 };
 
-pub(in super::super) fn aftermath() -> DeclaredApplicationAftermathContract {
+pub(in super::super) fn aftermath(
+) -> DeclaredApplicationAftermathContract<super::IdentityExecutionSchema> {
+    recorded_inverse("test-wrong-field-inverse", "test-wrong-field-lowering")
+}
+
+fn recorded_inverse(
+    identity: &'static str,
+    lowering: &'static str,
+) -> DeclaredApplicationAftermathContract<super::IdentityExecutionSchema> {
     DeclaredApplicationAftermathContract::runtime_alone(
         DeclaredCorrectionMechanism::RecordedInverse(
             DeclaredRecordedInverse::new(
-                "test-wrong-field-inverse",
-                DeclaredLoweringCorrespondenceRef::new("test-wrong-field-lowering").unwrap(),
+                identity,
+                DeclaredLoweringCorrespondenceRef::new(lowering).unwrap(),
                 DeclaredAftermathPostcondition::ExactPriorTruth,
-                DeclaredPreImageDemand::new(["AccountStatus"], 256).unwrap(),
+                DeclaredPreImageDemand::new(
+                    [DeclaredPreImageLocus::from_field(
+                        super::AccountStatus::reference(),
+                    )],
+                    256,
+                )
+                .unwrap(),
             )
             .unwrap(),
         ),

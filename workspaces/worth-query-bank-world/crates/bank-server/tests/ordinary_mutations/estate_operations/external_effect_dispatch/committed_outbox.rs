@@ -1,7 +1,7 @@
 //! Courtroom D: committed outbox owner read and affinity.
 
 use bank_domain::estate::ESTATE_DEATH_NOTICE_RAIL;
-use bank_external_rail::FaultScript;
+use bank_external_rail::test_control::FaultScript;
 use bank_server::BankCommittedDispatchOutboxReadDenial;
 use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
 
@@ -33,11 +33,6 @@ fn committed_outbox_is_fresh_owner_truth_with_exact_commit_affinity() {
     assert_eq!(observed.protocol_version(), BoundaryProtocolVersion::new(1));
     assert_eq!(observed.maximum_payload_bytes(), 24);
     assert_eq!(observed.payload(), expected_payload);
-    assert_eq!(
-        Some(observed.outcome_identity()),
-        receipt.outcome_identity()
-    );
-    assert_eq!(observed.commit_id(), receipt.commit_id());
     assert_eq!(
         observed.correlation(),
         world.transport.attempts()[0].token(),

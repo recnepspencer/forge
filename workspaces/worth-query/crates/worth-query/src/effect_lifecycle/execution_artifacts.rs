@@ -144,11 +144,11 @@ pub(crate) fn executed_authority_artifact_identity(
                 )
                 .field_usize(
                     WorthQueryEvidenceTag::new("commit_id"),
-                    result.outcome.commit.commit_id.0 as usize,
+                    result.outcome().commit.commit_id.0 as usize,
                 )
                 .field_usize(
                     WorthQueryEvidenceTag::new("version_id"),
-                    result.outcome.commit.version_id.0 as usize,
+                    result.outcome().commit.version_id.0 as usize,
                 )
                 .seal()
         }
@@ -160,11 +160,11 @@ pub(crate) fn executed_authority_artifact_identity(
                 )
                 .field_usize(
                     WorthQueryEvidenceTag::new("commit_id"),
-                    result.commit.outcome.commit.commit_id.0 as usize,
+                    result.commit.outcome().commit.commit_id.0 as usize,
                 )
                 .field_usize(
                     WorthQueryEvidenceTag::new("version_id"),
-                    result.commit.outcome.commit.version_id.0 as usize,
+                    result.commit.outcome().commit.version_id.0 as usize,
                 )
                 .seal()
         }

@@ -16,15 +16,12 @@ impl WorthQueryDecisionFactProvider for Arc<WorthQueryPrimaryGraphProvider> {
         request: WorthQueryDecisionFactRequestView<'_>,
         admission: WorthQueryDecisionFactAdmission,
     ) -> Result<WorthQueryDecisionFactEvidence, WorthQueryDecisionReadSetFailure> {
-        let sessions = self
-            .sessions
+        let observed = self
+            .attempts
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let attempt = sessions
-            .application_attempts
-            .get(session.identity())
-            .ok_or_else(provider_rejected)?;
-        if !attempt.facts.contains_key(request.locator().identity()) {
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .contains_observed_fact(session.affinity_identity(), request.locator().identity());
+        if !observed {
             return Err(provider_rejected());
         }
         admission.observe(format!(
@@ -40,22 +37,14 @@ impl WorthQueryDecisionFactProvider for Arc<WorthQueryPrimaryGraphProvider> {
         admission: WorthQueryDecisionFactComparisonAdmission,
     ) -> Result<WorthQueryDecisionFactComparisonEvidence, WorthQueryDecisionReadSetFailure> {
         let (fact, branch) = {
-            let sessions = self
-                .sessions
+            self.attempts
                 .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            let attempt = sessions
-                .application_attempts
-                .get(session.identity())
-                .ok_or_else(provider_rejected)?;
-            (
-                attempt
-                    .facts
-                    .get(evidence.locator().identity())
-                    .cloned()
-                    .ok_or_else(provider_rejected)?,
-                attempt.branch.clone(),
-            )
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .observed_fact_and_branch(
+                    session.affinity_identity(),
+                    evidence.locator().identity(),
+                )
+                .ok_or_else(provider_rejected)?
         };
         let fresh = self.graph.with_runtime_mut(|runtime| {
             let Some(snapshot) = runtime.snapshots().snapshot_for_branch(&branch) else {

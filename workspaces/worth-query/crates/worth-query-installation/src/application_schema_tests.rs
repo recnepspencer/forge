@@ -1,13 +1,12 @@
 use worth_query_declaration::facade::application_aftermath::DeclaredApplicationAftermathContract;
 use worth_query_declaration::facade::application_schema::{
     ApplicationAbilityRef, ApplicationAspectRef, ApplicationAuthorizationPathBuilder,
-    ApplicationEntityRef, ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationRef,
-    ApplicationPolicyRef, ApplicationPrincipalBindingRef, ApplicationPrincipalBindingRequirements,
+    ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef,
+    ApplicationPrincipalBindingRef, ApplicationPrincipalBindingRequirements,
     ApplicationPrincipalIdentityRequirement, ApplicationPrincipalMappingIdentityRequirement,
     ApplicationPrincipalMappingStatusRequirement, ApplicationPrincipalTargetRequirement,
     ApplicationRelationRef, ApplicationSchema, ApplicationSchemaDeclaration,
-    ApplicationSchemaDeclarationBuilder, DeclaredApplicationFieldValue, EqualityPredicate,
-    NoEqualityPredicate, OperationCreates, OperationExpectsFact, OperationReads,
+    ApplicationSchemaDeclarationBuilder, EqualityPredicate, NoEqualityPredicate, OperationReads,
     OperationRequiresAbility, ReadOnly, ReadWrite,
 };
 use worth_query_declaration::facade::authentication::{
@@ -23,44 +22,25 @@ use crate::facade::{
 };
 
 mod aftermath_coverage;
+mod field_references;
 mod operation_contracts;
 mod package_schema_identity;
 mod principal_binding;
 mod read_only_operations;
 
+use field_references::*;
 use principal_binding::test_principal_binding;
 
 struct TestSchema;
 struct DriftedSchema;
-struct TestEntity;
 struct AddedEntity;
 struct TestAbility;
 struct TestOperation;
 struct TestInput;
-struct IdentityAspect;
-struct ExternalIdentityField;
-struct MappingStatusField;
-struct PrincipalIdentityField;
 struct MappingTarget;
 struct PrincipalBinding;
 struct TestPolicy;
 
-macro_rules! required_field {
-    ($field:ty, $value:ty) => {
-        impl DeclaredApplicationFieldValue for $field {
-            type Value = $value;
-            const PRESENCE: ApplicationFieldPresence = ApplicationFieldPresence::Required;
-        }
-    };
-}
-
-required_field!(ExternalIdentityField, WorthQueryExternalPrincipalIdentity);
-required_field!(MappingStatusField, WorthQueryPrincipalMappingStatus);
-required_field!(PrincipalIdentityField, u64);
-
-impl OperationCreates<TestOperation> for TestEntity {}
-impl OperationReads<TestOperation> for PrincipalIdentityField {}
-impl OperationExpectsFact<TestOperation> for PrincipalIdentityField {}
 impl OperationRequiresAbility<TestOperation> for TestAbility {}
 
 impl ApplicationSchema for TestSchema {
@@ -96,13 +76,14 @@ impl ApplicationSchema for DriftedSchema {
 }
 
 fn test_schema_members<Schema>(
-    aftermath: Option<DeclaredApplicationAftermathContract>,
+    aftermath: Option<DeclaredApplicationAftermathContract<Schema>>,
 ) -> ApplicationSchemaDeclarationBuilder<Schema>
 where
     Schema: ApplicationSchema,
 {
-    let entity = ApplicationEntityRef::<Schema, TestEntity>::from_schema_identifier("TestEntity");
-    let ability = ApplicationAbilityRef::<Schema, TestAbility, TestEntity>::from_schema_identifiers(
+    let entity =
+        ApplicationEntityRef::<Schema, FixtureEntity<Schema>>::from_schema_identifier("TestEntity");
+    let ability = ApplicationAbilityRef::<Schema, TestAbility, FixtureEntity<Schema>>::from_schema_identifiers(
         "TestAbility",
         "TestEntity",
     );
@@ -126,7 +107,7 @@ where
         .entity(entity)
         .aspect(
             entity,
-            ApplicationAspectRef::<Schema, TestEntity, IdentityAspect>::from_schema_identifier(
+            ApplicationAspectRef::<Schema, FixtureEntity<Schema>, FixtureIdentityAspect<Schema>>::from_schema_identifier(
                 "IdentityAspect",
             ),
         )
@@ -134,40 +115,40 @@ where
             entity,
             ApplicationFieldRef::<
                 Schema,
-                TestEntity,
-                IdentityAspect,
-                ExternalIdentityField,
+                FixtureEntity<Schema>,
+                FixtureIdentityAspect<Schema>,
+                FixtureExternalIdentityField<Schema>,
                 WorthQueryExternalPrincipalIdentity,
                 ReadOnly,
                 EqualityPredicate,
-            >::from_schema_identifiers("TestEntity", "IdentityAspect", "ExternalIdentityField"),
+            >::from_schema_types(),
         )
         .field(
             entity,
             ApplicationFieldRef::<
                 Schema,
-                TestEntity,
-                IdentityAspect,
-                MappingStatusField,
+                FixtureEntity<Schema>,
+                FixtureIdentityAspect<Schema>,
+                FixtureMappingStatusField<Schema>,
                 WorthQueryPrincipalMappingStatus,
                 ReadWrite,
                 NoEqualityPredicate,
-            >::from_schema_identifiers("TestEntity", "IdentityAspect", "MappingStatusField"),
+            >::from_schema_types(),
         )
         .field(
             entity,
             ApplicationFieldRef::<
                 Schema,
-                TestEntity,
-                IdentityAspect,
-                PrincipalIdentityField,
+                FixtureEntity<Schema>,
+                FixtureIdentityAspect<Schema>,
+                FixturePrincipalIdentityField<Schema>,
                 u64,
                 ReadOnly,
                 EqualityPredicate,
-            >::from_schema_identifiers("TestEntity", "IdentityAspect", "PrincipalIdentityField"),
+            >::from_schema_types(),
         )
         .relation(
-            ApplicationRelationRef::<Schema, MappingTarget, TestEntity, TestEntity>::from_schema_identifiers(
+            ApplicationRelationRef::<Schema, MappingTarget, FixtureEntity<Schema>, FixtureEntity<Schema>>::from_schema_identifiers(
                 "MappingTarget",
                 "TestEntity",
                 "TestEntity",
@@ -192,25 +173,21 @@ where
         .operation_read_field(
             operation,
             ApplicationFieldRef::<
-                Schema, TestEntity, IdentityAspect, PrincipalIdentityField, u64, ReadOnly,
+                Schema, FixtureEntity<Schema>, FixtureIdentityAspect<Schema>, FixturePrincipalIdentityField<Schema>, u64, ReadOnly,
                 EqualityPredicate,
-            >::from_schema_identifiers("TestEntity", "IdentityAspect", "PrincipalIdentityField"),
+            >::from_schema_types(),
         )
         .operation_expected_fact(
             operation,
             ApplicationFieldRef::<
                 Schema,
-                TestEntity,
-                IdentityAspect,
-                PrincipalIdentityField,
+                FixtureEntity<Schema>,
+                FixtureIdentityAspect<Schema>,
+                FixturePrincipalIdentityField<Schema>,
                 u64,
                 ReadOnly,
                 EqualityPredicate,
-            >::from_schema_identifiers(
-                "TestEntity",
-                "IdentityAspect",
-                "PrincipalIdentityField",
-            ),
+            >::from_schema_types(),
         )
         .operation_create(operation, entity)
 }

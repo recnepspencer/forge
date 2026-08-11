@@ -6,19 +6,17 @@ use bank_domain::estate::{
 use bank_domain::model::BankPrincipalId;
 use bank_domain::queries::EstateGovernanceQuery;
 use bank_domain::reads::{EstateCapabilityContext, EstateGovernanceContext};
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationOneShotResult,
-    WorthQueryOperationAuthorizationDenialKind,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 
 use super::fixture::{
     delegation_world, delegation_world_without_command, request_scope, CapabilityFixture, APPROVER,
     BRANCH, ESTATE, GRANT, INSTITUTION, REVIEWER, UNRELATED_GOVERNANCE_GRANT,
 };
 use crate::{
-    BankApplicationQueryDenial, BankAuthenticatedPrincipal, BankEstateProgressionDenial,
-    BankMutationCommitOutcome, BankReadControls,
+    BankApplicationQueryDenial, BankAuthenticatedPrincipal, BankCommitDenialKind,
+    BankCommitDenialStage, BankEstateProgressionDenial, BankMutationCommitOutcome,
+    BankReadControls,
 };
 
 const CHILD: CapabilityGrantId = CapabilityGrantId::new(303).unwrap();
@@ -29,7 +27,7 @@ const MISSING_PARENT: CapabilityGrantId = CapabilityGrantId::new(307).unwrap();
 const MISSING_PARENT_CHILD: CapabilityGrantId = CapabilityGrantId::new(308).unwrap();
 
 type GovernanceResult =
-    WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>;
+    WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>;
 
 #[test]
 fn public_delegation_creates_the_exact_narrowed_child_and_retries_idempotently() {
@@ -75,8 +73,8 @@ fn public_delegation_creates_the_exact_narrowed_child_and_retries_idempotently()
     assert_eq!(
         drift,
         BankMutationCommitOutcome::Denied {
-            kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
-            stage: WorthQueryApplicationCommitDenialStage::Idempotency,
+            kind: BankCommitDenialKind::IdempotencyIntentDrift,
+            stage: BankCommitDenialStage::Idempotency,
         }
     );
 
@@ -335,8 +333,8 @@ fn assert_governance_denied(fixture: &CapabilityFixture, principal: &BankAuthent
     };
     assert!(matches!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
-            | WorthQueryOperationAuthorizationDenialKind::DelegationRejected
+        crate::BankAuthorizationDenialKind::CapabilityAuthorizationMissing
+            | crate::BankAuthorizationDenialKind::DelegationRejected
     ));
 }
 

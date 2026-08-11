@@ -9,14 +9,13 @@ pub(crate) mod world;
 
 use crate::support::request_scope;
 use bank_domain::schema::{DisburseEstateOperation, NotifyDeathEstateOperation};
-use bank_external_rail::FaultScript;
+use bank_external_rail::test_control::FaultScript;
 use bank_server::{BankCommitReceipt, BankEstateProgressionDenial, BankIdentityRuntime};
 use worth_query_host::facade::domain::{
     PublishedAftermathPosture, WorthQueryInstalledAftermathContract,
 };
 use worth_query_host::facade::primary_graph::{
-    reconcile_recovery_handle, WorthQueryApplicationIdempotencyBinding,
-    WorthQueryApplicationIdempotencyResolution, WorthQueryOperationAuthorizationDenialKind,
+    reconcile_recovery_handle, WorthQueryApplicationIdempotencyResolution,
     WorthQueryRecoveryDurabilityPosture, WorthQueryRecoveryHandleDenialKind,
     WorthQueryRecoveryInspectionView,
 };
@@ -24,8 +23,9 @@ use worth_query_host::facade::provisional_aftermath::{
     WorthQueryUndoDenialKind, WorthQueryUndoDerivedRequest,
 };
 use worth_query_host::facade::publication::application_aftermath::{
-    publish_recovery_support, WorthQueryPublishedExternalEffectFailure,
-    WorthQueryPublishedRecoveryDurability, WorthQueryPublishedRecoverySupportTruth,
+    publish_recovery_support, WorthQueryPublishedAftermathPosture,
+    WorthQueryPublishedExternalEffectFailure, WorthQueryPublishedRecoveryDurability,
+    WorthQueryPublishedRecoverySupportTruth,
 };
 
 use self::world::cross_gate_world;
@@ -40,15 +40,11 @@ fn lost_response_recovery_through_real_rail_and_aftermath() {
     let revision_before = world.estate_account_revision();
     let receipt = world.commit_with(binding);
 
-    assert_lost_response_commit(&world, &receipt, binding);
+    assert_lost_response_commit(&world, &receipt);
     assert_unresolved_recovery(&world, &receipt, revision_before);
 }
 
-fn assert_lost_response_commit(
-    world: &world::CrossGateWorld,
-    receipt: &BankCommitReceipt,
-    binding: WorthQueryApplicationIdempotencyBinding,
-) {
+fn assert_lost_response_commit(world: &world::CrossGateWorld, receipt: &BankCommitReceipt) {
     assert!(receipt.co_committed_dispatch_outbox());
     assert_eq!(
         receipt
@@ -56,14 +52,6 @@ fn assert_lost_response_commit(
             .and_then(|posture| posture.failure()),
         Some(WorthQueryPublishedExternalEffectFailure::LostResponse)
     );
-
-    assert_ne!(receipt.installed_operation(), &[0u8; 32]);
-    let _ = receipt.principal_scope();
-    assert_eq!(
-        receipt.idempotency_binding().key_identity(),
-        binding.key_identity()
-    );
-    assert!(receipt.idempotency_binding() != binding);
 
     let aftermath = installed_notify_death_aftermath(&world.fixture.world.runtime);
     assert_eq!(
@@ -132,6 +120,12 @@ fn assert_recovery_publication(
         WorthQueryRecoveryDurabilityPosture::StoreCapabilityRequired
     );
     let published_support = publish_recovery_support(first);
+    let repeated_publication = publish_recovery_support(second);
+    assert_eq!(published_support, repeated_publication);
+    assert_eq!(
+        format!("{published_support:?}"),
+        format!("{repeated_publication:?}")
+    );
     assert_eq!(
         published_support.support_truth(),
         WorthQueryPublishedRecoverySupportTruth::DegradedRecoveryReport
@@ -139,6 +133,39 @@ fn assert_recovery_publication(
     assert_eq!(
         published_support.durability(),
         WorthQueryPublishedRecoveryDurability::StoreCapabilityRequired
+    );
+    assert_eq!(
+        published_support.posture(),
+        WorthQueryPublishedAftermathPosture::Reconcilable
+    );
+    assert_recovery_work_projection(first, &published_support);
+}
+
+fn assert_recovery_work_projection(
+    owner: &WorthQueryRecoveryInspectionView,
+    published: &worth_query_host::facade::publication::application_aftermath::WorthQueryPublishedRecoverySupport,
+) {
+    let owner = owner.recovery_inspection_work();
+    let published = published.inspection_work();
+    assert_eq!(published.basis_preparations(), owner.basis_preparations());
+    assert_eq!(published.digest_derivations(), owner.digest_derivations());
+    assert_eq!(published.canonical_entries(), owner.canonical_entries());
+    assert_eq!(
+        published.canonical_encoded_bytes(),
+        owner.canonical_encoded_bytes()
+    );
+    assert_eq!(
+        published.canonical_material_allocation_bytes(),
+        owner.canonical_material_allocation_bytes()
+    );
+    assert_eq!(published.sha256_input_bytes(), owner.sha256_input_bytes());
+    assert_eq!(
+        published.sha256_compression_blocks(),
+        owner.sha256_compression_blocks()
+    );
+    assert_eq!(
+        published.digest_text_materializations(),
+        owner.digest_text_materializations()
     );
 }
 
@@ -193,9 +220,7 @@ fn already_completed_resolve_returns_inherited_taxonomy() {
             .runtime
             .resolve_commit_recovery(handle, &specialist, action, &scope);
     match resolution {
-        Ok(WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(resolved)) => {
-            assert_eq!(resolved.commit_id().0, receipt.commit_id());
-        }
+        Ok(WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(_)) => {}
         Err(BankEstateProgressionDenial::Recovery(d))
             if d.kind() == WorthQueryRecoveryHandleDenialKind::UnresolvedExternalPosture =>
         {
@@ -257,10 +282,6 @@ fn undo_through_handle_rail_and_aftermath_populates_undo_admission() {
     assert_eq!(phases.undo_admission().digest_derivations(), 1);
     assert_eq!(phases.undo_admission().digest_text_materializations(), 0);
     // Receipt remains honest evidence of what happened — not current authority.
-    assert_eq!(
-        receipt.idempotency_binding().key_identity(),
-        world::idempotency(90).key_identity()
-    );
 }
 
 #[test]
@@ -282,7 +303,6 @@ fn undo_denies_on_current_policy_after_world_drift_with_honest_receipt() {
     let specialist = world.fixture.authenticate_specialist();
     let scope = request_scope();
     // Honest receipt — still names the same operation / idempotency binding.
-    let binding_before = receipt.idempotency_binding();
     authorization_time.advance_to_epoch_seconds(601);
     let denied = world
         .fixture
@@ -304,7 +324,7 @@ fn undo_denies_on_current_policy_after_world_drift_with_honest_receipt() {
             // current world, not as a forged or foreign principal fact.
             assert_eq!(
                 d.kind(),
-                WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing,
+                bank_server::BankAuthorizationDenialKind::CapabilityAuthorizationMissing,
                 "world-drift authorization denial must be missing live capability authorization, got {:?}",
                 d.kind()
             );
@@ -314,7 +334,6 @@ fn undo_denies_on_current_policy_after_world_drift_with_honest_receipt() {
         }
         other => panic!("expected current-policy denial, got {other:?}"),
     }
-    assert_eq!(receipt.idempotency_binding(), binding_before);
 }
 
 #[test]

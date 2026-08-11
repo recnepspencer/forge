@@ -10,10 +10,12 @@ use worth_query_host::facade::{
     installed::{
         domain_computation::{
             WorthQueryArtifactChunkRequest, WorthQueryArtifactNativeAccessCounters,
-            WorthQueryArtifactNativeAccessDenial, WorthQueryDirectReadmissionCleanupRequired,
+            WorthQueryArtifactNativeAccessDenial, WorthQueryDirectReadmissionCleanupOutcome,
+            WorthQueryDirectReadmissionCleanupRequired,
             WorthQueryDirectReadmissionRecoveryRequired, WorthQueryDirectYieldOutcome,
             WorthQueryDirectYieldRecoveryRequired, WorthQueryPausedDirectGraphExecution,
             WorthQueryPausedWorkflowGraphExecution, WorthQueryTransferredArtifactHandle,
+            WorthQueryWorkflowReadmissionCleanupOutcome,
             WorthQueryWorkflowReadmissionCleanupRequired,
             WorthQueryWorkflowReadmissionRecoveryRequired, WorthQueryWorkflowYieldOutcome,
             WorthQueryWorkflowYieldRecoveryReleaseOutcome, WorthQueryWorkflowYieldRecoveryRequired,
@@ -189,7 +191,7 @@ fn carry_artifact_and_publication(
 fn yield_from_consumed_direct_safe_point(paused: WorthQueryPausedDirectGraphExecution) {
     match paused.yield_run() {
         WorthQueryDirectYieldOutcome::Yielded(yielded) => {
-            let _ = yielded.checkpoint();
+            let _ = yielded.inspection().checkpoint();
             let _ = yielded.cleanup();
         }
         WorthQueryDirectYieldOutcome::Denied(denied) => {
@@ -208,7 +210,7 @@ fn release_terminalized_direct_yield_recovery(recovery: WorthQueryDirectYieldRec
 fn yield_from_consumed_workflow_safe_point(paused: WorthQueryPausedWorkflowGraphExecution) {
     match paused.yield_run() {
         WorthQueryWorkflowYieldOutcome::Yielded(yielded) => {
-            let _ = yielded.artifact_evidence();
+            let _ = yielded.inspection().artifact_evidence();
             let _ = yielded.cleanup();
         }
         WorthQueryWorkflowYieldOutcome::Denied(denied) => {
@@ -222,16 +224,27 @@ fn yield_from_consumed_workflow_safe_point(paused: WorthQueryPausedWorkflowGraph
 
 fn release_terminalized_workflow_yield_recovery(recovery: WorthQueryWorkflowYieldRecoveryRequired) {
     match recovery.release_terminalized() {
-        Ok(WorthQueryWorkflowYieldRecoveryReleaseOutcome::Complete(release))
-        | Ok(WorthQueryWorkflowYieldRecoveryReleaseOutcome::RecoveryRequired(release)) => {
-            let _ = release.artifact_evidence();
-        }
-        Ok(WorthQueryWorkflowYieldRecoveryReleaseOutcome::Pending(pending)) => {
-            let _ = pending.pending_artifact_owner_count();
-        }
+        Ok(outcome) => inspect_terminalized_workflow_yield_cleanup(outcome),
         Err(running) => {
             let _ = running.into_paused();
         }
+    }
+}
+
+fn inspect_terminalized_workflow_yield_cleanup(
+    outcome: WorthQueryWorkflowYieldRecoveryReleaseOutcome,
+) {
+    match outcome {
+        WorthQueryWorkflowYieldRecoveryReleaseOutcome::Complete(release)
+        | WorthQueryWorkflowYieldRecoveryReleaseOutcome::RecoveryRequired(release) => {
+            let _ = release.inspection().artifact_evidence();
+        }
+        WorthQueryWorkflowYieldRecoveryReleaseOutcome::Pending(pending) => match pending.retry() {
+            Ok(outcome) => inspect_terminalized_workflow_yield_cleanup(outcome),
+            Err(running) => {
+                let _ = running.into_paused();
+            }
+        },
     }
 }
 
@@ -256,8 +269,8 @@ fn resolve_readmission_cleanup(
     direct: WorthQueryDirectReadmissionCleanupRequired,
     workflow: WorthQueryWorkflowReadmissionCleanupRequired,
 ) {
-    let _ = direct.finish();
-    let _ = workflow.finish();
+    finish_direct_readmission_cleanup(direct);
+    finish_workflow_readmission_cleanup(workflow);
 }
 
 fn resolve_typed_readmission_recovery(
@@ -269,7 +282,7 @@ fn resolve_typed_readmission_recovery(
             let _ = recovery.retry_to_yielded();
         }
         WorthQueryDirectReadmissionRecoveryRequired::TerminalCleanup(recovery) => {
-            let _ = recovery.into_cleanup();
+            finish_direct_readmission_cleanup(recovery.into_cleanup());
         }
     }
     match workflow {
@@ -277,7 +290,39 @@ fn resolve_typed_readmission_recovery(
             let _ = recovery.retry_to_yielded();
         }
         WorthQueryWorkflowReadmissionRecoveryRequired::TerminalCleanup(recovery) => {
-            let _ = recovery.into_cleanup();
+            finish_workflow_readmission_cleanup(recovery.into_cleanup());
+        }
+    }
+}
+
+fn finish_direct_readmission_cleanup(cleanup: WorthQueryDirectReadmissionCleanupRequired) {
+    let mut outcome = cleanup.finish();
+    loop {
+        match outcome {
+            WorthQueryDirectReadmissionCleanupOutcome::Complete(receipt)
+            | WorthQueryDirectReadmissionCleanupOutcome::RecoveryRequired(receipt) => {
+                let _ = receipt.inspection().readmission_evidence();
+                break;
+            }
+            WorthQueryDirectReadmissionCleanupOutcome::Pending(pending) => {
+                outcome = pending.retry();
+            }
+        }
+    }
+}
+
+fn finish_workflow_readmission_cleanup(cleanup: WorthQueryWorkflowReadmissionCleanupRequired) {
+    let mut outcome = cleanup.finish();
+    loop {
+        match outcome {
+            WorthQueryWorkflowReadmissionCleanupOutcome::Complete(receipt)
+            | WorthQueryWorkflowReadmissionCleanupOutcome::RecoveryRequired(receipt) => {
+                let _ = receipt.inspection().readmission_evidence();
+                break;
+            }
+            WorthQueryWorkflowReadmissionCleanupOutcome::Pending(pending) => {
+                outcome = pending.retry();
+            }
         }
     }
 }

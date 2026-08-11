@@ -11,11 +11,12 @@ use super::super::{
 };
 
 pub(super) struct WorthQueryPreparedApplicationCommit {
-    pub(super) attempt: WorthQueryPrimaryGraphApplicationAttempt,
-    pub(super) candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
-    pub(super) work: WorthQueryPrimaryMutationWorkCounters,
-    pub(super) branch: worth_relational::facade::history::BranchId,
-    pub(super) retained_preimage: Option<WorthQueryRetainedPreImage>,
+    attempt: WorthQueryPrimaryGraphApplicationAttempt,
+    candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
+    work: WorthQueryPrimaryMutationWorkCounters,
+    branch: worth_relational::facade::history::BranchId,
+    retained_preimage: Option<WorthQueryRetainedPreImage>,
+    preimage_retention_work: super::preimage_retention::WorthQueryPreImageRetentionWork,
 }
 
 impl WorthQueryPreparedApplicationCommit {
@@ -33,54 +34,53 @@ impl WorthQueryPreparedApplicationCommit {
             ))
         }
     }
+
+    pub(super) fn into_commit_parts(
+        self,
+        _mint: super::relational_commit::WorthQueryCommitProgressionMint,
+    ) -> (
+        WorthQueryPrimaryGraphApplicationAttempt,
+        worth_relational::facade::transactions::ValidatedRelationalMutation,
+        WorthQueryPrimaryMutationWorkCounters,
+        worth_relational::facade::history::BranchId,
+        Option<WorthQueryRetainedPreImage>,
+        super::preimage_retention::WorthQueryPreImageRetentionWork,
+    ) {
+        (
+            self.attempt,
+            self.candidate,
+            self.work,
+            self.branch,
+            self.retained_preimage,
+            self.preimage_retention_work,
+        )
+    }
 }
 
 pub(super) fn take_prepared_session(
     provider: &WorthQueryPrimaryGraphProvider,
-    identity: &str,
+    affinity: crate::domain_computation::WorthQueryProviderSessionAffinityIdentity,
 ) -> Result<WorthQueryPreparedApplicationCommit, WorthQueryProviderSessionFailure> {
-    let mut sessions = provider
-        .sessions
+    let prepared = provider
+        .attempts
         .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let overlay = remove_staged_overlay(&mut sessions, identity)?;
-    sessions.overlays.remove(&overlay);
-    let attempt = sessions
-        .application_attempts
-        .remove(identity)
-        .ok_or_else(|| commit_failure("primary graph session lost its application attempt"))?;
-    let candidate = sessions
-        .validated_mutations
-        .remove(identity)
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .take_commit_prepared(affinity)
         .ok_or_else(|| {
-            commit_failure("primary graph session has no owner-validated mutation candidate")
+            commit_failure("primary graph session has no exact commit-prepared application attempt")
         })?;
-    let work = sessions
-        .invariant_work
-        .remove(identity)
-        .ok_or_else(|| commit_failure("primary graph session has no invariant work evidence"))?;
+    let (attempt, candidate, work) = prepared.into_parts();
     let branch = attempt.branch.clone();
-    let retained_preimage = super::preimage_retention::retain_attempt_preimage(
-        &attempt,
-        &candidate.mutation_footprint(),
-    )?;
+    let (retained_preimage, preimage_retention_work) =
+        super::preimage_retention::retain_attempt_preimage(&attempt, &candidate)?.into_parts();
     Ok(WorthQueryPreparedApplicationCommit {
         attempt,
         candidate,
         work,
         branch,
         retained_preimage,
+        preimage_retention_work,
     })
-}
-
-fn remove_staged_overlay(
-    sessions: &mut super::super::WorthQueryPrimaryGraphProviderSessions,
-    identity: &str,
-) -> Result<String, WorthQueryProviderSessionFailure> {
-    sessions
-        .session_overlays
-        .remove(identity)
-        .ok_or_else(|| commit_failure("primary graph session lost its staged overlay"))
 }
 
 fn commit_failure(detail: &'static str) -> WorthQueryProviderSessionFailure {

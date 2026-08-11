@@ -2,9 +2,9 @@ use super::capabilities::{
     ApplicationFieldUnit, OperationCreates, OperationDeletes, OperationEmits, OperationLinks,
     OperationUnlinks, OperationWrites,
 };
+use super::field_reference::ApplicationFieldRef;
 use super::references::{
-    ApplicationEffectRef, ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef,
-    ApplicationRelationRef,
+    ApplicationEffectRef, ApplicationEntityRef, ApplicationOperationRef, ApplicationRelationRef,
 };
 use super::{
     ApplicationOperationProgramTarget, ApplicationSchemaDeclarationBuilder,

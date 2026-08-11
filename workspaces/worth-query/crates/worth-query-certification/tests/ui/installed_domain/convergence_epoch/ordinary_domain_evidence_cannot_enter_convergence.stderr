@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/installed_domain/convergence_epoch/ordinary_domain_evidence_cannot_enter_convergence.rs:7:26
+  |
+7 |     requires_convergence(ordinary);
+  |     -------------------- ^^^^^^^^ expected `WorthQueryConvergenceDomainEvidenceBinding`, found `WorthQueryDomainEvidenceBinding`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> tests/ui/installed_domain/convergence_epoch/ordinary_domain_evidence_cannot_enter_convergence.rs:4:4
+  |
+4 | fn requires_convergence(_: WorthQueryConvergenceDomainEvidenceBinding) {}
+  |    ^^^^^^^^^^^^^^^^^^^^ ---------------------------------------------

@@ -77,6 +77,11 @@ macro_rules! worth_query_entity {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         $vis struct $Entity;
 
+        impl $crate::facade::application_schema::ApplicationEntityMarkerIdentity for $Entity {
+            type Schema = $Schema;
+            const IDENTIFIER: &'static str = stringify!($Entity);
+        }
+
         impl $Entity {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationEntityRef<$Schema, Self> {
                 $crate::facade::application_schema::ApplicationEntityRef::from_schema_identifier(
@@ -92,6 +97,12 @@ macro_rules! worth_query_aspect {
     ($vis:vis $Aspect:ident in $Schema:ty, $Entity:ty) => {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         $vis struct $Aspect;
+
+        impl $crate::facade::application_schema::ApplicationAspectMarkerIdentity for $Aspect {
+            type Schema = $Schema;
+            type Entity = $Entity;
+            const IDENTIFIER: &'static str = stringify!($Aspect);
+        }
 
         impl $Aspect {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationAspectRef<$Schema, $Entity, Self> {
@@ -120,6 +131,13 @@ macro_rules! worth_query_field {
 
         impl $crate::facade::application_schema::OptionalApplicationFieldValue for $Field {}
 
+        impl $crate::facade::application_schema::ApplicationFieldMarkerIdentity for $Field {
+            type Schema = $Schema;
+            type Entity = $Entity;
+            type Aspect = $Aspect;
+            const IDENTIFIER: &'static str = stringify!($Field);
+        }
+
         impl $Field {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
                 $Schema,
@@ -134,11 +152,7 @@ macro_rules! worth_query_field {
                     <$Value as $crate::facade::application_schema::TypedUnitApplicationValue>::Unit,
                 >,
             > {
-                $crate::facade::application_schema::ApplicationFieldRef::from_schema_identifiers(
-                    stringify!($Entity),
-                    stringify!($Aspect),
-                    stringify!($Field),
-                )
+                $crate::facade::application_schema::ApplicationFieldRef::from_schema_types()
             }
         }
     };
@@ -157,6 +171,13 @@ macro_rules! worth_query_field {
 
         impl $crate::facade::application_schema::OptionalApplicationFieldValue for $Field {}
 
+        impl $crate::facade::application_schema::ApplicationFieldMarkerIdentity for $Field {
+            type Schema = $Schema;
+            type Entity = $Entity;
+            type Aspect = $Aspect;
+            const IDENTIFIER: &'static str = stringify!($Field);
+        }
+
         impl $Field {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
                 $Schema,
@@ -167,11 +188,7 @@ macro_rules! worth_query_field {
                 $crate::worth_query_field!(@write $write),
                 $crate::worth_query_field!(@equality $equality),
             > {
-                $crate::facade::application_schema::ApplicationFieldRef::from_schema_identifiers(
-                    stringify!($Entity),
-                    stringify!($Aspect),
-                    stringify!($Field),
-                )
+                $crate::facade::application_schema::ApplicationFieldRef::from_schema_types()
             }
         }
     };
@@ -190,6 +207,13 @@ macro_rules! worth_query_field {
 
         impl $crate::facade::application_schema::RequiredApplicationFieldValue for $Field {}
 
+        impl $crate::facade::application_schema::ApplicationFieldMarkerIdentity for $Field {
+            type Schema = $Schema;
+            type Entity = $Entity;
+            type Aspect = $Aspect;
+            const IDENTIFIER: &'static str = stringify!($Field);
+        }
+
         impl $Field {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
                 $Schema,
@@ -204,11 +228,7 @@ macro_rules! worth_query_field {
                     <$Value as $crate::facade::application_schema::TypedUnitApplicationValue>::Unit,
                 >,
             > {
-                $crate::facade::application_schema::ApplicationFieldRef::from_schema_identifiers(
-                    stringify!($Entity),
-                    stringify!($Aspect),
-                    stringify!($Field),
-                )
+                $crate::facade::application_schema::ApplicationFieldRef::from_schema_types()
             }
         }
     };
@@ -227,6 +247,13 @@ macro_rules! worth_query_field {
 
         impl $crate::facade::application_schema::RequiredApplicationFieldValue for $Field {}
 
+        impl $crate::facade::application_schema::ApplicationFieldMarkerIdentity for $Field {
+            type Schema = $Schema;
+            type Entity = $Entity;
+            type Aspect = $Aspect;
+            const IDENTIFIER: &'static str = stringify!($Field);
+        }
+
         impl $Field {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
                 $Schema,
@@ -237,11 +264,7 @@ macro_rules! worth_query_field {
                 $crate::worth_query_field!(@write $write),
                 $crate::worth_query_field!(@equality $equality),
             > {
-                $crate::facade::application_schema::ApplicationFieldRef::from_schema_identifiers(
-                    stringify!($Entity),
-                    stringify!($Aspect),
-                    stringify!($Field),
-                )
+                $crate::facade::application_schema::ApplicationFieldRef::from_schema_types()
             }
 
         }

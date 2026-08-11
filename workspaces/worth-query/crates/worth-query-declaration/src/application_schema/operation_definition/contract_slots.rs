@@ -1,5 +1,3 @@
-use crate::application_aftermath::DeclaredApplicationAftermathContract;
-
 use super::super::ApplicationExternalEffectProtocol;
 
 pub(super) struct DeclaredExternalEffectSlot {
@@ -9,5 +7,3 @@ pub(super) struct DeclaredExternalEffectSlot {
     pub(super) maximum_payload_bytes: u64,
     pub(super) correlation_family: String,
 }
-
-pub(super) type DeclaredAftermathSlot = DeclaredApplicationAftermathContract;

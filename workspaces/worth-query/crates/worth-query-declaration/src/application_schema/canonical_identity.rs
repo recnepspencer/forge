@@ -331,9 +331,9 @@ fn append_schema_field(
 fn append_declared_aftermath(
     basis: &mut ApplicationSchemaCanonicalBasis,
     prefix: &str,
-    contract: &crate::application_aftermath::DeclaredApplicationAftermathContract,
+    contract: &crate::application_aftermath::PortableApplicationAftermathContract,
 ) {
-    use crate::application_aftermath::{DeclaredCorrectionAuthority, DeclaredCorrectionMechanism};
+    use crate::application_aftermath::{DeclaredCorrectionAuthority, PortableCorrectionMechanism};
     basis.text(
         format!("{prefix}.authority"),
         match contract.authority() {
@@ -343,7 +343,7 @@ fn append_declared_aftermath(
         },
     );
     match contract.mechanism() {
-        Some(DeclaredCorrectionMechanism::RecordedInverse(inverse)) => {
+        Some(PortableCorrectionMechanism::RecordedInverse(inverse)) => {
             basis.text(format!("{prefix}.mechanism"), "recorded-inverse");
             basis.text(
                 format!("{prefix}.inverse-operation"),
@@ -353,11 +353,17 @@ fn append_declared_aftermath(
                 format!("{prefix}.lowering"),
                 inverse.lowering_correspondence().correspondence_slot(),
             );
-            for (index, slot) in inverse.preimage_demand().field_slots().iter().enumerate() {
-                basis.text(format!("{prefix}.preimage-{index}"), slot);
+            basis.usize(
+                format!("{prefix}.preimage-byte-bound"),
+                inverse.preimage_demand().maximum_encoded_bytes(),
+            );
+            for (index, locus) in inverse.preimage_demand().loci().iter().enumerate() {
+                basis.text(format!("{prefix}.preimage-{index}.entity"), locus.entity());
+                basis.text(format!("{prefix}.preimage-{index}.aspect"), locus.aspect());
+                basis.text(format!("{prefix}.preimage-{index}.field"), locus.field());
             }
         }
-        Some(DeclaredCorrectionMechanism::Compensation(compensation)) => {
+        Some(PortableCorrectionMechanism::Compensation(compensation)) => {
             basis.text(format!("{prefix}.mechanism"), "compensation");
             basis.text(
                 format!("{prefix}.compensating-operation"),

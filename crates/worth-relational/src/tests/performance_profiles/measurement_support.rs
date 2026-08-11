@@ -8,7 +8,7 @@ pub(super) fn commit_measurement(
     let started_at = Instant::now();
     let outcome = run(runtime);
     let counters = runtime.performance_access().counters();
-    let phase_timing = outcome.execution.phase_timing.clone();
+    let phase_timing = outcome.execution().phase_timing.clone();
 
     measurement_from(started_at, || {
         perf_metrics!({

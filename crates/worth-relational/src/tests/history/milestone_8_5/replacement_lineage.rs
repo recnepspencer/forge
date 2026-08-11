@@ -62,7 +62,7 @@ pub(super) fn run_replacement_strategy_certification() -> ReplacementCertificati
         .compared_surfaces
         .contains(&ReplayObservableSurface::Strategy));
     let replacement_strategy_artifacts = replacement_commit
-        .publication
+        .publication()
         .strategy_artifacts
         .as_ref()
         .expect("replacement strategy artifacts");

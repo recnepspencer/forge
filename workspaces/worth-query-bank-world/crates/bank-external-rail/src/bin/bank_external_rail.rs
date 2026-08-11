@@ -19,8 +19,11 @@ async fn main() {
     let local_addr = server
         .local_addr()
         .expect("bank-external-rail: bound listener reports its own address");
+    let test_control_addr = server
+        .test_control_addr()
+        .expect("bank-external-rail: bound test-control listener reports its own address");
 
-    println!("LISTENING {local_addr}");
+    println!("LISTENING {local_addr} TEST_CONTROL {test_control_addr}");
     std::io::stdout()
         .flush()
         .expect("bank-external-rail: stdout is writable at startup");

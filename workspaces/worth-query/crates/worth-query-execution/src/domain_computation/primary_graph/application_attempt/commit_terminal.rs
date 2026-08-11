@@ -1,7 +1,5 @@
 use worth_relational::facade::history::BranchId;
 
-use crate::domain_computation::provider_session::WorthQueryMutationGraphWorkCompletion;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryApplicationCommitTerminalKind {
     Executed,
@@ -21,27 +19,24 @@ pub enum WorthQueryApplicationCommitTerminalKind {
 /// let forged = WorthQueryApplicationCommitTerminalEvidence {
 ///     kind: WorthQueryApplicationCommitTerminalKind::Recovered,
 ///     branch: BranchId("forged".to_owned()),
-///     execution: None,
-///     retry_inspection: None,
+///     attempt_resources_released: None,
 /// };
 /// ```
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryApplicationCommitTerminalEvidence {
     kind: WorthQueryApplicationCommitTerminalKind,
     branch: BranchId,
-    execution: Option<WorthQueryMutationGraphWorkCompletion>,
-    retry_inspection: Option<WorthQueryMutationGraphWorkCompletion>,
+    attempt_resources_released: Option<bool>,
 }
 
 impl Eq for WorthQueryApplicationCommitTerminalEvidence {}
 
 impl WorthQueryApplicationCommitTerminalEvidence {
-    pub(super) fn executed(completion: WorthQueryMutationGraphWorkCompletion) -> Self {
+    pub(super) fn executed(branch: BranchId, attempt_resources_released: bool) -> Self {
         Self {
             kind: WorthQueryApplicationCommitTerminalKind::Executed,
-            branch: completion.relational_branch().clone(),
-            execution: Some(completion),
-            retry_inspection: None,
+            branch,
+            attempt_resources_released: Some(attempt_resources_released),
         }
     }
 
@@ -49,22 +44,17 @@ impl WorthQueryApplicationCommitTerminalEvidence {
         Self {
             kind: WorthQueryApplicationCommitTerminalKind::Recovered,
             branch,
-            execution: None,
-            retry_inspection: None,
+            attempt_resources_released: None,
         }
     }
 
-    pub(super) fn with_retry_inspection(
-        mut self,
-        completion: WorthQueryMutationGraphWorkCompletion,
-    ) -> Option<Self> {
-        if self.kind != WorthQueryApplicationCommitTerminalKind::Recovered
-            || completion.relational_branch() != &self.branch
-        {
-            return None;
-        }
-        self.retry_inspection = Some(completion);
-        Some(self)
+    pub(super) fn with_retry_cleanup(mut self, attempt_resources_released: bool) -> Self {
+        debug_assert_eq!(
+            self.kind,
+            WorthQueryApplicationCommitTerminalKind::Recovered
+        );
+        self.attempt_resources_released = Some(attempt_resources_released);
+        self
     }
 
     pub const fn kind(&self) -> WorthQueryApplicationCommitTerminalKind {
@@ -75,11 +65,7 @@ impl WorthQueryApplicationCommitTerminalEvidence {
         &self.branch
     }
 
-    pub const fn execution(&self) -> Option<&WorthQueryMutationGraphWorkCompletion> {
-        self.execution.as_ref()
-    }
-
-    pub const fn retry_inspection(&self) -> Option<&WorthQueryMutationGraphWorkCompletion> {
-        self.retry_inspection.as_ref()
+    pub const fn attempt_resources_released(&self) -> Option<bool> {
+        self.attempt_resources_released
     }
 }

@@ -1,0 +1,23 @@
+error[E0599]: no method named `bridge` found for reference `&WorthQueryDirectRunCleanupInspection` in the current scope
+ --> tests/ui/installed_domain/managed_run/direct_terminal_cleanup_cannot_expose_lower_receipts.rs:7:24
+  |
+7 |     let _ = inspection.bridge();
+  |                        ^^^^^^ method not found in `&WorthQueryDirectRunCleanupInspection`
+
+error[E0599]: no method named `relational` found for reference `&WorthQueryDirectRunCleanupInspection` in the current scope
+ --> tests/ui/installed_domain/managed_run/direct_terminal_cleanup_cannot_expose_lower_receipts.rs:8:24
+  |
+8 |     let _ = inspection.relational();
+  |                        ^^^^^^^^^^ method not found in `&WorthQueryDirectRunCleanupInspection`
+
+error[E0599]: no method named `attempt` found for reference `&WorthQueryDirectRunCleanupInspection` in the current scope
+ --> tests/ui/installed_domain/managed_run/direct_terminal_cleanup_cannot_expose_lower_receipts.rs:9:24
+  |
+9 |     let _ = inspection.attempt();
+  |                        ^^^^^^^ method not found in `&WorthQueryDirectRunCleanupInspection`
+
+error[E0599]: no method named `cleanup` found for reference `&WorthQueryMutationGraphWorkCompletion` in the current scope
+  --> tests/ui/installed_domain/managed_run/direct_terminal_cleanup_cannot_expose_lower_receipts.rs:13:24
+   |
+13 |     let _ = completion.cleanup();
+   |                        ^^^^^^^ method not found in `&WorthQueryMutationGraphWorkCompletion`

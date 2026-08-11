@@ -2,10 +2,9 @@
 
 use std::sync::Arc;
 
-use super::{WorthQueryExternalDispatchAttemptOrdinal, WorthQueryPrimaryGraphApplicationRuntime};
-use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
+use super::WorthQueryPrimaryGraphApplicationRuntime;
+use crate::domain_computation::application_aftermath::external_effect::WorthQueryAdmittedExternalDispatchAttempt;
 use crate::domain_computation::primary_graph::WorthQueryCommittedDispatchOutboxObservation;
-use crate::domain_computation::runtime_time::WorthQueryRuntimeClock;
 
 /// Why this application runtime could not admit a physical dispatch attempt.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -14,67 +13,21 @@ pub(in crate::domain_computation) enum WorthQueryExternalDispatchAdmissionDenial
     AttemptIdentityExhausted,
 }
 
-/// Move-only authority for exactly one physical external dispatch attempt.
-///
-/// The application runtime binds the exact owner observation, Query runtime,
-/// ordinal, and installed clock in one value. No caller can construct or
-/// recombine those axes independently.
-pub(in crate::domain_computation) struct WorthQueryAdmittedExternalDispatchAttempt {
-    committed: WorthQueryCommittedDispatchOutboxObservation,
-    query_runtime: WorthQueryRuntimeAuthorityIdentity,
-    ordinal: WorthQueryExternalDispatchAttemptOrdinal,
-    clock: Arc<WorthQueryRuntimeClock>,
-}
+/// Opaque, move-only ordinal minted only while the runtime admits an attempt.
+pub(in crate::domain_computation) struct WorthQueryExternalDispatchAttemptOrdinal(u64);
 
-impl WorthQueryAdmittedExternalDispatchAttempt {
-    fn seal(
-        committed: WorthQueryCommittedDispatchOutboxObservation,
-        query_runtime: WorthQueryRuntimeAuthorityIdentity,
-        ordinal: WorthQueryExternalDispatchAttemptOrdinal,
-        clock: Arc<WorthQueryRuntimeClock>,
-    ) -> Self {
-        Self {
-            committed,
-            query_runtime,
-            ordinal,
-            clock,
-        }
+impl WorthQueryExternalDispatchAttemptOrdinal {
+    fn mint(value: u64) -> Self {
+        Self(value)
     }
 
-    pub(in crate::domain_computation) const fn query_runtime(
-        &self,
-    ) -> WorthQueryRuntimeAuthorityIdentity {
-        self.query_runtime
-    }
-
-    pub(in crate::domain_computation) const fn ordinal(
-        &self,
-    ) -> WorthQueryExternalDispatchAttemptOrdinal {
-        self.ordinal
-    }
-
-    pub(in crate::domain_computation) fn clock(&self) -> Arc<WorthQueryRuntimeClock> {
-        Arc::clone(&self.clock)
-    }
-
-    pub(in crate::domain_computation) fn into_committed(
-        self,
-    ) -> WorthQueryCommittedDispatchOutboxObservation {
-        self.committed
+    pub(in crate::domain_computation) fn into_value(self) -> u64 {
+        self.0
     }
 
     #[cfg(test)]
-    pub(crate) fn fixture(
-        query_runtime: WorthQueryRuntimeAuthorityIdentity,
-        committed: WorthQueryCommittedDispatchOutboxObservation,
-        ordinal: WorthQueryExternalDispatchAttemptOrdinal,
-    ) -> Self {
-        Self::seal(
-            committed,
-            query_runtime,
-            ordinal,
-            Arc::new(WorthQueryRuntimeClock::system()),
-        )
+    pub(in crate::domain_computation) const fn value_for_test(&self) -> u64 {
+        self.0
     }
 }
 
@@ -84,6 +37,7 @@ impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema> {
         committed: WorthQueryCommittedDispatchOutboxObservation,
     ) -> Result<WorthQueryAdmittedExternalDispatchAttempt, WorthQueryExternalDispatchAdmissionDenial>
     {
+        self.primary_provider.observe_external_dispatch_admission();
         let relational_runtime = self
             .relational_source
             .authoritative_source_profile()
@@ -91,9 +45,15 @@ impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema> {
         if committed.relational_runtime_instance_id() != relational_runtime {
             return Err(WorthQueryExternalDispatchAdmissionDenial::ForeignRelationalRuntime);
         }
-        let ordinal = self
-            .next_external_dispatch_attempt()
-            .ok_or(WorthQueryExternalDispatchAdmissionDenial::AttemptIdentityExhausted)?;
+        let ordinal = WorthQueryExternalDispatchAttemptOrdinal::mint(
+            self.next_external_dispatch_attempt
+                .fetch_update(
+                    std::sync::atomic::Ordering::AcqRel,
+                    std::sync::atomic::Ordering::Acquire,
+                    |current| current.checked_add(1),
+                )
+                .map_err(|_| WorthQueryExternalDispatchAdmissionDenial::AttemptIdentityExhausted)?,
+        );
         Ok(WorthQueryAdmittedExternalDispatchAttempt::seal(
             committed,
             self.runtime.authority_identity(),

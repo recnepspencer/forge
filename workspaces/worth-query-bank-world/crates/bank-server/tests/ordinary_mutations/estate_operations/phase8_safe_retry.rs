@@ -1,13 +1,14 @@
 //! Gate 8.7 — safe-retry re-dispatch through the real bank-external-rail (§11 rows 16–18).
 //!
-//! Authority precedes every transport call. Exactly-once is observed at the rail
-//! admission count, not by Query declining to ask (R8.70).
+//! Authority precedes every transport call. Exactly-once is observed through
+//! the rail's admission ledger and independent physical consequence owner,
+//! not by Query declining to ask (R8.70).
 
-use bank_external_rail::{FaultScript, LedgerStatus};
+use bank_external_rail::test_control::FaultScript;
+use bank_external_rail::LedgerStatus;
 use bank_server::BankEstateProgressionDenial;
 use worth_query_host::facade::primary_graph::{
-    WorthQueryDispatchOutboxDurabilityPosture, WorthQueryOperationAuthorizationDenialKind,
-    WorthQueryRecoveryHandleDenialKind,
+    WorthQueryDispatchOutboxDurabilityPosture, WorthQueryRecoveryHandleDenialKind,
 };
 use worth_query_host::facade::publication::application_aftermath::WorthQueryPublishedExternalEffectPostureKind;
 
@@ -59,10 +60,11 @@ fn faulted_dispatch_then_safe_retry_escapes_exactly_once() {
         1,
         "exactly one rail admission across faulted dispatch and safe-retry"
     );
+    assert_request_affine_retry_completed_once(&world, &correlation);
 }
 
 #[test]
-fn lost_response_after_commit_safe_retry_emits_nothing_twice() {
+fn lost_response_safe_retry_reissues_same_request_and_completes_once() {
     // §11 row 16 under genuine indeterminacy: the rail admitted, Query holds
     // Unresolved, and retry must not produce a second admission (row 5 shape).
     let world = world::cross_gate_world("safe-retry-lost-response");
@@ -93,6 +95,7 @@ fn lost_response_after_commit_safe_retry_emits_nothing_twice() {
     let action = world.specialist_action();
     let scope = request_scope();
 
+    world.transport.under(FaultScript::Succeed, world::PATIENT);
     let admission = world
         .fixture
         .world
@@ -110,10 +113,48 @@ fn lost_response_after_commit_safe_retry_emits_nothing_twice() {
         1,
         "indeterminate lost-response retry must not admit a second rail attempt"
     );
+    assert_request_affine_retry_completed_once(&world, &correlation);
+
+    world.transport.under(FaultScript::Succeed, world::PATIENT);
+    let _unrelated = world.commit_second_notification(87);
+    assert_eq!(world.transport.production_dispatches().len(), 3);
+    assert_eq!(world.transport.completed_effect_count(), 2);
+}
+
+fn assert_request_affine_retry_completed_once(
+    world: &world::CrossGateWorld,
+    correlation: &bank_external_rail::RailCorrelation,
+) {
+    let dispatches = world.transport.production_dispatches();
+    assert_eq!(
+        dispatches.len(),
+        2,
+        "initial and retry must both cross the production Bank adapter"
+    );
+    assert_eq!(dispatches[0].correlation, dispatches[1].correlation);
+    assert_eq!(dispatches[0].payload, dispatches[1].payload);
+    assert_eq!(&dispatches[0].correlation, correlation);
+    assert_eq!(
+        world.transport.completed_effect_count(),
+        1,
+        "two request-affine dispatches must produce one physical consequence"
+    );
+    let completed = world
+        .transport
+        .completed_notice(correlation)
+        .expect("the independent consequence owner retains the completed notice");
+    assert_eq!(
+        (completed.estate(), completed.notice(), completed.subject()),
+        (
+            world.fixture.estate.get(),
+            world.fixture.notice.get(),
+            world.fixture.deceased.get(),
+        )
+    );
 }
 
 #[test]
-fn safe_retry_of_already_completed_effect_emits_nothing() {
+fn safe_retry_of_already_completed_effect_repeats_dispatch_but_not_physical_consequence() {
     let world = world::cross_gate_world("safe-retry-completed");
     world.transport.under(FaultScript::Succeed, world::PATIENT);
     let receipt = world.commit_notification(82);
@@ -124,6 +165,8 @@ fn safe_retry_of_already_completed_effect_emits_nothing() {
         Some(WorthQueryPublishedExternalEffectPostureKind::Completed)
     );
     assert_eq!(world.transport.admission_count(), 1);
+    assert_eq!(world.transport.production_dispatches().len(), 1);
+    assert_eq!(world.transport.completed_effect_count(), 1);
     let correlation = world.transport.attempts()[0].clone();
 
     let handle = world.open_recovery(&receipt);
@@ -151,6 +194,16 @@ fn safe_retry_of_already_completed_effect_emits_nothing() {
         world.transport.admission_count(),
         1,
         "already-completed re-dispatch must not admit a second rail attempt"
+    );
+    assert_eq!(
+        world.transport.production_dispatches().len(),
+        2,
+        "safe retry still crosses the production adapter"
+    );
+    assert_eq!(
+        world.transport.completed_effect_count(),
+        1,
+        "the completed correlation must not repeat its physical consequence"
     );
 }
 
@@ -200,7 +253,7 @@ fn foreign_principal_safe_retry_denies_before_transport() {
         BankEstateProgressionDenial::Authorization(d) => {
             assert_eq!(
                 d.kind(),
-                WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing,
+                bank_server::BankAuthorizationDenialKind::CapabilityGrantMissing,
                 "deceased safe-retry must miss a live capability grant, got {:?}",
                 d.kind()
             );
@@ -260,7 +313,10 @@ fn undeclared_external_effect_leaves_retry_path_nothing_to_find() {
     use crate::fixture::{ordinary_read_world, principal_id, OWNER, RECIPIENT};
 
     let rail = spawn_rail();
-    let transport = Arc::new(BankEstateRailTransport::connected_to(rail.local_addr()));
+    let transport = Arc::new(BankEstateRailTransport::connected_to(
+        rail.local_addr(),
+        rail.test_control_addr(),
+    ));
     let fixture = ordinary_read_world("safe-retry-r84", 0);
     fixture
         .world

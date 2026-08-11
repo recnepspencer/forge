@@ -3,9 +3,6 @@ use bank_domain::proposals::BankIdempotencyKey;
 use bank_domain::schema::{Deposit, GrantAccountAuthorization, RevokeAccountAuthorization};
 use bank_server::{mutations, queries, BankMutationControls, BankMutationStatus, BankReadControls};
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestScope;
-use worth_query_host::facade::domain::{
-    WorthQueryCanonicalWorkEvidence, WorthQueryCanonicalWorkPhases,
-};
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationLiveControls, WorthQueryApplicationQueryControls,
 };
@@ -125,29 +122,6 @@ pub(crate) fn live_controls_for(
     buffer_capacity: usize,
 ) -> WorthQueryApplicationLiveControls {
     WorthQueryApplicationLiveControls::bounded(request, buffer_capacity, 8, 2_048).unwrap()
-}
-
-pub(crate) fn assert_phase_posture(phases: WorthQueryCanonicalWorkPhases) {
-    assert!(phases.installation().digest_derivations() > 0);
-    assert!(phases.admission().digest_derivations() > 0);
-    assert_zero(phases.execution());
-    assert_zero(phases.provider_commit());
-    assert_zero(phases.projection());
-    assert_zero(phases.live_delivery());
-    assert_zero(phases.retry_resolution());
-    assert_zero(phases.recovery_inspection());
-    assert_zero(phases.publication());
-}
-
-fn assert_zero(work: WorthQueryCanonicalWorkEvidence) {
-    assert_eq!(work.basis_preparations(), 0);
-    assert_eq!(work.digest_derivations(), 0);
-    assert_eq!(work.canonical_entries(), 0);
-    assert_eq!(work.canonical_encoded_bytes(), 0);
-    assert_eq!(work.canonical_material_allocation_bytes(), 0);
-    assert_eq!(work.sha256_input_bytes(), 0);
-    assert_eq!(work.sha256_compression_blocks(), 0);
-    assert_eq!(work.digest_text_materializations(), 0);
 }
 
 fn mutation_controls(key: &str) -> BankMutationControls {

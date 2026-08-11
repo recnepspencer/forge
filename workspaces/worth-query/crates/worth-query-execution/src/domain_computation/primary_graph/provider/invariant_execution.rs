@@ -11,6 +11,10 @@ use crate::domain_computation::{
     WorthQueryProviderSessionView,
 };
 
+pub(super) struct WorthQueryInvariantWorkMint {
+    _private: (),
+}
+
 impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider> {
     fn load_invariant_state(
         &self,
@@ -18,24 +22,16 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
         request: WorthQueryInvariantStateLoadRequestView<'_>,
         admission: WorthQueryInvariantStateLoadAdmission,
     ) -> Result<WorthQueryInvariantStateLoadEvidence, WorthQueryInvariantExecutionFailure> {
-        let sessions = self
-            .sessions
+        self.application_attempt_work.observe_invariant_state_load();
+        let attempts = self
+            .attempts
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let overlay_identity = sessions
-            .session_overlays
-            .get(session.identity())
-            .ok_or_else(|| closure_failure("provider session has no staged overlay"))?;
-        let overlay = sessions
-            .overlays
-            .get(overlay_identity)
-            .ok_or_else(|| closure_failure("provider session overlay is unavailable"))?;
-        let attempt = sessions
-            .application_attempts
-            .get(session.identity())
-            .ok_or_else(|| closure_failure("provider session has no application attempt"))?;
-        let expected = expected_locators(overlay)?;
-        if attempt.expected_steps.len() != overlay.facts.len()
+        let staged = attempts
+            .staged_attempt(session.affinity_identity())
+            .ok_or_else(|| closure_failure("provider session has no staged application attempt"))?;
+        let expected = expected_locators(staged.overlay_facts())?;
+        if staged.expected_step_count() != staged.overlay_facts().len()
             || request.locators() != expected.as_slice()
         {
             return Err(closure_failure(
@@ -43,12 +39,12 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
             ));
         }
         admission.admit(
-            format!("primary-invariant-load:{overlay_identity}"),
+            format!("primary-invariant-load:{}", staged.overlay_identity()),
             expected.clone(),
             WorthQueryInvariantStructuralCounters::new(
                 expected.len(),
                 expected.len() as u64,
-                overlay.facts.len() as u64,
+                staged.overlay_facts().len() as u64,
             ),
         )
     }
@@ -59,6 +55,7 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
         execution: WorthQueryBoundInvariantExecutionView<'_>,
         admission: WorthQueryInvariantVerdictAdmission,
     ) -> Result<WorthQueryInvariantProviderVerdict, WorthQueryInvariantExecutionFailure> {
+        self.application_attempt_work.observe_invariant_execution();
         let material = self.invariant_candidate_material(session)?;
         let load_evidence = execution.state_load_evidence();
         material.validate_load(&execution, load_evidence)?;
@@ -80,6 +77,7 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
         )?;
         let summary = candidate.invariant_evidence().summary();
         let work = super::mutation_work::WorthQueryPrimaryMutationWorkCounters::new(
+            WorthQueryInvariantWorkMint { _private: () },
             material.decision_facts,
             material.expected.len(),
             material.expected.len(),
@@ -87,7 +85,7 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
             summary.execution_count,
             summary.result_count,
         );
-        self.retain_validated_candidate(session.identity(), candidate, work)?;
+        self.retain_validated_candidate(session.affinity_identity(), candidate, work)?;
         let evidence = WorthQueryInvariantVerdictEvidence::new(
             execution.requirement().slot(),
             "relational-installed-invariant-authority",
@@ -130,37 +128,25 @@ impl WorthQueryPrimaryGraphProvider {
         &self,
         session: WorthQueryProviderSessionView<'_>,
     ) -> Result<ApplicationInvariantCandidateMaterial, WorthQueryInvariantExecutionFailure> {
-        let sessions = self
-            .sessions
+        let attempts = self
+            .attempts
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let overlay_identity = sessions
-            .session_overlays
-            .get(session.identity())
-            .ok_or_else(|| closure_failure("invariant execution lost its staged overlay"))?;
-        let overlay = sessions
-            .overlays
-            .get(overlay_identity)
-            .ok_or_else(|| closure_failure("invariant execution overlay is unavailable"))?;
-        let attempt = sessions
-            .application_attempts
-            .get(session.identity())
-            .ok_or_else(|| closure_failure("invariant execution lost its application attempt"))?;
-        if attempt.expected_steps.len() != overlay.facts.len() {
+        let staged = attempts
+            .staged_attempt(session.affinity_identity())
+            .ok_or_else(|| closure_failure("invariant execution lost its staged attempt"))?;
+        if staged.expected_step_count() != staged.overlay_facts().len() {
             return Err(closure_failure(
                 "invariant execution lost proposed-effect closure",
             ));
         }
         Ok(ApplicationInvariantCandidateMaterial {
-            expected: expected_locators(overlay)?,
-            load_evidence: format!("primary-invariant-load:{overlay_identity}"),
-            batch: attempt.batch.clone(),
-            branch: attempt.branch.clone(),
-            decision_facts: attempt.decision_fact_count,
-            expected_branch_head: attempt
-                .aftermath_causality
-                .as_ref()
-                .map(|causality| causality.expected_head()),
+            expected: expected_locators(staged.overlay_facts())?,
+            load_evidence: format!("primary-invariant-load:{}", staged.overlay_identity()),
+            batch: staged.batch().clone(),
+            branch: staged.branch().clone(),
+            decision_facts: staged.decision_fact_count(),
+            expected_branch_head: staged.expected_branch_head(),
         })
     }
 
@@ -197,34 +183,22 @@ impl WorthQueryPrimaryGraphProvider {
 
     fn retain_validated_candidate(
         &self,
-        session: &str,
+        affinity: crate::domain_computation::WorthQueryProviderSessionAffinityIdentity,
         candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
         work: super::mutation_work::WorthQueryPrimaryMutationWorkCounters,
     ) -> Result<(), WorthQueryInvariantExecutionFailure> {
-        let mut sessions = self
-            .sessions
+        self.attempts
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if sessions.invariant_work.contains_key(session)
-            || sessions.validated_mutations.contains_key(session)
-        {
-            return Err(closure_failure(
-                "provider session already owns an invariant-approved candidate",
-            ));
-        }
-        sessions.invariant_work.insert(session.to_owned(), work);
-        sessions
-            .validated_mutations
-            .insert(session.to_owned(), candidate);
-        Ok(())
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .retain_invariant_approved(affinity, candidate, work)
+            .map_err(closure_failure)
     }
 }
 
 fn expected_locators(
-    overlay: &super::WorthQueryPrimaryGraphOverlay,
+    facts: &[crate::domain_computation::WorthQueryProposedFact],
 ) -> Result<Vec<WorthQueryInvariantStateLocator>, WorthQueryInvariantExecutionFailure> {
-    let mut expected = overlay
-        .facts
+    let mut expected = facts
         .iter()
         .map(|fact| {
             WorthQueryInvariantStateLocator::new("application-proposed-state", fact.identity())

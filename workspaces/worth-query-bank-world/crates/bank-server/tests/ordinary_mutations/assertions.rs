@@ -1,5 +1,6 @@
 use bank_server::{BankCommitReceipt, BankMutationOutcome, BankMutationStatus};
-use worth_query_host::facade::primary_graph::WorthQueryApplicationCommitTerminalKind;
+use worth_query_host::facade::publication::application_aftermath::WorthQueryPublishedApplicationCommitKind;
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationCommitAttemptReleasePosture;
 
 pub(super) fn assert_committed(outcome: BankMutationOutcome) {
     let BankMutationStatus::Committed(receipt) = outcome.status() else {
@@ -22,16 +23,18 @@ pub(super) fn assert_fresh_publication(receipt: &BankCommitReceipt) {
     let publication = receipt.publication().inspect();
     assert_eq!(
         publication.kind(),
-        WorthQueryApplicationCommitTerminalKind::Executed
+        WorthQueryPublishedApplicationCommitKind::Executed
     );
-    assert!(publication.executed_session_identity().is_some());
     let work = publication
         .mutation_work()
         .expect("a fresh commit publication retains actual mutation work");
     assert!(work.decision_fact_count() > 0);
     assert!(work.proposed_fact_count() > 0);
     assert!(work.relational_invariant_execution_count() > 0);
-    assert_eq!(publication.attempt_resources_released(), Some(true));
+    assert_eq!(
+        publication.attempt_release(),
+        WorthQueryPublishedApplicationCommitAttemptReleasePosture::Released
+    );
     assert_eq!(publication.publication_canonical_entries(), 0);
     assert_eq!(publication.publication_sha256_compression_blocks(), 0);
     assert_eq!(publication.publication_identity_text_materializations(), 0);

@@ -18,45 +18,32 @@ use worth_query_host::facade::primary_graph::{
 #[derive(Debug)]
 pub enum BankEstateReleaseProjectionDenial {
     MissingEstateIdentity,
-    EstateMismatch {
-        expected: EstateCaseId,
-        observed: EstateCaseId,
-    },
+    EstateMismatch,
     MissingEstateStatus,
-    EstateNotOpen(EstateCaseStatus),
+    EstateNotOpen,
     ExecutorMissing,
     ExecutorIdentityMissing,
     ExecutorIdentityMismatch,
-    ExecutorRelationCardinality {
-        observed: usize,
-    },
+    ExecutorRelationCardinality { observed: usize },
     RecognizedExecutorAuthorityMissing,
     LegalAuthorityIdentityMissing,
     LegalAuthorityIdentityMismatch,
     LegalAuthorityRecognitionMissing,
-    LegalAuthorityHolderCardinality {
-        observed: usize,
-    },
+    LegalAuthorityHolderCardinality { observed: usize },
     LegalAuthorityHolderMismatch,
-    LegalAuthorityEstateCardinality {
-        observed: usize,
-    },
+    LegalAuthorityEstateCardinality { observed: usize },
     LegalAuthorityEstateMismatch,
     ReleaseReviewMissing,
-    ReleaseReviewWrongKind(MandatoryReviewKind),
-    ReleaseReviewIncomplete(MandatoryReviewStatus),
+    ReleaseReviewWrongKind,
+    ReleaseReviewIncomplete,
     ReviewIdentityMissing,
     ReviewPrincipalIdentityMissing,
-    ReviewEstateCardinality {
-        observed: usize,
-    },
+    ReviewEstateCardinality { observed: usize },
     ReviewEstateMismatch,
-    ReviewPrincipalCardinality {
-        observed: usize,
-    },
-    EntityResolution(WorthQueryEntityResolutionDenial),
-    DecisionPlan(WorthQueryInvariantDecisionPlanDenial),
-    Traversal(WorthQueryInvariantProjectionTraversalDenial),
+    ReviewPrincipalCardinality { observed: usize },
+    EntityResolution(crate::BankEntityResolutionDenial),
+    DecisionPlan(crate::BankInvariantDecisionPlanDenial),
+    Traversal(crate::BankInvariantProjectionTraversalDenial),
 }
 
 pub(super) fn project_release_readiness(
@@ -84,16 +71,13 @@ fn project_estate(
         .decision_field(estate, EstateCaseIdentityField::reference())?
         .ok_or(BankEstateReleaseProjectionDenial::MissingEstateIdentity)?;
     if observed != expected_estate {
-        return Err(BankEstateReleaseProjectionDenial::EstateMismatch {
-            expected: expected_estate,
-            observed,
-        });
+        return Err(BankEstateReleaseProjectionDenial::EstateMismatch);
     }
     let status = reader
         .decision_field(estate, EstateCaseStatusField::reference())?
         .ok_or(BankEstateReleaseProjectionDenial::MissingEstateStatus)?;
     if status != EstateCaseStatus::Open {
-        return Err(BankEstateReleaseProjectionDenial::EstateNotOpen(status));
+        return Err(BankEstateReleaseProjectionDenial::EstateNotOpen);
     }
     Ok(())
 }
@@ -218,17 +202,13 @@ fn project_release_review(
         .decision_field(&review, MandatoryReviewKindField::reference())?
         .ok_or(BankEstateReleaseProjectionDenial::ReleaseReviewMissing)?;
     if kind != MandatoryReviewKind::EstateRelease {
-        return Err(BankEstateReleaseProjectionDenial::ReleaseReviewWrongKind(
-            kind,
-        ));
+        return Err(BankEstateReleaseProjectionDenial::ReleaseReviewWrongKind);
     }
     let status = reader
         .decision_field(&review, MandatoryReviewStatusField::reference())?
         .ok_or(BankEstateReleaseProjectionDenial::ReleaseReviewMissing)?;
     if status != MandatoryReviewStatus::Completed {
-        return Err(BankEstateReleaseProjectionDenial::ReleaseReviewIncomplete(
-            status,
-        ));
+        return Err(BankEstateReleaseProjectionDenial::ReleaseReviewIncomplete);
     }
     let estates = reader.decision_relations_from(ReviewEstate::reference(), &review)?;
     let [related_estate] = estates.as_slice() else {
@@ -255,19 +235,23 @@ fn project_release_review(
 
 impl From<WorthQueryEntityResolutionDenial> for BankEstateReleaseProjectionDenial {
     fn from(denial: WorthQueryEntityResolutionDenial) -> Self {
-        Self::EntityResolution(denial)
+        Self::EntityResolution(crate::BankEntityResolutionDenial::from_query(denial.kind()))
     }
 }
 
 impl From<WorthQueryInvariantDecisionPlanDenial> for BankEstateReleaseProjectionDenial {
     fn from(denial: WorthQueryInvariantDecisionPlanDenial) -> Self {
-        Self::DecisionPlan(denial)
+        Self::DecisionPlan(crate::BankInvariantDecisionPlanDenial::from_query(
+            denial.kind(),
+        ))
     }
 }
 
 impl From<WorthQueryInvariantProjectionTraversalDenial> for BankEstateReleaseProjectionDenial {
     fn from(denial: WorthQueryInvariantProjectionTraversalDenial) -> Self {
-        Self::Traversal(denial)
+        Self::Traversal(crate::BankInvariantProjectionTraversalDenial::from_query(
+            denial.kind(),
+        ))
     }
 }
 

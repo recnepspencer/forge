@@ -120,16 +120,28 @@ impl BankIdentityRuntime {
                 request,
                 WorthQueryPrincipalResolutionMode::Ordinary,
             )
-            .map_err(BankOperationAdmissionError::ScopeResolution)?;
+            .map_err(|denial| {
+                BankOperationAdmissionError::ScopeResolution(
+                    crate::BankEntityResolutionDenial::from_query(denial.kind()),
+                )
+            })?;
         let operation = self
             .application_runtime()
             .installed_schema()
             .installed_operation(operation)
-            .map_err(BankOperationAdmissionError::OperationInstallation)?;
+            .map_err(|denial| {
+                BankOperationAdmissionError::OperationInstallation(
+                    crate::BankOperationInstallationDenial::from_query(denial.kind()),
+                )
+            })?;
         let query = self
             .application_runtime()
             .authorize_operation(actor.query(), &identity, &operation, preconditions, request)
-            .map_err(BankOperationAdmissionError::Authorization)?;
+            .map_err(|denial| {
+                BankOperationAdmissionError::Authorization(
+                    crate::BankAuthorizationDenial::from_query(denial),
+                )
+            })?;
         Ok(BankAdmittedOperation {
             actor: actor.principal_id(),
             scope: value,

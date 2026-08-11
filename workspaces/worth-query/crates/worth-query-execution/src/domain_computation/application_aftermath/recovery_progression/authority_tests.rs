@@ -57,6 +57,7 @@ fn probe_handle_expiring_at(
             idempotency: WorthQueryApplicationIdempotencyBinding::new([0x55; 32], [0x56; 32]),
             provider_posture: None,
             dispatch_outbox: None,
+            dispatch_outbox_record_ref: None,
             installed_aftermath: crate::domain_computation::application_aftermath::aftermath_schema_fixture::notify_death(),
             expires_at_unix_ms: Some(expires_at_unix_ms),
         },

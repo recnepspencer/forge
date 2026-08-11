@@ -2,13 +2,10 @@
 mod fixture;
 
 use bank_server::{
-    queries, BankEstateProgressionDenial, BankExecutorRecognitionProjectionDenial,
-    BankMutationCommitOutcome, BankReadControls,
+    queries, BankCommitDenialKind, BankCommitDenialStage, BankEstateProgressionDenial,
+    BankExecutorRecognitionProjectionDenial, BankMutationCommitOutcome, BankReadControls,
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationIdempotencyBinding,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
 use self::fixture::{
     duplicate_executor_world, exact_recognition_world, foreign_authority_world,
@@ -55,7 +52,7 @@ fn public_query_observes_the_exact_recognized_executor() {
     let BankMutationCommitOutcome::AlreadyCommitted(recovered) = retry else {
         panic!("the equivalent retry must recover the exact commit: {retry:?}");
     };
-    assert!(receipt.is_same_authoritative_commit(&recovered));
+    assert_eq!(receipt.aftermath(), recovered.aftermath());
     assert_zero_canonical_work(recovered.canonical_work());
 
     let drift = fixture
@@ -71,8 +68,8 @@ fn public_query_observes_the_exact_recognized_executor() {
     assert!(matches!(
         drift,
         BankMutationCommitOutcome::Denied {
-            kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
-            stage: WorthQueryApplicationCommitDenialStage::Idempotency,
+            kind: BankCommitDenialKind::IdempotencyIntentDrift,
+            stage: BankCommitDenialStage::Idempotency,
         }
     ));
 }
@@ -86,11 +83,8 @@ fn command_authorization_does_not_make_a_foreign_authority_lawful() {
     assert!(matches!(
         denial,
         BankEstateProgressionDenial::ExecutorRecognitionProjection(
-            BankExecutorRecognitionProjectionDenial::AuthorityEstateMismatch {
-                expected,
-                observed,
-            }
-        ) if expected == fixture.estate && observed == fixture.foreign_estate
+            BankExecutorRecognitionProjectionDenial::AuthorityEstateMismatch
+        )
     ));
     assert!(estate_executors(&fixture).is_empty());
 }
@@ -104,11 +98,8 @@ fn selected_authority_must_name_the_commanded_executor() {
     assert!(matches!(
         denial,
         BankEstateProgressionDenial::ExecutorRecognitionProjection(
-            BankExecutorRecognitionProjectionDenial::AuthorityHolderMismatch {
-                expected,
-                observed,
-            }
-        ) if expected == fixture.executor && observed == fixture.other_holder
+            BankExecutorRecognitionProjectionDenial::AuthorityHolderMismatch
+        )
     ));
     assert!(estate_executors(&fixture).is_empty());
 }
@@ -179,9 +170,7 @@ fn idempotency(identity: u8) -> WorthQueryApplicationIdempotencyBinding {
     WorthQueryApplicationIdempotencyBinding::new([identity; 32], [identity + 1; 32])
 }
 
-fn assert_zero_canonical_work(
-    phases: worth_query_host::facade::domain::WorthQueryCanonicalWorkPhases,
-) {
+fn assert_zero_canonical_work(phases: bank_server::BankCommitCanonicalWorkPhases) {
     for work in [
         phases.installation(),
         phases.admission(),

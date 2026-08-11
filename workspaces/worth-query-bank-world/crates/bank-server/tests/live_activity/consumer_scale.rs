@@ -26,29 +26,28 @@ fn live_consumer_fanout_keeps_each_delivery_free_of_canonical_work() {
         "live-consumer-canonical-scale-deposit",
     );
 
-    let mut expected_phases = None;
-    let mut expected_authorization = None;
+    let mut expected_publication_work = None;
     for lease in &mut leases {
         let BankAccountActivityLiveOutcome::Delivered(update) = lease.poll() else {
             panic!("each retained consumer must receive the matching commit")
         };
         let receipt = update.receipt();
-        let phases = receipt.canonical_work();
-        let authorization = receipt.authorization_work();
-        assert_phase_posture(phases);
-        assert_eq!(authorization.requirement_count(), 1);
-        assert_eq!(authorization.canonical_work(), Default::default());
-        assert_eq!(receipt.fallback_count(), 0);
-        assert_eq!(*expected_phases.get_or_insert(phases), phases);
+        let inspection = receipt.inspect();
+        let publication_work = (
+            inspection.publication_canonical_entries(),
+            inspection.publication_sha256_compression_blocks(),
+            inspection.publication_identity_text_materializations(),
+        );
+        assert!(inspection.terminal_resources_released());
         assert_eq!(
-            *expected_authorization.get_or_insert(authorization),
-            authorization
+            *expected_publication_work.get_or_insert(publication_work),
+            publication_work
         );
     }
     for lease in leases {
         assert!(matches!(
             lease.close(),
-            worth_query_host::facade::primary_graph::WorthQueryApplicationLiveCloseOutcome::Completed(_)
+            bank_server::BankApplicationLiveCloseOutcome::Completed
         ));
     }
 }

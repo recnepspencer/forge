@@ -4,13 +4,11 @@ use super::super::{
     WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitOutcome,
     WorthQueryApplicationEffectProgram, WorthQueryApplicationIdempotencyBinding,
 };
-use super::commit_completion::finish_application_commit;
-use super::commit_preparation::{
-    prepare_application_commit, WorthQueryApplicationCommitPreparation,
-    WorthQueryApplicationCommitPreparationRequest,
-};
 use super::elevation_currentness::WorthQueryElevationCommitCurrentness;
-use super::managed_commit_run::start_managed_application_commit;
+use super::phase::{
+    finish_application_commit, prepare_application_commit, start_managed_application_commit,
+    WorthQueryApplicationCommitPreparation, WorthQueryApplicationCommitPreparationRequest,
+};
 use super::progression::execute_provider_progression;
 use crate::domain_computation::application_aftermath::WorthQueryPendingAftermathCausality;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
@@ -118,12 +116,12 @@ where
     {
         let prepared = match prepare_application_commit(
             self,
-            WorthQueryApplicationCommitPreparationRequest {
+            WorthQueryApplicationCommitPreparationRequest::new(
                 program,
                 idempotency,
                 elevation_currentness,
                 aftermath_causality,
-            },
+            ),
         ) {
             WorthQueryApplicationCommitPreparation::Ready(prepared) => prepared,
             WorthQueryApplicationCommitPreparation::Terminal(outcome) => return outcome,

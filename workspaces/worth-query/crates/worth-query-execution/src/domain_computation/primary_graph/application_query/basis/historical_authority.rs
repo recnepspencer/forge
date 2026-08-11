@@ -2,11 +2,12 @@ use std::marker::PhantomData;
 use std::time::Instant;
 
 use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
+use worth_relational::facade::history::CommitReference;
 use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
 #[cfg(test)]
-use worth_runtime_bridge::facade::TruthBranchIdentity;
 use worth_runtime_bridge::facade::{
-    BridgeTruthViewEvaluationRequest, BridgeTruthViewSelector, TruthCommitIdentity,
+    BridgeTruthViewEvaluationRequest, BridgeTruthViewSelector, TruthBranchIdentity,
+    TruthCommitIdentity,
 };
 
 use super::super::resource_lifecycle::WorthQueryApplicationBasisLease;
@@ -15,35 +16,50 @@ use crate::domain_computation::primary_graph::WorthQueryApplicationCommitReceipt
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationHistoricalRead {
-    selector: BridgeTruthViewSelector,
-    provider_runtime_instance_id: Option<u64>,
+    source: WorthQueryApplicationHistoricalReadSource,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) enum WorthQueryApplicationHistoricalReadSource {
+    ApplicationCommit {
+        provider_runtime_instance_id: u64,
+        commit: CommitReference,
+    },
+    #[cfg(test)]
+    BridgeSelector(BridgeTruthViewSelector),
 }
 
 impl WorthQueryApplicationHistoricalRead {
     #[cfg(test)]
     pub(crate) fn at_commit(branch: TruthBranchIdentity, commit: TruthCommitIdentity) -> Self {
         Self {
-            selector: BridgeTruthViewSelector::historical_commit(branch, commit),
-            provider_runtime_instance_id: None,
+            source: WorthQueryApplicationHistoricalReadSource::BridgeSelector(
+                BridgeTruthViewSelector::historical_commit(branch, commit),
+            ),
         }
     }
 
     pub fn at_application_commit(receipt: &WorthQueryApplicationCommitReceipt) -> Self {
         Self {
-            selector: BridgeTruthViewSelector::historical_commit(
-                crate::domain_computation::primary_graph::primary_truth_branch_identity(),
-                TruthCommitIdentity::from_relational_commit_id(receipt.commit_id().0),
-            ),
-            provider_runtime_instance_id: Some(receipt.provider_runtime_instance_id()),
+            source: WorthQueryApplicationHistoricalReadSource::ApplicationCommit {
+                provider_runtime_instance_id: receipt.provider_runtime_instance_id(),
+                commit: receipt.commit_reference().clone(),
+            },
         }
     }
 
-    pub(super) const fn provider_runtime_instance_id(&self) -> Option<u64> {
-        self.provider_runtime_instance_id
+    pub(super) fn into_source(self) -> WorthQueryApplicationHistoricalReadSource {
+        self.source
     }
+}
 
+#[cfg(test)]
+impl WorthQueryApplicationHistoricalReadSource {
     pub(super) fn into_evaluation_request(self) -> BridgeTruthViewEvaluationRequest {
-        BridgeTruthViewEvaluationRequest::new(self.selector)
+        let Self::BridgeSelector(selector) = self else {
+            panic!("only synthetic Bridge selectors enter the legacy test evaluator")
+        };
+        BridgeTruthViewEvaluationRequest::new(selector)
     }
 }
 

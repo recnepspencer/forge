@@ -1,0 +1,11 @@
+error[E0603]: struct `WorthQueryProviderSessionAffinity` is private
+ --> tests/ui/installed_domain/managed_run/provider_session_affinity_is_not_public.rs:1:54
+  |
+1 | use worth_query_execution::facade::provider_session::WorthQueryProviderSessionAffinity;
+  |                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private struct
+  |
+note: the struct `WorthQueryProviderSessionAffinity` is defined here
+ --> $WORKSPACE/crates/worth-query-execution/src/facade.rs
+  |
+  |     pub use crate::domain_computation::provider_session::*;
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

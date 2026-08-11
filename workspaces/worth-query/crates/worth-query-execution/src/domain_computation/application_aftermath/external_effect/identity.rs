@@ -9,7 +9,10 @@ pub struct ExternalEffectPostureIdentity {
 }
 
 impl ExternalEffectPostureIdentity {
-    pub(crate) const fn from_digest(digest: CanonicalDigestId) -> Self {
+    pub(super) const fn from_digest(
+        _authority: &super::causal_event::CausalConstructionAuthority,
+        digest: CanonicalDigestId,
+    ) -> Self {
         Self { digest }
     }
 

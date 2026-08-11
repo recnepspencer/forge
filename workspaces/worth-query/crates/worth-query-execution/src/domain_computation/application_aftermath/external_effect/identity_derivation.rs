@@ -14,7 +14,7 @@ use super::ExternalEffectCorrelationIdentity;
 
 const DOMAIN: CanonicalBasisDomain =
     CanonicalBasisDomain::Future("worth-query.external-effect-causal-event");
-const RULE_VERSION: &str = "worth-query-external-effect-causal-event-v2";
+const RULE_VERSION: &str = "worth-query-external-effect-causal-event-v3";
 const BUDGET: CanonicalDigestWorkBudget = match CanonicalDigestWorkBudget::new(10, 4 * 1_024) {
     Some(budget) => budget,
     None => panic!("fixed external-effect causal event budget is valid"),
@@ -93,7 +93,7 @@ pub(super) fn observation_identity(
 }
 
 pub(super) struct DerivedEventIdentity {
-    pub identity: ExternalEffectPostureIdentity,
+    pub digest: CanonicalDigestId,
     pub work: WorthQueryCanonicalWorkEvidence,
 }
 
@@ -112,9 +112,7 @@ fn derive(
         .map_err(|_| WorthQueryAftermathDerivationFailure::DigestRejected)?;
     let derived = canonicalization().digest().derive(ready);
     Ok(DerivedEventIdentity {
-        identity: ExternalEffectPostureIdentity::from_digest(CanonicalDigestId::new(
-            *derived.value().bytes(),
-        )),
+        digest: CanonicalDigestId::new(*derived.value().bytes()),
         work: WorthQueryCanonicalWorkEvidence::one_digest(derived.metadata().work()),
     })
 }
@@ -147,4 +145,25 @@ fn entry(locus: &str, value: CanonicalBasisValue) -> CanonicalBasisEntry {
         CanonicalBasisEntryKind::Identity,
         value,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn v3_rule_has_a_frozen_distinct_canonical_corpus() {
+        let derived = derive(vec![
+            text_entry("stage", "v3-corpus"),
+            integer_entry("query-runtime", 7),
+        ])
+        .unwrap();
+        assert_eq!(
+            derived.digest.bytes(),
+            &[
+                213, 127, 104, 153, 55, 185, 43, 175, 113, 131, 40, 170, 52, 137, 58, 176, 119,
+                127, 1, 115, 179, 151, 39, 42, 177, 49, 46, 242, 88, 145, 40, 117,
+            ]
+        );
+    }
 }

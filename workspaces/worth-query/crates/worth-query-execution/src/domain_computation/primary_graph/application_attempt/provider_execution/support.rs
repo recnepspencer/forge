@@ -16,7 +16,7 @@ pub(in crate::domain_computation) fn application_resource_request(
     .ok()
 }
 
-pub(super) fn parse_provider_receipt(
+pub(in crate::domain_computation::primary_graph) fn parse_provider_receipt(
     value: &str,
     provider: &crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphProvider,
     branch: &worth_relational::facade::history::BranchId,
@@ -27,24 +27,23 @@ pub(super) fn parse_provider_receipt(
     if parts.next()? != "primary-application-commit" {
         return None;
     }
-    let runtime = parts.next()?.parse().ok()?;
-    let commit = parts.next()?.parse().ok()?;
-    let changed = parts.next()?.parse().ok()?;
-    let emitted = parts.next()?.parse().ok()?;
-    let outcome_identity = parts.next()?.parse().ok()?;
+    let runtime: u64 = parts.next()?.parse().ok()?;
+    let commit: u64 = parts.next()?.parse().ok()?;
+    let changed: usize = parts.next()?.parse().ok()?;
+    let emitted: usize = parts.next()?.parse().ok()?;
+    let outcome_identity: u64 = parts.next()?.parse().ok()?;
     if parts.next().is_some() {
         return None;
     }
     let commit = worth_relational::facade::history::CommitId(commit);
     let commit = provider.committed_branch_head(branch, commit)?;
-    Some(
-        crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphCommittedApplication::new(
-        crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitOutcomeIdentity::restore(outcome_identity)?,
-        runtime,
-        commit,
-        changed,
-        emitted,
-    ))
+    let committed = provider.observe_completed_application(&commit)?;
+    let expected_outcome = crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitOutcomeIdentity::restore(outcome_identity)?;
+    let exact = committed.runtime_instance_id() == runtime
+        && committed.changed_record_count() == changed
+        && committed.emitted_effect_count() == emitted
+        && committed.application_outcome_identity() == Some(expected_outcome);
+    exact.then_some(committed)
 }
 
 pub(super) fn denied(

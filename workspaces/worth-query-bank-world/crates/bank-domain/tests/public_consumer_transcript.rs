@@ -164,16 +164,15 @@ fn forged_entity_and_relation_names_are_denied() {
 fn forged_field_capability_type_and_currency_are_denied_independently() {
     let (_, bank) = installed_bank();
     let (from, recipient, amount) = transfer_values();
-    let forged_write =
-        ApplicationFieldRef::<
-            BankSchema,
-            Posting,
-            PostingIdentity,
-            PostingIdentityField,
-            bank_domain::model::PostingId,
-            ReadWrite,
-            EqualityPredicate,
-        >::from_schema_identifiers("Posting", "PostingIdentity", "PostingIdentityField");
+    let forged_write = ApplicationFieldRef::<
+        BankSchema,
+        Posting,
+        PostingIdentity,
+        PostingIdentityField,
+        bank_domain::model::PostingId,
+        ReadWrite,
+        EqualityPredicate,
+    >::from_schema_types();
     let denial = bank
         .operation(SendMoneyOperation::reference())
         .input(SendMoney {
@@ -232,7 +231,7 @@ fn assert_forged_currency_denied(bank: &WorthQueryInstalledApplicationSchema<Ban
         SignedMoney<USD>,
         ReadWrite,
         worth_query_decl::facade::application_schema::NoEqualityPredicate,
-    >::from_schema_identifiers("Posting", "PostingValue", "PostingAmount");
+    >::from_schema_types();
     let denial = bank
         .query(Posting::reference())
         .project(field)
@@ -258,7 +257,7 @@ fn assert_forged_value_type_denied(
         AlternateMoney,
         ReadWrite,
         EqualityPredicate,
-    >::from_schema_identifiers("Posting", "PostingValue", "PostingAmount");
+    >::from_schema_types();
     let denial = bank
         .operation(SendMoneyOperation::reference())
         .input(SendMoney {

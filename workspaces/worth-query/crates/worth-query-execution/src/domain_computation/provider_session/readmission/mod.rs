@@ -1,5 +1,7 @@
-mod direct;
 mod workflow;
 
-pub(crate) use direct::WorthQueryDirectResourceReadmissionPending;
-pub(crate) use workflow::WorthQueryWorkflowResourceReadmissionPending;
+pub(in crate::domain_computation) use workflow::WorthQueryWorkflowProviderWorkRebinding;
+pub(in crate::domain_computation) use workflow::{
+    WorthQueryWorkflowResourceReadmissionPostProvider,
+    WorthQueryWorkflowResourceReadmissionPreProvider,
+};

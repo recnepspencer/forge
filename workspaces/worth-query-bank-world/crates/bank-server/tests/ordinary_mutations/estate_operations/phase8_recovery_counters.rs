@@ -1,6 +1,6 @@
 //! Mint and inspection counter honesty (R8.33).
 
-use bank_external_rail::FaultScript;
+use bank_external_rail::test_control::FaultScript;
 
 use super::phase8_cross_gate::installed_notify_death_aftermath;
 use super::phase8_cross_gate::world::{cross_gate_world, PATIENT};

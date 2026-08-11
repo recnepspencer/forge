@@ -1,9 +1,24 @@
 use worth_runtime_bridge::facade::BridgeManagedQueueFailureKind;
 
+#[path = "direct_graph_completion.rs"]
+mod completion;
+
+pub(in crate::domain_computation) use completion::WorthQueryCompletedDirectEvidenceOwner;
+pub use completion::WorthQueryCompletedDirectGraphExecution;
+
+struct WorthQueryDirectGraphCompletionPermit {
+    _owner: (),
+}
+
+impl WorthQueryDirectGraphCompletionPermit {
+    fn mint() -> Self {
+        Self { _owner: () }
+    }
+}
+
 use super::direct_graph_chunk::{
     WorthQueryPendingDirectGraphChunk, WorthQueryPendingDirectGraphQueueState,
 };
-use super::direct_graph_completion::WorthQueryCompletedDirectGraphExecution;
 use super::interruption_classification::producer_terminal_kind;
 use super::managed_graph_execution::{
     WorthQueryManagedGraphExecution, WorthQueryManagedProviderStep,
@@ -37,11 +52,11 @@ impl WorthQueryActiveDirectGraphExecution {
     }
 
     pub fn resource_attempt_identity(&self) -> &str {
-        self.running.resource_attempt.attempt_identity().as_str()
+        self.running.identity()
     }
 
     pub fn provider_session_identity(&self) -> &str {
-        self.running.resource_attempt.provider_session().identity()
+        self.running.provider_session_identity()
     }
 
     pub fn bridge_basis_identity(&self) -> &str {
@@ -57,9 +72,7 @@ impl WorthQueryActiveDirectGraphExecution {
     }
 
     pub fn retained_capacity_reservation_count(&self) -> usize {
-        self.running
-            .resource_attempt
-            .retained_capacity_reservation_count()
+        self.running.retained_capacity_reservation_count()
     }
 
     pub fn request_cancellation(
@@ -223,6 +236,7 @@ impl WorthQueryActiveDirectGraphExecution {
         WorthQueryDirectGraphStepOutcome::Completed(WorthQueryCompletedDirectGraphExecution::new(
             self.running,
             receipt,
+            WorthQueryDirectGraphCompletionPermit::mint(),
         ))
     }
 

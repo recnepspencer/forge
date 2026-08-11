@@ -28,7 +28,7 @@ use crate::domain_computation::authorization::WorthQueryInstalledAuthorizationRe
 mod external_dispatch_attempt;
 mod installation;
 
-pub(in crate::domain_computation) use external_dispatch_attempt::WorthQueryAdmittedExternalDispatchAttempt;
+pub(in crate::domain_computation) use external_dispatch_attempt::WorthQueryExternalDispatchAttemptOrdinal;
 
 /// Purpose-scoped application runtime published from one typed primary graph.
 ///
@@ -55,6 +55,8 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(in crate::domain_computation) authorization_clock: Arc<WorthQueryRuntimeClock>,
     authentication_clock: WorthQueryAuthenticationClock,
     pub(super) relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
+    pub(super) execution_basis_source:
+        worth_relational::facade::runtime::RelationalApplicationCommitBasisSource,
     pub(super) bridge: worth_runtime_bridge::facade::RuntimeBridge,
     pub(super) primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     pub(super) primary_graph_authority:
@@ -69,21 +71,6 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
         std::sync::OnceLock<std::sync::Arc<dyn WorthQueryExternalEffectTransport>>,
     /// Instance-local recovery-handle live set (Q8.9 / R8.29).
     pub(crate) recovery_handles: Arc<WorthQueryRecoveryHandleRegistry>,
-}
-
-/// Runtime-minted ordinal for one physical external dispatch attempt.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::domain_computation) struct WorthQueryExternalDispatchAttemptOrdinal(u64);
-
-impl WorthQueryExternalDispatchAttemptOrdinal {
-    pub(in crate::domain_computation) const fn get(self) -> u64 {
-        self.0
-    }
-
-    #[cfg(test)]
-    pub(crate) const fn fixture(value: u64) -> Self {
-        Self(value)
-    }
 }
 
 impl<Schema> WorthQueryPrimaryGraphBootstrap<Schema>
@@ -138,19 +125,6 @@ where
 }
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema> {
-    pub(in crate::domain_computation) fn next_external_dispatch_attempt(
-        &self,
-    ) -> Option<WorthQueryExternalDispatchAttemptOrdinal> {
-        self.next_external_dispatch_attempt
-            .fetch_update(
-                std::sync::atomic::Ordering::AcqRel,
-                std::sync::atomic::Ordering::Acquire,
-                |current| current.checked_add(1),
-            )
-            .ok()
-            .map(WorthQueryExternalDispatchAttemptOrdinal)
-    }
-
     pub(in crate::domain_computation::primary_graph) fn authentication_is_expired(
         &self,
         valid_until: std::time::Instant,
@@ -223,31 +197,19 @@ where
 
     #[cfg(test)]
     pub(crate) fn provider_session_resource_count(&self) -> usize {
-        let sessions = self
-            .primary_provider
-            .sessions
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        sessions
-            .application_attempts
-            .len()
-            .saturating_add(sessions.session_overlays.len())
-            .saturating_add(sessions.overlays.len())
-            .saturating_add(sessions.validated_mutations.len())
-            .saturating_add(sessions.invariant_work.len())
-            .saturating_add(sessions.completed_commit_evidence.len())
+        self.primary_provider.application_attempt_resource_count()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn application_attempt_work(
+        &self,
+    ) -> super::provider::WorthQueryApplicationAttemptWorkSnapshot {
+        self.primary_provider.application_attempt_work()
     }
 
     #[cfg(test)]
     pub(crate) fn fail_next_index_publication(&self) {
         self.primary_provider.fail_next_index_publication();
-    }
-
-    #[cfg(test)]
-    pub(crate) fn completed_mutation_work(
-        &self,
-    ) -> Option<super::provider::WorthQueryPrimaryMutationWorkEvidence> {
-        self.primary_provider.completed_mutation_work()
     }
 
     #[cfg(test)]

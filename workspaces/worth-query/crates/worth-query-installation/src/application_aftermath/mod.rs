@@ -21,7 +21,7 @@ pub use canonical_basis::WorthQueryAftermathCanonicalArtifact;
 pub use correction_authority::InstalledCorrectionAuthority;
 pub use correction_mechanism::{
     InstalledCompensation, InstalledCorrectionMechanism, InstalledLoweringCorrespondenceRef,
-    InstalledPreImageDemand, InstalledRecordedInverse,
+    InstalledPreImageDemand, InstalledPreImageLocus, InstalledRecordedInverse,
 };
 pub use denial::{
     WorthQueryAftermathInstallationDenial, WorthQueryAftermathInstallationDenialKind,
@@ -29,11 +29,8 @@ pub use denial::{
 pub use external_effect_contract::{
     InstalledExternalEffectContract, InstalledExternalEffectPosture,
 };
-pub(crate) use install::{
-    derived_lowering_catalog, install_application_aftermath, OperationAftermathInstallation,
-};
+pub(crate) use install::install_application_aftermath;
 pub use install::{WorthQueryInstalledAftermathContract, WorthQueryInstalledAftermathIdentity};
-pub(crate) use install_validation::OperationDeclaredReadFields;
 pub use lowering_correspondence::{
     AftermathLoweringCorrespondenceCatalog, InstalledLoweringCorrespondence,
     LoweringCorrespondenceResolutionDenial,

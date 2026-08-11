@@ -1,12 +1,20 @@
 //! Named responsibilities for committing one prepared provider session.
 
 mod evidence;
+mod outbox_commit;
 mod preimage_retention;
 mod prepared_session;
 mod relational_commit;
 
-pub(in crate::domain_computation::primary_graph) use evidence::{
-    WorthQueryCompletedCommitEvidenceStore, WorthQueryPrimaryGraphCommitEvidence,
+pub(in crate::domain_computation::primary_graph) use evidence::WorthQueryCompletedCommitEvidenceStore;
+pub(in crate::domain_computation) use outbox_commit::WorthQueryCommittedDispatchOutboxBinding;
+pub(in crate::domain_computation::primary_graph) use outbox_commit::{
+    WorthQueryCommittedDispatchOutboxBindingDenial, WorthQueryCommittedDispatchOutboxReceiptSeal,
+};
+pub(crate) use preimage_retention::WorthQueryRetainedPreImageSeal;
+pub(in crate::domain_computation::primary_graph::provider) use relational_commit::WorthQueryCommittedApplicationPublicationSeal;
+pub(in crate::domain_computation::primary_graph) use relational_commit::{
+    WorthQueryMutationWorkCommitSeal, WorthQueryPrimaryGraphCommitEvidence,
 };
 
 use super::WorthQueryPrimaryGraphProvider;
@@ -16,9 +24,9 @@ use crate::domain_computation::{
 
 pub(super) fn commit_prepared_session(
     provider: &WorthQueryPrimaryGraphProvider,
-    session_identity: &str,
+    affinity: crate::domain_computation::WorthQueryProviderSessionAffinityIdentity,
 ) -> Result<String, WorthQueryProviderSessionFailure> {
-    let prepared = prepared_session::take_prepared_session(provider, session_identity)?;
+    let prepared = prepared_session::take_prepared_session(provider, affinity)?;
     #[cfg(test)]
     if provider.take_rejected_commit_before_transaction() {
         return Err(provider_failure(

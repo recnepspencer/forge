@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use worth_foundational::facade::AspectValue;
 
 use super::capabilities::{ApplicationFieldUnit, OperationExpectsFact, OperationExpectsVersion};
-use super::references::ApplicationFieldRef;
+use super::field_reference::ApplicationFieldRef;
 use super::values::TypedApplicationValue;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]

@@ -25,9 +25,6 @@ pub(crate) struct FreezeFixture {
     pub(crate) estate: EstateCaseId,
     pub(crate) estate_account: AccountId,
     pub(crate) foreign_account: AccountId,
-    /// Protected AccountDetails twin axis — foreign account status differs across
-    /// R8.48 paired worlds while the freeze/undo subject account stays identical.
-    pub(crate) protected_foreign_status: AccountStatus,
 }
 
 impl FreezeFixture {
@@ -148,7 +145,6 @@ fn freeze_world(
         estate: ESTATE,
         estate_account: ESTATE_ACCOUNT,
         foreign_account: FOREIGN_ACCOUNT,
-        protected_foreign_status,
     }
 }
 

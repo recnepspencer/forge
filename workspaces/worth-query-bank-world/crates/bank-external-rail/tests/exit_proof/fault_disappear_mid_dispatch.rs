@@ -2,9 +2,8 @@
 //! any ledger record exists, distinguishing it from a lost response after a
 //! real commit.
 
-use bank_external_rail::{
-    dispatch, inquire_status, FaultScript, LedgerStatus, RailExchangeOutcome,
-};
+use bank_external_rail::test_control::FaultScript;
+use bank_external_rail::{dispatch, inquire_status, LedgerStatus, RailExchangeOutcome};
 
 use crate::support::{attempt_for, correlation_for, spawn_rail, FRAME_TIMEOUT};
 
@@ -12,10 +11,11 @@ use crate::support::{attempt_for, correlation_for, spawn_rail, FRAME_TIMEOUT};
 async fn disappearance_leaves_no_ledger_record_at_all() {
     let rail = spawn_rail();
     let correlation = correlation_for("disappear-mid-dispatch");
+    rail.select_fault(FaultScript::DisappearMidDispatch).await;
 
     let outcome = dispatch(
         rail.addr,
-        attempt_for("disappear-mid-dispatch", FaultScript::DisappearMidDispatch),
+        attempt_for("disappear-mid-dispatch"),
         FRAME_TIMEOUT,
     )
     .await;

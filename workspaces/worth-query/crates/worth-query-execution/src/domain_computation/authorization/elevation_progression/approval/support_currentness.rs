@@ -4,7 +4,6 @@ use worth_query_declaration::facade::application_capability::ApplicationCapabili
 use worth_query_installation::facade::ApplicationSchema;
 
 use super::super::super::capability_registry::WorthQueryInstalledCapabilityPlan;
-use super::super::super::delegation_admission::observe_elevation_upper_bound;
 use super::super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAuthorizationDecisionFact,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
@@ -33,13 +32,11 @@ where
     let current_sample = sample.clone();
     requested
         .supporting
-        .replace_current_session(access.graph_work.identity(), sample, decision)
+        .replace_current_session(access.graph_work_session_identity(), sample, decision)
         .map_err(|()| inconsistent_support(installed.contract.name()))?;
     access
-        .authorization
-        .retain_supporting(requested.supporting.retained_for_operation())
+        .retain_observed_support(requested.supporting.retained_for_operation())
         .map_err(|()| inconsistent_support(installed.contract.name()))?;
-    access.graph_work.record_decision_facts(1);
     Ok(current_sample)
 }
 
@@ -59,38 +56,11 @@ where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    let sample = runtime.sample_capability_time(installed)?;
-    let snapshot = access
-        .graph_work
-        .mutation_snapshot()
-        .ok_or_else(|| stale_support(installed.contract.name()))?
-        .clone();
-    let handle = access
-        .graph_work
-        .mutation_handle()
-        .ok_or_else(|| stale_support(installed.contract.name()))?
-        .clone();
-    let observed = handle
-        .with_runtime(|relational| {
-            if !requested.supporting.decision().remains_current_in(
-                relational,
-                &snapshot,
-                runtime.authorization.bridge(),
-            ) {
-                return Err(stale_support(installed.contract.name()));
-            }
-            observe_elevation_upper_bound(
-                access.graph_work.identity(),
-                relational,
-                snapshot.clone(),
-                runtime.authorization.bridge(),
-                installed,
-                requested.supporting.request(),
-                &sample,
-                requested.supporting.grant(),
-                Some(requested.supporting.decision()),
-            )
+    let (sample, observed) = access
+        .with_exact_observation(runtime, |observation| {
+            observation.observe_current_elevation_support(installed, &requested.supporting)
         })
+        .ok_or_else(|| stale_support(installed.contract.name()))?
         .map_err(|denial| support_observation_denial(installed.contract.name(), denial))?;
     let (decision, grant) = observed.into_parts();
     (grant == requested.supporting.grant())

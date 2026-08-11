@@ -4,8 +4,12 @@ use worth_query::facade::{domain, read};
 mod contract;
 #[path = "domain_evidence/direct_executor.rs"]
 mod direct_executor;
+#[path = "domain_evidence/graph_receipt.rs"]
+mod graph_receipt;
 #[path = "domain_evidence/material.rs"]
 mod material;
+#[path = "domain_evidence/workflow_contract.rs"]
+mod workflow_contract;
 #[path = "domain_evidence/workflow_executor.rs"]
 mod workflow_executor;
 #[path = "domain_evidence/workflow_workspace.rs"]
@@ -16,8 +20,12 @@ mod workspace;
 pub use contract::EvidenceGovernance;
 pub use material::EvidenceScenario;
 pub use workflow_executor::EvidenceWorkflowMode;
-pub use workflow_workspace::{evidence_workflow_intent, evidence_workflow_workspace};
-pub use workspace::{evidence_workspace, evidence_workspace_with_governance};
+pub use workflow_workspace::{
+    evidence_graph_workflow_workspace, evidence_workflow_intent, evidence_workflow_workspace,
+};
+pub use workspace::{
+    evidence_graph_workspace, evidence_workspace, evidence_workspace_with_governance,
+};
 
 #[derive(Clone, Copy, Debug)]
 pub struct EvidenceRead;

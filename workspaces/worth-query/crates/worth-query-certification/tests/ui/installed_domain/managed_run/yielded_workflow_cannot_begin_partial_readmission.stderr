@@ -1,0 +1,5 @@
+error[E0599]: no method named `begin_readmission` found for struct `WorthQueryYieldedWorkflowRun` in the current scope
+ --> tests/ui/installed_domain/managed_run/yielded_workflow_cannot_begin_partial_readmission.rs:4:9
+  |
+4 |     run.begin_readmission();
+  |         ^^^^^^^^^^^^^^^^^ method not found in `WorthQueryYieldedWorkflowRun`

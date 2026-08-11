@@ -1,5 +1,9 @@
 //! Fail-closed retention from the admitted decision read-set.
 
+mod selection;
+
+pub(crate) use selection::WorthQueryRetainedPreImageSeal;
+
 use crate::domain_computation::application_aftermath::{
     WorthQueryPreImageRetentionDenial, WorthQueryRetainedPreImage,
 };
@@ -9,20 +13,92 @@ use crate::domain_computation::{
 
 use super::super::WorthQueryPrimaryGraphApplicationAttempt;
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(in crate::domain_computation::primary_graph) struct WorthQueryPreImageRetentionWork {
+    validated_intents_examined: usize,
+    mutation_targets_materialized: usize,
+    decision_facts_examined: usize,
+    candidates_materialized: usize,
+    demanded_loci_examined: usize,
+}
+
+pub(super) struct WorthQueryPreparedPreImageRetention {
+    retained: Option<WorthQueryRetainedPreImage>,
+    work: WorthQueryPreImageRetentionWork,
+}
+
+impl WorthQueryPreparedPreImageRetention {
+    pub(super) fn into_parts(
+        self,
+    ) -> (
+        Option<WorthQueryRetainedPreImage>,
+        WorthQueryPreImageRetentionWork,
+    ) {
+        (self.retained, self.work)
+    }
+}
+
 pub(super) fn retain_attempt_preimage(
     attempt: &WorthQueryPrimaryGraphApplicationAttempt,
-    footprint: &worth_relational::facade::transactions::ValidatedMutationFootprint,
-) -> Result<Option<WorthQueryRetainedPreImage>, WorthQueryProviderSessionFailure> {
+    candidate: &worth_relational::facade::transactions::ValidatedRelationalMutation,
+) -> Result<WorthQueryPreparedPreImageRetention, WorthQueryProviderSessionFailure> {
     let Some(demand) = attempt.preimage_demand.as_ref() else {
-        return Ok(None);
+        return Ok(WorthQueryPreparedPreImageRetention {
+            retained: None,
+            work: WorthQueryPreImageRetentionWork::default(),
+        });
     };
-    crate::domain_computation::application_aftermath::retain_preimage_from_observed_facts(
-        demand,
-        &retention_candidates(attempt),
-        footprint,
-    )
-    .map(Some)
-    .map_err(retention_failure)
+    let footprint = candidate.mutation_footprint(Some(demand));
+    let footprint_work = footprint.work();
+    let footprint = footprint
+        .into_projected()
+        .ok_or_else(|| retention_failure(WorthQueryPreImageRetentionDenial::EmptyDemand))?;
+    let (retained, candidates_materialized) =
+        selection::retain_from_attempt(demand, attempt.facts.values(), &footprint)
+            .map_err(retention_failure)?
+            .into_parts();
+    Ok(WorthQueryPreparedPreImageRetention {
+        retained: Some(retained),
+        work: WorthQueryPreImageRetentionWork {
+            validated_intents_examined: footprint_work.validated_intents_examined(),
+            mutation_targets_materialized: footprint_work.mutation_targets_materialized(),
+            decision_facts_examined: attempt.facts.len(),
+            candidates_materialized,
+            demanded_loci_examined: demand.loci().len(),
+        },
+    })
+}
+
+impl WorthQueryPreImageRetentionWork {
+    pub(in crate::domain_computation::primary_graph) const fn validated_intents_examined(
+        self,
+    ) -> usize {
+        self.validated_intents_examined
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn mutation_targets_materialized(
+        self,
+    ) -> usize {
+        self.mutation_targets_materialized
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn decision_facts_examined(
+        self,
+    ) -> usize {
+        self.decision_facts_examined
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn candidates_materialized(
+        self,
+    ) -> usize {
+        self.candidates_materialized
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn demanded_loci_examined(
+        self,
+    ) -> usize {
+        self.demanded_loci_examined
+    }
 }
 
 fn retention_failure(
@@ -47,43 +123,5 @@ fn retention_failure(
                 "recorded inverse has no existing mutated field to retain"
             }
         },
-    )
-}
-
-fn retention_candidates(
-    attempt: &WorthQueryPrimaryGraphApplicationAttempt,
-) -> Vec<crate::domain_computation::application_aftermath::WorthQueryObservedPreImageCandidate> {
-    attempt
-        .facts
-        .values()
-        .filter_map(observed_field_candidate)
-        .collect()
-}
-
-fn observed_field_candidate(
-    fact: &super::super::WorthQueryPrimaryGraphApplicationDecisionFact,
-) -> Option<crate::domain_computation::application_aftermath::WorthQueryObservedPreImageCandidate> {
-    use crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationObservedFact;
-
-    let super::super::WorthQueryPrimaryGraphApplicationDecisionFact::Application(
-        WorthQueryApplicationObservedFact::Field {
-            locator,
-            value,
-            entity_id,
-            kind,
-            ..
-        },
-    ) = fact
-    else {
-        return None;
-    };
-    crate::domain_computation::application_aftermath::demanded_field_slot(locator.field_path())?;
-    Some(
-        crate::domain_computation::application_aftermath::WorthQueryObservedPreImageCandidate::from_observed_field(
-            locator.clone(),
-            value.clone(),
-            *entity_id,
-            *kind,
-        ),
     )
 }

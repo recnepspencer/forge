@@ -23,8 +23,16 @@ pub(in crate::domain_computation) struct WorthQueryMutationRunBinding {
     relational_branch: BranchId,
     truth_branch: TruthBranchIdentity,
     worker: Arc<str>,
+    provider_session: Arc<str>,
     resource_plan: Arc<str>,
     reservation_count: usize,
+}
+
+/// Cleanup owner after the exact live provider session has been associated
+/// with the admitted mutation run.
+pub(in crate::domain_computation) struct WorthQueryProviderSessionBoundMutationRun {
+    run: WorthQueryMutationRunBinding,
+    provider_session: super::super::WorthQueryProviderSessionTerminalBinding,
 }
 
 /// Non-authoritative terminal evidence for one exact mutation graph-work run.
@@ -33,6 +41,7 @@ pub(in crate::domain_computation) struct WorthQueryMutationRunBinding {
 /// inspect this value, but no execution transition accepts it as authority.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryMutationGraphWorkCompletion {
+    provider_session: Option<super::super::WorthQueryProviderSessionTerminalBinding>,
     session: WorthQueryGraphWorkSessionIdentity,
     managed_run: WorthQueryGraphWorkManagedRunIdentity,
     plan: WorthQueryGraphWorkPlanIdentity,
@@ -41,7 +50,7 @@ pub struct WorthQueryMutationGraphWorkCompletion {
     relational_branch: BranchId,
     truth_branch: TruthBranchIdentity,
     snapshot_released: bool,
-    cleanup: crate::domain_computation::WorthQueryDirectRunCleanupReceipt,
+    attempt_resources_released: bool,
 }
 
 impl Eq for WorthQueryMutationGraphWorkCompletion {}
@@ -54,7 +63,8 @@ impl WorthQueryManagedGraphWorkSession {
         let affinity = run.graph_work_affinity()?;
         let identity = self.identity();
         let managed_run = self.managed_run_identity();
-        let (resource_plan, reservation_count) = run.mutation_resource_release_expectation();
+        let (provider_session, resource_plan, reservation_count) =
+            run.mutation_resource_release_expectation();
         (affinity.session == identity && affinity.managed_run == managed_run).then(|| {
             WorthQueryMutationRunBinding {
                 session: identity,
@@ -65,6 +75,7 @@ impl WorthQueryManagedGraphWorkSession {
                 relational_branch: self.branch().relational().clone(),
                 truth_branch: self.branch().truth().clone(),
                 worker: run.identity().into(),
+                provider_session: provider_session.into(),
                 resource_plan: resource_plan.into(),
                 reservation_count,
             }
@@ -73,13 +84,18 @@ impl WorthQueryManagedGraphWorkSession {
 }
 
 impl WorthQueryMutationRunBinding {
-    pub(in crate::domain_computation) fn admits(
-        &self,
-        plan: &crate::domain_computation::WorthQueryProviderExecutionPlanContract,
-    ) -> bool {
-        plan.managed_run_identity() == self.worker.as_ref()
-            && plan.graph_work_session_identity() == Some(self.session.as_u64())
-            && plan.graph_work_managed_run_identity() == Some(self.managed_run.as_u64())
+    pub(in crate::domain_computation) fn bind_provider_session(
+        self,
+        provider_session: super::super::WorthQueryProviderSessionTerminalBinding,
+    ) -> Result<WorthQueryProviderSessionBoundMutationRun, Self> {
+        if provider_session.admits_mutation_run(self.session, self.managed_run, &self.worker) {
+            Ok(WorthQueryProviderSessionBoundMutationRun {
+                run: self,
+                provider_session,
+            })
+        } else {
+            Err(self)
+        }
     }
 
     pub(in crate::domain_computation) fn finish(
@@ -99,19 +115,21 @@ impl WorthQueryMutationRunBinding {
             .terminate_for_convergence(terminal)
             .cleanup()
             .map_err(|_| ())?;
-        let capacity = cleanup.attempt().capacity();
+        let inspection = cleanup.inspection();
+        let attempt_resources_released = inspection.resources_released();
         if !(snapshot_released
-            && cleanup.run_identity() == self.worker.as_ref()
-            && cleanup.terminal() == terminal
-            && cleanup.relational().released()
-            && cleanup.bridge().reservation_released()
-            && cleanup.provider_work().provider_retained_bytes() == 0
-            && capacity.resource_plan_identity() == self.resource_plan.as_ref()
-            && capacity.released_reservation_count() == self.reservation_count)
+            && inspection.run_identity() == self.worker.as_ref()
+            && inspection.terminal() == terminal
+            && inspection.provider_session_identity() == self.provider_session.as_ref()
+            && attempt_resources_released
+            && inspection.provider_work().provider_retained_bytes() == 0
+            && inspection.resource_plan_identity() == self.resource_plan.as_ref()
+            && inspection.released_reservation_count() == self.reservation_count)
         {
             return Err(());
         }
         Ok(WorthQueryMutationGraphWorkCompletion {
+            provider_session: None,
             session: self.session,
             managed_run: self.managed_run,
             plan: self.plan,
@@ -120,12 +138,31 @@ impl WorthQueryMutationRunBinding {
             relational_branch: self.relational_branch,
             truth_branch: self.truth_branch,
             snapshot_released,
-            cleanup,
+            attempt_resources_released,
         })
     }
 }
 
+impl WorthQueryProviderSessionBoundMutationRun {
+    pub(in crate::domain_computation) fn finish(
+        self,
+        running: crate::domain_computation::WorthQueryRunningDirectRun,
+        terminal: crate::domain_computation::WorthQueryManagedRunTerminalKind,
+        snapshot_released: bool,
+    ) -> Result<WorthQueryMutationGraphWorkCompletion, ()> {
+        let mut completion = self.run.finish(running, terminal, snapshot_released)?;
+        completion.provider_session = Some(self.provider_session);
+        Ok(completion)
+    }
+}
+
 impl WorthQueryMutationGraphWorkCompletion {
+    pub(in crate::domain_computation) const fn provider_session_binding(
+        &self,
+    ) -> Option<&super::super::WorthQueryProviderSessionTerminalBinding> {
+        self.provider_session.as_ref()
+    }
+
     pub const fn session_identity(&self) -> WorthQueryGraphWorkSessionIdentity {
         self.session
     }
@@ -158,7 +195,7 @@ impl WorthQueryMutationGraphWorkCompletion {
         self.snapshot_released
     }
 
-    pub const fn cleanup(&self) -> &crate::domain_computation::WorthQueryDirectRunCleanupReceipt {
-        &self.cleanup
+    pub const fn attempt_resources_released(&self) -> bool {
+        self.attempt_resources_released
     }
 }

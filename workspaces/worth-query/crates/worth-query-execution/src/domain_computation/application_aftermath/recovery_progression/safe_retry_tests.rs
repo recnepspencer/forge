@@ -1,15 +1,11 @@
 //! R8.66 / R8.69 — a re-dispatch proof is affine to the handle it was performed
 //! for.
 //!
-//! `safe_retry_recovery_handle` says so in a comment and enforces it by
-//! comparing the proof's outbox against the live handle binding's. Nothing
-//! performed the substitution: the Bank path mints the proof against the same
-//! handle it then retries, so every integration test proves the honest lane
-//! only. Both `redispatch_admitted_external_effect` and
-//! `safe_retry_recovery_handle` are public, so a host holding two live handles
-//! can do exactly what these tests do.
-
-use std::sync::Arc;
+//! `safe_retry_recovery_handle` enforces the affinity by comparing the
+//! owner-sealed proof's handle authority with the live handle. The Bank path
+//! proves the honest full entrypoint; these tests deliberately substitute a
+//! proof sealed for handle A into handle B after a real commit observation,
+//! runtime attempt admission, and dispatch.
 
 use worth_foundational::facade::CanonicalDigestId;
 use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
@@ -17,19 +13,16 @@ use worth_query_declaration::facade::application_schema::ApplicationExternalEffe
 use worth_query_installation::facade::{
     ApplicationSchemaBindingIdentity, InstalledExternalEffectContract,
 };
-use worth_relational::facade::history::{BranchId, CommitId, CommitReference};
-use worth_relational::facade::identity::{EntityId, PartitionId, VersionId};
-use worth_relational::facade::transactions::RecordRef;
+use worth_relational::facade::history::BranchId;
 
 use super::redispatch::WorthQueryPerformedExternalRedispatch;
 use super::safe_retry::safe_retry_recovery_handle;
 use super::WorthQueryRecoveryEffectAuthority;
 use crate::domain_computation::application_aftermath::aftermath_schema_fixture as fixture;
 use crate::domain_computation::application_aftermath::external_effect::{
-    derive_external_effect_correlation_identity, dispatch_external_effect,
-    ExternalEffectCorrelationBasis, WorthQueryDispatchOutboxRecord,
-    WorthQueryExternalDispatchRequest, WorthQueryExternalEffectTransport,
-    WorthQueryExternalTransportOutcome,
+    derive_external_effect_correlation_identity, ExternalEffectCorrelationBasis,
+    WorthQueryDispatchOutboxRecord, WorthQueryExternalDispatchRequest,
+    WorthQueryExternalEffectTransport, WorthQueryExternalTransportOutcome,
 };
 use crate::domain_computation::application_aftermath::recovery_handle::{
     WorthQueryRecoveryHandle, WorthQueryRecoveryHandleBinding,
@@ -37,7 +30,8 @@ use crate::domain_computation::application_aftermath::recovery_handle::{
 };
 use crate::domain_computation::authorization::WorthQueryOperationScopeBinding;
 use crate::domain_computation::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryCommittedDispatchOutboxObservation,
+    commit_observe_and_admit_fixture, perform_external_redispatch_owner_fixture,
+    WorthQueryApplicationIdempotencyBinding,
 };
 
 /// Always completes. The transport is not what these tests are about — the
@@ -115,6 +109,15 @@ fn probe_handle(outbox: WorthQueryDispatchOutboxRecord) -> WorthQueryRecoveryHan
             idempotency: WorthQueryApplicationIdempotencyBinding::new([0x55; 32], [0x56; 32]),
             provider_posture: None,
             dispatch_outbox: Some(outbox),
+            dispatch_outbox_record_ref: Some(
+                worth_relational::facade::transactions::RecordRef::Entity(
+                    worth_relational::facade::identity::EntityId::new(
+                        worth_relational::facade::identity::PartitionId::main(),
+                        77,
+                        1,
+                    ),
+                ),
+            ),
             installed_aftermath: fixture::notify_death(),
             expires_at_unix_ms: Some(u64::MAX),
         });
@@ -125,34 +128,15 @@ fn authority(handle: &WorthQueryRecoveryHandle) -> WorthQueryRecoveryEffectAutho
     WorthQueryRecoveryEffectAuthority::mint(handle.runtime_authority(), handle.authority_identity())
 }
 
-/// Perform one real dispatch for `outbox` and take the proof the runtime mints.
+/// Drive the dispatch-owner fixture with a real committed observation and
+/// runtime-admitted attempt, then take the owner-sealed proof.
 fn performed_redispatch(
     handle: &WorthQueryRecoveryHandle,
 ) -> WorthQueryPerformedExternalRedispatch {
     let outbox = handle.binding().dispatch_outbox().unwrap();
-    let transport = Arc::new(CompletingTransport);
-    let committed = WorthQueryCommittedDispatchOutboxObservation::fixture(
-        outbox.clone(),
-        CommitReference {
-            commit_id: CommitId(10),
-            version_id: VersionId(10),
-            branch_id: BranchId("2".to_owned()),
-            parents: Vec::new(),
-        },
-        RecordRef::Entity(EntityId::new(PartitionId::main(), 7, 1)),
-    );
-    let ordinal =
-        crate::domain_computation::primary_graph::WorthQueryExternalDispatchAttemptOrdinal::fixture(
-            1,
-        );
-    let admitted = crate::domain_computation::primary_graph::WorthQueryAdmittedExternalDispatchAttempt::fixture(
-        crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity::mint_for_test(),
-        committed,
-        ordinal,
-    );
-    let dispatch = dispatch_external_effect(transport.as_ref(), admitted)
-        .expect("a completing transport dispatches");
-    WorthQueryPerformedExternalRedispatch::record(handle.authority_identity(), dispatch)
+    let admitted = commit_observe_and_admit_fixture(outbox).0;
+    perform_external_redispatch_owner_fixture(handle, &CompletingTransport, admitted)
+        .expect("the dispatch owner seals a completing redispatch")
 }
 
 #[test]
@@ -223,6 +207,7 @@ fn safe_retry_denies_when_the_handle_carries_no_co_committed_outbox() {
             idempotency: WorthQueryApplicationIdempotencyBinding::new([0x55; 32], [0x56; 32]),
             provider_posture: None,
             dispatch_outbox: None,
+            dispatch_outbox_record_ref: None,
             installed_aftermath: fixture::notify_death(),
             expires_at_unix_ms: Some(u64::MAX),
         })

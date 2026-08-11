@@ -120,6 +120,13 @@ impl WorthQueryAdmittedConvergenceContract {
         &self.artifact_contract_identity
     }
 
+    pub fn admits_artifact_authority(
+        &self,
+        authority: &WorthQueryInstalledArtifactContractAuthority,
+    ) -> bool {
+        self.artifact_authority == *authority
+    }
+
     pub fn evidence_stage_identity(&self) -> Option<&str> {
         self.evidence_stage_identity.as_deref()
     }

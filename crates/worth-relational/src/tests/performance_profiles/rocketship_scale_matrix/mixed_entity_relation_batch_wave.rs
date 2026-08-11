@@ -124,7 +124,7 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_mixed_entity_relation_batc
                     .expect("rocketship mixed entity plus relation batch wave commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();
-            let phase_timing = update.execution.phase_timing.clone();
+            let phase_timing = update.execution().phase_timing.clone();
 
             let snapshot = runtime.visibility_authority().snapshot();
             let explicit_targets = batch_targets

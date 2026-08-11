@@ -1,0 +1,146 @@
+use std::collections::BTreeMap;
+
+use crate::identity::data::EntityId;
+use crate::identity::data::{KindId, PartitionId};
+use crate::symbols::data::StringInterner;
+use crate::transactions::data::CreatedEntityRef;
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct StableCreatedEntityRef {
+    partition_id: PartitionId,
+    kind_id: KindId,
+    client_key: String,
+}
+
+/// Owner-minted correspondence between a committed create intent and its record identity.
+///
+/// The map is assembled while Relational applies the authoritative mutation
+/// and remains a private field of that commit's result.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CommitCreatedEntityBindings {
+    by_exact_reference: BTreeMap<CreatedEntityRef, EntityId>,
+    by_stable_reference: BTreeMap<StableCreatedEntityRef, EntityId>,
+}
+
+impl CommitCreatedEntityBindings {
+    pub(crate) fn from_owner_map(
+        by_create_reference: BTreeMap<CreatedEntityRef, EntityId>,
+        symbols: &StringInterner,
+    ) -> Self {
+        let by_stable_reference = by_create_reference
+            .iter()
+            .filter_map(|(created, entity_id)| {
+                let client_key = created
+                    .client_key
+                    .resolve_with_interner(symbols)?
+                    .to_owned();
+                Some((
+                    StableCreatedEntityRef {
+                        partition_id: created.partition_id,
+                        kind_id: created.kind_id,
+                        client_key,
+                    },
+                    *entity_id,
+                ))
+            })
+            .collect();
+        Self {
+            by_exact_reference: by_create_reference,
+            by_stable_reference,
+        }
+    }
+
+    pub(super) fn resolve(&self, created: &CreatedEntityRef) -> Option<EntityId> {
+        if let Some(entity_id) = self.by_exact_reference.get(created) {
+            return Some(*entity_id);
+        }
+        let client_key = created.client_key.as_raw_str()?;
+        self.by_stable_reference
+            .get(&StableCreatedEntityRef {
+                partition_id: created.partition_id,
+                kind_id: created.kind_id,
+                client_key: client_key.to_owned(),
+            })
+            .copied()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::symbols::data::ClientKey;
+
+    #[test]
+    fn every_create_reference_resolves_its_own_distinct_owner_identity() {
+        let partition = PartitionId::main();
+        let kind = KindId::new(17);
+        let first = CreatedEntityRef {
+            partition_id: partition,
+            kind_id: kind,
+            client_key: ClientKey::raw("first-created-record"),
+        };
+        let second = CreatedEntityRef {
+            partition_id: partition,
+            kind_id: kind,
+            client_key: ClientKey::raw("second-created-record"),
+        };
+        let first_id = EntityId::new(partition, 41, 1);
+        let second_id = EntityId::new(partition, 42, 1);
+        let bindings = CommitCreatedEntityBindings::from_owner_map(
+            BTreeMap::from([(first.clone(), first_id), (second.clone(), second_id)]),
+            &StringInterner::default(),
+        );
+
+        assert_eq!(bindings.resolve(&first), Some(first_id));
+        assert_eq!(bindings.resolve(&second), Some(second_id));
+        assert_ne!(bindings.resolve(&first), bindings.resolve(&second));
+    }
+
+    #[test]
+    fn symbol_backed_create_reference_resolves_without_raw_reconstruction() {
+        let partition = PartitionId::main();
+        let kind = KindId::new(18);
+        let mut symbols = StringInterner::default();
+        let symbol = symbols.intern("symbol-created-record");
+        let created = CreatedEntityRef {
+            partition_id: partition,
+            kind_id: kind,
+            client_key: ClientKey::symbol(symbol),
+        };
+        let entity_id = EntityId::new(partition, 43, 1);
+        let bindings = CommitCreatedEntityBindings::from_owner_map(
+            BTreeMap::from([(created.clone(), entity_id)]),
+            &symbols,
+        );
+
+        assert_eq!(bindings.resolve(&created), Some(entity_id));
+    }
+
+    #[test]
+    fn foreign_symbol_identity_keeps_exact_owner_mapping_without_inventing_raw_alias() {
+        let partition = PartitionId::main();
+        let kind = KindId::new(19);
+        let mut source_symbols = StringInterner::default();
+        let symbol = source_symbols.intern("foreign-symbol-created-record");
+        let created = CreatedEntityRef {
+            partition_id: partition,
+            kind_id: kind,
+            client_key: ClientKey::symbol(symbol),
+        };
+        let entity_id = EntityId::new(partition, 44, 1);
+        let bindings = CommitCreatedEntityBindings::from_owner_map(
+            BTreeMap::from([(created.clone(), entity_id)]),
+            &StringInterner::default(),
+        );
+
+        assert_eq!(bindings.resolve(&created), Some(entity_id));
+        assert_eq!(
+            bindings.resolve(&CreatedEntityRef {
+                partition_id: partition,
+                kind_id: kind,
+                client_key: ClientKey::raw("foreign-symbol-created-record"),
+            }),
+            None
+        );
+    }
+}

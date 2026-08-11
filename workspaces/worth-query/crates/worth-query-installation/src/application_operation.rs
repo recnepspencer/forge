@@ -5,7 +5,10 @@ mod contract_resolution;
 mod contracts;
 mod denial;
 mod execution_posture;
+#[cfg(not(test))]
 mod installed;
+#[cfg(test)]
+pub(crate) mod installed;
 mod installed_contract_support;
 mod operation_declaration_resolution;
 mod precondition_contract;
@@ -31,6 +34,9 @@ pub use denial::{
     WorthQueryApplicationOperationInstallationDenialKind,
 };
 pub use execution_posture::WorthQueryInstalledApplicationOperationExecutionPosture;
+pub(crate) use installed::WorthQueryOperationAftermathInstallationSource;
+pub(in crate::application_operation) use installed::WorthQuerySealedOperationContractCompilation;
+
 pub use installed::{
     WorthQueryInstalledApplicationOperation, WorthQueryInstalledApplicationOperationGraphAuthority,
 };

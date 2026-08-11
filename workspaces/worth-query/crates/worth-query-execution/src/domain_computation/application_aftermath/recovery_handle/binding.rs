@@ -39,7 +39,8 @@ pub struct WorthQueryRecoveryHandleBinding {
     idempotency: WorthQueryApplicationIdempotencyBinding,
     provider_posture: Option<WorthQueryExternalDispatchPosture>,
     /// Co-committed outbox record — R8.28 correlation evidence (R8.68).
-    dispatch_outbox: Option<WorthQueryDispatchOutboxRecord>,
+    committed_dispatch_outbox:
+        Option<crate::domain_computation::primary_graph::WorthQueryCommittedDispatchOutboxBinding>,
     installed_aftermath: WorthQueryInstalledAftermathContract,
     expires_at_unix_ms: Option<u64>,
 }
@@ -85,7 +86,7 @@ impl WorthQueryRecoveryHandleBinding {
             principal_scope: receipt.principal_scope().clone(),
             idempotency: receipt.idempotency_binding(),
             provider_posture: receipt.external_dispatch().map(|d| d.posture().clone()),
-            dispatch_outbox: receipt.dispatch_outbox().cloned(),
+            committed_dispatch_outbox: receipt.committed_dispatch_outbox().cloned(),
             installed_aftermath: aftermath.clone(),
             expires_at_unix_ms,
         })
@@ -137,13 +138,22 @@ impl WorthQueryRecoveryHandleBinding {
     /// Preserved for callers that only need the identity; re-dispatch requires
     /// [`Self::dispatch_outbox`] (R8.68).
     pub fn correlation(&self) -> Option<ExternalEffectCorrelationIdentity> {
-        self.dispatch_outbox
+        self.committed_dispatch_outbox
             .as_ref()
-            .map(|record| *record.correlation())
+            .map(|binding| *binding.record().correlation())
     }
 
-    pub const fn dispatch_outbox(&self) -> Option<&WorthQueryDispatchOutboxRecord> {
-        self.dispatch_outbox.as_ref()
+    pub fn dispatch_outbox(&self) -> Option<&WorthQueryDispatchOutboxRecord> {
+        self.committed_dispatch_outbox
+            .as_ref()
+            .map(crate::domain_computation::primary_graph::WorthQueryCommittedDispatchOutboxBinding::record)
+    }
+
+    pub(in crate::domain_computation) fn committed_dispatch_outbox(
+        &self,
+    ) -> Option<&crate::domain_computation::primary_graph::WorthQueryCommittedDispatchOutboxBinding>
+    {
+        self.committed_dispatch_outbox.as_ref()
     }
 
     pub fn compatibility_generation(&self) -> u64 {
@@ -213,7 +223,16 @@ impl WorthQueryRecoveryHandleBinding {
             principal_scope: parts.principal_scope,
             idempotency: parts.idempotency,
             provider_posture: parts.provider_posture,
-            dispatch_outbox: parts.dispatch_outbox,
+            committed_dispatch_outbox: match (parts.dispatch_outbox, parts.dispatch_outbox_record_ref) {
+                (Some(record), Some(record_ref)) => Some(
+                    crate::domain_computation::primary_graph::WorthQueryCommittedDispatchOutboxBinding::fixture(
+                        record,
+                        record_ref,
+                    ),
+                ),
+                (None, None) => None,
+                _ => panic!("dispatch outbox record and record identity must travel together"),
+            },
             installed_aftermath: parts.installed_aftermath,
             expires_at_unix_ms: parts.expires_at_unix_ms,
         }
@@ -237,6 +256,7 @@ pub(crate) struct WorthQueryRecoveryHandleBindingAxisProbe {
     pub idempotency: WorthQueryApplicationIdempotencyBinding,
     pub provider_posture: Option<WorthQueryExternalDispatchPosture>,
     pub dispatch_outbox: Option<WorthQueryDispatchOutboxRecord>,
+    pub dispatch_outbox_record_ref: Option<worth_relational::facade::transactions::RecordRef>,
     pub installed_aftermath: WorthQueryInstalledAftermathContract,
     pub expires_at_unix_ms: Option<u64>,
 }

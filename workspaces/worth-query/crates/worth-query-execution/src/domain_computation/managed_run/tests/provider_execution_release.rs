@@ -185,11 +185,11 @@ fn physical_release_failure_terminalizes_with_exact_recovery_evidence() {
             .cleanup()
             .expect("physical-release recovery retains lower cleanup authority");
         assert_eq!(
-            cleanup.disposition(),
+            cleanup.inspection().disposition(),
             WorthQueryManagedRunCleanupDisposition::RecoveryRequired
         );
-        assert!(cleanup.relational().released());
-        assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
+        assert!(cleanup.inspection().resources_released());
+        assert_eq!(cleanup.inspection().released_reservation_count(), 2);
     }
 }
 
@@ -276,7 +276,7 @@ fn workflow_disposal_rejection_terminalizes_before_returning_running_authority()
         }
     };
     assert_eq!(
-        cleanup.disposition(),
+        cleanup.inspection().disposition(),
         WorthQueryManagedRunCleanupDisposition::RecoveryRequired
     );
 }
@@ -321,7 +321,7 @@ fn invocation_panic_and_destructor_panic_are_independently_evidenced() {
             .cleanup()
             .expect("invocation panic retains lower cleanup authority");
         assert_eq!(
-            cleanup.disposition(),
+            cleanup.inspection().disposition(),
             WorthQueryManagedRunCleanupDisposition::RecoveryRequired
         );
     }

@@ -61,12 +61,13 @@ impl BankCommittedDispatchOutboxObservation {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BankCommittedDispatchOutboxReadDenial {
     ForeignRuntime,
-    IndexUnavailable,
     Missing,
-    Ambiguous,
+    WrongRecordKind,
     NotAuthoritative,
+    ExactCommitUnavailable,
     Malformed,
     CommitMismatch,
+    RecordMismatch,
 }
 
 impl BankIdentityRuntime {
@@ -76,8 +77,9 @@ impl BankIdentityRuntime {
         receipt: &BankCommitReceipt,
     ) -> Result<Option<BankCommittedDispatchOutboxObservation>, BankCommittedDispatchOutboxReadDenial>
     {
-        self.application_runtime()
-            .observe_committed_dispatch_outbox(receipt.application())
+        receipt
+            .recovery_evidence()
+            .observe_dispatch_outbox(self.application_runtime())
             .map(|observation| {
                 observation.map(|query| BankCommittedDispatchOutboxObservation { query })
             })
@@ -89,12 +91,13 @@ impl From<QueryDenial> for BankCommittedDispatchOutboxReadDenial {
     fn from(denial: QueryDenial) -> Self {
         match denial {
             QueryDenial::ForeignRuntime => Self::ForeignRuntime,
-            QueryDenial::IndexUnavailable => Self::IndexUnavailable,
             QueryDenial::Missing => Self::Missing,
-            QueryDenial::Ambiguous => Self::Ambiguous,
+            QueryDenial::WrongRecordKind => Self::WrongRecordKind,
             QueryDenial::NotAuthoritative => Self::NotAuthoritative,
+            QueryDenial::ExactCommitUnavailable => Self::ExactCommitUnavailable,
             QueryDenial::Malformed => Self::Malformed,
             QueryDenial::CommitMismatch => Self::CommitMismatch,
+            QueryDenial::RecordMismatch => Self::RecordMismatch,
         }
     }
 }

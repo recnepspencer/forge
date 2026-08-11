@@ -1,7 +1,7 @@
 //! R8.39 stale / already-consumed / conflicted undo denials at the Bank boundary.
 
 use bank_domain::proposals::BankIdempotencyKey;
-use bank_external_rail::FaultScript;
+use bank_external_rail::test_control::FaultScript;
 use bank_server::BankEstateProgressionDenial;
 use worth_query_host::facade::provisional_aftermath::WorthQueryUndoDenialKind;
 

@@ -9,8 +9,10 @@
 
 #[path = "external_effect_dispatch/committed_outbox.rs"]
 mod committed_outbox;
+#[path = "external_effect_dispatch/preparation_denial.rs"]
+mod preparation_denial;
 #[path = "external_effect_dispatch/publication_assertions.rs"]
-mod publication_assertions;
+pub(super) mod publication_assertions;
 #[path = "external_effect_dispatch/rail_transport.rs"]
 pub(crate) mod rail_transport;
 
@@ -18,8 +20,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use bank_domain::estate::{DeathNoticeStatus, ESTATE_DEATH_NOTICE_RAIL};
+use bank_external_rail::test_control::FaultScript;
 use bank_external_rail::{
-    FaultScript, LedgerStatus, RailCorrelation, RailProcessHandle, RailProtocolSupportProfile,
+    LedgerStatus, RailCorrelation, RailProcessHandle, RailProtocolSupportProfile,
 };
 use bank_server::{queries, BankCommitReceipt, BankMutationCommitOutcome, BankReadControls};
 use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
@@ -268,7 +271,7 @@ fn a_duplicate_acknowledgement_never_advances_the_posture_twice() {
     let BankMutationCommitOutcome::AlreadyCommitted(recovered) = retry else {
         panic!("an equivalent retry must recover the commit: {retry:?}");
     };
-    assert!(receipt.is_same_authoritative_commit(&recovered));
+    publication_assertions::assert_recovered_commit_axes(&receipt, &recovered);
     assert!(
         recovered.external_dispatch_posture().is_none(),
         "a recovered commit re-runs no dispatch and invents no posture"
@@ -344,7 +347,10 @@ fn dispatch_world_with_protocol_support(
 }
 
 fn install_dispatch_world(scenario: &str, rail: RailProcessHandle) -> DispatchWorld {
-    let transport = Arc::new(BankEstateRailTransport::connected_to(rail.local_addr()));
+    let transport = Arc::new(BankEstateRailTransport::connected_to(
+        rail.local_addr(),
+        rail.test_control_addr(),
+    ));
     let fixture = notification_world(
         &format!("external-effect-{scenario}"),
         DeathNoticeStatus::Reported,

@@ -3,14 +3,15 @@ use bank_domain::{
     schema::{BankSchema, EstateCase},
 };
 use worth_query_host::facade::primary_graph::{
-    WorthQueryAdmittedApplicationOperation, WorthQueryApplicationCommitDenialKind,
-    WorthQueryApplicationCommitDenialStage, WorthQueryApplicationIdempotencyBinding,
+    WorthQueryAdmittedApplicationOperation, WorthQueryApplicationIdempotencyBinding,
     WorthQueryApplicationIdempotencyResolution,
 };
 
 use super::BankEstateProgressionDenial;
 use crate::operation_commit::commit_receipt;
-use crate::{BankIdentityRuntime, BankMutationCommitOutcome};
+use crate::{
+    BankCommitDenialKind, BankCommitDenialStage, BankIdentityRuntime, BankMutationCommitOutcome,
+};
 
 pub(super) fn resolve_admitted_idempotency<Operation>(
     runtime: &BankIdentityRuntime,
@@ -25,7 +26,7 @@ pub(super) fn resolve_admitted_idempotency<Operation>(
     match runtime
         .application_runtime()
         .resolve_admitted_application_idempotency(admission, idempotency)
-        .map_err(BankEstateProgressionDenial::Idempotency)?
+        .map_err(BankEstateProgressionDenial::from_idempotency)?
         .into_resolution()
     {
         WorthQueryApplicationIdempotencyResolution::Unseen => Ok(None),
@@ -34,8 +35,8 @@ pub(super) fn resolve_admitted_idempotency<Operation>(
         )),
         WorthQueryApplicationIdempotencyResolution::IntentDrift => {
             Ok(Some(BankMutationCommitOutcome::Denied {
-                kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
-                stage: WorthQueryApplicationCommitDenialStage::Idempotency,
+                kind: BankCommitDenialKind::IdempotencyIntentDrift,
+                stage: BankCommitDenialStage::Idempotency,
             }))
         }
     }

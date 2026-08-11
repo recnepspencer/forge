@@ -2,9 +2,11 @@ use worth_query_execution::facade::primary_graph::WorthQueryApplicationCommitRec
 
 mod inspection;
 mod receipt;
+mod terminal_release;
 
 pub use inspection::WorthQueryApplicationCommitPublicationInspection;
 pub use receipt::WorthQueryApplicationCommitPublicationReceipt;
+pub use terminal_release::WorthQueryPublishedApplicationCommitAttemptReleasePosture;
 
 /// Publication-owned application-commit result. It is an inspection product,
 /// not a commit or retry authority.

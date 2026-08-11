@@ -7,14 +7,14 @@ use worth_relational::facade::authorization::{
     RelationalAuthorizationTraversal, RelationalAuthorizationTraversalDirection,
 };
 use worth_relational::facade::identity::KindId;
-use worth_runtime_bridge::facade::BridgeAuthorizationRuleContract;
 
+use super::accumulator::WorthQueryCapabilityRuleLoweringAccumulator;
 use crate::domain_computation::authorization::capability_binding_lowering::{
     field_locator, kind, relation,
 };
 use crate::domain_computation::authorization::capability_registry::{
     WorthQueryCapabilityElevationBindings, WorthQueryCapabilityElevationLifecycleBindings,
-    WorthQueryCapabilityElevationTemporalBindings, WorthQueryCapabilityPathTemplate,
+    WorthQueryCapabilityElevationTemporalBindings,
 };
 use crate::domain_computation::authorization::{
     authorization_denial, WorthQueryOperationAuthorizationDenial,
@@ -24,7 +24,6 @@ use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 mod active_use;
 mod approver_conflict;
 
-#[allow(clippy::too_many_arguments)]
 pub(super) fn compile_elevation_rules(
     contract: &ErasedApplicationCapabilityContract,
     layout: &WorthQueryPrimaryGraphLayout,
@@ -32,9 +31,7 @@ pub(super) fn compile_elevation_rules(
     principal_kind: KindId,
     grant_kind: KindId,
     scope_kind: KindId,
-    paths: &mut Vec<WorthQueryCapabilityPathTemplate>,
-    rules: &mut Vec<BridgeAuthorizationRuleContract>,
-    rule_path_indices: &mut Vec<Vec<Vec<usize>>>,
+    lowering: &mut WorthQueryCapabilityRuleLoweringAccumulator,
 ) -> Result<Option<WorthQueryCapabilityElevationBindings>, WorthQueryOperationAuthorizationDenial> {
     let Some(elevation) = contract.elevation().definition() else {
         return Ok(None);
@@ -62,21 +59,10 @@ pub(super) fn compile_elevation_rules(
         elevation,
         elevation_kind,
         &relations,
-        active_use::ElevationRuleSinks {
-            paths: &mut *paths,
-            rules: &mut *rules,
-            rule_path_indices: &mut *rule_path_indices,
-        },
+        lowering,
     )?;
-    let approver_conflict_requirements = approver_conflict::compile(
-        contract,
-        layout,
-        capability,
-        &relations,
-        paths,
-        rules,
-        rule_path_indices,
-    )?;
+    let approver_conflict_requirements =
+        approver_conflict::compile(contract, layout, capability, &relations, lowering)?;
     Ok(Some(WorthQueryCapabilityElevationBindings::new(
         elevation_kind,
         active.active,

@@ -22,9 +22,7 @@ pub struct WorthQueryApplicationInvariantProjectionReader<'runtime, Schema> {
     pub(super) runtime: &'runtime mut worth_relational::facade::runtime::RelationalRuntime,
     pub(super) layout: &'runtime super::super::schema_layout::WorthQueryPrimaryGraphLayout,
     pub(super) snapshot: &'runtime worth_relational::facade::snapshots::SnapshotHandle,
-    runtime_authority:
-        crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
-    binding_identity: worth_query_installation::facade::ApplicationSchemaBindingIdentity,
+    entity_resolution: &'runtime super::super::WorthQueryInstalledEntityResolutionContext,
     pub(super) authority_identity: u64,
     pub(super) work: WorthQueryInvariantProjectionWork,
     pub(super) work_budget: WorthQueryInvariantProjectionWorkBudget,
@@ -109,8 +107,7 @@ where
                     runtime,
                     layout: &self.layout,
                     snapshot: &snapshot,
-                    runtime_authority: self.runtime_authority,
-                    binding_identity: self.binding_identity.clone(),
+                    entity_resolution: &self.entity_resolution,
                     authority_identity: self.authority_identity,
                     work: WorthQueryInvariantProjectionWork::default(),
                     work_budget,
@@ -210,40 +207,30 @@ where
         Write: WritePosture,
         Unit: ApplicationFieldUnit,
     {
-        let layout = self
-            .layout
-            .equality_field(field.entity(), field.aspect(), field.field())
-            .cloned()
-            .ok_or_else(|| {
-                WorthQueryEntityResolutionDenial::new(
-                    WorthQueryEntityResolutionDenialKind::FieldNotInstalled,
-                    field.field(),
-                )
-            })?;
         if !self.work_budget.can_afford(3) {
             return Err(WorthQueryEntityResolutionDenial::new(
                 WorthQueryEntityResolutionDenialKind::ProjectionWorkBudgetExceeded,
                 field.field(),
             ));
         }
-        let (evidence, examined) = super::super::entity_resolution::resolve_at_snapshot_with_work(
+        let truth = self.entity_resolution.at_snapshot(
             self.runtime,
             self.snapshot,
-            &layout,
-            value.into_foundational_value(),
             WorthQueryPrincipalResolutionMode::Ordinary,
-            self.runtime_authority,
-            self.binding_identity.clone(),
+        )?;
+        let (resolved, examined) = truth.resolve_with_work(
             field.entity(),
+            field.aspect(),
             field.field(),
+            value.into_foundational_value(),
         );
         self.work_budget.consume(1 + examined);
         self.work.record_lookup(examined);
-        let evidence = evidence?;
-        self.realized_scope.record(evidence.entity_id);
+        let resolved = resolved?;
+        self.realized_scope.record(resolved.entity_id());
         Ok(WorthQueryInvariantEntityIdentity {
-            entity_id: evidence.entity_id,
-            kind: evidence.entity_kind,
+            entity_id: resolved.entity_id(),
+            kind: resolved.entity_kind(),
             entity: Arc::from(field.entity()),
             authority_identity: self.authority_identity,
             _marker: PhantomData,

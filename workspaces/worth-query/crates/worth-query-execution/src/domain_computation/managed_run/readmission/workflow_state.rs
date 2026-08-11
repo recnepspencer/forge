@@ -6,215 +6,209 @@ use worth_runtime_bridge::facade::{
     BridgeYieldedExecutionBasis, BridgeYieldedExecutionBasisPreflight,
 };
 
-use super::super::managed_graph_execution::WorthQueryManagedGraphExecution;
-use super::super::provider_restore::{
-    WorthQueryManagedGraphRestorePending, WorthQueryManagedGraphRestoreRecoveryRequired,
+use super::super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution;
+use super::super::super::workflow::{
+    WorthQueryWorkflowRunAffinity, WorthQueryWorkflowRunReadmissionPending,
+    WorthQueryWorkflowRunRestoredPending, WorthQueryWorkflowRunTransitionPermit,
 };
-use super::super::provider_work::WorthQueryManagedProviderWorkLedger;
-use super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution;
-use super::super::step_contract_admission::WorthQueryAdmittedManagedStepContract;
-use super::super::{
+use super::super::super::{
     WorthQueryManagedRunCounters, WorthQueryYieldTransitionCounters, WorthQueryYieldedWorkflowRun,
 };
+use super::super::workflow_recovery::WorthQueryWorkflowReadmissionRecoveryPermit;
+use super::WorthQueryWorkflowReadmissionProgressionPermit;
 use crate::domain_computation::artifact_owner::{
-    WorthQueryArtifactOccurrenceLedger, WorthQueryArtifactProductionGenerationAbortFailure,
-    WorthQueryArtifactProductionGenerationCommitted, WorthQueryArtifactProductionGenerationPending,
+    WorthQueryArtifactOccurrenceLedger, WorthQueryArtifactProductionGenerationCommitted,
     WorthQueryFrozenWorkflowArtifactAuthority, WorthQueryWorkflowArtifactAuthority,
     WorthQueryWorkflowArtifactRegistryEvidence,
 };
-use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderStepArtifactContext;
-use crate::domain_computation::provider_session::readmission::WorthQueryWorkflowResourceReadmissionPending;
-use crate::domain_computation::{
-    WorthQueryGraphProviderCall, WorthQueryWorkflowExecutionResourceAttempt,
-};
 
 pub(super) struct WorthQueryWorkflowYieldedState {
-    pub(super) logical_run_identity: Arc<str>,
-    pub(super) yielded_attempt_identity: Arc<str>,
-    pub(super) relational_basis: RelationalExecutionBasisLease,
-    pub(super) artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
-    pub(super) artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
-    pub(super) run_counters: WorthQueryManagedRunCounters,
-    pub(super) provider_work: WorthQueryManagedProviderWorkLedger,
-    pub(super) provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
-    pub(super) yield_counters: WorthQueryYieldTransitionCounters,
+    relational_basis: RelationalExecutionBasisLease,
+    artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
+    artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
+    run_counters: WorthQueryManagedRunCounters,
+    provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
+    yield_counters: WorthQueryYieldTransitionCounters,
+    inspection: crate::domain_computation::WorthQueryYieldedWorkflowRunInspection,
 }
 
-pub(super) struct WorthQueryWorkflowYieldedParts {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
-    pub(super) bridge: BridgeYieldedExecutionBasis,
-    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+pub(in crate::domain_computation::managed_run) struct WorthQueryWorkflowYieldedAssociation {
+    state: WorthQueryWorkflowYieldedState,
+    affinity: WorthQueryWorkflowRunAffinity,
+    bridge: BridgeYieldedExecutionBasis,
+    execution: WorthQueryRetainedManagedGraphExecution,
 }
 
-pub(super) struct WorthQueryWorkflowReadmissionCommitState {
-    pub(super) logical_run_identity: Arc<str>,
-    pub(super) relational_basis: RelationalExecutionBasisLease,
-    pub(super) artifacts: WorthQueryWorkflowArtifactAuthority,
-    pub(super) run_counters: WorthQueryManagedRunCounters,
-    pub(super) provider_work: WorthQueryManagedProviderWorkLedger,
-    pub(super) provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
+pub(super) struct WorthQueryWorkflowPreflightAssociation {
+    state: WorthQueryWorkflowYieldedState,
+    affinity: WorthQueryWorkflowRunAffinity,
+    bridge: BridgeYieldedExecutionBasisPreflight,
+    execution: WorthQueryRetainedManagedGraphExecution,
 }
 
-pub(super) struct WorthQueryWorkflowProvisionalResourceAttempt {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
-    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
-    pub(super) bridge: BridgeYieldedExecutionBasisPreflight,
-    pub(super) fresh_call: WorthQueryGraphProviderCall,
-    pub(super) contract: WorthQueryAdmittedManagedStepContract,
-    pub(super) binding_identity: String,
-    pub(super) stage_identity: String,
+pub(super) struct WorthQueryWorkflowProvisionalAssociation {
+    state: WorthQueryWorkflowYieldedState,
+    resource: WorthQueryWorkflowRunReadmissionPending,
+    bridge: BridgeYieldedExecutionBasisPreflight,
+    execution: WorthQueryRetainedManagedGraphExecution,
 }
 
-pub(super) struct WorthQueryWorkflowBridgeReadmissionPending {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
-    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
-    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
-    pub(super) fresh_call: WorthQueryGraphProviderCall,
-    pub(super) contract: WorthQueryAdmittedManagedStepContract,
-    pub(super) stage_identity: String,
+pub(in crate::domain_computation::managed_run::readmission) struct WorthQueryWorkflowBridgePendingAssociation
+{
+    state: WorthQueryWorkflowYieldedState,
+    resource: WorthQueryWorkflowRunReadmissionPending,
+    bridge: BridgeExecutionBasisReadmissionPending,
+    execution: WorthQueryRetainedManagedGraphExecution,
 }
 
-pub(super) struct WorthQueryWorkflowProviderRestorePending {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) stage_identity: String,
-    pub(super) provider: WorthQueryManagedGraphRestorePending,
-    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
-    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+pub(in crate::domain_computation::managed_run::readmission) struct WorthQueryWorkflowRestoredAssociation
+{
+    state: WorthQueryWorkflowYieldedState,
+    resource: WorthQueryWorkflowRunRestoredPending,
+    bridge: BridgeExecutionBasisReadmissionPending,
 }
 
-pub(super) struct WorthQueryWorkflowArtifactGenerationPending {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) provider: WorthQueryManagedGraphRestorePending,
-    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
-    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
-    pub(super) generation: WorthQueryArtifactProductionGenerationPending,
-    pub(super) artifact_context: Option<WorthQueryGraphProviderStepArtifactContext>,
+pub(in crate::domain_computation::managed_run::readmission) struct WorthQueryWorkflowBridgeRecoveryAssociation
+{
+    state: WorthQueryWorkflowYieldedState,
+    affinity: WorthQueryWorkflowRunAffinity,
+    bridge: BridgeExecutionBasisReadmissionRecoveryRequired,
+    execution: WorthQueryRetainedManagedGraphExecution,
 }
 
-pub(super) struct WorthQueryWorkflowCommitReady {
-    pub(super) state: WorthQueryWorkflowReadmissionCommitState,
-    pub(super) execution: WorthQueryManagedGraphExecution,
-    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
-    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+pub(in crate::domain_computation::managed_run) struct WorthQueryWorkflowReadmissionCommitState {
+    relational_basis: RelationalExecutionBasisLease,
+    artifacts: WorthQueryWorkflowArtifactAuthority,
+    run_counters: WorthQueryManagedRunCounters,
+    provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
 }
 
-pub(super) struct WorthQueryWorkflowRollbackPending {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
-    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
-    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+pub(in crate::domain_computation::managed_run) struct WorthQueryWorkflowReadmissionRestoreMint {
+    _owner: (),
 }
 
-pub(super) struct WorthQueryWorkflowProviderAbortPending {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) provider: WorthQueryManagedGraphRestorePending,
-    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
-    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+pub(in crate::domain_computation::managed_run) struct WorthQueryWorkflowYieldRestoredOwner {
+    pub(in crate::domain_computation::managed_run) affinity: WorthQueryWorkflowRunAffinity,
+    pub(in crate::domain_computation::managed_run) relational_basis: RelationalExecutionBasisLease,
+    pub(in crate::domain_computation::managed_run) bridge: BridgeYieldedExecutionBasis,
+    pub(in crate::domain_computation::managed_run) execution:
+        WorthQueryRetainedManagedGraphExecution,
+    pub(in crate::domain_computation::managed_run) artifacts:
+        WorthQueryFrozenWorkflowArtifactAuthority,
+    pub(in crate::domain_computation::managed_run) artifact_evidence:
+        WorthQueryWorkflowArtifactRegistryEvidence,
+    pub(in crate::domain_computation::managed_run) run_counters: WorthQueryManagedRunCounters,
+    pub(in crate::domain_computation::managed_run) provider_artifact_occurrences:
+        Arc<WorthQueryArtifactOccurrenceLedger>,
+    pub(in crate::domain_computation::managed_run) yield_counters:
+        WorthQueryYieldTransitionCounters,
+    pub(in crate::domain_computation::managed_run) inspection:
+        crate::domain_computation::WorthQueryYieldedWorkflowRunInspection,
 }
 
-pub(super) struct WorthQueryWorkflowBridgeCleanupRecoveryState {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
-    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
-    pub(super) bridge: BridgeExecutionBasisReadmissionRecoveryRequired,
+impl WorthQueryWorkflowReadmissionRestoreMint {
+    fn mint() -> Self {
+        Self { _owner: () }
+    }
 }
 
-pub(super) struct WorthQueryWorkflowProviderRecoveryState {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
-    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
-    pub(super) provider: WorthQueryManagedGraphRestoreRecoveryRequired,
-}
+#[path = "workflow_state/bridge_progression.rs"]
+mod bridge_progression;
+#[path = "workflow_state/commit_progression.rs"]
+mod commit_progression;
+#[path = "workflow_state/preflight_progression.rs"]
+mod preflight_progression;
+#[path = "workflow_state/recovery_progression.rs"]
+mod recovery_progression;
+#[path = "recovery/workflow_cleanup.rs"]
+pub(in crate::domain_computation::managed_run::readmission) mod workflow_cleanup_owner;
 
-pub(super) struct WorthQueryWorkflowProviderGenerationRecoveryState {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
-    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
-    pub(super) provider: WorthQueryManagedGraphRestoreRecoveryRequired,
-    pub(super) generation_rollback: WorthQueryArtifactProductionGenerationAbortFailure,
-}
-
-pub(super) struct WorthQueryWorkflowProviderPendingRecoveryState {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
-    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
-    pub(super) provider: WorthQueryManagedGraphRestorePending,
-    pub(super) generation_rollback: WorthQueryArtifactProductionGenerationAbortFailure,
-}
-
-pub(super) struct WorthQueryWorkflowYieldedReassembly {
-    pub(super) state: WorthQueryWorkflowYieldedState,
-    pub(super) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
-    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
-}
+pub(in crate::domain_computation::managed_run::readmission) use commit_progression::WorthQueryWorkflowCommittedAssociation;
 
 impl WorthQueryWorkflowYieldedState {
-    pub(super) fn commit_artifact_generation(
+    fn restore_yielded(
+        self,
+        affinity: WorthQueryWorkflowRunAffinity,
+        bridge: BridgeYieldedExecutionBasis,
+        execution: WorthQueryRetainedManagedGraphExecution,
+    ) -> WorthQueryYieldedWorkflowRun {
+        WorthQueryYieldedWorkflowRun::owner_restore_from_readmission(
+            WorthQueryWorkflowYieldRestoredOwner {
+                affinity,
+                relational_basis: self.relational_basis,
+                bridge,
+                execution,
+                artifacts: self.artifacts,
+                artifact_evidence: self.artifact_evidence,
+                run_counters: self.run_counters,
+                provider_artifact_occurrences: self.provider_artifact_occurrences,
+                yield_counters: self.yield_counters,
+                inspection: self.inspection,
+            },
+            WorthQueryWorkflowReadmissionRestoreMint::mint(),
+        )
+    }
+
+    fn commit_artifact_generation(
         self,
         committed: WorthQueryArtifactProductionGenerationCommitted,
     ) -> WorthQueryWorkflowReadmissionCommitState {
         WorthQueryWorkflowReadmissionCommitState {
-            logical_run_identity: self.logical_run_identity,
             relational_basis: self.relational_basis,
             artifacts: self.artifacts.activate_after_readmission(committed),
             run_counters: self.run_counters,
-            provider_work: self.provider_work,
             provider_artifact_occurrences: self.provider_artifact_occurrences,
         }
     }
 }
 
-impl WorthQueryWorkflowYieldedParts {
-    pub(super) fn from_yielded(yielded: WorthQueryYieldedWorkflowRun) -> Self {
-        let WorthQueryYieldedWorkflowRun {
-            logical_run_identity,
-            attempt_identity,
-            resource_attempt,
-            relational_basis,
-            bridge,
-            execution,
-            artifacts,
-            artifact_evidence,
-            run_counters,
-            provider_work,
-            provider_artifact_occurrences,
-            yield_counters,
-        } = yielded;
+impl WorthQueryWorkflowYieldedAssociation {
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::domain_computation::managed_run) fn owner_admit_exact_yield(
+        affinity: WorthQueryWorkflowRunAffinity,
+        relational_basis: RelationalExecutionBasisLease,
+        bridge: BridgeYieldedExecutionBasis,
+        execution: WorthQueryRetainedManagedGraphExecution,
+        artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
+        artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
+        run_counters: WorthQueryManagedRunCounters,
+        provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
+        yield_counters: WorthQueryYieldTransitionCounters,
+        inspection: crate::domain_computation::WorthQueryYieldedWorkflowRunInspection,
+        _owner: &WorthQueryWorkflowReadmissionProgressionPermit,
+    ) -> Self {
         Self {
             state: WorthQueryWorkflowYieldedState {
-                logical_run_identity,
-                yielded_attempt_identity: attempt_identity,
                 relational_basis,
                 artifacts,
                 artifact_evidence,
                 run_counters,
-                provider_work,
                 provider_artifact_occurrences,
                 yield_counters,
+                inspection,
             },
-            resource_attempt,
+            affinity,
             bridge,
             execution,
         }
     }
+}
 
-    pub(super) fn into_yielded(self) -> WorthQueryYieldedWorkflowRun {
-        WorthQueryYieldedWorkflowRun {
-            logical_run_identity: self.state.logical_run_identity,
-            attempt_identity: self.state.yielded_attempt_identity,
-            resource_attempt: self.resource_attempt,
-            relational_basis: self.state.relational_basis,
-            bridge: self.bridge,
-            execution: self.execution,
-            artifacts: self.state.artifacts,
-            artifact_evidence: self.state.artifact_evidence,
-            run_counters: self.state.run_counters,
-            provider_work: self.state.provider_work,
-            provider_artifact_occurrences: self.state.provider_artifact_occurrences,
-            yield_counters: self.state.yield_counters,
-        }
+impl WorthQueryWorkflowReadmissionCommitState {
+    pub(in crate::domain_computation::managed_run) fn owner_install(
+        self,
+        affinity: WorthQueryWorkflowRunAffinity,
+        bridge_basis: worth_runtime_bridge::facade::BridgeBoundExecutionBasis,
+        _owner: &WorthQueryWorkflowRunTransitionPermit,
+    ) -> super::super::super::WorthQueryRunningWorkflowRun {
+        super::super::super::WorthQueryRunningWorkflowRun::owner_restore_readmission(
+            affinity,
+            bridge_basis,
+            self.relational_basis,
+            self.run_counters,
+            self.artifacts,
+            self.provider_artifact_occurrences,
+            _owner,
+        )
     }
 }

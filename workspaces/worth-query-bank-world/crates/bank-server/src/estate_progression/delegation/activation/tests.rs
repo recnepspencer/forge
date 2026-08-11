@@ -297,18 +297,18 @@ fn materialize_generic(
         .project_admitted_operation(&admission, |reader, estate| {
             project_delegation(reader, estate, command.child)
         })
-        .map_err(BankEstateProgressionDenial::Projection)?;
+        .map_err(BankEstateProgressionDenial::from_projection)?;
     let (result, projection, _) = projected.into_parts();
     result.map_err(BankEstateProgressionDenial::CapabilityDelegationProjection)?;
     let reads = runtime
         .application_runtime()
         .begin_projected_application_read_attempt(admission, projection)
-        .map_err(BankEstateProgressionDenial::Attempt)?;
+        .map_err(BankEstateProgressionDenial::from_attempt)?;
     reads
         .complete_projected_dependencies()?
         .begin_effect_program()
         .finish()
-        .map_err(BankEstateProgressionDenial::Attempt)
+        .map_err(BankEstateProgressionDenial::from_attempt)
 }
 
 fn assert_provider_currentness_denial(outcome: WorthQueryApplicationCommitOutcome) {

@@ -135,21 +135,6 @@ pub(super) fn operation_decision_fact_budget(
     })
 }
 
-pub(super) fn operation_decision_reads<Schema>(
-    schema: &WorthQueryInstalledApplicationSchema<Schema>,
-    operation: &str,
-    input_type: &str,
-) -> Vec<ApplicationOperationDecisionReadTarget>
-where
-    Schema: ApplicationSchema,
-{
-    operation_decision_reads_from_members(
-        schema.installed_declaration().members(),
-        operation,
-        input_type,
-    )
-}
-
 pub(super) fn operation_decision_reads_from_members(
     members: &[ApplicationSchemaMember],
     operation: &str,
@@ -260,21 +245,6 @@ where
     requirements.sort();
     requirements.dedup();
     Ok(requirements)
-}
-
-pub(super) fn operation_program<Schema>(
-    schema: &WorthQueryInstalledApplicationSchema<Schema>,
-    operation: &str,
-    input_type: &str,
-) -> Vec<ApplicationOperationProgramTarget>
-where
-    Schema: ApplicationSchema,
-{
-    operation_program_from_members(
-        schema.installed_declaration().members(),
-        operation,
-        input_type,
-    )
 }
 
 pub(super) fn operation_program_from_members(

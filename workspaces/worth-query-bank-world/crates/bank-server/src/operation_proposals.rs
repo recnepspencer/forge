@@ -7,10 +7,9 @@ mod reversal;
 use bank_domain::proposals::{BankInvariantApprovedProposal, BankProposalDenial};
 use bank_domain::schema::BankSchema;
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyResolutionDenialKind,
     WorthQueryApplicationOperationInvariantProjectionSnapshot, WorthQueryInvariantProjectionWork,
-    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
-    WorthQueryOperationProjectionDenial, WorthQueryOperationProjectionDenialKind,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationProjectionDenial,
+    WorthQueryOperationProjectionDenialKind,
 };
 
 use crate::bank_projection::BankProjectionDenial;
@@ -18,17 +17,17 @@ use crate::BankAdmittedOperation;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BankOperationProposalError {
-    Authorization(Box<WorthQueryOperationAuthorizationDenial>),
-    AuthorizationLineageUnavailable(WorthQueryOperationAuthorizationDenialKind),
+    Authorization(crate::BankAuthorizationDenial),
+    AuthorizationLineageUnavailable(crate::BankAuthorizationDenial),
     ProjectionWorkBudgetExceeded,
     Projection(BankProjectionDenial),
     Invariant(BankProposalDenial),
-    Idempotency(WorthQueryApplicationIdempotencyResolutionDenialKind),
+    Idempotency(crate::BankIdempotencyResolutionDenialKind),
 }
 
 impl From<WorthQueryOperationAuthorizationDenial> for BankOperationProposalError {
     fn from(denial: WorthQueryOperationAuthorizationDenial) -> Self {
-        Self::Authorization(Box::new(denial))
+        Self::Authorization(crate::BankAuthorizationDenial::from_query(denial))
     }
 }
 
@@ -38,8 +37,12 @@ impl From<WorthQueryOperationProjectionDenial> for BankOperationProposalError {
         match kind {
             WorthQueryOperationProjectionDenialKind::Authorization(authorization_kind) => denial
                 .into_authorization_denial()
-                .map(|denial| Self::Authorization(Box::new(denial)))
-                .unwrap_or(Self::AuthorizationLineageUnavailable(authorization_kind)),
+                .map(|denial| {
+                    Self::Authorization(crate::BankAuthorizationDenial::from_query(denial))
+                })
+                .unwrap_or(Self::AuthorizationLineageUnavailable(
+                    crate::BankAuthorizationDenial::from_kind(authorization_kind, 0),
+                )),
             WorthQueryOperationProjectionDenialKind::WorkBudgetExceeded => {
                 Self::ProjectionWorkBudgetExceeded
             }
@@ -72,7 +75,8 @@ impl std::fmt::Display for BankOperationProposalError {
             Self::AuthorizationLineageUnavailable(kind) => {
                 write!(
                     formatter,
-                    "bank projection authorization lineage unavailable: {kind:?}"
+                    "bank projection authorization lineage unavailable: {:?}",
+                    kind.kind()
                 )
             }
             Self::ProjectionWorkBudgetExceeded => {
@@ -137,8 +141,8 @@ impl<Operation, Input, Scope, ScopeIdentity>
         &self.invariant
     }
 
-    pub const fn projection_work(&self) -> WorthQueryInvariantProjectionWork {
-        self.projection_work
+    pub const fn projection_work(&self) -> crate::BankMutationProjectionWork {
+        crate::BankMutationProjectionWork::from_query(self.projection_work)
     }
 
     pub(crate) fn into_parts(
@@ -189,9 +193,9 @@ pub enum BankSendMoneyPreparation {
     ),
     AlreadyCommitted {
         receipt: crate::BankCommitReceipt,
-        projection_work: WorthQueryInvariantProjectionWork,
+        projection_work: crate::BankMutationProjectionWork,
     },
     IntentDrift {
-        projection_work: WorthQueryInvariantProjectionWork,
+        projection_work: crate::BankMutationProjectionWork,
     },
 }

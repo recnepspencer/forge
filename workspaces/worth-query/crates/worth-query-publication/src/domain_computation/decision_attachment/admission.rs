@@ -3,49 +3,98 @@ use worth_query_installation::facade::{
     WorthQueryStructuralCounterRequiredness, WorthQueryTransformationEvidenceContract,
 };
 
-use super::admitted::WorthQueryAdmittedDomainEvidenceParts;
 use super::material::WorthQueryDomainEvidenceMaterialParts;
 use super::{
-    WorthQueryAdmittedDecisionSummary, WorthQueryAdmittedDomainEvidence,
-    WorthQueryAdmittedDomainEvidenceSidecar, WorthQueryAdmittedStructuralCounter,
-    WorthQueryCandidateRecord, WorthQueryCandidateSearchSummary, WorthQueryDecisionRecord,
+    WorthQueryAdmittedDecisionSummary, WorthQueryAdmittedDomainEvidenceSidecar,
+    WorthQueryAdmittedStructuralCounter, WorthQueryCandidateRecord,
+    WorthQueryCandidateSearchSummary, WorthQueryDecisionRecord,
     WorthQueryDomainEvidenceAdmissionDenial, WorthQueryDomainEvidenceAdmissionDenialKind,
-    WorthQueryDomainEvidenceAdmissionLedger, WorthQueryDomainEvidenceBinding,
-    WorthQueryDomainEvidenceCore, WorthQueryDomainEvidenceGovernance,
-    WorthQueryDomainEvidenceMaterial, WorthQueryTransformationRecord,
-    WorthQueryTransformationSummary,
+    WorthQueryDomainEvidenceAdmissionLedger, WorthQueryDomainEvidenceCore,
+    WorthQueryDomainEvidenceGovernance, WorthQueryDomainEvidenceMaterial,
+    WorthQueryTransformationRecord, WorthQueryTransformationSummary,
 };
 
-pub struct WorthQueryDomainEvidenceAdmissionInput<'a> {
+/// Descriptive material admitted against an installed evidence contract.
+///
+/// This value carries no execution authority and cannot attach itself to an
+/// execution or workflow-stage receipt. Only this admission owner can mint it.
+#[derive(Debug, Eq, PartialEq)]
+pub struct WorthQueryAdmittedDomainEvidenceContent {
+    contract_identity: String,
+    governance: WorthQueryDomainEvidenceGovernance,
+    core: WorthQueryDomainEvidenceCore,
+    counter_sidecar: WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryAdmittedStructuralCounter>,
+    decision_sidecar: WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryDecisionRecord>,
+    candidate_sidecar: WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryCandidateRecord>,
+    transformation_sidecar: WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryTransformationRecord>,
+    identity: String,
+}
+
+impl WorthQueryAdmittedDomainEvidenceContent {
+    pub fn identity(&self) -> &str {
+        &self.identity
+    }
+
+    pub fn contract_identity(&self) -> &str {
+        &self.contract_identity
+    }
+
+    pub fn governance(&self) -> &WorthQueryDomainEvidenceGovernance {
+        &self.governance
+    }
+
+    pub fn core(&self) -> &WorthQueryDomainEvidenceCore {
+        &self.core
+    }
+
+    pub fn counter_sidecar(
+        &self,
+    ) -> &WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryAdmittedStructuralCounter> {
+        &self.counter_sidecar
+    }
+
+    pub fn decision_sidecar(
+        &self,
+    ) -> &WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryDecisionRecord> {
+        &self.decision_sidecar
+    }
+
+    pub fn candidate_sidecar(
+        &self,
+    ) -> &WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryCandidateRecord> {
+        &self.candidate_sidecar
+    }
+
+    pub fn transformation_sidecar(
+        &self,
+    ) -> &WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryTransformationRecord> {
+        &self.transformation_sidecar
+    }
+}
+
+pub struct WorthQueryDomainEvidenceContentAdmissionInput<'a> {
+    pub contract: Option<&'a WorthQueryInstalledArtifactContractAuthority>,
     pub material: Option<WorthQueryDomainEvidenceMaterial>,
-    pub binding:
-        worth_query_execution::facade::domain_computation::WorthQueryDomainEvidenceExecutionBinding,
     pub ledger: Option<&'a mut WorthQueryDomainEvidenceAdmissionLedger>,
 }
 
-pub fn admit_domain_evidence(
-    input: WorthQueryDomainEvidenceAdmissionInput<'_>,
-) -> Result<Option<WorthQueryAdmittedDomainEvidence>, WorthQueryDomainEvidenceAdmissionDenial> {
-    validate_binding(&input.binding)?;
-    let Some((authority, material)) =
-        resolve_evidence_presence(input.binding.contract(), input.material)?
+pub fn admit_domain_evidence_content(
+    input: WorthQueryDomainEvidenceContentAdmissionInput<'_>,
+) -> Result<Option<WorthQueryAdmittedDomainEvidenceContent>, WorthQueryDomainEvidenceAdmissionDenial>
+{
+    let Some((authority, material)) = resolve_evidence_presence(input.contract, input.material)?
     else {
         return Ok(None);
     };
-    let binding = WorthQueryDomainEvidenceBinding::from_execution(&input.binding);
     let contract = authority.contract();
     let contract_identity = contract.identity().as_str().to_owned();
     let prepared = prepare_material(contract, material);
-    let admitted = admit_material(
-        contract,
-        prepared,
-        input.binding.output_occurrence_identity(),
-    )?;
+    let admitted = admit_material(contract, prepared)?;
     if let Some(ledger) = input.ledger {
         ledger.validate_and_retain(&contract_identity, &admitted.counters)?;
     }
     let content = materialize_content(contract, admitted);
-    Ok(Some(assemble_evidence(contract_identity, binding, content)))
+    Ok(Some(assemble_content(contract_identity, content)))
 }
 
 fn resolve_evidence_presence(
@@ -123,7 +172,6 @@ struct AdmittedMaterial {
 fn admit_material(
     contract: &WorthQueryPortableArtifactContract,
     prepared: PreparedMaterial,
-    output_occurrence_identity: &str,
 ) -> Result<AdmittedMaterial, WorthQueryDomainEvidenceAdmissionDenial> {
     let counters =
         super::counter_admission::admit_counters(contract.counters(), prepared.parts.counters)?;
@@ -141,7 +189,6 @@ fn admit_material(
         contract.transformation(),
         prepared.parts.transformation,
         prepared.transformation_records.as_deref(),
-        output_occurrence_identity,
     )?;
     Ok(AdmittedMaterial {
         counters,
@@ -238,23 +285,20 @@ fn materialize_decision_sidecar(
     )
 }
 
-fn assemble_evidence(
+fn assemble_content(
     contract_identity: String,
-    binding: WorthQueryDomainEvidenceBinding,
     content: AdmittedContent,
-) -> WorthQueryAdmittedDomainEvidence {
-    let identity = super::identity::domain_evidence_identity(
+) -> WorthQueryAdmittedDomainEvidenceContent {
+    let identity = super::identity::domain_evidence_content_identity(
         &contract_identity,
-        &binding,
         &content.core,
         &content.counter_sidecar,
         &content.decision_sidecar,
         &content.candidate_sidecar,
         &content.transformation_sidecar,
     );
-    WorthQueryAdmittedDomainEvidence::from_parts(WorthQueryAdmittedDomainEvidenceParts {
+    WorthQueryAdmittedDomainEvidenceContent {
         contract_identity,
-        binding,
         governance: content.governance,
         core: content.core,
         counter_sidecar: content.counter_sidecar,
@@ -262,37 +306,5 @@ fn assemble_evidence(
         candidate_sidecar: content.candidate_sidecar,
         transformation_sidecar: content.transformation_sidecar,
         identity,
-    })
-}
-
-fn validate_binding(
-    binding: &worth_query_execution::facade::domain_computation::WorthQueryDomainEvidenceExecutionBinding,
-) -> Result<(), WorthQueryDomainEvidenceAdmissionDenial> {
-    if !binding.is_current_installation_generation() {
-        return Err(WorthQueryDomainEvidenceAdmissionDenial::new(
-            WorthQueryDomainEvidenceAdmissionDenialKind::StaleExecutionBinding,
-            "domain-evidence-binding",
-        ));
     }
-    let required = [
-        binding.operation_identity(),
-        binding.binding_identity(),
-        binding.basis_identity(),
-        binding.execution_snapshot_identity(),
-        binding.output_occurrence_identity(),
-    ];
-    if required.iter().any(|value| value.trim().is_empty())
-        || binding
-            .run_identity()
-            .is_some_and(|value| value.trim().is_empty())
-        || binding
-            .stage_identity()
-            .is_some_and(|value| value.trim().is_empty())
-    {
-        return Err(WorthQueryDomainEvidenceAdmissionDenial::new(
-            WorthQueryDomainEvidenceAdmissionDenialKind::InvalidPortableValue,
-            "domain-evidence-binding",
-        ));
-    }
-    Ok(())
 }

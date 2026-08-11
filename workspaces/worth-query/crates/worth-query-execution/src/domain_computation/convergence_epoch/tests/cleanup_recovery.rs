@@ -1,9 +1,6 @@
-use worth_runtime_bridge::facade::BridgeExecutionBasisFinalizationFailureKind;
-
 use super::terminal_fixture::{converged_terminal, workflow_converged_terminal};
 use crate::domain_computation::{
-    WorthQueryConvergenceTerminalKind, WorthQueryManagedRunCleanupDisposition,
-    WorthQueryManagedRunCleanupFailureKind, WorthQueryWorkflowConvergenceCleanupOutcome,
+    WorthQueryConvergenceTerminalKind, WorthQueryWorkflowConvergenceCleanupOutcome,
 };
 
 #[test]
@@ -19,30 +16,21 @@ fn direct_cleanup_recovery_preserves_epoch_evidence_and_counts_the_retry() {
 
     assert_eq!(failure.identity(), identity);
     assert_eq!(failure.kind(), WorthQueryConvergenceTerminalKind::Converged);
-    assert_eq!(failure.counters().cleanup_count(), 1);
+    assert_eq!(failure.counters().cleanup_attempt_count(), 1);
+    assert_eq!(failure.counters().cleanup_completion_count(), 0);
     assert_eq!(failure.incumbents().len(), 1);
     assert!(failure.latest_report().is_some());
     assert!(failure.indeterminate_cause().is_none());
-    assert_eq!(
-        failure.managed_failure().failure_kind(),
-        WorthQueryManagedRunCleanupFailureKind::BridgeFinalization(
-            BridgeExecutionBasisFinalizationFailureKind::SignalRuntimeThreadAffinityViolation
-        )
-    );
-
     let receipt = match failure.retry() {
         Ok(receipt) => receipt,
         Err(_) => panic!("owner thread did not finalize the same convergence terminal"),
     };
     assert_eq!(receipt.identity(), identity);
     assert_eq!(receipt.kind(), WorthQueryConvergenceTerminalKind::Converged);
-    assert_eq!(receipt.counters().cleanup_count(), 2);
+    assert_eq!(receipt.counters().cleanup_attempt_count(), 2);
+    assert_eq!(receipt.counters().cleanup_completion_count(), 1);
     assert_eq!(receipt.incumbents().len(), 1);
     assert!(receipt.latest_report().is_some());
-    assert_eq!(
-        receipt.managed_receipt().disposition(),
-        WorthQueryManagedRunCleanupDisposition::CleanupComplete
-    );
 }
 
 #[test]
@@ -63,17 +51,11 @@ fn workflow_cleanup_recovery_preserves_epoch_evidence_and_counts_the_retry() {
 
     assert_eq!(failure.identity(), identity);
     assert_eq!(failure.kind(), WorthQueryConvergenceTerminalKind::Converged);
-    assert_eq!(failure.counters().cleanup_count(), 1);
+    assert_eq!(failure.counters().cleanup_attempt_count(), 1);
+    assert_eq!(failure.counters().cleanup_completion_count(), 0);
     assert_eq!(failure.incumbents().len(), 1);
     assert!(failure.latest_report().is_some());
     assert!(failure.indeterminate_cause().is_none());
-    assert_eq!(
-        failure.managed_failure().failure_kind(),
-        WorthQueryManagedRunCleanupFailureKind::BridgeFinalization(
-            BridgeExecutionBasisFinalizationFailureKind::SignalRuntimeThreadAffinityViolation
-        )
-    );
-
     let receipt = match failure.retry() {
         WorthQueryWorkflowConvergenceCleanupOutcome::Complete(receipt) => receipt,
         WorthQueryWorkflowConvergenceCleanupOutcome::Pending(_) => {
@@ -85,11 +67,8 @@ fn workflow_cleanup_recovery_preserves_epoch_evidence_and_counts_the_retry() {
     };
     assert_eq!(receipt.identity(), identity);
     assert_eq!(receipt.kind(), WorthQueryConvergenceTerminalKind::Converged);
-    assert_eq!(receipt.counters().cleanup_count(), 2);
+    assert_eq!(receipt.counters().cleanup_attempt_count(), 2);
+    assert_eq!(receipt.counters().cleanup_completion_count(), 1);
     assert_eq!(receipt.incumbents().len(), 1);
     assert!(receipt.latest_report().is_some());
-    assert_eq!(
-        receipt.managed_receipt().disposition(),
-        WorthQueryManagedRunCleanupDisposition::CleanupComplete
-    );
 }

@@ -3,11 +3,13 @@
 use worth_query_installation::facade::WorthQueryCanonicalWorkEvidence;
 
 use super::super::WorthQueryAftermathDerivationFailure;
-use super::causal_event::{admit_co_committed_emission, begin_dispatch_attempt};
+use super::causal_event::{
+    with_admitted_dispatch, ExternalAcknowledgementEvent, ExternalCompletionEvent,
+    ExternalEffectPosture,
+};
 use super::classification::{ExternalEffectClassification, ExternalRailTransportFault};
 use super::correlation::ExternalEffectCorrelationIdentity;
 use super::observation::classify_dispatch_observation;
-use super::posture::ExternalEffectPosture;
 use super::transport::{WorthQueryExternalDispatchRequest, WorthQueryExternalEffectTransport};
 
 /// Observable kind of one dispatch result.
@@ -33,15 +35,15 @@ enum DispatchPostureState {
 }
 
 impl WorthQueryExternalDispatchPosture {
-    pub(super) const fn completed(observation: ExternalEffectPosture) -> Self {
+    pub(super) fn completed(observation: ExternalCompletionEvent) -> Self {
         Self {
-            state: DispatchPostureState::Completed(observation),
+            state: DispatchPostureState::Completed(observation.into_posture()),
         }
     }
 
-    pub(super) const fn acknowledged(observation: ExternalEffectPosture) -> Self {
+    pub(super) fn acknowledged(observation: ExternalAcknowledgementEvent) -> Self {
         Self {
-            state: DispatchPostureState::Acknowledged(observation),
+            state: DispatchPostureState::Acknowledged(observation.into_posture()),
         }
     }
 
@@ -117,6 +119,17 @@ pub struct WorthQueryExternalEffectDispatch {
     canonical_work: WorthQueryCanonicalWorkEvidence,
 }
 
+/// Closed comparison between two completed dispatch invocations.
+///
+/// This exposes the retry guarantee without disclosing or reconstructing the
+/// runtime's causal identities.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryExternalDispatchCausalRelation {
+    SameAttempt,
+    FreshAttemptForSameEmission,
+    Unrelated,
+}
+
 impl WorthQueryExternalEffectDispatch {
     pub const fn correlation(&self) -> &ExternalEffectCorrelationIdentity {
         &self.correlation
@@ -147,6 +160,20 @@ impl WorthQueryExternalEffectDispatch {
             None => None,
         }
     }
+
+    pub fn causal_relation_to(&self, later: &Self) -> WorthQueryExternalDispatchCausalRelation {
+        let same_emission = self.correlation == later.correlation
+            && self.causal_ladder.provider_commit.identity()
+                == later.causal_ladder.provider_commit.identity()
+            && self.causal_ladder.emission.identity() == later.causal_ladder.emission.identity();
+        if !same_emission {
+            WorthQueryExternalDispatchCausalRelation::Unrelated
+        } else if self.causal_ladder.attempt.identity() == later.causal_ladder.attempt.identity() {
+            WorthQueryExternalDispatchCausalRelation::SameAttempt
+        } else {
+            WorthQueryExternalDispatchCausalRelation::FreshAttemptForSameEmission
+        }
+    }
 }
 
 /// Dispatches one authoritative committed outbox observation through the host port.
@@ -154,29 +181,23 @@ pub(in crate::domain_computation) fn dispatch_external_effect(
     transport: &dyn WorthQueryExternalEffectTransport,
     admitted: crate::domain_computation::primary_graph::WorthQueryAdmittedExternalDispatchAttempt,
 ) -> Result<WorthQueryExternalEffectDispatch, WorthQueryAftermathDerivationFailure> {
-    let runtime = admitted.query_runtime();
-    let attempt_ordinal = admitted.ordinal();
-    let clock = admitted.clock();
-    let committed = admitted.into_committed();
-    let correlation = *committed.record().correlation();
-    let (emission, emission_work) = admit_co_committed_emission(runtime, committed)?;
-    let (attempt, attempt_work) = begin_dispatch_attempt(&emission, attempt_ordinal)?;
-    let observed = transport.dispatch(WorthQueryExternalDispatchRequest::for_record(
-        emission.record(),
-    ));
-    let classified = classify_dispatch_observation(observed, &attempt, Some(&clock))?;
-    let causal_ladder = WorthQueryExternalEffectCausalLadder {
-        provider_commit: attempt.provider_commit().clone(),
-        emission: attempt.emission().clone(),
-        attempt: attempt.attempt().clone(),
-        observation: classified.observation.clone(),
-    };
-    Ok(WorthQueryExternalEffectDispatch {
-        correlation,
-        posture: classified.posture,
-        causal_ladder,
-        canonical_work: emission_work
-            .combine(attempt_work)
-            .combine(classified.canonical_work),
+    with_admitted_dispatch(admitted, |attempt, clock, progression_work| {
+        let correlation = *attempt.record().correlation();
+        let observed = transport.dispatch(WorthQueryExternalDispatchRequest::for_record(
+            attempt.record(),
+        ));
+        let classified = classify_dispatch_observation(observed, attempt, clock)?;
+        let causal_ladder = WorthQueryExternalEffectCausalLadder {
+            provider_commit: attempt.provider_commit().clone(),
+            emission: attempt.emission().clone(),
+            attempt: attempt.attempt().clone(),
+            observation: classified.observation.clone(),
+        };
+        Ok(WorthQueryExternalEffectDispatch {
+            correlation,
+            posture: classified.posture,
+            causal_ladder,
+            canonical_work: progression_work.combine(classified.canonical_work),
+        })
     })
 }

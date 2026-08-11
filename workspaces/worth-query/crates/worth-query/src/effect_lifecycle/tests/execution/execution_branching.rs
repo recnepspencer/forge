@@ -67,8 +67,8 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
     let commit = executed
         .as_mutation()
         .expect("mutation artifact should be present");
-    assert_eq!(commit.outcome.commit.parents, vec![branch_head_before]);
-    assert_ne!(commit.outcome.commit.parents, vec![main_head_before]);
+    assert_eq!(commit.outcome().commit.parents, vec![branch_head_before]);
+    assert_ne!(commit.outcome().commit.parents, vec![main_head_before]);
     assert_eq!(
         runtime
             .history()
@@ -83,7 +83,7 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
             .branch_head(&BranchId("branch-a".to_string()))
             .expect("branch-a head should advance")
             .commit_id,
-        commit.outcome.commit.commit_id
+        commit.outcome().commit.commit_id
     );
     let snapshot = runtime.snapshots().snapshot();
     let read_view = runtime
@@ -206,8 +206,8 @@ fn lowered_branch_mutation_does_not_deny_when_only_another_branch_moves() {
     let commit = executed
         .as_mutation()
         .expect("mutation artifact should be present");
-    assert_ne!(commit.outcome.commit.commit_id, main_head_before);
-    assert_eq!(commit.outcome.commit.parents.len(), 1);
+    assert_ne!(commit.outcome().commit.commit_id, main_head_before);
+    assert_eq!(commit.outcome().commit.parents.len(), 1);
     assert_eq!(
         runtime
             .history()
@@ -283,7 +283,7 @@ fn update_entity_name(
     );
     txn.commit()
         .expect("intervening update should succeed")
-        .outcome
+        .outcome()
         .commit
         .commit_id
 }

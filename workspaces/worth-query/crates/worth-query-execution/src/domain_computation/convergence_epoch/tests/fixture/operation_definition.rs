@@ -27,6 +27,7 @@ use worth_query_installation::facade::{
     WorthQueryOperationWorkflowContract, WorthQueryPortableDomainOperationDefinition,
     WorthQueryPortableWorkflowDefinition, WorthQueryPortableWorkflowStage,
     WorthQuerySupportRequirement, WorthQueryWorkflowStageSemantics,
+    WorthQueryWorkflowValueContract,
 };
 
 use super::fixture_identity::{GRAPH_ROLE, WORKFLOW_STAGE};
@@ -47,7 +48,8 @@ pub(super) fn workflow_operation(
         [],
     )
     .with_semantics(WorthQueryWorkflowStageSemantics {
-        evidence: WorthQueryDomainEvidenceContract::installed_artifact(reference),
+        evidence: WorthQueryDomainEvidenceContract::installed_artifact(reference.clone()),
+        output: WorthQueryWorkflowValueContract::installed_artifact(reference),
         graph_read_roles: vec![GRAPH_ROLE.into()],
         resources: stage_resources,
         terminal_result_states: vec![WorthQueryOperationResultState::Ready],

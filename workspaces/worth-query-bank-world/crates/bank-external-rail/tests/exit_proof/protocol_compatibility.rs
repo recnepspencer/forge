@@ -1,5 +1,5 @@
 use bank_external_rail::{
-    dispatch, inquire_admission_count, inquire_notice, inquire_status, FaultScript, LedgerStatus,
+    dispatch, inquire_admission_count, inquire_notice, inquire_status, LedgerStatus,
     RailCorrelation, RailDispatch, RailEffectPayload, RailExchangeOutcome,
     RailProtocolSupportProfile, RailRejection,
 };
@@ -173,7 +173,6 @@ async fn untrusted_frame_deserialization_denies_invalid_protocol_values_before_a
                     24,
                     decode_hex(V1_CORPUS),
                 ),
-                fault_script: FaultScript::Succeed,
             })
             .unwrap()
         });
@@ -181,6 +180,30 @@ async fn untrusted_frame_deserialization_denies_invalid_protocol_values_before_a
         send_invalid_raw_frame(rail.addr, &request).await;
         assert_unadmitted(rail.addr, correlation, 0).await;
     }
+}
+
+#[tokio::test]
+async fn production_dispatch_rejects_fault_control_fields() {
+    let rail = spawn_rail();
+    assert_ne!(rail.addr, rail.test_control_addr);
+    let correlation = correlation("fault-field-on-production-wire");
+    let mut request = serde_json::json!({
+        "Dispatch": serde_json::to_value(RailDispatch {
+            correlation: correlation.clone(),
+            payload: RailEffectPayload::new(
+                EXPECTED_EFFECT,
+                EXPECTED_PROTOCOL_IDENTITY,
+                BoundaryProtocolVersion::new(1),
+                24,
+                decode_hex(V1_CORPUS),
+            ),
+        })
+        .unwrap()
+    });
+    request["Dispatch"]["fault_script"] = serde_json::json!("CommitThenLoseResponse");
+
+    send_invalid_raw_frame(rail.addr, &request).await;
+    assert_unadmitted(rail.addr, correlation, 0).await;
 }
 
 async fn send_invalid_raw_frame(address: std::net::SocketAddr, request: &serde_json::Value) {
@@ -259,7 +282,6 @@ async fn dispatch_bytes(
                 maximum,
                 bytes,
             ),
-            fault_script: FaultScript::Succeed,
         },
         FRAME_TIMEOUT,
     )

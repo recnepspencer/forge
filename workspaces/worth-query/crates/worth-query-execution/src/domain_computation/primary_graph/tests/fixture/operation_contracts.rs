@@ -72,6 +72,71 @@ pub(super) fn install(
             AccountLabel::reference(),
         )
         .operation(
+            ExactStatusRetentionOperation::reference()
+                .definition()
+                .external_effect(
+                    RetainedStatusEffect::reference(),
+                    "test-status-retention-rail",
+                )
+                .aftermath(schema_types::exact_preimage_retention::status_with_external_owner())
+                .finish(),
+        )
+        .operation_decision_fact_budget(ExactStatusRetentionOperation::reference(), 2)
+        .operation_projection_work_budget(ExactStatusRetentionOperation::reference(), 32)
+        .operation_requires_ability(
+            ExactStatusRetentionOperation::reference(),
+            ViewAccount::reference(),
+        )
+        .operation_write(
+            ExactStatusRetentionOperation::reference(),
+            AccountStatus::reference(),
+        )
+        .operation_write(
+            ExactStatusRetentionOperation::reference(),
+            AccountLabel::reference(),
+        )
+        .operation_read_field(
+            ExactStatusRetentionOperation::reference(),
+            AccountStatus::reference(),
+        )
+        .operation_read_field(
+            ExactStatusRetentionOperation::reference(),
+            AccountLabel::reference(),
+        )
+        .operation_emit(
+            ExactStatusRetentionOperation::reference(),
+            RetainedStatusEffect::reference(),
+        )
+        .operation(
+            MultiFieldRetentionOperation::reference()
+                .definition()
+                .no_external_effect()
+                .aftermath(schema_types::exact_preimage_retention::two_field_inverse())
+                .finish(),
+        )
+        .operation_decision_fact_budget(MultiFieldRetentionOperation::reference(), 2)
+        .operation_projection_work_budget(MultiFieldRetentionOperation::reference(), 32)
+        .operation_requires_ability(
+            MultiFieldRetentionOperation::reference(),
+            ViewAccount::reference(),
+        )
+        .operation_write(
+            MultiFieldRetentionOperation::reference(),
+            AccountStatus::reference(),
+        )
+        .operation_write(
+            MultiFieldRetentionOperation::reference(),
+            AccountLabel::reference(),
+        )
+        .operation_read_field(
+            MultiFieldRetentionOperation::reference(),
+            AccountStatus::reference(),
+        )
+        .operation_read_field(
+            MultiFieldRetentionOperation::reference(),
+            AccountLabel::reference(),
+        )
+        .operation(
             MultiTouchOperation::reference()
                 .definition()
                 .no_external_effect()

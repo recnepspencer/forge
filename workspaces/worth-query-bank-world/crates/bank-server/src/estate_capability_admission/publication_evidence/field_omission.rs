@@ -6,12 +6,9 @@ use worth_foundational::facade::{
     FoundationalDiagnosticWidenedFalloutPosture, FoundationalProfileAttachmentTargetKind,
     FoundationalProfileSet,
 };
-use worth_query_host::facade::{
-    primary_graph::WorthQueryApplicationDisclosureReceipt,
-    publication::domain_computation::{
-        publish_application_field_omission, WorthQueryApplicationAuthorizationPublicationProfile,
-        WorthQueryPublishedApplicationFieldOmission,
-    },
+use worth_query_host::facade::publication::domain_computation::{
+    publish_application_field_omission, WorthQueryApplicationAuthorizationPublicationProfile,
+    WorthQueryPublishedApplicationDisclosure, WorthQueryPublishedApplicationFieldOmission,
 };
 
 use super::profile::publication_profile;
@@ -34,11 +31,17 @@ pub(in crate::estate_capability_admission) fn assert_omission_noninterference(
     );
     assert_provenance_and_receipt(first);
     assert_provenance_and_receipt(second);
-    assert_ne!(source_locator(first), source_locator(second));
+    assert_eq!(first.artifact(), second.artifact());
+    assert_eq!(first.boundary(), second.boundary());
+    assert_eq!(first.explanation(), second.explanation());
+    assert_eq!(first.provenance(), second.provenance());
+    assert_eq!(first.publication_receipt(), second.publication_receipt());
+    assert_eq!(source_locator(first), source_locator(second));
+    assert_eq!(format!("{first:?}"), format!("{second:?}"));
 }
 
 pub(in crate::estate_capability_admission) fn assert_field_omission_publication(
-    disclosure: &WorthQueryApplicationDisclosureReceipt,
+    disclosure: &WorthQueryPublishedApplicationDisclosure,
 ) {
     let profile = publication_profile();
     let omission = publish_application_field_omission(
@@ -49,10 +52,6 @@ pub(in crate::estate_capability_admission) fn assert_field_omission_publication(
 
     assert_eq!(omission.artifact().disclosure(), disclosure);
     assert_boundary_profile(&omission, profile);
-    assert_eq!(
-        source_locator(&omission).artifact_id().get(),
-        disclosure.outcome_identity().unwrap().get()
-    );
     assert_omission_diagnostic(&omission);
     assert_provenance_and_receipt(&omission);
 }

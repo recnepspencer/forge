@@ -12,9 +12,28 @@
 fn aftermath_compiler_boundaries_hold() {
     let cases = trybuild::TestCases::new();
     declared_aftermath_shape_cases(&cases);
+    publication_projection_cases(&cases);
     accepted_and_provisional_facade_cases(&cases);
     recovery_handle_lifecycle_cases(&cases);
     recovery_authority_and_carriage_cases(&cases);
+}
+
+/// Publication accepts owner-issued execution terminals but exposes only
+/// unforgeable, publication-owned closed projections.
+fn publication_projection_cases(cases: &trybuild::TestCases) {
+    cases.pass("tests/ui/application_aftermath/publication_owner_derivation_compiles.rs");
+    cases.compile_fail(
+        "tests/ui/application_aftermath/publication_closed_projection_fields_are_private.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/publication_query_has_no_execution_terminal.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/publication_query_cannot_convert_to_execution_receipt.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/publication_commit_has_no_ambiguous_release_getter.rs",
+    );
 }
 
 /// Undo/redo remains compiled, but only through the honestly provisional lane.
@@ -26,10 +45,27 @@ fn accepted_and_provisional_facade_cases(cases: &trybuild::TestCases) {
     cases.compile_fail(
         "tests/ui/application_aftermath/accepted_installed_compatibility_excludes_provisional_aftermath.rs",
     );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/application_attempt_work_is_runtime_private.rs",
+    );
 }
 
 /// What a declaration may say about aftermath, and what it may not.
 fn declared_aftermath_shape_cases(cases: &trybuild::TestCases) {
+    cases.pass("tests/ui/application_aftermath/preimage_demand_uses_typed_field.rs");
+    cases.compile_fail(
+        "tests/ui/application_aftermath/preimage_demand_rejects_bare_field_strings.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/preimage_locus_cannot_wrap_raw_identifiers.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/preimage_locus_cannot_substitute_field_ownership.rs",
+    );
+    cases.pass("tests/ui/application_aftermath/aftermath_contract_accepts_matching_schema.rs");
+    cases.compile_fail(
+        "tests/ui/application_aftermath/aftermath_contract_rejects_foreign_schema.rs",
+    );
     cases.pass("tests/ui/application_aftermath/reversible_exposes_undo_action.rs");
     cases.pass("tests/ui/application_aftermath/published_posture_variants_exist.rs");
     cases.compile_fail("tests/ui/application_aftermath/irreversible_has_no_undo_method.rs");
@@ -68,8 +104,32 @@ fn declared_aftermath_shape_cases(cases: &trybuild::TestCases) {
         "tests/ui/application_aftermath/committed_dispatch_outbox_observation_is_owner_sealed.rs",
     );
     cases.compile_fail(
+        "tests/ui/application_aftermath/external_dispatch_attempt_authority_is_runtime_owned.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/external_dispatch_runtime_admission_is_private.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/external_dispatch_helper_is_not_host_reachable.rs",
+    );
+    cases.compile_fail(
         "tests/ui/application_aftermath/external_dispatch_completion_wrapper_is_private.rs",
     );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/external_effect_dispatch_fields_are_private.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/commit_created_entity_mapping_is_not_detachable.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/commit_receipt_evidence_axes_are_not_spliceable.rs",
+    );
+    cases.compile_fail("tests/ui/application_aftermath/commit_terminal_has_no_execution.rs");
+    cases.compile_fail("tests/ui/application_aftermath/commit_terminal_has_no_retry_inspection.rs");
+    cases.compile_fail(
+        "tests/ui/application_aftermath/commit_terminal_cannot_convert_to_cleanup_completion.rs",
+    );
+    cases.compile_fail("tests/ui/application_aftermath/provider_commit_cannot_use_raw_receipt.rs");
 }
 
 /// One handle, one terminal, no second use.

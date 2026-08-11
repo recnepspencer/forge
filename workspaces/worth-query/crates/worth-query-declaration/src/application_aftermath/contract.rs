@@ -1,32 +1,72 @@
-//! Declared application-aftermath contract entry point.
+//! Schema-affine aftermath authoring and portable installed meaning.
+
+use crate::application_schema::AftermathAssociationAuthority;
 
 use super::{
     DeclaredCorrectionAuthority, DeclaredCorrectionMechanism, DeclaredReconciliationProcedure,
+    PortableCorrectionMechanism,
 };
 
-/// Portable declared aftermath contract for one mutation operation.
+/// Schema-affine aftermath contract for one mutation operation.
 ///
-/// Callers declare correction authority and, unless authority is
-/// `NotCorrectable`, exactly one correction mechanism. The four law-14 posture
-/// names are not constructible here.
-///
-/// Whether the operation escapes into an external rail is deliberately *not* an
-/// axis of this contract. The escaping lane is declared once, on the schema, by
-/// the operation definition's external-effect slot, and installation derives the aftermath's
-/// external posture from that one declaration. An aftermath that carried its own
-/// posture could name a different rail than the outbox correlates to — or claim
-/// no escape at all while the operation dispatched — and the reversibility guard
-/// would read the claim instead of the lane (Q8.25-C1).
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct DeclaredApplicationAftermathContract {
+/// `Schema` remains part of the type until the matching schema's operation
+/// builder consumes this contract. This prevents a same-text field locus from
+/// another schema from entering the operation association lane.
+pub struct DeclaredApplicationAftermathContract<Schema> {
     authority: DeclaredCorrectionAuthority,
-    mechanism: Option<DeclaredCorrectionMechanism>,
+    mechanism: Option<DeclaredCorrectionMechanism<Schema>>,
     reconciliation: Option<DeclaredReconciliationProcedure>,
 }
 
-impl DeclaredApplicationAftermathContract {
-    /// Runtime-alone correction through a recorded inverse or compensation.
-    pub const fn runtime_alone(mechanism: DeclaredCorrectionMechanism) -> Self {
+impl<Schema> Clone for DeclaredApplicationAftermathContract<Schema> {
+    fn clone(&self) -> Self {
+        Self {
+            authority: self.authority,
+            mechanism: self.mechanism.clone(),
+            reconciliation: self.reconciliation.clone(),
+        }
+    }
+}
+
+impl<Schema> std::fmt::Debug for DeclaredApplicationAftermathContract<Schema> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("DeclaredApplicationAftermathContract")
+            .field("authority", &self.authority)
+            .field("mechanism", &self.mechanism)
+            .field("reconciliation", &self.reconciliation)
+            .finish()
+    }
+}
+
+impl<Schema> PartialEq for DeclaredApplicationAftermathContract<Schema> {
+    fn eq(&self, other: &Self) -> bool {
+        self.authority == other.authority
+            && self.mechanism == other.mechanism
+            && self.reconciliation == other.reconciliation
+    }
+}
+
+impl<Schema> Eq for DeclaredApplicationAftermathContract<Schema> {}
+
+impl<Schema> PartialOrd for DeclaredApplicationAftermathContract<Schema> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<Schema> Ord for DeclaredApplicationAftermathContract<Schema> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (&self.authority, &self.mechanism, &self.reconciliation).cmp(&(
+            &other.authority,
+            &other.mechanism,
+            &other.reconciliation,
+        ))
+    }
+}
+
+impl<Schema> DeclaredApplicationAftermathContract<Schema> {
+    pub const fn runtime_alone(mechanism: DeclaredCorrectionMechanism<Schema>) -> Self {
         Self {
             authority: DeclaredCorrectionAuthority::RuntimeAlone,
             mechanism: Some(mechanism),
@@ -34,9 +74,8 @@ impl DeclaredApplicationAftermathContract {
         }
     }
 
-    /// Correction that requires an external owner or distinct actor.
     pub const fn runtime_with_external_owner(
-        mechanism: DeclaredCorrectionMechanism,
+        mechanism: DeclaredCorrectionMechanism<Schema>,
         reconciliation: DeclaredReconciliationProcedure,
     ) -> Self {
         Self {
@@ -46,7 +85,6 @@ impl DeclaredApplicationAftermathContract {
         }
     }
 
-    /// Terminal non-correctable aftermath.
     pub const fn not_correctable() -> Self {
         Self {
             authority: DeclaredCorrectionAuthority::NotCorrectable,
@@ -59,7 +97,46 @@ impl DeclaredApplicationAftermathContract {
         self.authority
     }
 
-    pub const fn mechanism(&self) -> Option<&DeclaredCorrectionMechanism> {
+    pub const fn mechanism(&self) -> Option<&DeclaredCorrectionMechanism<Schema>> {
+        self.mechanism.as_ref()
+    }
+
+    pub const fn reconciliation(&self) -> Option<&DeclaredReconciliationProcedure> {
+        self.reconciliation.as_ref()
+    }
+
+    pub(crate) fn associate_with_operation(
+        self,
+        _authority: AftermathAssociationAuthority<Schema>,
+    ) -> PortableApplicationAftermathContract {
+        PortableApplicationAftermathContract {
+            authority: self.authority,
+            mechanism: self
+                .mechanism
+                .map(DeclaredCorrectionMechanism::into_portable),
+            reconciliation: self.reconciliation,
+        }
+    }
+}
+
+/// Portable, public-read aftermath meaning stored in a schema declaration.
+///
+/// Construction is owner-sealed: only the schema-affine operation builder can
+/// mint this value. Installation consumers may inspect or clone the meaning,
+/// but cannot author it positionally.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct PortableApplicationAftermathContract {
+    authority: DeclaredCorrectionAuthority,
+    mechanism: Option<PortableCorrectionMechanism>,
+    reconciliation: Option<DeclaredReconciliationProcedure>,
+}
+
+impl PortableApplicationAftermathContract {
+    pub const fn authority(&self) -> DeclaredCorrectionAuthority {
+        self.authority
+    }
+
+    pub const fn mechanism(&self) -> Option<&PortableCorrectionMechanism> {
         self.mechanism.as_ref()
     }
 

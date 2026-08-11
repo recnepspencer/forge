@@ -1,5 +1,14 @@
 use super::WorthQueryRunningDirectRun;
+use crate::domain_computation::domain_evidence_binding::WorthQueryBoundExecutionSnapshotIdentity;
 use crate::domain_computation::WorthQueryBoundGraphExecutionReceipt;
+
+pub(in crate::domain_computation) struct WorthQueryCompletedDirectEvidenceOwner<'a> {
+    authority: &'a crate::domain_computation::WorthQueryExecutionBoundOperationAuthority,
+    session: &'a crate::domain_computation::WorthQueryExecutionProviderSession,
+    logical_run_identity: &'a str,
+    execution_snapshot: WorthQueryBoundExecutionSnapshotIdentity,
+    receipt: &'a WorthQueryBoundGraphExecutionReceipt,
+}
 
 pub struct WorthQueryCompletedDirectGraphExecution {
     running: WorthQueryRunningDirectRun,
@@ -10,6 +19,7 @@ impl WorthQueryCompletedDirectGraphExecution {
     pub(super) fn new(
         running: WorthQueryRunningDirectRun,
         receipt: WorthQueryBoundGraphExecutionReceipt,
+        _owner: super::WorthQueryDirectGraphCompletionPermit,
     ) -> Self {
         Self { running, receipt }
     }
@@ -26,23 +36,51 @@ impl WorthQueryCompletedDirectGraphExecution {
         self.running
     }
 
-    pub(crate) fn into_parts(
-        self,
-    ) -> (
-        WorthQueryRunningDirectRun,
-        WorthQueryBoundGraphExecutionReceipt,
-    ) {
-        (self.running, self.receipt)
-    }
-
     pub(crate) fn bind_convergence_candidate_evidence(
         &self,
-        output_occurrence_identity: &str,
+        candidate_selection_key: &str,
     ) -> Result<
-        crate::domain_computation::WorthQueryDomainEvidenceExecutionBinding,
-        crate::domain_computation::WorthQueryDomainEvidenceBindingDenial,
+        crate::domain_computation::WorthQueryConvergenceDomainEvidenceBinding,
+        crate::domain_computation::WorthQueryConvergenceDomainEvidenceBindingDenial,
     > {
-        self.running
-            .bind_convergence_candidate_evidence(output_occurrence_identity)
+        let owner = WorthQueryCompletedDirectEvidenceOwner {
+            authority: self.running.affinity.provider_plan_operation(),
+            session: self.running.affinity.provider_plan_session(),
+            logical_run_identity: self.running.logical_run_identity(),
+            execution_snapshot: WorthQueryBoundExecutionSnapshotIdentity::capture(
+                self.running.execution_snapshot_reference().into(),
+            ),
+            receipt: &self.receipt,
+        };
+        self.receipt
+            .derive_direct_convergence_evidence(owner, candidate_selection_key)
+    }
+}
+
+impl WorthQueryCompletedDirectEvidenceOwner<'_> {
+    pub(in crate::domain_computation) fn authority(
+        &self,
+    ) -> &crate::domain_computation::WorthQueryExecutionBoundOperationAuthority {
+        self.authority
+    }
+
+    pub(in crate::domain_computation) fn session(
+        &self,
+    ) -> &crate::domain_computation::WorthQueryExecutionProviderSession {
+        self.session
+    }
+
+    pub(in crate::domain_computation) fn logical_run_identity(&self) -> &str {
+        self.logical_run_identity
+    }
+
+    pub(in crate::domain_computation) fn execution_snapshot(
+        &self,
+    ) -> &WorthQueryBoundExecutionSnapshotIdentity {
+        &self.execution_snapshot
+    }
+
+    pub(in crate::domain_computation) fn receipt(&self) -> &WorthQueryBoundGraphExecutionReceipt {
+        self.receipt
     }
 }

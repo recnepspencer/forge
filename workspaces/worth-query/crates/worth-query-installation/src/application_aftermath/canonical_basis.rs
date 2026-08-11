@@ -7,7 +7,7 @@ use worth_foundational::facade::{
     CanonicalDigestWorkBudget, CanonicalizationRuleVersion,
 };
 use worth_query_declaration::facade::application_aftermath::{
-    DeclaredApplicationAftermathContract, DeclaredCorrectionMechanism,
+    PortableApplicationAftermathContract, PortableCorrectionMechanism,
 };
 use worth_query_declaration::facade::application_schema::ApplicationSchemaBindingIdentity;
 
@@ -74,7 +74,7 @@ impl WorthQueryAftermathCanonicalArtifact {
 pub(super) fn prepare_aftermath_basis(
     binding: &ApplicationSchemaBindingIdentity,
     operation_slot: &str,
-    declared: &DeclaredApplicationAftermathContract,
+    portable: &PortableApplicationAftermathContract,
     external_effect: &InstalledExternalEffectContract,
 ) -> Result<WorthQueryAftermathCanonicalArtifact, WorthQueryAftermathInstallationDenial> {
     let mut builder = AftermathBasisBuilder::new(operation_slot);
@@ -82,18 +82,18 @@ pub(super) fn prepare_aftermath_basis(
     builder.digest("package", binding.package_identity());
     builder.digest("schema-or-domain", binding.schema_identity());
     builder.text("operation", operation_slot);
-    builder.text("authority", authority_label(declared.authority()));
-    push_correction_contract(&mut builder, declared);
+    builder.text("authority", authority_label(portable.authority()));
+    push_correction_contract(&mut builder, portable);
     push_external_effect(&mut builder, external_effect);
     builder.finish()
 }
 
 fn push_correction_contract(
     builder: &mut AftermathBasisBuilder,
-    declared: &DeclaredApplicationAftermathContract,
+    portable: &PortableApplicationAftermathContract,
 ) {
-    match declared.mechanism() {
-        Some(DeclaredCorrectionMechanism::RecordedInverse(inverse)) => {
+    match portable.mechanism() {
+        Some(PortableCorrectionMechanism::RecordedInverse(inverse)) => {
             builder.text("mechanism", "recorded-inverse");
             builder.text("inverse-operation", inverse.inverse_operation_slot());
             builder.text(
@@ -107,12 +107,14 @@ fn push_correction_contract(
                     .maximum_encoded_bytes()
                     .to_string(),
             );
-            for (index, slot) in inverse.preimage_demand().field_slots().iter().enumerate() {
-                builder.text(format!("preimage-field-{index}"), slot);
+            for (index, locus) in inverse.preimage_demand().loci().iter().enumerate() {
+                builder.text(format!("preimage-entity-{index}"), locus.entity());
+                builder.text(format!("preimage-aspect-{index}"), locus.aspect());
+                builder.text(format!("preimage-field-{index}"), locus.field());
             }
             push_postcondition(builder, inverse.postcondition());
         }
-        Some(DeclaredCorrectionMechanism::Compensation(compensation)) => {
+        Some(PortableCorrectionMechanism::Compensation(compensation)) => {
             builder.text("mechanism", "compensation");
             builder.text(
                 "compensating-operation",
@@ -124,7 +126,7 @@ fn push_correction_contract(
             builder.text("mechanism", "none");
         }
     }
-    if let Some(reconciliation) = declared.reconciliation() {
+    if let Some(reconciliation) = portable.reconciliation() {
         builder.text("reconciliation", reconciliation.procedure_slot());
     } else {
         builder.text("reconciliation", "none");

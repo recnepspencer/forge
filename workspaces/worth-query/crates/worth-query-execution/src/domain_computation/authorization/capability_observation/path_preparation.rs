@@ -5,11 +5,11 @@ use worth_relational::facade::authorization::{
     RelationalAuthorizationTraversal, RelationalAuthorizationTraversalDirection,
 };
 
+use super::super::capability_admission::WorthQueryCapabilityContextKey;
 use super::super::capability_registry::{
     WorthQueryCapabilityContextAnchor, WorthQueryCapabilityPathTemplate,
     WorthQueryInstalledCapabilityPlan,
 };
-use super::super::capability_request_resolution::WorthQueryCapabilityContextKey;
 use super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::super::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
@@ -159,13 +159,7 @@ fn is_temporal_path(installed: &WorthQueryInstalledCapabilityPlan, index: usize)
 pub(super) fn context_key(
     anchor: &WorthQueryCapabilityContextAnchor,
 ) -> WorthQueryCapabilityContextKey {
-    WorthQueryCapabilityContextKey {
-        context: anchor.context.clone(),
-        context_type: anchor.context_type.clone(),
-        slot: anchor.slot.clone(),
-        slot_type: anchor.slot_type.clone(),
-        entity: anchor.entity.clone(),
-    }
+    WorthQueryCapabilityContextKey::from_anchor(anchor)
 }
 
 fn projection_denial(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {

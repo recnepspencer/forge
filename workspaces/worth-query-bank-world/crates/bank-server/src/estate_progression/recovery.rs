@@ -57,8 +57,9 @@ impl BankIdentityRuntime {
         &self,
         receipt: &BankCommitReceipt,
     ) -> Result<WorthQueryRecoveryHandle, WorthQueryRecoveryHandleDenial> {
-        self.application_runtime()
-            .mint_recovery_handle(receipt.application())
+        receipt
+            .recovery_evidence()
+            .mint_recovery_handle(self.application_runtime())
     }
 
     /// Re-admit notify-death and establish effect authority against current truth.
@@ -91,11 +92,11 @@ impl BankIdentityRuntime {
                 NotifyDeathEstateCapability::reference(),
                 NotifyDeathEstateOperation::reference(),
             )
-            .map_err(BankEstateProgressionDenial::CapabilityInstallation)?;
+            .map_err(BankEstateProgressionDenial::from_capability_installation)?;
         let access = self
             .application_runtime()
             .admit_capability_access(principal.query(), &capability, action, request)
-            .map_err(BankEstateProgressionDenial::Authorization)?;
+            .map_err(BankEstateProgressionDenial::from_authorization)?;
         let disclosure = self
             .application_runtime()
             .admit_recovery_inspection_disclosure(&access)
@@ -200,7 +201,7 @@ impl BankIdentityRuntime {
             .project_admitted_operation(&admission, |reader, estate| {
                 project_estate_disbursement(reader, estate, &input)
             })
-            .map_err(BankEstateProgressionDenial::Projection)?;
+            .map_err(BankEstateProgressionDenial::from_projection)?;
         let (decision, _projection, _) = projected.into_parts();
         let decision =
             decision.map_err(BankEstateProgressionDenial::EstateDisbursementProjection)?;
@@ -273,7 +274,7 @@ impl BankIdentityRuntime {
         let resolution = self
             .application_runtime()
             .resolve_admitted_application_idempotency(&admission, handle.binding().idempotency())
-            .map_err(BankEstateProgressionDenial::Idempotency)?;
+            .map_err(BankEstateProgressionDenial::from_idempotency)?;
         resolve_recovery_handle(handle, &authority, resolution)
             .map_err(BankEstateProgressionDenial::Recovery)
     }

@@ -13,6 +13,7 @@ pub enum EvidenceScenario {
     SearchNoFeasibleSelected,
     SearchAllFeasibleRejected,
     LossMismatch,
+    OutputOccurrenceMismatch,
     MalformedSidecars,
     MalformedTransformationSidecar,
     MalformedOptionalCounter,
@@ -36,7 +37,12 @@ pub(super) fn evidence_material(
     } else {
         CounterWindow::new(0, 6)
     };
-    evidence_material_with_window(output_occurrence_identity, scenario, candidate, false)
+    evidence_material_with_window(
+        claimed_output(output_occurrence_identity, scenario),
+        scenario,
+        candidate,
+        false,
+    )
 }
 
 pub(super) fn workflow_evidence_material(
@@ -51,11 +57,19 @@ pub(super) fn workflow_evidence_material(
         _ => panic!("only evidence-declaring workflow stages may attach evidence"),
     };
     evidence_material_with_window(
-        output_occurrence_identity,
+        claimed_output(output_occurrence_identity, scenario),
         scenario,
         candidate,
         stage_identity == "left",
     )
+}
+
+fn claimed_output(output_occurrence_identity: &str, scenario: EvidenceScenario) -> &str {
+    if scenario == EvidenceScenario::OutputOccurrenceMismatch {
+        "foreign-output-occurrence"
+    } else {
+        output_occurrence_identity
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -71,7 +85,7 @@ impl CounterWindow {
 }
 
 fn evidence_material_with_window(
-    output_occurrence_identity: &str,
+    claimed_output: &str,
     scenario: EvidenceScenario,
     candidate: CounterWindow,
     workflow_left: bool,
@@ -100,7 +114,7 @@ fn evidence_material_with_window(
             work_components.observed,
         ))
         .candidate_search(candidate_summary(scenario))
-        .transformation(transformation_summary(output_occurrence_identity, scenario));
+        .transformation(transformation_summary(claimed_output, scenario));
     if scenario != EvidenceScenario::MissingDecisionSummary {
         material = material.decision(decision_summary(decision_kind()));
     }
@@ -141,7 +155,7 @@ fn evidence_material_with_window(
         };
         material = material
             .counter(optional)
-            .with_sidecar(sidecars(output_occurrence_identity, scenario));
+            .with_sidecar(sidecars(claimed_output, scenario));
     }
     material
 }

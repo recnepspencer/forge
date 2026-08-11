@@ -1,9 +1,9 @@
-use worth_query_execution::facade::domain_computation::{
-    ExternalEffectPosture, WorthQueryExternalDispatchPosture,
-};
+#![allow(unreachable_code)]
 
-fn forge_completion(attempt: ExternalEffectPosture) {
-    let _ = WorthQueryExternalDispatchPosture::completed(attempt);
+use worth_query_execution::facade::domain_computation::WorthQueryExternalDispatchPosture;
+
+fn forge_completion() {
+    let _ = WorthQueryExternalDispatchPosture::completed(todo!());
 }
 
 fn main() {}

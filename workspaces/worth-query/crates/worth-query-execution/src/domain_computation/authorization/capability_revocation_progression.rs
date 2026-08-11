@@ -15,7 +15,7 @@ use worth_query_installation::facade::{
 };
 use worth_relational::facade::identity::{EntityId, KindId};
 
-use super::capability_operation_progression::{
+use super::capability_admission::{
     progress_capability_operation, WorthQueryCapabilityOperationProgression,
 };
 use super::{
@@ -72,7 +72,7 @@ where
             + ApplicationCapabilityRevocationRequest<Schema, Capability>,
     {
         let projection = access
-            .input
+            .capability_input()
             .capability_revocation_target()
             .map_err(|denial| rejected(denial.subject()))?;
         let installed = self
@@ -99,7 +99,7 @@ where
             .ok_or_else(|| rejected(operation.operation()))?;
         let (proposal_identity, work) = proposal_identity(
             *capability.identity().bytes(),
-            access.resolved.resource.entity_id(),
+            access.resource_entity_id(),
             installed.grant_kind,
             installed.delegation.resource.relation_kind(),
             projection.target(),
@@ -110,7 +110,7 @@ where
         )?;
         let identity_value = projection.target().value().clone();
         let target_entity = projection.target().entity().to_owned();
-        let resource = access.resolved.resource.entity_id();
+        let resource = access.resource_entity_id();
         let admitted = progress_capability_operation(
             self,
             access,

@@ -239,10 +239,12 @@ pub mod runtime {
     };
     pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
     pub use crate::visibility::exact_commit_snapshot::{
+        RelationalRetainedCommitEntityProjection, RelationalRetainedCommitProjectionWork,
         RelationalRetainedCommitSnapshot, RelationalRetainedCommitSnapshotDenial,
         RelationalRetainedCommitSnapshotDenialKind,
     };
     pub use crate::visibility::execution_basis::{
+        RelationalApplicationCommitBasisDenial, RelationalApplicationCommitBasisSource,
         RelationalExecutionBasisCounters, RelationalExecutionBasisDenial,
         RelationalExecutionBasisDenialKind, RelationalExecutionBasisIdentity,
         RelationalExecutionBasisLease, RelationalExecutionBasisReleaseReceipt,

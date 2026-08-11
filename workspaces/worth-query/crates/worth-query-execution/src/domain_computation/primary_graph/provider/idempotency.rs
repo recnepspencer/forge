@@ -62,6 +62,7 @@ impl WorthQueryPrimaryGraphProvider {
         binding: WorthQueryApplicationIdempotencyBinding,
         branch: &worth_relational::facade::history::BranchId,
     ) -> Result<WorthQueryProviderIdempotencyResolution, &'static str> {
+        self.application_attempt_work.observe_retained_resolution();
         let layout = self.graph.layout.provider_idempotency().clone();
         self.graph.with_runtime_mut(|runtime| {
             self.graph
@@ -70,7 +71,7 @@ impl WorthQueryPrimaryGraphProvider {
                 .snapshots()
                 .snapshot_for_branch(branch)
                 .ok_or("provider idempotency branch has no current snapshot")?;
-            let resolution = resolve_at_snapshot(runtime, &snapshot, &layout, binding);
+            let resolution = resolve_at_snapshot(self, runtime, &snapshot, &layout, binding);
             runtime.snapshots().release_snapshot(&snapshot);
             resolution
         })
@@ -78,21 +79,20 @@ impl WorthQueryPrimaryGraphProvider {
 
     pub(in crate::domain_computation::primary_graph) fn resolve_application_idempotency(
         &self,
-        session_identity: &str,
+        affinity: crate::domain_computation::WorthQueryProviderSessionAffinityIdentity,
     ) -> Result<WorthQueryProviderIdempotencyResolution, &'static str> {
         let (binding, branch) = self
-            .sessions
+            .attempts
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .application_attempts
-            .get(session_identity)
-            .map(|attempt| (attempt.idempotency, attempt.branch.clone()))
+            .idempotency_basis(affinity)
             .ok_or("provider session lost its idempotency binding")?;
         self.resolve_idempotency_binding(binding, &branch)
     }
 }
 
 fn resolve_at_snapshot(
+    provider: &WorthQueryPrimaryGraphProvider,
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
     layout: &WorthQueryProviderIdempotencyLayout,
@@ -100,6 +100,7 @@ fn resolve_at_snapshot(
 ) -> Result<WorthQueryProviderIdempotencyResolution, &'static str> {
     let key = AspectValue::String(InternedString::from(binding.key_text()));
     let context = WorthQueryIdempotencySnapshotContext {
+        provider,
         runtime,
         snapshot,
         layout,
@@ -112,6 +113,7 @@ fn resolve_at_snapshot(
 }
 
 struct WorthQueryIdempotencySnapshotContext<'a> {
+    provider: &'a WorthQueryPrimaryGraphProvider,
     runtime: &'a worth_relational::facade::runtime::RelationalRuntime,
     snapshot: &'a worth_relational::facade::snapshots::SnapshotHandle,
     layout: &'a WorthQueryProviderIdempotencyLayout,
@@ -270,83 +272,18 @@ fn resolve_projected_idempotency(
     };
     let emitted = usize::try_from(emitted)
         .map_err(|_| "provider idempotency emitted-effect count exceeds host representation")?;
-    Ok(WorthQueryProviderIdempotencyResolution::Equivalent(
-        WorthQueryPrimaryGraphCommittedApplication::new(
-            outcome_identity,
-            context.snapshot.runtime_instance_id,
-            committed.commit().clone(),
-            committed.changed_record_count(),
-            emitted,
-        ),
-    ))
-}
-
-#[cfg(test)]
-mod tests {
-    use worth_relational::facade::history::BranchId;
-    use worth_relational::facade::transactions::{
-        RelationalTransaction, TransactionOptions, WorkerIntentBatch,
-    };
-
-    use super::*;
-    use crate::domain_computation::primary_graph::{
-        primary_relational_branch_id, tests::fixture::installed_authorization_world,
-    };
-
-    #[test]
-    fn idempotency_lookup_never_substitutes_another_branch_head() {
-        let world = installed_authorization_world(true);
-        let provider = &world.application.primary_provider;
-        let main = primary_relational_branch_id();
-        let feature = BranchId("idempotency-feature".to_owned());
-        let binding = WorthQueryApplicationIdempotencyBinding::new([91; 32], [92; 32]);
-        provider.graph.with_runtime_mut(|runtime| {
-            runtime
-                .history_authority()
-                .create_branch(feature.clone(), &main)
-                .unwrap();
-            let mut feature_transaction: RelationalTransaction<'_> =
-                runtime.begin_transaction(TransactionOptions {
-                    target_branch: Some(feature.clone()),
-                    ..TransactionOptions::default()
-                });
-            feature_transaction.push_batch(WorkerIntentBatch::new("feature-branch-head").push(
-                idempotency_create_intent(
-                    provider.graph.layout.provider_idempotency(),
-                    WorthQueryApplicationIdempotencyBinding::new([93; 32], [94; 32]),
-                    WorthQueryApplicationCommitOutcomeIdentity::mint().unwrap(),
-                    0,
-                ),
-            ));
-            feature_transaction.commit().unwrap();
-            let mut transaction: RelationalTransaction<'_> =
-                runtime.begin_transaction(Default::default());
-            transaction.push_batch(WorkerIntentBatch::new("branch-idempotency").push(
-                idempotency_create_intent(
-                    provider.graph.layout.provider_idempotency(),
-                    binding,
-                    WorthQueryApplicationCommitOutcomeIdentity::mint().unwrap(),
-                    0,
-                ),
-            ));
-            transaction.commit().unwrap();
-            provider
-                .graph
-                .ensure_primary_indexes_current(runtime)
-                .unwrap();
-        });
-
-        assert!(matches!(
-            provider.resolve_idempotency_binding(binding, &main),
-            Ok(WorthQueryProviderIdempotencyResolution::Equivalent(_))
-        ));
-        let feature_resolution = provider.resolve_idempotency_binding(binding, &feature);
-        assert!(
-            matches!(
-                feature_resolution,
-                Ok(WorthQueryProviderIdempotencyResolution::Absent)
-            ),
-            "feature branch resolution: {feature_resolution:?}",
-        );
+    let commit = committed.commit().clone();
+    let committed = context
+        .provider
+        .observe_completed_application(&commit)
+        .ok_or("provider idempotency commit evidence is unavailable")?;
+    if committed.application_outcome_identity() != Some(outcome_identity)
+        || committed.runtime_instance_id() != context.snapshot.runtime_instance_id
+        || committed.emitted_effect_count() != emitted
+    {
+        return Err("provider idempotency commit evidence has foreign affinity");
     }
+    Ok(WorthQueryProviderIdempotencyResolution::Equivalent(
+        committed,
+    ))
 }

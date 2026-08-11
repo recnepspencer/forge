@@ -39,7 +39,7 @@ fn perf_invariant_materialization_matrix() {
             );
             let elapsed_micros = started_at.elapsed().as_micros();
             let counters = runtime.performance_access().counters();
-            let phase_timing = outcome.execution.phase_timing.clone();
+            let phase_timing = outcome.execution().phase_timing.clone();
 
             PerfMeasurement {
                 elapsed_micros,

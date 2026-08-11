@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use bank_external_rail::{
     dispatch, inquire_admission_count, inquire_completed_effect_count, inquire_completed_notice,
-    inquire_notice, inquire_status, FaultScript, LedgerStatus, RailDispatch, RailEffectPayload,
+    inquire_notice, inquire_status, LedgerStatus, RailDispatch, RailEffectPayload,
     RailExchangeOutcome, RailRejection,
 };
 use tokio::sync::Barrier;
@@ -21,7 +21,7 @@ const CONCURRENT_DUPLICATES: usize = 16;
 #[tokio::test]
 async fn concurrent_duplicates_reserve_and_apply_one_physical_effect() {
     let rail = spawn_rail();
-    let attempt = attempt_for("concurrent-duplicates", FaultScript::Succeed);
+    let attempt = attempt_for("concurrent-duplicates");
     let correlation = attempt.correlation.clone();
     let barrier = Arc::new(Barrier::new(CONCURRENT_DUPLICATES));
     let mut tasks = Vec::with_capacity(CONCURRENT_DUPLICATES);
@@ -53,12 +53,10 @@ async fn concurrent_same_key_payload_drift_rejects_the_loser_without_mutating_tr
     let original = RailDispatch {
         correlation: correlation.clone(),
         payload: notice_payload(),
-        fault_script: FaultScript::Succeed,
     };
     let drifted = RailDispatch {
         correlation: correlation.clone(),
         payload: payload_for_subject(SUBJECT + 1),
-        fault_script: FaultScript::Succeed,
     };
     let outcomes = race_dispatches(rail.addr, original.clone(), drifted.clone()).await;
     assert_one_completion_and_one_drift(&outcomes);
@@ -135,7 +133,7 @@ async fn observe_matching_completed_notice(
 #[tokio::test]
 async fn correlation_binds_exact_payload_even_when_another_version_decodes_the_same_notice() {
     let rail = spawn_rail();
-    let original = attempt_for("cross-version-drift", FaultScript::Succeed);
+    let original = attempt_for("cross-version-drift");
     let correlation = original.correlation.clone();
     assert_eq!(
         dispatch(rail.addr, original, FRAME_TIMEOUT).await,
@@ -155,7 +153,6 @@ async fn correlation_binds_exact_payload_even_when_another_version_decodes_the_s
             32,
             v2_bytes,
         ),
-        fault_script: FaultScript::Succeed,
     };
     assert_eq!(
         dispatch(rail.addr, alternate_representation, FRAME_TIMEOUT).await,

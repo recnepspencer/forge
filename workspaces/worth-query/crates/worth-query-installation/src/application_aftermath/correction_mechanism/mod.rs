@@ -5,10 +5,11 @@ mod recorded_inverse;
 
 pub use compensation::InstalledCompensation;
 pub use recorded_inverse::{
-    InstalledLoweringCorrespondenceRef, InstalledPreImageDemand, InstalledRecordedInverse,
+    InstalledLoweringCorrespondenceRef, InstalledPreImageDemand, InstalledPreImageLocus,
+    InstalledRecordedInverse,
 };
 
-use worth_query_declaration::facade::application_aftermath::DeclaredCorrectionMechanism;
+use worth_query_declaration::facade::application_aftermath::PortableCorrectionMechanism;
 
 use super::lowering_correspondence::InstalledLoweringCorrespondence;
 
@@ -26,30 +27,30 @@ impl InstalledCorrectionMechanism {
         Self::Compensation(InstalledCompensation::from_declared(declared))
     }
 
-    pub(crate) fn from_declared_recorded_inverse(
-        declared: &worth_query_declaration::facade::application_aftermath::DeclaredRecordedInverse,
+    pub(crate) fn from_portable_recorded_inverse(
+        portable: &worth_query_declaration::facade::application_aftermath::PortableRecordedInverse,
         lowering_correspondence: InstalledLoweringCorrespondence,
     ) -> Self {
-        Self::RecordedInverse(InstalledRecordedInverse::from_declared(
-            declared,
+        Self::RecordedInverse(InstalledRecordedInverse::from_portable(
+            portable,
             lowering_correspondence,
         ))
     }
 
-    pub(crate) fn from_declared(
-        declared: &DeclaredCorrectionMechanism,
+    pub(crate) fn from_portable(
+        portable: &PortableCorrectionMechanism,
         lowering_correspondence: Option<InstalledLoweringCorrespondence>,
     ) -> Result<Self, &'static str> {
-        match declared {
-            DeclaredCorrectionMechanism::RecordedInverse(inverse) => {
+        match portable {
+            PortableCorrectionMechanism::RecordedInverse(inverse) => {
                 let correspondence = lowering_correspondence
                     .ok_or("recorded-inverse-requires-resolved-lowering-correspondence")?;
-                Ok(Self::from_declared_recorded_inverse(
+                Ok(Self::from_portable_recorded_inverse(
                     inverse,
                     correspondence,
                 ))
             }
-            DeclaredCorrectionMechanism::Compensation(compensation) => {
+            PortableCorrectionMechanism::Compensation(compensation) => {
                 Ok(Self::from_declared_compensation(compensation))
             }
         }
