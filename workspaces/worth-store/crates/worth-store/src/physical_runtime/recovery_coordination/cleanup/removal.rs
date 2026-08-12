@@ -1,15 +1,10 @@
 use worth_store_physical_backend::PhysicalRecoveryMediaGeneration;
 use worth_store_physical_format::{
-    store_namespace::StableStoreIdentity, PhysicalCheckpointIdentity, VerifiedCheckpointStream,
+    store_namespace::StableStoreIdentity, PhysicalCheckpointIdentity,
 };
-use worth_store_wal::{
-    LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity, WalSegmentInspection,
-};
+use worth_store_wal::{LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity};
 
-use crate::physical_runtime::{
-    CompletedPhysicalRecoveryFreshReopen, PhysicalRecoveryCoordination,
-    PhysicalWorkSchedulerPosture,
-};
+use crate::physical_runtime::PhysicalWorkSchedulerPosture;
 
 use super::super::{PerformedRecoveryPhysicalEffect, RecoveryCleanupRemovalAction};
 
@@ -79,49 +74,24 @@ pub enum PhysicalRecoveryCleanupRemovalOutcome {
 }
 
 impl PhysicalRecoveryCleanupRemovalCommand {
-    /// Binds one Store-owned freshness decision to performed reopen and
-    /// independently verified checkpoint/WAL facts.
-    ///
-    /// Shape-only coordinates cannot construct this command. The selected
-    /// checkpoint must name the independently reopened root, and the complete
-    /// WAL artifact must be wholly covered by that checkpoint.
-    pub(in crate::physical_runtime) fn admit(
-        media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
-        coordination: &PhysicalRecoveryCoordination,
-        cleanup_plan_identity: [u8; 32],
-        reopened: &CompletedPhysicalRecoveryFreshReopen,
-        checkpoint: &VerifiedCheckpointStream,
-        wal: WalSegmentInspection,
-    ) -> Option<Self> {
-        let occurrence = reopened.fresh_reopen_occurrence();
-        let root = reopened.root();
-        let source = checkpoint.source();
-        let checkpoint_root = source.root();
-        let retained_boundary = LogSequenceNumber::new(source.wal().covered_end_lsn_exclusive());
-        let compaction = checkpoint.compaction_cutover();
-        let store = source.identity().store_identity();
-        let admissible = cleanup_plan_identity != [0; 32]
-            && store == media.store_identity()
-            && occurrence.session() == coordination.session_identity()
-            && checkpoint_root.generation() <= root.generation()
-            && checkpoint_root.tree_identity() == root.tree_identity()
-            && wal.byte_count() != 0
-            && wal.lsn_range().end_exclusive() <= retained_boundary;
-        admissible.then_some(Self {
-            store,
-            media_generation: media.media_generation(),
-            session: occurrence.session(),
-            plan: cleanup_plan_identity,
-            published_generation: occurrence.generation(),
-            checkpoint: source.identity(),
-            compaction_generation: compaction.product_generation(),
-            compaction_digest: checkpoint.footer().binding_records_digest(),
-            retained_boundary,
-            artifact: wal.identity(),
-            lsn_range: wal.lsn_range(),
-            byte_count: wal.byte_count(),
-            artifact_digest: wal.artifact_digest(),
-        })
+    pub(in crate::physical_runtime) fn from_freshness(
+        basis: crate::physical_runtime::recovery_freshness::StoreRecoveryCleanupRemovalBasis,
+    ) -> Self {
+        Self {
+            store: basis.store(),
+            media_generation: basis.media_generation(),
+            session: basis.session(),
+            plan: basis.plan(),
+            published_generation: basis.published_generation(),
+            checkpoint: basis.checkpoint(),
+            compaction_generation: basis.compaction_generation(),
+            compaction_digest: basis.compaction_digest(),
+            retained_boundary: basis.retained_boundary(),
+            artifact: basis.artifact(),
+            lsn_range: basis.lsn_range(),
+            byte_count: basis.byte_count(),
+            artifact_digest: basis.artifact_digest(),
+        }
     }
 }
 

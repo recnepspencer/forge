@@ -56,6 +56,14 @@ impl RecoveryCleanupAccounting {
         failure: &StoreRecoveryCleanupFreshnessFailure,
     ) {
         self.counters.freshness_evaluations += 1;
+        if let Some(sample) = failure.sample() {
+            self.counters.freshness_reads_completed += 1;
+            self.counters.freshness_bytes_read +=
+                worth_store_physical_format::ROOT_SELECTOR_BYTES as u64;
+            self.record_freshness_scheduler(true, false, false, true);
+            self.freshness.push(sample.clone());
+            return;
+        }
         let Some(read) = failure.read() else {
             return;
         };

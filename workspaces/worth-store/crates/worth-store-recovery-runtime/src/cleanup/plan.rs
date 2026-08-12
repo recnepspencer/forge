@@ -1,10 +1,7 @@
 use std::collections::BTreeMap;
 
-use sha2::{Digest, Sha256};
 use worth_store_physical_format::{PhysicalCheckpointIdentity, RecordArtifactFile};
-use worth_store_recovery_physics::{
-    PhysicalRecoveryResidueKind, PhysicalSourceSelection, WalLsnRange, WalSegmentArtifactIdentity,
-};
+use worth_store_recovery_physics::{PhysicalSourceSelection, WalSegmentArtifactIdentity};
 
 use crate::entry::PhysicalRecoveryLimitDeclaration;
 use crate::handoff::RecoveryOperationFateSet;
@@ -15,6 +12,7 @@ use super::{
     RecoveryCleanupEligibility, RecoveryCleanupTarget,
 };
 
+mod identity;
 #[cfg(test)]
 mod tests;
 
@@ -56,10 +54,11 @@ pub(crate) fn build_plan(basis: RecoveryCleanupPlanBasis<'_>) -> RecoveryCleanup
             RecoveryCleanupDispositionKind::QuarantinedOrUnsupported,
             None,
             residue.observed_bytes(),
+            None,
         )
     }));
     dispositions.sort_by(|left, right| left.target().cmp(right.target()));
-    let identity = plan_identity(publication, checkpoint, &candidates, &dispositions);
+    let identity = identity::plan_identity(publication, checkpoint, &candidates, &dispositions);
     RecoveryCleanupPlan {
         identity,
         published_generation: publication.recovered_root().generation(),
@@ -104,6 +103,7 @@ fn admit_checkpoint_covered_wal(
             kind,
             Some(covered.lsn_range()),
             covered.byte_count(),
+            Some(covered.inspection().artifact_digest()),
         ));
     }
     admission
@@ -162,7 +162,13 @@ fn retained_dispositions(
     let mut dispositions = records
         .into_iter()
         .map(|(artifact, kind)| {
-            RecoveryCleanupDisposition::new(RecoveryCleanupTarget::Record(artifact), kind, None, 0)
+            RecoveryCleanupDisposition::new(
+                RecoveryCleanupTarget::Record(artifact),
+                kind,
+                None,
+                0,
+                None,
+            )
         })
         .collect::<Vec<_>>();
     dispositions.push(RecoveryCleanupDisposition::new(
@@ -172,6 +178,7 @@ fn retained_dispositions(
         selection
             .checkpoint()
             .map_or(0, |checkpoint| checkpoint.checkpoint().encoded_bytes()),
+        None,
     ));
     dispositions.extend(selection.wal_tail().segments().iter().map(|segment| {
         RecoveryCleanupDisposition::new(
@@ -179,6 +186,7 @@ fn retained_dispositions(
             RecoveryCleanupDispositionKind::Retained,
             Some(segment.inspection().lsn_range()),
             segment.inspection().byte_count(),
+            Some(segment.inspection().artifact_digest()),
         )
     }));
     dispositions
@@ -200,127 +208,10 @@ fn consumed_publication_candidates(
             RecoveryCleanupDispositionKind::SafelyRemoved,
             None,
             0,
+            None,
         )
     })
     .collect()
-}
-
-fn plan_identity(
-    publication: &RecoveryPublicationExpectation,
-    checkpoint: PhysicalCheckpointIdentity,
-    candidates: &[RecoveryCleanupEligibility],
-    dispositions: &[RecoveryCleanupDisposition],
-) -> [u8; 32] {
-    let mut digest = Sha256::new();
-    digest.update(b"worth.store.recovery.cleanup-plan.v1");
-    digest.update(publication.plan_identity());
-    digest.update(publication.recovered_root().generation().to_le_bytes());
-    digest.update(checkpoint.store_identity().bytes());
-    digest.update(checkpoint.sequence().get().to_le_bytes());
-    digest.update((candidates.len() as u64).to_le_bytes());
-    for candidate in candidates {
-        hash_wal(
-            &mut digest,
-            candidate.artifact(),
-            candidate.range(),
-            candidate.byte_count(),
-        );
-    }
-    digest.update((dispositions.len() as u64).to_le_bytes());
-    for disposition in dispositions {
-        hash_disposition(&mut digest, disposition);
-    }
-    digest.finalize().into()
-}
-
-fn hash_disposition(digest: &mut Sha256, disposition: &RecoveryCleanupDisposition) {
-    match disposition.target() {
-        RecoveryCleanupTarget::Record(artifact) => {
-            digest.update([0]);
-            hash_bytes(digest, artifact.file_name().as_bytes());
-        }
-        RecoveryCleanupTarget::Checkpoint(checkpoint) => {
-            digest.update([1]);
-            digest.update(checkpoint.store_identity().bytes());
-            digest.update(checkpoint.sequence().get().to_le_bytes());
-        }
-        RecoveryCleanupTarget::Wal(artifact) => {
-            digest.update([2]);
-            digest.update(artifact.segment().get().to_le_bytes());
-            digest.update(artifact.generation().get().to_le_bytes());
-        }
-        RecoveryCleanupTarget::Residue { name, kind } => {
-            digest.update([3, residue_kind(*kind)]);
-            hash_bytes(digest, name.as_bytes());
-        }
-    }
-    digest.update([disposition_kind(disposition.kind())]);
-    if let RecoveryCleanupDispositionKind::Deferred(reason) = disposition.kind() {
-        digest.update([deferral_reason(reason)]);
-    }
-    match disposition.wal_range() {
-        Some(range) => {
-            digest.update([1]);
-            digest.update(range.start().get().to_le_bytes());
-            digest.update(range.end_exclusive().get().to_le_bytes());
-        }
-        None => digest.update([0]),
-    }
-    digest.update(disposition.byte_count().to_le_bytes());
-}
-
-fn hash_bytes(digest: &mut Sha256, bytes: &[u8]) {
-    digest.update((bytes.len() as u64).to_le_bytes());
-    digest.update(bytes);
-}
-
-const fn disposition_kind(kind: RecoveryCleanupDispositionKind) -> u8 {
-    match kind {
-        RecoveryCleanupDispositionKind::Current => 0,
-        RecoveryCleanupDispositionKind::Retained => 1,
-        RecoveryCleanupDispositionKind::Eligible => 2,
-        RecoveryCleanupDispositionKind::Deferred(_) => 3,
-        RecoveryCleanupDispositionKind::QuarantinedOrUnsupported => 4,
-        RecoveryCleanupDispositionKind::SafelyRemoved => 5,
-    }
-}
-
-const fn deferral_reason(reason: RecoveryCleanupDeferralReason) -> u8 {
-    match reason {
-        RecoveryCleanupDeferralReason::CandidateLimit => 0,
-        RecoveryCleanupDeferralReason::ByteLimit => 1,
-        RecoveryCleanupDeferralReason::UnresolvedOperationFate => 2,
-        RecoveryCleanupDeferralReason::FreshnessUnavailable => 3,
-        RecoveryCleanupDeferralReason::PublishedGenerationChanged => 4,
-        RecoveryCleanupDeferralReason::EligibilityChanged => 5,
-        RecoveryCleanupDeferralReason::Cancelled => 6,
-        RecoveryCleanupDeferralReason::CancellationBindingMismatch => 7,
-        RecoveryCleanupDeferralReason::DeniedBeforeEffect => 8,
-        RecoveryCleanupDeferralReason::IndeterminateEffect => 9,
-    }
-}
-
-const fn residue_kind(kind: PhysicalRecoveryResidueKind) -> u8 {
-    match kind {
-        PhysicalRecoveryResidueKind::NonCanonicalWalArtifact => 0,
-        PhysicalRecoveryResidueKind::NonRegularWalEntry => 1,
-        PhysicalRecoveryResidueKind::TrailingEmptyWalSegment => 2,
-        PhysicalRecoveryResidueKind::InterruptedWalSegmentStart => 3,
-        PhysicalRecoveryResidueKind::UnreferencedCompactionProduct => 4,
-    }
-}
-
-fn hash_wal(
-    digest: &mut Sha256,
-    artifact: WalSegmentArtifactIdentity,
-    range: WalLsnRange,
-    bytes: u64,
-) {
-    digest.update(artifact.segment().get().to_le_bytes());
-    digest.update(artifact.generation().get().to_le_bytes());
-    digest.update(range.start().get().to_le_bytes());
-    digest.update(range.end_exclusive().get().to_le_bytes());
-    digest.update(bytes.to_le_bytes());
 }
 
 impl RecoveryCleanupPlan {

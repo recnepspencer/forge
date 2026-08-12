@@ -18,11 +18,12 @@ use worth_store_test_support::harness::physical_residency::{
     PhysicalResidencyStoreWorld,
 };
 
+#[path = "process/artifact_snapshot.rs"]
+mod artifact_snapshot;
 #[path = "process/assertions.rs"]
 mod assertions;
-use assertions::{
-    assert_expected_posture, assert_selected_base_is_retained, assert_selected_wal_is_retained,
-};
+use artifact_snapshot::ArtifactSnapshot;
+use assertions::assert_expected_posture;
 
 const CHILD_ROOT: &str = "WORTH_C8_PHASE7_CHILD_ROOT";
 const CLEANUP_BYTES: &str = "WORTH_C8_PHASE7_CLEANUP_BYTES";
@@ -90,6 +91,7 @@ fn phase_seven_writer_process() {
 #[ignore = "launched by the Phase 7 process-boundary parent"]
 fn phase_seven_cleanup_process() {
     let root = required_path(CHILD_ROOT);
+    let artifacts = ArtifactSnapshot::capture(&root);
     let expected = required_text(EXPECTED_WAL);
     let cleanup_bytes = required_text(CLEANUP_BYTES).parse::<u64>().unwrap();
     let cleanup_candidates = required_text(CLEANUP_CANDIDATES).parse::<u64>().unwrap();
@@ -135,8 +137,7 @@ fn phase_seven_cleanup_process() {
         .iter()
         .find(|disposition| disposition.target() == &RecoveryCleanupTarget::Wal(expected_identity))
         .expect("checkpoint-covered artifact has one disposition");
-    assert_selected_wal_is_retained(&root, &handoff, evidence);
-    assert_selected_base_is_retained(&root, &handoff, evidence);
+    artifacts.assert_reconciled(&root, evidence);
     assert_eq!(evidence.counters().eligible_after_cleanup, 0);
     assert_expected_posture(
         posture,

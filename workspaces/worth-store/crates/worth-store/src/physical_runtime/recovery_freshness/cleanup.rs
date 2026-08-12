@@ -1,5 +1,12 @@
 use sha2::{Digest, Sha256};
 use worth_store_physical_backend::AdmittedRecoveryFilesystemMedia;
+use worth_store_physical_backend::PhysicalRecoveryMediaGeneration;
+use worth_store_physical_format::{
+    store_namespace::StableStoreIdentity, PhysicalCheckpointIdentity, VerifiedCheckpointStream,
+};
+use worth_store_wal::{
+    LogSequenceNumber, VerifiedWalArtifact, WalLsnRange, WalSegmentArtifactIdentity,
+};
 
 use crate::physical_runtime::{
     CompletedPhysicalRecoveryFreshReopen, PhysicalRecoveryCleanupFreshnessReadDenial,
@@ -28,8 +35,38 @@ pub struct StoreRecoveryCleanupFreshnessAdmission {
 
 pub struct StoreRecoveryCleanupFreshnessFailure {
     denial: StoreRecoveryCleanupFreshnessDenial,
+    sample: Option<StoreRecoveryCleanupFreshnessSample>,
     read: Option<PhysicalRecoveryCleanupFreshnessReadDenial>,
     binding: Option<super::StoreRecoveryBindingSampleFailure>,
+}
+
+/// Store-issued, consuming eligibility for one exact cleanup candidate.
+///
+/// Callers cannot construct or widen this value from raw coordinates. It is
+/// issued only after performed fresh reopen, verified checkpoint coverage,
+/// exact verified WAL facts, Store/session bindings, and the cleanup plan are
+/// bound together.
+pub struct StoreRecoveryCleanupEligibility<'e> {
+    checkpoint: &'e VerifiedCheckpointStream,
+    wal: VerifiedWalArtifact,
+    removal: StoreRecoveryCleanupRemovalBasis,
+}
+
+pub(in crate::physical_runtime) struct StoreRecoveryCleanupRemovalBasis {
+    store: StableStoreIdentity,
+    media_generation: PhysicalRecoveryMediaGeneration,
+    session: [u8; 16],
+    plan: [u8; 32],
+    published_generation: u64,
+    sealed_publication_basis: [u8; 32],
+    checkpoint: PhysicalCheckpointIdentity,
+    compaction_generation: u64,
+    compaction_digest: [u8; 32],
+    retained_boundary: LogSequenceNumber,
+    artifact: WalSegmentArtifactIdentity,
+    lsn_range: WalLsnRange,
+    byte_count: u64,
+    artifact_digest: [u8; 32],
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,18 +76,72 @@ pub enum StoreRecoveryCleanupFreshnessDenial {
     InvalidCleanupEligibility,
 }
 
-pub(super) fn sample(
-    authority: &super::PhysicalRecoveryFreshnessAuthority,
+pub(super) fn admit<'e>(
     coordination: &PhysicalRecoveryCoordination,
     media: &AdmittedRecoveryFilesystemMedia,
     cleanup_plan_identity: [u8; 32],
     reopened: &CompletedPhysicalRecoveryFreshReopen,
-    checkpoint: &worth_store_physical_format::VerifiedCheckpointStream,
-    wal: worth_store_wal::VerifiedWalArtifact,
+    checkpoint: &'e VerifiedCheckpointStream,
+    wal: VerifiedWalArtifact,
+) -> Result<StoreRecoveryCleanupEligibility<'e>, StoreRecoveryCleanupFreshnessFailure> {
+    let occurrence = reopened.fresh_reopen_occurrence();
+    let root = reopened.root();
+    let source = checkpoint.source();
+    let checkpoint_root = source.root();
+    let retained_boundary = LogSequenceNumber::new(source.wal().covered_end_lsn_exclusive());
+    let compaction = checkpoint.compaction_cutover();
+    let store = source.identity().store_identity();
+    let inspection = wal.inspection();
+    let admissible = cleanup_plan_identity != [0; 32]
+        && store == media.store_identity()
+        && occurrence.session() == coordination.session_identity()
+        && checkpoint_root.generation() <= root.generation()
+        && checkpoint_root.tree_identity() == root.tree_identity()
+        && inspection.byte_count() != 0
+        && inspection.lsn_range().end_exclusive() <= retained_boundary;
+    admissible
+        .then_some(StoreRecoveryCleanupEligibility {
+            checkpoint,
+            wal,
+            removal: StoreRecoveryCleanupRemovalBasis {
+                store,
+                media_generation: media.media_generation(),
+                session: occurrence.session(),
+                plan: cleanup_plan_identity,
+                published_generation: occurrence.generation(),
+                sealed_publication_basis: occurrence.plan(),
+                checkpoint: source.identity(),
+                compaction_generation: compaction.product_generation(),
+                compaction_digest: checkpoint.footer().binding_records_digest(),
+                retained_boundary,
+                artifact: inspection.identity(),
+                lsn_range: inspection.lsn_range(),
+                byte_count: inspection.byte_count(),
+                artifact_digest: inspection.artifact_digest(),
+            },
+        })
+        .ok_or(StoreRecoveryCleanupFreshnessFailure {
+            denial: StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility,
+            sample: None,
+            read: None,
+            binding: None,
+        })
+}
+
+pub(super) fn sample(
+    authority: &super::PhysicalRecoveryFreshnessAuthority,
+    coordination: &PhysicalRecoveryCoordination,
+    media: &AdmittedRecoveryFilesystemMedia,
+    eligibility: StoreRecoveryCleanupEligibility<'_>,
 ) -> Result<StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessFailure> {
-    if !authority.matches_media_generation(media.media_generation()) {
+    if !authority.matches_media_generation(media.media_generation())
+        || eligibility.removal.store != media.store_identity()
+        || eligibility.removal.media_generation != media.media_generation()
+        || eligibility.removal.session != coordination.session_identity()
+    {
         return Err(StoreRecoveryCleanupFreshnessFailure {
             denial: StoreRecoveryCleanupFreshnessDenial::FreshnessMediaMismatch,
+            sample: None,
             read: None,
             binding: None,
         });
@@ -60,6 +151,7 @@ pub(super) fn sample(
         PhysicalRecoveryCleanupFreshnessReadOutcome::Denied(denial) => {
             return Err(StoreRecoveryCleanupFreshnessFailure {
                 denial: StoreRecoveryCleanupFreshnessDenial::CurrentSelectorRead,
+                sample: None,
                 read: Some(denial),
                 binding: None,
             })
@@ -78,22 +170,28 @@ pub(super) fn sample(
     let sample = StoreRecoveryCleanupFreshnessSample {
         store: media.store_identity(),
         observed_published_generation,
-        cleanup_plan_identity,
-        sealed_publication_basis: reopened.fresh_reopen_occurrence().plan(),
+        cleanup_plan_identity: eligibility.removal.plan,
+        sealed_publication_basis: eligibility.removal.sealed_publication_basis,
         policy_identity: cleanup_policy_identity(media.store_identity()),
         selector_read_operation: completed.physical().physical().operation(),
         work: completed.work(),
         signal: completed.signal(),
     };
-    let command = if observed_published_generation == reopened.root().generation() {
+    #[cfg(feature = "certification-test-authority")]
+    if coordination.take_certification_cleanup_eligibility_failure() {
+        return Err(StoreRecoveryCleanupFreshnessFailure {
+            denial: StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility,
+            sample: Some(sample),
+            read: None,
+            binding: None,
+        });
+    }
+    let command = if observed_published_generation == eligibility.removal.published_generation {
         Some(admit_cleanup_command(
             authority,
-            coordination,
             media,
-            cleanup_plan_identity,
-            reopened,
-            checkpoint,
-            wal,
+            eligibility,
+            &sample,
         )?)
     } else {
         None
@@ -103,50 +201,40 @@ pub(super) fn sample(
 
 fn admit_cleanup_command(
     authority: &super::PhysicalRecoveryFreshnessAuthority,
-    coordination: &PhysicalRecoveryCoordination,
     media: &AdmittedRecoveryFilesystemMedia,
-    cleanup_plan_identity: [u8; 32],
-    reopened: &CompletedPhysicalRecoveryFreshReopen,
-    checkpoint: &worth_store_physical_format::VerifiedCheckpointStream,
-    wal: worth_store_wal::VerifiedWalArtifact,
+    eligibility: StoreRecoveryCleanupEligibility<'_>,
+    completed_sample: &StoreRecoveryCleanupFreshnessSample,
 ) -> Result<PhysicalRecoveryCleanupRemovalCommand, StoreRecoveryCleanupFreshnessFailure> {
-    let maximum_operations = checkpoint
+    let maximum_operations = eligibility
+        .checkpoint
         .footer()
         .binding_record_count()
-        .saturating_add(wal.frames().len() as u64);
+        .saturating_add(eligibility.wal.frames().len() as u64);
     let binding = super::binding::sample_binding(
         authority,
         media,
-        checkpoint,
-        wal.frames(),
+        eligibility.checkpoint,
+        eligibility.wal.frames(),
         maximum_operations,
-        wal.inspection().byte_count(),
+        eligibility.wal.inspection().byte_count(),
     )
     .map_err(|binding| StoreRecoveryCleanupFreshnessFailure {
         denial: StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility,
+        sample: Some(completed_sample.clone()),
         read: None,
         binding: Some(binding),
     })?;
     if !wal_members_are_terminal(&binding) {
         return Err(StoreRecoveryCleanupFreshnessFailure {
             denial: StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility,
+            sample: Some(completed_sample.clone()),
             read: None,
             binding: None,
         });
     }
-    PhysicalRecoveryCleanupRemovalCommand::admit(
-        media,
-        coordination,
-        cleanup_plan_identity,
-        reopened,
-        checkpoint,
-        wal.inspection(),
-    )
-    .ok_or(StoreRecoveryCleanupFreshnessFailure {
-        denial: StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility,
-        read: None,
-        binding: None,
-    })
+    Ok(PhysicalRecoveryCleanupRemovalCommand::from_freshness(
+        eligibility.removal,
+    ))
 }
 
 fn wal_members_are_terminal(binding: &super::StoreRecoveryBindingFreshnessSample) -> bool {
@@ -227,7 +315,54 @@ impl StoreRecoveryCleanupFreshnessFailure {
     pub const fn read(&self) -> Option<&PhysicalRecoveryCleanupFreshnessReadDenial> {
         self.read.as_ref()
     }
+    pub const fn sample(&self) -> Option<&StoreRecoveryCleanupFreshnessSample> {
+        self.sample.as_ref()
+    }
     pub const fn binding(&self) -> Option<&super::StoreRecoveryBindingSampleFailure> {
         self.binding.as_ref()
+    }
+}
+
+impl StoreRecoveryCleanupRemovalBasis {
+    pub(in crate::physical_runtime) const fn store(&self) -> StableStoreIdentity {
+        self.store
+    }
+    pub(in crate::physical_runtime) const fn media_generation(
+        &self,
+    ) -> PhysicalRecoveryMediaGeneration {
+        self.media_generation
+    }
+    pub(in crate::physical_runtime) const fn session(&self) -> [u8; 16] {
+        self.session
+    }
+    pub(in crate::physical_runtime) const fn plan(&self) -> [u8; 32] {
+        self.plan
+    }
+    pub(in crate::physical_runtime) const fn published_generation(&self) -> u64 {
+        self.published_generation
+    }
+    pub(in crate::physical_runtime) const fn checkpoint(&self) -> PhysicalCheckpointIdentity {
+        self.checkpoint
+    }
+    pub(in crate::physical_runtime) const fn compaction_generation(&self) -> u64 {
+        self.compaction_generation
+    }
+    pub(in crate::physical_runtime) const fn compaction_digest(&self) -> [u8; 32] {
+        self.compaction_digest
+    }
+    pub(in crate::physical_runtime) const fn retained_boundary(&self) -> LogSequenceNumber {
+        self.retained_boundary
+    }
+    pub(in crate::physical_runtime) const fn artifact(&self) -> WalSegmentArtifactIdentity {
+        self.artifact
+    }
+    pub(in crate::physical_runtime) const fn lsn_range(&self) -> WalLsnRange {
+        self.lsn_range
+    }
+    pub(in crate::physical_runtime) const fn byte_count(&self) -> u64 {
+        self.byte_count
+    }
+    pub(in crate::physical_runtime) const fn artifact_digest(&self) -> [u8; 32] {
+        self.artifact_digest
     }
 }

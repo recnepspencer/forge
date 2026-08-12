@@ -102,6 +102,10 @@ fn ledger_and_history_mutants_fail_even_with_coordinated_rebinding() {
         ledger.replacen("A fully materialized no-op recovery", "A recovery", 1),
         ledger.replacen("| DEFECTS | C8-P7-F09", "| CLEAN | C8-P7-F09", 1),
         promoted,
+        format!(
+            "{ledger}\n| external/reviewer | gpt-5.6-sol high | injected | CLEAN | none | none |"
+        ),
+        format!("{ledger}\n| malformed-audit-row | too-few-cells |"),
     ] {
         assert!(
             std::panic::catch_unwind(|| validate_shape(&root, &mutant, &closure, CONTRACT))

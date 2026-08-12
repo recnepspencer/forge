@@ -9,6 +9,8 @@ use super::super::documents::{
 };
 use super::super::repository_root;
 
+mod api_sources;
+
 const ROADMAP: &str = "_docs/worth-store/physical-foundation-reconstruction-roadmap.md";
 const GATE_ROOT: &str =
     "workspaces/worth-store/tools/store-test-runner/src/fresh_process_recovery_boundary_gate";
@@ -110,40 +112,7 @@ fn add_persisted_sources(root: &Path, paths: &mut BTreeSet<String>) -> Result<()
 }
 
 fn add_api_sources(root: &Path, paths: &mut BTreeSet<String>) -> Result<(), String> {
-    add(paths, API_INVENTORY);
-    add(
-        paths,
-        "workspaces/worth-store/tools/store-test-runner/Cargo.toml",
-    );
-    for source in [
-        "facade_inventory.rs",
-        "facade_inventory/bounded_decode_surface_contract.rs",
-        "facade_inventory/cross_file_surface_contract.rs",
-        "facade_inventory/delivered_api.rs",
-        "facade_inventory/delivered_api/cfg_reachability.rs",
-        "facade_inventory/delivered_api/exactness.rs",
-        "facade_inventory/delivered_api/export_resolution.rs",
-        "facade_inventory/delivered_api/external_resolution.rs",
-        "facade_inventory/delivered_api/facade_exports.rs",
-        "facade_inventory/delivered_api/namespace_exports.rs",
-        "facade_inventory/delivered_api/pre_c8_surface.rs",
-        "facade_inventory/delivered_api/source_layout.rs",
-        "facade_inventory/delivered_api/tests.rs",
-        "facade_inventory/delivered_api/tests/namespace_tests.rs",
-        "facade_inventory/destination_surface_contract.rs",
-        "facade_inventory/disposition_contract.rs",
-        "facade_inventory/reachable_api.rs",
-        "facade_inventory/runtime_phase_three_surface_contract.rs",
-        "facade_inventory/runtime_phase_four_surface_contract.rs",
-        "facade_inventory/runtime_phase_four_plan_surface_contract.rs",
-        "facade_inventory/runtime_phase_four_projection_surface_contract.rs",
-        "facade_inventory/runtime_phase_five_surface_contract.rs",
-        "facade_inventory/runtime_phase_six_surface_contract.rs",
-        "facade_inventory/supporting_delivery_surface_contract.rs",
-    ] {
-        add(paths, &format!("{GATE_ROOT}/{source}"));
-    }
-    collect_api_sources(root, paths)
+    api_sources::add(root, paths, GATE_ROOT, API_INVENTORY)
 }
 
 fn add_authority_sources(paths: &mut BTreeSet<String>) {
@@ -325,37 +294,6 @@ fn collect_persisted_producers(root: &Path, paths: &mut BTreeSet<String>) -> Res
         {
             for source in source_set.split(';').filter(|source| *source != "none") {
                 add(paths, source);
-            }
-        }
-    }
-    Ok(())
-}
-
-fn collect_api_sources(root: &Path, paths: &mut BTreeSet<String>) -> Result<(), String> {
-    let relative_root = "workspaces/worth-store/crates/worth-store-recovery-physics/src";
-    collect_rust_sources(root, relative_root, paths)
-}
-
-fn collect_rust_sources(
-    root: &Path,
-    relative_root: &str,
-    paths: &mut BTreeSet<String>,
-) -> Result<(), String> {
-    let mut pending = vec![root.join(relative_root)];
-    while let Some(directory) = pending.pop() {
-        for entry in std::fs::read_dir(&directory)
-            .map_err(|error| format!("cannot enumerate {}: {error}", directory.display()))?
-        {
-            let path = entry
-                .map_err(|error| format!("cannot enumerate {}: {error}", directory.display()))?
-                .path();
-            if path.is_dir() {
-                pending.push(path);
-            } else if path.extension().is_some_and(|extension| extension == "rs") {
-                let relative = path
-                    .strip_prefix(root)
-                    .map_err(|error| format!("API source escaped repository root: {error}"))?;
-                add(paths, &relative.to_string_lossy());
             }
         }
     }

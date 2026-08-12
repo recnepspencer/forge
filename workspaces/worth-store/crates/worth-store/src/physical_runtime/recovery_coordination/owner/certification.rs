@@ -44,6 +44,11 @@ impl PhysicalRecoveryCoordination {
         self.certification_faults.shift_cleanup_generation();
     }
 
+    pub fn certification_fail_cleanup_eligibility_after_read(&self) {
+        self.certification_faults
+            .fail_cleanup_eligibility_after_read();
+    }
+
     pub fn certification_fail_cleanup_freshness_signal_settlement(&self) {
         self.certification_faults
             .fail_cleanup_freshness_signal_settlement();
@@ -63,6 +68,12 @@ impl PhysicalRecoveryCoordination {
 
     pub(in crate::physical_runtime) fn take_certification_cleanup_generation_shift(&self) -> bool {
         self.certification_faults.take_cleanup_generation_shift()
+    }
+
+    pub(in crate::physical_runtime) fn take_certification_cleanup_eligibility_failure(
+        &self,
+    ) -> bool {
+        self.certification_faults.take_cleanup_eligibility_failure()
     }
 
     pub(in crate::physical_runtime::recovery_coordination) fn take_certification_signal_failure(

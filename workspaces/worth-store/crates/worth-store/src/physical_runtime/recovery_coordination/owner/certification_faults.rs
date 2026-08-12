@@ -12,6 +12,7 @@ pub(super) struct RecoveryCoordinationCertificationFaults {
     publication_scheduler_failure_stage: AtomicU8,
     reopen_scheduler_failure_stage: AtomicU8,
     cleanup_generation_shift: AtomicU8,
+    cleanup_eligibility_failure: AtomicU8,
     cleanup_signal_failure_stage: AtomicU8,
     cleanup_scheduler_failure_stage: AtomicU8,
     cleanup_background_deferral: AtomicU8,
@@ -26,6 +27,7 @@ impl RecoveryCoordinationCertificationFaults {
             publication_scheduler_failure_stage: AtomicU8::new(0),
             reopen_scheduler_failure_stage: AtomicU8::new(0),
             cleanup_generation_shift: AtomicU8::new(0),
+            cleanup_eligibility_failure: AtomicU8::new(0),
             cleanup_signal_failure_stage: AtomicU8::new(0),
             cleanup_scheduler_failure_stage: AtomicU8::new(0),
             cleanup_background_deferral: AtomicU8::new(0),
@@ -132,8 +134,16 @@ impl RecoveryCoordinationCertificationFaults {
         self.cleanup_generation_shift.store(1, Ordering::Release);
     }
 
+    pub(super) fn fail_cleanup_eligibility_after_read(&self) {
+        self.cleanup_eligibility_failure.store(1, Ordering::Release);
+    }
+
     pub(super) fn take_cleanup_generation_shift(&self) -> bool {
         take(&self.cleanup_generation_shift, 1)
+    }
+
+    pub(super) fn take_cleanup_eligibility_failure(&self) -> bool {
+        take(&self.cleanup_eligibility_failure, 1)
     }
 
     pub(super) fn take_cleanup_scheduler_failure(

@@ -86,6 +86,12 @@ impl RecoveryCoordination {
     }
 
     #[cfg(feature = "certification-test-authority")]
+    pub(crate) fn fail_cleanup_eligibility_after_read_for_certification(&self) {
+        self.owner
+            .certification_fail_cleanup_eligibility_after_read();
+    }
+
+    #[cfg(feature = "certification-test-authority")]
     pub(crate) fn fail_cleanup_freshness_signal_settlement_for_certification(&self) {
         self.owner
             .certification_fail_cleanup_freshness_signal_settlement();

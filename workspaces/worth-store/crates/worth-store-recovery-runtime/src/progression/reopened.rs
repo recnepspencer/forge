@@ -119,6 +119,13 @@ impl ReopenedPhysicalRecovery {
     }
 
     #[cfg(feature = "certification-test-authority")]
+    pub fn certification_fail_cleanup_eligibility_after_read(&self) {
+        self.state
+            .coordination
+            .fail_cleanup_eligibility_after_read_for_certification();
+    }
+
+    #[cfg(feature = "certification-test-authority")]
     pub fn certification_fail_cleanup_freshness_signal_settlement(&self) {
         self.state
             .coordination

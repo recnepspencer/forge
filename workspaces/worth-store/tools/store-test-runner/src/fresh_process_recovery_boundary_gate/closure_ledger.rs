@@ -88,6 +88,18 @@ fn per_guarantee_source_closures_are_causal() {
         .iter()
         .any(|path| path
             .ends_with("worth-store-recovery-physics/src/publication/recovery_replay.rs")));
+    for phase_seven_contract in [
+        "runtime_phase_seven_surface_contract.rs",
+        "runtime_phase_seven_surface_contract/backend.rs",
+        "runtime_phase_seven_surface_contract/runtime.rs",
+        "runtime_phase_seven_surface_contract/store.rs",
+        "runtime_phase_seven_surface_contract/wal.rs",
+    ] {
+        assert!(
+            api.iter().any(|path| path.ends_with(phase_seven_contract)),
+            "Phase 7 API contract source omitted: {phase_seven_contract}"
+        );
+    }
 }
 
 #[test]

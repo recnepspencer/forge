@@ -31,13 +31,14 @@ impl<'a> RecoveryCleanupCommandBasis<'a> {
         cleanup_plan_identity: [u8; 32],
         candidate: RecoveryCleanupEligibility,
     ) -> Result<StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessFailure> {
-        PhysicalRecoveryFreshnessPort::sample_cleanup(
+        let eligibility = PhysicalRecoveryFreshnessPort::admit_cleanup_eligibility(
             coordination,
             media,
             cleanup_plan_identity,
             self.reopened,
             self.checkpoint,
             candidate.into_verified_artifact(),
-        )
+        )?;
+        PhysicalRecoveryFreshnessPort::sample_cleanup(coordination, media, eligibility)
     }
 }

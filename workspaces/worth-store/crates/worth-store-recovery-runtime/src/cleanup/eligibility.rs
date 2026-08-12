@@ -27,6 +27,10 @@ impl RecoveryCleanupEligibility {
         self.covered.byte_count()
     }
 
+    pub const fn artifact_digest(&self) -> [u8; 32] {
+        self.covered.inspection().artifact_digest()
+    }
+
     pub(super) fn into_verified_artifact(
         self,
     ) -> worth_store_recovery_physics::VerifiedWalArtifact {

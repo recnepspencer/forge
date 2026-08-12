@@ -124,14 +124,10 @@ fn validate_findings(ledger: &str, contract: LedgerContract<'_>) {
 }
 
 fn validate_audit(ledger: &str, guarantee_rows: &[String], expected_sha256: &str) {
-    let audit = rows_between(
-        ledger,
-        "## Independent audit history",
-        "__end__",
-        "| /root/",
-    );
+    let audit = audit_rows(ledger);
     assert!(!audit.is_empty(), "retain complete Phase 7 audit history");
     assert!(audit.iter().all(|row| cells(row).len() == 6));
+    assert!(audit.iter().all(|row| cells(row)[0].starts_with("/root/")));
     assert!(audit.iter().all(|row| cells(row)[1] == "gpt-5.6-sol high"));
     assert_eq!(
         format!("{:x}", Sha256::digest(audit.join("\n").as_bytes())),
@@ -144,6 +140,24 @@ fn validate_audit(ledger: &str, guarantee_rows: &[String], expected_sha256: &str
     } else {
         assert!(matches!(last[3].as_str(), "PENDING" | "DEFECTS"));
     }
+}
+
+fn audit_rows(ledger: &str) -> Vec<String> {
+    let body = ledger
+        .split_once("## Independent audit history")
+        .expect("audit heading")
+        .1;
+    let mut lines = body.lines().filter(|line| !line.trim().is_empty());
+    let header = lines
+        .find(|line| line.starts_with("| Reviewer |"))
+        .expect("audit header");
+    assert_eq!(cells(header).len(), 6);
+    let divider = lines.next().expect("audit divider");
+    assert!(divider.starts_with("| --- |"));
+    lines
+        .filter(|line| line.starts_with('|'))
+        .map(str::to_owned)
+        .collect()
 }
 
 fn parse_closures(

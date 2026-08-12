@@ -44,6 +44,7 @@ pub struct RecoveryCleanupDisposition {
     kind: RecoveryCleanupDispositionKind,
     wal_range: Option<WalLsnRange>,
     byte_count: u64,
+    wal_digest: Option<[u8; 32]>,
 }
 
 impl RecoveryCleanupDisposition {
@@ -52,12 +53,14 @@ impl RecoveryCleanupDisposition {
         kind: RecoveryCleanupDispositionKind,
         wal_range: Option<WalLsnRange>,
         byte_count: u64,
+        wal_digest: Option<[u8; 32]>,
     ) -> Self {
         Self {
             target,
             kind,
             wal_range,
             byte_count,
+            wal_digest,
         }
     }
 
@@ -75,6 +78,10 @@ impl RecoveryCleanupDisposition {
 
     pub const fn byte_count(&self) -> u64 {
         self.byte_count
+    }
+
+    pub const fn wal_digest(&self) -> Option<[u8; 32]> {
+        self.wal_digest
     }
 
     pub(crate) fn transition_eligible(&mut self, kind: RecoveryCleanupDispositionKind) -> bool {

@@ -95,7 +95,7 @@ use worth_store::physical_runtime::{
     PhysicalRecoveryCleanupAdmissionDenialKind, PhysicalRecoveryCleanupCommandStage,
     PhysicalRecoveryCleanupFreshnessReadDenialKind, PhysicalRecoveryCleanupRemovalDenialKind,
     PhysicalRecoveryCleanupRemovalIndeterminate, PhysicalSignalSettlementOutcome,
-    PhysicalWorkSchedulerPosture,
+    PhysicalWorkSchedulerPosture, StoreRecoveryCleanupFreshnessDenial,
 };
 use worth_store_recovery_runtime::{
     PhysicalRecoveryOutcome, RecoveryCleanupDeferralEvidence, RecoveryCleanupDispositionKind,
@@ -156,6 +156,40 @@ fn owner_sampled_generation_change_rejects_the_stale_cleanup_plan() {
             ..
         }] if *observed == expected + 1
     ));
+}
+
+#[test]
+fn post_read_eligibility_denial_retains_the_completed_freshness_stage() {
+    let world = cleanup_world("cleanup-post-read-eligibility");
+    let candidate = world.oldest_wal();
+    let reopened = reopen_with_schedule(&world.root, empty_fault_schedule());
+    reopened.certification_fail_cleanup_eligibility_after_read();
+    let PhysicalRecoveryOutcome::Recovered(handoff) = reopened.finish() else {
+        panic!("post-read eligibility debt cannot invalidate recovery")
+    };
+    let RecoveryCleanupPosture::Deferred(evidence) = handoff.cleanup_posture() else {
+        panic!("post-read eligibility denial defers cleanup")
+    };
+    assert!(candidate.exists());
+    assert!(evidence.performed_removals().is_empty());
+    assert_eq!(evidence.counters().actions_attempted, 0);
+    assert_eq!(evidence.counters().freshness_evaluations, 1);
+    assert_eq!(evidence.counters().freshness_reads_completed, 1);
+    assert_eq!(
+        evidence.counters().freshness_bytes_read,
+        worth_store_physical_format::ROOT_SELECTOR_BYTES as u64
+    );
+    assert_eq!(evidence.counters().freshness_scheduler_submitted, 1);
+    assert_eq!(evidence.counters().freshness_scheduler_settled, 1);
+    let [RecoveryCleanupDeferralEvidence::Freshness { failure, .. }] = evidence.deferrals() else {
+        panic!("one exact post-read freshness failure")
+    };
+    assert_eq!(
+        failure.denial(),
+        StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility
+    );
+    assert!(failure.sample().is_some());
+    assert!(failure.read().is_none());
 }
 
 #[test]
