@@ -1,9 +1,7 @@
 use crate::LayoutCorruptionClassification;
 
 use super::super::quarantine::LayoutQuarantineWitness;
-use super::super::readmission::{
-    ImportReadmissionRequirement, QuarantineReadmissionRequirement,
-};
+use super::super::readmission::{ImportReadmissionRequirement, QuarantineReadmissionRequirement};
 use super::cases::{CorruptionClassificationCaseId, CORRUPTION_CLASSIFICATION_CASES};
 use super::class::LayoutCorruptionClass;
 

@@ -82,7 +82,6 @@ mod production_driver_contracts;
 #[path = "../scenarios/recovery/production_driver_yieldpoint_matrix/production_driver_yieldpoint_matrix.rs"]
 mod production_driver_yieldpoint_matrix;
 
-
 #[path = "../scenarios/recovery/recovery_source_precedence/recovery_source_precedence.rs"]
 mod recovery_source_precedence;
 

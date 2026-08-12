@@ -36,8 +36,20 @@ impl ArtifactTreeFailure {
     }
 
     #[cfg(feature = "recovery-runtime-owner")]
-    pub(crate) const fn recovery_denial() -> Self {
+    pub const fn recovery_denial() -> Self {
         Self::structural(ArtifactTreeFailureKind::DeniedBeforeEffect)
+    }
+
+    /// Describes an I/O failure observed by the Store-owned recovery effect
+    /// boundary. This value carries no filesystem capability or effect
+    /// authority.
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub const fn recovery_io(kind: ArtifactTreeFailureKind, io_kind: std::io::ErrorKind) -> Self {
+        Self {
+            kind,
+            io_kind: Some(io_kind),
+            access_limit: None,
+        }
     }
 
     pub(in crate::filesystem_media) fn io(

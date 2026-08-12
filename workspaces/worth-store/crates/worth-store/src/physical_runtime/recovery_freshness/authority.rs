@@ -12,16 +12,21 @@ pub struct PhysicalRecoveryFreshnessAuthority {
     _witness: AuthorityWitness<PhysicalRecoveryFreshnessMarker>,
     _media_generation: PhysicalRecoveryMediaGeneration,
     _sample_identity: [u8; 16],
+    cleanup_media: Option<crate::physical_runtime::media_ownership::RecoveryCleanupMediaOwner>,
 }
 
 impl PhysicalRecoveryFreshnessAuthority {
-    pub(super) fn issue(media_generation: PhysicalRecoveryMediaGeneration) -> Option<Self> {
+    pub(super) fn issue(
+        media_generation: PhysicalRecoveryMediaGeneration,
+        cleanup_media: crate::physical_runtime::media_ownership::RecoveryCleanupMediaOwner,
+    ) -> Option<Self> {
         let mut sample_identity = [0; 16];
         getrandom::fill(&mut sample_identity).ok()?;
         (sample_identity != [0; 16]).then_some(Self {
             _witness: PhysicalRecoveryFreshnessMarker::witness(),
             _media_generation: media_generation,
             _sample_identity: sample_identity,
+            cleanup_media: Some(cleanup_media),
         })
     }
 
@@ -34,5 +39,11 @@ impl PhysicalRecoveryFreshnessAuthority {
 
     pub(super) const fn sample_identity(&self) -> [u8; 16] {
         self._sample_identity
+    }
+
+    pub(super) fn take_cleanup_media(
+        &mut self,
+    ) -> Option<crate::physical_runtime::media_ownership::RecoveryCleanupMediaOwner> {
+        self.cleanup_media.take()
     }
 }

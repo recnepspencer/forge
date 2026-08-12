@@ -180,6 +180,29 @@ pub enum MediaFaultScheduleDenial {
 }
 
 impl MediaFaultSchedule {
+    #[cfg(feature = "certification-test-authority")]
+    pub fn unbound_directive_for_certification(
+        &self,
+        role: MediaOperationRole,
+        ordinal: u64,
+    ) -> Option<MediaFaultDirective> {
+        self.rules
+            .iter()
+            .find(|rule| {
+                rule.role == role
+                    && rule.ordinal == ordinal
+                    && rule.owner.is_none()
+                    && rule.store.is_none()
+                    && rule.operation.is_none()
+                    && rule.identified_operation.is_none()
+                    && rule.identified_operation_ordinal.is_none()
+                    && rule.runtime_incarnation.is_none()
+                    && !rule.any_ordinal_after_activation
+                    && rule.activation.is_none()
+            })
+            .map(|rule| rule.directive.clone())
+    }
+
     #[cfg(any(test, feature = "certification-test-authority"))]
     pub(crate) fn for_certification(
         rules: Vec<MediaFaultRule>,

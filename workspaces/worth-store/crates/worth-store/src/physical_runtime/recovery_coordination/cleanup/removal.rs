@@ -8,6 +8,7 @@ use crate::physical_runtime::PhysicalWorkSchedulerPosture;
 
 use super::super::{PerformedRecoveryPhysicalEffect, RecoveryCleanupRemovalAction};
 
+mod binding;
 mod execution;
 pub(super) use execution::execute;
 
@@ -32,12 +33,12 @@ pub(in crate::physical_runtime) struct PhysicalRecoveryCleanupRemovalCommand<'e>
 
 pub struct CompletedPhysicalRecoveryCleanupRemoval {
     performed: PerformedRecoveryPhysicalEffect<RecoveryCleanupRemovalAction>,
-    revalidation: worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress,
+    revalidation: crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress,
 }
 
 pub struct PhysicalRecoveryCleanupRemovalDenial {
     kind: PhysicalRecoveryCleanupRemovalDenialKind,
-    physical: Option<worth_store_physical_backend::DeniedScheduledRecoveryCleanupRemoval>,
+    physical: Option<crate::physical_runtime::DeniedRecoveryCleanupPhysicalRemoval>,
     work: Option<crate::physical_runtime::PhysicalWorkIdentity>,
     scheduler: Option<PhysicalWorkSchedulerPosture>,
     signal: Option<crate::physical_runtime::PhysicalSignalSettlementOutcome>,
@@ -47,24 +48,24 @@ pub enum PhysicalRecoveryCleanupRemovalDenialKind {
     InvalidCommand,
     Admission(super::admission::PhysicalRecoveryCleanupAdmissionDenial),
     Execution(crate::physical_runtime::PhysicalWorkPreEffectDenial),
-    Media(worth_store_physical_backend::RecoveryCleanupRemovalDenialCause),
+    Media(crate::physical_runtime::RecoveryCleanupRemovalDenialCause),
 }
 
 pub enum PhysicalRecoveryCleanupRemovalIndeterminate {
     Media {
-        physical: worth_store_physical_backend::IndeterminateScheduledRecoveryCleanupRemoval,
+        physical: crate::physical_runtime::IndeterminateRecoveryCleanupPhysicalRemoval,
         scheduler: PhysicalWorkSchedulerPosture,
         signal: crate::physical_runtime::PhysicalSignalSettlementOutcome,
     },
     Scheduler {
-        physical: worth_store_physical_backend::CompletedArtifactTreePublicationEffect,
-        revalidation: worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress,
+        physical: crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval,
+        revalidation: crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress,
         posture: PhysicalWorkSchedulerPosture,
         signal: crate::physical_runtime::PhysicalSignalSettlementOutcome,
     },
     Signal {
-        physical: worth_store_physical_backend::CompletedArtifactTreePublicationEffect,
-        revalidation: worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress,
+        physical: crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval,
+        revalidation: crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress,
         posture: PhysicalWorkSchedulerPosture,
         outcome: crate::physical_runtime::PhysicalSignalSettlementOutcome,
     },
@@ -116,7 +117,7 @@ impl CompletedPhysicalRecoveryCleanupRemoval {
     }
     pub const fn revalidation(
         &self,
-    ) -> worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress {
+    ) -> crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress {
         self.revalidation
     }
 }
@@ -127,7 +128,7 @@ impl PhysicalRecoveryCleanupRemovalDenial {
     }
     pub const fn physical(
         &self,
-    ) -> Option<&worth_store_physical_backend::DeniedScheduledRecoveryCleanupRemoval> {
+    ) -> Option<&crate::physical_runtime::DeniedRecoveryCleanupPhysicalRemoval> {
         self.physical.as_ref()
     }
     pub const fn work(&self) -> Option<crate::physical_runtime::PhysicalWorkIdentity> {
@@ -144,7 +145,7 @@ impl PhysicalRecoveryCleanupRemovalDenial {
 impl PhysicalRecoveryCleanupRemovalIndeterminate {
     pub const fn revalidation(
         &self,
-    ) -> worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress {
+    ) -> crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress {
         match self {
             Self::Media { physical, .. } => physical.revalidation(),
             Self::Scheduler { revalidation, .. } | Self::Signal { revalidation, .. } => {

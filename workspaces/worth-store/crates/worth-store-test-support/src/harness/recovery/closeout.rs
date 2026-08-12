@@ -42,7 +42,11 @@ pub fn recovery_completion_with_operation_digest(operation_digest: &str) -> Reco
 
 fn with_bounded_recovery_plan_and_trace<R>(
     operation_digest: &str,
-    run: impl FnOnce(BoundedRecoveryPlan<'_>, RecoverySourceDecisionTrace, worth_store_recovery_physics::RedoApplicationCursor) -> R,
+    run: impl FnOnce(
+        BoundedRecoveryPlan<'_>,
+        RecoverySourceDecisionTrace,
+        worth_store_recovery_physics::RedoApplicationCursor,
+    ) -> R,
 ) -> R {
     let eligibility = redo_eligibility_for_page(19, 20, 1);
     let application_cursor = cursor(&eligibility, 19, "checkpoint-page");

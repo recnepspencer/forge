@@ -1,8 +1,7 @@
+use std::io::Read;
+
 use sha2::{Digest, Sha256};
-
-use crate::filesystem_media::{ArtifactTreeFailure, ArtifactTreeFile};
-
-use super::super::AdmittedRecoveryFilesystemMedia;
+use worth_store_physical_backend::{ArtifactTreeFailure, ArtifactTreeFailureKind};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct RecoveryCleanupArtifactRevalidationProgress {
@@ -30,30 +29,30 @@ pub(super) struct RecoveryCleanupArtifactRevalidationFailure {
 }
 
 pub(super) fn verify(
-    media: &AdmittedRecoveryFilesystemMedia,
-    artifact: &ArtifactTreeFile,
+    directory: &cap_std::fs::Dir,
+    file_name: &str,
     expected_bytes: u64,
     expected_digest: [u8; 32],
 ) -> Result<RecoveryCleanupArtifactRevalidationProgress, RecoveryCleanupArtifactRevalidationFailure>
 {
-    let attempted = RecoveryCleanupArtifactRevalidationProgress {
-        reads_attempted: 1,
-        reads_completed: 0,
-        bytes_read: 0,
-    };
-    let observed = media
-        .parts
-        .artifact_tree()
-        .read_bounded(artifact, expected_bytes)
-        .map_err(|failure| RecoveryCleanupArtifactRevalidationFailure {
-            denial: RecoveryCleanupArtifactRevalidationDenial::Read(failure),
+    let attempted = RecoveryCleanupArtifactRevalidationProgress::attempted();
+    let file = directory
+        .open(file_name)
+        .map_err(|error| RecoveryCleanupArtifactRevalidationFailure::read(attempted, &error))?;
+    let capacity = usize::try_from(expected_bytes)
+        .ok()
+        .and_then(|bytes| bytes.checked_add(1))
+        .ok_or_else(|| RecoveryCleanupArtifactRevalidationFailure {
+            denial: RecoveryCleanupArtifactRevalidationDenial::Read(
+                ArtifactTreeFailure::recovery_denial(),
+            ),
             progress: attempted,
         })?;
-    let progress = RecoveryCleanupArtifactRevalidationProgress {
-        reads_attempted: 1,
-        reads_completed: 1,
-        bytes_read: observed.len() as u64,
-    };
+    let mut observed = Vec::with_capacity(capacity.min(64 * 1024));
+    file.take(expected_bytes.saturating_add(1))
+        .read_to_end(&mut observed)
+        .map_err(|error| RecoveryCleanupArtifactRevalidationFailure::read(attempted, &error))?;
+    let progress = RecoveryCleanupArtifactRevalidationProgress::completed(observed.len() as u64);
     if observed.len() as u64 != expected_bytes {
         return Err(RecoveryCleanupArtifactRevalidationFailure {
             denial: RecoveryCleanupArtifactRevalidationDenial::LengthMismatch {
@@ -77,20 +76,43 @@ pub(super) fn verify(
 }
 
 impl RecoveryCleanupArtifactRevalidationProgress {
+    const fn attempted() -> Self {
+        Self {
+            reads_attempted: 1,
+            reads_completed: 0,
+            bytes_read: 0,
+        }
+    }
+
+    const fn completed(bytes_read: u64) -> Self {
+        Self {
+            reads_attempted: 1,
+            reads_completed: 1,
+            bytes_read,
+        }
+    }
+
     pub const fn reads_attempted(self) -> u64 {
         self.reads_attempted
     }
-
     pub const fn reads_completed(self) -> u64 {
         self.reads_completed
     }
-
     pub const fn bytes_read(self) -> u64 {
         self.bytes_read
     }
 }
 
 impl RecoveryCleanupArtifactRevalidationFailure {
+    fn read(progress: RecoveryCleanupArtifactRevalidationProgress, error: &std::io::Error) -> Self {
+        Self {
+            denial: RecoveryCleanupArtifactRevalidationDenial::Read(
+                ArtifactTreeFailure::recovery_io(ArtifactTreeFailureKind::Damaged, error.kind()),
+            ),
+            progress,
+        }
+    }
+
     pub(super) const fn denial(&self) -> RecoveryCleanupArtifactRevalidationDenial {
         self.denial
     }

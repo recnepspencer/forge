@@ -1,4 +1,3 @@
-use worth_store_physical_backend::CompletedArtifactTreePublicationEffect;
 use worth_store_physical_format::PhysicalCheckpointIdentity;
 use worth_store_wal::{WalLsnRange, WalSegmentArtifactIdentity};
 
@@ -13,7 +12,7 @@ pub(in crate::physical_runtime::recovery_coordination) struct RecoveryCleanupRem
 }
 
 pub(in crate::physical_runtime::recovery_coordination) struct RecoveryCleanupRemovalSettlement {
-    physical: CompletedArtifactTreePublicationEffect,
+    physical: crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval,
     admission: [u8; 32],
     work: crate::physical_runtime::PhysicalWorkIdentity,
     scheduler: crate::physical_runtime::PhysicalWorkSchedulerPosture,
@@ -35,7 +34,7 @@ pub struct RecoveryCleanupRemovalOccurrence {
     pub(super) artifact: WalSegmentArtifactIdentity,
     pub(super) lsn_range: WalLsnRange,
     pub(super) byte_count: u64,
-    pub(super) physical: CompletedArtifactTreePublicationEffect,
+    pub(super) physical: crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval,
     pub(super) admission: [u8; 32],
     pub(super) work: crate::physical_runtime::PhysicalWorkIdentity,
     pub(super) scheduler: crate::physical_runtime::PhysicalWorkSchedulerPosture,
@@ -85,7 +84,9 @@ impl RecoveryCleanupRemovalOccurrence {
     pub const fn byte_count(&self) -> u64 {
         self.byte_count
     }
-    pub const fn physical(&self) -> &CompletedArtifactTreePublicationEffect {
+    pub const fn physical(
+        &self,
+    ) -> &crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval {
         &self.physical
     }
     pub const fn admission(&self) -> [u8; 32] {
@@ -134,7 +135,7 @@ impl RecoveryCleanupRemovalBinding {
 
 impl RecoveryCleanupRemovalSettlement {
     pub(in crate::physical_runtime::recovery_coordination) fn new(
-        physical: CompletedArtifactTreePublicationEffect,
+        physical: crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval,
         admission: [u8; 32],
         work: crate::physical_runtime::PhysicalWorkIdentity,
         scheduler: crate::physical_runtime::PhysicalWorkSchedulerPosture,

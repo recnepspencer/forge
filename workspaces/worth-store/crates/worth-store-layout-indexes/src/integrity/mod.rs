@@ -21,10 +21,9 @@ pub use denial::CorruptionDenial;
 pub use quarantine::LayoutQuarantineWitness;
 pub use readmission::{
     import_readmission, import_readmission_cases, quarantine_readmission,
-    quarantine_readmission_cases, ImportReadmission,
-    ImportReadmissionCaseId, ImportReadmissionOutcome, ImportReadmissionRequirement,
-    ImportReadmissionView, LayoutReadmissionIdentity, LayoutReadmissionSource,
-    LayoutReadmissionWitness, QuarantineReadmission, QuarantineReadmissionCaseId,
-    QuarantineReadmissionOutcome, QuarantineReadmissionRequirement, QuarantineReadmissionView,
-    ReadmissionDenied,
+    quarantine_readmission_cases, ImportReadmission, ImportReadmissionCaseId,
+    ImportReadmissionOutcome, ImportReadmissionRequirement, ImportReadmissionView,
+    LayoutReadmissionIdentity, LayoutReadmissionSource, LayoutReadmissionWitness,
+    QuarantineReadmission, QuarantineReadmissionCaseId, QuarantineReadmissionOutcome,
+    QuarantineReadmissionRequirement, QuarantineReadmissionView, ReadmissionDenied,
 };

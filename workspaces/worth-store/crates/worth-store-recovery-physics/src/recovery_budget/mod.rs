@@ -10,9 +10,7 @@ mod source_discovery;
 mod store_footprint;
 mod wal_tail_budget;
 
-pub use bounded_plan::{
-    AdmittedRecoveryWorkBounds, BoundedRecoveryPlan, BoundedRecoveryReceipt,
-};
+pub use bounded_plan::{AdmittedRecoveryWorkBounds, BoundedRecoveryPlan, BoundedRecoveryReceipt};
 pub use budget::RecoveryBudget;
 pub use checkpoint_interval::CheckpointIntervalContract;
 pub use counter_snapshot::RecoveryCounterSnapshot;

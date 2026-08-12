@@ -1,7 +1,6 @@
 use worth_store_physical_certification::{
     PhysicalInterleavingSchedule, PhysicalSimulationPlan, SchedulePerturbationSeed,
-    ScheduleReplayDenial,
-    StateSpaceBudget,
+    ScheduleReplayDenial, StateSpaceBudget,
 };
 
 pub fn developer_smoke_replay_seed() -> SchedulePerturbationSeed {

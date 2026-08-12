@@ -1,5 +1,4 @@
 use worth_store_io_scheduler::execute_ready_queue_plan;
-use worth_store_physical_backend::RecoveryCleanupRemovalOutcome as BackendRemovalOutcome;
 use worth_store_wal::WalSegmentArtifactIdentity;
 
 use crate::physical_runtime::recovery_coordination::settlement::{
@@ -26,9 +25,9 @@ struct RemovalExecution {
 }
 
 struct CompletedRemovalSettlement {
-    physical: worth_store_physical_backend::CompletedArtifactTreePublicationEffect,
+    physical: crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval,
     admission: [u8; 32],
-    revalidation: worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress,
+    revalidation: crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress,
     work: crate::physical_runtime::PhysicalWorkIdentity,
     artifact: WalSegmentArtifactIdentity,
     posture: PhysicalWorkSchedulerPosture,
@@ -44,63 +43,59 @@ pub(in crate::physical_runtime::recovery_coordination::cleanup) fn execute(
         Ok(execution) => execution,
         Err(outcome) => return outcome,
     };
-    let binding = cleanup_effect_binding(coordination, &command, execution.work);
-    match media.remove_recovery_wal_artifact_scheduled(
-        &command.selector_read,
-        &command.root_read,
-        command.checkpoint_stream,
-        &command.verified_wal,
-        binding,
+    let binding = super::binding::effect(coordination, &command, execution.work);
+    if !super::binding::matches(&command, execution.work, binding) {
+        return deny_removal(
+            coordination,
+            execution,
+            Box::new(
+                crate::physical_runtime::DeniedRecoveryCleanupPhysicalRemoval::new(
+                    command.artifact,
+                    binding.identity(),
+                    crate::physical_runtime::RecoveryCleanupRemovalDenialCause::Admission,
+                    None,
+                    crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress::default(),
+                ),
+            ),
+        );
+    }
+    let Some(queue) = media.complete_recovery_queue_binding(
         execution
             .plan
             .backend_completion_binding()
             .backend_execution_binding(),
+    ) else {
+        return deny_removal(
+            coordination,
+            execution,
+            Box::new(
+                crate::physical_runtime::DeniedRecoveryCleanupPhysicalRemoval::new(
+                    command.artifact,
+                    binding.identity(),
+                    crate::physical_runtime::RecoveryCleanupRemovalDenialCause::Admission,
+                    None,
+                    crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress::default(),
+                ),
+            ),
+        );
+    };
+    match coordination.cleanup_media.remove_wal(
+        media.store_identity(),
+        command.checkpoint_stream,
+        &command.verified_wal,
+        binding.identity(),
+        queue,
     ) {
-        BackendRemovalOutcome::Completed(completed) => {
+        crate::physical_runtime::RecoveryCleanupRemovalOutcome::Completed(completed) => {
             complete_removal(coordination, command, execution, *completed)
         }
-        BackendRemovalOutcome::DeniedBeforeEffect(denied) => {
+        crate::physical_runtime::RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(denied) => {
             deny_removal(coordination, execution, denied)
         }
-        BackendRemovalOutcome::Indeterminate(indeterminate) => {
+        crate::physical_runtime::RecoveryCleanupRemovalOutcome::Indeterminate(indeterminate) => {
             indeterminate_removal(coordination, command, execution, indeterminate)
         }
     }
-}
-
-fn cleanup_effect_binding(
-    _coordination: &PhysicalRecoveryCoordination,
-    command: &PhysicalRecoveryCleanupRemovalCommand<'_>,
-    work: crate::physical_runtime::PhysicalWorkIdentity,
-) -> worth_store_authority::RecoveryCleanupEffectBinding {
-    let inspection = command.verified_wal.inspection();
-    #[cfg(feature = "certification-test-authority")]
-    let artifact_generation =
-        if _coordination.take_certification_cleanup_authorization_substitution() {
-            command.artifact.generation().get().saturating_add(1)
-        } else {
-            command.artifact.generation().get()
-        };
-    #[cfg(not(feature = "certification-test-authority"))]
-    let artifact_generation = command.artifact.generation().get();
-    worth_store_authority::RecoveryCleanupEffectBinding::new(
-        command.store.bytes(),
-        command.session,
-        command.plan,
-        command.published_generation,
-        command.checkpoint.store_identity().bytes(),
-        command.checkpoint.sequence().get(),
-        command.artifact.segment().get(),
-        artifact_generation,
-        command.lsn_range.start().get(),
-        command.lsn_range.end_exclusive().get(),
-        command.byte_count,
-        inspection.artifact_digest(),
-        work.runtime().get(),
-        work.generation().lifecycle().get(),
-        work.operation().get(),
-    )
-    .expect("Store-admitted cleanup command has one complete nonzero effect binding")
 }
 
 fn admit_execution(
@@ -191,7 +186,7 @@ fn complete_removal(
     coordination: &PhysicalRecoveryCoordination,
     command: PhysicalRecoveryCleanupRemovalCommand<'_>,
     execution: RemovalExecution,
-    completed: worth_store_physical_backend::CompletedScheduledRecoveryCleanupRemoval,
+    completed: crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval,
 ) -> PhysicalRecoveryCleanupRemovalOutcome {
     let settlement = settle_completed_removal(coordination, &command, execution, completed);
     if settlement.posture != PhysicalWorkSchedulerPosture::Executed {
@@ -246,12 +241,12 @@ fn settle_completed_removal(
     coordination: &PhysicalRecoveryCoordination,
     command: &PhysicalRecoveryCleanupRemovalCommand<'_>,
     execution: RemovalExecution,
-    completed: worth_store_physical_backend::CompletedScheduledRecoveryCleanupRemoval,
+    completed: crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval,
 ) -> CompletedRemovalSettlement {
-    let physical = completed.physical().clone();
-    let admission = completed.admission();
-    let revalidation = completed.revalidation();
-    let queue = completed.queue();
+    let physical = completed;
+    let admission = physical.admission();
+    let revalidation = physical.revalidation();
+    let queue = physical.queue();
     #[cfg(feature = "certification-test-authority")]
     let queue = if coordination.take_certification_cleanup_scheduler_failure(
         super::super::PhysicalRecoveryCleanupCommandStage::Removal,
@@ -290,7 +285,7 @@ fn settle_completed_removal(
 fn deny_removal(
     coordination: &PhysicalRecoveryCoordination,
     execution: RemovalExecution,
-    denied: Box<worth_store_physical_backend::DeniedScheduledRecoveryCleanupRemoval>,
+    denied: Box<crate::physical_runtime::DeniedRecoveryCleanupPhysicalRemoval>,
 ) -> PhysicalRecoveryCleanupRemovalOutcome {
     let cause = denied.cause();
     let scheduler = denied
@@ -322,11 +317,11 @@ fn indeterminate_removal(
     coordination: &PhysicalRecoveryCoordination,
     command: PhysicalRecoveryCleanupRemovalCommand<'_>,
     execution: RemovalExecution,
-    indeterminate: Box<worth_store_physical_backend::IndeterminateScheduledRecoveryCleanupRemoval>,
+    indeterminate: Box<crate::physical_runtime::IndeterminateRecoveryCleanupPhysicalRemoval>,
 ) -> PhysicalRecoveryCleanupRemovalOutcome {
     let scheduler = execute_ready_queue_plan(execution.plan, indeterminate.queue());
     let posture = scheduler_posture(&scheduler);
-    let physical = indeterminate.physical();
+    let physical = &indeterminate;
     let signal = settle(
         coordination,
         PhysicalExecutorDispatch::new(

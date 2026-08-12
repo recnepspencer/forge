@@ -143,7 +143,10 @@ impl PhysicalRecoveryPlatformAuthority {
     ) -> Result<Self, PhysicalRecoveryPlatformAdmissionError> {
         let media = QualifiedRecoveryFilesystemMedia::qualify_existing(&root)
             .map_err(PhysicalRecoveryPlatformAdmissionError::BackendQualification)?;
-        Self::from_qualified_media(root, configuration, limits, media)
+        let Some(freshness) = PhysicalRecoveryFreshnessPort::admit(&media, &root) else {
+            return Err(PhysicalRecoveryPlatformAdmissionError::FreshnessUnavailable);
+        };
+        Self::from_qualified_media(root, configuration, limits, media, freshness)
     }
 
     #[cfg(feature = "certification-test-authority")]
@@ -153,10 +156,17 @@ impl PhysicalRecoveryPlatformAuthority {
         limits: PhysicalRecoveryLimits,
         schedule: worth_store::physical_runtime::certification::MediaFaultSchedule,
     ) -> Result<Self, PhysicalRecoveryPlatformAdmissionError> {
-        let media =
-            QualifiedRecoveryFilesystemMedia::qualify_existing_for_certification(&root, schedule)
-                .map_err(PhysicalRecoveryPlatformAdmissionError::BackendQualification)?;
-        Self::from_qualified_media(root, configuration, limits, media)
+        let media = QualifiedRecoveryFilesystemMedia::qualify_existing_for_certification(
+            &root,
+            schedule.clone(),
+        )
+        .map_err(PhysicalRecoveryPlatformAdmissionError::BackendQualification)?;
+        let Some(freshness) =
+            PhysicalRecoveryFreshnessPort::admit_for_certification(&media, &root, schedule)
+        else {
+            return Err(PhysicalRecoveryPlatformAdmissionError::FreshnessUnavailable);
+        };
+        Self::from_qualified_media(root, configuration, limits, media, freshness)
     }
 
     fn from_qualified_media(
@@ -164,11 +174,8 @@ impl PhysicalRecoveryPlatformAuthority {
         configuration: PhysicalRecoveryStaticConfiguration,
         limits: PhysicalRecoveryLimits,
         media: QualifiedRecoveryFilesystemMedia,
+        freshness: worth_store::physical_runtime::PhysicalRecoveryFreshnessAuthority,
     ) -> Result<Self, PhysicalRecoveryPlatformAdmissionError> {
-        let Some(freshness) = PhysicalRecoveryFreshnessPort::admit(&media) else {
-            drop(media);
-            return Err(PhysicalRecoveryPlatformAdmissionError::FreshnessUnavailable);
-        };
         let Some(registered_session) = freshness.register_session() else {
             drop(media);
             return Err(PhysicalRecoveryPlatformAdmissionError::SessionIdentityUnavailable);

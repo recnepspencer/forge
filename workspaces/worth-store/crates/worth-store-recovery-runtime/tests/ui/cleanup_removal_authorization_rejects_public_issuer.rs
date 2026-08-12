@@ -1,20 +1,18 @@
 use worth_store::physical_runtime::AdmittedRecoveryFilesystemMedia;
-use worth_store_authority::{
-    RecoveryCleanupEffectBinding, RecoveryCleanupEffectIssuer,
-};
 
 fn supplied<T>() -> T {
     panic!("compile-only supplied production value")
 }
 
 fn bypass(media: &AdmittedRecoveryFilesystemMedia) {
-    let issuer = RecoveryCleanupEffectIssuer::admit(supplied()).unwrap();
-    let authorization = issuer.authorize(supplied::<RecoveryCleanupEffectBinding>());
+    // Even a caller that possesses every genuine decoded lower-layer value
+    // cannot reach a backend unlink boundary. Cleanup effects are owned by the
+    // Store coordination continuation, not by a caller-enabled feature.
     let _ = media.remove_recovery_wal_artifact_scheduled(
         supplied(),
         supplied(),
         supplied(),
-        authorization,
+        supplied(),
         supplied(),
         supplied(),
     );

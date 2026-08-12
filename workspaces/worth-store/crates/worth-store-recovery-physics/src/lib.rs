@@ -121,10 +121,9 @@ pub use layout_projection::{
 };
 pub use layout_readmission::{
     layout_readmission, ImportLayoutReadmissionOutcome, LayoutReadmissionAuthority,
-    QuarantineLayoutReadmissionOutcome,
-    RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
-    RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionOutcomeView,
-    RecoveryLayoutReadmissionWitness,
+    QuarantineLayoutReadmissionOutcome, RecoveryLayoutReadmissionAdmissionDenial,
+    RecoveryLayoutReadmissionClass, RecoveryLayoutReadmissionIdentity,
+    RecoveryLayoutReadmissionOutcomeView, RecoveryLayoutReadmissionWitness,
 };
 pub use memory_allocation::{
     RecoveryMemoryAllocation, RecoveryMemoryCounterSnapshot, RecoveryMemoryObservation,
@@ -170,8 +169,7 @@ pub use recovery_budget::{
     BoundedRecoveryReceipt, BoundedRecoverySourceAdmission, CheckpointIntervalContract,
     ForbiddenFullStoreScanRejection, RecoveryBudget, RecoveryBudgetDenial,
     RecoveryBudgetDenialKind, RecoveryCounterSnapshot, RecoveryPlanCost, RecoveryPlanCostDenial,
-    RecoveryPlanLimits, RecoveryPlanningCounters, RecoveryStoreFootprint,
-    WalTailReplayBudget,
+    RecoveryPlanLimits, RecoveryPlanningCounters, RecoveryStoreFootprint, WalTailReplayBudget,
 };
 pub use recovery_completion::{complete_recovery, RecoveryCompletion, RecoveryCompletionDenial};
 pub use recovery_integrity_handoff_receipt::RecoveryIntegrityHandoffReceipt;

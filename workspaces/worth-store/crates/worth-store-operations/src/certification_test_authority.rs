@@ -42,7 +42,9 @@ pub fn prepare_import_publication_owner_scenario(
     }
 }
 
-fn admitted_page_family(authority: &StoreCurrentAuthorityWitness) -> AdmittedPhysicalArtifactFamily {
+fn admitted_page_family(
+    authority: &StoreCurrentAuthorityWitness,
+) -> AdmittedPhysicalArtifactFamily {
     let request = StoreSecurityScopeAdmissionRequest::platform_page_envelope(
         authority,
         StoreKeyVersionPosture::Current,

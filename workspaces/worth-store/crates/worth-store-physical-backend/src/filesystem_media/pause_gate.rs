@@ -48,6 +48,11 @@ impl MediaPauseGate {
             .context
     }
 
+    #[cfg(feature = "certification-test-authority")]
+    pub fn pause_for_certification(&self) {
+        self.pause(None);
+    }
+
     pub(super) fn pause(&self, context: Option<super::MediaOperationContext>) {
         let (lock, condition) = &*self.state;
         let mut state = lock

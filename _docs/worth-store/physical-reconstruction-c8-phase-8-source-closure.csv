@@ -17,7 +17,13 @@ C8-P8-PROTOCOL-01,workspaces/worth-store/crates/worth-store-offline-verifier/src
 C8-P8-PROTOCOL-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_eight_process.rs,cross-family-process-proof
 C8-P8-API-01,_docs/worth-store/physical-reconstruction-c8-public-api.csv,exact-api-inventory
 C8-P8-CUTOVER-01,_docs/worth-store/physical-reconstruction-c8-cutover-inventory.csv,scoped-disposition-inventory
+C8-P8-PHYSICS-01,workspaces/worth-store/crates/worth-store-recovery-physics/src/lib.rs,pure-physics-facade
+C8-P8-PHYSICS-01,workspaces/worth-store/crates/worth-store-recovery-physics/Cargo.toml,pure-physics-dependencies
+C8-P8-DEPENDENCY-01,workspaces/worth-store/crates/worth-store-recovery-runtime/Cargo.toml,recovery-runtime-dependency-closure
+C8-P8-DEPENDENCY-01,workspaces/worth-store/crates/worth-store-offline-verifier/Cargo.toml,observer-dependency-closure
 C8-P8-DOCUMENTATION-01,_docs/worth-store/physical-recovery-and-reopen.md,operator-guide
 C8-P8-DOCUMENTATION-01,workspaces/worth-store/crates/worth-store-offline-verifier/README.md,owner-command-contract
+C8-P8-RETIREMENT-01,_docs/worth-store/physical-reconstruction-c8-cutover-inventory.csv,replaced-source-dispositions
+C8-P8-RETIREMENT-01,workspaces/worth-store/crates/worth-store-recovery-physics/src/lib.rs,replaced-facade-absence
 C8-P8-LEDGER-01,_docs/worth-store/physical-reconstruction-c8-phase-8-closure-ledger.md,ledger
 C8-P8-LEDGER-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_eight_process.rs,causal-process-evidence

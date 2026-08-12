@@ -10,9 +10,7 @@ use super::super::denial::CorruptionDenial;
 use super::super::quarantine::{
     classify_quarantine_authority, LayoutQuarantineAuthorityClass, LayoutQuarantineWitness,
 };
-use super::super::readmission::{
-    ImportReadmissionRequirement, QuarantineReadmissionRequirement,
-};
+use super::super::readmission::{ImportReadmissionRequirement, QuarantineReadmissionRequirement};
 use super::outcome::LayoutCorruptionOutcome;
 use super::LayoutCorruptionAssessment;
 

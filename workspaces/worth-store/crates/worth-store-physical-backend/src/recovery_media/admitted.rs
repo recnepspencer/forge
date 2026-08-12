@@ -60,6 +60,24 @@ impl AdmittedRecoveryFilesystemMedia {
     ) -> Result<BoundedRecoveryFilesystemDiscovery, RecoveryFilesystemQualificationError> {
         BoundedRecoveryFilesystemDiscovery::new(self.parts, maximum_entries, maximum_bytes)
     }
+
+    /// Validates one Store scheduler binding against the admitted backend
+    /// capability and returns passive completion evidence. This performs no
+    /// filesystem effect and grants no media authority.
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub fn complete_recovery_queue_binding(
+        &self,
+        binding: crate::BackendQueueExecutionPlanBinding,
+    ) -> Option<crate::BackendQueueExecutionCompletion> {
+        crate::BackendQueueExecutionAuthority::store_owned()
+            .issue_ticket(
+                binding,
+                &self.parts.execution_capability,
+                crate::BackendQueueExecutionAdaptation::None,
+            )
+            .ok()
+            .map(|ticket| ticket.begin_completion().observe_queue_depth(1).complete())
+    }
 }
 
 impl RecoveryMediaHandleObservation {

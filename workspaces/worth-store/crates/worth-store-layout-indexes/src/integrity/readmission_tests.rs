@@ -6,8 +6,8 @@ use super::readmission_test_support::{
 };
 use super::tests::{admitted_family, admitted_family_for_store, family, other_family};
 use crate::integrity::{
-    import_readmission, layout_corruption, quarantine_readmission,
-    CorruptionDenial, ImportReadmissionView, LayoutCorruptionView, LayoutReadmissionSource,
+    import_readmission, layout_corruption, quarantine_readmission, CorruptionDenial,
+    ImportReadmissionView, LayoutCorruptionView, LayoutReadmissionSource,
     QuarantineReadmissionView,
 };
 use worth_store_security::{StoreKeyScope, StoreTenantScope};

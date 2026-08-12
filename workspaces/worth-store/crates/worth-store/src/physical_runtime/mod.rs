@@ -134,6 +134,13 @@ pub use instance::{
     PhysicalStoreClosePlan, PhysicalWorkExecution,
 };
 pub use lifecycle::LifecycleGeneration;
+#[cfg(feature = "recovery-runtime-owner")]
+pub use media_ownership::{
+    CompletedRecoveryCleanupPhysicalRemoval, DeniedRecoveryCleanupPhysicalRemoval,
+    IndeterminateRecoveryCleanupPhysicalRemoval, RecoveryCleanupArtifactRevalidationDenial,
+    RecoveryCleanupArtifactRevalidationProgress, RecoveryCleanupRemovalDenialCause,
+    RecoveryCleanupRemovalOutcome,
+};
 pub use media_ownership::{
     FilesystemMediaAdmission, MediaAdmissionDeferred, MediaAdmissionDenial,
     MediaAdmissionInspectionCause, MediaAdmissionInspectionRequired, MediaAdmissionOutcome,
@@ -241,13 +248,11 @@ pub use worth_store_physical_backend::{
     CompletedScheduledRecoveryStagingWrite, DeniedScheduledRecoveryReopenRead,
     FilesystemAccessPosture, IndeterminateRecoveryStagingWrite, MediaOwnerIdentity,
     ObservedRecoveryArtifact, ObservedWalArtifact, PhysicalRecoveryMediaGeneration,
-    QualifiedPhysicalBackendProfile, QualifiedRecoveryFilesystemMedia,
-    RecoveryCleanupArtifactRevalidationDenial, RecoveryCleanupArtifactRevalidationProgress,
-    RecoveryCleanupRemovalDenialCause, RecoveryDiscoveryArtifact, RecoveryDiscoveryByteLimitScope,
-    RecoveryDiscoveryCounters, RecoveryDiscoveryFailure, RecoveryFilesystemQualificationError,
-    RecoveryReopenReadOutcome, RecoveryRootProtocolPublicationDenial,
-    RecoveryRootProtocolPublicationPlan, RecoveryStagingWriteDisposition,
-    RecoveryStagingWriteOutcome,
+    QualifiedPhysicalBackendProfile, QualifiedRecoveryFilesystemMedia, RecoveryDiscoveryArtifact,
+    RecoveryDiscoveryByteLimitScope, RecoveryDiscoveryCounters, RecoveryDiscoveryFailure,
+    RecoveryFilesystemQualificationError, RecoveryReopenReadOutcome,
+    RecoveryRootProtocolPublicationDenial, RecoveryRootProtocolPublicationPlan,
+    RecoveryStagingWriteDisposition, RecoveryStagingWriteOutcome,
 };
 
 pub(in crate::physical_runtime) use work::{

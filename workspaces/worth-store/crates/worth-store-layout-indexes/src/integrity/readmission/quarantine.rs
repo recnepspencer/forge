@@ -32,9 +32,9 @@ impl QuarantineReadmission {
                 QuarantineReadmissionOutcome::readmitted(
                     LayoutReadmissionWitness::issue(
                         admitted_family,
-                    LayoutReadmissionSource::QuarantineRecovery,
-                    witness.identity(),
-                ),
+                        LayoutReadmissionSource::QuarantineRecovery,
+                        witness.identity(),
+                    ),
                     LayoutReadmissionCounterSnapshot::new(1, 0, 1),
                 )
             }

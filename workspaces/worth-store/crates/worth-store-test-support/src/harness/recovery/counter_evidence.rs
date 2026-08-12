@@ -11,8 +11,7 @@ use worth_store_physical_certification::{
     PhysicalSimulationCapabilitySet, PhysicalSimulationObserver, PhysicalSimulationPlan,
     PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
     SchedulePerturbationSeed, ShortcutRejectionObservation, SimulationEvidencePolicy,
-    SimulationPlanningContext,
-    StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
+    SimulationPlanningContext, StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
 };
 
 pub fn assert_counter(

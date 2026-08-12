@@ -1,10 +1,10 @@
-use super::wal_tail as wal_only_tail_fixture;
 #[cfg(any(
     feature = "certification-world",
     feature = "physical-compaction-fixtures",
     feature = "physical-isolation-fixtures"
 ))]
 use super::source_precedence as source_precedence_fixture;
+use super::wal_tail as wal_only_tail_fixture;
 
 #[cfg(any(
     feature = "certification-world",

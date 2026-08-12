@@ -77,5 +77,4 @@ impl RecoveredPhysicalState {
     pub const fn skipped_frame_count(&self) -> usize {
         self.skipped_frame_count
     }
-
 }

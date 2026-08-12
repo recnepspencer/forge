@@ -201,7 +201,6 @@ impl LayoutReadmissionAuthority {
             RecoveryLayoutReadmissionClass::ImportBoundaryReadmission,
         ))
     }
-
 }
 
 fn require_record_class(
