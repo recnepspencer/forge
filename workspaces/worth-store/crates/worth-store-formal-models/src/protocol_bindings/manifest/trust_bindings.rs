@@ -63,18 +63,6 @@ pub(super) fn current() -> Vec<OwnerBoundaryBinding> {
             ExportCustodyAdmission,
             ReopenedObservedReceipt,
         ),
-        OwnerBoundaryBinding::to::<worth_store_operations::RestoredLayoutMaterializationOutcome>(
-            ImportPublication,
-            Operations,
-            RestoredLayoutOutcome,
-            ReopenedObservedReceipt,
-        ),
-        OwnerBoundaryBinding::to::<worth_store_operations::RestoredLayoutMaterializationObservation>(
-            ImportPublication,
-            Operations,
-            RestoredLayoutMaterialization,
-            EphemeralDiagnosticTrace,
-        ),
         OwnerBoundaryBinding::to::<worth_store_security::StoreTrustBoundaryReadmissionTrigger>(
             ImportPublication,
             Security,

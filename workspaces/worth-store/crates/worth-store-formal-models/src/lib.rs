@@ -40,7 +40,7 @@ pub use protocols::compaction_visibility::{
 pub use protocols::durability_recovery::{
     map_checkpoint_cutover, map_checkpoint_selection, map_failed_wal_fence,
     map_recovery_completion, map_redo_execution, map_redo_generation_denial,
-    map_reopened_recovery_artifact, CheckpointFrontierState, DirectorySyncFrontierState,
+    map_reopened_physical_recovery, CheckpointFrontierState, DirectorySyncFrontierState,
     DurabilityOwnerMappingDenial, DurabilityRecoveryAction, DurabilityRecoveryDenial,
     DurabilityRecoveryFrontier, PageFrontierState, RecoveredRootFrontierState, ReplayFrontierState,
     WalFrontierState,

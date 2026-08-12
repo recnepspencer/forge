@@ -21,6 +21,7 @@
 | --- | --- | --- | --- | --- | --- |
 | C8-P8-F01 | High | C8-P8-RUNTIME-REPORT-01 C8-P8-OBSERVER-01 C8-P8-PROTOCOL-01 C8-P8-DOCUMENTATION-01 | No shipped runtime or independent observer report protocol existed | Added distinct version-one envelopes bounded observer walk CLI output and operator guide | typed protocol and exact limit twins pass |
 | C8-P8-F02 | High | C8-P8-CUTOVER-01 C8-P8-PHYSICS-01 C8-P8-RETIREMENT-01 | Attempting whole-module deletion before migrating consumers broke layout and certification crates | Restored the module and made consumer migration precede absence claims | warnings-denied destination crates compile while retirement remains ACTIVE |
+| C8-P8-F03 | High | C8-P8-RUNTIME-REPORT-01 C8-P8-OBSERVER-01 C8-P8-PROTOCOL-01 C8-P8-LEDGER-01 | Codec round trips did not prove that the production recovery command and the separately owned offline observer emitted evidence across a real process boundary | Added a writer process the shipped recovery executable and a distinct offline-verifier observer process then decoded both reports in the parent and cross-fed each payload to the other family decoder | warnings-denied Phase 8 process proof observes a real recovered Store and both wrong-family crossings are rejected |
 
 ## Independent audit history
 

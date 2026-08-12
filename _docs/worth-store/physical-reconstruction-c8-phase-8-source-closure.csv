@@ -1,11 +1,15 @@
 guarantee,source,relation
 C8-P8-RUNTIME-REPORT-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/observation/report.rs,runtime-report-owner
 C8-P8-RUNTIME-REPORT-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/bin/physical_store_recover.rs,executable-output
+C8-P8-RUNTIME-REPORT-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_eight_process.rs,production-command-process-proof
 C8-P8-OBSERVER-01,workspaces/worth-store/crates/worth-store-offline-verifier/src/c8_recovery_observation/artifact_walk.rs,bounded-independent-walk
 C8-P8-OBSERVER-01,workspaces/worth-store/crates/worth-store-offline-verifier/src/c8_recovery_observation/report.rs,observer-report-owner
+C8-P8-OBSERVER-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_eight_process.rs,independent-observer-process-proof
 C8-P8-PROTOCOL-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/observation/protocol.rs,runtime-protocol
 C8-P8-PROTOCOL-01,workspaces/worth-store/crates/worth-store-offline-verifier/src/c8_recovery_observation/report_protocol.rs,observer-protocol
+C8-P8-PROTOCOL-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_eight_process.rs,cross-family-process-proof
 C8-P8-API-01,_docs/worth-store/physical-reconstruction-c8-public-api.csv,exact-api-inventory
 C8-P8-CUTOVER-01,_docs/worth-store/physical-reconstruction-c8-cutover-inventory.csv,scoped-disposition-inventory
 C8-P8-DOCUMENTATION-01,_docs/worth-store/physical-recovery-and-reopen.md,operator-guide
 C8-P8-LEDGER-01,_docs/worth-store/physical-reconstruction-c8-phase-8-closure-ledger.md,ledger
+C8-P8-LEDGER-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_eight_process.rs,causal-process-evidence
