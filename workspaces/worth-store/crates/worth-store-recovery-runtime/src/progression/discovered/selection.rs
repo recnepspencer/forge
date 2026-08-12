@@ -48,6 +48,7 @@ struct ManifestSelectionInput {
 struct FinalSelectionInput {
     root: SelectedPhysicalRoot,
     page_facts: SelectedPhysicalPageFacts,
+    retained_previous_page_facts: Option<SelectedPhysicalPageFacts>,
     checkpoint: Option<PhysicalCheckpointBase>,
     wal_tail: SelectedPhysicalWalTail,
     compaction: Option<SelectedCompactionProduct>,
@@ -62,7 +63,7 @@ pub(super) fn select_sources(
 ) -> Result<SelectionOutput, SelectionFailure> {
     let mut counters = input.counters;
     let root = select_root(input.current, input.previous, input.bootstrap, counters)?;
-    let page_facts = select_manifest_facts(
+    let (page_facts, retained_previous_page_facts) = select_manifest_facts(
         &root,
         ManifestSelectionInput {
             current: input.current_manifest_facts,
@@ -80,6 +81,7 @@ pub(super) fn select_sources(
     let selection = select_final_cut(FinalSelectionInput {
         root,
         page_facts,
+        retained_previous_page_facts,
         checkpoint,
         wal_tail,
         compaction,
@@ -123,10 +125,10 @@ fn select_manifest_facts(
     root: &SelectedPhysicalRoot,
     input: ManifestSelectionInput,
     counters: &mut PhysicalRecoveryDiscoveryCounters,
-) -> Result<SelectedPhysicalPageFacts, SelectionFailure> {
-    let selected = match root.role() {
-        SelectedPhysicalRootRole::Current => input.current,
-        SelectedPhysicalRootRole::PreviousFallback => input.previous,
+) -> Result<(SelectedPhysicalPageFacts, Option<SelectedPhysicalPageFacts>), SelectionFailure> {
+    let (selected, retained_previous) = match root.role() {
+        SelectedPhysicalRootRole::Current => (input.current, Some(input.previous)),
+        SelectedPhysicalRootRole::PreviousFallback => (input.previous, None),
     };
     let generation = root.selected().selector().root_generation();
     let blocks = match selected {
@@ -161,7 +163,45 @@ fn select_manifest_facts(
     .map_err(|denial| manifest_failure(denial, generation, *counters, declaration))?;
     counters.selected_page_facts = page_facts.placements().len() as u64;
     counters.distinct_pages_and_extents = page_facts.distinct_pages_and_extents();
-    Ok(page_facts)
+    let retained_previous_page_facts = match (root.retained_previous(), retained_previous) {
+        (Some(previous), Some(ManifestFactsDiscovery::Observed { blocks })) => Some(
+            admit_physical_page_facts(
+                previous,
+                blocks,
+                declaration.manifest_entries,
+                declaration.distinct_pages_and_extents,
+            )
+            .map_err(|denial| {
+                manifest_failure(
+                    denial,
+                    previous.selector().root_generation(),
+                    *counters,
+                    declaration,
+                )
+            })?,
+        ),
+        (Some(previous), Some(ManifestFactsDiscovery::Rejected(denial))) => {
+            return Err(SelectionFailure::new(
+                PhysicalRecoveryBlockKind::SourceSelection,
+                *counters,
+                "records/retained-previous routing blocks",
+            )
+            .with_generation(previous.selector().root_generation())
+            .with_source_denials(vec![
+                PhysicalRecoverySourceDenial::ManifestObservation(denial),
+            ]));
+        }
+        (Some(previous), Some(ManifestFactsDiscovery::Unavailable)) => {
+            return Err(SelectionFailure::new(
+                PhysicalRecoveryBlockKind::SourceSelection,
+                *counters,
+                "records/retained-previous routing blocks",
+            )
+            .with_generation(previous.selector().root_generation()));
+        }
+        (None, _) | (_, None) => None,
+    };
+    Ok((page_facts, retained_previous_page_facts))
 }
 
 fn select_checkpoint(
@@ -239,6 +279,7 @@ fn select_final_cut(
     select_physical_recovery_sources(
         input.root,
         input.page_facts,
+        input.retained_previous_page_facts,
         input.checkpoint,
         input.wal_tail,
         input.compaction,

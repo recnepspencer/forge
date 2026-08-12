@@ -1,28 +1,27 @@
-use worth_store::physical_runtime::{
-    AdmittedRecoveryFilesystemMedia, PhysicalRecoveryCoordination,
-    PhysicalRecoveryFreshnessPort, StoreRecoveryCleanupPlan,
-};
-use worth_store_recovery_physics::WalSegmentArtifactIdentity;
+use worth_store::physical_runtime::AdmittedRecoveryFilesystemMedia;
+use worth_store_authority::RecoveryCleanupEffectAuthorization;
 
 fn fake<T>() -> T {
     panic!("compile-only specimen")
 }
 
-fn bypass_store_owner(
-    coordination: &PhysicalRecoveryCoordination,
-    media: &AdmittedRecoveryFilesystemMedia,
-    plan: &mut StoreRecoveryCleanupPlan<'_>,
-    artifact: WalSegmentArtifactIdentity,
-) {
-    let _ = PhysicalRecoveryFreshnessPort::sample_cleanup(
-        coordination,
-        media,
-        plan,
-        artifact,
+fn forged_authorization() -> RecoveryCleanupEffectAuthorization {
+    RecoveryCleanupEffectAuthorization {
+        authority: fake(),
+        binding: fake(),
+    }
+}
+
+fn bypass_backend(media: &AdmittedRecoveryFilesystemMedia) {
+    let _ = media.remove_recovery_wal_artifact_scheduled(
+        fake(),
+        fake(),
+        fake(),
+        forged_authorization(),
+        fake(),
     );
-    let _ = coordination.execute_cleanup_removal(media, fake::<()>());
 }
 
 fn main() {
-    bypass_store_owner(fake(), fake(), fake(), fake());
+    bypass_backend(fake());
 }

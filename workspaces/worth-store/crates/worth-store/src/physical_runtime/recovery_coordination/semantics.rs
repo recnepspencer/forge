@@ -51,6 +51,7 @@ const CONTRACTS: [(
 
 pub(super) struct InstalledRecoverySemantics {
     pub(super) profile: PhysicalWorkProfileDeclaration,
+    pub(super) cleanup_effect_authority: worth_store_authority::StoreCurrentAuthorityWitness,
     pub(super) work_security: worth_store_security::StoreAuthorityBoundSecurityScopeReceipt,
     pub(super) scheduler_security: worth_store_io_scheduler::IoSchedulerSecurityScopeAdmission,
     pub(super) bases: [PhysicalWorkSemanticBasis; 4],
@@ -72,6 +73,8 @@ pub(super) fn install(
         .basis
         .projection_fact()
         .expect("discovery semantics are projection authority");
+    let cleanup_effect_authority =
+        worth_store_authority::require_current_store_authority(authority_fact.clone());
     let (security, scheduler_security) =
         crate::physical_runtime::record_serving::work_semantics::security_admission::
             admit_scheduler_scope(authority_fact);
@@ -88,6 +91,7 @@ pub(super) fn install(
     .with_capacity(capacity);
     InstalledRecoverySemantics {
         profile,
+        cleanup_effect_authority,
         work_security: security,
         scheduler_security,
         bases: [

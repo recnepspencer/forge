@@ -35,6 +35,10 @@ pub(super) use selected_basis::{artifact_read_ceiling, ArtifactReadCeilingDenial
 pub(super) fn observe_selected_pages(
     media: AdmittedRecoveryFilesystemMedia,
     root_manifest: &DurablePhysicalRootManifest,
+    retained_fallback: Option<(
+        &DurablePhysicalRootManifest,
+        PhysicalRecordFormatDeclaration,
+    )>,
     placements: &[CurrentPhysicalRecordPlacement],
     targets: &[PhysicalRedoTarget],
     format: PhysicalRecordFormatDeclaration,
@@ -48,6 +52,7 @@ pub(super) fn observe_selected_pages(
     let result = observe(
         &mut discovery,
         root_manifest,
+        retained_fallback,
         placements,
         targets,
         format,
@@ -68,19 +73,40 @@ pub(super) fn observe_selected_pages(
 fn observe(
     discovery: &mut worth_store::physical_runtime::BoundedRecoveryFilesystemDiscovery,
     root_manifest: &DurablePhysicalRootManifest,
+    retained_fallback: Option<(
+        &DurablePhysicalRootManifest,
+        PhysicalRecordFormatDeclaration,
+    )>,
     placements: &[CurrentPhysicalRecordPlacement],
     targets: &[PhysicalRedoTarget],
     format: PhysicalRecordFormatDeclaration,
     maximum_manifest_entries: u64,
     byte_limit: u64,
 ) -> Result<ObservedPageBasis, PageObservationFailure> {
-    let selected_source = super::selected_source_inventory::observe(
+    let mut budget = super::selected_source_inventory::ManifestEntryBudget::new(
+        maximum_manifest_entries,
+    );
+    let mut selected_source = super::selected_source_inventory::observe_with_budget(
         discovery,
         root_manifest,
         format,
-        maximum_manifest_entries,
+        &mut budget,
         byte_limit,
     )?;
+    if let Some((fallback, fallback_format)) = retained_fallback {
+        let fallback_source = super::selected_source_inventory::observe_with_budget(
+            discovery,
+            fallback,
+            fallback_format,
+            &mut budget,
+            byte_limit,
+        )?;
+        let mut source_artifacts = selected_source.source_artifacts.into_vec();
+        source_artifacts.extend(fallback_source.source_artifacts);
+        source_artifacts.sort_unstable();
+        source_artifacts.dedup();
+        selected_source.source_artifacts = source_artifacts.into_boxed_slice();
+    }
     let mut inline_targets = BTreeMap::new();
     let mut extent_targets = BTreeMap::<u64, BTreeMap<u32, &PhysicalRedoTarget>>::new();
     for target in targets {

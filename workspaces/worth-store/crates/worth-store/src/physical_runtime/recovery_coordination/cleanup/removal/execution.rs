@@ -27,6 +27,7 @@ struct RemovalExecution {
 
 struct CompletedRemovalSettlement {
     physical: worth_store_physical_backend::CompletedArtifactTreePublicationEffect,
+    authorization: [u8; 32],
     revalidation: worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress,
     work: crate::physical_runtime::PhysicalWorkIdentity,
     artifact: WalSegmentArtifactIdentity,
@@ -43,10 +44,12 @@ pub(in crate::physical_runtime::recovery_coordination::cleanup) fn execute(
         Ok(execution) => execution,
         Err(outcome) => return outcome,
     };
+    let authorization = authorize_cleanup_effect(coordination, &command, execution.work);
     match media.remove_recovery_wal_artifact_scheduled(
         &command.selector_read,
         command.checkpoint_stream,
         &command.verified_wal,
+        authorization,
         execution
             .plan
             .backend_completion_binding()
@@ -62,6 +65,36 @@ pub(in crate::physical_runtime::recovery_coordination::cleanup) fn execute(
             indeterminate_removal(coordination, command, execution, indeterminate)
         }
     }
+}
+
+fn authorize_cleanup_effect(
+    coordination: &PhysicalRecoveryCoordination,
+    command: &PhysicalRecoveryCleanupRemovalCommand<'_>,
+    work: crate::physical_runtime::PhysicalWorkIdentity,
+) -> worth_store_authority::RecoveryCleanupEffectAuthorization {
+    let inspection = command.verified_wal.inspection();
+    let binding = worth_store_authority::RecoveryCleanupEffectBinding::new(
+        command.store.bytes(),
+        command.session,
+        command.plan,
+        command.published_generation,
+        command.checkpoint.store_identity().bytes(),
+        command.checkpoint.sequence().get(),
+        command.artifact.segment().get(),
+        command.artifact.generation().get(),
+        command.lsn_range.start().get(),
+        command.lsn_range.end_exclusive().get(),
+        command.byte_count,
+        inspection.artifact_digest(),
+        work.runtime().get(),
+        work.generation().lifecycle().get(),
+        work.operation().get(),
+    )
+    .expect("Store-admitted cleanup command has one complete nonzero effect binding");
+    worth_store_authority::RecoveryCleanupEffectAuthorization::issue(
+        &coordination.cleanup_effect_authority,
+        binding,
+    )
 }
 
 fn admit_execution(
@@ -190,6 +223,7 @@ fn complete_removal(
             ),
             RecoveryCleanupRemovalSettlement::new(
                 settlement.physical,
+                settlement.authorization,
                 settlement.work,
                 settlement.posture,
                 settlement.signal,
@@ -209,6 +243,7 @@ fn settle_completed_removal(
     completed: worth_store_physical_backend::CompletedScheduledRecoveryCleanupRemoval,
 ) -> CompletedRemovalSettlement {
     let physical = completed.physical().clone();
+    let authorization = completed.authorization();
     let revalidation = completed.revalidation();
     let queue = completed.queue();
     #[cfg(feature = "certification-test-authority")]
@@ -237,6 +272,7 @@ fn settle_completed_removal(
     );
     CompletedRemovalSettlement {
         physical,
+        authorization,
         revalidation,
         work: execution.work,
         artifact: execution.artifact,

@@ -18,15 +18,7 @@ pub(super) fn capture(root: &Path, paths: &mut BTreeSet<PathBuf>) {
     collect_selected_root(root, current, paths);
     if record_artifact_path(root, RecordArtifactFile::PreviousRootSelector).is_file() {
         let previous = read_selector(root, RecordArtifactFile::PreviousRootSelector, paths);
-        collect_file(
-            &record_artifact_path(
-                root,
-                RecordArtifactFile::RootManifest {
-                    generation: previous.root_generation(),
-                },
-            ),
-            paths,
-        );
+        collect_selected_root(root, previous, paths);
     }
 }
 

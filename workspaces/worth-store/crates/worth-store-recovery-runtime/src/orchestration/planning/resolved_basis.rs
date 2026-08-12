@@ -53,6 +53,7 @@ pub(super) fn resolve(
         context.selection.page_facts().placements(),
         &observation_targets,
         admitted.remaining_manifest_entries,
+        context.selection.root().retained_previous().is_some(),
     ) {
         Ok(ceiling) => ceiling,
         Err(page_observation::ArtifactReadCeilingDenial::ManifestEntriesExhausted) => {
@@ -131,6 +132,11 @@ pub(super) fn resolve(
     let (media, attempt) = page_observation::observe_selected_pages(
         media,
         context.selection.root().selected().manifest(),
+        context
+            .selection
+            .root()
+            .retained_previous()
+            .map(|previous| (previous.manifest(), previous.selector().format())),
         context.selection.page_facts().placements(),
         &observation_targets,
         admitted.format,

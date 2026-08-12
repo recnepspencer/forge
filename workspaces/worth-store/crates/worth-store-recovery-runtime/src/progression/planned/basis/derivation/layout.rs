@@ -131,6 +131,15 @@ fn selected_source_artifacts(
             generation: previous.manifest().generation(),
         });
     }
+    if let Some(facts) = selection.retained_previous_page_facts() {
+        artifacts.extend(facts.routing_blocks().iter().map(|reference| {
+            RecordArtifactFile::RootRoutingBlock {
+                generation: reference.generation(),
+                block: reference.block(),
+            }
+        }));
+        artifacts.extend(facts.placements().iter().flat_map(placement_artifacts));
+    }
     artifacts.extend(selected_source.source_artifacts.iter().copied());
     artifacts.into_iter().collect::<Vec<_>>().into_boxed_slice()
 }
