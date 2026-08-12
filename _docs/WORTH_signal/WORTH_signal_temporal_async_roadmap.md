@@ -602,6 +602,35 @@ This roadmap is complete only when all of the following are true:
 - later wasm, query, route-resource, and form layers can consume these
   semantics without needing a second truth model
 
+## Successor Handoff To The Numbered Core-Runtime Roadmap
+
+The temporal/async sequence is closed through Milestone D. The next numbered
+`worth-signal` engineering sequence inherits all of those guarantees:
+
+1. [Milestone 12 - Aspect-Causal Invalidation](./milestone-12-plan.md)
+2. [Milestone 13 - Locality-First Frontier Execution](./milestone-13-plan.md)
+3. [Milestone 14 - Deterministic Parallel Execution Foundation](./milestone-14-plan.md)
+4. [Milestone 15 - Proof-Carrying Graph Parallelism](./milestone-15-plan.md)
+5. [Milestone 16 - Structured Partitioned Parallelism](./milestone-16-plan.md)
+6. [Milestone 17 - Portable Execution Backends And Distributed Coordination](./milestone-17-plan.md)
+
+Milestones 12-13 expand the fintech financial world and repair and certify the
+invalidation substrate during implementation. Milestones 14-17 then establish
+bounded deterministic execution, proof-carrying graph parallelism, domain-
+agnostic structured partition work, and portable backend execution. None of
+them reopens temporal or async lifecycle meaning.
+
+The strict continuation order is intentional:
+
+- parallel execution may not amplify an invalidation frontier before causal
+  correctness and locality are certified
+- graph parallelism consumes the bounded resource and publication authority
+  established by Milestone 14
+- partitioned inner computation consumes the graph task's same hierarchical
+  resource lease rather than creating a second pool
+- WASM workers, native threads, accelerators, and remote processes remain
+  backend mechanisms behind the portable Milestone 17 boundary
+
 ## Companion Documents
 
 - [worth_signals2.md](./worth_signals2.md)
@@ -613,6 +642,12 @@ This roadmap is complete only when all of the following are true:
 - [milestone-c-closeout.md](./milestone-c-closeout.md)
 - [milestone-d-closeout.md](./milestone-d-closeout.md)
 - [milestone-d-plan.md](./milestone-d-plan.md)
+- [milestone-12-plan.md](./milestone-12-plan.md)
+- [milestone-13-plan.md](./milestone-13-plan.md)
+- [milestone-14-plan.md](./milestone-14-plan.md)
+- [milestone-15-plan.md](./milestone-15-plan.md)
+- [milestone-16-plan.md](./milestone-16-plan.md)
+- [milestone-17-plan.md](./milestone-17-plan.md)
 - [test-requirements.md](./test-requirements.md)
 - [MENTALITY.md](../coding_guidelines/MENTALITY.md)
 - [arch_laws.md](../coding_guidelines/arch_laws.md)

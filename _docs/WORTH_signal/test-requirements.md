@@ -670,6 +670,156 @@ WORTH Signal answers not only what must recompute, but what must not.
 
 That is one of the core promises of the whole system.
 
+### Milestones 12-13 financial invalidation binding addendum
+
+The adversarial granularity suppression test is not satisfied by direct-edge
+same-aspect examples or by proving only that transitive nodes are graph-
+reachable.
+
+Milestones 12 and 13 must expand the existing causally valid fintech financial
+world and certify their guarantees during implementation. A generic graph
+fixture may support a focused local proof, but cannot close either milestone.
+There is no later invalidation-certification milestone.
+
+Every adversarial test is a named scenario with:
+
+- a production-valid financial baseline and semantic handles issued by the
+  existing world compiler
+- one named market, portfolio, partition, condition, topology, or branch delta
+- a falsifiable production claim and the plausible implementation defect it
+  must expose
+- independently declared expected financial truth and semantic necessity set
+- consequential observations through the real runtime composition root
+- a positive/negative twin or mutation probe proving intended sensitivity
+- scenario identity, seed, financial scale tuple, policy tuple, diagnostic
+  tier, and exact failing mutation step for reproduction
+
+`FreshFinancialRecompute` must reconstruct expected outputs from authoritative
+market and portfolio inputs without consuming the incremental frontier, dirty
+masks, incremental condition classification, suppression routing, or ready
+queues. `FinancialNecessityManifest` must enumerate economically affected work
+from scenario-owned positions, factor subscriptions, aspect translations, and
+partition ownership without calling production routing or scheduling logic.
+
+Milestone 12 must own these scenario families:
+
+- `quote_to_risk_aspect_translation`: `PRICE -> RISK` positive/negative filter
+  twins expose root-aspect copying
+- `tolerance_suppressed_repricing`: small and large quote moves distinguish
+  lawful suppression from real downstream change
+- `producer_local_factor_slot_collision`: equal numeric slots on distinct FX,
+  curve, or market dependencies retain producer identity
+- `partitioned_curve_bucket_bump`: a rates detail change remains separate from
+  credit and other non-overlapping regions
+- `gated_repricing_release`: blocked then admitted work cannot strand a
+  necessary risk consumer
+- `instrument_dependency_rewire`: committed dependency changes and cycle
+  rejection cannot reuse stale causes
+- `branch_shock_restore_replay`: branch, checkpoint, replay, diagnostic tier,
+  and async-capability composition preserve financial truth
+
+Each Milestone 12 implementation phase must name and pass its assigned
+scenarios before the phase closes. Final construction of
+`AspectCausalityCertificationRun` must reject missing, duplicate, stale, or
+mismatched scenario evidence.
+
+Milestone 13 must own these scale-sensitive scenario families:
+
+- `sparse_book_fanout`: one relevant depth-16 pricing/risk chain under
+  increasing disjoint instrument/audit fanout
+- `partitioned_curve_universe`: one rates bucket among 16, 256, and 1,024
+  independently owned regions
+- `convergent_factor_batch`: price, FX, curve, and volatility shocks converge
+  with duplicate causes and insertion-order permutations
+- `dense_market_close`: sparse, medium, and dense legitimate frontiers at
+  `10^3`, `10^4`, and `10^5` scheduled-lane node scales
+- `portfolio_dependency_churn`: instrument/desk/factor/model rewiring and cycle
+  rejection under repeated mutations
+- `branch_restore_locality_replay`: the narrow and dense traces repeat after
+  capture, restore, replay, and deterministic rerun
+
+For increasing aspect- or partition-disjoint financial fanout, report and
+assert realized:
+
+- dependency edges examined
+- candidates rejected before enqueue
+- work items enqueued and popped
+- nodes visited and evaluated
+- produced deltas and unchanged-output stops
+- non-semantic traversal visits
+- maximum ready-frontier width
+
+The pass condition is semantic-frontier scaling. Increasing irrelevant
+reachable fanout must not cause proportional dirty mutation, enqueue, or node
+visits. Planned/predicted counters cannot satisfy this requirement.
+
+Every Milestone 13 implementation phase must name and pass its assigned
+financial scenarios before it closes. Correctness and locality are separate
+verdicts, strategy comparisons consume exactly the same admitted work stream,
+and `FrontierLocalityCertificationRun` rejects missing, duplicate, stale, or
+mismatched evidence. The ordinary gate includes a small instance of every
+scenario plus sparse/dense slopes; scheduled lanes own broad seeds and the
+largest scales, but no correctness claim may exist only there.
+
+### Milestones 14-17 binding addendum
+
+Parallel execution evidence must use an independent serial oracle and hostile
+schedule control. Running the same happy-path graph once with `parallel`
+enabled does not prove any milestone in this sequence.
+
+Milestone 14 must prove:
+
+- configured worker and memory budgets are strict hierarchical leases rather
+  than dispatch hints
+- nested execution cannot create independent capacity or oversubscribe the
+  parent lease
+- worker-local compute has no authoritative graph mutation capability
+- schedule and completion-order perturbation cannot change canonical
+  publication, replay, history, or explanation under bitwise determinism
+- cancellation, deadline, and failure at each precompute/apply/publication
+  boundary expose exact typed progress and preserve precommit atomicity
+- a serial-only target consumes the same lowered plan without semantic drift
+
+Milestone 15 must combine wide antichains, long critical chains, reconvergence,
+dynamic rewiring, overlapping mutation footprints, and bounded ready queues.
+The evidence must fail if readiness, control-order proof, any synchronous
+mutation-footprint axis, or atomic epoch publication is removed. Serial and
+graph-parallel mutation histories must agree step by step, not only at one
+final output.
+
+Milestone 16 must certify map, reduce, scan, fork/join, and synchronous rounds
+using stable partition identity and explicit read/write sets. The test matrix
+must vary worker count, partition count, skew, grain size, numerical reducer,
+nesting depth, cancellation point, and serial-only capability. Floating-point
+bitwise claims require fixed partition and join order; approximate equality
+cannot certify a bitwise contract.
+
+Milestone 17 must cross real external boundaries:
+
+- a real WASM worker/host boundary for worker claims
+- a real child-process or network loopback boundary for distributed claims
+- serialized versioned submissions and results rather than in-memory artifact
+  reuse
+- duplicate, delayed, reordered, lost, corrupt, incompatible, and stale-epoch
+  result delivery
+- crash before execution, during execution, after retained result, and during
+  response delivery
+- stable idempotency identity, typed indeterminate outcomes, and recovery
+  handles
+- explicit worker-unavailable and product-declared WASM fallback behavior
+
+An accelerator backend may be claimed only from a real adapter on named
+hardware running the common conformance suite. A trait, mock device, or CPU
+implementation labeled as an accelerator is negative evidence, not support.
+
+Every performance report in Milestones 14-17 must name total work, span,
+critical path, active versus leased workers, queues, steals, barriers, conflict
+partitions, publication breadth, nested leases, partitions, reductions,
+transient and peak memory, transferred bytes and round trips where applicable,
+fallbacks, workload distribution, hardware/runtime versions, cold/warm
+posture, repetitions, variance, and percentiles. Elapsed time cannot compensate
+for a structural-bound failure.
+
 3. The dual-history branch and restoration torture test
 Purpose
 

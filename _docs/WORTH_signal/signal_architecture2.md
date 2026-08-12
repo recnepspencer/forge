@@ -2206,22 +2206,38 @@ Normative rule:
 - partition-aware and aspect-aware frontier narrowing must be measurable at the
   invalidation boundary
 
-`S9.16.3` closeout status:
+`S9.16.3` reopened status:
 
-- the canonical operational invalidation truth is now `FrontierPlan` plus
-  `FrontierExecutionSummary`, not legacy dirty-propagation scratch state
-- cycle preflight failure is required to fail before false frontier commit
-- entry-level `DirectDirty` vs `MaybeStale` classification is retained in the
-  canonical frontier summary surface
-- flow invalidation reporting must project from frontier execution truth rather
-  than from a second compatibility bookkeeping path
-- transitive-wave counters must report realized non-empty transitive waves, not
-  planned wave count
-- retained frontier tracing is policy-gated cold richness; ordinary
-  observational access must not reconstruct or mutate frontier state
+- direct-edge aspect and partition admission is present, but the transitive
+  application path copies the original seed aspect through every reachable
+  descendant
+- transitive reachability is not changed-output authority because aspects are
+  interpreted against the immediate producer whose output contract declares
+  them
+- the current reachability walk can therefore under-invalidate when an
+  intermediate node translates one aspect into another, and it can over-visit
+  contract-disjoint descendants
+- `FrontierPlan` and `FrontierExecutionSummary` remain the intended canonical
+  operational surfaces, but their current transitive aspect and locality claims
+  are not accepted closeout evidence
+- cycle preflight, direct/maybe-stale classification, trace policy separation,
+  and flow-summary derivation remain inherited guarantees that the repair must
+  preserve
 
-With those conditions met, `S9.16.3` is considered closeable and `S9.16.4`
-becomes the next linear phase.
+The numbered repair and certification sequence is:
+
+1. [Milestone 12 - Aspect-Causal Invalidation](./milestone-12-plan.md) makes
+   immediate-dependency committed output deltas the only transitive aspect
+   authority, expands the fintech financial world, and seals semantic
+   equivalence evidence during implementation.
+2. [Milestone 13 - Locality-First Frontier Execution](./milestone-13-plan.md)
+   replaces reachable-closure walking with direct-hop semantic admission and a
+   replaceable ready-work scheduling boundary, then seals financial cost-slope
+   and strategy-readiness evidence during implementation.
+
+`S9.16.3` is not closeable until Milestones 12 and 13 are accepted. Existing
+later work may remain implemented, but it may not use the former `S9.16.3`
+closeout claim as evidence.
 
 ### S9.16.4 Ã¢â‚¬â€ Geometry-Scale Equivalence and Reuse Contracts
 
@@ -2335,44 +2351,63 @@ Normative rule:
 - reconstruction work must be budgeted explicitly rather than happening as
   hidden lazy cost on first access
 
-### S9.16.6 Ã¢â‚¬â€ Geometry Certification and Performance Proof Harness
+### S9.16.6 Ã¢â‚¬â€ Integrated Invalidation Certification And Performance Proof
 
-The runtime must earn geometry-kernel credibility with hostile certification
-workloads, not with microbench optimism.
+The runtime must earn invalidation credibility with hostile financial
+scenarios during implementation, not with a later certification milestone or
+microbenchmark optimism. Geometry remains a future consumer and requires its
+own domain evidence before geometry readiness can be claimed.
 
 Required certification families:
 
-- large CAD-style dependency graphs with localized topology edits
-- expensive partitioned artifact recomputation with memoized reuse
-- branch/restore/replay histories with lineage and explain equivalence checks
-- serial/parallel equivalence under disjoint geometry subgraphs
-- snapshot suffix replay equivalence at industrial artifact breadth
+- quote-to-price-to-risk aspect translation with matched/unmatched filters
+- tolerance-suppressed and genuinely changed repricing twins
+- producer-local market-factor aspect collisions
+- rates/credit partition and detail locality
+- condition-gated repricing and dynamic instrument dependency rewiring
+- sparse, medium, and dense portfolio frontiers
+- overlapping price, FX, curve, and volatility shocks
+- branch/restore/replay histories with financial-truth equivalence checks
 
 Mandatory measurement boundaries:
 
+- independent fresh financial recompute equivalence
+- independent financial necessity manifest agreement
 - invalidation frontier width and narrowed frontier width
-- dependency snapshot retained bytes and shared-bytes ratio
-- artifact retention bytes by tier
-- hot-path allocation count and hot-path retained bytes
-- explanation reconstruction count and reconstruction bytes
-- memoized reuse hit rate by artifact family
+- edges examined and candidates rejected before enqueue
+- ready work enqueued, popped, and deduplicated
+- nodes evaluated, changed outputs, and suppression stops
+- non-semantic visits, topology-churn work, and peak/retained memory
 - replay suffix cost by checkpoint span
-- branch restore and merge reconciliation breadth
+- branch restore and reconciliation breadth
+
+Numbered implementation owners:
+
+- [Milestone 12 - Aspect-Causal Invalidation](./milestone-12-plan.md) owns the
+  named semantic financial scenarios, fresh-recompute and necessity oracles,
+  equivalence reports, and sealed causality run
+- [Milestone 13 - Locality-First Frontier Execution](./milestone-13-plan.md)
+  owns the named scale/locality financial scenarios, structural cost slopes,
+  same-work-stream traversal comparisons, sealed locality run, and typed
+  strategy decision
+- neither milestone may close an implementation phase while its assigned
+  financial scenario evidence is red or absent
+- both milestones explicitly exclude tree-only order-maintenance assumptions
+  and do not pre-authorize a priority queue or other traversal implementation
 
 Execution order:
 
-1. hot/cold artifact separation
-2. structural-sharing snapshot and dependency-state redesign
-3. locality-first invalidation frontier execution
-4. geometry-scale equivalence and reuse certification
-5. diagnostics tiering and reconstruction budgeting
-6. geometry certification harness and slope reporting
+1. expand the production-shaped financial world and independent oracles
+2. implement and certify aspect causality phase by phase
+3. implement and certify locality/cost phase by phase
+4. seal the semantic and locality runs before parallel execution begins
 
 Anti-goals:
 
 - do not hide broad artifact clones behind ergonomic getters
 - do not make forensic richness the default operational cost
 - do not claim geometry readiness from elapsed-time wins alone
+- do not claim geometry readiness from financial-world evidence alone
 - do not introduce compatibility shims that preserve cost-dishonest surfaces
 - do not let bridge or host integration become the only place where artifact
   causality and reuse truth can be recovered
@@ -2382,6 +2417,209 @@ laws `1`, `2`, `5`, `7`, `10`, `12`, `20`, `21`, `24`, `27`, `28`, `29`,
 `32`, `35`, and `36`.
 
 This is mandatory. The new structural rules are not advisory preferences.
+
+### S9.17 — Deterministic And Portable Parallel Execution
+
+`worth-signal` must be able to exploit all causally independent work without
+making physical scheduling, worker count, platform, or consumer domain part of
+signal meaning.
+
+The numbered implementation sequence is:
+
+1. [Milestone 14 - Deterministic Parallel Execution Foundation](./milestone-14-plan.md)
+2. [Milestone 15 - Proof-Carrying Graph Parallelism](./milestone-15-plan.md)
+3. [Milestone 16 - Structured Partitioned Parallelism](./milestone-16-plan.md)
+4. [Milestone 17 - Portable Execution Backends And Distributed Coordination](./milestone-17-plan.md)
+
+The sequence follows Milestones 12-13 because parallel execution may not
+amplify or hide a causally false or breadth-dishonest invalidation frontier.
+
+Cross-phase invariants:
+
+| Invariant | Meaning |
+| --- | --- |
+| Parallelism never grants semantic safety | Callers and backends cannot assert disjointness, readiness, or control-order legality |
+| One lowered meaning | Serial, native parallel, WASM-worker, accelerator, and remote execution consume the same semantic plan |
+| One resource authority | Graph and nested partition work subdivide one bounded lease and cannot create independent capacity |
+| Workers are non-authoritative | Workers consume immutable inputs and return local packets; graph truth changes only through canonical publication |
+| Determinism is explicit | Bitwise, contract-equivalent, and relaxed execution remain distinct contracts and cannot be silently weakened |
+| Portability does not erase boundaries | Worker, device, process, and network crossings expose capability, transfer, failure, cancellation, and recovery |
+| Domain neutrality is structural | Geometry, imaging, simulation, finance, and other consumers depend on generic partition/execution contracts; they do not enter core meaning |
+
+#### S9.17.1 — Resource Authority, Determinism, And Publication
+
+Parallel execution must be admitted through a runtime-owned resource authority.
+The configured worker budget must become a strict hierarchical lease, not a
+chunking hint. Nested work subdivides that lease. It may not allocate another
+pool or exceed the parent's concurrency, memory, deadline, or cancellation
+envelope.
+
+Required target forms:
+
+```rust
+pub struct ExecutionRequestPolicy { ... }
+pub struct ResolvedExecutionCapabilities { ... }
+pub struct ExecutionResourceLease { ... }
+pub enum DeterminismContract { ... }
+pub struct PreparedExecutionBatch { ... }
+pub struct CanonicalPublicationPlan { ... }
+pub struct ExecutionOutcomeEnvelope { ... }
+```
+
+Normative rules:
+
+- worker-count, memory, queue, and nested-concurrency bounds are enforced and
+  reported at runtime
+- task-stealing completion order never becomes canonical publication order
+- worker-local code cannot mutate authoritative graph state
+- cancellation and timeout expose exact progress and do not claim rollback
+- unsupported or unprofitable parallel work resolves before dispatch through
+  an explicit plan outcome
+- a target with no parallel capability executes the same plan serially when
+  policy permits, without semantic drift
+
+Milestone 14 owns this subsection.
+
+#### S9.17.2 — Proof-Carrying Graph Parallelism
+
+Graph concurrency requires three independent proofs:
+
+1. settled dependency versions
+2. control-order safety in the presence of dynamic rewiring
+3. disjoint mutation footprints or an explicit deterministic reconciliation
+
+A topological stage or lock is not a substitute for those proofs.
+
+Required target forms:
+
+```rust
+pub struct SettledDependencySet { ... }
+pub struct ControlOrderProof { ... }
+pub struct GraphMutationFootprint { ... }
+pub struct DisjointGraphBatch { ... }
+pub struct OrderedConflictPartition { ... }
+pub struct DependencyRewriteProposal { ... }
+pub struct GraphEpochPublication { ... }
+```
+
+Normative rules:
+
+- Milestone 13's causality owner admits invalidation edges before parallel
+  scheduling; parallel mechanics cannot reinterpret aspects or partitions
+- rewiring is worker-local proposal until cycle, subscription, and readiness
+  reconciliation succeeds
+- later work whose legality could change because of a proposed edge waits for
+  the next epoch unless narrower independence is proved
+- every synchronous graph, snapshot, subscription, lineage, observation, and
+  publication surface participates in conflict footprints
+- queues and unpublished packets remain bounded by the resource lease
+- graph-parallel and serial histories must be differentially equivalent under
+  adversarial schedule perturbation
+
+Milestone 15 owns this subsection.
+
+#### S9.17.3 — Structured Partitioned Parallelism
+
+Computation authors need domain-neutral structured patterns for work inside one
+node. The foundational family is map, reduce, scan, fork/join, and
+bulk-synchronous iterative rounds.
+
+Required target forms:
+
+```rust
+pub struct StableWorkPartition { ... }
+pub struct PartitionReadSet { ... }
+pub struct PartitionWriteSet { ... }
+pub struct PartitionComputation<I, O> { ... }
+pub struct DisjointPartitionBatch { ... }
+pub struct DeterministicReductionPlan { ... }
+pub struct ScanPlan { ... }
+pub struct SynchronousRoundPlan { ... }
+```
+
+Normative rules:
+
+- declarations describe semantic partition identity, access, reduction, and
+  convergence; the framework alone mints execution authority
+- worker index, completion order, raw spawning, and concrete backend types are
+  not computation meaning
+- deterministic reductions fix partition and join order where required;
+  floating-point associativity is never inferred
+- scans preserve declared order and are not encoded as unordered reduction
+- iterative rounds publish one complete round image before the next reads it
+- partition and graph work share one hierarchical lease
+- serial-only platforms execute the same declaration and proof topology
+
+Geometry is a future consumer and adversarial scale workload, not an API or
+module axis. Milestone 16 owns this subsection.
+
+#### S9.17.4 — Portable Backends And Distributed Coordination
+
+Portable backends consume only versioned prepared work. Capability negotiation
+must precede expensive transfer, and returned results are untrusted derived
+input until core readmission validates plan, version, epoch, integrity,
+determinism, footprint, and idempotency identity.
+
+Required target forms:
+
+```rust
+pub struct BackendCapabilityDescriptor { ... }
+pub struct BackendRequirementSet { ... }
+pub struct PortableComputationIdentity { ... }
+pub struct PreparedBackendBatch { ... }
+pub struct BackendSubmissionEnvelope { ... }
+pub struct BackendResultEnvelope { ... }
+pub struct BackendResultReadmission { ... }
+pub struct RemoteExecutionRecoveryHandle { ... }
+```
+
+Normative rules:
+
+- native pools, browser workers, device runtimes, process transports, and
+  network transports are adapters behind the core backend port
+- closures, callbacks, pointers, graph handles, credentials, ambient context,
+  and runtime authority cannot cross the portable boundary
+- remote work carries stable idempotency and input-epoch identity; duplicate,
+  delayed, stale, corrupt, or incompatible results cannot publish
+- indeterminate remote execution has a recovery handle and never claims
+  rollback
+- remote executors compute derived packets and do not become authoritative
+  graph replicas
+- `worth-signal-wasm` preserves its existing worker placement, readmission,
+  worker-first posture, and explicit fallback authority
+- accelerator support is claimed only after a real adapter passes numerical,
+  memory, cancellation, transfer, failure, and semantic conformance
+
+Milestone 17 owns this subsection.
+
+#### S9.17.5 — Certification And Performance Truth
+
+Parallel performance claims must report both semantic proof and the physical
+cost that limits speedup.
+
+Mandatory measurement boundaries include:
+
+- total work, span, and critical-path depth
+- active workers versus leased workers
+- queue width, steals, barriers, and conflict partitions
+- worker-local packet and canonical publication breadth
+- nested lease breadth and oversubscription denials
+- partitions, reductions, scans, rounds, and synchronization depth
+- transient, peak, retained, transferred, and resident bytes
+- serialization, device, process, and network transfer bytes and round trips
+- cancellation points, retries, duplicate results, recovery actions, and
+  fallback reasons
+- workload distribution, scale axes, runtime/backend versions, hardware,
+  cold/warm posture, repetitions, variance, and percentiles
+
+No elapsed-time result may compensate for semantic drift, resource-bound
+violation, hidden serial work, scope leakage, or missing external-boundary
+evidence. Serial equivalence remains an independent correctness oracle; it is
+not itself a speedup claim.
+
+This section extends S4, S5, S6, S9.5, S9.9, S9.10, S9.13, and S9.16 and
+encodes architectural laws `4`, `7`, `15`, `16`, `17`, `21`, and `22` plus the
+parallel, boundary, allocation, and measurement performance laws.
 
 ### S10 Ã¢â‚¬â€ Merge-Forward Expansion
 
@@ -2567,6 +2805,11 @@ S7 (facade) Ã¢â€ â€™ after S1Ã¢â‚¬â€œS4 stabilize
 S8 (context) Ã¢â€ â€™ after S2.4 (context in contracts) and S3.5 (defineComputation)
 S9 (performance enforcement addendum) Ã¢â€ â€™ extends S2/S3/S5/S6/S7 and should be
 written before any V2.1 rewrite work begins
+S9.16.3 causal/local invalidation repair and S9.16.6 certification
+  -> precede S9.17 parallel-execution expansion
+S9.17.1 resource/determinism foundation -> precedes S9.17.2 graph parallelism
+S9.17.2 graph parallelism -> precedes S9.17.3 nested partition parallelism
+S9.17.3 structured partition proof -> precedes S9.17.4 portable backends
 ```
 
 ### Recommended Execution Order
@@ -2633,6 +2876,7 @@ Batch 9 Ã¢â‚¬â€ Performance Enforcement Rewrite Layer
   S9.13 Architecture-mandated measurement boundaries
   S9.15 Branched runtime reconciliation and merge lineage
   S9.16 Geometry-kernel performance hardening program
+  S9.17 Deterministic and portable parallel execution
 ```
 
 ### Practical Rule
