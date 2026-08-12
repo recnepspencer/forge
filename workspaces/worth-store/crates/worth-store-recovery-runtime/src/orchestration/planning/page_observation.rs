@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use worth_store::physical_runtime::AdmittedRecoveryFilesystemMedia;
 use worth_store_physical_format::{
@@ -12,7 +12,6 @@ use worth_store_recovery_physics::{
 mod allocation_truth;
 mod failure;
 mod materialized;
-mod publication_inventory;
 mod selected_basis;
 
 pub(in crate::orchestration::planning) use allocation_truth::InlineAllocationTruth;
@@ -28,7 +27,7 @@ pub(super) struct PageObservationAttempt {
 pub(super) struct ObservedPageBasis {
     pub(super) observations: Vec<RecoveryPageObservation>,
     pub(super) inline_truth: Option<allocation_truth::InlineAllocationTruth>,
-    pub(super) publication_inventory: crate::progression::RecoveryPublicationSourceInventory,
+    pub(super) selected_source: crate::progression::RecoverySelectedSourceInventory,
 }
 
 pub(super) use selected_basis::{artifact_read_ceiling, ArtifactReadCeilingDenial};
@@ -75,17 +74,15 @@ fn observe(
     maximum_manifest_entries: u64,
     byte_limit: u64,
 ) -> Result<ObservedPageBasis, PageObservationFailure> {
+    let selected_source = super::selected_source_inventory::observe(
+        discovery,
+        root_manifest,
+        format,
+        maximum_manifest_entries,
+        byte_limit,
+    )?;
     let mut inline_targets = BTreeMap::new();
     let mut extent_targets = BTreeMap::<u64, BTreeMap<u32, &PhysicalRedoTarget>>::new();
-    let selected_inline_locations = placements
-        .iter()
-        .filter_map(|placement| match placement {
-            CurrentPhysicalRecordPlacement::Inline(inline) => {
-                Some((inline.segment().get(), inline.page().get()))
-            }
-            CurrentPhysicalRecordPlacement::Extent(_) => None,
-        })
-        .collect::<BTreeSet<_>>();
     for target in targets {
         match target.identity() {
             PhysicalRedoTargetIdentity::InlinePage { segment, page, .. } => {
@@ -100,23 +97,6 @@ fn observe(
             }
         }
     }
-    let existing_inline_targets = inline_targets.values().copied().filter(|target| {
-        matches!(
-            target.identity(),
-            PhysicalRedoTargetIdentity::InlinePage { segment, page, .. }
-                if selected_inline_locations.contains(&(segment, page))
-        )
-    });
-    let mut manifest_entries =
-        super::segment_observation::ManifestEntryBudget::new(maximum_manifest_entries);
-    let segment_entries = super::segment_observation::resolve_inline_targets(
-        discovery,
-        root_manifest,
-        existing_inline_targets,
-        format,
-        &mut manifest_entries,
-        byte_limit,
-    )?;
     let mut observations = Vec::new();
     let absence_identity =
         selected_basis::selected_absence_identity(root_manifest, placements, format);
@@ -135,7 +115,7 @@ fn observe(
                     target,
                     format,
                     byte_limit,
-                    &segment_entries,
+                    &selected_source.segment_pages,
                 )?);
             }
             CurrentPhysicalRecordPlacement::Extent(extent) => {
@@ -160,27 +140,17 @@ fn observe(
         .chain(extent_targets.into_values().flat_map(BTreeMap::into_values))
         .collect();
     let absent = allocation_truth::admit_absent_targets(
-        discovery,
         root_manifest,
         placements,
         absent_targets,
-        format,
-        &mut manifest_entries,
-        byte_limit,
+        &selected_source,
         absence_identity,
     )?;
     observations.extend(absent.observations);
-    let publication_inventory = publication_inventory::observe(
-        discovery,
-        root_manifest,
-        format,
-        &mut manifest_entries,
-        byte_limit,
-    )?;
     Ok(ObservedPageBasis {
         observations,
         inline_truth: absent.inline_truth,
-        publication_inventory,
+        selected_source,
     })
 }
 

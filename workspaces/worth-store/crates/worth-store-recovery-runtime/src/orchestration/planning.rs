@@ -6,7 +6,7 @@ mod denial;
 mod operation_join;
 mod page_observation;
 mod resolved_basis;
-mod segment_observation;
+mod selected_source_inventory;
 
 use crate::entry::PhysicalRecoveryOutcome;
 use crate::progression::{PlannedPhysicalRecovery, SelectedPhysicalRecovery};

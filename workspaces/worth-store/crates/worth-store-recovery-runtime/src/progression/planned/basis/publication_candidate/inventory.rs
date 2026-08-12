@@ -8,7 +8,7 @@ use worth_store_physical_format::{
 
 use super::CandidateBuildDenial;
 use crate::progression::{
-    RecoveryBaseImageAction, RecoveryPublicationSourceInventory, RecoverySegmentRoutingAction,
+    RecoveryBaseImageAction, RecoverySegmentRoutingAction, RecoverySelectedSourceInventory,
 };
 
 pub(super) struct FinalInventory {
@@ -24,7 +24,7 @@ pub(super) struct FinalInventory {
 }
 
 pub(super) fn finalize(
-    source: &RecoveryPublicationSourceInventory,
+    source: &RecoverySelectedSourceInventory,
     actions: &[RecoveryBaseImageAction],
     updates: &[RecoverySegmentRoutingAction],
     root_states: &[PersistedPhysicalRecoveryRootState],
@@ -43,10 +43,9 @@ pub(super) fn finalize(
         return Err(CandidateBuildDenial::Invalid);
     }
     let mut segments = source
-        .segment_entries
-        .iter()
-        .copied()
-        .map(|entry| (SegmentPageKey::from(entry), entry))
+        .segment_pages
+        .values()
+        .map(|page| (SegmentPageKey::from(page.entry), page.entry))
         .collect::<BTreeMap<_, _>>();
     for update in updates {
         let entry = update.update();
@@ -136,7 +135,7 @@ fn common_capacity(
 }
 
 fn next_segment(
-    source: &RecoveryPublicationSourceInventory,
+    source: &RecoverySelectedSourceInventory,
     states: &[PersistedPhysicalRecoveryRootState],
 ) -> Result<u64, CandidateBuildDenial> {
     states
@@ -154,7 +153,7 @@ fn next_segment(
 }
 
 fn next_page(
-    source: &RecoveryPublicationSourceInventory,
+    source: &RecoverySelectedSourceInventory,
     placements: &[CurrentPhysicalRecordPlacement],
 ) -> Result<u64, CandidateBuildDenial> {
     placements
@@ -171,7 +170,7 @@ fn next_page(
 }
 
 fn next_extent(
-    source: &RecoveryPublicationSourceInventory,
+    source: &RecoverySelectedSourceInventory,
     placements: &[CurrentPhysicalRecordPlacement],
 ) -> Result<u64, CandidateBuildDenial> {
     placements

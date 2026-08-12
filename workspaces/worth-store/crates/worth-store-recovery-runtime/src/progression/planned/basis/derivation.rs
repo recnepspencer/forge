@@ -12,7 +12,7 @@ pub(crate) fn derive_execution_basis(
     freshness: &StoreRecoveryBindingFreshnessSample,
     fates: &ReconciledOperationFates,
     redo: &ImmutablePhysicalRedoPlan,
-    publication_source: Option<&RecoveryPublicationSourceInventory>,
+    selected_source: &RecoverySelectedSourceInventory,
     maximum_staging_bytes: u64,
     maximum_dirty_frames: u64,
 ) -> Result<
@@ -34,7 +34,7 @@ pub(crate) fn derive_execution_basis(
     let actions = actions::derive(redo, &materialization, pending.staging_generation)?;
     let staging = layout::assemble(
         selection,
-        publication_source,
+        selected_source,
         &pending,
         materialization,
         actions,
@@ -45,7 +45,7 @@ pub(crate) fn derive_execution_basis(
         freshness,
         fates,
         redo,
-        publication_source,
+        selected_source,
         pending,
         staging,
     )

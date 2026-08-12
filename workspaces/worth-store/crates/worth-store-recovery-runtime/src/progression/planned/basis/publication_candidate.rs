@@ -7,7 +7,7 @@ use worth_store_physical_format::{
 };
 
 use super::{
-    RecoveryBaseImagePlan, RecoveryPublicationCandidateArtifact, RecoveryPublicationSourceInventory,
+    RecoveryBaseImagePlan, RecoveryPublicationCandidateArtifact, RecoverySelectedSourceInventory,
 };
 
 mod inventory;
@@ -26,7 +26,7 @@ pub(super) enum CandidateBuildDenial {
 pub(super) fn build(
     store: worth_store_physical_format::store_namespace::StableStoreIdentity,
     base: &RecoveryBaseImagePlan,
-    source: &RecoveryPublicationSourceInventory,
+    source: &RecoverySelectedSourceInventory,
     format: PhysicalRecordFormatDeclaration,
     publication: u64,
 ) -> Result<RecoveryCandidateBasis, CandidateBuildDenial> {

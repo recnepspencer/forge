@@ -5,6 +5,7 @@ use worth_store_physical_format::{
 };
 use worth_store_recovery_physics::{PhysicalRedoTarget, PhysicalRedoTargetIdentity};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ArtifactReadCeiling {
     pub(crate) addressed_reads: u64,
 }
@@ -36,79 +37,55 @@ pub(crate) fn artifact_read_ceiling(
             CurrentPhysicalRecordPlacement::Inline(_) => None,
         })
         .collect::<BTreeSet<_>>();
-    let mut inline_reads = 0_u64;
-    let mut extent_reads = 0_u64;
-    let mut has_absent = false;
+    if maximum_manifest_entries == 0 {
+        return Err(ArtifactReadCeilingDenial::ManifestEntriesExhausted);
+    }
+    let mut inline_reads = BTreeSet::new();
+    let mut extent_reads = BTreeSet::new();
     let mut extent_manifests = BTreeSet::new();
     for target in targets {
         match target.identity() {
             PhysicalRedoTargetIdentity::InlinePage { segment, page, .. }
                 if inline_locations.contains(&(segment, page)) =>
             {
-                inline_reads = inline_reads
-                    .checked_add(1)
-                    .ok_or(ArtifactReadCeilingDenial::Overflow)?;
+                inline_reads.insert((segment, page));
             }
-            PhysicalRedoTargetIdentity::ExtentChunk { extent, .. }
+            PhysicalRedoTargetIdentity::ExtentChunk { extent, chunk, .. }
                 if extent_locations.contains(&extent) =>
             {
-                extent_reads = extent_reads
-                    .checked_add(1)
-                    .ok_or(ArtifactReadCeilingDenial::Overflow)?;
+                extent_reads.insert((extent, chunk));
                 extent_manifests.insert(extent);
             }
-            _ => has_absent = true,
+            _ => {}
         }
     }
-    let routed_blocks = routed_block_ceiling(inline_reads, maximum_manifest_entries)?;
-    let absence_reads = if has_absent {
-        if maximum_manifest_entries == 0 {
-            return Err(ArtifactReadCeilingDenial::ManifestEntriesExhausted);
-        }
-        maximum_manifest_entries
-            .checked_add(1)
-            .ok_or(ArtifactReadCeilingDenial::Overflow)?
-    } else {
-        0
-    };
-    let publication_inventory_reads = maximum_manifest_entries
+    let selected_source_reads = maximum_manifest_entries
         .checked_add(1)
         .ok_or(ArtifactReadCeilingDenial::Overflow)?;
-    routed_blocks
-        .checked_add(inline_reads)
-        .and_then(|value| value.checked_add(extent_reads))
+    selected_source_reads
+        .checked_add(inline_reads.len() as u64)
+        .and_then(|value| value.checked_add(extent_reads.len() as u64))
         .and_then(|value| value.checked_add(extent_manifests.len() as u64))
-        .and_then(|value| value.checked_add(absence_reads))
-        .and_then(|value| value.checked_add(publication_inventory_reads))
         .map(|ceiling| ArtifactReadCeiling {
-            addressed_reads: ceiling.max(1),
+            addressed_reads: ceiling,
         })
         .ok_or(ArtifactReadCeilingDenial::Overflow)
 }
 
-fn routed_block_ceiling(
-    inline_reads: u64,
-    maximum_manifest_entries: u64,
-) -> Result<u64, ArtifactReadCeilingDenial> {
-    match (inline_reads, maximum_manifest_entries) {
-        (0, _) => Ok(0),
-        (_, 0) => Err(ArtifactReadCeilingDenial::ManifestEntriesExhausted),
-        (_, maximum) => Ok(maximum),
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{routed_block_ceiling, ArtifactReadCeilingDenial};
+    use super::{artifact_read_ceiling, ArtifactReadCeilingDenial};
 
     #[test]
-    fn inline_routing_cannot_obtain_a_read_ceiling_after_entry_exhaustion() {
+    fn selected_source_inventory_cannot_read_after_entry_exhaustion() {
         assert_eq!(
-            routed_block_ceiling(1, 0),
+            artifact_read_ceiling(&[], &[], 0),
             Err(ArtifactReadCeilingDenial::ManifestEntriesExhausted)
         );
-        assert_eq!(routed_block_ceiling(0, 0), Ok(0));
-        assert_eq!(routed_block_ceiling(1, 1), Ok(1));
+        assert_eq!(
+            artifact_read_ceiling(&[], &[], 1).unwrap().addressed_reads,
+            2
+        );
     }
 }
 

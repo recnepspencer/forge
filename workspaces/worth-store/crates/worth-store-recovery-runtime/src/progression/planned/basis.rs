@@ -30,11 +30,18 @@ pub(crate) enum ExecutionBasisDenial {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct RecoveryPublicationSourceInventory {
+pub(crate) struct RecoverySelectedSourceInventory {
     pub(crate) free_space: DurableFreeSpaceManifestHeader,
-    pub(crate) segment_entries: Box<[RecordSegmentPageManifestEntry]>,
+    pub(crate) segment_pages: BTreeMap<(u64, u64), RecoverySelectedSegmentPage>,
     pub(crate) free_entries: Box<[RecordFreeSpaceManifestEntry]>,
     pub(crate) source_artifacts: Box<[RecordArtifactFile]>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct RecoverySelectedSegmentPage {
+    pub(crate) entry: RecordSegmentPageManifestEntry,
+    pub(crate) routing_identity: [u8; 32],
+    pub(crate) membership_artifact: RecordArtifactFile,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

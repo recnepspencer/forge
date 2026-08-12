@@ -5,7 +5,7 @@ use super::pending::PendingProjectionBasis;
 
 pub(super) fn assemble(
     selection: &PhysicalSourceSelection,
-    publication_source: Option<&RecoveryPublicationSourceInventory>,
+    selected_source: &RecoverySelectedSourceInventory,
     pending: &PendingProjectionBasis<'_>,
     materialization: ProjectedMaterializationBasis,
     actions: StagingActionBasis,
@@ -21,7 +21,7 @@ pub(super) fn assemble(
         bytes.checked_add(command.byte_count())
     });
     let write_bytes = write_bytes.ok_or(ExecutionBasisDenial::Invalid)?;
-    let base = base_image(selection, publication_source, pending, materialization);
+    let base = base_image(selection, selected_source, pending, materialization);
     Ok(RecoveryStagingLayoutPlan {
         source_generation: pending.source_generation,
         staging_generation: pending.staging_generation,
@@ -36,7 +36,7 @@ pub(super) fn assemble(
 
 fn base_image(
     selection: &PhysicalSourceSelection,
-    publication_source: Option<&RecoveryPublicationSourceInventory>,
+    selected_source: &RecoverySelectedSourceInventory,
     pending: &PendingProjectionBasis<'_>,
     materialization: ProjectedMaterializationBasis,
 ) -> RecoveryBaseImagePlan {
@@ -61,7 +61,7 @@ fn base_image(
         .map(|(ordinal, placement)| base_action(ordinal, placement, &projected_records))
         .collect::<Vec<_>>()
         .into_boxed_slice();
-    let source_artifacts = selected_source_artifacts(selection, publication_source);
+    let source_artifacts = selected_source_artifacts(selection, selected_source);
     RecoveryBaseImagePlan {
         selected_selector: selection.root().selected().selector(),
         selected_root: selection.root().selected().manifest().clone(),
@@ -92,7 +92,7 @@ fn base_image(
 
 fn selected_source_artifacts(
     selection: &PhysicalSourceSelection,
-    publication_source: Option<&RecoveryPublicationSourceInventory>,
+    selected_source: &RecoverySelectedSourceInventory,
 ) -> Box<[RecordArtifactFile]> {
     let selected = selection.root().selected();
     let mut artifacts = BTreeSet::from([
@@ -131,9 +131,7 @@ fn selected_source_artifacts(
             generation: previous.manifest().generation(),
         });
     }
-    if let Some(source) = publication_source {
-        artifacts.extend(source.source_artifacts.iter().copied());
-    }
+    artifacts.extend(selected_source.source_artifacts.iter().copied());
     artifacts.into_iter().collect::<Vec<_>>().into_boxed_slice()
 }
 

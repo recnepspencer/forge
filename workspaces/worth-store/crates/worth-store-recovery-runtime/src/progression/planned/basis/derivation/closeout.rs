@@ -7,7 +7,7 @@ pub(super) fn seal(
     freshness: &StoreRecoveryBindingFreshnessSample,
     fates: &ReconciledOperationFates,
     redo: &ImmutablePhysicalRedoPlan,
-    publication_source: Option<&RecoveryPublicationSourceInventory>,
+    selected_source: &RecoverySelectedSourceInventory,
     pending: PendingProjectionBasis<'_>,
     staging: RecoveryStagingLayoutPlan,
 ) -> Result<
@@ -34,11 +34,10 @@ pub(super) fn seal(
             artifacts: Box::new([]),
         }
     } else {
-        let source = publication_source.ok_or(ExecutionBasisDenial::Invalid)?;
         super::super::publication_candidate::build(
             store,
             staging.base_image(),
-            source,
+            selected_source,
             selection.root().selected().selector().format(),
             publication_identity,
         )

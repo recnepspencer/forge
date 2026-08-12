@@ -14,17 +14,16 @@ use super::resolved_basis::ResolvedPlanningBasis;
 
 pub(super) fn complete(
     context: PlanningContext,
-    mut basis: ResolvedPlanningBasis,
+    basis: ResolvedPlanningBasis,
 ) -> Result<PlannedPhysicalRecovery, PhysicalRecoveryOutcome> {
     let planning_counters = basis.planning_counters();
-    let publication_source = basis.observed_pages.publication_inventory.take();
     let (staging, publication, quiescence) = match derive_execution_basis(
         context.authority.media.store_identity(),
         &context.selection,
         &basis.sample,
         &basis.fates,
         &basis.redo,
-        publication_source.as_ref(),
+        &basis.observed_pages.selected_source,
         context.limits.staging_bytes,
         context.limits.dirty_frames,
     ) {

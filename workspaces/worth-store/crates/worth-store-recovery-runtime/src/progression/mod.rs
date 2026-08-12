@@ -7,7 +7,8 @@ mod selected;
 mod staged;
 
 pub(crate) use planned::{
-    derive_execution_basis, ExecutionBasisDenial, RecoveryPublicationSourceInventory,
+    derive_execution_basis, ExecutionBasisDenial, RecoverySelectedSegmentPage,
+    RecoverySelectedSourceInventory,
 };
 
 pub use admitted::AdmittedPhysicalRecovery;

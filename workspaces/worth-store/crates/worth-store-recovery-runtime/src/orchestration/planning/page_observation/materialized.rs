@@ -13,7 +13,7 @@ use worth_store_recovery_physics::{
 };
 
 use super::{required, PageObservationFailure};
-use crate::orchestration::planning::segment_observation::ResolvedSegmentPage;
+use crate::progression::RecoverySelectedSegmentPage;
 
 pub(super) fn observe_inline(
     discovery: &mut BoundedRecoveryFilesystemDiscovery,
@@ -21,7 +21,7 @@ pub(super) fn observe_inline(
     target: &PhysicalRedoTarget,
     format: PhysicalRecordFormatDeclaration,
     byte_limit: u64,
-    entries: &BTreeMap<(u64, u64), ResolvedSegmentPage>,
+    entries: &BTreeMap<(u64, u64), RecoverySelectedSegmentPage>,
 ) -> Result<RecoveryPageObservation, PageObservationFailure> {
     let resolved = entries
         .get(&(placement.segment().get(), placement.page().get()))

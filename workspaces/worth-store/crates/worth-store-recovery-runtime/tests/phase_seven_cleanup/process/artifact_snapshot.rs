@@ -7,6 +7,9 @@ use worth_store_recovery_runtime::{
     RecoveryCleanupDispositionKind, RecoveryCleanupEvidence, RecoveryCleanupTarget,
 };
 
+#[path = "artifact_snapshot/selected_records.rs"]
+mod selected_records;
+
 pub(super) struct ArtifactSnapshot {
     paths: BTreeSet<PathBuf>,
 }
@@ -14,7 +17,9 @@ pub(super) struct ArtifactSnapshot {
 impl ArtifactSnapshot {
     pub(super) fn capture(root: &Path) -> Self {
         let mut paths = BTreeSet::new();
-        collect_files(&root.join("families"), &mut paths);
+        selected_records::capture(root, &mut paths);
+        collect_file(&root.join("families/checkpoint.current"), &mut paths);
+        collect_files(&root.join("families/wal"), &mut paths);
         Self { paths }
     }
 
@@ -95,6 +100,12 @@ fn collect_files(directory: &Path, paths: &mut BTreeSet<PathBuf>) {
         } else if path.is_file() {
             paths.insert(path);
         }
+    }
+}
+
+fn collect_file(path: &Path, paths: &mut BTreeSet<PathBuf>) {
+    if path.is_file() {
+        paths.insert(path.to_path_buf());
     }
 }
 

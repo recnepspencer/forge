@@ -1,17 +1,14 @@
 use super::*;
+use worth_store_physical_format::RecordArtifactFile;
 
 type AbsentInlineTarget<'a> = (u64, u64, u64, &'a PhysicalRedoTarget);
 
-#[allow(clippy::too_many_arguments)]
 pub(super) fn admit_inline_allocations(
-    discovery: &mut BoundedRecoveryFilesystemDiscovery,
     root: &DurablePhysicalRootManifest,
     placements: &[CurrentPhysicalRecordPlacement],
     targets: &[&PhysicalRedoTarget],
     header: &DurableFreeSpaceManifestHeader,
-    format: PhysicalRecordFormatDeclaration,
-    manifest_entries: &mut ManifestEntryBudget,
-    byte_limit: u64,
+    free_entries: &[RecordFreeSpaceManifestEntry],
 ) -> Result<(), PageObservationFailure> {
     let absent = absent_inline_targets(targets);
     if absent.is_empty() {
@@ -26,16 +23,14 @@ pub(super) fn admit_inline_allocations(
         );
     };
     let selected_target = absent[0].3.identity();
-    let reusable_entry = locate_free_entry(
-        discovery,
-        header,
-        FreeSpaceKey::new(RecordAllocationClass::InlinePage, last.segment_id().get())
-            .expect("selected segment identity is nonzero"),
-        format,
-        manifest_entries,
-        byte_limit,
-        selected_target,
-    )?;
+    let key = FreeSpaceKey::new(RecordAllocationClass::InlinePage, last.segment_id().get())
+        .expect("selected segment identity is nonzero");
+    let reusable_entry = free_entries
+        .binary_search_by_key(&(key.class() as u8, key.owner()), |entry| {
+            (entry.class() as u8, entry.owner())
+        })
+        .ok()
+        .map(|index| free_entries[index]);
     let reusable_pages = selected_reusable_pages(
         placements,
         last.segment_id().get(),

@@ -25,7 +25,6 @@ use crate::entry::{
     PhysicalRecoveryOpenRequest, PhysicalRecoveryPlatformAuthority,
     PhysicalRecoveryStaticConfiguration,
 };
-use crate::orchestration::planning::segment_observation::ManifestEntryBudget;
 
 #[path = "tests/capacity_tests.rs"]
 mod capacity_tests;
@@ -74,37 +73,14 @@ fn production_admission_rejects_bypassing_or_prematurely_spilling_reusable_pages
 }
 
 #[test]
-fn selected_and_allocation_routing_share_one_manifest_entry_budget() {
+fn selected_source_inventory_denies_before_crossing_manifest_block_read() {
     let world = selected_world("allocation-cumulative-entry-budget", 4);
-    let inline = world
-        .placements
-        .iter()
-        .find_map(|placement| match placement {
-            CurrentPhysicalRecordPlacement::Inline(inline) => Some(*inline),
-            CurrentPhysicalRecordPlacement::Extent(_) => None,
-        })
-        .unwrap();
-    let selected = target(
-        inline.segment().get(),
-        inline.page().get(),
-        inline.page_generation(),
-        inline.segment().get(),
-        inline.segment_generation(),
-        6,
-    );
-    let absent = target(
-        inline.segment().get(),
-        inline.page().get() + 1,
-        1,
-        inline.segment().get(),
-        inline.segment_generation() + 1,
-        7,
-    );
+    assert!(!world.placements.is_empty());
     let SelectedWorld {
         authority,
         coordination,
         root,
-        placements,
+        placements: _,
         retained,
     } = world;
     let AdmittedPlatformAuthority {
@@ -117,32 +93,18 @@ fn selected_and_allocation_routing_share_one_manifest_entry_budget() {
     let format = worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
         .admit()
         .unwrap();
-    let mut manifest_entries = ManifestEntryBudget::new(1);
-    crate::orchestration::planning::segment_observation::resolve_inline_targets(
+    let result = crate::orchestration::planning::selected_source_inventory::observe(
         &mut discovery,
         &root,
-        std::iter::once(&selected),
         format,
-        &mut manifest_entries,
+        1,
         1024 * 1024,
-    )
-    .unwrap();
-    let before = discovery.counters();
-    let result = admit_absent_targets(
-        &mut discovery,
-        &root,
-        &placements,
-        vec![&absent],
-        format,
-        &mut manifest_entries,
-        1024 * 1024,
-        [9; 32],
     );
     assert_eq!(
         result,
         Err(super::PageObservationFailure::ManifestEntryLimit)
     );
-    assert_eq!(discovery.counters(), before);
+    assert_eq!(discovery.counters().addressed_artifacts_read, 2);
     drop(discovery.finish());
     assert!(coordination.shutdown_is_quiescent());
     session.refuse();
@@ -258,15 +220,19 @@ fn assert_result(world: SelectedWorld, targets: Vec<PhysicalRedoTarget>, expecte
     let format = worth_store_physical_format::PhysicalRecordFormatDeclaration::builder()
         .admit()
         .unwrap();
-    let mut manifest_entries = ManifestEntryBudget::new(64);
-    let result = admit_absent_targets(
+    let selected_source = crate::orchestration::planning::selected_source_inventory::observe(
         &mut discovery,
+        &root,
+        format,
+        64,
+        1024 * 1024,
+    )
+    .unwrap();
+    let result = admit_absent_targets(
         &root,
         &placements,
         targets.iter().collect(),
-        format,
-        &mut manifest_entries,
-        1024 * 1024,
+        &selected_source,
         [9; 32],
     );
     if expected {

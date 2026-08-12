@@ -19,8 +19,7 @@ pub(super) struct PageObservationResult {
     pub(super) artifact_reads: u64,
     pub(super) bytes_read: u64,
     pub(super) inline_truth: Option<super::page_observation::InlineAllocationTruth>,
-    pub(super) publication_inventory:
-        Option<crate::progression::RecoveryPublicationSourceInventory>,
+    pub(super) selected_source: crate::progression::RecoverySelectedSourceInventory,
 }
 
 pub(super) struct ResolvedPlanningBasis {
@@ -50,74 +49,14 @@ pub(super) fn resolve(
     admitted: AdmittedPlanningBasis,
 ) -> Result<(PlanningContext, ResolvedPlanningBasis), PhysicalRecoveryOutcome> {
     let observation_targets = admitted.redo.observation_targets();
-    let mut observed_pages = if observation_targets.is_empty() {
-        PageObservationResult {
-            observations: Vec::new(),
-            artifact_reads: 0,
-            bytes_read: 0,
-            inline_truth: None,
-            publication_inventory: None,
-        }
-    } else {
-        let read_ceiling = match page_observation::artifact_read_ceiling(
-            context.selection.page_facts().placements(),
-            &observation_targets,
-            admitted.remaining_manifest_entries,
-        ) {
-            Ok(ceiling) => ceiling,
-            Err(page_observation::ArtifactReadCeilingDenial::ManifestEntriesExhausted) => {
-                let admitted_entries = context.limits.manifest_entries;
-                let planning_counters = counters::after_fates(
-                    &admitted.sample,
-                    &admitted.fates,
-                    PhysicalRedoPlanCounters::default(),
-                    0,
-                    0,
-                );
-                return Err(context.block_with_planning_attempt_denial(
-                    PhysicalRecoveryBlockKind::PageAdmission,
-                    planning_counters,
-                    "manifest-addressed-page-or-extent",
-                    Some(PhysicalRecoveryLimitFailure {
-                        dimension: PhysicalRecoveryLimitDimension::ManifestEntries,
-                        observed: admitted_entries.saturating_add(1),
-                        admitted: admitted_entries,
-                    }),
-                    PhysicalRecoveryPlanningDenial::Page(
-                        PageObservationFailure::ManifestEntryLimit.evidence(),
-                    ),
-                ));
-            }
-            Err(page_observation::ArtifactReadCeilingDenial::Overflow) => {
-                let admitted_entries = context.limits.manifest_entries;
-                let planning_counters = counters::after_fates(
-                    &admitted.sample,
-                    &admitted.fates,
-                    PhysicalRedoPlanCounters::default(),
-                    0,
-                    0,
-                );
-                return Err(context.block_with_planning_attempt_denial(
-                    PhysicalRecoveryBlockKind::PageAdmission,
-                    planning_counters,
-                    "manifest-addressed-page-or-extent",
-                    Some(PhysicalRecoveryLimitFailure {
-                        dimension: PhysicalRecoveryLimitDimension::ManifestEntries,
-                        observed: u64::MAX,
-                        admitted: admitted_entries,
-                    }),
-                    PhysicalRecoveryPlanningDenial::Page(
-                        PageObservationFailure::ManifestEntryLimit.evidence(),
-                    ),
-                ));
-            }
-        };
-        let remaining_observation_bytes = context
-            .limits
-            .observation_bytes
-            .saturating_sub(context.counters.bytes_observed);
-        if remaining_observation_bytes == 0 {
-            let admitted_bytes = context.limits.observation_bytes;
+    let read_ceiling = match page_observation::artifact_read_ceiling(
+        context.selection.page_facts().placements(),
+        &observation_targets,
+        admitted.remaining_manifest_entries,
+    ) {
+        Ok(ceiling) => ceiling,
+        Err(page_observation::ArtifactReadCeilingDenial::ManifestEntriesExhausted) => {
+            let admitted_entries = context.limits.manifest_entries;
             let planning_counters = counters::after_fates(
                 &admitted.sample,
                 &admitted.fates,
@@ -128,52 +67,102 @@ pub(super) fn resolve(
             return Err(context.block_with_planning_attempt_denial(
                 PhysicalRecoveryBlockKind::PageAdmission,
                 planning_counters,
-                "manifest-addressed-page-or-extent",
+                "selected-source-inventory",
                 Some(PhysicalRecoveryLimitFailure {
-                    dimension: PhysicalRecoveryLimitDimension::ObservationBytes,
-                    observed: admitted_bytes.saturating_add(1),
-                    admitted: admitted_bytes,
+                    dimension: PhysicalRecoveryLimitDimension::ManifestEntries,
+                    observed: admitted_entries.saturating_add(1),
+                    admitted: admitted_entries,
                 }),
-                PhysicalRecoveryPlanningDenial::Page(PageObservationFailure::ByteLimit.evidence()),
+                PhysicalRecoveryPlanningDenial::Page(
+                    PageObservationFailure::ManifestEntryLimit.evidence(),
+                ),
             ));
         }
-        let media = context.authority.media;
-        let (media, attempt) = page_observation::observe_selected_pages(
-            media,
-            context.selection.root().selected().manifest(),
-            context.selection.page_facts().placements(),
-            &observation_targets,
-            admitted.format,
-            read_ceiling.addressed_reads,
-            admitted.remaining_manifest_entries,
-            remaining_observation_bytes,
-        );
-        context.authority.media = media;
+        Err(page_observation::ArtifactReadCeilingDenial::Overflow) => {
+            let admitted_entries = context.limits.manifest_entries;
+            let planning_counters = counters::after_fates(
+                &admitted.sample,
+                &admitted.fates,
+                PhysicalRedoPlanCounters::default(),
+                0,
+                0,
+            );
+            return Err(context.block_with_planning_attempt_denial(
+                PhysicalRecoveryBlockKind::PageAdmission,
+                planning_counters,
+                "selected-source-inventory",
+                Some(PhysicalRecoveryLimitFailure {
+                    dimension: PhysicalRecoveryLimitDimension::ManifestEntries,
+                    observed: u64::MAX,
+                    admitted: admitted_entries,
+                }),
+                PhysicalRecoveryPlanningDenial::Page(
+                    PageObservationFailure::ManifestEntryLimit.evidence(),
+                ),
+            ));
+        }
+    };
+    let remaining_observation_bytes = context
+        .limits
+        .observation_bytes
+        .saturating_sub(context.counters.bytes_observed);
+    if remaining_observation_bytes == 0 {
+        let admitted_bytes = context.limits.observation_bytes;
         let planning_counters = counters::after_fates(
             &admitted.sample,
             &admitted.fates,
             PhysicalRedoPlanCounters::default(),
-            attempt.artifact_reads,
-            attempt.bytes_read,
+            0,
+            0,
         );
-        match attempt.result {
-            Ok(observed) => PageObservationResult {
-                observations: observed.observations,
-                artifact_reads: attempt.artifact_reads,
-                bytes_read: attempt.bytes_read,
-                inline_truth: observed.inline_truth,
-                publication_inventory: Some(observed.publication_inventory),
-            },
-            Err(denial) => {
-                let limit = observation_limit(&context, &denial, remaining_observation_bytes);
-                return Err(context.block_with_planning_attempt_denial(
-                    PhysicalRecoveryBlockKind::PageAdmission,
-                    planning_counters,
-                    "manifest-addressed-page-or-extent",
-                    limit,
-                    PhysicalRecoveryPlanningDenial::Page(denial.evidence()),
-                ));
-            }
+        return Err(context.block_with_planning_attempt_denial(
+            PhysicalRecoveryBlockKind::PageAdmission,
+            planning_counters,
+            "selected-source-inventory",
+            Some(PhysicalRecoveryLimitFailure {
+                dimension: PhysicalRecoveryLimitDimension::ObservationBytes,
+                observed: admitted_bytes.saturating_add(1),
+                admitted: admitted_bytes,
+            }),
+            PhysicalRecoveryPlanningDenial::Page(PageObservationFailure::ByteLimit.evidence()),
+        ));
+    }
+    let media = context.authority.media;
+    let (media, attempt) = page_observation::observe_selected_pages(
+        media,
+        context.selection.root().selected().manifest(),
+        context.selection.page_facts().placements(),
+        &observation_targets,
+        admitted.format,
+        read_ceiling.addressed_reads,
+        admitted.remaining_manifest_entries,
+        remaining_observation_bytes,
+    );
+    context.authority.media = media;
+    let planning_counters = counters::after_fates(
+        &admitted.sample,
+        &admitted.fates,
+        PhysicalRedoPlanCounters::default(),
+        attempt.artifact_reads,
+        attempt.bytes_read,
+    );
+    let mut observed_pages = match attempt.result {
+        Ok(observed) => PageObservationResult {
+            observations: observed.observations,
+            artifact_reads: attempt.artifact_reads,
+            bytes_read: attempt.bytes_read,
+            inline_truth: observed.inline_truth,
+            selected_source: observed.selected_source,
+        },
+        Err(denial) => {
+            let limit = observation_limit(&context, &denial, remaining_observation_bytes);
+            return Err(context.block_with_planning_attempt_denial(
+                PhysicalRecoveryBlockKind::PageAdmission,
+                planning_counters,
+                "selected-source-inventory-and-pages",
+                limit,
+                PhysicalRecoveryPlanningDenial::Page(denial.evidence()),
+            ));
         }
     };
     let observations = std::mem::take(&mut observed_pages.observations);
