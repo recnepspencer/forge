@@ -24,7 +24,7 @@ impl ArtifactTreeMedia<'_> {
         })
     }
 
-    pub(in crate::filesystem_media::artifact_tree) fn remove_file_durably_observed(
+    pub(crate) fn remove_file_durably_observed(
         &self,
         artifact: &ArtifactTreeFile,
     ) -> ArtifactTreePublicationEffectOutcome {

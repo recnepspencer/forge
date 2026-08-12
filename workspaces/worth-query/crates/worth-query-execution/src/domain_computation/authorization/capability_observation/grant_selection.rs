@@ -27,8 +27,8 @@ impl SelectedCapabilityGrant {
 use super::super::capability_registry::WorthQueryInstalledCapabilityPlan;
 use super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::super::{
-    WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryRuntimeTimeSample,
 };
 
 pub(super) fn select_exact_grant(
@@ -36,7 +36,7 @@ pub(super) fn select_exact_grant(
     snapshot: worth_relational::facade::snapshots::SnapshotHandle,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
 ) -> Result<SelectedCapabilityGrant, WorthQueryOperationAuthorizationDenial> {
     let lookup = lookup_candidate_grants(relational, snapshot.clone(), installed, request)?;
     let paths = prepare_candidate_paths(installed, request, sample, lookup.candidate_entity_ids())?;
@@ -91,7 +91,7 @@ fn lookup_candidate_grants(
 fn prepare_candidate_paths(
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     candidates: &[worth_relational::facade::identity::EntityId],
 ) -> Result<Vec<RelationalAuthorizationPathPlan>, WorthQueryOperationAuthorizationDenial> {
     candidates
@@ -170,7 +170,7 @@ fn selection_work(
 pub(super) fn prepare_grant_path(
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
 ) -> Result<RelationalAuthorizationPathPlan, WorthQueryOperationAuthorizationDenial> {
     let template = grant_template(installed)?;
     let mut predicates = template.plan.predicates().to_vec();
@@ -208,7 +208,7 @@ fn grant_template(
 fn append_grant_predicates(
     installed: &WorthQueryInstalledCapabilityPlan,
     projection: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     predicates: &mut Vec<RelationalAuthorizationPredicate>,
 ) {
     let ordinal = installed.grant_witness.entity_ordinal();
@@ -234,7 +234,9 @@ fn append_grant_predicates(
             value.clone(),
         ));
     }
-    if let (Some(field), Some(value)) = (&installed.request.amount, projection.amount.as_ref()) {
+    if let (Some(field), Some(value)) =
+        (&installed.request.magnitude, projection.magnitude.as_ref())
+    {
         predicates.push(RelationalAuthorizationPredicate::compare(
             ordinal,
             installed.grant_kind,

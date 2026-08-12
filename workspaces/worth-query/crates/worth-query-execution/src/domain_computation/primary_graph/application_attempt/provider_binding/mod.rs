@@ -1,0 +1,104 @@
+mod effect_accumulator;
+mod effect_lowering;
+mod registration;
+
+pub(in crate::domain_computation::primary_graph) use registration::WorthQueryProviderEffectRegistrationSeal;
+
+#[cfg(test)]
+mod semantic_model_tests;
+
+use worth_query_installation::facade::{
+    InstalledCorrectionMechanism, InstalledPreImageDemand, WorthQueryInstalledAftermathContract,
+};
+
+use self::effect_accumulator::WorthQueryProviderEffectAccumulator;
+use super::effect_program::WorthQueryApplicationRealizedEffect;
+use super::fact::WorthQueryApplicationObservedFact;
+use super::{
+    WorthQueryAdmittedApplicationEmissionBatch, WorthQueryApplicationAttemptDenial,
+    WorthQueryApplicationAttemptDenialKind, WorthQueryApplicationEmission,
+};
+use crate::domain_computation::WorthQueryProvisionalEffectStep;
+
+pub(super) struct WorthQueryPreparedApplicationProviderAttempt {
+    facts: Vec<WorthQueryApplicationObservedFact>,
+    steps: Vec<WorthQueryProvisionalEffectStep>,
+    batch: worth_relational::facade::transactions::WorkerIntentBatch,
+    emissions: WorthQueryAdmittedApplicationEmissionBatch,
+    preimage_demand: Option<InstalledPreImageDemand>,
+}
+
+impl WorthQueryPreparedApplicationProviderAttempt {
+    pub(super) fn register<'run, Schema, Operation, Input, Scope>(
+        self,
+        staged: crate::domain_computation::WorthQuerySessionBoundReadsAndEffects<'run>,
+        authorization: crate::domain_computation::authorization::WorthQueryProviderAuthorizationDecisionFacts,
+        context: super::provider_execution::WorthQueryProviderAttemptRegistrationContext<
+            '_,
+            Schema,
+            Operation,
+            Input,
+            Scope,
+        >,
+    ) -> Result<
+        super::provider_execution::WorthQueryRegisteredProviderAttempt<'run>,
+        super::provider_execution::WorthQueryProviderProgressionOutcome,
+    > {
+        registration::register_provider_attempt(self, staged, authorization, context)
+    }
+}
+
+/// Derive the retention demand from the admitted operation's compiled aftermath
+/// (Q8.26-C1).
+///
+/// The demand is a property of the installed contract. Nothing about retention
+/// is a caller's to supply.
+pub(super) fn installed_preimage_demand(
+    aftermath: Option<&WorthQueryInstalledAftermathContract>,
+) -> Option<InstalledPreImageDemand> {
+    match aftermath?.mechanism()? {
+        InstalledCorrectionMechanism::RecordedInverse(inverse) => {
+            Some(inverse.preimage_demand().clone())
+        }
+        InstalledCorrectionMechanism::Compensation(_) => None,
+    }
+}
+
+pub(super) fn prepare_provider_attempt(
+    facts: Vec<WorthQueryApplicationObservedFact>,
+    effects: Vec<WorthQueryApplicationRealizedEffect>,
+    expected_emission_retained_bytes: u64,
+    emission_retained_bytes_ceiling: u64,
+    preimage_demand: Option<InstalledPreImageDemand>,
+) -> Result<WorthQueryPreparedApplicationProviderAttempt, WorthQueryApplicationAttemptDenial> {
+    let mut accumulator = WorthQueryProviderEffectAccumulator::new(&facts, &effects);
+    for effect in effects {
+        accumulator.add_effect(effect)?;
+    }
+    let completed = accumulator.finish(
+        expected_emission_retained_bytes,
+        emission_retained_bytes_ceiling,
+    )?;
+    let (steps, batch, emissions) = completed.into_parts();
+    Ok(WorthQueryPreparedApplicationProviderAttempt {
+        facts,
+        steps,
+        batch,
+        emissions,
+        preimage_demand,
+    })
+}
+
+pub(super) fn progression_denial() -> WorthQueryApplicationAttemptDenial {
+    WorthQueryApplicationAttemptDenial::new(
+        WorthQueryApplicationAttemptDenialKind::IncompleteEffectBasis,
+        "provider progression",
+    )
+}
+
+pub(super) fn retained_bytes_denial() -> WorthQueryApplicationAttemptDenial {
+    WorthQueryApplicationAttemptDenial::new(
+        WorthQueryApplicationAttemptDenialKind::RetainedEffectBytesExceeded,
+        "application emission batch",
+    )
+}

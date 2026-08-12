@@ -111,6 +111,9 @@ impl RecordReadPartition {
     pub(in crate::physical_runtime) const fn for_range(artifact: RecordArtifactFile) -> Self {
         match artifact {
             RecordArtifactFile::BootstrapCatalog
+            | RecordArtifactFile::CurrentRootSelector
+            | RecordArtifactFile::PreviousRootSelector
+            | RecordArtifactFile::RootSelectorCandidate { .. }
             | RecordArtifactFile::CatalogCandidate { .. }
             | RecordArtifactFile::RootManifest { .. }
             | RecordArtifactFile::RootRoutingBlock { .. } => Self::Root,
@@ -126,6 +129,8 @@ impl RecordReadPartition {
     pub(in crate::physical_runtime) const fn for_metadata(artifact: RecordArtifactFile) -> Self {
         match artifact {
             RecordArtifactFile::BootstrapCatalog
+            | RecordArtifactFile::CurrentRootSelector
+            | RecordArtifactFile::PreviousRootSelector
             | RecordArtifactFile::CatalogCandidate { .. }
             | RecordArtifactFile::RootManifest { .. }
             | RecordArtifactFile::RootRoutingBlock { .. } => Self::Root,

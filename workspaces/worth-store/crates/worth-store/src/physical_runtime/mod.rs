@@ -12,6 +12,12 @@ mod media_evidence;
 mod media_ownership;
 mod observation;
 mod record_serving;
+#[cfg(feature = "recovery-runtime-owner")]
+mod recovery_construction;
+#[cfg(feature = "recovery-runtime-owner")]
+mod recovery_coordination;
+#[cfg(feature = "recovery-runtime-owner")]
+mod recovery_freshness;
 mod resource_lifecycle;
 mod root_admission;
 mod runtime;
@@ -140,6 +146,55 @@ pub use observation::{
     RuntimeObservation,
 };
 pub use record_serving::*;
+#[cfg(feature = "recovery-runtime-owner")]
+pub use recovery_construction::{
+    PhysicalRecoveryConstructionAuthority, PhysicalRecoveryConstructionPort,
+    RecoveredPhysicalRuntimeConstructionDenial, RecoveredPhysicalRuntimeCore,
+};
+#[cfg(feature = "recovery-runtime-owner")]
+pub use recovery_coordination::{
+    CompletedPhysicalRecoveryCleanupFreshnessRead, CompletedPhysicalRecoveryCleanupRemoval,
+    CompletedPhysicalRecoveryFreshReopen, CompletedPhysicalRecoveryPublicationCandidate,
+    CompletedPhysicalRecoveryPublicationCommand, CompletedPhysicalRecoveryStagingCommand,
+    PerformedRecoveryPhysicalEffect, PhysicalRecoveryCleanupAdmissionDenial,
+    PhysicalRecoveryCleanupAdmissionDenialKind, PhysicalRecoveryCleanupCommandStage,
+    PhysicalRecoveryCleanupFreshnessReadDenial, PhysicalRecoveryCleanupFreshnessReadDenialKind,
+    PhysicalRecoveryCleanupFreshnessReadOutcome, PhysicalRecoveryCleanupFreshnessReadProgress,
+    PhysicalRecoveryCleanupRemovalDenial, PhysicalRecoveryCleanupRemovalDenialKind,
+    PhysicalRecoveryCleanupRemovalIndeterminate, PhysicalRecoveryCleanupRemovalOutcome,
+    PhysicalRecoveryCoordination, PhysicalRecoveryCoordinationAdmissionError,
+    PhysicalRecoveryCoordinationCapacity, PhysicalRecoveryFreshReopenCommand,
+    PhysicalRecoveryFreshReopenDenial, PhysicalRecoveryFreshReopenDenialKind,
+    PhysicalRecoveryFreshReopenOutcome, PhysicalRecoveryFreshReopenStage,
+    PhysicalRecoveryPublicationCandidate, PhysicalRecoveryPublicationCandidateMaterialization,
+    PhysicalRecoveryPublicationCommand, PhysicalRecoveryPublicationCommandDenial,
+    PhysicalRecoveryPublicationCommandDenialKind, PhysicalRecoveryPublicationCommandIndeterminate,
+    PhysicalRecoveryPublicationCommandOutcome, PhysicalRecoveryPublicationCommandStage,
+    PhysicalRecoveryPublicationSettlementFailure, PhysicalRecoveryQuiescenceObservation,
+    PhysicalRecoveryStagingCommand, PhysicalRecoveryStagingCommandDenial,
+    PhysicalRecoveryStagingCommandDenialKind, PhysicalRecoveryStagingCommandIndeterminate,
+    PhysicalRecoveryStagingCommandOutcome, PhysicalRecoveryStagingCommandStage,
+    PhysicalRecoveryStagingMaterialization, PhysicalRecoveryStagingMaterializationEvidence,
+    RecoveryCleanupRemovalAction, RecoveryCleanupRemovalOccurrence, RecoveryFreshReopenAction,
+    RecoveryFreshReopenOccurrence, RecoveryPhysicalEffectOccurrence,
+    RecoveryPublicationCandidateMaterializationAction,
+    RecoveryPublicationCandidateMaterializationOccurrence, RecoveryPublicationCandidateOccurrence,
+    RecoveryPublicationCandidateSynchronizationAction,
+    RecoveryPublicationCandidateSynchronizationOccurrence, RecoveryPublicationOccurrence,
+    RecoveryRecordNamespaceSynchronizationAction, RecoveryRootProtocolReplacementAction,
+    RecoveryStagingSynchronizationAction, RecoveryStagingSynchronizationOccurrence,
+    RecoveryStagingWriteAction, RecoveryStagingWriteOccurrence,
+};
+#[cfg(feature = "recovery-runtime-owner")]
+pub use recovery_freshness::{
+    PhysicalRecoveryFreshnessAuthority, PhysicalRecoveryFreshnessPort,
+    PhysicalRecoveryRegisteredSessionAuthority, StoreRecoveryBindingFreshness,
+    StoreRecoveryBindingFreshnessSample, StoreRecoveryBindingSampleDenial,
+    StoreRecoveryBindingSampleFailure, StoreRecoveryCleanupAttempt,
+    StoreRecoveryCleanupFreshnessDenial, StoreRecoveryCleanupFreshnessFailure,
+    StoreRecoveryCleanupFreshnessSample, StoreRecoveryCleanupPlan, StoreRecoveryOperationEvidence,
+    StoreRecoveryOperationFate, StoreRecoveryWalMember,
+};
 pub use runtime::AdmittedPhysicalRuntime;
 pub use shutdown::{AbortedRuntime, ClosedRuntime};
 pub use work::{
@@ -179,6 +234,21 @@ pub use work::{
     PhysicalWorkTerminalFailure, PhysicalWorkTerminalObservation, PhysicalWorkTerminalStage,
     PhysicalWorkTimeoutJoin, ReadyPhysicalWork, ResourceAdmittedPhysicalWork, SettledPhysicalWork,
 };
+#[cfg(feature = "recovery-runtime-owner")]
+pub use worth_store_physical_backend::{
+    AdmittedRecoveryFilesystemMedia, ArtifactTreeFailureKind, BoundedRecoveryFilesystemDiscovery,
+    CompletedRecoveryStagingWrite, CompletedScheduledRecoveryReopenRead,
+    CompletedScheduledRecoveryStagingWrite, DeniedScheduledRecoveryReopenRead,
+    FilesystemAccessPosture, IndeterminateRecoveryStagingWrite, MediaOwnerIdentity,
+    ObservedRecoveryArtifact, ObservedWalArtifact, PhysicalRecoveryMediaGeneration,
+    QualifiedPhysicalBackendProfile, QualifiedRecoveryFilesystemMedia,
+    RecoveryCleanupArtifactRevalidationDenial, RecoveryCleanupArtifactRevalidationProgress,
+    RecoveryCleanupRemovalDenialCause, RecoveryDiscoveryArtifact, RecoveryDiscoveryByteLimitScope,
+    RecoveryDiscoveryCounters, RecoveryDiscoveryFailure, RecoveryFilesystemQualificationError,
+    RecoveryReopenReadOutcome, RecoveryRootProtocolPublicationDenial,
+    RecoveryRootProtocolPublicationPlan, RecoveryStagingWriteDisposition,
+    RecoveryStagingWriteOutcome,
+};
 
 pub(in crate::physical_runtime) use work::{
     PhysicalEffectRecoveryObligation, PhysicalExecutorDispatch, PhysicalExecutorOutcome,
@@ -214,6 +284,7 @@ pub mod certification {
     pub use super::work::CertificationPhysicalSubmissionPauseGate;
     pub use worth_store_physical_backend::{
         CertificationMediaFaultActivation, CertificationMediaFaultAuthority, MediaFaultDirective,
-        MediaFaultRule, MediaFaultSchedule, MediaFaultScheduleDenial, MediaPauseGate,
+        MediaFaultRule, MediaFaultSchedule, MediaFaultScheduleDenial, MediaOperationRole,
+        MediaPauseGate,
     };
 }

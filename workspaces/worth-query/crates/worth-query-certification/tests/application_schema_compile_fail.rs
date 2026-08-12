@@ -4,7 +4,7 @@ fn application_schema_compiler_boundaries_hold() {
     for fixture in [
         "tests/ui/application_schema/cross_schema_field.rs",
         "tests/ui/application_schema/wrong_field_value.rs",
-        "tests/ui/application_schema/wrong_currency_value.rs",
+        "tests/ui/application_schema/wrong_unit_value.rs",
         "tests/ui/application_schema/unsupported_equality_operator.rs",
         "tests/ui/application_schema/wrong_operation_input.rs",
         "tests/ui/application_schema/wrong_relation_direction.rs",
@@ -30,6 +30,7 @@ fn application_schema_compiler_boundaries_hold() {
         "tests/ui/application_schema/application_query_relation_requires_matching_direction.rs",
         "tests/ui/application_schema/application_query_ordering_requires_matching_query.rs",
         "tests/ui/application_schema/application_query_ability_requires_matching_scope.rs",
+        "tests/ui/application_schema/application_query_authoring_requires_lanes.rs",
         "tests/ui/application_schema/application_query_access_requires_mapped_principal.rs",
         "tests/ui/application_schema/application_query_access_requires_matching_scope.rs",
         "tests/ui/application_schema/application_query_foreign_schema_cannot_validate.rs",
@@ -40,8 +41,16 @@ fn application_schema_compiler_boundaries_hold() {
         "tests/ui/application_schema/capability_rule_category_substitution.rs",
         "tests/ui/application_schema/capability_context_anchor_requires_matching_entity.rs",
         "tests/ui/application_schema/descriptive_capability_is_not_installed_authority.rs",
+        "tests/ui/application_schema/operation_definition_requires_external_effect_choice.rs",
+        "tests/ui/application_schema/operation_definition_requires_aftermath_choice.rs",
+        "tests/ui/application_schema/operation_definition_rejects_duplicate_external_effect.rs",
+        "tests/ui/application_schema/operation_definition_rejects_duplicate_aftermath.rs",
+        "tests/ui/application_schema/principal_binding_status_cannot_fill_identity_role.rs",
+        "tests/ui/application_schema/principal_binding_reversed_target_is_rejected.rs",
     ] {
         cases.compile_fail(fixture);
     }
     cases.pass("tests/ui/application_schema/capability_composition_categories_are_typed.rs");
+    cases.pass("tests/ui/application_schema/operation_definition_zero_one_contracts_are_typed.rs");
+    cases.pass("tests/ui/application_schema/query_and_principal_authoring_roles_are_typed.rs");
 }

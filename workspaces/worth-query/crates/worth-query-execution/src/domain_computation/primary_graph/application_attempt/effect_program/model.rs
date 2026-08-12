@@ -4,7 +4,9 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use worth_foundational::facade::{AspectFieldLocator, AspectValue};
-use worth_query_declaration::facade::application_schema::ApplicationEffectPayload;
+use worth_query_declaration::facade::application_schema::{
+    ApplicationEffectPayload, ApplicationExternalEffectPayload,
+};
 use worth_relational::facade::identity::{EntityId, KindId, RelationId};
 use worth_relational::facade::transactions::EntityReference;
 
@@ -19,6 +21,13 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryApplicationEmi
     payload: Arc<dyn Any + Send + Sync>,
     retained_bytes: u64,
     measure_retained_bytes: fn(&(dyn Any + Send + Sync)) -> Option<u64>,
+    external_payload: Option<WorthQueryExternalPayloadProjection>,
+}
+
+#[derive(Clone)]
+struct WorthQueryExternalPayloadProjection {
+    bytes: Arc<[u8]>,
+    maximum_bytes: u64,
 }
 
 impl WorthQueryApplicationEmission {
@@ -37,7 +46,28 @@ impl WorthQueryApplicationEmission {
             payload: Arc::new(payload),
             retained_bytes,
             measure_retained_bytes: measure_retained_bytes::<Payload>,
+            external_payload: None,
         }
+    }
+
+    pub(in crate::domain_computation::primary_graph::application_attempt) fn new_external<Payload>(
+        effect: &'static str,
+        payload: Payload,
+    ) -> Result<Self, ()>
+    where
+        Payload: ApplicationExternalEffectPayload,
+    {
+        let bytes = payload.external_effect_bytes();
+        let encoded_len = u64::try_from(bytes.len()).map_err(|_| ())?;
+        if Payload::MAX_EXTERNAL_BYTES == 0 || encoded_len > Payload::MAX_EXTERNAL_BYTES {
+            return Err(());
+        }
+        let mut emission = Self::new(effect, payload);
+        emission.external_payload = Some(WorthQueryExternalPayloadProjection {
+            bytes: bytes.into(),
+            maximum_bytes: Payload::MAX_EXTERNAL_BYTES,
+        });
+        Ok(emission)
     }
 
     pub(in crate::domain_computation::primary_graph::application_attempt) fn from_lifecycle(
@@ -50,6 +80,7 @@ impl WorthQueryApplicationEmission {
             payload: derived.payload(),
             retained_bytes: derived.retained_bytes(),
             measure_retained_bytes: derived.measure_retained_bytes(),
+            external_payload: None,
         }
     }
 
@@ -74,6 +105,10 @@ impl WorthQueryApplicationEmission {
 
     pub(in crate::domain_computation::primary_graph) const fn retained_bytes(&self) -> u64 {
         self.retained_bytes
+    }
+
+    fn external_payload(&self) -> Option<&WorthQueryExternalPayloadProjection> {
+        self.external_payload.as_ref()
     }
 
     pub(in crate::domain_computation::primary_graph) fn cloned_payload<Schema, Effect, Payload>(
@@ -151,6 +186,40 @@ impl WorthQueryAdmittedApplicationEmissionBatch {
 
     pub(in crate::domain_computation::primary_graph) const fn retained_bytes(&self) -> u64 {
         self.retained_bytes
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn external_payload(
+        &self,
+        contract: &worth_query_installation::facade::InstalledExternalEffectContract,
+    ) -> Result<Option<Vec<u8>>, &'static str> {
+        let worth_query_installation::facade::InstalledExternalEffectContract::Declared {
+            effect,
+            rust_payload_type,
+            maximum_payload_bytes,
+            ..
+        } = contract
+        else {
+            return Ok(None);
+        };
+        let mut matching = self.emissions.iter().filter(|emission| {
+            emission.effect == effect && emission.payload_type == rust_payload_type
+        });
+        let emission = matching
+            .next()
+            .ok_or("declared external effect did not emit its installed typed payload")?;
+        if matching.next().is_some() {
+            return Err("declared external effect emitted its installed payload more than once");
+        }
+        let projection = emission
+            .external_payload()
+            .ok_or("declared external effect used an ordinary non-external emission")?;
+        if projection.maximum_bytes != *maximum_payload_bytes
+            || u64::try_from(projection.bytes.len()).map_err(|_| "external payload is too large")?
+                > *maximum_payload_bytes
+        {
+            return Err("external payload projection drifted from its installed bound");
+        }
+        Ok(Some(projection.bytes.to_vec()))
     }
 }
 

@@ -149,6 +149,15 @@ impl<'a> MutationWorkspace<'a> {
         self.preparation_telemetry
     }
 
+    pub(crate) fn into_created_entity_bindings(
+        self,
+    ) -> crate::transactions::data::CommitCreatedEntityBindings {
+        crate::transactions::data::CommitCreatedEntityBindings::from_owner_map(
+            self.created_entities,
+            self.symbols,
+        )
+    }
+
     pub(crate) fn register_created_entity(
         &mut self,
         created: CreatedEntityRef,

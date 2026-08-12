@@ -1,834 +1,382 @@
-# Milestone 9.17: Advanced Domain Computation And Provider Certification
+# Milestone 9.17: Composite Runtime Branching And Branch-Local MVCC
 
 ## Goal
 
-Extend the ordinary typed Query front door with advanced domain-computation
-capabilities needed by geometry, chip/netlist, and research workloads:
+Establish one ordinary product branch as a Runtime Bridge-owned reference to an
+exact composite runtime-world commit while preserving distinct branch and
+version authority inside Relational and Signal. A product branch may select a
+Relational branch basis and a different Signal branch basis; two product
+branches may share one immutable Signal basis while their Relational histories
+diverge, or may later fork and advance Signal independently.
 
-- advanced access strategies for installed application queries, including
-  typed search and spatial candidate production;
-- managed domain access products;
-- exact membership and coverage maintenance;
-- verified realized footprints;
-- correlated heterogeneous paths;
-- conflict-proof set-oriented execution;
-- governed decision attachments and summaries;
-- stage and subartifact reuse; and
-- provider-independent hostile certification.
+At the same time, replace the conservative global Relational commit coordinator
+with branch-local MVCC. Writers whose selected component branches are
+independent progress independently. Writers that compete for the same
+Relational or composite product head receive one honest committed, stale, or
+conflict outcome.
 
-These capabilities must remain generic Query contracts. Domain algorithms,
-payload meaning, tolerances, topology, routing, solver semantics, and scientific
-interpretation stay in domain packages.
-
-The advanced path also returns to the bank world for customer/account search,
-estate and compliance investigation, governed audit summaries, and
-capability-safe bulk work. Advanced power must preserve the medical-grade
-capability, disclosure, recovery, and aftermath front door established by
-Milestone 9.16 and the receipt-backed Milestone 9.10 graph-read access-planning
-contract rather than creating an expert bypass.
+This milestone establishes the single-parent composite history consumed by
+[Milestone 9.18](./milestone-9.18.md). It does not define semantic merge,
+rebase, multi-parent publication, offline synchronization, or distributed
+recovery.
 
 ## Roadmap Placement
 
-Milestone 9.10 established graph-read access shapes, selectivity,
-predicate/ordering requirements, support inventory, budgets, admitted plans,
-and receipt-backed no-N+1 proof. Milestone 9.15 established safe pre-commit
-domain computation. Milestone 9.16 established typed application authoring,
-authenticated and touched-graph-bound authorization, compare-and-commit,
-ordinary public facades, and a real cross-process consumer.
+Milestone 9.16.1 made branch affinity mandatory across Query planning,
+provider sessions, read sets, proposals, invariants, commits, receipts, and
+publication. Milestone 9.16 retained a provisional one-product-branch and
+global-coordinator implementation limit. Runtime Bridge Milestone 10 already
+established that truth branches and Signal branches are different authorities
+joined only by an explicit correspondence artifact.
 
-Milestone 9.17 builds on both:
+Milestone 9.17 turns those facts into the ordinary branch foundation before
+tree-based correction becomes a public product:
 
 ```text
-Milestone 9.16 installed query or typed operation
-    -> current capability, purpose, disclosure, and basis admission
-    -> Milestone 9.10 graph-read requirement derivation
-    -> advanced-strategy support and inventory matching
-    -> admitted graph-read plan binding the selected strategy
-    -> maintained membership / exact refinement
-    -> realized semantic footprint
-    -> conflict-proof set execution
-    -> committed or honestly terminated outcome
-    -> governed evidence and reuse
+owner-issued Relational branch basis ----\
+                                         +--> admitted composite runtime basis
+owner-issued Signal branch basis --------/             |
+                                                       v
+                                          composite world commit
+                                                       |
+                                                       v
+                                          product branch reference
+                                                       |
+                       +-------------------------------+------------------+
+                       |                                                  |
+                       v                                                  v
+          Relational-local MVCC work                         Signal-local work
+                       |                                                  |
+                       +------------ owner-issued results ----------------+
+                                                       |
+                                                       v
+                                  Bridge coordinated compare-and-publish
+                                                       |
+                                                       v
+                                     new composite commit and branch head
 ```
 
-No advanced feature receives a specialist bypass around the 9.16 facade, its
-authority progression, or the 9.10 access-plan accountability boundary.
-Search, spatial access, bulk execution, reuse, and decision summaries remain
-constrained by the same application-query identity, field disclosure, cursor,
-recovery, aftermath, access-requirement, and no-N+1 contracts.
+The complete semantic-world basis, multi-parent history, merge, rebase,
+durability, and offline generalizations remain in the cross-runtime merging and
+branching roadmap. That roadmap consumes this milestone rather than inventing a
+second ordinary product branch.
 
-## Migration From The Former 9.15 Draft
+## Current Boundary
 
-The remaining advanced requirements retain an explicit destination:
+- Relational already owns authoritative graph truth, truth versions, commit
+  preparation, and branch-local history concepts.
+- Signal already owns branch-local derived execution state, definition-bound
+  evaluation, snapshots, restore, and branch lifecycle.
+- Runtime Bridge already owns typed truth-branch to Signal-branch
+  correspondence for speculative and branch-aware protocols.
+- Query already carries branch affinity through its planned and admitted
+  workflows but must not assemble lower-runtime branch identifiers manually or
+  become a branch registry.
 
-- former Phase 12, managed domain access products, is now Phase 1;
-- former Phase 13, coverage and membership, is now Phase 2;
-- former Phase 14, verified realized footprints, is now Phase 3;
-- former Phase 15, correlated paths, is now Phase 4;
-- former Phase 16, conflict partitions and bulk execution, is now Phase 5;
-- former Phase 17, decision attachments and summaries, is now Phase 6;
-- former Phase 18, stage/subartifact reuse, is now Phase 7; and
-- the advanced facade, reference-adoption, prohibition, and
-  provider-certification obligations from former Phases 19–20 are now Phases
-  8–10.
+The missing capability is one authoritative composition-level answer to:
 
-Compare-and-commit did not move here. It belongs to Milestone 9.16 because a
-real bank mutation cannot be considered real without it.
+> Which exact Relational basis and which exact Signal basis constitute the
+> current product world on this product branch?
 
-## Why This Milestone Exists
-
-The bank world proves the front door, but not the breadth needed by expensive
-domain computation. A geometry operation may use a spatial candidate index,
-refine exact intersections, traverse correlated topology, produce large
-intermediate arrangements, and prove that only a narrow subset affected its
-decision. A chip operation may traverse heterogeneous netlist cones and execute
-large conflict-safe partitions. A research workflow may require occurrence-safe
-reuse and queryable governed decisions without turning observations into
-authoritative truth.
-
-Without generic contracts for those workloads, consumers fall back to:
-
-- host-local search indexes and post-search authorization filters;
-- repeated child reads, per-result relation lookups, and host-side sorting;
-- local index side stores;
-- returned-row-only dependency tracking;
-- caller-declared “actual” footprints;
-- scalar loops disguised as bulk APIs;
-- pairwise conflict checks with quadratic planning cost;
-- ungoverned decision blobs;
-- cache hits that erase occurrence or certification meaning; and
-- provider-specific test suites that certify their own receipts.
-
-Those fallbacks are also unacceptable for the expanded bank. A compliance
-officer searching an estate case, a branch employee looking up a customer, or a
-bulk review crossing many accounts must not receive broader candidate,
-disclosure, or mutation authority merely because the provider selected an
-advanced strategy.
-
-This milestone removes those lanes after the public application boundary is
-already trustworthy.
+A Relational branch head alone cannot answer that question, and a floating
+Signal branch identifier cannot answer which Signal version was selected.
 
 ## Adversarial Constraint
 
-One installed operation runs over a large semantic universe with sparse true
-effects and dense misleading candidates. It:
+Two product branches begin from one composite commit. Both select the same
+immutable Signal branch basis but fork distinct Relational branches. A blocked
+Relational transaction on the first product branch holds every resource it may
+lawfully hold while the second commits. The second advances Relational while
+retaining the exact Signal basis. A third product branch advances Signal while
+retaining its Relational basis. A fourth operation changes both components.
 
-- begins from one Milestone 9.16 installed application query or operation and
-  one current capability, purpose, disclosure, and basis proof;
-- acquires an ephemeral provider-backed access product;
-- observes positive, negative, and membership-sensitive candidate facts;
-- survives insertions, deletions, motion, rebuild, and eviction;
-- refines candidates through a domain-owned exact predicate;
-- executes a heterogeneous correlated path;
-- proves a realized footprint that is narrower than declared authority;
-- partitions bulk work without quadratic all-pairs admission;
-- produces governed decision attachments;
-- reuses eligible stages without collapsing required occurrences; and
-- commits through the Milestone 9.16 transaction path.
+At the same time:
 
-Provider receipts lie, omit candidates, undercount memory, widen footprints,
-misstate conflicts, return scalar work as a batch, hide per-result lookups
-behind an access-product name, reuse stale artifacts, and attempt to disclose
-restricted decision data. Independent oracles must expose each lie.
+- two Relational branches and two Signal branches have equal local version
+  ordinals;
+- two writers race against one composite product head;
+- one component preparation succeeds before another component rejects;
+- the product head advances after preparation but before publication;
+- a hostile caller swaps a Relational basis, Signal basis, correspondence,
+  retention pin, receipt, or equal ordinal from a neighboring branch; and
+- cancellation occurs at every owner and orchestration boundary.
 
-In the bank variant, a conflicted branch manager searches an estate universe
-containing their deceased parent's case while holding independently valid
-employee and beneficiary relationships. The provider returns the restricted
-case as a candidate, attempts to use search ranking and cursor state to leak
-masked fields, and proposes bulk work beyond the active capability. Query must
-remove or deny the candidate before disclosure, preserve exact negative and
-conflict dependencies, and prevent search, summary, reuse, or bulk evidence
-from becoming emergency or disbursement authority.
+The independent oracle must observe:
+
+- progress on the unrelated product branch despite the blocked writer;
+- exact reuse of the immutable Signal basis without cloning or ambient
+  `latest` selection;
+- owner-issued advancement only in the components named by the operation;
+- exactly one same-product-branch head advance;
+- no product-visible half publication;
+- no cross-runtime or cross-branch substitution;
+- complete cleanup or typed retained-orphan posture after failed preparation;
+  and
+- one canonical single parent for every ordinary composite commit.
+
+A design based on a Relational-only product branch, a one-to-one branch-id
+assumption, floating component heads, a global commit lock, or best-effort
+multi-runtime publication must fail this courtroom.
 
 ## Product Decision Lock
 
-1. Advanced access products are derived provider resources, not authoritative
-   indexes or independent truth.
-2. Query owns installed access-product contracts, admission, lifecycle,
-   dependency carriage, public evidence, and certification meaning.
-3. Providers own physical representation, allocation, lookup, maintenance,
-   refinement mechanics, and disposal behind admitted contracts.
-4. Domain packages own candidate meaning, exact predicates, completeness laws,
-   path semantics, conflict proofs, decision meaning, equivalence, and reuse
-   policy.
-5. Declared authority is the maximum legal scope. A realized footprint may
-   narrow it but never widen it.
-6. A caller or provider cannot assert that a footprint is realized. Verification
-   consumes actual execution and dependency evidence.
-7. Candidate production and exact refinement are distinct. A candidate product
-   that is incomplete for its installed contract cannot be repaired by exact
-   refinement of the candidates it happened to return.
-8. Membership dependencies include relevant negative space. Returned rows alone
-   are never complete evidence for insertion-sensitive access.
-9. Maintenance, rebuild, eviction, and disposal are explicit lifecycle states.
-   An evicted or stale access product opens no execution path.
-10. Correlated paths are installed semantic programs with typed steps,
-    cross-step bindings, direction, cardinality, and boundedness. They are not
-    strings or opaque provider callbacks.
-11. Providers may lower a correlated path into an access strategy only after
-    Query admission. Lowering cannot widen semantics or authority.
-12. Bulk means set-oriented provider work. A host loop over scalar operations
-    does not satisfy a bulk contract.
-13. Conflict partitioning requires a domain-installed proof or provider evidence
-    checked against an independent oracle. “No conflicts observed” is not a
-    proof.
-14. Planning cost is accounted separately from execution cost. Avoiding
-    quadratic execution by performing quadratic admission is not success.
-15. Structural counters retain installed units and aggregation laws.
-16. Decision attachments are schema-bound, classification- and
-    retention-governed, and tied to exact operation, attempt, basis, and
-    occurrence identities.
-17. Queryable summaries are derived projections over governed attachments. They
-    do not become decision or graph authority.
-18. Reuse eligibility depends on installed semantic equivalence,
-    reproducibility, occurrence purpose, dependencies, provider posture, and
-    lifecycle state.
-19. Cache identity never erases production/acquisition occurrence or
-    independent-certification requirements established by Milestone 9.15.
-20. Incremental maintenance and rebuild are distinct strategies with declared
-    profitable regimes and honest work counters.
-21. Runtime replay remains certification-only. Ordinary advanced lanes carry
-    existing proof forward rather than importing replay machinery.
-22. The geometry, chip/netlist, and research reference packages consume only
-    public Query facades and their own domain/provider contracts.
-23. Provider-independent certification trusts independent state and semantic
-    oracles, not provider receipts or mirrored implementation algorithms.
-24. A capability is not shipped until the prior local workaround is deleted and
-    a residue prohibition prevents its return.
-25. Every advanced read strategy consumes one installed application-query
-    identity, typed parameters, admitted root, basis, ordering, result shape,
-    capability, purpose, and disclosure proof from Milestone 9.16. It cannot
-    invent a parallel search or spatial-query identity.
-26. Candidate production may overproduce only within declared legal authority.
-    A protected fact may influence a predicate, ranking, cursor, aggregate,
-    summary, explanation, or live membership only when the installed query
-    separately admits that internal computation and proves its disclosure and
-    noninterference posture. Internal access does not authorize result
-    disclosure, and post-projection redaction cannot repair an unauthorized
-    candidate or information leak.
-27. Advanced continuation remains Query-owned and bound to canonical query,
-    access strategy, basis, order, capability generation, and result shape. It
-    is descriptive continuation and receives fresh authorization on every use.
-28. Advanced execution preserves actionable cancellation, partial,
-    indeterminate, recovery, compensation, and irreversible posture. An access
-    product, footprint, attachment, summary, or reused stage cannot manufacture
-    a recovery, undo, redo, or external-completion transition.
-29. Linear undo and redo consume the Milestone 9.16 aftermath contract even
-    when the original operation used advanced access or bulk execution.
-    Branch-aware undo/redo and history navigation belong exclusively to the
-    [cross-runtime merging-and-branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
-    This milestone neither designs them nor carries a placeholder. Cache reuse,
-    certification replay, preview execution, and ordinary linear redo remain
-    distinct.
-30. The bank/compliance reference path is a fourth adoption courtroom alongside
-    geometry, chip/netlist, and research. It pressures typed search,
-    field-sensitive capability narrowing, conflict-of-interest, governed
-    summaries, and capability-safe set execution without moving banking
-    vocabulary into Query.
-31. An advanced access strategy registers as a typed realization of existing
-    Milestone 9.10 graph-read requirements before inventory matching. The
-    existing support inventory, cost, and admission phases decide whether to
-    bind it into the sole executable plan. Its contract maps to the canonical
-    access shape, selectivity shape, `PredicateSupport`, `OrderingSupport`,
-    traversal and lifecycle requirement rows, admitted plan, and execution
-    receipt. It cannot create a parallel planner, support registry, index
-    inventory, or no-N+1 claim.
-32. Filters and sorts retain the canonical installed application-query
-    semantics from Milestone 9.16. A provider access product may narrow
-    candidates or accelerate ordering only behind the admitted graph-read plan;
-    exact refinement, disclosure, stable ordering, cursor meaning, and result
-    shape remain Query-owned.
-33. Correlated paths, nested projections, and bulk reads execute as one
-    admitted set- or graph-shaped plan where supported. Repeated scalar child
-    queries, per-result neighbor lookups, host-side sorting, and
-    post-materialization filtering are prohibited covered fallbacks. Receipts
-    must prove exact-zero caller-owned N+1 work.
+1. Relational owns Relational branch identity, branch-local truth versions,
+   snapshots, transactions, authoritative commits, conflicts, retention, and
+   owner-local publication.
+2. Signal owns Signal branch identity, exact Signal branch bases, definition-
+   bound execution state, snapshots, restore, derived lifecycle, and
+   owner-local advancement.
+3. Runtime Bridge owns the admitted correspondence among exact component bases,
+   composite runtime-world commits, product branch references, composite head
+   generations, and cross-runtime publication orchestration. This is
+   composition authority, not authority over either runtime's internal truth.
+4. Query owns branch workflow declarations, fresh admission, typed progression,
+   public DX, and outcome projection. It cannot mint component bases, composite
+   commits, or product branch heads.
+5. `ProductBranchId`, `RelationalBranchId`, and `SignalBranchId` are distinct
+   meanings and types. Equality, matching text, or equal ordinals grants no
+   correspondence.
+6. A composite runtime basis names exact owner-issued Relational and Signal
+   branch versions. No component may be selected by an ambient current branch,
+   unqualified branch id, or `latest` lookup during execution or replay.
+7. A composite world commit is immutable composition truth. It binds one exact
+   ordinary parent, the exact component bases, component-change posture,
+   correspondence proof, authoring provenance, and publication outcome.
+8. A product branch is a mutable compare-and-publish reference to one composite
+   world commit. Component branch heads alone do not define product currentness.
+9. Branch creation consumes one exact retained composite commit and an explicit
+   component plan. A component may reuse an exact immutable basis or fork from
+   it through that component owner's authority; implicit shared mutability is
+   forbidden.
+10. Reusing one Signal basis across several product branches is lawful only as
+    immutable exact-basis reuse. Any Signal mutation requires an owner-issued
+    advance or fork and produces a new composite basis.
+11. Owner-local results are candidates until Runtime Bridge admits their
+    correspondence and wins one atomic composite-head compare-and-publish.
+    Prepared or immutable component artifacts cannot independently become the
+    product branch's current world.
+12. A component that is unchanged by an operation remains at its exact prior
+    basis. The bridge may not refresh it opportunistically.
+13. Failed or losing preparations produce no product-head movement. Any
+    retained immutable candidate has a typed orphan/retention posture and a
+    bounded owner-managed lifecycle; it is never silently current.
+14. Per-branch coordinators may share mechanical storage, but no global lock may
+    serialize independent Relational branches, Signal branches, or product
+    branches.
+15. Retention pins name exact composite commits and their component bases.
+    Deleting or archiving a product reference cannot reclaim a component basis
+    still required by another product branch, snapshot, transaction,
+    correction, publication, or recovery obligation.
+16. Derived Signal caches and diagnostics are not component basis authority.
+    Basis-equivalent rebuilds may replace them without moving the product head.
+17. Merge, rebase, multi-parent publication, tags, offline synchronization,
+    durable restart, and distributed recovery remain governed by the
+    cross-runtime merging and branching roadmap.
 
 ## Destination Topology
 
-### Query authority packages
-
 ```text
-worth-query-decl
-    installed-query-bound search, access-product, path, bulk, attachment,
-    and reuse declarations
+worth-relational/
+    branch/
+        identity.rs
+        creation.rs
+        lifecycle.rs
+    history/
+        commit.rs
+        parentage.rs
+        retention.rs
+    mvcc/
+        branch_version.rs
+        snapshot.rs
+        transaction.rs
+        conflict.rs
+        coordinator.rs
+        publication.rs
 
-worth-query-installation
-    application-query access-strategy and search contracts
-    access-product and membership contracts
-    path-program and conflict-proof contracts
-    attachment schemas and reuse policy
+worth-signal/
+    existing branch authority
+        owner-issued branch basis
+        snapshot and restore
+        derived execution lifecycle
 
-worth-query-admission
-    provider strategy and resource admission
-    capability-, purpose-, disclosure-, and basis-preserving strategy admission
-    footprint, partition, maintenance, and reuse admission
+worth-runtime-bridge/
+    runtime_world/
+        basis/
+            component_basis.rs
+            correspondence.rs
+            compatibility.rs
+        history/
+            composite_commit.rs
+            parentage.rs
+            retention.rs
+        branch/
+            identity.rs
+            reference.rs
+            creation.rs
+            lifecycle.rs
+        publication/
+            preparation.rs
+            coordination.rs
+            compare_and_publish.rs
+            outcome.rs
 
-worth-query-execution
-    installed application-query access-strategy progression
-    managed access-product lifecycle
-    coverage observation and exact refinement
-    correlated-path and set-oriented execution
-    verified footprint and partition progression
-    attachment production and reuse ownership
+worth-query-execution/
+    basis/
+        runtime_world.rs
+        product_branch.rs
 
-worth-query-publication
-    capability- and disclosure-scoped search result, footprint, cost,
-    attachment, summary, recovery, aftermath, and reuse evidence
+worth-query-decl/ and worth-query-host/
+    branch workflow facade over admitted product branches
 
-worth-query-host
-    additive ordinary-consumer facade
-
-worth-query-certification
-    provider-independent advanced courtroom and reference-domain suites
+worth-query-certification/
+    runtime_world_branching/
+        shared_signal_basis.rs
+        independent_progress.rs
+        component_substitution.rs
+        coordinated_publication.rs
+        retention.rs
 ```
 
-### Domain ownership
-
-```text
-geometry domain
-    spatial candidate meaning, exact predicates, topology, tolerance policy
-
-chip/netlist domain
-    cone/path semantics, routing or graph-specific conflict laws
-
-research domain
-    observation occurrence, comparison, independence, and decision meaning
-
-bank/compliance domain
-    customer and estate search meaning, disclosure classification,
-    conflict policy, audit meaning, and legal aftermath posture
-
-provider adapters
-    physical indexes, allocation, access plans, transactions, and mechanics
-```
-
-Query may name generic concepts such as candidate, membership, coverage,
-footprint, search strategy, path step, conflict partition, structural counter,
-decision attachment, lifecycle, and reuse. It may not acquire vocabulary whose
-meaning belongs to one reference domain.
-
-### Advanced application-query strategy topology
-
-```text
-worth-query-installation/src/application_query/access_strategy/
-    contract.rs
-    graph_read_requirement_binding.rs
-    search.rs
-    spatial.rs
-    streaming.rs
-
-worth-query-execution/src/domain_computation/application_query/access_strategy/
-    admission.rs
-    graph_read_plan_extension.rs
-    managed_product.rs
-    candidate_delivery.rs
-    exact_refinement.rs
-    continuation.rs
-
-worth-query-certification/src/reference_domains/
-    bank_compliance/
-    geometry/
-    chip_netlist/
-    research/
-```
-
-Search, spatial, and streaming are sibling provider strategies under the stable
-installed application-query axis. They do not become alternate public query
-languages or alternate graph-read planners. Each strategy is admitted as a
-realization of the existing graph-read requirement and receipt model. The
-reference-domain directories own independent oracles and adoption proof, not
-production domain semantics.
+The stable structural axes are component authority inside each runtime and
+composition authority inside Runtime Bridge. Query remains the audience facade.
+Forbidden destinations include a Query-local branch registry, a Relational
+field containing an ambient Signal head, a generic `branch_manager`, and a
+second composite-history implementation inside the later merge roadmap.
 
 ## Phase Plan
 
-### Phase 1: Managed Domain Access Products
-
-**Requirement**
-
-Install and execute provider-backed derived access products with explicit
-candidate, refinement, memory, maintenance, and lifecycle contracts, bound to
-one Milestone 9.16 installed application query or operation.
-
-**Must establish**
-
-- schema-versioned access-product families;
-- typed search, spatial-candidate, and other provider strategy declarations
-  that extend rather than replace canonical application-query identity;
-- exact binding to the Milestone 9.10 graph-read access shape, selectivity,
-  requirement set, support inventory, cost budget, admitted plan, and receipt
-  rather than an access-product-specific planning stack;
-- explicit satisfaction or strengthening of existing `PredicateSupport`,
-  `OrderingSupport`, traversal, proof, buffering, materialization, and
-  live-maintenance requirement rows;
-- exact carriage of query parameters, admitted root, basis, ordering, result
-  shape, capability, purpose, and disclosure proof into strategy admission;
-- runtime-affine move-only handles;
-- declared semantic universe and candidate-completeness posture;
-- provider strategy and resource admission;
-- created, ready, maintaining, stale, evicted, rebuilding, disposed, and failed
-  lifecycle states;
-- exact allocation, resident-memory, lookup, maintenance, rebuild, and disposal
-  counters; and
-- cleanup under cancellation, yield, provider failure, and attempt termination.
-
-**Proof before Phase 2**
-
-Callers cannot construct or resurrect handles, stale or evicted products cannot
-execute, search cannot become an alternate query or authorization language,
-and hostile memory/accounting providers are rejected by independent
-observation. An access product without the matching admitted Milestone 9.10
-plan and consumption receipt opens no execution lane.
-
-### Phase 2: Coverage And Membership Completeness
-
-**Requirement**
-
-Prove that an access product covers the declared universe and retains every
-positive and negative membership dependency relevant to candidate discovery.
-
-**Must establish**
-
-- exact covered scope and basis identity;
-- candidate completeness versus best-effort posture;
-- membership, absence, boundary, and cardinality evidence;
-- authorization, field-disclosure, conflict, and purpose-sensitive negative
-  membership where candidate appearance or ranking could disclose or authorize;
-- insertion, deletion, movement, and relation-change invalidation;
-- maintenance versus rebuild transition policy; and
-- denial or degradation when completeness cannot be maintained.
-
-**Proof before Phase 3**
-
-Independent full-scan oracles expose omitted candidates after insertion,
-deletion, motion, capability change, disclosure change, conflict insertion,
-rebuild, and eviction. A provider cannot claim complete from returned
-candidates alone, and an undisclosable candidate cannot leak through rank,
-count, cursor, summary, or timing-class metadata.
-
-### Phase 3: Verified Realized Footprints
-
-**Requirement**
-
-Derive and verify the exact semantic subset actually read or affected by an
-execution, then integrate it with dependency, invalidation, conflict, reuse,
-publication, and commit.
-
-**Must establish**
-
-- declared closure as the legal upper bound;
-- provider observations tied to the exact attempt and session;
-- Query verification against decision read-set, effects, path, membership, and
-  artifact, capability, disclosure, and basis evidence;
-- typed `VerifiedRealizedFootprint` unavailable before verification;
-- dependency-impact and compare-and-commit consumption of the verified proof;
-  and
-- explicit false-conflict and narrowing counters.
-
-**Proof before Phase 4**
-
-Widening denies, omission of an influencing fact denies, unrelated mutations do
-not create false conflict, and a caller/provider-reported “actual set” carries
-no authority.
-
-### Phase 4: Correlated Heterogeneous Path Programs
-
-**Requirement**
-
-Install typed path programs whose later steps depend on bindings from earlier
-steps and admit provider lowering without losing Query semantics.
-
-**Must establish**
-
-- typed entity/relation/aspect steps;
-- direction, cardinality, scope, and traversal bounds;
-- named typed bindings between steps;
-- predicate and projection capabilities derived from installed schema;
-- canonical identity and equivalence;
-- one provider strategy extension of the existing admitted graph-read plan,
-  including predicate, ordering, traversal, budget, and lifecycle evidence;
-  and
-- complete path, membership, ordering, and negative decision facts.
-
-**Proof before Phase 5**
-
-Illegal step composition fails before execution, provider lowering matches an
-independent interpreter, boundedness is enforced, and no raw path string or
-opaque callback survives the public surface. A multi-step path executes as one
-admitted graph-shaped plan: per-binding child queries and per-result neighbor
-lookups remain exactly zero in the access receipt.
-
-### Phase 5: Conflict-Proof Set-Oriented Execution
-
-**Requirement**
-
-Admit large batches by verified conflict partitions and execute them through
-real provider set operations.
-
-**Must establish**
-
-- domain-installed conflict relation or disjointness proof;
-- canonical partition identity and coverage;
-- provider set-plan admission;
-- per-partition authority, cancellation, and failure posture;
-- per-partition capability, disclosure, purpose, recovery, and aftermath
-  posture without granting the partitioner broader authority than each item;
-- canonical reduction where order can vary;
-- actual batch width, provider contacts, bytes, work, conflicts, and planning
-  counters; and
-- a governed transition between scalar, partitioned, and bulk strategies.
-
-**Proof before Phase 6**
-
-The test oracle checks completeness, uniqueness, conflict freedom, and semantic
-parity. Scaling evidence distinguishes planning from execution and rejects a
-quadratic all-pairs admission or hidden scalar loop. A mixed-authority batch is
-partitioned or denied without processing unauthorized members or leaking their
-existence through counters.
-
-### Phase 6: Governed Decision Attachments And Incremental Summaries
-
-**Requirement**
-
-Attach domain decisions and structural evidence to exact executions under
-installed governance, then expose queryable summaries without promoting them to
-authority.
-
-**Must establish**
-
-- typed attachment schemas and occurrence identity;
-- exact operation, attempt, basis, artifact, and footprint binding;
-- classification, redaction, retention, and disclosure composition;
-- exact capability, purpose, field-disclosure, elevation, and mandatory-review
-  binding where an attachment records or explains governed access;
-- mandatory core versus optional sidecar posture;
-- queryable incremental summaries with dependency and invalidation evidence;
-  and
-- deletion/disposal behavior consistent with installed governance.
-
-**Proof before Phase 7**
-
-Restricted nested content cannot escape through a permissive container,
-summaries update under relevant changes, and neither attachment nor summary can
-admit, commit, approve, elevate, recover, undo, redo, or publish graph truth.
-
-### Phase 7: Stage And Subartifact Reuse
-
-**Requirement**
-
-Reuse eligible work across attempts through the existing sharing and lifecycle
-authority while retaining occurrence, reproducibility, dependency, and
-certification meaning.
-
-**Must establish**
-
-- stage/subartifact identity and semantic equivalence;
-- consumer-purpose-aware substitution;
-- dependency and provider compatibility;
-- shared execution ownership and consumer leases;
-- incremental maintenance, eviction, rebuild, and disposal;
-- retained resource and fan-out accounting; and
-- denial when exact, independent, or observational occurrence requirements
-  prohibit reuse.
-
-**Proof before Phase 8**
-
-Equivalent consumers share one eligible execution, leases dispose exactly,
-stale dependencies invalidate reuse, and cache hits cannot manufacture a new
-production or independent-certification occurrence.
-
-### Phase 8: Reference-Domain Adoption
-
-**Requirement**
-
-Adopt the complete advanced path in four semantically different consumers:
-bank/compliance, planar geometry, chip/netlist analysis, and research-style
-multi-site evidence.
-
-**Bank and compliance pressure**
-
-- typed customer, account, and estate search through an installed application
-  query rather than host-local indexing;
-- filters, stable sorts, related owner/signer/executor expansion, and paging
-  through the canonical Milestone 9.10 access plan with exact-zero covered
-  per-result neighbor lookups;
-- separate protected-fact computation and consumer disclosure admission for
-  predicates, ranking, cursor construction, aggregation, and result delivery,
-  with no field or metadata leak;
-- branch-manager/beneficiary conflict and break-glass scope preserved through
-  candidate, footprint, summary, and bulk paths;
-- governed estate and access-review summaries that remain derived evidence;
-- capability-safe set execution for audit or account-preservation work; and
-- linear compensation or honest irreversibility after advanced execution,
-  without treating reuse or replay as redo.
-
-**Geometry pressure**
-
-- spatial candidate products;
-- exact predicate refinement;
-- topology-sensitive membership;
-- narrow realized footprints;
-- conflict-safe bulk operations; and
-- large managed intermediate artifacts.
-
-**Chip/netlist pressure**
-
-- correlated heterogeneous cones or paths;
-- high fan-out and bounded traversal;
-- conflict partitions;
-- set-oriented execution; and
-- structural counters.
-
-**Research pressure**
-
-- equal-content distinct occurrences;
-- independent-certification purpose;
-- comparator- or distribution-governed equivalence;
-- governed decisions and summaries; and
-- reuse denial where observation independence matters.
-
-**Proof before Phase 9**
-
-All four consumers use only public Query facades, retain their domain
-vocabulary locally, and delete the local index, footprint, batch, decision, and
-reuse workarounds replaced by Query.
-
-### Phase 9: Additive Facade And Documentation Cutover
-
-**Requirement**
-
-Extend the Milestone 9.16 front door without creating a separate expert product
-surface.
-
-**Must establish**
-
-- typed discoverability from domain identity, intent, and current proof state;
-- facade snapshots for declarations and hosts;
-- public feature documents for access products, footprints, paths, bulk
-  execution, decisions, reuse, installed-query search, capability-preserving
-  strategy admission, advanced aftermath, and the explicit cross-runtime
-  ownership boundary for all branch-aware aftermath;
-- `AI_README.md` links and runtime mental-model updates;
-- support and explanation rows matching executable behavior;
-- migration guidance and workaround deletion; and
-- permanent dependency and residue fences.
-
-**Proof before Phase 10**
-
-Reference domains compile and operate through the same ordinary facade shape as
-the Milestone 9.16 bank world. Capability discovery does not require internal
-module names, registry keys, transport names, or string identifiers, and
-advanced strategy selection never changes the query's authorization,
-disclosure, basis, cursor, recovery, or aftermath meaning.
-
-### Phase 10: Provider-Independent Hostile Certification
-
-**Requirement**
-
-Export a reusable oracle that can certify advanced provider behavior without
-trusting the provider's implementation or receipts.
-
-**Must establish**
-
-- independent candidate-completeness and membership oracles;
-- footprint and dependency mutation matrices;
-- correlated-path reference interpretation;
-- conflict-partition completeness and scaling checks;
-- independent accounting of memory and provider work;
-- governance/redaction adversaries;
-- capability, purpose, disclosure, conflict-of-interest, break-glass, cursor,
-  recovery, and aftermath adversaries across every advanced strategy;
-- reuse/occurrence/reproducibility matrices;
-- serial, chunked, yielded, partitioned, and alternate-provider parity;
-- compile-fail, facade, prohibition, residue, sabotage, boundary, and context
-  enforcement; and
-- a requirement/evidence closure ledger that reopens downstream guarantees when
-  a shared assumption fails.
-
-**Closure rule**
-
-Certification is provider-independent only when the oracle derives expected
-meaning from independent state or a simpler reference model. Replaying provider
-receipts through Query is observability, not certification.
+### Phase 1: Owner-Issued Component Basis Contracts
+
+Freeze the exact Relational and Signal basis artifacts admitted into ordinary
+composition. Each includes runtime, branch, version/generation, lifecycle, and
+retention identity sufficient to reject copied, stale, foreign, or derived
+substitutes. This phase does not move authority out of either runtime.
+
+### Phase 2: Composite Basis, Commit, And Product Branch Authority
+
+Install Runtime Bridge-owned correspondence admission, immutable single-parent
+composite commits, product branch references, explicit component reuse/fork
+plans, and exact composite retention. Make floating component selection and
+one-to-one branch-id assumptions unrepresentable.
+
+### Phase 3: Relational Branch-Local MVCC
+
+Replace the global Relational coordinator with branch-qualified snapshots,
+transactions, conflict evidence, and atomic owner-local publication candidates.
+Equal ordinals on different Relational branches remain non-equivalent, and
+unrelated branches progress independently.
+
+### Phase 4: Coordinated Composite Publication
+
+Build the Runtime Bridge orchestration progression from exact expected
+composite head through owner preparation, compatibility, component outcomes,
+and one atomic composite compare-and-publish. Define cancellation, stale head,
+component rejection, partial preparation, retained orphan, and indeterminate
+outcomes without exposing a half-current product world.
+
+### Phase 5: Query Carriage And Public Facade Cutover
+
+Carry the admitted composite branch and exact component basis through every
+Query plan, provider session, read set, proposal, invariant, effect, commit,
+receipt, publication, history read, and recovery boundary. Publish ordinary
+branch creation, selection, inspection, and mutation through
+`worth-query-decl` and `worth-query-host`; delete Relational-only product branch
+assumptions and ambient Signal selection.
+
+### Phase 6: Lifecycle, Documentation, And Hostile Certification
+
+Document product branches as exact component compositions, including shared
+Signal bases, component-specific forks, stale correspondence, cancellation,
+retention, and orphan cleanup. Certify the complete adversarial courtroom
+through the real Query composition root and owner facades. Mutation of exact
+component selection, correspondence admission, branch-local coordination, or
+composite compare-and-publish must turn the evidence red.
 
 ## DX Target
 
-An advanced operation should extend the ordinary typed operation surface:
-
 ```rust
-let result = geometry
-    .operation(operations::boolean_union)
-    .with_input(BooleanOperands { left, right })
-    .access(access_products::spatial_candidates())
-    .footprint(FootprintPolicy::verify_and_narrow())
-    .resources(resources)
-    .execute()
+let proposal = app
+    .branches()
+    .fork(world.head())
+    .components(|components| {
+        components
+            .fork_relational()
+            .reuse_exact_signal_basis()
+    })
+    .create()
+    .await?;
+
+let outcome = app
+    .on_branch(proposal)
+    .transaction()
+    .apply(admitted_change)
+    .commit()
     .await?;
 ```
 
-A correlated path should be defined through typed schema references:
-
-```rust
-let affected_cells = paths::from(entities::net)
-    .through(relations::drives)
-    .bind(path_bindings::driver)
-    .through(relations::placed_in)
-    .where_field(aspects::cell_state::enabled.eq(true))
-    .bounded(PathBound::hops(4)?);
-```
-
-Bulk execution should make strategy and evidence inspectable without asking the
-caller to partition manually:
-
-```rust
-let outcome = chip
-    .operation(operations::recompute_cones)
-    .with_inputs(changed_nets)
-    .set_execution(SetExecution::conflict_partitioned())
-    .execute()
-    .await?;
-```
-
-A bank search should extend one installed query while preserving capability,
-purpose, disclosure, and continuation meaning:
-
-```rust
-let results = bank
-    .query(queries::estate_cases().matching(search::customer_or_case(term)?))
-    .as_principal(compliance_officer)
-    .purpose(purposes::estate_investigation())
-    .access(access_products::authorized_search())
-    .page(Page::first(40)?)
-    .run()
-    .await?;
-
-let next = results.next_cursor().map(|cursor| {
-    bank.query(queries::estate_cases().after(cursor))
-        .as_principal(compliance_officer)
-        .purpose(purposes::estate_investigation())
-});
-```
-
-Advanced execution must retain the ordinary aftermath surface:
-
-```rust
-let committed = geometry
-    .operation(operations::boolean_union)
-    .with_input(BooleanOperands { left, right })
-    .access(access_products::spatial_candidates())
-    .execute()
-    .await?
-    .require_committed()?;
-
-let aftermath = committed.aftermath();
-let undo = aftermath.undo_as(principal, controls).await?;
-let redo = undo.redo_intent()?;
-```
-
-The exact APIs must follow real type and ownership pressure. The invariant is
-that the caller states semantic intent and owned controls while Query and the
-provider carry proof through the legal progression.
+The ordinary caller selects semantic intent and an admitted product branch, not
+raw lower-runtime ids. Advanced branch creation makes component reuse or fork
+posture explicit because only the caller can choose that product meaning.
 
 ## Performance Contract
 
-Advanced capability is valuable only if it lowers total honest cost.
-
-- Access-product lookup cost is measured separately from build, maintenance,
-  rebuild, eviction, and disposal.
-- Candidate count is measured separately from exact-refinement count.
-- Search universe width, index candidates, disclosure-eligible candidates,
-  ranked candidates, and delivered results are separate counters; unauthorized
-  candidates may not be hidden inside an unreported provider total.
-- Declared breadth, realized footprint, and returned result width are distinct.
-- Planning comparisons are measured separately from actual conflicts and
-  provider batch contacts.
-- Artifact allocation, retained resident bytes, heap-owned payload bytes, and
-  transferred bytes are distinct.
-- Incremental maintenance must declare the density or churn regime in which it
-  beats rebuild.
-- Ordinary execution does not import certification, replay, full-scan oracle,
-  or reconstructive costs.
-- Capability, conflict, purpose, and disclosure narrowing is planned once and
-  carried into provider strategy admission; an advanced provider may not
-  re-run broad policy over its entire candidate universe.
-- Filter, sort, expansion, correlated-path, and paging work retains the
-  Milestone 9.10 requirement-set and plan-consumption evidence. Advanced
-  acceleration may reduce candidate work but may not replace the no-N+1,
-  fallback, edge-scan, memory, or live-maintenance counters.
-- Warm tests for one changed declaration, one changed operation, and one changed
-  provider adapter remain explicit owner targets.
-
-No counter derived from requested work or returned rows may stand in for actual
-provider work.
+- Relational commit coordination scales with contention on the selected
+  Relational branch, not total product branches or unrelated writers.
+- Composite publication scales with the fixed number of participating
+  component owners plus the components changed by the operation; it does not
+  scan all runtimes, branches, or history.
+- Product branch creation is O(number of component bindings), O(1) for the
+  current Relational-plus-Signal composition, plus declared retention work.
+- Reusing an exact Signal basis performs no graph copy, evaluation, or cache
+  duplication.
+- Ordinary single-component work performs exact-zero preparation in unchanged
+  components beyond validating the carried basis proof required for composite
+  publication.
+- Ancestry traversal, historical comparison, and orphan reclamation are
+  explicit historical or maintenance lanes and never hide inside ordinary
+  commit accessors.
+- Counters distinguish owner preparation, component basis checks, composite
+  head comparisons, same-branch retries, unrelated-branch waits, retained
+  candidates, and cleanup breadth.
 
 ## Must Preserve
 
-- the typed public front door and authenticated authorization composition from
-  Milestone 9.16;
-- canonical installed application-query identity, Query-owned continuation,
-  explicit basis, capability, purpose, field disclosure, governed elevation,
-  actionable recovery, and linear aftermath from Milestone 9.16;
-- Milestone 9.15 artifact, occurrence, resource, provider-session, read-set,
-  proposed-state, and invariant authority;
-- one installed operating-world root;
-- exact Foundational values;
-- provider ownership of physical mechanics;
-- domain ownership of algorithm and vocabulary;
-- Query ownership of generic contract, lifecycle, evidence, and public meaning;
-- declared authority as an upper bound;
-- cert-only replay;
-- honest typed terminal outcomes; and
-- redo as fresh execution and certification replay as cert-only reconstruction,
-  never interchangeable with reuse.
+- Milestone 9.16.1's single graph-obligation and provider-session progression;
+- Milestone 9.16 authentication, authorization, disclosure, invariant,
+  compare-and-commit, recovery, aftermath, and publication contracts;
+- Relational ownership of authoritative graph and truth-version history;
+- Signal ownership of definition-bound derived execution branches and state;
+- Runtime Bridge's inability to fabricate component currentness or internal
+  owner authority;
+- Query's inability to mint component bases, correspondence, composite commits,
+  conflicts, or product-head movement; and
+- cert-only replay.
 
 ## Explicit Non-Goals
 
-- putting geometry, chip, routing, solver, or research vocabulary in Query;
-- permanent provider-specific indexes owned by Query;
-- caller-managed access caches;
-- distributed transaction protocols;
-- durable recovery or restart semantics;
-- branch-aware governed conflict resolution, branch-local inversion, and any
-  branch- or tree-shaped undo/redo navigation. These belong to the cross-runtime
-  merging-and-branching roadmap; Milestone 9.17 creates no placeholder
-  topology or support posture for them;
-- treating decision attachments as workflow approvals; or
-- accepting a provider's receipt as independent proof.
+- application undo, redo, inverse, or compensation semantics;
+- semantic diff, merge, or rebase policy;
+- multi-parent commits, tags, or cross-runtime best-common-ancestor logic;
+- offline replicas and synchronization;
+- durable Store-backed restart and distributed atomic publication; and
+- treating derived Signal outputs as authoritative component truth.
 
 ## Acceptance Evidence
 
-Milestone 9.17 closes only when:
+Milestone 9.17 closes only when shared-Signal-basis, divergent-component,
+Relational-only, Signal-only, combined-component, independent-progress,
+same-head-race, equal-ordinal substitution, stale-correspondence,
+partial-preparation, cancellation, retention, branch-creation, facade,
+documentation, dependency, residue, and structural-cost evidence agree.
 
-- access-product lifecycle and memory are independently observed;
-- advanced search remains one installed application query and preserves exact
-  capability, purpose, basis, disclosure, ordering, cursor, and result-shape
-  meaning;
-- every covered filter, sort, nested expansion, correlated path, and advanced
-  candidate strategy consumes the existing Milestone 9.10 admitted graph-read
-  plan, emits its plan-consumption evidence, and proves exact-zero
-  caller-owned per-result lookup work;
-- membership remains complete across insertion, deletion, motion, maintenance,
-  rebuild, and eviction;
-- verified footprints narrow but never widen declared authority;
-- relevant and unrelated drift behave correctly through compare-and-commit;
-- correlated paths match an independent interpreter;
-- bulk execution is truly set-oriented and its planner avoids prohibited
-  quadratic behavior;
-- decision governance survives nested disclosure and incremental update;
-- reuse preserves occurrence, reproducibility, dependency, and lifecycle
-  meaning;
-- the bank/compliance, geometry, chip/netlist, and research consumers use only
-  the public facade and contain no replaced local workaround;
-- linear undo, redo, recovery, compensation, and irreversible posture remain
-  correct after advanced access, bulk execution, decision attachment, and
-  reuse;
-- alternate providers converge on canonical semantic and evidence meaning; and
-- the closure ledger, boundary checks, context checks, compile-fail probes,
-  facade snapshots, residue scans, performance evidence, and consumer tests all
-  agree.
+The decisive product observation is the composite branch head and exact
+owner-observed component bases. A green Relational commit alone is not closure.
 
 ## Handoff
 
-Milestone 13 consumes the generic and domain-computation certification oracles
-from Milestones 9.15 through 9.17 and proves provider parity across the completed
-runtime-backed Query framework.
+[Milestone 9.18](./milestone-9.18.md) consumes exact product branches,
+composite commits, component bases, single-parent ancestry, correction
+retention, and coordinated compare-and-publish authority to define tree-based
+semantic undo and redo as newly admitted composite history. It may not create a
+second composition owner, treat Relational history as the whole product world,
+or weaken independent component and branch progress.

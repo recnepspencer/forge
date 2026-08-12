@@ -3,7 +3,7 @@ import {
   requireAuthoringOptions,
 } from "../authoring_option_validation.js";
 import { freezeObject } from "../graph_support.js";
-import { CONTROLLER_CONTRACT, PRIVATE_AUTHORING_ID } from "../symbols.js";
+import { PRIVATE_AUTHORING_ID } from "../symbols.js";
 import { createWorkerFirstAsyncInputHandle } from "./worker_first_async_input.js";
 import { createWorkerFirstAsyncLinkedHandle } from "./worker_first_async_linked.js";
 import {
@@ -14,12 +14,7 @@ import { createWorkerFirstExplicitSpecNamespace } from "./worker_first_explicit_
 import { createWorkerFirstFormFactory } from "./worker_first_form_factory.js";
 import { createFeatureStoreFactory } from "../feature_store/feature_store_factory.js";
 import { createLocalNamespace } from "../local/local_namespace.js";
-import {
-  createWorkerFirstPublicInputEntry,
-  isWorkerFirstPublicGraphInputEntry,
-  requireWorkerFirstInputHandle,
-  requireWorkerFirstSignalHandle,
-} from "./worker_first_public_input_support.js";
+import { createWorkerFirstPublicInputEntry } from "./worker_first_public_input_support.js";
 import { createWorkerFirstResourceNamespace } from "./worker_first_resource_namespace.js";
 import { createWorkerFirstRootGraph } from "./worker_first_root_graph.js";
 import { createRouterNamespace } from "../router/router_namespace.js";
@@ -43,6 +38,7 @@ import {
   createWorkerFirstSyncOutputCallbackHandle,
   createWorkerFirstSyncRecipeHandle,
 } from "./worker_first_sync_authoring.js";
+import { buildControllerContract } from "./worker_first_controller_contract.js";
 
 export function createWorkerFirstScopedNamespace(rootSession, path = []) {
   return freezeObject(createNamespace(rootSession, path));
@@ -120,13 +116,30 @@ function createNamespace(rootSession, path) {
     settleAuthoredWork() {
       return rootSession.settleAuthoredWork();
     },
+    authoredSettleInvocationCount() {
+      return rootSession.authoredSettleInvocationCount();
+    },
+    commitHostTipAndNotify(tipWrites) {
+      return rootSession.commitHostTipAndNotify(tipWrites);
+    },
+    publishAuthoredTipProjection(changedIds) {
+      return rootSession.publishAuthoredTipProjection(changedIds);
+    },
+    applyCommittedTipWorkerBatch(tipWrites) {
+      return rootSession.applyCommittedTipWorkerBatch(tipWrites);
+    },
     ...createWorkerFirstObservationNamespace(rootSession),
     scope(localScopeId) {
       requireNonEmptyString(localScopeId, `${operationPrefix}.scope`);
       return createWorkerFirstScopedNamespace(rootSession, [...path, localScopeId]);
     },
     controller(definitionOrBuilder) {
-      return buildControllerContract(rootSession, path, definitionOrBuilder);
+      return buildControllerContract(
+        rootSession,
+        path,
+        definitionOrBuilder,
+        createWorkerFirstScopedNamespace,
+      );
     },
     publicInput(handle, options) {
       return createWorkerFirstPublicInputEntry(rootSession, handle, options);
@@ -288,73 +301,6 @@ function createNamespace(rootSession, path) {
   return namespace;
 }
 
-function buildControllerContract(rootSession, path, definitionOrBuilder) {
-  if (typeof definitionOrBuilder === "function") {
-    const authoringSurface = createWorkerFirstScopedNamespace(rootSession, path);
-    return buildControllerContract(rootSession, path, definitionOrBuilder(authoringSurface));
-  }
-  return createControllerContract(rootSession, definitionOrBuilder);
-}
-
-function createControllerContract(rootSession, definition) {
-  if (!isPlainObject(definition)) {
-    throw new TypeError("signals.controller requires a controller definition object");
-  }
-  return freezeObject({
-    inputs: requireControllerInputRecord(rootSession, requireRecord(definition.inputs, "inputs")),
-    outputs: requireControllerOutputRecord(rootSession, requireRecord(definition.outputs, "outputs")),
-    internal: requireControllerInternalRecord(requireRecord(definition.internal, "internal")),
-    [CONTROLLER_CONTRACT]: true,
-  });
-}
-
-function requireControllerInputRecord(rootSession, record) {
-  const clone = nullPrototypeRecord();
-  for (const [name, value] of Object.entries(record)) {
-    if (isWorkerFirstPublicGraphInputEntry(value)) {
-      requireWorkerFirstInputHandle(rootSession, value.handle, `controller.inputs.\`${name}\``);
-      clone[name] = value;
-      continue;
-    }
-    clone[name] = requireWorkerFirstInputHandle(
-      rootSession,
-      value,
-      `controller.inputs.\`${name}\``,
-    );
-  }
-  return freezeObject(clone);
-}
-
-function requireControllerOutputRecord(rootSession, record) {
-  const clone = nullPrototypeRecord();
-  for (const [name, value] of Object.entries(record)) {
-    if (isWorkerFirstPublicGraphInputEntry(value)) {
-      throw new TypeError(
-        `controller.outputs.\`${name}\` cannot use signals.publicInput(...); public input authority belongs only in controller.inputs`,
-      );
-    }
-    clone[name] = requireWorkerFirstSignalHandle(
-      rootSession,
-      value,
-      `controller.outputs.\`${name}\` must be a worker-first signal handle from the active imported graph`,
-    );
-  }
-  return freezeObject(clone);
-}
-
-function requireControllerInternalRecord(record) {
-  const clone = nullPrototypeRecord();
-  for (const [name, value] of Object.entries(record)) {
-    if (isWorkerFirstPublicGraphInputEntry(value)) {
-      throw new TypeError(
-        `controller.internal.\`${name}\` cannot use signals.publicInput(...); public authority wrappers belong only in controller.inputs`,
-      );
-    }
-    clone[name] = value;
-  }
-  return freezeObject(clone);
-}
-
 function normalizeWorkerFirstScopedInputOptions(operationPrefix, options) {
   if (options === undefined) {
     return undefined;
@@ -372,32 +318,9 @@ function normalizeWorkerFirstScopedInputOptions(operationPrefix, options) {
   return normalized;
 }
 
-function requireRecord(candidate, fieldName) {
-  if (candidate === undefined) {
-    return freezeObject(nullPrototypeRecord());
-  }
-  if (!isPlainObject(candidate)) {
-    throw new TypeError(`controller.${fieldName} must be an object when provided`);
-  }
-  const clone = nullPrototypeRecord();
-  for (const [key, value] of Object.entries(candidate)) {
-    clone[key] = value;
-  }
-  return freezeObject(clone);
-}
-
 function requireNonEmptyString(value, operation) {
   if (typeof value !== "string" || value.length === 0) {
     throw new TypeError(`${operation} requires a non-empty string scope id`);
   }
   return value;
-}
-
-
-function nullPrototypeRecord() {
-  return Object.create(null);
-}
-
-function isPlainObject(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }

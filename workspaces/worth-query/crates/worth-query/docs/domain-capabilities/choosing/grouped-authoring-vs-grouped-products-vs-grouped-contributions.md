@@ -110,7 +110,7 @@ separate.
 
 - [Family Helpers](../family-helpers.md) gives you geometry-native grouped
   entry points over the same canonical grouped surfaces.
-- [Recovery Boundary](../recovery-boundary.md) preserves grouped member context
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md) preserves grouped member context
   when a grouped checked or proof lane stops.
 - [Contribution-Composed Orchestration](../contribution-composed-orchestration.md)
   is the canonical lower seam grouped contributions reuse.

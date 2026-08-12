@@ -1,9 +1,21 @@
 use worth_query_installation::facade::ApplicationSchema;
 
 use super::{
-    provider_recomparison::recover_equivalent_commit_evidence, WorthQueryApplicationCommitReceipt,
-    WorthQueryApplicationIdempotencyBinding,
+    provider_recomparison::recover_equivalent_commit_evidence,
+    WorthQueryApplicationCommitAuthorityBinding, WorthQueryApplicationCommitReceipt,
+    WorthQueryApplicationIdempotencyBinding, WorthQueryCommittedReceiptProjection,
 };
+
+pub(super) struct WorthQueryIdempotencyReadCommitReceiptPermit {
+    _owner_mint: (),
+}
+
+impl WorthQueryIdempotencyReadCommitReceiptPermit {
+    fn mint() -> Self {
+        Self { _owner_mint: () }
+    }
+}
+use crate::domain_computation::application_aftermath::WorthQueryAdmittedIdempotencyRead;
 use crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolution;
 use crate::domain_computation::primary_graph::{
     WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
@@ -69,10 +81,10 @@ where
         &self,
         admission: &WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
         binding: WorthQueryApplicationIdempotencyBinding,
-    ) -> Result<
-        WorthQueryApplicationIdempotencyResolution,
-        WorthQueryApplicationIdempotencyResolutionDenial,
-    > {
+    ) -> Result<WorthQueryAdmittedIdempotencyRead, WorthQueryApplicationIdempotencyResolutionDenial>
+    where
+        Input: Clone + Send + Sync + 'static,
+    {
         admission
             .validate_current_authority()
             .map_err(WorthQueryApplicationIdempotencyResolutionDenial::from_authorization)?;
@@ -82,6 +94,7 @@ where
         ) {
             return Err(WorthQueryApplicationIdempotencyResolutionDenial::foreign_admission());
         }
+        let read_for = binding;
         let binding = binding
             .bind_operation(admission.operation_authority_identity_bytes())
             .bind_operation_scope(admission.operation_scope_binding())
@@ -106,19 +119,33 @@ where
             })?;
         match resolution {
             Ok(WorthQueryProviderIdempotencyResolution::Absent) => {
-                Ok(WorthQueryApplicationIdempotencyResolution::Unseen)
+                Ok(WorthQueryAdmittedIdempotencyRead::mint(
+                    read_for,
+                    WorthQueryApplicationIdempotencyResolution::Unseen,
+                ))
             }
-            Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => Ok(
-                WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(
-                    WorthQueryApplicationCommitReceipt::from_recovered_provider(
-                        receipt,
-                        recover_equivalent_commit_evidence(admission.mutation_preconditions()),
-                        admission.canonical_work(),
-                    ),
-                ),
-            ),
+            Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
+                let projection =
+                    WorthQueryCommittedReceiptProjection::resolve(receipt).map_err(|_| {
+                        WorthQueryApplicationIdempotencyResolutionDenial::provider_unavailable()
+                    })?;
+                let receipt = WorthQueryApplicationCommitReceipt::from_idempotency_read(
+                    WorthQueryIdempotencyReadCommitReceiptPermit::mint(),
+                    projection,
+                    recover_equivalent_commit_evidence(admission.mutation_preconditions()),
+                    admission.canonical_work(),
+                    WorthQueryApplicationCommitAuthorityBinding::from_admission(admission, binding),
+                );
+                Ok(WorthQueryAdmittedIdempotencyRead::mint(
+                    read_for,
+                    WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(receipt),
+                ))
+            }
             Ok(WorthQueryProviderIdempotencyResolution::Drift) => {
-                Ok(WorthQueryApplicationIdempotencyResolution::IntentDrift)
+                Ok(WorthQueryAdmittedIdempotencyRead::mint(
+                    read_for,
+                    WorthQueryApplicationIdempotencyResolution::IntentDrift,
+                ))
             }
             Err(_) => Err(WorthQueryApplicationIdempotencyResolutionDenial::provider_unavailable()),
         }

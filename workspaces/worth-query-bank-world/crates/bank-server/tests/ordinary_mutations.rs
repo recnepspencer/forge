@@ -1,5 +1,7 @@
 #[path = "ordinary_mutations/assertions.rs"]
 mod assertions;
+#[path = "ordinary_mutations/authorization_time.rs"]
+mod authorization_time;
 #[path = "ordinary_mutations/estate_operations.rs"]
 mod estate_operations;
 #[allow(
@@ -27,9 +29,9 @@ use bank_server::{mutations, queries, BankMutationControls, BankMutationStatus, 
 use worth_query_host::facade::admission::authenticated_principal::{
     WorthQueryCancellationSource, WorthQueryRequestScope,
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationCommitTerminalKind, WorthQueryApplicationQueryControls,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryControls;
+use worth_query_host::facade::publication::application_aftermath::WorthQueryPublishedApplicationCommitKind;
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationCommitAttemptReleasePosture;
 
 use assertions::{assert_committed, assert_emitting_commit};
 use fixture::{ordinary_read_world, principal_id, APPROVER, OWNER, RECIPIENT, STRANGER, TELLER};
@@ -145,10 +147,12 @@ fn public_consumer_executes_every_typed_mutation_family() {
     let publication = receipt.publication().inspect();
     assert_eq!(
         publication.kind(),
-        WorthQueryApplicationCommitTerminalKind::Recovered
+        WorthQueryPublishedApplicationCommitKind::Recovered
     );
-    assert!(publication.executed_session_identity().is_none());
-    assert!(publication.attempt_resources_released().is_none());
+    assert_eq!(
+        publication.attempt_release(),
+        WorthQueryPublishedApplicationCommitAttemptReleasePosture::NotAttempted
+    );
 
     let initiation = execute!(
         fixture,

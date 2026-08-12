@@ -25,7 +25,7 @@ pub(super) fn validate_capability_identifiers(
     validate_relation_dimension(contract.target().relation())?;
     validate_field_dimension(contract.target().field())?;
     validate_field(contract.target().purpose().field())?;
-    validate_field_dimension(contract.constraints().amount())?;
+    validate_field_dimension(contract.constraints().magnitude())?;
     let currentness = contract.constraints().currentness();
     validate_field(currentness.active_status().field())?;
     validate_field(currentness.workflow().grant())?;

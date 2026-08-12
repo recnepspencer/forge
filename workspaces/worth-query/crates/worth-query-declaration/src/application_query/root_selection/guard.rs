@@ -1,7 +1,7 @@
 use worth_foundational::facade::{AspectValue, ScalarAspectType};
 
 use crate::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldRef, EqualityPredicate, TypedApplicationValue,
+    ApplicationFieldRef, ApplicationFieldUnit, EqualityPredicate, TypedApplicationValue,
     WritePosture,
 };
 
@@ -17,7 +17,7 @@ pub struct ApplicationQueryRootPathGuard {
 }
 
 impl ApplicationQueryRootPathGuard {
-    pub(super) fn new<Schema, Entity, Aspect, Field, Value, Write, Currency>(
+    pub(super) fn new<Schema, Entity, Aspect, Field, Value, Write, Unit>(
         after_step: usize,
         field: ApplicationFieldRef<
             Schema,
@@ -27,14 +27,14 @@ impl ApplicationQueryRootPathGuard {
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         expected: Value,
     ) -> Self
     where
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         Self {
             after_step,

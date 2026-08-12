@@ -2,10 +2,14 @@ use worth_store_io_scheduler::{
     IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityDenial,
     IoSchedulerBackendCapabilityRequirement,
 };
+#[cfg(feature = "recovery-runtime-owner")]
+use worth_store_physical_backend::AdmittedRecoveryFilesystemMedia;
 use worth_store_physical_backend::QualifiedFilesystemMedia;
 
 mod checkpoint;
 mod reclamation;
+#[cfg(feature = "recovery-runtime-owner")]
+pub(in crate::physical_runtime) use reclamation::PhysicalWalReclamationSchedulerAdmissionDenial;
 mod root_publication;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,6 +55,34 @@ impl PhysicalSchedulerAdmissionOwner {
                 .expect("an admitted physical-work profile has nonzero scheduler capacity"),
         };
         Ok(owner)
+    }
+
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(in crate::physical_runtime) fn new_recovery(
+        media: &AdmittedRecoveryFilesystemMedia,
+        capacity: crate::physical_runtime::PhysicalWorkCapacity,
+    ) -> Result<Self, IoSchedulerBackendCapabilityDenial> {
+        Ok(Self {
+            buffered_file: admit_recovery(
+                media,
+                IoSchedulerBackendCapabilityRequirement::BufferedFile,
+            )?,
+            fsync: admit_recovery(
+                media,
+                IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync,
+            )?,
+            directory_sync: admit_recovery(
+                media,
+                IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDirectorySync,
+            )?,
+            durable_rename: admit_recovery(
+                media,
+                IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDurableRename,
+            )?,
+            foreground: worth_store_io_scheduler::foreground_reservation::
+                PhysicalInstanceForegroundCapacity::new(foreground_capacity(capacity))
+                .expect("an admitted recovery profile has nonzero scheduler capacity"),
+        })
     }
 
     pub(in crate::physical_runtime) fn wal_append(
@@ -206,6 +238,23 @@ impl PhysicalSchedulerAdmissionOwner {
 
 fn admit(
     media: &QualifiedFilesystemMedia,
+    requirement: IoSchedulerBackendCapabilityRequirement,
+) -> Result<IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityDenial> {
+    let claim = media
+        .scheduler_capability_claim(
+            requirement.capability_kind(),
+            requirement.required_evidence(),
+        )
+        .map_err(IoSchedulerBackendCapabilityDenial::BackendCapabilityDenied)?;
+    worth_store_io_scheduler::admit_backend_capability_for_scheduler_qualified_claim(
+        claim,
+        requirement,
+    )
+}
+
+#[cfg(feature = "recovery-runtime-owner")]
+fn admit_recovery(
+    media: &AdmittedRecoveryFilesystemMedia,
     requirement: IoSchedulerBackendCapabilityRequirement,
 ) -> Result<IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityDenial> {
     let claim = media

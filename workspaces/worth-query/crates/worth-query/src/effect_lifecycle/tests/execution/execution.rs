@@ -98,7 +98,7 @@ fn lowered_merge_execution_runs_through_relational_merge_authority() {
         .as_merge()
         .expect("merge artifact should be present");
     assert_eq!(
-        merge.commit.outcome.commit.version_id.0,
+        merge.commit.outcome().commit.version_id.0,
         runtime.history().latest_commit().unwrap().version_id.0
     );
 }

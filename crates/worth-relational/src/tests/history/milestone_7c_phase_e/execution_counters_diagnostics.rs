@@ -41,7 +41,7 @@ fn execute_prepared_merge_reports_execution_counters_and_structural_summary() {
     assert_eq!(
         merge
             .commit
-            .execution
+            .execution()
             .complexity_delta
             .merge_execution_attempts,
         1
@@ -49,7 +49,7 @@ fn execute_prepared_merge_reports_execution_counters_and_structural_summary() {
     assert_eq!(
         merge
             .commit
-            .execution
+            .execution()
             .complexity_delta
             .merge_execution_requests,
         1
@@ -57,7 +57,7 @@ fn execute_prepared_merge_reports_execution_counters_and_structural_summary() {
     assert_eq!(
         merge
             .commit
-            .execution
+            .execution()
             .complexity_delta
             .merge_execution_records_admitted,
         1
@@ -65,7 +65,7 @@ fn execute_prepared_merge_reports_execution_counters_and_structural_summary() {
     assert_eq!(
         merge
             .commit
-            .execution
+            .execution()
             .complexity_delta
             .merge_execution_mutation_intents_emitted,
         1

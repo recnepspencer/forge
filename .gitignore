@@ -50,3 +50,6 @@ mb_n4_log.txt
 
 # Repository-owned test control runtime evidence and attempt logs
 .store-proof/
+
+# Claude Code personal overrides
+.claude/settings.local.json

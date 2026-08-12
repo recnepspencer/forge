@@ -9,7 +9,7 @@ pub(super) fn field_member(field: &str) -> ApplicationSchemaMember {
         presence: ApplicationFieldPresence::Required,
         scalar_family: ScalarAspectType::UInt64,
         value_type: std::any::type_name::<u64>().to_string(),
-        currency: None,
+        unit: None,
         writable: false,
         equality_queryable: true,
     }
@@ -23,7 +23,7 @@ pub(super) fn resource_field_member(field: &str) -> ApplicationSchemaMember {
         presence: ApplicationFieldPresence::Required,
         scalar_family: ScalarAspectType::UInt64,
         value_type: std::any::type_name::<u64>().to_string(),
-        currency: None,
+        unit: None,
         writable: false,
         equality_queryable: true,
     }

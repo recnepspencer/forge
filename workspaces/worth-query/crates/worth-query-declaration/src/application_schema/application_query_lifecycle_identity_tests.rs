@@ -10,7 +10,7 @@ use crate::application_query::{
 
 use super::{
     ApplicationEffectPayload, ApplicationEffectRef, ApplicationEntityRef, ApplicationFieldRef,
-    ApplicationRelationRef, EqualityPredicate, NoApplicationCurrency, ReadOnly,
+    ApplicationRelationRef, EqualityPredicate, NoApplicationUnit, ReadOnly,
 };
 
 struct Schema;
@@ -197,29 +197,28 @@ fn typed_definition<QueryMarker: 'static, ParameterMarker, ResultMarker, ScopeMa
         u64,
         ReadOnly,
         EqualityPredicate,
-        NoApplicationCurrency,
+        NoApplicationUnit,
     >::new("root", root_identity_field());
     let shape =
         ApplicationQueryResultShapeBuilder::<Schema, QueryMarker, Root, ResultMarker>::new(root)
             .field(identity)
             .build();
-    ApplicationQueryDefinitionBuilder::public(
-        ApplicationQueryReference::<
-            Schema,
-            QueryMarker,
-            ParameterMarker,
-            ResultMarker,
-            ScopeMarker,
-        >::from_schema_identifier("query"),
-        root,
-        scope,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 1),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
+    ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::<
+        Schema,
+        QueryMarker,
+        ParameterMarker,
+        ResultMarker,
+        ScopeMarker,
+    >::from_schema_identifier("query"))
+    .root(root)
+    .scope(scope)
+    .result_shape(shape)
+    .cardinality(ApplicationQueryCardinality::ExactlyOne)
+    .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
+    .disclosure(ApplicationQueryDisclosureContract::public())
+    .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+    .lanes(ApplicationQueryLaneEligibility::one_shot())
+    .public()
     .build()
     .expect("typed identity fixture must be lawful")
     .into_erased()
@@ -234,21 +233,20 @@ fn collection_definition(continuation: bool) -> ErasedApplicationQueryDefinition
         .field(root_identity())
         .relation(children(), child_shape)
         .build();
-    let builder = ApplicationQueryDefinitionBuilder::public(
-        query_reference(),
-        root,
-        root,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 2),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .order_by(
-        child_identity(),
-        ApplicationQueryOrderingDirection::Ascending,
-    );
+    let builder = ApplicationQueryDefinitionBuilder::declare(query_reference())
+        .root(root)
+        .scope(root)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 2))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .order_by(
+            child_identity(),
+            ApplicationQueryOrderingDirection::Ascending,
+        );
     let builder = if continuation {
         builder.continue_by(children())
     } else {
@@ -281,26 +279,29 @@ where
         .field(root_identity())
         .relation(children(), child_shape)
         .build();
-    ApplicationQueryDefinitionBuilder::public(
-        query_reference(),
-        root,
-        root,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 2),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot().with_live(),
-    )
-    .order_by(
-        child_identity(),
-        ApplicationQueryOrderingDirection::Ascending,
-    )
-    .continue_by(children())
-    .live_by::<Child, Binding, _, _, _, _, _, _, _, _>(root_identity(), child_identity(), resources)
-    .build()
-    .expect("live identity fixture must be lawful")
-    .into_erased()
+    ApplicationQueryDefinitionBuilder::declare(query_reference())
+        .root(root)
+        .scope(root)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 2))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot().with_live())
+        .public()
+        .order_by(
+            child_identity(),
+            ApplicationQueryOrderingDirection::Ascending,
+        )
+        .continue_by(children())
+        .live_by::<Child, Binding, _, _, _, _, _, _, _, _>(
+            root_identity(),
+            child_identity(),
+            resources,
+        )
+        .build()
+        .expect("live identity fixture must be lawful")
+        .into_erased()
 }
 
 fn query_reference() -> ApplicationQueryReference<Schema, Query, Parameters, QueryResult, Root> {
@@ -323,7 +324,7 @@ fn root_identity_field() -> ApplicationFieldRef<
     u64,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationFieldRef::from_schema_identifiers("Root", "Identity", "Id")
 }
@@ -338,7 +339,7 @@ fn root_identity() -> ApplicationQueryResultFieldRef<
     u64,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("root", root_identity_field())
 }
@@ -353,7 +354,7 @@ fn child_identity() -> ApplicationQueryResultFieldRef<
     u64,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new(
         "child",

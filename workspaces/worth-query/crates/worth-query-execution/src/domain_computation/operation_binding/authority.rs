@@ -306,6 +306,26 @@ impl WorthQueryExecutionBoundOperationAuthority {
         self.operation_evidence_contract.as_ref()
     }
 
+    /// Descriptive contract content for high-level ordinary direct completion.
+    /// This does not mint or attach execution evidence.
+    pub fn ordinary_direct_domain_evidence_contract(
+        &self,
+    ) -> Option<&Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>
+    {
+        self.operation_evidence_contract.as_ref()
+    }
+
+    /// Descriptive contract content for a high-level validated workflow stage.
+    /// This does not mint or attach execution evidence.
+    pub fn ordinary_workflow_domain_evidence_contract(
+        &self,
+        stage_identity: &str,
+    ) -> Option<&Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>
+    {
+        self.workflow_stage_artifact_contracts(stage_identity)?
+            .evidence()
+    }
+
     pub(crate) fn workflow_stage_artifact_contracts(
         &self,
         stage_identity: &str,

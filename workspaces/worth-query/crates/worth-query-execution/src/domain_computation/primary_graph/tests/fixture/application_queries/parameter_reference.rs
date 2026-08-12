@@ -22,7 +22,7 @@ pub(super) fn activity_sequence_result_field() -> ApplicationQueryResultFieldRef
     u64,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::NoEqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("sequence", ActivitySequence::reference())
 }

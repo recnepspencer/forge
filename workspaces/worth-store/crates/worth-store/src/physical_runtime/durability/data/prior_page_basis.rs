@@ -5,8 +5,6 @@ use worth_store_physical_format::{
 
 use super::{PhysicalDataFrameIdentity, PhysicalDataFrameKind};
 
-const ABSENT_PRIOR_IMAGE_DOMAIN: &[u8] = b"store.physical.data.certified-absent-prior-image.v1";
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CertifiedPriorPageBasis {
     image: CertifiedPriorPageImage,
@@ -24,17 +22,13 @@ impl CertifiedPriorPageBasis {
     pub(in crate::physical_runtime) fn for_unmaterialized_target(
         target: PhysicalDataFrameIdentity,
     ) -> Self {
-        let mut digest = Sha256::new();
-        digest.update((ABSENT_PRIOR_IMAGE_DOMAIN.len() as u64).to_le_bytes());
-        digest.update(ABSENT_PRIOR_IMAGE_DOMAIN);
-        let mut identity = Vec::with_capacity(32);
-        target.write_canonical(&mut identity);
-        digest.update((identity.len() as u64).to_le_bytes());
-        digest.update(identity);
         Self {
             image: CertifiedPriorPageImage::AbsentTarget(target),
             page_lsn: PhysicalPageLsn::GENESIS,
-            payload_digest: digest.finalize().into(),
+            payload_digest: worth_store_physical_format::certified_absent_prior_image_digest(
+                target.persisted_subject(),
+                target.coordinate(),
+            ),
         }
     }
 

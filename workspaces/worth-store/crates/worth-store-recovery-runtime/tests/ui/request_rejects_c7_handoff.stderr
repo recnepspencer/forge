@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+  --> tests/ui/request_rejects_c7_handoff.rs:16:9
+   |
+15 |     let _ = PhysicalRecoveryOpenRequest::declare(
+   |             ------------------------------------ arguments to this function are incorrect
+16 |         handoff,
+   |         ^^^^^^^ expected `PathBuf`, found `PhysicalDurabilityRecoveryHandoff`
+   |
+note: associated function defined here
+  --> src/entry/request.rs
+   |
+   |     pub fn declare(
+   |            ^^^^^^^

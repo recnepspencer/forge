@@ -1,5 +1,6 @@
 use worth_query_decl::facade::application_schema::{
-    ApplicationEntityRef, ApplicationFieldRef, EqualityPredicate, ReadOnly,
+    ApplicationAspectMarkerIdentity, ApplicationEntityMarkerIdentity, ApplicationEntityRef,
+    ApplicationFieldMarkerIdentity, ApplicationFieldRef, EqualityPredicate, ReadOnly,
     TypedReadDeclarationBuilder,
 };
 
@@ -9,6 +10,24 @@ struct FirstEntity;
 struct SecondEntity;
 struct Aspect;
 struct Field;
+
+impl ApplicationEntityMarkerIdentity for SecondEntity {
+    type Schema = SecondSchema;
+    const IDENTIFIER: &'static str = "SecondEntity";
+}
+
+impl ApplicationAspectMarkerIdentity for Aspect {
+    type Schema = SecondSchema;
+    type Entity = SecondEntity;
+    const IDENTIFIER: &'static str = "Aspect";
+}
+
+impl ApplicationFieldMarkerIdentity for Field {
+    type Schema = SecondSchema;
+    type Entity = SecondEntity;
+    type Aspect = Aspect;
+    const IDENTIFIER: &'static str = "Field";
+}
 
 fn main() {
     let entity =
@@ -21,6 +40,6 @@ fn main() {
         u64,
         ReadOnly,
         EqualityPredicate,
-    >::from_schema_identifiers("SecondEntity", "Aspect", "Field");
+    >::from_schema_types();
     let _ = TypedReadDeclarationBuilder::new(entity).project(foreign);
 }

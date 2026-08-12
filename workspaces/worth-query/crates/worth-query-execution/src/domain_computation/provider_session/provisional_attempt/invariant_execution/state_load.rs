@@ -41,11 +41,10 @@ impl WorthQueryAdmittedInvariantStateLoadPlan {
         let mut locators = locators.into_iter().collect::<Vec<_>>();
         locators.sort();
         locators.dedup();
-        if locators.is_empty() {
-            return Err(failure(
-                WorthQueryInvariantExecutionDenialKind::EmptyStateLoadPlan,
-            ));
-        }
+        // Empty plans are lawful for emit-only / outbox-only commits (R8.55):
+        // there are no proposed graph mutation facts to load, and the provider
+        // still validates the registered scaffolding batch under the same
+        // invariant owner path.
         if locators.iter().any(|locator| {
             !allowed_families
                 .iter()

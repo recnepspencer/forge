@@ -175,9 +175,7 @@ mod tests {
             &rule,
         );
         assert_eq!(diagnostics.len(), 1);
-        assert!(diagnostics[0]
-            .message()
-            .contains("worth-ui-query-binding"));
+        assert!(diagnostics[0].message().contains("worth-ui-query-binding"));
     }
 
     #[test]

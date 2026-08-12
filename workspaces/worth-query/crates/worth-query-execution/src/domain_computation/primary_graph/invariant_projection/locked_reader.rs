@@ -3,7 +3,7 @@ use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::sync::Arc;
 
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationSchema, EqualityPredicate,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationSchema, EqualityPredicate,
     TypedApplicationReadableValue, TypedApplicationValue, WritePosture,
 };
 
@@ -22,9 +22,7 @@ pub struct WorthQueryApplicationInvariantProjectionReader<'runtime, Schema> {
     pub(super) runtime: &'runtime mut worth_relational::facade::runtime::RelationalRuntime,
     pub(super) layout: &'runtime super::super::schema_layout::WorthQueryPrimaryGraphLayout,
     pub(super) snapshot: &'runtime worth_relational::facade::snapshots::SnapshotHandle,
-    runtime_authority:
-        crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
-    binding_identity: worth_query_installation::facade::ApplicationSchemaBindingIdentity,
+    entity_resolution: &'runtime super::super::WorthQueryInstalledEntityResolutionContext,
     pub(super) authority_identity: u64,
     pub(super) work: WorthQueryInvariantProjectionWork,
     pub(super) work_budget: WorthQueryInvariantProjectionWorkBudget,
@@ -109,8 +107,7 @@ where
                     runtime,
                     layout: &self.layout,
                     snapshot: &snapshot,
-                    runtime_authority: self.runtime_authority,
-                    binding_identity: self.binding_identity.clone(),
+                    entity_resolution: &self.entity_resolution,
                     authority_identity: self.authority_identity,
                     work: WorthQueryInvariantProjectionWork::default(),
                     work_budget,
@@ -191,7 +188,7 @@ where
         self.snapshot.version_id
     }
 
-    pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Currency>(
+    pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Unit>(
         &mut self,
         field: ApplicationFieldRef<
             Schema,
@@ -201,56 +198,46 @@ where
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
     ) -> Result<WorthQueryInvariantEntityIdentity<Schema, Entity>, WorthQueryEntityResolutionDenial>
     where
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
-        let layout = self
-            .layout
-            .equality_field(field.entity(), field.aspect(), field.field())
-            .cloned()
-            .ok_or_else(|| {
-                WorthQueryEntityResolutionDenial::new(
-                    WorthQueryEntityResolutionDenialKind::FieldNotInstalled,
-                    field.field(),
-                )
-            })?;
         if !self.work_budget.can_afford(3) {
             return Err(WorthQueryEntityResolutionDenial::new(
                 WorthQueryEntityResolutionDenialKind::ProjectionWorkBudgetExceeded,
                 field.field(),
             ));
         }
-        let (evidence, examined) = super::super::entity_resolution::resolve_at_snapshot_with_work(
+        let truth = self.entity_resolution.at_snapshot(
             self.runtime,
             self.snapshot,
-            &layout,
-            value.into_foundational_value(),
             WorthQueryPrincipalResolutionMode::Ordinary,
-            self.runtime_authority,
-            self.binding_identity.clone(),
+        )?;
+        let (resolved, examined) = truth.resolve_with_work(
             field.entity(),
+            field.aspect(),
             field.field(),
+            value.into_foundational_value(),
         );
         self.work_budget.consume(1 + examined);
         self.work.record_lookup(examined);
-        let evidence = evidence?;
-        self.realized_scope.record(evidence.entity_id);
+        let resolved = resolved?;
+        self.realized_scope.record(resolved.entity_id());
         Ok(WorthQueryInvariantEntityIdentity {
-            entity_id: evidence.entity_id,
-            kind: evidence.entity_kind,
+            entity_id: resolved.entity_id(),
+            kind: resolved.entity_kind(),
             entity: Arc::from(field.entity()),
             authority_identity: self.authority_identity,
             _marker: PhantomData,
         })
     }
 
-    pub fn resolve_optional_entity<Aspect, Entity, Field, Value, Write, Currency>(
+    pub fn resolve_optional_entity<Aspect, Entity, Field, Value, Write, Unit>(
         &mut self,
         field: ApplicationFieldRef<
             Schema,
@@ -260,7 +247,7 @@ where
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
     ) -> Result<
@@ -270,7 +257,7 @@ where
     where
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         match self.resolve_entity(field, value) {
             Ok(identity) => Ok(Some(identity)),
@@ -281,15 +268,15 @@ where
         }
     }
 
-    pub fn field<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn field<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &mut self,
         identity: &WorthQueryInvariantEntityIdentity<Schema, Entity>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Option<Value>
     where
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         if !self.identity_is_local(identity, field.entity()) {
             return None;

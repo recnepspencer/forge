@@ -56,13 +56,15 @@ typed application declaration
   -> branch- and basis-bound provider session
   -> actual lower-owner work
   -> execution terminal
+  -> application aftermath and optional runtime-local recovery
   -> non-authoritative publication and inspection
 ```
 
 The typed branch is part of the authority. A version number from another
 branch is not interchangeable, even when its numeric value is equal. Plan,
-session, decision facts, proposal, invariant evidence, commit, retry, receipt,
-and publication all retain the same branch-qualified basis.
+session, decision facts, proposal, invariant evidence, commit, dispatch outbox,
+recovery handle, receipt, and publication all retain the same branch-qualified
+basis.
 
 ## How It Executes
 
@@ -87,13 +89,17 @@ installed operation
   -> every selected installed invariant runs through its real owner
   -> sealed Relational validated candidate
   -> compare-and-commit
+  -> idempotency and optional co-committed dispatch outbox
+  -> external-effect observation
   -> fresh or recovered commit terminal
-  -> publication receipt
+  -> aftermath and publication receipt
+  -> optional receipt-bound runtime recovery
 ```
 
 Selection never counts as execution. A selected invariant becomes successful
 only after the installed provider executes it against the exact proposed state.
-Publication consumes a terminal; it cannot execute, retry, or commit work.
+Publication consumes a terminal; it cannot execute, retry, commit, dispatch,
+or recover work.
 
 ## Small Example
 
@@ -177,8 +183,8 @@ rendered strings or reconstruct an identity from a version number.
 
 ## Current Limits
 
-- This progression does not add durability, restart recovery, or store-backed
-  checkpointing.
+- Runtime-local receipt-bound recovery is supported. Durable restart recovery
+  and store-backed checkpointing remain deferred.
 - It does not implement multiple branch heads, branch creation, merge, rebase,
   or concurrent branch writers.
 - Read-only adoption is inspection, not a consumer extension system.
@@ -197,6 +203,7 @@ rendered strings or reconstruct an identity from a version number.
 | 9.16 Phase 6 application queries | Identity, parameters, basis, ordering, projection, continuation, history, preview, live, result shaping, and publication behavior | Every lane consumes the destination graph-read plan and session; semantic result shaping remains with application query | Parallel direct Relational execution and parallel application-query plan authority are retired |
 | 9.16 Phases 7.1-7.2 access | Installed capability meaning, purpose, request binding, trusted time, exact grant/path, policy evidence, and revalidation | The complete evidence set is observed and revalidated inside the same branch-bound session | Pre-session observation and any reconstructed authorization scope are retired |
 | Query and operation publication | Existing result/commit identity, omission, work, cleanup, response-loss, and retry behavior | Publication derives read-only receipts from execution terminals and distinguishes fresh execution from recovered prior commit | Public constructors and any selected-versus-executed synthetic outcome path are retired |
+| 9.16 Phase 8 application aftermath | Explicit correction and external-effect meaning, co-committed outbox/idempotency facts, exact dispatch posture, receipt-bound recovery, and weaker publication | Declaration and installation own static meaning; execution owns commit, dispatch, and live recovery; publication owns closed descriptions | Generic recovery slots, guessed completion, and provisional undo/redo as an accepted product are forbidden |
 | Facades and downstream consumers | Ordinary source behavior and full Query, Bank, and Worth UI features | Declaration and host facades lower one way into destination packages; Bank and Worth UI consume those facades | Only aliases that reopen retired authority are removed; unrelated adapters and monolith behavior remain |
 
 ## Successor Contract
@@ -213,4 +220,5 @@ executor, authorization lane, receipt, or branch default.
 - [Graph Read Access Planning](../authoring/graph-read-access-planning.md)
 - [Provider Sessions And Decision Read-Sets](./provider-sessions-and-decision-read-sets.md)
 - [Provisional State And Invariant Execution](./provisional-state-and-invariant-execution.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
 - [Runtime-Installed Domains And Operations](./runtime-installed-domains.md)

@@ -22,7 +22,7 @@ physical-work-evidence = [
 
 [dev-dependencies]
 proc-macro2 = "1"
-syn = { version = "2", features = ["full", "visit"] }
+syn = { version = "2", features = ["clone-impls", "full", "visit"] }
 trybuild = "1.0"
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-io-scheduler.workspace = true

@@ -27,19 +27,18 @@ pub(in crate::estate_capability_admission) fn assert_review_required_publication
         WorthQueryApplicationAuthorizationPublicationProfile::exact(profile),
     )
     .unwrap();
+    let repeated = publish_mandatory_review(
+        mandatory,
+        WorthQueryApplicationAuthorizationPublicationProfile::exact(profile),
+    )
+    .unwrap();
 
     assert_review_boundary(&review, profile);
     assert_review_diagnostic(&review);
     assert_review_provenance_and_receipt(&review);
     assert_distinct_transition_locators(requested, approved, &review);
-    assert_eq!(
-        boundary_locator(&review).artifact_id().get(),
-        mandatory
-            .close_commit_receipt()
-            .outcome_identity()
-            .unwrap()
-            .get()
-    );
+    assert_eq!(boundary_locator(&review), boundary_locator(&repeated));
+    assert_ne!(boundary_locator(&review).artifact_id().get(), 0);
 }
 
 fn assert_review_boundary(

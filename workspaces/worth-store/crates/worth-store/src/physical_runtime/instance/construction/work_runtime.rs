@@ -54,6 +54,7 @@ pub(super) fn prepare_work_runtime(
         runtime: core.runtime_identity(),
         generation: lifecycle,
         lifecycle: core.lifecycle_state(),
+        lifecycle_phase: crate::physical_runtime::lifecycle::ObservedLifecyclePhase::RecordServing,
         signal_profile: signal.profile(),
         bindings: signal.bindings(),
         signal_admission: signal.admission_status(),

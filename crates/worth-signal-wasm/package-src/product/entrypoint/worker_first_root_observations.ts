@@ -48,6 +48,17 @@ export function createWorkerFirstRootObservationManager(options) {
     deliverCurrent(deliveryPacket = null) {
       notifyObservers(currentContext, currentContext, deliveryPacket);
     },
+    /**
+     * Force watch/effect pulses for tip-ingress signal ids (changed + projected).
+     * Tip notify uses this once per epoch; worker confirm uses deliverCurrent
+     * and skips equal values so tipped ids are not re-pulsed.
+     */
+    deliverSignalIds(signalIds) {
+      if (!Array.isArray(signalIds) || signalIds.length === 0) {
+        return;
+      }
+      notifyForcedSignalIds(currentContext, signalIds);
+    },
     async clearContext(bridge) {
       currentContext = null;
       await syncLifecycle(bridge);
@@ -148,6 +159,11 @@ export function createWorkerFirstRootObservationManager(options) {
       const nextValue = readObservedSignal(observer.signalId, nextContext);
       const deliveryEvent = findWorkerDeliveryEvent(deliveryPacket, observer.signalId);
       if (deliveryEvent) {
+        // Tip already painted equal values — worker confirmation must not re-pulse.
+        if (deepEqualObservationValue(observer.previousValue, nextValue)) {
+          observer.previousValue = nextValue;
+          continue;
+        }
         observer.previousValue = nextValue;
         if (deliveryEvent.outcome !== "Delivered") {
           continue;
@@ -212,6 +228,34 @@ export function createWorkerFirstRootObservationManager(options) {
       return context.signalValueById.get(signalId);
     }
     return options.readAuthoredSignal(signalId);
+  }
+
+  function notifyForcedSignalIds(context, signalIds) {
+    const idSet = new Set(signalIds);
+    for (const observer of observers.values()) {
+      if (!idSet.has(observer.signalId) || !hasObservedSignal(observer.signalId, context)) {
+        continue;
+      }
+      const nextValue = readObservedSignal(observer.signalId, context);
+      observer.previousValue = nextValue;
+      if (observer.effectOnly) {
+        observer.callback();
+        continue;
+      }
+      observer.callback(
+        freezeObject({
+          observerId: observer.observerId,
+          handleId: observer.handleId,
+          signalId: observer.signalId,
+          branchId: 0,
+          policy: null,
+          touched: true,
+          recomputed: true,
+          meaningfulChange: true,
+          triggerMatched: true,
+        }),
+      );
+    }
   }
 }
 

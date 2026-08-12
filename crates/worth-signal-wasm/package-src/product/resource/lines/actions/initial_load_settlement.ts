@@ -99,6 +99,7 @@ function createInitialLineBinding(
     ),
   });
   const binding = Object.freeze({
+    lineScope,
     valueSignal,
     canonicalValueSignal,
     readableValueSignal,

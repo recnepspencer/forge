@@ -1,0 +1,215 @@
+error[E0599]: no method named `logical_run_identity` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+ --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:6:17
+  |
+6 |     let _ = run.logical_run_identity();
+  |                 ^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `yielded_attempt_identity` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+ --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:7:17
+  |
+7 |     let _ = run.yielded_attempt_identity();
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `operation_binding_identity` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+ --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:8:17
+  |
+8 |     let _ = run.operation_binding_identity();
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `installed_operation_identity` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+ --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:9:17
+  |
+9 |     let _ = run.installed_operation_identity();
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `semantic_basis_identity` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:10:17
+   |
+10 |     let _ = run.semantic_basis_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `installation_generation` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:11:17
+   |
+11 |     let _ = run.installation_generation();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `bridge` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:12:17
+   |
+12 |     let _ = run.bridge();
+   |                 ^^^^^^ private field, not a method
+
+error[E0599]: no method named `bridge_request_identity` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:13:17
+   |
+13 |     let _ = run.bridge_request_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `resource_attempt_evidence` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:14:17
+   |
+14 |     let _ = run.resource_attempt_evidence();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `resource_attempt_identity` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:15:17
+   |
+15 |     let _ = run.resource_attempt_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `provider_session_identity` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:16:17
+   |
+16 |     let _ = run.provider_session_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `relational_basis_identity` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:17:17
+   |
+17 |     let _ = run.relational_basis_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `checkpoint` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:18:17
+   |
+18 |     let _ = run.checkpoint();
+   |                 ^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `provider_work` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:19:17
+   |
+19 |     let _ = run.provider_work();
+   |                 ^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `run_counters` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:20:17
+   |
+20 |     let _ = run.run_counters();
+   |                 ^^^^^^^^^^^^ private field, not a method
+
+error[E0599]: no method named `yield_counters` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:21:17
+   |
+21 |     let _ = run.yield_counters();
+   |                 ^^^^^^^^^^^^^^ private field, not a method
+
+error[E0599]: no method named `retained_capacity_reservation_count` found for reference `&WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:22:17
+   |
+22 |     let _ = run.retained_capacity_reservation_count();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `logical_run_identity` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:26:17
+   |
+26 |     let _ = run.logical_run_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `yielded_attempt_identity` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:27:17
+   |
+27 |     let _ = run.yielded_attempt_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `operation_binding_identity` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:28:17
+   |
+28 |     let _ = run.operation_binding_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `installed_operation_identity` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:29:17
+   |
+29 |     let _ = run.installed_operation_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `semantic_basis_identity` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:30:17
+   |
+30 |     let _ = run.semantic_basis_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `installation_generation` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:31:17
+   |
+31 |     let _ = run.installation_generation();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `bridge` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:32:17
+   |
+32 |     let _ = run.bridge();
+   |                 ^^^^^^ private field, not a method
+
+error[E0599]: no method named `bridge_request_identity` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:33:17
+   |
+33 |     let _ = run.bridge_request_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `resource_attempt_evidence` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:34:17
+   |
+34 |     let _ = run.resource_attempt_evidence();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `resource_attempt_identity` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:35:17
+   |
+35 |     let _ = run.resource_attempt_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `provider_session_identity` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:36:17
+   |
+36 |     let _ = run.provider_session_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `relational_basis_identity` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:37:17
+   |
+37 |     let _ = run.relational_basis_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `artifact_run_identity` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:38:17
+   |
+38 |     let _ = run.artifact_run_identity();
+   |                 ^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `checkpoint` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:39:17
+   |
+39 |     let _ = run.checkpoint();
+   |                 ^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `provider_work` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:40:17
+   |
+40 |     let _ = run.provider_work();
+   |                 ^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `run_counters` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:41:17
+   |
+41 |     let _ = run.run_counters();
+   |                 ^^^^^^^^^^^^ private field, not a method
+
+error[E0599]: no method named `yield_counters` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:42:17
+   |
+42 |     let _ = run.yield_counters();
+   |                 ^^^^^^^^^^^^^^ private field, not a method
+
+error[E0599]: no method named `retained_capacity_reservation_count` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:43:17
+   |
+43 |     let _ = run.retained_capacity_reservation_count();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `artifact_evidence` found for reference `&WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs:44:17
+   |
+44 |     let _ = run.artifact_evidence();
+   |                 ^^^^^^^^^^^^^^^^^ private field, not a method

@@ -35,6 +35,7 @@ pub enum DurableFrameKind {
     RootRoutingBlock = 8,
     SegmentMembershipBlock = 9,
     FreeSpaceMembershipBlock = 10,
+    RootSelector = 11,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -1,6 +1,7 @@
 use super::{
-    inspect_complete_wal_segment, inspect_interrupted_wal_segment_start,
-    inspect_verified_wal_active_tail, WalSegmentArtifactIdentity,
+    inspect_bounded_wal_active_tail_with_evidence, inspect_complete_wal_segment,
+    inspect_interrupted_wal_segment_start, inspect_verified_wal_active_tail,
+    WalActiveTailInspectionDenial, WalSegmentArtifactIdentity,
 };
 use crate::{
     plan_wal_frame_append, LogSequenceNumber, WalAppendFrontier, WalLsnRange, WalSegmentGeneration,
@@ -12,6 +13,23 @@ fn identity() -> WalSegmentArtifactIdentity {
         WalSegmentId::new(7).unwrap(),
         WalSegmentGeneration::new(3).unwrap(),
     )
+}
+
+#[test]
+fn frame_cardinality_is_denied_before_the_crossing_frame_is_retained() {
+    let bytes = two_frames();
+    let exact = inspect_bounded_wal_active_tail_with_evidence(identity(), &bytes, 2).unwrap();
+    assert_eq!(exact.into_verified_prefix().frames().len(), 2);
+
+    let failure = inspect_bounded_wal_active_tail_with_evidence(identity(), &bytes, 1).unwrap_err();
+    assert_eq!(
+        failure.denial(),
+        WalActiveTailInspectionDenial::FrameLimitExceeded {
+            observed: 2,
+            admitted: 1,
+        }
+    );
+    assert_eq!(failure.frames_scanned(), 2);
 }
 
 fn two_frames() -> Vec<u8> {

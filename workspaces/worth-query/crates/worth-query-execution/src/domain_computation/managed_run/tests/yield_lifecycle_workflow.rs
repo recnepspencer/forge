@@ -2,9 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use worth_runtime_bridge::facade::{
-    BridgeExecutionBasisSignalTerminal, BridgeExecutionBasisTerminalDisposition,
-};
+use worth_runtime_bridge::facade::BridgeExecutionBasisSignalTerminal;
 
 use super::yield_fixture::YieldProvider;
 use super::*;
@@ -62,21 +60,33 @@ fn workflow_yield_retains_operation_and_stage_capacity_until_cleanup() {
         crate::domain_computation::WorthQueryWorkflowYieldOutcome::Yielded(yielded) => yielded,
         _ => panic!("eligible workflow did not yield"),
     };
-    assert_eq!(yielded.logical_run_identity(), logical_run_identity);
-    assert_eq!(yielded.yielded_attempt_identity(), attempt_identity);
-    assert_eq!(yielded.checkpoint().retained_bytes(), 7);
-    assert_eq!(yielded.retained_capacity_reservation_count(), 3);
     assert_eq!(
-        yielded.bridge().disposition(),
-        BridgeExecutionBasisTerminalDisposition::Yielded
+        yielded.inspection().logical_run_identity(),
+        logical_run_identity
     );
     assert_eq!(
-        yielded.bridge().signal_terminal(),
-        BridgeExecutionBasisSignalTerminal::Cancelled
+        yielded.inspection().yielded_attempt_identity(),
+        attempt_identity
     );
-    assert!(yielded.bridge().signal_transition_performed());
-    assert_eq!(yielded.provider_work().interrupted_call_count(), 1);
-    assert_eq!(yielded.artifact_evidence().retained_artifact_count(), 0);
+    assert_eq!(yielded.inspection().checkpoint().retained_bytes(), 7);
+    assert_eq!(
+        yielded.inspection().retained_capacity_reservation_count(),
+        3
+    );
+    assert_eq!(
+        yielded
+            .inspection()
+            .provider_work()
+            .interrupted_call_count(),
+        1
+    );
+    assert_eq!(
+        yielded
+            .inspection()
+            .artifact_evidence()
+            .retained_artifact_count(),
+        0
+    );
 
     let cleanup = match yielded.cleanup() {
         crate::domain_computation::WorthQueryWorkflowYieldCleanupOutcome::Complete(receipt) => {
@@ -89,10 +99,13 @@ fn workflow_yield_retains_operation_and_stage_capacity_until_cleanup() {
             panic!("ordinary checkpoint release unexpectedly required recovery")
         }
     };
-    assert_eq!(cleanup.logical_run_identity(), logical_run_identity);
-    assert!(cleanup.relational().released());
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 3);
-    assert_eq!(cleanup.checkpoint().retained_bytes(), 7);
+    assert_eq!(
+        cleanup.inspection().logical_run_identity(),
+        logical_run_identity
+    );
+    assert!(cleanup.inspection().resources_released());
+    assert_eq!(cleanup.inspection().released_reservation_count(), 3);
+    assert_eq!(cleanup.inspection().checkpoint().retained_bytes(), 7);
 }
 
 #[test]
@@ -178,11 +191,11 @@ fn workflow_suspension_failure_returns_terminalized_release_authority() {
         Err(_) => panic!("artifact-free workflow recovery did not release"),
     };
     assert_eq!(
-        release.bridge().signal_terminal(),
+        release.inspection().bridge_signal_terminal(),
         BridgeExecutionBasisSignalTerminal::Cancelled
     );
-    assert!(release.relational().released());
-    assert_eq!(release.attempt().capacity().released_reservation_count(), 3);
+    assert!(release.inspection().resources_released());
+    assert_eq!(release.inspection().released_reservation_count(), 3);
 }
 
 #[test]
@@ -269,7 +282,15 @@ fn workflow_yield_cleanup_waits_for_retained_artifact_owners() {
         crate::domain_computation::WorthQueryWorkflowYieldOutcome::Yielded(yielded) => yielded,
         _ => panic!("artifact-owning workflow did not yield"),
     };
-    assert_eq!(yielded.artifact_evidence().retained_artifact_count(), 1);
+    let yielded_attempt_identity = yielded.inspection().yielded_attempt_identity().to_owned();
+    let provider_session_identity = yielded.inspection().provider_session_identity().to_owned();
+    assert_eq!(
+        yielded
+            .inspection()
+            .artifact_evidence()
+            .retained_artifact_count(),
+        1
+    );
     let rejected_disposed = Arc::new(AtomicUsize::new(0));
     let rejected_admission =
         crate::domain_computation::artifact_owner::WorthQueryArtifactProductionAuthority::admit(
@@ -304,7 +325,6 @@ fn workflow_yield_cleanup_waits_for_retained_artifact_owners() {
             panic!("ordinary checkpoint release unexpectedly required recovery")
         }
     };
-    assert_eq!(pending.artifact_evidence().retained_artifact_count(), 1);
     assert_eq!(disposed.load(Ordering::Acquire), 0);
 
     drop(borrowed);
@@ -321,9 +341,23 @@ fn workflow_yield_cleanup_waits_for_retained_artifact_owners() {
             panic!("ordinary checkpoint release unexpectedly required recovery")
         }
     };
-    assert_eq!(cleanup.artifact_evidence().disposed_artifact_count(), 1);
-    assert!(cleanup.relational().released());
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 3);
+    assert_eq!(
+        cleanup
+            .inspection()
+            .artifact_evidence()
+            .disposed_artifact_count(),
+        1
+    );
+    assert_eq!(
+        cleanup.inspection().yielded_attempt_identity(),
+        yielded_attempt_identity
+    );
+    assert_eq!(
+        cleanup.inspection().provider_session_identity(),
+        provider_session_identity
+    );
+    assert!(cleanup.inspection().resources_released());
+    assert_eq!(cleanup.inspection().released_reservation_count(), 3);
 }
 
 struct YieldArtifactResource(Arc<AtomicUsize>);

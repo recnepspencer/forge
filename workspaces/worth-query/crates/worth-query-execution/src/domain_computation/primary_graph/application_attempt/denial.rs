@@ -17,6 +17,7 @@ pub enum WorthQueryApplicationAttemptDenialKind {
     ForeignEffectTarget,
     DuplicateEffectKey,
     RetainedEffectBytesExceeded,
+    ExternalEffectPayloadProjectionRejected,
     IncompleteEffectBasis,
     DelegationActivationRequired,
     DelegationActivationProgramMismatch,

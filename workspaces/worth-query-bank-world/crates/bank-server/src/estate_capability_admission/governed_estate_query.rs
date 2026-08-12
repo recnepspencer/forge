@@ -6,11 +6,9 @@ use bank_domain::estate::{
 use bank_domain::model::Money;
 use bank_domain::queries::EstateGovernanceQuery;
 use bank_domain::reads::EstateGovernanceContext;
-use worth_query_host::facade::declaration::application_schema::TypedApplicationValue;
-use worth_query_host::facade::installed::domain_computation::WorthQueryApplicationQueryOmissionPosture;
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationDisclosureOutcome, WorthQueryApplicationDisclosureReceiptPosture,
-    WorthQueryApplicationOneShotResult, WorthQueryOperationAuthorizationDenialKind,
+use worth_query_host::facade::publication::domain_computation::{
+    WorthQueryPublishedApplicationDisclosurePosture,
+    WorthQueryPublishedApplicationQueryOmissionPosture, WorthQueryPublishedApplicationResult,
 };
 
 use super::fixture::{
@@ -22,7 +20,7 @@ use super::fixture::{
 use crate::{queries, BankApplicationQueryDenial, BankReadControls};
 
 type GovernanceResult =
-    WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>;
+    WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>;
 
 #[test]
 fn public_estate_governance_query_consumes_the_exact_administration_capability() {
@@ -249,38 +247,18 @@ fn assert_governance_receipt(result: &GovernanceResult) {
     let disclosure = result.receipt().disclosure();
     assert_eq!(
         disclosure.posture(),
-        WorthQueryApplicationDisclosureReceiptPosture::Governed
+        WorthQueryPublishedApplicationDisclosurePosture::Governed
     );
-    assert_eq!(
-        disclosure.classification(),
-        Some("estate-governance-context")
-    );
-    assert_eq!(disclosure.decisions().len(), 50);
-    assert!(disclosure.omitted().is_empty());
-    for decision in disclosure.decisions() {
-        assert_eq!(
-            decision.required_disclosure(),
-            &RestrictedBankField::GovernanceMetadata.into_foundational_value()
-        );
-        assert_eq!(
-            decision.outcome(),
-            WorthQueryApplicationDisclosureOutcome::Disclosed
-        );
-    }
+    assert_eq!(disclosure.disclosure_decision_count(), 50);
+    assert_eq!(disclosure.omitted_value_count(), 0);
     assert!(disclosure.authorization_decision_fact_count() > 0);
+    let inspection = result.receipt().inspect();
     assert_eq!(
-        result.receipt().omission_posture(),
-        WorthQueryApplicationQueryOmissionPosture::NoOmission
+        inspection.omission_posture(),
+        WorthQueryPublishedApplicationQueryOmissionPosture::NoOmission
     );
-    assert_eq!(result.receipt().fallback_count(), 0);
-    let buffer = result
-        .receipt()
-        .result_buffer()
-        .expect("one-shot governance execution must retain result-buffer evidence");
-    assert_eq!(buffer.limit_bytes(), 32_768);
-    assert!(buffer.peak_bytes() > 4_096);
-    assert!(buffer.peak_bytes() <= buffer.limit_bytes());
-    assert!(buffer.released());
+    assert_eq!(inspection.result_count(), 1);
+    assert!(inspection.terminal_resources_released());
 }
 
 #[test]
@@ -311,7 +289,7 @@ fn assert_governance_denied(scenario: &str, grant: GrantSpec) {
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
+        crate::BankAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
 }
 

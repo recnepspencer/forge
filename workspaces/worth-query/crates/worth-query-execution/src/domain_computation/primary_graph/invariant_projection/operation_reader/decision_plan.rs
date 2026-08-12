@@ -1,5 +1,5 @@
 use worth_query_installation::facade::{
-    ApplicationEntityRef, ApplicationFieldCurrency, ApplicationFieldRef,
+    ApplicationEntityRef, ApplicationFieldRef, ApplicationFieldUnit,
     ApplicationOperationDecisionReadTarget, ApplicationRelationRef, ApplicationSchema,
     OperationReads, TypedApplicationReadableValue, WritePosture,
 };
@@ -55,16 +55,16 @@ where
         Ok(())
     }
 
-    pub fn decision_field<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn decision_field<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &mut self,
         identity: &WorthQueryInvariantEntityIdentity<Schema, Entity>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Result<Option<Value>, WorthQueryInvariantDecisionPlanDenial>
     where
         Field: OperationReads<Operation>,
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.require_decision_field(identity, field)?;
         Ok(self.reader.field(identity, field))
@@ -124,16 +124,16 @@ where
         Ok(relations)
     }
 
-    pub fn require_decision_field<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn require_decision_field<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &mut self,
         identity: &WorthQueryInvariantEntityIdentity<Schema, Entity>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Result<(), WorthQueryInvariantDecisionPlanDenial>
     where
         Field: OperationReads<Operation>,
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         let target = ApplicationOperationDecisionReadTarget::Field {
             entity: field.entity().to_string(),

@@ -113,23 +113,22 @@ pub(super) fn governed_hidden_ordering_definition() -> ApplicationQueryDefinitio
         CapabilityDisclosure::PrivateLabel,
         ApplicationQueryInfluenceContract::forbid_all(),
     );
-    ApplicationQueryDefinitionBuilder::public(
-        GovernedHiddenOrderingQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 2),
-        disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .order_by(
-        activity_sequence(),
-        ApplicationQueryOrderingDirection::Ascending,
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(GovernedHiddenOrderingQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 2))
+        .disclosure(disclosure)
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .order_by(
+            activity_sequence(),
+            ApplicationQueryOrderingDirection::Ascending,
+        )
+        .build()
+        .unwrap()
 }
 
 impl WorthQueryApplicationProjection<IdentityExecutionSchema, GovernedHiddenOrderingQuery>
@@ -178,7 +177,7 @@ fn activity_identity() -> ApplicationQueryResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("identity", ActivityIdentity::reference())
 }
@@ -193,7 +192,7 @@ fn activity_sequence() -> ApplicationQueryResultFieldRef<
     u64,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::NoEqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("sequence", ActivitySequence::reference())
 }

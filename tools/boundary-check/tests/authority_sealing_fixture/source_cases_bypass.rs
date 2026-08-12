@@ -21,13 +21,6 @@ pub use worth_schema_external::{admit, seed};
 "#
 }
 
-/// Entry crate: glob public re-export of external crate root.
-pub fn entry_reexport_external_glob() -> &'static str {
-    r#"
-pub use worth_schema_external::*;
-"#
-}
-
 /// External package: concrete public ceremony (legal re-export target).
 pub fn external_legal_concrete_admit() -> &'static str {
     r#"
@@ -231,25 +224,6 @@ pub trait AuthorityMarker: 'static {}
 pub enum Gate {
     Open { authority: &'static dyn AuthorityMarker },
 }
-"#
-}
-
-/// Hostile: nested module only re-exported via outer glob still surfaces ceremony.
-pub fn hostile_nested_module_glob_reexport() -> &'static str {
-    r#"
-pub trait AuthorityMarker: 'static {}
-
-mod outer {
-    mod secret {
-        use super::super::AuthorityMarker;
-
-        pub fn admit(_authority: impl AuthorityMarker) {}
-    }
-
-    pub use self::secret::*;
-}
-
-pub use self::outer::*;
 "#
 }
 

@@ -59,7 +59,7 @@ pub(super) fn elevation_field<Field>(
     u64,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationFieldRef::from_schema_identifiers("Elevation", "ElevationFacts", name)
 }
@@ -74,7 +74,7 @@ pub(super) fn review_field<Field>(
     u64,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationFieldRef::from_schema_identifiers("Review", "ReviewFacts", name)
 }

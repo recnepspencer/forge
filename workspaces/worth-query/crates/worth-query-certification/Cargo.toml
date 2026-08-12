@@ -24,6 +24,10 @@ worth-runtime-bridge.workspace = true
 worth-signal.workspace = true
 
 [[test]]
+name = "composition_guards"
+path = "tests/composition_guards.rs"
+
+[[test]]
 name = "compile_certification"
 path = "tests/compile_certification.rs"
 
@@ -42,6 +46,10 @@ path = "tests/application_schema_compile_fail.rs"
 [[test]]
 name = "mutation_precondition_compile_fail"
 path = "tests/mutation_precondition_compile_fail.rs"
+
+[[test]]
+name = "application_aftermath_compile_fail"
+path = "tests/application_aftermath_compile_fail.rs"
 
 [[test]]
 name = "installed_audience_journey"

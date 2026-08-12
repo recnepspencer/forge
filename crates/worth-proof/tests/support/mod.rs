@@ -2,6 +2,7 @@
 
 pub mod compile_fail;
 pub mod compile_pass;
+pub mod contracts;
 pub mod dx;
 pub mod milestone1;
 pub mod milestone2;

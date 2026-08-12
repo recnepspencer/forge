@@ -42,6 +42,7 @@ pub(super) struct PhysicalCheckpointCaptureOwner {
     next_sequence: AtomicU64,
     policy: crate::physical_runtime::PhysicalDurabilityPolicyIdentity,
     checkpoint_policy: crate::physical_runtime::PhysicalCheckpointPolicy,
+    idempotency_policy: crate::physical_runtime::PhysicalIdempotencyPolicy,
     publication: Weak<RecordPublicationDirector>,
     wal: crate::physical_runtime::durability::PhysicalWalAppendPort,
     binding_compaction:
@@ -88,6 +89,7 @@ impl PhysicalCheckpointCaptureOwner {
             next_sequence: AtomicU64::new(1),
             policy: foundation.durability.policy_identity(),
             checkpoint_policy: foundation.durability.checkpoint_policy(),
+            idempotency_policy: foundation.durability.idempotency_policy(),
             publication: Arc::downgrade(&foundation.publication),
             wal: foundation.wal,
             binding_compaction: foundation.binding_compaction,
@@ -122,12 +124,15 @@ impl PhysicalCheckpointCaptureOwner {
                 PhysicalCheckpointCaptureFailureKind::SourceAuthorityMismatch,
             ));
         }
-        let source = PhysicalCheckpointSource::concurrent(
+        let source = PhysicalCheckpointSource::secured_concurrent(
             identity,
             wal,
             CheckpointRootBasis::new(root.generation(), root.tree_identity()),
             session.frontier().get(),
-        );
+            self.policy.bytes(),
+            self.idempotency_policy.retention().get().get(),
+        )
+        .expect("an admitted durability policy has a nonzero canonical security binding");
         Ok(AdmittedPhysicalCheckpointCapture {
             basis: PhysicalCheckpointCaptureBasis::new(source, self.policy),
             session,

@@ -1,0 +1,5 @@
+error[E0599]: no method named `clone` found for struct `RecoveryCleanupEligibility` in the current scope
+ --> tests/ui/cleanup_eligibility_cannot_be_reused.rs:5:31
+  |
+5 |     let _reused = eligibility.clone();
+  |                               ^^^^^ method not found in `RecoveryCleanupEligibility`

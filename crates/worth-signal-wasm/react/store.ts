@@ -38,8 +38,9 @@ function readSignalValue(
   // similar local-truth views can be honest immediately while read(id) still
   // waits on authored publication catch-up.
   if (typeof target === "function") {
-    signals.read(target);
-    return target();
+    const callable = target as SignalHandleLike & (() => unknown);
+    signals.read(callable);
+    return callable();
   }
   return signals.read(target);
 }

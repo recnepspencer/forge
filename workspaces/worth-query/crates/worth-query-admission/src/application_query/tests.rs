@@ -308,28 +308,27 @@ fn query_definition(
     .field(account_id)
     .relation(activity_relation, nested)
     .build();
-    ApplicationQueryDefinitionBuilder::public(
-        query_reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 2),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot().with_live(),
-    )
-    .parameter(account_parameter())
-    .where_equal(AccountId::reference(), account_parameter())
-    .order_by(sequence, ApplicationQueryOrderingDirection::Ascending)
-    .continue_by(activity_relation)
-    .live_by::<Activity, live_lane::PlanningLiveCause, _, _, _, _, _, _, _, _>(
-        account_id,
-        sequence,
-        ApplicationQueryLiveResourceContract::bounded(4, 2_048, 4_096),
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(query_reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 2))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot().with_live())
+        .public()
+        .parameter(account_parameter())
+        .where_equal(AccountId::reference(), account_parameter())
+        .order_by(sequence, ApplicationQueryOrderingDirection::Ascending)
+        .continue_by(activity_relation)
+        .live_by::<Activity, live_lane::PlanningLiveCause, _, _, _, _, _, _, _, _>(
+            account_id,
+            sequence,
+            ApplicationQueryLiveResourceContract::bounded(4, 2_048, 4_096),
+        )
+        .build()
+        .unwrap()
 }
 
 fn installed_schema(

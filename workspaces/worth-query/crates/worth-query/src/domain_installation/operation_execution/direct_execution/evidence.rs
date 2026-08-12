@@ -89,9 +89,6 @@ pub enum WorthQueryBoundExecutionDenialKind {
     UndeclaredFailureClass(crate::domain_installation::WorthQueryOperationFailureClass),
     UndeclaredResultState,
     DomainEvidence(super::WorthQueryDomainEvidenceAdmissionDenialKind),
-    DomainEvidenceBinding(
-        worth_query_execution::facade::domain_computation::WorthQueryDomainEvidenceBindingDenial,
-    ),
     ConditionalExecution(worth_runtime_bridge::facade::BridgeConditionalDenialKind),
     ConditionalReentry(crate::domain_installation::WorthQueryConditionalAdmissionDenial),
 }

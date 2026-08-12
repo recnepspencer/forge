@@ -91,25 +91,6 @@ pub trait Gate {
 "#
 }
 
-/// External: nested re-export chain ending in a generic ceremony.
-pub fn external_hostile_nested_reexport_chain() -> &'static str {
-    r#"
-pub trait AuthorityMarker: 'static {}
-
-mod outer {
-    mod secret {
-        use super::super::AuthorityMarker;
-
-        pub fn admit<Auth: AuthorityMarker>(_authority: Auth) {}
-    }
-
-    pub use secret::*;
-}
-
-pub use outer::*;
-"#
-}
-
 /// Hostile: exported macro templates a trait-bound fragment into a public ceremony.
 pub fn hostile_macro_export_trait_bound_template() -> &'static str {
     r#"
@@ -139,6 +120,19 @@ pub mod api {
     use super::{AuthorityWitnessPlaceholder, EntryAdmission};
 
     pub fn admit(_authority: AuthorityWitnessPlaceholder<EntryAdmission>) {}
+}
+"#
+}
+
+/// External package: a named module whose public surface is formed by a glob.
+pub fn external_hostile_module_glob() -> &'static str {
+    r#"
+pub mod api {
+    mod secret {
+        pub fn concrete() {}
+    }
+
+    pub use secret::*;
 }
 "#
 }

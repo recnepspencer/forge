@@ -284,7 +284,6 @@ Query surfaces attach to them.
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Family Helpers](./family-helpers.md)
 - [Grouped Authoring](./grouped-authoring.md)
-- [Recovery Boundary](./recovery-boundary.md)
-- [Recovery Overview](./recovery/README.md)
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)
 - [Runtime-Installed Domains And Operations](./runtime-installed-domains.md)
 - [Public Doc Coverage](./public-doc-coverage.md)

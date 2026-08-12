@@ -2,15 +2,16 @@ use std::marker::PhantomData;
 
 use super::authorization_policy::ApplicationAuthorizationPath;
 use super::canonical_identity::{canonical_identity, ApplicationSchemaCanonicalHeader};
-use super::capabilities::{ApplicationFieldCurrency, EqualityPosture, WritePosture};
+use super::capabilities::{ApplicationFieldUnit, EqualityPosture, WritePosture};
 use super::declaration_denial::ApplicationSchemaDeclarationDenial;
+use super::field_reference::ApplicationFieldRef;
 use super::identifier_validation::{validate_member_identifiers, validate_schema_header};
 use super::member_closure::validate_member_closure;
+use super::operation_contract_cardinality::validate_operation_contract_cardinality;
 use super::principal_binding_reference::ApplicationPrincipalBindingRef;
 use super::references::{
-    ApplicationAbilityRef, ApplicationAspectRef, ApplicationCurrencyRef, ApplicationEffectRef,
-    ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef,
-    ApplicationRelationRef,
+    ApplicationAbilityRef, ApplicationAspectRef, ApplicationEffectRef, ApplicationEntityRef,
+    ApplicationOperationRef, ApplicationPolicyRef, ApplicationRelationRef, ApplicationUnitRef,
 };
 use super::schema_identity::ApplicationSchemaIdentity;
 use super::schema_member::ApplicationSchemaMember;
@@ -123,6 +124,10 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         self
     }
 
+    pub(super) fn push_member_in_place(&mut self, member: ApplicationSchemaMember) {
+        self.members.push(member);
+    }
+
     pub fn for_schema() -> Self
     where
         Schema: ApplicationSchema,
@@ -156,17 +161,17 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         self
     }
 
-    pub fn field<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn field<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         mut self,
         entity: ApplicationEntityRef<Schema, Entity>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Self
     where
         Field: DeclaredApplicationFieldValue<Value = Value>,
         Value: TypedApplicationValue,
         Write: WritePosture,
         Equality: EqualityPosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.members.push(ApplicationSchemaMember::Field {
             entity: entity.name().to_string(),
@@ -175,7 +180,7 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
             presence: Field::PRESENCE,
             scalar_family: field.scalar_family(),
             value_type: field.value_type_name().to_string(),
-            currency: field.currency().map(str::to_string),
+            unit: field.unit().map(str::to_string),
             writable: Write::WRITABLE,
             equality_queryable: Equality::QUERYABLE,
         });
@@ -224,17 +229,6 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
                 principal_identity_scalar_family: binding.principal_identity_scalar_family(),
                 principal_identity_value_type: binding.principal_identity_value_type().to_string(),
             });
-        self
-    }
-
-    pub fn operation<Operation, Input>(
-        mut self,
-        operation: ApplicationOperationRef<Schema, Operation, Input>,
-    ) -> Self {
-        self.members.push(ApplicationSchemaMember::Operation {
-            operation: operation.name().to_string(),
-            input_type: std::any::type_name::<Input>().to_string(),
-        });
         self
     }
 
@@ -291,12 +285,9 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         self
     }
 
-    pub fn currency<Currency>(
-        mut self,
-        currency: ApplicationCurrencyRef<Schema, Currency>,
-    ) -> Self {
-        self.members.push(ApplicationSchemaMember::Currency {
-            currency: currency.name().to_string(),
+    pub fn unit<Unit>(mut self, unit: ApplicationUnitRef<Schema, Unit>) -> Self {
+        self.members.push(ApplicationSchemaMember::Unit {
+            unit: unit.name().to_string(),
         });
         self
     }
@@ -317,6 +308,7 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
     ) -> Result<ApplicationSchemaDeclaration<Schema>, ApplicationSchemaDeclarationDenial> {
         validate_schema_header(self.owner, self.name)?;
         validate_member_identifiers(&self.members)?;
+        validate_operation_contract_cardinality(&self.members)?;
         self.members.sort();
         if self.members.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(ApplicationSchemaDeclarationDenial::DuplicateMember);

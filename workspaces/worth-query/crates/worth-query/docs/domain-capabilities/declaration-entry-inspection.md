@@ -62,7 +62,7 @@ compare_package_identity(installation.package_identity(), outcome.receipt());
   and handle authority.
 - [Inspection](../capabilities/inspection.md) owns ordinary retained-product
   inspection.
-- [Recovery Boundary](./recovery-boundary.md) owns actionable next steps after
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md) owns descriptive next-step guidance after
   typed stops.
 
 ## Inspection And Debugging
@@ -87,4 +87,4 @@ not sufficient evidence of authority.
 
 - [Domain Capabilities](./README.md)
 - [Runtime-Installed Domains](./runtime-installed-domains.md)
-- [Inspection Vs Readiness Vs Recovery](./choosing/inspection-vs-readiness-vs-recovery.md)
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)

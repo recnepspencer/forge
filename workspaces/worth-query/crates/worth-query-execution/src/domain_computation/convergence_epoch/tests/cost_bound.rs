@@ -1,7 +1,7 @@
 use super::fixture::{direct_epoch_fixture, FixtureDisposition};
 use super::terminal_fixture::{converged_terminal, stable_without_proof_terminal};
 use crate::domain_computation::{
-    WorthQueryDirectConvergenceIterationOutcome, WorthQueryDirectGraphStepOutcome,
+    WorthQueryDirectConvergenceIterationOutcome, WorthQueryDirectConvergenceStepOutcome,
     WorthQueryGraphProviderCallKind, WorthQueryManagedGraphCallRequest,
 };
 use worth_runtime_bridge::facade::BridgeManagedExecutionCancellationReason;
@@ -23,7 +23,8 @@ fn epoch_counters_are_exact_and_isolated_from_unrelated_epochs() {
     assert_eq!(counters.incumbent_replacement_count(), 1);
     assert_eq!(counters.yield_count(), 0);
     assert_eq!(counters.readmission_count(), 0);
-    assert_eq!(counters.cleanup_count(), 0);
+    assert_eq!(counters.cleanup_attempt_count(), 0);
+    assert_eq!(counters.cleanup_completion_count(), 0);
     let domain_work = terminal
         .latest_report()
         .expect("exact-cost terminal must retain its report")
@@ -40,26 +41,24 @@ fn epoch_counters_are_exact_and_isolated_from_unrelated_epochs() {
         Ok(cleanup) => cleanup,
         Err(_) => panic!("exact-cost terminal must retain cleanup authority"),
     };
-    assert_eq!(cleaned.counters().cleanup_count(), 1);
+    assert_eq!(cleaned.counters().cleanup_attempt_count(), 1);
+    assert_eq!(cleaned.counters().cleanup_completion_count(), 1);
     if unrelated.cleanup().is_err() {
         panic!("unrelated terminal must retain its own cleanup authority");
     }
 }
 
 #[test]
-fn late_managed_terminal_reconciles_cumulative_provider_work_without_double_counting() {
+fn late_terminal_reconciles_cumulative_convergence_work_without_double_counting() {
     let epoch = direct_epoch_fixture(FixtureDisposition::Continue);
     let started = match epoch.begin_iteration(call("completed-before-cancellation")) {
         Ok(started) => started,
         Err(_) => panic!("first convergence iteration must start"),
     };
-    let (pending, active) = started.into_parts();
-    let completion = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("first convergence iteration must complete"),
-    };
-    let epoch = match pending.admit_completion(completion) {
-        Ok(WorthQueryDirectConvergenceIterationOutcome::Continue(epoch)) => epoch,
+    let epoch = match started.advance() {
+        WorthQueryDirectConvergenceStepOutcome::Completed(
+            WorthQueryDirectConvergenceIterationOutcome::Continue(epoch),
+        ) => epoch,
         _ => panic!("first convergence iteration must remain active"),
     };
     assert_eq!(epoch.counters().provider_work_unit_count(), 1);
@@ -68,27 +67,24 @@ fn late_managed_terminal_reconciles_cumulative_provider_work_without_double_coun
         Ok(started) => started,
         Err(_) => panic!("second convergence iteration must start"),
     };
-    let (pending, active) = started.into_parts();
-    active
+    started
         .request_cancellation(BridgeManagedExecutionCancellationReason::HostRequested)
         .expect("late cancellation must admit");
-    let managed = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Cancelled(terminal) => terminal,
-        _ => panic!("second convergence iteration must cancel before provider work"),
-    };
-    assert_eq!(managed.provider_work().completed_work_units(), 1);
-    let terminal = match pending.admit_managed_terminal(managed) {
-        Ok(WorthQueryDirectConvergenceIterationOutcome::Cancelled(terminal)) => terminal,
+    let terminal = match started.advance() {
+        WorthQueryDirectConvergenceStepOutcome::Terminal(
+            WorthQueryDirectConvergenceIterationOutcome::Cancelled(terminal),
+        ) => terminal,
         _ => panic!("late managed cancellation must remain a cancellation terminal"),
     };
-
     assert_eq!(terminal.counters().iteration_count(), 2);
     assert_eq!(terminal.counters().provider_work_unit_count(), 1);
     assert_eq!(terminal.incumbents().len(), 1);
     assert!(terminal.latest_report().is_some());
-    if terminal.cleanup().is_err() {
-        panic!("late cancellation must retain cleanup authority");
-    }
+    let cleanup = terminal
+        .cleanup()
+        .unwrap_or_else(|_| panic!("late cancellation must retain cleanup authority"));
+    assert_eq!(cleanup.counters().cleanup_attempt_count(), 1);
+    assert_eq!(cleanup.counters().cleanup_completion_count(), 1);
 }
 
 fn call(identity: &str) -> WorthQueryManagedGraphCallRequest {

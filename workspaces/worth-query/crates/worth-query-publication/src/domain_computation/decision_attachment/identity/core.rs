@@ -3,32 +3,14 @@ use worth_query_execution::facade::domain_computation::{
 };
 
 use super::super::super::{
-    WorthQueryCandidateSearchSummary, WorthQueryDomainEvidenceBinding,
-    WorthQueryDomainEvidenceCore, WorthQueryDomainEvidenceGovernance,
+    WorthQueryCandidateSearchSummary, WorthQueryDomainEvidenceCore,
+    WorthQueryDomainEvidenceGovernance,
 };
 use super::vocabulary::{
     classification_name, correspondence_name, deletion_name, disposition_name, error_name,
     feasibility_name, incumbent_name, legal_hold_name, loss_name, optimality_name, redaction_name,
     retention_name, search_name, termination_name,
 };
-
-pub(super) fn binding_material(binding: &WorthQueryDomainEvidenceBinding) -> String {
-    canonical_operation_material(vec![
-        ("operation", binding.operation_identity().into()),
-        ("binding", binding.binding_identity().into()),
-        (
-            "run",
-            binding.run_identity().unwrap_or("not-required").into(),
-        ),
-        (
-            "stage",
-            binding.stage_identity().unwrap_or("not-required").into(),
-        ),
-        ("basis", binding.basis_identity().into()),
-        ("snapshot", binding.execution_snapshot_identity().into()),
-        ("output", binding.output_occurrence_identity().into()),
-    ])
-}
 
 pub(super) fn governance_material(governance: &WorthQueryDomainEvidenceGovernance) -> String {
     canonical_operation_material(vec![

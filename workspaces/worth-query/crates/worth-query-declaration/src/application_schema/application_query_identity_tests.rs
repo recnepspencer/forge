@@ -11,7 +11,7 @@ use crate::application_query::{
 use super::canonical_identity::{canonical_identity, ApplicationSchemaCanonicalHeader};
 use super::{
     ApplicationAbilityRef, ApplicationEntityRef, ApplicationFieldRef, ApplicationRelationRef,
-    ApplicationSchemaIdentity, ApplicationSchemaMember, EqualityPredicate, NoApplicationCurrency,
+    ApplicationSchemaIdentity, ApplicationSchemaMember, EqualityPredicate, NoApplicationUnit,
     ReadOnly,
 };
 
@@ -53,20 +53,19 @@ fn duplicate_result_slot_denies_definition_authority() {
             .field(selector::<FirstSlot>("first"))
             .field(selector::<FirstSlot>("second"))
             .build();
-    let denial = ApplicationQueryDefinitionBuilder::public(
-        query_reference(),
-        entity,
-        entity,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 2),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .build()
-    .err()
-    .expect("one slot cannot identify two result positions");
+    let denial = ApplicationQueryDefinitionBuilder::declare(query_reference())
+        .root(entity)
+        .scope(entity)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 2))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .build()
+        .err()
+        .expect("one slot cannot identify two result positions");
 
     assert_eq!(
         denial,
@@ -81,24 +80,24 @@ fn scoped_authorization_requirement_changes_definition_and_schema_identity() {
     let shape = ApplicationQueryResultShapeBuilder::new(entity)
         .field(selector::<FirstSlot>("value"))
         .build();
-    let governed = ApplicationQueryDefinitionBuilder::requires_ability(
-        query_reference(),
-        entity,
-        entity,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 1),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        ApplicationAbilityRef::<Schema, ViewEntity, Entity>::from_schema_identifiers(
-            "ViewEntity",
-            "Entity",
-        ),
-    )
-    .build()
-    .unwrap()
-    .into_erased();
+    let governed = ApplicationQueryDefinitionBuilder::declare(query_reference())
+        .root(entity)
+        .scope(entity)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(
+            ApplicationAbilityRef::<Schema, ViewEntity, Entity>::from_schema_identifiers(
+                "ViewEntity",
+                "Entity",
+            ),
+        )
+        .build()
+        .unwrap()
+        .into_erased();
 
     assert_ne!(public.canonical_basis(), governed.canonical_basis());
     assert_ne!(schema_identity(public), schema_identity(governed));
@@ -162,18 +161,17 @@ fn definition<Slot: 'static>() -> Result<
     let shape = ApplicationQueryResultShapeBuilder::new(entity)
         .field(selector::<Slot>("value"))
         .build();
-    ApplicationQueryDefinitionBuilder::public(
-        query_reference(),
-        entity,
-        entity,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 1),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .build()
+    ApplicationQueryDefinitionBuilder::declare(query_reference())
+        .root(entity)
+        .scope(entity)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .build()
 }
 
 fn query_reference() -> ApplicationQueryReference<Schema, Query, Parameters, QueryResult, Entity> {
@@ -192,7 +190,7 @@ fn selector<Slot>(
     u64,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new(
         output,
@@ -221,20 +219,19 @@ where
         ApplicationQueryResultShapeBuilder::<Schema, Query, Entity, QueryResult>::new(entity)
             .relation(relation, nested)
             .build();
-    ApplicationQueryDefinitionBuilder::public(
-        query_reference(),
-        entity,
-        entity,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 0),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .build()
-    .expect("direction-only identity fixture should be valid")
-    .into_erased()
+    ApplicationQueryDefinitionBuilder::declare(query_reference())
+        .root(entity)
+        .scope(entity)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 0))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .build()
+        .expect("direction-only identity fixture should be valid")
+        .into_erased()
 }
 
 fn ordering_definition<Slot>(
@@ -248,7 +245,7 @@ fn ordering_definition<Slot>(
         u64,
         ReadOnly,
         EqualityPredicate,
-        NoApplicationCurrency,
+        NoApplicationUnit,
     >,
 ) -> Result<
     ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Entity>,
@@ -258,19 +255,18 @@ fn ordering_definition<Slot>(
     let shape = ApplicationQueryResultShapeBuilder::new(entity)
         .field(selector::<FirstSlot>("value"))
         .build();
-    ApplicationQueryDefinitionBuilder::public(
-        query_reference(),
-        entity,
-        entity,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 1),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .order_by(ordering, ApplicationQueryOrderingDirection::Ascending)
-    .build()
+    ApplicationQueryDefinitionBuilder::declare(query_reference())
+        .root(entity)
+        .scope(entity)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .order_by(ordering, ApplicationQueryOrderingDirection::Ascending)
+        .build()
 }
 
 fn relation_reference() -> ApplicationRelationRef<Schema, Relation, Entity, Entity> {

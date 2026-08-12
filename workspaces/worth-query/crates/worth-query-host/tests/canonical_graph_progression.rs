@@ -76,17 +76,18 @@ fn record_query_definition() -> ApplicationQueryDefinition<
         _,
     >::new("identity", RecordIdentity::reference()))
     .build();
-    ApplicationQueryDefinitionBuilder::public(
-        ApplicationQueryReference::from_schema_identifier("record_query"),
-        Record::reference(),
-        Record::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 1),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
+    ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::from_schema_identifier(
+        "record_query",
+    ))
+    .root(Record::reference())
+    .scope(Record::reference())
+    .result_shape(shape)
+    .cardinality(ApplicationQueryCardinality::ExactlyOne)
+    .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
+    .disclosure(ApplicationQueryDisclosureContract::public())
+    .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+    .lanes(ApplicationQueryLaneEligibility::one_shot())
+    .public()
     .build()
     .expect("hostile-consumer query declaration should be valid")
 }

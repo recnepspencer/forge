@@ -60,6 +60,7 @@ fn commit_journal_proposal<Operation, Input, Scope, ScopeIdentity>(
 ) -> Result<BankMutationCommitOutcome, BankCommitPreparationDenial>
 where
     ScopeIdentity: Copy,
+    Input: Clone + Send + Sync + 'static,
     AccountIdentity: OperationReads<Operation>,
     AccountingRevision: OperationReads<Operation>,
     JournalEntry: OperationCreates<Operation>,

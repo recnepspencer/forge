@@ -2188,6 +2188,7 @@ dependencies = [
  "sha2",
  "stats_alloc",
  "worth-foundational",
+ "worth-proof",
  "worth-query-admission",
  "worth-query-declaration",
  "worth-query-installation",
@@ -2303,7 +2304,7 @@ dependencies = [
 
 [[package]]
 name = "worth-signal-wasm"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "base64",
  "console_error_panic_hook",

@@ -1,25 +1,21 @@
 use std::marker::PhantomData;
 
 use crate::application_query::{
-    ApplicationQueryAuthorizationRequirement, ApplicationQueryBasisSupport,
-    ApplicationQueryContinuationTarget, ApplicationQueryDefinitionDenial,
-    ApplicationQueryDisclosureContract, ApplicationQueryLaneEligibility,
-    ApplicationQueryLiveCauseBinding, ApplicationQueryLiveCauseContract,
-    ApplicationQueryLiveResourceContract, ApplicationQueryOrderingDirection,
-    ApplicationQueryOrderingTerm, ApplicationQueryParameterDefinition,
-    ApplicationQueryParameterRef, ApplicationQueryReference, ApplicationQueryResultFieldRef,
-    ApplicationQueryResultRelationRef, ApplicationQueryResultTraversal, ApplicationQueryRootPath,
-    ManyResults, TypedApplicationQueryResultShape,
+    ApplicationQueryAuthorizationRequirement, ApplicationQueryContinuationTarget,
+    ApplicationQueryDefinitionDenial, ApplicationQueryLiveCauseBinding,
+    ApplicationQueryLiveCauseContract, ApplicationQueryLiveResourceContract,
+    ApplicationQueryOrderingDirection, ApplicationQueryOrderingTerm,
+    ApplicationQueryParameterDefinition, ApplicationQueryParameterRef, ApplicationQueryReference,
+    ApplicationQueryResultFieldRef, ApplicationQueryResultRelationRef,
+    ApplicationQueryResultTraversal, ApplicationQueryRootPath, ManyResults,
 };
 use crate::application_schema::{
-    ApplicationAbilityRef, ApplicationEntityRef, ApplicationFieldCurrency, ApplicationFieldRef,
-    EqualityCapable, EqualityPredicate, TypedApplicationValue,
+    ApplicationFieldRef, ApplicationFieldUnit, EqualityCapable, EqualityPredicate,
+    TypedApplicationValue,
 };
 
-use super::{
-    ApplicationQueryCardinality, ApplicationQueryDefinition, ApplicationQueryDependencyCeiling,
-    ApplicationQueryPredicate,
-};
+use super::authoring::{ApplicationQueryDefinitionParts, ApplicationQueryRootAuthoring};
+use super::{ApplicationQueryDefinition, ApplicationQueryPredicate};
 
 pub struct ApplicationQueryDefinitionBuilder<Schema, Query, Parameters, QueryResult, Scope> {
     definition: ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
@@ -28,93 +24,37 @@ pub struct ApplicationQueryDefinitionBuilder<Schema, Query, Parameters, QueryRes
 impl<Schema, Query, Parameters, QueryResult, Scope>
     ApplicationQueryDefinitionBuilder<Schema, Query, Parameters, QueryResult, Scope>
 {
-    #[allow(clippy::too_many_arguments)]
-    fn with_authorization<Root>(
+    pub fn declare(
         reference: ApplicationQueryReference<Schema, Query, Parameters, QueryResult, Scope>,
-        root: ApplicationEntityRef<Schema, Root>,
-        scope: ApplicationEntityRef<Schema, Scope>,
-        result_shape: TypedApplicationQueryResultShape<Schema, Query, Root, QueryResult>,
-        cardinality: ApplicationQueryCardinality,
-        dependency_ceiling: ApplicationQueryDependencyCeiling,
-        disclosure: ApplicationQueryDisclosureContract,
-        basis_support: ApplicationQueryBasisSupport,
-        lanes: ApplicationQueryLaneEligibility,
+    ) -> ApplicationQueryRootAuthoring<Schema, Query, Parameters, QueryResult, Scope> {
+        ApplicationQueryRootAuthoring::new(reference)
+    }
+
+    pub(super) fn with_authorization<Root>(
+        parts: ApplicationQueryDefinitionParts<Schema, Query, Parameters, QueryResult, Scope, Root>,
         authorization: ApplicationQueryAuthorizationRequirement,
     ) -> Self {
         Self {
             definition: ApplicationQueryDefinition {
-                name: reference.name(),
-                root_entity: root.name(),
-                scope_entity: scope.name(),
+                name: parts.reference.name(),
+                root_entity: parts.root.name(),
+                scope_entity: parts.scope.name(),
                 parameters: Vec::new(),
-                result_shape: result_shape.into_erased(),
+                result_shape: parts.result_shape.into_erased(),
                 root_paths: Vec::new(),
-                cardinality,
+                cardinality: parts.cardinality,
                 predicates: Vec::new(),
                 ordering: Vec::new(),
                 continuation: None,
                 live_cause: None,
-                dependency_ceiling,
-                disclosure,
+                dependency_ceiling: parts.dependency_ceiling,
+                disclosure: parts.disclosure,
                 authorization,
-                basis_support,
-                lanes,
+                basis_support: parts.basis_support,
+                lanes: parts.lanes,
                 _marker: PhantomData,
             },
         }
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn public<Root>(
-        reference: ApplicationQueryReference<Schema, Query, Parameters, QueryResult, Scope>,
-        root: ApplicationEntityRef<Schema, Root>,
-        scope: ApplicationEntityRef<Schema, Scope>,
-        result_shape: TypedApplicationQueryResultShape<Schema, Query, Root, QueryResult>,
-        cardinality: ApplicationQueryCardinality,
-        dependency_ceiling: ApplicationQueryDependencyCeiling,
-        disclosure: ApplicationQueryDisclosureContract,
-        basis_support: ApplicationQueryBasisSupport,
-        lanes: ApplicationQueryLaneEligibility,
-    ) -> Self {
-        Self::with_authorization(
-            reference,
-            root,
-            scope,
-            result_shape,
-            cardinality,
-            dependency_ceiling,
-            disclosure,
-            basis_support,
-            lanes,
-            ApplicationQueryAuthorizationRequirement::public(),
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn requires_ability<Root, Ability>(
-        reference: ApplicationQueryReference<Schema, Query, Parameters, QueryResult, Scope>,
-        root: ApplicationEntityRef<Schema, Root>,
-        scope: ApplicationEntityRef<Schema, Scope>,
-        result_shape: TypedApplicationQueryResultShape<Schema, Query, Root, QueryResult>,
-        cardinality: ApplicationQueryCardinality,
-        dependency_ceiling: ApplicationQueryDependencyCeiling,
-        disclosure: ApplicationQueryDisclosureContract,
-        basis_support: ApplicationQueryBasisSupport,
-        lanes: ApplicationQueryLaneEligibility,
-        ability: ApplicationAbilityRef<Schema, Ability, Scope>,
-    ) -> Self {
-        Self::with_authorization(
-            reference,
-            root,
-            scope,
-            result_shape,
-            cardinality,
-            dependency_ceiling,
-            disclosure,
-            basis_support,
-            lanes,
-            ApplicationQueryAuthorizationRequirement::for_ability(ability),
-        )
     }
 
     pub fn parameter<Parameter, Value>(
@@ -135,7 +75,7 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         self
     }
 
-    pub fn where_equal<Root, Aspect, Field, Value, Write, Currency, Parameter>(
+    pub fn where_equal<Root, Aspect, Field, Value, Write, Unit, Parameter>(
         mut self,
         field: ApplicationFieldRef<
             Schema,
@@ -145,13 +85,13 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         parameter: ApplicationQueryParameterRef<Query, Parameter, Value>,
     ) -> Self
     where
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         EqualityPredicate: EqualityCapable,
     {
         self.definition.predicates.push(ApplicationQueryPredicate {
@@ -164,7 +104,7 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         self
     }
 
-    pub fn order_by<Slot, Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn order_by<Slot, Entity, Aspect, Field, Value, Write, Equality, Unit>(
         mut self,
         field: ApplicationQueryResultFieldRef<
             Query,
@@ -176,13 +116,13 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
         direction: ApplicationQueryOrderingDirection,
     ) -> Self
     where
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.definition
             .ordering
@@ -221,11 +161,11 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         ScopeSlot,
         ScopeAspect,
         ScopeField,
-        ScopeCurrency,
+        ScopeUnit,
         TargetSlot,
         TargetAspect,
         TargetField,
-        TargetCurrency,
+        TargetUnit,
     >(
         mut self,
         scope_identity: ApplicationQueryResultFieldRef<
@@ -238,7 +178,7 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
             Binding::ScopeIdentity,
             crate::application_schema::ReadOnly,
             crate::application_schema::EqualityPredicate,
-            ScopeCurrency,
+            ScopeUnit,
         >,
         target_identity: ApplicationQueryResultFieldRef<
             Query,
@@ -250,14 +190,14 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
             Binding::TargetIdentity,
             crate::application_schema::ReadOnly,
             crate::application_schema::EqualityPredicate,
-            TargetCurrency,
+            TargetUnit,
         >,
         resources: ApplicationQueryLiveResourceContract,
     ) -> Self
     where
         Binding: ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>,
-        ScopeCurrency: ApplicationFieldCurrency,
-        TargetCurrency: ApplicationFieldCurrency,
+        ScopeUnit: ApplicationFieldUnit,
+        TargetUnit: ApplicationFieldUnit,
     {
         self.definition.live_cause = Some(ApplicationQueryLiveCauseContract::typed::<
             Schema,
@@ -268,11 +208,11 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
             ScopeSlot,
             ScopeAspect,
             ScopeField,
-            ScopeCurrency,
+            ScopeUnit,
             TargetSlot,
             TargetAspect,
             TargetField,
-            TargetCurrency,
+            TargetUnit,
         >(scope_identity, target_identity, resources));
         self
     }

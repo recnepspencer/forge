@@ -5,6 +5,14 @@ use crate::{LogSequenceNumber, WalArtifactStoreDenial, WalLsnRange};
 
 use crate::artifact_store::frame_codec::{decode_header, FOOTER_BYTES, HEADER_BYTES};
 
+mod denial;
+mod owned_artifact;
+mod owned_frame;
+
+pub use denial::{WalActiveTailInspectionDenial, WalActiveTailInspectionFailure};
+pub use owned_artifact::VerifiedWalArtifact;
+pub use owned_frame::VerifiedWalFrame;
+
 /// Complete, digest-verified facts reconstructed from one bounded WAL segment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WalSegmentInspection {
@@ -21,6 +29,7 @@ pub struct WalSegmentInspection {
 pub struct VerifiedWalFramePayload<'segment> {
     lsn_range: WalLsnRange,
     payload: &'segment [u8],
+    encoded_bytes: u64,
 }
 
 /// Complete segment facts plus payload views from the same verification pass.
@@ -45,9 +54,6 @@ pub struct InterruptedWalTail {
     observed_bytes: u64,
 }
 
-/// Proof that the complete observed artifact is a strict prefix of its first
-/// WAL frame. This does not prove that the artifact is a lawful segment; the
-/// Store must still bind it to an exact active successor before cleanup.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InterruptedWalSegmentStart {
     observed_bytes: u64,
@@ -85,8 +91,30 @@ pub fn inspect_verified_wal_active_tail(
     identity: WalSegmentArtifactIdentity,
     bytes: &[u8],
 ) -> Result<VerifiedWalActiveTail<'_>, WalArtifactStoreDenial> {
+    inspect_wal_active_tail_with_evidence(identity, bytes).map_err(|failure| {
+        match failure.denial() {
+            WalActiveTailInspectionDenial::Artifact(denial) => denial,
+            WalActiveTailInspectionDenial::FrameLimitExceeded { .. } => {
+                unreachable!("the ordinary WAL inspector has no frame limit")
+            }
+        }
+    })
+}
+
+fn inspect_wal_active_tail_with_evidence(
+    identity: WalSegmentArtifactIdentity,
+    bytes: &[u8],
+) -> Result<VerifiedWalActiveTail<'_>, WalActiveTailInspectionFailure> {
+    inspect_bounded_wal_active_tail_with_evidence(identity, bytes, u64::MAX)
+}
+
+pub fn inspect_bounded_wal_active_tail_with_evidence(
+    identity: WalSegmentArtifactIdentity,
+    bytes: &[u8],
+    maximum_frames: u64,
+) -> Result<VerifiedWalActiveTail<'_>, WalActiveTailInspectionFailure> {
     if bytes.is_empty() {
-        return Err(WalArtifactStoreDenial::InvalidFrame);
+        return Err(inspection_failure(WalArtifactStoreDenial::InvalidFrame, 0));
     }
     let mut offset = 0usize;
     let mut first_lsn = None;
@@ -94,13 +122,24 @@ pub fn inspect_verified_wal_active_tail(
     let mut frame_count = 0u64;
     let mut frames = Vec::new();
     while offset < bytes.len() {
+        let inspected =
+            inspect_active_tail_frame(identity, bytes, offset, last_lsn_end).map_err(|denial| {
+                inspection_failure(
+                    denial,
+                    frame_count + u64::from(denial == WalArtifactStoreDenial::DigestMismatch),
+                )
+            })?;
         let ActiveTailFrame::Complete {
             lsn_start,
             lsn_end,
             payload,
             frame_end,
-        } = inspect_active_tail_frame(identity, bytes, offset, last_lsn_end)?
+        } = inspected
         else {
+            let observed = frame_count.saturating_add(1);
+            if observed > maximum_frames {
+                return Err(frame_limit_failure(observed, maximum_frames, observed));
+            }
             return finish_interrupted_tail(
                 identity,
                 bytes,
@@ -109,19 +148,28 @@ pub fn inspect_verified_wal_active_tail(
                 last_lsn_end,
                 frame_count,
                 frames,
-            );
+            )
+            .map_err(|denial| inspection_failure(denial, frame_count));
         };
+        let observed = frame_count.saturating_add(1);
+        if observed > maximum_frames {
+            return Err(frame_limit_failure(observed, maximum_frames, observed));
+        }
         first_lsn.get_or_insert(lsn_start);
         last_lsn_end = Some(lsn_end);
         let lsn_range = WalLsnRange::new(
             LogSequenceNumber::new(lsn_start),
             LogSequenceNumber::new(lsn_end),
         )
-        .map_err(|_| WalArtifactStoreDenial::InvalidFrame)?;
-        frames.push(VerifiedWalFramePayload { lsn_range, payload });
-        frame_count = frame_count
-            .checked_add(1)
-            .ok_or(WalArtifactStoreDenial::InvalidFrame)?;
+        .map_err(|_| inspection_failure(WalArtifactStoreDenial::InvalidFrame, frame_count + 1))?;
+        frames.push(VerifiedWalFramePayload {
+            lsn_range,
+            payload,
+            encoded_bytes: (HEADER_BYTES + payload.len() + FOOTER_BYTES) as u64,
+        });
+        frame_count = frame_count.checked_add(1).ok_or_else(|| {
+            inspection_failure(WalArtifactStoreDenial::InvalidFrame, frame_count + 1)
+        })?;
         offset = frame_end;
     }
     let verified_prefix = finish_verified_segment(
@@ -131,11 +179,28 @@ pub fn inspect_verified_wal_active_tail(
         last_lsn_end,
         frame_count,
         frames,
-    )?;
+    )
+    .map_err(|denial| inspection_failure(denial, frame_count))?;
     Ok(VerifiedWalActiveTail {
         verified_prefix,
         interrupted_tail: None,
     })
+}
+
+fn inspection_failure(
+    denial: WalArtifactStoreDenial,
+    frames_scanned: u64,
+) -> WalActiveTailInspectionFailure {
+    WalActiveTailInspectionFailure::artifact(denial, frames_scanned)
+}
+
+fn frame_limit_failure(
+    observed: u64,
+    admitted: u64,
+    frames_scanned: u64,
+) -> WalActiveTailInspectionFailure {
+    debug_assert_eq!(observed, frames_scanned);
+    WalActiveTailInspectionFailure::frame_limit(observed, admitted)
 }
 
 pub fn inspect_interrupted_wal_segment_start(
@@ -264,6 +329,14 @@ impl<'segment> VerifiedWalFramePayload<'segment> {
 
     pub const fn payload(&self) -> &'segment [u8] {
         self.payload
+    }
+
+    pub fn to_owned_verified(self) -> VerifiedWalFrame {
+        VerifiedWalFrame {
+            lsn_range: self.lsn_range,
+            payload: self.payload.into(),
+            encoded_bytes: self.encoded_bytes,
+        }
     }
 }
 

@@ -74,7 +74,7 @@ impl PersistedPhysicalMutationAttemptBinding {
         &self.bytes
     }
 
-    pub(super) fn key(&self) -> &super::PhysicalMutationIdempotencyKey {
+    pub(in crate::physical_runtime) fn key(&self) -> &super::PhysicalMutationIdempotencyKey {
         &self.key
     }
 

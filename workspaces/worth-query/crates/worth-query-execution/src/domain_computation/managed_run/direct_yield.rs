@@ -1,19 +1,13 @@
 use std::sync::Arc;
 
-use super::provider_work::WorthQueryManagedProviderWorkLedger;
 use super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution;
+use super::run_affinity::WorthQueryDirectRunAffinity;
 use super::{
-    WorthQueryManagedProviderWorkEvidence, WorthQueryManagedRunCounters,
-    WorthQueryPausedDirectGraphExecution, WorthQueryYieldTransitionCounters,
-};
-use crate::domain_computation::{
-    WorthQueryDirectExecutionResourceAttempt, WorthQueryExecutionResourceAttemptEvidence,
-    WorthQueryProviderCheckpointEvidence,
+    WorthQueryManagedRunCounters, WorthQueryPausedDirectGraphExecution,
+    WorthQueryYieldTransitionCounters,
 };
 use worth_relational::facade::runtime::RelationalExecutionBasisLease;
-use worth_runtime_bridge::facade::{
-    BridgeExecutionBasisFinalizationReceipt, BridgeYieldedExecutionBasis,
-};
+use worth_runtime_bridge::facade::BridgeYieldedExecutionBasis;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryDirectYieldDenialKind {
@@ -58,95 +52,149 @@ pub enum WorthQueryDirectYieldOutcome {
     RecoveryRequired(super::WorthQueryDirectYieldRecoveryRequired),
 }
 
+#[must_use = "yielded direct run retains exact cleanup or same-runtime readmission authority"]
 pub struct WorthQueryYieldedDirectRun {
-    pub(super) logical_run_identity: Arc<str>,
-    pub(super) attempt_identity: Arc<str>,
-    pub(super) resource_attempt: WorthQueryDirectExecutionResourceAttempt,
-    pub(super) relational_basis: RelationalExecutionBasisLease,
-    pub(super) bridge: BridgeYieldedExecutionBasis,
-    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
-    pub(super) run_counters: WorthQueryManagedRunCounters,
-    pub(super) provider_work: WorthQueryManagedProviderWorkLedger,
-    pub(super) yield_counters: WorthQueryYieldTransitionCounters,
+    affinity: WorthQueryDirectRunAffinity,
+    relational_basis: RelationalExecutionBasisLease,
+    bridge: BridgeYieldedExecutionBasis,
+    execution: WorthQueryRetainedManagedGraphExecution,
+    run_counters: WorthQueryManagedRunCounters,
+    yield_counters: WorthQueryYieldTransitionCounters,
+    inspection: super::WorthQueryYieldedDirectRunInspection,
 }
 
 impl WorthQueryYieldedDirectRun {
-    pub fn logical_run_identity(&self) -> &str {
-        &self.logical_run_identity
-    }
-
-    pub fn yielded_attempt_identity(&self) -> &str {
-        &self.attempt_identity
-    }
-
-    pub fn operation_binding_identity(&self) -> &str {
-        self.resource_attempt.binding_authority().binding_identity()
-    }
-
-    pub fn installed_operation_identity(&self) -> &str {
-        self.resource_attempt
-            .binding_authority()
-            .operation_identity()
-    }
-
-    pub fn semantic_basis_identity(&self) -> &str {
-        self.resource_attempt.binding_authority().basis_identity()
-    }
-
-    pub fn installation_generation(
+    pub(in crate::domain_computation::managed_run) fn preflight_retained_provider_call(
         &self,
-    ) -> worth_query_installation::facade::WorthQueryInstallationGeneration {
-        self.resource_attempt
-            .binding_authority()
-            .installation_generation()
+    ) -> Result<
+        crate::domain_computation::provider_session::graph_provider::WorthQueryGraphProviderCallReadmissionPlan,
+        crate::domain_computation::WorthQueryGraphCallBindingDenial,
+    >{
+        self.affinity.preflight_readmission_call(&self.execution)
     }
 
-    pub fn resource_attempt_evidence(&self) -> &WorthQueryExecutionResourceAttemptEvidence {
-        self.resource_attempt.evidence()
-    }
-
-    pub fn resource_attempt_identity(&self) -> &str {
-        self.resource_attempt.attempt_identity().as_str()
-    }
-
-    pub fn provider_session_identity(&self) -> &str {
-        self.resource_attempt.provider_session().identity()
-    }
-
-    pub fn relational_basis_identity(
+    pub(in crate::domain_computation::managed_run) fn query_readmission_denial(
         &self,
-    ) -> &worth_relational::facade::runtime::RelationalExecutionBasisIdentity {
-        self.relational_basis.identity()
+        runtime: &crate::domain_computation::WorthQueryExecutionRuntime,
+    ) -> Option<(super::WorthQueryDirectReadmissionDenialKind, &'static str)> {
+        if !self.affinity.belongs_to_runtime(runtime) {
+            return Some((
+                super::WorthQueryDirectReadmissionDenialKind::ForeignQueryRuntime,
+                "yielded run belongs to a different Query execution runtime",
+            ));
+        }
+        if !self.affinity.belongs_to_current_installation(runtime) {
+            return Some((
+                super::WorthQueryDirectReadmissionDenialKind::StaleInstallationGeneration,
+                "yielded run belongs to a stale installed-operation generation",
+            ));
+        }
+        if self.affinity.retained_capacity_reservation_count() == 0 {
+            return Some((
+                super::WorthQueryDirectReadmissionDenialKind::RetainedCapacityMismatch,
+                "yielded run no longer owns its nonempty capacity-reservation package",
+            ));
+        }
+        if !self.relational_basis.is_live() {
+            return Some((
+                super::WorthQueryDirectReadmissionDenialKind::RelationalLeaseNotLive,
+                "yielded Relational execution-basis lease is no longer live",
+            ));
+        }
+        if !self.execution.provider_generation_matches_anchor() {
+            return Some((
+                super::WorthQueryDirectReadmissionDenialKind::ProviderCheckpointMismatch,
+                "provider checkpoint generation no longer matches its retained provider anchor",
+            ));
+        }
+        None
     }
 
-    pub fn checkpoint(&self) -> &WorthQueryProviderCheckpointEvidence {
-        self.execution.checkpoint_evidence()
+    pub(super) fn owner_from_yield_transition(
+        minted: super::direct_yield_transition::WorthQueryDirectYieldMintedOwner,
+        _owner: super::direct_yield_transition::WorthQueryDirectYieldMint,
+    ) -> Self {
+        let inspection = super::WorthQueryYieldedDirectRunInspection::capture(
+            &minted.affinity,
+            &minted.execution,
+            &minted.run_counters,
+            minted.yield_counters,
+        );
+        Self {
+            affinity: minted.affinity,
+            relational_basis: minted.relational_basis,
+            bridge: minted.bridge,
+            execution: minted.execution,
+            run_counters: minted.run_counters,
+            yield_counters: minted.yield_counters,
+            inspection,
+        }
     }
 
-    pub fn provider_work(&self) -> WorthQueryManagedProviderWorkEvidence {
-        self.provider_work.snapshot()
+    pub(in crate::domain_computation::managed_run) fn owner_into_readmission_parts(
+        self,
+        _owner: &super::WorthQueryDirectReadmissionTransitionPermit,
+    ) -> (
+        WorthQueryDirectRunAffinity,
+        RelationalExecutionBasisLease,
+        BridgeYieldedExecutionBasis,
+        WorthQueryRetainedManagedGraphExecution,
+        WorthQueryManagedRunCounters,
+        WorthQueryYieldTransitionCounters,
+        super::WorthQueryYieldedDirectRunInspection,
+    ) {
+        (
+            self.affinity,
+            self.relational_basis,
+            self.bridge,
+            self.execution,
+            self.run_counters,
+            self.yield_counters,
+            self.inspection,
+        )
     }
 
-    pub fn run_counters(&self) -> &WorthQueryManagedRunCounters {
-        &self.run_counters
+    pub(in crate::domain_computation::managed_run) fn owner_restore_from_readmission(
+        restored: super::readmission::WorthQueryDirectYieldRestoredOwner,
+        _owner: &super::WorthQueryDirectReadmissionTransitionPermit,
+    ) -> Self {
+        Self {
+            affinity: restored.affinity,
+            relational_basis: restored.relational_basis,
+            bridge: restored.bridge,
+            execution: restored.execution,
+            run_counters: restored.run_counters,
+            yield_counters: restored.yield_counters,
+            inspection: restored.inspection,
+        }
     }
 
-    pub const fn yield_counters(&self) -> WorthQueryYieldTransitionCounters {
-        self.yield_counters
+    pub(super) fn owner_into_cleanup_parts(
+        self,
+        _owner: &super::direct_yield_cleanup::WorthQueryDirectYieldCleanupPermit,
+    ) -> (
+        WorthQueryDirectRunAffinity,
+        RelationalExecutionBasisLease,
+        BridgeYieldedExecutionBasis,
+        WorthQueryRetainedManagedGraphExecution,
+        WorthQueryManagedRunCounters,
+        WorthQueryYieldTransitionCounters,
+    ) {
+        (
+            self.affinity,
+            self.relational_basis,
+            self.bridge,
+            self.execution,
+            self.run_counters,
+            self.yield_counters,
+        )
     }
 
-    pub fn retained_capacity_reservation_count(&self) -> usize {
-        self.resource_attempt.retained_capacity_reservation_count()
+    pub const fn inspection(&self) -> &super::WorthQueryYieldedDirectRunInspection {
+        &self.inspection
     }
 
-    pub fn bridge(&self) -> &BridgeExecutionBasisFinalizationReceipt {
-        self.bridge.receipt()
-    }
-
-    pub fn bridge_request_identity(&self) -> &str {
-        self.bridge.basis_request_identity()
-    }
-
+    #[must_use = "cleanup returns a direct yielded-run cleanup outcome that must be resolved"]
     pub fn cleanup(self) -> super::WorthQueryDirectYieldCleanupOutcome {
         super::direct_yield_cleanup::cleanup_yielded_direct(self)
     }

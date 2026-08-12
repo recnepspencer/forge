@@ -59,11 +59,6 @@ pub(crate) fn query_domain_capability_authority() -> AuthorityWitness<QueryDomai
     AuthorityWitness::from_authority_marker(QueryDomainCapabilityAuthority { _owner_seal: () })
 }
 
-pub(crate) fn query_effect_lifecycle_authority() -> AuthorityWitness<QueryEffectLifecycleAuthority>
-{
-    AuthorityWitness::from_authority_marker(QueryEffectLifecycleAuthority { _owner_seal: () })
-}
-
 pub(crate) fn query_causal_inspection_authority() -> AuthorityWitness<QueryCausalInspectionAuthority>
 {
     AuthorityWitness::from_authority_marker(QueryCausalInspectionAuthority { _owner_seal: () })

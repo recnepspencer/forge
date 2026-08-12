@@ -2322,7 +2322,9 @@ continuing responsibility.
 
 ## C.8 Successor Handoff
 
-C.7 exposes one sealed, branch-agnostic recovery input containing:
+C.7 establishes one bounded, branch-agnostic crash-recovery contract containing
+persisted physical facts plus the configuration and resource requirements that
+a fresh process must readmit:
 
 - stable Store identity and final C.7 source/profile identity;
 - current and immediately previous physical root bases;
@@ -2334,12 +2336,19 @@ C.7 exposes one sealed, branch-agnostic recovery input containing:
   fingerprint, persisted attempt/WAL binding, and compacted fate when present;
 - corresponding live completed, proven-no-effect, completed-but-unobserved, and
   indeterminate physical mutation facts;
-- exact backend durability profile and barrier evidence;
-- bounded recovery allocation admission from C.6; and
+- exact backend durability profile identity and persisted barrier facts, to be
+  matched by fresh backend qualification;
+- bounded recovery allocation requirements from C.6, not a live or reusable
+  allocation grant; and
 - classified staged or partial artifact residue.
 
-C.8 may consume those facts to decide physical source precedence, redo, root
-selection, and operation-fate reconciliation in a fresh process.
+C.8 independently reopens the persisted artifacts that carry those facts and
+uses them to decide physical source precedence, redo, root selection, and
+operation-fate reconciliation in a fresh process. The in-memory
+`PhysicalDurabilityRecoveryHandoff` produced during orderly C.7 closeout is
+closeout observation and certification evidence; it is not a crash-surviving
+C.8 input, must not be serialized as one, and cannot substitute for artifact
+reopen.
 
 C.8 does not receive every historical physical mutation. Expired terminal
 bindings protected by the required later namespace-durable checkpoint are
@@ -2358,9 +2367,10 @@ C.8 does not receive:
 - semantic mutation, branch, MVCC, Query, or writer authority; or
 - a claim that indeterminate work has already been resolved.
 
-The handoff is constructible only from the final C.7 closeout progression. An
-evidence bundle, report, digest, copied field set, or public constructor cannot
-mint it.
+The orderly closeout handoff remains constructible only from the final C.7
+closeout progression. The C.8 recovery entry does not accept that value. An
+evidence bundle, report, digest, copied field set, serialized handoff, or public
+constructor cannot mint the persisted authority C.8 must rediscover.
 
 ## Milestone Must Ship
 
@@ -2395,7 +2405,8 @@ C.7 is incomplete without:
 - 16 source-closure-derived replayable CI schedules;
 - canonical release execution at all crash seams;
 - append-only mutation regression closure; and
-- the sealed C.8 handoff.
+- the sealed C.8 crash-recovery contract plus its orderly-closeout observation
+  handoff.
 
 ## Must Preserve
 
@@ -2472,7 +2483,8 @@ Closeout evidence includes:
 - complete catalog-derived controlled-case report whose every observation binds
   its closed execution-cost class, measured elapsed time, and exact
   class-derived budget; and
-- sealed C.8 handoff construction proof.
+- C.8 crash-recovery contract proof and orderly-closeout handoff construction
+  proof, with compile-time denial at the fresh-process C.8 entry.
 
 No row closes from a previous source closure, a different revision or backend
 profile, a different harness identity, or a report whose source restoration is

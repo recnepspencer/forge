@@ -1,0 +1,14 @@
+error[E0599]: no method named `finish` found for struct `ApplicationOperationDefinitionBuilder<Schema, Operation, Input, false, true>` in the current scope
+  --> tests/ui/application_schema/operation_definition_requires_external_effect_choice.rs:11:10
+   |
+ 8 |       let _ = Operation::reference()
+   |  _____________-
+ 9 | |         .definition()
+10 | |         .no_aftermath()
+11 | |         .finish();
+   | |         -^^^^^^ method not found in `ApplicationOperationDefinitionBuilder<Schema, Operation, Input, false, true>`
+   | |_________|
+   |
+   |
+   = note: the method was found for
+           - `ApplicationOperationDefinitionBuilder<Schema, Operation, Input, true, true>`

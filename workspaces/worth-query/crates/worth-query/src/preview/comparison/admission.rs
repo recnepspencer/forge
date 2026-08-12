@@ -101,7 +101,6 @@ fn derive_preview_comparison_candidate(
 }
 
 #[cfg(test)]
-
 pub(crate) fn admit_authoritative_preview_comparison_candidate(
     candidate_preflight: &ExecutionPreflightBundle,
     candidate_execution: &ExecutionResultEnvelope,
@@ -160,7 +159,6 @@ pub(crate) fn admit_authoritative_preview_comparison_candidate(
 }
 
 #[cfg(test)]
-
 fn admit_preview_execution_comparison(
     preview_execution: &PreviewExecutionEnvelope,
     candidate: &AuthoritativePreviewComparisonCandidate,
@@ -277,7 +275,6 @@ fn admit_preview_execution_comparison(
 }
 
 #[cfg(test)]
-
 pub(crate) fn admit_preview_promotion_parity_comparison(
     preview_execution: &PromotionEligiblePreviewExecutionEnvelope,
     candidate: &AuthoritativePreviewComparisonCandidate,

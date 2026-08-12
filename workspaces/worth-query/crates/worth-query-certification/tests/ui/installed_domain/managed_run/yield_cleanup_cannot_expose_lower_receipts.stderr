@@ -1,0 +1,191 @@
+error[E0599]: no method named `logical_run_identity` found for reference `&WorthQueryDirectYieldCleanupReceipt` in the current scope
+ --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:7:21
+  |
+7 |     let _ = receipt.logical_run_identity();
+  |                     ^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDirectYieldCleanupReceipt`
+
+error[E0599]: no method named `yielded_attempt_identity` found for reference `&WorthQueryDirectYieldCleanupReceipt` in the current scope
+ --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:8:21
+  |
+8 |     let _ = receipt.yielded_attempt_identity();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDirectYieldCleanupReceipt`
+
+error[E0599]: no method named `checkpoint` found for reference `&WorthQueryDirectYieldCleanupReceipt` in the current scope
+ --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:9:21
+  |
+9 |     let _ = receipt.checkpoint();
+  |                     ^^^^^^^^^^ method not found in `&WorthQueryDirectYieldCleanupReceipt`
+
+error[E0599]: no method named `checkpoint_release` found for reference `&WorthQueryDirectYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:10:21
+   |
+10 |     let _ = receipt.checkpoint_release();
+   |                     ^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDirectYieldCleanupReceipt`
+
+error[E0599]: no method named `recovery_evidence` found for reference `&WorthQueryDirectYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:11:21
+   |
+11 |     let _ = receipt.recovery_evidence();
+   |                     ^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDirectYieldCleanupReceipt`
+
+error[E0599]: no method named `bridge` found for reference `&WorthQueryDirectYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:12:21
+   |
+12 |     let _ = receipt.bridge();
+   |                     ^^^^^^ method not found in `&WorthQueryDirectYieldCleanupReceipt`
+
+error[E0599]: no method named `relational` found for reference `&WorthQueryDirectYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:13:21
+   |
+13 |     let _ = receipt.relational();
+   |                     ^^^^^^^^^^ method not found in `&WorthQueryDirectYieldCleanupReceipt`
+
+error[E0599]: no method named `attempt` found for reference `&WorthQueryDirectYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:14:21
+   |
+14 |     let _ = receipt.attempt();
+   |                     ^^^^^^^ method not found in `&WorthQueryDirectYieldCleanupReceipt`
+
+error[E0599]: no method named `provider_work` found for reference `&WorthQueryDirectYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:15:21
+   |
+15 |     let _ = receipt.provider_work();
+   |                     ^^^^^^^^^^^^^ method not found in `&WorthQueryDirectYieldCleanupReceipt`
+
+error[E0599]: no method named `run_counters` found for reference `&WorthQueryDirectYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:16:21
+   |
+16 |     let _ = receipt.run_counters();
+   |                     ^^^^^^^^^^^^ method not found in `&WorthQueryDirectYieldCleanupReceipt`
+
+error[E0599]: no method named `yield_counters` found for reference `&WorthQueryDirectYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:17:21
+   |
+17 |     let _ = receipt.yield_counters();
+   |                     ^^^^^^^^^^^^^^ method not found in `&WorthQueryDirectYieldCleanupReceipt`
+
+error[E0599]: no method named `logical_run_identity` found for reference `&WorthQueryWorkflowYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:21:21
+   |
+21 |     let _ = receipt.logical_run_identity();
+   |                     ^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldCleanupReceipt`
+
+error[E0599]: no method named `yielded_attempt_identity` found for reference `&WorthQueryWorkflowYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:22:21
+   |
+22 |     let _ = receipt.yielded_attempt_identity();
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldCleanupReceipt`
+
+error[E0599]: no method named `checkpoint` found for reference `&WorthQueryWorkflowYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:23:21
+   |
+23 |     let _ = receipt.checkpoint();
+   |                     ^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldCleanupReceipt`
+
+error[E0599]: no method named `checkpoint_release` found for reference `&WorthQueryWorkflowYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:24:21
+   |
+24 |     let _ = receipt.checkpoint_release();
+   |                     ^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldCleanupReceipt`
+
+error[E0599]: no method named `bridge` found for reference `&WorthQueryWorkflowYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:25:21
+   |
+25 |     let _ = receipt.bridge();
+   |                     ^^^^^^ method not found in `&WorthQueryWorkflowYieldCleanupReceipt`
+
+error[E0599]: no method named `relational` found for reference `&WorthQueryWorkflowYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:26:21
+   |
+26 |     let _ = receipt.relational();
+   |                     ^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldCleanupReceipt`
+
+error[E0599]: no method named `attempt` found for reference `&WorthQueryWorkflowYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:27:21
+   |
+27 |     let _ = receipt.attempt();
+   |                     ^^^^^^^ method not found in `&WorthQueryWorkflowYieldCleanupReceipt`
+
+error[E0599]: no method named `artifact_evidence` found for reference `&WorthQueryWorkflowYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:28:21
+   |
+28 |     let _ = receipt.artifact_evidence();
+   |                     ^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldCleanupReceipt`
+
+error[E0599]: no method named `provider_work` found for reference `&WorthQueryWorkflowYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:29:21
+   |
+29 |     let _ = receipt.provider_work();
+   |                     ^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldCleanupReceipt`
+
+error[E0599]: no method named `run_counters` found for reference `&WorthQueryWorkflowYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:30:21
+   |
+30 |     let _ = receipt.run_counters();
+   |                     ^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldCleanupReceipt`
+
+error[E0599]: no method named `yield_counters` found for reference `&WorthQueryWorkflowYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:31:21
+   |
+31 |     let _ = receipt.yield_counters();
+   |                     ^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldCleanupReceipt`
+
+error[E0599]: no method named `logical_run_identity` found for reference `&WorthQueryWorkflowYieldRecoveryRelease` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:35:21
+   |
+35 |     let _ = receipt.logical_run_identity();
+   |                     ^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldRecoveryRelease`
+
+error[E0599]: no method named `yielded_attempt_identity` found for reference `&WorthQueryWorkflowYieldRecoveryRelease` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:36:21
+   |
+36 |     let _ = receipt.yielded_attempt_identity();
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldRecoveryRelease`
+
+error[E0599]: no method named `bridge` found for reference `&WorthQueryWorkflowYieldRecoveryRelease` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:37:21
+   |
+37 |     let _ = receipt.bridge();
+   |                     ^^^^^^ method not found in `&WorthQueryWorkflowYieldRecoveryRelease`
+
+error[E0599]: no method named `relational` found for reference `&WorthQueryWorkflowYieldRecoveryRelease` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:38:21
+   |
+38 |     let _ = receipt.relational();
+   |                     ^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldRecoveryRelease`
+
+error[E0599]: no method named `attempt` found for reference `&WorthQueryWorkflowYieldRecoveryRelease` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:39:21
+   |
+39 |     let _ = receipt.attempt();
+   |                     ^^^^^^^ method not found in `&WorthQueryWorkflowYieldRecoveryRelease`
+
+error[E0599]: no method named `artifact_evidence` found for reference `&WorthQueryWorkflowYieldRecoveryRelease` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:40:21
+   |
+40 |     let _ = receipt.artifact_evidence();
+   |                     ^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldRecoveryRelease`
+
+error[E0599]: no method named `provider_work` found for reference `&WorthQueryWorkflowYieldRecoveryRelease` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:41:21
+   |
+41 |     let _ = receipt.provider_work();
+   |                     ^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldRecoveryRelease`
+
+error[E0599]: no method named `run_counters` found for reference `&WorthQueryWorkflowYieldRecoveryRelease` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:42:21
+   |
+42 |     let _ = receipt.run_counters();
+   |                     ^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldRecoveryRelease`
+
+error[E0599]: no method named `yield_counters` found for reference `&WorthQueryWorkflowYieldRecoveryRelease` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:43:21
+   |
+43 |     let _ = receipt.yield_counters();
+   |                     ^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldRecoveryRelease`
+
+error[E0599]: no method named `recovery_evidence` found for reference `&WorthQueryWorkflowYieldRecoveryRelease` in the current scope
+  --> tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs:44:21
+   |
+44 |     let _ = receipt.recovery_evidence();
+   |                     ^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowYieldRecoveryRelease`

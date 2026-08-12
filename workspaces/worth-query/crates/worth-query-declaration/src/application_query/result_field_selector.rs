@@ -5,7 +5,7 @@ use worth_foundational::facade::ScalarAspectType;
 use super::result_slot_key::ApplicationQueryResultFieldSlotContract;
 use super::ApplicationQueryResultSlotKey;
 use crate::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldPresence, ApplicationFieldRef,
+    ApplicationFieldPresence, ApplicationFieldRef, ApplicationFieldUnit,
     OptionalApplicationFieldValue, RequiredApplicationFieldValue, TypedApplicationValue,
 };
 
@@ -17,7 +17,7 @@ use crate::application_schema::{
 /// use worth_query_declaration::facade::{
 ///     application_query::ApplicationQueryResultFieldRef,
 ///     application_schema::{
-///         EqualityPredicate, NoApplicationCurrency, ReadWrite,
+///         EqualityPredicate, NoApplicationUnit, ReadWrite,
 ///     },
 /// };
 /// struct Schema;
@@ -31,7 +31,7 @@ use crate::application_schema::{
 /// );
 /// let _ = ApplicationQueryResultFieldRef::<
 ///     Query, Slot, Schema, Record, Facts, OptionalText, String,
-///     ReadWrite, EqualityPredicate, NoApplicationCurrency,
+///     ReadWrite, EqualityPredicate, NoApplicationUnit,
 /// >::new("text", OptionalText::reference());
 /// ```
 pub struct ApplicationQueryResultFieldRef<
@@ -44,14 +44,14 @@ pub struct ApplicationQueryResultFieldRef<
     Value,
     Write,
     Equality,
-    Currency,
+    Unit,
 > {
     output_name: &'static str,
     entity: &'static str,
     aspect: &'static str,
     field: &'static str,
     _query_position: PhantomData<fn() -> (Query, Slot, Schema, Entity, Aspect)>,
-    _field_contract: PhantomData<fn() -> (Field, Value, Write, Equality, Currency)>,
+    _field_contract: PhantomData<fn() -> (Field, Value, Write, Equality, Unit)>,
 }
 
 /// Selector for a schema-optional result field.
@@ -62,7 +62,7 @@ pub struct ApplicationQueryResultFieldRef<
 /// use worth_query_declaration::facade::{
 ///     application_query::ApplicationQueryOptionalResultFieldRef,
 ///     application_schema::{
-///         EqualityPredicate, NoApplicationCurrency, ReadWrite,
+///         EqualityPredicate, NoApplicationUnit, ReadWrite,
 ///     },
 /// };
 /// struct Schema;
@@ -76,7 +76,7 @@ pub struct ApplicationQueryResultFieldRef<
 /// );
 /// let _ = ApplicationQueryOptionalResultFieldRef::<
 ///     Query, Slot, Schema, Record, Facts, RequiredText, String,
-///     ReadWrite, EqualityPredicate, NoApplicationCurrency,
+///     ReadWrite, EqualityPredicate, NoApplicationUnit,
 /// >::new("text", RequiredText::reference());
 /// ```
 pub struct ApplicationQueryOptionalResultFieldRef<
@@ -89,17 +89,17 @@ pub struct ApplicationQueryOptionalResultFieldRef<
     Value,
     Write,
     Equality,
-    Currency,
+    Unit,
 > {
     output_name: &'static str,
     entity: &'static str,
     aspect: &'static str,
     field: &'static str,
     _query_position: PhantomData<fn() -> (Query, Slot, Schema, Entity, Aspect)>,
-    _field_contract: PhantomData<fn() -> (Field, Value, Write, Equality, Currency)>,
+    _field_contract: PhantomData<fn() -> (Field, Value, Write, Equality, Unit)>,
 }
 
-impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
+impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>
     ApplicationQueryResultFieldRef<
         Query,
         Slot,
@@ -110,15 +110,15 @@ impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currenc
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >
 where
     Value: TypedApplicationValue,
-    Currency: ApplicationFieldCurrency,
+    Unit: ApplicationFieldUnit,
 {
     pub fn new(
         output_name: &'static str,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Self
     where
         Field: RequiredApplicationFieldValue<Value = Value>,
@@ -188,7 +188,7 @@ where
     }
 }
 
-impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
+impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>
     ApplicationQueryOptionalResultFieldRef<
         Query,
         Slot,
@@ -199,16 +199,16 @@ impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currenc
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >
 where
     Field: OptionalApplicationFieldValue<Value = Value>,
     Value: TypedApplicationValue,
-    Currency: ApplicationFieldCurrency,
+    Unit: ApplicationFieldUnit,
 {
     pub fn new(
         output_name: &'static str,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Self {
         Self {
             output_name,
@@ -275,7 +275,7 @@ where
     }
 }
 
-impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> Clone
+impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Unit> Clone
     for ApplicationQueryResultFieldRef<
         Query,
         Slot,
@@ -286,7 +286,7 @@ impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currenc
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >
 {
     fn clone(&self) -> Self {
@@ -294,7 +294,7 @@ impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currenc
     }
 }
 
-impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> Copy
+impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Unit> Copy
     for ApplicationQueryResultFieldRef<
         Query,
         Slot,
@@ -305,12 +305,12 @@ impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currenc
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >
 {
 }
 
-impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> Clone
+impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Unit> Clone
     for ApplicationQueryOptionalResultFieldRef<
         Query,
         Slot,
@@ -321,7 +321,7 @@ impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currenc
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >
 {
     fn clone(&self) -> Self {
@@ -329,7 +329,7 @@ impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currenc
     }
 }
 
-impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> Copy
+impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Unit> Copy
     for ApplicationQueryOptionalResultFieldRef<
         Query,
         Slot,
@@ -340,7 +340,7 @@ impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Currenc
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >
 {
 }

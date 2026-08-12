@@ -115,6 +115,7 @@ pub(in crate::physical_runtime::record_serving) enum CandidateFrameRole {
     ExtentChunk,
     ManifestBlock,
     RootManifest,
+    RootSelectorCandidate,
     CatalogCandidate,
 }
 
@@ -224,7 +225,10 @@ impl CandidateFrameRole {
     pub(in crate::physical_runtime::record_serving) const fn is_complete_artifact(self) -> bool {
         matches!(
             self,
-            Self::ManifestBlock | Self::RootManifest | Self::CatalogCandidate
+            Self::ManifestBlock
+                | Self::RootManifest
+                | Self::RootSelectorCandidate
+                | Self::CatalogCandidate
         )
     }
 }
@@ -287,6 +291,9 @@ const fn coordinate_matches_role(role: CandidateFrameRole, artifact: RecordArtif
         ) | (
             CandidateFrameRole::RootManifest,
             RecordArtifactFile::RootManifest { .. }
+        ) | (
+            CandidateFrameRole::RootSelectorCandidate,
+            RecordArtifactFile::RootSelectorCandidate { .. }
         ) | (
             CandidateFrameRole::CatalogCandidate,
             RecordArtifactFile::CatalogCandidate { .. }

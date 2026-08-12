@@ -5,14 +5,15 @@ use super::super::{
 };
 use crate::domain_computation::provider_session::WorthQueryMutationGraphWorkCompletion;
 
-pub(super) enum WorthQueryProviderProgressionOutcome {
+pub(in crate::domain_computation::primary_graph::application_attempt) enum WorthQueryProviderProgressionOutcome
+{
     Committed(WorthQueryPendingApplicationCommitReceipt),
     AlreadyCommitted(WorthQueryApplicationCommitReceipt),
     Stale(WorthQueryApplicationStaleAttempt),
     Cancelled,
     Denied(WorthQueryApplicationCommitDenial),
     Aborted,
-    Indeterminate,
+    Indeterminate(super::super::WorthQueryApplicationUnresolvedCommitEvidence),
 }
 
 impl WorthQueryProviderProgressionOutcome {
@@ -26,19 +27,21 @@ impl WorthQueryProviderProgressionOutcome {
             }
             Self::AlreadyCommitted(receipt) => {
                 WorthQueryApplicationCommitOutcome::AlreadyCommitted(
-                    receipt.with_retry_inspection(completion)?,
+                    receipt.with_retry_cleanup(completion)?,
                 )
             }
             Self::Stale(stale) => WorthQueryApplicationCommitOutcome::Stale(stale),
             Self::Cancelled => WorthQueryApplicationCommitOutcome::Cancelled,
             Self::Denied(denial) => WorthQueryApplicationCommitOutcome::Denied(denial),
             Self::Aborted => WorthQueryApplicationCommitOutcome::Aborted,
-            Self::Indeterminate => WorthQueryApplicationCommitOutcome::Indeterminate,
+            Self::Indeterminate(evidence) => {
+                WorthQueryApplicationCommitOutcome::Indeterminate(evidence)
+            }
         })
     }
 }
 
-pub(super) fn progression_denied(
+pub(in crate::domain_computation::primary_graph::application_attempt) fn progression_denied(
     stage: WorthQueryApplicationCommitDenialStage,
 ) -> WorthQueryProviderProgressionOutcome {
     WorthQueryProviderProgressionOutcome::Denied(

@@ -78,11 +78,13 @@ impl<Schema, Operation, Input, Scope, Phase>
         self.lease
             .handle()
             .with_runtime(|runtime| {
-                super::super::super::entity_resolution::validate_entity_freshness_at_snapshot(
-                    runtime,
-                    self.lease.snapshot(),
-                    identity,
-                )
+                self.entity_resolution
+                    .at_snapshot(
+                        runtime,
+                        self.lease.snapshot(),
+                        super::super::super::WorthQueryPrincipalResolutionMode::Ordinary,
+                    )
+                    .and_then(|truth| truth.validate_entity_freshness(identity))
             })
             .map_err(|_| {
                 denial(

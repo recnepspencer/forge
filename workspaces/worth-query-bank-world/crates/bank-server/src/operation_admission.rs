@@ -4,13 +4,12 @@ use bank_domain::model::{AccountId, BankPrincipalId, BusinessId, InstitutionId, 
 use bank_domain::schema::*;
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestScope;
 use worth_query_host::facade::declaration::application_schema::TypedMutationPreconditions;
-use worth_query_host::facade::domain::WorthQueryApplicationOperationInstallationDenial;
-use worth_query_host::facade::primary_graph::{
-    WorthQueryAdmittedApplicationOperation, WorthQueryEntityResolutionDenial,
-    WorthQueryOperationAuthorizationDenial,
-};
+use worth_query_host::facade::primary_graph::WorthQueryAdmittedApplicationOperation;
 
-use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime};
+use crate::{
+    BankAuthenticatedPrincipal, BankAuthorizationDenial, BankEntityResolutionDenial,
+    BankIdentityRuntime, BankOperationInstallationDenial,
+};
 
 /// Bank-owned retention of Query's exact admitted-operation authority plus
 /// the typed bank actor and scope identities used by proposal semantics.
@@ -98,17 +97,23 @@ impl<Operation, Input, Scope, ScopeIdentity: Copy>
 
 #[derive(Debug)]
 pub enum BankOperationAdmissionError {
-    ScopeResolution(WorthQueryEntityResolutionDenial),
-    OperationInstallation(WorthQueryApplicationOperationInstallationDenial),
-    Authorization(WorthQueryOperationAuthorizationDenial),
+    ScopeResolution(BankEntityResolutionDenial),
+    OperationInstallation(BankOperationInstallationDenial),
+    Authorization(BankAuthorizationDenial),
 }
 
 impl std::fmt::Display for BankOperationAdmissionError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ScopeResolution(error) => error.fmt(formatter),
-            Self::OperationInstallation(error) => error.fmt(formatter),
-            Self::Authorization(error) => error.fmt(formatter),
+            Self::ScopeResolution(error) => {
+                write!(formatter, "scope resolution denied: {}", error.code())
+            }
+            Self::OperationInstallation(error) => {
+                write!(formatter, "operation installation denied: {}", error.code())
+            }
+            Self::Authorization(error) => {
+                write!(formatter, "authorization denied: {}", error.code())
+            }
         }
     }
 }

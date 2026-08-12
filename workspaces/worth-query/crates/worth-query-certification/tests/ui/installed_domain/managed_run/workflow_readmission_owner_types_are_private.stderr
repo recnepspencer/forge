@@ -1,0 +1,9 @@
+error[E0432]: unresolved imports `worth_query_execution::facade::provider_session::WorthQueryWorkflowProviderWorkRebinding`, `worth_query_execution::facade::provider_session::WorthQueryWorkflowResourceReadmissionPending`, `worth_query_execution::facade::provider_session::WorthQueryWorkflowRunTransitionPermit`
+ --> tests/ui/installed_domain/managed_run/workflow_readmission_owner_types_are_private.rs:2:5
+  |
+2 |     WorthQueryWorkflowProviderWorkRebinding, WorthQueryWorkflowResourceReadmissionPending,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryWorkflowResourceReadmissionPending` in `facade::provider_session`
+  |     |
+  |     no `WorthQueryWorkflowProviderWorkRebinding` in `facade::provider_session`
+3 |     WorthQueryWorkflowRunTransitionPermit,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryWorkflowRunTransitionPermit` in `facade::provider_session`

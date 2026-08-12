@@ -22,7 +22,6 @@ where
 }
 
 impl<T> CanonicalVec<T> {
-    #[allow(dead_code)]
     pub(crate) fn new(items: Vec<T>, proof: CanonicalOrderProof) -> Self {
         Self { items, proof }
     }
@@ -73,7 +72,6 @@ where
 }
 
 impl<T> UniqueVec<T> {
-    #[allow(dead_code)]
     pub(crate) fn new(items: Vec<T>, proof: UniquenessProof) -> Self {
         Self { items, proof }
     }

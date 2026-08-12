@@ -390,12 +390,20 @@ C.7 establishes ordinary physical mutation fate and namespace-durable
 checkpoint publication. It does not perform fresh-process source precedence,
 redo, root selection, or indeterminate-operation reconciliation.
 
-C.8 will consume sealed persisted facts: current and previous root bases, the
-latest namespace-durable checkpoint and covered LSN range, the contiguous WAL
-tail, retained terminal and every unresolved idempotency binding, backend
-profile and barrier evidence, and classified partial residue. C.8 will not
-receive the live runtime, buffer pool, Signal graph, scheduler queues, or
-ordinary execution authority.
+C.8 will independently reopen sealed persisted facts: current and previous root
+bases, the latest namespace-durable checkpoint and covered LSN range, the
+contiguous WAL tail, retained terminal and every unresolved idempotency binding,
+persisted barrier evidence, and classified partial residue. Static
+configuration, backend profile, and Recovery-scoped allocation are freshly
+admitted in the new process and must match those facts. The C.7
+in-memory closeout handoff describes that contract for orderly closeout and
+certification; it is not serialized or accepted by fresh-process recovery. C.8
+will not receive the live runtime, buffer pool, Signal graph, scheduler queues,
+decoded artifact graph, or ordinary execution authority.
+
+The normative C.8 architecture, public outcome model, source precedence,
+cleanup law, and courtroom are defined in
+[C.8 fresh-process recovery and reopen](./physical-reconstruction-c8-fresh-process-recovery-and-reopen.md).
 
 ## Related Documentation
 

@@ -4,8 +4,8 @@ use super::super::{
     WorthQueryOperationBindingDenialKind,
 };
 use crate::domain_installation::{
-    WorthQueryGraphCommitPosture, WorthQueryOperationEffectContract,
-    WorthQueryOperationGraphParticipation, WorthQueryOperationReversalContract,
+    InstalledCorrectionMechanism, PublishedAftermathPosture, WorthQueryGraphCommitPosture,
+    WorthQueryOperationEffectContract, WorthQueryOperationGraphParticipation,
     WorthQueryOperationTouchContract,
 };
 
@@ -123,15 +123,21 @@ fn require_compensation<D, O, F>(
     operation: &crate::domain_installation::WorthQueryInstalledDomainOperation<D, O, F>,
     counters: WorthQueryOperationBindingCounters,
 ) -> Result<WorthQueryBoundCommitPosture, WorthQueryOperationBindingDenial> {
-    match operation.definition().semantics().reversal {
-        WorthQueryOperationReversalContract::Compensation { .. }
-        | WorthQueryOperationReversalContract::CompensationWithPostcondition { .. } => {
-            Ok(WorthQueryBoundCommitPosture::Compensated)
-        }
-        _ => Err(WorthQueryOperationBindingDenial::new(
+    let aftermath = operation.definition().semantics().aftermath.as_ref();
+    let compensatable = aftermath.is_some_and(|contract| {
+        contract.published_posture() == PublishedAftermathPosture::Compensatable
+            || matches!(
+                contract.mechanism(),
+                Some(InstalledCorrectionMechanism::Compensation(_))
+            )
+    });
+    if compensatable {
+        Ok(WorthQueryBoundCommitPosture::Compensated)
+    } else {
+        Err(WorthQueryOperationBindingDenial::new(
             WorthQueryOperationBindingDenialKind::CompensationUndeclared,
             "primary and separate mutations or separate commit authorities require compensation",
             counters,
-        )),
+        ))
     }
 }

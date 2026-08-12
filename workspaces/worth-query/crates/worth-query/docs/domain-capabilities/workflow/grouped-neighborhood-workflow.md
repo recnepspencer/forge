@@ -131,7 +131,7 @@ meaning.
   receipt, and envelope surfaces.
 - [Grouped Contributions](../grouped-contributions.md) go deeper on shared and
   member-local contribution composition.
-- [Stop To Recovery](./stop-to-recovery.md) is the next workflow when grouped
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md) is the next guide when grouped
   orchestration stops.
 
 ## Inspection And Debugging

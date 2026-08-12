@@ -7,17 +7,11 @@ use worth_query_declaration::facade::application_capability::{
 use worth_query_installation::facade::{ApplicationOperationProgramTarget, ApplicationSchema};
 
 use super::super::super::capability_registry::WorthQueryInstalledCapabilityPlan;
-use super::super::super::capability_request_resolution::{
-    resolve_capability_request, resolve_erased_selector,
-};
-use super::super::super::delegation_admission::observe_elevation_upper_bound;
-use super::super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryOperationAuthorizationDenial,
     WorthQueryOperationAuthorizationDenialKind, WorthQueryRetainedCapabilitySupport,
 };
 use super::super::request_binding::WorthQueryElevationRequestBinding;
-use super::super::WorthQueryElevationUpperBound;
 use super::{denial, projection_denial};
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
@@ -57,19 +51,21 @@ where
                 installed.contract.name(),
             )
         })?;
-    let (upper_bound, supporting) = resolve_upper_bound(
-        runtime,
-        capability_identity,
-        installed,
-        access,
-        proposed,
-        &interval.issued,
-    )?;
+    let (upper_bound, supporting) = access
+        .with_exact_observation(runtime, |observation| {
+            observation.resolve_elevation_upper_bound(
+                capability_identity,
+                installed,
+                proposed,
+                &interval.issued,
+            )
+        })
+        .ok_or_else(|| projection_denial(access.operation()))??;
     let lifecycle = &elevation.lifecycle;
     Ok((
         WorthQueryElevationRequestBinding {
             runtime_authority: runtime.runtime.authority_identity(),
-            branch: access.graph_work.branch().relational().clone(),
+            branch: access.graph_work_branch().clone(),
             capability_identity,
             capability_authority_identity: Arc::clone(&installed.capability_authority_identity),
             upper_bound,
@@ -114,113 +110,11 @@ where
                     .unwrap()
                     .lifecycle()
                     .request(),
-                &access.input,
+                access.capability_input(),
                 installed.contract.name(),
             )?,
         },
         supporting,
-    ))
-}
-
-fn resolve_upper_bound<Schema, Capability, Operation, Input>(
-    runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
-    capability_identity: [u8; 32],
-    installed: &WorthQueryInstalledCapabilityPlan,
-    access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
-    proposed: &ApplicationCapabilityElevationRequestProjection<
-        Schema,
-        <Input as ApplicationCapabilityElevationRequest<Schema, Operation>>::Scope,
-        <Input as ApplicationCapabilityElevationRequest<Schema, Operation>>::Context,
-    >,
-    sample: &super::super::super::WorthQueryAuthorizationTimeSample,
-) -> Result<
-    (
-        WorthQueryElevationUpperBound,
-        WorthQueryRetainedCapabilitySupport,
-    ),
-    WorthQueryOperationAuthorizationDenial,
->
-where
-    Schema: ApplicationSchema,
-    Input: ApplicationCapabilityRequest<Schema, Capability>
-        + ApplicationCapabilityElevationRequest<Schema, Operation>,
-{
-    let graph = runtime.runtime.primary_graph().ok_or_else(|| {
-        denial(
-            WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
-            access.operation(),
-        )
-    })?;
-    let snapshot = access
-        .graph_work
-        .mutation_snapshot()
-        .ok_or_else(|| projection_denial(access.operation()))?
-        .clone();
-    let handle = access
-        .graph_work
-        .mutation_handle()
-        .ok_or_else(|| projection_denial(access.operation()))?
-        .clone();
-    let (target, grant) = handle.with_runtime(|relational| {
-        let target = resolve_capability_request(
-            relational,
-            &snapshot,
-            graph.layout(),
-            &runtime.installed_schema,
-            proposed.target(),
-            runtime.runtime.authority_identity(),
-        )?;
-        let grant = resolve_erased_selector(
-            relational,
-            &snapshot,
-            graph.layout(),
-            &runtime.installed_schema,
-            proposed.grant(),
-            runtime.runtime.authority_identity(),
-        )?;
-        Ok((target, grant))
-    })?;
-    if grant.entity_kind != installed.grant_kind {
-        return Err(projection_denial(installed.contract.name()));
-    }
-    let retained = WorthQueryRetainedCapabilityRequest::capture(
-        capability_identity,
-        access.principal_entity_id,
-        proposed.target(),
-        &target,
-    );
-    let observed = handle.with_runtime(|relational| {
-        observe_elevation_upper_bound(
-            access.graph_work.identity(),
-            relational,
-            snapshot,
-            runtime.authorization.bridge(),
-            installed,
-            &retained,
-            sample,
-            grant.entity_id,
-            None,
-        )
-    })?;
-    let (decision, observed_grant) = observed.into_parts();
-    if observed_grant != grant.entity_id {
-        return Err(projection_denial(installed.contract.name()));
-    }
-    Ok((
-        WorthQueryElevationUpperBound::capture(
-            capability_identity,
-            access.principal_entity_id,
-            proposed.target(),
-            &target,
-            grant.entity_id,
-        ),
-        WorthQueryRetainedCapabilitySupport::elevation_upper_bound(
-            decision,
-            Arc::clone(&installed.capability_authority_identity),
-            grant.entity_id,
-            retained,
-            sample.clone(),
-        ),
     ))
 }
 

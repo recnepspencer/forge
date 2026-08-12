@@ -1,5 +1,3 @@
-use worth_foundational::facade::ScalarAspectType;
-
 use super::ClosureIndex;
 use crate::application_schema::{
     ApplicationMutationPreconditionTarget, ApplicationOperationDecisionReadTarget,
@@ -7,37 +5,31 @@ use crate::application_schema::{
 };
 
 impl ClosureIndex<'_> {
-    pub(super) fn field_matches(
+    pub(super) fn external_effect_dependencies_exist(
         &self,
-        entity_name: &str,
-        aspect_name: &str,
-        field_name: &str,
-        expected_family: ScalarAspectType,
-        expected_value_type: &str,
-        expected_writable: bool,
-        equality_required: bool,
+        operation: &str,
+        effect: &str,
+        payload_type: &str,
     ) -> bool {
-        self.members.iter().any(|member| {
-            matches!(
-                member,
-                ApplicationSchemaMember::Field {
-                    entity,
-                    aspect,
-                    field,
-                    scalar_family,
-                    value_type,
-                    writable,
-                    equality_queryable,
-                    ..
-                } if entity == entity_name
-                    && aspect == aspect_name
-                    && field == field_name
-                    && *scalar_family == expected_family
-                    && value_type == expected_value_type
-                    && *writable == expected_writable
-                    && (!equality_required || *equality_queryable)
-            )
-        })
+        self.operations.contains(operation)
+            && self.members.iter().any(|member| {
+                matches!(
+                    member,
+                    ApplicationSchemaMember::Effect {
+                        effect: installed,
+                        payload_type: installed_payload,
+                    } if installed == effect && installed_payload == payload_type
+                )
+            })
+            && self.members.iter().any(|member| {
+                matches!(
+                    member,
+                    ApplicationSchemaMember::OperationProgram {
+                        operation: installed,
+                        target: ApplicationOperationProgramTarget::Emit { effect: emitted },
+                    } if installed == operation && emitted == effect
+                )
+            })
     }
 
     pub(super) fn program_target_exists(&self, target: &ApplicationOperationProgramTarget) -> bool {

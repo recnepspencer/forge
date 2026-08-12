@@ -11,6 +11,12 @@ pub(in crate::physical_runtime) struct RootCandidateSyncSchedulerAdmission {
     backend: IoSchedulerBackendCapabilityAdmission,
 }
 
+#[cfg(feature = "recovery-runtime-owner")]
+pub(in crate::physical_runtime) struct RootCandidateMaterializationSchedulerAdmission {
+    reservation: PhysicalInstanceForegroundReservation,
+    backend: IoSchedulerBackendCapabilityAdmission,
+}
+
 pub(in crate::physical_runtime) struct RootCatalogReplacementSchedulerAdmission {
     reservation: PhysicalInstanceForegroundReservation,
     backend: IoSchedulerBackendCapabilityAdmission,
@@ -22,6 +28,21 @@ pub(in crate::physical_runtime) struct RootNamespaceSyncSchedulerAdmission {
 }
 
 impl PhysicalSchedulerAdmissionOwner {
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(in crate::physical_runtime) fn root_candidate_materialization(
+        &self,
+        security: &IoSchedulerSecurityScopeAdmission,
+    ) -> Result<RootCandidateMaterializationSchedulerAdmission, RecordSchedulerReservationDenial>
+    {
+        let lane = ForegroundLaneDeclaration::root_candidate_materialization()
+            .expect("root candidate materialization is a Store-owned lane");
+        let reservation = self.reserve_root_lane(lane, &self.buffered_file, security)?;
+        Ok(RootCandidateMaterializationSchedulerAdmission {
+            reservation,
+            backend: self.buffered_file,
+        })
+    }
+
     pub(in crate::physical_runtime) fn root_candidate_sync(
         &self,
         security: &IoSchedulerSecurityScopeAdmission,
@@ -78,6 +99,18 @@ impl PhysicalSchedulerAdmissionOwner {
                 security,
             )
             .map_err(RecordSchedulerReservationDenial::Admission)
+    }
+}
+
+#[cfg(feature = "recovery-runtime-owner")]
+impl RootCandidateMaterializationSchedulerAdmission {
+    pub(in crate::physical_runtime) fn into_parts(
+        self,
+    ) -> (
+        PhysicalInstanceForegroundReservation,
+        IoSchedulerBackendCapabilityAdmission,
+    ) {
+        (self.reservation, self.backend)
     }
 }
 

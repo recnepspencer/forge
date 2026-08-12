@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 
 use worth_foundational::facade::{AspectFieldLocator, AspectValue};
 use worth_query_installation::facade::{
-    ApplicationEntityRef, ApplicationFieldCurrency, ApplicationFieldRef, ApplicationRelationRef,
+    ApplicationEntityRef, ApplicationFieldRef, ApplicationFieldUnit, ApplicationRelationRef,
     ApplicationSchema, EqualityPosture, TypedApplicationValue, WritePosture,
 };
 use worth_relational::facade::identity::KindId;
@@ -31,16 +31,16 @@ impl<Schema, Entity> WorthQueryApplicationEntitySeed<Schema, Entity> {
         }
     }
 
-    pub fn field<Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn field<Aspect, Field, Value, Write, Equality, Unit>(
         mut self,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
         value: Value,
     ) -> Self
     where
         Value: TypedApplicationValue,
         Write: WritePosture,
         Equality: EqualityPosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.fields.push((
             field.aspect(),

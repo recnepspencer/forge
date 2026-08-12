@@ -1,16 +1,31 @@
 import { freezeObject } from "../graph_support.js";
 import { PRODUCT_SIGNAL_KIND } from "../symbols.js";
-import { createWorkerFirstSyncCallbackRecipeHandle } from "./worker_first_async_recipe.js";
+import {
+  createWorkerFirstSyncCallbackRecipeHandle,
+  createWorkerFirstSyncDeclarativeRecipeHandle,
+} from "./worker_first_async_recipe.js";
 import {
   denyWorkerFirstMutationDuringCallbackAuthoring,
   readWorkerFirstTrackedSignal,
 } from "./worker_first_callback_tracking.js";
 import { brandWorkerFirstRootHandle } from "./worker_first_handle_ownership.js";
+import { createWorkerFirstSyncInputHandle } from "./worker_first_sync_authoring.js";
 
+/**
+ * Explicit `signals.spec.*` lane for worker-first.
+ *
+ * Empty roots (no importGraph): author standalone signals — same DX as
+ * mainThreadCompatibility `spec.input(id, initial)` / declarative recipes.
+ * Active imported graph: bind/verify against imported declarations for
+ * input/computed/output; callback forms still author.
+ */
 export function createWorkerFirstExplicitSpecNamespace(rootSession, path = []) {
   return freezeObject({
     input(localId, initial, options) {
       const id = canonicalSpecId(path, localId);
+      if (rootSession.peekActiveImportContext() === null) {
+        return createWorkerFirstSyncInputHandle(rootSession, id, initial, options);
+      }
       void initial;
       void options;
       requireWorkerFirstInputAvailability(rootSession, id);
@@ -18,12 +33,18 @@ export function createWorkerFirstExplicitSpecNamespace(rootSession, path = []) {
     },
     computed(localId, spec, options) {
       const id = canonicalSpecId(path, localId);
+      if (rootSession.peekActiveImportContext() === null) {
+        return createWorkerFirstSyncDeclarativeRecipeHandle(
+          rootSession,
+          "computed",
+          id,
+          spec,
+          options,
+          "signals.spec.computed",
+        );
+      }
       requireWorkerFirstRecipeDeclaration(rootSession, id, "computed", spec, options);
-      return createWorkerFirstSpecReadableHandle(
-        rootSession,
-        id,
-        "computed",
-      );
+      return createWorkerFirstSpecReadableHandle(rootSession, id, "computed");
     },
     computedCallback(localId, callback, options) {
       const id = canonicalSpecId(path, localId);
@@ -37,12 +58,18 @@ export function createWorkerFirstExplicitSpecNamespace(rootSession, path = []) {
     },
     output(localId, spec, options) {
       const id = canonicalSpecId(path, localId);
+      if (rootSession.peekActiveImportContext() === null) {
+        return createWorkerFirstSyncDeclarativeRecipeHandle(
+          rootSession,
+          "output",
+          id,
+          spec,
+          options,
+          "signals.spec.output",
+        );
+      }
       requireWorkerFirstRecipeDeclaration(rootSession, id, "output", spec, options);
-      return createWorkerFirstSpecReadableHandle(
-        rootSession,
-        id,
-        "output",
-      );
+      return createWorkerFirstSpecReadableHandle(rootSession, id, "output");
     },
     outputCallback(localId, callback, options) {
       const id = canonicalSpecId(path, localId);

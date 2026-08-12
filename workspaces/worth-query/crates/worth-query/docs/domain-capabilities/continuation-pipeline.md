@@ -282,9 +282,9 @@ What this example is showing:
   continuation-ready input before preparation begins.
 - [Ordinary Outcomes](./ordinary-outcomes.md) provide the compact public result
   lane for both preparation and execution.
-- [Recovery Boundary](./recovery-boundary.md) is the next-step surface when
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md) is the next-step surface when
   preparation or execution stopped and your app needs a typed repair answer.
-- [Aspect-Native Recovery](./recovery/aspect-native-recovery.md) explains how
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md) explains how
   continuation readmission posture shows up on that recovery lane.
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
   remains the authority for which bridge continuation family and truth context
@@ -440,8 +440,7 @@ mutation path.
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Async Resources And Result State](../capabilities/async-resources-and-result-state.md)
-- [Recovery Boundary](./recovery-boundary.md)
-- [Recovery Overview](./recovery/README.md)
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Domain Capabilities](./README.md)

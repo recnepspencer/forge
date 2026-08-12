@@ -56,7 +56,7 @@ fn bounded_send_projection_rejects_accounting_revision_drift() {
         });
     assert_eq!(
         completed.output().as_ref().err(),
-        Some(&BankProjectionDenial::AccountingRevisionMismatch(source))
+        Some(&BankProjectionDenial::AccountingRevisionMismatch)
     );
 }
 
@@ -201,7 +201,7 @@ fn bounded_send_projection_rejects_posting_with_two_accounts() {
     assert_eq!(
         completed.output().as_ref().err(),
         Some(&BankProjectionDenial::Aggregate(
-            worth_query_host::facade::primary_graph::WorthQueryInvariantAggregateDenialKind::AmbiguousSourceRelation
+            super::BankInvariantAggregateDenialKind::AmbiguousSourceRelation
         ))
     );
 }

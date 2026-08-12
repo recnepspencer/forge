@@ -23,7 +23,7 @@ pub struct Normalization;
 impl ProofMarker for Normalization {}
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct StructuralProofAuthority(());
+pub enum StructuralProofAuthority {}
 
 impl AuthorityMarker for StructuralProofAuthority {}
 

@@ -94,7 +94,16 @@ impl WorthQueryInvariantStateLoadAdmission {
         let mut loaded = loaded_fact_locators.into_iter().collect::<Vec<_>>();
         loaded.sort();
         loaded.dedup();
-        if loaded.is_empty() || counters.loaded_facts() != loaded.len() {
+        // Emit-only / outbox-only commits (R8.55) admit an empty load when the
+        // lowered program proposed no graph mutation facts. A provider that
+        // returns empty against a non-empty plan still denies as EmptyStateLoad.
+        if loaded.is_empty() {
+            if !self.expected_locators.is_empty() || counters.loaded_facts() != 0 {
+                return Err(failure(
+                    WorthQueryInvariantExecutionDenialKind::EmptyStateLoad,
+                ));
+            }
+        } else if counters.loaded_facts() != loaded.len() {
             return Err(failure(
                 WorthQueryInvariantExecutionDenialKind::EmptyStateLoad,
             ));

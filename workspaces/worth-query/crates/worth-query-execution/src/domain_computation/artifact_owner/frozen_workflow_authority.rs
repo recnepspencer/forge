@@ -41,10 +41,6 @@ impl WorthQueryFrozenWorkflowArtifactAuthority {
         self.authority().registry()
     }
 
-    pub(crate) fn run_identity(&self) -> &str {
-        self.authority().run_identity()
-    }
-
     pub(crate) fn evidence(&self) -> WorthQueryWorkflowArtifactRegistryEvidence {
         self.authority().registry().evidence()
     }

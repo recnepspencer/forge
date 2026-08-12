@@ -1,6 +1,9 @@
+#[cfg(test)]
 use super::{markers::ProofMarker, sets::AuthorityProves, sets::Proof};
 
-#[allow(dead_code)]
+/// Test-only convenience over [`Proof::mint`]. Production proof creation
+/// goes through a checked constructor that validates before minting.
+#[cfg(test)]
 pub(crate) fn mint_proof<P, Auth>() -> Proof<P, Auth>
 where
     P: ProofMarker,

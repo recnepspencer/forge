@@ -1,5 +1,5 @@
 use crate::application_schema::{
-    ApplicationEffectPayload, ApplicationEffectRef, ApplicationFieldCurrency, EqualityPredicate,
+    ApplicationEffectPayload, ApplicationEffectRef, ApplicationFieldUnit, EqualityPredicate,
     ReadOnly, TypedApplicationValue,
 };
 
@@ -119,11 +119,11 @@ impl ApplicationQueryLiveCauseContract {
         ScopeSlot,
         ScopeAspect,
         ScopeField,
-        ScopeCurrency,
+        ScopeUnit,
         TargetSlot,
         TargetAspect,
         TargetField,
-        TargetCurrency,
+        TargetUnit,
     >(
         scope_identity: ApplicationQueryResultFieldRef<
             Query,
@@ -135,7 +135,7 @@ impl ApplicationQueryLiveCauseContract {
             Binding::ScopeIdentity,
             ReadOnly,
             EqualityPredicate,
-            ScopeCurrency,
+            ScopeUnit,
         >,
         target_identity: ApplicationQueryResultFieldRef<
             Query,
@@ -147,14 +147,14 @@ impl ApplicationQueryLiveCauseContract {
             Binding::TargetIdentity,
             ReadOnly,
             EqualityPredicate,
-            TargetCurrency,
+            TargetUnit,
         >,
         resources: ApplicationQueryLiveResourceContract,
     ) -> Self
     where
         Binding: ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>,
-        ScopeCurrency: ApplicationFieldCurrency,
-        TargetCurrency: ApplicationFieldCurrency,
+        ScopeUnit: ApplicationFieldUnit,
+        TargetUnit: ApplicationFieldUnit,
     {
         Self {
             binding_type: std::any::type_name::<Binding>(),

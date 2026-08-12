@@ -195,17 +195,20 @@ pub(super) fn definition_with_scope_and_sequence_slot<Scope, SequenceSlot: 'stat
         nested,
     )
     .build();
-    ApplicationQueryDefinitionBuilder::public(
-        ApplicationQueryReference::from_schema_identifier("account_activity"),
-        Account::reference(),
-        scope,
-        shape,
-        ApplicationQueryCardinality::Many,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 2),
-        ApplicationQueryDisclosureContract::installed_policy("account-holder"),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot().with_historical(),
-    )
+    ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::from_schema_identifier(
+        "account_activity",
+    ))
+    .root(Account::reference())
+    .scope(scope)
+    .result_shape(shape)
+    .cardinality(ApplicationQueryCardinality::Many)
+    .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 2))
+    .disclosure(ApplicationQueryDisclosureContract::installed_policy(
+        "account-holder",
+    ))
+    .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+    .lanes(ApplicationQueryLaneEligibility::one_shot().with_historical())
+    .public()
     .parameter(account_parameter())
     .where_equal(AccountId::reference(), account_parameter())
     .order_by(sequence, direction)

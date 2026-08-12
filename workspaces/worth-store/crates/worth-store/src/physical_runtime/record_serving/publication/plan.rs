@@ -23,6 +23,10 @@ pub(in crate::physical_runtime::record_serving) struct PublicationPlan {
     pub(in crate::physical_runtime::record_serving) candidate: RecordArtifactFile,
     pub(in crate::physical_runtime::record_serving) manifest: DurablePhysicalRootManifest,
     pub(in crate::physical_runtime::record_serving) root_bytes: Vec<u8>,
+    pub(in crate::physical_runtime::record_serving) previous_selector_candidate: RecordArtifactFile,
+    pub(in crate::physical_runtime::record_serving) previous_selector_bytes: Vec<u8>,
+    pub(in crate::physical_runtime::record_serving) current_selector_candidate: RecordArtifactFile,
+    pub(in crate::physical_runtime::record_serving) current_selector_bytes: Vec<u8>,
     pub(in crate::physical_runtime::record_serving) catalog_bytes: Vec<u8>,
     pub(in crate::physical_runtime::record_serving) observation: PublicationObservation,
 }
@@ -45,6 +49,18 @@ impl PublicationPlan {
             CandidateFrameRole::RootManifest,
             self.root,
             self.root_bytes.len() as u64,
+        )?;
+        push_candidate_declaration(
+            &mut declarations,
+            CandidateFrameRole::RootSelectorCandidate,
+            self.previous_selector_candidate,
+            self.previous_selector_bytes.len() as u64,
+        )?;
+        push_candidate_declaration(
+            &mut declarations,
+            CandidateFrameRole::RootSelectorCandidate,
+            self.current_selector_candidate,
+            self.current_selector_bytes.len() as u64,
         )?;
         push_candidate_declaration(
             &mut declarations,

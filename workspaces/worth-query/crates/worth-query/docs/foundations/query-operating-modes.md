@@ -9,7 +9,8 @@ Use this doc when you need to know whether a capability assumes process-local ru
 ## Why You Use It
 
 - choose APIs that match what is actually admitted today
-- avoid building restart/recovery flows on debt labeled `Deferred` or `BlockedOnWorthStore`
+- distinguish supported runtime-local recovery from restart-durable recovery
+  that remains `Deferred` or `BlockedOnWorthStore`
 - read support-matrix rows with the right mental model (`Verified` vs debt)
 - explain why saved-query persistence and query-context reload behave as ephemeral/runtime-owned
 
@@ -22,6 +23,11 @@ Three layers stack:
 3. **Lane-specific profiles** — saved-query (`runtime_backed_saved_query_support_profile`), query-context, subscription matrix rows.
 
 **Runtime-backed** means admission, execution, and evidence are coherent inside the current workspace/runtime instance. **Store-backed** means reload, cross-process continuity, or worth-store durability—largely **not** verified on the public path today.
+
+Application-aftermath recovery is runtime-backed today. Its exact handle is
+process-local and receipt-bound. Store-backed handle reload and cross-process
+recovery authority remain deferred; an opaque wire identity is not a live
+handle.
 
 ## Main Entry Points
 
@@ -57,11 +63,16 @@ Host app
 - [Subscription selection and diagnostics](../capabilities/subscription-selection-and-diagnostics.md) — durable replay deferred in subscription matrix
 - [Basis capability lifecycle](../capabilities/basis-capability-lifecycle.md) — basis envelopes: store-backed reload deferred
 
+- [Application aftermath, external effects, and recovery](../execution/application-aftermath-and-recovery.md) — runtime-local recovery and its durable boundary
+
 ## Good to Know
 
 - API names containing “saved”, “context”, or “subscription” do **not** guarantee worth-store durability.
 - Certification and harness tests often run runtime-backed; do not generalize to multi-process deployment without checking matrix rows.
 - `DurableArtifacts` at the capability-family level is deferred—treat durable artifact stories as roadmap debt unless a lane-specific profile says `Verified`.
+
+- A supported lost-response or safe-retry journey inside one runtime does not
+  imply restart durability.
 
 ## Anti-Patterns
 
@@ -76,13 +87,17 @@ From application/runtime/saved-query/query-context support profiles (representat
 | Surface / family | Status |
 |------------------|--------|
 | Runtime-backed execution, live, inspection | **Verified** (default honest path) |
+| Runtime-local receipt-bound application-aftermath recovery | **Verified** |
+| Store-backed recovery-handle reload | **Deferred** |
 | `WorthQueryCapabilityFamily::DurableArtifacts` | **Deferred** |
 | `StoreBackedExecution` (runtime public matrix) | **Deferred** / store-blocked neighbors |
 | Saved query `EphemeralProcessOwned` persistence | **Debt** |
 | Query-context store reload | **Deferred** / blocked per `query_context/support.rs` |
 | Durable subscription replay metadata | **Deferred** (see subscription matrix) |
 
-Temporal/time-aware operating extensions are **not** a separate mode doc—see [support matrix](support-matrix-and-admission.md) until 9.4+ lanes ship.
+Temporal/time-aware runtime semantics are already carried by ordinary live
+handles. Their separate durable/store-backed neighbors remain governed by the
+[support matrix](support-matrix-and-admission.md).
 
 ## Related Docs
 

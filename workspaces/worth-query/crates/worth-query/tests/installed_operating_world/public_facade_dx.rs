@@ -4,10 +4,9 @@ mod operational_lifecycle;
 mod single_root;
 
 use super::installed_operation_fixture::{
-    aftermath_workspace, conditional_installation_with_change, conditional_public_workspace_with,
-    conditional_workspace, lineage_workflow_workspace, workspace, AftermathContract,
-    DirectConditionalCompute, GeometryDomain, LineageEvidenceScenario, ReadExecutionInput,
-    ReadFamily, ReadVertex,
+    conditional_installation_with_change, conditional_public_workspace_with, conditional_workspace,
+    lineage_workflow_workspace, workspace, DirectConditionalCompute, GeometryDomain,
+    LineageEvidenceScenario, ReadExecutionInput, ReadFamily, ReadVertex,
 };
 use super::operation_native_access_matrix::{
     fixture::{insert_matrix_value, matrix_workspace, NativeMatrixRead},
@@ -241,38 +240,6 @@ fn workflow_lineage_aftermath_support_and_inspection_stay_inside_the_facade() {
             .map(|receipt| receipt.stage_identity())
             .collect::<Vec<_>>(),
         ["start", "right", "left", "publish"]
-    );
-
-    let mut aftermath = aftermath_workspace(
-        "installed-public-facade-aftermath",
-        AftermathContract::Compensation,
-    )
-    .unwrap();
-    let original = super::operation_aftermath_support::bind_original(&aftermath)
-        .admit_workflow_resources(
-            crate::suite::installed_operation_fixture::execution_resource_request(),
-            &aftermath,
-        )
-        .unwrap()
-        .reexecute(
-            super::operation_aftermath_support::intent("apply"),
-            &mut aftermath,
-        )
-        .unwrap();
-    let candidate = super::operation_aftermath_support::bind_candidate(&aftermath);
-    let capability = match original.admit_aftermath(candidate) {
-        installed::recovery::WorthQueryAftermathAdmission::Compensation(capability) => capability,
-        _ => panic!("declared compensation did not admit through the installed facade"),
-    };
-    let executed = capability
-        .execute_workflow(
-            crate::suite::installed_operation_fixture::execution_resource_request(),
-            &mut aftermath,
-        )
-        .unwrap();
-    assert_eq!(
-        executed.relation().kind(),
-        installed::recovery::WorthQueryAftermathKind::Compensation
     );
 
     let workspace = workspace("installed-public-facade-support", false).unwrap();

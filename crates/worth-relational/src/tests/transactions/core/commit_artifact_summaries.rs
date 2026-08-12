@@ -33,15 +33,15 @@ fn commit_log_records_structural_summary_and_phase_progress() {
         publication_summary.final_snapshot_id,
         Some(outcome.final_snapshot_id())
     );
-    assert_eq!(outcome.outcome.history_summary(), Some(history_summary));
-    assert_eq!(outcome.outcome.change_summary(), Some(change_summary));
-    assert_eq!(outcome.outcome.aspect_summary(), Some(aspect_summary));
+    assert_eq!(outcome.outcome().history_summary(), Some(history_summary));
+    assert_eq!(outcome.outcome().change_summary(), Some(change_summary));
+    assert_eq!(outcome.outcome().aspect_summary(), Some(aspect_summary));
     assert_eq!(
-        outcome.outcome.patch_budget_summary(),
+        outcome.outcome().patch_budget_summary(),
         Some(patch_budget_summary)
     );
     assert_eq!(
-        outcome.outcome.publication_summary(),
+        outcome.outcome().publication_summary(),
         Some(publication_summary)
     );
     assert_eq!(history_summary.parent_count, outcome.commit.parents.len());
@@ -177,7 +177,7 @@ fn commit_returns_envelope_with_patch_diagnostics_invariants_and_complexity() {
     );
     assert!(result.complexity_delta().partitions_touched_by_commit >= 1);
     assert_eq!(
-        result.outcome.commit.commit_id,
+        result.outcome().commit.commit_id,
         result.envelope().commit.commit_id
     );
     assert_eq!(result.patch_position(), result.envelope().patch.position);

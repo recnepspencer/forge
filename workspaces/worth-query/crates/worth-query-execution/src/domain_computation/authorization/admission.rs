@@ -1,20 +1,14 @@
-use super::admitted_operation::{
-    WorthQueryAdmittedApplicationOperationInput, WorthQueryOperationAdmissionIdentity,
-    WorthQueryOperationAuthorizationBasis,
-};
 use super::bridge_observation::lower_bridge_observation;
-use super::graph_work_session::start_operation_graph_work;
 use super::{
     WorthQueryAdmittedApplicationOperation, WorthQueryAuthorizationDecisionFact,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
     WorthQueryPrincipalCurrentnessDependency, WorthQueryRetainedAuthorizationDecisionFacts,
 };
 use crate::domain_computation::primary_graph::{
-    bind_mutation_preconditions, validate_entity_freshness_at_snapshot,
     validate_freshness_at_snapshot, WorthQueryApplicationEntityIdentity,
     WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryPrincipalResolutionMode,
 };
-use crate::domain_computation::provider_session::WorthQueryGraphWorkAccessContextAffinity;
 use worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope;
 use worth_query_declaration::facade::application_schema::TypedMutationPreconditions;
 use worth_query_installation::facade::{
@@ -43,93 +37,23 @@ where
         WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
         WorthQueryOperationAuthorizationDenial,
     > {
-        admit_request(request, operation.operation())?;
-        if operation.contracts().authorization().requires_capability() {
-            return Err(denial(
-                WorthQueryOperationAuthorizationDenialKind::CapabilityRequired,
-                operation.operation(),
-            ));
-        }
-        validate_static_authority(self, principal, scope_identity, operation)?;
-        let graph = self.runtime.primary_graph().ok_or_else(|| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
-                operation.operation(),
-            )
-        })?;
-        let preconditions = bind_mutation_preconditions(
-            preconditions,
-            operation.contracts(),
-            scope_identity.entity_name(),
-            scope_identity.entity_id(),
-            graph.layout(),
-        )
-        .map_err(|()| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::MutationPreconditionRejected,
-                operation.operation(),
-            )
-        })?;
-        let admission_identity = WorthQueryOperationAdmissionIdentity::mint().ok_or_else(|| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::AdmissionIdentityExhausted,
-                operation.operation(),
-            )
-        })?;
-        let resource_binding_identity = admission_identity.resource_binding_identity();
-        let mut graph_work = start_operation_graph_work(
+        super::operation_progression::progress_conventional_operation(
             self,
-            operation,
-            &resource_binding_identity,
-            principal.principal_entity_id(),
-            WorthQueryGraphWorkAccessContextAffinity::entity(scope_identity.entity_id()),
-        )?;
-        let authorization = self.observe_operation_authorization(
             principal,
             scope_identity,
             operation,
-            &graph_work,
-        )?;
-        admit_request(request, operation.operation())?;
-        if principal.is_expired() {
-            return Err(denial(
-                WorthQueryOperationAuthorizationDenialKind::ExpiredAuthentication,
-                principal.binding(),
-            ));
-        }
-        graph_work.record_decision_facts(authorization.exact_fact_count());
-        Ok(WorthQueryAdmittedApplicationOperation::mint(
-            WorthQueryAdmittedApplicationOperationInput {
-                admission_identity,
-                runtime_authority: self.runtime.authority_identity(),
-                binding_identity: operation.binding_identity().clone(),
-                operation: operation.operation().to_string(),
-                operation_authority_identity: operation.authority_identity().to_string(),
-                operation_authority_identity_bytes: operation.authority_identity_bytes(),
-                operation_scope_binding: operation_scope_binding(
-                    self,
-                    principal,
-                    scope_identity,
-                    operation,
-                ),
-                scope_entity_id: scope_identity.entity_id(),
-                scope_entity_kind: scope_identity.entity_kind(),
-                scope_entity_name: scope_identity.entity_name().to_string(),
-                authentication_valid_until: principal.valid_until(),
-                request_scope: request.clone(),
-                contracts: operation.contracts().clone(),
-                mutation_preconditions: preconditions,
-                authorization_admission_work:
-                    worth_query_installation::facade::WorthQueryCanonicalWorkEvidence::zero(),
-                authorization,
-                governed_input_identity: None,
-                authorization_basis: WorthQueryOperationAuthorizationBasis::Conventional,
-                graph_work,
-            },
-        ))
+            preconditions,
+            request,
+        )
     }
 
-    fn observe_operation_authorization<Principal, PrincipalIdentity, Operation, Input, Scope>(
+    pub(in crate::domain_computation::authorization) fn observe_operation_authorization<
+        Principal,
+        PrincipalIdentity,
+        Operation,
+        Input,
+        Scope,
+    >(
         &self,
         principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
         scope_identity: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
@@ -171,6 +95,7 @@ where
             .mutation_handle()
             .expect("a mutation session owns its graph handle")
             .clone();
+        let entity_resolution = graph.retain_entity_resolution_context();
         let result = handle.with_runtime_mut(|runtime| {
             validate_freshness_at_snapshot(
                 runtime,
@@ -185,14 +110,19 @@ where
                     principal.binding(),
                 )
             })?;
-            validate_entity_freshness_at_snapshot(runtime, &snapshot, scope_identity).map_err(
-                |_| {
+            entity_resolution
+                .at_snapshot(
+                    runtime,
+                    &snapshot,
+                    WorthQueryPrincipalResolutionMode::Ordinary,
+                )
+                .and_then(|truth| truth.validate_entity_freshness(scope_identity))
+                .map_err(|_| {
                     denial(
                         WorthQueryOperationAuthorizationDenialKind::StaleScope,
                         scope_identity.entity_name(),
                     )
-                },
-            )?;
+                })?;
             self.observe_authorization_requirements(
                 session_identity,
                 runtime,

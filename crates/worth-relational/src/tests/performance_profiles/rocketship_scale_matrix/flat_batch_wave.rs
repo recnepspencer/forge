@@ -88,7 +88,7 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_flat_batch_wave(
                     .expect("rocketship flat entity batch wave commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();
-            let phase_timing = update.execution.phase_timing.clone();
+            let phase_timing = update.execution().phase_timing.clone();
 
             let snapshot = runtime.visibility_authority().snapshot();
             let explicit_targets = batch_targets

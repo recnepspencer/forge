@@ -96,25 +96,25 @@ fn application_query_with_relation(
         ),
     }
     .build();
-    let definition = ApplicationQueryDefinitionBuilder::public(
-        ApplicationQueryReference::<
+    let definition =
+        ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::<
             QuerySchema,
             QueryMarker,
             QueryParameters,
             QueryResult,
             QueryEntity,
-        >::from_schema_identifier("query"),
-        entity,
-        entity,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 0),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .build()
-    .unwrap();
+        >::from_schema_identifier("query"))
+        .root(entity)
+        .scope(entity)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 0))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .build()
+        .unwrap();
     ApplicationSchemaMember::ApplicationQuery {
         definition: definition.into_erased(),
     }

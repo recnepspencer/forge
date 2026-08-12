@@ -53,7 +53,7 @@ fn every_scope_and_composition_axis_changes_structured_and_digest_identity() {
         Axis::Relation,
         Axis::Field,
         Axis::Purpose,
-        Axis::Amount,
+        Axis::Magnitude,
         Axis::Cardinality,
         Axis::Workflow,
         Axis::ResourceWorkflow,

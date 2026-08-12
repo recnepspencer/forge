@@ -1,25 +1,36 @@
 use super::{
-    WorthQueryAdmittedProviderExecutionPlan, WorthQueryProviderExecutionPlanContract,
-    WorthQueryProviderExecutionPlanView, WorthQueryProviderRunBorrow,
-    WorthQueryProviderSessionDenialKind, WorthQueryProviderSessionFailure,
-    WorthQueryProviderSessionLease, WorthQueryProviderSessionProtocolCounters,
+    WorthQueryAdmittedProviderExecutionPlan, WorthQueryProviderExecutionPlanView,
+    WorthQueryProviderSessionAffinity, WorthQueryProviderSessionDenialKind,
+    WorthQueryProviderSessionFailure, WorthQueryProviderSessionProtocolCounters,
     WorthQueryProviderSessionProtocolStage, WorthQueryProviderSessionRecoveryPosture,
     WorthQueryProviderSessionTokenAdmission,
 };
 
+mod prepared;
+
+pub use prepared::{
+    WorthQueryPreparedProviderSession, WorthQuerySessionBoundReadsAndEffects,
+    WorthQuerySessionEffectAuthority, WorthQuerySessionPrepareOutcome,
+    WorthQuerySessionReadAuthority,
+};
+
+/// Readmitted live provider session. Only this owner can mint the phase; its
+/// child transition owner may consume it, but protocol siblings cannot relabel
+/// another affinity/counter pair as a readmitted session.
 pub struct WorthQueryProviderPlanReadmission<'run> {
-    pub(super) run: WorthQueryProviderRunBorrow<'run>,
-    pub(super) contract: WorthQueryProviderExecutionPlanContract,
-    pub(super) session: WorthQueryProviderSessionLease,
-    pub(super) counters: WorthQueryProviderSessionProtocolCounters,
+    affinity: WorthQueryProviderSessionAffinity<'run>,
+    counters: WorthQueryProviderSessionProtocolCounters,
 }
 
 impl std::fmt::Debug for WorthQueryProviderPlanReadmission<'_> {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("WorthQueryProviderPlanReadmission")
-            .field("plan_identity", &self.contract.identity())
-            .field("token_identity", &self.session.token().identity())
+            .field("plan_identity", &self.affinity.plan().identity())
+            .field(
+                "token_identity",
+                &self.affinity.session().token().identity(),
+            )
             .finish_non_exhaustive()
     }
 }
@@ -67,9 +78,12 @@ impl<'run> WorthQueryAdmittedProviderExecutionPlan<'run> {
         }
         self.counters.minted_token();
         Ok(WorthQueryProviderPlanReadmission {
-            run: self.run,
-            contract: self.contract,
-            session: WorthQueryProviderSessionLease::new(self.provider, token),
+            affinity: WorthQueryProviderSessionAffinity::mint(
+                self.run,
+                self.contract,
+                self.provider,
+                token,
+            ),
             counters: self.counters,
         })
     }
@@ -77,15 +91,15 @@ impl<'run> WorthQueryAdmittedProviderExecutionPlan<'run> {
 
 impl WorthQueryProviderPlanReadmission<'_> {
     pub fn plan_identity(&self) -> &str {
-        self.contract.identity()
+        self.affinity.plan().identity()
     }
 
     pub fn token_identity(&self) -> &str {
-        self.session.token().identity()
+        self.affinity.session().token().identity()
     }
 
     pub fn token_generation(&self) -> u64 {
-        self.session.token().generation()
+        self.affinity.session().token().generation()
     }
 
     pub fn counters(&self) -> WorthQueryProviderSessionProtocolCounters {

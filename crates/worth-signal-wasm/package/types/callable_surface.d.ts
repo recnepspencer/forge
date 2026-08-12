@@ -856,6 +856,14 @@ export interface CallableSignals<TPersistence = SignalValue> {
   batch(callback: (tx: CallableSignalsTransaction) => void): RunSummary | Promise<RunSummary>;
   transactionAsync(callback: (tx: AsyncCallableSignalsTransaction) => void): Promise<RunSummary>;
   batchAsync(callback: (tx: AsyncCallableSignalsTransaction) => void): Promise<RunSummary>;
+  /**
+   * Worker-first: drain pending authored publications and mutations.
+   * Await before tip-honest handoffs (submit, write, worker proof).
+   * Not required for React paint — host tip notify is the paint path.
+   * Line `awaitSettlement({ drainAuthoredWork: true })` can opt into this drain
+   * after tip status settles; default awaitSettlement does not.
+   */
+  settleAuthoredWork(): Promise<void>;
   watch(target: CallableSignalTarget, callback: (notice: WebObservationNotice) => void): DisposableHandle;
   effect(target: CallableSignalTarget, callback: () => void): DisposableHandle;
   nuke(handle: DisposableHandle): boolean;

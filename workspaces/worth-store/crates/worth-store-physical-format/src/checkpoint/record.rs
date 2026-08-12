@@ -23,6 +23,7 @@ pub enum CheckpointStreamDecodeDenial {
     InvalidIdentity,
     InvalidWalRange,
     InvalidCapturePosture(u8),
+    InvalidSecurityBinding,
     InvalidArtifactKind(u8),
     InvalidCoordinate,
     InvalidBindingCompactionHeader,

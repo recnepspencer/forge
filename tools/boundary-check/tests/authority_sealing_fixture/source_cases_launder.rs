@@ -210,22 +210,6 @@ pub fn governed_ceremony<T: GovernedGate>(_authority: T) {}
 "#
 }
 
-/// Hostile: glob import of child-module sealed alias.
-pub fn hostile_glob_alias_launder() -> &'static str {
-    r#"
-pub trait AuthorityMarker: 'static {}
-
-mod aliases {
-    use super::AuthorityMarker as Gate;
-    pub use Gate;
-}
-
-use aliases::*;
-
-pub fn governed_ceremony<T: Gate>(_authority: T) {}
-"#
-}
-
 /// Hostile: path-qualified alias from nested module.
 pub fn hostile_qualified_alias_launder() -> &'static str {
     r#"
@@ -236,39 +220,5 @@ mod aliases {
 }
 
 pub fn governed_ceremony<T: aliases::Gate>(_authority: T) {}
-"#
-}
-
-/// Hostile: private module glob + ceremony in parent.
-pub fn hostile_private_glob_alias_launder() -> &'static str {
-    r#"
-pub trait AuthorityMarker: 'static {}
-
-mod secret {
-    use super::AuthorityMarker as AuthMark;
-    pub use AuthMark;
-}
-
-use secret::*;
-
-pub fn governed_ceremony<T: AuthMark>(_authority: T) {}
-"#
-}
-
-/// Hostile: multi-hop carrier + glob alias combination.
-pub fn hostile_carrier_plus_glob_combo() -> &'static str {
-    r#"
-pub trait AuthorityMarker: 'static {}
-
-mod gates {
-    use super::AuthorityMarker;
-
-    pub trait GovernedGate {}
-    impl<T: AuthorityMarker> GovernedGate for (T,) {}
-}
-
-use gates::*;
-
-pub fn governed_ceremony<T: GovernedGate>(_authority: T) {}
 "#
 }

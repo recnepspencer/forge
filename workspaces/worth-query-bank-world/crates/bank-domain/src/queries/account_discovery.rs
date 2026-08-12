@@ -6,7 +6,7 @@ use worth_query_decl::facade::{
         ApplicationQueryOrderingDirection, ApplicationQueryResultFieldRef,
         ApplicationQueryResultShapeBuilder, ApplicationQueryRootPath,
     },
-    application_schema::{EqualityPredicate, NoApplicationCurrency, ReadOnly},
+    application_schema::{EqualityPredicate, NoApplicationUnit, ReadOnly},
     worth_query_application_query,
 };
 use worth_query_host::facade::primary_graph::{
@@ -53,34 +53,33 @@ pub fn account_discovery_definition() -> ApplicationQueryDefinition<
     let shape = ApplicationQueryResultShapeBuilder::new(Account::reference())
         .field(identity)
         .build();
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        AccountDiscoveryQuery::reference(),
-        Account::reference(),
-        Principal::reference(),
-        shape,
-        ApplicationQueryCardinality::Many,
-        ApplicationQueryDependencyCeiling::bounded(2, 5, 1),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        DiscoverOwnAccounts::reference(),
-    )
-    .root_path(
-        ApplicationQueryRootPath::from(Principal::reference()).forward(PersonalOwner::reference()),
-    )
-    .root_path(
-        ApplicationQueryRootPath::from(Principal::reference())
-            .forward(AccountAuthorizedUser::reference())
-            .forward(AuthorizationAccount::reference()),
-    )
-    .root_path(
-        ApplicationQueryRootPath::from(Principal::reference())
-            .reverse(BusinessOwner::reference())
-            .forward(BusinessAccount::reference()),
-    )
-    .order_by(identity, ApplicationQueryOrderingDirection::Ascending)
-    .build()
-    .expect("bank account discovery query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(AccountDiscoveryQuery::reference())
+        .root(Account::reference())
+        .scope(Principal::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::Many)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(2, 5, 1))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(DiscoverOwnAccounts::reference())
+        .root_path(
+            ApplicationQueryRootPath::from(Principal::reference())
+                .forward(PersonalOwner::reference()),
+        )
+        .root_path(
+            ApplicationQueryRootPath::from(Principal::reference())
+                .forward(AccountAuthorizedUser::reference())
+                .forward(AuthorizationAccount::reference()),
+        )
+        .root_path(
+            ApplicationQueryRootPath::from(Principal::reference())
+                .reverse(BusinessOwner::reference())
+                .forward(BusinessAccount::reference()),
+        )
+        .order_by(identity, ApplicationQueryOrderingDirection::Ascending)
+        .build()
+        .expect("bank account discovery query is statically canonical")
 }
 
 impl WorthQueryApplicationProjection<BankSchema, AccountDiscoveryQuery> for VisibleAccount {
@@ -101,7 +100,7 @@ fn account_identity() -> ApplicationQueryResultFieldRef<
     AccountId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("account", AccountIdentity::reference())
 }

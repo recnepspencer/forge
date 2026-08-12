@@ -222,6 +222,12 @@ pub use crate::boundary_evidence::{
     FoundationalMaterializedBoundaryEvidenceAttachmentBundle,
     SupportBasisBoundaryEvidenceAttachmentBundle,
 };
+pub use crate::boundary_protocol::{
+    BoundaryProtocolCompatibilityWindow, BoundaryProtocolCompatibilityWindowDenial,
+    BoundaryProtocolIdentity, BoundaryProtocolIdentityDenial, BoundaryProtocolUnsupportedVersion,
+    BoundaryProtocolUnsupportedVersionPosture, BoundaryProtocolVersion,
+    BoundaryProtocolVersionDenial,
+};
 pub use crate::canonicalization::{
     admit_canonical_bundle_digest_derivation, admit_canonical_bundle_digest_derivation_with_budget,
     admit_canonical_export_digest_derivation, admit_canonical_export_digest_derivation_with_budget,

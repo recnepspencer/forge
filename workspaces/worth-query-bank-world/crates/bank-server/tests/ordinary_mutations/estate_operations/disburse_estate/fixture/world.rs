@@ -22,6 +22,7 @@ use super::{
 pub(super) fn estate_world(
     include_drift_authority: bool,
     spec: DisbursementWorldSpec,
+    grant_valid_until_epoch: Option<u64>,
 ) -> BankEstateWorld {
     let world = BankEstateWorld::default()
         .with_branch(EstateBranch {
@@ -45,7 +46,7 @@ pub(super) fn estate_world(
     let world = install_beneficiary(world, spec.beneficiary);
     let world = install_executor(world, spec.executor);
     let world = install_actor_conflict(world, spec.actor_conflict);
-    let world = install_grant(world, spec.grant);
+    let world = install_grant(world, spec.grant, grant_valid_until_epoch);
     if !include_drift_authority {
         return world;
     }
@@ -56,11 +57,13 @@ pub(super) fn estate_world(
             ALTERNATE_ESTATE_GRANT,
             ALTERNATE_ESTATE,
             SOURCE,
+            None,
         ))
         .with_grant(disbursement_grant(
             ALTERNATE_SOURCE_GRANT,
             ESTATE,
             DESTINATION,
+            None,
         ))
 }
 
@@ -110,9 +113,18 @@ fn install_actor_conflict(world: BankEstateWorld, conflict: ActorConflict) -> Ba
     }
 }
 
-fn install_grant(world: BankEstateWorld, posture: GrantPosture) -> BankEstateWorld {
+fn install_grant(
+    world: BankEstateWorld,
+    posture: GrantPosture,
+    grant_valid_until_epoch: Option<u64>,
+) -> BankEstateWorld {
     match posture {
-        GrantPosture::Disbursement => world.with_grant(disbursement_grant(GRANT, ESTATE, SOURCE)),
+        GrantPosture::Disbursement => world.with_grant(disbursement_grant(
+            GRANT,
+            ESTATE,
+            SOURCE,
+            grant_valid_until_epoch,
+        )),
         GrantPosture::ApprovedEmergencyOnly => world
             .with_grant(emergency_grant())
             .with_review(MandatoryEstateReview {
@@ -168,7 +180,9 @@ fn disbursement_grant(
     id: bank_domain::estate::CapabilityGrantId,
     estate: bank_domain::estate::EstateCaseId,
     account: bank_domain::model::AccountId,
+    grant_valid_until_epoch: Option<u64>,
 ) -> EstateCapabilityGrant {
+    let valid_until = grant_valid_until_epoch.unwrap_or(u64::MAX);
     EstateCapabilityGrant {
         id,
         grantor: DECEASED,
@@ -184,7 +198,7 @@ fn disbursement_grant(
             amount_ceiling: Some(Money::from_minor(10_000).unwrap()),
             validity: CapabilityValidity::new(
                 EstateMoment::from_epoch_seconds(0),
-                EstateMoment::from_epoch_seconds(u64::MAX),
+                EstateMoment::from_epoch_seconds(valid_until),
             )
             .unwrap(),
             delegation: DelegationLimit::none(),
@@ -196,7 +210,7 @@ fn disbursement_grant(
 }
 
 fn emergency_grant() -> EstateCapabilityGrant {
-    let mut grant = disbursement_grant(EMERGENCY_GRANT, ESTATE, SOURCE);
+    let mut grant = disbursement_grant(EMERGENCY_GRANT, ESTATE, SOURCE, None);
     grant.scope.account = None;
     grant.scope.operation = EstateCapabilityOperation::ViewRestrictedEstate;
     grant.scope.purpose = EstateCapabilityPurpose::EmergencyProtection;

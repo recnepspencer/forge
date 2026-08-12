@@ -1,0 +1,23 @@
+error[E0451]: fields `identity`, `store`, `media_generation`, `session`, `policy_identity` and `candidates` of struct `StoreRecoveryCleanupPlan` are private
+  --> tests/ui/cleanup_freshness_rejects_caller_source_and_policy.rs:9:9
+   |
+ 8 |     let _forged = StoreRecoveryCleanupPlan {
+   |                   ------------------------ in this type
+ 9 |         identity: [1; 32],
+   |         ^^^^^^^^ private field
+10 |         store: fake(),
+   |         ^^^^^ private field
+11 |         media_generation: fake(),
+   |         ^^^^^^^^^^^^^^^^ private field
+12 |         session: [1; 16],
+   |         ^^^^^^^ private field
+13 |         policy_identity: [2; 32],
+   |         ^^^^^^^^^^^^^^^ private field
+14 |         candidates: fake(),
+   |         ^^^^^^^^^^ private field
+
+error: type `physical_runtime::recovery_freshness::cleanup::StoreRecoveryCleanupEligibility<'_>` is private
+  --> tests/ui/cleanup_freshness_rejects_caller_source_and_policy.rs:14:21
+   |
+14 |         candidates: fake(),
+   |                     ^^^^^^ private type

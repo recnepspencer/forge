@@ -12,9 +12,10 @@ use bank_domain::{
     reads::{EstateCapabilityContext, EstateGovernanceContext},
 };
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationOneShotResult,
-    WorthQueryApprovedElevation, WorthQueryRequestedElevation,
+    WorthQueryApplicationIdempotencyBinding, WorthQueryApprovedElevation,
+    WorthQueryRequestedElevation,
 };
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 
 use super::super::{
     fixture::{
@@ -135,15 +136,17 @@ pub(super) fn revoke_exact_support(world: &ActivityWorld, seed: u8) {
 }
 
 pub(super) fn assert_exact_revoked_alternate_active(world: &ActivityWorld) {
-    let result: WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext> =
-        world
-            .fixture
-            .runtime
-            .query(queries::estate_governance_context(ESTATE))
-            .as_principal(&world.requester)
-            .controls(controls(1))
-            .execute()
-            .expect("governance readback should expose exact support identity");
+    let result: WorthQueryPublishedApplicationResult<
+        EstateGovernanceQuery,
+        EstateGovernanceContext,
+    > = world
+        .fixture
+        .runtime
+        .query(queries::estate_governance_context(ESTATE))
+        .as_principal(&world.requester)
+        .controls(controls(1))
+        .execute()
+        .expect("governance readback should expose exact support identity");
     assert_eq!(
         capability(&result, GRANT).status(),
         CapabilityGrantStatus::Revoked
@@ -166,6 +169,7 @@ pub(super) fn assert_resources_released(world: &ActivityWorld) {
     let buffers = application.result_buffer_observer().observe();
     assert_eq!(buffers.active_buffers(), 0);
     assert_eq!(buffers.retained_bytes(), 0);
+    assert!(buffers.peak_observed_bytes() > 0);
 }
 
 pub(super) fn items(
@@ -177,7 +181,7 @@ pub(super) fn items(
 }
 
 fn capability(
-    result: &WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>,
+    result: &WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>,
     grant: CapabilityGrantId,
 ) -> &EstateCapabilityContext {
     result.rows()[0]

@@ -3,8 +3,8 @@ use super::{
     live_scope, resolved_account,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
-    WorthQueryApplicationCommitTerminalKind,
+    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
+    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitTerminalKind,
 };
 
 #[test]
@@ -108,6 +108,88 @@ fn index_publication_failure_recovers_the_committed_transaction_before_returning
     );
     assert!(receipt.changed_record_count() >= 2);
     let _committed = resolved_account(&world, "index-replacement", &live_scope());
+}
+
+#[test]
+fn causal_fact_survives_index_publication_failure_via_relational_owner_read() {
+    use crate::domain_computation::application_aftermath::{
+        WorthQueryAftermathCausalRole, WorthQueryPendingAftermathCausality,
+    };
+
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let program = admitted_program(&world, &principal, &account, &request, "causal-replacement");
+    let branch = crate::domain_computation::primary_graph::primary_relational_branch_id();
+    let parent = world
+        .application
+        .relational_branch_head(&branch)
+        .expect("fixture has an authoritative branch head");
+    let pending = WorthQueryPendingAftermathCausality::undo_of(parent.clone());
+
+    world.application.fail_next_index_publication();
+    let WorthQueryApplicationCommitOutcome::Committed(receipt) = world
+        .application
+        .compare_and_commit_application_with_aftermath(
+            program,
+            idempotency(29, 29),
+            pending.clone(),
+        )
+    else {
+        panic!("owner reconstruction must recover the causal commit");
+    };
+    let carried = receipt
+        .aftermath_causality()
+        .expect("committed receipt carries recovered causal fact");
+    assert_eq!(carried.role(), WorthQueryAftermathCausalRole::Undo);
+    assert_eq!(carried.parent(), &parent);
+    assert_eq!(carried.child(), receipt.commit_reference());
+
+    let reread = world
+        .application
+        .committed_aftermath_causality(&pending)
+        .expect("owner read succeeds")
+        .expect("co-committed fact remains visible");
+    assert_eq!(reread, *carried);
+}
+
+#[test]
+fn idempotency_without_the_claimed_causal_fact_is_not_equivalent() {
+    use crate::domain_computation::application_aftermath::WorthQueryPendingAftermathCausality;
+
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let first = admitted_program(&world, &principal, &account, &request, "plain-commit");
+    let retry = admitted_program(&world, &principal, &account, &request, "plain-commit");
+    let branch = crate::domain_computation::primary_graph::primary_relational_branch_id();
+    let parent = world
+        .application
+        .relational_branch_head(&branch)
+        .expect("fixture head");
+    assert!(matches!(
+        world
+            .application
+            .compare_and_commit_application(first, idempotency(30, 30)),
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
+
+    let WorthQueryApplicationCommitOutcome::Denied(denial) = world
+        .application
+        .compare_and_commit_application_with_aftermath(
+            retry,
+            idempotency(30, 30),
+            WorthQueryPendingAftermathCausality::undo_of(parent),
+        )
+    else {
+        panic!("a plain idempotency row cannot impersonate a causal commit");
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift
+    );
 }
 
 #[test]

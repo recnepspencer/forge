@@ -27,8 +27,8 @@ created it.
   observation only
 - `facade::identity_authority::{QueryExternalIdentityToken, ...IdentityKind}`
   for typed but untrusted input
-- typed installed-operation, compatibility, lease, aftermath, replay, and
-  lineage outcomes in `facade::domain`
+- typed installed-operation, compatibility, lease, replay, and lineage
+  outcomes in `facade::domain`
 
 Query does not export its owner authority markers or witness factories. The
 runtime APIs that perform an operation mint and retain the appropriate owner
@@ -40,7 +40,7 @@ An operational identity is a current right held by an owning runtime. A
 projection is a description of that identity. Two descriptions may contain the
 same bytes without carrying the same right.
 
-`worth-proof` carries generic phase progression, freshness, and weakening.
+`worth-proof` carries generic typed progression, freshness, and weakening.
 `worth-foundational` supplies shared identity categories such as authority,
 boundary-bridged, projection, digest evidence, and external token. Neither
 crate decides that Query, Relational, Runtime Bridge, or Signal work is
@@ -50,6 +50,8 @@ its own state.
 Crossing a runtime boundary weakens identity. The receiving owner must validate
 the retained source artifact and mint its own authority. A projection, digest,
 label, debug string, or external token cannot perform that transition. A
+recovery wire identity follows the same rule: it can locate a candidate, but
+only the owning Query runtime can readmit it into a live recovery handle. A
 registered backend can return typed Bridge projections, but Query makes a
 mutation receipt current only when the Bridge causality bundle retained by that
 execution matches the exact commit, snapshot, collection, Relational record,
@@ -133,7 +135,7 @@ projection-only receipt.
 ## How It Relates To Other Features
 
 - Installed operations carry the same owner law through execution,
-  publication, replay, aftermath, lineage, sharing, and invalidation.
+  publication, replay, lineage, sharing, and invalidation.
 - Projection consumption moves sealed fact authority; evidence getters remain
   observation only.
 - Relational owns committed truth, Runtime Bridge owns admitted crossing and
@@ -168,7 +170,7 @@ reconstruct a stronger identity from the diagnostic output.
 - Query identities retain equality, ordering, or hashing only where legitimate
   collections require representation-level candidate handling. Operational
   decisions use named owner methods or proof-bearing artifacts.
-- Collection cursor and patch authority remain separate capability phases; an
+- Collection cursor and patch authority remain separate capabilities; an
   invalidation or identity projection does not manufacture them.
 - Certification replay may compare exact retained meaning but cannot become an
   ordinary completed trace or publication authority.
@@ -179,3 +181,5 @@ reconstruct a stronger identity from the diagnostic output.
 - [Installed Operation Re-Execution And Replay](../domain-capabilities/installed-operation-reexecution-and-replay.md)
 - [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](../domain-capabilities/bound-projection-sharing-and-invalidation.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
+- [worth-proof Authority And Workflow Contracts](../../../../../../crates/worth-proof/docs/features/authority-and-workflow-contracts.md)

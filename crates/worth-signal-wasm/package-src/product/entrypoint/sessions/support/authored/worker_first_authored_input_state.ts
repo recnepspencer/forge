@@ -11,7 +11,10 @@ export function nextGeneratedStandaloneSignalId(counters, family, scopeId = null
 }
 
 export function createAuthoredInputPublication(id, initial, options = {}) {
-  const echoId = `${id}.__workerFirstInputEcho`;
+  // Authored inputs publish as sources only. A previous input-echo recipe
+  // (`${id}.__workerFirstInputEcho` with reads:[id] => DEFAULT_ASPECT) was an
+  // internal DAG subscriber that inflated aspect fan-out diagnostics and only
+  // tracked aspect 0. Host readback uses the source id directly.
   return {
     policy: { preset: "operational" },
     sources: [
@@ -23,15 +26,8 @@ export function createAuthoredInputPublication(id, initial, options = {}) {
           : { producesAspects: options.producesAspects }),
       },
     ],
-    recipes: [
-      {
-        id: echoId,
-        reads: [id],
-        expr: { kind: "read", id },
-        identity: { kind: "exact" },
-      },
-    ],
-    outputIds: [echoId],
+    recipes: [],
+    outputIds: [],
   };
 }
 
@@ -49,6 +45,8 @@ export function createWorkerFirstAuthoredInputState(
     publicationOptions: cloneAuthoredInputPublicationOptions(publicationOptions),
     // Stamped when the input is known present on the active worker tip catalog.
     admittedTipEpoch: 0,
+    // Host tip ownership epoch — rollback only when this write still owns the tip.
+    hostTipEpoch: 0,
   };
 }
 
@@ -103,6 +101,14 @@ export function applyCommittedWorkerFirstAuthoredInputs(authoredInputs, transact
     if (!authoredInput || authoredInput.invalidatedMessage !== null) {
       continue;
     }
+    // Tip-epoch ownership: older applies must not clobber a newer tip.
+    // Ops without epochAtWrite remain worker catch-up (readable refresh).
+    if (
+      typeof transactionOp.epochAtWrite === "number"
+      && (authoredInput.hostTipEpoch ?? 0) !== transactionOp.epochAtWrite
+    ) {
+      continue;
+    }
     authoredInput.currentValue = materializeWorkerCachedValue(transactionOp.value);
   }
 }
@@ -143,11 +149,11 @@ export function buildAuthoredInputMutationOperation(id, mutation, authoredInput)
   }
 }
 
-function mergeWorkerFirstPatchValue(currentValue, patchValue) {
+export function mergeWorkerFirstPatchValue(currentValue, patchValue) {
   const currentIsObject = currentValue !== null && typeof currentValue === "object";
   const patchIsObject = patchValue !== null && typeof patchValue === "object";
   if (!currentIsObject || !patchIsObject) {
-    throw new TypeError("worker-first inputAsync patch(...) requires object or array values");
+    throw new TypeError("worker-first input patch(...) requires object or array values");
   }
   if (Array.isArray(currentValue) || Array.isArray(patchValue)) {
     return patchValue;

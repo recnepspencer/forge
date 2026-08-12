@@ -176,7 +176,7 @@ fn requirement_is_owned(
     requirement_matches_fixed(requirement, target.action())
         || requirement_matches_fixed(requirement, target.purpose())
         || field_dimension_owns(target.field(), requirement.field())
-        || field_dimension_owns(constraints.amount(), requirement.field())
+        || field_dimension_owns(constraints.magnitude(), requirement.field())
         || requirement_matches_fixed(requirement, currentness.active_status())
         || requirement.field() == currentness.workflow().grant()
         || requirement.field() == currentness.validity().not_before()

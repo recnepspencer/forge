@@ -7,8 +7,8 @@ import { loadSignalsModule } from "../../module_loading/load_signals_module.mjs"
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * awaitSettlement must drain worker-first authored pubs/mutations so a delayed
- * load cannot race collaborative form reactive inputs.
+ * Opt-in drainAuthoredWork must invoke settleAuthoredWork; default must not.
+ * Form submit after drained settlement remains a real integration path.
  */
 test("worker-first awaitSettlement drains authored work before delayed-load form submit", async () => {
   const previousWorker = globalThis.Worker;
@@ -34,8 +34,25 @@ test("worker-first awaitSettlement drains authored work before delayed-load form
     }).line({ taskId: "drain-proof" });
 
     assert.equal(line.status().kind, "pending");
-    const settled = await line.awaitSettlement({ timeoutMs: 5_000 });
-    assert.equal(settled.resultKind, "fulfilled");
+    const settleCountBefore = signals.authoredSettleInvocationCount();
+    const tipOnly = await line.awaitSettlement({ timeoutMs: 5_000 });
+    assert.equal(tipOnly.resultKind, "fulfilled");
+    assert.equal(
+      signals.authoredSettleInvocationCount(),
+      settleCountBefore,
+      "default awaitSettlement must stay tip-status only",
+    );
+
+    const drained = await line.awaitSettlement({
+      timeoutMs: 5_000,
+      drainAuthoredWork: true,
+    });
+    assert.equal(drained.resultKind, "fulfilled");
+    assert.equal(
+      signals.authoredSettleInvocationCount(),
+      settleCountBefore + 1,
+      "drainAuthoredWork: true must invoke settleAuthoredWork",
+    );
 
     await line.patch(resourcePatch.field({
       field: "title",

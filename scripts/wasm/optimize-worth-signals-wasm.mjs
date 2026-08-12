@@ -4,6 +4,7 @@
  * Owns wasm-opt for the publish lane (wasm-pack implicit opt is disabled).
  */
 import { execFile, spawnSync } from "node:child_process";
+import { accessSync, existsSync } from "node:fs";
 import { copyFile, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -40,7 +41,28 @@ function resolveWasmOptBinary() {
       return first;
     }
   }
+  // npm `binaryen` package (Node CLI) under the crate — not a PATH .exe.
+  const npmBinaryenCli = path.resolve(
+    repoRoot,
+    "crates/worth-signal-wasm/node_modules/binaryen/bin/wasm-opt",
+  );
+  if (existsSync(npmBinaryenCli)) {
+    accessSync(npmBinaryenCli);
+    return npmBinaryenCli;
+  }
   return null;
+}
+
+async function runWasmOpt(wasmOpt, args) {
+  const options = { windowsHide: true };
+  // npm binaryen ships a Node CLI (extensionless / non-.exe). execFile that
+  // path directly fails on Windows; invoke through node.
+  const isNodeCli = !/\.(exe|cmd|bat)$/iu.test(wasmOpt);
+  if (isNodeCli) {
+    await execFileAsync(process.execPath, [wasmOpt, ...args], options);
+    return;
+  }
+  await execFileAsync(wasmOpt, args, options);
 }
 
 function missingWasmOptError() {
@@ -84,7 +106,7 @@ export async function optimizeWorthSignalsWasm(pkgDir) {
       "--enable-reference-types",
     ];
     try {
-      await execFileAsync(wasmOpt, primaryArgs, { windowsHide: true });
+      await runWasmOpt(wasmOpt, primaryArgs);
     } catch (error) {
       const detail = String(error?.stderr ?? error?.message ?? error);
       const unknownFlag =
@@ -107,7 +129,7 @@ export async function optimizeWorthSignalsWasm(pkgDir) {
         "--enable-mutable-globals",
         "--enable-reference-types",
       ];
-      await execFileAsync(wasmOpt, fallbackArgs, { windowsHide: true });
+      await runWasmOpt(wasmOpt, fallbackArgs);
       process.stderr.write(
         "wasm-opt: retried without newer Binaryen flags after flag rejection\n",
       );

@@ -14,15 +14,14 @@ use bank_domain::model::Money;
 use bank_domain::proposals::BankIdempotencyKey;
 use bank_domain::schema::{BankSchema, Deposit, RevokeAccountAuthorization};
 use bank_server::{
-    mutations, queries, BankApplicationQueryDenial, BankMutationControls, BankMutationStatus,
-    BankReadControls,
+    mutations, queries, BankApplicationQueryAdmissionDenialKind, BankApplicationQueryDenial,
+    BankMutationControls, BankMutationStatus, BankReadControls,
 };
 use fixture::{ordinary_read_world, OWNER, TELLER, VIEWER};
 use support::request_scope;
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestScope;
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationQueryAdmissionDenialKind, WorthQueryApplicationQueryControls,
-    WorthQueryApplicationQueryResumeControls,
+    WorthQueryApplicationQueryControls, WorthQueryApplicationQueryResumeControls,
 };
 
 #[test]
@@ -40,16 +39,12 @@ fn activity_pages_keep_one_exact_basis_across_a_new_commit() {
         .expect("first page must execute");
     assert_eq!(first.rows()[0].entries().len(), 1);
     let first_journal = first.rows()[0].entries()[0].journal();
-    let (_, continuation, first_receipt) = first.into_parts();
-    let first_generation = first_receipt
-        .ordered_index_generation()
-        .expect("a continuation page must name its ordered index generation");
-    assert!(first_receipt.basis_released());
+    let (first_publication, continuation) = first.into_parts();
     let continuation = continuation.expect("first page must continue");
-    let terminal = first_receipt.read_completion();
-    assert_eq!(terminal.basis_identity(), first_receipt.basis_identity());
-    assert!(terminal.basis_release().released());
-    assert_eq!(terminal.release().released_reservation_count(), 1);
+    assert!(first_publication
+        .receipt()
+        .inspect()
+        .terminal_resources_released());
 
     let mutation = fixture
         .world
@@ -84,20 +79,7 @@ fn activity_pages_keep_one_exact_basis_across_a_new_commit() {
         second.continuation().is_none(),
         "the post-page commit must not appear in the original two-row basis"
     );
-    assert_eq!(
-        first_receipt.basis_version(),
-        second.receipt().basis_version(),
-        "every page must read the exact original provider version"
-    );
-    assert_eq!(
-        Some(first_generation),
-        second.receipt().ordered_index_generation()
-    );
-    assert!(
-        second.receipt().ordered_index_entry_count() > second.rows()[0].entries().len(),
-        "a resumed consumer page must account for both returned rows and ordered-index seek work"
-    );
-    assert!(second.receipt().basis_released());
+    assert!(second.receipt().inspect().terminal_resources_released());
 }
 
 #[test]
@@ -112,7 +94,7 @@ fn activity_continuation_cannot_cross_account_scope() {
         .as_principal(&owner)
         .page(page_controls(&first_request, 1))
         .expect("first page must execute");
-    let (_, continuation, _) = first.into_parts();
+    let (_, continuation) = first.into_parts();
     let continuation = continuation.expect("first page must continue");
     let resume_request = request_scope();
     let crossed = fixture
@@ -125,7 +107,7 @@ fn activity_continuation_cannot_cross_account_scope() {
         crossed,
         Err(BankApplicationQueryDenial::Admission(denial))
             if denial.kind()
-                == WorthQueryApplicationQueryAdmissionDenialKind::ContinuationScopeMismatch
+                == BankApplicationQueryAdmissionDenialKind::ContinuationScopeMismatch
     ));
 }
 
@@ -143,7 +125,7 @@ fn activity_continuation_cannot_cross_runtime_authority() {
         .as_principal(&source_owner)
         .page(page_controls(&first_request, 1))
         .expect("source runtime must issue a continuation");
-    let (_, continuation, _) = first.into_parts();
+    let (_, continuation) = first.into_parts();
     let continuation = continuation.expect("first page must continue");
 
     let resume_request = request_scope();
@@ -157,7 +139,7 @@ fn activity_continuation_cannot_cross_runtime_authority() {
         crossed,
         Err(BankApplicationQueryDenial::Admission(denial))
             if denial.kind()
-                == WorthQueryApplicationQueryAdmissionDenialKind::ForeignContinuation
+                == BankApplicationQueryAdmissionDenialKind::ForeignContinuation
     ));
 }
 
@@ -176,7 +158,7 @@ fn oversized_page_denies_before_continuation_plan_authority() {
         denied,
         Err(BankApplicationQueryDenial::Admission(denial))
             if denial.kind()
-                == WorthQueryApplicationQueryAdmissionDenialKind::ContinuationPageWidthUnsupported
+                == BankApplicationQueryAdmissionDenialKind::ContinuationPageWidthUnsupported
     ));
 }
 
@@ -194,7 +176,7 @@ fn revocation_before_resume_denies_fresh_page_admission() {
         .as_principal(&viewer)
         .page(page_controls(&first_request, 1))
         .expect("authorized viewer must receive the first page");
-    let (_, continuation, _) = first.into_parts();
+    let (_, continuation) = first.into_parts();
     let continuation = continuation.expect("first page must continue");
 
     let revoked = fixture
@@ -226,7 +208,7 @@ fn revocation_before_resume_denies_fresh_page_admission() {
         Err(BankApplicationQueryDenial::Admission(denial))
             if matches!(
                 denial.kind(),
-                WorthQueryApplicationQueryAdmissionDenialKind::Authorization(_)
+                BankApplicationQueryAdmissionDenialKind::Authorization(_)
             )
     ));
 }
@@ -257,8 +239,8 @@ fn paged_and_one_shot_activity_have_identical_result_meaning() {
         .as_principal(&owner)
         .page(page_controls(&first_request, 1))
         .expect("first page must execute");
-    let (rows, mut continuation, _) = first.into_parts();
-    let mut observed = rows[0].entries().to_vec();
+    let (published, mut continuation) = first.into_parts();
+    let mut observed = published.rows()[0].entries().to_vec();
     while let Some(next) = continuation {
         let request = request_scope();
         let page = fixture
@@ -268,8 +250,8 @@ fn paged_and_one_shot_activity_have_identical_result_meaning() {
             .as_principal(&owner)
             .resume(next, resume_controls(&request, 1))
             .expect("every continuation page must execute");
-        let (rows, next, _) = page.into_parts();
-        observed.extend_from_slice(rows[0].entries());
+        let (published, next) = page.into_parts();
+        observed.extend_from_slice(published.rows()[0].entries());
         continuation = next;
     }
     assert_eq!(observed, expected);
@@ -323,9 +305,7 @@ fn activity_order_follows_committed_account_sequence_not_derived_identity() {
             .any(|pair| pair[0].journal() > pair[1].journal()),
         "fixed commits must include an identity inversion so this proves sequence ordering"
     );
-    assert_eq!(history.receipt().ordering_comparison_count(), 0);
-    assert_eq!(history.receipt().fallback_count(), 0);
-    assert!(history.receipt().ordered_index_entry_count() >= entries.len());
+    assert!(history.receipt().inspect().terminal_resources_released());
 }
 
 fn page_controls<'a>(

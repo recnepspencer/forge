@@ -100,7 +100,7 @@ pub(super) fn certify_hundred_k_nodes_geometry_profile_propagation_wave(
                 )
                 .expect("rocketship rich propagation explicit query outcome");
             let explicit_query_micros = explicit_started_at.elapsed().as_micros();
-            let hot_phase_timing = update.execution.phase_timing.clone();
+            let hot_phase_timing = update.execution().phase_timing.clone();
             let counters = runtime.performance_access().counters();
             let (diagnostic_artifact_count, detailed_trace_entries) =
                 fresh_diagnostics_metrics(&runtime, diagnostics_start);

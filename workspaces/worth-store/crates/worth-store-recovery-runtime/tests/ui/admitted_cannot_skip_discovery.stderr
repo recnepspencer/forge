@@ -1,0 +1,5 @@
+error[E0599]: no method named `select` found for struct `AdmittedPhysicalRecovery` in the current scope
+ --> tests/ui/admitted_cannot_skip_discovery.rs:4:22
+  |
+4 |     let _ = admitted.select();
+  |                      ^^^^^^ method not found in `AdmittedPhysicalRecovery`

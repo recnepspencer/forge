@@ -1,3 +1,10 @@
+use super::boundary_evidence::{
+    current_provenance, profile, WorthQueryApplicationAuthorizationBoundaryIdentity,
+    WorthQueryApplicationAuthorizationPublicationDenial,
+    WorthQueryApplicationAuthorizationPublicationProfile,
+};
+use super::field_omission_explanation::materialize_field_omission_explanation;
+use crate::domain_computation::WorthQueryPublishedApplicationDisclosure;
 use worth_foundational::facade::{
     boundary_artifact_category_of, boundary_evidence, BoundaryProfiledArtifact,
     FoundationalBoundaryArtifactCategory, FoundationalBoundaryArtifactSurface,
@@ -5,22 +12,14 @@ use worth_foundational::facade::{
     FoundationalBoundaryEvidenceProvenanceArtifact, FoundationalBoundaryEvidenceReceiptBoundary,
     FoundationalDiagnosticExplanationBundle,
 };
-use worth_query_execution::facade::primary_graph::WorthQueryApplicationDisclosureReceipt;
-
-use super::boundary_evidence::{
-    current_provenance, profile, WorthQueryApplicationAuthorizationBoundaryIdentity,
-    WorthQueryApplicationAuthorizationPublicationDenial,
-    WorthQueryApplicationAuthorizationPublicationProfile,
-};
-use super::field_omission_explanation::materialize_field_omission_explanation;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationFieldOmissionArtifact {
-    disclosure: WorthQueryApplicationDisclosureReceipt,
+    disclosure: WorthQueryPublishedApplicationDisclosure,
 }
 
 impl WorthQueryApplicationFieldOmissionArtifact {
-    pub const fn disclosure(&self) -> &WorthQueryApplicationDisclosureReceipt {
+    pub const fn disclosure(&self) -> &WorthQueryPublishedApplicationDisclosure {
         &self.disclosure
     }
 }
@@ -83,8 +82,25 @@ impl WorthQueryPublishedApplicationFieldOmission {
     }
 }
 
+/// Only the closed disclosure copied into a query publication receipt can
+/// enter omission publication.
+///
+/// ```compile_fail
+/// use worth_query_execution::facade::primary_graph::WorthQueryApplicationDisclosureReceipt;
+/// use worth_query_publication::facade::domain_computation::{
+///     publish_application_field_omission,
+///     WorthQueryApplicationAuthorizationPublicationProfile,
+/// };
+///
+/// fn execution_receipt_cannot_cross(
+///     disclosure: &WorthQueryApplicationDisclosureReceipt,
+///     profile: WorthQueryApplicationAuthorizationPublicationProfile,
+/// ) {
+///     let _ = publish_application_field_omission(disclosure, profile);
+/// }
+/// ```
 pub fn publish_application_field_omission(
-    disclosure: &WorthQueryApplicationDisclosureReceipt,
+    disclosure: &WorthQueryPublishedApplicationDisclosure,
     profile: WorthQueryApplicationAuthorizationPublicationProfile,
 ) -> Result<
     WorthQueryPublishedApplicationFieldOmission,
@@ -93,11 +109,12 @@ pub fn publish_application_field_omission(
     if !disclosure.has_omissions() {
         return Err(WorthQueryApplicationAuthorizationPublicationDenial::OutcomeNotPublishable);
     }
-    let disclosure_identity = disclosure
-        .outcome_identity()
-        .ok_or(WorthQueryApplicationAuthorizationPublicationDenial::OutcomeIdentityUnavailable)?;
-    let identity =
-        WorthQueryApplicationAuthorizationBoundaryIdentity::from_disclosure(disclosure_identity);
+    let semantic_identity = disclosure.identity().boundary_axis();
+    let identity = WorthQueryApplicationAuthorizationBoundaryIdentity::from_closed_publication(
+        "field-omission",
+        &[semantic_identity],
+        profile,
+    );
     let artifact = WorthQueryApplicationFieldOmissionArtifact {
         disclosure: disclosure.clone(),
     };

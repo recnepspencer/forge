@@ -24,6 +24,10 @@ Evidence layers:
 
 `workspace.inspections()?.inspect` may surface related **read** evidence; authoritative mutation evidence is the **write-path contract** certified under `authoritative-mutation-evidence-certification` matrix rows.
 
+This evidence proves the local mutation lane. It does not by itself prove that
+an external effect completed. Co-committed outbox observations, external-owner
+dispatch posture, and receipt-bound recovery belong to application aftermath.
+
 ## Main Entry Points
 
 - `WorthQueryWorkspace::public_authoritative_mutation_evidence_support()`
@@ -41,6 +45,10 @@ Tests: `runtime/tests/mutation/batch.rs`, `mutation_evidence/batch/`, `bridge_ba
 3. Read batch/session aggregate counters for certification or diagnostics.
 4. Call `public_authoritative_mutation_evidence_support()` before UX or agents claim “backend verified” semantics.
 5. Use inspection for **follow-up read** of retained state—not as a substitute for write receipts.
+
+If the operation declared an external effect, continue from the sealed commit
+receipt into the application-aftermath surface. Do not derive dispatch or
+recovery authority from mutation digests or aggregate counters.
 
 ## How It Relates
 
@@ -60,6 +68,8 @@ Tests: `runtime/tests/mutation/batch.rs`, `mutation_evidence/batch/`, `bridge_ba
 - Asserting full durable mutation audit trails while matrix/store rows remain deferred.
 - Using inspection-only reads to prove a write was backend-verified without write receipts.
 - Conflating naming/continuity mutation counts with authoritative retained assertions.
+- Treating a committed mutation receipt or outbox row as proof that the
+  external owner completed its consequence.
 
 ## Current Limits
 
@@ -78,3 +88,4 @@ Consult `public_authoritative_mutation_evidence_support()` and `authoritative-mu
 - [Effects](../execution/effects.md)
 - [Authority-scoped effect execution](../execution/authority-scoped-effect-execution.md)
 - [Support matrix and admission](../foundations/support-matrix-and-admission.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)

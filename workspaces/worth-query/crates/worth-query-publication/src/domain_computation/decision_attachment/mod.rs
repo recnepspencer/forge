@@ -14,9 +14,8 @@ mod summary;
 mod transformation_admission;
 
 pub use admitted::{
-    WorthQueryAdmittedDecisionSummary, WorthQueryAdmittedDomainEvidence,
-    WorthQueryAdmittedDomainEvidenceSidecar, WorthQueryAdmittedStructuralCounter,
-    WorthQueryDomainEvidenceAuthorityPosture, WorthQueryDomainEvidenceBinding,
+    WorthQueryAdmittedDecisionSummary, WorthQueryAdmittedDomainEvidenceSidecar,
+    WorthQueryAdmittedStructuralCounter, WorthQueryDomainEvidenceAuthorityPosture,
     WorthQueryDomainEvidenceCore, WorthQueryDomainEvidenceGovernance,
 };
 pub use denial::{
@@ -37,10 +36,10 @@ pub use summary::{
     WorthQueryTransformationSummaryParts,
 };
 
-pub use admission::{admit_domain_evidence, WorthQueryDomainEvidenceAdmissionInput};
-pub use identity::{
-    domain_evidence_binding_material, domain_evidence_core_material,
-    domain_evidence_governance_material,
+pub use admission::{
+    admit_domain_evidence_content, WorthQueryAdmittedDomainEvidenceContent,
+    WorthQueryDomainEvidenceContentAdmissionInput,
 };
+pub use identity::{domain_evidence_core_material, domain_evidence_governance_material};
 pub use ledger::WorthQueryDomainEvidenceAdmissionLedger;
 pub use replay::WorthQueryDomainEvidenceReplayMeaning;

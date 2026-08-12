@@ -72,7 +72,7 @@ fn append_constraints(
     contract: &ErasedApplicationCapabilityContract,
 ) {
     let constraints = contract.constraints();
-    append_field_dimension(components, "constraints.amount", constraints.amount());
+    append_field_dimension(components, "constraints.magnitude", constraints.magnitude());
     match constraints.cardinality() {
         super::ApplicationCapabilityCardinalityDimension::One => {
             text(components, "constraints.cardinality", "one");

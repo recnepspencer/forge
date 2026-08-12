@@ -1,12 +1,11 @@
 use crate::facade::application_schema::{
-    ApplicationAspectRef, ApplicationCurrencyMarker, ApplicationEntityRef,
-    ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationRef, ApplicationSchema,
-    ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenialKind,
-    ApplicationSchemaBindingIdentity, ApplicationSchemaDeclaration,
-    ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial,
-    DeclaredApplicationCurrency, DeclaredApplicationFieldValue, EqualityPredicate,
-    OperationCreates, OperationExpectsFact, ReadOnly, TypedApplicationValue,
-    TypedCurrencyApplicationValue, TypedOperationBuilder,
+    ApplicationAspectRef, ApplicationEntityRef, ApplicationFieldPresence, ApplicationFieldRef,
+    ApplicationOperationRef, ApplicationSchema, ApplicationSchemaAuthoringContext,
+    ApplicationSchemaAuthoringDenialKind, ApplicationSchemaBindingIdentity,
+    ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
+    ApplicationSchemaDeclarationDenial, ApplicationUnitMarker, DeclaredApplicationFieldValue,
+    DeclaredApplicationUnit, EqualityPredicate, OperationCreates, OperationExpectsFact, ReadOnly,
+    TypedApplicationValue, TypedOperationBuilder, TypedUnitApplicationValue,
 };
 use worth_foundational::facade::{AspectValue, ScalarAspectType};
 
@@ -59,7 +58,7 @@ fn application_schema_macro_accepts_the_canonical_namespace_qualified_owner() {
     assert_eq!(declaration.erased().owner(), "bank.world");
 }
 
-impl ApplicationCurrencyMarker<Usd> for UsdCurrency {
+impl ApplicationUnitMarker<Usd> for UsdCurrency {
     const NAME: &'static str = "UsdCurrency";
 }
 
@@ -71,8 +70,8 @@ impl TypedApplicationValue for CurrencyValue {
     }
 }
 
-impl TypedCurrencyApplicationValue for CurrencyValue {
-    type Currency = Usd;
+impl TypedUnitApplicationValue for CurrencyValue {
+    type Unit = Usd;
 }
 
 impl ApplicationSchema for Schema {
@@ -97,7 +96,13 @@ impl ApplicationSchema for ProgramSchema {
     ) -> Result<ApplicationSchemaDeclaration<Self>, ApplicationSchemaDeclarationDenial> {
         ApplicationSchemaDeclarationBuilder::<Self>::for_schema()
             .entity(program_entity())
-            .operation(program_operation())
+            .operation(
+                program_operation()
+                    .definition()
+                    .no_external_effect()
+                    .no_aftermath()
+                    .finish(),
+            )
             .build()
     }
 }
@@ -195,7 +200,7 @@ fn currency_field_without_its_declared_currency_is_denied() {
         .field(entity(), currency_field())
         .build()
         .unwrap_err();
-    assert_eq!(denial, ApplicationSchemaDeclarationDenial::MissingCurrency);
+    assert_eq!(denial, ApplicationSchemaDeclarationDenial::MissingUnit);
 }
 
 #[test]
@@ -226,7 +231,13 @@ fn compile_capability_without_installed_operation_edge_is_denied() {
 #[test]
 fn operation_program_with_missing_target_member_is_denied() {
     let denial = ApplicationSchemaDeclarationBuilder::<ProgramSchema>::for_schema()
-        .operation(program_operation())
+        .operation(
+            program_operation()
+                .definition()
+                .no_external_effect()
+                .no_aftermath()
+                .finish(),
+        )
         .operation_create(program_operation(), program_entity())
         .build()
         .unwrap_err();
@@ -242,7 +253,13 @@ fn mutation_precondition_without_the_exact_decision_read_is_denied() {
         .entity(entity())
         .aspect(entity(), aspect())
         .field(entity(), field())
-        .operation(schema_operation())
+        .operation(
+            schema_operation()
+                .definition()
+                .no_external_effect()
+                .no_aftermath()
+                .finish(),
+        )
         .operation_expected_fact(schema_operation(), field())
         .build()
         .unwrap_err();
@@ -295,7 +312,7 @@ fn currency_field() -> ApplicationFieldRef<
     CurrencyValue,
     ReadOnly,
     EqualityPredicate,
-    DeclaredApplicationCurrency<UsdCurrency, Usd>,
+    DeclaredApplicationUnit<UsdCurrency, Usd>,
 > {
     ApplicationFieldRef::from_schema_identifiers("Entity", "Aspect", "CurrencyField")
 }

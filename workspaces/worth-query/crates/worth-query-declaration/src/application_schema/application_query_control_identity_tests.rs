@@ -7,7 +7,7 @@ use crate::application_query::{
 };
 
 use super::{
-    ApplicationEntityRef, ApplicationFieldRef, EqualityPredicate, NoApplicationCurrency, ReadOnly,
+    ApplicationEntityRef, ApplicationFieldRef, EqualityPredicate, NoApplicationUnit, ReadOnly,
 };
 
 struct Schema;
@@ -135,7 +135,7 @@ fn definition(fixture: &QueryControlFixture) -> ErasedApplicationQueryDefinition
         u64,
         ReadOnly,
         EqualityPredicate,
-        NoApplicationCurrency,
+        NoApplicationUnit,
     >::from_schema_identifiers(fixture.root, "Aspect", "Field");
     let result = ApplicationQueryResultFieldRef::<
         Query,
@@ -147,7 +147,7 @@ fn definition(fixture: &QueryControlFixture) -> ErasedApplicationQueryDefinition
         u64,
         ReadOnly,
         EqualityPredicate,
-        NoApplicationCurrency,
+        NoApplicationUnit,
     >::new(fixture.output, field);
     let parameter = ApplicationQueryParameterRef::<Query, Parameter, u64>::from_query_identifier(
         fixture.parameter,
@@ -155,20 +155,25 @@ fn definition(fixture: &QueryControlFixture) -> ErasedApplicationQueryDefinition
     let shape = ApplicationQueryResultShapeBuilder::<Schema, Query, Entity, QueryResult>::new(root)
         .field(result)
         .build();
-    let builder = ApplicationQueryDefinitionBuilder::public(
-        ApplicationQueryReference::<Schema, Query, Parameters, QueryResult, Entity>::
-            from_schema_identifier(fixture.name),
-        root,
-        scope,
-        shape,
-        fixture.cardinality,
-        fixture.ceiling,
-        fixture.disclosure.clone(),
-        fixture.basis,
-        fixture.lanes,
-    )
-    .parameter(parameter)
-    .order_by(result, fixture.ordering);
+    let builder =
+        ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::<
+            Schema,
+            Query,
+            Parameters,
+            QueryResult,
+            Entity,
+        >::from_schema_identifier(fixture.name))
+        .root(root)
+        .scope(scope)
+        .result_shape(shape)
+        .cardinality(fixture.cardinality)
+        .dependency_ceiling(fixture.ceiling)
+        .disclosure(fixture.disclosure.clone())
+        .basis_support(fixture.basis)
+        .lanes(fixture.lanes)
+        .public()
+        .parameter(parameter)
+        .order_by(result, fixture.ordering);
     let builder = if fixture.predicate {
         builder.where_equal(field, parameter)
     } else {

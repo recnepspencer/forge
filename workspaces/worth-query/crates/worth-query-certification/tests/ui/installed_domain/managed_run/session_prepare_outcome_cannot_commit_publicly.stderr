@@ -4,7 +4,7 @@ error[E0624]: method `commit` is private
 4 |     let _ = prepared.commit();
   |                      ^^^^^^ private method
   |
- ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/provider_session/protocol/terminal_outcome.rs
+ ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/provider_session/protocol/readmission/prepared/staged/prepare_outcome.rs
   |
   |     pub(crate) fn commit(mut self) -> WorthQuerySessionCommitOrAbortOutcome {
   |     ----------------------------------------------------------------------- private method defined here

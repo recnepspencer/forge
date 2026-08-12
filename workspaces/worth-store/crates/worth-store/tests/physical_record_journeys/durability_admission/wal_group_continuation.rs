@@ -21,7 +21,7 @@ use worth_store_physical_backend::{
 
 use super::super::{configuration, durability_with_wal_policy, success};
 
-const SEGMENT_BYTES: u64 = 1_656;
+const SEGMENT_BYTES: u64 = 35_268;
 
 #[test]
 fn partial_rotated_group_keeps_its_reserved_suffix_and_excludes_competing_groups() {

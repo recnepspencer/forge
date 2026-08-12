@@ -54,19 +54,18 @@ pub(super) fn optional_account_field_definition() -> ApplicationQueryDefinition<
         .field(account())
         .optional_field(note())
         .build();
-    ApplicationQueryDefinitionBuilder::public(
-        OptionalAccountFieldQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 2),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .build()
-    .expect("the optional field fixture is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(OptionalAccountFieldQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 2))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .build()
+        .expect("the optional field fixture is statically canonical")
 }
 
 impl WorthQueryApplicationProjection<IdentityExecutionSchema, OptionalAccountFieldQuery>
@@ -96,7 +95,7 @@ fn account() -> ApplicationQueryResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("account", AccountIdentity::reference())
 }
@@ -111,7 +110,7 @@ fn note() -> ApplicationQueryOptionalResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadWrite,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryOptionalResultFieldRef::new("note", AccountNote::reference())
 }

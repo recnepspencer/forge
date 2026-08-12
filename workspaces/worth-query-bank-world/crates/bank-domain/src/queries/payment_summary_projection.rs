@@ -5,7 +5,7 @@ use worth_query_decl::facade::{
         OptionalOneResult, ReverseResultTraversal,
     },
     application_schema::{
-        DeclaredApplicationCurrency, EqualityPredicate, NoApplicationCurrency, NoEqualityPredicate,
+        DeclaredApplicationUnit, EqualityPredicate, NoApplicationUnit, NoEqualityPredicate,
         ReadOnly, ReadWrite,
     },
 };
@@ -48,7 +48,7 @@ type PaymentIdentitySelector<Query> = ApplicationQueryResultFieldRef<
     PaymentId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type PaymentAmountSelector<Query> = ApplicationQueryResultFieldRef<
@@ -61,7 +61,7 @@ type PaymentAmountSelector<Query> = ApplicationQueryResultFieldRef<
     Money<USD>,
     ReadWrite,
     NoEqualityPredicate,
-    DeclaredApplicationCurrency<UsdCurrency, USD>,
+    DeclaredApplicationUnit<UsdCurrency, USD>,
 >;
 
 type PaymentStatusSelector<Query> = ApplicationQueryResultFieldRef<
@@ -74,7 +74,7 @@ type PaymentStatusSelector<Query> = ApplicationQueryResultFieldRef<
     PaymentStatus,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type AccountIdentitySelector<Query, Slot> = ApplicationQueryResultFieldRef<
@@ -87,7 +87,7 @@ type AccountIdentitySelector<Query, Slot> = ApplicationQueryResultFieldRef<
     AccountId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type BusinessIdentitySelector<Query> = ApplicationQueryResultFieldRef<
@@ -100,7 +100,7 @@ type BusinessIdentitySelector<Query> = ApplicationQueryResultFieldRef<
     BusinessId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type PrincipalIdentitySelector<Query, Slot> = ApplicationQueryResultFieldRef<
@@ -113,7 +113,7 @@ type PrincipalIdentitySelector<Query, Slot> = ApplicationQueryResultFieldRef<
     BankPrincipalId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 pub(super) fn payment_summary_shape<Query, Result>(

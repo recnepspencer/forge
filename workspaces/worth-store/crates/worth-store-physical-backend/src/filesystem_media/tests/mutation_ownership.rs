@@ -91,6 +91,34 @@ fn explicit_close_reports_release_and_allows_successor() {
 }
 
 #[test]
+#[cfg(feature = "recovery-runtime-owner")]
+fn recovery_handle_observation_tracks_a_real_command_scoped_file_handle() {
+    let parent = tempfile::tempdir().expect("test parent");
+    let root = parent.path().join("store");
+    let owner = FilesystemMediaOwner::admit(&root, FilesystemMediaAdmissionAuthority::for_test())
+        .expect("owner");
+    let baseline = crate::recovery_media::RecoveryMediaHandleObservation::from_owner(&owner);
+    let path = owner.identity_record_path();
+    let handle = match owner.create_new(&path).into_result() {
+        NamespaceFileOpenResult::Opened { handle, .. } => handle,
+        other => panic!("create observed handle fixture: {other:?}"),
+    };
+    let live = crate::recovery_media::RecoveryMediaHandleObservation::from_owner(&owner);
+    assert_eq!(live.live_file_handles(), baseline.live_file_handles() + 1);
+    assert_eq!(
+        live.live_directory_handles(),
+        baseline.live_directory_handles()
+    );
+    assert_eq!(live.excess_over(baseline), 1);
+    drop(handle);
+    assert_eq!(
+        crate::recovery_media::RecoveryMediaHandleObservation::from_owner(&owner)
+            .excess_over(baseline),
+        0
+    );
+}
+
+#[test]
 fn invalidated_live_lease_makes_existing_mutation_handles_inert() {
     use worth_store_physical_format::store_namespace::{
         NamespaceInitializationAttempt, StagedNamespaceName,

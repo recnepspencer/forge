@@ -17,6 +17,9 @@ mod promotion_execution;
 #[cfg(test)]
 mod promotion_planning;
 
+#[cfg(test)]
+pub(crate) use promotion_commit::LineageDurableAppendAdmission;
+
 use crate::logic::runtime::RelationalRuntime;
 
 pub struct LineageAuthority<'runtime> {

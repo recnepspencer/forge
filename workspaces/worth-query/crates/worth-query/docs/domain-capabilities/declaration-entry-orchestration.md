@@ -89,7 +89,7 @@ This path retains installed authority through the terminal routing artifact.
   receipt authority.
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) explains
   the retained crossing artifact.
-- [Recovery Boundary](./recovery-boundary.md) maps typed terminal artifacts to
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md) maps typed terminal artifacts to
   a recovery brief.
 
 ## Inspection And Debugging

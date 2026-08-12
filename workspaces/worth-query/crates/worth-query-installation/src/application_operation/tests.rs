@@ -1,8 +1,5 @@
-use worth_query_declaration::facade::application_schema::ApplicationOperationProgramTarget;
-
 use super::{
     WorthQueryCompiledApplicationOperationContracts,
-    WorthQueryInstalledApplicationOperationAuthorization,
     WorthQueryInstalledApplicationOperationExecutionPosture, APPLICATION_AUTHORIZATION_FACT_FAMILY,
 };
 use crate::domain_operation::WorthQueryDecisionFactCardinality;
@@ -92,17 +89,5 @@ fn compiled(
     posture: WorthQueryInstalledApplicationOperationExecutionPosture,
     support_count: usize,
 ) -> WorthQueryCompiledApplicationOperationContracts {
-    WorthQueryCompiledApplicationOperationContracts::compile(
-        WorthQueryInstalledApplicationOperationAuthorization::Capability,
-        Vec::new(),
-        vec![ApplicationOperationProgramTarget::Create {
-            entity: "Grant".to_owned(),
-        }],
-        Vec::new(),
-        1,
-        16,
-        support_count,
-        Vec::new(),
-        posture,
-    )
+    super::installed::compile_contract_projection_fixture(posture, support_count)
 }

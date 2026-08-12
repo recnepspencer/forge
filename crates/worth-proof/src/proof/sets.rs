@@ -20,7 +20,8 @@ where
 pub struct Proof<P, A>(PhantomData<(P, A)>);
 
 impl<P, A> Proof<P, A> {
-    #[allow(dead_code)]
+    /// Crate-internal. Reached only from a checked constructor that has
+    /// already established the fact `P` names.
     pub(crate) fn mint() -> Self {
         Self(PhantomData)
     }

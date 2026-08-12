@@ -25,10 +25,13 @@ mod offline_verifier;
 mod offline_walk;
 mod page_record;
 mod payload;
+mod physical_data_frame_identity;
 mod placement;
 mod record_framing;
 mod record_identity;
+mod recovery_projection;
 mod reference;
+mod root_selector;
 mod security_metadata;
 pub mod store_namespace;
 
@@ -79,12 +82,14 @@ pub use canonical_basis::{
     prepare_physical_page_header_canonical_basis, PhysicalPageHeaderCanonicalBasisOutcome,
 };
 pub use checkpoint::{
-    decode_checkpoint_binding_record, CheckpointBindingCompactionDecoder,
-    CheckpointBindingCompactionEncoder, CheckpointBindingCompactionHeader,
-    CheckpointBindingRecordFrameLength, CheckpointDirtyFrameBasis, CheckpointRootBasis,
-    CheckpointStreamDecodeDenial, CheckpointStreamDecoder, CheckpointStreamEncoder,
-    CheckpointStreamFooter, CheckpointWalSourceRange, PhysicalCheckpointIdentity,
-    PhysicalCheckpointSource, CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES,
+    decode_checkpoint_binding_record, inspect_checkpoint_stream,
+    CheckpointBindingCompactionDecoder, CheckpointBindingCompactionEncoder,
+    CheckpointBindingCompactionHeader, CheckpointBindingRecordFrameLength,
+    CheckpointDirtyFrameBasis, CheckpointRootBasis, CheckpointStreamDecodeDenial,
+    CheckpointStreamDecoder, CheckpointStreamEncoder, CheckpointStreamFooter,
+    CheckpointWalSourceRange, PersistedCompactionCutoverRecord, PersistedCompactionProductRole,
+    PhysicalCheckpointIdentity, PhysicalCheckpointSecurityBinding, PhysicalCheckpointSource,
+    VerifiedCheckpointStream, CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES,
     CHECKPOINT_BINDING_RECORD_PREFIX_BYTES, CHECKPOINT_DIRTY_FRAME_RECORD_BYTES,
     CHECKPOINT_STREAM_FOOTER_RECORD_BYTES, CHECKPOINT_STREAM_HEADER_RECORD_BYTES,
     MAX_CHECKPOINT_BINDING_RECORD_BYTES,
@@ -150,10 +155,12 @@ pub use in_memory_physical_format_model::{
 };
 pub use manifest::{
     maximum_current_root_entries, maximum_segment_manifest_pages, AllocationClassManifestEntry,
-    CurrentPhysicalRecordPlacement, DurableExtentManifest, DurableExtentRecordPlacement,
-    DurableFreeSpaceManifestHeader, DurableInlineRecordPlacement, DurablePhysicalRootManifest,
-    DurablePhysicalRootManifestBuilder, DurableSegmentManifest, ExtentManifestEntry,
-    ExtentManifestVocabulary, FreeSpaceBlockReference, FreeSpaceKey, FreeSpaceManifestEntry,
+    BoundedFreeSpaceMembershipBlockDecodeDenial, BoundedRootRoutingBlockDecodeDenial,
+    BoundedSegmentMembershipBlockDecodeDenial, CurrentPhysicalRecordPlacement,
+    DurableExtentManifest, DurableExtentRecordPlacement, DurableFreeSpaceManifestHeader,
+    DurableInlineRecordPlacement, DurablePhysicalRootManifest, DurablePhysicalRootManifestBuilder,
+    DurableSegmentManifest, ExtentManifestEntry, ExtentManifestVocabulary, FreeSpaceBlockReference,
+    FreeSpaceKey, FreeSpaceManifestEntry, FreeSpaceMembershipBlockDecodeLimits,
     FreeSpaceRoutingDenial, ManifestBlockReference, ManifestDiscoveryAuthority,
     ManifestDiscoveryCounterSnapshot, ManifestDiscoveryDenial, ManifestDiscoveryDenialKind,
     ManifestDiscoveryReport, ManifestVocabularyKind, MembershipManifestDenial,
@@ -163,9 +170,9 @@ pub use manifest::{
     PhysicalRootManifestRebuildWitness, PhysicalRootManifestVocabulary, PhysicalRootRoutingBlock,
     PhysicalSegmentMembershipBlock, ReclaimedByteInterpretation, RecordAllocationClass,
     RecordFreeSpaceManifestEntry, RecordSegmentPageManifestEntry, RootManifestDenial,
-    RootRoutingBlockDenial, SegmentManifestBlockReference, SegmentManifestEntry,
-    SegmentManifestVocabulary, SegmentMembershipBlockDenial, SegmentPageKey,
-    SegmentPageManifestEntry,
+    RootRoutingBlockDecodeLimits, RootRoutingBlockDenial, SegmentManifestBlockReference,
+    SegmentManifestEntry, SegmentManifestVocabulary, SegmentMembershipBlockDecodeLimits,
+    SegmentMembershipBlockDenial, SegmentPageKey, SegmentPageManifestEntry,
 };
 pub use offline_verifier::{
     InMemoryModelLayoutObservation, InMemoryModelLayoutObservationSource, ManifestTraversalReport,
@@ -191,6 +198,10 @@ pub use page_record::{
     SlotDirectoryEntryState, DURABLE_INLINE_PAGE_PREFIX_BYTES, DURABLE_INLINE_SLOT_BYTES,
 };
 pub use payload::{PhysicalPayloadView, PhysicalPayloadViewAdmission};
+pub use physical_data_frame_identity::{
+    certified_absent_prior_image_digest, write_persisted_physical_data_frame_identity,
+    PersistedPhysicalDataFrameSubject,
+};
 pub use placement::{RecordArtifactFile, RecordFrameCoordinate};
 pub use record_framing::{
     decode_data_frame_page_lsn, durable_artifact_checksum, encode_data_frame_page_lsn,
@@ -198,6 +209,12 @@ pub use record_framing::{
     RecordPagePayload, RecordPlacementClass, RecordPlacementWitness, DURABLE_FRAME_HEADER_BYTES,
 };
 pub use record_identity::PersistedRecordIdentity;
+pub use recovery_projection::{
+    PersistedInlineSegmentAllocation, PersistedPhysicalRecoveryFrame,
+    PersistedPhysicalRecoveryManifest, PersistedPhysicalRecoveryProjection,
+    PersistedPhysicalRecoveryRootState, PhysicalRecoveryProjectionDecodeLimits,
+    PhysicalRecoveryProjectionDenial,
+};
 pub use reference::{
     CheckpointAdjacencyPosture, CurrentRootManifestAdmission, ManifestMembershipDenial,
     ManifestMembershipProof, PhysicalFutureChunkId, PhysicalFutureChunkReference,
@@ -206,6 +223,10 @@ pub use reference::{
     PhysicalReferenceScope, PhysicalReferenceValidationCounterSnapshot,
     PhysicalReferenceValidationDenial, PhysicalReferenceValidationWitness, PhysicalScopeFamily,
     RootManifestIntegrityPosture, RootPublicationValidationWitness, StalePhysicalReference,
+};
+pub use root_selector::{
+    DurableRootSelector, RootSelectorDecodeDenial, RootSelectorIdentity, RootSelectorRole,
+    ROOT_SELECTOR_BYTES,
 };
 pub use security_metadata::{
     AllocationClassSecurityMetadataEnvelope, ExtentSecurityMetadataEnvelope,

@@ -14,9 +14,9 @@ use worth_store_wal::artifact_store::{
 
 use super::super::{configuration, durability_with_group_limit, media, success};
 use super::independent_wal_oracle::{
-    independent_canonical_redo, independent_frame_payload, independent_target_claim,
-    inspect_attempt_binding, inspect_member_payload, split_member_payload, BindingField,
-    BindingInspectionDenial, ExpectedAttemptBinding,
+    independent_canonical_redo, independent_frame_payload, independent_recovery_projection,
+    independent_target_claim, inspect_attempt_binding, inspect_member_payload,
+    split_member_payload, BindingField, BindingInspectionDenial, ExpectedAttemptBinding,
 };
 
 #[test]
@@ -84,8 +84,14 @@ fn real_wal_attempt_binding_is_independently_decoded_and_substitution_hostile() 
         })
         .collect::<Vec<_>>();
     assert_eq!(targets[0], targets[1]);
-    let expected_redo =
-        independent_canonical_redo(&source_redo, member.lsn_range().start().get(), &targets);
+    let projection = independent_recovery_projection(reserved.redo().encoded())
+        .expect("the independent oracle must admit the mandatory recovery projection");
+    let expected_redo = independent_canonical_redo(
+        &source_redo,
+        member.lsn_range().start().get(),
+        &targets,
+        projection,
+    );
     let expected = ExpectedAttemptBinding {
         key: key.identity().bytes(),
         lease_store: key.lease().store_identity().bytes(),
@@ -114,6 +120,7 @@ fn real_wal_attempt_binding_is_independently_decoded_and_substitution_hostile() 
             &[source_redo[1], source_redo[0]],
             member.lsn_range().start().get(),
             &targets,
+            projection,
         ),
         expected_redo,
         "the independent oracle must preserve the declared redo order"

@@ -2,7 +2,7 @@ use super::{
     capability_member_closure::validate_application_capability_members,
     ApplicationAuthorizationPathBuilder, ApplicationEntityRef, ApplicationFieldRef,
     ApplicationOperationRef, ApplicationRelationRef, ApplicationSchemaDeclarationDenial,
-    ApplicationSchemaMember, EqualityPredicate, NoApplicationCurrency, ReadOnly,
+    ApplicationSchemaMember, EqualityPredicate, NoApplicationUnit, ReadOnly,
 };
 use crate::application_capability::{
     ApplicationCapabilityAcceptedValues, ApplicationCapabilityActorComposition,
@@ -360,7 +360,7 @@ fn field<FieldMarker>(
     u64,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationFieldRef::from_schema_identifiers("Grant", "Facts", name)
 }
@@ -378,7 +378,7 @@ fn resource_binding<FieldMarker>(name: &'static str) -> ApplicationCapabilityFie
         u64,
         ReadOnly,
         EqualityPredicate,
-        NoApplicationCurrency,
+        NoApplicationUnit,
     >::from_schema_identifiers(
         "Resource", "ResourceFacts", name
     ))

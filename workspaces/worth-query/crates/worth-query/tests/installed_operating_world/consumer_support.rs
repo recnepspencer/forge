@@ -32,8 +32,8 @@ fn bound_projection_mints_one_query_owned_support_contract() {
     );
     assert_eq!(contract.replay(), bound.definition().semantics().replay);
     assert_eq!(
-        contract.reversal(),
-        &bound.definition().semantics().reversal
+        contract.aftermath(),
+        bound.definition().semantics().aftermath.as_ref()
     );
     assert_eq!(contract.lineage(), bound.definition().semantics().lineage);
     assert_eq!(

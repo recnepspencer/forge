@@ -17,8 +17,17 @@ use worth_query_declaration::facade::application_capability::{
     application_capability_revocation_program_target,
 };
 
+mod aftermath;
+mod cardinality_denial;
 mod elevation_lifecycle_program;
+mod external_effect;
+pub(super) use aftermath::operation_aftermath;
+pub(super) use cardinality_denial::WorthQueryOperationContractCardinalityDenial;
 use elevation_lifecycle_program::{lifecycle_program_targets, lifecycle_resource_decision_read};
+pub(super) use external_effect::operation_external_effect;
+
+#[cfg(test)]
+mod tests;
 
 pub(super) fn operation_execution_posture(
     members: &[ApplicationSchemaMember],
@@ -124,21 +133,6 @@ pub(super) fn operation_decision_fact_budget(
         } if installed == operation => Some(*maximum_fact_count),
         _ => None,
     })
-}
-
-pub(super) fn operation_decision_reads<Schema>(
-    schema: &WorthQueryInstalledApplicationSchema<Schema>,
-    operation: &str,
-    input_type: &str,
-) -> Vec<ApplicationOperationDecisionReadTarget>
-where
-    Schema: ApplicationSchema,
-{
-    operation_decision_reads_from_members(
-        schema.installed_declaration().members(),
-        operation,
-        input_type,
-    )
 }
 
 pub(super) fn operation_decision_reads_from_members(
@@ -251,21 +245,6 @@ where
     requirements.sort();
     requirements.dedup();
     Ok(requirements)
-}
-
-pub(super) fn operation_program<Schema>(
-    schema: &WorthQueryInstalledApplicationSchema<Schema>,
-    operation: &str,
-    input_type: &str,
-) -> Vec<ApplicationOperationProgramTarget>
-where
-    Schema: ApplicationSchema,
-{
-    operation_program_from_members(
-        schema.installed_declaration().members(),
-        operation,
-        input_type,
-    )
 }
 
 pub(super) fn operation_program_from_members(

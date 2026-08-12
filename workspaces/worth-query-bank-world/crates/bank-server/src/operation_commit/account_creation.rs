@@ -148,7 +148,10 @@ fn commit<Operation, Input, Scope>(
     runtime: &BankIdentityRuntime,
     invariant: bank_domain::proposals::BankInvariantApprovedProposal,
     effects: WorthQueryApplicationEffectProgramBuilder<BankSchema, Operation, Input, Scope>,
-) -> Result<BankMutationCommitOutcome, BankCommitPreparationDenial> {
+) -> Result<BankMutationCommitOutcome, BankCommitPreparationDenial>
+where
+    Input: Clone + Send + Sync + 'static,
+{
     let idempotency = application_idempotency(&invariant);
     let program = effects.finish()?;
     Ok(runtime

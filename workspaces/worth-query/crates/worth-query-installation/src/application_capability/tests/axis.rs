@@ -5,7 +5,7 @@ pub(super) enum Axis {
     Relation,
     Field,
     Purpose,
-    Amount,
+    Magnitude,
     Cardinality,
     Workflow,
     ResourceWorkflow,

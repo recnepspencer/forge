@@ -14,6 +14,9 @@ use super::{
     WorthQueryInstalledApplicationOperationExecutionPosture,
     WorthQueryInstalledMutationPrecondition,
 };
+use crate::application_aftermath::{
+    InstalledExternalEffectContract, WorthQueryInstalledAftermathContract,
+};
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::domain_computation::{
     WorthQueryExecutionAccessProductFamily, WorthQueryExecutionAllocatorFamily,
@@ -57,20 +60,27 @@ pub struct WorthQueryCompiledApplicationOperationContracts {
     additional_authorization_fact_count: usize,
     mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
     execution_posture: WorthQueryInstalledApplicationOperationExecutionPosture,
+    external_effect: InstalledExternalEffectContract,
+    aftermath: Option<WorthQueryInstalledAftermathContract>,
 }
 
 impl WorthQueryCompiledApplicationOperationContracts {
-    pub(crate) fn compile(
-        authorization: WorthQueryInstalledApplicationOperationAuthorization,
-        mut ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
-        mut program: Vec<ApplicationOperationProgramTarget>,
-        mut decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
-        decision_fact_budget: usize,
-        projection_work_budget: usize,
-        additional_authorization_fact_count: usize,
-        mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
-        execution_posture: WorthQueryInstalledApplicationOperationExecutionPosture,
+    pub(in crate::application_operation) fn compile(
+        compilation: super::WorthQuerySealedOperationContractCompilation,
     ) -> Self {
+        let (
+            authorization,
+            mut ability_requirements,
+            mut program,
+            mut decision_reads,
+            decision_fact_budget,
+            projection_work_budget,
+            additional_authorization_fact_count,
+            mutation_preconditions,
+            execution_posture,
+            external_effect,
+            aftermath,
+        ) = compilation.into_parts();
         ability_requirements.sort();
         ability_requirements.dedup();
         program.sort();
@@ -134,11 +144,26 @@ impl WorthQueryCompiledApplicationOperationContracts {
             additional_authorization_fact_count,
             mutation_preconditions,
             execution_posture,
+            external_effect,
+            aftermath,
         }
     }
 
     pub fn mutation_preconditions(&self) -> &[WorthQueryInstalledMutationPrecondition] {
         &self.mutation_preconditions
+    }
+
+    /// The operation's installed external-effect contract.
+    ///
+    /// `None` is the load-bearing case: it is what makes an ordinary mutation
+    /// pay exactly zero dispatch cost.
+    pub const fn external_effect(&self) -> &InstalledExternalEffectContract {
+        &self.external_effect
+    }
+
+    /// The operation's installed aftermath contract, when declared.
+    pub const fn aftermath(&self) -> Option<&WorthQueryInstalledAftermathContract> {
+        self.aftermath.as_ref()
     }
 
     pub const fn authorization(&self) -> WorthQueryInstalledApplicationOperationAuthorization {
@@ -241,10 +266,6 @@ impl WorthQueryCompiledApplicationOperationContracts {
         &self,
     ) -> WorthQueryInstalledApplicationOperationExecutionPosture {
         self.execution_posture
-    }
-
-    pub(crate) const fn additional_authorization_fact_count(&self) -> usize {
-        self.additional_authorization_fact_count
     }
 }
 

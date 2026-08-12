@@ -105,13 +105,13 @@ pub(super) fn certify_replay_recovery(
 
     let mut live_bundle = StrategyCertificationBundle {
         main_commit_strategy_artifacts: main_commit
-            .publication
+            .publication()
             .strategy_artifacts
             .as_ref()
             .expect("main strategy artifacts")
             .clone(),
         feature_commit_strategy_artifacts: feature_commit
-            .publication
+            .publication()
             .strategy_artifacts
             .as_ref()
             .expect("feature strategy artifacts")
@@ -141,7 +141,7 @@ pub(super) fn certify_replay_recovery(
         feature_replay,
         controller_sequence_noop: ControllerSequenceNoopEvidence {
             strategy_artifacts: controller_feature_idempotent_commit
-                .publication
+                .publication()
                 .strategy_artifacts
                 .as_ref()
                 .expect("controller idempotent strategy artifacts")

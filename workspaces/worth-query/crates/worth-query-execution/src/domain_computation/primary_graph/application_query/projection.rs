@@ -6,7 +6,7 @@ use worth_query_declaration::facade::application_query::{
     ApplicationQueryResultTraversal, ExactlyOneResult, ManyResults, OptionalOneResult,
 };
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, OptionalApplicationFieldValue, TypedApplicationReadableValue,
+    ApplicationFieldUnit, OptionalApplicationFieldValue, TypedApplicationReadableValue,
     WritePosture,
 };
 
@@ -83,7 +83,7 @@ impl WorthQueryApplicationProjectionDenial {
 }
 
 impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query> {
-    pub fn field<Slot, Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn field<Slot, Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &self,
         selector: ApplicationQueryResultFieldRef<
             Query,
@@ -95,13 +95,13 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
     ) -> Result<Value, WorthQueryApplicationProjectionDenial>
     where
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         Query: 'static,
         Slot: 'static,
     {
@@ -109,7 +109,7 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
             .into_required(WorthQueryApplicationProjectionDenialKind::FieldOmitted)
     }
 
-    pub fn optional_field<Slot, Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn optional_field<Slot, Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &self,
         selector: ApplicationQueryOptionalResultFieldRef<
             Query,
@@ -121,14 +121,14 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
     ) -> Result<Option<Value>, WorthQueryApplicationProjectionDenial>
     where
         Field: OptionalApplicationFieldValue<Value = Value>,
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         Query: 'static,
         Slot: 'static,
     {

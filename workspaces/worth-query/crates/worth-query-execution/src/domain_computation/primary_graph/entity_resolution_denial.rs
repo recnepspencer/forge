@@ -9,6 +9,7 @@ pub enum WorthQueryEntityResolutionDenialKind {
     AmbiguousEntity,
     CorruptIdentityIndex,
     ProjectionWorkBudgetExceeded,
+    ForeignResolutionTruth,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

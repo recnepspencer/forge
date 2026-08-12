@@ -1,6 +1,10 @@
 #[test]
 fn managed_run_authority_boundaries_hold() {
     let cases = trybuild::TestCases::new();
+    cases.pass("tests/ui/installed_domain/managed_run/direct_terminal_cleanup_positive.rs");
+    cases.pass("tests/ui/installed_domain/managed_run/workflow_terminal_cleanup_positive.rs");
+    cases.pass("tests/ui/installed_domain/managed_run/yielded_owner_positive.rs");
+    cases.pass("tests/ui/installed_domain/managed_run/readmission_cleanup_positive.rs");
     for path in MANAGED_RUN_AUTHORITY_BOUNDARIES {
         cases.compile_fail(path);
     }
@@ -17,8 +21,27 @@ const MANAGED_RUN_AUTHORITY_BOUNDARIES: &[&str] = &[
     "tests/ui/installed_domain/managed_run/retained_memory_construction_is_private.rs",
     "tests/ui/installed_domain/managed_run/retained_memory_is_move_only.rs",
     "tests/ui/installed_domain/managed_run/running_run_cannot_fabricate_terminal.rs",
+    "tests/ui/installed_domain/managed_run/direct_terminal_cleanup_cannot_expose_lower_receipts.rs",
+    "tests/ui/installed_domain/managed_run/direct_terminal_cleanup_cannot_convert_to_lower_receipts.rs",
+    "tests/ui/installed_domain/managed_run/direct_terminal_cleanup_construction_is_private.rs",
+    "tests/ui/installed_domain/managed_run/direct_terminal_cleanup_must_be_resolved.rs",
+    "tests/ui/installed_domain/managed_run/workflow_terminal_cleanup_cannot_expose_lower_receipts.rs",
+    "tests/ui/installed_domain/managed_run/workflow_terminal_cleanup_cannot_convert_to_lower_receipts.rs",
+    "tests/ui/installed_domain/managed_run/workflow_terminal_cleanup_construction_is_private.rs",
+    "tests/ui/installed_domain/managed_run/workflow_terminal_cleanup_must_be_resolved.rs",
     "tests/ui/installed_domain/managed_run/pending_chunk_cannot_advance_provider.rs",
     "tests/ui/installed_domain/managed_run/yielded_run_is_move_only.rs",
+    "tests/ui/installed_domain/managed_run/yielded_owner_must_be_resolved.rs",
+    "tests/ui/installed_domain/managed_run/yielded_owner_cannot_expose_lower_receipts.rs",
+    "tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_lower_receipts.rs",
+    "tests/ui/installed_domain/managed_run/yielded_owner_cannot_convert_to_query_authority.rs",
+    "tests/ui/installed_domain/managed_run/yielded_workflow_owner_cannot_convert_to_artifacts.rs",
+    "tests/ui/installed_domain/managed_run/yielded_owner_construction_is_private.rs",
+    "tests/ui/installed_domain/managed_run/yield_cleanup_cannot_expose_lower_receipts.rs",
+    "tests/ui/installed_domain/managed_run/yield_cleanup_pending_cannot_expose_authority.rs",
+    "tests/ui/installed_domain/managed_run/yield_cleanup_cannot_convert_to_lower_receipts.rs",
+    "tests/ui/installed_domain/managed_run/yield_cleanup_construction_is_private.rs",
+    "tests/ui/installed_domain/managed_run/yield_cleanup_must_be_resolved.rs",
     "tests/ui/installed_domain/managed_run/yield_requires_consumed_safe_point.rs",
     "tests/ui/installed_domain/managed_run/yield_outcome_must_be_resolved.rs",
     "tests/ui/installed_domain/managed_run/pending_chunk_cannot_yield.rs",
@@ -28,9 +51,19 @@ const MANAGED_RUN_AUTHORITY_BOUNDARIES: &[&str] = &[
     "tests/ui/installed_domain/managed_run/bridge_readmission_commit_result_cannot_masquerade_as_basis.rs",
     "tests/ui/installed_domain/managed_run/checkpoint_evidence_cannot_restore.rs",
     "tests/ui/installed_domain/managed_run/partial_readmission_states_cannot_advance.rs",
+    "tests/ui/installed_domain/managed_run/workflow_readmission_owner_types_are_private.rs",
+    "tests/ui/installed_domain/managed_run/yielded_workflow_cannot_begin_partial_readmission.rs",
+    "tests/ui/installed_domain/managed_run/yielded_workflow_cannot_commit_partial_readmission.rs",
+    "tests/ui/installed_domain/managed_run/yielded_workflow_cannot_abort_partial_readmission.rs",
+    "tests/ui/installed_domain/managed_run/yielded_workflow_cannot_take_fresh_call.rs",
     "tests/ui/installed_domain/managed_run/readmission_cleanup_cannot_resume.rs",
+    "tests/ui/installed_domain/managed_run/readmission_cleanup_cannot_expose_lower_receipts.rs",
+    "tests/ui/installed_domain/managed_run/readmission_cleanup_cannot_convert_to_lower_receipts.rs",
+    "tests/ui/installed_domain/managed_run/readmission_cleanup_construction_is_private.rs",
+    "tests/ui/installed_domain/managed_run/readmission_cleanup_must_be_resolved.rs",
     "tests/ui/installed_domain/managed_run/terminal_readmission_recovery_cannot_retry.rs",
     "tests/ui/installed_domain/managed_run/provider_session_token_construction_is_private.rs",
+    "tests/ui/installed_domain/managed_run/provider_session_affinity_is_not_public.rs",
     "tests/ui/installed_domain/managed_run/prepared_session_cannot_stage_effects_early.rs",
     "tests/ui/installed_domain/managed_run/staged_session_cannot_prepare_without_phase_11.rs",
     "tests/ui/installed_domain/managed_run/session_prepare_outcome_cannot_commit_publicly.rs",

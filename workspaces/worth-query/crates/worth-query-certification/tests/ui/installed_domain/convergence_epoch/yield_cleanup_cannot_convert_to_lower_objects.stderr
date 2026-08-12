@@ -1,0 +1,113 @@
+error[E0277]: the trait bound `WorthQueryDirectConvergenceYieldCleanupReceipt: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:20:14
+   |
+20 |     let _ = <WorthQueryDirectConvergenceYieldCleanupReceipt as Deref>::deref(&direct);
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryDirectConvergenceYieldCleanupReceipt`
+
+error[E0277]: the trait bound `WorthQueryDirectConvergenceYieldCleanupReceipt: AsRef<WorthQueryDirectYieldCleanupReceipt>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:21:74
+   |
+21 |     let _: &ManagedDirectReceipt = AsRef::<ManagedDirectReceipt>::as_ref(&direct);
+   |                                    ------------------------------------- ^^^^^^^ the trait `AsRef<WorthQueryDirectYieldCleanupReceipt>` is not implemented for `WorthQueryDirectConvergenceYieldCleanupReceipt`
+   |                                    |
+   |                                    required by a bound introduced by this call
+
+error[E0277]: the trait bound `WorthQueryDirectConvergenceYieldCleanupReceipt: Borrow<WorthQueryDirectYieldCleanupReceipt>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:22:75
+   |
+22 |     let _: &ManagedDirectReceipt = Borrow::<ManagedDirectReceipt>::borrow(&direct);
+   |                                    -------------------------------------- ^^^^^^^ the trait `Borrow<WorthQueryDirectYieldCleanupReceipt>` is not implemented for `WorthQueryDirectConvergenceYieldCleanupReceipt`
+   |                                    |
+   |                                    required by a bound introduced by this call
+
+error[E0277]: the trait bound `WorthQueryDirectYieldCleanupReceipt: From<WorthQueryDirectConvergenceYieldCleanupReceipt>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:23:70
+   |
+23 |     let _: ManagedDirectReceipt = Into::<ManagedDirectReceipt>::into(direct);
+   |                                   ---------------------------------- ^^^^^^ the trait `From<WorthQueryDirectConvergenceYieldCleanupReceipt>` is not implemented for `WorthQueryDirectYieldCleanupReceipt`
+   |                                   |
+   |                                   required by a bound introduced by this call
+   |
+   = note: required for `WorthQueryDirectConvergenceYieldCleanupReceipt` to implement `Into<WorthQueryDirectYieldCleanupReceipt>`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceYieldCleanupReceipt: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:25:14
+   |
+25 |     let _ = <WorthQueryWorkflowConvergenceYieldCleanupReceipt as Deref>::deref(&workflow);
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryWorkflowConvergenceYieldCleanupReceipt`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceYieldCleanupReceipt: AsRef<WorthQueryWorkflowYieldCleanupReceipt>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:26:78
+   |
+26 |     let _: &ManagedWorkflowReceipt = AsRef::<ManagedWorkflowReceipt>::as_ref(&workflow);
+   |                                      --------------------------------------- ^^^^^^^^^ the trait `AsRef<WorthQueryWorkflowYieldCleanupReceipt>` is not implemented for `WorthQueryWorkflowConvergenceYieldCleanupReceipt`
+   |                                      |
+   |                                      required by a bound introduced by this call
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceYieldCleanupReceipt: Borrow<WorthQueryWorkflowYieldCleanupReceipt>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:27:79
+   |
+27 |     let _: &ManagedWorkflowReceipt = Borrow::<ManagedWorkflowReceipt>::borrow(&workflow);
+   |                                      ---------------------------------------- ^^^^^^^^^ the trait `Borrow<WorthQueryWorkflowYieldCleanupReceipt>` is not implemented for `WorthQueryWorkflowConvergenceYieldCleanupReceipt`
+   |                                      |
+   |                                      required by a bound introduced by this call
+
+error[E0277]: the trait bound `WorthQueryWorkflowYieldCleanupReceipt: From<WorthQueryWorkflowConvergenceYieldCleanupReceipt>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:28:74
+   |
+28 |     let _: ManagedWorkflowReceipt = Into::<ManagedWorkflowReceipt>::into(workflow);
+   |                                     ------------------------------------ ^^^^^^^^ the trait `From<WorthQueryWorkflowConvergenceYieldCleanupReceipt>` is not implemented for `WorthQueryWorkflowYieldCleanupReceipt`
+   |                                     |
+   |                                     required by a bound introduced by this call
+   |
+   = note: required for `WorthQueryWorkflowConvergenceYieldCleanupReceipt` to implement `Into<WorthQueryWorkflowYieldCleanupReceipt>`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceYieldCleanupPending: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:30:14
+   |
+30 |     let _ = <WorthQueryWorkflowConvergenceYieldCleanupPending as Deref>::deref(&pending);
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryWorkflowConvergenceYieldCleanupPending`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceYieldCleanupPending: AsRef<WorthQueryWorkflowYieldCleanupPending>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:31:78
+   |
+31 |     let _: &ManagedWorkflowPending = AsRef::<ManagedWorkflowPending>::as_ref(&pending);
+   |                                      --------------------------------------- ^^^^^^^^ the trait `AsRef<WorthQueryWorkflowYieldCleanupPending>` is not implemented for `WorthQueryWorkflowConvergenceYieldCleanupPending`
+   |                                      |
+   |                                      required by a bound introduced by this call
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceYieldCleanupPending: Borrow<WorthQueryWorkflowYieldCleanupPending>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:32:79
+   |
+32 |     let _: &ManagedWorkflowPending = Borrow::<ManagedWorkflowPending>::borrow(&pending);
+   |                                      ---------------------------------------- ^^^^^^^^ the trait `Borrow<WorthQueryWorkflowYieldCleanupPending>` is not implemented for `WorthQueryWorkflowConvergenceYieldCleanupPending`
+   |                                      |
+   |                                      required by a bound introduced by this call
+
+error[E0277]: the trait bound `WorthQueryWorkflowYieldCleanupPending: From<WorthQueryWorkflowConvergenceYieldCleanupPending>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:33:74
+   |
+33 |     let _: ManagedWorkflowPending = Into::<ManagedWorkflowPending>::into(pending);
+   |                                     ------------------------------------ ^^^^^^^ the trait `From<WorthQueryWorkflowConvergenceYieldCleanupPending>` is not implemented for `WorthQueryWorkflowYieldCleanupPending`
+   |                                     |
+   |                                     required by a bound introduced by this call
+   |
+   = note: required for `WorthQueryWorkflowConvergenceYieldCleanupPending` to implement `Into<WorthQueryWorkflowYieldCleanupPending>`
+
+error[E0277]: the trait bound `WorthQueryDirectConvergenceYieldCleanupReceipt: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:20:13
+   |
+20 |     let _ = <WorthQueryDirectConvergenceYieldCleanupReceipt as Deref>::deref(&direct);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryDirectConvergenceYieldCleanupReceipt`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceYieldCleanupReceipt: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:25:13
+   |
+25 |     let _ = <WorthQueryWorkflowConvergenceYieldCleanupReceipt as Deref>::deref(&workflow);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryWorkflowConvergenceYieldCleanupReceipt`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceYieldCleanupPending: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_convert_to_lower_objects.rs:30:13
+   |
+30 |     let _ = <WorthQueryWorkflowConvergenceYieldCleanupPending as Deref>::deref(&pending);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryWorkflowConvergenceYieldCleanupPending`

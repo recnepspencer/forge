@@ -4,7 +4,7 @@ use worth_query_decl::facade::{
         ApplicationQueryResultFieldRef,
     },
     application_schema::{
-        EqualityPredicate, NoApplicationCurrency, ReadOnly,
+        EqualityPredicate, NoApplicationUnit, ReadOnly,
     },
 };
 
@@ -31,7 +31,7 @@ fn order_with_foreign_selector(
         u64,
         ReadOnly,
         EqualityPredicate,
-        NoApplicationCurrency,
+        NoApplicationUnit,
     >,
 ) {
     let _ = builder.order_by(selector, ApplicationQueryOrderingDirection::Ascending);

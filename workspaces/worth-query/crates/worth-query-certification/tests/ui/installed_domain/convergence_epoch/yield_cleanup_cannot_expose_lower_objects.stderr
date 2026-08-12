@@ -1,0 +1,35 @@
+error[E0599]: no method named `managed_receipt` found for reference `&WorthQueryDirectConvergenceYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_expose_lower_objects.rs:17:43
+   |
+17 |     let _: &ManagedDirectReceipt = direct.managed_receipt();
+   |                                           ^^^^^^^^^^^^^^^ method not found in `&WorthQueryDirectConvergenceYieldCleanupReceipt`
+
+error[E0599]: no method named `managed_receipt` found for reference `&WorthQueryWorkflowConvergenceYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_expose_lower_objects.rs:18:47
+   |
+18 |     let _: &ManagedWorkflowReceipt = workflow.managed_receipt();
+   |                                               ^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowConvergenceYieldCleanupReceipt`
+
+error[E0599]: no method named `managed_pending` found for reference `&WorthQueryWorkflowConvergenceYieldCleanupPending` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_expose_lower_objects.rs:19:46
+   |
+19 |     let _: &ManagedWorkflowPending = pending.managed_pending();
+   |                                              ^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowConvergenceYieldCleanupPending`
+
+error[E0599]: no method named `clone` found for struct `WorthQueryDirectConvergenceYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_expose_lower_objects.rs:27:20
+   |
+27 |     let _ = direct.clone();
+   |                    ^^^^^ method not found in `WorthQueryDirectConvergenceYieldCleanupReceipt`
+
+error[E0599]: no method named `clone` found for struct `WorthQueryWorkflowConvergenceYieldCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_expose_lower_objects.rs:28:22
+   |
+28 |     let _ = workflow.clone();
+   |                      ^^^^^ method not found in `WorthQueryWorkflowConvergenceYieldCleanupReceipt`
+
+error[E0599]: no method named `clone` found for struct `WorthQueryWorkflowConvergenceYieldCleanupPending` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_cleanup_cannot_expose_lower_objects.rs:29:21
+   |
+29 |     let _ = pending.clone();
+   |                     ^^^^^ method not found in `WorthQueryWorkflowConvergenceYieldCleanupPending`

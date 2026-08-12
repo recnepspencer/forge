@@ -1,11 +1,15 @@
 pub use crate::artifact::{Artifact, ArtifactParts, ArtifactView};
 pub use crate::assumption::{
-    AssumptionBasis, AuthorityRevalidationRequired, AuthorityRevalidationRequiredBasis,
-    BoundaryBridged, BoundaryBridgedAuthorityRevalidationRequiredBasis,
-    BoundaryBridgedRebindRequiredBasis, BoundaryBridgedStaleReadableBasis, CurrentValidity,
-    FreshnessClass, FreshnessScopedBasis, NoAssumptionBasis, RebindRequired, RebindRequiredBasis,
-    StaleReadable, StaleReadableBasis,
+    evaluate_freshness, take_sample, AssumptionBasis, AuthorityRevalidationRequired,
+    AuthorityRevalidationRequiredBasis, BoundaryBridged,
+    BoundaryBridgedAuthorityRevalidationRequiredBasis, BoundaryBridgedRebindRequiredBasis,
+    BoundaryBridgedStaleReadableBasis, CurrentValidity, EvaluatedFreshness, FreshnessClass,
+    FreshnessEvaluation, FreshnessPolicy, FreshnessSample, FreshnessScopedBasis, FreshnessSource,
+    FreshnessVerdict, NoAssumptionBasis, RebindRequired, RebindRequiredBasis, StaleReadable,
+    StaleReadableBasis,
 };
+pub use crate::binding::{Binding, BindingAxes};
+pub use crate::brand::{with_brand, Brand, Branded};
 pub use crate::collections::{CanonicalVec, DisjointPair, ExactlyOne, NonEmpty, Pair, UniqueVec};
 pub use crate::composition::{
     compose_join_ready_recipe_pair, fork_artifact_pair, join_artifact_pair, join_ready_recipe_pair,
@@ -13,6 +17,10 @@ pub use crate::composition::{
     CompositionFamilySymbol, FamilyLifecycleAction, FamilyResolvedReference, ForkOutputs2,
     JoinInputs2, LoweredFamilyProgram2,
 };
+pub use crate::effect::{
+    prove_derivation, prove_inversion, ActionMarker, DerivedFrom, InverseOf, Inverts, Performed,
+};
+pub use crate::linear::{LinearResource, TerminalReceipt, TerminalState};
 pub use crate::phase::PhaseMarker;
 pub use crate::proof::{
     AuthorityMarker, AuthorityProves, AuthorityWitness, CanonicalOrder, CapabilityMarker,

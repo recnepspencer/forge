@@ -1,12 +1,22 @@
 # Milestone 9.16: Authenticated Async Bank World And The Ordinary Query Front Door
 
 > **Current execution posture:** Runtime Hardening Phase 7 is closed through
-> Phase 7.7 Gate D; Runtime Phase 8 is the next implementation boundary.
+> Phase 7.7 Gate D. Runtime Phase 8's accepted application-aftermath,
+> external-effect, recovery, retention, and publication foundation is **OPEN**
+> after hostile QA reopened F1-F6A on **2026-08-08** under the
+> [Runtime Phase 8 finish plan](./milestone-9.16-runtime-phase-8-finish-plan.md); see the
+> [Phase 8 closure ledger](./milestone-9.16-runtime-phase-8-closure-ledger.md)
+> for closure evidence and the
+> [feature guide](../../workspaces/worth-query/crates/worth-query/docs/execution/application-aftermath-and-recovery.md) for the
+> supported developer surface. Historical gate labels remain evidence only.
+> The present undo/redo implementation is provisional: it may remain in the
+> tree, but its product semantics and final public contract belong to
+> [Milestone 9.18](./milestone-9.18.md).
 > [Milestone 9.16.1](./milestone-9.16.1.md) is closed, and its canonical
 > graph-progression substrate remains inherited. Gates A-C and the executable
-> release/disbursement slices are closed; typed outcome publication, the two
-> lower-capability product consumers, complete warm-locality proof, and final
-> external certification must close before Runtime Phase 8 begins.
+> release/disbursement slices remain historical prerequisites; Phase 8
+> dependents must not rely on Phase 8 closure until the correction ledger is
+> source-bound and reclosed.
 
 ## Goal
 
@@ -19,7 +29,7 @@ The proving application is an in-memory bank and person-to-person payment world.
 It has real users, personal, business, institution, branch, and estate scopes,
 capability-constrained customer and employee authority, field-level disclosure,
 double-entry monetary effects, deposits, withdrawals, transfers, approvals,
-compensating reversals, linear undo and redo, concurrent requests, live
+compensating reversals, provisional linear undo and redo experiments, concurrent requests, live
 updates, and a real Authentik OIDC boundary. Its hostile authorization world
 includes an employee whose institutional power conflicts with a personal
 interest in a deceased relative's estate, plus a governed break-glass path that
@@ -45,11 +55,15 @@ schema-bound typed intent
     -> provider compare-and-commit
     -> typed outcome
     -> ordinary read / mutation / workflow / history / live result
-    -> governed recovery / compensation / linear redo
+    -> governed recovery / compensation
+    -> provisional undo / redo experimentation (not accepted product closure)
 ```
 
-Milestone 9.17 follows this milestone. Advanced access and computation features
-must be built through the same public front door proven here.
+Milestone 9.17 follows with composite Runtime Bridge product branches over
+exact Relational and Signal bases plus Relational branch-local MVCC. Milestone
+9.18 accepts tree-based semantic undo/redo over that composite history.
+Advanced access and computation begin in Milestone 9.19 and must use the same
+public front door.
 
 ## Work Types And Phase Identity
 
@@ -74,7 +88,9 @@ The Runtime Hardening Track owns generic Query product work:
   Query-owned continuations, and one-shot/history/live/preview parity;
 - Runtime Phase 7 establishes purpose-bound capabilities, field disclosure,
   conflict-of-interest, delegation, and break-glass authority;
-- Runtime Phase 8 establishes actionable recovery plus linear undo and redo;
+- Runtime Phase 8 establishes the accepted aftermath, external-effect,
+  recovery, retention, and publication foundation; its existing undo and redo
+  lane remains provisional for Milestone 9.18;
   and
 - Runtime Phase 9 performs public policy cutover and workaround deletion.
 
@@ -117,7 +133,7 @@ classify it:
 5. **The discovery changes public cutover, deletion, documentation, or the
    decisive courtroom.** Add the next Closure phase.
 6. **The discovery has an independent advanced-computation purpose.** Assign it
-   to Milestone 9.17 rather than expanding the bank milestone.
+   to Milestones 9.19 through 9.22 rather than expanding the bank milestone.
 
 A new phase must be an appropriate vertical slice with one causal guarantee,
 not a ticket-sized patch. It states what proof it consumes, what architecture it
@@ -577,10 +593,15 @@ F14. Descriptive digests and installation authority seals are different
     post-materialization sort, or repeated child query cannot satisfy the
     contract. Covered receipts prove exact-zero caller-owned N+1 work and zero
     undeclared fallback.
-61. Every installed mutation declares `Reversible`, `Compensatable`,
-    `Reconcilable`, or `Irreversible` aftermath posture. The public result
-    exposes only next actions valid for that operation, outcome, current
-    authority, and provider posture.
+61. Every installed mutation declares two things: its correction authority --
+    the runtime alone, the runtime together with a distinct actor or external
+    truth owner, or none -- and, unless that authority is none, exactly one
+    correction mechanism. Query derives the published `Reversible`,
+    `Compensatable`, `Reconcilable`, or `Irreversible` posture from that pair.
+    A declaration may not state a posture directly, and an omitted or
+    contradictory axis fails installation rather than defaulting in either
+    direction. The public result exposes only next actions valid for that
+    operation, outcome, current authority, and provider posture.
 62. Undo never deletes or rewrites committed truth. It is a newly admitted
     operation derived from the exact committed receipt and installed inverse
     or compensation contract, with fresh authentication, authorization,
@@ -594,14 +615,22 @@ F14. Descriptive digests and installation authority seals are different
     may expose a descriptive redo intent for fresh execution against current
     truth. Relevant drift, changed policy, expired capability, or changed
     invariant posture may deny it.
-65. Milestone 9.16 guarantees only a linear, current-head, receipt-linked
-    undo/redo journey.
-    A new divergent operation may invalidate the convenience redo chain
-    without deleting history. Branch selection, branch-local inversion,
-    branch-shaped redo, merge interaction, and history navigation are owned by
-    the [cross-runtime merging-and-branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
-    This milestone creates no placeholder API, directory, support posture, or
-    implied authority for them.
+65. Milestone 9.16 historically proposed a linear, current-head,
+    receipt-linked undo/redo journey. The implementation is now provisional;
+    Milestone 9.18 must accept, revise, or replace it before it becomes a
+    guarantee.
+    Relational remains the sole owner of its current commit identity, parents,
+    branch head, ancestry, and publication. Query owns typed `undo-of` /
+    `redo-of` operation meaning but owns no parallel history chain or head.
+    Milestone 9.17 adds Runtime Bridge-owned composite product branches over
+    exact Relational and Signal bases while preserving each component owner;
+    Milestone 9.18 owns exact composite source/target selection, tree-based
+    reversal/reapplication, and fresh Query admission as new composite history.
+    Runtime Bridge coordinates component correspondence and publication but
+    owns neither correction meaning nor Relational or Signal internal
+    currentness. Semantic merge, rebase, multi-parent publication, offline
+    synchronization, and distributed recovery remain governed by the
+    [cross-runtime merging-and-branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
 66. Indeterminate and externally unresolved outcomes carry a framework-owned
     recovery handle naming the legal next actions: inspect, resolve by
     idempotency, retry safely, compensate, reconcile, or dispose. A bare status
@@ -610,6 +639,18 @@ F14. Descriptive digests and installation authority seals are different
     remain distinct typed facts. Local commit may authorize managed dispatch,
     but it cannot claim that a device, payment rail, notification system, or
     other external authority completed its effect.
+68. No operation emits an escaping effect without a committed local fact
+    anchoring it. An application may declare an operation with no domain
+    mutation; the runtime still commits that operation's dispatch intent in the
+    same transaction, and that record is the anchor. There is therefore no
+    mutation-free external effect -- only an operation whose sole domain effect
+    is its dispatch record. An escaping effect without an anchor has no
+    correlation target, no idempotency record, no recovery handle, and no
+    authoritative local answer to whether it occurred, so anchoring is a
+    property of the runtime rather than a per-operation choice. An operation
+    that declares an escaping effect can never publish `Reversible` posture,
+    because reversal derives from recorded inverse data without external
+    reread.
 
 ## Destination Topology
 
@@ -2984,19 +3025,22 @@ From this point forward:
 Milestone 9.16 still has one ordinary installed branch and does not implement
 multiple branch heads, branch-local version allocation, concurrent writers on
 different branches, branch creation, merge, rebase, or branch-local inversion.
-Per-branch MVCC and concurrent independent-branch writers begin in Milestone
-9.17. Semantic branch management, merge, and branch-shaped aftermath remain in
-the cross-runtime merging-and-branching roadmap. The prohibition on
+Composite product-branch creation, exact Relational/Signal basis selection, and
+Relational branch-local MVCC begin in Milestone 9.17; tree-based semantic
+reversal and reapplication begin in Milestone 9.18. Semantic merge, rebase,
+multi-parent publication, offline synchronization, and distributed recovery
+remain in the cross-runtime merging-and-branching roadmap. The prohibition on
 branch-shaped aftermath below does not permit branch affinity to be omitted
 from ordinary execution evidence.
 
-### Runtime Hardening Track — Phase 8: Recovery, Linear Undo, And Redo
+### Runtime Hardening Track — Phase 8: Application Aftermath, External Effects, And Recovery
 
 **Requirement**
 
-Expose actionable recovery and receipt-linked linear aftermath without
-rewriting history, importing certification replay, or pretending that a local
-commit proves an external effect.
+Expose installed application aftermath, recoverable external effects, exact
+retained prior truth, and closed publication without rewriting history,
+importing certification replay, or pretending that a local commit proves an
+external effect.
 
 Runtime Phase 8 is implemented through the ordered internal proof gates
 8.1-8.6 below. They are not parallel aftermath conveniences: each gate may
@@ -3004,6 +3048,18 @@ expose only next actions justified by the installed posture and authority
 proved before it. A discovery that strengthens a completed gate becomes an
 append-only corrective phase or milestone and blocks unfinished dependents
 rather than adding an exceptional rollback path.
+
+The refined requirement text, lower-runtime gap inventory, carrier repairs,
+counter contract, and `R8.*` requirement identifiers for these gates live in
+[`milestone-9.16-runtime-phase-8.md`](./milestone-9.16-runtime-phase-8.md).
+That document specifies; it does not relax or renumber the gates below.
+
+**Current scope amendment:** the
+[Runtime Phase 8 finish plan](./milestone-9.16-runtime-phase-8-finish-plan.md)
+governs cleanup. The undo- and redo-specific bullets below record the historical
+design and are provisional successor requirements, not current Phase 8 closure
+requirements. Existing code may remain, but only accepted aftermath, external
+effect, recovery, retention, authority, and publication foundations close here.
 
 **Must establish**
 
@@ -3023,8 +3079,12 @@ rather than adding an exceptional rollback path.
   irreversible legal, audit, approval, or escaped-effect cases;
 - redo as a descriptive intent available only after a proved undo, requiring
   fresh authority and current-truth validation and never importing replay;
-- one linear parent-causality chain with explicit redo invalidation after a
-  divergent current-head operation; and
+- Query-owned typed `undo-of` / `redo-of` semantics co-committed through the
+  ordinary Relational transaction, with Relational remaining the sole owner of
+  commit identity, parents, branch head, ancestry, and publication;
+- explicit redo invalidation when Relational's authoritative current head
+  diverges from the head bound by the redo intent, enforced again as an atomic
+  compare-and-commit precondition rather than by a Query-owned chain; and
 - provider commit, emitted application causality, dispatch, external
   acknowledgement, external completion, compensation, and reconciliation as
   distinct typed postures; and
@@ -3053,8 +3113,18 @@ worth-query-execution/src/domain_computation/application_aftermath/
     undo_progression.rs
     redo_intent.rs
     redo_admission.rs
-    linear_lineage.rs
+    causality/
+        undo.rs
+        redo.rs
+        committed.rs
+        current_head.rs
     external_effect.rs
+
+worth-query-execution/src/domain_computation/primary_graph/provider/
+    application_causality/
+        prepare.rs
+        commit_fact.rs
+        lookup.rs
 
 worth-query-publication/src/application_aftermath/
     outcome.rs
@@ -3068,6 +3138,16 @@ next actions. Execution owns attempt-bound progression and consumes current
 runtime authority. Publication describes the resulting posture and available
 next actions but cannot manufacture a recovery, undo, reconciliation, or redo
 handle from identities carried over the wire.
+
+Relational remains the sole owner of commit identity, ordered parents, branch
+head, ancestry, serialization, and canonical publication. Query owns only the
+operation-semantic statement that an admitted correction is `undo-of` or
+`redo-of` an exact committed target; it prepares that fact and co-commits it
+with the ordinary mutation. Query owns no parallel commit chain or mutable
+history head. Runtime Bridge owns installed inverse correspondence and may
+transport completed admitted causality for a real cross-runtime consumer, but
+it cannot decide undo/redo legality, Relational currentness, or history
+publication.
 
 Branch-shaped aftermath is intentionally absent from this topology. Its
 semantic-history, reference, inversion, merge, publication, recovery, and
@@ -3181,7 +3261,10 @@ foreign-runtime, and duplicate-transition attacks. The public wire boundary may
 carry opaque recovery identity and descriptive posture but never the runtime
 authority object.
 
-#### Runtime Phase 8.4: Fresh Undo, Inverse Operations, And Compensation
+#### Runtime Phase 8.4: Fresh Undo, Inverse Operations, And Compensation (provisional history)
+
+The requirements below describe the current experiment. They remain regression
+evidence only and do not establish a supported undo product.
 
 Runtime Phase 8.4 implements undo as a new admitted operation derived from an
 exact committed receipt, never as history mutation or direct provider repair.
@@ -3201,7 +3284,7 @@ It must:
 Undo is a fresh admission and may derive one new bounded intent identity for
 the inverse or compensation request. It carries the original committed and
 aftermath identities and cannot regenerate them per posting, decision fact, or
-lineage edge.
+co-committed causal fact.
 
 The original, inverse or compensation request, and resulting Query receipts
 remain the authority chain. Foundational transition/provenance rows may
@@ -3214,41 +3297,61 @@ journals preserved, current-policy denial after drift, idempotent retry after a
 lost response, inverse capability progression, and rejection of copied,
 foreign, irreversible, or twice-consumed receipts.
 
-#### Runtime Phase 8.5: Fresh Redo Intent And Linear Lineage
+#### Runtime Phase 8.5: Fresh Redo Intent And Relational-Head-Bound Causality (provisional history)
+
+The requirements below describe the current experiment. They remain regression
+evidence only and do not establish a supported redo product.
 
 Runtime Phase 8.5 derives descriptive redo intent only from a proved undo and
 runs it as a fresh operation against current truth.
 
 It must:
 
-- bind redo intent to the original operation meaning, proved undo receipt,
-  current linear head, principal scope, and compatibility generation without
-  embedding runtime authority or replay state;
+- bind redo intent to the original operation meaning, proved undo receipt, an
+  owner-observed projection of the exact Relational branch head, principal
+  scope, and compatibility generation without embedding runtime authority or
+  replay state;
 - require fresh capability, policy, conflict, touched-graph, invariant,
   idempotency, provider, and compare-and-commit admission;
-- append one parent-causality edge for every original, undo, and redo outcome;
-  and
-- invalidate redo when a divergent operation advances the current head, with
-  no branch object, merge placeholder, or hidden alternate lineage.
+- represent the original only by its Relational-backed Query commit receipt and
+  co-commit exactly one private typed Query causal fact for each undo or redo;
+- take the child commit identity, ordered parents, branch, and publication order
+  only from the Relational commit result; and
+- invalidate redo when a divergent operation advances Relational's current
+  head, with the expected head consumed atomically by compare-and-commit and no
+  Query-owned chain, mutable head, branch object, merge placeholder, or hidden
+  alternate lineage.
 
 Redo is likewise one fresh bounded admission identity. Current-head checks,
-lineage append, provider comparison, and publication carry the original, undo,
-and redo identities without rehashing them per edge or transition.
+co-committed causal-fact preparation, provider comparison, and publication
+carry the original, undo, and redo identities without rehashing them per edge
+or transition.
 
-The published chain lowers into Foundational attested-continuity or
-completed-receipt vocabulary only after each Query transition completes.
-Replayed, reconstructed, restored, branch-local, partial, or promoted lineage
-postures cannot be relabeled as the ordinary linear chain.
+Completed aftermath causality lowers into Foundational attested-continuity or
+completed-receipt vocabulary only after the Relational commit succeeds. Runtime
+Bridge may transport that owner-admitted projection only when causality crosses
+runtimes; Bridge admission cannot upgrade it into Query legality or Relational
+currentness. Replayed, reconstructed, restored, branch-local, partial, or
+promoted lineage postures cannot be relabeled as ordinary linear aftermath.
 
 Proof requires lawful redo, stale or newly unauthorized redo, copied intent,
 foreign principal, changed operation meaning, duplicate redo, and divergence
-attacks. Certification replay may verify evidence but must not be imported into
-the ordinary redo path.
+attacks. A hostile schedule must allow two operations to observe the same
+Relational head, commit one intervening operation, and prove the stale redo
+cannot commit even if its Query precheck already passed. Residue checks reject
+a Query-owned lineage chain/head, raw append APIs, and ordinary Phase 8 Bridge
+legality or history authority. Certification replay may verify evidence but
+must not be imported into the ordinary redo path.
 
 #### Runtime Phase 8.6: Bank Aftermath Cutover, Publication, And Certification
 
 Runtime Phase 8.6 moves the bank's real transfer and estate aftermath through
 the public installed progression after Phases 8.1-8.5 are proved.
+
+The accepted cutover is committed aftermath, external-effect, recovery, exact
+retention, and closed publication. References below to undo, redo, or
+receipt-linked correction causality describe provisional regression coverage,
+not a supported product facade.
 
 It must:
 
@@ -3342,7 +3445,8 @@ that the bank world or existing consumers no longer need.
 - contracted declaration and host facade snapshots;
 - public API documentation for typed schema use, authentication adaptation,
   installed application queries, capability and disclosure composition,
-  break-glass progression, mutation outcomes, recovery, linear undo/redo,
+  break-glass progression, mutation outcomes, recovery, accepted aftermath and
+  publication, and the provisional status of undo/redo,
   history, preview posture, and live delivery;
 - `AI_README.md` orientation links that lead agents from the runtime model to
   the relevant feature documents;
@@ -3628,15 +3732,16 @@ callback, or result reinterpretation, the front door is not finished.
 - browser UI polish;
 - multi-currency conversion;
 - distributed consensus or multi-bank settlement;
-- branch- or tree-shaped undo/redo navigation, branch-local inversion, branch
-  merge, or conflict resolution. Those are cross-runtime semantic-history
-  capabilities, not a deferred Query-local extension of linear aftermath;
+- branch- or tree-shaped undo/redo navigation and branch-local inversion before
+  Milestone 9.18, or semantic merge, rebase, and conflict resolution before
+  their cross-runtime milestones;
 - multiple branch heads, branch-local version allocation, and concurrent
   writers on different branches before the Milestone 9.17 handoff;
 - durable recovery handles, restart-stable cursors, or restart-stable
   undo/redo history before the Store handoff;
-- advanced domain access products, correlated paths, conflict partitions, or
-  geometry/provider certification governed by Milestone 9.17.
+- advanced domain access products, correlated paths, conflict partitions,
+  decision evidence, reuse, or provider certification governed by Milestones
+  9.19 through 9.22.
 
 The absence of those capabilities cannot justify fake authentication, fake
 money, fake concurrency, or fake authorization in the supported world.
@@ -3689,9 +3794,11 @@ Milestone 9.16 closes only when:
   rejects equal-version cross-branch substitution, and contains no hard-coded
   ordinary-branch authority;
 - revocation prevents subsequent unauthorized live delivery;
-- compensating undo preserves original truth, redo requires fresh authority,
-  divergent or relevant change can deny redo, and irreversible actions expose
-  no fake inverse;
+- provisional compensating undo preserves original truth, provisional redo
+  requires fresh authority, divergent or relevant change can deny it, and
+  irreversible actions expose no fake inverse; these journeys remain
+  regression evidence rather than accepted product semantics until Milestone
+  9.18 closes;
 - every indeterminate outcome exposes an actionable governed recovery posture;
 - Query-owned execution counters lower into honest Foundational
   counter-backed performance evidence at explicit support/certification
@@ -3700,25 +3807,34 @@ Milestone 9.16 closes only when:
 - all workaround deletions and permanent prohibitions are enforced; and
 - the closure ledger has no unresolved high- or critical-impact row.
 
-## Handoff To Milestone 9.17
+## Handoff To Milestones 9.17 Through 9.22
 
-Milestone 9.17 may add advanced computation only through the public typed
-declaration, admission, execution, publication, and certification path proven
-here. Advanced search, spatial access, membership, paths, bulk execution,
-decision attachments, and reuse bind to the installed application-query,
-capability, disclosure, basis, recovery, and aftermath contracts established
-here. It may extend that path; it may not reintroduce a specialist-only
-authority lane, a provider-owned cursor, a field-disclosure bypass, or replay
-disguised as redo.
+Milestone 9.17 replaces the conservative single-product-branch and global-
+coordinator limits with Runtime Bridge-owned composite product branches over
+exact owner-issued Relational and Signal bases plus Relational branch-local
+MVCC. Query continues to carry the branch-affine authority established here;
+it does not become the owner of component truth, composite correspondence,
+version allocation, or conflict mechanics. Product branches may share one
+immutable Signal basis while their Relational branches diverge, and unrelated
+branches must progress concurrently.
 
-Milestone 9.17 also replaces the conservative single-branch/global-coordinator
-implementation limit with Relational-owned per-branch MVCC. Query continues to
-carry the branch-affine authority established here; it does not become the
-owner of branch truth, version allocation, or conflict mechanics. Writers on
-different branches must be able to progress concurrently, while writers on the
-same branch remain governed by that branch's MVCC comparison and commit laws.
-Semantic branch creation, merge, rebase, branch-shaped undo/redo, and conflict
-resolution remain governed by the cross-runtime merging-and-branching roadmap.
+Milestone 9.18 then accepts tree-based semantic undo and redo over exact source
+composite commits and target product-branch heads. Corrections coordinate
+owner-local retain, inverse, compensation, reapplication, and Signal
+reconciliation posture, publish freshly admitted composite commits, and
+preserve every prior history alternative. Query owns correction semantics and
+DX but no component or composite history head. Merge, rebase, multi-parent
+publication, offline synchronization, and distributed recovery remain governed
+by the cross-runtime merging-and-branching roadmap.
+
+Milestones 9.19 through 9.22 add advanced computation only through the public
+typed declaration, admission, execution, publication, and certification path
+proven here and the accepted branch/aftermath paths above. Advanced search,
+spatial access, membership, paths, bulk execution, decision attachments, and
+reuse bind to the installed application-query, capability, disclosure, basis,
+recovery, and aftermath contracts. They may extend that path; they may not
+reintroduce a specialist-only authority lane, provider-owned cursor,
+field-disclosure bypass, or replay disguised as redo.
 
 Geometry and other high-fan-out kernels consume installed typed slots, paths,
 masks, plans, and fixed-width semantic identities. Adding cells, features,

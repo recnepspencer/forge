@@ -33,4 +33,9 @@ impl WorthQueryLiveDeliveryControls {
     pub const fn buffer_capacity(&self) -> usize {
         self.buffer_capacity.get()
     }
+
+    #[cfg(test)]
+    pub(crate) fn replace_request(&mut self, request: WorthQueryRequestScope) {
+        self.request = request;
+    }
 }

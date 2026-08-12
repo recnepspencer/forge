@@ -10,16 +10,18 @@ use bank_domain::{
     },
     queries::EstateGovernanceQuery,
     reads::EstateGovernanceContext,
-    schema::{
-        AccountStatus, ViewEstateEmergencyProtectionCapability, ViewRestrictedEstateOperation,
-    },
+    schema::{AccountStatus, EmergencyAccessStatusField},
 };
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 use worth_query_host::facade::{
     domain::TypedApplicationValue,
     primary_graph::{
-        WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationOneShotResult,
-        WorthQueryElevationCloseOutcome, WorthQueryMandatoryReview,
-        WorthQueryMandatoryReviewOutcome,
+        WorthQueryApplicationIdempotencyBinding, WorthQueryElevationCloseOutcome,
+        WorthQueryMandatoryReview, WorthQueryMandatoryReviewOutcome,
+    },
+    publication::domain_computation::{
+        WorthQueryPublishedApplicationDisclosurePosture,
+        WorthQueryPublishedApplicationQueryOmissionPosture,
     },
 };
 
@@ -35,7 +37,7 @@ use super::{
 use crate::{queries, BankAuthenticatedPrincipal, BankReadControls};
 
 type GovernanceResult =
-    WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>;
+    WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>;
 
 #[derive(Clone, Copy)]
 struct EmergencyJourneyIdentity {
@@ -86,6 +88,92 @@ fn approved_emergency_discloses_account_details_and_terminal_state_reads_back() 
     assert_completed_readback(&fixture, &requester, identity);
 }
 
+/// Q8.26-C6: a commit retains a pre-image exactly when its installed contract
+/// declares one — and the negative twin holds in the same journey.
+///
+/// `ApproveEmergencyAccess` declares `RecordedInverse` over
+/// `EmergencyAccessStatusField`, so its commit must carry the demanded slice.
+/// `RequestEmergencyAccess` is a create lane declared `not_correctable`: there
+/// is no prior truth, so it must carry nothing. Asserting only the positive
+/// would pass against a runtime that retained indiscriminately, which would
+/// make every receipt claim an inverse it cannot honour.
+#[test]
+fn retention_follows_the_declared_mechanism_on_both_lifecycle_commits() {
+    let fixture = emergency_request_world(
+        "estate-emergency-retention-by-mechanism",
+        GrantSpec::emergency_view(),
+        EstateWorkflowStage::Administration,
+    );
+    let requester = fixture.authenticate();
+    let approver = fixture.authenticate_approver();
+    let requested = request_elevation(
+        &fixture,
+        &requester,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 371,
+            review: 372,
+            idempotency: 95,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
+    );
+    let approved = approve_elevation(
+        &fixture,
+        &approver,
+        requested,
+        ElevationApprovalSpec {
+            access: 371,
+            idempotency: 97,
+        },
+    );
+
+    assert!(
+        approved
+            .approval_commit_receipt()
+            .retained_preimage()
+            .is_some(),
+        "ApproveEmergencyAccess declares RecordedInverse/ExactPriorTruth, so its \
+         commit must carry the pre-image its installed contract demands"
+    );
+    assert!(
+        approved
+            .request_commit_receipt()
+            .retained_preimage()
+            .is_none(),
+        "RequestEmergencyAccess is a not_correctable create lane — it has no \
+         prior truth, so its commit must retain nothing"
+    );
+    let approval = approved.approval_commit_receipt();
+    assert_eq!(
+        approval
+            .retained_preimage()
+            .and_then(|preimage| preimage.field_for(EmergencyAccessStatusField::reference()))
+            .expect("approval retains the installed status locus")
+            .value(),
+        &EmergencyAccessStatus::Requested.into_foundational_value(),
+        "approval must retain the exact pre-commit Requested status"
+    );
+    let demanded = approval
+        .mutation_work()
+        .expect("approval commit carries retention work");
+    assert!(demanded.preimage_validated_intents_examined() > 0);
+    assert!(demanded.preimage_mutation_targets_materialized() > 0);
+    assert!(demanded.preimage_decision_facts_examined() > 0);
+    assert!(demanded.preimage_candidates_materialized() > 0);
+    assert_eq!(demanded.preimage_demanded_loci_examined(), 1);
+
+    let ordinary = approved
+        .request_commit_receipt()
+        .mutation_work()
+        .expect("request commit carries zero-valued work evidence");
+    assert_eq!(ordinary.preimage_validated_intents_examined(), 0);
+    assert_eq!(ordinary.preimage_mutation_targets_materialized(), 0);
+    assert_eq!(ordinary.preimage_decision_facts_examined(), 0);
+    assert_eq!(ordinary.preimage_candidates_materialized(), 0);
+    assert_eq!(ordinary.preimage_demanded_loci_examined(), 0);
+}
+
 fn assert_approved_account_disclosure(
     fixture: &CapabilityFixture,
     requester: &BankAuthenticatedPrincipal,
@@ -106,29 +194,22 @@ fn assert_approved_account_disclosure(
     assert_eq!(account.id(), ACCOUNT);
     assert_eq!(account.display_name().as_str(), "Estate Operating");
     assert_eq!(account.status(), AccountStatus::Frozen);
+    let publication = published.receipt().inspect();
+    assert_eq!(
+        publication.omission_posture(),
+        WorthQueryPublishedApplicationQueryOmissionPosture::NoOmission
+    );
+    assert_eq!(publication.result_count(), published.rows().len());
+    assert!(publication.terminal_resources_released());
     let disclosure = published.receipt().disclosure();
     assert_eq!(
-        disclosure.classification(),
-        Some("estate-emergency-account-details")
+        disclosure.posture(),
+        WorthQueryPublishedApplicationDisclosurePosture::Governed
     );
-    assert_eq!(disclosure.decisions().len(), 4);
-    assert!(disclosure.decisions().iter().all(|decision| {
-        decision.required_disclosure()
-            == &RestrictedBankField::AccountDetails.into_foundational_value()
-    }));
-    let capability = fixture
-        .runtime
-        .application_runtime()
-        .installed_schema()
-        .capability(
-            ViewEstateEmergencyProtectionCapability::reference(),
-            ViewRestrictedEstateOperation::reference(),
-        )
-        .unwrap();
-    assert_eq!(
-        disclosure.capability_authority_identity(),
-        Some(capability.authority_identity())
-    );
+    assert_eq!(disclosure.disclosure_decision_count(), 4);
+    assert_eq!(disclosure.disclosed_value_count(), 4);
+    assert_eq!(disclosure.omitted_value_count(), 0);
+    assert!(disclosure.authorization_decision_fact_count() > 0);
 }
 
 fn close_elevation(

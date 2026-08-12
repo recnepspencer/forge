@@ -20,7 +20,7 @@ fn inspect_exact_source(capture: &str, execution: &str) -> Result<(), &'static s
             "letroot=publication.current_root()",
             "letwal=self.wal.checkpoint_source_range()",
             "letsession=self.frames.begin_checkpoint_capture()",
-            "PhysicalCheckpointSource::concurrent(identity,wal,CheckpointRootBasis::new(root.generation(),root.tree_identity()),session.frontier().get(),)",
+            "PhysicalCheckpointSource::secured_concurrent(identity,wal,CheckpointRootBasis::new(root.generation(),root.tree_identity()),session.frontier().get(),self.policy.bytes(),self.idempotency_policy.retention().get().get(),)",
         ],
     ) {
         return Err("checkpoint source no longer freezes the exact root, WAL, and dirty frontier");

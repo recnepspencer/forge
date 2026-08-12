@@ -1,25 +1,25 @@
 use worth_query_decl::facade::application_capability::{
     ApplicationCapabilityEntitySelector, ApplicationCapabilityGovernedInputIdentity,
-    ApplicationCapabilityRelatedEntitySelector, ApplicationCapabilityRequest,
-    ApplicationCapabilityRequestContext, ApplicationCapabilityRequestProjection,
-    ApplicationCapabilityRequestProjectionDenial, ApplicationCapabilityRevocationRequest,
-    ApplicationCapabilityRevocationRequestProjection,
+    ApplicationCapabilityRequest, ApplicationCapabilityRequestContext,
+    ApplicationCapabilityRequestProjection, ApplicationCapabilityRequestProjectionDenial,
+    ApplicationCapabilityRevocationRequest, ApplicationCapabilityRevocationRequestProjection,
     ApplicationCapabilityRevocationRequestProjectionDenial,
 };
 
 use crate::{
     estate::EstateAction,
     schema::{
-        AccountIdentity, BankSchema, CapabilityAccount, CapabilityGrantIdentityField,
-        DelegateEstateCapability, EstateActionContext, EstateCase, EstateCaseIdentityField,
-        EstateLegalAuthoritySlot, FreezeEstateAccountCapability, LegalAuthorityIdentityField,
-        NotifyDeathEstateCapability, OpenEstateCaseCapability, RecognizeEstateExecutorCapability,
-        ReleaseEstateCapability, RevokeEstateCapability, ViewEstateAdministrationCapability,
-        ViewEstateIdentityVerificationCapability, ViewEstateLegalComplianceCapability,
-        ViewEstateMandatoryReviewCapability,
+        BankSchema, CapabilityGrantIdentityField, DelegateEstateCapability, EstateActionContext,
+        EstateCase, EstateCaseIdentityField, EstateLegalAuthoritySlot, LegalAuthorityIdentityField,
+        OpenEstateCaseCapability, RecognizeEstateExecutorCapability, ReleaseEstateCapability,
+        RetransmitDeathNoticeEstateCapability, RevokeEstateCapability,
+        ViewEstateAdministrationCapability, ViewEstateIdentityVerificationCapability,
+        ViewEstateLegalComplianceCapability, ViewEstateMandatoryReviewCapability,
     },
 };
 
+#[path = "request_projection/death_notification.rs"]
+mod death_notification;
 #[path = "request_projection/delegation.rs"]
 mod delegation;
 #[path = "request_projection/disbursement.rs"]
@@ -28,6 +28,8 @@ mod disbursement;
 mod emergency_elevation;
 #[path = "request_projection/emergency_use.rs"]
 mod emergency_use;
+#[path = "request_projection/freeze.rs"]
+mod freeze;
 
 macro_rules! simple_estate_request {
     ($capability:ty, $operation:pat) => {
@@ -56,8 +58,8 @@ macro_rules! simple_estate_request {
 }
 
 simple_estate_request!(
-    NotifyDeathEstateCapability,
-    EstateAction::NotifyDeath { .. }
+    RetransmitDeathNoticeEstateCapability,
+    EstateAction::RetransmitDeathNotice { .. }
 );
 simple_estate_request!(
     OpenEstateCaseCapability,
@@ -172,30 +174,6 @@ view_request!(ViewEstateAdministrationCapability);
 view_request!(ViewEstateIdentityVerificationCapability);
 view_request!(ViewEstateLegalComplianceCapability);
 view_request!(ViewEstateMandatoryReviewCapability);
-
-impl ApplicationCapabilityRequest<BankSchema, FreezeEstateAccountCapability> for EstateAction {
-    type Scope = EstateCase;
-    type Context = EstateActionContext;
-
-    fn capability_request(
-        &self,
-    ) -> Result<
-        ApplicationCapabilityRequestProjection<BankSchema, Self::Scope, Self::Context>,
-        ApplicationCapabilityRequestProjectionDenial,
-    > {
-        let EstateAction::FreezeAccount { estate, account } = *self else {
-            return Err(ApplicationCapabilityRequestProjectionDenial::input_variant(
-                "FreezeEstateAccountOperation",
-            ));
-        };
-        Ok(estate_request(self, estate).related_entity(
-            ApplicationCapabilityRelatedEntitySelector::new(
-                CapabilityAccount::reference(),
-                ApplicationCapabilityEntitySelector::new(AccountIdentity::reference(), account),
-            ),
-        ))
-    }
-}
 
 impl ApplicationCapabilityRequest<BankSchema, RecognizeEstateExecutorCapability> for EstateAction {
     type Scope = EstateCase;

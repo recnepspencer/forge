@@ -98,7 +98,7 @@ fn governed_view_grant_cannot_substitute_for_request_command_authority() {
     };
     assert_eq!(
         denial.kind(),
-        worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
+        crate::BankAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
 }
 
@@ -134,7 +134,7 @@ fn request_command_grant_cannot_substitute_for_governed_upper_bound_authority() 
     };
     assert_eq!(
         denial.kind(),
-        worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing
+        crate::BankAuthorizationDenialKind::CapabilityGrantMissing
     );
 }
 
@@ -247,7 +247,7 @@ fn requester_cannot_approve_their_own_elevation() {
     };
     assert_eq!(
         denial.kind(),
-        worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind::DistinctActorRuleMatched
+        crate::BankAuthorizationDenialKind::DistinctActorRuleMatched
     );
 }
 

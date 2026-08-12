@@ -3,9 +3,7 @@ use bank_domain::estate::{
     EstateCapabilityDelegationRequest, EstateCapabilityOperation, EstateCapabilityPurpose,
     EstateCapabilityScope, EstateMoment, EstateWorkflowStage, RestrictedBankField,
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryOperationAuthorizationDenialKind,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
 use super::fixture::{
     delegation_world_with_parent_branch_mismatch,
@@ -50,7 +48,7 @@ fn assert_context_denied(fixture: CapabilityFixture, child: CapabilityGrantId, s
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::DelegationRejected
+        crate::BankAuthorizationDenialKind::DelegationRejected
     );
     let readback = fixture
         .runtime

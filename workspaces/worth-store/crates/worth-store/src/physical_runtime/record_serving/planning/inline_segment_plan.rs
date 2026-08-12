@@ -33,7 +33,7 @@ pub(in crate::physical_runtime::record_serving) struct WorkingSegment {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::physical_runtime::record_serving) struct InlineSegmentAllocation {
+pub(in crate::physical_runtime) struct InlineSegmentAllocation {
     segment: SegmentGenerationCell,
     page_capacity: u32,
     used_pages: u32,
@@ -52,17 +52,15 @@ impl WorkingSegment {
 }
 
 impl InlineSegmentAllocation {
-    pub(in crate::physical_runtime::record_serving) const fn segment(
-        self,
-    ) -> SegmentGenerationCell {
+    pub(in crate::physical_runtime) const fn segment(self) -> SegmentGenerationCell {
         self.segment
     }
 
-    pub(in crate::physical_runtime::record_serving) const fn page_capacity(self) -> u32 {
+    pub(in crate::physical_runtime) const fn page_capacity(self) -> u32 {
         self.page_capacity
     }
 
-    pub(in crate::physical_runtime::record_serving) const fn used_pages(self) -> u32 {
+    pub(in crate::physical_runtime) const fn used_pages(self) -> u32 {
         self.used_pages
     }
 }

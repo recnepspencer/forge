@@ -8,8 +8,8 @@ use worth_query_host::facade::{
         WorthQueryInstalledApplicationSchema, WorthQueryInstalledPrincipalBinding,
     },
     primary_graph::{
-        WorthQueryAuthorizationTimeSource, WorthQueryPrimaryGraphApplicationRuntime,
-        WorthQueryPrimaryGraphBootstrap,
+        WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrimaryGraphBootstrap,
+        WorthQueryRuntimeTimeSource,
     },
     runtime::{
         WorthQueryApplicationQueryResourceProfile, WorthQueryExecutionInstallationAuthority,
@@ -33,7 +33,7 @@ type InstalledBankPrincipalBinding = WorthQueryInstalledPrincipalBinding<
 
 pub(super) enum BankAuthorizationTimeInstallation {
     System,
-    Installed(Box<dyn WorthQueryAuthorizationTimeSource>),
+    Installed(Box<dyn WorthQueryRuntimeTimeSource>),
 }
 
 struct PreparedBankGraph {

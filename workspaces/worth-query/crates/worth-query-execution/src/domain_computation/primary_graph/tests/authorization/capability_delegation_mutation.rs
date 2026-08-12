@@ -13,7 +13,7 @@ use super::super::fixture::capability::CapabilityParent;
 use super::super::fixture::{live_scope, AccountIdentity, AuthorizationWorld, CapabilityIdentity};
 use crate::domain_computation::primary_graph::WorthQueryPrincipalResolutionMode;
 
-pub(super) fn field<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>(
+pub(super) fn field<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>(
     world: &AuthorizationWorld,
     field: worth_query_declaration::facade::application_schema::ApplicationFieldRef<
         Schema,
@@ -23,12 +23,12 @@ pub(super) fn field<Schema, Entity, Aspect, Field, Value, Write, Equality, Curre
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >,
 ) -> AspectFieldLocator
 where
     Value: worth_query_declaration::facade::application_schema::TypedApplicationValue,
-    Currency: worth_query_declaration::facade::application_schema::ApplicationFieldCurrency,
+    Unit: worth_query_declaration::facade::application_schema::ApplicationFieldUnit,
 {
     installed_field(world, field.entity(), field.aspect(), field.field())
 }

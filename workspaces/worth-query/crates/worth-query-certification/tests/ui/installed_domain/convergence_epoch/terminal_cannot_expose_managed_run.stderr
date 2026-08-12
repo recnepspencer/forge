@@ -1,0 +1,35 @@
+error[E0599]: no method named `managed_terminal` found for reference `&WorthQueryDirectConvergenceTerminal<WorthQueryConverged>` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cannot_expose_managed_run.rs:12:14
+   |
+12 |     terminal.managed_terminal()
+   |              ^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDirectConvergenceTerminal<WorthQueryConverged>`
+
+error[E0599]: no method named `managed_terminal` found for reference `&WorthQueryWorkflowConvergenceTerminal<WorthQueryConverged>` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cannot_expose_managed_run.rs:18:14
+   |
+18 |     terminal.managed_terminal()
+   |              ^^^^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowConvergenceTerminal<WorthQueryConverged>`
+
+error[E0599]: no method named `run_terminal` found for reference `&WorthQueryDirectConvergenceTerminal<WorthQueryConverged>` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cannot_expose_managed_run.rs:24:14
+   |
+24 |     terminal.run_terminal()
+   |              ^^^^^^^^^^^^ private field, not a method
+
+error[E0599]: no method named `run_terminal` found for reference `&WorthQueryWorkflowConvergenceTerminal<WorthQueryConverged>` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cannot_expose_managed_run.rs:30:14
+   |
+30 |     terminal.run_terminal()
+   |              ^^^^^^^^^^^^ private field, not a method
+
+error[E0599]: no method named `provider_work` found for reference `&WorthQueryDirectConvergenceTerminal<WorthQueryConverged>` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cannot_expose_managed_run.rs:36:14
+   |
+36 |     terminal.provider_work()
+   |              ^^^^^^^^^^^^^ method not found in `&WorthQueryDirectConvergenceTerminal<WorthQueryConverged>`
+
+error[E0599]: no method named `provider_work` found for reference `&WorthQueryWorkflowConvergenceTerminal<WorthQueryConverged>` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cannot_expose_managed_run.rs:42:14
+   |
+42 |     terminal.provider_work()
+   |              ^^^^^^^^^^^^^ method not found in `&WorthQueryWorkflowConvergenceTerminal<WorthQueryConverged>`

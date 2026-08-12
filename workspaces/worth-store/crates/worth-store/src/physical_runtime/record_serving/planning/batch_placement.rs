@@ -180,12 +180,13 @@ pub(in crate::physical_runtime::record_serving) fn append_operation_allocation_b
             RecordPlacementClass::ExtentBacked => has_extent = true,
         }
     }
-    // A record can simultaneously own one materialization frame and one
-    // encoded candidate frame. This deliberately charges page geometry rather
-    // than caller payload length so small records cannot hide metadata growth.
+    // A durable record can simultaneously own its materialization frame, its
+    // encoded candidate frame, and the recovery projection frame carried into
+    // the WAL. Charge page geometry rather than caller payload length so small
+    // records cannot hide either publication or reconstruction growth.
     let record_working_set = (batch.records.len() as u64)
         .saturating_mul(page_bytes)
-        .saturating_mul(2);
+        .saturating_mul(3);
     let streaming_window = if has_extent { page_bytes } else { 0 };
     // Three routing families can each rewrite at most one path through a
     // u64-addressed tree. The four fixed frames cover root, catalog, segment,

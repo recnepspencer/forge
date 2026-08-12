@@ -25,6 +25,7 @@ impl RelationalRuntime {
         &mut self,
         prepared: crate::merge::data::PreparedMergeExecution,
     ) -> Result<MergeExecutionOutcome, crate::merge::data::MergeExecutionError> {
+        let complexity_baseline = current_complexity_counters(self);
         self.performance_access().count_merge_execution_attempt();
         if let Err(error) = self.merge().verify_prepared_merge_execution(&prepared) {
             emit_merge_execution_failure_artifact(self, &prepared, &error);
@@ -53,7 +54,13 @@ impl RelationalRuntime {
         };
         let execution_summary = mutation_plan.merge_execution_summary.clone();
         let structural_summary_public = mutation_plan.structural_summary.clone();
-        let mut commit = match AuthoritativeCommitContext::from_merge(options, mutation_plan) {
+        let diagnostics_plan = prepared.bound_executable_plan().diagnostics_plan.clone();
+        let commit = match AuthoritativeCommitContext::from_prepared_merge(
+            options,
+            mutation_plan,
+            diagnostics_plan,
+            complexity_baseline,
+        ) {
             Ok(context) => execute_authoritative_commit(self, context),
             Err(error) => Err(error),
         }
@@ -62,22 +69,24 @@ impl RelationalRuntime {
             emit_merge_execution_failure_artifact(self, &prepared, &error);
             error
         })?;
-        let execution_artifact = crate::merge::logic::merge_execution_success_artifact(
-            &execution_summary,
-            &prepared.bound_executable_plan().diagnostics_plan,
-            commit.outcome.commit.commit_id,
-            self.config.diagnostics.profile.max_entries_per_artifact,
-        );
-        self.publication_authority()
-            .push_diagnostic_artifact(execution_artifact.clone());
-        commit.publication.diagnostics.push(execution_artifact);
-        commit.execution.complexity_delta.merge_execution_attempts += 1;
         Ok(MergeExecutionOutcome {
             commit,
             execution_summary,
             structural_summary: structural_summary_public,
         })
     }
+}
+
+fn current_complexity_counters(
+    runtime: &RelationalRuntime,
+) -> crate::performance::data::RuntimeComplexityCounters {
+    runtime
+        .services
+        .instrumentation
+        .complexity_counters
+        .lock()
+        .expect("complexity counter lock poisoned")
+        .clone()
 }
 
 pub(crate) fn emit_merge_execution_failure_artifact(

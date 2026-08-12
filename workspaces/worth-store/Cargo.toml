@@ -32,6 +32,7 @@ members = [
     "crates/worth-store-readiness",
     "crates/worth-store-reclaim-policy",
     "crates/worth-store-recovery-physics",
+    "crates/worth-store-recovery-runtime",
     "crates/worth-store-replication",
     "crates/worth-store-retention",
     "crates/worth-store-schema-lineage",
@@ -81,6 +82,7 @@ worth-store-physical-isolation = { path = "crates/worth-store-physical-isolation
 worth-store-readiness = { path = "crates/worth-store-readiness" }
 worth-store-reclaim-policy = { path = "crates/worth-store-reclaim-policy" }
 worth-store-recovery-physics = { path = "crates/worth-store-recovery-physics" }
+worth-store-recovery-runtime = { path = "crates/worth-store-recovery-runtime" }
 worth-store-replication = { path = "crates/worth-store-replication" }
 worth-store-retention = { path = "crates/worth-store-retention" }
 worth-store-schema-lineage = { path = "crates/worth-store-schema-lineage" }
