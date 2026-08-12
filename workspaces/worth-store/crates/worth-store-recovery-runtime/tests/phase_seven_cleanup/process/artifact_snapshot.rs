@@ -14,8 +14,7 @@ pub(super) struct ArtifactSnapshot {
 impl ArtifactSnapshot {
     pub(super) fn capture(root: &Path) -> Self {
         let mut paths = BTreeSet::new();
-        collect_files(&root.join("families/records"), &mut paths);
-        collect_files(&root.join("families/wal"), &mut paths);
+        collect_files(&root.join("families"), &mut paths);
         Self { paths }
     }
 
@@ -62,8 +61,9 @@ fn disposition_paths(
             RecoveryCleanupTarget::Wal(artifact) => {
                 root.join("families/wal").join(artifact.file_name())
             }
-            RecoveryCleanupTarget::Checkpoint(_) | RecoveryCleanupTarget::Residue { .. } => {
-                continue
+            RecoveryCleanupTarget::Checkpoint(_) => root.join("families/checkpoint.current"),
+            RecoveryCleanupTarget::Residue { name, .. } => {
+                root.join("families/wal").join(name.as_ref())
             }
         };
         assert!(
@@ -85,6 +85,9 @@ fn missing_preexisting_path(
 }
 
 fn collect_files(directory: &Path, paths: &mut BTreeSet<PathBuf>) {
+    if !directory.exists() {
+        return;
+    }
     for entry in std::fs::read_dir(directory).expect("enumerate persisted artifacts") {
         let path = entry.expect("persisted artifact entry").path();
         if path.is_dir() {

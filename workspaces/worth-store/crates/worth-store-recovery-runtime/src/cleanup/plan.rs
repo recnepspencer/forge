@@ -145,6 +145,10 @@ fn retained_dispositions(
 ) -> Vec<RecoveryCleanupDisposition> {
     let mut records = BTreeMap::new();
     records.insert(
+        RecordArtifactFile::BootstrapCatalog,
+        RecoveryCleanupDispositionKind::Current,
+    );
+    records.insert(
         RecordArtifactFile::CurrentRootSelector,
         RecoveryCleanupDispositionKind::Current,
     );
