@@ -22,8 +22,10 @@ pub(crate) fn execute(
         fates: &reopened.state.fates,
         limits,
     });
-    let command_basis = RecoveryCleanupCommandBasis::from_reopened(&reopened, plan.candidates());
+    let command_basis =
+        RecoveryCleanupCommandBasis::from_reopened(&reopened, plan.identity(), plan.candidates());
     if let Some(command_basis) = &command_basis {
+        debug_assert_eq!(command_basis.descriptive_plan_identity(), plan.identity());
         plan.bind_authority_identity(command_basis.plan_identity());
     }
     let mut accounting = RecoveryCleanupAccounting::begin(&plan);

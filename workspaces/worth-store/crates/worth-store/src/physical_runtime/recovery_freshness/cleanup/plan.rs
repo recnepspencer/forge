@@ -25,6 +25,7 @@ use super::{
 /// substitute its bytes, or mint per-artifact removal eligibility directly.
 pub struct StoreRecoveryCleanupPlan<'e> {
     identity: [u8; 32],
+    descriptive_plan_identity: [u8; 32],
     store: StableStoreIdentity,
     media_generation: PhysicalRecoveryMediaGeneration,
     session: [u8; 16],
@@ -58,8 +59,12 @@ pub(in crate::physical_runtime) fn admit<'e>(
     media: &AdmittedRecoveryFilesystemMedia,
     reopened: &CompletedPhysicalRecoveryFreshReopen,
     checkpoint: &'e VerifiedCheckpointStream,
+    descriptive_plan_identity: [u8; 32],
     wal: impl IntoIterator<Item = VerifiedWalArtifact>,
 ) -> Result<StoreRecoveryCleanupPlan<'e>, StoreRecoveryCleanupFreshnessFailure> {
+    if descriptive_plan_identity == [0; 32] {
+        return Err(invalid());
+    }
     let common = common_basis(coordination, media, reopened, checkpoint)?;
     let capacity = coordination.cleanup_capacity();
     let mut pending = BTreeMap::new();
@@ -91,7 +96,12 @@ pub(in crate::physical_runtime) fn admit<'e>(
         admitted_bytes = next_bytes;
     }
     let policy_identity = policy_identity(&common, capacity);
-    let identity = plan_identity(&common, policy_identity, &pending);
+    let identity = plan_identity(
+        &common,
+        descriptive_plan_identity,
+        policy_identity,
+        &pending,
+    );
     let candidates = pending
         .into_iter()
         .map(|(artifact, pending)| {
@@ -122,6 +132,7 @@ pub(in crate::physical_runtime) fn admit<'e>(
         .collect();
     Ok(StoreRecoveryCleanupPlan {
         identity,
+        descriptive_plan_identity,
         store: common.store,
         media_generation: common.media_generation,
         session: common.session,
@@ -177,11 +188,13 @@ fn policy_identity(
 
 fn plan_identity(
     common: &CommonBasis,
+    descriptive_plan_identity: [u8; 32],
     policy_identity: [u8; 32],
     candidates: &BTreeMap<WalSegmentArtifactIdentity, PendingCandidate>,
 ) -> [u8; 32] {
     let mut digest = Sha256::new();
-    digest.update(b"worth.store.recovery.cleanup-plan.v2");
+    digest.update(b"worth.store.recovery.cleanup-execution-plan.v3");
+    digest.update(descriptive_plan_identity);
     digest.update(common.store.bytes());
     digest.update(common.session);
     digest.update(common.published_generation.to_le_bytes());
@@ -216,6 +229,10 @@ fn invalid() -> StoreRecoveryCleanupFreshnessFailure {
 impl<'e> StoreRecoveryCleanupPlan<'e> {
     pub const fn identity(&self) -> [u8; 32] {
         self.identity
+    }
+
+    pub const fn descriptive_plan_identity(&self) -> [u8; 32] {
+        self.descriptive_plan_identity
     }
 
     pub(super) const fn policy_identity(&self) -> [u8; 32] {

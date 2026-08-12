@@ -50,7 +50,9 @@ fn cancellation_at(
         fates: &reopened.state.fates,
         limits: reopened.state.authority.limits.declaration(),
     });
-    let command_basis = RecoveryCleanupCommandBasis::from_reopened(reopened, plan.candidates())?;
+    let command_basis =
+        RecoveryCleanupCommandBasis::from_reopened(reopened, plan.identity(), plan.candidates())?;
+    debug_assert_eq!(command_basis.descriptive_plan_identity(), plan.identity());
     plan.bind_authority_identity(command_basis.plan_identity());
     (settled_actions < plan.candidates().len() as u64).then_some(
         PhysicalRecoveryCleanupCancellation::new(plan.identity(), settled_actions),

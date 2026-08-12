@@ -94,7 +94,13 @@ fn assert_complete(
     );
     assert_eq!(evidence.performed_removals().len(), 1);
     let occurrence = evidence.performed_removals()[0].occurrence();
-    assert_eq!(occurrence.plan(), evidence.plan_identity());
+    assert_ne!(occurrence.plan(), [0; 32]);
+    assert_ne!(evidence.plan_identity(), [0; 32]);
+    assert_ne!(
+        occurrence.plan(),
+        evidence.plan_identity(),
+        "the Store execution authority must not replace the descriptive cleanup-plan identity",
+    );
     assert_eq!(occurrence.artifact().segment(), expected_identity.segment());
     assert_eq!(
         occurrence.artifact().generation(),

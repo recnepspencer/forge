@@ -16,6 +16,7 @@ pub(super) struct RecoveryCleanupCommandBasis<'a> {
 impl<'a> RecoveryCleanupCommandBasis<'a> {
     pub(super) fn from_reopened(
         reopened: &'a ReopenedPhysicalRecovery,
+        descriptive_plan_identity: [u8; 32],
         candidates: &[RecoveryCleanupEligibility],
     ) -> Option<Self> {
         let checkpoint = reopened.state.selection.checkpoint()?.checkpoint();
@@ -27,6 +28,7 @@ impl<'a> RecoveryCleanupCommandBasis<'a> {
                 &reopened.state.authority.media,
                 &reopened.reopened,
                 checkpoint,
+                descriptive_plan_identity,
                 candidates
                     .iter()
                     .map(RecoveryCleanupEligibility::verified_artifact),
@@ -39,6 +41,10 @@ impl<'a> RecoveryCleanupCommandBasis<'a> {
 
     pub(super) fn plan_identity(&self) -> [u8; 32] {
         self.plan.borrow().identity()
+    }
+
+    pub(super) fn descriptive_plan_identity(&self) -> [u8; 32] {
+        self.plan.borrow().descriptive_plan_identity()
     }
 
     pub(super) fn execute(

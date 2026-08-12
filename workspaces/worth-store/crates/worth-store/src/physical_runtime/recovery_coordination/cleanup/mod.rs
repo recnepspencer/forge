@@ -36,10 +36,16 @@ impl PhysicalRecoveryCoordination {
         media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
         reopened: &CompletedPhysicalRecoveryFreshReopen,
         checkpoint: &'e worth_store_physical_format::VerifiedCheckpointStream,
+        descriptive_plan_identity: [u8; 32],
         wal: impl IntoIterator<Item = worth_store_wal::VerifiedWalArtifact>,
     ) -> Result<StoreRecoveryCleanupPlan<'e>, StoreRecoveryCleanupFreshnessFailure> {
         crate::physical_runtime::recovery_freshness::admit_cleanup_plan(
-            self, media, reopened, checkpoint, wal,
+            self,
+            media,
+            reopened,
+            checkpoint,
+            descriptive_plan_identity,
+            wal,
         )
     }
 

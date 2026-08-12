@@ -246,7 +246,6 @@ impl RecoveryCleanupPlan {
         self.authority_identity
     }
     pub(crate) fn bind_authority_identity(&mut self, identity: [u8; 32]) {
-        self.identity = identity;
         self.authority_identity = Some(identity);
     }
     pub(crate) const fn published_generation(&self) -> u64 {

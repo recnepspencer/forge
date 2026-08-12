@@ -1,6 +1,6 @@
 use super::{
     checkpoint_covered_disposition, CheckpointCoveredWalDecision, RecoveryCleanupDeferralReason,
-    RecoveryCleanupDispositionKind,
+    RecoveryCleanupDispositionKind, RecoveryCleanupPlan,
 };
 use crate::entry::PhysicalRecoveryLimitDeclaration;
 
@@ -64,6 +64,22 @@ fn cleanup_limit_dimensions_remain_causally_distinct() {
         RecoveryCleanupDispositionKind::Deferred(RecoveryCleanupDeferralReason::ByteLimit)
     );
     assert_eq!(eligible, RecoveryCleanupDispositionKind::Eligible);
+}
+
+#[test]
+fn store_execution_authority_does_not_replace_the_descriptive_plan_identity() {
+    let mut plan = RecoveryCleanupPlan {
+        identity: [0x11; 32],
+        authority_identity: None,
+        published_generation: 7,
+        candidates: Vec::new(),
+        dispositions: Vec::new(),
+    };
+
+    plan.bind_authority_identity([0x22; 32]);
+
+    assert_eq!(plan.identity(), [0x11; 32]);
+    assert_eq!(plan.authority_identity(), Some([0x22; 32]));
 }
 
 fn cleanup_limits(cleanup_candidates: u64, cleanup_bytes: u64) -> PhysicalRecoveryLimitDeclaration {

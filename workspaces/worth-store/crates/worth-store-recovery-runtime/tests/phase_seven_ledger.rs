@@ -28,7 +28,7 @@ const GUARANTEES: [&str; 17] = [
     "C8-P7-LEDGER-01",
 ];
 
-const FINDINGS: [(&str, &str); 27] = [
+const FINDINGS: [(&str, &str); 28] = [
     ("C8-P7-F01", "C8-P7-PLAN-01 C8-P7-ELIGIBILITY-01 C8-P7-FRESHNESS-01 C8-P7-SCHEDULER-01 C8-P7-SAFETY-01 C8-P7-LIMITS-01 C8-P7-EFFECT-01 C8-P7-FAILURE-01 C8-P7-CRASH-01 C8-P7-COUNTERS-01 C8-P7-QUIESCENCE-01 C8-P7-PROGRESSION-01 C8-P7-LEDGER-01"),
     ("C8-P7-F02", "C8-P7-PLAN-01 C8-P7-SAFETY-01 C8-P7-LEDGER-01"),
     ("C8-P7-F03", "C8-P7-AUTHORITY-01 C8-P7-ELIGIBILITY-01 C8-P7-FRESHNESS-01 C8-P7-EFFECT-01 C8-P7-COMPILE-01 C8-P7-LEDGER-01"),
@@ -56,12 +56,13 @@ const FINDINGS: [(&str, &str); 27] = [
     ("C8-P7-F25", "C8-P7-PLAN-01 C8-P7-SAFETY-01 C8-P7-CRASH-01 C8-P7-COUNTERS-01 C8-P7-API-01 C8-P7-LEDGER-01"),
     ("C8-P7-F26", "C8-P7-LEDGER-01"),
     ("C8-P7-F27", "C8-P7-AUTHORITY-01 C8-P7-ELIGIBILITY-01 C8-P7-FRESHNESS-01 C8-P7-SAFETY-01 C8-P7-EFFECT-01 C8-P7-COMPILE-01 C8-P7-API-01 C8-P7-LEDGER-01"),
+    ("C8-P7-F28", "C8-P7-PLAN-01 C8-P7-AUTHORITY-01 C8-P7-ELIGIBILITY-01 C8-P7-EFFECT-01 C8-P7-CANCELLATION-01 C8-P7-LEDGER-01"),
 ];
 
 const REQUIRED_SOURCES: &[(&str, &str)] = &[
     (
         "C8-P7-AUTHORITY-01",
-        "workspaces/worth-store/crates/worth-store-authority/src/recovery_cleanup_effect.rs",
+        "workspaces/worth-store/crates/worth-store/src/physical_runtime/media_ownership/recovery_cleanup/owner.rs",
     ),
     (
         "C8-P7-AUTHORITY-01",
@@ -69,7 +70,7 @@ const REQUIRED_SOURCES: &[(&str, &str)] = &[
     ),
     (
         "C8-P7-AUTHORITY-01",
-        "workspaces/worth-store/crates/worth-store-physical-backend/src/recovery_media/cleanup.rs",
+        "workspaces/worth-store/crates/worth-store/src/physical_runtime/recovery_freshness/cleanup/plan.rs",
     ),
     (
         "C8-P7-AUTHORITY-01",
@@ -102,8 +103,8 @@ const CONTRACT: LedgerContract<'static> = LedgerContract {
     findings: &FINDINGS,
     requirement_inventory_sha256:
         "6185fa1c4be97e04fc3fb3b77da697c19749c6c7ac8572eb3c25ffe963c632f4",
-    guarantee_semantics_sha256: "ce1fd8019d6c14172f474c35a891a68b8100f780ea078b17180329be692be8d3",
-    finding_history_sha256: "e29b02c3466361ea1d0e4c3e51746d1a64ab9a1b003720c1f7f26e6097eb7abc",
+    guarantee_semantics_sha256: "987455fb9baebdfabea7214ebb9813ed6976bd0d06a76572f20e973ae9d9f08e",
+    finding_history_sha256: "f2c9e873e6454444e820c3a0a872366ac39996f85420c4f4e1aa3c27079768c7",
     audit_history_sha256: "6aabec5c8287ca6d48676d8722e2756c84a13f69a460b31c2c3f84d46191e985",
     required_sources: REQUIRED_SOURCES,
 };
@@ -190,7 +191,7 @@ fn ledger_and_history_mutants_fail_even_with_coordinated_rebinding() {
         .lines()
         .filter(|line| {
             !line.contains(
-                "C8-P7-AUTHORITY-01,workspaces/worth-store/crates/worth-store-authority/src/recovery_cleanup_effect.rs",
+                "C8-P7-AUTHORITY-01,workspaces/worth-store/crates/worth-store/src/physical_runtime/media_ownership/recovery_cleanup/owner.rs",
             )
         })
         .collect::<Vec<_>>()
