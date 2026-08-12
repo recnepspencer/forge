@@ -46,6 +46,7 @@ fn backend_recovery_facade_is_complete_and_store_identity_is_post_admission() {
             "PlannedPhysicalRecovery::store_identity",
             "RecoveredPhysicalRuntimeCore::store_identity",
             "RecoveryPublicationExpectation::store_identity",
+            "RecoveryReportEnvelope::store_identity",
             "StagedPhysicalRecovery::store_identity",
             "RecoveryPublicationPlan::store_identity",
             "ReopenedPhysicalRecovery::store_identity",

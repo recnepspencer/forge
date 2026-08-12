@@ -315,6 +315,11 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
+        "StoreRecoveryCleanupPlan::descriptive_plan_identity",
+        "worth-store/recovery-freshness/cleanup/plan",
+        "phase-7",
+    ),
+    (
         "StoreRecoveryCleanupFreshnessSample",
         "worth-store/recovery-freshness/cleanup",
         "phase-7",

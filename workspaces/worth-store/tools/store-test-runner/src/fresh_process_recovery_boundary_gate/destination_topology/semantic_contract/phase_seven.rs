@@ -15,9 +15,6 @@ pub(super) fn phase_seven_responsibility(path: &str) -> Option<&'static str> {
         "crates/worth-store-recovery-runtime/src/cleanup/disposition.rs" => {
             Some("per-artifact-cleanup-disposition")
         }
-        "crates/worth-store-physical-backend/src/recovery_media/cleanup.rs" => {
-            Some("scheduled-recovery-artifact-removal")
-        }
         "crates/worth-store-recovery-physics/src/source_precedence/checkpoint_covered_wal.rs" => {
             Some("checkpoint-covered-wal-retention-law")
         }

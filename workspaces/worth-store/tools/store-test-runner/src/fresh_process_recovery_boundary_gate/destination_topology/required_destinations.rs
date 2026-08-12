@@ -140,7 +140,6 @@ pub(super) const REQUIRED_DESTINATIONS: &[&str] = &[
     "crates/worth-store-physical-backend/src/recovery_media/staging.rs",
     "crates/worth-store-physical-backend/src/recovery_media/publication.rs",
     "crates/worth-store-physical-backend/src/recovery_media/reopen.rs",
-    "crates/worth-store-physical-backend/src/recovery_media/cleanup.rs",
     "crates/worth-store-physical-format/src/manifest/durable_root_routing/decode_limits.rs",
     "crates/worth-store-physical-format/src/manifest/durable_segment_routing/codec_primitives.rs",
     "crates/worth-store-physical-format/src/recovery_projection.rs",

@@ -16,6 +16,11 @@ C8-P8-PROTOCOL-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src
 C8-P8-PROTOCOL-01,workspaces/worth-store/crates/worth-store-offline-verifier/src/c8_recovery_observation/report_protocol.rs,observer-protocol
 C8-P8-PROTOCOL-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_eight_process.rs,cross-family-process-proof
 C8-P8-API-01,_docs/worth-store/physical-reconstruction-c8-public-api.csv,exact-api-inventory
+C8-P8-API-01,_docs/worth-store/physical-reconstruction-c8-destination-topology.csv,exact-destination-topology
+C8-P8-API-01,workspaces/worth-store/tools/store-test-runner/src/fresh_process_recovery_boundary_gate/facade_inventory/runtime_phase_seven_surface_contract.rs,phase-seven-delivery-contract
+C8-P8-API-01,workspaces/worth-store/tools/store-test-runner/src/fresh_process_recovery_boundary_gate/facade_inventory/runtime_phase_seven_surface_contract/backend.rs,backend-mechanism-contract
+C8-P8-API-01,workspaces/worth-store/tools/store-test-runner/src/fresh_process_recovery_boundary_gate/facade_inventory/runtime_phase_seven_surface_contract/media_effect.rs,store-cleanup-media-effect-contract
+C8-P8-API-01,workspaces/worth-store/tools/store-test-runner/src/fresh_process_recovery_boundary_gate/facade_inventory/destination_surface_contract/tests.rs,exact-accessor-owner-proof
 C8-P8-CUTOVER-01,_docs/worth-store/physical-reconstruction-c8-cutover-inventory.csv,scoped-disposition-inventory
 C8-P8-PHYSICS-01,workspaces/worth-store/crates/worth-store-recovery-physics/src/lib.rs,pure-physics-facade
 C8-P8-PHYSICS-01,workspaces/worth-store/crates/worth-store-recovery-physics/Cargo.toml,pure-physics-dependencies
@@ -26,4 +31,6 @@ C8-P8-DOCUMENTATION-01,workspaces/worth-store/crates/worth-store-offline-verifie
 C8-P8-RETIREMENT-01,_docs/worth-store/physical-reconstruction-c8-cutover-inventory.csv,replaced-source-dispositions
 C8-P8-RETIREMENT-01,workspaces/worth-store/crates/worth-store-recovery-physics/src/lib.rs,replaced-facade-absence
 C8-P8-LEDGER-01,_docs/worth-store/physical-reconstruction-c8-phase-8-closure-ledger.md,ledger
+C8-P8-LEDGER-01,_docs/worth-store/physical-reconstruction-c8-closure-ledger.md,inherited-phase-one-causal-closure
+C8-P8-LEDGER-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_eight_ledger.rs,ledger-bijection-and-history-gate
 C8-P8-LEDGER-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_eight_process.rs,causal-process-evidence

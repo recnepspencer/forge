@@ -1,142 +1,22 @@
 pub(super) const BACKEND_SURFACES: &[(&str, &str, &str)] = &[
     (
-        "AdmittedRecoveryFilesystemMedia::remove_recovery_wal_artifact_scheduled",
-        "worth-store-physical-backend/recovery-media/cleanup",
+        "AdmittedRecoveryFilesystemMedia::complete_recovery_queue_binding",
+        "worth-store-physical-backend/recovery-media/admitted",
         "phase-7",
     ),
     (
-        "CompletedScheduledRecoveryCleanupRemoval",
-        "worth-store-physical-backend/recovery-media/cleanup",
+        "ArtifactTreeFailure::recovery_denial",
+        "worth-store-physical-backend/filesystem-media/artifact-tree/failure",
         "phase-7",
     ),
     (
-        "CompletedScheduledRecoveryCleanupRemoval::artifact",
-        "worth-store-physical-backend/recovery-media/cleanup",
+        "ArtifactTreeFailure::recovery_io",
+        "worth-store-physical-backend/filesystem-media/artifact-tree/failure",
         "phase-7",
     ),
     (
-        "CompletedScheduledRecoveryCleanupRemoval::admission",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "CompletedScheduledRecoveryCleanupRemoval::physical",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "CompletedScheduledRecoveryCleanupRemoval::queue",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "CompletedScheduledRecoveryCleanupRemoval::revalidation",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "DeniedScheduledRecoveryCleanupRemoval",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "DeniedScheduledRecoveryCleanupRemoval::artifact",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "DeniedScheduledRecoveryCleanupRemoval::admission",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "DeniedScheduledRecoveryCleanupRemoval::failure",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "DeniedScheduledRecoveryCleanupRemoval::cause",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "DeniedScheduledRecoveryCleanupRemoval::queue",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "DeniedScheduledRecoveryCleanupRemoval::revalidation",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "IndeterminateScheduledRecoveryCleanupRemoval",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "IndeterminateScheduledRecoveryCleanupRemoval::artifact",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "IndeterminateScheduledRecoveryCleanupRemoval::admission",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "IndeterminateScheduledRecoveryCleanupRemoval::physical",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "IndeterminateScheduledRecoveryCleanupRemoval::queue",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "IndeterminateScheduledRecoveryCleanupRemoval::revalidation",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "RecoveryCleanupArtifactRevalidationDenial",
-        "worth-store-physical-backend/recovery-media/cleanup/revalidation",
-        "phase-7",
-    ),
-    (
-        "RecoveryCleanupArtifactRevalidationProgress",
-        "worth-store-physical-backend/recovery-media/cleanup/revalidation",
-        "phase-7",
-    ),
-    (
-        "RecoveryCleanupArtifactRevalidationProgress::bytes_read",
-        "worth-store-physical-backend/recovery-media/cleanup/revalidation",
-        "phase-7",
-    ),
-    (
-        "RecoveryCleanupArtifactRevalidationProgress::reads_attempted",
-        "worth-store-physical-backend/recovery-media/cleanup/revalidation",
-        "phase-7",
-    ),
-    (
-        "RecoveryCleanupArtifactRevalidationProgress::reads_completed",
-        "worth-store-physical-backend/recovery-media/cleanup/revalidation",
-        "phase-7",
-    ),
-    (
-        "RecoveryCleanupRemovalDenialCause",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "RecoveryCleanupRemovalDenialCause::failure",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "RecoveryCleanupRemovalOutcome",
-        "worth-store-physical-backend/recovery-media/cleanup",
+        "MediaOperationIdentity::from_recovery_effect",
+        "worth-store-physical-backend/filesystem-media/owner-local-identity",
         "phase-7",
     ),
 ];

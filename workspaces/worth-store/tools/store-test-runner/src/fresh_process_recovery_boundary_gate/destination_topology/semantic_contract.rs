@@ -8,9 +8,6 @@ pub(super) fn expected_phase(path: &str) -> &'static str {
     if path.ends_with("worth-store-physical-backend/src/recovery_media/staging.rs") {
         return "phase-5";
     }
-    if path.ends_with("worth-store-physical-backend/src/recovery_media/cleanup.rs") {
-        return "phase-7";
-    }
     if path.ends_with("worth-store-physical-backend/src/recovery_media/publication.rs")
         || path.ends_with("worth-store-physical-backend/src/recovery_media/reopen.rs")
     {

@@ -91,6 +91,7 @@ fn per_guarantee_source_closures_are_causal() {
     for phase_seven_contract in [
         "runtime_phase_seven_surface_contract.rs",
         "runtime_phase_seven_surface_contract/backend.rs",
+        "runtime_phase_seven_surface_contract/media_effect.rs",
         "runtime_phase_seven_surface_contract/runtime.rs",
         "runtime_phase_seven_surface_contract/store.rs",
         "runtime_phase_seven_surface_contract/wal.rs",
@@ -110,7 +111,7 @@ fn ledger_completeness_and_source_mutants_are_rejected() {
         .lines()
         .find(|line| line.starts_with("| C8-P1-"))
         .expect("ledger row");
-    let omitted = document.replacen(&format!("{first_line}\n"), "", 1);
+    let omitted = document.replacen(first_line, "", 1);
     assert!(validate_ledger(&omitted).is_err());
     let duplicated = document.replacen(END, &format!("{first_line}\n{END}"), 1);
     assert!(validate_ledger(&duplicated).is_err());
