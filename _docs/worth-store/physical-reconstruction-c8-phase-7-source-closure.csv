@@ -173,6 +173,7 @@ C8-P7-API-01,workspaces/worth-store/tools/store-test-runner/src/fresh_process_re
 C8-P7-API-01,workspaces/worth-store/tools/store-test-runner/src/fresh_process_recovery_boundary_gate/facade_inventory/runtime_phase_seven_surface_contract/backend.rs
 C8-P7-API-01,workspaces/worth-store/tools/store-test-runner/src/fresh_process_recovery_boundary_gate/facade_inventory/runtime_phase_seven_surface_contract/runtime.rs
 C8-P7-API-01,workspaces/worth-store/tools/store-test-runner/src/fresh_process_recovery_boundary_gate/facade_inventory/runtime_phase_seven_surface_contract/store.rs
+C8-P7-API-01,workspaces/worth-store/tools/store-test-runner/src/fresh_process_recovery_boundary_gate/facade_inventory/runtime_phase_seven_surface_contract/wal.rs
 C8-P7-API-01,workspaces/worth-store/tools/store-test-runner/src/fresh_process_recovery_boundary_gate/destination_topology/semantic_contract/phase_seven.rs
 C8-P7-LEDGER-01,_docs/worth-store/physical-reconstruction-c8-closure-ledger.md
 C8-P7-LEDGER-01,_docs/worth-store/physical-reconstruction-c8-phase-6-closure-ledger.md
@@ -182,18 +183,11 @@ C8-P7-LEDGER-01,_docs/worth-store/physical-reconstruction-c8-fresh-process-recov
 C8-P7-LEDGER-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_seven_ledger.rs
 C8-P7-LEDGER-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_seven_ledger/support.rs
 C8-P7-AUTHORITY-01,workspaces/worth-store/crates/worth-store-wal/src/artifact_store/segment_inventory/segment_inspection/owned_artifact.rs
-C8-P7-AUTHORITY-01,workspaces/worth-store/crates/worth-store-recovery-physics/src/source_precedence/checkpoint_covered_wal.rs
-C8-P7-AUTHORITY-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/cleanup/command_basis.rs
-C8-P7-AUTHORITY-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/cleanup/eligibility.rs
 C8-P7-AUTHORITY-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/ui/cleanup_freshness_rejects_caller_source_and_policy.rs
-C8-P7-AUTHORITY-01,workspaces/worth-store/crates/worth-store/src/physical_runtime/recovery_freshness/port.rs
 C8-P7-EFFECT-01,workspaces/worth-store/crates/worth-store-physical-backend/src/recovery_media/cleanup/revalidation.rs
 C8-P7-FAILURE-01,workspaces/worth-store/crates/worth-store-physical-backend/src/recovery_media/cleanup/revalidation.rs
-C8-P7-FAILURE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_seven_faults.rs
 C8-P7-FAILURE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_seven_faults/revalidation.rs
 C8-P7-COUNTERS-01,workspaces/worth-store/crates/worth-store-physical-backend/src/recovery_media/cleanup/revalidation.rs
-C8-P7-COUNTERS-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/handoff/cleanup_posture.rs
-C8-P7-COUNTERS-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_seven_faults.rs
 C8-P7-COUNTERS-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_seven_faults/revalidation.rs
 C8-P7-API-01,workspaces/worth-store/crates/worth-store-physical-backend/src/recovery_media/cleanup/revalidation.rs
 C8-P7-API-01,workspaces/worth-store/crates/worth-store-wal/src/artifact_store/segment_inventory/segment_inspection/owned_artifact.rs

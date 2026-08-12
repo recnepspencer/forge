@@ -8,6 +8,7 @@ pub(super) struct LedgerContract<'a> {
     pub(super) guarantees: &'a [&'a str],
     pub(super) findings: &'a [(&'a str, &'a str)],
     pub(super) finding_history_sha256: &'a str,
+    pub(super) audit_history_sha256: &'a str,
 }
 
 pub(super) struct ValidatedLedger {
@@ -43,7 +44,7 @@ pub(super) fn validate_shape(
         assert!(matches!(values[6].as_str(), "IMPLEMENTED" | "PROVED"));
     }
     validate_findings(ledger, contract);
-    validate_audit(ledger, &rows);
+    validate_audit(ledger, &rows, contract.audit_history_sha256);
     let closures = parse_closures(root, closure, contract.guarantees);
     ValidatedLedger {
         ledger_rows: rows,
@@ -122,7 +123,7 @@ fn validate_findings(ledger: &str, contract: LedgerContract<'_>) {
     }
 }
 
-fn validate_audit(ledger: &str, guarantee_rows: &[String]) {
+fn validate_audit(ledger: &str, guarantee_rows: &[String], expected_sha256: &str) {
     let audit = rows_between(
         ledger,
         "## Independent audit history",
@@ -130,7 +131,13 @@ fn validate_audit(ledger: &str, guarantee_rows: &[String]) {
         "| /root/",
     );
     assert!(!audit.is_empty(), "retain complete Phase 7 audit history");
+    assert!(audit.iter().all(|row| cells(row).len() == 6));
     assert!(audit.iter().all(|row| cells(row)[1] == "gpt-5.6-sol high"));
+    assert_eq!(
+        format!("{:x}", Sha256::digest(audit.join("\n").as_bytes())),
+        expected_sha256,
+        "Phase 7 independent audit history content drifted"
+    );
     let last = cells(audit.last().unwrap());
     if guarantee_rows.iter().all(|row| cells(row)[6] == "PROVED") {
         assert_eq!(last[3], "CLEAN");
