@@ -77,10 +77,14 @@ fn collect_root_tree(
         let path = record_artifact_path(root, artifact);
         collect_file(&path, paths);
         let bytes = std::fs::read(path).expect("read selected root routing block");
-        let (block, found_format) = PhysicalRootRoutingBlock::decode(&bytes, manifest.node_capacity())
-            .expect("decode selected root routing block");
+        let (block, found_format) =
+            PhysicalRootRoutingBlock::decode(&bytes, manifest.node_capacity())
+                .expect("decode selected root routing block");
         assert_eq!(found_format, format);
-        assert_eq!(block.reference(durable_artifact_checksum(&bytes)), reference);
+        assert_eq!(
+            block.reference(durable_artifact_checksum(&bytes)),
+            reference
+        );
         match block {
             PhysicalRootRoutingBlock::Leaf { entries, .. } => {
                 for placement in entries {
@@ -152,7 +156,10 @@ fn collect_segment_tree(
             PhysicalSegmentMembershipBlock::decode(&bytes, manifest.node_capacity())
                 .expect("decode selected segment membership block");
         assert_eq!(found_format, format);
-        assert_eq!(block.reference(durable_artifact_checksum(&bytes)), reference);
+        assert_eq!(
+            block.reference(durable_artifact_checksum(&bytes)),
+            reference
+        );
         if let Some(children) = block.children() {
             pending.extend(children.iter().copied());
         }
@@ -174,7 +181,10 @@ fn collect_free_space_tree(
     let (header, found_format) = DurableFreeSpaceManifestHeader::decode(&bytes, u16::MAX)
         .expect("decode selected free-space manifest");
     assert_eq!(found_format, format);
-    assert_eq!(durable_artifact_checksum(&bytes), manifest.free_space_checksum());
+    assert_eq!(
+        durable_artifact_checksum(&bytes),
+        manifest.free_space_checksum()
+    );
     let mut pending = header.root().into_iter().collect::<VecDeque<_>>();
     while let Some(reference) = pending.pop_front() {
         let artifact = RecordArtifactFile::FreeSpaceMembershipBlock {
@@ -188,7 +198,10 @@ fn collect_free_space_tree(
             PhysicalFreeSpaceMembershipBlock::decode(&bytes, header.node_capacity())
                 .expect("decode selected free-space membership block");
         assert_eq!(block_format, format);
-        assert_eq!(block.reference(durable_artifact_checksum(&bytes)), reference);
+        assert_eq!(
+            block.reference(durable_artifact_checksum(&bytes)),
+            reference
+        );
         if let Some(children) = block.children() {
             pending.extend(children.iter().copied());
         }

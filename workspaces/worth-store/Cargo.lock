@@ -1553,6 +1553,7 @@ dependencies = [
  "worth-store-contracts",
  "worth-store-physical-format",
  "worth-store-security",
+ "worth-store-wal",
 ]
 
 [[package]]
@@ -1819,7 +1820,6 @@ dependencies = [
  "worth-store-authority",
  "worth-store-contracts",
  "worth-store-modes",
- "worth-store-physical-backend",
  "worth-store-physical-format",
  "worth-store-security",
 ]

@@ -38,5 +38,4 @@ impl PhysicalRecoveryFreshnessPort {
             maximum_redo_bytes,
         )
     }
-
 }

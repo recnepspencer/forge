@@ -41,12 +41,7 @@ pub(crate) fn build_plan(basis: RecoveryCleanupPlanBasis<'_>) -> RecoveryCleanup
         limits,
     } = basis;
     let checkpoint = publication.checkpoint_identity();
-    let mut dispositions = retained_dispositions(
-        selection,
-        base,
-        publication,
-        checkpoint,
-    );
+    let mut dispositions = retained_dispositions(selection, base, publication, checkpoint);
     dispositions.extend(consumed_publication_candidates(publication));
     let covered_wal = admit_checkpoint_covered_wal(selection, fates, limits);
     let candidates = covered_wal.candidates;

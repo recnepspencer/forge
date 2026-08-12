@@ -1,8 +1,6 @@
-use worth_store_physical_backend::{
-    CompletedArtifactTreePublicationEffect, RecoveryWalArtifactCoordinate,
-};
+use worth_store_physical_backend::CompletedArtifactTreePublicationEffect;
 use worth_store_physical_format::PhysicalCheckpointIdentity;
-use worth_store_wal::WalLsnRange;
+use worth_store_wal::{WalLsnRange, WalSegmentArtifactIdentity};
 
 pub struct RecoveryCleanupRemovalAction;
 impl worth_proof::ActionMarker for RecoveryCleanupRemovalAction {}
@@ -22,7 +20,7 @@ pub(in crate::physical_runtime::recovery_coordination) struct RecoveryCleanupRem
 }
 
 pub(in crate::physical_runtime::recovery_coordination) struct RecoveryCleanupRemovalTarget {
-    artifact: RecoveryWalArtifactCoordinate,
+    artifact: WalSegmentArtifactIdentity,
     lsn_range: WalLsnRange,
     byte_count: u64,
 }
@@ -33,7 +31,7 @@ pub struct RecoveryCleanupRemovalOccurrence {
     pub(super) plan: [u8; 32],
     pub(super) published_generation: u64,
     pub(super) checkpoint: PhysicalCheckpointIdentity,
-    pub(super) artifact: RecoveryWalArtifactCoordinate,
+    pub(super) artifact: WalSegmentArtifactIdentity,
     pub(super) lsn_range: WalLsnRange,
     pub(super) byte_count: u64,
     pub(super) physical: CompletedArtifactTreePublicationEffect,
@@ -75,7 +73,7 @@ impl RecoveryCleanupRemovalOccurrence {
     pub const fn checkpoint(&self) -> PhysicalCheckpointIdentity {
         self.checkpoint
     }
-    pub const fn artifact(&self) -> RecoveryWalArtifactCoordinate {
+    pub const fn artifact(&self) -> WalSegmentArtifactIdentity {
         self.artifact
     }
     pub const fn lsn_range(&self) -> WalLsnRange {
@@ -100,7 +98,7 @@ impl RecoveryCleanupRemovalOccurrence {
 
 impl RecoveryCleanupRemovalTarget {
     pub(in crate::physical_runtime::recovery_coordination) const fn new(
-        artifact: RecoveryWalArtifactCoordinate,
+        artifact: WalSegmentArtifactIdentity,
         lsn_range: WalLsnRange,
         byte_count: u64,
     ) -> Self {

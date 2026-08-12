@@ -11,7 +11,7 @@ use super::super::{PerformedRecoveryPhysicalEffect, RecoveryCleanupRemovalAction
 mod execution;
 pub(super) use execution::execute;
 
-pub(in crate::physical_runtime) struct PhysicalRecoveryCleanupRemovalCommand {
+pub(in crate::physical_runtime) struct PhysicalRecoveryCleanupRemovalCommand<'e> {
     store: StableStoreIdentity,
     media_generation: PhysicalRecoveryMediaGeneration,
     session: [u8; 16],
@@ -24,7 +24,9 @@ pub(in crate::physical_runtime) struct PhysicalRecoveryCleanupRemovalCommand {
     artifact: WalSegmentArtifactIdentity,
     lsn_range: WalLsnRange,
     byte_count: u64,
-    artifact_digest: [u8; 32],
+    selector_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
+    checkpoint_stream: &'e worth_store_physical_format::VerifiedCheckpointStream,
+    verified_wal: worth_store_wal::VerifiedWalArtifact,
 }
 
 pub struct CompletedPhysicalRecoveryCleanupRemoval {
@@ -73,9 +75,12 @@ pub enum PhysicalRecoveryCleanupRemovalOutcome {
     Indeterminate(PhysicalRecoveryCleanupRemovalIndeterminate),
 }
 
-impl PhysicalRecoveryCleanupRemovalCommand {
+impl<'e> PhysicalRecoveryCleanupRemovalCommand<'e> {
     pub(in crate::physical_runtime) fn from_freshness(
         basis: crate::physical_runtime::recovery_freshness::StoreRecoveryCleanupRemovalBasis,
+        selector_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
+        checkpoint_stream: &'e worth_store_physical_format::VerifiedCheckpointStream,
+        verified_wal: worth_store_wal::VerifiedWalArtifact,
     ) -> Self {
         Self {
             store: basis.store(),
@@ -90,7 +95,9 @@ impl PhysicalRecoveryCleanupRemovalCommand {
             artifact: basis.artifact(),
             lsn_range: basis.lsn_range(),
             byte_count: basis.byte_count(),
-            artifact_digest: basis.artifact_digest(),
+            selector_read,
+            checkpoint_stream,
+            verified_wal,
         }
     }
 }

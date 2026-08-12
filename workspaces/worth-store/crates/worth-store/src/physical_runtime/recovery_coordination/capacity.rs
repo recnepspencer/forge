@@ -16,10 +16,7 @@ impl PhysicalRecoveryCoordinationCapacity {
         let commands = usize::try_from(commands).ok()?;
         let semantic_bytes = usize::try_from(semantic_bytes).ok()?;
         let cleanup_candidates = usize::try_from(cleanup_candidates).ok()?;
-        (commands != 0
-            && semantic_bytes != 0
-            && cleanup_candidates != 0
-            && cleanup_bytes != 0)
+        (commands != 0 && semantic_bytes != 0 && cleanup_candidates != 0 && cleanup_bytes != 0)
             .then_some(Self {
                 commands,
                 semantic_bytes,

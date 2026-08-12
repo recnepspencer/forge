@@ -189,6 +189,15 @@ fn post_read_eligibility_denial_retains_the_completed_freshness_stage() {
         StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility
     );
     assert!(failure.sample().is_some());
+    assert_eq!(
+        failure
+            .sample()
+            .expect("post-read failure retains exact sample")
+            .selector_read()
+            .bytes()
+            .len(),
+        worth_store_physical_format::ROOT_SELECTOR_BYTES
+    );
     assert!(failure.read().is_none());
 }
 

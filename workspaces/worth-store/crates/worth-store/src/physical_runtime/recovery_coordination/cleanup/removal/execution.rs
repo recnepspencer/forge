@@ -1,7 +1,6 @@
 use worth_store_io_scheduler::execute_ready_queue_plan;
-use worth_store_physical_backend::{
-    RecoveryCleanupRemovalOutcome as BackendRemovalOutcome, RecoveryWalArtifactCoordinate,
-};
+use worth_store_physical_backend::RecoveryCleanupRemovalOutcome as BackendRemovalOutcome;
+use worth_store_wal::WalSegmentArtifactIdentity;
 
 use crate::physical_runtime::recovery_coordination::settlement::{
     scheduler_posture, settle, signal_completion_is_terminal,
@@ -23,14 +22,14 @@ struct RemovalExecution {
     dispatched: crate::physical_runtime::DispatchedPhysicalWork,
     plan: worth_store_io_scheduler::QueueExecutionReadyPlan,
     work: crate::physical_runtime::PhysicalWorkIdentity,
-    coordinate: RecoveryWalArtifactCoordinate,
+    artifact: WalSegmentArtifactIdentity,
 }
 
 struct CompletedRemovalSettlement {
     physical: worth_store_physical_backend::CompletedArtifactTreePublicationEffect,
     revalidation: worth_store_physical_backend::RecoveryCleanupArtifactRevalidationProgress,
     work: crate::physical_runtime::PhysicalWorkIdentity,
-    coordinate: RecoveryWalArtifactCoordinate,
+    artifact: WalSegmentArtifactIdentity,
     posture: PhysicalWorkSchedulerPosture,
     signal: crate::physical_runtime::PhysicalSignalSettlementOutcome,
 }
@@ -38,16 +37,16 @@ struct CompletedRemovalSettlement {
 pub(in crate::physical_runtime::recovery_coordination::cleanup) fn execute(
     coordination: &PhysicalRecoveryCoordination,
     media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
-    command: PhysicalRecoveryCleanupRemovalCommand,
+    command: PhysicalRecoveryCleanupRemovalCommand<'_>,
 ) -> PhysicalRecoveryCleanupRemovalOutcome {
     let execution = match admit_execution(coordination, media, &command) {
         Ok(execution) => execution,
         Err(outcome) => return outcome,
     };
     match media.remove_recovery_wal_artifact_scheduled(
-        execution.coordinate,
-        command.byte_count,
-        command.artifact_digest,
+        &command.selector_read,
+        command.checkpoint_stream,
+        &command.verified_wal,
         execution
             .plan
             .backend_completion_binding()
@@ -68,7 +67,7 @@ pub(in crate::physical_runtime::recovery_coordination::cleanup) fn execute(
 fn admit_execution(
     coordination: &PhysicalRecoveryCoordination,
     media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
-    command: &PhysicalRecoveryCleanupRemovalCommand,
+    command: &PhysicalRecoveryCleanupRemovalCommand<'_>,
 ) -> Result<RemovalExecution, PhysicalRecoveryCleanupRemovalOutcome> {
     let scope =
         validated_scope(coordination, media, command).ok_or_else(invalid_command_outcome)?;
@@ -78,23 +77,18 @@ fn admit_execution(
     let (dispatched, plan) = work
         .into_execution_parts(None)
         .map_err(|denial| execution_denial_outcome(denial, work_identity))?;
-    let coordinate = RecoveryWalArtifactCoordinate::new(
-        command.artifact.segment().get(),
-        command.artifact.generation().get(),
-    )
-    .expect("admitted WAL identity");
     Ok(RemovalExecution {
         dispatched,
         plan,
         work: work_identity,
-        coordinate,
+        artifact: command.artifact,
     })
 }
 
 fn validated_scope(
     coordination: &PhysicalRecoveryCoordination,
     media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
-    command: &PhysicalRecoveryCleanupRemovalCommand,
+    command: &PhysicalRecoveryCleanupRemovalCommand<'_>,
 ) -> Option<PhysicalWalReclamationScope> {
     if command.store != media.store_identity()
         || command.media_generation != media.media_generation()
@@ -156,7 +150,7 @@ fn denied_without_physical(
 
 fn complete_removal(
     coordination: &PhysicalRecoveryCoordination,
-    command: PhysicalRecoveryCleanupRemovalCommand,
+    command: PhysicalRecoveryCleanupRemovalCommand<'_>,
     execution: RemovalExecution,
     completed: worth_store_physical_backend::CompletedScheduledRecoveryCleanupRemoval,
 ) -> PhysicalRecoveryCleanupRemovalOutcome {
@@ -190,7 +184,7 @@ fn complete_removal(
                 command.checkpoint,
             ),
             RecoveryCleanupRemovalTarget::new(
-                settlement.coordinate,
+                settlement.artifact,
                 command.lsn_range,
                 command.byte_count,
             ),
@@ -210,7 +204,7 @@ fn complete_removal(
 
 fn settle_completed_removal(
     coordination: &PhysicalRecoveryCoordination,
-    command: &PhysicalRecoveryCleanupRemovalCommand,
+    command: &PhysicalRecoveryCleanupRemovalCommand<'_>,
     execution: RemovalExecution,
     completed: worth_store_physical_backend::CompletedScheduledRecoveryCleanupRemoval,
 ) -> CompletedRemovalSettlement {
@@ -245,7 +239,7 @@ fn settle_completed_removal(
         physical,
         revalidation,
         work: execution.work,
-        coordinate: execution.coordinate,
+        artifact: execution.artifact,
         posture,
         signal: settle(coordination, dispatch),
     }
@@ -284,7 +278,7 @@ fn deny_removal(
 
 fn indeterminate_removal(
     coordination: &PhysicalRecoveryCoordination,
-    command: PhysicalRecoveryCleanupRemovalCommand,
+    command: PhysicalRecoveryCleanupRemovalCommand<'_>,
     execution: RemovalExecution,
     indeterminate: Box<worth_store_physical_backend::IndeterminateScheduledRecoveryCleanupRemoval>,
 ) -> PhysicalRecoveryCleanupRemovalOutcome {

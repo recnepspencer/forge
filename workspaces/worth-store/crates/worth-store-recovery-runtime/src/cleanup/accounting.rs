@@ -45,8 +45,7 @@ impl RecoveryCleanupAccounting {
     pub(super) fn record_freshness_sample(&mut self, sample: StoreRecoveryCleanupFreshnessSample) {
         self.counters.freshness_evaluations += 1;
         self.counters.freshness_reads_completed += 1;
-        self.counters.freshness_bytes_read +=
-            worth_store_physical_format::ROOT_SELECTOR_BYTES as u64;
+        self.counters.freshness_bytes_read += sample.selector_read().bytes().len() as u64;
         self.record_freshness_scheduler(true, false, false, true);
         self.freshness.push(sample);
     }
@@ -58,8 +57,7 @@ impl RecoveryCleanupAccounting {
         self.counters.freshness_evaluations += 1;
         if let Some(sample) = failure.sample() {
             self.counters.freshness_reads_completed += 1;
-            self.counters.freshness_bytes_read +=
-                worth_store_physical_format::ROOT_SELECTOR_BYTES as u64;
+            self.counters.freshness_bytes_read += sample.selector_read().bytes().len() as u64;
             self.record_freshness_scheduler(true, false, false, true);
             self.freshness.push(sample.clone());
             return;

@@ -10,7 +10,7 @@ pub(super) const BACKEND_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
-        "CompletedScheduledRecoveryCleanupRemoval::coordinate",
+        "CompletedScheduledRecoveryCleanupRemoval::artifact",
         "worth-store-physical-backend/recovery-media/cleanup",
         "phase-7",
     ),
@@ -35,7 +35,7 @@ pub(super) const BACKEND_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
-        "DeniedScheduledRecoveryCleanupRemoval::coordinate",
+        "DeniedScheduledRecoveryCleanupRemoval::artifact",
         "worth-store-physical-backend/recovery-media/cleanup",
         "phase-7",
     ),
@@ -65,7 +65,7 @@ pub(super) const BACKEND_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
-        "IndeterminateScheduledRecoveryCleanupRemoval::coordinate",
+        "IndeterminateScheduledRecoveryCleanupRemoval::artifact",
         "worth-store-physical-backend/recovery-media/cleanup",
         "phase-7",
     ),
@@ -121,26 +121,6 @@ pub(super) const BACKEND_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "RecoveryCleanupRemovalOutcome",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "RecoveryWalArtifactCoordinate",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "RecoveryWalArtifactCoordinate::generation",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "RecoveryWalArtifactCoordinate::new",
-        "worth-store-physical-backend/recovery-media/cleanup",
-        "phase-7",
-    ),
-    (
-        "RecoveryWalArtifactCoordinate::segment",
         "worth-store-physical-backend/recovery-media/cleanup",
         "phase-7",
     ),

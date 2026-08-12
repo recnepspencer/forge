@@ -11,9 +11,7 @@ use worth_store_wal::{
     LogSequenceNumber, VerifiedWalArtifact, WalLsnRange, WalSegmentArtifactIdentity,
 };
 
-use crate::physical_runtime::{
-    CompletedPhysicalRecoveryFreshReopen, PhysicalRecoveryCoordination,
-};
+use crate::physical_runtime::{CompletedPhysicalRecoveryFreshReopen, PhysicalRecoveryCoordination};
 
 use super::{
     StoreRecoveryCleanupEligibility, StoreRecoveryCleanupFreshnessDenial,
@@ -115,7 +113,6 @@ pub(in crate::physical_runtime) fn admit<'e>(
                         artifact,
                         lsn_range: pending.lsn_range,
                         byte_count: pending.byte_count,
-                        artifact_digest: pending.artifact_digest,
                     },
                 },
             )
@@ -213,7 +210,7 @@ fn invalid() -> StoreRecoveryCleanupFreshnessFailure {
     }
 }
 
-impl StoreRecoveryCleanupPlan<'_> {
+impl<'e> StoreRecoveryCleanupPlan<'e> {
     pub const fn identity(&self) -> [u8; 32] {
         self.identity
     }
@@ -235,7 +232,7 @@ impl StoreRecoveryCleanupPlan<'_> {
     pub(super) fn take(
         &mut self,
         artifact: WalSegmentArtifactIdentity,
-    ) -> Option<StoreRecoveryCleanupEligibility<'_>> {
+    ) -> Option<StoreRecoveryCleanupEligibility<'e>> {
         self.candidates.remove(&artifact)
     }
 }

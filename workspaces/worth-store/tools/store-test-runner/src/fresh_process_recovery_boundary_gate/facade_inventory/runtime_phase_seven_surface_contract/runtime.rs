@@ -25,6 +25,16 @@ pub(super) const RUNTIME_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
+        "RecoveryPublicationExpectation::created_artifacts",
+        "progression/planned/basis/publication_accessors",
+        "phase-7",
+    ),
+    (
+        "RecoveryPublicationPlan::created_artifacts",
+        "progression/planned/basis/publication_accessors",
+        "phase-7",
+    ),
+    (
         "RecoveryCleanupCounters",
         "handoff/cleanup_posture",
         "phase-7",

@@ -19,7 +19,7 @@ pub use cleanup::{
     CompletedScheduledRecoveryCleanupRemoval, DeniedScheduledRecoveryCleanupRemoval,
     IndeterminateScheduledRecoveryCleanupRemoval, RecoveryCleanupArtifactRevalidationDenial,
     RecoveryCleanupArtifactRevalidationProgress, RecoveryCleanupRemovalDenialCause,
-    RecoveryCleanupRemovalOutcome, RecoveryWalArtifactCoordinate,
+    RecoveryCleanupRemovalOutcome,
 };
 pub use discovery::{
     BoundedRecoveryFilesystemDiscovery, ObservedRecoveryArtifact, ObservedWalArtifact,

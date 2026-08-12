@@ -7,21 +7,19 @@ use crate::{
     BackendQueueExecutionAdaptation, BackendQueueExecutionCompletion,
     BackendQueueExecutionPlanBinding,
 };
+use worth_store_physical_format::{
+    DurableRootSelector, RecordArtifactFile, RootSelectorRole, VerifiedCheckpointStream,
+};
+use worth_store_wal::{VerifiedWalArtifact, WalSegmentArtifactIdentity};
 
 mod revalidation;
 pub use revalidation::{
     RecoveryCleanupArtifactRevalidationDenial, RecoveryCleanupArtifactRevalidationProgress,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RecoveryWalArtifactCoordinate {
-    segment: u64,
-    generation: u64,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompletedScheduledRecoveryCleanupRemoval {
-    coordinate: RecoveryWalArtifactCoordinate,
+    artifact: WalSegmentArtifactIdentity,
     physical: CompletedArtifactTreePublicationEffect,
     queue: BackendQueueExecutionCompletion,
     revalidation: RecoveryCleanupArtifactRevalidationProgress,
@@ -29,7 +27,7 @@ pub struct CompletedScheduledRecoveryCleanupRemoval {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeniedScheduledRecoveryCleanupRemoval {
-    coordinate: RecoveryWalArtifactCoordinate,
+    artifact: WalSegmentArtifactIdentity,
     cause: RecoveryCleanupRemovalDenialCause,
     queue: Option<BackendQueueExecutionCompletion>,
     revalidation: RecoveryCleanupArtifactRevalidationProgress,
@@ -37,7 +35,7 @@ pub struct DeniedScheduledRecoveryCleanupRemoval {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndeterminateScheduledRecoveryCleanupRemoval {
-    coordinate: RecoveryWalArtifactCoordinate,
+    artifact: WalSegmentArtifactIdentity,
     physical: IndeterminateArtifactTreePublicationEffect,
     queue: BackendQueueExecutionCompletion,
     revalidation: RecoveryCleanupArtifactRevalidationProgress,
@@ -57,49 +55,52 @@ pub enum RecoveryCleanupRemovalOutcome {
     Indeterminate(Box<IndeterminateScheduledRecoveryCleanupRemoval>),
 }
 
-impl RecoveryWalArtifactCoordinate {
-    pub const fn new(segment: u64, generation: u64) -> Option<Self> {
-        if segment == 0 || generation == 0 {
-            None
-        } else {
-            Some(Self {
-                segment,
-                generation,
-            })
-        }
-    }
-
-    pub const fn segment(self) -> u64 {
-        self.segment
-    }
-
-    pub const fn generation(self) -> u64 {
-        self.generation
-    }
-
-    fn file_name(self) -> String {
-        format!(
-            "segment-{}-generation-{}.wal",
-            self.segment, self.generation
-        )
-    }
+fn file_name(artifact: WalSegmentArtifactIdentity) -> String {
+    format!(
+        "segment-{}-generation-{}.wal",
+        artifact.segment().get(),
+        artifact.generation().get()
+    )
 }
 
 impl AdmittedRecoveryFilesystemMedia {
+    /// Removes only an exact selector/checkpoint/WAL basis that has already
+    /// survived bounded decoding. Raw coordinates cannot enter this boundary:
+    ///
+    /// ```compile_fail
+    /// use worth_store_physical_backend::{
+    ///     AdmittedRecoveryFilesystemMedia, BackendQueueExecutionPlanBinding,
+    ///     RecoveryWalArtifactCoordinate,
+    /// };
+    /// fn bypass(
+    ///     media: &AdmittedRecoveryFilesystemMedia,
+    ///     binding: BackendQueueExecutionPlanBinding,
+    /// ) {
+    ///     let coordinate = RecoveryWalArtifactCoordinate::new(7, 3).unwrap();
+    ///     let _ = media.remove_recovery_wal_artifact_scheduled(
+    ///         coordinate, 4096, [9; 32], binding,
+    ///     );
+    /// }
+    /// ```
     pub fn remove_recovery_wal_artifact_scheduled(
         &self,
-        coordinate: RecoveryWalArtifactCoordinate,
-        expected_bytes: u64,
-        expected_digest: [u8; 32],
+        selector_read: &super::CompletedScheduledRecoveryReopenRead,
+        checkpoint: &VerifiedCheckpointStream,
+        wal: &VerifiedWalArtifact,
         binding: BackendQueueExecutionPlanBinding,
     ) -> RecoveryCleanupRemovalOutcome {
+        let inspection = wal.inspection();
+        let artifact = inspection.identity();
+        if !cleanup_facts_match(self, selector_read, checkpoint, wal) {
+            return denied_without_queue(artifact);
+        }
         let wal = match ArtifactTreeDirectory::families().child("wal") {
             Ok(wal) => wal,
-            Err(_) => return denied_without_queue(coordinate),
+            Err(_) => return denied_without_queue(artifact),
         };
-        let artifact = match wal.file(&coordinate.file_name()) {
-            Ok(artifact) => artifact,
-            Err(_) => return denied_without_queue(coordinate),
+        let physical = match wal.file(&file_name(artifact)) {
+            Ok(physical) => physical,
+            Err(_) => return denied_without_queue(artifact),
         };
         let ticket = match crate::BackendQueueExecutionAuthority::store_owned().issue_ticket(
             binding,
@@ -107,31 +108,54 @@ impl AdmittedRecoveryFilesystemMedia {
             BackendQueueExecutionAdaptation::None,
         ) {
             Ok(ticket) => ticket,
-            Err(_) => return denied_without_queue(coordinate),
+            Err(_) => return denied_without_queue(artifact),
         };
-        let revalidation =
-            match revalidation::verify(self, &artifact, expected_bytes, expected_digest) {
-                Ok(progress) => progress,
-                Err(failure) => {
-                    return denied_with_queue(
-                        coordinate,
-                        RecoveryCleanupRemovalDenialCause::Revalidation(failure.denial()),
-                        failure.progress(),
-                        ticket.begin_completion().observe_queue_depth(1).complete(),
-                    );
-                }
-            };
+        let revalidation = match revalidation::verify(
+            self,
+            &physical,
+            inspection.byte_count(),
+            inspection.artifact_digest(),
+        ) {
+            Ok(progress) => progress,
+            Err(failure) => {
+                return denied_with_queue(
+                    artifact,
+                    RecoveryCleanupRemovalDenialCause::Revalidation(failure.denial()),
+                    failure.progress(),
+                    ticket.begin_completion().observe_queue_depth(1).complete(),
+                );
+            }
+        };
         let physical = self
             .parts
             .artifact_tree()
-            .remove_file_durably_observed(&artifact);
+            .remove_file_durably_observed(&physical);
         let queue = ticket.begin_completion().observe_queue_depth(1).complete();
-        lower_cleanup_removal(coordinate, physical, queue, revalidation)
+        lower_cleanup_removal(artifact, physical, queue, revalidation)
     }
 }
 
+fn cleanup_facts_match(
+    media: &AdmittedRecoveryFilesystemMedia,
+    selector_read: &super::CompletedScheduledRecoveryReopenRead,
+    checkpoint: &VerifiedCheckpointStream,
+    wal: &VerifiedWalArtifact,
+) -> bool {
+    let Ok(selector) = DurableRootSelector::decode(selector_read.bytes()) else {
+        return false;
+    };
+    let source = checkpoint.source();
+    let inspection = wal.inspection();
+    selector_read.artifact() == RecordArtifactFile::CurrentRootSelector
+        && selector.store_identity() == media.store_identity()
+        && selector.role() == RootSelectorRole::Current
+        && selector.root_generation() >= source.root().generation()
+        && inspection.byte_count() != 0
+        && inspection.lsn_range().end_exclusive().get() <= source.wal().covered_end_lsn_exclusive()
+}
+
 fn lower_cleanup_removal(
-    coordinate: RecoveryWalArtifactCoordinate,
+    artifact: WalSegmentArtifactIdentity,
     physical: ArtifactTreePublicationEffectOutcome,
     queue: BackendQueueExecutionCompletion,
     revalidation: RecoveryCleanupArtifactRevalidationProgress,
@@ -140,7 +164,7 @@ fn lower_cleanup_removal(
         ArtifactTreePublicationEffectOutcome::Completed(physical) => {
             RecoveryCleanupRemovalOutcome::Completed(Box::new(
                 CompletedScheduledRecoveryCleanupRemoval {
-                    coordinate,
+                    artifact,
                     physical,
                     queue,
                     revalidation,
@@ -150,7 +174,7 @@ fn lower_cleanup_removal(
         ArtifactTreePublicationEffectOutcome::DeniedBeforeEffect(failure) => {
             RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(Box::new(
                 DeniedScheduledRecoveryCleanupRemoval {
-                    coordinate,
+                    artifact,
                     cause: RecoveryCleanupRemovalDenialCause::Removal(failure),
                     queue: Some(queue),
                     revalidation,
@@ -160,7 +184,7 @@ fn lower_cleanup_removal(
         ArtifactTreePublicationEffectOutcome::Indeterminate(physical) => {
             RecoveryCleanupRemovalOutcome::Indeterminate(Box::new(
                 IndeterminateScheduledRecoveryCleanupRemoval {
-                    coordinate,
+                    artifact,
                     physical,
                     queue,
                     revalidation,
@@ -171,14 +195,14 @@ fn lower_cleanup_removal(
 }
 
 fn denied_with_queue(
-    coordinate: RecoveryWalArtifactCoordinate,
+    artifact: WalSegmentArtifactIdentity,
     cause: RecoveryCleanupRemovalDenialCause,
     revalidation: RecoveryCleanupArtifactRevalidationProgress,
     queue: BackendQueueExecutionCompletion,
 ) -> RecoveryCleanupRemovalOutcome {
     RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(Box::new(
         DeniedScheduledRecoveryCleanupRemoval {
-            coordinate,
+            artifact,
             cause,
             queue: Some(queue),
             revalidation,
@@ -186,12 +210,10 @@ fn denied_with_queue(
     ))
 }
 
-fn denied_without_queue(
-    coordinate: RecoveryWalArtifactCoordinate,
-) -> RecoveryCleanupRemovalOutcome {
+fn denied_without_queue(artifact: WalSegmentArtifactIdentity) -> RecoveryCleanupRemovalOutcome {
     RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(Box::new(
         DeniedScheduledRecoveryCleanupRemoval {
-            coordinate,
+            artifact,
             cause: RecoveryCleanupRemovalDenialCause::Preparation(
                 ArtifactTreeFailure::recovery_denial(),
             ),
@@ -202,8 +224,8 @@ fn denied_without_queue(
 }
 
 impl CompletedScheduledRecoveryCleanupRemoval {
-    pub const fn coordinate(&self) -> RecoveryWalArtifactCoordinate {
-        self.coordinate
+    pub const fn artifact(&self) -> WalSegmentArtifactIdentity {
+        self.artifact
     }
     pub const fn physical(&self) -> &CompletedArtifactTreePublicationEffect {
         &self.physical
@@ -217,8 +239,8 @@ impl CompletedScheduledRecoveryCleanupRemoval {
 }
 
 impl DeniedScheduledRecoveryCleanupRemoval {
-    pub const fn coordinate(&self) -> RecoveryWalArtifactCoordinate {
-        self.coordinate
+    pub const fn artifact(&self) -> WalSegmentArtifactIdentity {
+        self.artifact
     }
     pub const fn failure(&self) -> ArtifactTreeFailure {
         self.cause.failure()
@@ -235,8 +257,8 @@ impl DeniedScheduledRecoveryCleanupRemoval {
 }
 
 impl IndeterminateScheduledRecoveryCleanupRemoval {
-    pub const fn coordinate(&self) -> RecoveryWalArtifactCoordinate {
-        self.coordinate
+    pub const fn artifact(&self) -> WalSegmentArtifactIdentity {
+        self.artifact
     }
     pub const fn physical(&self) -> &IndeterminateArtifactTreePublicationEffect {
         &self.physical

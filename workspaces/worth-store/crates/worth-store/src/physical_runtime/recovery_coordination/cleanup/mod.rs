@@ -7,12 +7,12 @@ pub use freshness::{
     PhysicalRecoveryCleanupFreshnessReadDenialKind, PhysicalRecoveryCleanupFreshnessReadOutcome,
     PhysicalRecoveryCleanupFreshnessReadProgress,
 };
+pub(in crate::physical_runtime) use removal::PhysicalRecoveryCleanupRemovalCommand;
 pub use removal::{
     CompletedPhysicalRecoveryCleanupRemoval, PhysicalRecoveryCleanupRemovalDenial,
-    PhysicalRecoveryCleanupRemovalDenialKind,
-    PhysicalRecoveryCleanupRemovalIndeterminate, PhysicalRecoveryCleanupRemovalOutcome,
+    PhysicalRecoveryCleanupRemovalDenialKind, PhysicalRecoveryCleanupRemovalIndeterminate,
+    PhysicalRecoveryCleanupRemovalOutcome,
 };
-pub(in crate::physical_runtime) use removal::PhysicalRecoveryCleanupRemovalCommand;
 
 pub use admission::{
     PhysicalRecoveryCleanupAdmissionDenial, PhysicalRecoveryCleanupAdmissionDenialKind,
@@ -26,8 +26,8 @@ pub enum PhysicalRecoveryCleanupCommandStage {
 
 use super::PhysicalRecoveryCoordination;
 use crate::physical_runtime::{
-    CompletedPhysicalRecoveryFreshReopen, StoreRecoveryCleanupFreshnessFailure,
-    StoreRecoveryCleanupAttempt, StoreRecoveryCleanupPlan,
+    CompletedPhysicalRecoveryFreshReopen, StoreRecoveryCleanupAttempt,
+    StoreRecoveryCleanupFreshnessFailure, StoreRecoveryCleanupPlan,
 };
 
 impl PhysicalRecoveryCoordination {

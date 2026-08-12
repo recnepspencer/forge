@@ -52,9 +52,7 @@ impl<'recovery, 'basis> RecoveryCleanupAttemptBasis<'recovery, 'basis> {
         let Some(command_basis) = self.command_basis else {
             return RecoveryCleanupAttempt::Deferred {
                 freshness: None,
-                evidence: RecoveryCleanupDeferralEvidence::EligibilityChanged {
-                    target,
-                },
+                evidence: RecoveryCleanupDeferralEvidence::EligibilityChanged { target },
                 stop: true,
             };
         };

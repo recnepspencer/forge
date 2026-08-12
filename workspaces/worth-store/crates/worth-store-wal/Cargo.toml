@@ -11,14 +11,12 @@ sha2 = "0.10"
 worth-store-authority.workspace = true
 worth-store-contracts.workspace = true
 worth-store-modes.workspace = true
-worth-store-physical-backend.workspace = true
 worth-store-physical-format.workspace = true
 worth-store-security.workspace = true
 
 [features]
 default = []
 certification-authority = [
-    "worth-store-physical-backend/certification-test-authority",
     "worth-store-security/certification-test-authority",
 ]
 
@@ -27,7 +25,6 @@ tempfile = "3"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-aspect-native.workspace = true
-worth-store-physical-backend = { path = "../worth-store-physical-backend", features = ["certification-test-authority"] }
 worth-store-security = { path = "../worth-store-security", features = ["certification-test-authority"] }
 
 [lints]

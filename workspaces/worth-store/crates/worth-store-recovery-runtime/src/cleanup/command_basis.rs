@@ -1,8 +1,6 @@
 use std::cell::RefCell;
 
-use worth_store::physical_runtime::{
-    StoreRecoveryCleanupAttempt, StoreRecoveryCleanupPlan,
-};
+use worth_store::physical_runtime::{StoreRecoveryCleanupAttempt, StoreRecoveryCleanupPlan};
 
 use crate::progression::ReopenedPhysicalRecovery;
 
@@ -21,15 +19,19 @@ impl<'a> RecoveryCleanupCommandBasis<'a> {
         candidates: &[RecoveryCleanupEligibility],
     ) -> Option<Self> {
         let checkpoint = reopened.state.selection.checkpoint()?.checkpoint();
-        let plan = reopened.state.coordination.owner().admit_cleanup_plan(
-            &reopened.state.authority.media,
-            &reopened.reopened,
-            checkpoint,
-            candidates
-                .iter()
-                .map(RecoveryCleanupEligibility::verified_artifact),
-        )
-        .ok()?;
+        let plan = reopened
+            .state
+            .coordination
+            .owner()
+            .admit_cleanup_plan(
+                &reopened.state.authority.media,
+                &reopened.reopened,
+                checkpoint,
+                candidates
+                    .iter()
+                    .map(RecoveryCleanupEligibility::verified_artifact),
+            )
+            .ok()?;
         Some(Self {
             plan: RefCell::new(plan),
         })

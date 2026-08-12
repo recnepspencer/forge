@@ -95,13 +95,10 @@ fn assert_complete(
     assert_eq!(evidence.performed_removals().len(), 1);
     let occurrence = evidence.performed_removals()[0].occurrence();
     assert_eq!(occurrence.plan(), evidence.plan_identity());
-    assert_eq!(
-        occurrence.artifact().segment(),
-        expected_identity.segment().get()
-    );
+    assert_eq!(occurrence.artifact().segment(), expected_identity.segment());
     assert_eq!(
         occurrence.artifact().generation(),
-        expected_identity.generation().get()
+        expected_identity.generation()
     );
     assert_eq!(evidence.counters().artifact_revalidation_reads_attempted, 1);
     assert_eq!(evidence.counters().artifact_revalidation_reads_completed, 1);

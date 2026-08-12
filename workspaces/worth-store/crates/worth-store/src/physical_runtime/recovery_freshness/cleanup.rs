@@ -7,16 +7,15 @@ use worth_store_wal::{
     LogSequenceNumber, VerifiedWalArtifact, WalLsnRange, WalSegmentArtifactIdentity,
 };
 
-use crate::physical_runtime::{
-    PhysicalRecoveryCleanupFreshnessReadDenial,
-    PhysicalRecoveryCleanupFreshnessReadOutcome, PhysicalRecoveryCleanupRemovalOutcome,
-    PhysicalRecoveryCoordination,
-};
 use crate::physical_runtime::recovery_coordination::PhysicalRecoveryCleanupRemovalCommand;
+use crate::physical_runtime::{
+    PhysicalRecoveryCleanupFreshnessReadDenial, PhysicalRecoveryCleanupFreshnessReadOutcome,
+    PhysicalRecoveryCleanupRemovalOutcome, PhysicalRecoveryCoordination,
+};
 
 mod plan;
-pub use plan::StoreRecoveryCleanupPlan;
 pub(in crate::physical_runtime) use plan::admit as admit_plan;
+pub use plan::StoreRecoveryCleanupPlan;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoreRecoveryCleanupFreshnessSample {
@@ -25,6 +24,7 @@ pub struct StoreRecoveryCleanupFreshnessSample {
     cleanup_plan_identity: [u8; 32],
     sealed_publication_basis: [u8; 32],
     policy_identity: [u8; 32],
+    selector_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
     selector_read_operation: worth_store_physical_backend::MediaOperationIdentity,
     work: crate::physical_runtime::PhysicalWorkIdentity,
     signal: crate::physical_runtime::PhysicalSignalSettlementOutcome,
@@ -32,9 +32,9 @@ pub struct StoreRecoveryCleanupFreshnessSample {
 
 /// Owner-sampled descriptive evidence plus the only Store-admitted command
 /// that may follow that same sampling occurrence.
-pub(in crate::physical_runtime) struct StoreRecoveryCleanupFreshnessAdmission {
+pub(in crate::physical_runtime) struct StoreRecoveryCleanupFreshnessAdmission<'e> {
     sample: StoreRecoveryCleanupFreshnessSample,
-    command: Option<PhysicalRecoveryCleanupRemovalCommand>,
+    command: Option<PhysicalRecoveryCleanupRemovalCommand<'e>>,
 }
 
 pub enum StoreRecoveryCleanupAttempt {
@@ -79,7 +79,6 @@ pub(in crate::physical_runtime) struct StoreRecoveryCleanupRemovalBasis {
     artifact: WalSegmentArtifactIdentity,
     lsn_range: WalLsnRange,
     byte_count: u64,
-    artifact_digest: [u8; 32],
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,13 +88,13 @@ pub enum StoreRecoveryCleanupFreshnessDenial {
     InvalidCleanupEligibility,
 }
 
-pub(in crate::physical_runtime) fn sample(
+pub(in crate::physical_runtime) fn sample<'e>(
     authority: &super::PhysicalRecoveryFreshnessAuthority,
     coordination: &PhysicalRecoveryCoordination,
     media: &AdmittedRecoveryFilesystemMedia,
-    plan: &mut StoreRecoveryCleanupPlan<'_>,
+    plan: &mut StoreRecoveryCleanupPlan<'e>,
     artifact: WalSegmentArtifactIdentity,
-) -> Result<StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessFailure> {
+) -> Result<StoreRecoveryCleanupFreshnessAdmission<'e>, StoreRecoveryCleanupFreshnessFailure> {
     if !authority.matches_media_generation(media.media_generation())
         || !plan.bindings_match(coordination, media)
     {
@@ -108,12 +107,14 @@ pub(in crate::physical_runtime) fn sample(
     }
     let cleanup_plan_identity = plan.identity();
     let policy_identity = plan.policy_identity();
-    let eligibility = plan.take(artifact).ok_or(StoreRecoveryCleanupFreshnessFailure {
-        denial: StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility,
-        sample: None,
-        read: None,
-        binding: None,
-    })?;
+    let eligibility = plan
+        .take(artifact)
+        .ok_or(StoreRecoveryCleanupFreshnessFailure {
+            denial: StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility,
+            sample: None,
+            read: None,
+            binding: None,
+        })?;
     let completed = match coordination.read_cleanup_current_selector(media) {
         PhysicalRecoveryCleanupFreshnessReadOutcome::Completed(completed) => completed,
         PhysicalRecoveryCleanupFreshnessReadOutcome::Denied(denial) => {
@@ -141,6 +142,7 @@ pub(in crate::physical_runtime) fn sample(
         cleanup_plan_identity,
         sealed_publication_basis: eligibility.removal.sealed_publication_basis,
         policy_identity,
+        selector_read: completed.physical().clone(),
         selector_read_operation: completed.physical().physical().operation(),
         work: completed.work(),
         signal: completed.signal(),
@@ -160,6 +162,7 @@ pub(in crate::physical_runtime) fn sample(
             media,
             eligibility,
             &sample,
+            sample.selector_read.clone(),
         )?)
     } else {
         None
@@ -167,12 +170,13 @@ pub(in crate::physical_runtime) fn sample(
     Ok(StoreRecoveryCleanupFreshnessAdmission { sample, command })
 }
 
-fn admit_cleanup_command(
+fn admit_cleanup_command<'e>(
     authority: &super::PhysicalRecoveryFreshnessAuthority,
     media: &AdmittedRecoveryFilesystemMedia,
-    eligibility: StoreRecoveryCleanupEligibility<'_>,
+    eligibility: StoreRecoveryCleanupEligibility<'e>,
     completed_sample: &StoreRecoveryCleanupFreshnessSample,
-) -> Result<PhysicalRecoveryCleanupRemovalCommand, StoreRecoveryCleanupFreshnessFailure> {
+    selector_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
+) -> Result<PhysicalRecoveryCleanupRemovalCommand<'e>, StoreRecoveryCleanupFreshnessFailure> {
     let maximum_operations = eligibility
         .checkpoint
         .footer()
@@ -202,6 +206,9 @@ fn admit_cleanup_command(
     }
     Ok(PhysicalRecoveryCleanupRemovalCommand::from_freshness(
         eligibility.removal,
+        selector_read,
+        eligibility.checkpoint,
+        eligibility.wal,
     ))
 }
 
@@ -244,6 +251,11 @@ impl StoreRecoveryCleanupFreshnessSample {
     ) -> worth_store_physical_backend::MediaOperationIdentity {
         self.selector_read_operation
     }
+    pub const fn selector_read(
+        &self,
+    ) -> &worth_store_physical_backend::CompletedScheduledRecoveryReopenRead {
+        &self.selector_read
+    }
     pub const fn work(&self) -> crate::physical_runtime::PhysicalWorkIdentity {
         self.work
     }
@@ -252,12 +264,12 @@ impl StoreRecoveryCleanupFreshnessSample {
     }
 }
 
-impl StoreRecoveryCleanupFreshnessAdmission {
+impl<'e> StoreRecoveryCleanupFreshnessAdmission<'e> {
     pub(in crate::physical_runtime) fn into_parts(
         self,
     ) -> (
         StoreRecoveryCleanupFreshnessSample,
-        Option<PhysicalRecoveryCleanupRemovalCommand>,
+        Option<PhysicalRecoveryCleanupRemovalCommand<'e>>,
     ) {
         (self.sample, self.command)
     }
@@ -267,9 +279,10 @@ impl StoreRecoveryCleanupAttempt {
     pub const fn freshness(&self) -> Option<&StoreRecoveryCleanupFreshnessSample> {
         match self {
             Self::FreshnessDenied(failure) => failure.sample(),
-            Self::PublishedGenerationChanged(sample) | Self::Removal { freshness: sample, .. } => {
-                Some(sample)
-            }
+            Self::PublishedGenerationChanged(sample)
+            | Self::Removal {
+                freshness: sample, ..
+            } => Some(sample),
         }
     }
 }
@@ -327,8 +340,5 @@ impl StoreRecoveryCleanupRemovalBasis {
     }
     pub(in crate::physical_runtime) const fn byte_count(&self) -> u64 {
         self.byte_count
-    }
-    pub(in crate::physical_runtime) const fn artifact_digest(&self) -> [u8; 32] {
-        self.artifact_digest
     }
 }

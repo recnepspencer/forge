@@ -135,11 +135,6 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
-        "PhysicalRecoveryCleanupRemovalCommand",
-        "worth-store/recovery-coordination/cleanup/removal",
-        "phase-7",
-    ),
-    (
         "PhysicalRecoveryCleanupRemovalDenial",
         "worth-store/recovery-coordination/cleanup/removal",
         "phase-7",
@@ -190,18 +185,13 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
-        "PhysicalRecoveryCoordination::execute_cleanup_removal",
+        "PhysicalRecoveryCoordination::execute_cleanup_candidate",
         "worth-store/recovery-coordination/cleanup",
         "phase-7",
     ),
     (
         "PhysicalRecoveryCoordination::admit_cleanup_plan",
         "worth-store/recovery-coordination/cleanup",
-        "phase-7",
-    ),
-    (
-        "PhysicalRecoveryFreshnessPort::sample_cleanup",
-        "worth-store/recovery-freshness/port",
         "phase-7",
     ),
     (
@@ -270,17 +260,12 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
-        "StoreRecoveryCleanupFreshnessAdmission",
+        "StoreRecoveryCleanupAttempt",
         "worth-store/recovery-freshness/cleanup",
         "phase-7",
     ),
     (
-        "StoreRecoveryCleanupFreshnessAdmission::into_parts",
-        "worth-store/recovery-freshness/cleanup",
-        "phase-7",
-    ),
-    (
-        "StoreRecoveryCleanupFreshnessAdmission::sample",
+        "StoreRecoveryCleanupAttempt::freshness",
         "worth-store/recovery-freshness/cleanup",
         "phase-7",
     ),
