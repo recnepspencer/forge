@@ -1,5 +1,5 @@
 use worth_store::physical_runtime::{
-    PhysicalRecoveryCleanupRemovalOutcome, StoreRecoveryCleanupFreshnessAdmission,
+    PhysicalRecoveryCleanupRemovalOutcome, StoreRecoveryCleanupAttempt,
     StoreRecoveryCleanupFreshnessSample,
 };
 
@@ -49,54 +49,41 @@ impl<'recovery, 'basis> RecoveryCleanupAttemptBasis<'recovery, 'basis> {
         candidate: RecoveryCleanupEligibility,
     ) -> RecoveryCleanupAttempt {
         let target = RecoveryCleanupTarget::Wal(candidate.artifact());
-        let admission = match self.sample_freshness(target.clone(), candidate) {
-            Ok(admission) => admission,
-            Err(attempt) => return attempt,
-        };
-        if let Some(evidence) =
-            self.changed_evidence(target.clone(), admission.sample(), expected_policy)
-        {
-            let (freshness, _) = admission.into_parts();
+        let Some(command_basis) = self.command_basis else {
             return RecoveryCleanupAttempt::Deferred {
-                freshness: Some(freshness),
-                evidence,
-                stop: true,
-            };
-        }
-        let (freshness, command) = admission.into_parts();
-        let Some(command) = command else {
-            return RecoveryCleanupAttempt::Deferred {
-                evidence: RecoveryCleanupDeferralEvidence::EligibilityChanged { target },
-                freshness: Some(freshness),
-                stop: true,
-            };
-        };
-        lower_removal_outcome(self.reopened, target, freshness, command)
-    }
-
-    fn sample_freshness(
-        &self,
-        target: RecoveryCleanupTarget,
-        candidate: RecoveryCleanupEligibility,
-    ) -> Result<StoreRecoveryCleanupFreshnessAdmission, RecoveryCleanupAttempt> {
-        self.command_basis
-            .ok_or_else(|| RecoveryCleanupAttempt::Deferred {
                 freshness: None,
                 evidence: RecoveryCleanupDeferralEvidence::EligibilityChanged {
-                    target: target.clone(),
+                    target,
                 },
                 stop: true,
-            })?
-            .admit(
-                self.reopened.state.coordination.owner(),
-                &self.reopened.state.authority.media,
-                candidate.artifact(),
-            )
-            .map_err(|failure| RecoveryCleanupAttempt::Deferred {
-                freshness: None,
-                evidence: RecoveryCleanupDeferralEvidence::Freshness { target, failure },
-                stop: true,
-            })
+            };
+        };
+        match command_basis.execute(
+            self.reopened.state.coordination.owner(),
+            &self.reopened.state.authority.media,
+            candidate.artifact(),
+        ) {
+            StoreRecoveryCleanupAttempt::FreshnessDenied(failure) => {
+                RecoveryCleanupAttempt::Deferred {
+                    freshness: failure.sample().cloned(),
+                    evidence: RecoveryCleanupDeferralEvidence::Freshness { target, failure },
+                    stop: true,
+                }
+            }
+            StoreRecoveryCleanupAttempt::PublishedGenerationChanged(freshness) => {
+                let evidence = self
+                    .changed_evidence(target.clone(), &freshness, expected_policy)
+                    .unwrap_or(RecoveryCleanupDeferralEvidence::EligibilityChanged { target });
+                RecoveryCleanupAttempt::Deferred {
+                    freshness: Some(freshness),
+                    evidence,
+                    stop: true,
+                }
+            }
+            StoreRecoveryCleanupAttempt::Removal { freshness, outcome } => {
+                lower_removal_outcome(target, freshness, outcome)
+            }
+        }
     }
 
     fn changed_evidence(
@@ -122,17 +109,11 @@ impl<'recovery, 'basis> RecoveryCleanupAttemptBasis<'recovery, 'basis> {
 }
 
 fn lower_removal_outcome(
-    reopened: &ReopenedPhysicalRecovery,
     target: RecoveryCleanupTarget,
     freshness: StoreRecoveryCleanupFreshnessSample,
-    command: worth_store::physical_runtime::PhysicalRecoveryCleanupRemovalCommand,
+    outcome: PhysicalRecoveryCleanupRemovalOutcome,
 ) -> RecoveryCleanupAttempt {
-    match reopened
-        .state
-        .coordination
-        .owner()
-        .execute_cleanup_removal(&reopened.state.authority.media, command)
-    {
+    match outcome {
         PhysicalRecoveryCleanupRemovalOutcome::Completed(completed) => {
             let revalidation = completed.revalidation();
             RecoveryCleanupAttempt::Completed {

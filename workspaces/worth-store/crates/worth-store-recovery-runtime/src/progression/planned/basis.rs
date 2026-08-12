@@ -134,6 +134,7 @@ pub struct RecoveryPublicationPlan {
     current_selector: worth_store_physical_format::DurableRootSelector,
     recovered_root: DurablePhysicalRootManifest,
     candidates: Box<[RecoveryPublicationCandidateArtifact]>,
+    created_artifacts: Box<[RecordArtifactFile]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,6 +154,7 @@ pub struct RecoveryPublicationExpectation {
     root_protocol: worth_store::physical_runtime::RecoveryRootProtocolPublicationPlan,
     current_selector: worth_store_physical_format::DurableRootSelector,
     recovered_root: DurablePhysicalRootManifest,
+    created_artifacts: Box<[RecordArtifactFile]>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

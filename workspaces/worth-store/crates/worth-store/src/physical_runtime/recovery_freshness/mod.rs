@@ -1,6 +1,6 @@
 mod authority;
 mod binding;
-mod cleanup;
+pub(in crate::physical_runtime) mod cleanup;
 mod port;
 mod registration;
 
@@ -13,7 +13,7 @@ pub use binding::{
 pub(in crate::physical_runtime) use cleanup::StoreRecoveryCleanupRemovalBasis;
 pub(in crate::physical_runtime) use cleanup::admit_plan as admit_cleanup_plan;
 pub use cleanup::{
-    StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessDenial,
+    StoreRecoveryCleanupAttempt, StoreRecoveryCleanupFreshnessDenial,
     StoreRecoveryCleanupFreshnessFailure, StoreRecoveryCleanupFreshnessSample,
     StoreRecoveryCleanupPlan,
 };

@@ -44,7 +44,7 @@ pub(crate) fn build_plan(basis: RecoveryCleanupPlanBasis<'_>) -> RecoveryCleanup
     let mut dispositions = retained_dispositions(
         selection,
         base,
-        publication.recovered_root().generation(),
+        publication,
         checkpoint,
     );
     dispositions.extend(consumed_publication_candidates(publication));
@@ -148,7 +148,7 @@ fn checkpoint_covered_disposition(
 fn retained_dispositions(
     selection: &PhysicalSourceSelection,
     base: &RecoveryBaseImagePlan,
-    recovered_root_generation: u64,
+    publication: &RecoveryPublicationExpectation,
     checkpoint: PhysicalCheckpointIdentity,
 ) -> Vec<RecoveryCleanupDisposition> {
     let mut records = BTreeMap::new();
@@ -161,8 +161,12 @@ fn retained_dispositions(
         RecoveryCleanupDispositionKind::Current,
     );
     records.insert(
+        RecordArtifactFile::PreviousRootSelector,
+        RecoveryCleanupDispositionKind::Retained,
+    );
+    records.insert(
         RecordArtifactFile::RootManifest {
-            generation: recovered_root_generation,
+            generation: publication.recovered_root().generation(),
         },
         RecoveryCleanupDispositionKind::Current,
     );
@@ -170,6 +174,11 @@ fn retained_dispositions(
         records
             .entry(*artifact)
             .or_insert(RecoveryCleanupDispositionKind::Retained);
+    }
+    for artifact in publication.created_artifacts() {
+        if !is_consumed_publication_candidate(*artifact) {
+            records.insert(*artifact, RecoveryCleanupDispositionKind::Current);
+        }
     }
     let mut dispositions = records
         .into_iter()
@@ -202,6 +211,14 @@ fn retained_dispositions(
         )
     }));
     dispositions
+}
+
+fn is_consumed_publication_candidate(artifact: RecordArtifactFile) -> bool {
+    matches!(
+        artifact,
+        RecordArtifactFile::RootSelectorCandidate { .. }
+            | RecordArtifactFile::CatalogCandidate { .. }
+    )
 }
 
 fn consumed_publication_candidates(

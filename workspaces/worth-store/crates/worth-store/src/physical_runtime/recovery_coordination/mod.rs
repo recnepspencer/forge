@@ -14,10 +14,11 @@ pub use cleanup::{
     PhysicalRecoveryCleanupAdmissionDenial, PhysicalRecoveryCleanupAdmissionDenialKind,
     PhysicalRecoveryCleanupCommandStage, PhysicalRecoveryCleanupFreshnessReadDenial,
     PhysicalRecoveryCleanupFreshnessReadDenialKind, PhysicalRecoveryCleanupFreshnessReadOutcome,
-    PhysicalRecoveryCleanupFreshnessReadProgress, PhysicalRecoveryCleanupRemovalCommand,
-    PhysicalRecoveryCleanupRemovalDenial, PhysicalRecoveryCleanupRemovalDenialKind,
+    PhysicalRecoveryCleanupFreshnessReadProgress, PhysicalRecoveryCleanupRemovalDenial,
+    PhysicalRecoveryCleanupRemovalDenialKind,
     PhysicalRecoveryCleanupRemovalIndeterminate, PhysicalRecoveryCleanupRemovalOutcome,
 };
+pub(in crate::physical_runtime) use cleanup::PhysicalRecoveryCleanupRemovalCommand;
 pub use effect::{
     PerformedRecoveryPhysicalEffect, RecoveryCleanupRemovalAction,
     RecoveryCleanupRemovalOccurrence, RecoveryFreshReopenAction, RecoveryFreshReopenOccurrence,

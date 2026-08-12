@@ -9,9 +9,10 @@ use worth_store_wal::{
 
 use crate::physical_runtime::{
     PhysicalRecoveryCleanupFreshnessReadDenial,
-    PhysicalRecoveryCleanupFreshnessReadOutcome, PhysicalRecoveryCleanupRemovalCommand,
+    PhysicalRecoveryCleanupFreshnessReadOutcome, PhysicalRecoveryCleanupRemovalOutcome,
     PhysicalRecoveryCoordination,
 };
+use crate::physical_runtime::recovery_coordination::PhysicalRecoveryCleanupRemovalCommand;
 
 mod plan;
 pub use plan::StoreRecoveryCleanupPlan;
@@ -31,9 +32,18 @@ pub struct StoreRecoveryCleanupFreshnessSample {
 
 /// Owner-sampled descriptive evidence plus the only Store-admitted command
 /// that may follow that same sampling occurrence.
-pub struct StoreRecoveryCleanupFreshnessAdmission {
+pub(in crate::physical_runtime) struct StoreRecoveryCleanupFreshnessAdmission {
     sample: StoreRecoveryCleanupFreshnessSample,
     command: Option<PhysicalRecoveryCleanupRemovalCommand>,
+}
+
+pub enum StoreRecoveryCleanupAttempt {
+    FreshnessDenied(StoreRecoveryCleanupFreshnessFailure),
+    PublishedGenerationChanged(StoreRecoveryCleanupFreshnessSample),
+    Removal {
+        freshness: StoreRecoveryCleanupFreshnessSample,
+        outcome: PhysicalRecoveryCleanupRemovalOutcome,
+    },
 }
 
 pub struct StoreRecoveryCleanupFreshnessFailure {
@@ -79,7 +89,7 @@ pub enum StoreRecoveryCleanupFreshnessDenial {
     InvalidCleanupEligibility,
 }
 
-pub(super) fn sample(
+pub(in crate::physical_runtime) fn sample(
     authority: &super::PhysicalRecoveryFreshnessAuthority,
     coordination: &PhysicalRecoveryCoordination,
     media: &AdmittedRecoveryFilesystemMedia,
@@ -243,17 +253,24 @@ impl StoreRecoveryCleanupFreshnessSample {
 }
 
 impl StoreRecoveryCleanupFreshnessAdmission {
-    pub const fn sample(&self) -> &StoreRecoveryCleanupFreshnessSample {
-        &self.sample
-    }
-
-    pub fn into_parts(
+    pub(in crate::physical_runtime) fn into_parts(
         self,
     ) -> (
         StoreRecoveryCleanupFreshnessSample,
         Option<PhysicalRecoveryCleanupRemovalCommand>,
     ) {
         (self.sample, self.command)
+    }
+}
+
+impl StoreRecoveryCleanupAttempt {
+    pub const fn freshness(&self) -> Option<&StoreRecoveryCleanupFreshnessSample> {
+        match self {
+            Self::FreshnessDenied(failure) => failure.sample(),
+            Self::PublishedGenerationChanged(sample) | Self::Removal { freshness: sample, .. } => {
+                Some(sample)
+            }
+        }
     }
 }
 

@@ -11,7 +11,7 @@ use super::super::{PerformedRecoveryPhysicalEffect, RecoveryCleanupRemovalAction
 mod execution;
 pub(super) use execution::execute;
 
-pub struct PhysicalRecoveryCleanupRemovalCommand {
+pub(in crate::physical_runtime) struct PhysicalRecoveryCleanupRemovalCommand {
     store: StableStoreIdentity,
     media_generation: PhysicalRecoveryMediaGeneration,
     session: [u8; 16],

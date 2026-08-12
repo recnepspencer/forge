@@ -69,6 +69,7 @@ pub(super) fn seal(
             worth_store_physical_format::DurableRootSelector::decode(candidate.bytes()).ok()
         })
         .unwrap_or_else(|| selection.root().selected().selector());
+    let created_artifacts = created_artifacts(&staging, &candidate.artifacts);
     let publication = RecoveryPublicationPlan {
         store,
         checkpoint: pending.checkpoint,
@@ -85,6 +86,7 @@ pub(super) fn seal(
         current_selector,
         recovered_root: candidate.root,
         candidates: candidate.artifacts,
+        created_artifacts,
     };
     let quiescence = RecoveryQuiescencePlan {
         staging_commands,
@@ -93,6 +95,16 @@ pub(super) fn seal(
         expected_live_media_handles_after_close: 0,
     };
     Ok((staging, publication, quiescence))
+}
+
+fn created_artifacts(
+    staging: &RecoveryStagingLayoutPlan,
+    candidates: &[RecoveryPublicationCandidateArtifact],
+) -> Box<[RecordArtifactFile]> {
+    let mut artifacts = BTreeSet::new();
+    artifacts.extend(staging.commands().iter().map(|command| command.artifact()));
+    artifacts.extend(candidates.iter().map(|candidate| candidate.artifact()));
+    artifacts.into_iter().collect::<Vec<_>>().into_boxed_slice()
 }
 
 fn publication_actions(

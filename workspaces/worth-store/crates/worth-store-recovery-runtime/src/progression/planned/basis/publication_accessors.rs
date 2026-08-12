@@ -46,6 +46,9 @@ impl RecoveryPublicationPlan {
     pub fn candidates(&self) -> &[RecoveryPublicationCandidateArtifact] {
         &self.candidates
     }
+    pub fn created_artifacts(&self) -> &[RecordArtifactFile] {
+        &self.created_artifacts
+    }
 
     pub(crate) fn into_command_parts(
         self,
@@ -63,6 +66,7 @@ impl RecoveryPublicationPlan {
                 root_protocol: self.root_protocol,
                 current_selector: self.current_selector,
                 recovered_root: self.recovered_root,
+                created_artifacts: self.created_artifacts,
             },
             self.candidates,
         )
@@ -101,6 +105,9 @@ impl RecoveryPublicationExpectation {
         &self,
     ) -> &worth_store_physical_format::DurablePhysicalRootManifest {
         &self.recovered_root
+    }
+    pub fn created_artifacts(&self) -> &[RecordArtifactFile] {
+        &self.created_artifacts
     }
 }
 

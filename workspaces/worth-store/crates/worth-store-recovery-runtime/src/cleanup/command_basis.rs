@@ -1,8 +1,7 @@
 use std::cell::RefCell;
 
 use worth_store::physical_runtime::{
-    PhysicalRecoveryFreshnessPort, StoreRecoveryCleanupFreshnessAdmission,
-    StoreRecoveryCleanupFreshnessFailure, StoreRecoveryCleanupPlan,
+    StoreRecoveryCleanupAttempt, StoreRecoveryCleanupPlan,
 };
 
 use crate::progression::ReopenedPhysicalRecovery;
@@ -40,17 +39,12 @@ impl<'a> RecoveryCleanupCommandBasis<'a> {
         self.plan.borrow().identity()
     }
 
-    pub(super) fn admit(
+    pub(super) fn execute(
         &self,
         coordination: &worth_store::physical_runtime::PhysicalRecoveryCoordination,
         media: &worth_store::physical_runtime::AdmittedRecoveryFilesystemMedia,
         artifact: worth_store_recovery_physics::WalSegmentArtifactIdentity,
-    ) -> Result<StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessFailure> {
-        PhysicalRecoveryFreshnessPort::sample_cleanup(
-            coordination,
-            media,
-            &mut self.plan.borrow_mut(),
-            artifact,
-        )
+    ) -> StoreRecoveryCleanupAttempt {
+        coordination.execute_cleanup_candidate(media, &mut self.plan.borrow_mut(), artifact)
     }
 }
