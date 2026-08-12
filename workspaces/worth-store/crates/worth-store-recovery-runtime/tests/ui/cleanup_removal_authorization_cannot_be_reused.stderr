@@ -1,0 +1,11 @@
+error[E0382]: use of moved value: `authorization`
+  --> tests/ui/cleanup_removal_authorization_cannot_be_reused.rs:16:33
+   |
+10 |     authorization: RecoveryCleanupEffectAuthorization,
+   |     ------------- move occurs because `authorization` has type `RecoveryCleanupEffectAuthorization`, which does not implement the `Copy` trait
+...
+13 |         fake(), fake(), fake(), authorization, fake(),
+   |                                 ------------- value moved here
+...
+16 |         fake(), fake(), fake(), authorization, fake(),
+   |                                 ^^^^^^^^^^^^^ value used here after move

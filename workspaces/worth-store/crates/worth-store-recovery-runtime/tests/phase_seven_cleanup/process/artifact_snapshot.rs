@@ -25,6 +25,7 @@ impl ArtifactSnapshot {
         );
         collect_files(&root.join("families/wal"), &mut required_preexisting);
         let all_preexisting = surviving_artifacts(root);
+        assert!(required_preexisting.is_subset(&all_preexisting));
         Self {
             required_preexisting,
             all_preexisting,

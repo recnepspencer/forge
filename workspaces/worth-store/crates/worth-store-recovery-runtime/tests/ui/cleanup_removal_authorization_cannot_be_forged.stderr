@@ -1,22 +1,9 @@
-error[E0599]: no function or associated item named `sample_cleanup` found for struct `PhysicalRecoveryFreshnessPort` in the current scope
-  --> tests/ui/cleanup_removal_authorization_cannot_be_forged.rs:17:44
+error[E0451]: fields `authority` and `binding` of struct `RecoveryCleanupEffectAuthorization` are private
+  --> tests/ui/cleanup_removal_authorization_cannot_be_forged.rs:10:9
    |
-17 |     let _ = PhysicalRecoveryFreshnessPort::sample_cleanup(
-   |                                            ^^^^^^^^^^^^^^ function or associated item not found in `PhysicalRecoveryFreshnessPort`
-
-error[E0599]: no method named `execute_cleanup_removal` found for reference `&PhysicalRecoveryCoordination` in the current scope
-  --> tests/ui/cleanup_removal_authorization_cannot_be_forged.rs:23:26
-   |
-23 |     let _ = coordination.execute_cleanup_removal(media, fake::<()>());
-   |                          ^^^^^^^^^^^^^^^^^^^^^^^
-   |
-help: there is a method `execute_cleanup_candidate` with a similar name, but with different arguments
-  --> $WORKSPACE/crates/worth-store/src/physical_runtime/recovery_coordination/cleanup/mod.rs
-   |
-   | /     pub fn execute_cleanup_candidate(
-   | |         &self,
-   | |         media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
-   | |         plan: &mut StoreRecoveryCleanupPlan<'_>,
-   | |         artifact: worth_store_wal::WalSegmentArtifactIdentity,
-   | |     ) -> StoreRecoveryCleanupAttempt {
-   | |____________________________________^
+ 9 |     RecoveryCleanupEffectAuthorization {
+   |     ---------------------------------- in this type
+10 |         authority: fake(),
+   |         ^^^^^^^^^ private field
+11 |         binding: fake(),
+   |         ^^^^^^^ private field

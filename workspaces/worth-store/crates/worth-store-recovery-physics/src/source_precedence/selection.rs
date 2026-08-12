@@ -7,6 +7,7 @@ use super::{
 pub struct PhysicalSourceSelection {
     root: SelectedPhysicalRoot,
     page_facts: SelectedPhysicalPageFacts,
+    retained_previous_page_facts: Option<SelectedPhysicalPageFacts>,
     checkpoint: Option<PhysicalCheckpointBase>,
     wal_tail: SelectedPhysicalWalTail,
     compaction: Option<SelectedCompactionProduct>,
@@ -36,6 +37,7 @@ pub enum PhysicalSourceSelectionDenial {
 pub fn select_physical_recovery_sources(
     root: SelectedPhysicalRoot,
     page_facts: SelectedPhysicalPageFacts,
+    retained_previous_page_facts: Option<SelectedPhysicalPageFacts>,
     checkpoint: Option<PhysicalCheckpointBase>,
     wal_tail: SelectedPhysicalWalTail,
     compaction: Option<SelectedCompactionProduct>,
@@ -64,6 +66,7 @@ pub fn select_physical_recovery_sources(
     Ok(PhysicalSourceSelection {
         root,
         page_facts,
+        retained_previous_page_facts,
         checkpoint,
         wal_tail,
         compaction,
@@ -79,6 +82,14 @@ impl PhysicalSourceSelection {
 
     pub const fn page_facts(&self) -> &SelectedPhysicalPageFacts {
         &self.page_facts
+    }
+
+    /// Exact routing and placement facts already discovered for the retained
+    /// previous root. They are not selectable current truth, but cleanup must
+    /// preserve and disposition the fallback closure rather than dropping it
+    /// when the current root wins precedence.
+    pub const fn retained_previous_page_facts(&self) -> Option<&SelectedPhysicalPageFacts> {
+        self.retained_previous_page_facts.as_ref()
     }
 
     pub const fn checkpoint(&self) -> Option<&PhysicalCheckpointBase> {

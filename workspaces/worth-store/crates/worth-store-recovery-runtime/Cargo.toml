@@ -18,6 +18,7 @@ tempfile = "3"
 trybuild = "1.0"
 syn = { version = "2", features = ["full"] }
 worth-store = { workspace = true, features = ["certification-test-authority"] }
+worth-store-authority.workspace = true
 worth-store-test-support = { workspace = true, features = ["recovery-runtime-fixtures"] }
 
 [features]

@@ -42,6 +42,7 @@ impl ManifestEntryBudget {
     }
 }
 
+#[cfg(test)]
 pub(super) fn observe(
     discovery: &mut BoundedRecoveryFilesystemDiscovery,
     root: &DurablePhysicalRootManifest,
@@ -50,12 +51,22 @@ pub(super) fn observe(
     byte_limit: u64,
 ) -> Result<RecoverySelectedSourceInventory, PageObservationFailure> {
     let mut budget = ManifestEntryBudget::new(maximum_manifest_entries);
+    observe_with_budget(discovery, root, format, &mut budget, byte_limit)
+}
+
+pub(super) fn observe_with_budget(
+    discovery: &mut BoundedRecoveryFilesystemDiscovery,
+    root: &DurablePhysicalRootManifest,
+    format: PhysicalRecordFormatDeclaration,
+    budget: &mut ManifestEntryBudget,
+    byte_limit: u64,
+) -> Result<RecoverySelectedSourceInventory, PageObservationFailure> {
     budget.admit_pending_block_read()?;
     let free_space = read_free_space_header(discovery, root, format, byte_limit)?;
     let (segment_pages, segment_artifacts) =
-        read_segment_pages(discovery, root, format, &mut budget, byte_limit)?;
+        read_segment_pages(discovery, root, format, budget, byte_limit)?;
     let (free_entries, free_artifacts) =
-        read_free_entries(discovery, &free_space, format, &mut budget, byte_limit)?;
+        read_free_entries(discovery, &free_space, format, budget, byte_limit)?;
     let mut source_artifacts = BTreeSet::from([RecordArtifactFile::FreeSpaceManifest {
         generation: root.generation(),
     }]);

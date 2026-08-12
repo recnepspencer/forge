@@ -20,6 +20,7 @@ pub(crate) fn artifact_read_ceiling(
     placements: &[CurrentPhysicalRecordPlacement],
     targets: &[PhysicalRedoTarget],
     maximum_manifest_entries: u64,
+    retained_fallback: bool,
 ) -> Result<ArtifactReadCeiling, ArtifactReadCeilingDenial> {
     let inline_locations = placements
         .iter()
@@ -60,7 +61,7 @@ pub(crate) fn artifact_read_ceiling(
         }
     }
     let selected_source_reads = maximum_manifest_entries
-        .checked_add(1)
+        .checked_add(1 + u64::from(retained_fallback))
         .ok_or(ArtifactReadCeilingDenial::Overflow)?;
     selected_source_reads
         .checked_add(inline_reads.len() as u64)
@@ -79,11 +80,13 @@ mod tests {
     #[test]
     fn selected_source_inventory_cannot_read_after_entry_exhaustion() {
         assert_eq!(
-            artifact_read_ceiling(&[], &[], 0),
+            artifact_read_ceiling(&[], &[], 0, false),
             Err(ArtifactReadCeilingDenial::ManifestEntriesExhausted)
         );
         assert_eq!(
-            artifact_read_ceiling(&[], &[], 1).unwrap().addressed_reads,
+            artifact_read_ceiling(&[], &[], 1, false)
+                .unwrap()
+                .addressed_reads,
             2
         );
     }

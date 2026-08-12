@@ -1696,6 +1696,7 @@ dependencies = [
  "trybuild",
  "worth-proof",
  "worth-store",
+ "worth-store-authority",
  "worth-store-physical-format",
  "worth-store-recovery-physics",
  "worth-store-test-support",

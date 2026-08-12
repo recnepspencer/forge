@@ -63,7 +63,10 @@ impl<'recovery, 'basis> RecoveryCleanupAttemptBasis<'recovery, 'basis> {
         ) {
             StoreRecoveryCleanupAttempt::FreshnessDenied(failure) => {
                 RecoveryCleanupAttempt::Deferred {
-                    freshness: failure.sample().cloned(),
+                    // The failure owns any completed freshness sample. Keeping
+                    // a second copy here would make accounting record one
+                    // physical read and settlement twice.
+                    freshness: None,
                     evidence: RecoveryCleanupDeferralEvidence::Freshness { target, failure },
                     stop: true,
                 }
