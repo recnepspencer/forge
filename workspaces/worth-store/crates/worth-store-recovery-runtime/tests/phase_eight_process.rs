@@ -104,8 +104,8 @@ fn phase_eight_writer_process() {
 fn phase_eight_observer_process() {
     let root = required_path(CHILD_ROOT);
     let output = required_path(OBSERVER_REPORT);
-    let limits =
-        RecoveryObserverLimits::new(16_384, 512 * 1024 * 1024).expect("bounded observer limits");
+    let limits = RecoveryObserverLimits::new(32_768, 16_384, 16_384, 512 * 1024 * 1024)
+        .expect("bounded observer limits");
     let report = observe_recovery_artifacts(&root, limits).expect("independent artifact walk");
     std::fs::write(output, report.encode()).expect("observer report output");
 }

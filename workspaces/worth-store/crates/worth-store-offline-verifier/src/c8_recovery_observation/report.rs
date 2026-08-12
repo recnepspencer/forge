@@ -2,37 +2,41 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
-use super::artifact_walk::{self, RecoveryObserverLimits};
+use super::artifact_walk;
 use super::physical_format;
 use super::report_protocol::{self, RecoveryObserverDecodeDenial};
+use super::{RecoveryObserverCounters, RecoveryObserverLimits, RecoveryObserverObservationFailure};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecoveryObserverReport {
-    artifact_count: u64,
-    bytes_read: u64,
+    counters: RecoveryObserverCounters,
     artifact_set_digest: [u8; 32],
 }
 
 pub fn observe_recovery_artifacts(
     store_root: &Path,
     limits: RecoveryObserverLimits,
-) -> Result<RecoveryObserverReport, RecoveryObserverDecodeDenial> {
-    let (artifacts, bytes_read) = artifact_walk::walk(store_root, limits)?;
-    let conclusion = physical_format::conclude(&artifacts, bytes_read);
+) -> Result<RecoveryObserverReport, RecoveryObserverObservationFailure> {
+    let walk = artifact_walk::walk(store_root, limits)?;
+    let counters = walk.counters();
+    let conclusion = physical_format::conclude(walk.artifacts());
     Ok(RecoveryObserverReport {
-        artifact_count: conclusion.artifact_count(),
-        bytes_read: conclusion.bytes_read(),
+        counters,
         artifact_set_digest: conclusion.artifact_set_digest(),
     })
 }
 
 impl RecoveryObserverReport {
     pub const fn artifact_count(self) -> u64 {
-        self.artifact_count
+        self.counters.artifacts_observed()
     }
 
     pub const fn bytes_read(self) -> u64 {
-        self.bytes_read
+        self.counters.bytes_read()
+    }
+
+    pub const fn counters(self) -> RecoveryObserverCounters {
+        self.counters
     }
 
     pub const fn artifact_set_digest(self) -> [u8; 32] {
@@ -40,10 +44,15 @@ impl RecoveryObserverReport {
     }
 
     pub fn encode(self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(96);
+        let mut bytes = Vec::with_capacity(144);
         report_protocol::encode_header(&mut bytes);
-        bytes.extend_from_slice(&self.artifact_count.to_le_bytes());
-        bytes.extend_from_slice(&self.bytes_read.to_le_bytes());
+        bytes.extend_from_slice(&self.counters.directories_admitted().to_le_bytes());
+        bytes.extend_from_slice(&self.counters.directories_opened().to_le_bytes());
+        bytes.extend_from_slice(&self.counters.directory_entries_observed().to_le_bytes());
+        bytes.extend_from_slice(&self.counters.artifacts_admitted().to_le_bytes());
+        bytes.extend_from_slice(&self.counters.artifacts_observed().to_le_bytes());
+        bytes.extend_from_slice(&self.counters.files_opened().to_le_bytes());
+        bytes.extend_from_slice(&self.counters.bytes_read().to_le_bytes());
         bytes.extend_from_slice(&self.artifact_set_digest);
         let digest: [u8; 32] = Sha256::digest(&bytes).into();
         bytes.extend_from_slice(&digest);
@@ -62,8 +71,15 @@ impl RecoveryObserverReport {
         let mut bytes = payload;
         report_protocol::admit_header(&mut bytes)?;
         let report = Self {
-            artifact_count: report_protocol::u64_value(&mut bytes)?,
-            bytes_read: report_protocol::u64_value(&mut bytes)?,
+            counters: RecoveryObserverCounters::from_parts(
+                report_protocol::u64_value(&mut bytes)?,
+                report_protocol::u64_value(&mut bytes)?,
+                report_protocol::u64_value(&mut bytes)?,
+                report_protocol::u64_value(&mut bytes)?,
+                report_protocol::u64_value(&mut bytes)?,
+                report_protocol::u64_value(&mut bytes)?,
+                report_protocol::u64_value(&mut bytes)?,
+            ),
             artifact_set_digest: report_protocol::array(&mut bytes)?,
         };
         if !bytes.is_empty() {
@@ -85,23 +101,29 @@ mod tests {
         std::fs::create_dir(temporary.path().join("nested")).unwrap();
         std::fs::write(temporary.path().join("nested/b"), b"de").unwrap();
 
-        let limits = RecoveryObserverLimits::new(2, 5).unwrap();
+        let limits = RecoveryObserverLimits::new(3, 2, 2, 5).unwrap();
         let report = observe_recovery_artifacts(temporary.path(), limits).unwrap();
         assert_eq!(report.artifact_count(), 2);
         assert_eq!(report.bytes_read(), 5);
         let encoded = report.encode();
         assert_eq!(RecoveryObserverReport::decode(&encoded), Ok(report));
 
-        let files = RecoveryObserverLimits::new(1, 5).unwrap();
+        let files = RecoveryObserverLimits::new(3, 2, 1, 5).unwrap();
+        let failure = observe_recovery_artifacts(temporary.path(), files).unwrap_err();
         assert_eq!(
-            observe_recovery_artifacts(temporary.path(), files),
-            Err(RecoveryObserverDecodeDenial::ArtifactLimit)
+            failure.denial(),
+            super::super::RecoveryObserverObservationDenial::ArtifactLimit {
+                observed: 2,
+                admitted: 1,
+            }
         );
-        let bytes = RecoveryObserverLimits::new(2, 4).unwrap();
-        assert_eq!(
-            observe_recovery_artifacts(temporary.path(), bytes),
-            Err(RecoveryObserverDecodeDenial::ByteLimit)
-        );
+        assert_eq!(failure.counters().files_opened(), 1);
+        let bytes = RecoveryObserverLimits::new(3, 2, 2, 4).unwrap();
+        let failure = observe_recovery_artifacts(temporary.path(), bytes).unwrap_err();
+        assert!(matches!(
+            failure.denial(),
+            super::super::RecoveryObserverObservationDenial::ByteLimit { admitted: 4, .. }
+        ));
 
         let mut wrong_family = encoded.clone();
         wrong_family[8] = b'x';
@@ -114,7 +136,7 @@ mod tests {
         let offset = 8 + report_protocol::RECOVERY_OBSERVER_REPORT_PROTOCOL
             .as_str()
             .len();
-        future[offset..offset + 4].copy_from_slice(&2_u32.to_le_bytes());
+        future[offset..offset + 4].copy_from_slice(&3_u32.to_le_bytes());
         refresh_digest(&mut future);
         let Err(RecoveryObserverDecodeDenial::UnsupportedVersion(version)) =
             RecoveryObserverReport::decode(&future)

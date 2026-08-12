@@ -41,6 +41,12 @@ fn main() {
         let Some(output) = arguments.next() else {
             usage();
         };
+        let Some(maximum_directory_entries) = arguments.next() else {
+            usage();
+        };
+        let Some(maximum_directories) = arguments.next() else {
+            usage();
+        };
         let Some(maximum_artifacts) = arguments.next() else {
             usage();
         };
@@ -53,6 +59,8 @@ fn main() {
         recovery_report::run(
             std::path::Path::new(&root),
             std::path::Path::new(&output),
+            &maximum_directory_entries.to_string_lossy(),
+            &maximum_directories.to_string_lossy(),
             &maximum_artifacts.to_string_lossy(),
             &maximum_bytes.to_string_lossy(),
         );
@@ -72,7 +80,8 @@ fn usage() -> ! {
     eprintln!(
         "usage: physical_store_offline_observer <store-root> | \
          hostile-physical-truth <store-root> | \
-         c8-recovery-observe <store-root> <report-output> <maximum-artifacts> <maximum-bytes> | \
+         c8-recovery-observe <store-root> <report-output> <maximum-directory-entries> \
+         <maximum-directories> <maximum-artifacts> <maximum-bytes> | \
          bounded-residency-verify <store-root> <configuration>"
     );
     std::process::exit(2);

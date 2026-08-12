@@ -6,11 +6,11 @@ use worth_foundational::facade::{
 pub const RECOVERY_OBSERVER_REPORT_PROTOCOL: BoundaryProtocolIdentity =
     BoundaryProtocolIdentity::new("store.physical.recovery-observer-report");
 pub const RECOVERY_OBSERVER_REPORT_VERSION: BoundaryProtocolVersion =
-    BoundaryProtocolVersion::new(1);
+    BoundaryProtocolVersion::new(2);
 pub const RECOVERY_OBSERVER_REPORT_COMPATIBILITY_WINDOW: BoundaryProtocolCompatibilityWindow =
     BoundaryProtocolCompatibilityWindow::inclusive(
-        BoundaryProtocolVersion::new(1),
-        BoundaryProtocolVersion::new(1),
+        BoundaryProtocolVersion::new(2),
+        BoundaryProtocolVersion::new(2),
     );
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,13 +19,6 @@ pub enum RecoveryObserverDecodeDenial {
     WrongProtocolFamily,
     UnsupportedVersion(BoundaryProtocolUnsupportedVersion),
     DigestMismatch,
-    ArtifactLimit,
-    ByteLimit,
-    SymbolicLink,
-    UnsupportedFileType,
-    NonUnicodePath,
-    ArtifactChanged,
-    Media(std::io::ErrorKind),
 }
 
 pub(super) fn encode_header(bytes: &mut Vec<u8>) {

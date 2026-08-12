@@ -1,4 +1,5 @@
 use sha2::{Digest, Sha256};
+use worth_store_offline_verifier::{observe_recovery_artifacts, RecoveryObserverLimits};
 use worth_store_physical_backend::ProductionStorageBoundarySeam;
 use worth_store_physical_certification::{
     lower_physical_simulation_plan, physical_scenario, AdmittedDriverContractSet,
@@ -12,7 +13,6 @@ use worth_store_physical_certification::{
     ProductionStorageBoundaryDriver, SimulationEvidencePolicy, SimulationPlanningContext,
     SupportedObserverSet, SupportedOracleFamilySet,
 };
-use worth_store_offline_verifier::{observe_recovery_artifacts, RecoveryObserverLimits};
 use worth_store_recovery_runtime::RecoveryReportEnvelope;
 use worth_store_test_support::harness::test_authority::{
     io_pressure_fault_locus, observed_checksum_mismatch_boundary, observed_io_pressure_boundary,
@@ -208,7 +208,7 @@ pub fn fresh_runtime_crash_evidence() -> FreshRuntimeCrashRecoveryEvidence {
     std::fs::write(root.path().join("selector"), b"observed").unwrap();
     let observer = observe_recovery_artifacts(
         root.path(),
-        RecoveryObserverLimits::new(1, 8).unwrap(),
+        RecoveryObserverLimits::new(1, 1, 1, 8).unwrap(),
     )
     .unwrap();
     FreshRuntimeCrashRecoveryEvidence::from_reports(recovered_runtime_report(), observer).unwrap()

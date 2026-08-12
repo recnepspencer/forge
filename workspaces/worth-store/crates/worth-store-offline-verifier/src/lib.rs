@@ -63,8 +63,9 @@ pub use blob_corruption_observation::{
 };
 pub use boundary::OfflineVerifierBoundarySeam;
 pub use c8_recovery_observation::{
-    observe_recovery_artifacts, RecoveryObserverDecodeDenial, RecoveryObserverLimits,
-    RecoveryObserverLimitsDenial, RecoveryObserverReport,
+    observe_recovery_artifacts, RecoveryObserverCounters, RecoveryObserverDecodeDenial,
+    RecoveryObserverLimits, RecoveryObserverLimitsDenial, RecoveryObserverObservationDenial,
+    RecoveryObserverObservationFailure, RecoveryObserverReport,
     RECOVERY_OBSERVER_REPORT_COMPATIBILITY_WINDOW, RECOVERY_OBSERVER_REPORT_PROTOCOL,
     RECOVERY_OBSERVER_REPORT_VERSION,
 };

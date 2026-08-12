@@ -19,7 +19,7 @@ pub fn observed_runtime_comparison(
     }
     let observer = observe_recovery_artifacts(
         root.path(),
-        RecoveryObserverLimits::new(1, 8).unwrap(),
+        RecoveryObserverLimits::new(1, 1, 1, 8).unwrap(),
     )
     .unwrap();
     IndependentVerifierObservation::from_reports(&recovered_runtime_report(), observer)
