@@ -22,7 +22,10 @@ pub(crate) fn execute(
         fates: &reopened.state.fates,
         limits,
     });
-    let command_basis = RecoveryCleanupCommandBasis::from_reopened(&reopened);
+    let command_basis = RecoveryCleanupCommandBasis::from_reopened(&reopened, plan.candidates());
+    if let Some(command_basis) = &command_basis {
+        plan.bind_authority_identity(command_basis.plan_identity());
+    }
     let mut accounting = RecoveryCleanupAccounting::begin(&plan);
     let candidates = plan.take_eligibilities();
     let cancellation_at = match cancellation {

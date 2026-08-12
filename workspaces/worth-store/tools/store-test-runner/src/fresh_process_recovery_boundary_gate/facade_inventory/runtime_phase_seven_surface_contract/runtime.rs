@@ -70,6 +70,11 @@ pub(super) const RUNTIME_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
+        "RecoveryCleanupDisposition::wal_digest",
+        "cleanup/disposition",
+        "phase-7",
+    ),
+    (
         "RecoveryCleanupDispositionKind",
         "cleanup/disposition",
         "phase-7",
@@ -82,6 +87,11 @@ pub(super) const RUNTIME_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "RecoveryCleanupEligibility::artifact",
+        "cleanup/eligibility",
+        "phase-7",
+    ),
+    (
+        "RecoveryCleanupEligibility::artifact_digest",
         "cleanup/eligibility",
         "phase-7",
     ),

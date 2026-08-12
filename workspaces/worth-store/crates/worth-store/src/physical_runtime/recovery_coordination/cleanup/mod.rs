@@ -24,8 +24,24 @@ pub enum PhysicalRecoveryCleanupCommandStage {
 }
 
 use super::PhysicalRecoveryCoordination;
+use crate::physical_runtime::{
+    CompletedPhysicalRecoveryFreshReopen, StoreRecoveryCleanupFreshnessFailure,
+    StoreRecoveryCleanupPlan,
+};
 
 impl PhysicalRecoveryCoordination {
+    pub fn admit_cleanup_plan<'e>(
+        &self,
+        media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
+        reopened: &CompletedPhysicalRecoveryFreshReopen,
+        checkpoint: &'e worth_store_physical_format::VerifiedCheckpointStream,
+        wal: impl IntoIterator<Item = worth_store_wal::VerifiedWalArtifact>,
+    ) -> Result<StoreRecoveryCleanupPlan<'e>, StoreRecoveryCleanupFreshnessFailure> {
+        crate::physical_runtime::recovery_freshness::admit_cleanup_plan(
+            self, media, reopened, checkpoint, wal,
+        )
+    }
+
     pub(in crate::physical_runtime) fn read_cleanup_current_selector(
         &self,
         media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,

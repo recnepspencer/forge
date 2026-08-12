@@ -1681,6 +1681,7 @@ destination,PhysicalRecoveryFreshnessPort,worth-store/recovery-freshness/port,cr
 destination,PhysicalRecoveryFreshnessPort::admit,worth-store/recovery-freshness/port,create,worth-store/recovery-freshness/port,phase-2
 destination,PhysicalRecoveryFreshnessPort::sample_binding,worth-store/recovery-freshness/port,create,worth-store/recovery-freshness/port,phase-4
 destination,PhysicalRecoveryFreshnessPort::sample_cleanup,worth-store/recovery-freshness/port,create,worth-store/recovery-freshness/port,phase-7
+destination,PhysicalRecoveryCoordination::admit_cleanup_plan,worth-store/recovery-coordination/cleanup,create,worth-store/recovery-coordination/cleanup,phase-7
 destination,PhysicalRecoveryCoordinationCapacity,worth-store/recovery-coordination/capacity,create,worth-store/recovery-coordination/capacity,phase-2
 destination,PhysicalRecoveryCoordinationCapacity::admit,worth-store/recovery-coordination/capacity,create,worth-store/recovery-coordination/capacity,phase-2
 destination,PhysicalRecoveryCoordination,worth-store/recovery-coordination/owner,create,worth-store/recovery-coordination/owner,phase-2
@@ -2640,10 +2641,12 @@ destination,RecoveryCleanupDisposition,cleanup/disposition,create,worth-store-re
 destination,RecoveryCleanupDisposition::byte_count,cleanup/disposition,create,worth-store-recovery-runtime/cleanup/disposition,phase-7
 destination,RecoveryCleanupDisposition::kind,cleanup/disposition,create,worth-store-recovery-runtime/cleanup/disposition,phase-7
 destination,RecoveryCleanupDisposition::target,cleanup/disposition,create,worth-store-recovery-runtime/cleanup/disposition,phase-7
+destination,RecoveryCleanupDisposition::wal_digest,cleanup/disposition,create,worth-store-recovery-runtime/cleanup/disposition,phase-7
 destination,RecoveryCleanupDisposition::wal_range,cleanup/disposition,create,worth-store-recovery-runtime/cleanup/disposition,phase-7
 destination,RecoveryCleanupDispositionKind,cleanup/disposition,create,worth-store-recovery-runtime/cleanup/disposition,phase-7
 destination,RecoveryCleanupEligibility,cleanup/eligibility,create,worth-store-recovery-runtime/cleanup/eligibility,phase-7
 destination,RecoveryCleanupEligibility::artifact,cleanup/eligibility,create,worth-store-recovery-runtime/cleanup/eligibility,phase-7
+destination,RecoveryCleanupEligibility::artifact_digest,cleanup/eligibility,create,worth-store-recovery-runtime/cleanup/eligibility,phase-7
 destination,RecoveryCleanupEligibility::byte_count,cleanup/eligibility,create,worth-store-recovery-runtime/cleanup/eligibility,phase-7
 destination,RecoveryCleanupEligibility::range,cleanup/eligibility,create,worth-store-recovery-runtime/cleanup/eligibility,phase-7
 destination,RecoveryCleanupEvidence,handoff/cleanup_posture,create,worth-store-recovery-runtime/handoff/cleanup_posture,phase-7
@@ -2688,6 +2691,9 @@ destination,StoreRecoveryCleanupFreshnessFailure,worth-store/recovery-freshness/
 destination,StoreRecoveryCleanupFreshnessFailure::denial,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
 destination,StoreRecoveryCleanupFreshnessFailure::read,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
 destination,StoreRecoveryCleanupFreshnessFailure::binding,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
+destination,StoreRecoveryCleanupFreshnessFailure::sample,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
+destination,StoreRecoveryCleanupPlan,worth-store/recovery-freshness/cleanup/plan,create,worth-store/recovery-freshness/cleanup/plan,phase-7
+destination,StoreRecoveryCleanupPlan::identity,worth-store/recovery-freshness/cleanup/plan,create,worth-store/recovery-freshness/cleanup/plan,phase-7
 destination,StoreRecoveryCleanupFreshnessAdmission::into_parts,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
 destination,StoreRecoveryCleanupFreshnessAdmission::sample,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7
 destination,StoreRecoveryCleanupFreshnessSample::cleanup_plan_identity,worth-store/recovery-freshness/cleanup,create,worth-store/recovery-freshness/cleanup,phase-7

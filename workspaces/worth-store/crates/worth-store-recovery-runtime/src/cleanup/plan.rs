@@ -18,6 +18,7 @@ mod tests;
 
 pub(crate) struct RecoveryCleanupPlan {
     identity: [u8; 32],
+    authority_identity: Option<[u8; 32]>,
     published_generation: u64,
     candidates: Vec<RecoveryCleanupEligibility>,
     dispositions: Vec<RecoveryCleanupDisposition>,
@@ -40,7 +41,12 @@ pub(crate) fn build_plan(basis: RecoveryCleanupPlanBasis<'_>) -> RecoveryCleanup
         limits,
     } = basis;
     let checkpoint = publication.checkpoint_identity();
-    let mut dispositions = retained_dispositions(selection, base, checkpoint);
+    let mut dispositions = retained_dispositions(
+        selection,
+        base,
+        publication.recovered_root().generation(),
+        checkpoint,
+    );
     dispositions.extend(consumed_publication_candidates(publication));
     let covered_wal = admit_checkpoint_covered_wal(selection, fates, limits);
     let candidates = covered_wal.candidates;
@@ -61,6 +67,7 @@ pub(crate) fn build_plan(basis: RecoveryCleanupPlanBasis<'_>) -> RecoveryCleanup
     let identity = identity::plan_identity(publication, checkpoint, &candidates, &dispositions);
     RecoveryCleanupPlan {
         identity,
+        authority_identity: None,
         published_generation: publication.recovered_root().generation(),
         candidates,
         dispositions,
@@ -141,6 +148,7 @@ fn checkpoint_covered_disposition(
 fn retained_dispositions(
     selection: &PhysicalSourceSelection,
     base: &RecoveryBaseImagePlan,
+    recovered_root_generation: u64,
     checkpoint: PhysicalCheckpointIdentity,
 ) -> Vec<RecoveryCleanupDisposition> {
     let mut records = BTreeMap::new();
@@ -154,7 +162,7 @@ fn retained_dispositions(
     );
     records.insert(
         RecordArtifactFile::RootManifest {
-            generation: base.destination_generation(),
+            generation: recovered_root_generation,
         },
         RecoveryCleanupDispositionKind::Current,
     );
@@ -221,6 +229,13 @@ fn consumed_publication_candidates(
 impl RecoveryCleanupPlan {
     pub(crate) const fn identity(&self) -> [u8; 32] {
         self.identity
+    }
+    pub(crate) const fn authority_identity(&self) -> Option<[u8; 32]> {
+        self.authority_identity
+    }
+    pub(crate) fn bind_authority_identity(&mut self, identity: [u8; 32]) {
+        self.identity = identity;
+        self.authority_identity = Some(identity);
     }
     pub(crate) const fn published_generation(&self) -> u64 {
         self.published_generation

@@ -24,17 +24,17 @@ pub(super) enum RecoveryCleanupAttempt {
     },
 }
 
-pub(super) struct RecoveryCleanupAttemptBasis<'a> {
-    reopened: &'a ReopenedPhysicalRecovery,
-    plan: &'a RecoveryCleanupPlan,
-    command_basis: Option<&'a RecoveryCleanupCommandBasis<'a>>,
+pub(super) struct RecoveryCleanupAttemptBasis<'recovery, 'basis> {
+    reopened: &'recovery ReopenedPhysicalRecovery,
+    plan: &'basis RecoveryCleanupPlan,
+    command_basis: Option<&'basis RecoveryCleanupCommandBasis<'recovery>>,
 }
 
-impl<'a> RecoveryCleanupAttemptBasis<'a> {
+impl<'recovery, 'basis> RecoveryCleanupAttemptBasis<'recovery, 'basis> {
     pub(super) const fn new(
-        reopened: &'a ReopenedPhysicalRecovery,
-        plan: &'a RecoveryCleanupPlan,
-        command_basis: Option<&'a RecoveryCleanupCommandBasis<'a>>,
+        reopened: &'recovery ReopenedPhysicalRecovery,
+        plan: &'basis RecoveryCleanupPlan,
+        command_basis: Option<&'basis RecoveryCleanupCommandBasis<'recovery>>,
     ) -> Self {
         Self {
             reopened,
@@ -90,8 +90,7 @@ impl<'a> RecoveryCleanupAttemptBasis<'a> {
             .admit(
                 self.reopened.state.coordination.owner(),
                 &self.reopened.state.authority.media,
-                self.plan.identity(),
-                candidate,
+                candidate.artifact(),
             )
             .map_err(|failure| RecoveryCleanupAttempt::Deferred {
                 freshness: None,
@@ -166,7 +165,7 @@ fn freshness_matches(
     expected_policy: Option<[u8; 32]>,
 ) -> bool {
     sample.store_identity() == reopened.store_identity()
-        && sample.cleanup_plan_identity() == plan.identity()
+        && Some(sample.cleanup_plan_identity()) == plan.authority_identity()
         && sample.sealed_publication_basis() == reopened.expectation.plan_identity()
         && sample.policy_identity() != [0; 32]
         && expected_policy.is_none_or(|policy| policy == sample.policy_identity())

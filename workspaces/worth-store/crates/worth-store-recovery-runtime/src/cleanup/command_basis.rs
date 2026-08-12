@@ -1,8 +1,9 @@
+use std::cell::RefCell;
+
 use worth_store::physical_runtime::{
     PhysicalRecoveryFreshnessPort, StoreRecoveryCleanupFreshnessAdmission,
-    StoreRecoveryCleanupFreshnessFailure,
+    StoreRecoveryCleanupFreshnessFailure, StoreRecoveryCleanupPlan,
 };
-use worth_store_physical_format::VerifiedCheckpointStream;
 
 use crate::progression::ReopenedPhysicalRecovery;
 
@@ -12,33 +13,44 @@ use super::RecoveryCleanupEligibility;
 /// command. Runtime eligibility narrows the candidate set; the Store command
 /// independently revalidates checkpoint coverage before accepting it.
 pub(super) struct RecoveryCleanupCommandBasis<'a> {
-    reopened: &'a worth_store::physical_runtime::CompletedPhysicalRecoveryFreshReopen,
-    checkpoint: &'a VerifiedCheckpointStream,
+    plan: RefCell<StoreRecoveryCleanupPlan<'a>>,
 }
 
 impl<'a> RecoveryCleanupCommandBasis<'a> {
-    pub(super) fn from_reopened(reopened: &'a ReopenedPhysicalRecovery) -> Option<Self> {
+    pub(super) fn from_reopened(
+        reopened: &'a ReopenedPhysicalRecovery,
+        candidates: &[RecoveryCleanupEligibility],
+    ) -> Option<Self> {
+        let checkpoint = reopened.state.selection.checkpoint()?.checkpoint();
+        let plan = reopened.state.coordination.owner().admit_cleanup_plan(
+            &reopened.state.authority.media,
+            &reopened.reopened,
+            checkpoint,
+            candidates
+                .iter()
+                .map(RecoveryCleanupEligibility::verified_artifact),
+        )
+        .ok()?;
         Some(Self {
-            reopened: &reopened.reopened,
-            checkpoint: reopened.state.selection.checkpoint()?.checkpoint(),
+            plan: RefCell::new(plan),
         })
+    }
+
+    pub(super) fn plan_identity(&self) -> [u8; 32] {
+        self.plan.borrow().identity()
     }
 
     pub(super) fn admit(
         &self,
         coordination: &worth_store::physical_runtime::PhysicalRecoveryCoordination,
         media: &worth_store::physical_runtime::AdmittedRecoveryFilesystemMedia,
-        cleanup_plan_identity: [u8; 32],
-        candidate: RecoveryCleanupEligibility,
+        artifact: worth_store_recovery_physics::WalSegmentArtifactIdentity,
     ) -> Result<StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessFailure> {
-        let eligibility = PhysicalRecoveryFreshnessPort::admit_cleanup_eligibility(
+        PhysicalRecoveryFreshnessPort::sample_cleanup(
             coordination,
             media,
-            cleanup_plan_identity,
-            self.reopened,
-            self.checkpoint,
-            candidate.into_verified_artifact(),
-        )?;
-        PhysicalRecoveryFreshnessPort::sample_cleanup(coordination, media, eligibility)
+            &mut self.plan.borrow_mut(),
+            artifact,
+        )
     }
 }

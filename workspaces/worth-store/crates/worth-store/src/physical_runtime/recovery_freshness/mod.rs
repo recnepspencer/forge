@@ -11,10 +11,11 @@ pub use binding::{
     StoreRecoveryOperationEvidence, StoreRecoveryOperationFate, StoreRecoveryWalMember,
 };
 pub(in crate::physical_runtime) use cleanup::StoreRecoveryCleanupRemovalBasis;
+pub(in crate::physical_runtime) use cleanup::admit_plan as admit_cleanup_plan;
 pub use cleanup::{
-    StoreRecoveryCleanupEligibility, StoreRecoveryCleanupFreshnessAdmission,
-    StoreRecoveryCleanupFreshnessDenial, StoreRecoveryCleanupFreshnessFailure,
-    StoreRecoveryCleanupFreshnessSample,
+    StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessDenial,
+    StoreRecoveryCleanupFreshnessFailure, StoreRecoveryCleanupFreshnessSample,
+    StoreRecoveryCleanupPlan,
 };
 pub use port::PhysicalRecoveryFreshnessPort;
 pub use registration::PhysicalRecoveryRegisteredSessionAuthority;

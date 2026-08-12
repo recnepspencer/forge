@@ -41,6 +41,7 @@ pub struct PhysicalRecoveryCoordination {
     pub(super) work_security: worth_store_security::StoreAuthorityBoundSecurityScopeReceipt,
     pub(super) bases: [crate::physical_runtime::PhysicalWorkSemanticBasis; 4],
     pub(super) construction: crate::physical_runtime::PhysicalRecoveryConstructionAuthority,
+    pub(super) cleanup_capacity: PhysicalRecoveryCoordinationCapacity,
     runtime: RuntimeIdentity,
     #[cfg(feature = "certification-test-authority")]
     certification_faults: RecoveryCoordinationCertificationFaults,
@@ -65,6 +66,7 @@ impl PhysicalRecoveryCoordination {
         if !freshness.matches_media_generation(media.media_generation()) {
             return Err(PhysicalRecoveryCoordinationAdmissionError::FreshnessMediaMismatch);
         }
+        let cleanup_capacity = capacity;
         let capacity = capacity.work_capacity();
         let semantics = semantics::install(
             media.store_identity(),
@@ -119,6 +121,7 @@ impl PhysicalRecoveryCoordination {
             work_security: semantics.work_security,
             bases: semantics.bases,
             construction,
+            cleanup_capacity,
             runtime,
             #[cfg(feature = "certification-test-authority")]
             certification_faults: RecoveryCoordinationCertificationFaults::new(),
@@ -138,6 +141,12 @@ impl PhysicalRecoveryCoordination {
             && capacity.denied_reservations() == 0
             && capacity.active_reservations() == 0
             && capacity.available() == capacity.configured()
+    }
+
+    pub(in crate::physical_runtime) const fn cleanup_capacity(
+        &self,
+    ) -> PhysicalRecoveryCoordinationCapacity {
+        self.cleanup_capacity
     }
 
     pub fn quiescence_observation(&self) -> PhysicalRecoveryQuiescenceObservation {

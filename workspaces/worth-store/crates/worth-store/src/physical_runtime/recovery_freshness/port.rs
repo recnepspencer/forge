@@ -6,7 +6,7 @@ use worth_store_wal::VerifiedWalFrame;
 
 use super::{
     binding, cleanup, PhysicalRecoveryFreshnessAuthority, StoreRecoveryBindingFreshnessSample,
-    StoreRecoveryBindingSampleFailure, StoreRecoveryCleanupEligibility,
+    StoreRecoveryBindingSampleFailure, StoreRecoveryCleanupPlan,
     StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessFailure,
 };
 
@@ -40,29 +40,18 @@ impl PhysicalRecoveryFreshnessPort {
         )
     }
 
-    pub fn admit_cleanup_eligibility<'e>(
-        coordination: &crate::physical_runtime::PhysicalRecoveryCoordination,
-        media: &AdmittedRecoveryFilesystemMedia,
-        cleanup_plan_identity: [u8; 32],
-        reopened: &crate::physical_runtime::CompletedPhysicalRecoveryFreshReopen,
-        checkpoint: &'e VerifiedCheckpointStream,
-        wal: worth_store_wal::VerifiedWalArtifact,
-    ) -> Result<StoreRecoveryCleanupEligibility<'e>, StoreRecoveryCleanupFreshnessFailure> {
-        cleanup::admit(
-            coordination,
-            media,
-            cleanup_plan_identity,
-            reopened,
-            checkpoint,
-            wal,
-        )
-    }
-
     pub fn sample_cleanup(
         coordination: &crate::physical_runtime::PhysicalRecoveryCoordination,
         media: &AdmittedRecoveryFilesystemMedia,
-        eligibility: StoreRecoveryCleanupEligibility<'_>,
+        plan: &mut StoreRecoveryCleanupPlan<'_>,
+        artifact: worth_store_wal::WalSegmentArtifactIdentity,
     ) -> Result<StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessFailure> {
-        cleanup::sample(coordination.freshness(), coordination, media, eligibility)
+        cleanup::sample(
+            coordination.freshness(),
+            coordination,
+            media,
+            plan,
+            artifact,
+        )
     }
 }

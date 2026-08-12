@@ -59,7 +59,7 @@ pub(super) const REQUIRED_DESTINATIONS: &[&str] = &[
     "crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/failure.rs",
     "crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/materialized.rs",
     "crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/selected_basis.rs",
-    "crates/worth-store-recovery-runtime/src/orchestration/planning/segment_observation.rs",
+    "crates/worth-store-recovery-runtime/src/orchestration/planning/selected_source_inventory.rs",
     "crates/worth-store-recovery-runtime/src/orchestration/staging.rs",
     "crates/worth-store-recovery-runtime/src/orchestration/publication.rs",
     "crates/worth-store-recovery-runtime/src/orchestration/reopen.rs",

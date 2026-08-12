@@ -54,8 +54,8 @@ pub(super) fn phase_four_responsibility(path: &str) -> Option<&'static str> {
         "crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/materialized.rs" => {
             Some("manifest-addressed-inline-and-extent-page-observation")
         }
-        "crates/worth-store-recovery-runtime/src/orchestration/planning/segment_observation.rs" => {
-            Some("bounded-segment-membership-observation")
+        "crates/worth-store-recovery-runtime/src/orchestration/planning/selected_source_inventory.rs" => {
+            Some("bounded-selected-source-inventory")
         }
         "crates/worth-store-recovery-physics/src/redo_replay/record/target_decode.rs" => {
             Some("bounded-canonical-redo-target-decoder")

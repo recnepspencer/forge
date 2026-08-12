@@ -195,6 +195,11 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
+        "PhysicalRecoveryCoordination::admit_cleanup_plan",
+        "worth-store/recovery-coordination/cleanup",
+        "phase-7",
+    ),
+    (
         "PhysicalRecoveryFreshnessPort::sample_cleanup",
         "worth-store/recovery-freshness/port",
         "phase-7",
@@ -302,6 +307,21 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
     (
         "StoreRecoveryCleanupFreshnessFailure::read",
         "worth-store/recovery-freshness/cleanup",
+        "phase-7",
+    ),
+    (
+        "StoreRecoveryCleanupFreshnessFailure::sample",
+        "worth-store/recovery-freshness/cleanup",
+        "phase-7",
+    ),
+    (
+        "StoreRecoveryCleanupPlan",
+        "worth-store/recovery-freshness/cleanup/plan",
+        "phase-7",
+    ),
+    (
+        "StoreRecoveryCleanupPlan::identity",
+        "worth-store/recovery-freshness/cleanup/plan",
         "phase-7",
     ),
     (

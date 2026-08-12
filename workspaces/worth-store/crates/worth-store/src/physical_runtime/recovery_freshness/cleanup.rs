@@ -1,4 +1,3 @@
-use sha2::{Digest, Sha256};
 use worth_store_physical_backend::AdmittedRecoveryFilesystemMedia;
 use worth_store_physical_backend::PhysicalRecoveryMediaGeneration;
 use worth_store_physical_format::{
@@ -9,10 +8,14 @@ use worth_store_wal::{
 };
 
 use crate::physical_runtime::{
-    CompletedPhysicalRecoveryFreshReopen, PhysicalRecoveryCleanupFreshnessReadDenial,
+    PhysicalRecoveryCleanupFreshnessReadDenial,
     PhysicalRecoveryCleanupFreshnessReadOutcome, PhysicalRecoveryCleanupRemovalCommand,
     PhysicalRecoveryCoordination,
 };
+
+mod plan;
+pub use plan::StoreRecoveryCleanupPlan;
+pub(in crate::physical_runtime) use plan::admit as admit_plan;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoreRecoveryCleanupFreshnessSample {
@@ -46,7 +49,7 @@ pub struct StoreRecoveryCleanupFreshnessFailure {
 /// issued only after performed fresh reopen, verified checkpoint coverage,
 /// exact verified WAL facts, Store/session bindings, and the cleanup plan are
 /// bound together.
-pub struct StoreRecoveryCleanupEligibility<'e> {
+pub(super) struct StoreRecoveryCleanupEligibility<'e> {
     checkpoint: &'e VerifiedCheckpointStream,
     wal: VerifiedWalArtifact,
     removal: StoreRecoveryCleanupRemovalBasis,
@@ -76,68 +79,15 @@ pub enum StoreRecoveryCleanupFreshnessDenial {
     InvalidCleanupEligibility,
 }
 
-pub(super) fn admit<'e>(
-    coordination: &PhysicalRecoveryCoordination,
-    media: &AdmittedRecoveryFilesystemMedia,
-    cleanup_plan_identity: [u8; 32],
-    reopened: &CompletedPhysicalRecoveryFreshReopen,
-    checkpoint: &'e VerifiedCheckpointStream,
-    wal: VerifiedWalArtifact,
-) -> Result<StoreRecoveryCleanupEligibility<'e>, StoreRecoveryCleanupFreshnessFailure> {
-    let occurrence = reopened.fresh_reopen_occurrence();
-    let root = reopened.root();
-    let source = checkpoint.source();
-    let checkpoint_root = source.root();
-    let retained_boundary = LogSequenceNumber::new(source.wal().covered_end_lsn_exclusive());
-    let compaction = checkpoint.compaction_cutover();
-    let store = source.identity().store_identity();
-    let inspection = wal.inspection();
-    let admissible = cleanup_plan_identity != [0; 32]
-        && store == media.store_identity()
-        && occurrence.session() == coordination.session_identity()
-        && checkpoint_root.generation() <= root.generation()
-        && checkpoint_root.tree_identity() == root.tree_identity()
-        && inspection.byte_count() != 0
-        && inspection.lsn_range().end_exclusive() <= retained_boundary;
-    admissible
-        .then_some(StoreRecoveryCleanupEligibility {
-            checkpoint,
-            wal,
-            removal: StoreRecoveryCleanupRemovalBasis {
-                store,
-                media_generation: media.media_generation(),
-                session: occurrence.session(),
-                plan: cleanup_plan_identity,
-                published_generation: occurrence.generation(),
-                sealed_publication_basis: occurrence.plan(),
-                checkpoint: source.identity(),
-                compaction_generation: compaction.product_generation(),
-                compaction_digest: checkpoint.footer().binding_records_digest(),
-                retained_boundary,
-                artifact: inspection.identity(),
-                lsn_range: inspection.lsn_range(),
-                byte_count: inspection.byte_count(),
-                artifact_digest: inspection.artifact_digest(),
-            },
-        })
-        .ok_or(StoreRecoveryCleanupFreshnessFailure {
-            denial: StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility,
-            sample: None,
-            read: None,
-            binding: None,
-        })
-}
-
 pub(super) fn sample(
     authority: &super::PhysicalRecoveryFreshnessAuthority,
     coordination: &PhysicalRecoveryCoordination,
     media: &AdmittedRecoveryFilesystemMedia,
-    eligibility: StoreRecoveryCleanupEligibility<'_>,
+    plan: &mut StoreRecoveryCleanupPlan<'_>,
+    artifact: WalSegmentArtifactIdentity,
 ) -> Result<StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessFailure> {
     if !authority.matches_media_generation(media.media_generation())
-        || eligibility.removal.store != media.store_identity()
-        || eligibility.removal.media_generation != media.media_generation()
-        || eligibility.removal.session != coordination.session_identity()
+        || !plan.bindings_match(coordination, media)
     {
         return Err(StoreRecoveryCleanupFreshnessFailure {
             denial: StoreRecoveryCleanupFreshnessDenial::FreshnessMediaMismatch,
@@ -146,6 +96,14 @@ pub(super) fn sample(
             binding: None,
         });
     }
+    let cleanup_plan_identity = plan.identity();
+    let policy_identity = plan.policy_identity();
+    let eligibility = plan.take(artifact).ok_or(StoreRecoveryCleanupFreshnessFailure {
+        denial: StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility,
+        sample: None,
+        read: None,
+        binding: None,
+    })?;
     let completed = match coordination.read_cleanup_current_selector(media) {
         PhysicalRecoveryCleanupFreshnessReadOutcome::Completed(completed) => completed,
         PhysicalRecoveryCleanupFreshnessReadOutcome::Denied(denial) => {
@@ -170,9 +128,9 @@ pub(super) fn sample(
     let sample = StoreRecoveryCleanupFreshnessSample {
         store: media.store_identity(),
         observed_published_generation,
-        cleanup_plan_identity: eligibility.removal.plan,
+        cleanup_plan_identity,
         sealed_publication_basis: eligibility.removal.sealed_publication_basis,
-        policy_identity: cleanup_policy_identity(media.store_identity()),
+        policy_identity,
         selector_read_operation: completed.physical().physical().operation(),
         work: completed.work(),
         signal: completed.signal(),
@@ -251,15 +209,6 @@ fn wal_members_are_terminal(binding: &super::StoreRecoveryBindingFreshnessSample
                     operation.fate() != super::StoreRecoveryOperationFate::Indeterminate
                 })
         })
-}
-
-fn cleanup_policy_identity(
-    store: worth_store_physical_format::store_namespace::StableStoreIdentity,
-) -> [u8; 32] {
-    let mut digest = Sha256::new();
-    digest.update(b"worth.store.recovery.cleanup-freshness-policy.v1");
-    digest.update(store.bytes());
-    digest.finalize().into()
 }
 
 impl StoreRecoveryCleanupFreshnessSample {

@@ -1,25 +1,16 @@
-use worth_store::physical_runtime::{
-    AdmittedRecoveryFilesystemMedia, CompletedPhysicalRecoveryFreshReopen,
-    PhysicalRecoveryCoordination, PhysicalRecoveryFreshnessPort,
-};
-use worth_store_physical_format::VerifiedCheckpointStream;
-use worth_store_recovery_physics::WalSegmentInspection;
+use worth_store::physical_runtime::StoreRecoveryCleanupPlan;
 
-fn substitute_raw_wal_inspection(
-    coordination: &PhysicalRecoveryCoordination,
-    media: &AdmittedRecoveryFilesystemMedia,
-    reopened: &CompletedPhysicalRecoveryFreshReopen,
-    checkpoint: &VerifiedCheckpointStream,
-    raw: WalSegmentInspection,
-) {
-    let _ = PhysicalRecoveryFreshnessPort::sample_cleanup(
-        coordination,
-        media,
-        [1_u8; 32],
-        reopened,
-        checkpoint,
-        raw,
-    );
+fn fake<T>() -> T {
+    panic!("compile-only specimen")
 }
 
-fn main() {}
+fn main() {
+    let _forged = StoreRecoveryCleanupPlan {
+        identity: [1; 32],
+        store: fake(),
+        media_generation: fake(),
+        session: [1; 16],
+        policy_identity: [2; 32],
+        candidates: fake(),
+    };
+}

@@ -19,6 +19,8 @@ impl RecoveryCoordination {
         let capacity = PhysicalRecoveryCoordinationCapacity::admit(
             limits.concurrent_commands,
             limits.observation_bytes,
+            limits.cleanup_candidates,
+            limits.cleanup_bytes,
         )
         .expect("admitted recovery limits are nonzero and fit the platform");
         let owner = session.admit_coordination(media, capacity)?;

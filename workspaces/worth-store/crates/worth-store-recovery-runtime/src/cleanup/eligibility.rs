@@ -31,10 +31,9 @@ impl RecoveryCleanupEligibility {
         self.covered.inspection().artifact_digest()
     }
 
-    pub(super) fn into_verified_artifact(
-        self,
-    ) -> worth_store_recovery_physics::VerifiedWalArtifact {
+    pub(super) fn verified_artifact(&self) -> worth_store_recovery_physics::VerifiedWalArtifact {
         self.covered
+            .clone()
             .into_verified_artifact()
             .expect("cleanup eligibility only retains complete verified WAL artifacts")
     }

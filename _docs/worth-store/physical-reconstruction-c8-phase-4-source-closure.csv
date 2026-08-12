@@ -87,7 +87,7 @@ C8-P4-PAGE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orc
 C8-P4-PAGE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/selected_basis.rs
 C8-P4-PAGE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/allocation_truth.rs
 C8-P4-PAGE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/allocation_truth/tests.rs
-C8-P4-PAGE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/segment_observation.rs
+C8-P4-PAGE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/selected_source_inventory.rs
 C8-P4-PAGE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_four_process.rs
 C8-P4-REDO-01,workspaces/worth-store/crates/worth-store-physical-format/src/recovery_projection.rs
 C8-P4-REDO-01,workspaces/worth-store/crates/worth-store-physical-format/src/recovery_projection/codec.rs
@@ -183,7 +183,7 @@ C8-P4-PAGE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orc
 C8-P4-PAGE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_four_planning.rs
 C8-P4-LIMITS-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/entry/outcome.rs
 C8-P4-LIMITS-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/selected_basis.rs
-C8-P4-LIMITS-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/segment_observation.rs
+C8-P4-LIMITS-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/selected_source_inventory.rs
 C8-P4-LIMITS-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/denial.rs
 C8-P4-LIMITS-01,workspaces/worth-store/crates/worth-store-recovery-runtime/tests/phase_four_planning.rs
 C8-P4-PROGRESSION-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/entry/outcome.rs
@@ -256,9 +256,9 @@ C8-P4-API-01,workspaces/worth-store/tools/store-test-runner/src/fresh_process_re
 C8-P4-PAGE-01,workspaces/worth-store/crates/worth-store-physical-format/src/binary_format/record_membership_golden_bytes.rs
 C8-P4-REDO-01,workspaces/worth-store/crates/worth-store-physical-format/src/binary_format/record_membership_golden_bytes.rs
 C8-P4-LIMITS-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/allocation_truth/tests.rs
-C8-P4-REDO-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/segment_observation.rs
+C8-P4-REDO-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/selected_source_inventory.rs
 C8-P4-PROGRESSION-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/allocation_truth/tests.rs
-C8-P4-PROGRESSION-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/segment_observation.rs
+C8-P4-PROGRESSION-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/selected_source_inventory.rs
 C8-P4-PAGE-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/materialized.rs
 C8-P4-REDO-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/materialized.rs
 C8-P4-LIMITS-01,workspaces/worth-store/crates/worth-store-recovery-runtime/src/orchestration/planning/page_observation/materialized.rs

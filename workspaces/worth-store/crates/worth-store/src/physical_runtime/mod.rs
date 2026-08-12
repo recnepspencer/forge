@@ -190,9 +190,9 @@ pub use recovery_freshness::{
     PhysicalRecoveryFreshnessAuthority, PhysicalRecoveryFreshnessPort,
     PhysicalRecoveryRegisteredSessionAuthority, StoreRecoveryBindingFreshness,
     StoreRecoveryBindingFreshnessSample, StoreRecoveryBindingSampleDenial,
-    StoreRecoveryBindingSampleFailure, StoreRecoveryCleanupEligibility,
-    StoreRecoveryCleanupFreshnessAdmission, StoreRecoveryCleanupFreshnessDenial,
-    StoreRecoveryCleanupFreshnessFailure, StoreRecoveryCleanupFreshnessSample,
+    StoreRecoveryBindingSampleFailure, StoreRecoveryCleanupFreshnessAdmission,
+    StoreRecoveryCleanupFreshnessDenial, StoreRecoveryCleanupFreshnessFailure,
+    StoreRecoveryCleanupFreshnessSample, StoreRecoveryCleanupPlan,
     StoreRecoveryOperationEvidence, StoreRecoveryOperationFate, StoreRecoveryWalMember,
 };
 pub use runtime::AdmittedPhysicalRuntime;
