@@ -1887,6 +1887,7 @@ current,SelectedPhysicalPageFacts::root_generation,source_precedence,narrow,wort
 current,SelectedPhysicalPageFacts::routing_blocks,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,admit_physical_page_facts,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,PhysicalSourceSelection::page_facts,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
+current,PhysicalSourceSelection::retained_previous_page_facts,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,PhysicalSourceSelection::trace,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,PhysicalSourceSelectionTrace,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3
 current,PhysicalSourceSelectionTrace::checkpoint_selected,source_precedence,narrow,worth-store-recovery-physics/source-precedence,phase-3

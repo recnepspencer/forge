@@ -66,6 +66,10 @@ impl PhysicalRecoveryCoordination {
         self.certification_faults.defer_cleanup_background();
     }
 
+    pub fn certification_substitute_cleanup_authorization(&self) {
+        self.certification_faults.substitute_cleanup_authorization();
+    }
+
     pub(in crate::physical_runtime) fn take_certification_cleanup_generation_shift(&self) -> bool {
         self.certification_faults.take_cleanup_generation_shift()
     }
@@ -111,5 +115,12 @@ impl PhysicalRecoveryCoordination {
         &self,
     ) -> bool {
         self.certification_faults.take_cleanup_background_deferral()
+    }
+
+    pub(in crate::physical_runtime::recovery_coordination) fn take_certification_cleanup_authorization_substitution(
+        &self,
+    ) -> bool {
+        self.certification_faults
+            .take_cleanup_authorization_substitution()
     }
 }

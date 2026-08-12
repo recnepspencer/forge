@@ -38,7 +38,7 @@ pub struct PhysicalRecoveryCoordination {
     pub(super) admission: PhysicalWorkAdmissionAuthority,
     pub(super) scheduler: PhysicalSchedulerAdmissionOwner,
     pub(super) scheduler_security: worth_store_io_scheduler::IoSchedulerSecurityScopeAdmission,
-    pub(super) cleanup_effect_authority: worth_store_authority::StoreCurrentAuthorityWitness,
+    pub(super) cleanup_effect_authority: worth_store_authority::RecoveryCleanupEffectIssuer,
     pub(super) work_security: worth_store_security::StoreAuthorityBoundSecurityScopeReceipt,
     pub(super) bases: [crate::physical_runtime::PhysicalWorkSemanticBasis; 4],
     pub(super) construction: crate::physical_runtime::PhysicalRecoveryConstructionAuthority,

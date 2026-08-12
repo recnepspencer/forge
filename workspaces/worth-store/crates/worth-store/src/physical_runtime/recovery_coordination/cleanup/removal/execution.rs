@@ -73,6 +73,15 @@ fn authorize_cleanup_effect(
     work: crate::physical_runtime::PhysicalWorkIdentity,
 ) -> worth_store_authority::RecoveryCleanupEffectAuthorization {
     let inspection = command.verified_wal.inspection();
+    #[cfg(feature = "certification-test-authority")]
+    let artifact_generation =
+        if coordination.take_certification_cleanup_authorization_substitution() {
+            command.artifact.generation().get().saturating_add(1)
+        } else {
+            command.artifact.generation().get()
+        };
+    #[cfg(not(feature = "certification-test-authority"))]
+    let artifact_generation = command.artifact.generation().get();
     let binding = worth_store_authority::RecoveryCleanupEffectBinding::new(
         command.store.bytes(),
         command.session,
@@ -81,7 +90,7 @@ fn authorize_cleanup_effect(
         command.checkpoint.store_identity().bytes(),
         command.checkpoint.sequence().get(),
         command.artifact.segment().get(),
-        command.artifact.generation().get(),
+        artifact_generation,
         command.lsn_range.start().get(),
         command.lsn_range.end_exclusive().get(),
         command.byte_count,
@@ -91,10 +100,7 @@ fn authorize_cleanup_effect(
         work.operation().get(),
     )
     .expect("Store-admitted cleanup command has one complete nonzero effect binding");
-    worth_store_authority::RecoveryCleanupEffectAuthorization::issue(
-        &coordination.cleanup_effect_authority,
-        binding,
-    )
+    coordination.cleanup_effect_authority.authorize(binding)
 }
 
 fn admit_execution(

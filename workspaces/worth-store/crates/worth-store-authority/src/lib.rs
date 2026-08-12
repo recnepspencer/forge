@@ -12,8 +12,8 @@ mod fencing_authority;
 mod primary_serving;
 mod recovery_authority_admission_policy;
 mod recovery_authority_posture;
-mod recovery_cutover;
 mod recovery_cleanup_effect;
+mod recovery_cutover;
 mod recovery_fence_release;
 mod retained_authority_evidence;
 
@@ -63,6 +63,9 @@ pub use recovery_authority_admission_policy::{
 pub use recovery_authority_posture::{
     RecoveryAuthorityAdmissionPosture, RecoveryAuthorityRegionPosture,
 };
+pub use recovery_cleanup_effect::{
+    RecoveryCleanupEffectAuthorization, RecoveryCleanupEffectBinding, RecoveryCleanupEffectIssuer,
+};
 pub use recovery_cutover::{
     CurrentAuthorityReadmissionReceipt, RecoveryAuthorityReadmissionDenial,
     RecoveryCutoverAuthorityOwner, RecoveryWriteFenceDenial, RecoveryWriteFenceDisposition,
@@ -70,9 +73,6 @@ pub use recovery_cutover::{
     RecoveryWriteFenceReceipt, RecoveryWriteFenceRecoveryRequest,
     RecoveryWriteFenceReleaseProviderReceipt, RecoveryWriteFenceReleaseReceipt,
     RecoveryWriteFenceReleaseRequest, RecoveryWriteFenceRequest,
-};
-pub use recovery_cleanup_effect::{
-    RecoveryCleanupEffectAuthorization, RecoveryCleanupEffectBinding,
 };
 pub use retained_authority_evidence::{
     compare_retained_store_authority_evidence, report_retained_store_authority_evidence,

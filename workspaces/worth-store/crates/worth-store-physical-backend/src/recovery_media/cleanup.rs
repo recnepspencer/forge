@@ -46,6 +46,7 @@ pub struct IndeterminateScheduledRecoveryCleanupRemoval {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecoveryCleanupRemovalDenialCause {
+    Authorization,
     Preparation(ArtifactTreeFailure),
     Revalidation(RecoveryCleanupArtifactRevalidationDenial),
     Removal(ArtifactTreeFailure),
@@ -97,15 +98,35 @@ impl AdmittedRecoveryFilesystemMedia {
         let artifact = inspection.identity();
         let authorization_identity = authorization.identity();
         if !cleanup_facts_match(self, selector_read, checkpoint, wal, &authorization) {
-            return denied_without_queue(artifact, authorization_identity);
+            return denied_without_queue(
+                artifact,
+                authorization_identity,
+                RecoveryCleanupRemovalDenialCause::Authorization,
+            );
         }
         let wal = match ArtifactTreeDirectory::families().child("wal") {
             Ok(wal) => wal,
-            Err(_) => return denied_without_queue(artifact, authorization_identity),
+            Err(_) => {
+                return denied_without_queue(
+                    artifact,
+                    authorization_identity,
+                    RecoveryCleanupRemovalDenialCause::Preparation(
+                        ArtifactTreeFailure::recovery_denial(),
+                    ),
+                )
+            }
         };
         let physical = match wal.file(&file_name(artifact)) {
             Ok(physical) => physical,
-            Err(_) => return denied_without_queue(artifact, authorization_identity),
+            Err(_) => {
+                return denied_without_queue(
+                    artifact,
+                    authorization_identity,
+                    RecoveryCleanupRemovalDenialCause::Preparation(
+                        ArtifactTreeFailure::recovery_denial(),
+                    ),
+                )
+            }
         };
         let ticket = match crate::BackendQueueExecutionAuthority::store_owned().issue_ticket(
             binding,
@@ -113,7 +134,15 @@ impl AdmittedRecoveryFilesystemMedia {
             BackendQueueExecutionAdaptation::None,
         ) {
             Ok(ticket) => ticket,
-            Err(_) => return denied_without_queue(artifact, authorization_identity),
+            Err(_) => {
+                return denied_without_queue(
+                    artifact,
+                    authorization_identity,
+                    RecoveryCleanupRemovalDenialCause::Preparation(
+                        ArtifactTreeFailure::recovery_denial(),
+                    ),
+                )
+            }
         };
         let revalidation = match revalidation::verify(
             self,
@@ -242,14 +271,13 @@ fn denied_with_queue(
 fn denied_without_queue(
     artifact: WalSegmentArtifactIdentity,
     authorization: [u8; 32],
+    cause: RecoveryCleanupRemovalDenialCause,
 ) -> RecoveryCleanupRemovalOutcome {
     RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(Box::new(
         DeniedScheduledRecoveryCleanupRemoval {
             artifact,
             authorization,
-            cause: RecoveryCleanupRemovalDenialCause::Preparation(
-                ArtifactTreeFailure::recovery_denial(),
-            ),
+            cause,
             queue: None,
             revalidation: RecoveryCleanupArtifactRevalidationProgress::default(),
         },
@@ -317,7 +345,7 @@ impl RecoveryCleanupRemovalDenialCause {
     pub const fn failure(self) -> ArtifactTreeFailure {
         match self {
             Self::Preparation(failure) | Self::Removal(failure) => failure,
-            Self::Revalidation(_) => ArtifactTreeFailure::recovery_denial(),
+            Self::Authorization | Self::Revalidation(_) => ArtifactTreeFailure::recovery_denial(),
         }
     }
 }

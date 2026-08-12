@@ -1,5 +1,9 @@
-use crate::{StoreCurrentAuthorityIdentity, StoreCurrentAuthorityWitness};
+use crate::StoreCurrentAuthorityIdentity;
 use sha2::{Digest, Sha256};
+use worth_store_aspect_native::StoreAspectPatchBoundaryFact;
+use worth_store_contracts::{PhysicalAuthorityScope, ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY};
+
+const CLEANUP_ASPECT: &str = "store.physical.recovery.cleanup-basis";
 
 /// Exact cross-crate binding for one authorized recovery cleanup effect.
 ///
@@ -33,6 +37,17 @@ pub struct RecoveryCleanupEffectBinding {
 pub struct RecoveryCleanupEffectAuthorization {
     authority: StoreCurrentAuthorityIdentity,
     binding: RecoveryCleanupEffectBinding,
+}
+
+/// Installed authority for issuing cleanup effects from the exact recovery
+/// cleanup mutation basis.
+///
+/// A generic current-Store witness is deliberately insufficient. Admission
+/// consumes a checksummed aspect-native patch fact for the cleanup contract on
+/// the primary physical boundary.
+#[derive(Debug, PartialEq, Eq)]
+pub struct RecoveryCleanupEffectIssuer {
+    authority: StoreCurrentAuthorityIdentity,
 }
 
 impl RecoveryCleanupEffectBinding {
@@ -116,17 +131,35 @@ impl RecoveryCleanupEffectBinding {
     }
 }
 
-impl RecoveryCleanupEffectAuthorization {
-    pub fn issue(
-        current: &StoreCurrentAuthorityWitness,
+impl RecoveryCleanupEffectIssuer {
+    pub fn admit(cleanup_basis: StoreAspectPatchBoundaryFact) -> Option<Self> {
+        let identity = cleanup_basis.identity();
+        let physical = cleanup_basis.patch_input().physical_witness().authority();
+        (identity.aspect_key().as_str() == CLEANUP_ASPECT
+            && cleanup_basis.contract_stamp().is_some()
+            && physical.authority_scope() == PhysicalAuthorityScope::AspectNativeBoundaryVocabulary
+            && physical.boundary_instance() == ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY)
+            .then(|| Self {
+                authority: StoreCurrentAuthorityIdentity::from_aspect_identity(identity),
+            })
+    }
+
+    pub fn authorize(
+        &self,
         binding: RecoveryCleanupEffectBinding,
-    ) -> Self {
-        Self {
-            authority: current.authority_identity(),
+    ) -> RecoveryCleanupEffectAuthorization {
+        RecoveryCleanupEffectAuthorization {
+            authority: self.authority,
             binding,
         }
     }
 
+    pub const fn authority_identity(&self) -> StoreCurrentAuthorityIdentity {
+        self.authority
+    }
+}
+
+impl RecoveryCleanupEffectAuthorization {
     pub const fn current_authority(&self) -> StoreCurrentAuthorityIdentity {
         self.authority
     }
