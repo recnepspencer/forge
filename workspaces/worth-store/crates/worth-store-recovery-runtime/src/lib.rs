@@ -4,6 +4,7 @@ mod cleanup;
 
 mod entry;
 mod handoff;
+mod observation;
 mod orchestration;
 mod progression;
 
@@ -31,6 +32,11 @@ pub use entry::{
 pub use handoff::{
     RecoveredPhysicalRuntimeHandoff, RecoveryCleanupCounters, RecoveryCleanupDeferralEvidence,
     RecoveryCleanupEvidence, RecoveryCleanupPosture, RecoveryOperationFateSet,
+};
+pub use observation::{
+    RecoveryReportCounters, RecoveryReportDecodeDenial, RecoveryReportEnvelope,
+    RecoveryReportOutcome, RECOVERY_REPORT_COMPATIBILITY_WINDOW, RECOVERY_REPORT_PROTOCOL,
+    RECOVERY_REPORT_VERSION,
 };
 pub use progression::{
     AdmittedPhysicalRecovery, ClosedRecoveryStagingGeneration, DiscoveredPhysicalRecovery,

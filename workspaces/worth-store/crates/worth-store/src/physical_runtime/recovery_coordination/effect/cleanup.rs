@@ -14,7 +14,7 @@ pub(in crate::physical_runtime::recovery_coordination) struct RecoveryCleanupRem
 
 pub(in crate::physical_runtime::recovery_coordination) struct RecoveryCleanupRemovalSettlement {
     physical: CompletedArtifactTreePublicationEffect,
-    authorization: [u8; 32],
+    admission: [u8; 32],
     work: crate::physical_runtime::PhysicalWorkIdentity,
     scheduler: crate::physical_runtime::PhysicalWorkSchedulerPosture,
     signal: crate::physical_runtime::PhysicalSignalSettlementOutcome,
@@ -36,7 +36,7 @@ pub struct RecoveryCleanupRemovalOccurrence {
     pub(super) lsn_range: WalLsnRange,
     pub(super) byte_count: u64,
     pub(super) physical: CompletedArtifactTreePublicationEffect,
-    pub(super) authorization: [u8; 32],
+    pub(super) admission: [u8; 32],
     pub(super) work: crate::physical_runtime::PhysicalWorkIdentity,
     pub(super) scheduler: crate::physical_runtime::PhysicalWorkSchedulerPosture,
     pub(super) signal: crate::physical_runtime::PhysicalSignalSettlementOutcome,
@@ -57,7 +57,7 @@ impl RecoveryCleanupRemovalOccurrence {
             lsn_range: target.lsn_range,
             byte_count: target.byte_count,
             physical: settlement.physical,
-            authorization: settlement.authorization,
+            admission: settlement.admission,
             work: settlement.work,
             scheduler: settlement.scheduler,
             signal: settlement.signal,
@@ -88,8 +88,8 @@ impl RecoveryCleanupRemovalOccurrence {
     pub const fn physical(&self) -> &CompletedArtifactTreePublicationEffect {
         &self.physical
     }
-    pub const fn authorization(&self) -> [u8; 32] {
-        self.authorization
+    pub const fn admission(&self) -> [u8; 32] {
+        self.admission
     }
     pub const fn work(&self) -> crate::physical_runtime::PhysicalWorkIdentity {
         self.work
@@ -135,14 +135,14 @@ impl RecoveryCleanupRemovalBinding {
 impl RecoveryCleanupRemovalSettlement {
     pub(in crate::physical_runtime::recovery_coordination) fn new(
         physical: CompletedArtifactTreePublicationEffect,
-        authorization: [u8; 32],
+        admission: [u8; 32],
         work: crate::physical_runtime::PhysicalWorkIdentity,
         scheduler: crate::physical_runtime::PhysicalWorkSchedulerPosture,
         signal: crate::physical_runtime::PhysicalSignalSettlementOutcome,
     ) -> Self {
         Self {
             physical,
-            authorization,
+            admission,
             work,
             scheduler,
             signal,

@@ -1,9 +1,0 @@
-error[E0451]: fields `authority` and `binding` of struct `RecoveryCleanupEffectAuthorization` are private
-  --> tests/ui/cleanup_removal_authorization_cannot_be_forged.rs:10:9
-   |
- 9 |     RecoveryCleanupEffectAuthorization {
-   |     ---------------------------------- in this type
-10 |         authority: fake(),
-   |         ^^^^^^^^^ private field
-11 |         binding: fake(),
-   |         ^^^^^^^ private field

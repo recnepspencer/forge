@@ -11,7 +11,7 @@ use super::super::quarantine::{
     classify_quarantine_authority, LayoutQuarantineAuthorityClass, LayoutQuarantineWitness,
 };
 use super::super::readmission::{
-    ImportReadmissionRequirement, OfflineReadmissionRequirement, QuarantineReadmissionRequirement,
+    ImportReadmissionRequirement, QuarantineReadmissionRequirement,
 };
 use super::outcome::LayoutCorruptionOutcome;
 use super::LayoutCorruptionAssessment;
@@ -44,20 +44,6 @@ impl LayoutCorruptionAssessment {
                 )
             }
         }
-    }
-
-    pub fn require_offline_readmission(
-        &self,
-        family: crate::AdmittedPhysicalArtifactFamily,
-        admission: &worth_store_recovery_physics::ReopenedRecoveryArtifactAdmission,
-    ) -> LayoutCorruptionOutcome {
-        let witness = worth_store_recovery_physics::layout_readmission()
-            .admit_offline(family.family_id(), admission)
-            .expect("reopened recovery admission issues offline readmission");
-        LayoutCorruptionOutcome::offline_readmission_required(
-            OfflineReadmissionRequirement::new(family, witness.identity().clone()),
-            super::LayoutCorruptionCounterSnapshot::offline_admission(),
-        )
     }
 
     pub fn require_import_readmission(

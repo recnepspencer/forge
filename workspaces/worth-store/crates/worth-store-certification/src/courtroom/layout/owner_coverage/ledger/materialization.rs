@@ -49,10 +49,4 @@ impl LayoutOwnerObservationLedger {
         worth_store_layout_indexes::materialization::ImportedBlobMaterializationAdmissionCaseId,
         as_str
     );
-    record_layout_observation!(
-        record_restored_artifact_materialization,
-        RestoredArtifactMaterialization,
-        worth_store_layout_indexes::materialization::RestoredArtifactMaterializationAdmissionCaseId,
-        as_str
-    );
 }

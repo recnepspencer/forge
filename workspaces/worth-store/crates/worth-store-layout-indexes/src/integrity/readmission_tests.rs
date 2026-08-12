@@ -1,42 +1,18 @@
 pub(super) use super::readmission_test_support::import_witness;
 use super::readmission_test_support::{
     authoritative_quarantine_record, current_authority, current_security_scope,
-    current_security_scope_with, offline_witness, quarantine_witness, record_backed_witness,
+    current_security_scope_with, quarantine_witness, record_backed_witness,
     record_backed_witness_for_scope,
 };
-use super::tests::{
-    admitted_family, admitted_family_for_store, family, offline_admission, other_family,
-};
+use super::tests::{admitted_family, admitted_family_for_store, family, other_family};
 use crate::integrity::{
-    import_readmission, layout_corruption, offline_readmission, quarantine_readmission,
+    import_readmission, layout_corruption, quarantine_readmission,
     CorruptionDenial, ImportReadmissionView, LayoutCorruptionView, LayoutReadmissionSource,
-    OfflineReadmissionView, QuarantineReadmissionView,
+    QuarantineReadmissionView,
 };
 use worth_store_security::{StoreKeyScope, StoreTenantScope};
 
 mod case_coverage;
-
-#[test]
-fn offline_readmission_resumes_foreground_authority_with_family_bound_store_witness() {
-    let required = layout_corruption()
-        .require_offline_readmission(admitted_family(), &offline_admission("offline-success"))
-        .into_offline_readmission_requirement()
-        .expect("offline classification must issue offline readmission requirement");
-    let outcome =
-        offline_readmission().admit(required, offline_witness(family(), "offline-success"));
-    let counters = outcome.counters();
-    assert_eq!(counters.evidence_witnesses_inspected(), 1);
-    assert_eq!(counters.identity_bindings_checked(), 1);
-    assert_eq!(counters.replay_frontiers_checked(), 1);
-    assert_eq!(counters.foreground_witnesses_issued(), 1);
-
-    assert!(matches!(
-        outcome.view(),
-        OfflineReadmissionView::Readmitted(witness)
-            if witness.family() == family()
-                && witness.source() == LayoutReadmissionSource::OfflineRecoveryEvidence
-    ));
-}
 
 #[test]
 fn quarantine_readmission_resumes_foreground_authority_with_family_bound_store_witness() {
@@ -185,43 +161,6 @@ fn quarantine_readmission_rejects_cross_tenant_and_cross_key_scope_substitution(
 }
 
 #[test]
-fn offline_readmission_rejects_witness_for_different_family_or_artifact_identity() {
-    let required = layout_corruption()
-        .require_offline_readmission(admitted_family(), &offline_admission("offline-required-a"))
-        .into_offline_readmission_requirement()
-        .unwrap();
-
-    let wrong_family_required = layout_corruption()
-        .require_offline_readmission(admitted_family(), &offline_admission("offline-required-a"))
-        .into_offline_readmission_requirement()
-        .unwrap();
-    let wrong_family = offline_readmission().admit(
-        wrong_family_required,
-        offline_witness(other_family(), "offline-required-a"),
-    );
-
-    let wrong_identity =
-        offline_readmission().admit(required, offline_witness(family(), "offline-required-b"));
-
-    assert!(matches!(
-        wrong_family.view(),
-        OfflineReadmissionView::Denied(denied)
-            if matches!(denied.denial(), CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
-                family: actual_family,
-                source: LayoutReadmissionSource::OfflineRecoveryEvidence,
-            } if *actual_family == family())
-    ));
-    assert!(matches!(
-        wrong_identity.view(),
-        OfflineReadmissionView::Denied(denied)
-            if matches!(denied.denial(), CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
-                family: actual_family,
-                source: LayoutReadmissionSource::OfflineRecoveryEvidence,
-            } if *actual_family == family())
-    ));
-}
-
-#[test]
 fn terminal_import_readmission_resumes_foreground_authority_with_family_bound_store_witness() {
     let required = layout_corruption()
         .require_import_readmission(
@@ -244,30 +183,6 @@ fn terminal_import_readmission_resumes_foreground_authority_with_family_bound_st
         ImportReadmissionView::Readmitted(witness)
             if witness.family() == family()
                 && witness.source() == LayoutReadmissionSource::TerminalImport
-    ));
-}
-
-#[test]
-fn terminal_import_does_not_accept_offline_recovery_witness_as_readmission_authority() {
-    let required = layout_corruption()
-        .require_import_readmission(
-            admitted_family(),
-            import_witness(family(), "terminal-import"),
-        )
-        .into_import_readmission_requirement()
-        .unwrap();
-    let outcome = import_readmission().admit(
-        required,
-        offline_witness(family(), "offline-terminal-mismatch"),
-    );
-
-    assert!(matches!(
-        outcome.view(),
-        ImportReadmissionView::Denied(denied)
-            if matches!(denied.denial(), CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
-                family: actual_family,
-                source: LayoutReadmissionSource::TerminalImport,
-            } if *actual_family == family())
     ));
 }
 

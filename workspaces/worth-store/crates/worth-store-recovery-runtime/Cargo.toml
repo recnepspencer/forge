@@ -8,6 +8,7 @@ description = "Fresh-process physical Store recovery orchestration."
 
 [dependencies]
 sha2 = "0.10"
+worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store = { workspace = true, features = ["recovery-runtime-owner"] }
 worth-store-physical-format.workspace = true

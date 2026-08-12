@@ -68,6 +68,8 @@ impl ProtocolFamily {
 pub enum ProductionOwner {
     Wal,
     RecoveryPhysics,
+    RecoveryRuntime,
+    OfflineVerifier,
     PhysicalBackend,
     LayoutIndexes,
     LsmAuthority,

@@ -31,10 +31,9 @@ impl ImportReadmission {
                 ImportReadmissionOutcome::readmitted(
                     LayoutReadmissionWitness::issue(
                         family,
-                        LayoutReadmissionSource::TerminalImport,
-                        witness.identity(),
-                        None,
-                    ),
+                    LayoutReadmissionSource::TerminalImport,
+                    witness.identity(),
+                ),
                     LayoutReadmissionCounterSnapshot::new(1, 0, 1),
                 )
             }

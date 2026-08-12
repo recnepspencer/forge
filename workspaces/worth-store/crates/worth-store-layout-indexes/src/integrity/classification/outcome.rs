@@ -2,7 +2,7 @@ use crate::LayoutCorruptionClassification;
 
 use super::super::quarantine::LayoutQuarantineWitness;
 use super::super::readmission::{
-    ImportReadmissionRequirement, OfflineReadmissionRequirement, QuarantineReadmissionRequirement,
+    ImportReadmissionRequirement, QuarantineReadmissionRequirement,
 };
 use super::cases::{CorruptionClassificationCaseId, CORRUPTION_CLASSIFICATION_CASES};
 use super::class::LayoutCorruptionClass;
@@ -12,7 +12,6 @@ enum LayoutCorruptionCase {
     RebuildRequired(LayoutCorruptionClassification),
     Quarantined(LayoutQuarantineWitness),
     QuarantineReadmissionRequired(QuarantineReadmissionRequirement),
-    OfflineReadmissionRequired(OfflineReadmissionRequirement),
     ImportReadmissionRequired(ImportReadmissionRequirement),
 }
 
@@ -27,7 +26,6 @@ pub enum LayoutCorruptionView<'a> {
     RebuildRequired(&'a LayoutCorruptionClassification),
     Quarantined(&'a LayoutQuarantineWitness),
     QuarantineReadmissionRequired(&'a QuarantineReadmissionRequirement),
-    OfflineReadmissionRequired(&'a OfflineReadmissionRequirement),
     ImportReadmissionRequired(&'a ImportReadmissionRequirement),
 }
 
@@ -56,16 +54,6 @@ impl LayoutCorruptionOutcome {
         )
     }
 
-    pub(super) fn offline_readmission_required(
-        value: OfflineReadmissionRequirement,
-        counters: super::LayoutCorruptionCounterSnapshot,
-    ) -> Self {
-        Self::issue(
-            LayoutCorruptionCase::OfflineReadmissionRequired(value),
-            counters,
-        )
-    }
-
     pub(super) fn import_readmission_required(
         value: ImportReadmissionRequirement,
         counters: super::LayoutCorruptionCounterSnapshot,
@@ -89,9 +77,6 @@ impl LayoutCorruptionOutcome {
             LayoutCorruptionCase::QuarantineReadmissionRequired(value) => {
                 LayoutCorruptionView::QuarantineReadmissionRequired(value)
             }
-            LayoutCorruptionCase::OfflineReadmissionRequired(value) => {
-                LayoutCorruptionView::OfflineReadmissionRequired(value)
-            }
             LayoutCorruptionCase::ImportReadmissionRequired(value) => {
                 LayoutCorruptionView::ImportReadmissionRequired(value)
             }
@@ -111,7 +96,6 @@ impl LayoutCorruptionOutcome {
                 LayoutCorruptionClass::AuthoritativeArtifactCorruption
             }
             LayoutCorruptionCase::QuarantineReadmissionRequired(_)
-            | LayoutCorruptionCase::OfflineReadmissionRequired(_)
             | LayoutCorruptionCase::ImportReadmissionRequired(_) => {
                 LayoutCorruptionClass::ReadmissionRequired
             }
@@ -125,11 +109,8 @@ impl LayoutCorruptionOutcome {
             LayoutCorruptionCase::QuarantineReadmissionRequired(_) => {
                 CORRUPTION_CLASSIFICATION_CASES[2]
             }
-            LayoutCorruptionCase::OfflineReadmissionRequired(_) => {
-                CORRUPTION_CLASSIFICATION_CASES[3]
-            }
             LayoutCorruptionCase::ImportReadmissionRequired(_) => {
-                CORRUPTION_CLASSIFICATION_CASES[4]
+                CORRUPTION_CLASSIFICATION_CASES[3]
             }
         }
     }
@@ -154,15 +135,6 @@ impl LayoutCorruptionOutcome {
     ) -> Result<QuarantineReadmissionRequirement, Self> {
         match self.case {
             LayoutCorruptionCase::QuarantineReadmissionRequired(value) => Ok(value),
-            case => Err(Self::issue(case, self.counters)),
-        }
-    }
-
-    pub fn into_offline_readmission_requirement(
-        self,
-    ) -> Result<OfflineReadmissionRequirement, Self> {
-        match self.case {
-            LayoutCorruptionCase::OfflineReadmissionRequired(value) => Ok(value),
             case => Err(Self::issue(case, self.counters)),
         }
     }

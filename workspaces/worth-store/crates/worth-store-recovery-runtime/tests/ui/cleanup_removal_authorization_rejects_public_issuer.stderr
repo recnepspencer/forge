@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_store_authority::RecoveryCleanupEffectIssuer`
+ --> tests/ui/cleanup_removal_authorization_rejects_public_issuer.rs:3:35
+  |
+3 |     RecoveryCleanupEffectBinding, RecoveryCleanupEffectIssuer,
+  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                                   |
+  |                                   no `RecoveryCleanupEffectIssuer` in the root
+  |                                   help: a similar name exists in the module: `RecoveryCleanupEffectBinding`

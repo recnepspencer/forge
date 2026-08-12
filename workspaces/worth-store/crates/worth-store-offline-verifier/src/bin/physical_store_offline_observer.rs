@@ -4,6 +4,8 @@ mod bounded_residency_verification;
 mod current_manifest;
 #[path = "physical_store_offline_observer/hostile_physical_truth.rs"]
 mod hostile_physical_truth;
+#[path = "physical_store_offline_observer/recovery_report.rs"]
+mod recovery_report;
 
 fn main() {
     let mut arguments = std::env::args_os().skip(1);
@@ -32,6 +34,28 @@ fn main() {
             usage();
         }
         hostile_physical_truth::run(std::path::Path::new(&root));
+    } else if first == "c8-recovery-observe" {
+        let Some(root) = arguments.next() else {
+            usage();
+        };
+        let Some(output) = arguments.next() else {
+            usage();
+        };
+        let Some(maximum_artifacts) = arguments.next() else {
+            usage();
+        };
+        let Some(maximum_bytes) = arguments.next() else {
+            usage();
+        };
+        if arguments.next().is_some() {
+            usage();
+        }
+        recovery_report::run(
+            std::path::Path::new(&root),
+            std::path::Path::new(&output),
+            &maximum_artifacts.to_string_lossy(),
+            &maximum_bytes.to_string_lossy(),
+        );
     } else {
         if arguments.next().is_some() {
             usage();
@@ -48,6 +72,7 @@ fn usage() -> ! {
     eprintln!(
         "usage: physical_store_offline_observer <store-root> | \
          hostile-physical-truth <store-root> | \
+         c8-recovery-observe <store-root> <report-output> <maximum-artifacts> <maximum-bytes> | \
          bounded-residency-verify <store-root> <configuration>"
     );
     std::process::exit(2);

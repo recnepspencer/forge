@@ -5,6 +5,7 @@ mod destination_surface_contract;
 pub(super) mod disposition_contract;
 mod inventory_disposition;
 mod reachable_api;
+mod runtime_phase_eight_surface_contract;
 mod runtime_phase_five_surface_contract;
 mod runtime_phase_four_plan_surface_contract;
 mod runtime_phase_four_projection_surface_contract;
@@ -25,6 +26,7 @@ use destination_surface_contract::{
     STORE_RECOVERY_COORDINATION_SURFACES, STORE_RECOVERY_PUBLICATION_SURFACES,
 };
 use reachable_api::current_facade;
+use runtime_phase_eight_surface_contract::PHASE_EIGHT_DELIVERY_SURFACES;
 use runtime_phase_five_surface_contract::PHASE_FIVE_DELIVERY_SURFACES;
 use runtime_phase_four_plan_surface_contract::PHASE_FOUR_PLAN_SURFACES;
 use runtime_phase_four_projection_surface_contract::PHASE_FOUR_PROJECTION_SURFACES;
@@ -201,11 +203,6 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
         "phase-4",
     ),
     (
-        "PhysicalRecoveryFreshnessPort::sample_cleanup",
-        "worth-store/recovery-freshness/port",
-        "phase-7",
-    ),
-    (
         "PhysicalRecoveryConstructionAuthority",
         "worth-store/recovery-construction/authority",
         "phase-6",
@@ -314,6 +311,7 @@ fn current_facade_and_destination_contract_have_exact_inventory_rows() {
         .chain(PHASE_FIVE_DELIVERY_SURFACES)
         .chain(PHASE_SIX_DELIVERY_SURFACES)
         .chain(phase_seven_delivery_surfaces())
+        .chain(PHASE_EIGHT_DELIVERY_SURFACES)
         .chain(BACKEND_RECOVERY_SURFACES)
         .chain(BACKEND_RECOVERY_PUBLICATION_SURFACES)
         .chain(STORE_RECOVERY_COORDINATION_SURFACES)
@@ -332,9 +330,13 @@ fn current_facade_and_destination_contract_have_exact_inventory_rows() {
         .iter()
         .filter(|row| row.scope == "destination")
         .filter(|row| {
+            !row.source_owner
+                .starts_with("worth-store-offline-verifier/")
+        })
+        .filter(|row| {
             matches!(
                 row.phase.as_str(),
-                "phase-2" | "phase-3" | "phase-4" | "phase-5" | "phase-6" | "phase-7"
+                "phase-2" | "phase-3" | "phase-4" | "phase-5" | "phase-6" | "phase-7" | "phase-8"
             )
         })
         .map(|row| (row.surface.clone(), row.source_owner.clone()))

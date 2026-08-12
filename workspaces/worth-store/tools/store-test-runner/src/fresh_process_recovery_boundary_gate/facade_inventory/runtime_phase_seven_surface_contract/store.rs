@@ -210,6 +210,11 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
+        "RecoveryCleanupRemovalOccurrence::admission",
+        "worth-store/recovery-coordination/effect/cleanup",
+        "phase-7",
+    ),
+    (
         "RecoveryCleanupRemovalOccurrence::byte_count",
         "worth-store/recovery-coordination/effect/cleanup",
         "phase-7",
@@ -336,6 +341,11 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "StoreRecoveryCleanupFreshnessSample::selector_read_operation",
+        "worth-store/recovery-freshness/cleanup",
+        "phase-7",
+    ),
+    (
+        "StoreRecoveryCleanupFreshnessSample::selector_read",
         "worth-store/recovery-freshness/cleanup",
         "phase-7",
     ),

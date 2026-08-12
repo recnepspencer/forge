@@ -10,12 +10,7 @@ pub use crate::backup::export::{
     BackupExportCustodyDeclaration, BackupExportCustodyDenial, BackupExportCustodyMode,
     BackupExportCustodyReadiness, BackupExportTerminalProjectionPreparation,
 };
-pub use crate::backup::import::admit_restored_layout_materialization;
-pub use crate::backup::import::{
-    restored_layout_materialization_cases, BackupImportCustodyReadmission,
-    RestoredLayoutMaterializationCaseId, RestoredLayoutMaterializationObservation,
-    RestoredLayoutMaterializationOutcome, RestoredLayoutMaterializationView,
-};
+pub use crate::backup::import::BackupImportCustodyReadmission;
 pub use crate::backup_export_custody_scheduler_demand::backup_prep_background_pressure_shape;
 pub use crate::boundary_ledger::{
     CurrentRecoverySurfaceGapReport, OperationalBoundaryDirection, OperationalCostClass,

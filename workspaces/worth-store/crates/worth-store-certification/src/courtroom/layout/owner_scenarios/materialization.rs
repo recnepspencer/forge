@@ -19,7 +19,6 @@ pub(super) fn execute(ledger: &mut LayoutOwnerObservationLedger) {
     execute_btree_lookup(ledger);
     execute_btree_replay(ledger);
     execute_imported_blob(ledger);
-    execute_restore(ledger);
 }
 
 fn execute_catalog_root(ledger: &mut LayoutOwnerObservationLedger) {
@@ -91,22 +90,6 @@ fn execute_imported_blob(ledger: &mut LayoutOwnerObservationLedger) {
         let outcome =
             access_planning().admit_imported_blob_materialization(family, &catalog, witness);
         ledger.record_imported_blob_materialization(outcome.owner_case_observation());
-    }
-}
-
-fn execute_restore(ledger: &mut LayoutOwnerObservationLedger) {
-    let catalog = admitted_layout_bootstrap_catalog();
-    let reopened =
-        worth_store_test_support::reopened_recovery_artifact_fixture("layout-owner-restore");
-    let observations =
-        worth_store_operations::certification_test_authority::execute_restore_owner_scenarios(
-            &catalog, &reopened,
-        );
-    for observed in observations.materialization() {
-        ledger.record_restored_artifact_materialization(*observed);
-    }
-    for observed in observations.integration() {
-        ledger.record_restored_layout_materialization(*observed);
     }
 }
 

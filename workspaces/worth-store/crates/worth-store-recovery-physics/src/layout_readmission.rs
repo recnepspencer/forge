@@ -8,23 +8,19 @@ use worth_store_physical_integrity::{
 use worth_store_security::StoreCurrentSecurityScopeWitnessSet;
 
 use crate::{
-    verify_store_authority_for_readmission, IntegrityHandoffDenial,
-    PersistedRecoveryArtifactDigest, RecoveryIntegrityHandoffReceipt,
-    ReopenedRecoveryArtifactAdmission,
+    verify_store_authority_for_readmission, IntegrityHandoffDenial, RecoveryIntegrityHandoffReceipt,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecoveryLayoutReadmissionClass {
     QuarantineRecovery,
     ImportBoundaryReadmission,
-    OfflineVerifiedArtifact,
     NoForegroundAuthority,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RecoveryLayoutReadmissionIdentity {
     QuarantineReceipt(StableDigest),
-    OfflineArtifactDigest(PersistedRecoveryArtifactDigest),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,7 +30,6 @@ pub struct RecoveryLayoutReadmissionWitness {
     identity: RecoveryLayoutReadmissionIdentity,
     source_store_authority_identity: Option<worth_store_authority::StoreCurrentAuthorityIdentity>,
     source_security_scope_identity: Option<worth_store_security::StoreSecurityScopeIdentity>,
-    replay_frontier: Option<crate::LogSequenceNumber>,
 }
 
 impl RecoveryLayoutReadmissionWitness {
@@ -47,10 +42,6 @@ impl RecoveryLayoutReadmissionWitness {
     pub const fn identity(&self) -> &RecoveryLayoutReadmissionIdentity {
         &self.identity
     }
-    pub const fn replay_frontier(&self) -> Option<crate::LogSequenceNumber> {
-        self.replay_frontier
-    }
-
     pub const fn source_store_authority_identity(
         &self,
     ) -> Option<worth_store_authority::StoreCurrentAuthorityIdentity> {
@@ -116,30 +107,7 @@ fn admit_record_backed_layout_readmission(
         ),
         source_store_authority_identity: Some(current_store_authority.authority_identity()),
         source_security_scope_identity: Some(current_security_scope.key_scope().identity()),
-        replay_frontier: None,
     })
-}
-
-fn admit_offline_layout_readmission(
-    family_id: DurableArtifactFamilyId,
-    admission: &ReopenedRecoveryArtifactAdmission,
-) -> RecoveryLayoutReadmissionWitness {
-    let replay_frontier = admission
-        .replay_cursor()
-        .pages()
-        .iter()
-        .map(|page| page.eligibility().redo_frontier().lsn())
-        .max();
-    RecoveryLayoutReadmissionWitness {
-        family_id,
-        class: RecoveryLayoutReadmissionClass::OfflineVerifiedArtifact,
-        identity: RecoveryLayoutReadmissionIdentity::OfflineArtifactDigest(
-            admission.artifact_digest().clone(),
-        ),
-        source_store_authority_identity: None,
-        source_security_scope_identity: None,
-        replay_frontier,
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -196,7 +164,6 @@ pub enum RecoveryLayoutReadmissionOutcomeView<'a> {
 
 readmission_outcome!(QuarantineLayoutReadmissionOutcome);
 readmission_outcome!(ImportLayoutReadmissionOutcome);
-readmission_outcome!(OfflineLayoutReadmissionOutcome);
 
 impl LayoutReadmissionAuthority {
     pub fn admit_quarantine(
@@ -235,15 +202,6 @@ impl LayoutReadmissionAuthority {
         ))
     }
 
-    pub fn admit_offline(
-        self,
-        family_id: DurableArtifactFamilyId,
-        admission: &ReopenedRecoveryArtifactAdmission,
-    ) -> OfflineLayoutReadmissionOutcome {
-        OfflineLayoutReadmissionOutcome::issue(Ok(admit_offline_layout_readmission(
-            family_id, admission,
-        )))
-    }
 }
 
 fn require_record_class(

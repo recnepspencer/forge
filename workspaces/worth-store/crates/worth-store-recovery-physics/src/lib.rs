@@ -19,7 +19,6 @@ mod integrity_input;
 mod integrity_vetted_records;
 mod layout_readmission;
 mod memory_allocation;
-mod offline_verifier;
 mod operation_reconciliation;
 mod page_redo;
 mod partial_publication;
@@ -28,7 +27,6 @@ mod publication;
 mod recovery_blocking_integrity;
 mod recovery_budget;
 mod recovery_completion;
-mod recovery_evidence;
 mod recovery_integrity_handoff_receipt;
 mod redo_replay;
 mod replay_basis;
@@ -123,30 +121,13 @@ pub use layout_projection::{
 };
 pub use layout_readmission::{
     layout_readmission, ImportLayoutReadmissionOutcome, LayoutReadmissionAuthority,
-    OfflineLayoutReadmissionOutcome, QuarantineLayoutReadmissionOutcome,
+    QuarantineLayoutReadmissionOutcome,
     RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
     RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionOutcomeView,
     RecoveryLayoutReadmissionWitness,
 };
 pub use memory_allocation::{
     RecoveryMemoryAllocation, RecoveryMemoryCounterSnapshot, RecoveryMemoryObservation,
-};
-pub use offline_verifier::{
-    CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
-    CheckpointManifestRecoveryBasisMaterialization, CheckpointManifestSourceMaterialization,
-    CheckpointPageImageMaterialization, FreshRuntimeRecoveryDriver, FreshRuntimeRecoveryExecution,
-    FreshRuntimeRecoveryWitness, FreshRuntimeReopenHarnessDenial,
-    FreshRuntimeReopenHarnessEvidence, OfflineRecoveryVerificationReport,
-    OfflineRecoveryVerifierConclusion, PersistedRecoveryArtifactDenial,
-    PersistedRecoveryArtifactDigest, PersistedRecoveryArtifactMaterialization,
-    PersistedRecoveryArtifacts, RecoveryDeterminismClassification, RecoveryDeterminismReport,
-    RecoveryNondeterministicMetadata, RecoveryOfflineVerifier, RecoveryOfflineVerifierDenial,
-    RecoveryPersistedRecord, RecoveryPersistedRecordRole, RecoveryProfileId,
-    RecoveryRuntimeClassification, RecoveryRuntimePosture, ReopenedRecoveryArtifactAdmission,
-    ReopenedRecoveryArtifactAdmissionDenial, ReopenedRuntimeBoundaryEvidence,
-    ReopenedRuntimeRecoverySession, RuntimeRecoveryComparisonClassification,
-    RuntimeRecoveryComparisonReport, RuntimeRecoveryReport, RuntimeRecoveryReportDenial,
-    WalRedoFrameMaterialization,
 };
 pub use operation_reconciliation::{
     classify_binding_freshness, reconcile_materialized_operation_fates, reconcile_operation_fates,
@@ -189,25 +170,10 @@ pub use recovery_budget::{
     BoundedRecoveryReceipt, BoundedRecoverySourceAdmission, CheckpointIntervalContract,
     ForbiddenFullStoreScanRejection, RecoveryBudget, RecoveryBudgetDenial,
     RecoveryBudgetDenialKind, RecoveryCounterSnapshot, RecoveryPlanCost, RecoveryPlanCostDenial,
-    RecoveryPlanLimits, RecoveryPlanningCounters, RecoveryStoreFootprint, ReopenedRecoveryDenial,
+    RecoveryPlanLimits, RecoveryPlanningCounters, RecoveryStoreFootprint,
     WalTailReplayBudget,
 };
 pub use recovery_completion::{complete_recovery, RecoveryCompletion, RecoveryCompletionDenial};
-pub use recovery_evidence::{
-    deny_non_applicable_surface, CurrentBasisRecoveryEvidencePosture,
-    FoundationalRecoveryEvidenceBundle, NonApplicableFoundationalSurface,
-    ProofProgressionRecoveryTrace, RecoveryAdmissionMechanism,
-    RecoveryAttachedCounterBackedPerformanceReceipt, RecoveryCertifiedDiagnosticSupportBundle,
-    RecoveryCertifiedPerformanceBundle, RecoveryCounterPerformanceReceipt,
-    RecoveryCurrentBasisBoundaryBundle, RecoveryCurrentBasisEvidence,
-    RecoveryEvidenceCanonicalBasis, RecoveryEvidenceConstructionSource, RecoveryEvidenceDenial,
-    RecoveryEvidenceLineagePosture, RecoveryEvidenceLineageReport, RecoveryEvidencePayloadKind,
-    RecoveryEvidenceRichness, RecoveryMaterializedPerformanceReport, RecoveryPerformanceSurface,
-    RecoveryPerformanceSurfaceKind, RecoveryPhysicsEvidenceSource, RecoveryPhysicsReceipt,
-    RecoveryPhysicsReport, RecoveryProofProgressionStep, RecoveryProofSourceFamily,
-    RecoverySourceDecisionReport, RecoverySourceDiagnosticKind, StoreRecoveryEvidenceAuthority,
-    NON_APPLICABLE_FOUNDATIONAL_SURFACES, RECOVERY_ADMISSION_MECHANISMS,
-};
 pub use recovery_integrity_handoff_receipt::RecoveryIntegrityHandoffReceipt;
 pub use redo_replay::{
     admit_physical_redo_members, decode_physical_redo_records,

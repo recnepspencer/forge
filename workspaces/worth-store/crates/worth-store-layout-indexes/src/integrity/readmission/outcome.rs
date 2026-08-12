@@ -89,12 +89,6 @@ readmission_outcome!(
     QuarantineReadmissionCaseId
 );
 readmission_outcome!(
-    OfflineReadmissionOutcome,
-    OfflineReadmissionView,
-    OfflineReadmissionCase,
-    OfflineReadmissionCaseId
-);
-readmission_outcome!(
     ImportReadmissionOutcome,
     ImportReadmissionView,
     ImportReadmissionCase,
@@ -114,22 +108,6 @@ pub fn quarantine_readmission_cases() -> impl Iterator<Item = QuarantineReadmiss
         QuarantineReadmissionCaseId::READMITTED,
         QuarantineReadmissionCaseId::FAMILY_IDENTITY,
         QuarantineReadmissionCaseId::IMPORT_REQUIRED,
-    ]
-    .into_iter()
-}
-
-impl OfflineReadmissionCaseId {
-    pub(super) const READMITTED: Self = Self("layout.integrity.offline_readmission.readmitted");
-    pub(super) const FAMILY_IDENTITY: Self =
-        Self("layout.integrity.offline_readmission.denied.identity");
-    pub(super) const WRONG_CLASS: Self = Self("layout.integrity.offline_readmission.denied.class");
-}
-
-pub fn offline_readmission_cases() -> impl Iterator<Item = OfflineReadmissionCaseId> {
-    [
-        OfflineReadmissionCaseId::READMITTED,
-        OfflineReadmissionCaseId::FAMILY_IDENTITY,
-        OfflineReadmissionCaseId::WRONG_CLASS,
     ]
     .into_iter()
 }

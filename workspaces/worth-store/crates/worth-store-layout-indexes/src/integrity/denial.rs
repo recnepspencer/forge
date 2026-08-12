@@ -27,10 +27,6 @@ pub enum CorruptionDenial {
     NoForegroundReadAuthority {
         family: crate::PhysicalArtifactFamily,
     },
-    UnexpectedOfflineReadmissionClass {
-        family: crate::PhysicalArtifactFamily,
-        class: worth_store_recovery_physics::RecoveryLayoutReadmissionClass,
-    },
     UnexpectedQuarantineReadmissionClass {
         family: crate::PhysicalArtifactFamily,
         class: worth_store_recovery_physics::RecoveryLayoutReadmissionClass,

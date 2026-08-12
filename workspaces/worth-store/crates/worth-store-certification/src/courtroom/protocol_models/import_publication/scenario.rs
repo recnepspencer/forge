@@ -30,12 +30,8 @@ pub(in crate::courtroom::protocol_models) fn replay_import_publication_guard(
 
 fn execute_crash_and_denial(generation: u64) -> [Vec<ImportPublicationAction>; 2] {
     let catalog = worth_store_test_support::harness::layout::admitted_layout_bootstrap_catalog();
-    let reopened = worth_store_test_support::harness::recovery::reopened_recovery_artifact_fixture(
-        "protocol-import-crash-and-denial",
-    );
     let preparation = worth_store_operations::certification_test_authority::prepare_import_publication_owner_scenario(
         &catalog,
-        &reopened,
     );
     let authority = preparation.authority().clone();
     let store = PhysicalStoreIdentity::from_aspect_identity(authority.identity().clone());
@@ -84,12 +80,8 @@ fn execute_crash_and_denial(generation: u64) -> [Vec<ImportPublicationAction>; 2
 
 fn execute_durable_publication() -> Vec<ImportPublicationAction> {
     let catalog = worth_store_test_support::harness::layout::admitted_layout_bootstrap_catalog();
-    let reopened = worth_store_test_support::harness::recovery::reopened_recovery_artifact_fixture(
-        "protocol-import-durable",
-    );
     let preparation = worth_store_operations::certification_test_authority::prepare_import_publication_owner_scenario(
         &catalog,
-        &reopened,
     );
     let authority = preparation.authority().clone();
     let store = PhysicalStoreIdentity::from_aspect_identity(authority.identity().clone());

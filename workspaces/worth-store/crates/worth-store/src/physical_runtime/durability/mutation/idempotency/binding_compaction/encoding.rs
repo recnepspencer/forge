@@ -1,7 +1,7 @@
 use super::super::registry::PhysicalMutationBindingBasis;
 
 pub(super) const COMPACTION_RECORD_DOMAIN: &[u8] =
-    b"store.physical.mutation-binding-compaction-record.v1";
+    worth_store_physical_format::PHYSICAL_MUTATION_BINDING_COMPACTION_RECORD_DOMAIN;
 pub(super) const STATE_UNSEALED: u8 = 1;
 pub(super) const STATE_GROUP_SEALED: u8 = 2;
 pub(super) const STATE_TERMINAL: u8 = 3;

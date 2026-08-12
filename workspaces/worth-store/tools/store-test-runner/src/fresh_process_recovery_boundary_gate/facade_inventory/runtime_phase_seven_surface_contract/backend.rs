@@ -15,6 +15,11 @@ pub(super) const BACKEND_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
+        "CompletedScheduledRecoveryCleanupRemoval::admission",
+        "worth-store-physical-backend/recovery-media/cleanup",
+        "phase-7",
+    ),
+    (
         "CompletedScheduledRecoveryCleanupRemoval::physical",
         "worth-store-physical-backend/recovery-media/cleanup",
         "phase-7",
@@ -36,6 +41,11 @@ pub(super) const BACKEND_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "DeniedScheduledRecoveryCleanupRemoval::artifact",
+        "worth-store-physical-backend/recovery-media/cleanup",
+        "phase-7",
+    ),
+    (
+        "DeniedScheduledRecoveryCleanupRemoval::admission",
         "worth-store-physical-backend/recovery-media/cleanup",
         "phase-7",
     ),
@@ -66,6 +76,11 @@ pub(super) const BACKEND_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "IndeterminateScheduledRecoveryCleanupRemoval::artifact",
+        "worth-store-physical-backend/recovery-media/cleanup",
+        "phase-7",
+    ),
+    (
+        "IndeterminateScheduledRecoveryCleanupRemoval::admission",
         "worth-store-physical-backend/recovery-media/cleanup",
         "phase-7",
     ),

@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use worth_store_recovery_runtime::{
     PhysicalRecoveryLimitDeclaration, PhysicalRecoveryLimits, PhysicalRecoveryOpenRequest,
     PhysicalRecoveryOutcome, PhysicalRecoveryPlatformAuthority,
-    PhysicalRecoveryStaticConfiguration, WorthStoreRecovery,
+    PhysicalRecoveryStaticConfiguration, RecoveryReportEnvelope, WorthStoreRecovery,
 };
 
 const BOUNDED_PROFILE: &str = "c8-phase2-admission-v1";
@@ -20,9 +20,10 @@ fn main() -> ExitCode {
 }
 
 fn run(arguments: Vec<std::ffi::OsString>) -> Result<(), String> {
-    let [root, profile] = arguments.as_slice() else {
+    let [root, profile, remaining @ ..] = arguments.as_slice() else {
         return Err(format!(
-            "usage: physical_store_recover <store-root> --bounded-profile={BOUNDED_PROFILE}"
+            "usage: physical_store_recover <store-root> --bounded-profile={BOUNDED_PROFILE} \
+             [--report=<path>]"
         ));
     };
     if profile.to_string_lossy() != format!("--bounded-profile={BOUNDED_PROFILE}") {
@@ -31,6 +32,7 @@ fn run(arguments: Vec<std::ffi::OsString>) -> Result<(), String> {
         ));
     }
     let root = PathBuf::from(root);
+    let report_path = report_path(remaining)?;
     let configuration = PhysicalRecoveryStaticConfiguration::current();
     let limits = phase_two_admission_limits()?;
     let authority =
@@ -44,7 +46,15 @@ fn run(arguments: Vec<std::ffi::OsString>) -> Result<(), String> {
         limits,
         authority,
     );
-    match WorthStoreRecovery::recover(request) {
+    let outcome = WorthStoreRecovery::recover(request);
+    if let Some(report_path) = report_path {
+        std::fs::write(
+            &report_path,
+            RecoveryReportEnvelope::from_outcome(&outcome).encode(),
+        )
+        .map_err(|error| format!("could not write recovery report {report_path:?}: {error}"))?;
+    }
+    match outcome {
         PhysicalRecoveryOutcome::Recovered(handoff) => {
             eprintln!(
                 "recovered Store {:?} into runtime {:?} at root generation {}",
@@ -55,6 +65,23 @@ fn run(arguments: Vec<std::ffi::OsString>) -> Result<(), String> {
             Ok(())
         }
         outcome => Err(format!("physical recovery did not complete: {outcome:?}")),
+    }
+}
+
+fn report_path(arguments: &[std::ffi::OsString]) -> Result<Option<PathBuf>, String> {
+    match arguments {
+        [] => Ok(None),
+        [argument] => {
+            let argument = argument.to_string_lossy();
+            let Some(path) = argument.strip_prefix("--report=") else {
+                return Err("optional argument must be --report=<path>".into());
+            };
+            if path.is_empty() {
+                return Err("recovery report path must not be empty".into());
+            }
+            Ok(Some(PathBuf::from(path)))
+        }
+        _ => Err("only one --report=<path> argument is supported".into()),
     }
 }
 

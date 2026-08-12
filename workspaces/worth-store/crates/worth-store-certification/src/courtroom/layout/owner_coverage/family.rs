@@ -14,7 +14,6 @@ pub enum LayoutOwnerFamily {
     LsmPublicationMaterialization,
     LsmReplayMaterialization,
     ImportedBlobMaterialization,
-    RestoredArtifactMaterialization,
     BTreeLookupReadiness,
     BTreeLookupExecution,
     BTreeReplayExecution,
@@ -43,9 +42,7 @@ pub enum LayoutOwnerFamily {
     BackwardReadCompatibility,
     CorruptionClassification,
     QuarantineReadmission,
-    OfflineReadmission,
     ImportReadmission,
-    RestoredLayoutMaterialization,
     LsmMembershipOpen,
     LsmMembershipPersistRecord,
     LsmMembershipSelectCompaction,
@@ -60,7 +57,7 @@ pub enum LayoutOwnerFamily {
 }
 
 impl LayoutOwnerFamily {
-    pub const fn all() -> [Self; 57] {
+    pub const fn all() -> [Self; 54] {
         [
             Self::ArtifactFamilyAdmission,
             Self::PhysicalKeyDomainAdmission,
@@ -76,7 +73,6 @@ impl LayoutOwnerFamily {
             Self::LsmPublicationMaterialization,
             Self::LsmReplayMaterialization,
             Self::ImportedBlobMaterialization,
-            Self::RestoredArtifactMaterialization,
             Self::BTreeLookupReadiness,
             Self::BTreeLookupExecution,
             Self::BTreeReplayExecution,
@@ -105,9 +101,7 @@ impl LayoutOwnerFamily {
             Self::BackwardReadCompatibility,
             Self::CorruptionClassification,
             Self::QuarantineReadmission,
-            Self::OfflineReadmission,
             Self::ImportReadmission,
-            Self::RestoredLayoutMaterialization,
             Self::LsmMembershipOpen,
             Self::LsmMembershipPersistRecord,
             Self::LsmMembershipSelectCompaction,

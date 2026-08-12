@@ -80,16 +80,6 @@ pub(super) fn record_backed_witness_for_scope(
         .expect("record-backed quarantine witness should admit")
 }
 
-pub(super) fn offline_witness(
-    family: crate::PhysicalArtifactFamily,
-    seed: &str,
-) -> worth_store_recovery_physics::RecoveryLayoutReadmissionWitness {
-    let admission = super::tests::offline_admission(seed);
-    worth_store_recovery_physics::layout_readmission()
-        .admit_offline(family.id(), &admission)
-        .expect("offline recovery admission issues readmission")
-}
-
 pub(super) fn authoritative_quarantine_record(seed: &str) -> QuarantineRecord {
     let finding = ExecutedQuarantineFinding::authoritative_quarantine(test_scope(seed));
     PhysicalQuarantineAuthority::seal(QuarantineSealRequest::from_executed_finding(finding))

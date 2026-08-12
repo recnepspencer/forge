@@ -63,9 +63,7 @@ pub use recovery_authority_admission_policy::{
 pub use recovery_authority_posture::{
     RecoveryAuthorityAdmissionPosture, RecoveryAuthorityRegionPosture,
 };
-pub use recovery_cleanup_effect::{
-    RecoveryCleanupEffectAuthorization, RecoveryCleanupEffectBinding, RecoveryCleanupEffectIssuer,
-};
+pub use recovery_cleanup_effect::RecoveryCleanupEffectBinding;
 pub use recovery_cutover::{
     CurrentAuthorityReadmissionReceipt, RecoveryAuthorityReadmissionDenial,
     RecoveryCutoverAuthorityOwner, RecoveryWriteFenceDenial, RecoveryWriteFenceDisposition,

@@ -1,11 +1,6 @@
-use crate::offline_verifier::ReopenedRuntimeBoundaryTranscript;
 use crate::{
     CheckpointBaseAdmission, RecoveryMemoryAllocation, RecoveryRedoPlan, RedoApplicationCursor,
     RedoExecutionReceipt, RedoPlanningDenial, WalTailRedoSource,
-};
-use crate::{
-    FreshRuntimeRecoveryExecution, ReopenedRecoveryArtifactAdmissionDenial,
-    ReopenedRuntimeRecoverySession, RuntimeRecoveryReportDenial,
 };
 
 use super::{
@@ -102,27 +97,6 @@ impl<'runtime> BoundedRecoveryPlan<'runtime> {
         })
     }
 
-    pub(crate) fn execute_reopened_runtime_recovery(
-        &self,
-        session: &ReopenedRuntimeRecoverySession,
-    ) -> Result<(BoundedRecoveryReceipt, FreshRuntimeRecoveryExecution), ReopenedRecoveryDenial>
-    {
-        let admission = session.admission();
-        let receipt = self
-            .execute(admission.replay_cursor())
-            .map_err(|denial| ReopenedRecoveryDenial::Redo(Box::new(denial)))?;
-        let transcript =
-            ReopenedRuntimeBoundaryTranscript::from_reopened_runtime_execution(session, &receipt)
-                .map_err(ReopenedRecoveryDenial::Runtime)?;
-        let execution = FreshRuntimeRecoveryExecution::from_store_recovery_execution(
-            admission,
-            &transcript,
-            &receipt,
-        )
-        .map_err(ReopenedRecoveryDenial::Runtime)?;
-        Ok((receipt, execution))
-    }
-
     pub const fn checkpoint(&self) -> &CheckpointBaseAdmission {
         &self.checkpoint
     }
@@ -159,11 +133,4 @@ impl BoundedRecoveryReceipt {
     pub const fn work_bounds(&self) -> AdmittedRecoveryWorkBounds {
         self.work_bounds
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ReopenedRecoveryDenial {
-    Admission(ReopenedRecoveryArtifactAdmissionDenial),
-    Redo(Box<RedoPlanningDenial>),
-    Runtime(RuntimeRecoveryReportDenial),
 }

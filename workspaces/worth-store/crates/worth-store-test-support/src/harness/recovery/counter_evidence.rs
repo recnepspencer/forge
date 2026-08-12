@@ -10,7 +10,8 @@ use worth_store_physical_certification::{
     PhysicalScenarioSchedule, PhysicalSimulationBoundaryObservation,
     PhysicalSimulationCapabilitySet, PhysicalSimulationObserver, PhysicalSimulationPlan,
     PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
-    ReplaySeed, ShortcutRejectionObservation, SimulationEvidencePolicy, SimulationPlanningContext,
+    SchedulePerturbationSeed, ShortcutRejectionObservation, SimulationEvidencePolicy,
+    SimulationPlanningContext,
     StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
 };
 
@@ -82,7 +83,7 @@ pub fn executed_counter_evidence(
 ) -> PhysicalExecutedCounterEvidence {
     let schedule = PhysicalInterleavingSchedule::from_lowered_plan(
         plan,
-        ReplaySeed::required(Some(8)).unwrap(),
+        SchedulePerturbationSeed::required(Some(8)).unwrap(),
         StateSpaceBudget::bounded_steps(8).unwrap(),
     )
     .unwrap();
@@ -113,7 +114,7 @@ pub fn execution_sources_for_plan(
 > {
     let schedule = PhysicalInterleavingSchedule::from_lowered_plan(
         plan,
-        ReplaySeed::required(Some(8)).unwrap(),
+        SchedulePerturbationSeed::required(Some(8)).unwrap(),
         StateSpaceBudget::bounded_steps(8).unwrap(),
     )
     .unwrap();

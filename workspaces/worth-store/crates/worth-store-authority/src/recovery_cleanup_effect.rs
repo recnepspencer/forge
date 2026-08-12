@@ -1,14 +1,11 @@
-use crate::StoreCurrentAuthorityIdentity;
 use sha2::{Digest, Sha256};
-use worth_store_aspect_native::StoreAspectPatchBoundaryFact;
-use worth_store_contracts::{PhysicalAuthorityScope, ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY};
 
-const CLEANUP_ASPECT: &str = "store.physical.recovery.cleanup-basis";
-
-/// Exact cross-crate binding for one authorized recovery cleanup effect.
+/// Exact cross-crate description of one proposed recovery cleanup effect.
 ///
-/// This is semantic input to authority issuance. Possessing the binding alone
-/// grants no effect method.
+/// This value is deliberately not authority. The physical effect owner must
+/// match every field against the freshly read selector, verified checkpoint,
+/// verified WAL artifact, and admitted Store work before it may mint an
+/// effect admission identity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecoveryCleanupEffectBinding {
     store: [u8; 16],
@@ -26,28 +23,6 @@ pub struct RecoveryCleanupEffectBinding {
     work_runtime: u64,
     work_generation: u64,
     work_operation: u64,
-}
-
-/// Consuming current-Store authority for one exact recovery cleanup effect.
-///
-/// Construction is possible only from the concrete current Store authority
-/// witness. The backend consumes this value; it is intentionally not `Clone`
-/// or `Copy`.
-#[derive(Debug, PartialEq, Eq)]
-pub struct RecoveryCleanupEffectAuthorization {
-    authority: StoreCurrentAuthorityIdentity,
-    binding: RecoveryCleanupEffectBinding,
-}
-
-/// Installed authority for issuing cleanup effects from the exact recovery
-/// cleanup mutation basis.
-///
-/// A generic current-Store witness is deliberately insufficient. Admission
-/// consumes a checksummed aspect-native patch fact for the cleanup contract on
-/// the primary physical boundary.
-#[derive(Debug, PartialEq, Eq)]
-pub struct RecoveryCleanupEffectIssuer {
-    authority: StoreCurrentAuthorityIdentity,
 }
 
 impl RecoveryCleanupEffectBinding {
@@ -105,6 +80,15 @@ impl RecoveryCleanupEffectBinding {
     pub const fn store(self) -> [u8; 16] {
         self.store
     }
+    pub const fn session(self) -> [u8; 16] {
+        self.session
+    }
+    pub const fn plan(self) -> [u8; 32] {
+        self.plan
+    }
+    pub const fn published_generation(self) -> u64 {
+        self.published_generation
+    }
     pub const fn checkpoint_store(self) -> [u8; 16] {
         self.checkpoint_store
     }
@@ -129,50 +113,20 @@ impl RecoveryCleanupEffectBinding {
     pub const fn artifact_digest(self) -> [u8; 32] {
         self.artifact_digest
     }
-}
-
-impl RecoveryCleanupEffectIssuer {
-    pub fn admit(cleanup_basis: StoreAspectPatchBoundaryFact) -> Option<Self> {
-        let identity = cleanup_basis.identity();
-        let physical = cleanup_basis.patch_input().physical_witness().authority();
-        (identity.aspect_key().as_str() == CLEANUP_ASPECT
-            && cleanup_basis.contract_stamp().is_some()
-            && physical.authority_scope() == PhysicalAuthorityScope::AspectNativeBoundaryVocabulary
-            && physical.boundary_instance() == ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY)
-            .then(|| Self {
-                authority: StoreCurrentAuthorityIdentity::from_aspect_identity(identity),
-            })
+    pub const fn work_runtime(self) -> u64 {
+        self.work_runtime
     }
-
-    pub fn authorize(
-        &self,
-        binding: RecoveryCleanupEffectBinding,
-    ) -> RecoveryCleanupEffectAuthorization {
-        RecoveryCleanupEffectAuthorization {
-            authority: self.authority,
-            binding,
-        }
+    pub const fn work_generation(self) -> u64 {
+        self.work_generation
     }
-
-    pub const fn authority_identity(&self) -> StoreCurrentAuthorityIdentity {
-        self.authority
-    }
-}
-
-impl RecoveryCleanupEffectAuthorization {
-    pub const fn current_authority(&self) -> StoreCurrentAuthorityIdentity {
-        self.authority
-    }
-
-    pub const fn binding(&self) -> RecoveryCleanupEffectBinding {
-        self.binding
+    pub const fn work_operation(self) -> u64 {
+        self.work_operation
     }
 
     pub fn identity(&self) -> [u8; 32] {
-        let binding = self.binding;
+        let binding = *self;
         let mut digest = Sha256::new();
-        digest.update(b"worth.store.recovery.cleanup-effect-authorization.v1");
-        digest.update(self.authority.fingerprint());
+        digest.update(b"worth.store.recovery.cleanup-effect-admission.v2");
         digest.update(binding.store);
         digest.update(binding.session);
         digest.update(binding.plan);

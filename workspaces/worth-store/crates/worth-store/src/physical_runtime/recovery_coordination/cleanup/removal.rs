@@ -25,6 +25,7 @@ pub(in crate::physical_runtime) struct PhysicalRecoveryCleanupRemovalCommand<'e>
     lsn_range: WalLsnRange,
     byte_count: u64,
     selector_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
+    root_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
     checkpoint_stream: &'e worth_store_physical_format::VerifiedCheckpointStream,
     verified_wal: worth_store_wal::VerifiedWalArtifact,
 }
@@ -82,6 +83,7 @@ impl<'e> PhysicalRecoveryCleanupRemovalCommand<'e> {
         checkpoint_stream: &'e worth_store_physical_format::VerifiedCheckpointStream,
         verified_wal: worth_store_wal::VerifiedWalArtifact,
     ) -> Self {
+        let root_read = basis.root_read();
         Self {
             store: basis.store(),
             media_generation: basis.media_generation(),
@@ -96,6 +98,7 @@ impl<'e> PhysicalRecoveryCleanupRemovalCommand<'e> {
             lsn_range: basis.lsn_range(),
             byte_count: basis.byte_count(),
             selector_read,
+            root_read,
             checkpoint_stream,
             verified_wal,
         }

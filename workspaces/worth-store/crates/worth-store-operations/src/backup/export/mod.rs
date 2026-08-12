@@ -23,5 +23,5 @@ pub use backup_export_custody_readiness::BackupExportCustodyReadiness;
 pub(crate) use backup_export_custody_declaration::backup_capsule_authenticity;
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use backup_export_custody_test_support::current_authority;
-#[cfg(any(test, feature = "certification-test-authority"))]
+#[cfg(test)]
 pub(crate) use backup_export_custody_test_support::readmission_trigger;

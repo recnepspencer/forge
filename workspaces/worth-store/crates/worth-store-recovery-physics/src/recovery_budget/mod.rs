@@ -11,11 +11,10 @@ mod store_footprint;
 mod wal_tail_budget;
 
 pub use bounded_plan::{
-    AdmittedRecoveryWorkBounds, BoundedRecoveryPlan, BoundedRecoveryReceipt, ReopenedRecoveryDenial,
+    AdmittedRecoveryWorkBounds, BoundedRecoveryPlan, BoundedRecoveryReceipt,
 };
 pub use budget::RecoveryBudget;
 pub use checkpoint_interval::CheckpointIntervalContract;
-pub(crate) use counter_snapshot::OfflineRecoveryCounterProjection;
 pub use counter_snapshot::RecoveryCounterSnapshot;
 pub use counters::RecoveryPlanningCounters;
 pub use denial::RecoveryPlanCostDenial;

@@ -1,14 +1,15 @@
 use worth_store_physical_certification::{
-    PhysicalInterleavingSchedule, PhysicalSimulationPlan, ReplaySeed, ScheduleReplayDenial,
+    PhysicalInterleavingSchedule, PhysicalSimulationPlan, SchedulePerturbationSeed,
+    ScheduleReplayDenial,
     StateSpaceBudget,
 };
 
-pub fn developer_smoke_replay_seed() -> ReplaySeed {
-    ReplaySeed::from_u64(0x005e_ed45)
+pub fn developer_smoke_replay_seed() -> SchedulePerturbationSeed {
+    SchedulePerturbationSeed::from_u64(0x005e_ed45)
 }
 
-pub fn ci_certification_replay_seed() -> ReplaySeed {
-    ReplaySeed::from_u64(0xc1_ce_57)
+pub fn ci_certification_replay_seed() -> SchedulePerturbationSeed {
+    SchedulePerturbationSeed::from_u64(0xc1_ce_57)
 }
 
 pub fn developer_smoke_state_space_budget() -> StateSpaceBudget {

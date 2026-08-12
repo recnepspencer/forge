@@ -28,6 +28,7 @@ pub use binding_compaction::{
     decode_checkpoint_binding_record, CheckpointBindingCompactionHeader,
     CheckpointBindingRecordFrameLength, CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES,
     CHECKPOINT_BINDING_RECORD_PREFIX_BYTES, MAX_CHECKPOINT_BINDING_RECORD_BYTES,
+    PHYSICAL_MUTATION_BINDING_COMPACTION_RECORD_DOMAIN,
 };
 pub use compaction_cutover_record::{
     PersistedCompactionCutoverRecord, PersistedCompactionProductRole,

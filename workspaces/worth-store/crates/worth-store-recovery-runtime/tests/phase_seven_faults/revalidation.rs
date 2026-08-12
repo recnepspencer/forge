@@ -151,13 +151,13 @@ fn cleanup_authorization_substitution_denies_before_revalidation_or_effect() {
     assert!(matches!(
         denial.kind(),
         PhysicalRecoveryCleanupRemovalDenialKind::Media(
-            RecoveryCleanupRemovalDenialCause::Authorization
+            RecoveryCleanupRemovalDenialCause::Admission
         )
     ));
     let physical = denial.physical().expect("backend denial is retained");
     assert_eq!(
         physical.cause(),
-        RecoveryCleanupRemovalDenialCause::Authorization
+        RecoveryCleanupRemovalDenialCause::Admission
     );
     assert!(physical.queue().is_none());
     assert_eq!(physical.revalidation().reads_attempted(), 0);

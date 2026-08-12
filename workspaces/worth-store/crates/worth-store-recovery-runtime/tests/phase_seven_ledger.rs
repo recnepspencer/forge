@@ -28,7 +28,7 @@ const GUARANTEES: [&str; 17] = [
     "C8-P7-LEDGER-01",
 ];
 
-const FINDINGS: [(&str, &str); 26] = [
+const FINDINGS: [(&str, &str); 27] = [
     ("C8-P7-F01", "C8-P7-PLAN-01 C8-P7-ELIGIBILITY-01 C8-P7-FRESHNESS-01 C8-P7-SCHEDULER-01 C8-P7-SAFETY-01 C8-P7-LIMITS-01 C8-P7-EFFECT-01 C8-P7-FAILURE-01 C8-P7-CRASH-01 C8-P7-COUNTERS-01 C8-P7-QUIESCENCE-01 C8-P7-PROGRESSION-01 C8-P7-LEDGER-01"),
     ("C8-P7-F02", "C8-P7-PLAN-01 C8-P7-SAFETY-01 C8-P7-LEDGER-01"),
     ("C8-P7-F03", "C8-P7-AUTHORITY-01 C8-P7-ELIGIBILITY-01 C8-P7-FRESHNESS-01 C8-P7-EFFECT-01 C8-P7-COMPILE-01 C8-P7-LEDGER-01"),
@@ -55,6 +55,7 @@ const FINDINGS: [(&str, &str); 26] = [
     ("C8-P7-F24", "C8-P7-AUTHORITY-01 C8-P7-SAFETY-01 C8-P7-EFFECT-01 C8-P7-COMPILE-01 C8-P7-API-01 C8-P7-LEDGER-01"),
     ("C8-P7-F25", "C8-P7-PLAN-01 C8-P7-SAFETY-01 C8-P7-CRASH-01 C8-P7-COUNTERS-01 C8-P7-API-01 C8-P7-LEDGER-01"),
     ("C8-P7-F26", "C8-P7-LEDGER-01"),
+    ("C8-P7-F27", "C8-P7-AUTHORITY-01 C8-P7-ELIGIBILITY-01 C8-P7-FRESHNESS-01 C8-P7-SAFETY-01 C8-P7-EFFECT-01 C8-P7-COMPILE-01 C8-P7-API-01 C8-P7-LEDGER-01"),
 ];
 
 const REQUIRED_SOURCES: &[(&str, &str)] = &[
@@ -64,7 +65,15 @@ const REQUIRED_SOURCES: &[(&str, &str)] = &[
     ),
     (
         "C8-P7-AUTHORITY-01",
-        "workspaces/worth-store/crates/worth-store-recovery-runtime/tests/ui/cleanup_removal_authorization_rejects_generic_current_authority.rs",
+        "workspaces/worth-store/crates/worth-store-wal/src/cleanup_admission.rs",
+    ),
+    (
+        "C8-P7-AUTHORITY-01",
+        "workspaces/worth-store/crates/worth-store-physical-backend/src/recovery_media/cleanup.rs",
+    ),
+    (
+        "C8-P7-AUTHORITY-01",
+        "workspaces/worth-store/crates/worth-store-recovery-runtime/tests/ui/cleanup_removal_authorization_rejects_public_issuer.rs",
     ),
     (
         "C8-P7-SAFETY-01",
@@ -80,7 +89,7 @@ const REQUIRED_SOURCES: &[(&str, &str)] = &[
     ),
     (
         "C8-P7-COMPILE-01",
-        "workspaces/worth-store/crates/worth-store-recovery-runtime/tests/ui/cleanup_removal_authorization_rejects_generic_current_authority.stderr",
+        "workspaces/worth-store/crates/worth-store-recovery-runtime/tests/ui/cleanup_removal_authorization_rejects_public_issuer.stderr",
     ),
     (
         "C8-P7-CRASH-01",
@@ -93,8 +102,8 @@ const CONTRACT: LedgerContract<'static> = LedgerContract {
     findings: &FINDINGS,
     requirement_inventory_sha256:
         "6185fa1c4be97e04fc3fb3b77da697c19749c6c7ac8572eb3c25ffe963c632f4",
-    guarantee_semantics_sha256: "6e2571ee51e8cad7a32aa8b1009ee7b5f5e966c73b38cb65ad96869db0b3df82",
-    finding_history_sha256: "c522daf99977e53a4065154e537c07b914348708ced21e3d86fb0a8dc2ab33be",
+    guarantee_semantics_sha256: "ce1fd8019d6c14172f474c35a891a68b8100f780ea078b17180329be692be8d3",
+    finding_history_sha256: "e29b02c3466361ea1d0e4c3e51746d1a64ab9a1b003720c1f7f26e6097eb7abc",
     audit_history_sha256: "6aabec5c8287ca6d48676d8722e2756c84a13f69a460b31c2c3f84d46191e985",
     required_sources: REQUIRED_SOURCES,
 };

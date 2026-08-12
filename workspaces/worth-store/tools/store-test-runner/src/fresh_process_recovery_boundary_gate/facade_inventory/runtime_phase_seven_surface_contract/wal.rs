@@ -1,5 +1,30 @@
 pub(super) const WAL_SURFACES: &[(&str, &str, &str)] = &[
     (
+        "admit_checkpoint_covered_wal_cleanup",
+        "worth-store-wal/cleanup-admission",
+        "phase-7",
+    ),
+    (
+        "CheckpointCoveredWalCleanupAdmission",
+        "worth-store-wal/cleanup-admission",
+        "phase-7",
+    ),
+    (
+        "CheckpointCoveredWalCleanupAdmission::operation_count",
+        "worth-store-wal/cleanup-admission",
+        "phase-7",
+    ),
+    (
+        "CheckpointCoveredWalCleanupDenial",
+        "worth-store-wal/cleanup-admission",
+        "phase-7",
+    ),
+    (
+        "PHYSICAL_MUTATION_ATTEMPT_BINDING_DOMAIN",
+        "worth-store-wal/lib",
+        "phase-7",
+    ),
+    (
         "VerifiedWalArtifact",
         "worth-store-wal/artifact-store/segment-inventory/segment-inspection/owned-artifact",
         "phase-7",

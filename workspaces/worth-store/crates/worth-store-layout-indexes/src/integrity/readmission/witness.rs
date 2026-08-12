@@ -1,4 +1,4 @@
-use worth_store_recovery_physics::{LogSequenceNumber, RecoveryLayoutReadmissionIdentity};
+use worth_store_recovery_physics::RecoveryLayoutReadmissionIdentity;
 
 use super::{LayoutReadmissionIdentity, LayoutReadmissionSource};
 
@@ -7,7 +7,6 @@ pub struct LayoutReadmissionWitness {
     family: crate::AdmittedPhysicalArtifactFamily,
     source: LayoutReadmissionSource,
     identity: LayoutReadmissionIdentity,
-    replay_frontier: Option<LogSequenceNumber>,
 }
 
 impl LayoutReadmissionWitness {
@@ -15,13 +14,11 @@ impl LayoutReadmissionWitness {
         family: crate::AdmittedPhysicalArtifactFamily,
         source: LayoutReadmissionSource,
         identity: &RecoveryLayoutReadmissionIdentity,
-        replay_frontier: Option<LogSequenceNumber>,
     ) -> Self {
         Self {
             family,
             source,
             identity: LayoutReadmissionIdentity::from_recovery(identity),
-            replay_frontier,
         }
     }
 
@@ -41,8 +38,5 @@ impl LayoutReadmissionWitness {
     }
     pub const fn identity(self) -> LayoutReadmissionIdentity {
         self.identity
-    }
-    pub const fn replay_frontier(self) -> Option<LogSequenceNumber> {
-        self.replay_frontier
     }
 }

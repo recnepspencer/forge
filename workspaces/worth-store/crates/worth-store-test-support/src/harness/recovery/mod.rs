@@ -10,16 +10,11 @@ pub mod counter_evidence;
 pub mod coverage;
 pub mod memory_budget;
 pub mod redo_replay;
-mod reopened_artifact;
 #[cfg(feature = "certification-world")]
 #[path = "drivers/crash_harness.rs"]
 mod s4_crash_harness;
 #[path = "drivers/fault_scheduler.rs"]
 mod s4_fault_scheduler;
-#[path = "drivers/fresh_runtime.rs"]
-mod s4_fresh_runtime;
-#[path = "fixtures/persisted_recovery.rs"]
-mod s4_persisted_recovery;
 #[path = "fixtures/recovery_entry.rs"]
 mod s4_recovery_entry_fixture;
 #[path = "fixtures/recovery_handoff.rs"]
@@ -34,26 +29,17 @@ mod s4_recovery_readiness_fixture;
 mod s4_storage_interposer;
 #[cfg(any(
     feature = "certification-world",
-    feature = "physical-compaction-fixtures"
+    feature = "physical-compaction-fixtures",
+    feature = "physical-isolation-fixtures"
 ))]
 pub mod source_precedence;
 #[cfg(feature = "certification-world")]
 pub mod wal_durability;
 pub mod wal_tail;
 
-pub use reopened_artifact::reopened_recovery_artifact_fixture;
 #[cfg(feature = "certification-world")]
 pub use s4_crash_harness::{ExecutedS4CrashHarnessDenial, ExecutedS4CrashHarnessTranscript};
 pub use s4_fault_scheduler::{FaultSchedulerDriver, ScheduledFault};
-pub use s4_fresh_runtime::{
-    deterministic_recovery_fresh_runtime_driver, FreshRuntimeRecoveryDriver, RecoveryRuntimePosture,
-};
-pub use s4_persisted_recovery::{
-    deterministic_recovery_artifacts, duplicate_role_recovery_artifacts,
-    incomplete_recovery_artifacts, malformed_recovery_record,
-    recovery_artifacts_with_operation_digest, reordered_recovery_artifacts,
-    runtime_disagreement_recovery_artifacts, runtime_state_mismatch_recovery_artifacts,
-};
 pub use s4_recovery_entry_fixture::{
     with_admitted_recovery_entry, with_admitted_recovery_partial_publication_entry,
 };

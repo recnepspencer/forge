@@ -4,6 +4,7 @@
 pub mod append;
 pub mod artifact_store;
 pub mod checkpoint;
+mod cleanup_admission;
 pub mod recovery_read;
 pub mod wal_topology;
 
@@ -45,6 +46,10 @@ pub use blob_records::{
     BlobWalRecordIdentity, BlobWalRecordKind, BlobWalRecordScopeDenial,
     BlobWalReplayRebuildWitness,
 };
+pub use cleanup_admission::{
+    admit_checkpoint_covered_wal_cleanup, CheckpointCoveredWalCleanupAdmission,
+    CheckpointCoveredWalCleanupDenial,
+};
 pub use durability::{WalQueueExecutionDeclaration, WalQueueExecutionKind, WalQueueGroupingScope};
 pub use operation_denial::{WalOperationDenial, WalOperationDenialKind};
 pub use publication_declaration::{
@@ -64,3 +69,6 @@ pub use wal_topology::{
     WalSegmentGeneration, WalSegmentId, WalSegmentScanRecord, WalTopologyDenial,
     WalTopologyDenialKind, WalTopologyScan,
 };
+
+pub const PHYSICAL_MUTATION_ATTEMPT_BINDING_DOMAIN: &[u8] =
+    b"store.physical.mutation-attempt-binding.v1";

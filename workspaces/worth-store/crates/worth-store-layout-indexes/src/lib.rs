@@ -128,8 +128,7 @@ pub use materialization::{
     LsmLookupMaterializationAdmissionView, LsmPublicationMaterializationAdmissionOutcome,
     LsmPublicationMaterializationAdmissionView, LsmReplayMaterializationAdmissionOutcome,
     LsmReplayMaterializationAdmissionView, MaterializationDenial, MaterializationFreshness,
-    RestoredArtifactMaterializationAdmissionOutcome, RestoredArtifactMaterializationAdmissionView,
-    RestoredArtifactMaterializationSourceIdentity, StaleLayoutMaterialization,
+    StaleLayoutMaterialization,
 };
 pub use observation::{LayoutAccessPerformanceReceipt, ObserveOwnerCase, OwnerCaseObservation};
 pub use planning::{

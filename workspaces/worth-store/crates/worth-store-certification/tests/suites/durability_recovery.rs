@@ -52,30 +52,6 @@ mod fixture_authority_denials;
 #[path = "../scenarios/recovery/forbidden_shortcut_rejection/forbidden_shortcut_rejection.rs"]
 mod forbidden_shortcut_rejection;
 
-#[path = "../scenarios/recovery/foundational_current_basis/foundational_current_basis.rs"]
-mod foundational_current_basis;
-
-#[path = "../scenarios/recovery/foundational_denial_authority/foundational_denial_authority.rs"]
-mod foundational_denial_authority;
-
-#[path = "../scenarios/recovery/foundational_diagnostics/foundational_diagnostics.rs"]
-mod foundational_diagnostics;
-
-#[path = "../scenarios/recovery/foundational_equivalence/foundational_equivalence.rs"]
-mod foundational_equivalence;
-
-#[path = "../scenarios/recovery/foundational_lineage/foundational_lineage.rs"]
-mod foundational_lineage;
-
-#[path = "../scenarios/recovery/foundational_non_applicable_surfaces/foundational_non_applicable_surfaces.rs"]
-mod foundational_non_applicable_surfaces;
-
-#[path = "../scenarios/recovery/foundational_performance/foundational_performance.rs"]
-mod foundational_performance;
-
-#[path = "../scenarios/recovery/foundational_proof_evidence/foundational_proof_evidence.rs"]
-mod foundational_proof_evidence;
-
 #[path = "../scenarios/recovery/generated_coverage_matrix/generated_coverage_matrix.rs"]
 mod generated_coverage_matrix;
 
@@ -106,11 +82,6 @@ mod production_driver_contracts;
 #[path = "../scenarios/recovery/production_driver_yieldpoint_matrix/production_driver_yieldpoint_matrix.rs"]
 mod production_driver_yieldpoint_matrix;
 
-#[path = "../scenarios/recovery/proof_progression/proof_progression.rs"]
-mod proof_progression;
-
-#[path = "../scenarios/recovery/recovery_offline_verifier/recovery_offline_verifier.rs"]
-mod recovery_offline_verifier;
 
 #[path = "../scenarios/recovery/recovery_source_precedence/recovery_source_precedence.rs"]
 mod recovery_source_precedence;
@@ -148,11 +119,7 @@ mod transcript_evidence_denials;
 #[path = "../scenarios/recovery/transcript_replay_oracle_authority/transcript_replay_oracle_authority.rs"]
 mod transcript_replay_oracle_authority;
 
-#[path = "../support/recovery/foundational_evidence_support/foundational_evidence_support.rs"]
-mod foundational_evidence_support;
 #[path = "../support/recovery/independent_verifier_observation.rs"]
 mod independent_verifier_observation;
-#[path = "../support/recovery/recovery_offline_verifier/runtime_recovery_fixture.rs"]
-mod runtime_recovery_fixture;
 #[path = "../scenarios/recovery/wal_topology/wal_topology.rs"]
 mod wal_topology;

@@ -79,6 +79,7 @@ pub(in crate::physical_runtime) struct StoreRecoveryCleanupRemovalBasis {
     artifact: WalSegmentArtifactIdentity,
     lsn_range: WalLsnRange,
     byte_count: u64,
+    root_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -340,5 +341,10 @@ impl StoreRecoveryCleanupRemovalBasis {
     }
     pub(in crate::physical_runtime) const fn byte_count(&self) -> u64 {
         self.byte_count
+    }
+    pub(in crate::physical_runtime) fn root_read(
+        &self,
+    ) -> worth_store_physical_backend::CompletedScheduledRecoveryReopenRead {
+        self.root_read.clone()
     }
 }

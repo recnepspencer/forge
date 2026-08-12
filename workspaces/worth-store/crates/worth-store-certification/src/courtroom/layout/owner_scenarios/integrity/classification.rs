@@ -19,12 +19,6 @@ pub(super) fn record(ledger: &mut LayoutOwnerObservationLedger) {
         .expect("record-backed quarantine must require explicit readmission");
     ledger.record_corruption_classification(required.owner_case_observation());
 
-    let reopened = worth_store_test_support::reopened_recovery_artifact_fixture(
-        "integrity-classification-offline",
-    );
-    let offline = layout_corruption().require_offline_readmission(family, &reopened);
-    ledger.record_corruption_classification(offline.owner_case_observation());
-
     let imported = import_witness(family, &fixture, "integrity-classification-import");
     let import = layout_corruption().require_import_readmission(family, imported);
     ledger.record_corruption_classification(import.owner_case_observation());

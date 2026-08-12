@@ -764,12 +764,14 @@ unattributed media error.
 that authority. `sample_binding` returns a
 `StoreRecoveryBindingFreshnessSample` containing the owner-sampled selected
 checkpoint generation, sealed C.7 basis identity, and concrete policy
-identity. `sample_cleanup` returns a
-`StoreRecoveryCleanupFreshnessSample` containing the owner-sampled current
-published-root generation, cleanup-plan artifact identity, sealed publication
-basis, and concrete policy identity. The recovery runtime may pass those
-values into pure physics classification, but neither sample authorizes an
-effect or crosses into ordinary Store serving.
+identity. Cleanup freshness is sampled only while the Store consumes one
+opaque admitted cleanup plan; `StoreRecoveryCleanupAttempt::freshness`
+exposes the resulting current published-root generation, cleanup-plan
+artifact identity, sealed publication basis, and concrete policy identity as
+descriptive evidence. No public freshness-port method issues cleanup or media
+effect authority. The recovery runtime may pass sampled values into pure
+physics classification, but no sample authorizes an effect or crosses into
+ordinary Store serving.
 
 This freshness port is distinct from construction: it cannot accept a
 recovery phase value, create cleanup or media-effect authority, publish a root,
@@ -1733,6 +1735,21 @@ successor-owned surfaces remain.
 
 **Cleanup:** delete obsolete modules, exports, fixtures, reports, source-shape
 gates, README claims, dependencies, and temporary parallel-cutover code.
+
+<!-- c8-phase8-requirements:start -->
+| Guarantee | Normative Phase 8 requirement |
+| --- | --- |
+| C8-P8-RUNTIME-REPORT-01 | The runtime emits a versioned descriptive recovery report from the terminal outcome without granting Store authority. |
+| C8-P8-OBSERVER-01 | A separate offline-verifier owner performs a deterministic bounded read-only artifact walk and emits observer evidence without sharing runtime decisions. |
+| C8-P8-PROTOCOL-01 | Runtime and observer report families have distinct identities exact version-one windows and typed malformed wrong-family future-version and digest denials. |
+| C8-P8-API-01 | Every delivered Phase 8 surface has one exact facade and destination topology row with no compatibility alias or duplicate entry. |
+| C8-P8-CUTOVER-01 | Every scoped caller and inventory row is migrated to its destination owner before the replaced source is deleted. |
+| C8-P8-PHYSICS-01 | Recovery physics retains only pure source-precedence WAL-prefix operation-fate page-redo and bounded planning law and owns no runtime effects observer or report protocol. |
+| C8-P8-DEPENDENCY-01 | Cargo features and dependency edges expose no ordinary replay import dead dependency or caller-enabled authority bypass. |
+| C8-P8-DOCUMENTATION-01 | Public and owner documentation names the executable commands protocol posture authority boundary and current limits without stale milestone claims. |
+| C8-P8-RETIREMENT-01 | Replaced executable verifier evidence compatibility fixture and source-shape paths are absent after their final consumers migrate. |
+| C8-P8-LEDGER-01 | The Phase 8 ledger is a bijection with this normative inventory and retains exact source cutover dependency documentation and independent-audit evidence. |
+<!-- c8-phase8-requirements:end -->
 
 ### Phase 9: Hostile Courtroom And Successor Closure
 

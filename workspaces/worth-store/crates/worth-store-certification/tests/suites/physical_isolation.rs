@@ -55,7 +55,5 @@ mod independent_verifier_observation;
 mod physical_interleaving_support;
 #[path = "../scenarios/physical_isolation/readiness/shortcut_report.rs"]
 mod physical_isolation_shortcut_report;
-#[path = "../support/recovery/recovery_offline_verifier/runtime_recovery_fixture.rs"]
-mod runtime_recovery_fixture;
 #[path = "../scenarios/physical_isolation/stable_read_plan_scenarios/stable_read_plan_scenarios.rs"]
 mod stable_read_plan_scenarios;

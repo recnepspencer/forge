@@ -10,13 +10,13 @@ constructs a new recovery session, Signal graph, and bounded C.5.1 scheduling
 envelope. Persisted stable Store identity joins the authority world only after
 the backend has admitted the existing namespace.
 
-Phase 2 ships an admission-only production entry:
+The production entry runs the complete consuming recovery progression:
 
 ```text
-physical_store_recover <store-root> --bounded-profile=c8-phase2-admission-v1
+physical_store_recover <store-root> --bounded-profile=c8-phase2-admission-v1 \
+  [--report=<path>]
 ```
 
-It mints authority and admits the existing Store in a fresh process, then
-terminates the session without discovery or recovery effects. Later phases
-extend the same consuming progression; this entry never pretends that recovery
-has completed.
+The optional report is a descriptive `store.physical.recovery-report` version
+1 envelope. Decoding it never grants Store authority and does not replace the
+returned process status or a fresh reopen.

@@ -42,6 +42,7 @@ struct CommonBasis {
     compaction_generation: u64,
     compaction_digest: [u8; 32],
     retained_boundary: LogSequenceNumber,
+    root_read: worth_store_physical_backend::CompletedScheduledRecoveryReopenRead,
 }
 
 struct PendingCandidate {
@@ -113,6 +114,7 @@ pub(in crate::physical_runtime) fn admit<'e>(
                         artifact,
                         lsn_range: pending.lsn_range,
                         byte_count: pending.byte_count,
+                        root_read: common.root_read.clone(),
                     },
                 },
             )
@@ -157,6 +159,7 @@ fn common_basis(
         compaction_generation: compaction.product_generation(),
         compaction_digest: checkpoint.footer().binding_records_digest(),
         retained_boundary: LogSequenceNumber::new(source.wal().covered_end_lsn_exclusive()),
+        root_read: occurrence.root().clone(),
     })
 }
 

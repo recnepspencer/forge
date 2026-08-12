@@ -98,7 +98,10 @@ impl PersistedPhysicalMutationAttemptBinding {
         let lease = self.key.lease();
         let range = self.member.lsn_range();
         let mut bytes = Vec::with_capacity(320);
-        write_field(&mut bytes, b"store.physical.mutation-attempt-binding.v1");
+        write_field(
+            &mut bytes,
+            worth_store_wal::PHYSICAL_MUTATION_ATTEMPT_BINDING_DOMAIN,
+        );
         write_field(&mut bytes, &self.key.identity().bytes());
         write_field(&mut bytes, &lease.store_identity().bytes());
         write_field(&mut bytes, &lease.policy_identity().bytes());
