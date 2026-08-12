@@ -4,7 +4,7 @@
 | Guarantee | Phase | Requirement | Evidence owner | Causal proof | Status | Deferred |
 | --- | --- | --- | --- | --- | --- | --- |
 | C8-P8-RUNTIME-REPORT-01 | 8 | Runtime report is descriptive versioned and terminal-outcome derived | recovery runtime observation owner | round-trip and terminal outcome tests | IMPLEMENTED | independent audit |
-| C8-P8-OBSERVER-01 | 8 | Independent observer performs deterministic bounded read-only artifact walk | offline verifier observation owner | exact-at and one-over artifact and byte tests | IMPLEMENTED | independent audit |
+| C8-P8-OBSERVER-01 | 8 | Independent observer performs deterministic bounded read-only artifact walk | offline verifier observation owner | exact-at and one-over directory-entry directory artifact and byte tests plus shipped CLI process | IMPLEMENTED | independent audit |
 | C8-P8-PROTOCOL-01 | 8 | Report families are distinct versioned and compatibility bounded | runtime and observer protocol owners | wrong-family future-version malformed and digest twins | IMPLEMENTED | independent audit |
 | C8-P8-API-01 | 8 | Delivered report surfaces have exact facade and topology rows | Phase 1 facade inventory owner | production-derived exact facade equality | IMPLEMENTED | independent audit |
 | C8-P8-CUTOVER-01 | 8 | Scoped consumers migrate before replaced owners disappear | cutover inventory owner | consumer import and absence gates | ACTIVE | legacy verifier consumers remain |
@@ -22,6 +22,7 @@
 | C8-P8-F01 | High | C8-P8-RUNTIME-REPORT-01 C8-P8-OBSERVER-01 C8-P8-PROTOCOL-01 C8-P8-DOCUMENTATION-01 | No shipped runtime or independent observer report protocol existed | Added distinct version-one envelopes bounded observer walk CLI output and operator guide | typed protocol and exact limit twins pass |
 | C8-P8-F02 | High | C8-P8-CUTOVER-01 C8-P8-PHYSICS-01 C8-P8-RETIREMENT-01 | Attempting whole-module deletion before migrating consumers broke layout and certification crates | Restored the module and made consumer migration precede absence claims | warnings-denied destination crates compile while retirement remains ACTIVE |
 | C8-P8-F03 | High | C8-P8-RUNTIME-REPORT-01 C8-P8-OBSERVER-01 C8-P8-PROTOCOL-01 C8-P8-LEDGER-01 | Codec round trips did not prove that the production recovery command and the separately owned offline observer emitted evidence across a real process boundary | Added a writer process the shipped recovery executable and a distinct offline-verifier observer process then decoded both reports in the parent and cross-fed each payload to the other family decoder | warnings-denied Phase 8 process proof observes a real recovered Store and both wrong-family crossings are rejected |
+| C8-P8-F04 | High | C8-P8-OBSERVER-01 C8-P8-PROTOCOL-01 C8-P8-DOCUMENTATION-01 C8-P8-LEDGER-01 | Adding traversal counters silently redefined the promised version-one observer payload digest domain and compatibility window as version two | Kept progressive traversal counters in observation evidence while restoring the exact version-one report fields digest domain and one-version compatibility window | literal v1 wire and artifact-set oracles four-axis limit twins and the shipped CLI process pass warnings denied |
 
 ## Independent audit history
 

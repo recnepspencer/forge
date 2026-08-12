@@ -6,6 +6,9 @@ use super::{
     RecoveryObserverObservationFailure,
 };
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct ObservedRecoveryArtifact {
     pub(super) path: Box<str>,
@@ -13,6 +16,7 @@ pub(super) struct ObservedRecoveryArtifact {
     pub(super) digest: [u8; 32],
 }
 
+#[derive(Debug)]
 pub(super) struct RecoveryObserverWalk {
     artifacts: Vec<ObservedRecoveryArtifact>,
     counters: RecoveryObserverCounters,

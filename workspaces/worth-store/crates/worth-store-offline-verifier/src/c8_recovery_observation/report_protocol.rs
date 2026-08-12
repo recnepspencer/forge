@@ -6,11 +6,11 @@ use worth_foundational::facade::{
 pub const RECOVERY_OBSERVER_REPORT_PROTOCOL: BoundaryProtocolIdentity =
     BoundaryProtocolIdentity::new("store.physical.recovery-observer-report");
 pub const RECOVERY_OBSERVER_REPORT_VERSION: BoundaryProtocolVersion =
-    BoundaryProtocolVersion::new(2);
+    BoundaryProtocolVersion::new(1);
 pub const RECOVERY_OBSERVER_REPORT_COMPATIBILITY_WINDOW: BoundaryProtocolCompatibilityWindow =
     BoundaryProtocolCompatibilityWindow::inclusive(
-        BoundaryProtocolVersion::new(2),
-        BoundaryProtocolVersion::new(2),
+        BoundaryProtocolVersion::new(1),
+        BoundaryProtocolVersion::new(1),
     );
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

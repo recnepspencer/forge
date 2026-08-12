@@ -64,7 +64,8 @@ physical_store_recover D:\stores\orders \
   --report=D:\reports\runtime-v1.bin
 
 physical_store_offline_observer c8-recovery-observe \
-  D:\stores\orders D:\reports\observer-v1.bin 1000000 4294967295
+  D:\stores\orders D:\reports\observer-v1.bin \
+  1000000 100000 1000000 4294967295
 ```
 
 The first process owns recovery authority and effects. The second owns only a
@@ -81,8 +82,8 @@ verifier is an independent inspection boundary, not a Store runtime.
 
 `RecoveryReportDecodeDenial` distinguishes malformed bytes, wrong protocol
 family, unsupported version, and digest damage. The observer has the equivalent
-typed denials plus artifact, byte, media, path, and file-type limits. Version 1
-of each protocol accepts exactly version 1.
+typed denials plus directory-entry, directory, artifact, byte, media, path, and
+file-type limits. Version 1 of each protocol accepts exactly version 1.
 
 ## Anti-Patterns
 

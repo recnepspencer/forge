@@ -10,26 +10,6 @@ pub struct RecoveryObserverCounters {
 }
 
 impl RecoveryObserverCounters {
-    pub(super) const fn from_parts(
-        directories_admitted: u64,
-        directories_opened: u64,
-        directory_entries_observed: u64,
-        artifacts_admitted: u64,
-        artifacts_observed: u64,
-        files_opened: u64,
-        bytes_read: u64,
-    ) -> Self {
-        Self {
-            directories_admitted,
-            directories_opened,
-            directory_entries_observed,
-            artifacts_admitted,
-            artifacts_observed,
-            files_opened,
-            bytes_read,
-        }
-    }
-
     pub(super) const fn with_root_admitted() -> Self {
         Self {
             directories_admitted: 1,

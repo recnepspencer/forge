@@ -11,6 +11,7 @@ For C.8 artifact inventory, use:
 
 ```text
 physical_store_offline_observer c8-recovery-observe <store-root> <report-output> \
+  <maximum-directory-entries> <maximum-directories> \
   <maximum-artifacts> <maximum-bytes>
 ```
 
