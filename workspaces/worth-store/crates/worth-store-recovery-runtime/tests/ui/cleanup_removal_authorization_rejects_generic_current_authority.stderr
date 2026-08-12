@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `issue` found for struct `RecoveryCleanupEffectAuthorization` in the current scope
+  --> tests/ui/cleanup_removal_authorization_rejects_generic_current_authority.rs:10:49
+   |
+10 |     let _ = RecoveryCleanupEffectAuthorization::issue(current, binding);
+   |                                                 ^^^^^ function or associated item not found in `RecoveryCleanupEffectAuthorization`

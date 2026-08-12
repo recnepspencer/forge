@@ -113,6 +113,11 @@ impl RecoveryCoordination {
         self.owner.certification_defer_cleanup_background();
     }
 
+    #[cfg(feature = "certification-test-authority")]
+    pub(crate) fn certification_substitute_cleanup_authorization(&self) {
+        self.owner.certification_substitute_cleanup_authorization();
+    }
+
     pub(crate) fn shutdown_is_quiescent(self) -> bool {
         self.owner.shutdown_is_quiescent()
     }

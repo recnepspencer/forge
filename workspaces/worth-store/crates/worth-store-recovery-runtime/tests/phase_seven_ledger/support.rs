@@ -7,8 +7,11 @@ use sha2::{Digest, Sha256};
 pub(super) struct LedgerContract<'a> {
     pub(super) guarantees: &'a [&'a str],
     pub(super) findings: &'a [(&'a str, &'a str)],
+    pub(super) requirement_inventory_sha256: &'a str,
+    pub(super) guarantee_semantics_sha256: &'a str,
     pub(super) finding_history_sha256: &'a str,
     pub(super) audit_history_sha256: &'a str,
+    pub(super) required_sources: &'a [(&'a str, &'a str)],
 }
 
 pub(super) struct ValidatedLedger {
@@ -43,16 +46,30 @@ pub(super) fn validate_shape(
         assert!(values[5].bytes().all(|byte| byte.is_ascii_hexdigit()));
         assert!(matches!(values[6].as_str(), "IMPLEMENTED" | "PROVED"));
     }
+    assert_eq!(
+        semantic_rows_digest(&rows),
+        contract.guarantee_semantics_sha256,
+        "Phase 7 guarantee semantics drifted"
+    );
     validate_findings(ledger, contract);
     validate_audit(ledger, &rows, contract.audit_history_sha256);
-    let closures = parse_closures(root, closure, contract.guarantees);
+    let closures = parse_closures(
+        root,
+        closure,
+        contract.guarantees,
+        contract.required_sources,
+    );
     ValidatedLedger {
         ledger_rows: rows,
         closures,
     }
 }
 
-pub(super) fn validate_requirement_inventory(document: &str, guarantees: &[&str]) {
+pub(super) fn validate_requirement_inventory(
+    document: &str,
+    guarantees: &[&str],
+    expected_sha256: &str,
+) {
     let rows = rows_between(
         document,
         "<!-- c8-phase7-requirements:start -->",
@@ -70,6 +87,11 @@ pub(super) fn validate_requirement_inventory(document: &str, guarantees: &[&str]
         })
         .collect::<BTreeSet<_>>();
     assert_eq!(actual.len(), rows.len(), "duplicate Phase 7 requirement");
+    assert_eq!(
+        format!("{:x}", Sha256::digest(rows.join("\n").as_bytes())),
+        expected_sha256,
+        "Phase 7 normative requirement content drifted"
+    );
     assert_eq!(
         actual,
         guarantees
@@ -164,6 +186,7 @@ fn parse_closures(
     root: &Path,
     document: &str,
     guarantees: &[&str],
+    required_sources: &[(&str, &str)],
 ) -> BTreeMap<String, BTreeSet<String>> {
     let mut lines = document.lines();
     assert_eq!(lines.next(), Some("guarantee,path"));
@@ -181,7 +204,33 @@ fn parse_closures(
         closures.keys().map(String::as_str).collect::<BTreeSet<_>>(),
         guarantees.iter().copied().collect()
     );
+    for (guarantee, path) in required_sources {
+        assert!(
+            closures[*guarantee].contains(*path),
+            "{guarantee} omitted mandatory causal source {path}"
+        );
+    }
     closures
+}
+
+fn semantic_rows_digest(rows: &[String]) -> String {
+    let normalized = rows
+        .iter()
+        .map(|row| {
+            let values = cells(row);
+            [
+                values[0].as_str(),
+                values[1].as_str(),
+                values[2].as_str(),
+                values[3].as_str(),
+                values[4].as_str(),
+                values[8].as_str(),
+            ]
+            .join("\u{1f}")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("{:x}", Sha256::digest(normalized.as_bytes()))
 }
 
 pub(super) fn source_identity(root: &Path, paths: &BTreeSet<String>) -> String {

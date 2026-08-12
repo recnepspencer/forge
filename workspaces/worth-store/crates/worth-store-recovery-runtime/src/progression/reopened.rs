@@ -148,4 +148,11 @@ impl ReopenedPhysicalRecovery {
             .coordination
             .defer_cleanup_background_for_certification();
     }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub fn certification_substitute_cleanup_authorization(&self) {
+        self.state
+            .coordination
+            .certification_substitute_cleanup_authorization();
+    }
 }

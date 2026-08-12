@@ -130,3 +130,41 @@ fn cleanup_revalidation_read_failure_retains_exact_zero_byte_progress() {
     assert_eq!(evidence.counters().artifact_revalidation_read_failures, 1);
     assert_eq!(evidence.counters().artifact_revalidation_bytes_read, 0);
 }
+
+#[test]
+fn cleanup_authorization_substitution_denies_before_revalidation_or_effect() {
+    let world = cleanup_world("cleanup-authorization-substitution");
+    let candidate = world.oldest_wal();
+    let reopened = reopen_with_schedule(&world.root, empty_fault_schedule());
+    reopened.certification_substitute_cleanup_authorization();
+
+    let PhysicalRecoveryOutcome::Recovered(handoff) = reopened.finish() else {
+        panic!("authorization mismatch remains deferred cleanup debt")
+    };
+    let RecoveryCleanupPosture::Deferred(evidence) = handoff.cleanup_posture() else {
+        panic!("authorization mismatch must defer cleanup")
+    };
+    let [RecoveryCleanupDeferralEvidence::DeniedBeforeEffect { denial, .. }] = evidence.deferrals()
+    else {
+        panic!("one exact authorization denial")
+    };
+    assert!(matches!(
+        denial.kind(),
+        PhysicalRecoveryCleanupRemovalDenialKind::Media(
+            RecoveryCleanupRemovalDenialCause::Authorization
+        )
+    ));
+    let physical = denial.physical().expect("backend denial is retained");
+    assert_eq!(
+        physical.cause(),
+        RecoveryCleanupRemovalDenialCause::Authorization
+    );
+    assert!(physical.queue().is_none());
+    assert_eq!(physical.revalidation().reads_attempted(), 0);
+    assert_eq!(physical.revalidation().reads_completed(), 0);
+    assert_eq!(physical.revalidation().bytes_read(), 0);
+    assert_eq!(evidence.counters().artifact_revalidation_reads_attempted, 0);
+    assert_eq!(evidence.counters().performed_effects, 0);
+    assert!(evidence.performed_removals().is_empty());
+    assert!(candidate.exists());
+}

@@ -83,9 +83,8 @@ fn observe(
     maximum_manifest_entries: u64,
     byte_limit: u64,
 ) -> Result<ObservedPageBasis, PageObservationFailure> {
-    let mut budget = super::selected_source_inventory::ManifestEntryBudget::new(
-        maximum_manifest_entries,
-    );
+    let mut budget =
+        super::selected_source_inventory::ManifestEntryBudget::new(maximum_manifest_entries);
     let mut selected_source = super::selected_source_inventory::observe_with_budget(
         discovery,
         root_manifest,

@@ -16,6 +16,7 @@ pub(super) struct RecoveryCoordinationCertificationFaults {
     cleanup_signal_failure_stage: AtomicU8,
     cleanup_scheduler_failure_stage: AtomicU8,
     cleanup_background_deferral: AtomicU8,
+    cleanup_authorization_substitution: AtomicU8,
 }
 
 impl RecoveryCoordinationCertificationFaults {
@@ -31,6 +32,7 @@ impl RecoveryCoordinationCertificationFaults {
             cleanup_signal_failure_stage: AtomicU8::new(0),
             cleanup_scheduler_failure_stage: AtomicU8::new(0),
             cleanup_background_deferral: AtomicU8::new(0),
+            cleanup_authorization_substitution: AtomicU8::new(0),
         }
     }
 
@@ -85,6 +87,11 @@ impl RecoveryCoordinationCertificationFaults {
 
     pub(super) fn defer_cleanup_background(&self) {
         self.cleanup_background_deferral.store(1, Ordering::Release);
+    }
+
+    pub(super) fn substitute_cleanup_authorization(&self) {
+        self.cleanup_authorization_substitution
+            .store(1, Ordering::Release);
     }
 
     pub(super) fn take_signal_failure(
@@ -155,6 +162,10 @@ impl RecoveryCoordinationCertificationFaults {
 
     pub(super) fn take_cleanup_background_deferral(&self) -> bool {
         take(&self.cleanup_background_deferral, 1)
+    }
+
+    pub(super) fn take_cleanup_authorization_substitution(&self) -> bool {
+        take(&self.cleanup_authorization_substitution, 1)
     }
 }
 
