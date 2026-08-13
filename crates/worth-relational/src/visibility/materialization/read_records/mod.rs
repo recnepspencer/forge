@@ -18,7 +18,7 @@ pub use reader::{
     FrontierFieldEqualityTruthReadLimitExceeded, VisibilityReadContext,
 };
 
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 impl RelationalRuntime {
     pub(crate) fn visibility_reads(&self) -> VisibilityReadContext<'_> {

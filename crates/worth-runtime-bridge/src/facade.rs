@@ -77,11 +77,11 @@ pub use crate::authorization::{
     BridgeAuthorizationBindingIdentity, BridgeAuthorizationClauseContract,
     BridgeAuthorizationClauseObservation, BridgeAuthorizationCorrespondenceIdentity,
     BridgeAuthorizationDecisionEvidence, BridgeAuthorizationDenial, BridgeAuthorizationDenialKind,
-    BridgeAuthorizationDependencyCardinality, BridgeAuthorizationInstallationRequest,
-    BridgeAuthorizationObservation, BridgeAuthorizationRequirementContract,
-    BridgeAuthorizationRequirementObservation, BridgeAuthorizationRuleContract,
-    BridgeAuthorizationRuleDecisionEvidence, BridgeAuthorizationRuleEffect,
-    BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
+    BridgeAuthorizationDependencyCardinality, BridgeAuthorizationInstallationBatch,
+    BridgeAuthorizationInstallationRequest, BridgeAuthorizationObservation,
+    BridgeAuthorizationRequirementContract, BridgeAuthorizationRequirementObservation,
+    BridgeAuthorizationRuleContract, BridgeAuthorizationRuleDecisionEvidence,
+    BridgeAuthorizationRuleEffect, BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
 };
 pub use crate::identity_authority::*;
 pub use exports_core::*;

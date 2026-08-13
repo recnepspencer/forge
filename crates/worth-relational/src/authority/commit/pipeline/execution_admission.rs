@@ -1,7 +1,7 @@
 use super::authority_context::AuthoritativeCommitContext;
 use super::bulk_mutation_telemetry::record_bulk_mutation_telemetry;
 use super::rejection::stale_strategy_validation_basis;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     CommitLog, CommitPhaseTiming, MergedCommitPlan, TransactionCommitError, TransactionId,
     TransactionOptions,

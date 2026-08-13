@@ -124,7 +124,7 @@ fn relation_delete_footprint_covers_only_the_exact_relation_record() {
     assert_work(&footprint, 1, 1);
 }
 
-fn runtime_with_struct_aspects() -> crate::logic::runtime::RelationalRuntime {
+fn runtime_with_struct_aspects() -> crate::runtime::RelationalRuntime {
     let entity_binding = entity_summary_struct_aspect(aspect_key("summary"), field_key("summary"));
     let relation_binding = crate::schema::data::DeclaredAspectContractBinding {
         binding: worth_foundational::facade::AspectBinding::RelationField {
@@ -141,7 +141,7 @@ fn runtime_with_struct_aspects() -> crate::logic::runtime::RelationalRuntime {
 }
 
 fn summary_contract(
-    runtime: &crate::logic::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
 ) -> worth_foundational::facade::AspectContract {
     runtime
         .entity_aspect_plan(KindId(1))
@@ -210,7 +210,7 @@ fn relation_summary_patch(
     ))
 }
 
-fn commit_intent(runtime: &mut crate::logic::runtime::RelationalRuntime, intent: MutationIntent) {
+fn commit_intent(runtime: &mut crate::runtime::RelationalRuntime, intent: MutationIntent) {
     let mut transaction = runtime.begin_transaction(TransactionOptions::default());
     transaction.push_batch(WorkerIntentBatch::new("footprint-setup").push(intent));
     transaction.commit().expect("fixture state commits");

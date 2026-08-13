@@ -65,7 +65,10 @@ fn prepared_merge_promoted_to_deleted_on_both_sides(
         .merge()
         .compile_execution_ready_merge_plan_for_test(prepared.execution_ready_plan_mut_for_test())
         .expect("compiled promoted executable plan");
-    *prepared.bound_executable_plan_mut_for_test() = compiled;
+    runtime
+        .merge()
+        .replace_bound_merge_plan_for_test(&mut prepared, compiled)
+        .expect("promoted mutation plan");
     prepared
 }
 
@@ -104,10 +107,7 @@ fn promoted_deleted_on_both_sides_derives_zero_mutation_intent_execution_plan() 
     let mut runtime = persisted_runtime_with_test_schema();
     let prepared = prepared_merge_promoted_to_deleted_on_both_sides(&mut runtime);
 
-    let plan = runtime
-        .merge()
-        .derive_merge_commit_mutation_plan(TransactionId(701), &prepared)
-        .expect("merge mutation plan");
+    let plan = prepared.bind_mutation_plan_for_test(TransactionId(701));
 
     assert_eq!(plan.structural_summary.executed_record_count, 1);
     assert_eq!(

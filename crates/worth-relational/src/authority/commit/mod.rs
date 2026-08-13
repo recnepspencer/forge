@@ -8,6 +8,3 @@ pub(crate) mod structural_summary;
 mod touched_scope;
 
 pub(crate) use pipeline::{CommitDurableAppendAdmission, CommitResultSeal};
-
-#[cfg(test)]
-pub(crate) use publication::{with_test_diff_preparation_fault, TestDiffPreparationFault};

@@ -1,16 +1,11 @@
-#[cfg(test)]
 use crate::execution::ExecutionCounters;
 use crate::identity::{CanonicalQueryDigest, ValidatedQueryDigest};
-#[cfg(test)]
 use crate::preview::binding::PreviewSessionPlanBinding;
-#[cfg(test)]
 use crate::preview::comparison::PreviewComparisonShapeContract;
 use crate::preview::evaluation::PreviewEvaluationClass;
 use crate::preview::execution::PreviewExecutionCounters;
-#[cfg(test)]
 use crate::preview::workflow_context_identity;
 use crate::WorthQueryEvidenceIdentity;
-#[cfg(test)]
 use crate::{WorthQueryEvidenceScope, WorthQueryEvidenceTag};
 use worth_runtime_bridge::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewSessionDeclarationIdentity,
@@ -221,7 +216,6 @@ impl AdmittedPreviewWorkflowFoundation {
     }
 }
 
-#[cfg(test)]
 fn derive_preview_workflow_foundation(
     binding: &PreviewSessionPlanBinding,
     request: PreviewWorkflowFoundationRequest,
@@ -294,8 +288,7 @@ fn derive_preview_workflow_foundation(
     }
 }
 
-#[cfg(test)]
-pub(crate) fn admit_preview_workflow_foundation(
+pub fn admit_preview_workflow_foundation(
     binding: &PreviewSessionPlanBinding,
 ) -> Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {
     admit_preview_workflow_foundation_request(
@@ -304,8 +297,7 @@ pub(crate) fn admit_preview_workflow_foundation(
     )
 }
 
-#[cfg(test)]
-pub(crate) fn admit_preview_workflow_foundation_request(
+pub fn admit_preview_workflow_foundation_request(
     binding: &PreviewSessionPlanBinding,
     request: PreviewWorkflowFoundationRequest,
 ) -> Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {

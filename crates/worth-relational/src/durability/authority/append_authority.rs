@@ -1,5 +1,5 @@
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::{BranchId, CommitId};
-use crate::replay::data::CanonicalCommitEnvelope;
 
 /// Runtime-bound permission to append one exact canonical commit envelope.
 ///
@@ -25,9 +25,7 @@ impl DurableAppendAuthority {
     }
 
     #[cfg(test)]
-    pub(crate) fn from_lineage(
-        admission: crate::lineage::logic::LineageDurableAppendAdmission,
-    ) -> Self {
+    pub(crate) fn from_lineage(admission: crate::lineage::LineageDurableAppendAdmission) -> Self {
         let (runtime_instance_id, commit_id, branch_id) = admission.into_parts();
         Self {
             runtime_instance_id,

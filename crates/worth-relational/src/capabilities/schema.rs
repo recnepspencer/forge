@@ -1,5 +1,5 @@
 use crate::config::data::RelationalRuntimeConfig;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::schema::data::{
     AspectContractPlanCatalog, LoweredAspectContractPlan, RelationalSchemaRegistry,
 };

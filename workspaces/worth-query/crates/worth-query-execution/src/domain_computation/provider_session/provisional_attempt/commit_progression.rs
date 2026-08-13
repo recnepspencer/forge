@@ -28,8 +28,8 @@ pub enum WorthQueryProviderCompareAndCommitOutcome {
 
 /// Closed provider answer paired with the exact session that produced it.
 ///
-/// Receipt text remains available as a provider selector, but callers cannot
-/// construct a committed outcome from text alone.
+/// Provider text remains available only as a descriptive projection. The
+/// terminal binding, not text, selects the exact committed owner evidence.
 #[derive(Debug)]
 pub struct WorthQueryCommittedProviderSession {
     disposition:
@@ -43,8 +43,10 @@ impl WorthQueryCommittedProviderSession {
         Self { disposition }
     }
 
-    pub fn provider_receipt(&self) -> &str {
-        self.disposition.provider_receipt()
+    pub fn provider_description(
+        &self,
+    ) -> &crate::domain_computation::provider_session::WorthQueryProviderTerminalDescription {
+        self.disposition.provider_description()
     }
 
     pub fn counters(
@@ -102,16 +104,6 @@ impl<'run> WorthQueryProposedStateInspection<'run> {
 }
 
 impl WorthQueryInvariantApprovedProposedState<'_> {
-    pub(in crate::domain_computation) fn affinity_identity(
-        &self,
-    ) -> crate::domain_computation::WorthQueryProviderSessionAffinityIdentity {
-        self.proposed
-            .attempt
-            .staged
-            .provider_session_affinity()
-            .identity()
-    }
-
     pub(in crate::domain_computation) fn provider_session_terminal_binding(
         &self,
     ) -> crate::domain_computation::provider_session::WorthQueryProviderSessionTerminalBinding {

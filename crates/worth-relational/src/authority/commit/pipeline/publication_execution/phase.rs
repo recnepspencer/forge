@@ -2,10 +2,10 @@ use super::super::artifact_execution::preparation::PublicationPreparation;
 use super::super::rejection::{attach_rejection, elapsed_micros};
 use crate::authority::commit::phases::publication::append_durable_commit;
 use crate::authority::mutation::apply_adjacency_deltas;
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::identity::data::VersionId;
-use crate::logic::runtime::RelationalRuntime;
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     CommitLog, CommitPhase, CommitPhaseTiming, TransactionCommitError,
 };
@@ -153,7 +153,7 @@ struct FinalizeCommitInput<'a> {
     canonical_commit_envelope: Arc<CanonicalCommitEnvelope>,
     branch_id: &'a BranchId,
     merge_base_commits: &'a [CommitId],
-    artifacts: crate::storage::logic::state::PublicationArtifacts,
+    artifacts: crate::storage::overlay::PublicationArtifacts,
     merge_parent_branches: &'a [BranchId],
     adjacency_deltas: Vec<crate::authority::mutation::AdjacencyDelta>,
 }

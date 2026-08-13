@@ -1,6 +1,6 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::storage::data::RelationalReadView;
-use crate::storage::logic::state::SnapshotState;
+use crate::storage::overlay::SnapshotState;
 
 pub(crate) fn read_view_from_snapshot_state(
     runtime: &RelationalRuntime,

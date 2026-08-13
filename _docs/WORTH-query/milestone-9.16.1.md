@@ -977,7 +977,8 @@ not duplicate or contradict the progression.
 - Runtime Phase 7.3 disclosure and noninterference implementation;
 - Runtime Phase 7.4 delegation, Phase 7.5 conflict composition, Phase 7.6
   emergency elevation, or Phase 7.7 Bank estate cutover;
-- Runtime Phase 8 aftermath or Runtime Phase 9 public policy cutover;
+- Runtime Phase 8 aftermath, Runtime Phase 9 host-installed conditional
+  operations, or Runtime Phase 10 public policy cutover;
 - advanced Milestone 9.19 access products;
 - multiple branch heads, per-branch version allocation, concurrent branch
   writers, branch creation, merge, rebase, or branch-local inversion;

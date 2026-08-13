@@ -43,7 +43,7 @@ fn field_comparison_cannot_join_values_from_different_path_witnesses() {
 }
 
 fn observe_same_witness_names(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     principal: crate::identity::data::EntityId,
     scope: crate::identity::data::EntityId,
 ) -> crate::authorization::RelationalAuthorizationObservationEvidence {
@@ -77,7 +77,7 @@ fn observe_same_witness_names(
 }
 
 fn connect_branch(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     principal: crate::identity::data::EntityId,
     left: crate::identity::data::EntityId,
     right: crate::identity::data::EntityId,

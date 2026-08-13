@@ -41,7 +41,10 @@ impl WorthQueryProviderSessionLease {
         self.active = false;
     }
 
-    pub(super) fn abort(&mut self) -> Result<String, super::WorthQueryProviderSessionFailure> {
+    pub(super) fn abort(
+        &mut self,
+    ) -> Result<super::WorthQueryProviderTerminalDescription, super::WorthQueryProviderSessionFailure>
+    {
         let result = self.provider.abort_session(&self.token.view());
         if result.is_ok() {
             self.close();
@@ -49,7 +52,10 @@ impl WorthQueryProviderSessionLease {
         result
     }
 
-    pub(super) fn commit(&mut self) -> Result<String, super::WorthQueryProviderSessionFailure> {
+    pub(super) fn commit(
+        &mut self,
+    ) -> Result<super::WorthQueryProviderTerminalDescription, super::WorthQueryProviderSessionFailure>
+    {
         let result = self.provider.commit_session(&self.token.view());
         if result.is_ok() {
             self.close();

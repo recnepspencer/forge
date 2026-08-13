@@ -12,9 +12,8 @@ use bank_domain::{
 use worth_query_host::facade::{
     declaration::application_query::ApplicationQueryParameterSet,
     primary_graph::{
-        WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationHistoricalRead,
-        WorthQueryApplicationQueryAccessContext, WorthQueryApplicationQueryControls,
-        WorthQueryApprovedElevation, WorthQueryPrimaryGraphApplicationRuntime,
+        WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationQueryAccessContext,
+        WorthQueryApplicationQueryControls, WorthQueryPrimaryGraphApplicationRuntime,
         WorthQueryPrincipalResolutionMode,
     },
     publication::domain_computation::{
@@ -23,7 +22,9 @@ use worth_query_host::facade::{
 };
 
 use super::super::{BankApplicationQueryDenial, BankPreviewSession};
-use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime, BankReadControls};
+use crate::{
+    BankApprovedEstateElevation, BankAuthenticatedPrincipal, BankIdentityRuntime, BankReadControls,
+};
 
 type EmergencyAccountDetailsPlan<'a> = WorthQueryAdmittedApplicationQueryPlan<
     'a,
@@ -57,7 +58,7 @@ pub(crate) struct BankEstateEmergencyAccountDetailsAdmission<'a> {
     runtime: &'a BankIdentityRuntime,
     principal: &'a BankAuthenticatedPrincipal,
     request: EstateEmergencyAccountDetailsRequest,
-    approved: &'a WorthQueryApprovedElevation,
+    approved: &'a BankApprovedEstateElevation,
     controls: &'a BankReadControls,
 }
 
@@ -90,7 +91,7 @@ impl<'a> BankEstateEmergencyAccountDetailsAdmission<'a> {
         runtime: &'a BankIdentityRuntime,
         principal: &'a BankAuthenticatedPrincipal,
         request: EstateEmergencyAccountDetailsRequest,
-        approved: &'a WorthQueryApprovedElevation,
+        approved: &'a BankApprovedEstateElevation,
         controls: &'a BankReadControls,
     ) -> Self {
         Self {
@@ -128,9 +129,7 @@ impl<'a> BankEstateEmergencyAccountDetailsAdmission<'a> {
         let application = self.runtime.application_runtime();
         let basis = application
             .admit_application_historical_basis(
-                WorthQueryApplicationHistoricalRead::at_application_commit(
-                    self.approved.approval_commit_receipt(),
-                ),
+                self.approved.historical_read(),
                 self.controls.request(),
             )
             .map_err(BankApplicationQueryDenial::from_admission)?;
@@ -157,13 +156,12 @@ impl<'a> BankEstateEmergencyAccountDetailsAdmission<'a> {
             -> Result<Output, BankApplicationQueryDenial>,
     ) -> Result<Output, BankApplicationQueryDenial> {
         let application = self.runtime.application_runtime();
-        let basis = session.admit_basis(application, self.controls.request())?;
-        let controls = WorthQueryApplicationQueryControls::preview(
-            basis,
+        let controls = session.admit_controls(
+            application,
             self.controls.maximum_result_count(),
             self.controls.maximum_work(),
             self.controls.request(),
-        );
+        )?;
         self.with_admitted(controls, |application, plan| {
             after_admission(BankAdmittedEstateEmergencyAccountDetailsPreview { application, plan })
         })
@@ -192,7 +190,7 @@ impl<'a> BankEstateEmergencyAccountDetailsAdmission<'a> {
             .map_err(BankApplicationQueryDenial::from_capability_installation)?;
         let capability_access = application
             .admit_approved_elevation_access(
-                self.approved,
+                self.approved.query(),
                 self.principal.query(),
                 &capability,
                 self.request.capability_request(),
@@ -230,7 +228,7 @@ pub(crate) fn execute_estate_emergency_account_details(
     runtime: &BankIdentityRuntime,
     principal: &BankAuthenticatedPrincipal,
     request: EstateEmergencyAccountDetailsRequest,
-    approved: &WorthQueryApprovedElevation,
+    approved: &BankApprovedEstateElevation,
     controls: &BankReadControls,
 ) -> Result<BankEstateEmergencyAccountDetailsResult, BankApplicationQueryDenial> {
     BankEstateEmergencyAccountDetailsAdmission::new(runtime, principal, request, approved, controls)

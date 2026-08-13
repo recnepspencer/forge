@@ -110,7 +110,7 @@ impl<'a> MutationWorkspace<'a> {
         self.aspect_plans.relation_plans.get(&kind_id)
     }
 
-    pub(crate) fn execution_model(&self) -> crate::logic::planning::RelationalExecutionModel {
+    pub(crate) fn execution_model(&self) -> crate::config::data::RelationalExecutionModel {
         self.config.execution_model
     }
 

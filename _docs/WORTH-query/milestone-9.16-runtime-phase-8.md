@@ -1,12 +1,12 @@
 # Milestone 9.16 Runtime Phase 8: Application Aftermath, External Effects, And Recovery
 
 **Owner:** Runtime Hardening Track, Phase 8
-**Status:** **OPEN.** Hostile QA reopened the accepted Phase 8 foundation on
-**2026-08-08** under the
+**Status:** **CLOSED (2026-08-12).** The accepted Phase 8 foundation is proved
+through corrections C1-C8 against the final source record in the
 [`Runtime Phase 8 Finish Plan`](./milestone-9.16-runtime-phase-8-finish-plan.md).
 Developer guidance lives in
 [`Application Aftermath, External Effects, And Recovery`](../../workspaces/worth-query/crates/worth-query/docs/execution/application-aftermath-and-recovery.md).
-The finish plan remains the governing current-state and correction reference.
+The finish plan and closure ledger contain the final source-bound evidence.
 This specification records the broader historical Phase 8 design, but its undo
 and redo product sections are **provisional** and form no part of the accepted
 closure. Their final semantics belong to

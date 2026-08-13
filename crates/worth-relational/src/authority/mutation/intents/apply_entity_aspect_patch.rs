@@ -3,7 +3,7 @@ use worth_foundational::facade::PortablePatchReadmissionPurpose;
 use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::stale_targets::ensure_entity_target_is_current;
 use crate::authority::mutation::MutationWorkspace;
-use crate::storage::logic::state::PartitionAccess;
+use crate::storage::overlay::PartitionAccess;
 use crate::transactions::data::{
     ApplyEntityAspectPatchIntent, CommitConflict, ConflictClass, EntityFieldUpdateMissingState,
     RecordAspectPatchTarget,

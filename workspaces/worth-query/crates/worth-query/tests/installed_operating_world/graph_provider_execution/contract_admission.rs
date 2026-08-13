@@ -53,7 +53,7 @@ fn graph_identity_and_cost_postures_are_real_binding_requirements() {
 #[test]
 fn partial_commit_topology_requires_declared_operation_recovery() {
     let log = Arc::new(Mutex::new(Vec::new()));
-    let workspace = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
+    let workspace = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>())
         .graph_participation(partial_commit_definition::<RemoteA>("remote-a"))
         .graph_participation_provider(RemoteA, SelectiveProvider::new(&log, None))
         .graph_participation(read_definition::<RemoteB>(

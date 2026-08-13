@@ -21,77 +21,130 @@ use crate::domain_computation::authorization::{
 /// ```
 #[derive(Debug)]
 pub struct WorthQueryApprovedElevation {
-    requested: WorthQueryElevationRequestBinding,
-    request_commit: WorthQueryApplicationCommitReceipt,
+    binding: WorthQueryElevationApprovalBinding,
     approval_commit: WorthQueryApplicationCommitReceipt,
-    elevation: EntityId,
-    review: EntityId,
-    approver: EntityId,
 }
 
 impl WorthQueryApprovedElevation {
-    pub const fn request_commit_receipt(&self) -> &WorthQueryApplicationCommitReceipt {
-        &self.request_commit
-    }
-
-    pub const fn approval_commit_receipt(&self) -> &WorthQueryApplicationCommitReceipt {
+    pub(in crate::domain_computation) const fn approval_commit_receipt(
+        &self,
+    ) -> &WorthQueryApplicationCommitReceipt {
         &self.approval_commit
     }
 
+    pub fn publication_source(&self) -> super::WorthQueryApplicationCommitPublicationSource {
+        self.approval_commit.publication_source()
+    }
+
+    /// Historical Query authority anchored to the exact approval commit.
+    ///
+    /// This is the purpose-affine public projection. Consumers cannot recover
+    /// or substitute the underlying generic commit receipt.
+    pub fn historical_read(
+        &self,
+    ) -> crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead {
+        crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::at_application_commit(
+            &self.approval_commit,
+        )
+    }
+
+    pub const fn approval_changed_record_count(&self) -> usize {
+        self.approval_commit.changed_record_count()
+    }
+
+    pub const fn approval_emitted_effect_count(&self) -> usize {
+        self.approval_commit.emitted_effect_count()
+    }
+
+    pub const fn approval_commit_id(&self) -> worth_relational::facade::history::CommitId {
+        self.approval_commit.commit_id()
+    }
+
+    pub fn approval_retained_preimage(
+        &self,
+    ) -> Option<&crate::domain_computation::application_aftermath::WorthQueryRetainedPreImage> {
+        self.approval_commit.retained_preimage()
+    }
+
+    pub fn request_retained_preimage(
+        &self,
+    ) -> Option<&crate::domain_computation::application_aftermath::WorthQueryRetainedPreImage> {
+        self.binding.request_commit().retained_preimage()
+    }
+
+    pub fn approval_mutation_work(
+        &self,
+    ) -> Option<&crate::domain_computation::primary_graph::WorthQueryPrimaryMutationWorkEvidence>
+    {
+        self.approval_commit.mutation_work()
+    }
+
+    pub fn request_mutation_work(
+        &self,
+    ) -> Option<&crate::domain_computation::primary_graph::WorthQueryPrimaryMutationWorkEvidence>
+    {
+        self.binding.request_commit().mutation_work()
+    }
+
+    pub fn commits_share_branch(&self) -> bool {
+        self.binding.request_commit().terminal().branch()
+            == self.approval_commit.terminal().branch()
+    }
+
     pub const fn requester(&self) -> EntityId {
-        self.requested.requester()
+        self.binding.requested().requester()
     }
 
     pub const fn approver(&self) -> EntityId {
-        self.approver
+        self.binding.approver()
     }
 
     pub const fn resource(&self) -> EntityId {
-        self.requested.resource()
+        self.binding.requested().resource()
     }
 
     pub const fn grant(&self) -> EntityId {
-        self.requested.grant()
+        self.binding.requested().grant()
     }
 
     pub const fn elevation(&self) -> EntityId {
-        self.elevation
+        self.binding.elevation()
     }
 
     pub const fn review(&self) -> EntityId {
-        self.review
+        self.binding.review()
     }
 
     pub const fn action(&self) -> &worth_foundational::facade::AspectValue {
-        self.requested.upper_bound.action()
+        self.binding.requested().upper_bound().action()
     }
 
     pub const fn purpose(&self) -> &worth_foundational::facade::AspectValue {
-        self.requested.upper_bound.purpose()
+        self.binding.requested().upper_bound().purpose()
     }
 
     pub const fn field(&self) -> Option<&worth_foundational::facade::AspectValue> {
-        self.requested.upper_bound.field()
+        self.binding.requested().upper_bound().field()
     }
 
     pub const fn magnitude(&self) -> Option<&worth_foundational::facade::AspectValue> {
-        self.requested.upper_bound.magnitude()
+        self.binding.requested().upper_bound().magnitude()
     }
 
     pub const fn cardinality(&self) -> u32 {
-        self.requested.upper_bound.cardinality()
+        self.binding.requested().upper_bound().cardinality()
     }
 
     pub const fn reason(&self) -> &worth_foundational::facade::AspectValue {
-        &self.requested.reason
+        self.binding.requested().reason()
     }
 
     pub const fn issued_at(&self) -> &worth_foundational::facade::AspectValue {
-        &self.requested.issued_at
+        self.binding.requested().issued_at()
     }
 
     pub const fn expires_at(&self) -> &worth_foundational::facade::AspectValue {
-        &self.requested.expires_at
+        self.binding.requested().expires_at()
     }
 
     pub(in crate::domain_computation) fn belongs_to_lifecycle(
@@ -101,21 +154,21 @@ impl WorthQueryApprovedElevation {
         capability_identity: [u8; 32],
         capability_authority_identity: &str,
     ) -> bool {
-        self.requested.runtime_authority == runtime_authority
-            && &self.requested.branch == branch
-            && self.requested.capability_identity == capability_identity
-            && self.requested.capability_authority_identity.as_ref()
+        *self.binding.requested().runtime_authority() == runtime_authority
+            && self.binding.requested().branch() == branch
+            && self.binding.requested().capability_identity() == capability_identity
+            && self.binding.requested().capability_authority_identity()
                 == capability_authority_identity
-            && self.request_commit.terminal().branch() == branch
+            && self.binding.request_commit().terminal().branch() == branch
             && self.approval_commit.terminal().branch() == branch
-            && self.request_commit.provider_runtime_instance_id()
+            && self.binding.request_commit().provider_runtime_instance_id()
                 == self.approval_commit.provider_runtime_instance_id()
     }
 
     pub(in crate::domain_computation) const fn request_binding(
         &self,
     ) -> &WorthQueryElevationRequestBinding {
-        &self.requested
+        self.binding.requested()
     }
 
     pub(in crate::domain_computation) fn support_remains_current_in(
@@ -124,8 +177,9 @@ impl WorthQueryApprovedElevation {
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
         bridge: &worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
     ) -> bool {
-        self.requested
-            .supporting
+        self.binding
+            .requested()
+            .supporting()
             .decision()
             .remains_current_in(runtime, snapshot, bridge)
     }
@@ -133,7 +187,7 @@ impl WorthQueryApprovedElevation {
     pub(in crate::domain_computation) fn support_decision(
         &self,
     ) -> &WorthQueryAuthorizationDecisionFact {
-        self.requested.supporting.decision()
+        self.binding.requested().supporting().decision()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -152,11 +206,12 @@ impl WorthQueryApprovedElevation {
             branch,
             capability_identity,
             capability_authority_identity,
-        ) && self.requested.upper_bound.capability_identity() == capability_identity
-            && self.elevation == elevation
+        ) && self.binding.requested().upper_bound().capability_identity() == capability_identity
+            && self.binding.elevation() == elevation
             && self
-                .requested
-                .upper_bound
+                .binding
+                .requested()
+                .upper_bound()
                 .matches_active_request(request, elevation, grant)
     }
 }
@@ -216,11 +271,7 @@ fn approved(
     approval_commit: WorthQueryApplicationCommitReceipt,
 ) -> WorthQueryApprovedElevation {
     WorthQueryApprovedElevation {
-        requested: binding.requested,
-        request_commit: binding.request_commit,
+        binding,
         approval_commit,
-        elevation: binding.elevation,
-        review: binding.review,
-        approver: binding.approver,
     }
 }

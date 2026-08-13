@@ -1,9 +1,9 @@
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::publication::cdc::data::{
     SubscriberCheckpoint, SubscriberContinuationAssessment, SubscriberRecoveryDecision,
     SubscriberResumeRequest,
 };
 use crate::publication::patch::data::PatchStreamPosition;
-use crate::replay::data::CanonicalCommitEnvelope;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubscriberRecoveryPlan {

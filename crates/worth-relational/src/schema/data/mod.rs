@@ -118,7 +118,7 @@ impl RelationalSchemaRegistry {
                 registration.kind_id,
             ));
         }
-        let registration = crate::schema::logic::canonicalize_entity_registration(registration)?;
+        let registration = crate::schema::canonicalize_entity_registration(registration)?;
         self.entity_kinds.insert(registration.kind_id, registration);
         Ok(self)
     }
@@ -137,7 +137,7 @@ impl RelationalSchemaRegistry {
                 registration.kind_id,
             ));
         }
-        let registration = crate::schema::logic::canonicalize_relation_registration(registration)?;
+        let registration = crate::schema::canonicalize_relation_registration(registration)?;
         self.relation_kinds
             .insert(registration.kind_id, registration);
         Ok(self)

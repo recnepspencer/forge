@@ -41,10 +41,10 @@ impl worth_harness::facade::HarnessAdapter for InvariantHarnessAdapter {
     }
 
     fn create_runtime(&self) -> Result<Self::Runtime, Self::Error> {
-        Ok(RelationalRuntimeApi::builder()
+        let builder = RelationalRuntimeApi::builder()
             .schema_registry(test_schema_registry())
-            .invariant_catalog(self.invariant_catalog.clone())
-            .build())
+            .invariant_catalog(self.invariant_catalog.clone());
+        Ok(builder.build())
     }
 
     fn prepare_runtime(
@@ -159,16 +159,4 @@ pub(super) fn certification_case<'a>(
         .iter()
         .find(|case| case.candidate_profile == candidate_profile)
         .unwrap_or_else(|| panic!("missing certification case for profile {candidate_profile}"))
-}
-
-pub(super) fn profitable_commit_boundary_adapter() -> InvariantHarnessAdapter {
-    InvariantHarnessAdapter::new(InvariantCatalog {
-        registrations: vec![
-            InvariantRegistration::commit_boundary_blocking(InvariantRule::MaxMergedIntents(16)),
-            InvariantRegistration::commit_boundary_blocking(
-                InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
-            ),
-        ],
-        ..InvariantCatalog::default()
-    })
 }

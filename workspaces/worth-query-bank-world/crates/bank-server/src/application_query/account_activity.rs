@@ -171,24 +171,7 @@ impl<'runtime, 'principal> BankAccountActivityRequestForPrincipal<'runtime, 'pri
         controls: WorthQueryApplicationQueryResumeControls<'_>,
     ) -> Result<BankAccountActivityPageResult, BankApplicationQueryDenial> {
         let prepared = self.prepare(controls.request_scope())?;
-        let access = prepared.access();
-        let plan = prepared
-            .runtime
-            .application_runtime()
-            .readmit_application_query_continuation(
-                &prepared.query,
-                &access,
-                ApplicationQueryParameterSet::<AccountActivityQuery>::new(),
-                continuation.into_query(),
-                controls,
-            )
-            .map_err(BankApplicationQueryDenial::from_admission)?;
-        let page = prepared
-            .runtime
-            .application_runtime()
-            .execute_application_query_continuation_page(plan)
-            .map_err(BankApplicationQueryDenial::from_continuation_execution)?;
-        Ok(output::publish_page(page))
+        continuation.resume(prepared, controls)
     }
 
     pub fn subscribe(

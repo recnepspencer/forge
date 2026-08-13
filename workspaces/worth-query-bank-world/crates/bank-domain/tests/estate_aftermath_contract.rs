@@ -57,7 +57,7 @@ fn assert_installed_posture<Operation, Input>(
 }
 
 #[test]
-fn estate_operations_publish_aftermath_through_installed_schema() {
+fn reconcilable_estate_operations_publish_their_installed_posture() {
     let bank = installed_bank();
     assert_installed_posture(
         &bank,
@@ -71,12 +71,34 @@ fn estate_operations_publish_aftermath_through_installed_schema() {
         Some(PublishedAftermathPosture::Reconcilable),
         "RetransmitDeathNotice",
     );
+}
+
+#[test]
+fn reversible_estate_operations_publish_their_installed_posture() {
+    let bank = installed_bank();
     assert_installed_posture(
         &bank,
         FreezeEstateAccountOperation::reference(),
         Some(PublishedAftermathPosture::Reversible),
         "FreezeAccount",
     );
+    assert_installed_posture(
+        &bank,
+        RevokeEstateCapabilityOperation::reference(),
+        Some(PublishedAftermathPosture::Reversible),
+        "RevokeCapability",
+    );
+    assert_installed_posture(
+        &bank,
+        ApproveEstateEmergencyAccessOperation::reference(),
+        Some(PublishedAftermathPosture::Reversible),
+        "ApproveEmergencyAccess",
+    );
+}
+
+#[test]
+fn irreversible_estate_operations_publish_their_installed_posture() {
+    let bank = installed_bank();
     assert_installed_posture(
         &bank,
         OpenEstateCaseOperation::reference(),
@@ -97,21 +119,9 @@ fn estate_operations_publish_aftermath_through_installed_schema() {
     );
     assert_installed_posture(
         &bank,
-        RevokeEstateCapabilityOperation::reference(),
-        Some(PublishedAftermathPosture::Reversible),
-        "RevokeCapability",
-    );
-    assert_installed_posture(
-        &bank,
         RequestEstateEmergencyAccessOperation::reference(),
         Some(PublishedAftermathPosture::Irreversible),
         "RequestEmergencyAccess",
-    );
-    assert_installed_posture(
-        &bank,
-        ApproveEstateEmergencyAccessOperation::reference(),
-        Some(PublishedAftermathPosture::Reversible),
-        "ApproveEmergencyAccess",
     );
     assert_installed_posture(
         &bank,
@@ -131,12 +141,22 @@ fn estate_operations_publish_aftermath_through_installed_schema() {
         Some(PublishedAftermathPosture::Irreversible),
         "ReleaseEstate",
     );
+}
+
+#[test]
+fn compensatable_estate_operation_publishes_its_installed_posture() {
+    let bank = installed_bank();
     assert_installed_posture(
         &bank,
         DisburseEstateOperation::reference(),
         Some(PublishedAftermathPosture::Compensatable),
         "DisburseEstate",
     );
+}
+
+#[test]
+fn view_restricted_estate_is_capability_only_and_has_no_aftermath_contract() {
+    let bank = installed_bank();
     let view_capability = bank
         .capability(
             ViewEstateAdministrationCapability::reference(),

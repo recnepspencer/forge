@@ -13,7 +13,7 @@ pub(super) struct FinalizationInput<'a> {
     pub(super) commit_id: crate::history::data::CommitId,
     pub(super) commit_reference: &'a crate::history::data::CommitReference,
     pub(super) canonical_commit_envelope:
-        std::sync::Arc<crate::replay::data::CanonicalCommitEnvelope>,
+        std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
     pub(super) branch_id: &'a crate::history::data::BranchId,
     pub(super) merge_base_commits: &'a [crate::history::data::CommitId],
     pub(super) artifacts: crate::storage::overlay::PublicationArtifacts,
@@ -23,7 +23,7 @@ pub(super) struct FinalizationInput<'a> {
 }
 
 pub(super) fn finalize_published_commit(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     input: FinalizationInput<'_>,
 ) {
     let FinalizationInput {
@@ -77,7 +77,7 @@ pub(super) fn finalize_published_commit(
 }
 
 fn publish_storage(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     clone_mode: crate::storage::overlay::PartitionCloneMode,
     committed_partitions: std::collections::BTreeMap<
         crate::identity::data::PartitionId,
@@ -96,7 +96,7 @@ fn publish_storage(
 }
 
 fn refresh_indexes(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     changed_records: &[crate::transactions::data::RecordRef],
     version_id: crate::identity::data::VersionId,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
@@ -109,11 +109,11 @@ fn refresh_indexes(
 }
 
 fn publish_history(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     commit_id: crate::history::data::CommitId,
     commit_reference: &crate::history::data::CommitReference,
     branch_id: &crate::history::data::BranchId,
-    envelope: std::sync::Arc<crate::replay::data::CanonicalCommitEnvelope>,
+    envelope: std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {
     let started = std::time::Instant::now();
@@ -128,7 +128,7 @@ fn publish_history(
 }
 
 fn advance_visibility(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     previous_branch_head_version: Option<crate::identity::data::VersionId>,
     version_id: crate::identity::data::VersionId,
     changed_records: &[crate::transactions::data::RecordRef],
@@ -149,7 +149,7 @@ fn advance_visibility(
 }
 
 fn run_retention(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     changed_records: &[crate::transactions::data::RecordRef],
     version_id: crate::identity::data::VersionId,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
@@ -162,7 +162,7 @@ fn run_retention(
 }
 
 fn compact_durability(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {
     let started = std::time::Instant::now();
@@ -171,7 +171,7 @@ fn compact_durability(
 }
 
 fn publish_artifacts(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     version_id: crate::identity::data::VersionId,
     artifacts: crate::storage::overlay::PublicationArtifacts,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
@@ -185,7 +185,7 @@ fn publish_artifacts(
 }
 
 fn run_configured_retention_pass(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {
     if runtime.config.storage.mvcc.auto_reclaim_deleted_records
@@ -208,7 +208,7 @@ struct PostCommitArtifactInput<'a> {
 }
 
 fn consume_post_commit_artifacts(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     input: PostCommitArtifactInput<'_>,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {

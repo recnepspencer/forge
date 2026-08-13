@@ -4,7 +4,7 @@ use crate::diagnostics::data::{
 use crate::transactions::data::{
     CommitConflict, ConflictClass, RollbackOutcome, RollbackSummary, SavepointId, WorkerIntentBatch,
 };
-use crate::transactions::logic::RelationalTransaction;
+use crate::transactions::RelationalTransaction;
 
 impl<'a> RelationalTransaction<'a> {
     pub fn transaction_id(&self) -> crate::transactions::data::TransactionId {

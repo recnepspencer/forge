@@ -178,7 +178,7 @@ impl<'runtime, 'principal>
             .map_err(BankApplicationQueryDenial::from_capability_installation)?;
         let capability_access = application
             .admit_approved_elevation_access(
-                self.approved,
+                self.approved.query(),
                 self.principal.query(),
                 &capability,
                 self.request.capability_request(),

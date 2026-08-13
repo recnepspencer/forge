@@ -1,11 +1,11 @@
-error[E0432]: unresolved import `worth_relational::lineage::logic::authority::phase_types`
- --> tests/ui/lineage/lowered_promotion_plan_private.rs:1:50
+error[E0432]: unresolved import `worth_relational::lineage::authority::phase_types`
+ --> tests/ui/lineage/lowered_promotion_plan_private.rs:1:43
   |
-1 | use worth_relational::lineage::logic::authority::phase_types::LoweredPromotionPlan;
-  |                                                  ^^^^^^^^^^^ could not find `phase_types` in `authority`
+1 | use worth_relational::lineage::authority::phase_types::LoweredPromotionPlan;
+  |                                           ^^^^^^^^^^^ could not find `phase_types` in `authority`
   |
 note: found an item that was configured out
- --> src/lineage/logic/authority/mod.rs
+ --> src/lineage/authority/mod.rs
   |
   | #[cfg(test)]
   |       ---- the item is gated here
@@ -15,8 +15,8 @@ note: found an item that was configured out
 error[E0603]: module `lineage` is private
  --> tests/ui/lineage/lowered_promotion_plan_private.rs:1:23
   |
-1 | use worth_relational::lineage::logic::authority::phase_types::LoweredPromotionPlan;
-  |                       ^^^^^^^         --------- module `authority` is not publicly re-exported
+1 | use worth_relational::lineage::authority::phase_types::LoweredPromotionPlan;
+  |                       ^^^^^^^  --------- module `authority` is not publicly re-exported
   |                       |
   |                       private module
   |

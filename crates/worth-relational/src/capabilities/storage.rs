@@ -1,4 +1,4 @@
-use crate::storage::logic::state::PartitionAccess;
+use crate::storage::overlay::PartitionAccess;
 
 pub(crate) trait StorageRead: PartitionAccess {}
 

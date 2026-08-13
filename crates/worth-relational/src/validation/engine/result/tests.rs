@@ -46,7 +46,7 @@ fn skipped_result_retains_execution_metadata_without_checks() {
         InvariantExecutionDisposition::SkippedByMayBreakMask,
         None,
         true,
-        crate::logic::planning::RelationalExecutionModel::SerialAuthority,
+        crate::config::data::RelationalExecutionModel::SerialAuthority,
         None,
         Vec::new(),
         Some(InvariantProofBoundarySummary::new(
@@ -80,7 +80,7 @@ fn executed_result_builds_decision_log_from_results() {
         InvariantExecutionDisposition::Executed,
         None,
         false,
-        crate::logic::planning::RelationalExecutionModel::SerialAuthority,
+        crate::config::data::RelationalExecutionModel::SerialAuthority,
         None,
         Vec::new(),
         None,
@@ -119,7 +119,7 @@ fn proof_boundary_artifact_uses_typed_diagnostic_labels() {
         InvariantExecutionDisposition::Executed,
         None,
         false,
-        crate::logic::planning::RelationalExecutionModel::SerialAuthority,
+        crate::config::data::RelationalExecutionModel::SerialAuthority,
         None,
         Vec::new(),
         Some(InvariantProofBoundarySummary::new(
@@ -160,7 +160,7 @@ fn failure_artifact_preserves_failure_effect_and_nested_proof_boundary() {
         InvariantExecutionDisposition::Executed,
         None,
         false,
-        crate::logic::planning::RelationalExecutionModel::SerialAuthority,
+        crate::config::data::RelationalExecutionModel::SerialAuthority,
         None,
         Vec::new(),
         Some(InvariantProofBoundarySummary::new(

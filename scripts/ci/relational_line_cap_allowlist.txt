@@ -1,8 +1,3 @@
 # Temporary explicit debt. These files still exceed the 400-line cap and must be split.
-crates/worth-relational/src/durability/logic/mod.rs
-crates/worth-relational/src/logic/runtime/apply.rs
 crates/worth-relational/src/presentation/harness.rs
-crates/worth-relational/src/storage/logic/state.rs
 crates/worth-relational/src/tests/mod.rs
-crates/worth-relational/src/transactions/logic/mod.rs
-crates/worth-relational/src/validation/logic/mod.rs

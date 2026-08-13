@@ -16,12 +16,10 @@ pub(super) fn lower_bridge_observation(
     dependency_identity: [u8; 32],
     policy: &str,
 ) -> Result<BridgeAuthorizationObservation, WorthQueryOperationAuthorizationDenial> {
-    if installed.bridge_rules.len() != installed.rule_path_indices.len()
-        || evidence.paths().len() != installed.bridge_path_bindings.len()
-    {
+    if evidence.paths().len() != installed.bridge_path_bindings().len() {
         return Err(invalid_shape(policy));
     }
-    let mut observed_rules = Vec::with_capacity(installed.bridge_rules.len());
+    let mut observed_rules = Vec::with_capacity(installed.bridge_rule_bindings().len());
     let mut observed_paths = vec![false; evidence.paths().len()];
     let mut binding = ObservationBinding {
         installed,
@@ -29,18 +27,15 @@ pub(super) fn lower_bridge_observation(
         observed_paths: &mut observed_paths,
         policy,
     };
-    for (rule, path_indices) in installed
-        .bridge_rules
-        .iter()
-        .zip(&installed.rule_path_indices)
-    {
-        observed_rules.push(binding.observe_rule(rule, path_indices)?);
+    for rule_binding in installed.bridge_rule_bindings() {
+        observed_rules
+            .push(binding.observe_rule(rule_binding.rule(), rule_binding.path_indices())?);
     }
     if observed_paths.iter().any(|observed| !observed) {
         return Err(invalid_shape(policy));
     }
     Ok(BridgeAuthorizationObservation::new(
-        installed.correspondence,
+        installed.correspondence(),
         dependency_identity,
         observed_rules,
     ))
@@ -80,7 +75,7 @@ impl ObservationBinding<'_> {
         contract: &worth_runtime_bridge::facade::BridgeAuthorizationClauseContract,
         path_index: usize,
     ) -> Result<BridgeAuthorizationClauseObservation, WorthQueryOperationAuthorizationDenial> {
-        let Some(binding) = self.installed.bridge_path_bindings.get(path_index) else {
+        let Some(binding) = self.installed.bridge_path_bindings().get(path_index) else {
             return Err(invalid_shape(self.policy));
         };
         let Some(path) = self.evidence.paths().get(path_index) else {

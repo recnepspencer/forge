@@ -56,8 +56,12 @@ pub fn safe_retry_recovery_handle(
         // safe-retry for handle B (same runtime, different binding). Rung 3:
         // both sides are runtime values, so this is a comparison rather than a
         // type. The substitution is performed — not merely asserted — by
-        // `safe_retry_tests::redispatch_performed_for_handle_a_cannot_safe_retry_handle_b`,
-        // and the `None` arm by its sibling; both fail if either arm is removed.
+        // `primary_graph::application_attempt::provider_execution::external_dispatch::
+        // safe_retry_affinity_tests::
+        // redispatch_performed_for_handle_a_cannot_safe_retry_handle_b`, and
+        // the `None` arm by
+        // `safe_retry_denies_when_the_handle_carries_no_co_committed_outbox`;
+        // both fail if either arm is removed.
         if redispatch.handle_authority() != handle.authority_identity() {
             return Err(WorthQueryRecoveryHandleDenial::new(
                 WorthQueryRecoveryHandleDenialKind::CorrelationMismatch,

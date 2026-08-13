@@ -1,7 +1,7 @@
 use crate::identity::data::VersionId;
 use crate::indexes::data::DerivedIndexGeneration;
-use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::ReplaySnapshotSurface;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) trait ReplayRead {
     fn replay_snapshot_surface_at_version(&self, version_id: VersionId) -> ReplaySnapshotSurface;

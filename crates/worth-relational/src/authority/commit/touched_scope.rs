@@ -1,5 +1,5 @@
 use crate::identity::data::PartitionId;
-use crate::logic::runtime::PartitionAccess;
+use crate::runtime::PartitionAccess;
 use crate::transactions::data::{
     EntityMutationIntent, ExistingRecordTarget, MergedCommitPlan, MutationIntent,
 };
@@ -80,10 +80,9 @@ mod tests {
 
     use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
     use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
-    use crate::storage::logic::state::{
-        AdjacencySet, EntityArena, PartitionState, RelationArena, RelationEndpoints, RelationExtra,
-        WorkingState,
-    };
+    use crate::storage::overlay::{PartitionState, WorkingState};
+    use crate::storage::partition::AdjacencySet;
+    use crate::storage::substrate::{EntityArena, RelationArena, RelationEndpoints, RelationExtra};
     use crate::transactions::data::{
         AspectFieldPatch, DeleteEntityIntent, EntityMutationIntent, MergedCommitPlan,
         MutationIntent, TransactionId, UpdateEntityFieldsIntent,

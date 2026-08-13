@@ -45,6 +45,12 @@ pub struct WorthQueryExecutionBoundOperationAuthority {
     installed_support: WorthQueryInstalledOperationExecutionSupport,
     installed_domain: Arc<WorthQueryInstalledDomainExecutionAuthority>,
     graph_work_affinity: Option<WorthQueryApplicationGraphWorkAffinity>,
+    application_operation_attempt:
+        Option<crate::domain_computation::authorization::WorthQueryOperationAdmissionIdentity>,
+    application_operation_slot: Option<Arc<str>>,
+    application_schema_binding:
+        Option<worth_query_installation::facade::ApplicationSchemaBindingIdentity>,
+    application_snapshot: Option<worth_relational::facade::snapshots::SnapshotHandle>,
 }
 
 #[derive(Clone, Copy)]
@@ -74,10 +80,37 @@ struct WorthQueryWorkflowStageResourceAuthority {
 }
 
 impl WorthQueryExecutionBoundOperationAuthority {
+    pub(crate) const fn runtime_authority(&self) -> WorthQueryRuntimeAuthorityIdentity {
+        self.runtime_authority
+    }
+
     pub(crate) const fn graph_work_affinity(
         &self,
     ) -> Option<WorthQueryApplicationGraphWorkAffinity> {
         self.graph_work_affinity
+    }
+
+    pub(crate) const fn application_operation_attempt(
+        &self,
+    ) -> Option<crate::domain_computation::authorization::WorthQueryOperationAdmissionIdentity>
+    {
+        self.application_operation_attempt
+    }
+
+    pub(crate) const fn application_schema_binding(
+        &self,
+    ) -> Option<&worth_query_installation::facade::ApplicationSchemaBindingIdentity> {
+        self.application_schema_binding.as_ref()
+    }
+
+    pub(crate) const fn application_operation_slot(&self) -> Option<&Arc<str>> {
+        self.application_operation_slot.as_ref()
+    }
+
+    pub(crate) const fn application_snapshot(
+        &self,
+    ) -> Option<&worth_relational::facade::snapshots::SnapshotHandle> {
+        self.application_snapshot.as_ref()
     }
 
     pub fn binding_identity(&self) -> &str {

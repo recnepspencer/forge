@@ -5,7 +5,7 @@ mod diagnostics;
 mod recovery;
 mod runtime_rebuild;
 
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) use append_authority::DurableAppendAuthority;
 

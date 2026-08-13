@@ -3,6 +3,7 @@
 mod construction;
 mod pending;
 mod projection;
+mod publication_source;
 
 use worth_query_installation::facade::WorthQueryCanonicalWorkPhases;
 use worth_relational::facade::history::{CommitId, CommitReference};
@@ -19,6 +20,10 @@ use super::super::{
 
 pub(in crate::domain_computation::primary_graph) use pending::WorthQueryPendingApplicationCommitReceipt;
 pub(in crate::domain_computation::primary_graph) use projection::WorthQueryCommittedReceiptProjection;
+pub use publication_source::{
+    WorthQueryApplicationCommitPublicationExternalEffect,
+    WorthQueryApplicationCommitPublicationSource,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryApplicationCommitReceipt {
@@ -76,6 +81,10 @@ impl WorthQueryApplicationCommitReceipt {
 
     pub const fn emitted_effect_count(&self) -> usize {
         self.emitted_effect_count
+    }
+
+    pub fn publication_source(&self) -> WorthQueryApplicationCommitPublicationSource {
+        WorthQueryApplicationCommitPublicationSource::from_receipt(self)
     }
 
     pub fn mutation_work(
@@ -200,11 +209,5 @@ impl WorthQueryApplicationCommitReceipt {
         self.provider_runtime_instance_id == other.provider_runtime_instance_id
             && self.terminal.branch() == other.terminal.branch()
             && self.commit == other.commit
-    }
-
-    #[cfg(test)]
-    pub(crate) fn same_provider_session_for_test(&self, other: &Self) -> bool {
-        self.authoritative_provider_session
-            .same_session(&other.authoritative_provider_session)
     }
 }

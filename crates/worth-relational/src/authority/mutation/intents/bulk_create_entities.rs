@@ -69,9 +69,9 @@ pub(super) fn apply(
                 version_id,
                 intent.partition_id,
                 intent.kind_id,
-                crate::storage::logic::state::EntityExtra {
+                crate::storage::substrate::EntityExtra {
                     authoritative_aspect_state: aspect_plan.1,
-                    ..crate::storage::logic::state::EntityExtra::default()
+                    ..crate::storage::substrate::EntityExtra::default()
                 },
             );
             context

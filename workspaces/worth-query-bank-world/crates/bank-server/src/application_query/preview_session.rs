@@ -1,10 +1,12 @@
 //! Bank-owned operational authority for one application preview session.
 
+use std::num::NonZeroUsize;
+
 use bank_domain::schema::BankSchema;
 use worth_query_host::facade::{
     admission::authenticated_principal::WorthQueryRequestScope,
     primary_graph::{
-        WorthQueryApplicationPreviewBasis, WorthQueryApplicationPreviewSession,
+        WorthQueryApplicationPreviewSession, WorthQueryApplicationQueryControls,
         WorthQueryPrimaryGraphApplicationRuntime,
     },
 };
@@ -64,14 +66,23 @@ impl BankPreviewSession {
         Self { query }
     }
 
-    pub(crate) fn admit_basis(
+    pub(crate) fn admit_controls<'request>(
         &self,
         application: &WorthQueryPrimaryGraphApplicationRuntime<BankSchema>,
-        request: &WorthQueryRequestScope,
-    ) -> Result<WorthQueryApplicationPreviewBasis<BankSchema>, BankApplicationQueryDenial> {
-        application
+        maximum_result_count: NonZeroUsize,
+        maximum_work: NonZeroUsize,
+        request: &'request WorthQueryRequestScope,
+    ) -> Result<WorthQueryApplicationQueryControls<'request, BankSchema>, BankApplicationQueryDenial>
+    {
+        let basis = application
             .admit_application_preview_basis(&self.query, request)
-            .map_err(BankApplicationQueryDenial::from_admission)
+            .map_err(BankApplicationQueryDenial::from_admission)?;
+        Ok(WorthQueryApplicationQueryControls::preview(
+            basis,
+            maximum_result_count,
+            maximum_work,
+            request,
+        ))
     }
 
     pub fn discard(self) -> Result<BankPreviewSessionDiscardReceipt, BankApplicationQueryDenial> {

@@ -6,7 +6,7 @@ use crate::schema::data::{
     SchemaReconciliationClassification, SchemaReconciliationPolicy, SchemaStratum,
     SchemaSubscriberImpact, SchemaVersionId,
 };
-use crate::schema::logic::{
+use crate::schema::{
     classify_schema_transition, lower_schema_transition, validate_schema_transition,
 };
 use worth_foundational::FieldKey;

@@ -17,6 +17,7 @@ use crate::domain_computation::{
     WorthQueryProvisionalEffectAction, WorthQueryProvisionalEffectStep,
 };
 
+#[derive(Clone)]
 pub(super) enum WorthQueryLoweredProviderEffect {
     Mutation {
         steps: Vec<WorthQueryProvisionalEffectStep>,

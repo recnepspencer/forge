@@ -41,7 +41,7 @@ impl HistoryBoundCommitExecution {
 }
 
 pub(super) fn bind_commit_history(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     mut mutated: MutatedCommitExecution,
 ) -> Result<HistoryBoundCommitExecution, crate::transactions::data::TransactionCommitError> {
     let version_id = mutated.version_id();
@@ -60,7 +60,7 @@ pub(super) fn bind_commit_history(
     )?;
     let additional_diagnostics_entries = merge_plan
         .map(|plan| {
-            vec![crate::merge::logic::merge_execution_summary_entry(
+            vec![crate::merge::merge_execution_summary_entry(
                 &plan.merge_execution_summary,
                 &plan.structural_summary,
                 history.commit_id,
@@ -68,7 +68,7 @@ pub(super) fn bind_commit_history(
         })
         .unwrap_or_default();
     if let (Some(plan), Some(diagnostics_plan)) = (merge_plan, merge_diagnostics_plan.as_ref()) {
-        let artifact = crate::merge::logic::merge_execution_success_artifact(
+        let artifact = crate::merge::merge_execution_success_artifact(
             &plan.merge_execution_summary,
             diagnostics_plan,
             history.commit_id,

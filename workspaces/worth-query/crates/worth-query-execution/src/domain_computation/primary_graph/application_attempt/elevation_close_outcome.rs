@@ -25,88 +25,85 @@ pub enum WorthQueryElevationClosureKind {
 /// ```
 #[derive(Debug)]
 pub struct WorthQueryMandatoryReview {
-    approved: WorthQueryApprovedElevation,
+    binding: WorthQueryElevationCloseBinding,
     close_commit: WorthQueryApplicationCommitReceipt,
-    closure_kind: WorthQueryElevationClosureKind,
-    closed_at: AspectValue,
-    closer: EntityId,
 }
 
 impl WorthQueryMandatoryReview {
     pub const fn closure_kind(&self) -> WorthQueryElevationClosureKind {
-        self.closure_kind
+        self.binding.closure_kind()
     }
 
     pub const fn closed_at(&self) -> &AspectValue {
-        &self.closed_at
+        self.binding.closed_at()
     }
 
     pub const fn closer(&self) -> EntityId {
-        self.closer
+        self.binding.closer()
     }
 
-    pub const fn close_commit_receipt(&self) -> &WorthQueryApplicationCommitReceipt {
-        &self.close_commit
+    pub fn publication_source(&self) -> super::WorthQueryApplicationCommitPublicationSource {
+        self.close_commit.publication_source()
     }
 
     pub const fn requester(&self) -> EntityId {
-        self.approved.requester()
+        self.binding.approved().requester()
     }
 
     pub const fn approver(&self) -> EntityId {
-        self.approved.approver()
+        self.binding.approved().approver()
     }
 
     pub const fn resource(&self) -> EntityId {
-        self.approved.resource()
+        self.binding.approved().resource()
     }
 
     pub const fn grant(&self) -> EntityId {
-        self.approved.grant()
+        self.binding.approved().grant()
     }
 
     pub const fn elevation(&self) -> EntityId {
-        self.approved.elevation()
+        self.binding.approved().elevation()
     }
 
     pub const fn review(&self) -> EntityId {
-        self.approved.review()
+        self.binding.approved().review()
     }
 
     pub const fn action(&self) -> &AspectValue {
-        self.approved.action()
+        self.binding.approved().action()
     }
 
     pub const fn purpose(&self) -> &AspectValue {
-        self.approved.purpose()
+        self.binding.approved().purpose()
     }
 
     pub const fn field(&self) -> Option<&AspectValue> {
-        self.approved.field()
+        self.binding.approved().field()
     }
 
     pub const fn magnitude(&self) -> Option<&AspectValue> {
-        self.approved.magnitude()
+        self.binding.approved().magnitude()
     }
 
     pub const fn cardinality(&self) -> u32 {
-        self.approved.cardinality()
+        self.binding.approved().cardinality()
     }
 
     pub const fn reason(&self) -> &AspectValue {
-        self.approved.reason()
+        self.binding.approved().reason()
     }
 
     pub const fn issued_at(&self) -> &AspectValue {
-        self.approved.issued_at()
+        self.binding.approved().issued_at()
     }
 
     pub const fn expires_at(&self) -> &AspectValue {
-        self.approved.expires_at()
+        self.binding.approved().expires_at()
     }
 
     pub(in crate::domain_computation) const fn approved(&self) -> &WorthQueryApprovedElevation {
-        &self.approved
+        self.binding.approved()
     }
 
     pub(in crate::domain_computation) fn belongs_to_lifecycle(
@@ -116,7 +113,7 @@ impl WorthQueryMandatoryReview {
         capability_identity: [u8; 32],
         capability_authority_identity: &str,
     ) -> bool {
-        self.approved.belongs_to_lifecycle(
+        self.binding.approved().belongs_to_lifecycle(
             runtime_authority,
             branch,
             capability_identity,
@@ -124,7 +121,8 @@ impl WorthQueryMandatoryReview {
         ) && self.close_commit.terminal().branch() == branch
             && self.close_commit.provider_runtime_instance_id()
                 == self
-                    .approved
+                    .binding
+                    .approved()
                     .approval_commit_receipt()
                     .provider_runtime_instance_id()
     }
@@ -185,10 +183,7 @@ fn closed(
     close_commit: WorthQueryApplicationCommitReceipt,
 ) -> WorthQueryMandatoryReview {
     WorthQueryMandatoryReview {
-        approved: binding.approved,
+        binding,
         close_commit,
-        closure_kind: binding.draft.closure_kind,
-        closed_at: binding.draft.closed_at,
-        closer: binding.draft.closer,
     }
 }

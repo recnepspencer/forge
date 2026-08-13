@@ -1,10 +1,4 @@
-use super::{
-    WorthQueryAdmittedProviderExecutionPlan, WorthQueryProviderExecutionPlanView,
-    WorthQueryProviderSessionAffinity, WorthQueryProviderSessionDenialKind,
-    WorthQueryProviderSessionFailure, WorthQueryProviderSessionProtocolCounters,
-    WorthQueryProviderSessionProtocolStage, WorthQueryProviderSessionRecoveryPosture,
-    WorthQueryProviderSessionTokenAdmission,
-};
+use super::{WorthQueryProviderSessionAffinity, WorthQueryProviderSessionProtocolCounters};
 
 mod prepared;
 
@@ -35,61 +29,14 @@ impl std::fmt::Debug for WorthQueryProviderPlanReadmission<'_> {
     }
 }
 
-impl<'run> WorthQueryAdmittedProviderExecutionPlan<'run> {
-    pub fn readmit(
-        mut self,
-    ) -> Result<WorthQueryProviderPlanReadmission<'run>, WorthQueryProviderSessionFailure> {
-        self.counters.called_provider();
-        let admission = WorthQueryProviderSessionTokenAdmission::new(&self.contract);
-        let invocation = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            self.provider.readmit_session(
-                &WorthQueryProviderExecutionPlanView::new(&self.contract),
-                admission,
-            )
-        }));
-        let token = match invocation {
-            Ok(Ok(token)) => token,
-            Ok(Err(failure)) => {
-                return Err(failure.at_stage(
-                    WorthQueryProviderSessionProtocolStage::PlanReadmission,
-                    self.counters,
-                ));
-            }
-            Err(_) => {
-                return Err(WorthQueryProviderSessionFailure::new(
-                    WorthQueryProviderSessionDenialKind::ProviderPanicked,
-                    WorthQueryProviderSessionProtocolStage::PlanReadmission,
-                    "provider panicked while readmitting the sealed execution plan",
-                    self.counters,
-                )
-                .with_recovery_posture(
-                    WorthQueryProviderSessionRecoveryPosture::RecoveryRequired,
-                ));
-            }
-        };
-        if !token.belongs_to(&self.contract) {
-            return Err(WorthQueryProviderSessionFailure::new(
-                WorthQueryProviderSessionDenialKind::TokenNotMintedForPlan,
-                WorthQueryProviderSessionProtocolStage::PlanReadmission,
-                "provider returned a token minted for another plan or generation",
-                self.counters,
-            )
-            .with_recovery_posture(WorthQueryProviderSessionRecoveryPosture::RecoveryRequired));
-        }
-        self.counters.minted_token();
-        Ok(WorthQueryProviderPlanReadmission {
-            affinity: WorthQueryProviderSessionAffinity::mint(
-                self.run,
-                self.contract,
-                self.provider,
-                token,
-            ),
-            counters: self.counters,
-        })
-    }
-}
-
 impl WorthQueryProviderPlanReadmission<'_> {
+    pub(super) fn from_admitted(
+        affinity: WorthQueryProviderSessionAffinity<'_>,
+        counters: WorthQueryProviderSessionProtocolCounters,
+        _seal: super::execution_plan::WorthQueryProviderPlanReadmissionSeal,
+    ) -> WorthQueryProviderPlanReadmission<'_> {
+        WorthQueryProviderPlanReadmission { affinity, counters }
+    }
     pub fn plan_identity(&self) -> &str {
         self.affinity.plan().identity()
     }

@@ -28,7 +28,7 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let staged = attempts
-            .staged_attempt(session.affinity_identity())
+            .staged_attempt(session)
             .ok_or_else(|| closure_failure("provider session has no staged application attempt"))?;
         let expected = expected_locators(staged.overlay_facts())?;
         if staged.expected_step_count() != staged.overlay_facts().len()
@@ -59,7 +59,6 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
         let material = self.invariant_candidate_material(session)?;
         let load_evidence = execution.state_load_evidence();
         material.validate_load(&execution, load_evidence)?;
-        #[cfg(test)]
         if self.take_skipped_invariant_owner_execution() {
             let evidence = WorthQueryInvariantVerdictEvidence::new(
                 execution.requirement().slot(),
@@ -85,7 +84,7 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
             summary.execution_count,
             summary.result_count,
         );
-        self.retain_validated_candidate(session.affinity_identity(), candidate, work)?;
+        self.retain_validated_candidate(session, candidate, work)?;
         let evidence = WorthQueryInvariantVerdictEvidence::new(
             execution.requirement().slot(),
             "relational-installed-invariant-authority",
@@ -133,7 +132,7 @@ impl WorthQueryPrimaryGraphProvider {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let staged = attempts
-            .staged_attempt(session.affinity_identity())
+            .staged_attempt(session)
             .ok_or_else(|| closure_failure("invariant execution lost its staged attempt"))?;
         if staged.expected_step_count() != staged.overlay_facts().len() {
             return Err(closure_failure(
@@ -159,7 +158,6 @@ impl WorthQueryPrimaryGraphProvider {
         worth_relational::facade::transactions::ValidatedRelationalMutation,
         WorthQueryInvariantExecutionFailure,
     > {
-        #[cfg(test)]
         let batch = if self.take_relational_invariant_violation() {
             batch.push(invariant_violation_probe())
         } else {
@@ -183,14 +181,14 @@ impl WorthQueryPrimaryGraphProvider {
 
     fn retain_validated_candidate(
         &self,
-        affinity: crate::domain_computation::WorthQueryProviderSessionAffinityIdentity,
+        session: WorthQueryProviderSessionView<'_>,
         candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
         work: super::mutation_work::WorthQueryPrimaryMutationWorkCounters,
     ) -> Result<(), WorthQueryInvariantExecutionFailure> {
         self.attempts
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .retain_invariant_approved(affinity, candidate, work)
+            .retain_invariant_approved(session, candidate, work)
             .map_err(closure_failure)
     }
 }
@@ -233,7 +231,6 @@ fn validate_owner_evidence(
         .ok_or_else(owner_failure)
 }
 
-#[cfg(test)]
 fn invariant_violation_probe() -> worth_relational::facade::transactions::MutationIntent {
     use worth_relational::facade::{identity, transactions};
 

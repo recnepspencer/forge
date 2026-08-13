@@ -1,8 +1,8 @@
 use crate::commit_strategies::data::CommitStrategyRegistration;
+use crate::config::data::CommitAuthorityContract;
+use crate::config::data::{PlanningContract, RelationalExecutionModel};
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
 use crate::history::data::{BranchId, HistoryRetentionClass, VersionGraphPolicy};
-use crate::logic::commit::CommitAuthorityContract;
-use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
 use crate::schema::data::{
     DescriptorCanonicalBasisSupportPolicy, DescriptorSemanticsSupportPolicy,
     RelationalSchemaRegistry,

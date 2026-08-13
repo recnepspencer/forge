@@ -14,7 +14,7 @@ pub(super) fn selected_elevation_entity<Schema, Capability, Operation, Input>(
 where
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    let lifecycle = installed.contract.elevation().definition()?.lifecycle();
+    let lifecycle = installed.contract().elevation().definition()?.lifecycle();
     access.resolved_context_entity(lifecycle.elevation_slot())
 }
 
@@ -25,7 +25,7 @@ pub(super) fn selected_review_entity<Schema, Capability, Operation, Input>(
 where
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    let lifecycle = installed.contract.elevation().definition()?.lifecycle();
+    let lifecycle = installed.contract().elevation().definition()?.lifecycle();
     access.resolved_context_entity(lifecycle.review_slot())
 }
 

@@ -60,16 +60,18 @@ pub use crate::policy_plan::{
     PolicyAwarePlanCore, PolicyAwarePlanCostPosture, PolicyAwarePlanDigest,
     PolicyAwarePlanLoweringReport, PolicyAwarePlanWorkBudget, PolicyAwareReadBasis,
 };
-#[cfg(test)]
-pub(crate) use crate::preview::{
-    admit_preview_workflow_foundation, bind_preflight_to_preview_session,
-};
 pub use crate::preview::{
-    assess_preview_live_drift, AdmittedPreviewWorkflowFoundation,
+    admit_authoritative_preview_comparison_candidate, admit_preview_promotion_parity_comparison,
+    admit_preview_workflow_foundation, admit_preview_workflow_foundation_request,
+    admit_promotion_eligible_preview_session_plan_binding,
+    admit_read_only_preview_session_plan_binding, assess_preview_live_drift,
+    bind_preflight_to_preview_session, execute_promotion_eligible_preview_session_plan,
+    execute_read_only_preview_session_plan, AdmittedPreviewWorkflowFoundation,
     AuthoritativePreviewComparisonCandidate, PreviewBindingCounters, PreviewBindingError,
-    PreviewBindingFailureClass, PreviewBindingReport, PreviewComparisonCounters,
-    PreviewComparisonEligibilityArtifact, PreviewComparisonError, PreviewComparisonFailureClass,
-    PreviewComplexityContract, PreviewEvaluationClass, PreviewExecutionCounters,
+    PreviewBindingFailureClass, PreviewBindingReport, PreviewComparisonCandidateArtifact,
+    PreviewComparisonCounters, PreviewComparisonEligibilityArtifact, PreviewComparisonError,
+    PreviewComparisonFailureClass, PreviewComplexityContract, PreviewEvaluationClass,
+    PreviewExecutionComparisonAdmission, PreviewExecutionCounters, PreviewExecutionEnvelope,
     PreviewExecutionError, PreviewExecutionFailureClass, PreviewExecutionReport,
     PreviewLifecycleMetadata, PreviewLiveAdmissionReport, PreviewLiveCounters,
     PreviewLiveDriftDenied, PreviewLiveDriftOutcome, PreviewLiveError,

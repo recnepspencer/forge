@@ -1,5 +1,6 @@
 use worth_query_execution::facade::primary_graph::{
-    WorthQueryApplicationCommitReceipt, WorthQueryExternalDispatchPostureKind,
+    WorthQueryApplicationCommitPublicationExternalEffect, WorthQueryApplicationCommitReceipt,
+    WorthQueryExternalDispatchPostureKind,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -95,6 +96,38 @@ pub(super) fn publish_external_effect(
             }
             None => WorthQueryPublishedExternalEffectPosture::NotDeclared,
         },
+    }
+}
+
+pub(super) const fn publish_external_effect_source(
+    source: WorthQueryApplicationCommitPublicationExternalEffect,
+) -> WorthQueryPublishedExternalEffectPosture {
+    match source {
+        WorthQueryApplicationCommitPublicationExternalEffect::NotDeclared => {
+            WorthQueryPublishedExternalEffectPosture::NotDeclared
+        }
+        WorthQueryApplicationCommitPublicationExternalEffect::PendingDispatch => {
+            WorthQueryPublishedExternalEffectPosture::PendingDispatch
+        }
+        WorthQueryApplicationCommitPublicationExternalEffect::Completed => {
+            WorthQueryPublishedExternalEffectPosture::Completed
+        }
+        WorthQueryApplicationCommitPublicationExternalEffect::Acknowledged => {
+            WorthQueryPublishedExternalEffectPosture::Acknowledged
+        }
+        WorthQueryApplicationCommitPublicationExternalEffect::Unresolved(Some(failure)) => {
+            WorthQueryPublishedExternalEffectPosture::Unresolved(publish_failure(failure))
+        }
+        WorthQueryApplicationCommitPublicationExternalEffect::Unresolved(None) => {
+            WorthQueryPublishedExternalEffectPosture::Unresolved(
+                WorthQueryPublishedExternalEffectFailure::UnknownProviderOutcome,
+            )
+        }
+        WorthQueryApplicationCommitPublicationExternalEffect::PreparationDenied(denial) => {
+            WorthQueryPublishedExternalEffectPosture::Unresolved(publish_preparation_failure(
+                denial,
+            ))
+        }
     }
 }
 

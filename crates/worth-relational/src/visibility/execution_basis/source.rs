@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::history::data::CommitReference;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::visibility::exact_commit_snapshot::{
     open_retained_commit_snapshot, RelationalRetainedCommitSnapshotDenial,
 };

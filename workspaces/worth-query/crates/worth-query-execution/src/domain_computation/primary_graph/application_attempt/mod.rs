@@ -24,10 +24,8 @@ mod mandatory_review_program;
 mod observation;
 pub(in crate::domain_computation::primary_graph) mod precondition_binding;
 mod provider_binding;
-pub(in crate::domain_computation::primary_graph) use provider_binding::WorthQueryProviderEffectRegistrationSeal;
+pub(in crate::domain_computation::primary_graph) use provider_binding::WorthQueryPrimaryGraphApplicationAttempt;
 mod provider_execution;
-#[cfg(test)]
-pub(in crate::domain_computation::primary_graph) use provider_execution::parse_provider_receipt;
 mod provider_recomparison;
 mod read_phase;
 mod read_scope;
@@ -44,8 +42,10 @@ pub use commit_terminal::{
 pub use compare_and_commit::{
     WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
-    WorthQueryApplicationCommitReceipt, WorthQueryApplicationCommitRecoveryKind,
-    WorthQueryApplicationStaleAttempt, WorthQueryApplicationUnresolvedCommitEvidence,
+    WorthQueryApplicationCommitPublicationExternalEffect,
+    WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
+    WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationStaleAttempt,
+    WorthQueryApplicationUnresolvedCommitEvidence,
 };
 pub(in crate::domain_computation::primary_graph) use compare_and_commit::{
     WorthQueryCommittedReceiptProjection, WorthQueryPendingApplicationCommitReceipt,
@@ -77,7 +77,7 @@ pub use elevation_request_outcome::{
 };
 pub(super) use elevation_request_program::validate_elevation_request_program;
 pub use elevation_request_program::WorthQueryElevationRequestProgram;
-pub(super) use fact::WorthQueryApplicationObservedFact;
+pub(in crate::domain_computation) use fact::WorthQueryApplicationObservedFact;
 pub(in crate::domain_computation::primary_graph) use fact::{
     WorthQueryApplicationAdjacencyDirection, WorthQueryApplicationFactKey,
 };
@@ -91,10 +91,15 @@ pub use mandatory_review_outcome::{WorthQueryMandatoryReviewOutcome, WorthQueryR
 pub(super) use mandatory_review_program::validate_mandatory_review_program;
 pub use mandatory_review_program::WorthQueryMandatoryReviewProgram;
 pub(in crate::domain_computation::primary_graph) use observation::observe_field_value;
+pub(in crate::domain_computation) use provider_binding::WorthQueryPreparedApplicationProviderAttempt;
 pub(in crate::domain_computation) use provider_execution::application_resource_request;
-#[cfg(test)]
-pub(in crate::domain_computation) use provider_execution::perform_external_redispatch_owner_fixture;
+pub(in crate::domain_computation) use provider_execution::WorthQueryApplicationAttemptAffinity;
 pub(crate) use provider_execution::WorthQueryPerformedExternalRedispatchSeal;
+pub(in crate::domain_computation) use provider_execution::{
+    progression_denied, WorthQueryApplicationAttemptBasis,
+    WorthQueryProviderAttemptRegistrationContext, WorthQueryProviderProgressionOutcome,
+    WorthQueryRegisteredProviderAttempt,
+};
 pub use provider_execution::{
     WorthQueryExternalDispatchPreparationDenial, WorthQueryExternalRedispatchDenial,
     WorthQueryExternalTransportInstallationDenial,

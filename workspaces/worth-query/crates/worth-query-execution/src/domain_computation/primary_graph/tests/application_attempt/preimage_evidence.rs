@@ -45,7 +45,7 @@ fn response_loss_and_interleaving_preserve_one_preimage_and_outbox_bundle() {
         RetentionMutationBreadth::Narrow,
     );
 
-    world.application.lose_next_commit_response();
+    world.faults.lose_next_commit_response();
     let outcome = world
         .application
         .compare_and_commit_application(first, idempotency(81, 82));

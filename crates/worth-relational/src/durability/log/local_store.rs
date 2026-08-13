@@ -20,7 +20,7 @@ pub(crate) struct DurableStoreManifestFile {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct DurableSegmentFile {
-    pub(crate) entries: Vec<crate::replay::data::CanonicalCommitEnvelope>,
+    pub(crate) entries: Vec<crate::history::data::CanonicalCommitEnvelope>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -211,13 +211,13 @@ fn refresh_store_segments_from_disk(
 
 pub(crate) fn read_segment_entries(
     path: &Path,
-) -> Result<Vec<crate::replay::data::CanonicalCommitEnvelope>, DurabilityError> {
+) -> Result<Vec<crate::history::data::CanonicalCommitEnvelope>, DurabilityError> {
     read_segment_file(path).map(|file| file.entries)
 }
 
 pub(crate) fn append_segment_entry(
     path: &Path,
-    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
 ) -> Result<(), DurabilityError> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(io_error)?;

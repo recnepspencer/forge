@@ -2,20 +2,20 @@ mod support;
 
 use support::compile_fail::run_compile_fail_bundle;
 use support::compile_pass::run_compile_pass_bundle;
-use support::milestone5;
+use support::execution_readiness;
 use worth_proof::{
     AssumptionBasis, CurrentValidity, ExecutedRecipe, ExecutionReadyRecipe, FreshnessScopedBasis,
 };
 
 #[test]
 fn lowering_and_execution_readiness_boundary_certification() {
-    let compile_fail_bundle = milestone5::compile_fail_bundle();
-    let compile_pass_bundle = milestone5::compile_pass_bundle();
-    let transition_digest = milestone5::transition_digest();
-    let basis_digest = milestone5::basis_digest();
-    let failure_digest = milestone5::failure_digest();
-    let codegen_honesty_report = milestone5::codegen_honesty_report();
-    let residual_debt_report = milestone5::residual_debt_report();
+    let compile_fail_bundle = execution_readiness::compile_fail_bundle();
+    let compile_pass_bundle = execution_readiness::compile_pass_bundle();
+    let transition_digest = execution_readiness::transition_digest();
+    let basis_digest = execution_readiness::basis_digest();
+    let failure_digest = execution_readiness::failure_digest();
+    let codegen_honesty_report = execution_readiness::codegen_honesty_report();
+    let residual_debt_report = execution_readiness::residual_debt_report();
 
     run_compile_fail_bundle(&compile_fail_bundle);
     run_compile_pass_bundle(&compile_pass_bundle);

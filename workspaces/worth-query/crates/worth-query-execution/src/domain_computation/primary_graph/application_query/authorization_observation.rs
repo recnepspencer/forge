@@ -40,14 +40,13 @@ where
         else {
             return Ok(Vec::new());
         };
-        self.observe_authorization_requirements(
+        self.observe_query_authorization_requirement(
             session_identity,
             runtime,
             snapshot,
-            access.principal(),
-            access.scope(),
-            query.binding_identity(),
-            std::slice::from_ref(requirement),
+            query,
+            access,
+            requirement,
         )
     }
 }

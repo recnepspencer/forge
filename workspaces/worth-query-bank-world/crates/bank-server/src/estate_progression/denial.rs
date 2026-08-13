@@ -17,7 +17,7 @@ use worth_query_host::facade::primary_graph::{
     WorthQueryElevationApprovalAuthorizationDenial, WorthQueryElevationCloseAuthorizationDenial,
     WorthQueryInvariantDecisionPlanDenial, WorthQueryMandatoryReviewAuthorizationDenial,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationProjectionDenial,
-    WorthQueryRecoveryHandleDenial,
+    WorthQueryRecoveryHandleDenial, WorthQueryRecoveryHandleDenialKind,
 };
 use worth_query_host::facade::provisional_aftermath::{WorthQueryRedoDenial, WorthQueryUndoDenial};
 
@@ -53,9 +53,88 @@ pub enum BankEstateProgressionDenial {
     Idempotency(BankEstateIdempotencyResolutionDenial),
     LifecycleProjection(BankEstateLifecycleProjectionDenial),
     Attempt(crate::BankCommitPreparationDenial),
-    Recovery(WorthQueryRecoveryHandleDenial),
+    Recovery(BankRecoveryDenial),
     Undo(WorthQueryUndoDenial),
     Redo(WorthQueryRedoDenial),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BankRecoveryDenialKind {
+    RecoveryNotAdmitted,
+    RecoveryAlreadyMinted,
+    RuntimeMismatch,
+    SchemaMismatch,
+    BranchMismatch,
+    ApplicationBindingGenerationMismatch,
+    OperationMismatch,
+    GovernedInputMismatch,
+    AttemptMismatch,
+    PrincipalScopeMismatch,
+    IdempotencyMismatch,
+    ForeignIdempotencyRead,
+    ProviderPostureMismatch,
+    CorrelationMismatch,
+    CompatibilityGenerationMismatch,
+    Expired,
+    AlreadyTerminal,
+    ForeignPrincipal,
+    ForeignRuntime,
+    ForeignBranchEqualOrdinal,
+    TransitionNotAdmitted,
+    CompensationNotAdmitted,
+    ReconciliationNotAdmitted,
+    FreshAuthorityDenied,
+    DisclosureAdmissionRequired,
+    CurrentPolicyDenied,
+    UnresolvedExternalPosture,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BankRecoveryDenial {
+    kind: BankRecoveryDenialKind,
+}
+
+impl BankRecoveryDenial {
+    pub const fn kind(self) -> BankRecoveryDenialKind {
+        self.kind
+    }
+
+    pub(crate) fn from_query(denial: WorthQueryRecoveryHandleDenial) -> Self {
+        use BankRecoveryDenialKind as Bank;
+        use WorthQueryRecoveryHandleDenialKind as Query;
+        let kind = match denial.kind() {
+            Query::RecoveryNotAdmitted => Bank::RecoveryNotAdmitted,
+            Query::RecoveryAlreadyMinted => Bank::RecoveryAlreadyMinted,
+            Query::RuntimeMismatch => Bank::RuntimeMismatch,
+            Query::SchemaMismatch => Bank::SchemaMismatch,
+            Query::BranchMismatch => Bank::BranchMismatch,
+            Query::ApplicationBindingGenerationMismatch => {
+                Bank::ApplicationBindingGenerationMismatch
+            }
+            Query::OperationMismatch => Bank::OperationMismatch,
+            Query::GovernedInputMismatch => Bank::GovernedInputMismatch,
+            Query::AttemptMismatch => Bank::AttemptMismatch,
+            Query::PrincipalScopeMismatch => Bank::PrincipalScopeMismatch,
+            Query::IdempotencyMismatch => Bank::IdempotencyMismatch,
+            Query::ForeignIdempotencyRead => Bank::ForeignIdempotencyRead,
+            Query::ProviderPostureMismatch => Bank::ProviderPostureMismatch,
+            Query::CorrelationMismatch => Bank::CorrelationMismatch,
+            Query::CompatibilityGenerationMismatch => Bank::CompatibilityGenerationMismatch,
+            Query::Expired => Bank::Expired,
+            Query::AlreadyTerminal => Bank::AlreadyTerminal,
+            Query::ForeignPrincipal => Bank::ForeignPrincipal,
+            Query::ForeignRuntime => Bank::ForeignRuntime,
+            Query::ForeignBranchEqualOrdinal => Bank::ForeignBranchEqualOrdinal,
+            Query::TransitionNotAdmitted => Bank::TransitionNotAdmitted,
+            Query::CompensationNotAdmitted => Bank::CompensationNotAdmitted,
+            Query::ReconciliationNotAdmitted => Bank::ReconciliationNotAdmitted,
+            Query::FreshAuthorityDenied => Bank::FreshAuthorityDenied,
+            Query::DisclosureAdmissionRequired => Bank::DisclosureAdmissionRequired,
+            Query::CurrentPolicyDenied => Bank::CurrentPolicyDenied,
+            Query::UnresolvedExternalPosture => Bank::UnresolvedExternalPosture,
+        };
+        Self { kind }
+    }
 }
 
 impl std::fmt::Display for BankEstateProgressionDenial {
@@ -157,6 +236,10 @@ impl BankEstateProgressionDenial {
 
     pub(crate) fn from_attempt(denial: WorthQueryApplicationAttemptDenial) -> Self {
         Self::Attempt(denial.into())
+    }
+
+    pub(crate) fn from_recovery(denial: WorthQueryRecoveryHandleDenial) -> Self {
+        Self::Recovery(BankRecoveryDenial::from_query(denial))
     }
 }
 

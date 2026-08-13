@@ -18,7 +18,7 @@ use crate::validation::engine::{
     InvariantExecutionRequest, InvariantObservation, InvariantRequestProfile,
 };
 
-pub(super) fn relation_integrity_runtime() -> crate::logic::runtime::RelationalRuntime {
+pub(super) fn relation_integrity_runtime() -> crate::runtime::RelationalRuntime {
     let registry = RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
@@ -82,7 +82,7 @@ pub(super) fn relation_integrity_runtime() -> crate::logic::runtime::RelationalR
 }
 
 pub(super) fn create_relation_of_kind(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     kind_id: KindId,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
@@ -113,7 +113,7 @@ pub(super) fn create_relation_of_kind(
 }
 
 pub(super) fn create_entity(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
@@ -139,7 +139,7 @@ pub(super) fn create_entity(
 }
 
 pub(super) fn request_for_plan<'runtime>(
-    runtime: &'runtime crate::logic::runtime::RelationalRuntime,
+    runtime: &'runtime crate::runtime::RelationalRuntime,
     plan: &'runtime MergedCommitPlan,
 ) -> InvariantExecutionRequest<'runtime> {
     InvariantExecutionRequest::from_profile_with_contract(

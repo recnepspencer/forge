@@ -108,13 +108,13 @@ fn engine_rejects_planned_cycles_under_acyclicity_contracts() {
 }
 
 #[test]
-fn engine_rejects_acyclicity_checks_that_exceed_traversal_budget() {
+fn prepared_acyclicity_scope_rejects_visible_graphs_that_exceed_scan_budget() {
     let mut runtime =
         runtime_with_acyclicity_and_connectivity_budget(RelationIntegrityScopeBudget {
             max_relation_kinds: 8,
             max_touched_entities: 16,
             max_deleted_entities: 8,
-            max_scanned_relations: 2,
+            max_scanned_relations: 16,
             max_planned_edges: 8,
         });
     let a = create_entity_of_kind(&mut runtime, KindId(3), "a");
@@ -126,6 +126,11 @@ fn engine_rejects_acyclicity_checks_that_exceed_traversal_budget() {
     create_relation_of_kind(&mut runtime, KindId(2), b, c, "edge-bc");
     create_relation_of_kind(&mut runtime, KindId(2), c, d, "edge-cd");
     create_relation_of_kind(&mut runtime, KindId(2), d, e, "edge-de");
+    runtime
+        .config
+        .execution
+        .relation_integrity_scope_budget
+        .max_scanned_relations = 2;
 
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(19),
@@ -141,24 +146,13 @@ fn engine_rejects_acyclicity_checks_that_exceed_traversal_budget() {
         ))],
     };
 
-    let results = InvariantEngine::new(&runtime).execute(
-        InvariantExecutionRequest::from_profile_with_contract(
-            InvariantRequestProfile::CommitBoundary,
-            &runtime,
-            InvariantObservation::committed(runtime.storage_access().current_state()),
-            runtime.current_version_id(),
-            Some(&plan),
-            Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),
-        ),
-    );
-
-    let failure = results
-        .blocking_failures()
-        .into_iter()
-        .next()
-        .map(|failure| failure.violation().clone())
-        .expect("budget violation");
-    match &failure.fields {
+    let result =
+        crate::validation::invariant_access::InvariantAccess::new(&runtime).commit_boundary(&plan);
+    let failure = result
+        .summary()
+        .blocking_failure()
+        .expect("prepared scope budget violation");
+    match failure.fields() {
         InvariantViolationFields::RelationIntegrityScopeBudgetExceeded {
             limit_name,
             limit,
@@ -166,8 +160,8 @@ fn engine_rejects_acyclicity_checks_that_exceed_traversal_budget() {
             ..
         } => {
             assert_eq!(limit_name, "max_scanned_relations");
-            assert_eq!(*limit, 3);
-            assert_eq!(*observed, 4);
+            assert_eq!(*limit, 2);
+            assert_eq!(*observed, 3);
         }
         other => panic!("expected traversal budget violation, got {other:?}"),
     }

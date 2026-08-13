@@ -28,16 +28,17 @@ use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
-use crate::logic::runtime::{RelationalRuntime, VisibilityResidency};
 use crate::query::data::{
     PlannedQueryPacket, QueryExecutionOutcome, QueryOrderingContract, QueryParallelLegality,
     QueryParallelProfitability, QueryPlanContextId, QueryPlanEvidenceBasis, QueryScope,
     QuerySerialReason, SnapshotPinnedQueryPlan,
 };
+use crate::runtime::{RelationalRuntime, VisibilityResidency};
 use crate::schema::data::runtime_descriptor_semantics_policy;
 use crate::snapshots::data::{SnapshotHandle, SnapshotInspectionSummary, SnapshotReadPolicy};
 use crate::storage::data::{EntityReadRecord, RelationReadRecord, RelationalReadView};
-use crate::storage::logic::state::{DenseSlotBitSet, PartitionAccess};
+use crate::storage::overlay::PartitionAccess;
+use crate::storage::partition::DenseSlotBitSet;
 use crate::visibility::cache_state::{
     cached_state_for_version, reconstruct_state, residency_for_version,
 };

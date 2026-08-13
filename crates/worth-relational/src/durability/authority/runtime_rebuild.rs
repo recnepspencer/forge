@@ -5,8 +5,8 @@ mod merge_plan;
 
 use std::collections::BTreeSet;
 
-use crate::durability::data::{DurabilityError, DurabilityMode, RecoveryPlan};
-use crate::logic::runtime::RelationalRuntime;
+use crate::durability::data::{DurabilityError, DurabilityMode};
+use crate::runtime::RelationalRuntime;
 
 use checkpoint_restore::{
     clear_recovery_partition_pins, finalize_restored_runtime, refresh_recovered_history_counters,
@@ -15,8 +15,9 @@ use checkpoint_restore::{
 use envelope_replay::replay_durable_envelope;
 
 pub(super) fn rebuild_runtime_from_plan(
-    plan: RecoveryPlan,
+    admitted: super::recovery::admission::AdmittedRecoveryPlan,
 ) -> Result<RelationalRuntime, DurabilityError> {
+    let plan = admitted.into_plan();
     let mut restored = RelationalRuntime::new(plan.config.clone());
     let original_durability_mode = restored.config.durability.policy.mode;
     restored.config.durability.policy.mode = DurabilityMode::InMemoryCanonical;

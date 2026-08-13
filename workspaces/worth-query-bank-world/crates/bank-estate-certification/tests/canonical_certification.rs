@@ -19,7 +19,7 @@ use worth_query_host::facade::domain::TypedApplicationValue;
 const RULE_VERSION: &str = "bank.estate.governed-disclosure-field.v1";
 
 #[test]
-fn capability_disclosure_and_publication_meaning_compare_canonically() {
+fn capability_and_declared_disclosure_meaning_compare_canonically_before_closed_publication() {
     let fixture = certification_fixture();
     let request = queries::estate_legal_compliance(ESTATE);
     let capability_meaning = request.capability_request();
@@ -48,15 +48,14 @@ fn capability_disclosure_and_publication_meaning_compare_canonically() {
         .execute()
         .expect("the external consumer should execute the public product query");
     let publication = result.receipt().disclosure();
-    assert!(!publication.decisions().is_empty());
-    let publication_value = publication.decisions()[0].required_disclosure().clone();
-    assert!(publication
-        .decisions()
-        .iter()
-        .all(|decision| decision.required_disclosure() == &publication_value));
+    assert_eq!(
+        publication.disclosure_decision_count(),
+        disclosure_rules.len()
+    );
+    assert!(publication.disclosed_value_count() > 0);
+    assert_eq!(publication.omitted_value_count(), 0);
 
     assert_equivalent(&capability_value, &disclosure_value);
-    assert_equivalent(&capability_value, &publication_value);
     assert_mismatched(
         &capability_value,
         &RestrictedBankField::AuditTrail.into_foundational_value(),

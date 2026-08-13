@@ -4,16 +4,16 @@ use crate::durability::data::{
     RecoveryAuthorityContinuityCheck, RecoveryAuthorityContinuityMismatch, RecoveryAuthorityParity,
     RecoveryVerificationOutcome,
 };
-use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::ReplayVerificationLayer;
-use crate::schema::logic::{
+use crate::runtime::RelationalRuntime;
+use crate::schema::{
     validate_schema_continuity_bundle, SchemaContinuityBundleIssue, ValidatedSchemaContinuityBundle,
 };
 
 pub(crate) fn authority_continuity_for_envelopes(
     runtime: &RelationalRuntime,
-    checkpoint_envelopes: &[crate::replay::data::CanonicalCommitEnvelope],
-    tail_log: &[crate::replay::data::CanonicalCommitEnvelope],
+    checkpoint_envelopes: &[crate::history::data::CanonicalCommitEnvelope],
+    tail_log: &[crate::history::data::CanonicalCommitEnvelope],
 ) -> RecoveryAuthorityContinuityCheck {
     let descriptor_policy = runtime
         .runtime_config()
@@ -119,7 +119,7 @@ fn reject_descriptor_canonical_basis_version(
 }
 
 fn unsupported_canonical_basis_version(
-    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
     policy: &crate::schema::data::DescriptorCanonicalBasisSupportPolicy,
 ) -> Option<crate::schema::data::DescriptorCanonicalBasisVersion> {
     let continuation = envelope
@@ -137,7 +137,7 @@ fn unsupported_canonical_basis_version(
 }
 
 fn validated_recovery_continuity_envelope(
-    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
 ) -> Result<ValidatedSchemaContinuityBundle<'_>, SchemaContinuityBundleIssue> {
     validate_schema_continuity_bundle(envelope)
 }

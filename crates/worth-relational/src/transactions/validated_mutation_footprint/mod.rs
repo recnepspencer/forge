@@ -8,7 +8,7 @@ use super::data::{
     planned_aspect_field_locator, EntityMutationIntent, MutationIntent, RecordRef,
     RelationMutationIntent,
 };
-use super::logic::ValidatedRelationalMutation;
+use super::ValidatedRelationalMutation;
 
 /// Operation-local work performed while projecting a validated mutation.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

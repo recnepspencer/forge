@@ -4,8 +4,8 @@ use crate::capabilities::{
 use crate::durability::data::{
     DurabilityError, RecoveryAuthorityContinuityMismatch, RecoveryFailureClass, RecoveryPlan,
 };
-use crate::replay::data::CanonicalCommitEnvelope;
-use crate::schema::logic::{validate_schema_continuity_bundle, SchemaContinuityBundleIssue};
+use crate::history::data::CanonicalCommitEnvelope;
+use crate::schema::{validate_schema_continuity_bundle, SchemaContinuityBundleIssue};
 
 pub(super) fn validate_schema_recovery_authority_continuity(
     runtime: &(impl SchemaSource + RuntimeIdentitySource + SchemaVersionSource + RuntimeConfigSource),

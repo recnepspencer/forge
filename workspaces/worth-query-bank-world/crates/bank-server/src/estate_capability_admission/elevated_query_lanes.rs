@@ -8,9 +8,7 @@ use bank_domain::{
     queries::EstateGovernanceQuery,
     reads::{EstateCapabilityContext, EstateGovernanceContext},
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryApprovedElevation,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 
 use super::{
@@ -23,8 +21,8 @@ use super::{
     },
 };
 use crate::{
-    queries, BankApplicationQueryDenial, BankAuthenticatedPrincipal, BankMutationCommitOutcome,
-    BankReadControls,
+    queries, BankApplicationQueryDenial, BankApprovedEstateElevation, BankAuthenticatedPrincipal,
+    BankMutationCommitOutcome, BankReadControls,
 };
 
 type GovernanceResult =
@@ -167,7 +165,7 @@ fn approve(
     access: u64,
     review: u64,
     idempotency_seed: u8,
-) -> (BankAuthenticatedPrincipal, WorthQueryApprovedElevation) {
+) -> (BankAuthenticatedPrincipal, BankApprovedEstateElevation) {
     let requester = fixture.authenticate();
     let approver = fixture.authenticate_approver();
     let requested = request_elevation(

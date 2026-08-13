@@ -10,7 +10,7 @@ use crate::durability::data::{
     DurabilityError, RecoveryAuthorityContinuityCheck, RecoveryAuthorityContinuityMismatch,
     RecoveryFailureClass, RecoveryPlan,
 };
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 use super::diagnostics::recovery_authority_continuity_evaluated;
 use registry_mismatch::schema_registry_mismatch;

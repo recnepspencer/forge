@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::durability::data::{DurabilityError, RecoveryFailureClass};
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::{HistoryDriftClass, VersionNode};
-use crate::logic::runtime::RelationalRuntime;
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::runtime::RelationalRuntime;
 
 use super::super::super::derived_index_artifacts::apply_envelope_derived_index_artifacts;
 
@@ -103,9 +103,10 @@ pub(super) fn validate_expected_recovery_parent_shape(
         .get(&envelope.branch_context)
         .and_then(|head| head.as_ref())
         .map(|head| head.commit_id);
+    let admitted_target_head = current_branch_head.or_else(|| observed_parents.first().copied());
 
     if envelope.merge_parent_branches.is_empty() {
-        let expected = current_branch_head.into_iter().collect::<Vec<_>>();
+        let expected = admitted_target_head.into_iter().collect::<Vec<_>>();
         if observed_parents != expected.as_slice() {
             return Err(DurabilityError::new(
                 RecoveryFailureClass::ReplayFailure,
@@ -120,7 +121,7 @@ pub(super) fn validate_expected_recovery_parent_shape(
     }
 
     let mut expected = Vec::with_capacity(envelope.merge_parent_branches.len() + 1);
-    if let Some(target_head) = current_branch_head {
+    if let Some(target_head) = admitted_target_head {
         expected.push(target_head);
     }
     for branch in &envelope.merge_parent_branches {

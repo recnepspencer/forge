@@ -1,11 +1,10 @@
 //! Shared Gate 8.5 redo courtroom helpers — prove through production path.
 
 use bank_domain::proposals::BankIdempotencyKey;
-use bank_server::{BankAuthenticatedPrincipal, BankMutationCommitOutcome};
-use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
-use worth_query_host::facade::provisional_aftermath::{
-    WorthQueryProvedUndo, WorthQueryRedoIntent, WorthQueryRedoRecovery,
+use bank_server::{
+    BankAuthenticatedPrincipal, BankMutationCommitOutcome, BankRedoIntent, BankRedoRecovery,
 };
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
 use super::disburse_estate::fixture::DisbursementFixture;
 pub(super) use super::phase8_undo_denial_support::graph_snapshot;
@@ -13,14 +12,8 @@ use crate::support::request_scope;
 
 pub(super) struct ProvedUndoFixture {
     pub specialist: BankAuthenticatedPrincipal,
-    pub recovery: WorthQueryRedoRecovery,
-    pub intent: WorthQueryRedoIntent,
-}
-
-impl ProvedUndoFixture {
-    pub(super) const fn proved(&self) -> &WorthQueryProvedUndo {
-        self.recovery.proved()
-    }
+    pub recovery: BankRedoRecovery,
+    pub intent: BankRedoIntent,
 }
 
 pub(super) fn commit_and_prove_undo(fixture: &DisbursementFixture, key: u8) -> ProvedUndoFixture {
@@ -65,7 +58,7 @@ pub(super) fn commit_and_prove_undo(fixture: &DisbursementFixture, key: u8) -> P
     let intent = fixture
         .world
         .runtime
-        .derive_redo_intent(recovery.proved())
+        .derive_redo_intent(&recovery)
         .expect("derive redo intent");
     ProvedUndoFixture {
         specialist,

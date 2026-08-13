@@ -4,11 +4,11 @@ use crate::diagnostics::data::{
 };
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::identity::data::VersionId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     CommitHistorySummary, MergeCommitMutationPlan, TransactionCommitError, TransactionOptions,
 };
-use crate::transactions::logic::RelationalTransaction;
+use crate::transactions::RelationalTransaction;
 
 pub(crate) struct ResolvedCommitHistory {
     pub(crate) commit_id: CommitId,

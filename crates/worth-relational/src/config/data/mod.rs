@@ -21,3 +21,5 @@ pub use sections::{
     IdentityConfig, PublicationRuntimeConfig, RelationIntegrityScopeBudget, SchemaConfig,
     StorageConfig, VisibilityConfig,
 };
+mod execution_contract;
+pub use execution_contract::{CommitAuthorityContract, PlanningContract, RelationalExecutionModel};

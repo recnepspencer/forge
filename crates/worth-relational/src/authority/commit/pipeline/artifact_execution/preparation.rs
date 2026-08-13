@@ -28,12 +28,12 @@ pub(in crate::authority::commit::pipeline) struct PublicationPreparation {
 pub(in crate::authority::commit::pipeline) struct PublicationFinalizeArtifacts {
     artifacts: crate::storage::overlay::PublicationArtifacts,
     changed_records: Vec<RecordRef>,
-    canonical_commit_envelope: crate::replay::data::CanonicalCommitEnvelope,
+    canonical_commit_envelope: crate::history::data::CanonicalCommitEnvelope,
     adjacency_deltas: Vec<crate::authority::mutation::AdjacencyDelta>,
 }
 
 pub(super) struct PublicationPreparationInput<'a> {
-    pub(super) working_state: &'a mut crate::logic::runtime::WorkingState,
+    pub(super) working_state: &'a mut crate::runtime::WorkingState,
     pub(super) patch: PublishedAuthoritativePatchEnvelope,
     pub(super) commit_reference: &'a CommitReference,
     pub(super) branch_id: &'a crate::history::data::BranchId,
@@ -50,7 +50,7 @@ pub(super) struct PublicationPreparationInput<'a> {
 }
 
 pub(super) fn prepare_publication_artifacts(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     input: PublicationPreparationInput<'_>,
 ) -> Result<PublicationPreparation, TransactionCommitError> {
     let PublicationPreparationInput {
@@ -114,7 +114,7 @@ struct PublicationTraceCapture {
 }
 
 fn capture_publication_traces(
-    runtime: &crate::logic::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     patch: &PublishedAuthoritativePatchEnvelope,
     canonical_deltas: &[crate::authority::mutation::CanonicalRecordAspectDelta],
 ) -> PublicationTraceCapture {
@@ -151,7 +151,7 @@ fn capture_publication_traces(
 }
 
 struct PublicationAuthorityInput<'a> {
-    working_state: &'a mut crate::logic::runtime::WorkingState,
+    working_state: &'a mut crate::runtime::WorkingState,
     patch: &'a PublishedAuthoritativePatchEnvelope,
     commit_reference: &'a CommitReference,
     branch_id: &'a crate::history::data::BranchId,
@@ -168,12 +168,12 @@ struct PublicationAuthorityInput<'a> {
 
 struct PreparedPublicationAuthority {
     artifacts: crate::storage::overlay::PublicationArtifacts,
-    canonical_commit_envelope: crate::replay::data::CanonicalCommitEnvelope,
+    canonical_commit_envelope: crate::history::data::CanonicalCommitEnvelope,
     lineage_event_count: usize,
 }
 
 fn prepare_authoritative_publication(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     input: PublicationAuthorityInput<'_>,
 ) -> Result<PreparedPublicationAuthority, TransactionCommitError> {
     let artifacts = runtime.publication_authority().assemble_publication_bundle(
@@ -193,7 +193,7 @@ fn prepare_authoritative_publication(
         runtime,
         input.commit_reference,
         input.branch_id,
-        crate::replay::data::CanonicalCommitAuthorityKind::VersionedTransaction,
+        crate::history::data::CanonicalCommitAuthorityKind::VersionedTransaction,
         input.strategy_artifacts,
         input.merge_execution_authority,
         input.merge_parent_branches,
@@ -290,7 +290,7 @@ impl PublicationPreparation {
 
     pub(in crate::authority::commit::pipeline) fn canonical_commit_envelope(
         &self,
-    ) -> &crate::replay::data::CanonicalCommitEnvelope {
+    ) -> &crate::history::data::CanonicalCommitEnvelope {
         &self.finalize.canonical_commit_envelope
     }
 
@@ -313,7 +313,7 @@ impl PublicationFinalizeArtifacts {
     ) -> (
         crate::storage::overlay::PublicationArtifacts,
         Vec<RecordRef>,
-        crate::replay::data::CanonicalCommitEnvelope,
+        crate::history::data::CanonicalCommitEnvelope,
         Vec<crate::authority::mutation::AdjacencyDelta>,
     ) {
         (

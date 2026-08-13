@@ -21,6 +21,7 @@ pub(crate) struct WorthQueryApplicationOperationBindingInput<'a> {
     pub(crate) runtime: &'a WorthQueryExecutionRuntime,
     pub(crate) owner: &'a str,
     pub(crate) installed_operation_fingerprint: Arc<str>,
+    pub(crate) operation_slot: Arc<str>,
     pub(crate) resource_binding_identity: Arc<str>,
     pub(crate) basis: &'a AdmittedBasisCapability<MutationPreparationLaneWitness>,
     pub(crate) contracts: &'a WorthQueryCompiledApplicationOperationContracts,
@@ -30,6 +31,11 @@ pub(crate) struct WorthQueryApplicationOperationBindingInput<'a> {
         crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
     pub(crate) graph_work_managed_run:
         crate::domain_computation::provider_session::WorthQueryGraphWorkManagedRunIdentity,
+    pub(crate) operation_attempt:
+        crate::domain_computation::authorization::WorthQueryOperationAdmissionIdentity,
+    pub(crate) schema_binding:
+        &'a worth_query_installation::facade::ApplicationSchemaBindingIdentity,
+    pub(crate) snapshot: &'a worth_relational::facade::snapshots::SnapshotHandle,
 }
 
 impl WorthQueryExecutionBoundOperationAuthority {
@@ -76,6 +82,10 @@ impl WorthQueryExecutionBoundOperationAuthority {
                 session: input.graph_work_session,
                 managed_run: input.graph_work_managed_run,
             }),
+            application_operation_attempt: Some(input.operation_attempt),
+            application_operation_slot: Some(input.operation_slot),
+            application_schema_binding: Some(input.schema_binding.clone()),
+            application_snapshot: Some(input.snapshot.clone()),
         }
     }
 }

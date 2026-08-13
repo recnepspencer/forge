@@ -31,8 +31,8 @@ pub(in crate::domain_computation::primary_graph) mod preimage_evidence;
 mod preimage_retention;
 #[path = "application_attempt/program_fixture.rs"]
 mod program_fixture;
-#[path = "application_attempt/provider_receipt_axes.rs"]
-mod provider_receipt_axes;
+#[path = "application_attempt/provider_terminal_evidence.rs"]
+mod provider_terminal_evidence;
 #[path = "application_attempt/retry_outbox_rebind.rs"]
 mod retry_outbox_rebind;
 #[path = "application_attempt/terminal_failures.rs"]
@@ -187,7 +187,7 @@ fn response_loss_resolves_the_published_commit_before_returning() {
         ("open", "published"),
     );
 
-    world.application.lose_next_commit_response();
+    world.faults.lose_next_commit_response();
     let WorthQueryApplicationCommitOutcome::Committed(first_receipt) = world
         .application
         .compare_and_commit_application(first, idempotency(15, 15))
@@ -232,7 +232,7 @@ fn preparation_commit_recovery_and_retry_perform_no_execution_digest_derivation(
     let first = admitted_program(&world, &principal, &account, &request, "digest-free");
     let retry = admitted_program(&world, &principal, &account, &request, "digest-free");
 
-    world.application.lose_next_commit_response();
+    world.faults.lose_next_commit_response();
     assert!(matches!(
         world
             .application

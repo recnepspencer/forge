@@ -149,6 +149,10 @@ impl WorthQueryProviderSessionView<'_> {
         &self.token.provider_identity
     }
 
+    pub(in crate::domain_computation) fn plan_identity(&self) -> &str {
+        &self.token.plan_identity
+    }
+
     pub fn provider_generation(&self) -> u64 {
         self.token.provider_generation
     }

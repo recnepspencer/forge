@@ -1,18 +1,17 @@
 use bank_domain::estate::{EmergencyAccessId, EstateCaseId};
 use bank_server::{
-    queries, BankApplicationQueryDenial, BankAuthenticatedPrincipal,
+    queries, BankApplicationQueryDenial, BankApprovedEstateElevation, BankAuthenticatedPrincipal,
     BankEstateEmergencyAccessActivityContinuation, BankIdentityRuntime, BankPreviewSession,
     BankReadControls,
 };
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationLiveControls, WorthQueryApplicationQueryResumeControls,
-    WorthQueryApprovedElevation,
 };
 
 pub struct EmergencyEstateQueryInputs<'a> {
     pub estate: EstateCaseId,
     pub access: EmergencyAccessId,
-    pub approved: &'a WorthQueryApprovedElevation,
+    pub approved: &'a BankApprovedEstateElevation,
     pub preview: &'a BankPreviewSession,
     pub continuation: BankEstateEmergencyAccessActivityContinuation,
     pub readmission_continuation: BankEstateEmergencyAccessActivityContinuation,

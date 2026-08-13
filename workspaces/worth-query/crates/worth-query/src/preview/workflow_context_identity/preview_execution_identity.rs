@@ -1,14 +1,10 @@
-#[cfg(test)]
 use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
-#[cfg(test)]
 use worth_runtime_bridge::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewSessionIdentity, PreviewExecutionRecordIdentity,
 };
 
-#[cfg(test)]
 use super::preview_lifecycle_identity::preview_lifecycle_state_label;
 
-#[cfg(test)]
 pub(in crate::preview) fn compose_preview_execution_comparison_admission_digest(
     preview_execution_digest: &str,
     preview_comparison_digest: &str,
@@ -46,7 +42,6 @@ pub(in crate::preview) fn compose_preview_execution_comparison_admission_digest(
         .to_string()
 }
 
-#[cfg(test)]
 pub(in crate::preview) fn compose_preview_execution_report_digest(
     binding_digest: &str,
     basis_digest: &str,

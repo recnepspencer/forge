@@ -6,9 +6,9 @@ mod trace_entries;
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::schema::data::{SchemaTransitionArtifact, SchemaTransitionSummary};
-use crate::schema::logic::SchemaContinuityBundleIssue;
+use crate::schema::SchemaContinuityBundleIssue;
 use crate::transactions::data::{CommitConflict, ConflictClass, TransactionCommitError};
 
 use super::SchemaContinuityPlan;
@@ -25,7 +25,7 @@ pub(super) enum FailureTransitionView<'a> {
 }
 
 pub(crate) fn emit_schema_continuity_diagnostic(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
     plan: &SchemaContinuityPlan,
 ) {
@@ -42,7 +42,7 @@ pub(crate) fn emit_schema_continuity_diagnostic(
 }
 
 pub(super) fn schema_continuity_conflict_from_issue(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
     transition: Option<&SchemaTransitionArtifact>,
     issue: SchemaContinuityBundleIssue,
@@ -67,7 +67,7 @@ pub(super) fn schema_continuity_conflict_from_issue(
 }
 
 pub(super) fn emit_schema_continuity_failure_diagnostic(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
     proposed_transition: Option<FailureTransitionView<'_>>,
     previous_envelope: Option<&CanonicalCommitEnvelope>,
@@ -91,7 +91,7 @@ pub(super) fn emit_schema_continuity_failure_diagnostic(
 }
 
 fn emit_schema_transition_summary(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
     plan: &SchemaContinuityPlan,
     transition: &SchemaTransitionArtifact,

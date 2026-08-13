@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 #[derive(Clone)]
 pub(crate) enum RelationalVisibilityRuntimeAuthority {

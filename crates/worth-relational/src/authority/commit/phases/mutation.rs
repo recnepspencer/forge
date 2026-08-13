@@ -5,7 +5,7 @@ use crate::authority::intent_merge::{
 };
 use crate::authority::mutation::BranchLocalDeleteAllowance;
 use crate::history::data::BranchId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{MergedCommitPlan, MutationIntent};
 
 pub(crate) fn branch_local_delete_allowance_for_plan(

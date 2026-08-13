@@ -138,7 +138,7 @@ impl std::fmt::Debug for WorthQueryRetainedCapabilitySupport {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("WorthQueryRetainedCapabilitySupport")
-            .field("capability_identity", &self.request.capability_identity)
+            .field("capability_identity", &self.request.capability_identity())
             .field(
                 "capability_authority_identity",
                 &self.capability_authority_identity,

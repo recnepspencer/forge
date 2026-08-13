@@ -241,7 +241,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         partition_id: crate::identity::data::PartitionId,
         version_id: crate::identity::data::VersionId,
     ) -> Option<DenseSlotBitSet> {
-        visible_slots_in_partition_from_state::<crate::storage::logic::state::EntityRecordKind>(
+        visible_slots_in_partition_from_state::<crate::storage::substrate::EntityRecordKind>(
             self.runtime,
             state,
             partition_id,
@@ -306,7 +306,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         partition_id: crate::identity::data::PartitionId,
         version_id: crate::identity::data::VersionId,
     ) -> Option<DenseSlotBitSet> {
-        visible_slots_in_partition_from_state::<crate::storage::logic::state::RelationRecordKind>(
+        visible_slots_in_partition_from_state::<crate::storage::substrate::RelationRecordKind>(
             self.runtime,
             state,
             partition_id,

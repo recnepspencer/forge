@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
+pub mod assumption_lifecycle;
 pub mod compile_fail;
 pub mod compile_pass;
+pub mod composition_family;
 pub mod contracts;
+pub mod core_artifact;
 pub mod dx;
-pub mod milestone1;
-pub mod milestone2;
-pub mod milestone3;
-pub mod milestone4;
-pub mod milestone5;
-pub mod milestone6;
+pub mod execution_readiness;
 pub mod proof_shapes;
+pub mod sealed_minting;
+pub mod transition_algebra;
 pub mod type_shapes;

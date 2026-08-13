@@ -39,7 +39,7 @@ impl PreparedCommitExecution {
 }
 
 pub(super) fn prepare_commit_execution(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     mut admitted: AdmittedCommitExecution,
 ) -> PreparedCommitExecution {
     let merge_parent_count = admitted

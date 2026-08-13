@@ -1,4 +1,4 @@
-//! Retained capability decision authority and its one-way commit split.
+//! Retained capability decision authority and its one-way commit transition.
 
 use std::sync::Arc;
 
@@ -24,6 +24,7 @@ pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityAuthorizati
 
 impl WorthQueryRetainedCapabilityAuthorization {
     pub(super) fn new(
+        _permit: super::capability_observation::WorthQueryCapabilityRetentionPermit,
         principal: WorthQueryPrincipalCurrentnessDependency,
         decision: WorthQueryAuthorizationDecisionFact,
         capability_authority_identity: Arc<str>,
@@ -96,7 +97,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
     }
 
     pub(in crate::domain_computation) fn installed_capability_identity(&self) -> [u8; 32] {
-        self.request.capability_identity
+        self.request.capability_identity()
     }
 
     pub(in crate::domain_computation) fn belongs_to_session(
@@ -216,13 +217,10 @@ impl WorthQueryRetainedCapabilityAuthorization {
         Ok(())
     }
 
-    pub(super) fn into_parts(
+    pub(super) fn into_provider_commit_authorization(
         self,
-    ) -> (
-        WorthQueryPrincipalCurrentnessDependency,
-        Vec<WorthQueryAuthorizationDecisionFact>,
-        WorthQueryCapabilityCommitBasis,
-    ) {
+        admission_identity: super::WorthQueryOperationAdmissionIdentity,
+    ) -> super::WorthQueryProviderCommitAuthorization {
         let supporting = self.supporting.map(Into::into);
         let mut decisions = vec![self.decision.clone()];
         decisions.extend(supporting.as_ref().map(
@@ -236,7 +234,13 @@ impl WorthQueryRetainedCapabilityAuthorization {
             request: self.request,
             supporting,
         };
-        (self.principal, decisions, commit)
+        super::WorthQueryProviderCommitAuthorization::new(
+            super::WorthQueryProviderAuthorizationDecisionFacts::new(self.principal, decisions),
+            super::WorthQueryCommitAuthorizationBasis::Capability {
+                admission_identity,
+                authorization: commit,
+            },
+        )
     }
 }
 

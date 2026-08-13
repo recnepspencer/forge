@@ -2,7 +2,9 @@ mod effect_accumulator;
 mod effect_lowering;
 mod registration;
 
-pub(in crate::domain_computation::primary_graph) use registration::WorthQueryProviderEffectRegistrationSeal;
+pub(in crate::domain_computation::primary_graph) use registration::WorthQueryPrimaryGraphApplicationAttempt;
+pub(in crate::domain_computation::primary_graph::application_attempt) use registration::WorthQueryProviderRegistrationInspectionPermit;
+pub(in crate::domain_computation::primary_graph::application_attempt) use registration::WorthQueryRegisteredProviderAttemptSeal;
 
 #[cfg(test)]
 mod semantic_model_tests;
@@ -18,21 +20,19 @@ use super::{
     WorthQueryAdmittedApplicationEmissionBatch, WorthQueryApplicationAttemptDenial,
     WorthQueryApplicationAttemptDenialKind, WorthQueryApplicationEmission,
 };
-use crate::domain_computation::WorthQueryProvisionalEffectStep;
 
-pub(super) struct WorthQueryPreparedApplicationProviderAttempt {
+pub(in crate::domain_computation) struct WorthQueryPreparedApplicationProviderAttempt {
     facts: Vec<WorthQueryApplicationObservedFact>,
-    steps: Vec<WorthQueryProvisionalEffectStep>,
-    batch: worth_relational::facade::transactions::WorkerIntentBatch,
-    emissions: WorthQueryAdmittedApplicationEmissionBatch,
+    effects: effect_accumulator::WorthQueryRegisteredProviderEffects,
     preimage_demand: Option<InstalledPreImageDemand>,
 }
 
 impl WorthQueryPreparedApplicationProviderAttempt {
-    pub(super) fn register<'run, Schema, Operation, Input, Scope>(
+    pub(in crate::domain_computation) fn register<'run, Schema, Operation, Input, Scope>(
         self,
         staged: crate::domain_computation::WorthQuerySessionBoundReadsAndEffects<'run>,
         authorization: crate::domain_computation::authorization::WorthQueryProviderAuthorizationDecisionFacts,
+        attempt_basis: super::provider_execution::WorthQueryApplicationAttemptBasis,
         context: super::provider_execution::WorthQueryProviderAttemptRegistrationContext<
             '_,
             Schema,
@@ -44,7 +44,7 @@ impl WorthQueryPreparedApplicationProviderAttempt {
         super::provider_execution::WorthQueryRegisteredProviderAttempt<'run>,
         super::provider_execution::WorthQueryProviderProgressionOutcome,
     > {
-        registration::register_provider_attempt(self, staged, authorization, context)
+        registration::register_provider_attempt(self, staged, authorization, attempt_basis, context)
     }
 }
 
@@ -79,12 +79,9 @@ pub(super) fn prepare_provider_attempt(
         expected_emission_retained_bytes,
         emission_retained_bytes_ceiling,
     )?;
-    let (steps, batch, emissions) = completed.into_parts();
     Ok(WorthQueryPreparedApplicationProviderAttempt {
         facts,
-        steps,
-        batch,
-        emissions,
+        effects: completed,
         preimage_demand,
     })
 }

@@ -35,7 +35,7 @@ where
     let installed = runtime
         .authorization
         .capability_plan_by_identity(&capability)
-        .filter(|plan| plan.elevation.is_some())
+        .filter(|plan| plan.elevation().is_some())
         .ok_or_else(|| stale_operation(operation.operation()))?;
     Ok((capability, installed))
 }

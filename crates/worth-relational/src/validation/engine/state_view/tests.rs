@@ -10,10 +10,11 @@ use worth_proof::TransitionOutcome;
 
 use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
-use crate::storage::logic::state::{EntityArena, PartitionState, RelationArena, SlotInit};
+use crate::storage::overlay::PartitionState;
 use crate::storage::overlay::{
     EntityWorkingSetLayout, OverlayStateView, PartitionCloneMode, WorkingState,
 };
+use crate::storage::substrate::{EntityArena, RelationArena, SlotInit};
 use crate::storage::substrate::{EntityRecordKind, RecordKind, RelationEndpoints, RelationExtra};
 
 use super::InvariantStateView;

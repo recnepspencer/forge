@@ -6,6 +6,7 @@ use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticArtifact,
 };
 use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::{
     FinalizedLineageEventBatch, LineageDecisionLog, LineageFinalizationArtifact,
@@ -14,7 +15,6 @@ use crate::publication::patch::data::{
     PatchDetail, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
     PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
 };
-use crate::replay::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::schema::data::{DescriptorSemanticsVersion, RelationalSchemaRegistry, SchemaVersionId};
 use crate::transactions::data::{MergedCommitPlan, RecordRef, TransactionId};
 

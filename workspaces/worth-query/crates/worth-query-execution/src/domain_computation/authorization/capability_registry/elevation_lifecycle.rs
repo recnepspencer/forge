@@ -124,7 +124,7 @@ fn command_capability(
     binding: &ApplicationCapabilityTransitionBinding,
 ) -> Option<[u8; 32]> {
     plans.iter().find_map(|(identity, plan)| {
-        let contract = &plan.contract;
+        let contract = &plan.contract();
         (contract.name() == binding.capability()
             && contract.capability_type() == binding.capability_type()
             && contract.operation() == binding.operation().operation()

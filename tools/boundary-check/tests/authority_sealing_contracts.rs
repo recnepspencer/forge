@@ -22,3 +22,7 @@ mod surface;
 mod value_gate;
 #[path = "authority_sealing_contracts/value_gate_forgery.rs"]
 mod value_gate_forgery;
+#[path = "authority_sealing_contracts/value_gate_nominal.rs"]
+mod value_gate_nominal;
+#[path = "authority_sealing_contracts/value_gate_projection.rs"]
+mod value_gate_projection;

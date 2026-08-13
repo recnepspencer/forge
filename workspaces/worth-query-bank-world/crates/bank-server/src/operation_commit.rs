@@ -15,6 +15,7 @@ mod recovery_evidence;
 mod reversal;
 mod unresolved_commit;
 
+pub(crate) use commit_denial::{denial_kind, denial_stage};
 pub use commit_denial::{BankCommitDenialKind, BankCommitDenialStage};
 pub use commit_outcome::BankMutationCommitOutcome;
 pub use preparation_denial::{BankApplicationAttemptDenialKind, BankCommitPreparationDenial};

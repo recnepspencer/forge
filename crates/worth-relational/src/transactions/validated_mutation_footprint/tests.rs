@@ -15,7 +15,7 @@ use crate::transactions::data::{
     ReplaceEntityIntent, TransactionOptions, UpdateEntityFieldsIntent,
     UpdateRelationEndpointsIntent, WorkerIntentBatch,
 };
-use crate::transactions::logic::ValidatedRelationalMutation;
+use crate::transactions::ValidatedRelationalMutation;
 
 use super::ValidatedMutationFootprint;
 
@@ -172,7 +172,7 @@ fn omitted_demand_performs_no_footprint_scan_or_materialization() {
 }
 
 fn validate(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     intents: impl IntoIterator<Item = MutationIntent>,
 ) -> ValidatedRelationalMutation {
     let batch = intents.into_iter().fold(

@@ -93,6 +93,7 @@ where
                 authority,
                 installed_schema,
                 authorization_clock: WorthQueryRuntimeClock::system(),
+                fault_port: super::provider::fault_port::production_fault_port(),
             },
         )
     }
@@ -112,6 +113,26 @@ where
         WorthQueryPrimaryGraphApplicationRuntime<Schema>,
         WorthQueryPrimaryGraphInstallationDenial,
     > {
+        self.publish_application_runtime_with_ports(
+            runtime,
+            authority,
+            installed_schema,
+            source,
+            super::provider::fault_port::production_fault_port(),
+        )
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn publish_application_runtime_with_ports(
+        self,
+        runtime: WorthQueryExecutionRuntime,
+        authority: WorthQueryExecutionInstallationAuthority,
+        installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
+        source: impl WorthQueryRuntimeTimeSource,
+        fault_port: Arc<dyn super::provider::fault_port::WorthQueryPrimaryGraphFaultPort>,
+    ) -> Result<
+        WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+        WorthQueryPrimaryGraphInstallationDenial,
+    > {
         installation::publish_application_runtime_with_clock(
             installation::ApplicationRuntimePublication {
                 bootstrap: self,
@@ -119,6 +140,7 @@ where
                 authority,
                 installed_schema,
                 authorization_clock: WorthQueryRuntimeClock::from_source(source),
+                fault_port,
             },
         )
     }
@@ -180,22 +202,6 @@ where
     }
 
     #[cfg(test)]
-    pub(crate) fn lose_next_commit_response(&self) {
-        self.primary_provider.lose_next_commit_response();
-    }
-
-    #[cfg(test)]
-    pub(crate) fn reject_next_session_prepare(&self) {
-        self.primary_provider.reject_next_session_prepare();
-    }
-
-    #[cfg(test)]
-    pub(crate) fn reject_next_commit_before_transaction(&self) {
-        self.primary_provider
-            .reject_next_commit_before_transaction();
-    }
-
-    #[cfg(test)]
     pub(crate) fn provider_session_resource_count(&self) -> usize {
         self.primary_provider.application_attempt_resource_count()
     }
@@ -205,21 +211,6 @@ where
         &self,
     ) -> super::provider::WorthQueryApplicationAttemptWorkSnapshot {
         self.primary_provider.application_attempt_work()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn fail_next_index_publication(&self) {
-        self.primary_provider.fail_next_index_publication();
-    }
-
-    #[cfg(test)]
-    pub(crate) fn skip_next_invariant_owner_execution(&self) {
-        self.primary_provider.skip_next_invariant_owner_execution();
-    }
-
-    #[cfg(test)]
-    pub(crate) fn violate_next_relational_invariant(&self) {
-        self.primary_provider.violate_next_relational_invariant();
     }
 
     pub fn resolve_authenticated_principal<Binding, Mapping, Principal, PrincipalIdentity>(

@@ -1,9 +1,9 @@
 use crate::commit_strategies::data::CommitStrategyRegistration;
+use crate::config::data::CommitAuthorityContract;
+use crate::config::data::{PlanningContract, RelationalExecutionModel};
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
 use crate::durability::data::{DurabilityMode, DurableStoreLayout};
 use crate::history::data::{BranchId, HistoryRetentionClass, VersionGraphPolicy};
-use crate::logic::commit::CommitAuthorityContract;
-use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
 use crate::schema::data::RelationalSchemaRegistry;
 use crate::symbols::data::{ClientKeySymbolPolicy, SymbolTableSnapshot};
 use crate::validation::data::InvariantCatalog;

@@ -17,7 +17,7 @@ pub struct BankCommitCanonicalWorkEvidence {
 }
 
 impl BankCommitCanonicalWorkEvidence {
-    const fn from_query(work: WorthQueryCanonicalWorkEvidence) -> Self {
+    pub(crate) const fn from_query(work: WorthQueryCanonicalWorkEvidence) -> Self {
         Self {
             basis_preparations: work.basis_preparations(),
             digest_derivations: work.digest_derivations(),

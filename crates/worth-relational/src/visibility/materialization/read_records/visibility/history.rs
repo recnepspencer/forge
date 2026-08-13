@@ -1,5 +1,5 @@
 use crate::identity::data::{VersionBound, VersionId};
-use crate::storage::logic::state::HistoricalMetadata;
+use crate::storage::substrate::HistoricalMetadata;
 
 pub(in super::super) fn visible_metadata<M: HistoricalMetadata>(
     history: &[M],

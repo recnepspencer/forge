@@ -14,8 +14,9 @@ pub(super) fn evaluate_uniqueness_contract(
     class: InvariantClass,
     contract: &LoweredUniquenessContract,
 ) -> Vec<InvariantViolation> {
-    let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
-        return Vec::new();
+    let scope = match context.required_relation_integrity_scope(contract.relation_kind_id, class) {
+        Ok(scope) => scope,
+        Err(violation) => return vec![violation],
     };
     if scope.is_empty() {
         return Vec::new();
@@ -78,8 +79,9 @@ pub(super) fn evaluate_symmetry_contract(
     class: InvariantClass,
     contract: &LoweredSymmetryContract,
 ) -> Vec<InvariantViolation> {
-    let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
-        return Vec::new();
+    let scope = match context.required_relation_integrity_scope(contract.relation_kind_id, class) {
+        Ok(scope) => scope,
+        Err(violation) => return vec![violation],
     };
     if scope.planned_edges.is_empty() {
         return Vec::new();
@@ -176,8 +178,9 @@ pub(super) fn evaluate_endpoint_deletion_integrity_contract(
     class: InvariantClass,
     contract: &LoweredEndpointDeletionIntegrityContract,
 ) -> Vec<InvariantViolation> {
-    let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
-        return Vec::new();
+    let scope = match context.required_relation_integrity_scope(contract.relation_kind_id, class) {
+        Ok(scope) => scope,
+        Err(violation) => return vec![violation],
     };
     if scope.deleted_entities.is_empty() {
         return Vec::new();

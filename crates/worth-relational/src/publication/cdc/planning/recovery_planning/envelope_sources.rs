@@ -1,12 +1,12 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::publication::cdc::data::{
     SubscriberCheckpoint, SubscriberStreamFailure, SubscriberStreamFailureClass,
 };
 use crate::publication::cdc::planning::checkpoint_resolution::{
     preloaded_durable_envelopes_for_checkpoint_gap, resolve_latest_available_checkpoint,
 };
-use crate::publication::logic::retained_canonical_envelopes_after;
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::publication::retained_canonical_envelopes_after;
+use crate::runtime::RelationalRuntime;
 
 pub(super) enum AvailableEnvelopeSource {
     InMemory(Vec<CanonicalCommitEnvelope>),

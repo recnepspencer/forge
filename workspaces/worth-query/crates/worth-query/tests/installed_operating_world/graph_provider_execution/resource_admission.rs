@@ -16,7 +16,7 @@ fn commit_provider_mismatch_denies_before_any_graph_contact() {
     let workspace = configured_runtime_for_partial_effect_package(federated_touch_package::<
         RemoteA,
         RemoteB,
-    >(false, true))
+    >(true))
     .graph_participation(atomic_definition::<RemoteA>("remote-a"))
     .atomic_graph_participation_provider(
         RemoteA,
@@ -62,7 +62,7 @@ fn commit_provider_mismatch_denies_before_any_graph_contact() {
 #[test]
 fn graph_provider_mismatch_denies_before_any_graph_contact() {
     let log = Arc::new(Mutex::new(Vec::new()));
-    let workspace = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
+    let workspace = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>())
         .graph_participation(read_definition::<RemoteA>(
             "remote-a",
             domain::WorthQueryGraphProjectionPosture::NativeProjection,

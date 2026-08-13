@@ -1,4 +1,4 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::SnapshotHandle;
 
 use super::{

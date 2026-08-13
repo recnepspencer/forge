@@ -115,6 +115,19 @@ impl WorthQuerySessionBoundReadsAndEffects<'_> {
         self.affinity.terminal_binding()
     }
 
+    /// Joins an application-attempt basis to this exact live staged session.
+    ///
+    /// The descriptive terminal projection is minted only inside the live
+    /// session owner; possessing a copied terminal projection cannot admit an
+    /// application attempt.
+    pub(in crate::domain_computation) fn bind_application_attempt(
+        &self,
+        basis: crate::domain_computation::primary_graph::WorthQueryApplicationAttemptBasis,
+    ) -> Result<crate::domain_computation::primary_graph::WorthQueryApplicationAttemptAffinity, ()>
+    {
+        basis.bind_live_session(&self.affinity)
+    }
+
     #[allow(dead_code)]
     pub(in crate::domain_computation) fn provider_session_affinity(
         &self,

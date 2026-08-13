@@ -1,13 +1,20 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use crate::identity::data::{EntityId, KindId};
+use crate::identity::data::{EntityId, KindId, RelationId};
 use crate::transactions::data::EntityReference;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PlannedRelationEdge {
     pub(crate) source: EntityReference,
     pub(crate) target: EntityReference,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct PreparedVisibleRelationEdge {
+    pub(crate) relation_id: RelationId,
+    pub(crate) source: EntityId,
+    pub(crate) target: EntityId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -24,12 +31,16 @@ pub(crate) struct PreparedRelationEndpointKey {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct PreparedRelationIntegrityScope {
     pub(crate) planned_edges: Vec<PlannedRelationEdge>,
+    pub(crate) visible_edges: Vec<PreparedVisibleRelationEdge>,
+    pub(crate) visible_successors: BTreeMap<EntityReference, Vec<EntityReference>>,
     pub(crate) source_counts: BTreeMap<PreparedRelationEndpointKey, usize>,
     pub(crate) target_counts: BTreeMap<PreparedRelationEndpointKey, usize>,
     pub(crate) directed_pair_counts: BTreeMap<PreparedRelationPairKey, usize>,
     pub(crate) normalized_pair_counts: BTreeMap<PreparedRelationPairKey, usize>,
     pub(crate) deleted_entities: BTreeSet<EntityId>,
     pub(crate) deleted_relation_count: usize,
+    pub(crate) requires_global_evaluation: bool,
+    pub(crate) requires_visible_successors: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -48,20 +59,32 @@ impl PreparedRelationIntegrityScopes {
     ) -> Option<&PreparedRelationIntegrityScope> {
         self.0.get(&relation_kind_id)
     }
-
-    pub(crate) fn contains_relation_kind(&self, relation_kind_id: KindId) -> bool {
-        self.0.contains_key(&relation_kind_id)
-    }
 }
 
 impl PreparedRelationIntegrityScope {
     pub(crate) fn is_empty(&self) -> bool {
         self.planned_edges.is_empty()
+            && self.visible_edges.is_empty()
             && self.source_counts.is_empty()
             && self.target_counts.is_empty()
             && self.directed_pair_counts.is_empty()
             && self.deleted_entities.is_empty()
             && self.deleted_relation_count == 0
+    }
+
+    pub(crate) fn should_execute(&self) -> bool {
+        self.requires_global_evaluation || !self.is_empty()
+    }
+
+    pub(crate) fn record_visible_successor(
+        &mut self,
+        source: EntityReference,
+        target: EntityReference,
+    ) {
+        self.visible_successors
+            .entry(source)
+            .or_default()
+            .push(target);
     }
 
     pub(crate) fn increment_counts(&mut self, source: EntityReference, target: EntityReference) {

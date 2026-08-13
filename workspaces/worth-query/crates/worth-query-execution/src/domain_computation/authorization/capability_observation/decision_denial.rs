@@ -76,7 +76,7 @@ pub(super) fn elevation_denial_kind(
     installed: &WorthQueryInstalledCapabilityPlan,
     evidence: &worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence,
 ) -> Option<WorthQueryOperationAuthorizationDenialKind> {
-    let elevation = installed.elevation.as_ref()?;
+    let elevation = installed.elevation().as_ref()?;
     let active = evidence.paths().get(elevation.active_path_index)?;
     let not_before = evidence
         .paths()

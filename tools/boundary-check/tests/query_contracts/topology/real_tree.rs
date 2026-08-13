@@ -110,10 +110,19 @@ fn canonical_query_audience_matrix_is_exact() {
 #[test]
 fn real_audience_facades_depend_only_on_their_owned_authority() {
     let root = workspace_root();
-    for (package, expected_dependency) in [
-        ("worth-query-decl", "worth-query-declaration"),
-        ("worth-query-host", "worth-query"),
-        ("worth-query-replay", "worth-query"),
+    for (package, expected_dependencies) in [
+        ("worth-query-decl", &["worth-query-declaration"][..]),
+        (
+            "worth-query-host",
+            &[
+                "worth-query-admission",
+                "worth-query-declaration",
+                "worth-query-execution",
+                "worth-query-installation",
+                "worth-query-publication",
+            ][..],
+        ),
+        ("worth-query-replay", &["worth-query"][..]),
     ] {
         let manifest = root
             .join("workspaces/worth-query/crates")
@@ -154,8 +163,8 @@ fn real_audience_facades_depend_only_on_their_owned_authority() {
             .collect();
         assert_eq!(
             normal_deps,
-            [expected_dependency],
-            "{package} must have only {expected_dependency} as a normal dependency, found {normal_deps:?}"
+            expected_dependencies,
+            "{package} must have exactly its configured authority packages as normal dependencies, found {normal_deps:?}"
         );
     }
 }

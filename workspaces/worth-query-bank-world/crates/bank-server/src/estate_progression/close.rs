@@ -7,24 +7,24 @@ use bank_domain::{
 use worth_query_host::facade::{
     admission::authenticated_principal::WorthQueryRequestScope,
     declaration::application_schema::TypedMutationPreconditions,
-    primary_graph::{
-        WorthQueryApplicationIdempotencyBinding, WorthQueryApprovedElevation,
-        WorthQueryElevationCloseOutcome,
-    },
+    primary_graph::WorthQueryApplicationIdempotencyBinding,
 };
 
-use super::{lifecycle_facts::seal_close_lifecycle_facts, BankEstateProgressionDenial};
+use super::{
+    lifecycle_facts::seal_close_lifecycle_facts, BankApprovedEstateElevation,
+    BankEstateElevationCloseOutcome, BankEstateProgressionDenial,
+};
 use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime};
 
 impl BankIdentityRuntime {
     pub fn revoke_estate_emergency_access(
         &self,
         principal: &BankAuthenticatedPrincipal,
-        approved: WorthQueryApprovedElevation,
+        approved: BankApprovedEstateElevation,
         action: EstateAction,
         idempotency: WorthQueryApplicationIdempotencyBinding,
         request: &WorthQueryRequestScope,
-    ) -> Result<WorthQueryElevationCloseOutcome, BankEstateProgressionDenial> {
+    ) -> Result<BankEstateElevationCloseOutcome, BankEstateProgressionDenial> {
         let EstateAction::RevokeEmergencyAccess { access, .. } = action else {
             return Err(BankEstateProgressionDenial::CommandInput(
                 "RevokeEstateEmergencyAccessOperation",
@@ -50,7 +50,7 @@ impl BankIdentityRuntime {
         let admission = self
             .application_runtime()
             .authorize_elevation_close(
-                approved,
+                approved.into_query(),
                 access_authority,
                 &operation,
                 TypedMutationPreconditions::<
@@ -76,8 +76,9 @@ impl BankIdentityRuntime {
             .map_err(BankEstateProgressionDenial::from_attempt)?
             .materialize_elevation_close_program()
             .map_err(BankEstateProgressionDenial::from_attempt)?;
-        Ok(self
-            .application_runtime()
-            .compare_and_commit_elevation_close(program, idempotency))
+        Ok(BankEstateElevationCloseOutcome::from_query(
+            self.application_runtime()
+                .compare_and_commit_elevation_close(program, idempotency),
+        ))
     }
 }

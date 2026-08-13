@@ -5,7 +5,7 @@ use crate::durability::access::{
 use crate::durability::data::{
     RecoveryCursor, RecoveryIntegrityReport, RecoveryPlan, RecoveryVerificationMode,
 };
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 pub(super) fn in_memory_recovery_plan(
     runtime: &RelationalRuntime,
@@ -60,7 +60,7 @@ pub(super) fn in_memory_recovery_plan(
 fn tail_log_after_in_memory_checkpoint(
     runtime: &RelationalRuntime,
     checkpoint: Option<&crate::durability::data::DurableCheckpoint>,
-) -> Vec<crate::replay::data::CanonicalCommitEnvelope> {
+) -> Vec<crate::history::data::CanonicalCommitEnvelope> {
     match checkpoint.and_then(|checkpoint| checkpoint.coverage.up_to_commit.as_ref()) {
         Some(up_to_commit) => runtime
             .durable_log()

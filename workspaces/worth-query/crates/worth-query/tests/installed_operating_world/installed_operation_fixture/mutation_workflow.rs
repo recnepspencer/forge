@@ -270,7 +270,6 @@ fn geometry_identity() -> domain::WorthQueryDomainIdentityDeclaration<GeometryDo
 }
 
 pub fn mixed_mutation_workflow_runtime<G: 'static>(
-    compensated: bool,
 ) -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder {
     let operation = domain::WorthQueryDomainOperationDefinition::<
         GeometryDomain,
@@ -278,7 +277,7 @@ pub fn mixed_mutation_workflow_runtime<G: 'static>(
         MutationFamily,
     >::new(
         domain::WorthQueryDomainOperationIdentity::new("mixed-workflow-mutation", 1),
-        mixed_mutation_semantics(compensated),
+        mixed_mutation_semantics(),
     );
     let package = domain::WorthQueryDomainPackage::declare(GeometryDomain, geometry_identity())
         .operation(operation)
@@ -291,9 +290,7 @@ pub fn mixed_mutation_workflow_runtime<G: 'static>(
     )
 }
 
-fn mixed_mutation_semantics(
-    _compensated: bool,
-) -> domain::WorthQueryDomainOperationSemanticClosure {
+fn mixed_mutation_semantics() -> domain::WorthQueryDomainOperationSemanticClosure {
     let mut semantics = semantic_closure(
         canonical_bundle("Vertex"),
         domain::WorthQuerySupportRequirement::NotRequired,

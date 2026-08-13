@@ -7,24 +7,24 @@ use bank_domain::{
 use worth_query_host::facade::{
     admission::authenticated_principal::WorthQueryRequestScope,
     declaration::application_schema::TypedMutationPreconditions,
-    primary_graph::{
-        WorthQueryApplicationIdempotencyBinding, WorthQueryMandatoryReview,
-        WorthQueryMandatoryReviewOutcome,
-    },
+    primary_graph::WorthQueryApplicationIdempotencyBinding,
 };
 
-use super::{lifecycle_facts::seal_review_lifecycle_facts, BankEstateProgressionDenial};
+use super::{
+    lifecycle_facts::seal_review_lifecycle_facts, BankEstateMandatoryReview,
+    BankEstateMandatoryReviewOutcome, BankEstateProgressionDenial,
+};
 use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime};
 
 impl BankIdentityRuntime {
     pub fn complete_estate_mandatory_review(
         &self,
         principal: &BankAuthenticatedPrincipal,
-        mandatory: WorthQueryMandatoryReview,
+        mandatory: BankEstateMandatoryReview,
         action: EstateAction,
         idempotency: WorthQueryApplicationIdempotencyBinding,
         request: &WorthQueryRequestScope,
-    ) -> Result<WorthQueryMandatoryReviewOutcome, BankEstateProgressionDenial> {
+    ) -> Result<BankEstateMandatoryReviewOutcome, BankEstateProgressionDenial> {
         let EstateAction::CompleteMandatoryReview { access, review, .. } = action else {
             return Err(BankEstateProgressionDenial::CommandInput(
                 "CompleteEstateMandatoryReviewOperation",
@@ -50,7 +50,7 @@ impl BankIdentityRuntime {
         let admission = self
             .application_runtime()
             .authorize_mandatory_review(
-                mandatory,
+                mandatory.into_query(),
                 access_authority,
                 &operation,
                 TypedMutationPreconditions::<
@@ -76,8 +76,9 @@ impl BankIdentityRuntime {
             .map_err(BankEstateProgressionDenial::from_attempt)?
             .materialize_mandatory_review_program()
             .map_err(BankEstateProgressionDenial::from_attempt)?;
-        Ok(self
-            .application_runtime()
-            .compare_and_commit_mandatory_review(program, idempotency))
+        Ok(BankEstateMandatoryReviewOutcome::from_query(
+            self.application_runtime()
+                .compare_and_commit_mandatory_review(program, idempotency),
+        ))
     }
 }

@@ -110,4 +110,16 @@ impl BankRecordedInverseUndoAdmission {
     pub const fn retained_preimage(&self) -> Option<&WorthQueryRetainedPreImage> {
         self.query.retained_preimage()
     }
+
+    pub const fn undo_admission_work(
+        &self,
+    ) -> worth_query_host::facade::domain::WorthQueryCanonicalWorkEvidence {
+        self.query.undo_admission_work()
+    }
+
+    pub fn canonical_work_phases(
+        &self,
+    ) -> worth_query_host::facade::domain::WorthQueryCanonicalWorkPhases {
+        self.query.canonical_work_phases()
+    }
 }

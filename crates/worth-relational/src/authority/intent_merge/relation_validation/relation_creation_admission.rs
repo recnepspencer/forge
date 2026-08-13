@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::capabilities::{SchemaSource, StorageRead};
-use crate::logic::runtime::RuntimeInstrumentation;
+use crate::runtime::RuntimeInstrumentation;
 use crate::transactions::data::{
     CommitConflict, ConflictClass, CreatedEntityRef, EntityReference, RelationIdentity,
     RelationSpec,
