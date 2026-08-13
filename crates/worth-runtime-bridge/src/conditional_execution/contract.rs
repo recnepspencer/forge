@@ -42,9 +42,18 @@ pub struct BridgeOwnedSignalRuntime {
         (worth_signal::facade::NodeId, usize),
         worth_foundational::facade::ContractValidatedAspectArtifact,
     >,
+    pub(super) managed_clock_lanes: BTreeMap<Arc<str>, super::managed_time::BridgeManagedClockLane>,
 }
 
 impl BridgeOwnedSignalRuntime {
+    /// Owns a fresh Signal graph behind the Bridge boundary.
+    ///
+    /// Callers that do not already own a topology-specific Signal graph use
+    /// this constructor so raw Signal authority never crosses into them.
+    pub fn with_owned_signal_graph(bridge: RuntimeBridge) -> Result<Self, BridgeConditionalDenial> {
+        Self::new(bridge, SignalGraph::new())
+    }
+
     pub fn new(
         mut bridge: RuntimeBridge,
         mut graph: SignalGraph,
@@ -70,6 +79,7 @@ impl BridgeOwnedSignalRuntime {
             graph,
             conditional_lowerings: BTreeMap::new(),
             conditional_observations: std::collections::BTreeMap::new(),
+            managed_clock_lanes: BTreeMap::new(),
         })
     }
 
@@ -309,6 +319,7 @@ impl BridgeOwnedSignalRuntime {
 impl Drop for BridgeOwnedSignalRuntime {
     fn drop(&mut self) {
         self.revoke_conditional_liveness();
+        self.revoke_managed_clock_liveness();
     }
 }
 

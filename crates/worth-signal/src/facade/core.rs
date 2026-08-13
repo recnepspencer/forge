@@ -213,16 +213,16 @@ pub use crate::data::resource::{
     RESOURCE_MILESTONE_C_POLICY_SCENARIO_MATRIX_SCHEMA_VERSION,
 };
 pub use crate::data::temporal::{
-    AfterCondition, AtOrAfterCondition, ClockAdvanceOrdinal, ClockAdvanceRequest, ClockAuthority,
-    ClockCheckpointId, ClockDomain, ClockTick, DebounceCondition, DeferredTemporalEligibility,
-    IntervalAnchor, IntervalCondition, IntervalPeriod, IntervalWakeRegeneration,
-    LoweredTemporalEligibility, MissedTickPolicy, PreviousValueRevision, ReadyTemporalEligibility,
-    RuntimeClockBasis, StaleAfterCondition, TemporalClockAdvanceSummary, TemporalCondition,
-    TemporalDuration, TemporalEligibilityAuthority, TemporalExecutionSummary,
-    TemporalFrontierSnapshot, TemporalPreviousValueAccess, TemporalPreviousValueReference,
-    TemporalReadyPromotionSummary, TemporalWakeAdmissionSummary, TemporalWakeOwner,
-    TemporalWakeReschedule, TemporalWakeRetirementBatch, TemporalWakeReuse, ThrottleCondition,
-    ValidatedClockAdvance,
+    AfterCondition, AtOrAfterCondition, BoundedTemporalReadyPromotionSummary, ClockAdvanceOrdinal,
+    ClockAdvanceRequest, ClockAuthority, ClockCheckpointId, ClockDomain, ClockTick,
+    DebounceCondition, DeferredTemporalEligibility, IntervalAnchor, IntervalCondition,
+    IntervalPeriod, IntervalWakeRegeneration, LoweredTemporalEligibility, MissedTickPolicy,
+    PreviousValueRevision, ReadyTemporalEligibility, RuntimeClockBasis, StaleAfterCondition,
+    TemporalClockAdvanceSummary, TemporalCondition, TemporalDuration, TemporalEligibilityAuthority,
+    TemporalExecutionSummary, TemporalFrontierSnapshot, TemporalPreviousValueAccess,
+    TemporalPreviousValueReference, TemporalReadyPromotionSummary, TemporalWakeAdmissionSummary,
+    TemporalWakeOwner, TemporalWakeReschedule, TemporalWakeRetirementBatch, TemporalWakeReuse,
+    ThrottleCondition, ValidatedClockAdvance,
 };
 pub use crate::data::trace::TraceSummary;
 pub use crate::logic::evaluation::ConditionEvaluationContext;

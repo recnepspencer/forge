@@ -3,8 +3,8 @@ use worth_query_installation::facade::{
 };
 use worth_relational::facade::bridge::RuntimeBridgeRelationalSource;
 use worth_runtime_bridge::facade::{
-    BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration, BridgeRuntimePolicy,
-    BridgeSourceAdapter, BridgeSourceCapability, BridgeSourceCapabilitySet,
+    BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration, BridgeOwnedSignalRuntime,
+    BridgeRuntimePolicy, BridgeSourceAdapter, BridgeSourceCapability, BridgeSourceCapabilitySet,
     BridgeTruthViewSelector, CoarseRoutingMode, InvalidationSink, MappingSelector, RuntimeBridge,
     RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
     SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity, TruthPatchScope,
@@ -22,10 +22,29 @@ struct WorthQueryApplicationBridgeSource {
 
 struct WorthQueryApplicationInvalidationSink;
 
+pub(super) struct WorthQueryInstalledApplicationBridge {
+    ordinary: RuntimeBridge,
+    conditional: BridgeOwnedSignalRuntime,
+}
+
+impl WorthQueryInstalledApplicationBridge {
+    pub(super) fn ordinary(&self) -> &RuntimeBridge {
+        &self.ordinary
+    }
+
+    pub(super) fn conditional(&self) -> &BridgeOwnedSignalRuntime {
+        &self.conditional
+    }
+
+    pub(super) fn conditional_mut(&mut self) -> &mut BridgeOwnedSignalRuntime {
+        &mut self.conditional
+    }
+}
+
 pub(super) fn install_application_bridge<Schema>(
     schema: &WorthQueryInstalledApplicationSchema<Schema>,
     source: RuntimeBridgeRelationalSource,
-) -> Result<RuntimeBridge, WorthQueryPrimaryGraphInstallationDenial>
+) -> Result<WorthQueryInstalledApplicationBridge, WorthQueryPrimaryGraphInstallationDenial>
 where
     Schema: ApplicationSchema,
 {
@@ -50,12 +69,18 @@ where
             ]),
         ))
         .register_mapping(first);
-    mappings
+    let ordinary = mappings
         .fold(builder, |builder, mapping| {
             builder.register_mapping(mapping)
         })
         .build()
-        .map_err(|error| bridge_denial(format!("{error:?}")))
+        .map_err(|error| bridge_denial(format!("{error:?}")))?;
+    let conditional = BridgeOwnedSignalRuntime::with_owned_signal_graph(ordinary.clone())
+        .map_err(|error| bridge_denial(format!("{error:?}")))?;
+    Ok(WorthQueryInstalledApplicationBridge {
+        ordinary,
+        conditional,
+    })
 }
 
 fn application_mappings<Schema>(

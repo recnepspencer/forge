@@ -6,6 +6,7 @@ mod artifact_contract_admission;
 mod artifact_contract_authority;
 mod authority;
 mod authority_validation;
+mod conditional_application_operation;
 mod construction;
 mod denial;
 mod index_identity;
@@ -23,6 +24,7 @@ pub use rebuild_report::{
 pub use relation::WorthQueryInstalledPackageIndexRelation;
 
 use crate::admission::WorthQueryAdmittedPortableDomainPackage;
+use crate::application_operation::WorthQueryPortableApplicationConditionalOperationBinding;
 use crate::authority_cryptography::{InstallationAuthorityRootKey, PackageAuthorityKey};
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::domain_computation::WorthQueryPortableArtifactContract;
@@ -50,6 +52,10 @@ pub struct WorthQueryInstalledPackageIndex {
     domain_operations: BTreeMap<(String, String), WorthQueryValidatedDomainOperation>,
     artifact_contracts: BTreeMap<(String, String, u32, u32), WorthQueryPortableArtifactContract>,
     application_schemas: BTreeMap<(String, String), ErasedApplicationSchemaDeclaration>,
+    conditional_application_operations: BTreeMap<
+        (String, String, String),
+        WorthQueryPortableApplicationConditionalOperationBinding,
+    >,
     identity: WorthQueryInstalledPackageIndexIdentity,
     installation_canonical_work: WorthQueryCanonicalWorkEvidence,
     counters: WorthQueryInstalledPackageIndexCounters,
@@ -95,6 +101,10 @@ impl WorthQueryInstalledPackageIndex {
 
     pub fn installed_application_schema_count(&self) -> usize {
         self.application_schemas.len()
+    }
+
+    pub fn installed_conditional_application_operation_count(&self) -> usize {
+        self.conditional_application_operations.len()
     }
 
     pub fn indexed_operation_lookups(&self) -> usize {

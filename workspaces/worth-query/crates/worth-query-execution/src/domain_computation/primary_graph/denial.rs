@@ -16,6 +16,7 @@ pub enum WorthQueryPrimaryGraphInstallationDenialKind {
     RelationalRuntimeAlreadyPublished,
     AuthorizationPolicyRejected,
     RuntimeBridgeRejected,
+    ConditionalBindingsRequired,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

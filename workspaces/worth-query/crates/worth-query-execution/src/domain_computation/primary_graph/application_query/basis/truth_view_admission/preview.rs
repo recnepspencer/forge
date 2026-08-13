@@ -33,6 +33,7 @@ where
         let session_liveness = handle.liveness_observer();
         let evaluation = self
             .bridge
+            .ordinary()
             .evaluate(handle.compare_to_main().speculative_evaluation_request())
             .map_err(|error| {
                 denial(

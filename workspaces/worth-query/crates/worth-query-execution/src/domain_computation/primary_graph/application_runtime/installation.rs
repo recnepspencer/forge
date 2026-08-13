@@ -18,14 +18,43 @@ use crate::domain_computation::execution_runtime::{
 };
 use crate::domain_computation::primary_graph::authentication_clock::WorthQueryAuthenticationClock;
 
-pub(super) struct ApplicationRuntimePublication<Schema> {
-    pub(super) bootstrap: WorthQueryPrimaryGraphBootstrap<Schema>,
-    pub(super) runtime: WorthQueryExecutionRuntime,
-    pub(super) authority: WorthQueryExecutionInstallationAuthority,
-    pub(super) installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
-    pub(super) authorization_clock: WorthQueryRuntimeClock,
-    pub(super) fault_port:
+pub(in crate::domain_computation::primary_graph) struct ApplicationRuntimePublication<Schema> {
+    pub(in crate::domain_computation::primary_graph) bootstrap:
+        WorthQueryPrimaryGraphBootstrap<Schema>,
+    pub(in crate::domain_computation::primary_graph) runtime: WorthQueryExecutionRuntime,
+    pub(in crate::domain_computation::primary_graph) authority:
+        WorthQueryExecutionInstallationAuthority,
+    pub(in crate::domain_computation::primary_graph) installed_schema:
+        WorthQueryInstalledApplicationSchema<Schema>,
+    pub(in crate::domain_computation::primary_graph) authorization_clock: WorthQueryRuntimeClock,
+    pub(in crate::domain_computation::primary_graph) fault_port:
         std::sync::Arc<dyn super::super::provider::fault_port::WorthQueryPrimaryGraphFaultPort>,
+}
+
+pub(super) fn require_no_conditional_bindings<Schema>(
+    runtime: &WorthQueryExecutionRuntime,
+    installed_schema: &WorthQueryInstalledApplicationSchema<Schema>,
+) -> Result<(), WorthQueryPrimaryGraphInstallationDenial>
+where
+    Schema: ApplicationSchema,
+{
+    let count = runtime
+        .installed_packages()
+        .installed_conditional_node_count_for_schema(
+            installed_schema.owner(),
+            installed_schema.schema_name(),
+        );
+    if count == 0 {
+        Ok(())
+    } else {
+        Err(WorthQueryPrimaryGraphInstallationDenial::new(
+            WorthQueryPrimaryGraphInstallationDenialKind::ConditionalBindingsRequired,
+            format!(
+                "{} declared conditional nodes require the conditional publication progression",
+                count
+            ),
+        ))
+    }
 }
 
 pub(super) fn publish_application_runtime_with_clock<Schema>(
@@ -54,6 +83,61 @@ where
         installed_schema,
         authorization,
         authorization_clock,
+        Default::default(),
+    ))
+}
+
+pub(in crate::domain_computation::primary_graph) fn publish_application_runtime_with_conditionals<
+    Schema,
+>(
+    input: ApplicationRuntimePublication<Schema>,
+    bindings: Vec<
+        Box<dyn super::super::conditional_operation::WorthQueryPendingConditionalOperation<Schema>>,
+    >,
+) -> Result<
+    WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    super::super::conditional_operation::WorthQueryConditionalRuntimeInstallationDenial,
+>
+where
+    Schema: ApplicationSchema + 'static,
+{
+    let ApplicationRuntimePublication {
+        bootstrap,
+        runtime,
+        authority,
+        installed_schema,
+        authorization_clock,
+        fault_port,
+    } = input;
+    validate_application_schema(&runtime, &installed_schema)
+        .map_err(super::super::conditional_operation::publication_denial)?;
+    let expected = runtime
+        .installed_packages()
+        .installed_conditional_node_count_for_schema(
+            installed_schema.owner(),
+            installed_schema.schema_name(),
+        );
+    super::super::conditional_operation::require_complete_binding_inventory(expected, &bindings)?;
+    let authorization = compile_authorization(&bootstrap, &installed_schema)
+        .map_err(super::super::conditional_operation::publication_denial)?;
+    let mut graph =
+        publish_application_graph(bootstrap, runtime, authority, &installed_schema, fault_port)
+            .map_err(super::super::conditional_operation::publication_denial)?;
+    let conditional_operations = super::super::conditional_operation::install_pending_bindings(
+        bindings,
+        &mut graph.bridge,
+        graph.runtime.authority_identity().as_u64(),
+        graph.runtime.installed_packages().runtime_ordinal(),
+        graph.runtime.installed_packages().generation().ordinal(),
+        graph.primary_graph_authority.provider_identity(),
+        super::super::application_branch::PRIMARY_APPLICATION_BRANCH,
+    )?;
+    Ok(assemble_application_runtime(
+        graph,
+        installed_schema,
+        authorization,
+        authorization_clock,
+        conditional_operations,
     ))
 }
 
@@ -63,7 +147,7 @@ struct PublishedApplicationGraph {
     relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
     execution_basis_source:
         worth_relational::facade::runtime::RelationalApplicationCommitBasisSource,
-    bridge: worth_runtime_bridge::facade::RuntimeBridge,
+    bridge: super::super::managed_bridge::WorthQueryInstalledApplicationBridge,
     primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     primary_graph_authority: WorthQueryInstalledGraphParticipationAuthority,
 }
@@ -167,6 +251,8 @@ fn assemble_application_runtime<Schema>(
     installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
     authorization: WorthQueryInstalledAuthorizationRegistry,
     authorization_clock: WorthQueryRuntimeClock,
+    conditional_operations:
+        super::super::conditional_operation::WorthQueryConditionalOperationRegistry<Schema>,
 ) -> WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     let runtime_authority = graph.runtime.authority_identity();
     // One clock, shared. The registry hands it back to any handle that needs to
@@ -189,6 +275,7 @@ fn assemble_application_runtime<Schema>(
         relational_source: graph.relational_source,
         execution_basis_source: graph.execution_basis_source,
         bridge: graph.bridge,
+        conditional_operations,
         primary_provider: graph.primary_provider,
         primary_graph_authority: graph.primary_graph_authority,
         result_buffers: Default::default(),

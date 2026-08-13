@@ -26,7 +26,7 @@ use super::{
 use crate::domain_computation::authorization::WorthQueryInstalledAuthorizationRegistry;
 
 mod external_dispatch_attempt;
-mod installation;
+pub(in crate::domain_computation::primary_graph) mod installation;
 
 pub(in crate::domain_computation) use external_dispatch_attempt::WorthQueryExternalDispatchAttemptOrdinal;
 
@@ -57,7 +57,9 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(super) relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
     pub(super) execution_basis_source:
         worth_relational::facade::runtime::RelationalApplicationCommitBasisSource,
-    pub(super) bridge: worth_runtime_bridge::facade::RuntimeBridge,
+    pub(super) bridge: super::managed_bridge::WorthQueryInstalledApplicationBridge,
+    pub(super) conditional_operations:
+        super::conditional_operation::WorthQueryConditionalOperationRegistry<Schema>,
     pub(super) primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     pub(super) primary_graph_authority:
         worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
@@ -86,7 +88,33 @@ where
         WorthQueryPrimaryGraphApplicationRuntime<Schema>,
         WorthQueryPrimaryGraphInstallationDenial,
     > {
+        installation::require_no_conditional_bindings(&runtime, &installed_schema)?;
         installation::publish_application_runtime_with_clock(
+            installation::ApplicationRuntimePublication {
+                bootstrap: self,
+                runtime,
+                authority,
+                installed_schema,
+                authorization_clock: WorthQueryRuntimeClock::system(),
+                fault_port: super::provider::fault_port::production_fault_port(),
+            },
+        )
+    }
+
+    /// Begins the sole primary-graph conditional publication progression.
+    ///
+    /// Complete provider, clock, and reconstruction bindings are accumulated
+    /// here before the application runtime can become visible.
+    pub fn conditional_application_runtime_installation(
+        self,
+        runtime: WorthQueryExecutionRuntime,
+        authority: WorthQueryExecutionInstallationAuthority,
+        installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
+    ) -> Result<
+        super::conditional_operation::WorthQueryConditionalApplicationRuntimeInstallation<Schema>,
+        super::conditional_operation::WorthQueryConditionalRuntimeInstallationDenial,
+    > {
+        super::conditional_operation::WorthQueryConditionalApplicationRuntimeInstallation::new(
             installation::ApplicationRuntimePublication {
                 bootstrap: self,
                 runtime,

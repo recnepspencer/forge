@@ -37,6 +37,8 @@ mod application_principal_binding_tests;
 #[cfg(test)]
 mod application_schema_tests;
 #[cfg(test)]
+mod conditional_application_operation_test_fixture;
+#[cfg(test)]
 mod domain_computation_admission_tests;
 #[cfg(test)]
 mod domain_computation_artifact_fixture;
@@ -127,14 +129,22 @@ pub mod facade {
         WorthQueryInstalledApplicationCapabilityPlanSource,
     };
     pub use crate::application_operation::{
+        WorthQueryApplicationConditionalOperationBinding,
         WorthQueryApplicationOperationInstallationDenial,
         WorthQueryApplicationOperationInstallationDenialKind,
-        WorthQueryCompiledApplicationOperationContracts, WorthQueryInstalledAbilityRequirement,
+        WorthQueryCompiledApplicationOperationContracts,
+        WorthQueryConditionalApplicationOperationDenial,
+        WorthQueryConditionalApplicationOperationDenialKind, WorthQueryInstalledAbilityRequirement,
+        WorthQueryInstalledApplicationConditionalNode,
+        WorthQueryInstalledApplicationConditionalOperation,
         WorthQueryInstalledApplicationOperation,
         WorthQueryInstalledApplicationOperationAuthorization,
         WorthQueryInstalledApplicationOperationExecutionPosture,
         WorthQueryInstalledApplicationOperationGraphAuthority,
-        WorthQueryInstalledAuthorizationPath, WorthQueryInstalledMutationPrecondition,
+        WorthQueryInstalledAuthorizationPath, WorthQueryInstalledHostConditionalProvider,
+        WorthQueryInstalledMutationPrecondition, WorthQueryInstalledNamedClockConditionalNode,
+        WorthQueryInstalledTemporalConditionalOperation,
+        WorthQueryPortableApplicationConditionalOperationBinding,
         APPLICATION_AUTHORIZATION_FACT_FAMILY, APPLICATION_DECISION_FACT_FAMILY,
         APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY, APPLICATION_EXECUTION_ALLOCATOR_FAMILY,
         APPLICATION_EXECUTION_PROVIDER_FAMILY, APPLICATION_EXECUTION_SAFE_POINT_FAMILY,

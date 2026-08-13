@@ -18,7 +18,7 @@ pub use conditional_node::*;
 pub use decision_fact_contract::*;
 pub use definition::{
     WorthQueryDomainOperationDefinition, WorthQueryDomainOperationIdentity,
-    WorthQueryPortableDomainOperationDefinition,
+    WorthQueryDomainOperationRef, WorthQueryPortableDomainOperationDefinition,
 };
 pub use evidence_contract::WorthQueryDomainEvidenceContract;
 pub use invariant_execution_contract::*;

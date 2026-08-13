@@ -1,7 +1,8 @@
 use crate::frontier_planning::FrontierSurfaceDigest;
 use worth_signal::facade::adapters::{
     FrontierExecutionSummary, FrontierPlan, FrontierWaveEntryPlan, FrontierWaveEntrySummary,
-    FrontierWavePlan, FrontierWaveSummary, TouchedScopeSummary, TransitiveFrontierRoot,
+    FrontierWavePlan, FrontierWaveSummary, TouchedScopeSummary, TransitiveFrontierEntrySummary,
+    TransitiveFrontierWaveSummary,
 };
 
 use super::frontier_surface_model::SignalFrontierSurfaceEvidence;
@@ -11,7 +12,6 @@ impl SignalFrontierSurfaceEvidence {
         let mut parts = vec![
             format!("seed_count:{}", plan.seed_batch.as_slice().len()),
             format!("direct_wave_count:{}", plan.direct_waves.len()),
-            format!("transitive_root_count:{}", plan.transitive_roots.len()),
             format!("predicted_seed_count:{}", plan.predicted.seed_count),
             format!("predicted_group_count:{}", plan.predicted.group_count),
             format!(
@@ -29,9 +29,6 @@ impl SignalFrontierSurfaceEvidence {
         ));
         for (index, wave) in plan.direct_waves.iter().enumerate() {
             parts.extend(frontier_wave_plan_digest_parts(index, wave));
-        }
-        for (index, root) in plan.transitive_roots.iter().enumerate() {
-            parts.extend(transitive_root_digest_parts(index, root));
         }
 
         Self::from_materialized_surface(
@@ -71,11 +68,7 @@ impl SignalFrontierSurfaceEvidence {
             parts.extend(frontier_wave_summary_digest_parts("direct", index, wave));
         }
         for (index, wave) in summary.transitive_waves.iter().enumerate() {
-            parts.extend(frontier_wave_summary_digest_parts(
-                "transitive",
-                index,
-                wave,
-            ));
+            parts.extend(transitive_wave_summary_digest_parts(index, wave));
         }
 
         Self::from_materialized_surface(
@@ -114,10 +107,6 @@ fn touched_scope_digest_parts(prefix: &str, scope: &TouchedScopeSummary) -> Vec<
     let mut parts = vec![
         format!("{prefix}.seed_scopes:{}", scope.seed_scopes.len()),
         format!("{prefix}.inclusion_scopes:{}", scope.inclusion_scopes.len()),
-        format!(
-            "{prefix}.transitive_reached_scopes:{}",
-            scope.transitive_reached_scopes.len()
-        ),
         format!(
             "{prefix}.direct_dirty_scopes:{}",
             scope.direct_dirty_scopes.len()
@@ -221,32 +210,37 @@ fn frontier_wave_entry_summary_digest_parts(
     parts
 }
 
-fn transitive_root_digest_parts(index: usize, root: &TransitiveFrontierRoot) -> Vec<String> {
+fn transitive_wave_summary_digest_parts(
+    index: usize,
+    wave: &TransitiveFrontierWaveSummary,
+) -> Vec<String> {
     let mut parts = vec![
+        format!("transitive_wave[{index}].wave_index:{}", wave.wave_index),
         format!(
-            "transitive_root[{index}].node:{}:{}",
-            root.node.index(),
-            root.node.generation()
-        ),
-        format!("transitive_root[{index}].aspect:{}", root.aspect.id()),
-        format!(
-            "transitive_root[{index}].classification:{:?}",
-            root.classification
-        ),
-        format!(
-            "transitive_root[{index}].narrowed_scope_count:{}",
-            root.narrowed_scopes.len()
+            "transitive_wave[{index}].entry_count:{}",
+            wave.entries.len()
         ),
     ];
-    for (scope_index, scope) in root.narrowed_scopes.iter().enumerate() {
-        parts.push(format!(
-            "transitive_root[{index}].scope[{scope_index}]:{scope:?}"
-        ));
-    }
-    for (seed_ref_index, seed_ref) in root.source_seed_refs.iter().enumerate() {
-        parts.push(format!(
-            "transitive_root[{index}].seed_ref[{seed_ref_index}]:{seed_ref}"
+    for (entry_index, entry) in wave.entries.iter().enumerate() {
+        parts.extend(transitive_wave_entry_digest_parts(
+            &format!("transitive_wave[{index}].entry[{entry_index}]"),
+            entry,
         ));
     }
     parts
+}
+
+fn transitive_wave_entry_digest_parts(
+    prefix: &str,
+    entry: &TransitiveFrontierEntrySummary,
+) -> Vec<String> {
+    vec![
+        format!(
+            "{prefix}.node:{}:{}",
+            entry.node.index(),
+            entry.node.generation()
+        ),
+        format!("{prefix}.classification:{:?}", entry.classification),
+        format!("{prefix}.inclusion_basis:{:?}", entry.inclusion_basis),
+    ]
 }

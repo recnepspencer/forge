@@ -154,6 +154,7 @@ fn evaluate_installed_conditional_node<D, O, F, L: BasisOperationLane>(
                 query_binding_identity: bound.binding_identity(),
                 query_capability_identity: bound.capability_identity(),
                 snapshot_identity: snapshot_identity.as_str(),
+                truth_branch_identity: None,
                 bridge_snapshot_identity: evaluation.snapshot.bridge_identity(),
                 execution_identity: evaluation.execution_identity,
                 attempt: evaluation.attempt,

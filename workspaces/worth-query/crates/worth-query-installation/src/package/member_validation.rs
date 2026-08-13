@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use super::conditional_operation_validation::validate_conditional_application_operations;
 use super::{
     application_schema_validation::validate_application_schemas,
     artifact_closure::{reject_artifact_contract_conflicts, validate_workflow_artifact_closure},
@@ -31,6 +32,7 @@ pub(super) fn validate_package_members(
         (left.name(), left.identity()).cmp(&(right.name(), right.identity()))
     });
     validate_application_schemas(&package.identity, &package.application_schemas)?;
+    validate_conditional_application_operations(package)?;
     validate_workflow_artifact_closure(&package.domain_operations, &package.artifact_contracts)
 }
 

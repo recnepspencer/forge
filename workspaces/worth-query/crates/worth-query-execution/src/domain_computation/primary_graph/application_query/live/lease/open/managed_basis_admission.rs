@@ -44,7 +44,7 @@ pub(super) fn admit_live_managed_basis<Schema>(
         graph_work.branch().truth().clone(),
         worth_runtime_bridge::facade::SnapshotReadPacket::new(Vec::new()),
     );
-    let request_bridge = application.bridge.fork_managed_request_lane();
+    let request_bridge = application.bridge.ordinary().fork_managed_request_lane();
     admit_managed_lower_execution_basis(
         &request_bridge,
         &application.relational_source,

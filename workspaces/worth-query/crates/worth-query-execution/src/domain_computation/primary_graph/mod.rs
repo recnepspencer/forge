@@ -7,6 +7,7 @@ mod authenticated_principal;
 mod authentication_clock;
 mod bootstrap;
 mod bootstrap_publication;
+mod conditional_operation;
 mod denial;
 mod entity_key;
 mod entity_resolution;
@@ -127,6 +128,12 @@ pub use authenticated_principal::{
     WorthQueryApplicationPrincipalIdentity, WorthQueryAuthenticatedPrincipal,
 };
 pub use bootstrap::{WorthQueryPrimaryGraphBootstrap, WorthQueryPrimaryGraphPublication};
+pub use conditional_operation::{
+    WorthQueryConditionalApplicationRuntimeInstallation,
+    WorthQueryConditionalClockHandle,
+    WorthQueryConditionalRuntimeInstallationDenial,
+    WorthQueryConditionalRuntimeInstallationDenialKind,
+};
 pub use denial::{
     WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
 };

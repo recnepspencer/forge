@@ -83,11 +83,9 @@ pub(crate) fn representative_frontier_evidence_row() -> RepresentativeArtifacts 
                 [0],
             )],
         )],
-        Vec::new(),
         TouchedScopeSummary::new_invalidation(
             PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
             PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::default(),
             PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
             PartitionScopeSet::default(),
             DedupedNodeBatch::new([NodeId::new(1, 0), NodeId::new(2, 0)]),
@@ -117,7 +115,6 @@ pub(crate) fn representative_frontier_evidence_row() -> RepresentativeArtifacts 
         TouchedScopeSummary::new_invalidation(
             PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
             PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::default(),
             PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
             PartitionScopeSet::default(),
             DedupedNodeBatch::new([NodeId::new(1, 0), NodeId::new(2, 0)]),

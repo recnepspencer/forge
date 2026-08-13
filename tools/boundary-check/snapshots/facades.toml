@@ -108,6 +108,7 @@ exports = [
     "provisional_aftermath",
     "publication",
     "runtime",
+    "worth_query_conditional_node",
 ]
 
 [[facades]]
@@ -127,6 +128,7 @@ exports = [
     "provisional_aftermath",
     "publication",
     "runtime",
+    "worth_query_conditional_node",
 ]
 
 [[facades]]

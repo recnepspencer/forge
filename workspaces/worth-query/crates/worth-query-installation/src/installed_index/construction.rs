@@ -19,6 +19,10 @@ struct InstalledIndexConstruction {
         (String, String),
         worth_query_declaration::facade::application_schema::ErasedApplicationSchemaDeclaration,
     >,
+    conditional_application_operations: BTreeMap<
+        (String, String, String),
+        WorthQueryPortableApplicationConditionalOperationBinding,
+    >,
     counters: WorthQueryInstalledPackageIndexCounters,
 }
 
@@ -95,6 +99,9 @@ impl InstalledIndexConstruction {
         self.counters.installed_domain_operation_count = self.domain_operations.len();
         self.counters.installed_artifact_contract_count = self.artifact_contracts.len();
         self.counters.installed_application_schema_count = self.application_schemas.len();
+        self.counters
+            .installed_conditional_application_operation_count =
+            self.conditional_application_operations.len();
         let package_work = self.records.values().fold(
             crate::canonical_work::WorthQueryCanonicalWorkEvidence::zero(),
             |work, record| work.combine(record.package.canonical_work()),
@@ -107,6 +114,7 @@ impl InstalledIndexConstruction {
             domain_operations: &self.domain_operations,
             artifact_contracts: &self.artifact_contracts,
             application_schemas: &self.application_schemas,
+            conditional_application_operations: &self.conditional_application_operations,
         })
         .map_err(|denial| {
             let kind = match denial {
@@ -129,6 +137,7 @@ impl InstalledIndexConstruction {
             domain_operations: self.domain_operations,
             artifact_contracts: self.artifact_contracts,
             application_schemas: self.application_schemas,
+            conditional_application_operations: self.conditional_application_operations,
             identity,
             installation_canonical_work: package_work.combine(index_work),
             counters: self.counters,
@@ -202,6 +211,35 @@ impl InstalledIndexConstruction {
                 continue;
             }
             self.application_schemas.insert(key, schema.clone());
+        }
+        self.admit_conditional_application_operations(owner, package)?;
+        Ok(())
+    }
+
+    fn admit_conditional_application_operations(
+        &mut self,
+        owner: &str,
+        package: &WorthQueryAdmittedPortableDomainPackage,
+    ) -> Result<(), WorthQueryInstalledPackageIndexDenial> {
+        for binding in package.package().conditional_application_operations() {
+            self.counters
+                .conditional_application_operation_rows_examined += 1;
+            let key = (
+                owner.to_string(),
+                binding.schema_name().to_string(),
+                binding.application_operation().to_string(),
+            );
+            if let Some(existing) = self.conditional_application_operations.get(&key) {
+                if existing != binding {
+                    return Err(WorthQueryInstalledPackageIndexDenial::new(
+                        WorthQueryInstalledPackageIndexDenialKind::ConflictingConditionalApplicationOperation,
+                        binding.application_operation(),
+                    ));
+                }
+                continue;
+            }
+            self.conditional_application_operations
+                .insert(key, binding.clone());
         }
         Ok(())
     }
