@@ -3,12 +3,18 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect,
 };
 
-use crate::domain_computation::authorization::capability_registry::WorthQueryCapabilityPathTemplate;
+use crate::domain_computation::authorization::capability_registry::{
+    WorthQueryCapabilityPathTemplate, WorthQueryCapabilityRuleBinding,
+};
+
+pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityRuleSet {
+    paths: Vec<WorthQueryCapabilityPathTemplate>,
+    rules: Vec<WorthQueryCapabilityRuleBinding>,
+}
 
 pub(super) struct WorthQueryCapabilityRuleLoweringAccumulator {
     paths: Vec<WorthQueryCapabilityPathTemplate>,
-    rules: Vec<BridgeAuthorizationRuleContract>,
-    rule_path_indices: Vec<Vec<Vec<usize>>>,
+    rules: Vec<WorthQueryCapabilityRuleBinding>,
 }
 
 pub(super) struct WorthQueryAddedCapabilityRule {
@@ -18,14 +24,17 @@ pub(super) struct WorthQueryAddedCapabilityRule {
 
 pub(super) struct WorthQueryCompletedCapabilityRuleLowering {
     paths: Vec<WorthQueryCapabilityPathTemplate>,
-    rules: Vec<BridgeAuthorizationRuleContract>,
-    rule_path_indices: Vec<Vec<Vec<usize>>>,
+    rules: Vec<WorthQueryCapabilityRuleBinding>,
 }
 
 pub(super) struct WorthQueryCapabilityRuleLoweringPrefix {
     path_count: usize,
-    rules: Vec<BridgeAuthorizationRuleContract>,
-    rule_path_indices: Vec<Vec<Vec<usize>>>,
+    rule_count: usize,
+}
+
+pub(super) struct WorthQueryCompletedCapabilityRulePrefix {
+    path_count: usize,
+    rules: Vec<WorthQueryCapabilityRuleBinding>,
 }
 
 impl WorthQueryCapabilityRuleLoweringAccumulator {
@@ -33,7 +42,6 @@ impl WorthQueryCapabilityRuleLoweringAccumulator {
         Self {
             paths: Vec::new(),
             rules: Vec::new(),
-            rule_path_indices: Vec::new(),
         }
     }
 
@@ -56,8 +64,10 @@ impl WorthQueryCapabilityRuleLoweringAccumulator {
             indices.push(requirement_indices);
         }
         let rule_index = self.rules.len();
-        self.rules.push(bridge_rule(effect, &indices, &self.paths));
-        self.rule_path_indices.push(indices.clone());
+        self.rules.push(WorthQueryCapabilityRuleBinding::new(
+            bridge_rule(effect, &indices, &self.paths),
+            indices.clone(),
+        ));
         WorthQueryAddedCapabilityRule {
             rule_index,
             path_indices: indices,
@@ -77,8 +87,7 @@ impl WorthQueryCapabilityRuleLoweringAccumulator {
     pub(super) fn completed_prefix(&self) -> WorthQueryCapabilityRuleLoweringPrefix {
         WorthQueryCapabilityRuleLoweringPrefix {
             path_count: self.paths.len(),
-            rules: self.rules.clone(),
-            rule_path_indices: self.rule_path_indices.clone(),
+            rule_count: self.rules.len(),
         }
     }
 
@@ -86,24 +95,7 @@ impl WorthQueryCapabilityRuleLoweringAccumulator {
         WorthQueryCompletedCapabilityRuleLowering {
             paths: self.paths,
             rules: self.rules,
-            rule_path_indices: self.rule_path_indices,
         }
-    }
-}
-
-impl WorthQueryCapabilityRuleLoweringPrefix {
-    pub(super) fn path_count(&self) -> usize {
-        self.path_count
-    }
-
-    pub(super) fn rules(&self) -> &[BridgeAuthorizationRuleContract] {
-        &self.rules
-    }
-
-    pub(super) fn into_storage(
-        self,
-    ) -> (Vec<BridgeAuthorizationRuleContract>, Vec<Vec<Vec<usize>>>) {
-        (self.rules, self.rule_path_indices)
     }
 }
 
@@ -118,18 +110,55 @@ impl WorthQueryAddedCapabilityRule {
 }
 
 impl WorthQueryCompletedCapabilityRuleLowering {
-    pub(super) fn rules(&self) -> &[BridgeAuthorizationRuleContract] {
+    pub(super) fn completed_prefix(
+        &self,
+        prefix: WorthQueryCapabilityRuleLoweringPrefix,
+    ) -> WorthQueryCompletedCapabilityRulePrefix {
+        debug_assert!(prefix.path_count <= self.paths.len());
+        debug_assert!(prefix.rule_count <= self.rules.len());
+        WorthQueryCompletedCapabilityRulePrefix {
+            path_count: prefix.path_count,
+            rules: self.rules[..prefix.rule_count].to_vec(),
+        }
+    }
+
+    pub(super) fn rules(&self) -> &[WorthQueryCapabilityRuleBinding] {
         &self.rules
     }
 
-    pub(super) fn into_storage(
-        self,
-    ) -> (
-        Vec<WorthQueryCapabilityPathTemplate>,
-        Vec<BridgeAuthorizationRuleContract>,
-        Vec<Vec<Vec<usize>>>,
-    ) {
-        (self.paths, self.rules, self.rule_path_indices)
+    pub(super) fn into_storage(self) -> WorthQueryCapabilityRuleSet {
+        WorthQueryCapabilityRuleSet {
+            paths: self.paths,
+            rules: self.rules,
+        }
+    }
+}
+
+impl WorthQueryCompletedCapabilityRulePrefix {
+    pub(super) fn path_count(&self) -> usize {
+        self.path_count
+    }
+
+    pub(super) fn rules(&self) -> &[WorthQueryCapabilityRuleBinding] {
+        &self.rules
+    }
+
+    pub(super) fn into_storage(self) -> Vec<WorthQueryCapabilityRuleBinding> {
+        self.rules
+    }
+}
+
+impl WorthQueryCapabilityRuleSet {
+    pub(in crate::domain_computation::authorization) fn paths(
+        &self,
+    ) -> &[WorthQueryCapabilityPathTemplate] {
+        &self.paths
+    }
+
+    pub(in crate::domain_computation::authorization) fn rules(
+        &self,
+    ) -> &[WorthQueryCapabilityRuleBinding] {
+        &self.rules
     }
 }
 
@@ -158,7 +187,7 @@ mod tests {
     use crate::domain_computation::authorization::capability_registry::WorthQueryCapabilityRequestGuard;
 
     #[test]
-    fn every_capability_and_elevation_arm_matches_the_independent_ordered_model() {
+    fn accumulator_atomically_preserves_the_complete_ordered_rule_model() {
         use BridgeAuthorizationRuleEffect::{Prohibited, Required};
 
         let mut lowering = WorthQueryCapabilityRuleLoweringAccumulator::new();
@@ -191,7 +220,9 @@ mod tests {
         let approver = lowering.add_rule(Prohibited, paths(&[&[13, 14], &[15]]));
         assert_eq!(approver.into_path_indices(), expected[11].1);
 
-        let (paths, rules, indices) = lowering.finish().into_storage();
+        let storage = lowering.finish().into_storage();
+        let paths = storage.paths();
+        let rules = storage.rules();
         let identities = paths
             .iter()
             .map(|path| path.identity[0])
@@ -201,16 +232,26 @@ mod tests {
             .iter()
             .map(|(_, indices)| indices.clone())
             .collect::<Vec<_>>();
-        assert_eq!(indices, expected_indices);
         assert_eq!(
-            rules.iter().map(|rule| rule.effect()).collect::<Vec<_>>(),
+            rules
+                .iter()
+                .map(|rule| rule.path_requirements().to_vec())
+                .collect::<Vec<_>>(),
+            expected_indices
+        );
+        assert_eq!(
+            rules
+                .iter()
+                .map(|rule| rule.bridge().effect())
+                .collect::<Vec<_>>(),
             expected
                 .iter()
                 .map(|(effect, _)| *effect)
                 .collect::<Vec<_>>()
         );
-        for (rule, expected_indices) in rules.iter().zip(indices) {
+        for rule in rules {
             let actual = rule
+                .bridge()
                 .requirements()
                 .iter()
                 .map(|requirement| {
@@ -221,7 +262,7 @@ mod tests {
                         .collect::<Vec<_>>()
                 })
                 .collect::<Vec<_>>();
-            assert_eq!(actual, expected_indices);
+            assert_eq!(actual, rule.path_requirements());
         }
     }
 

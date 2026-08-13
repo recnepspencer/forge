@@ -4,7 +4,7 @@ use crate::authority::mutation::record_changes::{
 };
 use crate::authority::mutation::stale_targets::ensure_entity_target_is_current;
 use crate::authority::mutation::MutationWorkspace;
-use crate::storage::logic::state::EntityExtra;
+use crate::storage::substrate::EntityExtra;
 use crate::transactions::data::{CommitConflict, RecordAspectPatchTarget, ReplaceEntityIntent};
 use worth_foundational::facade::PortablePatchReadmissionPurpose;
 

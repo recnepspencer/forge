@@ -1,6 +1,6 @@
 use crate::capabilities::StorageRead;
 use crate::identity::data::RecordId;
-use crate::storage::logic::state::{
+use crate::storage::substrate::{
     generation_of, partition_of, slot_of, EntityRecordKind, RecordKind, RelationRecordKind,
 };
 use crate::transactions::data::{CommitConflict, ConflictClass, ExistingRecordTarget};

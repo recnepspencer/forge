@@ -10,15 +10,41 @@ use super::super::super::{
 };
 use super::super::aftermath_resolution::resolve_exact_committed_aftermath;
 use super::super::elevation_currentness::WorthQueryElevationCommitCurrentness;
-use super::super::support::denied;
+use super::super::provider_denial::denied;
 use crate::domain_computation::application_aftermath::WorthQueryPendingAftermathCausality;
-use crate::domain_computation::authorization::{
-    WorthQueryCommitAuthorizationBasis, WorthQueryProviderAuthorizationDecisionFacts,
+use crate::domain_computation::authorization::WorthQueryProviderCommitAuthorization;
+use crate::domain_computation::primary_graph::application_attempt::{
+    effect_program::WorthQueryApplicationRealizedEffect,
+    provider_binding::WorthQueryPreparedApplicationProviderAttempt,
+    snapshot_lease::WorthQueryApplicationSnapshotLease, WorthQueryApplicationObservedFact,
 };
 use crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolution;
 use crate::domain_computation::primary_graph::{
     WorthQueryAdmittedApplicationOperation, WorthQueryPrimaryGraphApplicationRuntime,
 };
+
+pub(super) mod running;
+
+pub(in crate::domain_computation::primary_graph::application_attempt::provider_execution) struct WorthQueryPreparedApplicationCommit<
+    Schema,
+    Operation,
+    Input,
+    Scope,
+> {
+    admission: crate::domain_computation::primary_graph::WorthQueryAdmittedApplicationOperation<
+        Schema,
+        Operation,
+        Input,
+        Scope,
+    >,
+    lease: WorthQueryApplicationSnapshotLease,
+    provider_attempt: WorthQueryPreparedApplicationProviderAttempt,
+    authorization: WorthQueryProviderCommitAuthorization,
+    idempotency: WorthQueryApplicationIdempotencyBinding,
+    aftermath_causality: Option<
+        crate::domain_computation::application_aftermath::WorthQueryPendingAftermathCausality,
+    >,
+}
 
 pub(in crate::domain_computation::primary_graph::application_attempt) struct WorthQueryEarlyEquivalentCommitReceiptPermit
 {
@@ -31,27 +57,32 @@ impl WorthQueryEarlyEquivalentCommitReceiptPermit {
     }
 }
 
-pub(in super::super) enum WorthQueryApplicationCommitPreparation<Schema, Operation, Input, Scope> {
-    Ready(WorthQueryPreparedApplicationCommit<Schema, Operation, Input, Scope>),
-    Terminal(WorthQueryApplicationCommitOutcome),
-}
-
-pub(in super::super) struct WorthQueryApplicationCommitPreparationRequest<
+pub(in crate::domain_computation::primary_graph::application_attempt::provider_execution) enum WorthQueryApplicationCommitPreparation<
     Schema,
     Operation,
     Input,
     Scope,
 > {
-    pub(super) program: WorthQueryApplicationEffectProgram<Schema, Operation, Input, Scope>,
-    pub(super) idempotency: WorthQueryApplicationIdempotencyBinding,
-    pub(super) elevation_currentness: Option<WorthQueryElevationCommitCurrentness>,
-    pub(super) aftermath_causality: Option<WorthQueryPendingAftermathCausality>,
+    Ready(WorthQueryPreparedApplicationCommit<Schema, Operation, Input, Scope>),
+    Terminal(WorthQueryApplicationCommitOutcome),
+}
+
+pub(in crate::domain_computation::primary_graph::application_attempt::provider_execution) struct WorthQueryApplicationCommitPreparationRequest<
+    Schema,
+    Operation,
+    Input,
+    Scope,
+> {
+    program: WorthQueryApplicationEffectProgram<Schema, Operation, Input, Scope>,
+    idempotency: WorthQueryApplicationIdempotencyBinding,
+    elevation_currentness: Option<WorthQueryElevationCommitCurrentness>,
+    aftermath_causality: Option<WorthQueryPendingAftermathCausality>,
 }
 
 impl<Schema, Operation, Input, Scope>
     WorthQueryApplicationCommitPreparationRequest<Schema, Operation, Input, Scope>
 {
-    pub(in super::super) fn new(
+    pub(in crate::domain_computation::primary_graph::application_attempt::provider_execution) fn new(
         program: WorthQueryApplicationEffectProgram<Schema, Operation, Input, Scope>,
         idempotency: WorthQueryApplicationIdempotencyBinding,
         elevation_currentness: Option<WorthQueryElevationCommitCurrentness>,
@@ -66,20 +97,9 @@ impl<Schema, Operation, Input, Scope>
     }
 }
 
-pub(in super::super) struct WorthQueryPreparedApplicationCommit<Schema, Operation, Input, Scope> {
-    pub(super) admission: WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
-    pub(super) lease: super::super::super::snapshot_lease::WorthQueryApplicationSnapshotLease,
-    pub(super) provider_attempt:
-        super::super::super::provider_binding::WorthQueryPreparedApplicationProviderAttempt,
-    pub(super) authorization: WorthQueryProviderAuthorizationDecisionFacts,
-    pub(super) commit_authorization: WorthQueryCommitAuthorizationBasis,
-    pub(super) idempotency: WorthQueryApplicationIdempotencyBinding,
-    pub(super) aftermath_causality: Option<WorthQueryPendingAftermathCausality>,
-}
-
 struct WorthQueryProviderAttemptPreparation {
-    facts: Vec<super::super::super::WorthQueryApplicationObservedFact>,
-    effects: Vec<super::super::super::effect_program::WorthQueryApplicationRealizedEffect>,
+    facts: Vec<WorthQueryApplicationObservedFact>,
+    effects: Vec<WorthQueryApplicationRealizedEffect>,
     emission_retained_bytes: u64,
     emission_retained_bytes_ceiling: u64,
     preimage_demand: Option<worth_query_installation::facade::InstalledPreImageDemand>,
@@ -87,13 +107,18 @@ struct WorthQueryProviderAttemptPreparation {
 
 struct WorthQueryCurrentApplicationCommit<Schema, Operation, Input, Scope> {
     admission: WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
-    lease: super::super::super::snapshot_lease::WorthQueryApplicationSnapshotLease,
+    lease: WorthQueryApplicationSnapshotLease,
     provider: WorthQueryProviderAttemptPreparation,
     idempotency: WorthQueryApplicationIdempotencyBinding,
     aftermath_causality: Option<WorthQueryPendingAftermathCausality>,
 }
 
-pub(in super::super) fn prepare_application_commit<Schema, Operation, Input, Scope>(
+pub(in crate::domain_computation::primary_graph::application_attempt::provider_execution) fn prepare_application_commit<
+    Schema,
+    Operation,
+    Input,
+    Scope,
+>(
     application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     request: WorthQueryApplicationCommitPreparationRequest<Schema, Operation, Input, Scope>,
 ) -> WorthQueryApplicationCommitPreparation<Schema, Operation, Input, Scope>
@@ -159,11 +184,10 @@ fn prepare_authorized_application_commit<Schema, Operation, Input, Scope>(
         idempotency,
         aftermath_causality,
     } = current;
-    let (authorization, commit_authorization) =
-        match take_commit_authorization(application, &mut admission) {
-            Ok(authorization) => authorization,
-            Err(outcome) => return terminal(outcome),
-        };
+    let authorization = match take_commit_authorization(application, &mut admission) {
+        Ok(authorization) => authorization,
+        Err(outcome) => return terminal(outcome),
+    };
     let provider_attempt = match prepare_application_provider_attempt(provider) {
         Ok(prepared) => prepared,
         Err(_) => return terminal(denied(DenialStage::ProposalBinding)),
@@ -173,7 +197,6 @@ fn prepare_authorized_application_commit<Schema, Operation, Input, Scope>(
         lease,
         provider_attempt,
         authorization,
-        commit_authorization,
         idempotency,
         aftermath_causality,
     })
@@ -181,8 +204,7 @@ fn prepare_authorized_application_commit<Schema, Operation, Input, Scope>(
 
 fn prepare_application_provider_attempt(
     preparation: WorthQueryProviderAttemptPreparation,
-) -> Result<super::super::super::provider_binding::WorthQueryPreparedApplicationProviderAttempt, ()>
-{
+) -> Result<WorthQueryPreparedApplicationProviderAttempt, ()> {
     prepare_provider_attempt(
         preparation.facts,
         preparation.effects,
@@ -218,13 +240,7 @@ fn validate_elevation_currentness<Schema>(
 fn take_commit_authorization<Schema, Operation, Input, Scope>(
     application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     admission: &mut WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
-) -> Result<
-    (
-        WorthQueryProviderAuthorizationDecisionFacts,
-        WorthQueryCommitAuthorizationBasis,
-    ),
-    WorthQueryApplicationCommitOutcome,
-> {
+) -> Result<WorthQueryProviderCommitAuthorization, WorthQueryApplicationCommitOutcome> {
     admission
         .take_authorization_dependencies(application.authorization.bridge())
         .map_err(|_| denied(DenialStage::DecisionReadSet))

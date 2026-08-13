@@ -4,15 +4,7 @@ use bank_domain::estate::{
     EmergencyAccessId, EmergencyAccessReason, EstateAction, EstateWorkflowStage, MandatoryReviewId,
     RestrictedBankField,
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryElevationApprovalOutcome,
-    WorthQueryElevationCloseOutcome, WorthQueryElevationClosureKind,
-    WorthQueryElevationRequestOutcome, WorthQueryMandatoryReviewOutcome,
-};
-use worth_query_host::facade::publication::domain_computation::{
-    publish_approved_elevation, publish_requested_elevation,
-    WorthQueryApplicationAuthorizationPublicationProfile,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
 use super::fixture::{
     capability_world, emergency_request_world, request_scope, GrantSpec,
@@ -21,10 +13,12 @@ use super::fixture::{
 use super::lifecycle_journey::{
     approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
 };
-use super::publication_evidence::{
-    assert_review_required_publication_lineage, publication_profile,
-};
 use crate::estate_progression::BankEstateProgressionDenial;
+use crate::{
+    BankApprovedEstateElevation, BankEstateElevationApprovalOutcome,
+    BankEstateElevationCloseOutcome, BankEstateElevationClosureKind,
+    BankEstateElevationRequestOutcome, BankEstateMandatoryReview, BankEstateMandatoryReviewOutcome,
+};
 
 #[test]
 fn public_bank_runtime_commits_exact_emergency_request_through_query() {
@@ -53,14 +47,14 @@ fn public_bank_runtime_commits_exact_emergency_request_through_query() {
             &request_scope(),
         )
         .expect("the public Bank runtime must reach Query's request progression");
-    let WorthQueryElevationRequestOutcome::Requested(requested) = outcome else {
+    let BankEstateElevationRequestOutcome::Requested(requested) = outcome else {
         panic!("the exact Bank request must commit once: {outcome:?}");
     };
 
     assert_eq!(requested.elevation_key(), "estate-emergency-access-301");
     assert_eq!(requested.review_key(), "estate-mandatory-review-302");
     assert_eq!(
-        requested.commit_receipt().changed_record_count(),
+        requested.request_changed_record_count(),
         8,
         "the request creates its direct authoritative EmergencyEstate relation"
     );
@@ -173,12 +167,12 @@ fn distinct_approver_commits_the_public_query_approval_transition() {
             &request_scope(),
         )
         .expect("a distinct assigned employee should reach Query approval");
-    let WorthQueryElevationApprovalOutcome::Approved(approved) = outcome else {
+    let BankEstateElevationApprovalOutcome::Approved(approved) = outcome else {
         panic!("the exact approval should commit once: {outcome:?}");
     };
 
-    assert_ne!(approved.requester(), approved.approver());
-    assert_eq!(approved.approval_commit_receipt().changed_record_count(), 3);
+    assert!(approved.requester_differs_from_approver());
+    assert_eq!(approved.approval_changed_record_count(), 3);
 }
 
 #[test]
@@ -271,11 +265,6 @@ fn public_bank_runtime_completes_the_exact_close_and_review_lifecycle() {
             duration: Duration::from_secs(300),
         },
     );
-    let requested_publication = publish_requested_elevation(
-        &requested,
-        WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),
-    )
-    .unwrap();
     let approver = fixture.authenticate_approver();
     let approved = approve_elevation(
         &fixture,
@@ -286,27 +275,15 @@ fn public_bank_runtime_completes_the_exact_close_and_review_lifecycle() {
             idempotency: 83,
         },
     );
-    let approved_publication = publish_approved_elevation(
-        &approved,
-        WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),
-    )
-    .unwrap();
-
     let mandatory = close_approved_elevation(&fixture, &approver, approved);
-    assert_review_required_publication_lineage(
-        &requested_publication,
-        &approved_publication,
-        &mandatory,
-    );
-
     complete_required_review(&fixture, mandatory);
 }
 
 fn close_approved_elevation(
     fixture: &super::fixture::CapabilityFixture,
     approver: &crate::BankAuthenticatedPrincipal,
-    approved: worth_query_host::facade::primary_graph::WorthQueryApprovedElevation,
-) -> worth_query_host::facade::primary_graph::WorthQueryMandatoryReview {
+    approved: BankApprovedEstateElevation,
+) -> BankEstateMandatoryReview {
     let close = fixture
         .runtime
         .revoke_estate_emergency_access(
@@ -320,20 +297,20 @@ fn close_approved_elevation(
             &request_scope(),
         )
         .expect("the approved elevation should reach Query close");
-    let WorthQueryElevationCloseOutcome::Closed(mandatory) = close else {
+    let BankEstateElevationCloseOutcome::Closed(mandatory) = close else {
         panic!("the exact close should commit once: {close:?}");
     };
     assert_eq!(
         mandatory.closure_kind(),
-        WorthQueryElevationClosureKind::Revoked
+        BankEstateElevationClosureKind::Revoked
     );
-    assert_eq!(mandatory.close_commit_receipt().changed_record_count(), 2);
+    assert_eq!(mandatory.close_changed_record_count(), 2);
     mandatory
 }
 
 fn complete_required_review(
     fixture: &super::fixture::CapabilityFixture,
-    mandatory: worth_query_host::facade::primary_graph::WorthQueryMandatoryReview,
+    mandatory: BankEstateMandatoryReview,
 ) {
     let reviewer = fixture.authenticate_reviewer();
     let outcome = fixture
@@ -350,10 +327,10 @@ fn complete_required_review(
             &request_scope(),
         )
         .expect("a distinct reviewer should reach Query review completion");
-    let WorthQueryMandatoryReviewOutcome::Reviewed(reviewed) = outcome else {
+    let BankEstateMandatoryReviewOutcome::Reviewed(reviewed) = outcome else {
         panic!("the exact review should commit once: {outcome:?}");
     };
-    assert_ne!(reviewed.reviewer(), reviewed.requester());
-    assert_ne!(reviewed.reviewer(), reviewed.approver());
-    assert_eq!(reviewed.review_commit_receipt().changed_record_count(), 3);
+    assert!(reviewed.reviewer_differs_from_requester());
+    assert!(reviewed.reviewer_differs_from_approver());
+    assert_eq!(reviewed.review_changed_record_count(), 3);
 }

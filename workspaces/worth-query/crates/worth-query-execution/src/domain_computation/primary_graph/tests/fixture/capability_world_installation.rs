@@ -38,7 +38,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_replace
     )
 }
 
-pub(in crate::domain_computation::primary_graph) fn installed_composed_capability_world(
+pub(in crate::domain_computation) fn installed_composed_capability_world(
     scenario: super::capability_seed::CapabilityCompositionScenario,
 ) -> AuthorizationWorld {
     capability_world(1, "primary", CapabilityGrantPopulation::Composed(scenario))

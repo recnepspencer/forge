@@ -1,6 +1,6 @@
 use crate::capabilities::AspectPlanSource;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::SnapshotHandle;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 

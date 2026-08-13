@@ -1,6 +1,6 @@
 use crate::capabilities::StorageRead;
 use crate::identity::data::{RelationId, VersionId};
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{CommitConflict, ConflictClass, ExistingRecordTarget};
 
 use super::super::record_lookup::{relation_exists_in_state, relation_exists_in_version_basis};

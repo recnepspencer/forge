@@ -3,7 +3,7 @@ use crate::commit_strategies::data::{
     CanonicalStrategyInputDigest, StrategyInputSchemaName, StrategyInputSchemaVersion,
     StrategyLoweringSummary, StrategyPreviewValidationCostSummary,
 };
-use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
+use crate::config::data::{PlanningContract, RelationalExecutionModel};
 use crate::transactions::data::{CommitValidationSummary, ExistingRecordTarget};
 use crate::validation::data::InvariantCatalog;
 use worth_foundational::facade::AspectFieldLocator;

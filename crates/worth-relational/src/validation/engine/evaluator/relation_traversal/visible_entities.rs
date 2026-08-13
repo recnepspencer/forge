@@ -35,7 +35,7 @@ fn collect_current_version_entities(
     context: &InvariantExecutionContext<'_>,
     kind_ids: &[crate::identity::data::KindId],
     partition_id: crate::identity::data::PartitionId,
-    partition: &crate::storage::logic::state::PartitionState,
+    partition: &crate::storage::overlay::PartitionState,
     entities: &mut Vec<EntityReference>,
 ) {
     for slot in partition.entity_arena.live_bitset.iter_set_slots() {
@@ -62,7 +62,7 @@ fn collect_historical_entities(
     context: &InvariantExecutionContext<'_>,
     kind_ids: &[crate::identity::data::KindId],
     partition_id: crate::identity::data::PartitionId,
-    partition: &crate::storage::logic::state::PartitionState,
+    partition: &crate::storage::overlay::PartitionState,
     entities: &mut Vec<EntityReference>,
 ) {
     let state_view = context.state_view();

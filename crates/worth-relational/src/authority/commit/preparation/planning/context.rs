@@ -1,4 +1,4 @@
-use crate::logic::planning::PlanningContract;
+use crate::config::data::PlanningContract;
 use crate::transactions::data::{CommitStructuralSummary, TransactionId};
 use crate::validation::data::{InvariantExecutionPoint, InvariantPlanContract};
 use crate::validation::engine::InvariantObservationKind;

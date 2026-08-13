@@ -6,7 +6,6 @@ use super::{
 };
 
 pub fn federated_touch_package<G1: 'static, G2: 'static>(
-    _compensated: bool,
     touches_remote_b: bool,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
     let mut semantics = read_vertex_definition(domain::WorthQuerySupportRequirement::Required)

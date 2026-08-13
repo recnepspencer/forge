@@ -1,6 +1,6 @@
 use worth_query_execution::facade::primary_graph::{
-    WorthQueryApplicationCommitReceipt, WorthQueryApplicationCommitTerminalKind,
-    WorthQueryPrimaryMutationWorkEvidence,
+    WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
+    WorthQueryApplicationCommitTerminalKind, WorthQueryPrimaryMutationWorkEvidence,
 };
 use worth_query_installation::facade::WorthQueryCanonicalWorkEvidence;
 
@@ -177,6 +177,31 @@ impl WorthQueryPublishedApplicationCommitBoundaryEvidence {
                 receipt.canonical_work().publication(),
             ),
             attempt_release,
+        }
+    }
+
+    pub(crate) fn from_publication_source(
+        source: &WorthQueryApplicationCommitPublicationSource,
+    ) -> Self {
+        let kind = match source.terminal_kind() {
+            WorthQueryApplicationCommitTerminalKind::Executed => {
+                WorthQueryPublishedApplicationCommitKind::Executed
+            }
+            WorthQueryApplicationCommitTerminalKind::Recovered => {
+                WorthQueryPublishedApplicationCommitKind::Recovered
+            }
+        };
+        Self {
+            kind,
+            mutation_work: source
+                .mutation_work()
+                .map(WorthQueryPublishedMutationWork::from_owner),
+            changed_record_count: source.changed_record_count(),
+            emitted_effect_count: source.emitted_effect_count(),
+            publication_work: WorthQueryPublishedCanonicalWork::from_owner(
+                source.publication_work(),
+            ),
+            attempt_release: publish_attempt_release_posture(source.attempt_resources_released()),
         }
     }
 

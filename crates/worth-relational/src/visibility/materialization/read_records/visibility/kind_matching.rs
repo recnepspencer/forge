@@ -1,5 +1,6 @@
 use crate::identity::data::{KindId, VersionId};
-use crate::storage::logic::state::{PartitionState, RecordArena, RecordKind};
+use crate::storage::overlay::PartitionState;
+use crate::storage::substrate::{RecordArena, RecordKind};
 
 use super::visible_metadata;
 

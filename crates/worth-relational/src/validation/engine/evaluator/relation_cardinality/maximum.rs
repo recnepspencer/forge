@@ -13,8 +13,9 @@ pub(in crate::validation::engine::evaluator) fn evaluate_cardinality_maximum_con
     class: InvariantClass,
     contract: &LoweredCardinalityMaximumContract,
 ) -> Vec<InvariantViolation> {
-    let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
-        return Vec::new();
+    let scope = match context.required_relation_integrity_scope(contract.relation_kind_id, class) {
+        Ok(scope) => scope,
+        Err(violation) => return vec![violation],
     };
     if scope.is_empty() {
         return Vec::new();

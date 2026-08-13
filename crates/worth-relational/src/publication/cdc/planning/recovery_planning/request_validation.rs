@@ -1,8 +1,8 @@
-use crate::logic::runtime::RelationalRuntime;
 use crate::publication::cdc::data::{
     SubscriberResumeRequest, SubscriberStreamFailure, SubscriberStreamFailureClass,
 };
 use crate::publication::cdc::planning::checkpoint_resolution::resolve_latest_available_checkpoint;
+use crate::runtime::RelationalRuntime;
 
 pub(super) fn validate_resume_request(
     runtime: &RelationalRuntime,

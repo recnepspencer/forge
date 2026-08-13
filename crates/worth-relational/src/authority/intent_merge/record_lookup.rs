@@ -1,10 +1,8 @@
 use crate::capabilities::StorageRead;
 use crate::identity::data::VersionId;
 use crate::identity::data::{EntityId, RecordId, RelationId};
-use crate::logic::runtime::RelationalRuntime;
-use crate::storage::logic::state::{
-    partition_of, EntityRecordKind, RecordKind, RelationRecordKind,
-};
+use crate::runtime::RelationalRuntime;
+use crate::storage::substrate::{partition_of, EntityRecordKind, RecordKind, RelationRecordKind};
 
 pub(crate) fn entity_exists_in_state(state: &impl StorageRead, entity_id: EntityId) -> bool {
     record_exists_in_state::<EntityRecordKind>(state, entity_id)

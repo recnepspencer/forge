@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::logic::runtime::ExecutionBasisRegistry;
+use crate::runtime::ExecutionBasisRegistry;
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 
 use super::RelationalExecutionBasisCounters;

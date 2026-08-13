@@ -1,5 +1,5 @@
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) trait PublicationDiagnosticsSource {
     fn publication_diagnostics(&self) -> &[RelationalDiagnosticArtifact];

@@ -2,7 +2,7 @@ use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticFields,
     RelationalDiagnosticsEntry,
 };
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) trait DiagnosticArtifactSink {
     fn push_diagnostic_entries(

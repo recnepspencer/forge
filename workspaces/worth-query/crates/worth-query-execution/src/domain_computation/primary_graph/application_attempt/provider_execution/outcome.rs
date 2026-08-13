@@ -5,8 +5,7 @@ use super::super::{
 };
 use crate::domain_computation::provider_session::WorthQueryMutationGraphWorkCompletion;
 
-pub(in crate::domain_computation::primary_graph::application_attempt) enum WorthQueryProviderProgressionOutcome
-{
+pub(in crate::domain_computation) enum WorthQueryProviderProgressionOutcome {
     Committed(WorthQueryPendingApplicationCommitReceipt),
     AlreadyCommitted(WorthQueryApplicationCommitReceipt),
     Stale(WorthQueryApplicationStaleAttempt),
@@ -41,7 +40,7 @@ impl WorthQueryProviderProgressionOutcome {
     }
 }
 
-pub(in crate::domain_computation::primary_graph::application_attempt) fn progression_denied(
+pub(in crate::domain_computation) fn progression_denied(
     stage: WorthQueryApplicationCommitDenialStage,
 ) -> WorthQueryProviderProgressionOutcome {
     WorthQueryProviderProgressionOutcome::Denied(

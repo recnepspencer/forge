@@ -1,12 +1,12 @@
 use std::collections::BTreeSet;
 
-use crate::logic::runtime::RelationalRuntime;
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::publication::cdc::data::{
     NormalizedContinuationProof, SubscriberBoundaryAssessment, SubscriberContinuationAssessment,
     SubscriberContinuationSummary, SubscriberContractDeclaration, SubscriberStreamFailure,
     SubscriberStreamFailureClass,
 };
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::runtime::RelationalRuntime;
 use crate::schema::data::{DescriptorSemanticsVersion, SchemaContinuationClassification};
 
 use super::disposition::strongest_outcome;

@@ -7,7 +7,7 @@ use super::super::capability_registry::WorthQueryInstalledCapabilityPlan;
 pub(super) fn lifecycle_decision_reads(
     installed: &WorthQueryInstalledCapabilityPlan,
 ) -> Vec<ApplicationOperationDecisionReadTarget> {
-    let elevation = installed.contract.elevation().definition().unwrap();
+    let elevation = installed.contract().elevation().definition().unwrap();
     let review = elevation.review();
     let mut reads = [
         elevation.identity(),
@@ -48,7 +48,7 @@ pub(super) fn lifecycle_decision_reads(
 pub(super) fn approval_program_targets(
     installed: &WorthQueryInstalledCapabilityPlan,
 ) -> Vec<ApplicationOperationProgramTarget> {
-    let elevation = installed.contract.elevation().definition().unwrap();
+    let elevation = installed.contract().elevation().definition().unwrap();
     let mut targets = vec![
         write_target(elevation.status()),
         link_target(elevation.approver()),
@@ -60,7 +60,7 @@ pub(super) fn approval_program_targets(
 pub(super) fn close_program_targets(
     installed: &WorthQueryInstalledCapabilityPlan,
 ) -> Vec<ApplicationOperationProgramTarget> {
-    let elevation = installed.contract.elevation().definition().unwrap();
+    let elevation = installed.contract().elevation().definition().unwrap();
     let mut targets = vec![write_target(elevation.status())];
     append_lifecycle_effect(&mut targets, elevation.lifecycle().revoke());
     targets
@@ -70,7 +70,7 @@ pub(super) fn review_program_targets(
     installed: &WorthQueryInstalledCapabilityPlan,
 ) -> Vec<ApplicationOperationProgramTarget> {
     let review = installed
-        .contract
+        .contract()
         .elevation()
         .definition()
         .unwrap()
@@ -82,7 +82,7 @@ pub(super) fn review_program_targets(
     append_lifecycle_effect(
         &mut targets,
         installed
-            .contract
+            .contract()
             .elevation()
             .definition()
             .unwrap()

@@ -1,8 +1,8 @@
 use crate::identity::data::{PartitionId, VersionId};
-use crate::logic::runtime::RelationalRuntime;
-use crate::storage::logic::state::{
-    DenseSlotBitSet, HistoricalMetadata, PartitionAccess, PartitionState, RecordArena, RecordKind,
-};
+use crate::runtime::RelationalRuntime;
+use crate::storage::overlay::{PartitionAccess, PartitionState};
+use crate::storage::partition::DenseSlotBitSet;
+use crate::storage::substrate::{HistoricalMetadata, RecordArena, RecordKind};
 
 use super::visible_metadata;
 

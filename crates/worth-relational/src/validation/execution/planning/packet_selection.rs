@@ -1,5 +1,5 @@
 use crate::authority::commit::preparation::packets::invariant::InvariantPacketRegistration;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::validation::data::CustomInvariantScopePlanner;
 use crate::validation::engine::InvariantExecutionRequest;
 
@@ -25,6 +25,12 @@ pub(super) fn eligible_registrations<'runtime>(
         .cloned()
         .map(InvariantPacketRegistration::Native);
 
+    let prepared_scope = crate::validation::data::PreparedCustomInvariantScope::capture(
+        runtime,
+        request.observation(),
+        request.version_id(),
+        request.merged_plan(),
+    );
     let custom = runtime
         .schema_contract_runtime
         .custom_invariant_registries
@@ -35,7 +41,7 @@ pub(super) fn eligible_registrations<'runtime>(
                 runtime,
                 request.observation(),
                 request.version_id(),
-                request.merged_plan(),
+                &prepared_scope,
             );
             let prepared_execution = registration
                 .executable()
@@ -43,6 +49,7 @@ pub(super) fn eligible_registrations<'runtime>(
             InvariantPacketRegistration::Custom {
                 registration: registration.clone(),
                 prepared_execution,
+                prepared_scope: prepared_scope.clone(),
             }
         });
 

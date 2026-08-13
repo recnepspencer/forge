@@ -54,7 +54,7 @@ impl<Schema, Operation, Input, Scope>
             .resource_ceiling(WorthQueryResourceDimension::RetainedBytes);
         let emission_retained_bytes = append_lifecycle_emission(
             &mut effects,
-            binding.lifecycle_effect.as_ref(),
+            binding.lifecycle_effect(),
             emission_retained_bytes_ceiling,
             self.admission.operation(),
         )?;
@@ -93,7 +93,7 @@ pub(in crate::domain_computation::primary_graph) fn validate_elevation_request_p
         .elevation_request_binding()
         .ok_or_else(|| transition_required(program.read_set.admission.operation()))?;
     let expected = request_effects(binding)?;
-    let base_count = 6 + usize::from(binding.resource_relation.is_some());
+    let base_count = 6 + usize::from(binding.resource_relation().is_some());
     if expected.len() == base_count
         && program
             .effects
@@ -102,7 +102,7 @@ pub(in crate::domain_computation::primary_graph) fn validate_elevation_request_p
         && lifecycle_emission_is_exact(
             &program.effects,
             base_count,
-            binding.lifecycle_effect.as_ref(),
+            binding.lifecycle_effect(),
             program.emission_retained_bytes,
         )
     {
@@ -117,11 +117,11 @@ fn validate_installed_program(
     installed: &[worth_query_installation::facade::ApplicationOperationProgramTarget],
 ) -> Result<(), WorthQueryApplicationAttemptDenial> {
     let expected = binding
-        .required_program_targets
+        .required_program_targets()
         .iter()
         .collect::<BTreeSet<_>>();
     let installed = installed.iter().collect::<BTreeSet<_>>();
-    if expected.len() == binding.required_program_targets.len()
+    if expected.len() == binding.required_program_targets().len()
         && installed.len() == expected.len()
         && installed == expected
     {
@@ -134,49 +134,49 @@ fn validate_installed_program(
 fn request_effects(
     binding: &WorthQueryElevationRequestBinding,
 ) -> Result<Vec<WorthQueryApplicationRealizedEffect>, WorthQueryApplicationAttemptDenial> {
-    let elevation_key = canonical_key(binding.elevation_key.clone(), "elevation request")?;
-    let review_key = canonical_key(binding.review_key.clone(), "mandatory review")?;
-    let elevation = created(binding.elevation_kind, &elevation_key);
-    let review = created(binding.review_kind, &review_key);
+    let elevation_key = canonical_key(binding.elevation_key().to_owned(), "elevation request")?;
+    let review_key = canonical_key(binding.review_key().to_owned(), "mandatory review")?;
+    let elevation = created(binding.elevation_kind(), &elevation_key);
+    let review = created(binding.review_kind(), &review_key);
     let elevation_fields = elevation_fields(binding)?;
     let review_fields = review_fields(binding)?;
     let mut effects = vec![
         WorthQueryApplicationRealizedEffect::CreateEntity {
-            kind: binding.elevation_kind,
+            kind: binding.elevation_kind(),
             key: elevation_key.clone(),
             fields: elevation_fields,
         },
         WorthQueryApplicationRealizedEffect::CreateEntity {
-            kind: binding.review_kind,
+            kind: binding.review_kind(),
             key: review_key.clone(),
             fields: review_fields,
         },
         WorthQueryApplicationRealizedEffect::CreateRelation {
-            kind: binding.requester_relation,
+            kind: binding.requester_relation(),
             key: elevation_key.clone(),
             from: EntityReference::Existing(binding.requester()),
             to: elevation.clone(),
         },
         WorthQueryApplicationRealizedEffect::CreateRelation {
-            kind: binding.grant_relation,
+            kind: binding.grant_relation(),
             key: elevation_key.clone(),
             from: elevation.clone(),
             to: EntityReference::Existing(binding.grant()),
         },
         WorthQueryApplicationRealizedEffect::CreateRelation {
-            kind: binding.review_relation,
+            kind: binding.review_relation(),
             key: elevation_key.clone(),
             from: elevation.clone(),
             to: review.clone(),
         },
         WorthQueryApplicationRealizedEffect::CreateRelation {
-            kind: binding.review_scope_relation,
+            kind: binding.review_scope_relation(),
             key: review_key,
             from: review,
             to: EntityReference::Existing(binding.resource()),
         },
     ];
-    if let Some(resource_relation) = binding.resource_relation {
+    if let Some(resource_relation) = binding.resource_relation() {
         effects.push(WorthQueryApplicationRealizedEffect::CreateRelation {
             kind: resource_relation,
             key: elevation_key,
@@ -199,13 +199,13 @@ fn elevation_fields(
     exact_fields(
         [
             (
-                &binding.elevation_identity_field,
-                &binding.elevation_identity,
+                binding.elevation_identity_field(),
+                binding.elevation_identity(),
             ),
-            (&binding.reason_field, &binding.reason),
-            (&binding.status_field, &binding.requested_status),
-            (&binding.not_before_field, &binding.issued_at),
-            (&binding.not_after_field, &binding.expires_at),
+            (binding.reason_field(), binding.reason()),
+            (binding.status_field(), binding.requested_status()),
+            (binding.not_before_field(), binding.issued_at()),
+            (binding.not_after_field(), binding.expires_at()),
         ],
         5,
         "elevation request fields",
@@ -223,11 +223,11 @@ fn review_fields(
 > {
     exact_fields(
         [
-            (&binding.review_identity_field, &binding.review_identity),
-            (&binding.review_type_field, &binding.review_type),
+            (binding.review_identity_field(), binding.review_identity()),
+            (binding.review_type_field(), binding.review_type()),
             (
-                &binding.review_status_field,
-                &binding.review_required_status,
+                binding.review_status_field(),
+                binding.review_required_status(),
             ),
         ],
         3,

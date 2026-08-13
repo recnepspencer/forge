@@ -1,7 +1,7 @@
 use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::record_changes::allocate_entity_with_extra;
 use crate::authority::mutation::MutationWorkspace;
-use crate::storage::logic::state::EntityExtra;
+use crate::storage::substrate::EntityExtra;
 use crate::transactions::data::{
     CommitConflict, CreatedEntityRef, EntitySpec, RecordAspectPatchTarget,
 };

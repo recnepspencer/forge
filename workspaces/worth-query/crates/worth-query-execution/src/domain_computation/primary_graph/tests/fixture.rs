@@ -10,12 +10,12 @@ mod authorization_time;
 #[path = "fixture/authorization_world_installation.rs"]
 mod authorization_world_installation;
 #[path = "fixture/capability.rs"]
-pub(super) mod capability;
+pub(in crate::domain_computation) mod capability;
 #[path = "fixture/capability_access_fixture.rs"]
 mod capability_access_fixture;
 #[path = "fixture/capability_seed.rs"]
 mod capability_seed;
-pub(in crate::domain_computation::primary_graph) use capability_seed::CapabilityCompositionScenario;
+pub(in crate::domain_computation) use capability_seed::CapabilityCompositionScenario;
 #[path = "fixture/capability_elevation_seed.rs"]
 mod capability_elevation_seed;
 #[path = "fixture/capability_population_seed.rs"]
@@ -112,12 +112,13 @@ mod world_authentication;
 #[path = "fixture/world_installation.rs"]
 mod world_installation;
 pub(in crate::domain_computation::primary_graph) use authorization_world_installation::AuthorizationWorld;
+pub(in crate::domain_computation) use capability_world_installation::installed_composed_capability_world;
 pub(in crate::domain_computation::primary_graph) use capability_world_installation::{
     installed_capability_authorization_world, installed_capability_live_world,
     installed_capability_live_world_with_label, installed_capability_replacement_world,
     installed_capability_world_with_exact_pair_population, installed_capability_world_with_label,
-    installed_capability_world_with_same_resource_unrelated, installed_composed_capability_world,
-    installed_delegated_capability_world, installed_delegated_capability_world_at_depth,
+    installed_capability_world_with_same_resource_unrelated, installed_delegated_capability_world,
+    installed_delegated_capability_world_at_depth,
     installed_delegated_capability_world_with_unrelated, installed_elevated_capability_live_world,
     installed_elevated_capability_world,
 };

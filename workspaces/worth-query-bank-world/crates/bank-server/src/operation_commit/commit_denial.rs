@@ -35,7 +35,7 @@ pub enum BankCommitDenialStage {
     ProviderCommit,
 }
 
-pub(super) const fn denial_kind(
+pub(crate) const fn denial_kind(
     kind: WorthQueryApplicationCommitDenialKind,
 ) -> BankCommitDenialKind {
     use WorthQueryApplicationCommitDenialKind as Query;
@@ -58,7 +58,7 @@ pub(super) const fn denial_kind(
     }
 }
 
-pub(super) const fn denial_stage(
+pub(crate) const fn denial_stage(
     stage: WorthQueryApplicationCommitDenialStage,
 ) -> BankCommitDenialStage {
     use WorthQueryApplicationCommitDenialStage as Query;

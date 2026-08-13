@@ -45,11 +45,8 @@ fn commit_freeze(
 fn recorded_inverse_undo_restores_prior_status_from_retained_preimage() {
     let fixture = exact_freeze_world("undo-recorded-inverse", AccountStatus::Open);
     let specialist = fixture.authenticate_specialist();
-    let receipt = commit_freeze(
-        &fixture,
-        &specialist,
-        WorthQueryApplicationIdempotencyBinding::new([21; 32], [22; 32]),
-    );
+    let original_binding = WorthQueryApplicationIdempotencyBinding::new([21; 32], [22; 32]);
+    let receipt = commit_freeze(&fixture, &specialist, original_binding);
     assert!(
         receipt.retained_preimage(),
         "freeze must retain Status pre-image for RecordedInverse"
@@ -143,18 +140,14 @@ fn estate_account_status(fixture: &FreezeFixture) -> AccountStatus {
 fn aliasing_the_original_binding_denies_and_leaves_the_undo_still_performable() {
     let fixture = exact_freeze_world("undo-alias-binding", AccountStatus::Open);
     let specialist = fixture.authenticate_specialist();
-    let receipt = commit_freeze(
-        &fixture,
-        &specialist,
-        WorthQueryApplicationIdempotencyBinding::new([21; 32], [22; 32]),
-    );
+    let original_binding = WorthQueryApplicationIdempotencyBinding::new([21; 32], [22; 32]);
+    let receipt = commit_freeze(&fixture, &specialist, original_binding);
 
     let handle = fixture
         .world
         .runtime
         .open_commit_recovery(&receipt)
         .expect("mint");
-    let original_binding = handle.binding().idempotency();
     let admission = fixture
         .world
         .runtime
@@ -182,7 +175,7 @@ fn aliasing_the_original_binding_denies_and_leaves_the_undo_still_performable() 
         "the denied undo must not restore the prior status"
     );
     assert!(
-        aliased.proved_undo().is_none(),
+        !aliased.has_proved_undo(),
         "a denied undo mints no proved-undo evidence"
     );
 
@@ -306,7 +299,7 @@ fn complete_undo_after_denial(
     );
     assert_eq!(estate_account_status(fixture), AccountStatus::Open);
     assert!(
-        restored.proved_undo().is_some(),
+        restored.has_proved_undo(),
         "a committed undo seals proved-undo evidence"
     );
 }

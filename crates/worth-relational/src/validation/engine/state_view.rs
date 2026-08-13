@@ -1,6 +1,7 @@
 use worth_foundational::facade::AuthoritativeRecordAspectState;
 
-use crate::storage::logic::state::{EntityArena, PartitionAccess};
+use crate::storage::overlay::PartitionAccess;
+use crate::storage::substrate::EntityArena;
 use crate::storage::substrate::HistoricalMetadata;
 
 #[derive(Clone, Copy)]
@@ -185,7 +186,7 @@ impl<'state> InvariantStateView<'state> {
 
     pub(crate) fn relation_metadata_at(
         &self,
-        arena: &'state crate::storage::logic::state::RelationArena,
+        arena: &'state crate::storage::substrate::RelationArena,
         partition_id: crate::identity::data::PartitionId,
         slot: usize,
     ) -> Option<VisibleRelationMetadata> {
@@ -202,6 +203,29 @@ impl<'state> InvariantStateView<'state> {
             source: metadata.endpoints.source,
             target: metadata.endpoints.target,
         })
+    }
+
+    pub(crate) fn relation_slot_scan_count(
+        &self,
+        partition_id: crate::identity::data::PartitionId,
+    ) -> Option<usize> {
+        let visible_partition = self.state.get_partition(partition_id)?;
+        let staged_slots = visible_partition.relation_arena.slot_count();
+        let base_slots = self
+            .state
+            .base_partition(partition_id)
+            .map(|partition| partition.relation_arena.slot_count())
+            .unwrap_or(0);
+        Some(staged_slots.max(base_slots))
+    }
+
+    pub(crate) fn relation_metadata_for_slot(
+        &self,
+        partition_id: crate::identity::data::PartitionId,
+        slot: usize,
+    ) -> Option<VisibleRelationMetadata> {
+        let partition = self.relation_partition_for_slot(partition_id, slot)?;
+        self.relation_metadata_at(&partition.relation_arena, partition_id, slot)
     }
 
     pub(crate) fn touched_visible_relation_ids(
@@ -233,8 +257,8 @@ impl<'state> InvariantStateView<'state> {
 
     fn visible_entity_metadata(
         &self,
-        history: &'state [crate::storage::logic::state::VersionedEntityMetadata],
-    ) -> Option<&'state crate::storage::logic::state::VersionedEntityMetadata> {
+        history: &'state [crate::storage::substrate::VersionedEntityMetadata],
+    ) -> Option<&'state crate::storage::substrate::VersionedEntityMetadata> {
         let end = history.partition_point(|entry| entry.effective_at() <= self.version_id);
         history[..end].iter().rev().find(|entry| {
             entry.effective_at() <= self.version_id
@@ -246,8 +270,8 @@ impl<'state> InvariantStateView<'state> {
 
     fn visible_relation_metadata(
         &self,
-        history: &'state [crate::storage::logic::state::VersionedRelationMetadata],
-    ) -> Option<&'state crate::storage::logic::state::VersionedRelationMetadata> {
+        history: &'state [crate::storage::substrate::VersionedRelationMetadata],
+    ) -> Option<&'state crate::storage::substrate::VersionedRelationMetadata> {
         let end = history.partition_point(|entry| entry.effective_at() <= self.version_id);
         history[..end].iter().rev().find(|entry| {
             entry.effective_at() <= self.version_id
@@ -261,7 +285,7 @@ impl<'state> InvariantStateView<'state> {
         &self,
         partition_id: crate::identity::data::PartitionId,
         slot: usize,
-    ) -> Option<&'state crate::storage::logic::state::PartitionState> {
+    ) -> Option<&'state crate::storage::overlay::PartitionState> {
         let partition = self.state.get_partition(partition_id)?;
         if self.state.entity_slot_is_touched(partition_id, slot)
             || self.state.touched_entity_slots(partition_id).is_none()
@@ -275,7 +299,7 @@ impl<'state> InvariantStateView<'state> {
         &self,
         partition_id: crate::identity::data::PartitionId,
         slot: usize,
-    ) -> Option<&'state crate::storage::logic::state::PartitionState> {
+    ) -> Option<&'state crate::storage::overlay::PartitionState> {
         let partition = self.state.get_partition(partition_id)?;
         if self.state.relation_slot_is_touched(partition_id, slot)
             || self.state.touched_relation_slots(partition_id).is_none()

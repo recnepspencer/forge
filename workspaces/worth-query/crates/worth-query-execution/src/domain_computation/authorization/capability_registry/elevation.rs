@@ -1,16 +1,13 @@
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityValidityTimeline;
 use worth_relational::facade::identity::KindId;
-use worth_runtime_bridge::facade::{
-    BridgeAuthorizationCorrespondenceIdentity, BridgeAuthorizationRuleContract,
-};
+use worth_runtime_bridge::facade::BridgeAuthorizationCorrespondenceIdentity;
 
 pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityUpperBoundBindings {
     pub(in crate::domain_computation::authorization) correspondence:
         BridgeAuthorizationCorrespondenceIdentity,
     pub(in crate::domain_computation::authorization) path_count: usize,
-    pub(in crate::domain_computation::authorization) bridge_rules:
-        Vec<BridgeAuthorizationRuleContract>,
-    pub(in crate::domain_computation::authorization) rule_path_indices: Vec<Vec<Vec<usize>>>,
+    pub(in crate::domain_computation::authorization) rules:
+        Vec<super::WorthQueryCapabilityRuleBinding>,
     pub(in crate::domain_computation::authorization) decision_rules:
         super::WorthQueryCapabilityDecisionRuleBindings,
 }

@@ -8,8 +8,9 @@ use worth_query_installation::facade::{
 use worth_relational::facade::authorization::RelationalAuthorizationPathPlan;
 use worth_runtime_bridge::facade::{
     BridgeAuthorizationClauseContract, BridgeAuthorizationCorrespondenceIdentity,
-    BridgeAuthorizationInstallationRequest, BridgeAuthorizationRequirementContract,
-    BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect, BridgeAuthorizationRuntime,
+    BridgeAuthorizationInstallationBatch, BridgeAuthorizationInstallationRequest,
+    BridgeAuthorizationRequirementContract, BridgeAuthorizationRuleContract,
+    BridgeAuthorizationRuleEffect, BridgeAuthorizationRuntime,
 };
 
 use super::capability_registry::{
@@ -28,13 +29,53 @@ struct PolicyKey {
 }
 
 pub(super) struct WorthQueryInstalledAuthorizationPolicy {
-    pub(super) correspondence: BridgeAuthorizationCorrespondenceIdentity,
-    pub(super) bridge_rules: Vec<BridgeAuthorizationRuleContract>,
-    pub(super) bridge_path_bindings: Vec<BridgePathBinding>,
-    pub(super) rule_path_indices: Vec<Vec<usize>>,
-    pub(super) relational_paths: Vec<RelationalAuthorizationPathPlan>,
-    pub(super) principal_kind: worth_relational::facade::identity::KindId,
-    pub(super) scope_kind: worth_relational::facade::identity::KindId,
+    correspondence: BridgeAuthorizationCorrespondenceIdentity,
+    bridge_rule_bindings: Vec<BridgeRuleBinding>,
+    bridge_path_bindings: Vec<BridgePathBinding>,
+    relational_paths: Vec<RelationalAuthorizationPathPlan>,
+    principal_kind: worth_relational::facade::identity::KindId,
+    scope_kind: worth_relational::facade::identity::KindId,
+}
+
+impl WorthQueryInstalledAuthorizationPolicy {
+    pub(super) const fn correspondence(&self) -> BridgeAuthorizationCorrespondenceIdentity {
+        self.correspondence
+    }
+
+    pub(super) fn bridge_rule_bindings(&self) -> &[BridgeRuleBinding] {
+        &self.bridge_rule_bindings
+    }
+
+    pub(super) fn bridge_path_bindings(&self) -> &[BridgePathBinding] {
+        &self.bridge_path_bindings
+    }
+
+    pub(super) fn relational_paths(&self) -> &[RelationalAuthorizationPathPlan] {
+        &self.relational_paths
+    }
+
+    pub(super) const fn principal_kind(&self) -> worth_relational::facade::identity::KindId {
+        self.principal_kind
+    }
+
+    pub(super) const fn scope_kind(&self) -> worth_relational::facade::identity::KindId {
+        self.scope_kind
+    }
+}
+
+pub(super) struct BridgeRuleBinding {
+    rule: BridgeAuthorizationRuleContract,
+    path_indices: Vec<usize>,
+}
+
+impl BridgeRuleBinding {
+    pub(super) const fn rule(&self) -> &BridgeAuthorizationRuleContract {
+        &self.rule
+    }
+
+    pub(super) fn path_indices(&self) -> &[usize] {
+        &self.path_indices
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -57,7 +98,7 @@ impl WorthQueryInstalledAuthorizationRegistry {
     where
         Schema: ApplicationSchema,
     {
-        let mut bridge = BridgeAuthorizationRuntime::new();
+        let mut bridge_installation = BridgeAuthorizationInstallationBatch::new();
         let mut policies = BTreeMap::new();
         for member in schema.installed_declaration().members() {
             let ApplicationSchemaMember::AbilityPolicy {
@@ -74,7 +115,7 @@ impl WorthQueryInstalledAuthorizationRegistry {
                 scope_entity: scope_entity.clone(),
                 policy: policy.clone(),
             };
-            let installed = compile_policy(schema, layout, &mut bridge, &key, paths)?;
+            let installed = compile_policy(schema, layout, &mut bridge_installation, &key, paths)?;
             if policies.insert(key, installed).is_some() {
                 return Err(authorization_denial(
                     policy,
@@ -82,8 +123,17 @@ impl WorthQueryInstalledAuthorizationRegistry {
                 ));
             }
         }
-        let capabilities =
-            WorthQueryInstalledCapabilityRegistry::compile(schema, layout, &mut bridge)?;
+        let capabilities = WorthQueryInstalledCapabilityRegistry::compile(
+            schema,
+            layout,
+            &mut bridge_installation,
+        )?;
+        let mut bridge = BridgeAuthorizationRuntime::new();
+        bridge
+            .install_batch(bridge_installation)
+            .map_err(|denial| {
+                authorization_denial(denial.subject(), "Bridge rejected installation batch")
+            })?;
         Ok(Self {
             bridge,
             policies,
@@ -171,7 +221,7 @@ impl WorthQueryInstalledAuthorizationRegistry {
 fn compile_policy<Schema>(
     schema: &WorthQueryInstalledApplicationSchema<Schema>,
     layout: &WorthQueryPrimaryGraphLayout,
-    bridge: &mut BridgeAuthorizationRuntime,
+    bridge_installation: &mut BridgeAuthorizationInstallationBatch,
     key: &PolicyKey,
     paths: &[ApplicationAuthorizationPath],
 ) -> Result<WorthQueryInstalledAuthorizationPolicy, WorthQueryOperationAuthorizationDenial>
@@ -198,40 +248,40 @@ where
                 "installed authorization path identity is unavailable",
             )
         })?;
-    let (bridge_rules, bridge_path_bindings, rule_path_indices) =
-        compile_bridge_policy(installed_paths.policy_paths());
+    let compiled_bridge = compile_bridge_policy(installed_paths.policy_paths());
     let relational_paths = paths
         .iter()
         .map(|path| lower_authorization_path(layout, path))
         .collect::<Result<Vec<_>, _>>()?;
-    let correspondence = bridge
-        .install(BridgeAuthorizationInstallationRequest::new(
+    let correspondence = bridge_installation
+        .add(BridgeAuthorizationInstallationRequest::new(
             installed_paths.identity(),
             super::bridge_authorization_binding_identity(&schema.binding_identity()),
             &key.ability,
             &key.scope_entity,
             &key.policy,
-            bridge_rules.iter().cloned(),
+            compiled_bridge
+                .rule_bindings
+                .iter()
+                .map(|binding| binding.rule.clone()),
         ))
         .map_err(|denial| authorization_denial(denial.subject(), "Bridge rejected policy"))?;
     Ok(WorthQueryInstalledAuthorizationPolicy {
         correspondence,
-        bridge_rules,
-        bridge_path_bindings,
-        rule_path_indices,
+        bridge_rule_bindings: compiled_bridge.rule_bindings,
+        bridge_path_bindings: compiled_bridge.path_bindings,
         relational_paths,
         principal_kind,
         scope_kind,
     })
 }
 
-fn compile_bridge_policy(
-    paths: &[WorthQueryInstalledAuthorizationPath],
-) -> (
-    Vec<BridgeAuthorizationRuleContract>,
-    Vec<BridgePathBinding>,
-    Vec<Vec<usize>>,
-) {
+struct CompiledBridgePolicy {
+    rule_bindings: Vec<BridgeRuleBinding>,
+    path_bindings: Vec<BridgePathBinding>,
+}
+
+fn compile_bridge_policy(paths: &[WorthQueryInstalledAuthorizationPath]) -> CompiledBridgePolicy {
     let bindings = paths
         .iter()
         .map(|path| BridgePathBinding {
@@ -241,21 +291,33 @@ fn compile_bridge_policy(
         .collect::<Vec<_>>();
     let required = path_indices_for_effect(&bindings, BridgeAuthorizationRuleEffect::Required);
     let prohibited = path_indices_for_effect(&bindings, BridgeAuthorizationRuleEffect::Prohibited);
-    let mut rules = vec![bridge_rule(
+    let mut rule_bindings = vec![bind_bridge_rule(
         BridgeAuthorizationRuleEffect::Required,
-        &required,
+        required,
         &bindings,
     )];
-    let mut rule_path_indices = vec![required];
     if !prohibited.is_empty() {
-        rules.push(bridge_rule(
+        rule_bindings.push(bind_bridge_rule(
             BridgeAuthorizationRuleEffect::Prohibited,
-            &prohibited,
+            prohibited,
             &bindings,
         ));
-        rule_path_indices.push(prohibited);
     }
-    (rules, bindings, rule_path_indices)
+    CompiledBridgePolicy {
+        rule_bindings,
+        path_bindings: bindings,
+    }
+}
+
+fn bind_bridge_rule(
+    effect: BridgeAuthorizationRuleEffect,
+    path_indices: Vec<usize>,
+    bindings: &[BridgePathBinding],
+) -> BridgeRuleBinding {
+    BridgeRuleBinding {
+        rule: bridge_rule(effect, &path_indices, bindings),
+        path_indices,
+    }
 }
 
 fn path_indices_for_effect(

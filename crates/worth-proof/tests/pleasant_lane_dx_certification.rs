@@ -42,7 +42,8 @@ fn pleasant_lane_dx_certification() {
     );
     assert!(failure_digest
         .entries()
-        .contains(&"compile_fail:pleasant_lane_cannot_skip_progression"));
+        .iter()
+        .any(|entry| entry == "compile_fail:pleasant_lane_cannot_skip_progression"));
 
     let codegen_honesty_report = dx::codegen_honesty_report();
     assert_eq!(

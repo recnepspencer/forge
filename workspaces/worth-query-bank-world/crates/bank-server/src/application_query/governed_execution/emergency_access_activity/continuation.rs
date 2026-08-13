@@ -153,10 +153,6 @@ impl BankEstateEmergencyAccessActivityContinuation {
     const fn from_query(query: QueryEstateEmergencyAccessActivityContinuation) -> Self {
         Self { query }
     }
-
-    fn into_query(self) -> QueryEstateEmergencyAccessActivityContinuation {
-        self.query
-    }
 }
 
 impl BankAdmittedEstateEmergencyAccessActivityContinuation<'_> {
@@ -205,6 +201,9 @@ impl BankEstateEmergencyAccessActivityAdmission<'_, '_, '_, '_> {
         )
             -> Result<Output, BankApplicationQueryDenial>,
     ) -> Result<Output, BankApplicationQueryDenial> {
+        let BankEstateEmergencyAccessActivityContinuation {
+            query: continuation,
+        } = continuation;
         let application = self.runtime.application_runtime();
         let query = application
             .installed_schema()
@@ -219,7 +218,7 @@ impl BankEstateEmergencyAccessActivityAdmission<'_, '_, '_, '_> {
             .map_err(BankApplicationQueryDenial::from_capability_installation)?;
         let capability_access = application
             .admit_approved_elevation_access(
-                self.approved,
+                self.approved.query(),
                 self.principal.query(),
                 &capability,
                 self.request.capability_request(),
@@ -246,7 +245,7 @@ impl BankEstateEmergencyAccessActivityAdmission<'_, '_, '_, '_> {
                 &access,
                 capability_access,
                 ApplicationQueryParameterSet::<EstateEmergencyAccessActivityQuery>::new(),
-                continuation.into_query(),
+                continuation,
                 controls,
             )
             .map_err(BankApplicationQueryDenial::from_admission)?;

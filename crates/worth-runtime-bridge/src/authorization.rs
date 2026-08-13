@@ -1,6 +1,7 @@
 mod contract;
 mod denial;
 mod evidence;
+mod installation;
 mod runtime;
 
 pub use contract::{
@@ -13,6 +14,7 @@ pub use contract::{
 };
 pub use denial::{BridgeAuthorizationDenial, BridgeAuthorizationDenialKind};
 pub use evidence::{BridgeAuthorizationDecisionEvidence, BridgeAuthorizationRuleDecisionEvidence};
+pub use installation::BridgeAuthorizationInstallationBatch;
 pub use runtime::BridgeAuthorizationRuntime;
 
 #[cfg(test)]

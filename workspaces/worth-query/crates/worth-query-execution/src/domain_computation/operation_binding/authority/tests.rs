@@ -5,23 +5,9 @@ use worth_query_admission::facade::basis::{
     BasisOperationLane, NormalizedBasisIntent, ObservationLaneWitness, RawBasisIntent,
 };
 use worth_query_admission::facade::resource_admission::{
-    WorthQueryAdmittedExecutionResourcePlan, WorthQueryExecutionResourceAdmissionCounters,
-    WorthQueryExecutionResourceAdmissionDenialKind, WorthQueryExecutionResourceSupport,
-    WorthQueryExecutionResourceSupportSnapshot, WorthQueryFixedExecutionCapacity,
+    WorthQueryAdmittedExecutionResourcePlan, WorthQueryExecutionResourceAdmissionDenialKind,
 };
-use worth_query_admission::integration::admit_execution_resource_plan;
-use worth_query_declaration::facade::domain_computation::{
-    WorthQueryCancellationSafePointFamily, WorthQueryExecutionMode,
-    WorthQueryExecutionResourceRequest, WorthQueryResourceLimitRequest,
-    WorthQuerySemanticScaleRequest,
-};
-use worth_query_installation::facade::{
-    WorthQueryExecutionAccessProductFamily, WorthQueryExecutionAllocatorFamily,
-    WorthQueryExecutionProviderFamily, WorthQueryExecutionProviderRequirements,
-    WorthQueryExecutionResourceContract, WorthQueryExecutionResourceEnvelope,
-    WorthQueryExecutionStrategyContract, WorthQueryExecutionStrategyName,
-    WorthQueryInstallationGeneration,
-};
+use worth_query_installation::facade::WorthQueryInstallationGeneration;
 
 use super::topology::{test_topology, WorthQueryExecutionResourceTopology};
 use super::WorthQueryExecutionBoundOperationAuthority;
@@ -31,6 +17,8 @@ use crate::domain_computation::operation_binding::{
 };
 
 mod attempt_admission;
+mod resource_plan;
+use resource_plan::{admitted_plan, admitted_plan_with_support_limit};
 
 fn runtime() -> crate::domain_computation::WorthQueryExecutionRuntime {
     WorthQueryExecutionRuntimeInstaller::new()
@@ -75,6 +63,10 @@ fn authority(
             runtime.retain_current_generation(),
         ),
         graph_work_affinity: None,
+        application_operation_attempt: None,
+        application_operation_slot: None,
+        application_schema_binding: None,
+        application_snapshot: None,
     }
 }
 
@@ -242,6 +234,10 @@ pub(crate) fn workflow_authority(
             runtime.retain_current_generation(),
         ),
         graph_work_affinity: None,
+        application_operation_attempt: None,
+        application_operation_slot: None,
+        application_schema_binding: None,
+        application_snapshot: None,
     }
 }
 
@@ -330,65 +326,4 @@ fn admitted_test_basis() -> (Arc<str>, NormalizedBasisIntent) {
         Arc::from(capability.capability_digest()),
         capability.normalized().clone(),
     )
-}
-
-fn admitted_plan(binding_identity: &str) -> (WorthQueryAdmittedExecutionResourcePlan, String) {
-    admitted_plan_with_support_limit(binding_identity, 2)
-}
-
-fn admitted_plan_with_support_limit(
-    binding_identity: &str,
-    support_limit: u64,
-) -> (WorthQueryAdmittedExecutionResourcePlan, String) {
-    let safe_point = WorthQueryCancellationSafePointFamily::new("operation-boundary").unwrap();
-    let envelope = WorthQueryExecutionResourceEnvelope::new(
-        WorthQuerySemanticScaleRequest::bounded(2),
-        WorthQueryResourceLimitRequest::bounded(2),
-        WorthQueryExecutionMode::Synchronous,
-        None,
-        safe_point.clone(),
-    );
-    let provider = WorthQueryExecutionProviderFamily::new("installed-provider").unwrap();
-    let access = WorthQueryExecutionAccessProductFamily::new("installed-access").unwrap();
-    let allocator = WorthQueryExecutionAllocatorFamily::new("installed-arena").unwrap();
-    let contract =
-        WorthQueryExecutionResourceContract::declared([WorthQueryExecutionStrategyContract::new(
-            WorthQueryExecutionStrategyName::new("installed-strategy").unwrap(),
-            envelope.clone(),
-            WorthQueryExecutionProviderRequirements::new(
-                provider.clone(),
-                access.clone(),
-                allocator.clone(),
-            ),
-        )])
-        .unwrap();
-    let contract_identity = contract.canonical_identity();
-    let support = WorthQueryExecutionResourceSupportSnapshot::new(
-        WorthQueryExecutionResourceSupport::new(
-            provider,
-            access,
-            allocator,
-            WorthQueryExecutionResourceEnvelope::new(
-                WorthQuerySemanticScaleRequest::bounded(support_limit),
-                WorthQueryResourceLimitRequest::bounded(support_limit),
-                WorthQueryExecutionMode::Synchronous,
-                None,
-                safe_point.clone(),
-            ),
-            Arc::new(WorthQueryFixedExecutionCapacity::mint("operation-binding-test", 8).unwrap()),
-        ),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        None,
-    );
-    let plan = admit_execution_resource_plan(
-        binding_identity,
-        &contract,
-        &WorthQueryExecutionResourceRequest::bounded(2, 2, safe_point),
-        support,
-        WorthQueryExecutionResourceAdmissionCounters::default(),
-    )
-    .unwrap();
-    (plan, contract_identity)
 }

@@ -1,9 +1,7 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::publication::cdc::data::SubscriberCheckpoint;
-use crate::publication::logic::{
-    durable_canonical_envelopes, retained_canonical_envelope_at_position,
-};
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::publication::{durable_canonical_envelopes, retained_canonical_envelope_at_position};
+use crate::runtime::RelationalRuntime;
 
 pub(crate) fn durable_checkpoint_envelope(
     runtime: &RelationalRuntime,

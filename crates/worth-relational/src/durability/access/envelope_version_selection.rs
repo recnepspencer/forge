@@ -1,6 +1,6 @@
 pub(crate) fn descriptor_semantics_version_for_envelopes(
-    checkpoint_envelopes: &[crate::replay::data::CanonicalCommitEnvelope],
-    tail_log: &[crate::replay::data::CanonicalCommitEnvelope],
+    checkpoint_envelopes: &[crate::history::data::CanonicalCommitEnvelope],
+    tail_log: &[crate::history::data::CanonicalCommitEnvelope],
 ) -> crate::schema::data::DescriptorSemanticsVersion {
     tail_log
         .last()

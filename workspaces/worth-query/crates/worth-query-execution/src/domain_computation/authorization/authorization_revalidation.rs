@@ -1,43 +1,60 @@
-//! Re-admission of retained authorization at privileged transitions.
-
 mod currentness;
+mod observation;
+mod retained_authorization;
+mod supporting_capability;
 use worth_query_installation::facade::ApplicationSchema;
 
-use super::decision_facts::WorthQueryObservedCommitBasis;
-use super::delegation_admission::{observe_capability, observe_retained_capability_support};
+use super::{
+    decision_facts::WorthQueryObservedCommitBasis,
+    delegation_admission::WorthQueryCapabilityObservationSource,
+};
 use super::{
     WorthQueryApplicationCommitAuthorization, WorthQueryCapabilityCommitBasis,
-    WorthQueryCapabilitySupportCommitBasis, WorthQueryCommitAuthorizationBasis,
-    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
-    WorthQueryRetainedAuthorizationDecisionFacts,
+    WorthQueryCommitAuthorizationBasis, WorthQueryOperationAuthorizationDenial,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryRetainedAuthorizationDecisionFacts,
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryAdmittedApplicationOperation, WorthQueryApplicationCommitSerialization,
     WorthQueryPrimaryGraphApplicationRuntime,
 };
 use currentness::*;
+pub(in crate::domain_computation::authorization) use observation::WorthQueryAuthorizationRevalidationObservation;
+
+struct RevalidationObservationAxes<'observation> {
+    session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    relational: &'observation worth_relational::facade::runtime::RelationalRuntime,
+    snapshot: &'observation worth_relational::facade::snapshots::SnapshotHandle,
+    bridge: &'observation worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
+    installed: &'observation super::capability_registry::WorthQueryInstalledCapabilityPlan,
+    request: &'observation super::WorthQueryRetainedCapabilityRequest,
+    sample: &'observation super::WorthQueryRuntimeTimeSample,
+}
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
     Schema: ApplicationSchema,
 {
-    pub(in crate::domain_computation) fn readmit_retained_authorization(
+    fn readmit_admitted_non_capability_authorization<Operation, Input, Scope>(
         &self,
-        authorization: &mut WorthQueryRetainedAuthorizationDecisionFacts,
-        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
-        branch: &worth_relational::facade::history::BranchId,
+        admission: &mut WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+        let session = admission.graph_work_session_identity();
+        let branch = admission.graph_work_branch().clone();
+        let operation = admission.operation().to_owned();
+        let authorization = admission
+            .authorization_mut()
+            .ok_or_else(|| WorthQueryOperationAuthorizationDenial::inconsistent(&operation))?;
         if !authorization.belongs_to_session(session) {
             return Err(inconsistent_authorization());
         }
-        if let Some(capability) = authorization.capability_authorization_mut() {
-            return self.refresh_capability_authorization_for_session(capability, session, branch);
+        if authorization.capability_authorization().is_some() {
+            return Err(inconsistent_authorization());
         }
         let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
         graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime
                 .snapshots()
-                .snapshot_for_branch(branch)
+                .snapshot_for_branch(&branch)
                 .ok_or_else(inconsistent_authorization)?;
             let current = validate_retained_currentness(
                 authorization,
@@ -76,14 +93,9 @@ where
         >,
         WorthQueryOperationAuthorizationDenial,
     > {
-        let session = admission.graph_work_session_identity();
-        let branch = admission.graph_work_branch().clone();
-        let Some(authorization) = admission.authorization_mut() else {
-            return Err(WorthQueryOperationAuthorizationDenial::inconsistent(
-                admission.operation(),
-            ));
-        };
-        self.readmit_retained_authorization(authorization, session, &branch)?;
+        if !self.refresh_admitted_capability_authorization(admission)? {
+            self.readmit_admitted_non_capability_authorization(admission)?;
+        }
         Ok(WorthQueryApplicationCommitAuthorization::mint(
             serialization,
             admission,
@@ -116,21 +128,14 @@ where
         >,
         WorthQueryOperationAuthorizationDenial,
     > {
-        let authorization = admission.authorization().ok_or_else(|| {
-            WorthQueryOperationAuthorizationDenial::inconsistent(admission.operation())
-        })?;
-        self.validate_retained_authorization(
-            authorization,
-            admission.graph_work_session_identity(),
-            admission.graph_work_branch(),
-        )?;
+        self.validate_admitted_authorization(admission)?;
         Ok(WorthQueryApplicationCommitAuthorization::mint(
             serialization,
             admission,
         ))
     }
 
-    pub(in crate::domain_computation) fn authorize_application_commit<
+    pub(in crate::domain_computation::authorization) fn authorize_application_commit<
         'serialization,
         'admission,
         Operation,
@@ -157,6 +162,9 @@ where
         >,
         WorthQueryOperationAuthorizationDenial,
     > {
+        if self.runtime.authority_identity() != admission.runtime_authority() {
+            return Err(foreign_runtime());
+        }
         if basis.admission_identity() != admission.admission_identity()
             || !basis.belongs_to_session(admission.graph_work_session_identity())
         {
@@ -217,7 +225,7 @@ where
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
         let installed = self.installed_capability_plan(capability.request())?;
         if capability.capability_authority_identity()
-            != installed.capability_authority_identity.as_ref()
+            != installed.capability_authority_identity().as_ref()
         {
             return Err(stale_authorization());
         }
@@ -241,160 +249,25 @@ where
             } else if !decision_current {
                 Err(stale_authorization())
             } else {
-                observe_capability(
-                    capability.decision().session_identity(),
-                    runtime,
-                    snapshot.clone(),
-                    self.authorization.bridge(),
-                    installed,
-                    capability.request(),
-                    &sample,
-                    Some(capability.grant()),
-                    Some(capability.decision()),
+                WorthQueryAuthorizationRevalidationObservation::from_axes(
+                    RevalidationObservationAxes {
+                        session: capability.decision().session_identity(),
+                        relational: runtime,
+                        snapshot: &snapshot,
+                        bridge: self.authorization.bridge(),
+                        installed,
+                        request: capability.request(),
+                        sample: &sample,
+                    },
                 )
+                .observe_active_capability(Some(capability.grant()), Some(capability.decision()))
                 .map(drop)
             };
             let result = result.and_then(|()| {
-                self.readmit_capability_support(capability.supporting(), runtime, &snapshot)
+                self.readmit_capability_commit_support(capability.supporting(), runtime, &snapshot)
             });
             runtime.snapshots().release_snapshot(&snapshot);
             result
         })
-    }
-
-    fn validate_retained_authorization(
-        &self,
-        authorization: &WorthQueryRetainedAuthorizationDecisionFacts,
-        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
-        branch: &worth_relational::facade::history::BranchId,
-    ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-        if !authorization.belongs_to_session(session) {
-            return Err(inconsistent_authorization());
-        }
-        let Some(capability) = authorization.capability_authorization() else {
-            let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
-            return graph.integration_handle().with_runtime_mut(|runtime| {
-                let snapshot = runtime
-                    .snapshots()
-                    .snapshot_for_branch(branch)
-                    .ok_or_else(inconsistent_authorization)?;
-                let current = validate_retained_currentness(
-                    authorization,
-                    runtime,
-                    &snapshot,
-                    self.authorization.bridge(),
-                );
-                runtime.snapshots().release_snapshot(&snapshot);
-                current
-            });
-        };
-        let installed = self.installed_capability_plan(capability.request())?;
-        if capability.capability_authority_identity()
-            != installed.capability_authority_identity.as_ref()
-        {
-            return Err(stale_authorization());
-        }
-        let sample = self.sample_capability_time(installed)?;
-        let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
-        graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime
-                .snapshots()
-                .snapshot_for_branch(branch)
-                .ok_or_else(inconsistent_authorization)?;
-            let principal_current = capability
-                .principal()
-                .remains_current_in(runtime, &snapshot);
-            let decision_current = capability.decision().remains_current_in(
-                runtime,
-                &snapshot,
-                self.authorization.bridge(),
-            );
-            let result = if !principal_current {
-                Err(stale_principal())
-            } else if !decision_current {
-                Err(stale_authorization())
-            } else {
-                observe_capability(
-                    capability.decision().session_identity(),
-                    runtime,
-                    snapshot.clone(),
-                    self.authorization.bridge(),
-                    installed,
-                    capability.request(),
-                    &sample,
-                    Some(capability.grant()),
-                    Some(capability.decision()),
-                )
-                .map(drop)
-            };
-            let result = result.and_then(|()| {
-                let Some(supporting) = capability.supporting() else {
-                    return Ok(());
-                };
-                let installed = self.installed_capability_plan(supporting.request())?;
-                if supporting.capability_authority_identity()
-                    != installed.capability_authority_identity.as_ref()
-                    || !supporting.decision().remains_current_in(
-                        runtime,
-                        &snapshot,
-                        self.authorization.bridge(),
-                    )
-                {
-                    return Err(stale_authorization());
-                }
-                let sample = self.sample_capability_time(installed)?;
-                observe_retained_capability_support(
-                    supporting.posture(),
-                    supporting.decision().session_identity(),
-                    runtime,
-                    snapshot.clone(),
-                    self.authorization.bridge(),
-                    installed,
-                    supporting.request(),
-                    &sample,
-                    supporting.grant(),
-                    Some(supporting.decision()),
-                )
-                .map(drop)
-            });
-            runtime.snapshots().release_snapshot(&snapshot);
-            result
-        })
-    }
-
-    fn readmit_capability_support(
-        &self,
-        supporting: Option<&WorthQueryCapabilitySupportCommitBasis>,
-        runtime: &worth_relational::facade::runtime::RelationalRuntime,
-        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
-    ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-        let Some(supporting) = supporting else {
-            return Ok(());
-        };
-        let installed = self.installed_capability_plan(supporting.request())?;
-        if supporting.capability_authority_identity()
-            != installed.capability_authority_identity.as_ref()
-            || !supporting.decision().remains_current_in(
-                runtime,
-                snapshot,
-                self.authorization.bridge(),
-            )
-        {
-            return Err(stale_authorization());
-        }
-        let sample = self.sample_capability_time(installed)?;
-        observe_retained_capability_support(
-            supporting.posture(),
-            supporting.decision().session_identity(),
-            runtime,
-            snapshot.clone(),
-            self.authorization.bridge(),
-            installed,
-            supporting.request(),
-            &sample,
-            supporting.grant(),
-            Some(supporting.decision()),
-        )
-        .map(drop)
     }
 }

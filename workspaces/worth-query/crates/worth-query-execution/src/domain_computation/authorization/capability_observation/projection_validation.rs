@@ -19,13 +19,13 @@ pub(super) fn validate_projection_shape(
     path_count: usize,
     elevation_required: bool,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-    let request = &installed.request;
+    let request = &installed.request();
     validate_purpose(installed, projection)?;
     validate_scope(installed, projection)?;
     validate_operation_shape(installed, projection, elevation_required)?;
     validate_relation(installed, projection)?;
     let expected_context = installed
-        .paths
+        .paths()
         .iter()
         .take(path_count)
         .flat_map(|path| {
@@ -36,11 +36,11 @@ pub(super) fn validate_projection_shape(
         .collect::<BTreeSet<_>>();
     if !expected_context
         .iter()
-        .all(|key| projection.context.contains_key(key))
+        .all(|key| projection.context().contains_key(key))
     {
         return Err(scope_mismatch(installed));
     }
-    debug_assert_eq!(request.purpose, projection.purpose);
+    debug_assert_eq!(&request.purpose, projection.purpose());
     Ok(())
 }
 
@@ -48,10 +48,10 @@ fn validate_purpose(
     installed: &WorthQueryInstalledCapabilityPlan,
     projection: &WorthQueryRetainedCapabilityRequest,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-    if projection.purpose != installed.request.purpose {
+    if projection.purpose() != &installed.request().purpose {
         return Err(WorthQueryOperationAuthorizationDenial::new(
             WorthQueryOperationAuthorizationDenialKind::PurposeMismatch,
-            installed.contract.name(),
+            installed.contract().name(),
         ));
     }
     Ok(())
@@ -61,12 +61,12 @@ fn validate_scope(
     installed: &WorthQueryInstalledCapabilityPlan,
     projection: &WorthQueryRetainedCapabilityRequest,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-    let request = &installed.request;
-    if projection.resource_entity.as_ref() != request.resource_entity
-        || projection.context_name.as_ref() != request.context
-        || projection.context_type.as_ref() != request.context_type
-        || !cardinality_admitted(request.cardinality, projection.cardinality)
-        || projection.magnitude.is_some() != request.magnitude.is_some()
+    let request = &installed.request();
+    if projection.resource_entity() != request.resource_entity
+        || projection.context_name() != request.context
+        || projection.context_type() != request.context_type
+        || !cardinality_admitted(request.cardinality, projection.cardinality())
+        || projection.magnitude().is_some() != request.magnitude.is_some()
     {
         return Err(scope_mismatch(installed));
     }
@@ -78,14 +78,14 @@ fn validate_operation_shape(
     projection: &WorthQueryRetainedCapabilityRequest,
     elevation_required: bool,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-    let request = &installed.request;
-    if projection.action != request.action
-        || projection.field.is_some() != request.field.is_some()
-        || projection.elevation.is_some() != elevation_required
+    let request = &installed.request();
+    if projection.action() != &request.action
+        || projection.field().is_some() != request.field.is_some()
+        || projection.elevation().is_some() != elevation_required
     {
         return Err(WorthQueryOperationAuthorizationDenial::new(
             WorthQueryOperationAuthorizationDenialKind::CapabilityProjectionRejected,
-            installed.contract.name(),
+            installed.contract().name(),
         ));
     }
     Ok(())
@@ -96,8 +96,8 @@ fn validate_relation(
     projection: &WorthQueryRetainedCapabilityRequest,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
     let matches = match (
-        installed.contract.target().relation(),
-        projection.related_relation.as_ref(),
+        installed.contract().target().relation(),
+        projection.related_relation(),
     ) {
         (ApplicationCapabilityRelationDimension::NotApplicable, None) => true,
         (ApplicationCapabilityRelationDimension::Bound(expected), Some(actual)) => {
@@ -129,6 +129,6 @@ fn scope_mismatch(
 ) -> WorthQueryOperationAuthorizationDenial {
     WorthQueryOperationAuthorizationDenial::new(
         WorthQueryOperationAuthorizationDenialKind::ScopeMismatch,
-        installed.contract.name(),
+        installed.contract().name(),
     )
 }

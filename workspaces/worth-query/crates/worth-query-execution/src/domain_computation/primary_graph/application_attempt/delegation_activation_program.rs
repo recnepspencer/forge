@@ -1,23 +1,15 @@
-use std::collections::BTreeSet;
-
-use worth_query_declaration::facade::{
-    application_schema::ApplicationOperationProgramTarget,
-    domain_computation::WorthQueryResourceDimension,
-};
-use worth_relational::facade::{
-    identity::PartitionId,
-    symbols::ClientKey,
-    transactions::{CreatedEntityRef, EntityReference},
-};
+use worth_query_declaration::facade::domain_computation::WorthQueryResourceDimension;
 
 use super::effect_program::WorthQueryApplicationRealizedEffect;
-use super::effect_validation::{canonical_key, denial};
+use super::effect_validation::denial;
 use super::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
     WorthQueryApplicationEffectProgram, WorthQueryCompleteApplicationReadSet,
     WorthQueryProjectedApplicationMutation,
 };
-use crate::domain_computation::authorization::WorthQueryDelegationActivationBinding;
+use crate::domain_computation::authorization::{
+    WorthQueryDelegationActivationBinding, WorthQueryDelegationActivationEffect,
+};
 
 /// Exact child activation produced from Query-owned delegation authority.
 pub struct WorthQueryDelegationActivationProgram<Schema, Operation, Input, Scope> {
@@ -43,8 +35,8 @@ impl<Schema, Operation, Input, Scope>
             .admission
             .delegation_activation_binding()
             .ok_or_else(|| transition_required(self.admission.operation()))?;
-        validate_installed_contract(binding, self.admission.allowed_graph_contract().program())?;
-        let effects = activation_effects(binding)?;
+        let effects =
+            activation_effects(binding, self.admission.allowed_graph_contract().program())?;
         let emission_retained_bytes_ceiling = self
             .admission
             .allowed_graph_contract()
@@ -86,7 +78,7 @@ pub(in crate::domain_computation::primary_graph) fn validate_delegation_activati
         .admission
         .delegation_activation_binding()
         .ok_or_else(|| transition_required(program.read_set.admission.operation()))?;
-    validate_installed_contract(
+    let expected = activation_effects(
         binding,
         program
             .read_set
@@ -94,7 +86,6 @@ pub(in crate::domain_computation::primary_graph) fn validate_delegation_activati
             .allowed_graph_contract()
             .program(),
     )?;
-    let expected = activation_effects(binding)?;
     if program.emission_retained_bytes == 0 && effects_are_exact(&program.effects, &expected) {
         Ok(())
     } else {
@@ -102,123 +93,35 @@ pub(in crate::domain_computation::primary_graph) fn validate_delegation_activati
     }
 }
 
-fn validate_installed_contract(
-    binding: &WorthQueryDelegationActivationBinding,
-    installed: &[ApplicationOperationProgramTarget],
-) -> Result<(), WorthQueryApplicationAttemptDenial> {
-    let required = binding
-        .required_program_targets
-        .iter()
-        .collect::<BTreeSet<_>>();
-    let installed = installed.iter().collect::<BTreeSet<_>>();
-    let creates = required
-        .iter()
-        .filter(|target| matches!(target, ApplicationOperationProgramTarget::Create { .. }))
-        .count();
-    let writes = required
-        .iter()
-        .filter(|target| matches!(target, ApplicationOperationProgramTarget::Write { .. }))
-        .count();
-    let links = required
-        .iter()
-        .filter(|target| matches!(target, ApplicationOperationProgramTarget::Link { .. }))
-        .count();
-    let expected_links = 4usize
-        .saturating_add(usize::from(binding.related.is_some()))
-        .saturating_add(binding.activation_context.len());
-    if required.len() == binding.required_program_targets.len()
-        && required.is_subset(&installed)
-        && creates == 1
-        && writes == binding.fields.len()
-        && links == expected_links
-        && required.len() == creates.saturating_add(writes).saturating_add(links)
-    {
-        Ok(())
-    } else {
-        Err(program_mismatch("delegation activation operation contract"))
-    }
-}
-
 fn activation_effects(
     binding: &WorthQueryDelegationActivationBinding,
+    installed: &[worth_query_installation::facade::ApplicationOperationProgramTarget],
 ) -> Result<Vec<WorthQueryApplicationRealizedEffect>, WorthQueryApplicationAttemptDenial> {
-    let key = canonical_key(binding.child_key.clone(), "delegated capability")?;
-    let child = created(binding.child_kind, &key);
-    let mut effects = Vec::with_capacity(
-        5usize
-            .saturating_add(usize::from(binding.related.is_some()))
-            .saturating_add(binding.activation_context.len()),
-    );
-    effects.push(WorthQueryApplicationRealizedEffect::CreateEntity {
-        kind: binding.child_kind,
-        key: key.clone(),
-        fields: binding.fields.clone(),
-    });
-    effects.push(relation(
-        binding.parent_relation,
-        &key,
-        child.clone(),
-        EntityReference::Existing(binding.parent),
-    ));
-    effects.push(relation(
-        binding.grantor_relation,
-        &key,
-        EntityReference::Existing(binding.grantor),
-        child.clone(),
-    ));
-    effects.push(relation(
-        binding.grantee_relation,
-        &key,
-        EntityReference::Existing(binding.grantee),
-        child.clone(),
-    ));
-    effects.push(relation(
-        binding.resource_relation,
-        &key,
-        child.clone(),
-        EntityReference::Existing(binding.resource),
-    ));
-    match (binding.related_relation, binding.related) {
-        (Some(kind), Some(related)) => effects.push(relation(
-            kind,
-            &key,
-            child.clone(),
-            EntityReference::Existing(related),
-        )),
-        (None, None) => {}
-        _ => return Err(program_mismatch("delegated capability related entity")),
-    }
-    effects.extend(binding.activation_context.iter().map(|(kind, entity)| {
-        relation(
-            *kind,
-            &key,
-            child.clone(),
-            EntityReference::Existing(*entity),
-        )
-    }));
-    Ok(effects)
+    binding
+        .materialize_program(installed)
+        .map_err(|()| program_mismatch("delegation activation operation contract"))
+        .map(|effects| effects.into_iter().map(lower_effect).collect())
 }
 
-fn relation(
-    kind: worth_relational::facade::identity::KindId,
-    key: &str,
-    from: EntityReference,
-    to: EntityReference,
+fn lower_effect(
+    effect: WorthQueryDelegationActivationEffect,
 ) -> WorthQueryApplicationRealizedEffect {
-    WorthQueryApplicationRealizedEffect::CreateRelation {
-        kind,
-        key: key.to_owned(),
-        from,
-        to,
+    match effect {
+        WorthQueryDelegationActivationEffect::CreateEntity { kind, key, fields } => {
+            WorthQueryApplicationRealizedEffect::CreateEntity { kind, key, fields }
+        }
+        WorthQueryDelegationActivationEffect::CreateRelation {
+            kind,
+            key,
+            from,
+            to,
+        } => WorthQueryApplicationRealizedEffect::CreateRelation {
+            kind,
+            key,
+            from,
+            to,
+        },
     }
-}
-
-fn created(kind: worth_relational::facade::identity::KindId, key: &str) -> EntityReference {
-    EntityReference::Created(CreatedEntityRef {
-        partition_id: PartitionId::main(),
-        kind_id: kind,
-        client_key: ClientKey::raw(key.to_owned()),
-    })
 }
 
 fn effects_are_exact(

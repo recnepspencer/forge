@@ -14,7 +14,7 @@ mod session_context;
 mod tests;
 mod workflow_foundation;
 
-pub(crate) use binding::bind_preflight_to_preview_session;
+pub use binding::bind_preflight_to_preview_session;
 pub use binding::{
     PreviewBindingCounters, PreviewBindingError, PreviewBindingFailureClass, PreviewBindingReport,
     PreviewComplexityContract, PreviewLifecycleMetadata, PreviewPerformanceStatusMarker,
@@ -38,13 +38,11 @@ pub use live::{
     PreviewLiveRebindArtifact,
 };
 
-#[cfg(test)]
-pub(crate) use execution::{
+pub use execution::{
     admit_promotion_eligible_preview_session_plan_binding,
-    admit_read_only_preview_session_plan_binding, execute_preview_session_plan,
-    execute_promotion_eligible_preview_session_plan, execute_read_only_preview_session_plan,
+    admit_read_only_preview_session_plan_binding, execute_promotion_eligible_preview_session_plan,
+    execute_read_only_preview_session_plan,
 };
-#[allow(unused_imports)]
 pub use execution::{
     PreviewComparisonCounters, PreviewExecutionCounters, PreviewExecutionEnvelope,
     PreviewExecutionError, PreviewExecutionFailureClass, PreviewExecutionReport,
@@ -54,19 +52,17 @@ pub use execution::{
 pub use session_context::PreviewSessionQueryContext;
 
 #[cfg(test)]
-pub(crate) use comparison::{
+pub(crate) use comparison::derive_preview_comparison_eligibility;
+pub use comparison::{
     admit_authoritative_preview_comparison_candidate, admit_preview_promotion_parity_comparison,
-    derive_preview_comparison_eligibility,
 };
-#[allow(unused_imports)]
 pub use comparison::{
     AuthoritativePreviewComparisonCandidate, PreviewComparisonCandidateArtifact,
     PreviewComparisonEligibilityArtifact, PreviewComparisonError, PreviewComparisonFailureClass,
     PreviewExecutionComparisonAdmission, PromotionParityPreviewComparisonAdmission,
 };
 
-#[cfg(test)]
-pub(crate) use workflow_foundation::{
+pub use workflow_foundation::{
     admit_preview_workflow_foundation, admit_preview_workflow_foundation_request,
 };
 pub use workflow_foundation::{

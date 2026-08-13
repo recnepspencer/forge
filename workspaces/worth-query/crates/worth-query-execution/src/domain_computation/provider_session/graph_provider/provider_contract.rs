@@ -61,10 +61,16 @@ pub trait WorthQueryProviderSessionLifecycle: Send + Sync + 'static {
     fn commit_prepared_session(
         &self,
         session: &crate::domain_computation::WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, crate::domain_computation::WorthQueryProviderSessionFailure>;
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        crate::domain_computation::WorthQueryProviderSessionFailure,
+    >;
 
     fn abort_provider_session(
         &self,
         session: &crate::domain_computation::WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, crate::domain_computation::WorthQueryProviderSessionFailure>;
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        crate::domain_computation::WorthQueryProviderSessionFailure,
+    >;
 }

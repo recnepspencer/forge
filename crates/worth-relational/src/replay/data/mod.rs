@@ -1,14 +1,12 @@
-mod canonical_commit_envelope;
 mod digest;
 mod lineage_authority;
 mod parity;
 mod replay_errors;
 mod verification;
 
-pub(crate) use canonical_commit_envelope::CommittedRecordChange;
-pub use canonical_commit_envelope::{
-    CanonicalCommitAuthorityKind, CanonicalCommitEnvelope, RelationalReplayRecord,
-    ReplaySchemaVersion,
+pub(crate) use crate::history::data::CommittedRecordChange;
+pub use crate::history::data::{
+    CanonicalCommitEnvelope, RelationalReplayRecord, ReplaySchemaVersion,
 };
 pub(crate) use digest::{
     digest_branch_head_summary, digest_branch_head_surface, digest_derived_index_summary,

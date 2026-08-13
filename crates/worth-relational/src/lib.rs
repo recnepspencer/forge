@@ -8,7 +8,7 @@
 //! The crate is intentionally shaped around the Worth domain standards:
 //!
 //! - component-oriented structure
-//! - explicit `presentation` / `logic` / `data` layers
+//! - semantic owners for access, authority, planning, execution, and durable data
 //! - a single public facade boundary
 //! - contracts that preserve serialized authority and immutable read semantics
 //!
@@ -39,13 +39,13 @@ mod identity_authority;
 mod indexes;
 mod inspection;
 mod lineage;
-mod logic;
 mod merge;
 mod performance;
 mod presentation;
 mod publication;
 mod query;
 mod replay;
+mod runtime;
 mod schema;
 mod simulation;
 mod snapshots;
@@ -56,9 +56,6 @@ mod validation;
 mod visibility;
 
 pub mod facade;
-
-#[cfg(test)]
-mod testing;
 
 #[cfg(test)]
 mod tests;

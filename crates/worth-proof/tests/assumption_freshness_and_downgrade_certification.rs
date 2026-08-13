@@ -1,17 +1,17 @@
 mod support;
 
+use support::assumption_lifecycle;
 use support::compile_fail::run_compile_fail_bundle;
 use support::compile_pass::run_compile_pass_bundle;
-use support::milestone3;
 
 #[test]
 fn assumption_freshness_readmission_and_downgrade_certification() {
-    let compile_fail_bundle = milestone3::compile_fail_bundle();
-    let compile_pass_bundle = milestone3::compile_pass_bundle();
-    let basis_digest = milestone3::basis_digest();
-    let failure_digest = milestone3::failure_digest();
-    let transition_digest = milestone3::transition_digest();
-    let residual_debt_report = milestone3::residual_debt_report();
+    let compile_fail_bundle = assumption_lifecycle::compile_fail_bundle();
+    let compile_pass_bundle = assumption_lifecycle::compile_pass_bundle();
+    let basis_digest = assumption_lifecycle::basis_digest();
+    let failure_digest = assumption_lifecycle::failure_digest();
+    let transition_digest = assumption_lifecycle::transition_digest();
+    let residual_debt_report = assumption_lifecycle::residual_debt_report();
 
     run_compile_fail_bundle(&compile_fail_bundle);
     run_compile_pass_bundle(&compile_pass_bundle);

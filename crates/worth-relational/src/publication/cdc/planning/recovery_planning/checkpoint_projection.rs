@@ -1,11 +1,11 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::publication::cdc::data::{
     NormalizedContinuationProof, SubscriberCheckpoint, SubscriberContinuationAssessment,
     SubscriberContractDeclaration, SubscriberStreamFailure,
 };
 use crate::publication::cdc::planning::assess_subscriber_continuity;
 use crate::publication::cdc::planning::checkpoint_resolution::checkpoint_basis_from_envelope;
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::runtime::RelationalRuntime;
 use crate::schema::data::DescriptorSemanticsVersion;
 
 pub(super) fn latest_available_assessment(

@@ -4,9 +4,9 @@ use crate::preview::{
     admit_authoritative_preview_comparison_candidate, admit_preview_promotion_parity_comparison,
     admit_promotion_eligible_preview_session_plan_binding,
     admit_read_only_preview_session_plan_binding, bind_preflight_to_preview_session,
-    derive_preview_comparison_eligibility, execute_preview_session_plan,
-    execute_promotion_eligible_preview_session_plan, execute_read_only_preview_session_plan,
-    PreviewComparisonFailureClass, PreviewEvaluationClass, PreviewSessionQueryContext,
+    derive_preview_comparison_eligibility, execute_promotion_eligible_preview_session_plan,
+    execute_read_only_preview_session_plan, PreviewComparisonFailureClass, PreviewEvaluationClass,
+    PreviewSessionQueryContext,
 };
 
 #[test]
@@ -121,8 +121,10 @@ fn preview_execution_comparison_rejects_store_backed_candidates() {
         ),
     )
     .expect("preview binding should succeed");
+    let binding = admit_read_only_preview_session_plan_binding(binding)
+        .expect("read-only binding should admit");
     let _preview_execution =
-        execute_preview_session_plan(&binding).expect("preview execution should succeed");
+        execute_read_only_preview_session_plan(&binding).expect("preview execution should succeed");
     let candidate_execution = crate::execution::execute_preflight_bundle(&candidate_preflight)
         .expect("candidate execution should succeed");
     let error = admit_authoritative_preview_comparison_candidate(

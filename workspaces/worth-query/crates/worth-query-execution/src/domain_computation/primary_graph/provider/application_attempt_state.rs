@@ -1,10 +1,28 @@
 //! Affinity-keyed transient state for one Primary Graph application attempt.
 
 use crate::domain_computation::{
-    provider_session::WorthQueryProviderSessionTerminalBinding, WorthQueryProposedFact,
-    WorthQueryProviderSessionAffinityIdentity, WorthQueryProvisionalEffectStep,
+    WorthQueryProposedFact, WorthQueryProviderSessionAffinityIdentity,
+    WorthQueryProviderSessionView, WorthQueryProvisionalEffectStep,
 };
 use std::collections::BTreeMap;
+
+mod commit_preparation;
+mod phase;
+mod registration;
+mod retained_basis;
+pub(in crate::domain_computation::primary_graph::provider) use commit_preparation::commit_prepared_application;
+pub(crate) use commit_preparation::WorthQueryRetainedPreImageSeal;
+pub(in crate::domain_computation::primary_graph) use commit_preparation::{
+    WorthQueryMutationWorkCommitSeal, WorthQueryPreImageRetentionWork,
+    WorthQueryPrimaryGraphCommittedApplication,
+};
+#[cfg(test)]
+use phase::WorthQueryApplicationAttemptPhase;
+use phase::{WorthQueryApplicationAttemptState, WorthQueryPrimaryGraphOverlay};
+pub(super) use retained_basis::{
+    WorthQueryAdmittedApplicationOverlay, WorthQueryApplicationIdempotencyBasis,
+    WorthQueryObservedApplicationFactBasis,
+};
 
 use super::{
     mutation_work::WorthQueryPrimaryMutationWorkCounters, WorthQueryPrimaryGraphApplicationAttempt,
@@ -15,8 +33,10 @@ use super::{
 struct WorthQueryApplicationAttemptLookupKey(WorthQueryProviderSessionAffinityIdentity);
 
 impl WorthQueryApplicationAttemptLookupKey {
-    const fn from_binding(binding: &WorthQueryProviderSessionTerminalBinding) -> Self {
-        Self(binding.affinity_identity())
+    const fn from_affinity(
+        affinity: &super::super::application_attempt::WorthQueryApplicationAttemptAffinity,
+    ) -> Self {
+        Self(affinity.lookup_identity())
     }
 
     const fn from_identity(identity: WorthQueryProviderSessionAffinityIdentity) -> Self {
@@ -26,29 +46,23 @@ impl WorthQueryApplicationAttemptLookupKey {
 
 #[derive(Default)]
 pub(super) struct WorthQueryPrimaryGraphApplicationAttemptStore {
-    attempts: BTreeMap<WorthQueryApplicationAttemptLookupKey, WorthQueryApplicationAttemptState>,
+    attempts: BTreeMap<WorthQueryApplicationAttemptLookupKey, WorthQueryApplicationAttemptEntry>,
+    next_registration: u64,
     next_overlay: u64,
 }
 
-struct WorthQueryApplicationAttemptState {
-    attempt: WorthQueryPrimaryGraphApplicationAttempt,
-    phase: WorthQueryApplicationAttemptPhase,
-}
-
-enum WorthQueryApplicationAttemptPhase {
-    Registered,
-    OverlayStaged(WorthQueryPrimaryGraphOverlay),
-    InvariantApproved {
-        overlay: WorthQueryPrimaryGraphOverlay,
-        candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
-        work: WorthQueryPrimaryMutationWorkCounters,
+enum WorthQueryApplicationAttemptEntry {
+    Reserved {
+        identity: u64,
+        terminal:
+            crate::domain_computation::provider_session::WorthQueryProviderSessionTerminalBinding,
     },
-    InvariantApprovedAfterOverlayDiscard,
+    Registered(WorthQueryApplicationAttemptState),
 }
 
-struct WorthQueryPrimaryGraphOverlay {
-    identity: String,
-    facts: Vec<WorthQueryProposedFact>,
+pub(in crate::domain_computation::primary_graph) struct WorthQueryApplicationAttemptReservation {
+    key: WorthQueryApplicationAttemptLookupKey,
+    identity: u64,
 }
 
 pub(super) struct WorthQueryStagedApplicationAttempt<'attempt> {
@@ -63,79 +77,56 @@ pub(super) struct WorthQueryPreparedProviderApplicationAttempt {
 }
 
 impl WorthQueryPrimaryGraphApplicationAttemptStore {
-    pub(super) fn register(
-        &mut self,
-        attempt: WorthQueryPrimaryGraphApplicationAttempt,
-    ) -> Result<(), &'static str> {
-        let key =
-            WorthQueryApplicationAttemptLookupKey::from_binding(&attempt.provider_session_binding);
-        self.register_key(key, attempt)
-    }
-
-    fn register_key(
-        &mut self,
-        key: WorthQueryApplicationAttemptLookupKey,
-        attempt: WorthQueryPrimaryGraphApplicationAttempt,
-    ) -> Result<(), &'static str> {
-        match self.attempts.entry(key) {
-            std::collections::btree_map::Entry::Vacant(entry) => {
-                entry.insert(WorthQueryApplicationAttemptState {
-                    attempt,
-                    phase: WorthQueryApplicationAttemptPhase::Registered,
-                });
-                Ok(())
-            }
-            std::collections::btree_map::Entry::Occupied(_) => {
-                Err("provider session already owns an application attempt")
-            }
-        }
-    }
-
     pub(super) fn contains_observed_fact(
         &self,
-        affinity: WorthQueryProviderSessionAffinityIdentity,
+        session: WorthQueryProviderSessionView<'_>,
         locator: &str,
     ) -> bool {
-        self.attempt(affinity)
-            .is_some_and(|attempt| attempt.facts.contains_key(locator))
+        self.attempt(session)
+            .is_some_and(|attempt| attempt.facts().contains_key(locator))
     }
 
     pub(super) fn observed_fact_and_branch(
         &self,
-        affinity: WorthQueryProviderSessionAffinityIdentity,
+        session: WorthQueryProviderSessionView<'_>,
         locator: &str,
-    ) -> Option<(
-        WorthQueryPrimaryGraphApplicationDecisionFact,
-        worth_relational::facade::history::BranchId,
-    )> {
-        let attempt = self.attempt(affinity)?;
-        Some((attempt.facts.get(locator)?.clone(), attempt.branch.clone()))
+    ) -> Option<WorthQueryObservedApplicationFactBasis> {
+        let attempt = self.attempt(session)?;
+        Some(WorthQueryObservedApplicationFactBasis::new(
+            attempt.facts().get(locator)?.clone(),
+            attempt.affinity().branch().clone(),
+        ))
     }
 
     pub(super) fn idempotency_basis(
         &self,
-        affinity: WorthQueryProviderSessionAffinityIdentity,
-    ) -> Option<(
-        super::super::application_attempt::WorthQueryApplicationIdempotencyBinding,
-        worth_relational::facade::history::BranchId,
-    )> {
-        let attempt = self.attempt(affinity)?;
-        Some((attempt.idempotency, attempt.branch.clone()))
+        session: &crate::domain_computation::provider_session::WorthQueryProviderSessionTerminalBinding,
+    ) -> Option<WorthQueryApplicationIdempotencyBasis> {
+        let key = WorthQueryApplicationAttemptLookupKey::from_identity(session.affinity_identity());
+        let WorthQueryApplicationAttemptEntry::Registered(state) = self.attempts.get(&key)? else {
+            return None;
+        };
+        let attempt = state.attempt();
+        if !attempt.affinity().same_session(session) {
+            return None;
+        }
+        Some(WorthQueryApplicationIdempotencyBasis::new(
+            attempt.idempotency(),
+            attempt.affinity().branch().clone(),
+        ))
     }
 
     pub(super) fn stage_overlay(
         &mut self,
-        affinity: WorthQueryProviderSessionAffinityIdentity,
+        session: WorthQueryProviderSessionView<'_>,
         expected_steps: &[WorthQueryProvisionalEffectStep],
         generation: u64,
         facts: Vec<WorthQueryProposedFact>,
-    ) -> Result<(String, Vec<WorthQueryProposedFact>), &'static str> {
-        let key = WorthQueryApplicationAttemptLookupKey::from_identity(affinity);
-        let state = self
-            .attempts
-            .get_mut(&key)
-            .ok_or("provider session has no registered application attempt")?;
-        if state.attempt.expected_steps != expected_steps || !state.phase.accepts_overlay() {
+    ) -> Result<WorthQueryAdmittedApplicationOverlay, &'static str> {
+        let accepted = self
+            .attempt_state(session)
+            .is_some_and(|state| state.accepts_overlay(expected_steps));
+        if !accepted {
             return Err("provider session cannot stage this application overlay");
         }
         let next_overlay = self
@@ -144,241 +135,174 @@ impl WorthQueryPrimaryGraphApplicationAttemptStore {
             .ok_or("primary graph overlay identity space is exhausted")?;
         self.next_overlay = next_overlay;
         let identity = format!("primary-overlay:{generation}:{next_overlay}");
-        state.phase.stage_overlay(WorthQueryPrimaryGraphOverlay {
-            identity: identity.clone(),
-            facts: facts.clone(),
-        })?;
-        Ok((identity, facts))
+        let state = self
+            .attempt_state_mut(session)
+            .ok_or("provider session has no registered application attempt")?;
+        state.stage_overlay(WorthQueryPrimaryGraphOverlay::new(
+            identity.clone(),
+            facts.clone(),
+        ))?;
+        Ok(WorthQueryAdmittedApplicationOverlay::new(identity, facts))
     }
 
     pub(super) fn staged_attempt(
         &self,
-        affinity: WorthQueryProviderSessionAffinityIdentity,
+        session: WorthQueryProviderSessionView<'_>,
     ) -> Option<WorthQueryStagedApplicationAttempt<'_>> {
-        let state = self.attempt_state(affinity)?;
-        let overlay = match &state.phase {
-            WorthQueryApplicationAttemptPhase::OverlayStaged(overlay)
-            | WorthQueryApplicationAttemptPhase::InvariantApproved { overlay, .. } => overlay,
-            WorthQueryApplicationAttemptPhase::Registered
-            | WorthQueryApplicationAttemptPhase::InvariantApprovedAfterOverlayDiscard => {
-                return None
-            }
-        };
-        Some(WorthQueryStagedApplicationAttempt {
-            attempt: &state.attempt,
-            overlay,
-        })
+        self.attempt_state(session)?.staged()
     }
 
     pub(super) fn retain_invariant_approved(
         &mut self,
-        affinity: WorthQueryProviderSessionAffinityIdentity,
+        session: WorthQueryProviderSessionView<'_>,
         candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
         work: WorthQueryPrimaryMutationWorkCounters,
     ) -> Result<(), &'static str> {
-        let key = WorthQueryApplicationAttemptLookupKey::from_identity(affinity);
         let state = self
-            .attempts
-            .get_mut(&key)
+            .attempt_state_mut(session)
             .ok_or("provider session has no registered application attempt")?;
-        let prior = std::mem::replace(
-            &mut state.phase,
-            WorthQueryApplicationAttemptPhase::Registered,
-        );
-        match prior {
-            WorthQueryApplicationAttemptPhase::OverlayStaged(overlay) => {
-                state.phase = WorthQueryApplicationAttemptPhase::InvariantApproved {
-                    overlay,
-                    candidate,
-                    work,
-                };
-                Ok(())
-            }
-            prior => {
-                state.phase = prior;
-                Err("provider session cannot retain an invariant-approved candidate in this phase")
-            }
-        }
+        state.approve(candidate, work)
     }
 
     pub(super) fn is_staged_session_preparable(
         &self,
-        affinity: WorthQueryProviderSessionAffinityIdentity,
+        session: WorthQueryProviderSessionView<'_>,
     ) -> bool {
-        self.attempt_state(affinity).is_some_and(|state| {
-            matches!(
-                state.phase,
-                WorthQueryApplicationAttemptPhase::OverlayStaged(_)
-                    | WorthQueryApplicationAttemptPhase::InvariantApproved { .. }
-            )
-        })
+        self.attempt_state(session)
+            .is_some_and(WorthQueryApplicationAttemptState::is_preparable)
     }
 
     pub(super) fn take_commit_prepared(
         &mut self,
-        affinity: WorthQueryProviderSessionAffinityIdentity,
+        session: WorthQueryProviderSessionView<'_>,
     ) -> Option<WorthQueryPreparedProviderApplicationAttempt> {
-        let key = WorthQueryApplicationAttemptLookupKey::from_identity(affinity);
-        let ready = self.attempts.get(&key).is_some_and(|state| {
-            matches!(
-                state.phase,
-                WorthQueryApplicationAttemptPhase::InvariantApproved { .. }
-            )
-        });
-        if !ready {
+        let key = WorthQueryApplicationAttemptLookupKey::from_identity(session.affinity_identity());
+        if !self
+            .attempt_state(session)
+            .is_some_and(|state| state.phase_is_commit_ready())
+        {
             return None;
         }
-        let WorthQueryApplicationAttemptState { attempt, phase } = self
+        let WorthQueryApplicationAttemptEntry::Registered(state) = self
             .attempts
             .remove(&key)
-            .expect("commit-ready state exists");
-        let WorthQueryApplicationAttemptPhase::InvariantApproved {
-            candidate, work, ..
-        } = phase
+            .expect("commit-ready state exists")
         else {
-            unreachable!("commit readiness was checked under the same store borrow")
+            unreachable!("commit readiness excludes reservation entries")
         };
-        Some(WorthQueryPreparedProviderApplicationAttempt {
-            attempt,
-            candidate,
-            work,
-        })
+        state.take_commit_prepared()
     }
 
     pub(super) fn discard_overlay(
         &mut self,
-        affinity: WorthQueryProviderSessionAffinityIdentity,
-        physical_overlay_identity: &str,
+        evidence: crate::domain_computation::provider_session::WorthQueryProvisionalOverlayEvidenceView<'_>,
     ) -> bool {
-        let Some(state) =
+        let cleanup = evidence.cleanup_binding();
+        let Some(WorthQueryApplicationAttemptEntry::Registered(state)) =
             self.attempts
                 .get_mut(&WorthQueryApplicationAttemptLookupKey::from_identity(
-                    affinity,
+                    cleanup.affinity_identity(),
                 ))
         else {
             return false;
         };
-        state.phase.discard_overlay(physical_overlay_identity)
+        state.discard_overlay(cleanup, evidence.physical_overlay_identity())
     }
 
-    pub(super) fn abort(&mut self, affinity: WorthQueryProviderSessionAffinityIdentity) {
-        self.attempts
-            .remove(&WorthQueryApplicationAttemptLookupKey::from_identity(
-                affinity,
-            ));
+    pub(super) fn abort(&mut self, session: WorthQueryProviderSessionView<'_>) {
+        let key = WorthQueryApplicationAttemptLookupKey::from_identity(session.affinity_identity());
+        let admitted = self.attempts.get(&key).is_some_and(|entry| match entry {
+            WorthQueryApplicationAttemptEntry::Reserved { terminal, .. } => {
+                terminal.admits_session_view(session)
+            }
+            WorthQueryApplicationAttemptEntry::Registered(state) => state.admits_session(session),
+        });
+        if admitted {
+            self.attempts.remove(&key);
+        }
     }
 
     #[cfg(test)]
     pub(super) fn resource_count(&self) -> usize {
         self.attempts
             .values()
-            .map(|state| match &state.phase {
-                WorthQueryApplicationAttemptPhase::Registered => 1,
-                WorthQueryApplicationAttemptPhase::OverlayStaged(_) => 3,
-                WorthQueryApplicationAttemptPhase::InvariantApproved { .. } => 5,
-                WorthQueryApplicationAttemptPhase::InvariantApprovedAfterOverlayDiscard => 1,
+            .map(|entry| match entry {
+                WorthQueryApplicationAttemptEntry::Reserved { .. } => 1,
+                WorthQueryApplicationAttemptEntry::Registered(state) => state.resource_count(),
             })
             .sum()
     }
 
     fn attempt(
         &self,
-        affinity: WorthQueryProviderSessionAffinityIdentity,
+        session: WorthQueryProviderSessionView<'_>,
     ) -> Option<&WorthQueryPrimaryGraphApplicationAttempt> {
-        self.attempt_state(affinity).map(|state| &state.attempt)
+        self.attempt_state(session)
+            .map(WorthQueryApplicationAttemptState::attempt)
     }
 
     fn attempt_state(
         &self,
-        affinity: WorthQueryProviderSessionAffinityIdentity,
+        session: WorthQueryProviderSessionView<'_>,
     ) -> Option<&WorthQueryApplicationAttemptState> {
-        self.attempts
-            .get(&WorthQueryApplicationAttemptLookupKey::from_identity(
-                affinity,
-            ))
+        let WorthQueryApplicationAttemptEntry::Registered(state) =
+            self.attempts
+                .get(&WorthQueryApplicationAttemptLookupKey::from_identity(
+                    session.affinity_identity(),
+                ))?
+        else {
+            return None;
+        };
+        state.admits_session(session).then_some(state)
     }
-}
 
-impl WorthQueryApplicationAttemptPhase {
-    const fn accepts_overlay(&self) -> bool {
-        matches!(self, Self::Registered)
-    }
-
-    fn stage_overlay(
+    fn attempt_state_mut(
         &mut self,
-        overlay: WorthQueryPrimaryGraphOverlay,
-    ) -> Result<(), &'static str> {
-        if !self.accepts_overlay() {
-            return Err("provider session cannot stage this application overlay");
-        }
-        *self = Self::OverlayStaged(overlay);
-        Ok(())
-    }
-
-    fn discard_overlay(&mut self, physical_overlay_identity: &str) -> bool {
-        let prior = std::mem::replace(self, Self::Registered);
-        match prior {
-            Self::OverlayStaged(overlay) if overlay.identity == physical_overlay_identity => true,
-            Self::InvariantApproved {
-                overlay,
-                candidate: _,
-                work: _,
-            } if overlay.identity == physical_overlay_identity => {
-                *self = Self::InvariantApprovedAfterOverlayDiscard;
-                true
-            }
-            prior => {
-                *self = prior;
-                false
-            }
-        }
+        session: WorthQueryProviderSessionView<'_>,
+    ) -> Option<&mut WorthQueryApplicationAttemptState> {
+        let WorthQueryApplicationAttemptEntry::Registered(state) =
+            self.attempts
+                .get_mut(&WorthQueryApplicationAttemptLookupKey::from_identity(
+                    session.affinity_identity(),
+                ))?
+        else {
+            return None;
+        };
+        state.admits_session(session).then_some(state)
     }
 }
 
 impl WorthQueryStagedApplicationAttempt<'_> {
     pub(super) fn overlay_identity(&self) -> &str {
-        &self.overlay.identity
+        self.overlay.identity()
     }
 
     pub(super) fn overlay_facts(&self) -> &[WorthQueryProposedFact] {
-        &self.overlay.facts
+        self.overlay.facts()
     }
 
     pub(super) fn expected_step_count(&self) -> usize {
-        self.attempt.expected_steps.len()
+        self.attempt.expected_steps().len()
     }
 
     pub(super) fn batch(&self) -> &worth_relational::facade::transactions::WorkerIntentBatch {
-        &self.attempt.batch
+        self.attempt.batch()
     }
 
     pub(super) fn branch(&self) -> &worth_relational::facade::history::BranchId {
-        &self.attempt.branch
+        self.attempt.affinity().branch()
     }
 
     pub(super) fn decision_fact_count(&self) -> usize {
-        self.attempt.decision_fact_count
+        self.attempt.decision_fact_count()
     }
 
     pub(super) fn expected_branch_head(
         &self,
     ) -> Option<worth_relational::facade::transactions::ExpectedBranchHead> {
         self.attempt
-            .aftermath_causality
-            .as_ref()
+            .aftermath_causality()
             .map(|causality| causality.expected_head())
-    }
-}
-
-impl WorthQueryPreparedProviderApplicationAttempt {
-    pub(super) fn into_parts(
-        self,
-    ) -> (
-        WorthQueryPrimaryGraphApplicationAttempt,
-        worth_relational::facade::transactions::ValidatedRelationalMutation,
-        WorthQueryPrimaryMutationWorkCounters,
-    ) {
-        (self.attempt, self.candidate, self.work)
     }
 }
 

@@ -28,7 +28,7 @@ pub(super) fn mutation_config() -> crate::config::data::MutationConfig {
             small_degree_inline_capacity: 4,
         },
         cross_context_policy: CrossContextPolicy::AllowExplicit,
-        execution_model: crate::logic::planning::RelationalExecutionModel::SerialAuthority,
+        execution_model: crate::config::data::RelationalExecutionModel::SerialAuthority,
     }
 }
 

@@ -101,25 +101,6 @@ impl WorthQueryPerformedExternalRedispatchSeal {
     }
 }
 
-#[cfg(test)]
-pub(in crate::domain_computation) fn perform_external_redispatch_owner_fixture(
-    handle: &WorthQueryRecoveryHandle,
-    transport: &dyn WorthQueryExternalEffectTransport,
-    admitted: crate::domain_computation::application_aftermath::external_effect::WorthQueryAdmittedExternalDispatchAttempt,
-) -> Result<
-    WorthQueryPerformedExternalRedispatch,
-    crate::domain_computation::application_aftermath::WorthQueryAftermathDerivationFailure,
-> {
-    let dispatch = dispatch_external_effect(transport, admitted)?;
-    Ok(WorthQueryPerformedExternalRedispatch::record(
-        WorthQueryPerformedExternalRedispatchSeal::new(
-            WorthQueryExternalRedispatchMint::witness(),
-            handle.authority_identity(),
-            dispatch,
-        ),
-    ))
-}
-
 impl From<WorthQueryExternalRedispatchDenial> for WorthQueryRecoveryHandleDenial {
     fn from(denial: WorthQueryExternalRedispatchDenial) -> Self {
         match denial {
@@ -273,6 +254,9 @@ where
         })
     }
 }
+
+#[cfg(test)]
+mod safe_retry_affinity_tests;
 
 #[cfg(test)]
 mod tests {

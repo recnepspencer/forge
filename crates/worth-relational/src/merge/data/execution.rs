@@ -1,6 +1,8 @@
 mod canonical_digest;
 mod executable_plan;
 mod materialized_aspect_values;
+#[cfg(test)]
+mod test_support;
 
 use std::sync::Arc;
 
@@ -72,6 +74,7 @@ pub enum MergeExecutionPreparationError {
     Planning(MergePlanningError),
     NotExecutionReady(MergeExecutionReadinessReport),
     Compilation(MergeExecutionCompilationError),
+    MutationPlan(MergeExecutionMutationPlanError),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -175,6 +178,49 @@ pub enum MergeExecutionMutationPlanError {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PreparedMergeExecution {
+    compiled: CompiledMergeExecution,
+    mutation_plan: PreparedMergeMutationPlan,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct PreparedMergeMutationPlan {
+    pub(crate) target_branch: crate::history::data::BranchId,
+    pub(crate) source_branch: crate::history::data::BranchId,
+    pub(crate) merge_parent_branches: Arc<[crate::history::data::BranchId]>,
+    pub(crate) requested_merge_parent_count: usize,
+    pub(crate) parent_commits: crate::history::data::OrderedParentList,
+    pub(crate) merge_base_commits: Arc<[CommitId]>,
+    pub(crate) merged_intents: Vec<crate::transactions::data::MutationIntent>,
+    pub(crate) structural_summary: crate::transactions::data::MergeExecutionStructuralSummary,
+    pub(crate) merge_execution_summary: crate::transactions::data::MergeExecutionSummary,
+}
+
+impl PreparedMergeMutationPlan {
+    pub(crate) fn bind_transaction(
+        &self,
+        transaction_id: crate::transactions::data::TransactionId,
+    ) -> crate::transactions::data::MergeCommitMutationPlan {
+        crate::transactions::data::MergeCommitMutationPlan {
+            transaction_id,
+            target_branch: self.target_branch.clone(),
+            source_branch: self.source_branch.clone(),
+            merge_parent_branches: Arc::clone(&self.merge_parent_branches),
+            requested_merge_parent_count: self.requested_merge_parent_count,
+            parent_commits: self.parent_commits.clone(),
+            merge_base_commits: Arc::clone(&self.merge_base_commits),
+            merged_plan: crate::transactions::data::MergedCommitPlan {
+                transaction_id,
+                merged_intents: self.merged_intents.clone(),
+            },
+            structural_summary: self.structural_summary.clone(),
+            merge_execution_summary: self.merge_execution_summary.clone(),
+            proof_token: crate::transactions::data::merge_commit_mutation_plan_token(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CompiledMergeExecution {
     artifact: MergePlanningArtifactCore,
     request: NormalizedRelationalMergeRequest,
     execution_ready_plan: ExecutionReadyLoweredMergePlan,
@@ -195,6 +241,42 @@ impl From<crate::transactions::data::TransactionCommitError> for MergeExecutionE
 }
 
 impl PreparedMergeExecution {
+    pub(crate) fn from_compiled(
+        compiled: CompiledMergeExecution,
+        mutation_plan: PreparedMergeMutationPlan,
+    ) -> Self {
+        Self {
+            compiled,
+            mutation_plan,
+        }
+    }
+
+    pub(crate) fn mutation_plan(&self) -> &PreparedMergeMutationPlan {
+        &self.mutation_plan
+    }
+
+    pub(crate) fn compiled(&self) -> &CompiledMergeExecution {
+        &self.compiled
+    }
+
+    pub fn request(&self) -> &NormalizedRelationalMergeRequest {
+        self.compiled.request()
+    }
+
+    pub fn artifact(&self) -> &MergePlanningArtifactCore {
+        self.compiled.artifact()
+    }
+
+    pub(crate) fn execution_ready_plan(&self) -> &ExecutionReadyLoweredMergePlan {
+        self.compiled.execution_ready_plan()
+    }
+
+    pub(crate) fn bound_executable_plan(&self) -> &BoundExecutableMergePlan {
+        self.compiled.bound_executable_plan()
+    }
+}
+
+impl CompiledMergeExecution {
     pub(crate) fn new(
         request: NormalizedRelationalMergeRequest,
         artifact: MergePlanningArtifactCore,
@@ -210,11 +292,11 @@ impl PreparedMergeExecution {
         }
     }
 
-    pub fn request(&self) -> &NormalizedRelationalMergeRequest {
+    pub(crate) fn request(&self) -> &NormalizedRelationalMergeRequest {
         &self.request
     }
 
-    pub fn artifact(&self) -> &MergePlanningArtifactCore {
+    pub(crate) fn artifact(&self) -> &MergePlanningArtifactCore {
         &self.artifact
     }
 
@@ -224,23 +306,6 @@ impl PreparedMergeExecution {
 
     pub(crate) fn bound_executable_plan(&self) -> &BoundExecutableMergePlan {
         &self.bound_executable_plan
-    }
-
-    #[cfg(test)]
-    pub(crate) fn execution_ready_plan_mut_for_test(
-        &mut self,
-    ) -> &mut ExecutionReadyLoweredMergePlan {
-        &mut self.execution_ready_plan
-    }
-
-    #[cfg(test)]
-    pub(crate) fn authority_binding_mut_for_test(&mut self) -> &mut MergeExecutionAuthorityBinding {
-        &mut self.bound_executable_plan.authority_binding
-    }
-
-    #[cfg(test)]
-    pub(crate) fn bound_executable_plan_mut_for_test(&mut self) -> &mut BoundExecutableMergePlan {
-        &mut self.bound_executable_plan
     }
 }
 

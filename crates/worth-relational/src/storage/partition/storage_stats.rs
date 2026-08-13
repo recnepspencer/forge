@@ -1,6 +1,6 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::storage::data::{PartitionStorageStats, StorageStats};
-use crate::storage::logic::state::LifecycleCounts;
+use crate::storage::substrate::LifecycleCounts;
 
 pub(crate) fn partition_ids(
     runtime: &RelationalRuntime,

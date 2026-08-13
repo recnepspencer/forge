@@ -19,20 +19,19 @@ use provider_fixture::*;
 #[test]
 fn projection_receipt_without_query_material_denies_before_executor_contact() {
     let log = Arc::new(Mutex::new(Vec::new()));
-    let mut workspace =
-        configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
-            .graph_participation(read_definition::<RemoteA>(
-                "remote-a",
-                domain::WorthQueryGraphProjectionPosture::NativeProjection,
-            ))
-            .graph_participation_provider(RemoteA, ReceiptOnlyProvider)
-            .graph_participation(read_definition::<RemoteB>(
-                "remote-b",
-                domain::WorthQueryGraphProjectionPosture::NativeProjection,
-            ))
-            .graph_participation_provider(RemoteB, SelectiveProvider::new(&log, None))
-            .workspace("graph-provider-receipt-only")
-            .unwrap();
+    let mut workspace = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>())
+        .graph_participation(read_definition::<RemoteA>(
+            "remote-a",
+            domain::WorthQueryGraphProjectionPosture::NativeProjection,
+        ))
+        .graph_participation_provider(RemoteA, ReceiptOnlyProvider)
+        .graph_participation(read_definition::<RemoteB>(
+            "remote-b",
+            domain::WorthQueryGraphProjectionPosture::NativeProjection,
+        ))
+        .graph_participation_provider(RemoteB, SelectiveProvider::new(&log, None))
+        .workspace("graph-provider-receipt-only")
+        .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
         .observe_operating_world()
@@ -85,7 +84,7 @@ fn every_graph_entrypoint_fails_at_its_exact_boundary_and_commit_precedes_touch(
             configured_runtime_for_partial_effect_package(federated_touch_package::<
                 RemoteA,
                 RemoteB,
-            >(false, true))
+            >(true))
             .graph_participation(atomic_definition::<RemoteA>("remote-a"))
             .atomic_graph_participation_provider(
                 RemoteA,
@@ -148,7 +147,7 @@ fn read_only_participation_does_not_widen_the_mutating_commit_set() {
     let mut workspace = configured_runtime_for_partial_effect_package(federated_touch_package::<
         RemoteA,
         RemoteB,
-    >(false, false))
+    >(false))
     .graph_participation(atomic_definition::<RemoteA>("remote-a"))
     .atomic_graph_participation_provider(
         RemoteA,
@@ -195,7 +194,7 @@ fn read_only_participation_does_not_widen_the_mutating_commit_set() {
 #[test]
 fn graph_contract_insufficiency_denies_before_provider_contact() {
     let log = Arc::new(Mutex::new(Vec::new()));
-    let workspace = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
+    let workspace = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>())
         .graph_participation(read_definition::<RemoteA>(
             "remote-a",
             domain::WorthQueryGraphProjectionPosture::NotRequired,

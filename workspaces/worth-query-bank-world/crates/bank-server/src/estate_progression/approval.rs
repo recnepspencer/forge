@@ -7,15 +7,12 @@ use bank_domain::{
 use worth_query_host::facade::{
     admission::authenticated_principal::WorthQueryRequestScope,
     declaration::application_schema::TypedMutationPreconditions,
-    primary_graph::{
-        WorthQueryApplicationIdempotencyBinding, WorthQueryElevationApprovalOutcome,
-        WorthQueryRequestedElevation,
-    },
+    primary_graph::WorthQueryApplicationIdempotencyBinding,
 };
 
 use super::{
     lifecycle_facts::{approval_lifecycle_identities, seal_approval_lifecycle_facts},
-    BankEstateProgressionDenial,
+    BankEstateElevationApprovalOutcome, BankEstateProgressionDenial, BankRequestedEstateElevation,
 };
 use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime};
 
@@ -23,13 +20,14 @@ impl BankIdentityRuntime {
     pub fn approve_estate_emergency_access(
         &self,
         principal: &BankAuthenticatedPrincipal,
-        requested: WorthQueryRequestedElevation,
+        requested: BankRequestedEstateElevation,
         action: EstateAction,
         idempotency: WorthQueryApplicationIdempotencyBinding,
         request: &WorthQueryRequestScope,
-    ) -> Result<WorthQueryElevationApprovalOutcome, BankEstateProgressionDenial> {
-        let (access_identity, review_identity) = approval_lifecycle_identities(&requested)
-            .map_err(BankEstateProgressionDenial::LifecycleProjection)?;
+    ) -> Result<BankEstateElevationApprovalOutcome, BankEstateProgressionDenial> {
+        let (access_identity, review_identity) =
+            approval_lifecycle_identities(requested.query())
+                .map_err(BankEstateProgressionDenial::LifecycleProjection)?;
         let capability = self
             .application_runtime()
             .installed_schema()
@@ -50,7 +48,7 @@ impl BankIdentityRuntime {
         let admission = self
             .application_runtime()
             .authorize_elevation_approval(
-                requested,
+                requested.into_query(),
                 access,
                 &operation,
                 TypedMutationPreconditions::<
@@ -76,8 +74,9 @@ impl BankIdentityRuntime {
             .map_err(BankEstateProgressionDenial::from_attempt)?
             .materialize_elevation_approval_program()
             .map_err(BankEstateProgressionDenial::from_attempt)?;
-        Ok(self
-            .application_runtime()
-            .compare_and_commit_elevation_approval(program, idempotency))
+        Ok(BankEstateElevationApprovalOutcome::from_query(
+            self.application_runtime()
+                .compare_and_commit_elevation_approval(program, idempotency),
+        ))
     }
 }

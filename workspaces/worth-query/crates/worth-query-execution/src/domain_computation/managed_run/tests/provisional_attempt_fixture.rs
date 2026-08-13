@@ -130,7 +130,10 @@ impl WorthQueryProviderSessionLifecycle for ProvisionalProvider {
     fn commit_prepared_session(
         &self,
         session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
         let mut state = self.state.lock().unwrap();
         let overlay_identity = state
             .session_overlays
@@ -140,15 +143,28 @@ impl WorthQueryProviderSessionLifecycle for ProvisionalProvider {
             .overlays
             .remove(&overlay_identity)
             .expect("prepared overlay must remain available through commit");
-        Ok(format!("provisional-commit:{overlay_identity}"))
+        Ok(
+            crate::domain_computation::WorthQueryProviderTerminalDescription::new(
+                "provisional commit completed",
+            )
+            .expect("fixture description is valid"),
+        )
     }
 
     fn abort_provider_session(
         &self,
         _session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
         self.state.lock().unwrap().abort_calls += 1;
-        Ok("provisional-abort".to_owned())
+        Ok(
+            crate::domain_computation::WorthQueryProviderTerminalDescription::new(
+                "provisional abort",
+            )
+            .expect("fixture description is valid"),
+        )
     }
 }
 

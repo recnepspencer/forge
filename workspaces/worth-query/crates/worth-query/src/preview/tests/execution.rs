@@ -3,9 +3,9 @@ use crate::harness::fixtures::preview_bridge::active_preview_artifacts;
 use crate::preview::{
     admit_promotion_eligible_preview_session_plan_binding,
     admit_read_only_preview_session_plan_binding, bind_preflight_to_preview_session,
-    execute_preview_session_plan, execute_promotion_eligible_preview_session_plan,
-    execute_read_only_preview_session_plan, PreviewBindingFailureClass, PreviewEvaluationClass,
-    PreviewExecutionFailureClass, PreviewSessionQueryContext,
+    execute_promotion_eligible_preview_session_plan, execute_read_only_preview_session_plan,
+    PreviewBindingFailureClass, PreviewEvaluationClass, PreviewExecutionFailureClass,
+    PreviewSessionQueryContext,
 };
 
 #[test]
@@ -23,8 +23,10 @@ fn preview_execution_envelope_preserves_zero_rediscovery_invariants() {
     )
     .expect("preview binding should succeed");
 
+    let binding = admit_read_only_preview_session_plan_binding(binding)
+        .expect("read-only binding should admit");
     let execution =
-        execute_preview_session_plan(&binding).expect("preview execution should succeed");
+        execute_read_only_preview_session_plan(&binding).expect("preview execution should succeed");
 
     assert_eq!(
         execution
@@ -74,11 +76,11 @@ fn preview_execution_envelope_preserves_zero_rediscovery_invariants() {
         0
     );
     assert_eq!(
-        execution.binding.basis().binding_tuple().digest(),
+        execution.basis().binding_tuple().digest(),
         binding.basis().binding_tuple().digest()
     );
     assert_eq!(
-        execution.execution.report().result_digest(),
+        execution.execution().report().result_digest(),
         &execution.report().result_digest
     );
     assert_eq!(
@@ -87,7 +89,7 @@ fn preview_execution_envelope_preserves_zero_rediscovery_invariants() {
     );
     assert_eq!(
         execution.report().basis_digest(),
-        execution.execution.report().basis_digest().as_str()
+        execution.execution().report().basis_digest().as_str()
     );
     assert_eq!(
         execution.report().preview_session_identity(),
@@ -257,11 +259,14 @@ fn preview_execution_failure_classifies_underlying_execution_errors() {
         ),
     )
     .expect("supported preview binding should succeed");
-    let execution =
-        execute_preview_session_plan(&binding).expect("supported preview execution should work");
+    let binding = admit_read_only_preview_session_plan_binding(binding)
+        .expect("read-only binding should admit");
+    let execution = execute_read_only_preview_session_plan(&binding)
+        .expect("supported preview execution should work");
 
     assert_eq!(
         execution
+            .as_preview_execution()
             .check_invariants()
             .map(|_| ())
             .map_err(|err| err.failure_class()),

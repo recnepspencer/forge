@@ -2,7 +2,7 @@ use super::super::rejection::{attach_rejection, elapsed_micros};
 use crate::authority::commit::phases::mutation::branch_local_delete_allowance_for_plan;
 use crate::authority::mutation::{apply_plan_to_working_state, MutationApplyOutcome};
 use crate::history::data::BranchId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     AuthoritativeApplyPlan, CommitLog, CommitPhase, CommitPhaseTiming, MergedCommitPlan,
     TransactionCommitError, TransactionId,
@@ -77,7 +77,7 @@ pub(super) fn run_authoritative_mutation_phase(
 fn run_authoritative_mutation_for_runtime(
     runtime: &mut RelationalRuntime,
     transaction_id: TransactionId,
-    working_state: &mut crate::logic::runtime::WorkingState,
+    working_state: &mut crate::runtime::WorkingState,
     merged_plan: &MergedCommitPlan,
     target_branch: Option<&BranchId>,
 ) -> Result<MutationPhaseOutput, TransactionCommitError> {

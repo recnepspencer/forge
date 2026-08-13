@@ -11,10 +11,7 @@ use bank_domain::{
     },
     reads::{EstateCapabilityContext, EstateGovernanceContext},
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryApprovedElevation,
-    WorthQueryRequestedElevation,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 
 use super::super::{
@@ -26,7 +23,10 @@ use super::super::{
         approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
     },
 };
-use crate::{queries, BankAuthenticatedPrincipal, BankMutationCommitOutcome, BankReadControls};
+use crate::{
+    queries, BankApprovedEstateElevation, BankAuthenticatedPrincipal, BankMutationCommitOutcome,
+    BankReadControls, BankRequestedEstateElevation,
+};
 
 pub(super) const FIRST_ACCESS: u64 = 601;
 pub(super) const SECOND_ACCESS: u64 = 602;
@@ -35,8 +35,8 @@ pub(super) struct ActivityWorld {
     pub(super) fixture: CapabilityFixture,
     pub(super) requester: BankAuthenticatedPrincipal,
     pub(super) approver: BankAuthenticatedPrincipal,
-    pub(super) first_requested: Option<WorthQueryRequestedElevation>,
-    pub(super) approved: WorthQueryApprovedElevation,
+    pub(super) first_requested: Option<BankRequestedEstateElevation>,
+    pub(super) approved: BankApprovedEstateElevation,
 }
 
 pub(super) fn activity_world(scenario: &str) -> ActivityWorld {
@@ -99,14 +99,14 @@ pub(super) fn controls(maximum_results: usize) -> BankReadControls {
     BankReadControls::current(request_scope(), maximum_results, 20_000).unwrap()
 }
 
-pub(super) fn take_first_requested(world: &mut ActivityWorld) -> WorthQueryRequestedElevation {
+pub(super) fn take_first_requested(world: &mut ActivityWorld) -> BankRequestedEstateElevation {
     world
         .first_requested
         .take()
         .expect("the first requested lifecycle should be approved once")
 }
 
-pub(super) fn approve_first(world: &ActivityWorld, requested: WorthQueryRequestedElevation) {
+pub(super) fn approve_first(world: &ActivityWorld, requested: BankRequestedEstateElevation) {
     let _ = approve_elevation(
         &world.fixture,
         &world.approver,

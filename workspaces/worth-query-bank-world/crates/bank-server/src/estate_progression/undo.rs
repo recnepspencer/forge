@@ -19,9 +19,8 @@ use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationOperationInvariantProjectionReader, WorthQueryInvariantEntityIdentity,
 };
 use worth_query_host::facade::provisional_aftermath::{
-    progress_admitted_undo, WorthQueryProvedUndo, WorthQueryRedoRecovery,
-    WorthQueryRetainedPreImage, WorthQueryUndoDenial, WorthQueryUndoDerivedRequest,
-    WorthQueryUndoProgressionHandoff,
+    progress_admitted_undo, WorthQueryRedoRecovery, WorthQueryRetainedPreImage,
+    WorthQueryUndoDenial, WorthQueryUndoDerivedRequest, WorthQueryUndoProgressionHandoff,
 };
 
 use super::{
@@ -55,7 +54,12 @@ type FreezeEffectProgram = WorthQueryApplicationEffectProgram<
 #[derive(Debug)]
 pub struct BankUndoCommitOutcome {
     mutation: BankMutationCommitOutcome,
-    redo_recovery: Option<WorthQueryRedoRecovery>,
+    redo_recovery: Option<BankRedoRecovery>,
+}
+
+#[derive(Debug)]
+pub struct BankRedoRecovery {
+    pub(super) query: WorthQueryRedoRecovery,
 }
 
 impl BankUndoCommitOutcome {
@@ -63,14 +67,11 @@ impl BankUndoCommitOutcome {
         &self.mutation
     }
 
-    pub const fn proved_undo(&self) -> Option<&WorthQueryProvedUndo> {
-        match self.redo_recovery.as_ref() {
-            Some(recovery) => Some(recovery.proved()),
-            None => None,
-        }
+    pub const fn has_proved_undo(&self) -> bool {
+        self.redo_recovery.is_some()
     }
 
-    pub fn into_parts(self) -> (BankMutationCommitOutcome, Option<WorthQueryRedoRecovery>) {
+    pub fn into_parts(self) -> (BankMutationCommitOutcome, Option<BankRedoRecovery>) {
         (self.mutation, self.redo_recovery)
     }
 }
@@ -162,7 +163,7 @@ impl BankIdentityRuntime {
         };
         Ok(BankUndoCommitOutcome {
             mutation,
-            redo_recovery,
+            redo_recovery: redo_recovery.map(|query| BankRedoRecovery { query }),
         })
     }
 

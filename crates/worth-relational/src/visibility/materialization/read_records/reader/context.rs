@@ -1,4 +1,4 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 pub struct VisibilityReadContext<'runtime> {
     pub(in crate::visibility::materialization::read_records::reader) runtime:

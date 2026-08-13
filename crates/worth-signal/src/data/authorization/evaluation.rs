@@ -1,33 +1,16 @@
 use std::sync::Arc;
 
-use crate::data::aspect::InstalledSignalGraphCapability;
 use crate::data::graph::SignalGraph;
 
 use super::{
-    InstalledSignalAuthorizationPolicy, SignalAuthorizationAuthority, SignalAuthorizationDecision,
+    InstalledSignalAuthorizationPolicy, SignalAuthorizationDecision,
     SignalAuthorizationDecisionEvidence, SignalAuthorizationDenial,
     SignalAuthorizationEvaluationCounters, SignalAuthorizationObservation,
-    SignalAuthorizationPolicyDefinition, SignalAuthorizationRuleContract,
-    SignalAuthorizationRuleEffect, SignalAuthorizationRuleObservation,
+    SignalAuthorizationRuleContract, SignalAuthorizationRuleEffect,
+    SignalAuthorizationRuleObservation,
 };
 
 impl SignalGraph {
-    pub fn install_authorization_policy(
-        &mut self,
-        graph: &InstalledSignalGraphCapability,
-        definition: SignalAuthorizationPolicyDefinition,
-    ) -> Result<InstalledSignalAuthorizationPolicy, SignalAuthorizationDenial> {
-        validate_definition(self, graph, &definition)?;
-        self.authorization_policy_identities
-            .insert(*definition.identity.bytes());
-        Ok(InstalledSignalAuthorizationPolicy {
-            graph_instance_id: self.runtime_instance_id(),
-            identity: definition.identity,
-            rules: definition.rules,
-            authority: Arc::new(SignalAuthorizationAuthority { _seal: () }),
-        })
-    }
-
     pub fn evaluate_authorization(
         &self,
         policy: &InstalledSignalAuthorizationPolicy,
@@ -70,45 +53,6 @@ impl SignalGraph {
             authority: Arc::clone(&policy.authority),
         })
     }
-}
-
-fn validate_definition(
-    graph: &SignalGraph,
-    capability: &InstalledSignalGraphCapability,
-    definition: &SignalAuthorizationPolicyDefinition,
-) -> Result<(), SignalAuthorizationDenial> {
-    if capability.graph_instance_id() != graph.runtime_instance_id() {
-        return Err(SignalAuthorizationDenial::ForeignGraph);
-    }
-    if definition.rules.is_empty() {
-        return Err(SignalAuthorizationDenial::EmptyPolicy);
-    }
-    if !definition
-        .rules
-        .iter()
-        .any(|rule| rule.effect == SignalAuthorizationRuleEffect::Required)
-    {
-        return Err(SignalAuthorizationDenial::MissingRequiredRule);
-    }
-    for rule in &definition.rules {
-        if rule.requirements.is_empty() {
-            return Err(SignalAuthorizationDenial::EmptyRule);
-        }
-        if rule
-            .requirements
-            .iter()
-            .any(|requirement| requirement.clauses.is_empty())
-        {
-            return Err(SignalAuthorizationDenial::EmptyRequirement);
-        }
-    }
-    if graph
-        .authorization_policy_identities
-        .contains(definition.identity.bytes())
-    {
-        return Err(SignalAuthorizationDenial::DuplicatePolicy);
-    }
-    Ok(())
 }
 
 fn validate_observation(

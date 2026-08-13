@@ -24,6 +24,8 @@ pub(super) struct ApplicationRuntimePublication<Schema> {
     pub(super) authority: WorthQueryExecutionInstallationAuthority,
     pub(super) installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
     pub(super) authorization_clock: WorthQueryRuntimeClock,
+    pub(super) fault_port:
+        std::sync::Arc<dyn super::super::provider::fault_port::WorthQueryPrimaryGraphFaultPort>,
 }
 
 pub(super) fn publish_application_runtime_with_clock<Schema>(
@@ -41,10 +43,12 @@ where
         authority,
         installed_schema,
         authorization_clock,
+        fault_port,
     } = input;
     validate_application_schema(&runtime, &installed_schema)?;
     let authorization = compile_authorization(&bootstrap, &installed_schema)?;
-    let graph = publish_application_graph(bootstrap, runtime, authority, &installed_schema)?;
+    let graph =
+        publish_application_graph(bootstrap, runtime, authority, &installed_schema, fault_port)?;
     Ok(assemble_application_runtime(
         graph,
         installed_schema,
@@ -103,6 +107,9 @@ fn publish_application_graph<Schema>(
     mut runtime: WorthQueryExecutionRuntime,
     authority: WorthQueryExecutionInstallationAuthority,
     installed_schema: &WorthQueryInstalledApplicationSchema<Schema>,
+    fault_port: std::sync::Arc<
+        dyn super::super::provider::fault_port::WorthQueryPrimaryGraphFaultPort,
+    >,
 ) -> Result<PublishedApplicationGraph, WorthQueryPrimaryGraphInstallationDenial>
 where
     Schema: ApplicationSchema,
@@ -117,7 +124,8 @@ where
         installed_schema,
         relational_source.clone(),
     )?;
-    let (provider_anchor, primary_provider) = WorthQueryPrimaryGraphProvider::install(graph);
+    let (provider_anchor, primary_provider) =
+        WorthQueryPrimaryGraphProvider::install(graph, fault_port);
     let primary_graph_authority =
         install_graph_participation_authority(&authority, provider_anchor)?;
     Ok(PublishedApplicationGraph {

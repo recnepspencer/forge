@@ -11,8 +11,6 @@ mod rules;
 pub(crate) use catalog::relation_integrity_registrations_for_plan;
 pub use catalog::{InvariantCatalog, InvariantRegistration};
 pub use contracts::InvariantPlanContract;
-#[cfg(test)]
-pub use custom_rule::TouchedStructuralSet;
 pub use custom_rule::{
     CustomInvariantExecutionContext, CustomInvariantExecutionError,
     CustomInvariantPreparationError, CustomInvariantProvenance, CustomInvariantRegistration,
@@ -24,6 +22,10 @@ pub use custom_rule::{
 pub(crate) use custom_rule::{
     CustomInvariantFailure, CustomInvariantFailureKind, CustomInvariantRuntimePhase,
     PreparedCustomInvariantExecution, PreparedCustomInvariantExecutionOutcome,
+    PreparedCustomInvariantScope,
+};
+pub(crate) use custom_rule::{
+    CustomInvariantTraversalError, PlannedEntityCreate, PlannedRelationCreate, TouchedStructuralSet,
 };
 pub use descriptor::{
     CustomInvariantDescriptor, CustomInvariantOperationalMetadata, InvariantRuleDescriptor,

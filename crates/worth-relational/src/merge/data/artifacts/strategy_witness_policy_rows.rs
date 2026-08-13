@@ -7,7 +7,7 @@ use crate::merge::data::{
     AspectPolicyResolutionRecord, MergeConflictClass, MergeExecutionAuthorityContract,
     MergePolicyProofBoundary, ResolvedAspectMergePolicy,
 };
-use crate::merge::logic::{
+use crate::merge::{
     aggregate_record_resolution, lowered_artifact_execution_authority_contract,
     ownership_surface_for_policies,
 };

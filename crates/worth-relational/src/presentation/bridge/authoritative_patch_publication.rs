@@ -10,7 +10,7 @@ use super::authoritative_publication_witness::{
 };
 use crate::capabilities::CommitEnvelopeSource;
 use crate::history::data::CommitId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 pub type RelationalBridgePublicationOutcome = TransitionOutcome<
     RelationalBridgePatchPublication,
@@ -280,7 +280,7 @@ impl RelationalRuntime {
     fn lower_retained_publication(
         &self,
         unresolved: PublicationUnresolvedRecipe,
-        envelope: &crate::replay::data::CanonicalCommitEnvelope,
+        envelope: &crate::history::data::CanonicalCommitEnvelope,
     ) -> RelationalBridgePublicationOutcome {
         let source_basis =
             publication_source_basis(self.runtime_instance_id(), &unresolved, envelope);
@@ -338,7 +338,7 @@ impl RelationalRuntime {
 fn publication_source_basis(
     runtime_instance_id: u64,
     unresolved: &PublicationUnresolvedRecipe,
-    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
 ) -> std::sync::Arc<str> {
     let source_basis: std::sync::Arc<str> = std::sync::Arc::from(format!(
             "runtime={};commit={};version={};branch={};graph-role={};relational-partition={};truth-partition={}",

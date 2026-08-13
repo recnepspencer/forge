@@ -1,4 +1,4 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     BulkMutationLocalityFootprint, CreateIntent, EntityMutationIntent, MergedCommitPlan,
     MutationIntent, ProvenanceCompleteBulkMutationBatch, RelationMutationIntent,

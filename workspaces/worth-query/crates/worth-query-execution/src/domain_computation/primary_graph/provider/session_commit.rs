@@ -2,19 +2,16 @@
 
 mod evidence;
 mod outbox_commit;
-mod preimage_retention;
-mod prepared_session;
-mod relational_commit;
 
+pub(crate) use super::application_attempt_state::WorthQueryRetainedPreImageSeal;
+pub(in crate::domain_computation::primary_graph) use super::application_attempt_state::{
+    WorthQueryMutationWorkCommitSeal, WorthQueryPreImageRetentionWork,
+};
 pub(in crate::domain_computation::primary_graph) use evidence::WorthQueryCompletedCommitEvidenceStore;
 pub(in crate::domain_computation) use outbox_commit::WorthQueryCommittedDispatchOutboxBinding;
 pub(in crate::domain_computation::primary_graph) use outbox_commit::{
     WorthQueryCommittedDispatchOutboxBindingDenial, WorthQueryCommittedDispatchOutboxReceiptSeal,
-};
-pub(crate) use preimage_retention::WorthQueryRetainedPreImageSeal;
-pub(in crate::domain_computation::primary_graph::provider) use relational_commit::WorthQueryCommittedApplicationPublicationSeal;
-pub(in crate::domain_computation::primary_graph) use relational_commit::{
-    WorthQueryMutationWorkCommitSeal, WorthQueryPrimaryGraphCommitEvidence,
+    WorthQueryCommittedDispatchOutboxResolution,
 };
 
 use super::WorthQueryPrimaryGraphProvider;
@@ -24,18 +21,12 @@ use crate::domain_computation::{
 
 pub(super) fn commit_prepared_session(
     provider: &WorthQueryPrimaryGraphProvider,
-    affinity: crate::domain_computation::WorthQueryProviderSessionAffinityIdentity,
-) -> Result<String, WorthQueryProviderSessionFailure> {
-    let prepared = prepared_session::take_prepared_session(provider, affinity)?;
-    #[cfg(test)]
-    if provider.take_rejected_commit_before_transaction() {
-        return Err(provider_failure(
-            WorthQueryProviderSessionProtocolStage::Commit,
-            "injected rejection before the atomic application transaction",
-        ));
-    }
-    prepared.validate_decision_work()?;
-    relational_commit::commit_owner_validated(provider, prepared)
+    session: crate::domain_computation::WorthQueryProviderSessionView<'_>,
+) -> Result<
+    crate::domain_computation::WorthQueryProviderTerminalDescription,
+    WorthQueryProviderSessionFailure,
+> {
+    super::application_attempt_state::commit_prepared_application(provider, session)
 }
 
 pub(super) fn provider_failure(

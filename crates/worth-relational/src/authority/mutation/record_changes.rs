@@ -3,11 +3,12 @@ use std::collections::BTreeSet;
 use crate::config::data::CascadeDeletePolicy;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
 use crate::schema::data::RelationalSchemaRegistry;
-use crate::storage::logic::state::{
-    AdjacencySet, EntityExtra, EntityRecordKind, PartitionAccess, PartitionState, RecordKind,
-    RelationEndpoints, RelationExtra, RelationRecordKind,
-};
 use crate::storage::overlay::WorkingState;
+use crate::storage::overlay::{PartitionAccess, PartitionState};
+use crate::storage::partition::AdjacencySet;
+use crate::storage::substrate::{
+    EntityExtra, EntityRecordKind, RecordKind, RelationEndpoints, RelationExtra, RelationRecordKind,
+};
 use crate::transactions::data::{
     CommitConflict, ConflictClass, EntityCascadeDeleteMissingState,
     MutationStateInconsistencyEvidence,
@@ -245,7 +246,7 @@ fn allocate_record<K: RecordKind>(
 ) -> (usize, u32, bool) {
     let partition = ensure_partition_state(state, partition_id);
     let arena = K::arena_mut(partition);
-    let (slot, generation, reused) = arena.push_slot(crate::storage::logic::state::SlotInit {
+    let (slot, generation, reused) = arena.push_slot(crate::storage::substrate::SlotInit {
         partition_id,
         kind_id,
         version_id,

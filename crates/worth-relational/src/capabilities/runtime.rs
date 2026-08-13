@@ -1,6 +1,6 @@
 use crate::config::data::{RelationalRuntimeConfig, RelationalRuntimeProfile};
 use crate::identity::data::VersionId;
-use crate::logic::runtime::{RelationalRuntime, RuntimeInstrumentation};
+use crate::runtime::{RelationalRuntime, RuntimeInstrumentation};
 
 pub(crate) trait VersionSource {
     fn current_version_id(&self) -> VersionId;

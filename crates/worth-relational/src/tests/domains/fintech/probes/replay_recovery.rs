@@ -5,7 +5,7 @@ use crate::facade::replay::{
     RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode,
 };
 use crate::facade::runtime::RelationalRuntime;
-use crate::logic::runtime::RecoveryOutcome;
+use crate::runtime::RecoveryOutcome;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ReplayProbe {

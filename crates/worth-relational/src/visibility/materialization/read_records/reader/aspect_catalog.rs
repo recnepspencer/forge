@@ -1,4 +1,4 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use worth_foundational::facade::AspectKey;
 
 pub(super) fn declared_aspects_for_entity_kind(

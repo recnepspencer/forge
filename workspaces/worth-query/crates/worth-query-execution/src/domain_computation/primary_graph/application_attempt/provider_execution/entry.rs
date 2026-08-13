@@ -6,10 +6,10 @@ use super::super::{
 };
 use super::elevation_currentness::WorthQueryElevationCommitCurrentness;
 use super::phase::{
-    finish_application_commit, prepare_application_commit, start_managed_application_commit,
-    WorthQueryApplicationCommitPreparation, WorthQueryApplicationCommitPreparationRequest,
+    finish_application_commit, prepare_application_commit, progress_application_commit,
+    start_managed_application_commit, WorthQueryApplicationCommitPreparation,
+    WorthQueryApplicationCommitPreparationRequest,
 };
-use super::progression::execute_provider_progression;
 use crate::domain_computation::application_aftermath::WorthQueryPendingAftermathCausality;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
@@ -130,6 +130,6 @@ where
             Ok(running) => running,
             Err(outcome) => return outcome,
         };
-        finish_application_commit(self, execute_provider_progression(self, running))
+        finish_application_commit(self, progress_application_commit(self, running))
     }
 }

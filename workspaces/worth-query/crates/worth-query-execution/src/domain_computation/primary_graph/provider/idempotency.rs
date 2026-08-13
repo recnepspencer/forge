@@ -79,15 +79,15 @@ impl WorthQueryPrimaryGraphProvider {
 
     pub(in crate::domain_computation::primary_graph) fn resolve_application_idempotency(
         &self,
-        affinity: crate::domain_computation::WorthQueryProviderSessionAffinityIdentity,
+        provider_session: &crate::domain_computation::provider_session::WorthQueryProviderSessionTerminalBinding,
     ) -> Result<WorthQueryProviderIdempotencyResolution, &'static str> {
-        let (binding, branch) = self
+        let basis = self
             .attempts
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .idempotency_basis(affinity)
+            .idempotency_basis(provider_session)
             .ok_or("provider session lost its idempotency binding")?;
-        self.resolve_idempotency_binding(binding, &branch)
+        basis.resolve(self)
     }
 }
 

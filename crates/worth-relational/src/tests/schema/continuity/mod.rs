@@ -27,7 +27,7 @@ use crate::facade::schema::{
     SchemaSubscriberImpact, SchemaTransitionArtifact, SchemaTransitionSummary, SchemaVersionId,
     ValidatedSchemaTransition,
 };
-use crate::schema::logic::{
+use crate::schema::{
     classify_schema_transition, lower_schema_transition, validate_schema_continuity_bundle,
     validate_schema_transition, SchemaContinuityBundleIssue,
 };

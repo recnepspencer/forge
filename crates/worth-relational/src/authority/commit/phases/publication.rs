@@ -7,12 +7,12 @@ use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsScope, RelationalDiagnosticFields, RelationalDiagnosticValue,
 };
 use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::LineageFinalizationArtifact;
 use crate::publication::bundle::PublicationStage;
 use crate::publication::data::PublicationError;
 use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
-use crate::replay::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::transactions::data::{
     MergedCommitPlan, PublishedMergeExecutionAuthority, RecordRef, TransactionCommitError,
 };
@@ -41,7 +41,7 @@ pub(crate) fn enforce_patch_budget(
 }
 
 pub(crate) fn canonical_commit_envelope(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     commit_reference: &CommitReference,
     branch_id: &BranchId,
     authority_kind: CanonicalCommitAuthorityKind,

@@ -37,16 +37,14 @@ struct EmissionObservation {
 pub(super) fn observe(
     prepared: WorthQueryPreparedApplicationProviderAttempt,
 ) -> LoweringObservation {
-    let WorthQueryPreparedApplicationProviderAttempt {
-        steps,
-        batch,
-        emissions,
-        ..
-    } = prepared;
+    let WorthQueryPreparedApplicationProviderAttempt { effects, .. } = prepared;
+    let steps = effects.expected_steps().iter().map(observe_step).collect();
+    let intents = effects.batch().intents.clone();
+    let emissions = effects.into_emissions();
     let (emissions, retained_bytes) = emissions.into_parts();
     LoweringObservation {
-        steps: steps.iter().map(observe_step).collect(),
-        intents: batch.intents,
+        steps,
+        intents,
         emissions: emissions
             .iter()
             .map(|emission| EmissionObservation {

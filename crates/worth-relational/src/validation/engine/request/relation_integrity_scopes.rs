@@ -1,247 +1,43 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use super::RelationScopeRequirement;
+use super::{
+    PlannedRelationEdge, PreparedRelationIntegrityScope, PreparedRelationIntegrityScopes,
+    PreparedVisibleRelationEdge,
+};
 use crate::config::data::RelationIntegrityScopeBudget;
 use crate::identity::data::{EntityId, KindId, RelationId};
 use crate::storage::overlay::PartitionAccess;
 use crate::transactions::data::{EntityReference, MergedCommitPlan};
-use crate::validation::data::{
-    InvariantExecutionPoint, InvariantViolation, InvariantViolationFields,
-};
 
-use super::{PlannedRelationEdge, PreparedRelationIntegrityScope, PreparedRelationIntegrityScopes};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct RelationIntegrityScopeBudgetSnapshot {
-    relation_kind_count: usize,
-    touched_entity_count: usize,
-    deleted_entity_count: usize,
-    scanned_relation_count: usize,
-    planned_edge_count: usize,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct PreparedRelationIntegrityScopeBudgetExceeded {
-    limit_name: &'static str,
-    limit: usize,
-    observed: usize,
-    snapshot: RelationIntegrityScopeBudgetSnapshot,
-}
-
-impl PreparedRelationIntegrityScopeBudgetExceeded {
-    pub(super) fn into_violation(
-        self,
-        execution_point: InvariantExecutionPoint,
-    ) -> InvariantViolation {
-        InvariantViolation {
-            class: execution_point.class(),
-            code: crate::diagnostics::data::DiagnosticCode::PreparationFailure,
-            detail: format!(
-                "relation integrity scope preparation exceeded '{}' budget: {} > {}",
-                self.limit_name, self.observed, self.limit
-            ),
-            fields: InvariantViolationFields::RelationIntegrityScopeBudgetExceeded {
-                limit_name: self.limit_name.to_string(),
-                limit: self.limit,
-                observed: self.observed,
-                relation_kind_count: self.snapshot.relation_kind_count,
-                touched_entity_count: self.snapshot.touched_entity_count,
-                deleted_entity_count: self.snapshot.deleted_entity_count,
-                scanned_relation_count: self.snapshot.scanned_relation_count,
-                planned_edge_count: self.snapshot.planned_edge_count,
-            },
-        }
-    }
-}
+mod budget;
+pub(crate) use budget::PreparedRelationIntegrityScopeBudgetExceeded;
+use budget::{ensure_relation_integrity_scope_budget, scope_budget_snapshot};
 
 pub(crate) fn prepare_relation_integrity_scopes(
     merged_plan: Option<&MergedCommitPlan>,
     partitions: &dyn PartitionAccess,
-    performance: &crate::performance::logic::PerformanceAccess<'_>,
+    version_id: crate::identity::data::VersionId,
+    requirements: BTreeMap<KindId, RelationScopeRequirement>,
+    performance: &crate::performance::PerformanceAccess<'_>,
     budget: &RelationIntegrityScopeBudget,
 ) -> Result<Option<PreparedRelationIntegrityScopes>, PreparedRelationIntegrityScopeBudgetExceeded> {
-    let Some(merged_plan) = merged_plan else {
+    if requirements.is_empty() {
         return Ok(None);
-    };
-    let mut scopes = BTreeMap::<KindId, PreparedRelationIntegrityScope>::new();
-    let mut touched_entities = BTreeSet::<EntityId>::new();
-    let mut touched_relation_sources = BTreeSet::<EntityId>::new();
-    let mut touched_relation_targets = BTreeSet::<EntityId>::new();
-    let mut deleted_entities = BTreeSet::new();
-    let mut deleted_relations = BTreeSet::new();
-    let empty_scanned_relations = BTreeSet::new();
-    let mut planned_edge_count = 0usize;
-
-    for intent in &merged_plan.merged_intents {
-        match intent {
-            crate::transactions::data::MutationIntent::Create(
-                crate::transactions::data::CreateIntent::Relation(spec),
-            ) => {
-                scopes
-                    .entry(spec.kind_id)
-                    .or_default()
-                    .planned_edges
-                    .push(PlannedRelationEdge {
-                        source: spec.source.clone(),
-                        target: spec.target.clone(),
-                    });
-                planned_edge_count += 1;
-                include_existing_entity_reference(&mut touched_entities, &spec.source);
-                include_existing_entity_reference(&mut touched_entities, &spec.target);
-                include_existing_entity_reference(&mut touched_relation_sources, &spec.source);
-                include_existing_entity_reference(&mut touched_relation_targets, &spec.target);
-                ensure_relation_integrity_scope_budget(
-                    budget,
-                    scope_budget_snapshot(
-                        &scopes,
-                        &touched_entities,
-                        &deleted_entities,
-                        &empty_scanned_relations,
-                        planned_edge_count,
-                    ),
-                )?;
-            }
-            crate::transactions::data::MutationIntent::Create(
-                crate::transactions::data::CreateIntent::BulkRelations(spec),
-            ) => {
-                for (source, target) in &spec.endpoints {
-                    scopes.entry(spec.kind_id).or_default().planned_edges.push(
-                        PlannedRelationEdge {
-                            source: source.clone(),
-                            target: target.clone(),
-                        },
-                    );
-                    planned_edge_count += 1;
-                    include_existing_entity_reference(&mut touched_entities, source);
-                    include_existing_entity_reference(&mut touched_entities, target);
-                    include_existing_entity_reference(&mut touched_relation_sources, source);
-                    include_existing_entity_reference(&mut touched_relation_targets, target);
-                    ensure_relation_integrity_scope_budget(
-                        budget,
-                        scope_budget_snapshot(
-                            &scopes,
-                            &touched_entities,
-                            &deleted_entities,
-                            &empty_scanned_relations,
-                            planned_edge_count,
-                        ),
-                    )?;
-                }
-            }
-            crate::transactions::data::MutationIntent::Relation(
-                crate::transactions::data::RelationMutationIntent::Delete(spec),
-            ) => {
-                deleted_relations.insert(spec.relation_id);
-                if let Some((kind_id, source, target)) =
-                    relation_scope_details_for_id(partitions, spec.relation_id)
-                {
-                    scopes.entry(kind_id).or_default().deleted_relation_count += 1;
-                    touched_entities.insert(source);
-                    touched_entities.insert(target);
-                    touched_relation_sources.insert(source);
-                    touched_relation_targets.insert(target);
-                }
-            }
-            crate::transactions::data::MutationIntent::Entity(
-                crate::transactions::data::EntityMutationIntent::Delete(spec),
-            ) => {
-                touched_entities.insert(spec.entity_id);
-                touched_relation_sources.insert(spec.entity_id);
-                touched_relation_targets.insert(spec.entity_id);
-                deleted_entities.insert(spec.entity_id);
-                ensure_relation_integrity_scope_budget(
-                    budget,
-                    scope_budget_snapshot(
-                        &scopes,
-                        &touched_entities,
-                        &deleted_entities,
-                        &empty_scanned_relations,
-                        planned_edge_count,
-                    ),
-                )?;
-            }
-            crate::transactions::data::MutationIntent::Entity(
-                crate::transactions::data::EntityMutationIntent::Replace(spec),
-            ) => {
-                touched_entities.insert(spec.entity_id);
-                touched_relation_sources.insert(spec.entity_id);
-                touched_relation_targets.insert(spec.entity_id);
-                deleted_entities.insert(spec.entity_id);
-                ensure_relation_integrity_scope_budget(
-                    budget,
-                    scope_budget_snapshot(
-                        &scopes,
-                        &touched_entities,
-                        &deleted_entities,
-                        &empty_scanned_relations,
-                        planned_edge_count,
-                    ),
-                )?;
-            }
-            _ => {}
-        }
     }
-
-    let mut scanned_relations = BTreeSet::new();
-    let relation_scan_entities = touched_relation_sources
-        .union(&touched_relation_targets)
-        .cloned()
-        .collect::<BTreeSet<_>>();
-    for entity_id in relation_scan_entities {
-        let Some(partition) = partitions.get_partition(entity_id.partition_id) else {
-            continue;
-        };
-        let slot = entity_id.slot_index();
-        let outgoing = partition.adjacency.get(slot).map(|set| set.as_slice());
-        scan_relation_integrity_ids(
-            outgoing.into_iter().flatten().copied(),
-            partitions,
-            performance,
-            budget,
-            &touched_entities,
-            &deleted_entities,
-            &deleted_relations,
-            planned_edge_count,
-            &mut scanned_relations,
-            &mut scopes,
-        )?;
-        let incoming = partition
-            .reverse_adjacency
-            .get(slot)
-            .map(|set| set.as_slice());
-        scan_relation_integrity_ids(
-            incoming.into_iter().flatten().copied(),
-            partitions,
-            performance,
-            budget,
-            &touched_entities,
-            &deleted_entities,
-            &deleted_relations,
-            planned_edge_count,
-            &mut scanned_relations,
-            &mut scopes,
-        )?;
+    let mut accumulator = RelationIntegrityScopeAccumulator::new(
+        partitions,
+        version_id,
+        requirements,
+        performance,
+        budget,
+    );
+    if let Some(merged_plan) = merged_plan {
+        accumulator.collect_plan(merged_plan)?;
     }
-
-    for scope in scopes.values_mut() {
-        let planned_edges = std::mem::take(&mut scope.planned_edges);
-        for edge in planned_edges {
-            scope.increment_counts(edge.source.clone(), edge.target.clone());
-            if let EntityReference::Existing(source) = &edge.source {
-                if deleted_entities.contains(source) {
-                    scope.deleted_entities.insert(*source);
-                }
-            }
-            if let EntityReference::Existing(target) = &edge.target {
-                if deleted_entities.contains(target) {
-                    scope.deleted_entities.insert(*target);
-                }
-            }
-            scope.planned_edges.push(edge);
-        }
-    }
-
-    scopes.retain(|_, scope| !scope.is_empty());
-    Ok((!scopes.is_empty()).then(|| PreparedRelationIntegrityScopes::new(scopes)))
+    accumulator.scan_touched_relations()?;
+    accumulator.scan_required_visible_successors()?;
+    Ok(accumulator.finish())
 }
 
 fn include_existing_entity_reference(
@@ -253,120 +49,306 @@ fn include_existing_entity_reference(
     }
 }
 
-fn scan_relation_integrity_ids(
-    relation_ids: impl IntoIterator<Item = RelationId>,
-    partitions: &dyn PartitionAccess,
-    performance: &crate::performance::logic::PerformanceAccess<'_>,
-    budget: &RelationIntegrityScopeBudget,
-    touched_entities: &BTreeSet<EntityId>,
-    deleted_entities: &BTreeSet<EntityId>,
-    deleted_relations: &BTreeSet<RelationId>,
+struct RelationIntegrityScopeAccumulator<'access, 'runtime> {
+    partitions: &'access dyn PartitionAccess,
+    state_view: crate::validation::engine::state_view::InvariantStateView<'access>,
+    performance: &'access crate::performance::PerformanceAccess<'runtime>,
+    budget: &'access RelationIntegrityScopeBudget,
+    scopes: BTreeMap<KindId, PreparedRelationIntegrityScope>,
+    touched_entities: BTreeSet<EntityId>,
+    touched_relation_sources: BTreeSet<EntityId>,
+    touched_relation_targets: BTreeSet<EntityId>,
+    deleted_entities: BTreeSet<EntityId>,
+    deleted_relations: BTreeSet<RelationId>,
+    scanned_relations: BTreeSet<RelationId>,
     planned_edge_count: usize,
-    scanned_relations: &mut BTreeSet<RelationId>,
-    scopes: &mut BTreeMap<KindId, PreparedRelationIntegrityScope>,
-) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
-    for relation_id in relation_ids {
-        if !scanned_relations.insert(relation_id) || deleted_relations.contains(&relation_id) {
-            continue;
-        }
-        ensure_relation_integrity_scope_budget(
-            budget,
-            scope_budget_snapshot(
-                scopes,
-                touched_entities,
-                deleted_entities,
-                scanned_relations,
-                planned_edge_count,
+}
+
+impl<'access, 'runtime> RelationIntegrityScopeAccumulator<'access, 'runtime> {
+    fn new(
+        partitions: &'access dyn PartitionAccess,
+        version_id: crate::identity::data::VersionId,
+        requirements: BTreeMap<KindId, RelationScopeRequirement>,
+        performance: &'access crate::performance::PerformanceAccess<'runtime>,
+        budget: &'access RelationIntegrityScopeBudget,
+    ) -> Self {
+        Self {
+            partitions,
+            state_view: crate::validation::engine::state_view::InvariantStateView::new(
+                partitions, version_id,
             ),
-        )?;
-        let Some((kind_id, source, target)) =
-            relation_scope_details_for_id(partitions, relation_id)
-        else {
-            continue;
-        };
-        let scope = scopes.entry(kind_id).or_default();
-        scope.increment_counts(
-            EntityReference::Existing(source),
-            EntityReference::Existing(target),
-        );
-        performance.count_relation_uniqueness_candidates(1);
-        if deleted_entities.contains(&source) {
-            scope.deleted_entities.insert(source);
-        }
-        if deleted_entities.contains(&target) {
-            scope.deleted_entities.insert(target);
+            performance,
+            budget,
+            scopes: requirements
+                .into_iter()
+                .map(|(kind_id, requirement)| {
+                    (
+                        kind_id,
+                        PreparedRelationIntegrityScope {
+                            requires_global_evaluation: requirement.requires_global_evaluation,
+                            requires_visible_successors: requirement.requires_visible_successors,
+                            ..PreparedRelationIntegrityScope::default()
+                        },
+                    )
+                })
+                .collect(),
+            touched_entities: BTreeSet::new(),
+            touched_relation_sources: BTreeSet::new(),
+            touched_relation_targets: BTreeSet::new(),
+            deleted_entities: BTreeSet::new(),
+            deleted_relations: BTreeSet::new(),
+            scanned_relations: BTreeSet::new(),
+            planned_edge_count: 0,
         }
     }
-    Ok(())
-}
 
-fn scope_budget_snapshot(
-    scopes: &BTreeMap<KindId, PreparedRelationIntegrityScope>,
-    touched_entities: &BTreeSet<EntityId>,
-    deleted_entities: &BTreeSet<EntityId>,
-    scanned_relations: &BTreeSet<RelationId>,
-    planned_edge_count: usize,
-) -> RelationIntegrityScopeBudgetSnapshot {
-    RelationIntegrityScopeBudgetSnapshot {
-        relation_kind_count: scopes.len(),
-        touched_entity_count: touched_entities.len(),
-        deleted_entity_count: deleted_entities.len(),
-        scanned_relation_count: scanned_relations.len(),
-        planned_edge_count,
+    fn collect_plan(
+        &mut self,
+        plan: &MergedCommitPlan,
+    ) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
+        for intent in &plan.merged_intents {
+            self.collect_intent(intent)?;
+        }
+        Ok(())
     }
-}
 
-fn ensure_relation_integrity_scope_budget(
-    budget: &RelationIntegrityScopeBudget,
-    snapshot: RelationIntegrityScopeBudgetSnapshot,
-) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
-    let checks = [
-        (
-            "max_relation_kinds",
-            budget.max_relation_kinds,
-            snapshot.relation_kind_count,
-        ),
-        (
-            "max_touched_entities",
-            budget.max_touched_entities,
-            snapshot.touched_entity_count,
-        ),
-        (
-            "max_deleted_entities",
-            budget.max_deleted_entities,
-            snapshot.deleted_entity_count,
-        ),
-        (
-            "max_scanned_relations",
-            budget.max_scanned_relations,
-            snapshot.scanned_relation_count,
-        ),
-        (
-            "max_planned_edges",
-            budget.max_planned_edges,
-            snapshot.planned_edge_count,
-        ),
-    ];
-    for (limit_name, limit, observed) in checks {
-        if observed > limit {
-            return Err(PreparedRelationIntegrityScopeBudgetExceeded {
-                limit_name,
-                limit,
-                observed,
-                snapshot,
+    fn collect_intent(
+        &mut self,
+        intent: &crate::transactions::data::MutationIntent,
+    ) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
+        use crate::transactions::data::{CreateIntent, EntityMutationIntent, MutationIntent};
+        match intent {
+            MutationIntent::Create(CreateIntent::Relation(spec)) => {
+                self.collect_planned_edge(spec.kind_id, &spec.source, &spec.target)?;
+            }
+            MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
+                for (source, target) in &spec.endpoints {
+                    self.collect_planned_edge(spec.kind_id, source, target)?;
+                }
+            }
+            MutationIntent::Relation(
+                crate::transactions::data::RelationMutationIntent::Delete(spec),
+            ) => self.collect_relation_delete(spec.relation_id),
+            MutationIntent::Relation(
+                crate::transactions::data::RelationMutationIntent::UpdateEndpoints(spec),
+            ) => {
+                self.collect_relation_delete(spec.relation_id);
+                self.collect_planned_edge(spec.kind_id, &spec.source, &spec.target)?;
+            }
+            MutationIntent::Entity(EntityMutationIntent::Delete(spec)) => {
+                self.collect_entity_removal(spec.entity_id)?;
+            }
+            MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => {
+                self.collect_entity_removal(spec.entity_id)?;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    fn collect_planned_edge(
+        &mut self,
+        kind_id: KindId,
+        source: &EntityReference,
+        target: &EntityReference,
+    ) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
+        self.scopes
+            .entry(kind_id)
+            .or_default()
+            .planned_edges
+            .push(PlannedRelationEdge {
+                source: source.clone(),
+                target: target.clone(),
             });
+        self.planned_edge_count += 1;
+        include_existing_entity_reference(&mut self.touched_entities, source);
+        include_existing_entity_reference(&mut self.touched_entities, target);
+        include_existing_entity_reference(&mut self.touched_relation_sources, source);
+        include_existing_entity_reference(&mut self.touched_relation_targets, target);
+        self.ensure_budget()
+    }
+
+    fn collect_relation_delete(&mut self, relation_id: RelationId) {
+        self.deleted_relations.insert(relation_id);
+        if let Some((kind_id, source, target)) =
+            relation_scope_details_for_id(&self.state_view, relation_id)
+        {
+            self.scopes
+                .entry(kind_id)
+                .or_default()
+                .deleted_relation_count += 1;
+            self.touched_entities.extend([source, target]);
+            self.touched_relation_sources.insert(source);
+            self.touched_relation_targets.insert(target);
         }
     }
-    Ok(())
+
+    fn collect_entity_removal(
+        &mut self,
+        entity_id: EntityId,
+    ) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
+        self.touched_entities.insert(entity_id);
+        self.touched_relation_sources.insert(entity_id);
+        self.touched_relation_targets.insert(entity_id);
+        self.deleted_entities.insert(entity_id);
+        self.ensure_budget()
+    }
+
+    fn scan_touched_relations(
+        &mut self,
+    ) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
+        let entities = self
+            .touched_relation_sources
+            .union(&self.touched_relation_targets)
+            .copied()
+            .collect::<Vec<_>>();
+        for entity_id in entities {
+            let Some(partition) = self.partitions.get_partition(entity_id.partition_id) else {
+                continue;
+            };
+            let slot = entity_id.slot_index();
+            let outgoing = partition
+                .adjacency
+                .get(slot)
+                .map(|set| set.as_slice().to_vec())
+                .unwrap_or_default();
+            self.scan_relation_ids(outgoing)?;
+            let incoming = partition
+                .reverse_adjacency
+                .get(slot)
+                .map(|set| set.as_slice().to_vec())
+                .unwrap_or_default();
+            self.scan_relation_ids(incoming)?;
+        }
+        Ok(())
+    }
+
+    fn scan_relation_ids(
+        &mut self,
+        relation_ids: impl IntoIterator<Item = RelationId>,
+    ) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
+        for relation_id in relation_ids {
+            if !self.scanned_relations.insert(relation_id)
+                || self.deleted_relations.contains(&relation_id)
+            {
+                continue;
+            }
+            self.ensure_budget()?;
+            let Some((kind_id, source, target)) =
+                relation_scope_details_for_id(&self.state_view, relation_id)
+            else {
+                continue;
+            };
+            let scope = self.scopes.entry(kind_id).or_default();
+            scope.visible_edges.push(PreparedVisibleRelationEdge {
+                relation_id,
+                source,
+                target,
+            });
+            scope.increment_counts(
+                EntityReference::Existing(source),
+                EntityReference::Existing(target),
+            );
+            self.performance.count_relation_uniqueness_candidates(1);
+            if self.deleted_entities.contains(&source) {
+                scope.deleted_entities.insert(source);
+            }
+            if self.deleted_entities.contains(&target) {
+                scope.deleted_entities.insert(target);
+            }
+        }
+        Ok(())
+    }
+
+    fn scan_required_visible_successors(
+        &mut self,
+    ) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
+        let required_kinds = self
+            .scopes
+            .iter()
+            .filter_map(|(kind_id, scope)| {
+                (scope.requires_visible_successors && scope.should_execute()).then_some(*kind_id)
+            })
+            .collect::<BTreeSet<_>>();
+        if required_kinds.is_empty() {
+            return Ok(());
+        }
+        for partition_id in self.state_view.state().partition_ids() {
+            let slot_count = self
+                .state_view
+                .relation_slot_scan_count(partition_id)
+                .unwrap_or_default();
+            for slot in 0..slot_count {
+                let Some(metadata) = self
+                    .state_view
+                    .relation_metadata_for_slot(partition_id, slot)
+                else {
+                    continue;
+                };
+                if !required_kinds.contains(&metadata.kind_id)
+                    || self.deleted_relations.contains(&metadata.relation_id)
+                    || self.deleted_entities.contains(&metadata.source)
+                    || self.deleted_entities.contains(&metadata.target)
+                {
+                    continue;
+                }
+                self.scanned_relations.insert(metadata.relation_id);
+                self.ensure_budget()?;
+                self.scopes
+                    .get_mut(&metadata.kind_id)
+                    .expect("required relation kind scope must be prepared")
+                    .record_visible_successor(
+                        EntityReference::Existing(metadata.source),
+                        EntityReference::Existing(metadata.target),
+                    );
+            }
+        }
+        for scope in self.scopes.values_mut() {
+            for successors in scope.visible_successors.values_mut() {
+                successors.sort();
+                successors.dedup();
+            }
+        }
+        Ok(())
+    }
+
+    fn ensure_budget(&self) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
+        ensure_relation_integrity_scope_budget(
+            self.budget,
+            scope_budget_snapshot(
+                &self.scopes,
+                &self.touched_entities,
+                &self.deleted_entities,
+                &self.scanned_relations,
+                self.planned_edge_count,
+            ),
+        )
+    }
+
+    fn finish(mut self) -> Option<PreparedRelationIntegrityScopes> {
+        for scope in self.scopes.values_mut() {
+            let planned_edges = std::mem::take(&mut scope.planned_edges);
+            for edge in planned_edges {
+                scope.increment_counts(edge.source.clone(), edge.target.clone());
+                for entity in [&edge.source, &edge.target] {
+                    if let EntityReference::Existing(entity_id) = entity {
+                        if self.deleted_entities.contains(entity_id) {
+                            scope.deleted_entities.insert(*entity_id);
+                        }
+                    }
+                }
+                scope.planned_edges.push(edge);
+            }
+        }
+        self.scopes.retain(|_, scope| scope.should_execute());
+        (!self.scopes.is_empty()).then(|| PreparedRelationIntegrityScopes::new(self.scopes))
+    }
 }
 
 fn relation_scope_details_for_id(
-    partitions: &dyn PartitionAccess,
+    state_view: &crate::validation::engine::state_view::InvariantStateView<'_>,
     relation_id: RelationId,
 ) -> Option<(KindId, EntityId, EntityId)> {
-    let relation_partition = partitions.get_partition(relation_id.partition_id)?;
-    let slot = relation_partition.relation_arena.get(&relation_id)?;
-    let kind_id = slot.kind_id()?;
-    let endpoints = slot.extra().endpoints.as_ref()?;
-    Some((kind_id, endpoints.source, endpoints.target))
+    let metadata = state_view.relation_metadata(relation_id)?;
+    Some((metadata.kind_id, metadata.source, metadata.target))
 }

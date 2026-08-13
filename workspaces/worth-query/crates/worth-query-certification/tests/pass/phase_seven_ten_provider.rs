@@ -96,15 +96,21 @@ impl provider::WorthQueryProviderSessionLifecycle for ConsumerCombinedProvider {
     fn commit_prepared_session(
         &self,
         _session: &provider::WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, provider::WorthQueryProviderSessionFailure> {
-        Ok("consumer-commit".to_owned())
+    ) -> Result<
+        provider::WorthQueryProviderTerminalDescription,
+        provider::WorthQueryProviderSessionFailure,
+    > {
+        Ok(provider::WorthQueryProviderTerminalDescription::new("consumer-commit").unwrap())
     }
 
     fn abort_provider_session(
         &self,
         _session: &provider::WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, provider::WorthQueryProviderSessionFailure> {
-        Ok("consumer-abort".to_owned())
+    ) -> Result<
+        provider::WorthQueryProviderTerminalDescription,
+        provider::WorthQueryProviderSessionFailure,
+    > {
+        Ok(provider::WorthQueryProviderTerminalDescription::new("consumer-abort").unwrap())
     }
 }
 

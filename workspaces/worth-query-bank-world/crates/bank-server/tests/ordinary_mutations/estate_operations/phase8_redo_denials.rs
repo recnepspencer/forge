@@ -16,10 +16,7 @@ use crate::support::request_scope;
 fn lawful_redo_admits_and_reenters_ordinary_disbursement() {
     let fixture = disbursement_world("redo-lawful", 1_000);
     let proved = commit_and_prove_undo(&fixture, 51);
-    assert_eq!(
-        proved.intent.bound_relational_head(),
-        proved.proved().undo_commit()
-    );
+    assert!(proved.intent.is_bound_to(&proved.recovery));
     let request = request_scope();
     let admission = fixture
         .world

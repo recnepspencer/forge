@@ -1,16 +1,23 @@
 //! Owner-sealed progression from authorization into operation admission.
 
 mod authority_validation;
-pub(in crate::domain_computation::authorization) mod authorization_revalidation;
-mod precondition_binding;
-mod transition;
 
-pub use transition::WorthQueryAdmittedApplicationOperation;
-pub(in crate::domain_computation) use transition::WorthQueryOperationAdmissionIdentity;
-pub(in crate::domain_computation::authorization) use transition::{
-    WorthQueryAuthorizedCapabilityOperation, WorthQueryCapabilityOperationProgression,
-    WorthQueryCapabilityTransitionPermit, WorthQueryOperationAuthorizationBasis,
+pub use authority_validation::WorthQueryAdmittedApplicationCapabilityAccess;
+pub use authority_validation::WorthQueryAdmittedApplicationOperation;
+pub(in crate::domain_computation) use authority_validation::WorthQueryOperationAdmissionIdentity;
+pub(in crate::domain_computation::authorization) use authority_validation::{
+    WorthQueryCapabilityContextKey, WorthQueryCurrentCapabilityObservation,
+    WorthQueryDelegationResolvedRequest, WorthQueryExactCapabilityObservationContext,
+    WorthQueryResolvedCapabilityRequest,
 };
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(in crate::domain_computation::authorization) enum WorthQueryCapabilityOperationProgression {
+    Ordinary,
+    DelegationActivation,
+    CapabilityRevocation,
+    ElevationLifecycle,
+}
 
 pub(in crate::domain_computation::authorization) fn progress_capability_operation<
     Schema,
@@ -64,11 +71,8 @@ where
         operation,
         progression,
     )?;
-    let bound = precondition_binding::bind_capability_preconditions(validated, preconditions)?;
-    let transition = transition::transition_capability_operation(bound)?;
-    Ok(crate::domain_computation::authorization::WorthQueryAdmittedApplicationOperation::from_authorized_transition(
-        transition.into(),
-    ))
+    let bound = authority_validation::bind_capability_preconditions(validated, preconditions)?;
+    authority_validation::transition_capability_operation(bound)
 }
 
 pub(super) fn progress_conventional_operation<
@@ -112,6 +116,6 @@ where
     let validated = authority_validation::validate_conventional_operation(
         runtime, principal, scope, operation, request,
     )?;
-    let bound = precondition_binding::bind_conventional_preconditions(validated, preconditions)?;
-    transition::transition_conventional_operation(bound)
+    let bound = authority_validation::bind_conventional_preconditions(validated, preconditions)?;
+    authority_validation::transition_conventional_operation(bound)
 }

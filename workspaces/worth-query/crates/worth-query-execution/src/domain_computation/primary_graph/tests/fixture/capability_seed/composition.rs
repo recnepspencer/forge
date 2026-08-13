@@ -6,7 +6,7 @@ use crate::domain_computation::primary_graph::{
 };
 
 #[derive(Clone, Copy, Debug)]
-pub(in crate::domain_computation::primary_graph) enum CapabilityCompositionScenario {
+pub(in crate::domain_computation) enum CapabilityCompositionScenario {
     Lawful,
     MissingAssignment,
     ExplicitDeny,

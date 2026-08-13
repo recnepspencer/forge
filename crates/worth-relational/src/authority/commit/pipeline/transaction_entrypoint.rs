@@ -6,7 +6,7 @@ use crate::authority::commit::phases::prepare::prepare_working_state_scope;
 use crate::transactions::data::{
     CommitLog, CommitPhase, CommitPhaseTiming, CommitResult, TransactionCommitError,
 };
-use crate::transactions::logic::RelationalTransaction;
+use crate::transactions::RelationalTransaction;
 use std::time::Instant;
 
 impl<'a> RelationalTransaction<'a> {

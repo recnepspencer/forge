@@ -1,5 +1,5 @@
 use crate::history::data::CommitReference;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::{SnapshotHandle, SnapshotReadPolicy};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

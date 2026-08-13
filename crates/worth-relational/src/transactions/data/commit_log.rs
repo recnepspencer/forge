@@ -1,6 +1,6 @@
+use crate::config::data::RelationalExecutionModel;
 use crate::diagnostics::data::DiagnosticCode;
 use crate::history::data::CommitId;
-use crate::logic::planning::RelationalExecutionModel;
 use crate::publication::bundle::PublicationStage;
 use crate::publication::patch::data::PatchStreamPosition;
 use crate::snapshots::data::SnapshotId;

@@ -5,17 +5,12 @@ use super::preparation::{
 use crate::authority::commit::phases::publication::enforce_patch_budget;
 use crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan;
 use crate::authority::commit::publication::assemble_patch;
-#[cfg(test)]
-use crate::authority::commit::{
-    preparation::diagnostics::{emit_preparation_failure, failures::PreparationFailureClass},
-    publication::{current_test_diff_preparation_fault, TestDiffPreparationFault},
-};
 use crate::authority::mutation::MutationEffect;
 use crate::commit_strategies::data::StrategyCommitArtifactBundle;
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::identity::data::VersionId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     CommitLog, CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, MergedCommitPlan,
     PublishedMergeExecutionAuthority, TransactionCommitError,
@@ -47,7 +42,6 @@ pub(super) fn assemble_authoritative_publication_phase(
     let mut effect = input.effect;
     let patch_fragments = std::mem::take(&mut effect.publication.patch_fragments);
     let patch = assemble_patch(runtime, input.commit_reference.commit_id, patch_fragments);
-    emit_test_diff_preparation_failure(runtime, input.commit_reference.commit_id, &patch);
     let patch_budget_summary = CommitPatchBudgetSummary {
         patch_record_count: patch.authoritative_record_patches.len(),
         max_patch_records_per_commit: runtime
@@ -105,37 +99,4 @@ fn record_publication_phase_artifacts(
     commit_log.record_changed_records(change_summary);
     commit_log.record_aspect_summary(aspect_summary);
     commit_log.record_publication_artifacts(publication_summary);
-}
-
-#[cfg(test)]
-fn emit_test_diff_preparation_failure(
-    runtime: &mut RelationalRuntime,
-    commit_id: CommitId,
-    patch: &crate::publication::patch::data::PublishedAuthoritativePatchEnvelope,
-) {
-    if let Some(fault) = current_test_diff_preparation_fault() {
-        let failure_class = match fault {
-            TestDiffPreparationFault::FragmentCanonicalizationFailure => {
-                PreparationFailureClass::FragmentCanonicalizationFailure
-            }
-            TestDiffPreparationFault::PacketOverlapDetected => {
-                PreparationFailureClass::PacketOverlapDetected
-            }
-        };
-        emit_preparation_failure(
-            runtime,
-            crate::diagnostics::data::DiagnosticsScope::PatchPublication,
-            failure_class,
-            commit_id,
-            patch.authoritative_record_patches.len(),
-        )
-    }
-}
-
-#[cfg(not(test))]
-fn emit_test_diff_preparation_failure(
-    _runtime: &mut RelationalRuntime,
-    _commit_id: CommitId,
-    _patch: &crate::publication::patch::data::PublishedAuthoritativePatchEnvelope,
-) {
 }

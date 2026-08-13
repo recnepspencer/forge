@@ -21,7 +21,7 @@ fn preparation_rejection_is_denied_without_effect_or_idempotency_residue() {
         "prepared-replacement",
     );
 
-    world.application.reject_next_session_prepare();
+    world.faults.reject_next_session_prepare();
     let WorthQueryApplicationCommitOutcome::Denied(denial) = world
         .application
         .compare_and_commit_application(rejected, idempotency(19, 19))
@@ -57,7 +57,7 @@ fn pretransaction_commit_failure_is_proved_aborted_and_applies_nothing() {
     let account = resolved_account(&world, "open", &request);
     let rejected = admitted_program(&world, &principal, &account, &request, "atomic-replacement");
 
-    world.application.reject_next_commit_before_transaction();
+    world.faults.reject_next_commit_before_transaction();
     assert!(matches!(
         world
             .application
@@ -84,7 +84,7 @@ fn index_publication_failure_recovers_the_committed_transaction_before_returning
     let first = admitted_program(&world, &principal, &account, &request, "index-replacement");
     let retry = admitted_program(&world, &principal, &account, &request, "index-replacement");
 
-    world.application.fail_next_index_publication();
+    world.faults.fail_next_index_publication();
     let WorthQueryApplicationCommitOutcome::Committed(first_receipt) = world
         .application
         .compare_and_commit_application(first, idempotency(21, 21))
@@ -128,7 +128,7 @@ fn causal_fact_survives_index_publication_failure_via_relational_owner_read() {
         .expect("fixture has an authoritative branch head");
     let pending = WorthQueryPendingAftermathCausality::undo_of(parent.clone());
 
-    world.application.fail_next_index_publication();
+    world.faults.fail_next_index_publication();
     let WorthQueryApplicationCommitOutcome::Committed(receipt) = world
         .application
         .compare_and_commit_application_with_aftermath(
@@ -206,7 +206,7 @@ fn forged_invariant_verdict_cannot_commit_without_relational_owner_candidate() {
         "must-not-bypass-relational",
     );
 
-    world.application.skip_next_invariant_owner_execution();
+    world.faults.skip_next_invariant_owner_execution();
     let outcome = world
         .application
         .compare_and_commit_application(rejected, idempotency(22, 22));
@@ -230,7 +230,7 @@ fn relational_invariant_violation_denies_before_provider_commit() {
         "must-not-pass-relational-invariant",
     );
 
-    world.application.violate_next_relational_invariant();
+    world.faults.violate_next_relational_invariant();
     let WorthQueryApplicationCommitOutcome::Denied(denial) = world
         .application
         .compare_and_commit_application(rejected, idempotency(23, 23))

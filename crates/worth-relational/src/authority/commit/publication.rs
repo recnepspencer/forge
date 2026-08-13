@@ -6,69 +6,20 @@ use crate::authority::commit::preparation::reduction::merge::{
     canonical_merge_streams, OrderedReductionStream,
 };
 use crate::authority::mutation::FoundationalPatchFragment;
+use crate::config::data::RelationalExecutionModel;
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope,
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
 use crate::history::data::CommitId;
-use crate::logic::planning::RelationalExecutionModel;
-use crate::logic::runtime::RelationalRuntime;
 use crate::publication::patch::data::{
     PatchOrdering, PatchPublicationMode, PatchStreamPosition, PublishedAuthoritativePatchEnvelope,
     PublishedAuthoritativeRecordPatch,
 };
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::RecordRef;
 use rayon::prelude::*;
 use std::collections::BTreeSet;
-
-#[cfg(test)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum TestDiffPreparationFault {
-    FragmentCanonicalizationFailure,
-    PacketOverlapDetected,
-}
-
-#[cfg(test)]
-std::thread_local! {
-    static TEST_DIFF_PREPARATION_FAULT: std::cell::Cell<u8> = const { std::cell::Cell::new(0) };
-}
-
-#[cfg(test)]
-pub(crate) fn current_test_diff_preparation_fault() -> Option<TestDiffPreparationFault> {
-    match TEST_DIFF_PREPARATION_FAULT.with(std::cell::Cell::get) {
-        1 => Some(TestDiffPreparationFault::FragmentCanonicalizationFailure),
-        2 => Some(TestDiffPreparationFault::PacketOverlapDetected),
-        _ => None,
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn with_test_diff_preparation_fault<T>(
-    fault: TestDiffPreparationFault,
-    run: impl FnOnce() -> T,
-) -> T {
-    struct ResetGuard {
-        previous: u8,
-    }
-
-    impl Drop for ResetGuard {
-        fn drop(&mut self) {
-            TEST_DIFF_PREPARATION_FAULT.with(|fault| fault.set(self.previous));
-        }
-    }
-
-    let next = match fault {
-        TestDiffPreparationFault::FragmentCanonicalizationFailure => 1,
-        TestDiffPreparationFault::PacketOverlapDetected => 2,
-    };
-    let previous = TEST_DIFF_PREPARATION_FAULT.with(|active| {
-        let previous = active.get();
-        active.set(next);
-        previous
-    });
-    let _reset = ResetGuard { previous };
-    run()
-}
 
 pub(super) fn assemble_patch(
     runtime: &RelationalRuntime,
@@ -183,19 +134,11 @@ fn direct_diff_record_order(
         .enumerate()
         .map(|(record_index, record)| {
             let canonical = record.canonicalized();
-            #[allow(unused_mut)]
-            let mut key = DiffReductionKey::new(
+            let key = DiffReductionKey::new(
                 canonical.target.clone(),
                 diff_kind_order(DiffFragmentKind::from(canonical.structural_change)),
                 record_index,
             );
-            #[cfg(test)]
-            if matches!(
-                current_test_diff_preparation_fault(),
-                Some(TestDiffPreparationFault::PacketOverlapDetected)
-            ) {
-                key = DiffReductionKey::new(canonical.target.clone(), 0, 0);
-            }
             (key, canonical)
         })
         .collect::<Vec<_>>();
@@ -219,8 +162,7 @@ fn diff_packet_stream(
 
     for (offset, record) in packet.authoritative_record_patches.iter().enumerate() {
         let canonical = record.canonicalized();
-        #[allow(unused_mut)]
-        let mut key = DiffReductionKey::new(
+        let key = DiffReductionKey::new(
             canonical.target.clone(),
             diff_kind_order(
                 crate::authority::commit::preparation::packets::diff::DiffFragmentKind::from(
@@ -229,17 +171,6 @@ fn diff_packet_stream(
             ),
             packet.header.packet_index_floor + offset,
         );
-        #[cfg(test)]
-        if matches!(
-            current_test_diff_preparation_fault(),
-            Some(TestDiffPreparationFault::PacketOverlapDetected)
-        ) {
-            key = DiffReductionKey::new(
-                canonical.target.clone(),
-                0,
-                packet.header.packet_index_floor,
-            );
-        }
         headers.push((key, offset));
         canonical_records.push(canonical);
     }

@@ -67,7 +67,7 @@ fn rejection_before_transaction_publishes_no_emit_causality() {
         Some("must-not-publish"),
     );
 
-    world.application.reject_next_commit_before_transaction();
+    world.faults.reject_next_commit_before_transaction();
     let outcome = world
         .application
         .compare_and_commit_application(program, idempotency(32, 32));
@@ -111,7 +111,7 @@ fn response_loss_recovers_emit_receipt_without_duplicate_publication() {
         Some("once"),
     );
 
-    world.application.lose_next_commit_response();
+    world.faults.lose_next_commit_response();
     let WorthQueryApplicationCommitOutcome::Committed(original) = world
         .application
         .compare_and_commit_application(first, idempotency(33, 33))

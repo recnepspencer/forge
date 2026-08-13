@@ -29,15 +29,14 @@ fn stale_expired_handle_undo_denies_and_writes_nothing() {
     let handle = world.open_recovery(&receipt);
     let revision_before = world.estate_account_revision();
     authorization_time.advance_to_epoch_seconds(5_601);
-    let evaluation = world
-        .fixture
-        .world
-        .runtime
-        .evaluate_commit_recovery_expiry(&handle)
-        .expect("expiry");
     assert!(matches!(
-        evaluation,
-        worth_query_host::facade::primary_graph::WorthQueryRecoveryExpiryEvaluation::Expired(_)
+        world
+            .fixture
+            .world
+            .runtime
+            .evaluate_commit_recovery_expiry(&handle)
+            .expect("expiry"),
+        bank_server::BankRecoveryExpiryEvaluation::Expired(_)
     ));
     let specialist = world.fixture.authenticate_specialist();
     let denied = world

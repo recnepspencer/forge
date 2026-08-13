@@ -101,7 +101,7 @@ pub mod history {
         LineageAspectHistoryQueryResult, LineageAspectResolutionDigest, MergeConflictRecord,
         MergeInspection, OrderedParentList, VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
     };
-    pub use crate::history::logic::{HistoryAccess, HistoryAuthority};
+    pub use crate::history::{HistoryAccess, HistoryAuthority};
 }
 
 #[path = "facade/identity.rs"]
@@ -133,7 +133,7 @@ pub mod inspection {
         StructuralIdentityComparisonVerdict, StructuralIdentityEvidence,
         StructuralIdentityQueryRequest, TransactionInspectionSurface, TransactionIntentCounts,
     };
-    pub use crate::inspection::logic::InspectionAccess;
+    pub use crate::inspection::InspectionAccess;
 }
 
 #[path = "facade/indexes.rs"]
@@ -207,18 +207,26 @@ pub mod merge {
         SchemaDeclaredCorrespondenceValidationSummary, TopologyExecutionClass,
         TopologyRegionConflictReason, TopologyRewireAdmissionPolicy,
     };
-    pub use crate::merge::logic::MergeAccess;
+    pub use crate::merge::MergeAccess;
     pub use crate::transactions::data::MergeExecutionOutcome;
 }
 
 pub mod runtime {
     pub use super::runtime_validation_exports::*;
-    pub use crate::logic::builder::RelationalRuntimeBuilder;
-    pub use crate::logic::commit::CommitAuthorityContract;
-    pub use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
+    pub use crate::config::data::{
+        CommitAuthorityContract, PlanningContract, RelationalExecutionModel,
+    };
+    pub use crate::presentation::facade::runtime::{
+        ImmutableReadContract, RelationalBoundaryContract, RelationalRuntimeApi,
+        SerializedAuthorityContract,
+    };
+    pub use crate::publication::{
+        PostCommitConsumer, PostCommitConsumptionContext, PostCommitConsumptionFailure,
+    };
+    pub use crate::runtime::builder::RelationalRuntimeBuilder;
     #[cfg(test)]
-    pub use crate::logic::runtime::HarnessAuditMode;
-    pub use crate::logic::runtime::{
+    pub use crate::runtime::HarnessAuditMode;
+    pub use crate::runtime::{
         CompiledArtifactAuthorityStatus, CompiledArtifactError, CompiledExecutionArtifact,
         ComplexityContract, ComplexityStatus, EntityProjectionRecord, EntityRecordProjection,
         InvariantAccess, RelationProjectionRecord, RelationRecordProjection,
@@ -228,10 +236,6 @@ pub mod runtime {
         RuntimeComplexityCounters, SimulationAccess, SimulationAuthority, SnapshotGuard,
         TopologyFreezeMode, VisibilityProjectionView, VisibilityReadContext,
         VisibilityRetentionAuthority,
-    };
-    pub use crate::presentation::facade::runtime::{
-        ImmutableReadContract, RelationalBoundaryContract, RelationalRuntimeApi,
-        SerializedAuthorityContract,
     };
     pub use crate::storage::data::{
         ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord, PartitionStorageStats,
@@ -279,10 +283,6 @@ pub mod publication {
         PublicationArtifactSnapshot, PublicationDiagnosticsSnapshot, PublicationError,
         PublicationObservationSnapshot,
     };
-    pub use crate::publication::logic::{
-        PublicationArtifactsAccess, PublicationDiagnosticsAccess, PublicationPatchStreamAccess,
-        PublicationSubscriberStreamAccess, PublicationSurface,
-    };
     pub use crate::publication::patch::data::{
         PatchDetail, PatchFragmentBudget, PatchOrdering, PatchPublicationMode, PatchStreamBatch,
         PatchStreamPosition, PatchStreamReadError, PatchStreamReadErrorClass, PatchStreamRequest,
@@ -290,6 +290,10 @@ pub mod publication {
         PublishedAuthoritativeFieldSet, PublishedAuthoritativePatch,
         PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
         RecordStructuralChange,
+    };
+    pub use crate::publication::{
+        PublicationArtifactsAccess, PublicationDiagnosticsAccess, PublicationPatchStreamAccess,
+        PublicationSubscriberStreamAccess, PublicationSurface,
     };
 }
 
@@ -306,8 +310,8 @@ pub mod query {
 }
 
 pub mod replay {
+    pub use crate::history::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
     pub use crate::replay::data::{
-        CanonicalCommitAuthorityKind, CanonicalCommitEnvelope,
         CertifiedLineageSurfaceComparisonBasis, CertifiedLineageSurfaceDigest,
         LineageCertifiedSurfaceKind, RelationalReplayOutcome, RelationalReplayRequest,
         ReplayAuthorityBasisKind, ReplayError, ReplayExecutionMode, ReplayFailureClass,

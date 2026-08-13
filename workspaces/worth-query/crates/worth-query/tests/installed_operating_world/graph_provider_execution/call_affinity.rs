@@ -51,32 +51,31 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for RetainingProvider {
 #[test]
 fn retained_call_cannot_replace_the_current_sealed_step() {
     let retained = Arc::new(Mutex::new(None));
-    let mut workspace =
-        configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
-            .graph_participation(read_definition::<RemoteA>(
-                "remote-a",
-                domain::WorthQueryGraphProjectionPosture::NativeProjection,
-            ))
-            .graph_participation_provider(
-                RemoteA,
-                RetainingProvider {
-                    retained: Arc::clone(&retained),
-                    projection_label: "remote-a-projection",
-                },
-            )
-            .graph_participation(read_definition::<RemoteB>(
-                "remote-b",
-                domain::WorthQueryGraphProjectionPosture::NativeProjection,
-            ))
-            .graph_participation_provider(
-                RemoteB,
-                RetainingProvider {
-                    retained: Arc::clone(&retained),
-                    projection_label: "remote-b-projection",
-                },
-            )
-            .workspace("graph-provider-retained-call")
-            .unwrap();
+    let mut workspace = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>())
+        .graph_participation(read_definition::<RemoteA>(
+            "remote-a",
+            domain::WorthQueryGraphProjectionPosture::NativeProjection,
+        ))
+        .graph_participation_provider(
+            RemoteA,
+            RetainingProvider {
+                retained: Arc::clone(&retained),
+                projection_label: "remote-a-projection",
+            },
+        )
+        .graph_participation(read_definition::<RemoteB>(
+            "remote-b",
+            domain::WorthQueryGraphProjectionPosture::NativeProjection,
+        ))
+        .graph_participation_provider(
+            RemoteB,
+            RetainingProvider {
+                retained: Arc::clone(&retained),
+                projection_label: "remote-b-projection",
+            },
+        )
+        .workspace("graph-provider-retained-call")
+        .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
 
     for _ in 0..2 {

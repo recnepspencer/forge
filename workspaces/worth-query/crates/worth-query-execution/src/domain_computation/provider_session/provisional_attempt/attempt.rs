@@ -152,10 +152,8 @@ fn stage_provider_overlay(
     counters: &mut WorthQueryProvisionalAttemptCounters,
 ) -> Result<super::WorthQueryProvisionalOverlayEvidence, WorthQueryProvisionalFailure> {
     let admission = WorthQueryProvisionalOverlayAdmission::new(
-        staged.provider_session_affinity().identity(),
+        staged.provider_session_view(),
         staged.provisional_binding_identity(),
-        staged.token_identity(),
-        staged.token_generation(),
         program.identity(),
         generation,
     );

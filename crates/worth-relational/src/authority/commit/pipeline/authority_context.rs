@@ -50,9 +50,9 @@ pub(super) struct MergeExecutionAccounting {
 
 impl AuthoritativeCommitContext {
     pub(crate) fn from_validated_mutation(
-        candidate: crate::transactions::logic::ValidatedRelationalMutation,
+        candidate: crate::transactions::ValidatedRelationalMutation,
     ) -> Self {
-        let crate::transactions::logic::ValidatedRelationalMutation {
+        let crate::transactions::ValidatedRelationalMutation {
             transaction_id,
             options,
             prepared,
@@ -172,7 +172,7 @@ impl AuthoritativeCommitContext {
     }
 
     pub(crate) fn from_strategy(
-        runtime: &crate::logic::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
         lowered_plan: LoweredStrategyCommitPlan,
     ) -> Self {
         let descriptor = runtime
@@ -206,7 +206,7 @@ impl AuthoritativeCommitContext {
     }
 
     pub(crate) fn from_validated_strategy(
-        runtime: &crate::logic::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
         validated_plan: ValidatedStrategyCommitPlan,
     ) -> Self {
         let descriptor = runtime

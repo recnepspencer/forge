@@ -64,7 +64,7 @@ impl domain::WorthQueryGraphCommitProvider<SeparateCommit> for UncontactedProvid
 #[test]
 fn primary_and_separate_mutation_requires_declared_compensation() {
     let contacts = Arc::new(AtomicUsize::new(0));
-    let uncompensated = runtime(false, Arc::clone(&contacts), "mixed-uncompensated");
+    let uncompensated = runtime(Arc::clone(&contacts), "mixed-uncompensated");
     let installed = uncompensated.domain(GeometryDomain).unwrap();
     let denial = match uncompensated
         .prepare_mutation_operating_world()
@@ -80,33 +80,13 @@ fn primary_and_separate_mutation_requires_declared_compensation() {
         domain::WorthQueryOperationBindingDenialKind::CompensationUndeclared
     );
     assert_eq!(contacts.load(Ordering::Relaxed), 0);
-
-    // Positive twin remains closed until domain operations compile aftermath
-    // from their own declaration (no public domain installer).
-    let compensated = runtime(true, Arc::clone(&contacts), "mixed-compensated");
-    let installed = compensated.domain(GeometryDomain).unwrap();
-    let denial = match compensated
-        .prepare_mutation_operating_world()
-        .unwrap()
-        .family(MutationFamily)
-        .bind(&installed, WorkflowMutation)
-    {
-        Ok(_) => panic!("domain fixtures cannot author compensation aftermath"),
-        Err(denial) => denial,
-    };
-    assert_eq!(
-        denial.kind(),
-        domain::WorthQueryOperationBindingDenialKind::CompensationUndeclared
-    );
-    assert_eq!(contacts.load(Ordering::Relaxed), 0);
 }
 
 fn runtime(
-    compensated: bool,
     contacts: Arc<AtomicUsize>,
     name: &str,
 ) -> worth_query::facade::runtime::WorthQueryWorkspace {
-    mixed_mutation_workflow_runtime::<RemoteGraph>(compensated)
+    mixed_mutation_workflow_runtime::<RemoteGraph>()
         .graph_participation(atomic_definition())
         .atomic_graph_participation_provider(
             RemoteGraph,

@@ -6,9 +6,7 @@ use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationOperation,
 };
 
-use crate::domain_computation::authorization::{
-    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryOperationAuthorizationDenial,
-};
+use crate::domain_computation::authorization::WorthQueryOperationAuthorizationDenial;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationEntityIdentity, WorthQueryAuthenticatedPrincipal,
@@ -16,7 +14,21 @@ use crate::domain_computation::primary_graph::{
 
 use super::WorthQueryCapabilityOperationProgression;
 
-pub(super) struct ValidatedConventionalOperation<
+mod precondition_binding;
+pub use precondition_binding::WorthQueryAdmittedApplicationCapabilityAccess;
+pub use precondition_binding::WorthQueryAdmittedApplicationOperation;
+pub(in crate::domain_computation) use precondition_binding::WorthQueryOperationAdmissionIdentity;
+pub(super) use precondition_binding::{
+    bind_capability_preconditions, bind_conventional_preconditions,
+    transition_capability_operation, transition_conventional_operation,
+};
+pub(in crate::domain_computation::authorization) use precondition_binding::{
+    WorthQueryCapabilityContextKey, WorthQueryCurrentCapabilityObservation,
+    WorthQueryDelegationResolvedRequest, WorthQueryExactCapabilityObservationContext,
+    WorthQueryResolvedCapabilityRequest,
+};
+
+pub(in crate::domain_computation::authorization::operation_progression) struct ValidatedConventionalOperation<
     'a,
     Schema,
     Principal,
@@ -83,48 +95,13 @@ where
     })
 }
 
-impl<'a, Schema, Principal, PrincipalIdentity, Operation, Input, Scope>
-    ValidatedConventionalOperation<
-        'a,
-        Schema,
-        Principal,
-        PrincipalIdentity,
-        Operation,
-        Input,
-        Scope,
-    >
-{
-    pub(super) const fn context(
-        &self,
-    ) -> (
-        &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
-        &WorthQueryApplicationEntityIdentity<Schema, Scope>,
-        &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
-    ) {
-        (self.runtime, self.scope, self.operation)
-    }
-
-    pub(super) fn into_parts(
-        self,
-    ) -> (
-        &'a WorthQueryPrimaryGraphApplicationRuntime<Schema>,
-        &'a WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
-        &'a WorthQueryApplicationEntityIdentity<Schema, Scope>,
-        &'a WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
-        &'a WorthQueryRequestScope,
-    ) {
-        (
-            self.runtime,
-            self.principal,
-            self.scope,
-            self.operation,
-            self.request,
-        )
-    }
-}
-
-pub(super) struct ValidatedCapabilityOperation<'a, Schema, Capability, Operation, Input>
-where
+pub(in crate::domain_computation::authorization::operation_progression) struct ValidatedCapabilityOperation<
+    'a,
+    Schema,
+    Capability,
+    Operation,
+    Input,
+> where
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
     runtime: &'a WorthQueryPrimaryGraphApplicationRuntime<Schema>,
@@ -151,30 +128,4 @@ where
         access,
         operation,
     })
-}
-
-impl<'a, Schema, Capability, Operation, Input>
-    ValidatedCapabilityOperation<'a, Schema, Capability, Operation, Input>
-where
-    Input: ApplicationCapabilityRequest<Schema, Capability>,
-{
-    pub(super) const fn context(
-        &self,
-    ) -> (
-        &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
-        &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
-        &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
-    ) {
-        (self.runtime, &self.access, self.operation)
-    }
-
-    pub(super) fn into_parts(
-        self,
-    ) -> (
-        &'a WorthQueryPrimaryGraphApplicationRuntime<Schema>,
-        WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
-        &'a WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
-    ) {
-        (self.runtime, self.access, self.operation)
-    }
 }

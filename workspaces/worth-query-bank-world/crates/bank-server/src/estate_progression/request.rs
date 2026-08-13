@@ -5,11 +5,9 @@ use bank_domain::schema::{
 };
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestScope;
 use worth_query_host::facade::declaration::application_schema::TypedMutationPreconditions;
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryElevationRequestOutcome,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
-use super::BankEstateProgressionDenial;
+use super::{BankEstateElevationRequestOutcome, BankEstateProgressionDenial};
 use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime};
 
 impl BankIdentityRuntime {
@@ -19,7 +17,7 @@ impl BankIdentityRuntime {
         action: EstateAction,
         idempotency: WorthQueryApplicationIdempotencyBinding,
         request: &WorthQueryRequestScope,
-    ) -> Result<WorthQueryElevationRequestOutcome, BankEstateProgressionDenial> {
+    ) -> Result<BankEstateElevationRequestOutcome, BankEstateProgressionDenial> {
         let capability = self
             .application_runtime()
             .installed_schema()
@@ -65,8 +63,9 @@ impl BankIdentityRuntime {
             .map_err(BankEstateProgressionDenial::from_attempt)?
             .materialize_elevation_request_program()
             .map_err(BankEstateProgressionDenial::from_attempt)?;
-        Ok(self
-            .application_runtime()
-            .compare_and_commit_elevation_request(program, idempotency))
+        Ok(BankEstateElevationRequestOutcome::from_query(
+            self.application_runtime()
+                .compare_and_commit_elevation_request(program, idempotency),
+        ))
     }
 }

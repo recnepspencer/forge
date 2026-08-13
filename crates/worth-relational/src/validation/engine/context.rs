@@ -1,6 +1,6 @@
 use crate::capabilities::AspectPlanSource;
 use crate::identity::data::KindId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::schema::data::LoweredAspectContractPlan;
 use crate::transactions::data::MergedCommitPlan;
 
@@ -59,6 +59,23 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
         self.relation_integrity_scopes
             .as_ref()
             .and_then(|scopes| scopes.scope_for(relation_kind_id))
+    }
+
+    pub(crate) fn required_relation_integrity_scope(
+        &self,
+        relation_kind_id: KindId,
+        class: crate::validation::data::InvariantClass,
+    ) -> Result<&PreparedRelationIntegrityScope, crate::validation::data::InvariantViolation> {
+        self.relation_integrity_scope(relation_kind_id)
+            .ok_or_else(|| crate::validation::data::InvariantViolation {
+                class,
+                code: crate::diagnostics::data::DiagnosticCode::PreparationFailure,
+                detail: format!(
+                    "required relation integrity scope for relation kind {:?} was not prepared",
+                    relation_kind_id
+                ),
+                fields: crate::validation::data::InvariantViolationFields::None,
+            })
     }
 
     pub(crate) fn entity_aspect_plan(&self, kind_id: KindId) -> Option<&LoweredAspectContractPlan> {

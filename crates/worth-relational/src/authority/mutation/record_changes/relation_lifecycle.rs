@@ -1,6 +1,6 @@
 use crate::identity::data::RelationId;
 use crate::storage::data::RecordLifecycleState;
-use crate::storage::logic::state::PartitionState;
+use crate::storage::overlay::PartitionState;
 use crate::storage::overlay::{PartitionAccess, WorkingState};
 
 use crate::authority::mutation::outcomes::{MutationOutcome, RecordMutation};

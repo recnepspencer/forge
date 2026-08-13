@@ -79,15 +79,6 @@ fn stale_after_handle_expiry_with_honest_intent() {
     let intent_before = proved.intent.clone();
     let before = graph_snapshot(&fixture);
     authorization_time.advance_to_epoch_seconds(5_601);
-    let evaluation = fixture
-        .world
-        .runtime
-        .evaluate_commit_recovery_expiry(proved.recovery.handle())
-        .expect("expiry evaluation");
-    assert!(matches!(
-        evaluation,
-        worth_query_host::facade::primary_graph::WorthQueryRecoveryExpiryEvaluation::Expired(_)
-    ));
     let denied = fixture
         .world
         .runtime

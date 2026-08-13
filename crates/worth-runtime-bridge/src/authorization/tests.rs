@@ -3,11 +3,57 @@ use worth_foundational::facade::CanonicalDigestId;
 use super::{
     BridgeAuthorizationBindingIdentity, BridgeAuthorizationClauseContract,
     BridgeAuthorizationClauseObservation, BridgeAuthorizationDependencyCardinality,
-    BridgeAuthorizationInstallationRequest, BridgeAuthorizationObservation,
-    BridgeAuthorizationRequirementContract, BridgeAuthorizationRequirementObservation,
-    BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect,
-    BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
+    BridgeAuthorizationInstallationBatch, BridgeAuthorizationInstallationRequest,
+    BridgeAuthorizationObservation, BridgeAuthorizationRequirementContract,
+    BridgeAuthorizationRequirementObservation, BridgeAuthorizationRuleContract,
+    BridgeAuthorizationRuleEffect, BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
 };
+
+#[test]
+fn invalid_batch_cannot_install_its_valid_prefix() {
+    let mut runtime = BridgeAuthorizationRuntime::new();
+    let mut batch = BridgeAuthorizationInstallationBatch::new();
+    batch
+        .add(installation_request([21; 32], rules()))
+        .expect("valid prefix");
+    let denial = batch
+        .add(installation_request([22; 32], Vec::new()))
+        .expect_err("empty policy poisons the batch");
+    assert_eq!(
+        denial.kind(),
+        super::BridgeAuthorizationDenialKind::EmptyPolicy
+    );
+    assert_eq!(
+        runtime.install_batch(batch).unwrap_err().kind(),
+        super::BridgeAuthorizationDenialKind::EmptyPolicy
+    );
+    runtime
+        .install(installation_request([21; 32], rules()))
+        .expect("failed batch installed no prefix");
+}
+
+#[test]
+fn duplicate_inside_batch_cannot_install_the_first_request() {
+    let mut runtime = BridgeAuthorizationRuntime::new();
+    let mut batch = BridgeAuthorizationInstallationBatch::new();
+    batch
+        .add(installation_request([23; 32], rules()))
+        .expect("first request");
+    assert_eq!(
+        batch
+            .add(installation_request([23; 32], rules()))
+            .unwrap_err()
+            .kind(),
+        super::BridgeAuthorizationDenialKind::DuplicateCorrespondence
+    );
+    assert_eq!(
+        runtime.install_batch(batch).unwrap_err().kind(),
+        super::BridgeAuthorizationDenialKind::DuplicateCorrespondence
+    );
+    runtime
+        .install(installation_request([23; 32], rules()))
+        .expect("duplicate batch installed no prefix");
+}
 
 #[test]
 fn installed_correspondence_retains_nested_signal_decision_and_dependency_identity() {
@@ -99,6 +145,20 @@ fn rules() -> Vec<BridgeAuthorizationRuleContract> {
             ])],
         ),
     ]
+}
+
+fn installation_request(
+    identity: [u8; 32],
+    rules: Vec<BridgeAuthorizationRuleContract>,
+) -> BridgeAuthorizationInstallationRequest {
+    BridgeAuthorizationInstallationRequest::new(
+        &CanonicalDigestId::new(identity),
+        binding_identity(),
+        "batch_ability",
+        "BatchScope",
+        format!("batch-policy-{}", identity[0]),
+        rules,
+    )
 }
 
 fn observation(

@@ -1,8 +1,8 @@
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::publication::cdc::data::{
     SubscriberCheckpoint, SubscriberStreamFailure, SubscriberStreamFailureClass,
 };
 use crate::publication::cdc::diagnostics::rejection_artifact;
-use crate::replay::data::CanonicalCommitEnvelope;
 
 pub(crate) fn validate_checkpoint_against_envelope(
     checkpoint: &SubscriberCheckpoint,

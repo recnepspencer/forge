@@ -13,4 +13,4 @@ pub use contract::{
 };
 pub use error::{PreviewBindingError, PreviewBindingFailureClass};
 
-pub(crate) use admission::bind_preflight_to_preview_session;
+pub use admission::bind_preflight_to_preview_session;

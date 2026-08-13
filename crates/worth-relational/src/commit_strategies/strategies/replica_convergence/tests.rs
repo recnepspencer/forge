@@ -5,7 +5,7 @@ use super::{
     ReplicaConvergenceStrategy,
 };
 use crate::commit_strategies::data::{StrategyCallerProvenance, StrategyRequestOrigin};
-use crate::logic::builder::RelationalRuntimeBuilder;
+use crate::runtime::builder::RelationalRuntimeBuilder;
 use crate::tests::support::{
     entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect, AspectSchemaFixture,
 };

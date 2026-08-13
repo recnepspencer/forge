@@ -1,9 +1,9 @@
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::storage::data::{RecordLifecycleState, RetentionPassOutcome, RetentionPlan};
-use crate::storage::logic::state::{
+use crate::storage::substrate::{
     EntityRecordKind, HistoricalMetadata, RecordKind, RelationRecordKind,
 };
 

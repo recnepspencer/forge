@@ -5,11 +5,10 @@ mod snapshot_state_pins;
 #[cfg(test)]
 mod tests;
 
-use crate::logic::runtime::RelationalRuntime;
-use crate::storage::logic::state::{
-    EntityRecordKind, PinClass, RecordKind, RelationRecordKind, SnapshotState,
-};
+use crate::runtime::RelationalRuntime;
+use crate::storage::overlay::SnapshotState;
 use crate::storage::substrate::PinClass as SubstratePinClass;
+use crate::storage::substrate::{EntityRecordKind, PinClass, RecordKind, RelationRecordKind};
 
 pub(crate) struct VisibilityPinAuthority<'runtime> {
     runtime: &'runtime mut RelationalRuntime,

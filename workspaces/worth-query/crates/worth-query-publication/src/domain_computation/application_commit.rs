@@ -1,4 +1,6 @@
-use worth_query_execution::facade::primary_graph::WorthQueryApplicationCommitReceipt;
+use worth_query_execution::facade::primary_graph::{
+    WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
+};
 
 mod inspection;
 mod receipt;
@@ -19,6 +21,14 @@ pub fn publish_application_commit(
 ) -> WorthQueryPublishedApplicationCommit {
     WorthQueryPublishedApplicationCommit {
         receipt: WorthQueryApplicationCommitPublicationReceipt::from_terminal(terminal),
+    }
+}
+
+pub(crate) fn publish_application_commit_source(
+    source: &WorthQueryApplicationCommitPublicationSource,
+) -> WorthQueryPublishedApplicationCommit {
+    WorthQueryPublishedApplicationCommit {
+        receipt: WorthQueryApplicationCommitPublicationReceipt::from_publication_source(source),
     }
 }
 

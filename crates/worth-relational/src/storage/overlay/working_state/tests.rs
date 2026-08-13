@@ -2,9 +2,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::config::data::AdjacencyBackend;
 use crate::identity::data::{EntityId, KindId, PartitionId, VersionId};
-use crate::storage::logic::state::{EntityArena, PartitionState, RelationArena};
-use crate::storage::logic::state::{RelationEndpoints, RelationExtra};
+use crate::storage::overlay::PartitionState;
+use crate::storage::substrate::{EntityArena, RelationArena};
 use crate::storage::substrate::{EntityRecordKind, RecordKind, SlotInit};
+use crate::storage::substrate::{RelationEndpoints, RelationExtra};
 
 use super::super::{EntityWorkingSetLayout, PartitionCloneMode};
 use super::WorkingState;

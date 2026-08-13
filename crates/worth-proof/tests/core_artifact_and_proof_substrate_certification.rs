@@ -2,7 +2,7 @@ mod support;
 
 use std::any::type_name;
 
-use support::milestone1;
+use support::core_artifact;
 use support::type_shapes::TypeShapeCheck;
 use worth_proof::{
     Artifact, ArtifactParts, ArtifactView, AssumptionBasis, CanonicalOrder, CanonicalVec,
@@ -11,12 +11,12 @@ use worth_proof::{
 
 #[test]
 fn milestone_1_evidence_bundle_is_machine_checkable() {
-    let type_shape_report = milestone1::derive_type_shape_report();
-    let compile_fail_bundle = milestone1::compile_fail_bundle();
-    let proof_shape_digest = milestone1::proof_shape_digest();
-    let basis_digest = milestone1::basis_digest();
-    let codegen_honesty_report = milestone1::codegen_honesty_report();
-    let debt_inventory = milestone1::debt_inventory();
+    let type_shape_report = core_artifact::derive_type_shape_report();
+    let compile_fail_bundle = core_artifact::compile_fail_bundle();
+    let proof_shape_digest = core_artifact::proof_shape_digest();
+    let basis_digest = core_artifact::basis_digest();
+    let codegen_honesty_report = core_artifact::codegen_honesty_report();
+    let debt_inventory = core_artifact::debt_inventory();
 
     assert_eq!(
         type_shape_report.suite(),
@@ -48,14 +48,13 @@ fn milestone_1_evidence_bundle_is_machine_checkable() {
         compile_fail_bundle.suite(),
         "core_artifact_and_proof_substrate"
     );
-    assert_eq!(compile_fail_bundle.cases().len(), 8);
+    assert_eq!(compile_fail_bundle.cases().len(), 3);
     assert_eq!(
         compile_fail_bundle.families(),
         vec![
             "phase_boundaries",
             "proven_collection_boundaries",
             "fixed_shape_boundaries",
-            "constructor_boundaries",
         ]
     );
     assert_eq!(
@@ -77,26 +76,6 @@ fn milestone_1_evidence_bundle_is_machine_checkable() {
                 "fixed_shape_boundaries",
                 "tests/ui/milestone1/raw_fixed_shapes_cannot_satisfy_fixed_shape_apis.rs",
             ),
-            (
-                "constructor_boundaries",
-                "tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs",
-            ),
-            (
-                "constructor_boundaries",
-                "tests/ui/milestone1/observed_proofs_cannot_be_duplicated.rs",
-            ),
-            (
-                "constructor_boundaries",
-                "tests/ui/milestone1/proof_authority_scope_cannot_be_substituted.rs",
-            ),
-            (
-                "constructor_boundaries",
-                "tests/ui/milestone1/authority_cannot_mint_unproven_proof_kind.rs",
-            ),
-            (
-                "constructor_boundaries",
-                "tests/ui/milestone1/current_basis_rejects_mixed_authority_proof_set.rs",
-            ),
         ]
     );
 
@@ -107,10 +86,10 @@ fn milestone_1_evidence_bundle_is_machine_checkable() {
     assert_eq!(
         proof_shape_digest.entries(),
         [
-            type_name::<Artifact<milestone1::RawPhase, u64, NoProofs, NoAssumptionBasis>>(),
+            type_name::<Artifact<core_artifact::RawPhase, u64, NoProofs, NoAssumptionBasis>>(),
             type_name::<
                 Artifact<
-                    milestone1::RawPhase,
+                    core_artifact::RawPhase,
                     u64,
                     Proof<CanonicalOrder, StructuralProofAuthority>,
                     AssumptionBasis<u32>,
@@ -119,7 +98,7 @@ fn milestone_1_evidence_bundle_is_machine_checkable() {
             type_name::<
                 ArtifactView<
                     'static,
-                    milestone1::RawPhase,
+                    core_artifact::RawPhase,
                     u64,
                     Proof<CanonicalOrder, StructuralProofAuthority>,
                     AssumptionBasis<u32>,

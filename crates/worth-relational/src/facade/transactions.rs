@@ -23,7 +23,7 @@ pub use crate::transactions::data::{
     TransactionOptions, UndoRecord, UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent,
     WorkerIntentBatch,
 };
-pub use crate::transactions::logic::{
+pub use crate::transactions::{
     RelationalMutationInvariantEvidence, RelationalTransaction, ValidatedRelationalMutation,
 };
 pub use crate::transactions::{

@@ -5,7 +5,7 @@ use super::super::{
 use crate::commit_strategies::data::{
     StrategyCallerProvenance, StrategyExecutorFailureClass, StrategyRequestOrigin,
 };
-use crate::logic::builder::RelationalRuntimeBuilder;
+use crate::runtime::builder::RelationalRuntimeBuilder;
 use crate::tests::support::{
     create_entity, entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect,
     AspectSchemaFixture,

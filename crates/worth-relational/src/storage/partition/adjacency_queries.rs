@@ -1,4 +1,4 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use std::collections::BTreeSet;
 
 pub(crate) fn outgoing_relations_for_entity(

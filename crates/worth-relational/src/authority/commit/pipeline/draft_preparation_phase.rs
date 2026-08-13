@@ -3,7 +3,7 @@ use crate::authority::commit::phases::prepare::record_preparation_counters;
 use crate::transactions::data::{CommitLog, CommitPhase, CommitPhaseTiming};
 
 pub(super) fn record_draft_preparation_phase(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     commit_log: &mut CommitLog,
     phase_timing: &mut CommitPhaseTiming,
     working_state: &crate::storage::overlay::WorkingState,

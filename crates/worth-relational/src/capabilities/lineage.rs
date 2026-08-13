@@ -1,6 +1,6 @@
 use crate::identity::data::LineageId;
 use crate::lineage::data::LineageNode;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) trait LineageNodeSource {
     fn lineage_node(&self, lineage_id: LineageId) -> Option<&LineageNode>;

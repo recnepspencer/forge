@@ -202,7 +202,12 @@ fn custom_library_path_binds_snapshot_and_macro_checks_to_its_sibling_facade() {
         "pub use crate::thing::CompiledThing;\n",
     );
 
-    assert!(stderr(&repo.run(false)).contains("BC8002_FACADE_SNAPSHOT_DRIFT"));
+    let output = repo.run(false);
+    assert!(
+        stderr(&output).contains("BC8002_FACADE_SNAPSHOT_DRIFT"),
+        "{}",
+        stderr(&output)
+    );
     repo.update();
     let snapshot = repo.facade_snapshot();
     assert!(snapshot.contains("CompiledThing"));
@@ -240,27 +245,37 @@ fn exported_macro_in_out_of_directory_path_module_is_denied() {
 }
 
 #[test]
-fn self_reexport_names_track_addition_removal_and_rename() {
+fn named_reexport_aliases_track_addition_removal_and_rename() {
     let repo = Repository::new();
     repo.update();
     let facade = "cad/workspaces/worth-contracts/crates/worth-schema-core/src/facade.rs";
-    let manifest = "cad/workspaces/worth-contracts/crates/worth-schema-core/Cargo.toml";
     write(
         &repo.root,
         facade,
-        "pub use graph_alias::{self};\npub use graph_alias::facade::{self};\n",
+        "pub use crate::thing::{CoreThing, CoreThing as graph_alias};\n",
     );
-    write(&repo.root, manifest, &core_manifest("graph_alias"));
-    assert!(stderr(&repo.run(false)).contains("BC8002_FACADE_SNAPSHOT_DRIFT"));
+    let output = repo.run(false);
+    assert!(
+        stderr(&output).contains("BC8002_FACADE_SNAPSHOT_DRIFT"),
+        "{}",
+        stderr(&output)
+    );
     repo.update();
     let snapshot = repo.facade_snapshot();
-    assert!(snapshot.contains("\"facade\"") && snapshot.contains("\"graph_alias\""));
-    assert!(!snapshot.contains("\"self\""));
+    assert!(snapshot.contains("\"CoreThing\"") && snapshot.contains("\"graph_alias\""));
 
-    write(&repo.root, facade, "pub use graph_alias::facade::{self};\n");
-    assert!(stderr(&repo.run(false)).contains("BC8002_FACADE_SNAPSHOT_DRIFT"));
-    write(&repo.root, facade, "pub use second_alias::{self};\n");
-    write(&repo.root, manifest, &core_manifest("second_alias"));
+    write(&repo.root, facade, "pub use crate::thing::CoreThing;\n");
+    let output = repo.run(false);
+    assert!(
+        stderr(&output).contains("BC8002_FACADE_SNAPSHOT_DRIFT"),
+        "{}",
+        stderr(&output)
+    );
+    write(
+        &repo.root,
+        facade,
+        "pub use crate::thing::{CoreThing, CoreThing as second_alias};\n",
+    );
     assert!(stderr(&repo.run(false)).contains("BC8002_FACADE_SNAPSHOT_DRIFT"));
 }
 
@@ -291,10 +306,6 @@ fn conditional_facade_reexport_cannot_bypass_exact_snapshot() {
         assert!(!output.status.success());
         assert!(stderr(&output).contains("cannot form an exact compiled surface"));
     }
-}
-
-fn core_manifest(alias: &str) -> String {
-    format!("[package]\nname='worth-schema-core'\nversion='0.1.0'\nedition='2021'\n\n[dependencies]\n{alias}={{ package='worth-schema-graph', path='../worth-schema-graph' }}\n")
 }
 
 fn create_crate(root: &Path, package: &str, item: &str) {

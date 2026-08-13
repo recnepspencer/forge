@@ -7,7 +7,7 @@ use crate::commit_strategies::data::{
     StrategyRequestOrigin,
 };
 use crate::config::data::CascadeDeletePolicy;
-use crate::logic::builder::RelationalRuntimeBuilder;
+use crate::runtime::builder::RelationalRuntimeBuilder;
 use crate::tests::support::{
     create_entity, entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect,
     AspectSchemaFixture,
@@ -19,7 +19,7 @@ use worth_foundational::facade::{
 fn strategy_runtime(
     descriptor: crate::commit_strategies::data::CommitStrategyDescriptor,
     registry: crate::schema::data::RelationalSchemaRegistry,
-) -> crate::logic::runtime::RelationalRuntime {
+) -> crate::runtime::RelationalRuntime {
     RelationalRuntimeBuilder::new()
         .schema_registry(registry)
         .commit_strategy(

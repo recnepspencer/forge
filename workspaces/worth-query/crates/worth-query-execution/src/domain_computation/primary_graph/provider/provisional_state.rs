@@ -22,18 +22,13 @@ impl WorthQueryProvisionalGraphProvider for Arc<WorthQueryPrimaryGraphProvider> 
             .map(|step| proposed_fact(step.action()))
             .collect::<Result<Vec<_>, _>>()?;
         self.application_attempt_work.observe_overlay_staging();
-        let (identity, facts) = self
+        let overlay = self
             .attempts
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .stage_overlay(
-                session.affinity_identity(),
-                program.steps(),
-                program.generation(),
-                facts,
-            )
+            .stage_overlay(session, program.steps(), program.generation(), facts)
             .map_err(WorthQueryProvisionalFailure::invalid_program)?;
-        admission.admit(identity, facts)
+        overlay.admit(admission)
     }
 
     fn discard_provisional_overlay(
@@ -44,10 +39,7 @@ impl WorthQueryProvisionalGraphProvider for Arc<WorthQueryPrimaryGraphProvider> 
             .attempts
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .discard_overlay(
-                evidence.affinity_identity(),
-                evidence.physical_overlay_identity(),
-            );
+            .discard_overlay(evidence);
         discarded.then_some(()).ok_or_else(|| {
             WorthQueryProvisionalFailure::invalid_program(
                 "provider overlay evidence does not belong to the exact application attempt",

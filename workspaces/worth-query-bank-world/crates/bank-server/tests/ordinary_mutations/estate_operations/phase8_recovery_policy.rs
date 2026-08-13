@@ -5,8 +5,7 @@
 //! specialist principal on recovery re-admission.
 
 use bank_external_rail::test_control::FaultScript;
-use bank_server::BankEstateProgressionDenial;
-use worth_query_host::facade::primary_graph::WorthQueryRecoveryHandleDenialKind;
+use bank_server::{BankEstateProgressionDenial, BankRecoveryDenialKind};
 
 use super::phase8_cross_gate::world::{cross_gate_world_with_clock_and_grant_validity, PATIENT};
 use crate::authorization_time::AuthorizationTimeController;
@@ -33,18 +32,12 @@ fn expired_grant_after_mint_denies_fresh_admission_not_foreign_principal() {
         .fixture
         .world
         .runtime
-        .admit_commit_recovery_effect(&handle, &specialist, action, &scope)
+        .reconcile_commit_recovery(handle, &specialist, action, &scope)
         .expect_err("expired grant must fail fresh admission");
     match denied {
         BankEstateProgressionDenial::Recovery(d) => {
-            assert_ne!(
-                d.kind(),
-                WorthQueryRecoveryHandleDenialKind::ForeignPrincipal
-            );
-            assert_eq!(
-                d.kind(),
-                WorthQueryRecoveryHandleDenialKind::CurrentPolicyDenied
-            );
+            assert_ne!(d.kind(), BankRecoveryDenialKind::ForeignPrincipal);
+            assert_eq!(d.kind(), BankRecoveryDenialKind::CurrentPolicyDenied);
         }
         BankEstateProgressionDenial::Authorization(_) => {}
         other => panic!("expected current-policy or authorization denial, got {other:?}"),

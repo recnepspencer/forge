@@ -2,7 +2,7 @@ use crate::facade::durability::{
     CompactionOutcome, DurabilityError, DurableCheckpoint, RecoveryPlan,
 };
 use crate::facade::runtime::RelationalRuntime;
-use crate::logic::runtime::RecoveryOutcome;
+use crate::runtime::RecoveryOutcome;
 
 use super::super::fixture::FintechWorld;
 

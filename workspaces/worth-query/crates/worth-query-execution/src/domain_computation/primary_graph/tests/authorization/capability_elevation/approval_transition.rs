@@ -285,14 +285,11 @@ pub(super) fn seal_approval_facts(
 }
 
 fn assert_approved(approved: &WorthQueryApprovedElevation, approver: &Authenticated) {
-    assert_eq!(approved.approval_commit_receipt().changed_record_count(), 3);
-    assert_eq!(approved.approval_commit_receipt().emitted_effect_count(), 0);
+    assert_eq!(approved.approval_changed_record_count(), 3);
+    assert_eq!(approved.approval_emitted_effect_count(), 0);
     assert_eq!(approved.approver(), approver.principal_entity_id());
     assert_ne!(approved.requester(), approved.approver());
-    assert!(
-        approved.request_commit_receipt().terminal().branch()
-            == approved.approval_commit_receipt().terminal().branch()
-    );
+    assert!(approved.commits_share_branch());
 }
 
 pub(super) fn exact_approved_world() -> (
