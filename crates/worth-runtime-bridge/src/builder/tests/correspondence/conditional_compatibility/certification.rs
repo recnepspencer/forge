@@ -58,6 +58,7 @@ fn conditional_execution_cost_ignores_unrelated_signal_nodes_and_dependencies() 
                     query_binding_identity: "query-binding-a",
                     query_capability_identity: 1,
                     snapshot_identity: "snapshot-a",
+                    truth_branch_identity: None,
                     bridge_snapshot_identity: None,
                     execution_identity: "execution-a",
                     attempt: 1,

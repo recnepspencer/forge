@@ -32,7 +32,6 @@ pub(super) fn sample_signal_frontier_plan() -> FrontierPlan {
     FrontierPlan::new(
         InvalidationSeedBatch::new([seed]),
         vec![wave],
-        Vec::new(),
         TouchedScopeSummary::new(
             PartitionScopeSet::new([PartitionSubscription::whole_partition("wing")]),
             vec![NodeId::new(7, 0), NodeId::new(8, 0)],

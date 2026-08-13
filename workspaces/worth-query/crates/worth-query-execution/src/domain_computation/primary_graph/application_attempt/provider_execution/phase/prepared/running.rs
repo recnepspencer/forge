@@ -99,7 +99,7 @@ where
         admission.graph_work().branch().truth().clone(),
         SnapshotReadPacket::new(Vec::new()),
     );
-    let request_bridge = application.bridge.fork_managed_request_lane();
+    let request_bridge = application.bridge.ordinary().fork_managed_request_lane();
     let running = application
         .runtime
         .managed_run_admission(&request_bridge, &application.relational_source)
@@ -140,6 +140,7 @@ where
     let bridge_snapshot = bridge_snapshot_identity_for_handle(snapshot);
     application
         .bridge
+        .ordinary()
         .plan_truth_view_packet(
             HistoricalEvaluationDeclaration::new(
                 BridgeTruthViewSelector::branch_snapshot(branch, bridge_snapshot),

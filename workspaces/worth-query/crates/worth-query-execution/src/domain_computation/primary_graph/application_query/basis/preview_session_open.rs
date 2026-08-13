@@ -79,6 +79,7 @@ where
         let (identity, bridge_request) = self.current_preview_request()?;
         let handle = self
             .bridge
+            .ordinary()
             .speculate(bridge_request)
             .map_err(bridge_denial)?;
         if let Err(denial) = validate_request(request) {

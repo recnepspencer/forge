@@ -127,6 +127,8 @@ pub(crate) enum AuthoritySealDomain {
     InstalledAbility,
     InstalledPrincipalBinding,
     InstalledConditionalDependency,
+    InstalledConditionalApplicationOperation,
+    InstalledConditionalNode,
 }
 
 impl AuthoritySealDomain {
@@ -149,6 +151,12 @@ impl AuthoritySealDomain {
             }
             Self::InstalledConditionalDependency => {
                 b"worth-query-installed-conditional-dependency-authority-v1"
+            }
+            Self::InstalledConditionalApplicationOperation => {
+                b"worth-query-installed-conditional-application-operation-authority-v1"
+            }
+            Self::InstalledConditionalNode => {
+                b"worth-query-installed-conditional-node-authority-v1"
             }
         }
     }

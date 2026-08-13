@@ -28,6 +28,8 @@ pub(super) struct WorthQueryPortablePackageDeclaration<'a, D> {
     pub(super) domain_operations: &'a [WorthQueryDomainOperationDefinitionRecord],
     pub(super) artifact_contracts: &'a [WorthQueryPortableArtifactContract],
     pub(super) application_schemas: &'a [ErasedApplicationSchemaDeclaration],
+    pub(super) conditional_application_operations:
+        &'a [worth_query_installation::facade::WorthQueryPortableApplicationConditionalOperationBinding],
     pub(super) contribution_policy: &'a [WorthQueryDeclarationEntryContributionCategoryFamily],
 }
 
@@ -77,6 +79,9 @@ where
     }
     for schema in package.application_schemas {
         portable = portable.application_schema_erased(schema.clone());
+    }
+    for binding in package.conditional_application_operations {
+        portable = portable.conditional_application_operation_erased(binding.clone());
     }
     for category in package.contribution_policy {
         portable = portable.permits_contribution(category.as_str());

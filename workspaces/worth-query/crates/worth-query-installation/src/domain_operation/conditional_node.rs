@@ -5,11 +5,15 @@ mod condition;
 mod condition_parameter;
 mod declaration;
 mod dependency;
+mod host_provider_contract;
 mod location;
 mod markers;
+mod named_clock_contract;
 mod node_posture;
 mod output_contract;
+mod reference;
 mod temporal;
+mod temporal_intent_contract;
 mod trigger;
 mod validation;
 
@@ -36,10 +40,21 @@ pub use dependency::{
     WorthQuerySemanticLocality, WorthQuerySemanticTruthDependency,
     WorthQuerySemanticTruthDependencyDenial, WorthQueryTruthPartitionRole,
 };
+pub use host_provider_contract::{
+    WorthQueryConditionalDependencyObservation, WorthQueryConditionalObservationTruthBasis,
+    WorthQueryConditionalObservationView, WorthQueryConditionalObservedValue,
+    WorthQueryHostConditionalPredicateProvider, WorthQueryHostPredicateDecision,
+    WorthQueryHostPredicateFailure, WorthQueryHostPredicateFailureKind,
+};
 pub use location::WorthQueryConditionalNodeLocation;
 pub use markers::{
     WorthQueryComparatorFamily, WorthQueryDomainConditionFamily, WorthQueryOnDemandTriggerFamily,
     WorthQueryQuantityUnit, WorthQueryQuantityValueFamily, WorthQueryTypedFamilyIdentity,
+};
+pub use named_clock_contract::{
+    WorthQueryClockCoordinate, WorthQueryClockSourceIdentity, WorthQueryClockTimelineIdentity,
+    WorthQueryNamedClock, WorthQueryNamedClockFailure, WorthQueryNamedClockFailureKind,
+    WorthQueryNamedClockObservation, WorthQueryNamedClockReading, WorthQueryNamedClockSource,
 };
 pub use node_posture::{
     WorthQueryArtifactPosture, WorthQueryConditionalNodeContext, WorthQueryConditionalNodeRole,
@@ -49,7 +64,16 @@ pub use output_contract::{
     WorthQueryConditionalConsequenceRole, WorthQueryConditionalNodeOutput,
     WorthQueryConditionalTouchRole,
 };
+pub use reference::WorthQueryConditionalNodeRef;
 pub use temporal::{WorthQueryTemporalCondition, WorthQueryTemporalWake};
+pub use temporal_intent_contract::{
+    WorthQueryTemporalIntentBounds, WorthQueryTemporalIntentCandidate,
+    WorthQueryTemporalIntentIdempotencyRelation, WorthQueryTemporalIntentIdentity,
+    WorthQueryTemporalIntentLifecycle, WorthQueryTemporalIntentProjectionFailure,
+    WorthQueryTemporalIntentProjectionFailureKind, WorthQueryTemporalIntentProjector,
+    MAX_TEMPORAL_DUE_WAKES_PER_OBSERVATION, MAX_TEMPORAL_INTENT_QUERY_WORK,
+    MAX_TEMPORAL_INTENT_RECONSTRUCTION_ROWS,
+};
 pub use trigger::WorthQueryConditionalTrigger;
 
 pub(crate) use dependency::{contract_token, dependency_token, locality_token};

@@ -19,7 +19,8 @@ pub use eligibility::{
     TemporalEligibilityAuthority, TemporalExecutionSummary,
 };
 pub use frontier::{
-    TemporalClockAdvanceSummary, TemporalFrontierSnapshot, TemporalReadyPromotionSummary,
+    BoundedTemporalReadyPromotionSummary, TemporalClockAdvanceSummary, TemporalFrontierSnapshot,
+    TemporalReadyPromotionSummary,
 };
 pub use previous_value::{
     PreviousValueRevision, TemporalPreviousValueAccess, TemporalPreviousValueReference,

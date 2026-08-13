@@ -10,7 +10,7 @@ Canonical machine constitution: `tools/boundary-check/config/road1.toml`
 - Deferred next homes:
 
 - Public surface: facade-only
-- Facade exports: `WorthQueryGraphObligationAdoptionDenial, WorthQueryGraphObligationAdoptionDenialKind, WorthQueryGraphObligationAdoptionProof, WorthQueryGraphObligationAdoptionRow, admission, convergence_epoch, declaration, domain, inspect_installed_graph_obligations, installed, primary_graph, provisional_aftermath, publication, runtime`
+- Facade exports: `WorthQueryGraphObligationAdoptionDenial, WorthQueryGraphObligationAdoptionDenialKind, WorthQueryGraphObligationAdoptionProof, WorthQueryGraphObligationAdoptionRow, admission, convergence_epoch, declaration, domain, inspect_installed_graph_obligations, installed, primary_graph, provisional_aftermath, publication, runtime, worth_query_conditional_node`
 - Owned internal modules: `none`
 - Allowed in-tree dependency bands: `none`
 

@@ -13,4 +13,5 @@ pub use worth_query_installation::facade::{
     WorthQueryGraphObligationAdoptionDenialKind, WorthQueryGraphObligationAdoptionProof,
     WorthQueryGraphObligationAdoptionRow,
 };
+pub use worth_query_installation::worth_query_conditional_node;
 pub use worth_query_publication::facade as publication;

@@ -1,5 +1,6 @@
 mod application_schema_validation;
 mod artifact_closure;
+mod conditional_operation_validation;
 mod definition;
 mod identity;
 mod member_validation;
@@ -16,6 +17,10 @@ pub use validation_denial::{
     WorthQueryPortablePackageValidationDenial, WorthQueryPortablePackageValidationDenialKind,
 };
 
+use crate::application_operation::{
+    WorthQueryApplicationConditionalOperationBinding,
+    WorthQueryPortableApplicationConditionalOperationBinding,
+};
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::domain_computation::WorthQueryPortableArtifactContract;
 use crate::domain_operation::{
@@ -41,6 +46,8 @@ pub struct WorthQueryPortableDomainPackage {
     domain_operations: Vec<WorthQueryPortableDomainOperationDefinition>,
     artifact_contracts: Vec<WorthQueryPortableArtifactContract>,
     application_schemas: Vec<ErasedApplicationSchemaDeclaration>,
+    conditional_application_operations:
+        Vec<WorthQueryPortableApplicationConditionalOperationBinding>,
     contributions: Vec<WorthQueryInstallationContributionCategory>,
 }
 
@@ -55,6 +62,7 @@ impl WorthQueryPortableDomainPackage {
             domain_operations: Vec::new(),
             artifact_contracts: Vec::new(),
             application_schemas: Vec::new(),
+            conditional_application_operations: Vec::new(),
             contributions: Vec::new(),
         }
     }
@@ -100,6 +108,31 @@ impl WorthQueryPortableDomainPackage {
         declaration: ApplicationSchemaDeclaration<Schema>,
     ) -> Self {
         self.application_schemas.push(declaration.into_erased());
+        self
+    }
+
+    pub fn conditional_application_operation<Schema, ApplicationOperation, Input, D, O, F>(
+        mut self,
+        binding: WorthQueryApplicationConditionalOperationBinding<
+            Schema,
+            ApplicationOperation,
+            Input,
+            D,
+            O,
+            F,
+        >,
+    ) -> Self {
+        self.conditional_application_operations
+            .push(binding.into_portable());
+        self
+    }
+
+    #[doc(hidden)]
+    pub fn conditional_application_operation_erased(
+        mut self,
+        binding: WorthQueryPortableApplicationConditionalOperationBinding,
+    ) -> Self {
+        self.conditional_application_operations.push(binding);
         self
     }
 
@@ -204,6 +237,8 @@ impl WorthQueryValidatedPortableDomainPackage {
             && self.domain_operations() == other.domain_operations()
             && self.artifact_contracts() == other.artifact_contracts()
             && self.application_schemas() == other.application_schemas()
+            && self.conditional_application_operations()
+                == other.conditional_application_operations()
             && self.contribution_policy() == other.contribution_policy()
     }
 
@@ -245,6 +280,12 @@ impl WorthQueryValidatedPortableDomainPackage {
 
     pub fn application_schemas(&self) -> &[ErasedApplicationSchemaDeclaration] {
         &self.artifact.payload().application_schemas
+    }
+
+    pub fn conditional_application_operations(
+        &self,
+    ) -> &[WorthQueryPortableApplicationConditionalOperationBinding] {
+        &self.artifact.payload().conditional_application_operations
     }
 
     pub(crate) fn validated_domain_operations(&self) -> &[WorthQueryValidatedDomainOperation] {

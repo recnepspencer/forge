@@ -99,12 +99,12 @@ pub use crate::data::resource::{
     RESOURCE_MILESTONE_B_SCENARIO_MATRIX_SCHEMA_VERSION,
 };
 pub use crate::data::temporal::{
-    IntervalWakeRegeneration, PreviousValueRevision, ReadyTemporalWake, RetiredTemporalWake,
-    ScheduledTemporalWake, TemporalClockAdvanceSummary, TemporalFrontierSnapshot,
-    TemporalPreviousValueAccess, TemporalPreviousValueReference, TemporalReadyPromotionSummary,
-    TemporalWakeAdmissionSummary, TemporalWakeId, TemporalWakeOwner, TemporalWakeReschedule,
-    TemporalWakeRetirementBatch, TemporalWakeRetirementReason, TemporalWakeReuse,
-    TemporalWakeSummary, WakeOrdinal,
+    BoundedTemporalReadyPromotionSummary, IntervalWakeRegeneration, PreviousValueRevision,
+    ReadyTemporalWake, RetiredTemporalWake, ScheduledTemporalWake, TemporalClockAdvanceSummary,
+    TemporalFrontierSnapshot, TemporalPreviousValueAccess, TemporalPreviousValueReference,
+    TemporalReadyPromotionSummary, TemporalWakeAdmissionSummary, TemporalWakeId, TemporalWakeOwner,
+    TemporalWakeReschedule, TemporalWakeRetirementBatch, TemporalWakeRetirementReason,
+    TemporalWakeReuse, TemporalWakeSummary, WakeOrdinal,
 };
 pub use crate::data::tier::TierPolicy as RuntimeTierPolicy;
 pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger};

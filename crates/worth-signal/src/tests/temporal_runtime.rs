@@ -1,3 +1,4 @@
+mod bounded_due_promotion;
 mod branch_restore;
 mod certification_builder;
 mod certification_families;

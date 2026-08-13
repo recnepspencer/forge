@@ -31,12 +31,13 @@ pub use package_definitions::{
     WorthQueryConditionalConditionClass, WorthQueryConditionalConsequenceRole,
     WorthQueryConditionalEvaluationCondition, WorthQueryConditionalGraphReadRole,
     WorthQueryConditionalNodeContext, WorthQueryConditionalNodeLocation,
-    WorthQueryConditionalNodeOutput, WorthQueryConditionalNodeRole, WorthQueryConditionalTouchRole,
-    WorthQueryConditionalTrigger, WorthQueryDeltaComparisonDomain, WorthQueryDeltaThreshold,
-    WorthQueryDomainConditionFamily, WorthQueryDomainDeclarationFamilyDefinition,
-    WorthQueryDomainEvidenceContract, WorthQueryDomainGraphReadOperationDefinition,
-    WorthQueryDomainInvariantDefinition, WorthQueryDomainInvariantPredicate,
-    WorthQueryDomainOperationDefinition, WorthQueryDomainOperationIdentity,
+    WorthQueryConditionalNodeOutput, WorthQueryConditionalNodeRef, WorthQueryConditionalNodeRole,
+    WorthQueryConditionalTouchRole, WorthQueryConditionalTrigger, WorthQueryDeltaComparisonDomain,
+    WorthQueryDeltaThreshold, WorthQueryDomainConditionFamily,
+    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainEvidenceContract,
+    WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainInvariantDefinition,
+    WorthQueryDomainInvariantPredicate, WorthQueryDomainOperationDefinition,
+    WorthQueryDomainOperationIdentity, WorthQueryDomainOperationRef,
     WorthQueryDomainOperationSemanticClosure, WorthQueryInstalledAftermathContract,
     WorthQueryMaintenancePosture, WorthQueryOnDemandTriggerFamily,
     WorthQueryOperationCapabilityRequirement, WorthQueryOperationCollectionContract,
@@ -125,3 +126,4 @@ pub(crate) use validation::WorthQueryValidatedDomainPackage;
 pub use validation::{
     WorthQueryDomainPackageValidationDenial, WorthQueryDomainPackageValidationDenialKind,
 };
+pub use worth_query_installation::facade::WorthQueryApplicationConditionalOperationBinding;
