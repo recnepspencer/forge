@@ -41,15 +41,52 @@ fn present_protected_beneficiary_value_cannot_influence_public_omission_material
         .unwrap();
 
     assert_eq!(first_result.rows(), second_result.rows());
-    assert_eq!(
-        first_result.receipt(),
-        second_result.receipt(),
-        "protected source values must not alter the closed public receipt"
+    let first_inspection = first_result.receipt().inspect();
+    let second_inspection = second_result.receipt().inspect();
+    assert_ne!(
+        first_inspection.basis().runtime_instance(),
+        second_inspection.basis().runtime_instance(),
+        "independent test worlds must retain distinct runtime basis"
     );
     assert_eq!(
-        format!("{:?}", first_result.receipt()),
-        format!("{:?}", second_result.receipt()),
-        "safe Debug must be noninterfering across protected-value twins"
+        first_inspection.query_identity(),
+        second_inspection.query_identity()
+    );
+    assert_eq!(
+        first_inspection.parameter_binding_identity(),
+        second_inspection.parameter_binding_identity()
+    );
+    assert_eq!(
+        first_inspection.result_count(),
+        second_inspection.result_count()
+    );
+    assert_eq!(
+        first_inspection.ordinary_work_units(),
+        second_inspection.ordinary_work_units()
+    );
+    assert_eq!(
+        first_inspection.terminal_release(),
+        second_inspection.terminal_release()
+    );
+    assert_eq!(
+        first_inspection.basis().branch(),
+        second_inspection.basis().branch()
+    );
+    assert_eq!(
+        first_inspection.basis().snapshot(),
+        second_inspection.basis().snapshot()
+    );
+    assert_eq!(
+        first_inspection.basis().lease(),
+        second_inspection.basis().lease()
+    );
+    assert_eq!(
+        first_inspection.basis().version(),
+        second_inspection.basis().version()
+    );
+    assert_eq!(
+        first_inspection.basis().posture(),
+        second_inspection.basis().posture()
     );
     assert_eq!(
         first_result.receipt().disclosure(),

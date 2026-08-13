@@ -22,6 +22,51 @@ pub struct EstateDisbursement {
     pub postings: [EstatePosting; 2],
 }
 
+impl EstateDisbursement {
+    pub fn new(
+        estate: EstateCaseId,
+        source_account: AccountId,
+        destination_account: AccountId,
+        beneficiary: BankPrincipalId,
+        amount: Money<USD>,
+    ) -> Result<Self, EstateDisbursementInputError> {
+        if source_account == destination_account {
+            return Err(EstateDisbursementInputError::SameAccount);
+        }
+        let amount_minor = amount.minor_units();
+        Ok(Self {
+            estate,
+            source_account,
+            destination_account,
+            beneficiary,
+            amount,
+            postings: [
+                EstatePosting {
+                    account: source_account,
+                    amount: SignedMoney::from_minor(-amount_minor),
+                },
+                EstatePosting {
+                    account: destination_account,
+                    amount: SignedMoney::from_minor(amount_minor),
+                },
+            ],
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EstateDisbursementInputError {
+    SameAccount,
+}
+
+impl std::fmt::Display for EstateDisbursementInputError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("estate disbursement accounts must be distinct")
+    }
+}
+
+impl std::error::Error for EstateDisbursementInputError {}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EstateAction {
     NotifyDeath {

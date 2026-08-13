@@ -81,6 +81,17 @@ impl RelinquishOnDenial for WorthQueryUndoAdmission {
 }
 
 impl WorthQueryUndoAdmission {
+    pub(crate) fn recovery_handle(&self) -> &WorthQueryRecoveryHandle {
+        self.recovery_handle.get()
+    }
+
+    pub fn installed_operation(&self) -> &str {
+        self.recovery_handle
+            .get()
+            .binding()
+            .installed_aftermath_operation_slot()
+    }
+
     pub(crate) fn into_recovery_handle(self) -> WorthQueryRecoveryHandle {
         self.recovery_handle.into_handle()
     }

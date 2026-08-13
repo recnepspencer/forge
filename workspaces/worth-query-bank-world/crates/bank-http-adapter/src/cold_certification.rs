@@ -7,9 +7,22 @@ use openidconnect::Nonce;
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestScope;
 
 use crate::{
-    AuthentikBankIdentity, AuthentikBankIdentityBuildError, AuthentikOidcConfiguration,
-    AuthentikOidcCredential,
+    AuthentikBankIdentity, AuthentikBankIdentityBuildError, AuthentikOidcAdapter,
+    AuthentikOidcAdapterBuildError, AuthentikOidcConfiguration, AuthentikOidcCredential,
 };
+
+/// Discovers the same OIDC adapter as production while trusting the cold
+/// courtroom's ephemeral self-signed certificate.
+///
+/// This does not skip discovery, issuer, audience, signature, nonce, token
+/// activity, or principal checks. It changes only the TLS root posture and is
+/// unavailable unless the explicit certification feature is selected.
+pub async fn discover_adapter(
+    configuration: AuthentikOidcConfiguration,
+    scope: &WorthQueryRequestScope,
+) -> Result<AuthentikOidcAdapter, AuthentikOidcAdapterBuildError> {
+    AuthentikOidcAdapter::discover_for_cold_certification(configuration, scope).await
+}
 
 pub async fn install_identity(
     configuration: AuthentikOidcConfiguration,
@@ -17,6 +30,14 @@ pub async fn install_identity(
     scope: &WorthQueryRequestScope,
 ) -> Result<AuthentikBankIdentity, AuthentikBankIdentityBuildError> {
     AuthentikBankIdentity::install_for_cold_certification(configuration, seeds, scope).await
+}
+
+pub async fn install_world(
+    configuration: AuthentikOidcConfiguration,
+    seed: bank_server::BankWorldSeed,
+    scope: &WorthQueryRequestScope,
+) -> Result<AuthentikBankIdentity, AuthentikBankIdentityBuildError> {
+    AuthentikBankIdentity::install_world_for_cold_certification(configuration, seed, scope).await
 }
 
 pub fn corrupt_signature(

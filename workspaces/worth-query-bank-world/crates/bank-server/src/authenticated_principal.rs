@@ -46,6 +46,12 @@ impl BankAuthenticatedPrincipal {
         self.query.examined_candidate_count()
     }
 
+    /// Monotonic deadline after which this authentication cannot authorize
+    /// new or retained work in the current process.
+    pub fn authentication_valid_until(&self) -> std::time::Instant {
+        self.query.valid_until()
+    }
+
     pub(crate) const fn query(
         &self,
     ) -> &WorthQueryAuthenticatedPrincipal<BankSchema, Principal, BankPrincipalId> {

@@ -69,6 +69,10 @@ impl BankCompensationUndoAdmission {
     ) -> worth_query_host::facade::domain::WorthQueryCanonicalWorkEvidence {
         self.query.undo_admission_work()
     }
+
+    pub(super) fn into_parts(self) -> (WorthQueryUndoAdmission, ReverseJournal) {
+        (self.query, self.reverse_journal)
+    }
 }
 
 /// Bank-owned typed continuation for an exact recorded-inverse target.
@@ -98,6 +102,13 @@ pub struct BankRecordedInverseUndoAdmission {
     pub(super) query: WorthQueryUndoAdmission,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BankUndoCorrection {
+    Compensation,
+    RecordedInverse,
+    Reconciliation,
+}
+
 impl BankRecordedInverseUndoAdmission {
     pub(crate) const fn new(query: WorthQueryUndoAdmission) -> Self {
         Self { query }
@@ -105,6 +116,18 @@ impl BankRecordedInverseUndoAdmission {
 
     pub const fn derived_request(&self) -> WorthQueryUndoDerivedRequest {
         self.query.derived_request()
+    }
+
+    pub fn installed_operation(&self) -> &str {
+        self.query.installed_operation()
+    }
+
+    pub const fn correction(&self) -> BankUndoCorrection {
+        match self.query.derived_request() {
+            WorthQueryUndoDerivedRequest::Compensation => BankUndoCorrection::Compensation,
+            WorthQueryUndoDerivedRequest::RecordedInverse => BankUndoCorrection::RecordedInverse,
+            WorthQueryUndoDerivedRequest::Reconciliation => BankUndoCorrection::Reconciliation,
+        }
     }
 
     pub const fn retained_preimage(&self) -> Option<&WorthQueryRetainedPreImage> {

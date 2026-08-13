@@ -4674,11 +4674,13 @@ Consumer discovery adds Runtime Phase 9 for host-installed conditional
 providers, managed clocks, Signal-owned temporal wakes, and reconstruction from
 authoritative Relational/domain truth. The former public-policy cutover is now
 Runtime Phase 10 and cannot close before that host contract does.
-The existing undo/redo lane is provisional and is not current milestone closure
-evidence. Developer guidance is
+The existing undo/redo lane is provisional and is excluded from Bank Phases 5
+and 6, Closure Phase 1, and current milestone acceptance evidence; Milestone
+9.18 owns its product contract and proof. Developer guidance is
 [Application Aftermath, External Effects, And Recovery](../../workspaces/worth-query/crates/worth-query/docs/execution/application-aftermath-and-recovery.md).
-Milestone 9.16 remains open: Bank Phase 5, Runtime Phases 9-10, Bank Phase 6,
-and Closure Phase 1 still precede the Milestone 9.17 handoff.
+Bank Phase 5 is closed by the real Docker-backed, separate-process transport
+court (2026-08-13). Milestone 9.16 remains open: Runtime Phases 9-10, Bank
+Phase 6, and Closure Phase 1 still precede the Milestone 9.17 handoff.
 
 ### Goal
 

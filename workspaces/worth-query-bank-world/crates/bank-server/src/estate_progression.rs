@@ -9,6 +9,7 @@ mod idempotency;
 mod lifecycle_facts;
 mod notify_death;
 mod open_estate_case;
+mod progression_failure;
 mod projection_denial;
 mod recognize_executor;
 mod recovery;
@@ -40,6 +41,7 @@ pub use elevation_lifecycle::{
 pub use freeze_account::BankEstateFreezeProjectionDenial;
 pub use notify_death::BankDeathNotificationProjectionDenial;
 pub use open_estate_case::BankEstateCaseOpeningProjectionDenial;
+pub use progression_failure::BankEstateProgressionFailure;
 pub use projection_denial::{
     BankInvariantDecisionPlanDenial, BankInvariantProjectionTraversalDenial,
 };
@@ -50,8 +52,12 @@ pub use recovery_types::{
     BankRecoveryPosture, BankRecoverySafeRetryReceipt, BankRecoverySupportTruth,
     BankRecoveryTransitionReceipt,
 };
-pub use redo::BankRedoIntent;
+pub use redo::{BankRedoCommitOutcome, BankRedoIntent};
 pub use redo_admission::BankDisbursementRedoAdmission;
 pub use release_estate::BankEstateReleaseProjectionDenial;
-pub use undo::{compensating_reverse_journal, BankRedoRecovery, BankUndoCommitOutcome};
-pub use undo_admission::{BankCompensationUndoAdmission, BankRecordedInverseUndoAdmission};
+pub use undo::{
+    compensating_reverse_journal, BankRedoRecovery, BankUndoCommitOutcome, BankUndoRetry,
+};
+pub use undo_admission::{
+    BankCompensationUndoAdmission, BankRecordedInverseUndoAdmission, BankUndoCorrection,
+};

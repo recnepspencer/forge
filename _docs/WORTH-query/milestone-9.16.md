@@ -14,9 +14,10 @@
 > [Milestone 9.18](./milestone-9.18.md).
 > [Milestone 9.16.1](./milestone-9.16.1.md) is closed, and its canonical
 > graph-progression substrate remains inherited. Gates A-C and the executable
-> release/disbursement slices remain historical prerequisites. Milestone 9.16
-> itself remains open for Bank Phase 5, Runtime Phases 9-10, Bank Phase 6, and
-> Closure Phase 1 before the roadmap may advance to 9.17.
+> release/disbursement slices remain historical prerequisites. Bank World
+> Phase 5 is closed by the real Docker-backed, separate-process transport court
+> (2026-08-13). Milestone 9.16 itself remains open for Runtime Phases 9-10,
+> Bank Phase 6, and Closure Phase 1 before the roadmap may advance to 9.17.
 
 ## Goal
 
@@ -3520,8 +3521,8 @@ network boundaries.
 - one independently authenticated user-node process per fixture participant;
 - an Axum adapter that maps HTTP and SSE onto the public Query facade;
 - typed wire representations for query identity, basis, opaque continuation,
-  capability purpose, disclosure omissions, elevation progression, recovery,
-  undo, and redo without serializing runtime authority;
+  capability purpose, disclosure omissions, elevation progression, and
+  recovery without serializing runtime authority;
 - bounded request and stream queues, cancellation, deadlines, backpressure, and
   disconnect handling;
 - dynamic ports, health/readiness, deterministic teardown, and leak detection;
@@ -3808,10 +3809,13 @@ application without internal imports, local authority, or fixture shortcuts.
 - permission grant, revocation, and live-stream narrowing; and
 - one installed query exercised as one-shot, paged continuation, historical,
   live, and admitted preview work wherever its support posture permits;
-- compensating undo, freshly authorized redo, divergent-redo invalidation, and
-  honest irreversible posture; and
 - typed explanations and actionable recovery for denial, conflict,
   cancellation, disclosure omission, elevation, and indeterminacy.
+
+Linear undo/redo journeys are explicitly excluded from Bank Phase 6 and
+Milestone 9.16 closure. Existing experiments may remain as non-authoritative
+regression coverage, but Milestone 9.18 owns their product semantics, public
+contract, and acceptance evidence.
 
 **Proof before Closure Track Phase 1**
 
@@ -3938,7 +3942,8 @@ let inspection = active.query(queries::estate_preservation_view(account)).await?
 let review = active.close()?.mandatory_review();
 ```
 
-Undo and redo should expose only the operation's installed aftermath:
+The following undo/redo sketch is retained only as historical input to
+Milestone 9.18. It is not a Milestone 9.16 DX target or acceptance surface:
 
 ```rust
 let committed = bank.mutate(commands::send_money(input))
@@ -4016,8 +4021,6 @@ The completed application must answer, through public typed APIs:
 - If the application runtime is reinstalled, which active wakes reconstruct
   from current domain truth, and why can none duplicate a committed operation?
 - If the outcome is indeterminate, what typed recovery action remains legal?
-- Can I undo this committed action without erasing history, and can redo be
-  denied when current authority or truth changed?
 - Which operations are reversible, compensatable, reconcilable, or
   irreversible?
 
@@ -4042,9 +4045,6 @@ callback, or result reinterpretation, the front door is not finished.
 - ordinary capability distinct from governed emergency elevation;
 - entity visibility distinct from field disclosure;
 - one canonical application-query identity across supported execution lanes;
-- committed history preserved by inverse or compensation rather than erased by
-  undo;
-- redo as fresh execution rather than replay or retained authority;
 - exact Foundational value, aspect-contract, mask, canonical-basis,
   boundary-evidence, diagnostic, profile, lineage, and performance meaning at
   the cross-crate boundaries where those vocabularies apply;
@@ -4066,6 +4066,8 @@ callback, or result reinterpretation, the front door is not finished.
 - browser UI polish;
 - multi-currency conversion;
 - distributed consensus or multi-bank settlement;
+- accepting the current linear undo/redo experiments as product semantics,
+  public contract, or closure evidence before Milestone 9.18;
 - branch- or tree-shaped undo/redo navigation and branch-local inversion before
   Milestone 9.18, or semantic merge, rebase, and conflict resolution before
   their cross-runtime milestones;
@@ -4140,11 +4142,6 @@ Milestone 9.16 closes only when:
   rejects equal-version cross-branch substitution, and contains no hard-coded
   ordinary-branch authority;
 - revocation prevents subsequent unauthorized live delivery;
-- provisional compensating undo preserves original truth, provisional redo
-  requires fresh authority, divergent or relevant change can deny it, and
-  irreversible actions expose no fake inverse; these journeys remain
-  regression evidence rather than accepted product semantics until Milestone
-  9.18 closes;
 - every indeterminate outcome exposes an actionable governed recovery posture;
 - Query-owned execution counters lower into honest Foundational
   counter-backed performance evidence at explicit support/certification

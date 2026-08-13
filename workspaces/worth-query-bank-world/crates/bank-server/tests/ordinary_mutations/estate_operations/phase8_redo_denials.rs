@@ -9,7 +9,8 @@ use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBin
 use worth_query_host::facade::provisional_aftermath::WorthQueryRedoDenialKind;
 
 use super::disburse_estate::fixture::disbursement_world;
-use super::phase8_redo_support::{commit_and_prove_undo, graph_snapshot};
+use super::phase8_proved_undo_fixture::commit_and_prove_undo;
+use super::phase8_undo_denial_support::graph_snapshot;
 use crate::support::request_scope;
 
 #[test]
@@ -35,7 +36,7 @@ fn lawful_redo_admits_and_reenters_ordinary_disbursement() {
         .runtime
         .progress_redo_disbursement(admission)
         .expect("redo progresses");
-    match outcome {
+    match outcome.mutation() {
         BankMutationCommitOutcome::Committed(_)
         | BankMutationCommitOutcome::AlreadyCommitted(_) => {}
         other => panic!("redo must commit: {other:?}"),
@@ -202,11 +203,15 @@ fn relational_head_advance_after_redo_admission_closes_the_commit_race() {
         .expect("ordinary progression returns its typed terminal outcome");
     assert!(
         !matches!(
-            raced,
+            raced.mutation(),
             BankMutationCommitOutcome::Committed(_)
                 | BankMutationCommitOutcome::AlreadyCommitted(_)
         ),
         "stale expected-head admission must not commit"
+    );
+    assert!(
+        raced.retry().is_some(),
+        "a stale zero-effect race must return the exact redo continuation"
     );
     assert_eq!(graph_snapshot(&fixture), after_intervening);
 }

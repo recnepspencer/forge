@@ -74,8 +74,9 @@ pub use estate_progression::{
     BankRecoveryDenialKind, BankRecoveryDurability, BankRecoveryExpiryDecision,
     BankRecoveryExpiryEvaluation, BankRecoveryIdempotencyResolution, BankRecoveryInspection,
     BankRecoveryPosture, BankRecoverySafeRetryReceipt, BankRecoverySupportTruth,
-    BankRecoveryTransitionReceipt, BankRedoIntent, BankRedoRecovery, BankRequestedEstateElevation,
-    BankReviewedEstateElevation, BankUndoCommitOutcome,
+    BankRecoveryTransitionReceipt, BankRedoCommitOutcome, BankRedoIntent, BankRedoRecovery,
+    BankRequestedEstateElevation, BankReviewedEstateElevation, BankUndoCommitOutcome,
+    BankUndoCorrection, BankUndoRetry,
 };
 pub use external_effect_transport::BankExternalEffectTransportDenial;
 pub use identity_runtime::{BankAuthenticationConfiguration, BankIdentityRuntime};

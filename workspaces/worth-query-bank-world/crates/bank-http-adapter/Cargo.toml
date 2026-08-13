@@ -10,13 +10,21 @@ publish = false
 cold-certification = []
 
 [dependencies]
+axum.workspace = true
 bank-domain.workspace = true
 bank-server.workspace = true
 openidconnect.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 sha2.workspace = true
 tokio.workspace = true
+tokio-stream.workspace = true
 url.workspace = true
 worth-query-host.workspace = true
+
+[dev-dependencies]
+reqwest.workspace = true
 
 [lints]
 workspace = true
