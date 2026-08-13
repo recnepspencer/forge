@@ -1,3 +1,4 @@
 pub use worth_store_wal::{
-    LogSequenceNumber, WalLsnRange, WalSegmentGeneration, WalSegmentId, WalTopologyDenial,
+    LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity, WalSegmentGeneration, WalSegmentId,
+    WalSegmentInspection, WalTopologyDenial,
 };

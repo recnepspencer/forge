@@ -1,5 +1,5 @@
 use crate::facade::{
-    mark_dirty_with_regions, AspectVersion, ChangedRegion, EvaluationRequestMode,
+    mark_dirty, mark_dirty_with_regions, AspectVersion, ChangedRegion, EvaluationRequestMode,
     NodeEvaluationResult, NodeId, SignalGraph, StageExecutor,
 };
 use crate::tests::support::{version_ab, GraphDependencyBatchExt, ASPECT_A};
@@ -262,4 +262,75 @@ fn reordered_dependency_and_region_orders_stay_canonical_across_executor_matrix(
             "executor {label} drifted reordered topology artifacts"
         );
     }
+}
+
+#[test]
+fn grouped_parallel_publishes_output_commits_in_global_task_order() {
+    let mut baseline = SignalGraph::new();
+    let producers = (0..4)
+        .map(|_| baseline.node().produces_aspects(ASPECT_A).build())
+        .collect::<Vec<_>>();
+    let left_consumer = baseline.node().reads_aspects(ASPECT_A).build();
+    let right_consumer = baseline.node().reads_aspects(ASPECT_A).build();
+    for &producer in &producers[..2] {
+        baseline
+            .append_dependency(left_consumer, producer, ASPECT_A)
+            .unwrap();
+    }
+    for &producer in &producers[2..] {
+        baseline
+            .append_dependency(right_consumer, producer, ASPECT_A)
+            .unwrap();
+    }
+    let requested = producers
+        .iter()
+        .copied()
+        .chain([left_consumer, right_consumer])
+        .collect::<Vec<_>>();
+    let bootstrap = baseline
+        .build_evaluation_plan(&requested, EvaluationRequestMode::ForceOnDemand)
+        .unwrap();
+    baseline
+        .execute_prepared_plan(&bootstrap, &(), &|ctx| {
+            Ok(ctx.finish(version_ab(ctx.node().index() as u64 + 1, 0)))
+        })
+        .unwrap();
+
+    let run = |mut graph: SignalGraph, executor: StageExecutor| {
+        let before_commit_count = graph.published_output_commit_order_for_test().len();
+        let before_dispatch = graph.telemetry().execution.parallel_stage_dispatch_count;
+        let before_reductions = graph.telemetry().execution.reduction_group_count;
+        for &producer in &producers {
+            mark_dirty(&mut graph, producer, ASPECT_A).unwrap();
+        }
+        let plan = graph
+            .build_evaluation_plan(&producers, EvaluationRequestMode::Default)
+            .unwrap();
+        graph
+            .execute_prepared_plan_with_executor(
+                &plan,
+                &(),
+                &|ctx| Ok(ctx.finish(version_ab(ctx.node().index() as u64 + 100, 0))),
+                executor,
+            )
+            .unwrap();
+        let order = graph.published_output_commit_order_for_test();
+        (
+            order[before_commit_count..].to_vec(),
+            graph.telemetry().execution.parallel_stage_dispatch_count - before_dispatch,
+            graph.telemetry().execution.reduction_group_count - before_reductions,
+        )
+    };
+
+    let serial = run(baseline.clone(), StageExecutor::Serial);
+    let parallel = run(baseline, StageExecutor::full_parallel(1));
+    assert_eq!(serial.0, parallel.0);
+    assert!(
+        parallel.1 > 0 && parallel.2 > 0,
+        "the grouped-parallel reduction must execute"
+    );
+    assert_eq!(
+        parallel.0.iter().map(|(_, node)| *node).collect::<Vec<_>>(),
+        producers
+    );
 }

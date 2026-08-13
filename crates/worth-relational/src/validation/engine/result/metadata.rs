@@ -4,7 +4,7 @@ use crate::validation::data::{
 use crate::{
     authority::commit::preparation::diagnostics::failures::PreparationFailureClass,
     authority::commit::preparation::planning::strategy::PreparationStrategy,
-    logic::planning::RelationalExecutionModel,
+    config::data::RelationalExecutionModel,
 };
 use serde::{Deserialize, Serialize};
 

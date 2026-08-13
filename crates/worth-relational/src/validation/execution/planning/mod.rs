@@ -4,12 +4,8 @@ mod packet_scope;
 mod packet_selection;
 mod proof_boundary;
 #[cfg(test)]
-mod test_faults;
-#[cfg(test)]
 mod tests;
 
 pub(crate) use counters::planned_packet_counters;
 pub(crate) use execution_plan::plan_invariant_execution;
 pub(crate) use proof_boundary::planned_proof_boundary_summary;
-#[cfg(test)]
-pub(crate) use test_faults::{with_test_preparation_fault, TestPreparationFault};

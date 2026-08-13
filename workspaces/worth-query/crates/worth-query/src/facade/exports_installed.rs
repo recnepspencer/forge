@@ -171,9 +171,8 @@ pub mod workflow {
     pub use crate::domain_installation::{
         compare_exact_workflow_traces, WorthQueryCompletedWorkflowTrace,
         WorthQueryConsumedWorkflowProjection, WorthQueryDeferredWorkflowStage,
-        WorthQueryDeferredWorkflowStart, WorthQueryExecutedWorkflowAftermath,
-        WorthQueryPublishedWorkflow, WorthQuerySettledWorkflowProjection,
-        WorthQueryWorkflowAdvanceDenial, WorthQueryWorkflowAftermathOutcome,
+        WorthQueryDeferredWorkflowStart, WorthQueryPublishedWorkflow,
+        WorthQuerySettledWorkflowProjection, WorthQueryWorkflowAdvanceDenial,
         WorthQueryWorkflowCompletionDenial, WorthQueryWorkflowProjectionPromotionOutcome,
         WorthQueryWorkflowPublicationDenial, WorthQueryWorkflowReexecutionOutcome,
         WorthQueryWorkflowRun, WorthQueryWorkflowStageAttempt, WorthQueryWorkflowStageReceipt,
@@ -183,16 +182,10 @@ pub mod workflow {
 
 pub mod recovery {
     pub use crate::domain_installation::{
-        WorthQueryAftermathAdmission, WorthQueryAftermathAdmissionDenial,
-        WorthQueryAftermathCounters, WorthQueryAftermathExecutionDenial,
-        WorthQueryAftermathExecutionDenialKind, WorthQueryAftermathFailureRecoveryPosture,
-        WorthQueryAftermathKind, WorthQueryAftermathPosture, WorthQueryAftermathRelationReceipt,
-        WorthQueryCompensationCapability, WorthQueryDomainRebindDenial,
-        WorthQueryDomainRebindNextAction, WorthQueryDomainRebindReceipt,
-        WorthQueryDomainRebindRequest, WorthQueryExactInverseCapability,
-        WorthQueryExecutedWorkflowAftermath, WorthQueryProjectionCancellationOutcome,
-        WorthQueryProjectionDisposalOutcome, WorthQueryProjectionRebindOutcome,
-        WorthQueryProjectionReplacementOutcome, WorthQueryRebindRequiredDomainProjection,
-        WorthQueryReplacementDenial,
+        WorthQueryDomainRebindDenial, WorthQueryDomainRebindNextAction,
+        WorthQueryDomainRebindReceipt, WorthQueryDomainRebindRequest,
+        WorthQueryProjectionCancellationOutcome, WorthQueryProjectionDisposalOutcome,
+        WorthQueryProjectionRebindOutcome, WorthQueryProjectionReplacementOutcome,
+        WorthQueryRebindRequiredDomainProjection, WorthQueryReplacementDenial,
     };
 }

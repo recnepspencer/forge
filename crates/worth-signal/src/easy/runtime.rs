@@ -1,19 +1,19 @@
 use std::any::Any;
 use std::collections::{BTreeSet, HashMap};
 use std::marker::PhantomData;
-use std::sync::Mutex;
 
-use crate::data::host_computed::{admit_or_error, HostComputedApiFamily};
-use crate::data::trace::{RuntimeArtifactHot, RuntimeArtifactState, RuntimeArtifactWarm};
 use crate::facade::runtime::mark_dirty_batch;
 use crate::facade::{
-    AspectMask, BatchChange, ChangedRegion, NodeId, NodeState, SignalError, SignalGraph,
+    AspectMask, AspectVersion, BatchChange, ChangedRegion, NodeId, NodeState, SignalError,
+    SignalGraph,
 };
-use crate::logic::prepared::PreparedEvaluation;
 use crate::logic::transaction::RuntimeObservationRegistry;
 
 use super::compute::{Computed, ErasedComputed, SignalContext};
 use super::signal::{ComputedSignal, InputSignal, Signal, DEFAULT_ASPECT};
+
+mod batching;
+mod evaluation;
 
 /// Convenience app wrapper for lightweight typed experiments and examples.
 ///
@@ -28,6 +28,8 @@ pub struct SignalApp {
     batched_dirty_nodes: BTreeSet<NodeId>,
     batch_value_undo: HashMap<NodeId, Option<Box<dyn Any + Send + Sync>>>,
     batch_entry_undo: HashMap<NodeId, crate::data::node::NodeEntry>,
+    pending_input_versions: HashMap<NodeId, AspectVersion>,
+    batch_pending_input_undo: HashMap<NodeId, Option<AspectVersion>>,
 }
 
 impl Default for SignalApp {
@@ -47,6 +49,8 @@ impl SignalApp {
             batched_dirty_nodes: BTreeSet::new(),
             batch_value_undo: HashMap::new(),
             batch_entry_undo: HashMap::new(),
+            pending_input_versions: HashMap::new(),
+            batch_pending_input_undo: HashMap::new(),
         }
     }
 
@@ -61,7 +65,13 @@ impl SignalApp {
         entry.set_state(NodeState::Clean);
         entry.set_dirty_aspects(AspectMask::EMPTY);
         let version = entry.get_aspect_version();
-        entry.set_runtime_artifact_state(Some(easy_seed_runtime_artifact_state(version, 0, false)));
+        entry.set_runtime_artifact_state(Some(evaluation::easy_seed_runtime_artifact_state(
+            version, 0, false,
+        )));
+        drop(entry);
+        self.graph
+            .transition_node_clean(node)
+            .expect("newly created input node should admit clean authority");
 
         Signal::new(node)
     }
@@ -114,18 +124,18 @@ impl SignalApp {
                     .expect("input node should exist")
                     .clone()
             });
+            self.batch_pending_input_undo
+                .entry(signal.node)
+                .or_insert_with(|| self.pending_input_versions.get(&signal.node).copied());
         }
         self.values.insert(signal.node, Box::new(value));
-        {
-            let mut entry = self.graph.get_entry_mut(signal.node)?;
-            let current = entry.get_aspect_version().get(DEFAULT_ASPECT);
-            let next = entry.get_aspect_version().with(DEFAULT_ASPECT, current + 1);
-            entry.set_aspect_version(next);
-            entry.set_state(NodeState::Clean);
-            entry.set_dirty_aspects(AspectMask::EMPTY);
-            entry
-                .set_runtime_artifact_state(Some(easy_seed_runtime_artifact_state(next, 0, false)));
-        }
+        let current = self
+            .pending_input_versions
+            .get(&signal.node)
+            .copied()
+            .unwrap_or(self.graph.node_aspect_version(signal.node)?);
+        let next = current.with(DEFAULT_ASPECT, current.get(DEFAULT_ASPECT) + 1);
+        self.pending_input_versions.insert(signal.node, next);
 
         if self.batch_depth > 0 {
             self.batched_dirty_nodes.insert(signal.node);
@@ -134,6 +144,7 @@ impl SignalApp {
                 &mut self.graph,
                 &BatchChange::singleton(signal.node, DEFAULT_ASPECT, Vec::<ChangedRegion>::new()),
             )?;
+            self.ensure_evaluated(signal.node)?;
             let mut changed_nodes = BTreeSet::new();
             changed_nodes.insert(signal.node);
             super::observation::deliver_observation_boundary(self, changed_nodes)?;
@@ -141,205 +152,9 @@ impl SignalApp {
         Ok(())
     }
 
-    pub fn batch<F>(&mut self, apply: F)
-    where
-        F: FnOnce(&mut Self),
-    {
-        self.try_batch(|graph| {
-            apply(graph);
-            Ok(())
-        })
-        .expect("easy path batch failed");
-    }
-
-    pub fn try_batch<F>(&mut self, apply: F) -> Result<(), SignalError>
-    where
-        F: FnOnce(&mut Self) -> Result<(), SignalError>,
-    {
-        self.batch_depth += 1;
-        let apply_result = apply(self);
-        self.batch_depth -= 1;
-
-        if let Err(err) = apply_result {
-            if self.batch_depth == 0 {
-                self.batched_dirty_nodes.clear();
-                self.restore_batch_undo();
-            }
-            return Err(err);
-        }
-
-        if self.batch_depth == 0 {
-            let dirty_nodes = std::mem::take(&mut self.batched_dirty_nodes);
-            let changed_nodes = dirty_nodes.clone();
-            if let Err(err) = mark_dirty_batch(
-                &mut self.graph,
-                &BatchChange::from_sources(
-                    dirty_nodes.into_iter().map(|node| (node, DEFAULT_ASPECT)),
-                ),
-            ) {
-                self.restore_batch_undo();
-                return Err(err);
-            }
-            super::observation::deliver_observation_boundary(self, changed_nodes)?;
-            self.clear_batch_undo();
-        }
-        Ok(())
-    }
-
     #[cfg(test)]
     pub(crate) fn graph(&self) -> &SignalGraph {
         &self.graph
-    }
-
-    pub(super) fn ensure_evaluated(
-        &mut self,
-        node: NodeId,
-    ) -> Result<BTreeSet<NodeId>, SignalError> {
-        if !self.computed.contains_key(&node) {
-            return Ok(BTreeSet::new());
-        }
-
-        let plan = self.graph.build_evaluation_plan(
-            &[node],
-            crate::logic::evaluation::EvaluationRequestMode::Default,
-        )?;
-        let staged_values: Mutex<HashMap<NodeId, Box<dyn Any + Send + Sync>>> =
-            Mutex::new(HashMap::new());
-        let meaningful_nodes: Mutex<BTreeSet<NodeId>> = Mutex::new(BTreeSet::new());
-        let graph = &mut self.graph;
-        let computed = &self.computed;
-        let values = &self.values;
-        graph.execute_prepared_plan_with_precompute(&plan, &|current, view| {
-            if let Some(computed) = computed.get(&current) {
-                let current_version = view
-                    .graph()
-                    .get_entry(current)?
-                    .get_aspect_version()
-                    .get(DEFAULT_ASPECT);
-                let current_dependencies = view.graph().dependencies_of(current)?.to_vec();
-                let staged_guard = staged_values
-                    .lock()
-                    .map_err(|_| SignalError::internal("easy path staged value mutex poisoned"))?;
-                let (value, prepared, meaningful_change) = computed.precompute(
-                    current,
-                    values,
-                    &staged_guard,
-                    current_dependencies.as_slice(),
-                    current_version,
-                )?;
-                drop(staged_guard);
-                staged_values
-                    .lock()
-                    .map_err(|_| SignalError::internal("easy path staged value mutex poisoned"))?
-                    .insert(current, value);
-                if meaningful_change {
-                    meaningful_nodes
-                        .lock()
-                        .map_err(|_| {
-                            SignalError::internal("easy path meaningful-change mutex poisoned")
-                        })?
-                        .insert(current);
-                }
-                Ok(prepared)
-            } else {
-                Ok(PreparedEvaluation::validated_clean())
-            }
-        })?;
-
-        let staged_values = staged_values
-            .into_inner()
-            .map_err(|_| SignalError::internal("easy path staged value mutex poisoned"))?;
-        let meaningful_nodes = meaningful_nodes
-            .into_inner()
-            .map_err(|_| SignalError::internal("easy path meaningful-change mutex poisoned"))?;
-        for (node, value) in staged_values {
-            self.values.insert(node, value);
-        }
-        Ok(meaningful_nodes)
-    }
-
-    fn seed_computed_if_possible(&mut self, node: NodeId) -> Result<(), SignalError> {
-        let Some(computed) = self.computed.get(&node) else {
-            return Ok(());
-        };
-        let staged = HashMap::new();
-        let current_dependencies = self.graph.dependencies_of(node)?.to_vec();
-        let Ok((value, prepared, _meaningful_change)) = computed.precompute(
-            node,
-            &self.values,
-            &staged,
-            current_dependencies.as_slice(),
-            0,
-        ) else {
-            return Ok(());
-        };
-        let host_prepared = match admit_or_error(
-            HostComputedApiFamily::EasyClosure,
-            node,
-            current_dependencies.as_slice(),
-            prepared,
-            self.graph.telemetry_mut(),
-        ) {
-            Ok(host_prepared) => host_prepared,
-            Err(_) => return Ok(()),
-        };
-        let (prepared, admitted_reads, dependency_patch) = host_prepared.into_parts();
-        self.values.insert(node, value);
-        let mut dep_snapshot = crate::data::dependency::DependencySnapshot::empty();
-        for dependency in admitted_reads.dependencies() {
-            let current_version = self
-                .graph
-                .get_entry(dependency.source())?
-                .get_aspect_version()
-                .get(dependency.aspect());
-            dep_snapshot.record(
-                dependency.source(),
-                dependency.aspect(),
-                current_version,
-                dependency.scope_ref().cloned(),
-            );
-        }
-        {
-            let mut entry = self.graph.get_entry_mut(node)?;
-            entry.set_aspect_version(prepared.result.aspect_version);
-            entry.set_state(NodeState::Clean);
-            entry.set_dirty_aspects(AspectMask::EMPTY);
-            entry.clear_dirty_partition_scopes();
-            entry.set_runtime_artifact_state(Some(easy_seed_runtime_artifact_state(
-                prepared.result.aspect_version,
-                dependency_patch.next_dependencies().len() as u32,
-                true,
-            )));
-        }
-        self.graph
-            .set_dependencies(node, admitted_reads.dependencies().iter().cloned())?;
-        self.graph.set_dep_snapshot(node, dep_snapshot)?;
-        Ok(())
-    }
-
-    fn restore_batch_undo(&mut self) {
-        let entry_undo = std::mem::take(&mut self.batch_entry_undo);
-        for (node, entry) in entry_undo {
-            if let Ok(mut slot) = self.graph.get_entry_mut(node) {
-                *slot = entry;
-            }
-        }
-        let value_undo = std::mem::take(&mut self.batch_value_undo);
-        for (node, previous) in value_undo {
-            match previous {
-                Some(value) => {
-                    self.values.insert(node, value);
-                }
-                None => {
-                    self.values.remove(&node);
-                }
-            }
-        }
-    }
-
-    fn clear_batch_undo(&mut self) {
-        self.batch_value_undo.clear();
-        self.batch_entry_undo.clear();
     }
 
     fn try_read_value<T: Clone + Send + Sync + 'static>(
@@ -355,21 +170,4 @@ impl SignalApp {
             .cloned()
             .ok_or_else(|| SignalError::invalid_input("easy signal type mismatch"))
     }
-}
-
-fn easy_seed_runtime_artifact_state(
-    version: crate::facade::AspectVersion,
-    dependency_count: u32,
-    recomputed: bool,
-) -> RuntimeArtifactState {
-    let mut hot = RuntimeArtifactHot::default();
-    hot.dependency_count = dependency_count;
-    hot.recomputed = recomputed;
-    hot.changed_partition_count = 0;
-    hot.meaningful_input_changes = 0;
-    hot.propagation_suppressed = false;
-    hot.output_hash = crate::data::core_profile::StableHashValue::from(version.slots()[0]);
-    let mut warm = RuntimeArtifactWarm::default();
-    warm.memoized_origin = crate::data::output::MemoizedResultOrigin::DirectCompute;
-    RuntimeArtifactState::new(hot, warm)
 }

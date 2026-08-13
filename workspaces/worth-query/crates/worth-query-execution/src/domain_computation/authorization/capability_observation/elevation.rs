@@ -9,23 +9,23 @@ use super::super::capability_registry::{
     WorthQueryCapabilityPathTemplate, WorthQueryInstalledCapabilityPlan,
 };
 use super::super::{
-    WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryRuntimeTimeSample,
 };
 
 pub(super) fn prepare_temporal_path(
     installed: &WorthQueryInstalledCapabilityPlan,
     template: &WorthQueryCapabilityPathTemplate,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     path_index: usize,
 ) -> Result<RelationalAuthorizationPathPlan, WorthQueryOperationAuthorizationDenial> {
     let bindings = installed
-        .elevation
+        .elevation()
         .as_ref()
-        .ok_or_else(|| invalid_policy(installed.contract.name()))?;
+        .ok_or_else(|| invalid_policy(installed.contract().name()))?;
     let temporal = &bindings.temporal;
     if sample.timeline() != temporal.timeline {
-        return Err(invalid_policy(installed.contract.name()));
+        return Err(invalid_policy(installed.contract().name()));
     }
     let (field, comparison) = if path_index == temporal.not_before_path_index {
         (
@@ -38,7 +38,7 @@ pub(super) fn prepare_temporal_path(
             RelationalAuthorizationFieldComparison::StrictlyGreater,
         )
     } else {
-        return Err(invalid_policy(installed.contract.name()));
+        return Err(invalid_policy(installed.contract().name()));
     };
     let mut predicates = template.plan.predicates().to_vec();
     predicates.push(RelationalAuthorizationPredicate::compare(

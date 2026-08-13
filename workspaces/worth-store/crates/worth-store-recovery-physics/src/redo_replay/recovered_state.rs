@@ -77,11 +77,4 @@ impl RecoveredPhysicalState {
     pub const fn skipped_frame_count(&self) -> usize {
         self.skipped_frame_count
     }
-
-    pub(crate) fn has_same_recovered_contents(&self, other: &Self) -> bool {
-        self.recovered_physical_root == other.recovered_physical_root
-            && self.page_lsn_frontier == other.page_lsn_frontier
-            && self.applied_frame_count == other.applied_frame_count
-            && self.skipped_frame_count == other.skipped_frame_count
-    }
 }

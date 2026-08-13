@@ -35,6 +35,7 @@ pub struct BridgeConditionalExecutionRequest<'a> {
     pub query_binding_identity: &'a str,
     pub query_capability_identity: u64,
     pub snapshot_identity: &'a str,
+    pub truth_branch_identity: Option<&'a str>,
     pub bridge_snapshot_identity: Option<&'a crate::snapshot::TruthSnapshotIdentity>,
     pub execution_identity: &'a str,
     pub attempt: u64,
@@ -198,6 +199,8 @@ impl BridgeOwnedSignalRuntime {
             request.lowering,
             admitted_snapshot,
             &self.conditional_observations,
+            request.truth_branch_identity,
+            request.snapshot_identity,
         );
         let mut comparator = ComparatorAdapter::new(request.lowering);
         counters.signal_execution_contacts = 1;

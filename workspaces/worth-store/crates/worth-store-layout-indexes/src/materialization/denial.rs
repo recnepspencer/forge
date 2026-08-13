@@ -80,10 +80,6 @@ pub enum MaterializationDenial {
     BTreeSourceStoreAuthorityMismatch,
     LsmSourceSecurityScopeMismatch,
     LsmSourceStoreAuthorityMismatch,
-    RestoreOfflineReadmissionRequired,
-    RestoreReplayFrontierRequired,
-    RestoreCustodyReadmissionRequired,
-    RestoreCurrentStoreAuthorityRequired,
     CoverageSourceMismatch,
     MaterializationFrontierMismatch,
     MaterializationStateDoesNotSupportExactAccess {
@@ -132,10 +128,6 @@ pub enum MaterializationDenialKind {
     BTreeSourceStoreAuthorityMismatch,
     LsmSourceSecurityScopeMismatch,
     LsmSourceStoreAuthorityMismatch,
-    RestoreOfflineReadmissionRequired,
-    RestoreReplayFrontierRequired,
-    RestoreCustodyReadmissionRequired,
-    RestoreCurrentStoreAuthorityRequired,
     CoverageSourceMismatch,
     MaterializationFrontierMismatch,
     MaterializationStateDoesNotSupportExactAccess,
@@ -159,10 +151,6 @@ impl MaterializationDenialKind {
             Self::BTreeSourceStoreAuthorityMismatch => "denied.btree_source_store_authority",
             Self::LsmSourceSecurityScopeMismatch => "denied.lsm_source_security_scope",
             Self::LsmSourceStoreAuthorityMismatch => "denied.lsm_source_store_authority",
-            Self::RestoreOfflineReadmissionRequired => "denied.restore_offline_readmission",
-            Self::RestoreReplayFrontierRequired => "denied.restore_replay_frontier",
-            Self::RestoreCustodyReadmissionRequired => "denied.restore_custody_readmission",
-            Self::RestoreCurrentStoreAuthorityRequired => "denied.restore_current_store_authority",
             Self::CoverageSourceMismatch => "denied.coverage_source",
             Self::MaterializationFrontierMismatch => "denied.materialization_frontier",
             Self::MaterializationStateDoesNotSupportExactAccess => "denied.materialization_state",
@@ -201,18 +189,6 @@ impl MaterializationDenial {
             }
             Self::LsmSourceStoreAuthorityMismatch => {
                 MaterializationDenialKind::LsmSourceStoreAuthorityMismatch
-            }
-            Self::RestoreOfflineReadmissionRequired => {
-                MaterializationDenialKind::RestoreOfflineReadmissionRequired
-            }
-            Self::RestoreReplayFrontierRequired => {
-                MaterializationDenialKind::RestoreReplayFrontierRequired
-            }
-            Self::RestoreCustodyReadmissionRequired => {
-                MaterializationDenialKind::RestoreCustodyReadmissionRequired
-            }
-            Self::RestoreCurrentStoreAuthorityRequired => {
-                MaterializationDenialKind::RestoreCurrentStoreAuthorityRequired
             }
             Self::CoverageSourceMismatch => MaterializationDenialKind::CoverageSourceMismatch,
             Self::MaterializationFrontierMismatch => {

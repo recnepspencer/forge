@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::{WorthQueryPrimaryGraphOverlay, WorthQueryPrimaryGraphProvider};
+use super::WorthQueryPrimaryGraphProvider;
 use crate::domain_computation::{
     WorthQueryProposedFact, WorthQueryProposedFactOrigin, WorthQueryProviderSessionView,
     WorthQueryProvisionalEffectAction, WorthQueryProvisionalEffectProgramView,
@@ -16,67 +16,35 @@ impl WorthQueryProvisionalGraphProvider for Arc<WorthQueryPrimaryGraphProvider> 
         program: WorthQueryProvisionalEffectProgramView<'_>,
         admission: WorthQueryProvisionalOverlayAdmission,
     ) -> Result<WorthQueryProvisionalOverlayEvidence, WorthQueryProvisionalFailure> {
-        {
-            let sessions = self
-                .sessions
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            let expected = sessions
-                .application_attempts
-                .get(session.identity())
-                .ok_or_else(|| {
-                    WorthQueryProvisionalFailure::invalid_program(
-                        "provider session has no registered application attempt",
-                    )
-                })?;
-            if expected.expected_steps != program.steps() {
-                return Err(WorthQueryProvisionalFailure::invalid_program(
-                    "lowered provider program differs from the registered application effects",
-                ));
-            }
-        }
         let facts = program
             .steps()
             .iter()
             .map(|step| proposed_fact(step.action()))
             .collect::<Result<Vec<_>, _>>()?;
-        let mut sessions = self
-            .sessions
+        self.application_attempt_work.observe_overlay_staging();
+        let overlay = self
+            .attempts
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        sessions.next_overlay += 1;
-        let identity = format!(
-            "primary-overlay:{}:{}",
-            program.generation(),
-            sessions.next_overlay
-        );
-        sessions.overlays.insert(
-            identity.clone(),
-            WorthQueryPrimaryGraphOverlay {
-                facts: facts.clone(),
-            },
-        );
-        sessions
-            .session_overlays
-            .insert(session.identity().to_owned(), identity.clone());
-        admission.admit(identity, facts)
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .stage_overlay(session, program.steps(), program.generation(), facts)
+            .map_err(WorthQueryProvisionalFailure::invalid_program)?;
+        overlay.admit(admission)
     }
 
     fn discard_provisional_overlay(
         &self,
         evidence: WorthQueryProvisionalOverlayEvidenceView<'_>,
     ) -> Result<(), WorthQueryProvisionalFailure> {
-        let mut sessions = self
-            .sessions
+        let discarded = self
+            .attempts
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        sessions
-            .overlays
-            .remove(evidence.physical_overlay_identity());
-        sessions
-            .session_overlays
-            .retain(|_, overlay| overlay != evidence.physical_overlay_identity());
-        Ok(())
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .discard_overlay(evidence);
+        discarded.then_some(()).ok_or_else(|| {
+            WorthQueryProvisionalFailure::invalid_program(
+                "provider overlay evidence does not belong to the exact application attempt",
+            )
+        })
     }
 }
 

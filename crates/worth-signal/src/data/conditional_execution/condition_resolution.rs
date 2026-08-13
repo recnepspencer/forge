@@ -1,6 +1,7 @@
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::node::EvaluationCondition;
+use crate::data::proof::invalidation::revalidation::NodeInvalidationInput;
 use crate::logic::evaluation::{ConditionEvaluationContext, EvaluationRequestMode};
 
 use super::{
@@ -22,7 +23,11 @@ pub(super) fn resolve_condition(
     resolver: &mut impl InstalledSignalConditionResolver,
 ) -> Result<ConditionDisposition, SignalError> {
     let node = request.contract.node();
-    let dirty_aspects = graph.node_dirty_aspects(node)?;
+    let dirty_aspects = match graph.node_invalidation_input(node)? {
+        NodeInvalidationInput::Pending(_) => return Ok(ConditionDisposition::Deferred),
+        NodeInvalidationInput::Resolved(causes) => causes.dirty_aspects(),
+        NodeInvalidationInput::ResolvedNoChange(_) => return Ok(ConditionDisposition::Suppressed),
+    };
     let trigger_aspects = request.contract.trigger_aspects();
     let trigger_dirty_aspects = if trigger_aspects.is_empty() {
         dirty_aspects

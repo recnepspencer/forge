@@ -31,14 +31,14 @@ pub(crate) fn execute_estate_customer_disclosure(
     let query = application
         .installed_schema()
         .application_query(EstateCustomerDisclosureQuery::reference())
-        .map_err(BankApplicationQueryDenial::Installation)?;
+        .map_err(BankApplicationQueryDenial::from_installation)?;
     let capability = application
         .installed_schema()
         .capability(
             ViewEstateIdentityVerificationCapability::reference(),
             ViewRestrictedEstateOperation::reference(),
         )
-        .map_err(BankApplicationQueryDenial::CapabilityInstallation)?;
+        .map_err(BankApplicationQueryDenial::from_capability_installation)?;
     let capability_access = application
         .admit_capability_access(
             principal.query(),
@@ -46,7 +46,7 @@ pub(crate) fn execute_estate_customer_disclosure(
             request.capability_request(),
             controls.request_scope(),
         )
-        .map_err(BankApplicationQueryDenial::CapabilityAdmission)?;
+        .map_err(BankApplicationQueryDenial::from_capability_admission)?;
     let scope = application
         .resolve_entity(
             EstateCaseIdentityField::reference(),
@@ -54,7 +54,7 @@ pub(crate) fn execute_estate_customer_disclosure(
             controls.request_scope(),
             WorthQueryPrincipalResolutionMode::Ordinary,
         )
-        .map_err(BankApplicationQueryDenial::ScopeResolution)?;
+        .map_err(BankApplicationQueryDenial::from_scope_resolution)?;
     let access = WorthQueryApplicationQueryAccessContext::<
         BankSchema,
         Principal,
@@ -69,10 +69,10 @@ pub(crate) fn execute_estate_customer_disclosure(
             ApplicationQueryParameterSet::<EstateCustomerDisclosureQuery>::new(),
             controls,
         )
-        .map_err(BankApplicationQueryDenial::Admission)?;
+        .map_err(BankApplicationQueryDenial::from_admission)?;
     let result = application
         .execute_application_query_one_shot(plan)
-        .map_err(BankApplicationQueryDenial::Execution)?;
+        .map_err(BankApplicationQueryDenial::from_execution)?;
 
     Ok(publish_application_result(result.into_admitted_disclosed()))
 }

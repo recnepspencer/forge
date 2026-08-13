@@ -7,7 +7,7 @@ use super::LoweredStrategyCommitPlan;
 pub(crate) struct PreparedStrategyAuthorityScope {
     pub(crate) structural_summary:
         crate::authority::commit::structural_summary::CommitStructuralSummary,
-    pub(crate) working_state: crate::logic::runtime::WorkingState,
+    pub(crate) working_state: crate::runtime::WorkingState,
 }
 
 #[derive(Debug, Clone)]

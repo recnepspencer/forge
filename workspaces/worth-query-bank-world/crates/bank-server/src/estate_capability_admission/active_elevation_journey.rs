@@ -10,16 +10,14 @@ use bank_domain::{
     },
     queries::EstateGovernanceQuery,
     reads::EstateGovernanceContext,
-    schema::{
-        AccountStatus, ViewEstateEmergencyProtectionCapability, ViewRestrictedEstateOperation,
-    },
+    schema::AccountStatus,
 };
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 use worth_query_host::facade::{
-    domain::TypedApplicationValue,
-    primary_graph::{
-        WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationOneShotResult,
-        WorthQueryElevationCloseOutcome, WorthQueryMandatoryReview,
-        WorthQueryMandatoryReviewOutcome,
+    primary_graph::WorthQueryApplicationIdempotencyBinding,
+    publication::domain_computation::{
+        WorthQueryPublishedApplicationDisclosurePosture,
+        WorthQueryPublishedApplicationQueryOmissionPosture,
     },
 };
 
@@ -32,10 +30,13 @@ use super::{
         approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
     },
 };
-use crate::{queries, BankAuthenticatedPrincipal, BankReadControls};
+use crate::{
+    queries, BankAuthenticatedPrincipal, BankEstateElevationCloseOutcome,
+    BankEstateMandatoryReview, BankEstateMandatoryReviewOutcome, BankReadControls,
+};
 
 type GovernanceResult =
-    WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>;
+    WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>;
 
 #[derive(Clone, Copy)]
 struct EmergencyJourneyIdentity {
@@ -86,11 +87,84 @@ fn approved_emergency_discloses_account_details_and_terminal_state_reads_back() 
     assert_completed_readback(&fixture, &requester, identity);
 }
 
+/// Q8.26-C6: a commit retains a pre-image exactly when its installed contract
+/// declares one — and the negative twin holds in the same journey.
+///
+/// `ApproveEmergencyAccess` declares `RecordedInverse` over
+/// `EmergencyAccessStatusField`, so its commit must carry the demanded slice.
+/// `RequestEmergencyAccess` is a create lane declared `not_correctable`: there
+/// is no prior truth, so it must carry nothing. Asserting only the positive
+/// would pass against a runtime that retained indiscriminately, which would
+/// make every receipt claim an inverse it cannot honour.
+#[test]
+fn retention_follows_the_declared_mechanism_on_both_lifecycle_commits() {
+    let fixture = emergency_request_world(
+        "estate-emergency-retention-by-mechanism",
+        GrantSpec::emergency_view(),
+        EstateWorkflowStage::Administration,
+    );
+    let requester = fixture.authenticate();
+    let approver = fixture.authenticate_approver();
+    let requested = request_elevation(
+        &fixture,
+        &requester,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 371,
+            review: 372,
+            idempotency: 95,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
+    );
+    let approved = approve_elevation(
+        &fixture,
+        &approver,
+        requested,
+        ElevationApprovalSpec {
+            access: 371,
+            idempotency: 97,
+        },
+    );
+
+    assert!(
+        approved.approval_retained_preimage_present(),
+        "ApproveEmergencyAccess declares RecordedInverse/ExactPriorTruth, so its \
+         commit must carry the pre-image its installed contract demands"
+    );
+    assert!(
+        !approved.request_retained_preimage_present(),
+        "RequestEmergencyAccess is a not_correctable create lane — it has no \
+         prior truth, so its commit must retain nothing"
+    );
+    assert!(
+        approved.approval_prior_status_is_requested(),
+        "approval must retain the exact pre-commit Requested status"
+    );
+    let demanded = approved
+        .approval_retention_work()
+        .expect("approval commit carries retention work");
+    assert!(demanded.validated_intents_examined() > 0);
+    assert!(demanded.mutation_targets_materialized() > 0);
+    assert!(demanded.decision_facts_examined() > 0);
+    assert!(demanded.candidates_materialized() > 0);
+    assert_eq!(demanded.demanded_loci_examined(), 1);
+
+    let ordinary = approved
+        .request_retention_work()
+        .expect("request commit carries zero-valued work evidence");
+    assert_eq!(ordinary.validated_intents_examined(), 0);
+    assert_eq!(ordinary.mutation_targets_materialized(), 0);
+    assert_eq!(ordinary.decision_facts_examined(), 0);
+    assert_eq!(ordinary.candidates_materialized(), 0);
+    assert_eq!(ordinary.demanded_loci_examined(), 0);
+}
+
 fn assert_approved_account_disclosure(
     fixture: &CapabilityFixture,
     requester: &BankAuthenticatedPrincipal,
     access: EmergencyAccessId,
-    approved: &worth_query_host::facade::primary_graph::WorthQueryApprovedElevation,
+    approved: &crate::BankApprovedEstateElevation,
 ) {
     let published = fixture
         .runtime
@@ -106,37 +180,30 @@ fn assert_approved_account_disclosure(
     assert_eq!(account.id(), ACCOUNT);
     assert_eq!(account.display_name().as_str(), "Estate Operating");
     assert_eq!(account.status(), AccountStatus::Frozen);
+    let publication = published.receipt().inspect();
+    assert_eq!(
+        publication.omission_posture(),
+        WorthQueryPublishedApplicationQueryOmissionPosture::NoOmission
+    );
+    assert_eq!(publication.result_count(), published.rows().len());
+    assert!(publication.terminal_resources_released());
     let disclosure = published.receipt().disclosure();
     assert_eq!(
-        disclosure.classification(),
-        Some("estate-emergency-account-details")
+        disclosure.posture(),
+        WorthQueryPublishedApplicationDisclosurePosture::Governed
     );
-    assert_eq!(disclosure.decisions().len(), 4);
-    assert!(disclosure.decisions().iter().all(|decision| {
-        decision.required_disclosure()
-            == &RestrictedBankField::AccountDetails.into_foundational_value()
-    }));
-    let capability = fixture
-        .runtime
-        .application_runtime()
-        .installed_schema()
-        .capability(
-            ViewEstateEmergencyProtectionCapability::reference(),
-            ViewRestrictedEstateOperation::reference(),
-        )
-        .unwrap();
-    assert_eq!(
-        disclosure.capability_authority_identity(),
-        Some(capability.authority_identity())
-    );
+    assert_eq!(disclosure.disclosure_decision_count(), 4);
+    assert_eq!(disclosure.disclosed_value_count(), 4);
+    assert_eq!(disclosure.omitted_value_count(), 0);
+    assert!(disclosure.authorization_decision_fact_count() > 0);
 }
 
 fn close_elevation(
     fixture: &CapabilityFixture,
     approver: &BankAuthenticatedPrincipal,
-    approved: worth_query_host::facade::primary_graph::WorthQueryApprovedElevation,
+    approved: crate::BankApprovedEstateElevation,
     access: EmergencyAccessId,
-) -> WorthQueryMandatoryReview {
+) -> BankEstateMandatoryReview {
     let close = fixture
         .runtime
         .revoke_estate_emergency_access(
@@ -150,7 +217,7 @@ fn close_elevation(
             &request_scope(),
         )
         .expect("the used elevation should remain closable through its exact command");
-    let WorthQueryElevationCloseOutcome::Closed(mandatory) = close else {
+    let BankEstateElevationCloseOutcome::Closed(mandatory) = close else {
         panic!("the close must commit before readback: {close:?}");
     };
     mandatory
@@ -184,7 +251,7 @@ fn assert_closed_readback(
 fn complete_review(
     fixture: &CapabilityFixture,
     reviewer: &BankAuthenticatedPrincipal,
-    mandatory: WorthQueryMandatoryReview,
+    mandatory: BankEstateMandatoryReview,
     identity: EmergencyJourneyIdentity,
 ) {
     let outcome = fixture
@@ -201,7 +268,7 @@ fn complete_review(
             &request_scope(),
         )
         .expect("the exact mandatory review should commit after readback");
-    let WorthQueryMandatoryReviewOutcome::Reviewed(_) = outcome else {
+    let BankEstateMandatoryReviewOutcome::Reviewed(_) = outcome else {
         panic!("the exact review must be fresh: {outcome:?}");
     };
 }

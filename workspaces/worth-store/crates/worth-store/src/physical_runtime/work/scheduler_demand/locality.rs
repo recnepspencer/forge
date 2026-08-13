@@ -130,6 +130,12 @@ pub(super) fn physical_locality(
 fn update_artifact(digest: &mut Sha256, artifact: RecordArtifactFile) {
     let (tag, first, second): (u8, u64, u64) = match artifact {
         RecordArtifactFile::BootstrapCatalog => (1, 0, 0),
+        RecordArtifactFile::CurrentRootSelector => (12, 0, 0),
+        RecordArtifactFile::PreviousRootSelector => (13, 0, 0),
+        RecordArtifactFile::RootSelectorCandidate { role, publication } => match role {
+            worth_store_physical_format::RootSelectorRole::Current => (14, publication, 0),
+            worth_store_physical_format::RootSelectorRole::Previous => (15, publication, 0),
+        },
         RecordArtifactFile::CatalogCandidate { publication } => (2, publication, 0),
         RecordArtifactFile::RootManifest { generation } => (3, generation, 0),
         RecordArtifactFile::RootRoutingBlock { generation, block } => (4, generation, block),

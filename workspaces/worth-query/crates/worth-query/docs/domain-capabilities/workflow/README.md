@@ -28,8 +28,9 @@ short path for one job instead of reading each surface in isolation.
 - [Grouped Neighborhood Workflow](./grouped-neighborhood-workflow.md)
   Author one neighborhood-shaped operation, inspect grouped products, and add
   shared or member-local contributions.
-- [Stop To Recovery](./stop-to-recovery.md)
-  Turn one ordinary, checked, or proof-visible stop into the next repair step.
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md)
+  Interpret one ordinary, checked, or proof-visible stop and choose a next
+  application action.
 
 ## Quick Rules
 
@@ -41,7 +42,7 @@ short path for one job instead of reading each surface in isolation.
   exists and you need the next runtime-facing step
 - start with the grouped workflow when the neighborhood itself is part of the
   meaning
-- start with the recovery workflow when the main question is "what do I do
+- start with remediation guidance when the main question is "what do I do
   next?"
 
 ## Related Docs
@@ -49,7 +50,7 @@ short path for one job instead of reading each surface in isolation.
 - [Domain Capabilities](../README.md)
 - [Choosing The Right Surface](../choosing/README.md)
 - [Typed Binding Pipeline](../typed-binding-pipeline.md)
-- [Recovery Boundary](../recovery-boundary.md)
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md)
 - Preview Inspection And Mutation Planning
 - [Runtime-Preflight Workflow Contributions](./runtime-preflight-workflow-contributions.md)
 - Workflow Lanes: Common, Checked, Proof, And Raw

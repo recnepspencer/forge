@@ -6,7 +6,11 @@ use worth_store_recovery_physics::{
 };
 
 use super::memory_budget::with_recovery_memory_allocation;
-use super::redo_replay::{frame, grammar_for_operation_digest, page_lsn, valid_prefix, wal_range};
+use super::redo_replay::{
+    cursor, frame, grammar_for_operation_digest, page_lsn, redo_eligibility_for_page, valid_prefix,
+    wal_range,
+};
+use super::source_precedence::checkpoint_base;
 use super::wal_tail::wal_only_tail_proof;
 
 pub fn executed_recovery_receipt() -> BoundedRecoveryReceipt {
@@ -16,11 +20,8 @@ pub fn executed_recovery_receipt() -> BoundedRecoveryReceipt {
 pub fn executed_recovery_receipt_with_operation_digest(
     operation_digest: &str,
 ) -> BoundedRecoveryReceipt {
-    with_bounded_recovery_plan_and_trace(operation_digest, |plan, _| {
-        let reopened = super::reopened_artifact::reopened_recovery_artifact_for_operation_digest(
-            operation_digest,
-        );
-        plan.execute(reopened.replay_cursor())
+    with_bounded_recovery_plan_and_trace(operation_digest, |plan, _, cursor| {
+        plan.execute(&cursor)
             .expect("permanent recovery execution should complete")
     })
 }
@@ -30,12 +31,9 @@ pub fn recovery_completion() -> RecoveryCompletion {
 }
 
 pub fn recovery_completion_with_operation_digest(operation_digest: &str) -> RecoveryCompletion {
-    with_bounded_recovery_plan_and_trace(operation_digest, |plan, source_trace| {
-        let reopened = super::reopened_artifact::reopened_recovery_artifact_for_operation_digest(
-            operation_digest,
-        );
+    with_bounded_recovery_plan_and_trace(operation_digest, |plan, source_trace, cursor| {
         let receipt = plan
-            .execute(reopened.replay_cursor())
+            .execute(&cursor)
             .expect("permanent recovery execution should complete");
         complete_recovery(receipt.execution().clone(), source_trace)
             .expect("recovery completion should bind execution to source precedence")
@@ -44,17 +42,15 @@ pub fn recovery_completion_with_operation_digest(operation_digest: &str) -> Reco
 
 fn with_bounded_recovery_plan_and_trace<R>(
     operation_digest: &str,
-    run: impl FnOnce(BoundedRecoveryPlan<'_>, RecoverySourceDecisionTrace) -> R,
+    run: impl FnOnce(
+        BoundedRecoveryPlan<'_>,
+        RecoverySourceDecisionTrace,
+        worth_store_recovery_physics::RedoApplicationCursor,
+    ) -> R,
 ) -> R {
-    let reopened =
-        super::reopened_artifact::reopened_recovery_artifact_for_operation_digest(operation_digest);
-    let eligibility = reopened
-        .replay_cursor()
-        .pages()
-        .first()
-        .expect("the admitted reopened artifact retains its checkpoint page")
-        .eligibility();
-    let checkpoint = reopened.checkpoint_base().clone();
+    let eligibility = redo_eligibility_for_page(19, 20, 1);
+    let application_cursor = cursor(&eligibility, 19, "checkpoint-page");
+    let (checkpoint, _) = checkpoint_base(10, 20, 19, 1);
     let tail = WalTailRedoSource::from_reopened_checkpoint(
         &checkpoint,
         wal_only_tail_proof(wal_range(20, 21)),
@@ -73,13 +69,13 @@ fn with_bounded_recovery_plan_and_trace<R>(
     let source_trace = source.source().trace().clone();
     let prefix = valid_prefix(source.source(), 20, 21, [frame(20)]);
     let grammar =
-        grammar_for_operation_digest(eligibility, 20, page_lsn(20), operation_digest).unwrap();
+        grammar_for_operation_digest(&eligibility, 20, page_lsn(20), operation_digest).unwrap();
     let admitted = AdmittedRedoFrame::admit(grammar, &prefix).unwrap();
     let plan =
         RecoveryRedoPlan::from_valid_prefix(source.source(), prefix, vec![admitted]).unwrap();
     with_recovery_budget(|budget| {
         let bounded = budget.admit_recovery(source, plan).unwrap();
-        run(bounded, source_trace)
+        run(bounded, source_trace, application_cursor)
     })
 }
 
@@ -105,7 +101,7 @@ mod tests {
 
     #[test]
     fn bounded_closeout_joins_reopened_checkpoint_to_vetted_wal_tail() {
-        with_bounded_recovery_plan_and_trace("checkpoint-tail-regression", |plan, trace| {
+        with_bounded_recovery_plan_and_trace("checkpoint-tail-regression", |plan, trace, _| {
             assert_eq!(
                 trace.kind(),
                 RecoverySourceDecisionKind::CheckpointPlusWalTail
@@ -121,16 +117,7 @@ mod tests {
     #[test]
     fn bounded_recovery_still_denies_a_genuine_wal_only_source() {
         let operation_digest = "wal-only-bounded-denial";
-        let reopened =
-            super::super::reopened_artifact::reopened_recovery_artifact_for_operation_digest(
-                operation_digest,
-            );
-        let eligibility = reopened
-            .replay_cursor()
-            .pages()
-            .first()
-            .expect("reopened artifact retains its checkpoint page")
-            .eligibility();
+        let eligibility = redo_eligibility_for_page(19, 20, 1);
         let tail = WalTailRedoSource::wal_only(
             wal_only_tail_proof(wal_range(20, 21)),
             RecoveryCandidateDiscoveryTrace::new("strict-test-profile", "wal-only", 1),
@@ -148,7 +135,7 @@ mod tests {
         );
         let prefix = valid_prefix(source.source(), 20, 21, [frame(20)]);
         let grammar =
-            grammar_for_operation_digest(eligibility, 20, page_lsn(20), operation_digest).unwrap();
+            grammar_for_operation_digest(&eligibility, 20, page_lsn(20), operation_digest).unwrap();
         let admitted = AdmittedRedoFrame::admit(grammar, &prefix).unwrap();
         let redo_plan =
             RecoveryRedoPlan::from_valid_prefix(source.source(), prefix, vec![admitted]).unwrap();

@@ -4,36 +4,6 @@ use super::*;
 fn readmission_families_declare_exactly_the_cases_ordinary_operations_emit() {
     use std::collections::BTreeSet;
 
-    let offline_required = || {
-        layout_corruption()
-            .require_offline_readmission(
-                admitted_family(),
-                &offline_admission("offline-case-matrix"),
-            )
-            .into_offline_readmission_requirement()
-            .unwrap()
-    };
-    let offline_observed = [
-        offline_readmission()
-            .admit(
-                offline_required(),
-                offline_witness(family(), "offline-case-matrix"),
-            )
-            .case_id(),
-        offline_readmission()
-            .admit(
-                offline_required(),
-                offline_witness(family(), "offline-case-matrix-other"),
-            )
-            .case_id(),
-        offline_readmission()
-            .admit(
-                offline_required(),
-                import_witness(family(), "offline-case-wrong-class"),
-            )
-            .case_id(),
-    ];
-
     let import_required = || {
         layout_corruption()
             .require_import_readmission(
@@ -59,7 +29,7 @@ fn readmission_families_declare_exactly_the_cases_ordinary_operations_emit() {
         import_readmission()
             .admit(
                 import_required(),
-                offline_witness(family(), "import-case-matrix-other"),
+                import_witness(other_family(), "import-case-matrix-other"),
             )
             .case_id(),
     ];
@@ -98,10 +68,6 @@ fn readmission_families_declare_exactly_the_cases_ordinary_operations_emit() {
             .case_id(),
     ];
 
-    assert_eq!(
-        crate::integrity::offline_readmission_cases().collect::<BTreeSet<_>>(),
-        offline_observed.into_iter().collect()
-    );
     assert_eq!(
         crate::integrity::import_readmission_cases().collect::<BTreeSet<_>>(),
         import_observed.into_iter().collect()

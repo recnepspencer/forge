@@ -1,5 +1,8 @@
 use super::record::{read_u64, CheckpointStreamDecodeDenial};
 
+pub const PHYSICAL_MUTATION_BINDING_COMPACTION_RECORD_DOMAIN: &[u8] =
+    b"store.physical.mutation-binding-compaction-record.v1";
+
 pub(super) const BINDING_COMPACTION_HEADER_PAYLOAD_BYTES: usize = 16;
 pub const MAX_CHECKPOINT_BINDING_RECORD_BYTES: usize = 4 * 1024;
 pub const CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES: usize = 36;

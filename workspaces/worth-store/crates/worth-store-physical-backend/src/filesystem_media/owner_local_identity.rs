@@ -9,6 +9,14 @@ impl MediaOperationIdentity {
         self.0
     }
 
+    /// Creates a diagnostic correlation identity for an effect performed by
+    /// the Store-owned recovery media boundary. This identity is descriptive
+    /// and opens no backend capability.
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub const fn from_recovery_effect(value: std::num::NonZeroU64) -> Self {
+        Self(value.get())
+    }
+
     pub(super) const fn new(value: u64) -> Self {
         Self(value)
     }

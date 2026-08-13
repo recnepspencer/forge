@@ -59,23 +59,23 @@ pub(super) fn current() -> Vec<OwnerBoundaryBinding> {
             RecoveryCompletion,
             DurableAuthoritativeReceipt,
         ),
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::ReopenedRecoveryArtifactAdmission>(
+        OwnerBoundaryBinding::to::<worth_store_recovery_runtime::ReopenedPhysicalRecovery>(
             DurabilityRecovery,
-            RecoveryPhysics,
+            ProductionOwner::RecoveryRuntime,
             RecoveryReopenObservation,
             ReopenedObservedReceipt,
         ),
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::RecoveryDeterminismReport>(
+        OwnerBoundaryBinding::to::<worth_store_offline_verifier::RecoveryObserverReport>(
             RecoverySourcePrecedence,
-            RecoveryPhysics,
+            ProductionOwner::OfflineVerifier,
             RecoveryDeterminism,
             EphemeralDiagnosticTrace,
         ),
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::ReopenedRecoveryArtifactAdmission>(
-            RecoverySourcePrecedence,
-            RecoveryPhysics,
-            ReopenedArtifactAdmission,
-            ReopenedObservedReceipt,
+        OwnerBoundaryBinding::to::<worth_store_recovery_runtime::RecoveryReportEnvelope>(
+            DurabilityRecovery,
+            ProductionOwner::RecoveryRuntime,
+            RecoveryCompletion,
+            EphemeralDiagnosticTrace,
         ),
     ]
 }

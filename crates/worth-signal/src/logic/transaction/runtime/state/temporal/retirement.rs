@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, num::NonZeroUsize};
 
 use crate::data::error::SignalError;
 use crate::data::node::{CheckpointNodeImage, NodeEvaluationConfig};
@@ -171,9 +171,50 @@ where
     pub fn promote_due_temporal_wakes_ready(
         &mut self,
     ) -> Result<Vec<ReadyTemporalWake>, SignalError> {
+        self.promote_due_temporal_wakes_ready_up_to(None)
+    }
+
+    /// Promotes at most `maximum` wakes from the indexed due frontier.
+    ///
+    /// Cost is O(promoted wakes * frontier mutation cost); it never scans the
+    /// scheduled-wake registry.
+    pub fn promote_due_temporal_wakes_ready_bounded(
+        &mut self,
+        maximum: NonZeroUsize,
+    ) -> Result<crate::data::temporal::BoundedTemporalReadyPromotionSummary, SignalError> {
+        let frontier_before = self.temporal.frontier_snapshot();
+        let broad_scan_denial_before = self.telemetry.temporal.temporal_broad_scan_denial_count;
+        let ready_wakes = self.promote_due_temporal_wakes_ready_up_to(Some(maximum.get()))?;
+        let broad_scan_denial_after = self.telemetry.temporal.temporal_broad_scan_denial_count;
+        let frontier_after = self.temporal.frontier_snapshot();
+        let due_work_remaining = frontier_after
+            .next_due_tick()
+            .is_some_and(|tick| tick <= self.temporal.clock_basis().current_tick());
+        let promotion = crate::data::temporal::TemporalReadyPromotionSummary::new(
+            frontier_before,
+            frontier_after,
+            ready_wakes,
+            broad_scan_denial_after.saturating_sub(broad_scan_denial_before),
+        );
+        Ok(
+            crate::data::temporal::BoundedTemporalReadyPromotionSummary::new(
+                promotion,
+                maximum.get(),
+                due_work_remaining,
+            ),
+        )
+    }
+
+    fn promote_due_temporal_wakes_ready_up_to(
+        &mut self,
+        maximum: Option<usize>,
+    ) -> Result<Vec<ReadyTemporalWake>, SignalError> {
         let mut ready = Vec::new();
         self.telemetry.temporal.temporal_broad_scan_denial_count += 1;
         loop {
+            if maximum.is_some_and(|maximum| ready.len() >= maximum) {
+                break;
+            }
             let frontier = self.temporal.frontier_snapshot();
             let Some(next_due_tick) = frontier.next_due_tick() else {
                 break;
@@ -219,6 +260,21 @@ where
         self.ensure_active_temporal_wake_owner_live(wake_id, "reschedule")?;
         self.temporal
             .reschedule_wake(wake_id, due_tick, &mut self.telemetry.temporal)
+    }
+
+    pub fn supersede_temporal_wake(
+        &mut self,
+        wake_id: TemporalWakeId,
+        condition: TemporalCondition,
+        due_tick: crate::data::temporal::ClockTick,
+    ) -> Result<crate::data::temporal::TemporalWakeReschedule, SignalError> {
+        self.ensure_active_temporal_wake_owner_live(wake_id, "supersede")?;
+        self.temporal.supersede_wake_with_condition(
+            wake_id,
+            condition,
+            due_tick,
+            &mut self.telemetry.temporal,
+        )
     }
 
     pub fn regenerate_interval_wake(

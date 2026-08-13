@@ -9,11 +9,8 @@ use bank_domain::{
     queries::EstateGovernanceQuery,
     reads::{EstateCapabilityContext, EstateEmergencyContext, EstateGovernanceContext},
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationOneShotResult,
-    WorthQueryElevationCloseOutcome, WorthQueryMandatoryReviewOutcome,
-    WorthQueryOperationAuthorizationDenialKind,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 
 use super::{
     fixture::{
@@ -25,12 +22,13 @@ use super::{
     },
 };
 use crate::{
-    queries, BankApplicationQueryDenial, BankAuthenticatedPrincipal, BankEstateProgressionDenial,
+    queries, BankApplicationQueryDenial, BankAuthenticatedPrincipal,
+    BankEstateElevationCloseOutcome, BankEstateMandatoryReviewOutcome, BankEstateProgressionDenial,
     BankMutationCommitOutcome, BankReadControls,
 };
 
 type GovernanceResult =
-    WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>;
+    WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>;
 
 #[test]
 fn revoked_support_cuts_active_use_but_not_close_or_mandatory_review() {
@@ -98,7 +96,7 @@ fn revoked_support_cuts_active_use_but_not_close_or_mandatory_review() {
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization
+        crate::BankAuthorizationDenialKind::StaleAuthorization
     );
 
     let closed = fixture
@@ -114,7 +112,7 @@ fn revoked_support_cuts_active_use_but_not_close_or_mandatory_review() {
             &request_scope(),
         )
         .expect("independent close authority must remain available after support revocation");
-    let WorthQueryElevationCloseOutcome::Closed(mandatory) = closed else {
+    let BankEstateElevationCloseOutcome::Closed(mandatory) = closed else {
         panic!("the exact approved receipt must close once: {closed:?}");
     };
     let reviewed = fixture
@@ -131,7 +129,7 @@ fn revoked_support_cuts_active_use_but_not_close_or_mandatory_review() {
             &request_scope(),
         )
         .expect("independent review authority must survive support revocation");
-    let WorthQueryMandatoryReviewOutcome::Reviewed(_) = reviewed else {
+    let BankEstateMandatoryReviewOutcome::Reviewed(_) = reviewed else {
         panic!("the mandatory review must complete once: {reviewed:?}");
     };
 
@@ -187,8 +185,8 @@ fn revoked_request_support_cannot_be_replaced_during_approval() {
         panic!("stale request support must fail during approval authorization: {denial:?}");
     };
     assert_eq!(
-        denial.denial().kind(),
-        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization
+        denial.kind(),
+        crate::BankAuthorizationDenialKind::StaleAuthorization
     );
 
     let observed = governance_readback(&fixture, &requester);

@@ -1,24 +1,40 @@
 use super::{
-    WorthQueryProviderSessionDenialKind, WorthQueryProviderSessionFailure,
-    WorthQueryProviderSessionProtocolCounters, WorthQueryProviderSessionProtocolStage,
-    WorthQueryProviderSessionRecoveryPosture, WorthQuerySessionBoundReadsAndEffects,
-    WorthQuerySessionPrepareOutcome,
+    WorthQueryProviderSessionFailure, WorthQueryProviderSessionProtocolCounters,
+    WorthQueryProviderSessionRecoveryPosture,
 };
+
+/// Provider-authored text describing a completed physical transition.
+///
+/// This value is deliberately descriptive only. It is never parsed and cannot
+/// register, locate, commit, abort, clean up, or readmit a provider session.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryProviderTerminalDescription(std::sync::Arc<str>);
+
+impl WorthQueryProviderTerminalDescription {
+    pub fn new(description: impl Into<std::sync::Arc<str>>) -> Result<Self, &'static str> {
+        let description = description.into();
+        if description.trim().is_empty() || description.trim() != description.as_ref() {
+            return Err("provider terminal description must be non-empty and trimmed");
+        }
+        Ok(Self(description))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Debug)]
+pub struct WorthQueryClosedProviderSessionDisposition {
+    provider_description: WorthQueryProviderTerminalDescription,
+    counters: WorthQueryProviderSessionProtocolCounters,
+    terminal_binding: super::WorthQueryProviderSessionTerminalBinding,
+}
 
 #[derive(Debug)]
 pub enum WorthQuerySessionCommitOrAbortOutcome {
-    Committed {
-        plan_identity: String,
-        token_identity: String,
-        provider_receipt: String,
-        counters: WorthQueryProviderSessionProtocolCounters,
-    },
-    Aborted {
-        plan_identity: String,
-        token_identity: String,
-        provider_receipt: String,
-        counters: WorthQueryProviderSessionProtocolCounters,
-    },
+    Committed(WorthQueryClosedProviderSessionDisposition),
+    Aborted(WorthQueryClosedProviderSessionDisposition),
     CommitRecoveryRequired(WorthQueryProviderSessionFailure),
     AbortRecoveryRequired(WorthQueryProviderSessionFailure),
 }
@@ -26,7 +42,7 @@ pub enum WorthQuerySessionCommitOrAbortOutcome {
 impl WorthQuerySessionCommitOrAbortOutcome {
     pub fn recovery_posture(&self) -> WorthQueryProviderSessionRecoveryPosture {
         match self {
-            Self::Committed { .. } | Self::Aborted { .. } => {
+            Self::Committed(_) | Self::Aborted(_) => {
                 WorthQueryProviderSessionRecoveryPosture::Closed
             }
             Self::CommitRecoveryRequired(_) | Self::AbortRecoveryRequired(_) => {
@@ -40,74 +56,35 @@ impl WorthQuerySessionCommitOrAbortOutcome {
             Self::CommitRecoveryRequired(failure) | Self::AbortRecoveryRequired(failure) => {
                 Some(failure)
             }
-            Self::Committed { .. } | Self::Aborted { .. } => None,
+            Self::Committed(_) | Self::Aborted(_) => None,
         }
     }
 }
 
-impl WorthQuerySessionBoundReadsAndEffects<'_> {
-    pub fn abort(mut self) -> WorthQuerySessionCommitOrAbortOutcome {
-        self.counters.called_provider();
-        let invocation =
-            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.session.abort()));
-        match invocation {
-            Ok(Ok(provider_receipt)) => WorthQuerySessionCommitOrAbortOutcome::Aborted {
-                plan_identity: self.contract.identity().to_owned(),
-                token_identity: self.binding.token_identity().to_owned(),
-                provider_receipt,
-                counters: self.counters,
-            },
-            Ok(Err(failure)) => WorthQuerySessionCommitOrAbortOutcome::AbortRecoveryRequired(
-                failure
-                    .at_stage(WorthQueryProviderSessionProtocolStage::Abort, self.counters)
-                    .with_recovery_posture(
-                        WorthQueryProviderSessionRecoveryPosture::RecoveryRequired,
-                    ),
-            ),
-            Err(_) => WorthQuerySessionCommitOrAbortOutcome::AbortRecoveryRequired(
-                WorthQueryProviderSessionFailure::new(
-                    WorthQueryProviderSessionDenialKind::ProviderPanicked,
-                    WorthQueryProviderSessionProtocolStage::Abort,
-                    "provider panicked while aborting the session",
-                    self.counters,
-                )
-                .with_recovery_posture(WorthQueryProviderSessionRecoveryPosture::RecoveryRequired),
-            ),
+impl WorthQueryClosedProviderSessionDisposition {
+    pub(in crate::domain_computation::provider_session::protocol) fn close(
+        provider_description: WorthQueryProviderTerminalDescription,
+        counters: WorthQueryProviderSessionProtocolCounters,
+        terminal_binding: super::WorthQueryProviderSessionTerminalBinding,
+    ) -> Self {
+        Self {
+            provider_description,
+            counters,
+            terminal_binding,
         }
     }
-}
 
-impl WorthQuerySessionPrepareOutcome<'_> {
-    pub(crate) fn commit(mut self) -> WorthQuerySessionCommitOrAbortOutcome {
-        self.counters.called_provider();
-        let invocation =
-            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.session.commit()));
-        match invocation {
-            Ok(Ok(provider_receipt)) => WorthQuerySessionCommitOrAbortOutcome::Committed {
-                plan_identity: self.contract.identity().to_owned(),
-                token_identity: self.binding.token_identity().to_owned(),
-                provider_receipt,
-                counters: self.counters,
-            },
-            Ok(Err(failure)) => WorthQuerySessionCommitOrAbortOutcome::CommitRecoveryRequired(
-                failure
-                    .at_stage(
-                        WorthQueryProviderSessionProtocolStage::Commit,
-                        self.counters,
-                    )
-                    .with_recovery_posture(
-                        WorthQueryProviderSessionRecoveryPosture::RecoveryRequired,
-                    ),
-            ),
-            Err(_) => WorthQuerySessionCommitOrAbortOutcome::CommitRecoveryRequired(
-                WorthQueryProviderSessionFailure::new(
-                    WorthQueryProviderSessionDenialKind::ProviderPanicked,
-                    WorthQueryProviderSessionProtocolStage::Commit,
-                    "provider panicked while committing the prepared session",
-                    self.counters,
-                )
-                .with_recovery_posture(WorthQueryProviderSessionRecoveryPosture::RecoveryRequired),
-            ),
-        }
+    pub fn provider_description(&self) -> &WorthQueryProviderTerminalDescription {
+        &self.provider_description
+    }
+
+    pub fn counters(&self) -> WorthQueryProviderSessionProtocolCounters {
+        self.counters
+    }
+
+    pub(in crate::domain_computation) const fn terminal_binding(
+        &self,
+    ) -> &super::WorthQueryProviderSessionTerminalBinding {
+        &self.terminal_binding
     }
 }

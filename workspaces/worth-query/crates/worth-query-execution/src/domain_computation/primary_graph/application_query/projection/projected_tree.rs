@@ -8,7 +8,7 @@ use worth_query_declaration::facade::application_query::{
     ApplicationQueryResultTraversal,
 };
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, OptionalApplicationFieldValue, TypedApplicationValue,
+    ApplicationFieldUnit, OptionalApplicationFieldValue, TypedApplicationValue,
     WorthQueryInstalledGraphProjection, WorthQueryInstalledGraphRelation,
 };
 use worth_relational::facade::identity::EntityId;
@@ -165,7 +165,7 @@ impl WorthQueryApplicationProjectedField {
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >(
         &self,
         selector: &ApplicationQueryResultFieldRef<
@@ -178,12 +178,12 @@ impl WorthQueryApplicationProjectedField {
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
     ) -> bool
     where
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         Query: 'static,
         Slot: 'static,
     {
@@ -200,7 +200,7 @@ impl WorthQueryApplicationProjectedField {
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >(
         &self,
         selector: &ApplicationQueryOptionalResultFieldRef<
@@ -213,13 +213,13 @@ impl WorthQueryApplicationProjectedField {
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
     ) -> bool
     where
         Field: OptionalApplicationFieldValue<Value = Value>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         Query: 'static,
         Slot: 'static,
     {

@@ -78,25 +78,22 @@ impl<'a> WorthQueryProvisionalEffectProgramView<'a> {
 }
 
 pub struct WorthQueryProvisionalOverlayAdmission {
+    cleanup: WorthQueryProvisionalOverlayCleanupBinding,
     binding_identity: Arc<str>,
-    token_identity: Arc<str>,
-    token_generation: u64,
     program_identity: Arc<str>,
     generation: u64,
 }
 
 impl WorthQueryProvisionalOverlayAdmission {
-    pub(crate) fn new(
+    pub(in crate::domain_computation) fn new(
+        session: crate::domain_computation::provider_session::WorthQueryProviderSessionView<'_>,
         binding_identity: &str,
-        token_identity: &str,
-        token_generation: u64,
         program_identity: &str,
         generation: u64,
     ) -> Self {
         Self {
+            cleanup: WorthQueryProvisionalOverlayCleanupBinding::from_session(session),
             binding_identity: binding_identity.into(),
-            token_identity: token_identity.into(),
-            token_generation,
             program_identity: program_identity.into(),
             generation,
         }
@@ -119,11 +116,10 @@ impl WorthQueryProvisionalOverlayAdmission {
             ));
         }
         Ok(WorthQueryProvisionalOverlayEvidence {
+            cleanup: self.cleanup,
             identity: Arc::clone(&physical_overlay_identity),
             proposed_state_identity: Arc::clone(&physical_overlay_identity),
             binding_identity: self.binding_identity,
-            token_identity: self.token_identity,
-            token_generation: self.token_generation,
             program_identity: self.program_identity,
             physical_overlay_identity,
             generation: self.generation,
@@ -133,15 +129,66 @@ impl WorthQueryProvisionalOverlayAdmission {
 }
 
 pub struct WorthQueryProvisionalOverlayEvidence {
+    cleanup: WorthQueryProvisionalOverlayCleanupBinding,
     identity: Arc<str>,
     proposed_state_identity: Arc<str>,
     binding_identity: Arc<str>,
-    token_identity: Arc<str>,
-    token_generation: u64,
     program_identity: Arc<str>,
     physical_overlay_identity: Arc<str>,
     generation: u64,
     facts: Arc<[WorthQueryProposedFact]>,
+}
+
+pub(in crate::domain_computation) struct WorthQueryProvisionalOverlayCleanupBinding {
+    affinity:
+        crate::domain_computation::provider_session::WorthQueryProviderSessionAffinityIdentity,
+    token_identity: Arc<str>,
+    token_generation: u64,
+    provider_identity: Arc<str>,
+    provider_generation: u64,
+    plan_identity: Arc<str>,
+}
+
+impl WorthQueryProvisionalOverlayCleanupBinding {
+    fn from_session(
+        session: crate::domain_computation::provider_session::WorthQueryProviderSessionView<'_>,
+    ) -> Self {
+        Self {
+            affinity: session.affinity_identity(),
+            token_identity: session.identity().into(),
+            token_generation: session.generation(),
+            provider_identity: session.provider_identity().into(),
+            provider_generation: session.provider_generation(),
+            plan_identity: session.plan_identity().into(),
+        }
+    }
+
+    pub(in crate::domain_computation) const fn affinity_identity(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryProviderSessionAffinityIdentity
+    {
+        self.affinity
+    }
+
+    pub(in crate::domain_computation::provider_session) fn token_identity(&self) -> &str {
+        &self.token_identity
+    }
+
+    pub(in crate::domain_computation::provider_session) const fn token_generation(&self) -> u64 {
+        self.token_generation
+    }
+
+    pub(in crate::domain_computation::provider_session) fn provider_identity(&self) -> &str {
+        &self.provider_identity
+    }
+
+    pub(in crate::domain_computation::provider_session) const fn provider_generation(&self) -> u64 {
+        self.provider_generation
+    }
+
+    pub(in crate::domain_computation::provider_session) fn plan_identity(&self) -> &str {
+        &self.plan_identity
+    }
 }
 
 impl WorthQueryProvisionalOverlayEvidence {
@@ -230,6 +277,12 @@ pub struct WorthQueryProvisionalOverlayEvidenceView<'a> {
 }
 
 impl<'a> WorthQueryProvisionalOverlayEvidenceView<'a> {
+    pub(in crate::domain_computation) const fn cleanup_binding(
+        self,
+    ) -> &'a WorthQueryProvisionalOverlayCleanupBinding {
+        &self.evidence.cleanup
+    }
+
     pub fn identity(self) -> &'a str {
         self.evidence.identity()
     }
@@ -243,11 +296,11 @@ impl<'a> WorthQueryProvisionalOverlayEvidenceView<'a> {
     }
 
     pub fn token_identity(self) -> &'a str {
-        &self.evidence.token_identity
+        &self.evidence.cleanup.token_identity
     }
 
     pub fn token_generation(self) -> u64 {
-        self.evidence.token_generation
+        self.evidence.cleanup.token_generation
     }
 }
 

@@ -15,6 +15,13 @@ pub enum WorthQueryPortablePackageValidationDenialKind {
     ApplicationSchemaIdentityMismatch,
     DuplicateApplicationSchema,
     ConflictingApplicationSchema,
+    DuplicateConditionalApplicationOperation,
+    ConflictingConditionalApplicationOperation,
+    ConditionalApplicationSchemaMissing,
+    ConditionalApplicationOperationMissing,
+    ConditionalApplicationOperationChanged,
+    ConditionalDomainOperationMissing,
+    ConditionalDomainOperationChanged,
     CanonicalEntryBudgetExceeded,
     CanonicalEncodedByteBudgetExceeded,
     CanonicalDigestSlotRejected,
@@ -137,6 +144,64 @@ impl WorthQueryPortablePackageValidationDenial {
         Self::new(
             WorthQueryPortablePackageValidationDenialKind::ConflictingApplicationSchema,
             None,
+            subject,
+        )
+    }
+
+    pub(super) fn duplicate_conditional_application_operation(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::DuplicateConditionalApplicationOperation,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn conflicting_conditional_application_operation(
+        subject: impl Into<String>,
+    ) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::ConflictingConditionalApplicationOperation,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn conditional_application_schema_missing(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::ConditionalApplicationSchemaMissing,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn conditional_application_operation_missing(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::ConditionalApplicationOperationMissing,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn conditional_application_operation_changed(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::ConditionalApplicationOperationChanged,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn conditional_domain_operation_missing(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::ConditionalDomainOperationMissing,
+            Some(WorthQueryPortableDefinitionKind::DomainOperation),
+            subject,
+        )
+    }
+
+    pub(super) fn conditional_domain_operation_changed(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::ConditionalDomainOperationChanged,
+            Some(WorthQueryPortableDefinitionKind::DomainOperation),
             subject,
         )
     }

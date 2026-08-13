@@ -258,10 +258,10 @@ Good to know:
   when you only need the declaration-side envelope-ceiling run.
 - Use [Ordinary Outcomes](./ordinary-outcomes.md) when you want the compact
   public result lane over this composed surface.
-- Use [Recovery Boundary](./recovery-boundary.md) when the composed lane
+- Use [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md) when the composed lane
   stopped and your app needs one typed answer that preserves declaration-side
   vs contribution-side repair ownership.
-- Use [Foundational Support And Evidence Strength](./recovery/foundational-support-and-evidence-strength.md)
+- Use [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)
   when you need to explain how strong that recovery answer is.
 - Use Runtime-Installed Domain Handles for the
   admitted-handle entry points that own this run.
@@ -432,8 +432,7 @@ inspection:
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
-- [Recovery Boundary](./recovery-boundary.md)
-- [Recovery Requests And Next-Step Actions](./recovery/recovery-requests-and-next-step-actions.md)
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)
 - [Family Helpers](./family-helpers.md)
 - [Grouped Contributions](./grouped-contributions.md)
 - Declaration-Scoped Support And Traceability

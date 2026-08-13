@@ -22,8 +22,9 @@ pub(super) fn assess_domain_report(
     WorthQueryConvergenceDomainInvocationFailure,
 > {
     let iteration_ordinal = core.counters().iteration_count();
-    core.counters_mut()
-        .recorded_provider_work(receipt.work_report().completed_work_units());
+    core.record_lifecycle_event(DomainAssessmentLifecycleEvent::provider_work(
+        receipt.work_report().completed_work_units(),
+    ));
     let mut work = WorthQueryConvergenceDomainWorkEvidence::empty();
     let result = {
         let assessment = WorthQueryConvergenceAssessment::new(
@@ -47,8 +48,37 @@ pub(super) fn assess_domain_report(
             })
         })
     };
-    core.counters_mut().recorded_domain_work(&work);
+    core.record_lifecycle_event(DomainAssessmentLifecycleEvent::domain_work(work));
     result
+}
+
+pub(in crate::domain_computation::convergence_epoch) struct DomainAssessmentLifecycleEvent {
+    kind: DomainAssessmentLifecycleEventKind,
+}
+
+pub(in crate::domain_computation::convergence_epoch) enum DomainAssessmentLifecycleEventKind {
+    ProviderWork(u64),
+    DomainWork(WorthQueryConvergenceDomainWorkEvidence),
+}
+
+impl DomainAssessmentLifecycleEvent {
+    fn provider_work(completed_work_units: u64) -> Self {
+        Self {
+            kind: DomainAssessmentLifecycleEventKind::ProviderWork(completed_work_units),
+        }
+    }
+
+    fn domain_work(work: WorthQueryConvergenceDomainWorkEvidence) -> Self {
+        Self {
+            kind: DomainAssessmentLifecycleEventKind::DomainWork(work),
+        }
+    }
+
+    pub(in crate::domain_computation::convergence_epoch) fn into_kind(
+        self,
+    ) -> DomainAssessmentLifecycleEventKind {
+        self.kind
+    }
 }
 
 fn invoke_comparator(

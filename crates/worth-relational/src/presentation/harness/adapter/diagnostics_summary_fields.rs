@@ -1,4 +1,4 @@
-use crate::logic::planning::RelationalExecutionModel;
+use crate::config::data::RelationalExecutionModel;
 use crate::performance::data::RuntimeComplexityCounters;
 use crate::publication::data::PublicationDiagnosticsSnapshot;
 

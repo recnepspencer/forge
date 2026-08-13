@@ -162,45 +162,6 @@ where
             .and_then(|policies| policies.get(scope_entity))
     }
 
-    pub(crate) fn installed_capability_count_for_operation(
-        &self,
-        operation: &str,
-        input_type: &str,
-    ) -> usize {
-        self.capability_registry
-            .values()
-            .filter(|capability| {
-                let contract = capability.contract();
-                contract.operation() == operation && contract.input_type() == input_type
-            })
-            .count()
-    }
-
-    pub(crate) fn progression_support_fact_count(
-        &self,
-        operation: &str,
-        input_type: &str,
-    ) -> usize {
-        usize::from(self.capability_registry.values().any(|capability| {
-            let contract = capability.contract();
-            contract.elevation().definition().is_some_and(|definition| {
-                let lifecycle = definition.lifecycle();
-                [lifecycle.request(), lifecycle.approve()]
-                    .into_iter()
-                    .any(|transition| {
-                        let transition = transition.operation();
-                        transition.operation() == operation && transition.input_type() == input_type
-                    })
-            }) || contract
-                .delegation()
-                .activation()
-                .is_some_and(|activation| {
-                    activation.operation().operation() == operation
-                        && activation.operation().input_type() == input_type
-                })
-        }))
-    }
-
     pub const fn installation_canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
         self.installation_canonical_work
     }

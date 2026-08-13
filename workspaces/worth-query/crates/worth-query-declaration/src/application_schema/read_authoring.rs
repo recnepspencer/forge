@@ -3,8 +3,9 @@ use std::marker::PhantomData;
 use worth_foundational::facade::AspectValue;
 
 use super::authoring_context::ApplicationFieldAdmission;
-use super::capabilities::{ApplicationFieldCurrency, EqualityCapable, EqualityPredicate};
-use super::references::{ApplicationEntityRef, ApplicationFieldRef, ApplicationRelationRef};
+use super::capabilities::{ApplicationFieldUnit, EqualityCapable, EqualityPredicate};
+use super::field_reference::ApplicationFieldRef;
+use super::references::{ApplicationEntityRef, ApplicationRelationRef};
 use super::values::TypedApplicationValue;
 use super::{
     ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenial,
@@ -204,13 +205,13 @@ impl<Schema, Entity> TypedReadDeclarationBuilder<Schema, Entity> {
         self
     }
 
-    pub fn project<Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn project<Aspect, Field, Value, Write, Equality, Unit>(
         mut self,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Self
     where
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         if self.denial.is_none() {
             self.denial = self.context.as_ref().and_then(|context| {
@@ -221,7 +222,7 @@ impl<Schema, Entity> TypedReadDeclarationBuilder<Schema, Entity> {
                         field: field.field(),
                         scalar_family: field.scalar_family(),
                         value_type: field.value_type_name(),
-                        currency: field.currency(),
+                        unit: field.unit(),
                         requires_write: false,
                         requires_equality: false,
                     })
@@ -235,7 +236,7 @@ impl<Schema, Entity> TypedReadDeclarationBuilder<Schema, Entity> {
         self
     }
 
-    pub fn where_equal<Aspect, Field, Value, Write, Currency>(
+    pub fn where_equal<Aspect, Field, Value, Write, Unit>(
         mut self,
         field: ApplicationFieldRef<
             Schema,
@@ -245,13 +246,13 @@ impl<Schema, Entity> TypedReadDeclarationBuilder<Schema, Entity> {
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
     ) -> Self
     where
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         EqualityPredicate: EqualityCapable,
     {
         if self.denial.is_none() {
@@ -263,7 +264,7 @@ impl<Schema, Entity> TypedReadDeclarationBuilder<Schema, Entity> {
                         field: field.field(),
                         scalar_family: field.scalar_family(),
                         value_type: field.value_type_name(),
-                        currency: field.currency(),
+                        unit: field.unit(),
                         requires_write: false,
                         requires_equality: true,
                     })

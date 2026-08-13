@@ -204,22 +204,28 @@ fn workflow_freezes_artifact_production_before_provider_suspension() {
         crate::domain_computation::WorthQueryArtifactDenialKind::ProductionClosed
     );
     let release = match denial.rejected_resource_release() {
-        Some(crate::domain_computation::WorthQueryArtifactProviderReleasePosture::Complete(
+        Some(crate::domain_computation::artifact_owner::WorthQueryArtifactProviderReleasePosture::Complete(
             evidence,
         )) => evidence,
         posture => panic!("rejected suspension-time artifact reported {posture:?}"),
     };
     assert_eq!(
         release.disposal(),
-        crate::domain_computation::WorthQueryArtifactProviderDisposalDisposition::Completed
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDisposalDisposition::Completed
     );
     assert_eq!(
         release.destructor(),
-        crate::domain_computation::WorthQueryArtifactProviderDestructorDisposition::Completed
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDestructorDisposition::Completed
     );
     assert_eq!(disposals.load(Ordering::Acquire), 1);
-    assert_eq!(yielded.artifact_evidence().produced_artifact_count(), 0);
-    assert_eq!(yielded.artifact_evidence().retained_bytes(), 0);
+    assert_eq!(
+        yielded
+            .inspection()
+            .artifact_evidence()
+            .produced_artifact_count(),
+        0
+    );
+    assert_eq!(yielded.inspection().artifact_evidence().retained_bytes(), 0);
     match yielded.cleanup() {
         crate::domain_computation::WorthQueryWorkflowYieldCleanupOutcome::Complete(_) => {}
         _ => panic!("artifact-free freeze probe did not clean up"),

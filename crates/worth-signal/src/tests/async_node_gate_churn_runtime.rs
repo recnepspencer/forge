@@ -229,6 +229,10 @@ fn async_node_active_gate_legality_drift_revalidates_without_new_lineage_and_rep
 
     mark_dirty(runtime.graph_mut(), source, Aspect::new(1))
         .expect("committed legality drift should propagate to the gate");
+    evaluate(runtime.graph_mut(), source, &mut |_id, _graph| {
+        Ok(version_ab(0, 2))
+    })
+    .expect("producer commit should resolve the gate's dependency cause");
     let first_revalidation = runtime
         .revalidate_async_node(attached.revalidation_intent())
         .expect("active gate under legality drift should still return a revalidation report");
@@ -283,6 +287,10 @@ fn async_node_active_gate_legality_drift_revalidates_without_new_lineage_and_rep
 
     mark_dirty(runtime.graph_mut(), source, Aspect::new(1))
         .expect("reapplied legality drift should propagate identically after restore");
+    evaluate(runtime.graph_mut(), source, &mut |_id, _graph| {
+        Ok(version_ab(0, 2))
+    })
+    .expect("restored producer should publish the same dependency cause");
     let second_revalidation = runtime
         .revalidate_async_node(attached.revalidation_intent())
         .expect("restored gate should replay the same legality story");

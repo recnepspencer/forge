@@ -145,31 +145,30 @@ where
         CapabilityDisclosure::AccountActivity,
         ApplicationQueryInfluenceContract::permit_all(),
     );
-    ApplicationQueryDefinitionBuilder::public(
-        reference,
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 2),
-        disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot().with_live(),
-    )
-    .parameter(account_parameter::<Query>())
-    .where_equal(AccountIdentity::reference(), account_parameter::<Query>())
-    .order_by(
-        activity_identity::<Query>(),
-        ApplicationQueryOrderingDirection::Ascending,
-    )
-    .continue_by(activities::<Query>())
-    .live_by::<Activity, Cause, _, _, _, _, _, _, _, _>(
-        account_identity::<Query>(),
-        activity_identity::<Query>(),
-        ApplicationQueryLiveResourceContract::bounded(4, 2_048, 4_096),
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(reference)
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 2))
+        .disclosure(disclosure)
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot().with_live())
+        .public()
+        .parameter(account_parameter::<Query>())
+        .where_equal(AccountIdentity::reference(), account_parameter::<Query>())
+        .order_by(
+            activity_identity::<Query>(),
+            ApplicationQueryOrderingDirection::Ascending,
+        )
+        .continue_by(activities::<Query>())
+        .live_by::<Activity, Cause, _, _, _, _, _, _, _, _>(
+            account_identity::<Query>(),
+            activity_identity::<Query>(),
+            ApplicationQueryLiveResourceContract::bounded(4, 2_048, 4_096),
+        )
+        .build()
+        .unwrap()
 }
 
 fn influence_without_live_membership() -> ApplicationQueryInfluenceContract {
@@ -239,7 +238,7 @@ fn account_identity<Query: 'static>() -> ApplicationQueryResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("account", AccountIdentity::reference())
 }
@@ -254,7 +253,7 @@ fn activity_identity<Query: 'static>() -> ApplicationQueryResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("activity", ActivityIdentity::reference())
 }

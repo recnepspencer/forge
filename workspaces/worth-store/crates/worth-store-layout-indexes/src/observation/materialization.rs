@@ -8,8 +8,7 @@ use crate::materialization::{
     ImportedBlobMaterializationAdmissionOutcome, LsmLookupMaterializationAdmissionCaseId,
     LsmLookupMaterializationAdmissionOutcome, LsmPublicationMaterializationAdmissionCaseId,
     LsmPublicationMaterializationAdmissionOutcome, LsmReplayMaterializationAdmissionCaseId,
-    LsmReplayMaterializationAdmissionOutcome, RestoredArtifactMaterializationAdmissionCaseId,
-    RestoredArtifactMaterializationAdmissionOutcome,
+    LsmReplayMaterializationAdmissionOutcome,
 };
 
 macro_rules! observe_owner_case {
@@ -34,4 +33,3 @@ observe_owner_case!(LsmLookupMaterializationAdmissionOutcome => LsmLookupMateria
 observe_owner_case!(LsmPublicationMaterializationAdmissionOutcome => LsmPublicationMaterializationAdmissionCaseId);
 observe_owner_case!(LsmReplayMaterializationAdmissionOutcome => LsmReplayMaterializationAdmissionCaseId);
 observe_owner_case!(ImportedBlobMaterializationAdmissionOutcome => ImportedBlobMaterializationAdmissionCaseId);
-observe_owner_case!(RestoredArtifactMaterializationAdmissionOutcome => RestoredArtifactMaterializationAdmissionCaseId);

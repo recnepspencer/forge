@@ -9,6 +9,7 @@ mod liveness;
 mod lowering;
 mod lowering_authority;
 mod lowering_identity;
+mod managed_time;
 mod provider_admission;
 mod provider_semantics;
 mod providers;
@@ -38,6 +39,14 @@ pub use installed_lowering::{
 };
 pub use lowering_authority::{
     BridgeConditionalLoweringIdentityKind, BridgeConditionalLoweringProjectionIdentity,
+};
+pub use managed_time::{
+    BridgeManagedClockAcceptedObservation, BridgeManagedClockBinding, BridgeManagedClockClosure,
+    BridgeManagedClockInstallationParts, BridgeManagedClockObservationOutcome,
+    BridgeManagedClockObservationParts, BridgeManagedDueWake, BridgeManagedDueWakeBatch,
+    BridgeManagedTemporalDenial, BridgeManagedTemporalDenialKind,
+    BridgeManagedTemporalIntentIdentity, BridgeManagedTemporalIntentLifecycle,
+    BridgeManagedTemporalIntentReconciliation, BridgeManagedTemporalIntentReconciliationParts,
 };
 pub use provider_semantics::BridgeConditionalProviderSemantics;
 pub use providers::{

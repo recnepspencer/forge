@@ -1,4 +1,4 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::validation::data::{InvariantCostClass, InvariantExecutionPoint, InvariantGroupSet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

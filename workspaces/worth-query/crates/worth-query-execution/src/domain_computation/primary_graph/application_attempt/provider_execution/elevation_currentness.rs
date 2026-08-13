@@ -4,8 +4,8 @@ use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityValidityTimeline;
 
 use super::super::super::super::authorization::{
-    WorthQueryAuthorizationClock, WorthQueryElevationApprovalBinding,
-    WorthQueryElevationCloseBinding, WorthQueryElevationRequestBinding,
+    WorthQueryElevationApprovalBinding, WorthQueryElevationCloseBinding,
+    WorthQueryElevationRequestBinding, WorthQueryRuntimeClock,
 };
 use super::super::super::WorthQueryElevationClosureKind;
 
@@ -28,26 +28,26 @@ impl WorthQueryElevationCommitCurrentness {
     }
 
     pub(super) fn approval(binding: &WorthQueryElevationApprovalBinding) -> Self {
-        Self::new(&binding.requested)
+        Self::new(binding.requested())
     }
 
     pub(super) fn close(binding: &WorthQueryElevationCloseBinding) -> Self {
         Self::Close {
-            timeline: binding.approved.request_binding().supporting.timeline(),
-            expires_at: binding.approved.expires_at().clone(),
-            closure_kind: binding.draft.closure_kind,
+            timeline: binding.approved().request_binding().supporting().timeline(),
+            expires_at: binding.approved().expires_at().clone(),
+            closure_kind: binding.closure_kind(),
         }
     }
 
     fn new(binding: &WorthQueryElevationRequestBinding) -> Self {
         Self::Window {
-            timeline: binding.supporting.timeline(),
-            issued_at: binding.issued_at.clone(),
-            expires_at: binding.expires_at.clone(),
+            timeline: binding.supporting().timeline(),
+            issued_at: binding.issued_at().clone(),
+            expires_at: binding.expires_at().clone(),
         }
     }
 
-    pub(super) fn remains_current(&self, clock: &WorthQueryAuthorizationClock) -> bool {
+    pub(super) fn remains_current(&self, clock: &WorthQueryRuntimeClock) -> bool {
         let timeline = match self {
             Self::Window { timeline, .. } | Self::Close { timeline, .. } => *timeline,
         };

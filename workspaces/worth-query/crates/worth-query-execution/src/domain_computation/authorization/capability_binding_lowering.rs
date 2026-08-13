@@ -98,7 +98,7 @@ pub(super) fn request_bindings(
         field: field_binding(target.field())
             .map(|binding| field_locator(layout, binding))
             .transpose()?,
-        amount: field_binding(constraints.amount())
+        magnitude: field_binding(constraints.magnitude())
             .map(|binding| field_locator(layout, binding))
             .transpose()?,
         cardinality: constraints.cardinality(),

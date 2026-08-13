@@ -141,6 +141,32 @@ pub(in crate::physical_runtime::record_serving) fn write_root_candidate_artifact
         return Err(write_failure(plan, written, root, cause));
     }
     written.push(root);
+    let previous_selector = plan.previous_selector_candidate;
+    let previous_selector_bytes = std::mem::take(&mut plan.previous_selector_bytes);
+    if let Err(cause) = write_candidate(
+        artifacts,
+        &mut plan,
+        residency,
+        previous_selector,
+        CandidateFrameRole::RootSelectorCandidate,
+        previous_selector_bytes,
+    ) {
+        return Err(write_failure(plan, written, previous_selector, cause));
+    }
+    written.push(previous_selector);
+    let current_selector = plan.current_selector_candidate;
+    let current_selector_bytes = std::mem::take(&mut plan.current_selector_bytes);
+    if let Err(cause) = write_candidate(
+        artifacts,
+        &mut plan,
+        residency,
+        current_selector,
+        CandidateFrameRole::RootSelectorCandidate,
+        current_selector_bytes,
+    ) {
+        return Err(write_failure(plan, written, current_selector, cause));
+    }
+    written.push(current_selector);
     let candidate = plan.candidate;
     let catalog_bytes = std::mem::take(&mut plan.catalog_bytes);
     if let Err(cause) = write_candidate(
@@ -216,6 +242,12 @@ fn restore_failed_bytes(plan: &mut PublicationPlan, artifact: RecordArtifactFile
     } else if plan.root == artifact {
         debug_assert!(plan.root_bytes.is_empty());
         plan.root_bytes = bytes;
+    } else if plan.previous_selector_candidate == artifact {
+        debug_assert!(plan.previous_selector_bytes.is_empty());
+        plan.previous_selector_bytes = bytes;
+    } else if plan.current_selector_candidate == artifact {
+        debug_assert!(plan.current_selector_bytes.is_empty());
+        plan.current_selector_bytes = bytes;
     } else if plan.candidate == artifact {
         debug_assert!(plan.catalog_bytes.is_empty());
         plan.catalog_bytes = bytes;

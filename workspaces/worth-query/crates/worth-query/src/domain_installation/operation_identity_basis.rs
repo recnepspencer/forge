@@ -4,7 +4,6 @@ use worth_foundational::facade::{
     CanonicalizationRuleVersion,
 };
 
-use crate::domain_installation::{WorthQueryAftermathKind, WorthQueryAftermathPostcondition};
 use crate::domain_installation::{
     WorthQueryGraphProviderCallKind, WorthQueryOperationExecutionWarning,
     WorthQueryOperationResultState, WorthQueryWorkflowRunCounters, WorthQueryWorkflowSemanticValue,
@@ -317,29 +316,6 @@ pub(crate) fn workflow_counter_material(counters: WorthQueryWorkflowRunCounters)
             "counter.conditional_decisions_delivered",
             counters.conditional_decisions_delivered.to_string(),
         ),
-    ])
-}
-
-pub(crate) fn aftermath_material(
-    kind: WorthQueryAftermathKind,
-    postcondition: &WorthQueryAftermathPostcondition,
-) -> String {
-    let kind = match kind {
-        WorthQueryAftermathKind::ExactInverse => "exact-inverse",
-        WorthQueryAftermathKind::Compensation => "compensation",
-    };
-    let postcondition = match postcondition {
-        WorthQueryAftermathPostcondition::ExactPriorTruth => "exact-prior-truth".to_owned(),
-        WorthQueryAftermathPostcondition::InvariantRestored { invariant } => {
-            format!("invariant-restored:{invariant}")
-        }
-        WorthQueryAftermathPostcondition::BusinessPostcondition { identity } => {
-            format!("business-postcondition:{identity}")
-        }
-    };
-    canonical_operation_material(vec![
-        ("aftermath.kind", kind.into()),
-        ("aftermath.postcondition", postcondition),
     ])
 }
 

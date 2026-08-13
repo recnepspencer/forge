@@ -26,3 +26,15 @@ fn source(sequence: u64) -> PhysicalCheckpointSource {
         43,
     )
 }
+
+fn secured_source(sequence: u64) -> PhysicalCheckpointSource {
+    PhysicalCheckpointSource::secured_concurrent(
+        identity(sequence),
+        CheckpointWalSourceRange::new(11, 29).unwrap(),
+        CheckpointRootBasis::new(5, 71),
+        43,
+        [9; 32],
+        8,
+    )
+    .unwrap()
+}

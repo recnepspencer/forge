@@ -69,6 +69,29 @@ impl AuthentikBankIdentity {
         Self::install_with_adapter(bank_configuration, adapter, seeds)
     }
 
+    #[cfg(feature = "cold-certification")]
+    pub(crate) async fn install_world_for_cold_certification(
+        configuration: AuthentikOidcConfiguration,
+        seed: BankWorldSeed,
+        scope: &WorthQueryRequestScope,
+    ) -> Result<Self, AuthentikBankIdentityBuildError> {
+        let bank_configuration = configuration
+            .bank_authentication_configuration()
+            .map_err(AuthentikBankIdentityBuildError::Configuration)?;
+        let adapter = AuthentikOidcAdapter::discover_for_cold_certification(configuration, scope)
+            .await
+            .map_err(AuthentikBankIdentityBuildError::Adapter)?;
+        let runtime = BankIdentityRuntime::install_world(seed)
+            .map_err(AuthentikBankIdentityBuildError::Runtime)?;
+        let authentication = runtime
+            .admit_authentication_adapter(bank_configuration, adapter)
+            .map_err(AuthentikBankIdentityBuildError::AuthenticationBoundary)?;
+        Ok(Self {
+            runtime,
+            authentication,
+        })
+    }
+
     fn install_with_adapter(
         bank_configuration: bank_server::BankAuthenticationConfiguration,
         adapter: AuthentikOidcAdapter,

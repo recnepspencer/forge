@@ -131,16 +131,17 @@ impl DirtyBatch {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SemanticBatchCommit {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceRecomputeAdmission {
     pub dirty: DirtyBatch,
     pub changed_aspects: AspectMask,
     pub changed_regions: CanonicalChangedRegions,
     pub locality: LocalityFootprint,
     pub touched_scope: TouchedScopeSummary,
+    pub(crate) seeds: Vec<super::invalidation::source_seed::SourceRecomputeSeed>,
 }
 
-impl SemanticBatchCommit {
+impl SourceRecomputeAdmission {
     pub fn new(dirty: DirtyBatch) -> Self {
         let changed_aspects = dirty.changed_aspects_mask();
         let changed_regions = dirty.changed_regions();
@@ -155,12 +156,24 @@ impl SemanticBatchCommit {
         );
         let touched_scope =
             TouchedScopeSummary::new(scopes, touched_nodes, touched_sources.clone());
+        let seeds = dirty
+            .as_slice()
+            .iter()
+            .map(|entry| {
+                super::invalidation::source_seed::SourceRecomputeSeed::new(
+                    entry.source,
+                    entry.changed_aspect,
+                    PartitionScopeSet::from_changed_regions(&entry.changed_regions),
+                )
+            })
+            .collect();
         Self {
             dirty,
             changed_aspects,
             changed_regions,
             locality,
             touched_scope,
+            seeds,
         }
     }
 
@@ -169,6 +182,30 @@ impl SemanticBatchCommit {
     }
 }
 
+#[deprecated(note = "use SourceRecomputeAdmission; this records root admission, not commit")]
+pub type SemanticBatchCommit = SourceRecomputeAdmission;
+
 impl CanonicalForm for CanonicalChangedRegions {}
 impl DeltaForm for DirtyBatch {}
-impl SummaryForm for SemanticBatchCommit {}
+impl SummaryForm for SourceRecomputeAdmission {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn source_admission_retains_root_local_intent_without_descendant_authority() {
+        let source = NodeId::new(1, 0);
+        let aspect = Aspect::new(2);
+        let admission = SourceRecomputeAdmission::new(DirtyBatch::singleton(
+            source,
+            aspect,
+            vec![crate::data::output::ChangedRegion::new("fx")],
+        ));
+
+        assert_eq!(admission.seeds.len(), 1);
+        assert_eq!(admission.seeds[0].source(), source);
+        assert_eq!(admission.seeds[0].aspect(), aspect);
+        assert_eq!(admission.seeds[0].changed_scopes().as_slice().len(), 1);
+    }
+}

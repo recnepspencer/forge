@@ -8,6 +8,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::EvaluationCondition;
+use crate::data::proof::invalidation::revalidation::NodeInvalidationInput;
 use crate::data::resource::{
     ResourceBoundaryPerformanceEnvelope, ResourceLifecycleClass, ResourceNodeId,
 };
@@ -91,8 +92,16 @@ where
                 ))
             })?;
         let node_state = self.graph.get_state(node)?;
-        let dirty_aspects = self.graph.node_dirty_aspects(node)?;
-        let dirty_partition_scopes = self.graph.node_dirty_partition_scopes(node)?;
+        let invalidation = self.graph.node_invalidation_input(node)?;
+        let (dirty_aspects, dirty_scoped_aspects, pending_dependency) = match invalidation {
+            NodeInvalidationInput::Pending(_) => (AspectMask::EMPTY, Vec::new(), true),
+            NodeInvalidationInput::Resolved(causes) => (
+                causes.dirty_aspects(),
+                causes.dirty_scoped_aspects().to_vec(),
+                false,
+            ),
+            NodeInvalidationInput::ResolvedNoChange(_) => (AspectMask::EMPTY, Vec::new(), false),
+        };
         let contract = self.graph.get_contract(node)?.clone();
         let lifecycle_class = self
             .resource
@@ -102,8 +111,9 @@ where
         let condition = self.graph.node_condition(node)?;
         let max_dependency_delta = max_dependency_delta(&self.graph, node)?;
 
-        let mut block_class =
-            self.locality_block_class(&contract, dirty_aspects, &dirty_partition_scopes);
+        let mut block_class = pending_dependency
+            .then_some(AsyncNodeConditionBlockClass::DependencyNotReady)
+            .or_else(|| self.locality_block_class(&contract, dirty_aspects, &dirty_scoped_aspects));
         if block_class.is_none() {
             block_class = match previous_value_reference {
                 Some(reference) => self.previous_value_reference_block_class(node, reference)?,
@@ -159,13 +169,7 @@ where
                 .async_node_interior_gate_admission_count += 1;
         }
 
-        self.record_locality_counters(
-            mode,
-            class,
-            &contract,
-            dirty_aspects,
-            &dirty_partition_scopes,
-        );
+        self.record_locality_counters(mode, class, &contract, dirty_aspects, &dirty_scoped_aspects);
         let performance = self.record_async_admission_envelope(mode, class);
         Ok(AsyncNodeAdmissionClassification::new(
             node,
@@ -175,7 +179,7 @@ where
             class,
             block_class,
             dirty_aspects,
-            dirty_partition_scopes.len() as u32,
+            dirty_scoped_aspects.len() as u32,
             contract
                 .projection
                 .consumes_partitions
@@ -193,14 +197,17 @@ where
         &self,
         contract: &crate::data::node::NodeContract,
         dirty_aspects: AspectMask,
-        dirty_partition_scopes: &[crate::data::output::PartitionSubscription],
+        dirty_scoped_aspects: &[(
+            crate::data::aspect::Aspect,
+            crate::data::output::PartitionSubscription,
+        )],
     ) -> Option<AsyncNodeConditionBlockClass> {
         if dirty_aspects.is_empty()
-            || contract.cares_about_change(dirty_aspects, dirty_partition_scopes)
+            || contract.cares_about_correlated_change(dirty_aspects, dirty_scoped_aspects)
         {
             return None;
         }
-        if !dirty_partition_scopes.is_empty() && contract.projection.consumes_partitions.is_some() {
+        if !dirty_scoped_aspects.is_empty() && contract.projection.consumes_partitions.is_some() {
             Some(AsyncNodeConditionBlockClass::PartitionScopeMismatch)
         } else {
             Some(AsyncNodeConditionBlockClass::ContractAspectMismatch)
@@ -213,7 +220,10 @@ where
         class: AsyncNodeAdmissionClass,
         contract: &crate::data::node::NodeContract,
         dirty_aspects: AspectMask,
-        dirty_partition_scopes: &[crate::data::output::PartitionSubscription],
+        dirty_scoped_aspects: &[(
+            crate::data::aspect::Aspect,
+            crate::data::output::PartitionSubscription,
+        )],
     ) {
         if mode != AsyncAdmissionMode::Refresh
             || class == AsyncNodeAdmissionClass::BlockedByCondition
@@ -225,7 +235,7 @@ where
                 .resource
                 .async_node_aspect_local_refresh_count += 1;
         }
-        if !dirty_partition_scopes.is_empty() && contract.projection.consumes_partitions.is_some() {
+        if !dirty_scoped_aspects.is_empty() && contract.projection.consumes_partitions.is_some() {
             self.telemetry
                 .resource
                 .async_node_partition_local_refresh_count += 1;

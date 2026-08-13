@@ -70,21 +70,22 @@ pub(super) fn governed_account_omission_definition() -> ApplicationQueryDefiniti
 > {
     let shape = governed_account_shape();
     let disclosure = governed_account_disclosure();
-    ApplicationQueryDefinitionBuilder::public(
-        GovernedAccountOmissionQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 5),
-        disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned().with_preview(),
-        ApplicationQueryLaneEligibility::one_shot()
-            .with_historical()
-            .with_preview(),
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(GovernedAccountOmissionQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 5))
+        .disclosure(disclosure)
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned().with_preview())
+        .lanes(
+            ApplicationQueryLaneEligibility::one_shot()
+                .with_historical()
+                .with_preview(),
+        )
+        .public()
+        .build()
+        .unwrap()
 }
 
 fn governed_account_shape() -> TypedApplicationQueryResultShape<
@@ -188,7 +189,7 @@ fn status() -> ApplicationQueryResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadWrite,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("status", AccountStatus::reference())
 }
@@ -203,7 +204,7 @@ fn label() -> ApplicationQueryResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadWrite,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("label", AccountLabel::reference())
 }
@@ -218,7 +219,7 @@ fn note() -> ApplicationQueryOptionalResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadWrite,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryOptionalResultFieldRef::new("note", AccountNote::reference())
 }
@@ -233,7 +234,7 @@ fn activity_identity() -> ApplicationQueryResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("activity", ActivityIdentity::reference())
 }
@@ -248,7 +249,7 @@ fn activity_sequence() -> ApplicationQueryResultFieldRef<
     u64,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::NoEqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("sequence", ActivitySequence::reference())
 }

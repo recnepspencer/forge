@@ -1,5 +1,5 @@
 use crate::authority::commit::structural_summary::CommitStructuralSummary;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::storage::overlay::summarize_entity_chunk_plan;
 use crate::storage::overlay::EntityWorkingSetLayout;
 use crate::storage::overlay::PartitionAccess;
@@ -10,7 +10,7 @@ use crate::transactions::data::{
     CommitTopology, CreateIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent,
     TransactionCommitError,
 };
-use crate::transactions::logic::RelationalTransaction;
+use crate::transactions::RelationalTransaction;
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
@@ -159,7 +159,7 @@ pub(crate) fn prepare_authoritative_working_state_scope(
     let structural_summary = CommitStructuralSummary::derive(
         &current_state,
         &current_state,
-        &merged_plan,
+        merged_plan,
         merge_parent_count,
     );
     phase_timing.draft_structural_summary_micros = summary_started.elapsed().as_micros() as u64;
@@ -247,7 +247,7 @@ pub(crate) fn prepare_authoritative_working_state_scope(
 }
 
 pub(crate) fn record_preparation_counters(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     working_state: &WorkingState,
     structural_summary: &CommitStructuralSummary,
 ) {
@@ -264,7 +264,7 @@ pub(crate) fn record_preparation_counters(
 }
 
 pub(crate) fn record_mutation_counters(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     working_state: &WorkingState,
 ) {
     let mut counters = runtime

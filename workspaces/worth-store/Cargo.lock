@@ -1389,11 +1389,13 @@ dependencies = [
  "tempfile",
  "worth-store-layout-indexes",
  "worth-store-lsm-authority",
+ "worth-store-offline-verifier",
  "worth-store-operations",
  "worth-store-physical-backend",
  "worth-store-physical-integrity",
  "worth-store-physical-isolation",
  "worth-store-recovery-physics",
+ "worth-store-recovery-runtime",
  "worth-store-replication",
  "worth-store-security",
  "worth-store-wal",
@@ -1583,6 +1585,7 @@ dependencies = [
  "worth-store-readiness",
  "worth-store-reclaim-policy",
  "worth-store-recovery-physics",
+ "worth-store-recovery-runtime",
  "worth-store-replication",
  "worth-store-security",
  "worth-store-test-support",
@@ -1683,6 +1686,24 @@ dependencies = [
  "worth-store-security",
  "worth-store-test-support",
  "worth-store-wal",
+]
+
+[[package]]
+name = "worth-store-recovery-runtime"
+version = "0.1.0"
+dependencies = [
+ "sha2",
+ "syn",
+ "tempfile",
+ "trybuild",
+ "worth-foundational",
+ "worth-proof",
+ "worth-store",
+ "worth-store-authority",
+ "worth-store-offline-verifier",
+ "worth-store-physical-format",
+ "worth-store-recovery-physics",
+ "worth-store-test-support",
 ]
 
 [[package]]
@@ -1804,7 +1825,6 @@ dependencies = [
  "worth-store-authority",
  "worth-store-contracts",
  "worth-store-modes",
- "worth-store-physical-backend",
  "worth-store-physical-format",
  "worth-store-security",
 ]

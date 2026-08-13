@@ -9,19 +9,17 @@ pub enum FederatedOperationContractDrift {
 }
 
 pub fn federated_package<G1: 'static, G2: 'static>(
-    compensated: bool,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
-    federated_package_with_drift::<G1, G2>(compensated, None)
+    federated_package_with_drift::<G1, G2>(None)
 }
 
 pub fn federated_operation_contract_drift_package<G1: 'static, G2: 'static>(
     drift: FederatedOperationContractDrift,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
-    federated_package_with_drift::<G1, G2>(false, Some(drift))
+    federated_package_with_drift::<G1, G2>(Some(drift))
 }
 
 fn federated_package_with_drift<G1: 'static, G2: 'static>(
-    compensated: bool,
     drift: Option<FederatedOperationContractDrift>,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
     let mut semantics = read_vertex_definition(domain::WorthQuerySupportRequirement::Required)
@@ -47,16 +45,7 @@ fn federated_package_with_drift<G1: 'static, G2: 'static>(
             },
         ],
     };
-    semantics.reversal = if compensated {
-        domain::WorthQueryOperationReversalContract::Compensation {
-            operation: domain::WorthQueryDomainOperationIdentity::new(
-                "compensate-federated-read",
-                1,
-            ),
-        }
-    } else {
-        domain::WorthQueryOperationReversalContract::Irreversible
-    };
+    semantics.aftermath = None;
     semantics.cost.execution = domain::WorthQueryOperationCostClass::ExternalBoundary;
     match drift {
         Some(FederatedOperationContractDrift::PreserveLineage) => {

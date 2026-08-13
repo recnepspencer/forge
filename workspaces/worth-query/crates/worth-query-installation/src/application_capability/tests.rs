@@ -9,21 +9,19 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
         ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
         ApplicationCapabilityDistinctActorRule, ApplicationCapabilityElevationRule,
-        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-        ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRequirement,
-        ApplicationCapabilityGraphRule, ApplicationCapabilityPathContextAnchor,
-        ApplicationCapabilityPropagationComposition, ApplicationCapabilityProvenanceRef,
-        ApplicationCapabilityRef, ApplicationCapabilityRelationBinding,
-        ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
-        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
-        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
-        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
-        ErasedApplicationCapabilityContract,
+        ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
+        ApplicationCapabilityGraphRequirement, ApplicationCapabilityGraphRule,
+        ApplicationCapabilityPathContextAnchor, ApplicationCapabilityPropagationComposition,
+        ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
+        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+        ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
+        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
+        ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
+        ApplicationCapabilityWorkflowDefinition, ErasedApplicationCapabilityContract,
     },
     application_schema::{
         ApplicationAuthorizationPath, ApplicationAuthorizationPathBuilder, ApplicationEntityRef,
-        ApplicationFieldRef, ApplicationOperationRef, ApplicationRelationRef, EqualityPredicate,
-        NoApplicationCurrency, ReadOnly,
+        ApplicationOperationRef, ApplicationRelationRef,
     },
 };
 
@@ -31,9 +29,11 @@ use super::canonical_basis::prepare_capability_basis;
 
 mod axis;
 mod budgets;
+mod field_references;
 mod residue;
 
 use axis::Axis;
+use field_references::{field, field_binding, resource_field_binding};
 
 pub(super) struct Schema;
 struct Capability;
@@ -64,6 +64,9 @@ struct OtherContext;
 struct Provenance;
 struct OtherProvenance;
 struct ResourceSlot;
+struct ChangedWorkflow;
+struct ChangedResourceWorkflow;
+struct ChangedValidFrom;
 
 pub(crate) mod delegation_activation_fixture;
 mod identity_axes;
@@ -143,7 +146,7 @@ fn target(axis: Option<Axis>) -> ApplicationCapabilityTargetDefinition {
         "ResourceRelation"
     };
     ApplicationCapabilityTargetDefinition::new(
-        ApplicationCapabilityValueBinding::new(field::<Action>("Action"), action_value),
+        ApplicationCapabilityValueBinding::new(field::<Action>(), action_value),
         relation::<ResourceRelation, Grant, Resource>(resource_name, "Grant", "Resource"),
         if matches!(axis, Some(Axis::Relation)) {
             ApplicationCapabilityRelationDimension::not_applicable()
@@ -155,9 +158,9 @@ fn target(axis: Option<Axis>) -> ApplicationCapabilityTargetDefinition {
         if matches!(axis, Some(Axis::Field)) {
             ApplicationCapabilityFieldDimension::not_applicable()
         } else {
-            ApplicationCapabilityFieldDimension::bound(field::<Field>("Field"))
+            ApplicationCapabilityFieldDimension::bound(field::<Field>())
         },
-        ApplicationCapabilityValueBinding::new(field::<Purpose>("Purpose"), purpose_value),
+        ApplicationCapabilityValueBinding::new(field::<Purpose>(), purpose_value),
     )
 }
 
@@ -165,14 +168,21 @@ fn constraints<ContextMarker>(
     axis: Option<Axis>,
     context: ApplicationCapabilityContextRef<Schema, ContextMarker>,
 ) -> ApplicationCapabilityConstraintDefinition {
-    let workflow_name = changed_name(axis, Axis::Workflow, "ChangedWorkflow", "Workflow");
-    let resource_workflow_name = changed_name(
-        axis,
-        Axis::ResourceWorkflow,
-        "ChangedResourceWorkflow",
-        "ResourceWorkflow",
-    );
-    let validity_name = changed_name(axis, Axis::Validity, "ChangedValidFrom", "ValidFrom");
+    let workflow = if matches!(axis, Some(Axis::Workflow)) {
+        field_binding::<ChangedWorkflow>()
+    } else {
+        field_binding::<Workflow>()
+    };
+    let resource_workflow = if matches!(axis, Some(Axis::ResourceWorkflow)) {
+        resource_field_binding::<ChangedResourceWorkflow>()
+    } else {
+        resource_field_binding::<ResourceWorkflow>()
+    };
+    let valid_from = if matches!(axis, Some(Axis::Validity)) {
+        field_binding::<ChangedValidFrom>()
+    } else {
+        field_binding::<ValidFrom>()
+    };
     let status_value = if matches!(axis, Some(Axis::Status)) {
         2
     } else {
@@ -184,10 +194,10 @@ fn constraints<ContextMarker>(
         ApplicationCapabilityValidityTimeline::UnixEpochSeconds
     };
     ApplicationCapabilityConstraintDefinition::new(
-        if matches!(axis, Some(Axis::Amount)) {
+        if matches!(axis, Some(Axis::Magnitude)) {
             ApplicationCapabilityFieldDimension::not_applicable()
         } else {
-            ApplicationCapabilityFieldDimension::bound(field::<Amount>("Amount"))
+            ApplicationCapabilityFieldDimension::bound(field::<Amount>())
         },
         if matches!(axis, Some(Axis::Cardinality)) {
             ApplicationCapabilityCardinalityDimension::Bounded(2)
@@ -195,15 +205,12 @@ fn constraints<ContextMarker>(
             ApplicationCapabilityCardinalityDimension::One
         },
         ApplicationCapabilityCurrentnessDefinition::new(
-            ApplicationCapabilityValueBinding::new(field::<Status>("Status"), status_value),
-            ApplicationCapabilityWorkflowDefinition::new(
-                field_binding::<Workflow>(workflow_name),
-                resource_field_binding::<ResourceWorkflow>(resource_workflow_name),
-            ),
+            ApplicationCapabilityValueBinding::new(field::<Status>(), status_value),
+            ApplicationCapabilityWorkflowDefinition::new(workflow, resource_workflow),
             ApplicationCapabilityValidityDefinition::new(
                 validity_timeline,
-                field_binding::<ValidFrom>(validity_name),
-                field_binding::<ValidThrough>("ValidThrough"),
+                valid_from,
+                field_binding::<ValidThrough>(),
             ),
         ),
         context,
@@ -219,7 +226,7 @@ fn delegation<ProvenanceMarker>(
         relation::<Parent, Grant, Grant>(parent, "Grant", "Grant"),
         relation::<Grantor, Principal, Grant>("Grantor", "Principal", "Grant"),
         relation::<Grantee, Principal, Grant>("Grantee", "Principal", "Grant"),
-        field_binding::<DelegationLimit>("DelegationLimit"),
+        field_binding::<DelegationLimit>(),
         provenance,
     )
 }
@@ -277,7 +284,7 @@ fn composition(axis: Option<Axis>) -> ApplicationCapabilityComposition {
             ApplicationCapabilityDisclosureRule::permit([
                 ApplicationCapabilityScopeGuard::requiring([
                     ApplicationCapabilityAcceptedValues::one_of(
-                        field::<Field>("Field"),
+                        field::<Field>(),
                         [if changed(6) { 2_u64 } else { 1_u64 }],
                     ),
                 ]),
@@ -344,40 +351,6 @@ fn graph_path(allow: bool, relation_name: &'static str) -> ApplicationAuthorizat
     } else {
         path.deny(ApplicationEntityRef::<Schema, Resource>::from_schema_identifier("Resource"))
     }
-}
-
-fn field<FieldMarker>(
-    name: &'static str,
-) -> ApplicationFieldRef<
-    Schema,
-    Grant,
-    Facts,
-    FieldMarker,
-    u64,
-    ReadOnly,
-    EqualityPredicate,
-    NoApplicationCurrency,
-> {
-    ApplicationFieldRef::from_schema_identifiers("Grant", "Facts", name)
-}
-
-fn field_binding<FieldMarker>(name: &'static str) -> ApplicationCapabilityFieldBinding {
-    ApplicationCapabilityFieldBinding::from_reference(field::<FieldMarker>(name))
-}
-
-fn resource_field_binding<FieldMarker>(name: &'static str) -> ApplicationCapabilityFieldBinding {
-    ApplicationCapabilityFieldBinding::from_reference(ApplicationFieldRef::<
-        Schema,
-        Resource,
-        ResourceFacts,
-        FieldMarker,
-        u64,
-        ReadOnly,
-        EqualityPredicate,
-        NoApplicationCurrency,
-    >::from_schema_identifiers(
-        "Resource", "ResourceFacts", name
-    ))
 }
 
 fn relation<RelationMarker, From, To>(

@@ -1,27 +1,20 @@
-#[cfg(test)]
+//! Production admission for comparing preview execution evidence.
+
 use crate::basis::{BasisAuthorityFamily, ExecutionPreflightBundle};
-#[cfg(test)]
 use crate::execution::ExecutionResultEnvelope;
-#[cfg(test)]
 use crate::preview::binding::contract::PreviewSessionPlanBinding;
-#[cfg(test)]
 use crate::preview::comparison::contract::{
     AuthoritativePreviewComparisonCandidate, PreviewComparisonCandidateArtifact,
     PreviewComparisonEligibilityArtifact, PreviewComparisonError, PreviewComparisonFailureClass,
     PreviewExecutionComparisonAdmission, PromotionParityPreviewComparisonAdmission,
 };
-#[cfg(test)]
 use crate::preview::comparison::shape::PreviewComparisonShapeContract;
-#[cfg(test)]
 use crate::preview::execution::accounting::PreviewComparisonCounters;
-#[cfg(test)]
 use crate::preview::execution::outcome::{
     PreviewExecutionEnvelope, PromotionEligiblePreviewExecutionEnvelope,
 };
-#[cfg(test)]
 use crate::preview::workflow_context_identity;
 
-#[cfg(test)]
 pub(crate) fn derive_preview_comparison_eligibility(
     binding: &PreviewSessionPlanBinding,
 ) -> PreviewComparisonEligibilityArtifact {
@@ -60,7 +53,6 @@ pub(crate) fn derive_preview_comparison_eligibility(
     }
 }
 
-#[cfg(test)]
 fn derive_preview_comparison_candidate(
     preflight: &ExecutionPreflightBundle,
     execution: &ExecutionResultEnvelope,
@@ -100,9 +92,7 @@ fn derive_preview_comparison_candidate(
     }
 }
 
-#[cfg(test)]
-
-pub(crate) fn admit_authoritative_preview_comparison_candidate(
+pub fn admit_authoritative_preview_comparison_candidate(
     candidate_preflight: &ExecutionPreflightBundle,
     candidate_execution: &ExecutionResultEnvelope,
 ) -> Result<AuthoritativePreviewComparisonCandidate, PreviewComparisonError> {
@@ -158,8 +148,6 @@ pub(crate) fn admit_authoritative_preview_comparison_candidate(
         artifact: candidate,
     })
 }
-
-#[cfg(test)]
 
 fn admit_preview_execution_comparison(
     preview_execution: &PreviewExecutionEnvelope,
@@ -276,9 +264,7 @@ fn admit_preview_execution_comparison(
     })
 }
 
-#[cfg(test)]
-
-pub(crate) fn admit_preview_promotion_parity_comparison(
+pub fn admit_preview_promotion_parity_comparison(
     preview_execution: &PromotionEligiblePreviewExecutionEnvelope,
     candidate: &AuthoritativePreviewComparisonCandidate,
 ) -> Result<PromotionParityPreviewComparisonAdmission, PreviewComparisonError> {

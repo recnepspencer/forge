@@ -49,18 +49,16 @@ pub fn estate_case_overview_definition() -> ApplicationQueryDefinition<
     EstateCaseOverview,
     EstateCase,
 > {
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        EstateCaseOverviewQuery::reference(),
-        EstateCase::reference(),
-        EstateCase::reference(),
-        overview_shape(),
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(3, 16, 28),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned().with_preview(),
-        ApplicationQueryLaneEligibility::one_shot().with_preview(),
-        ViewEstateCase::reference(),
-    )
-    .build()
-    .expect("bank estate overview query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(EstateCaseOverviewQuery::reference())
+        .root(EstateCase::reference())
+        .scope(EstateCase::reference())
+        .result_shape(overview_shape())
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(3, 16, 28))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned().with_preview())
+        .lanes(ApplicationQueryLaneEligibility::one_shot().with_preview())
+        .requires_ability(ViewEstateCase::reference())
+        .build()
+        .expect("bank estate overview query is statically canonical")
 }

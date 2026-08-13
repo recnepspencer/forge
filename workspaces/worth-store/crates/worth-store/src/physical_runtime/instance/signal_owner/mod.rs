@@ -41,7 +41,7 @@ pub(in crate::physical_runtime) struct PhysicalWorkSignalOwner {
 }
 
 impl PhysicalWorkSignalOwner {
-    pub(super) fn build_foundation(
+    pub(in crate::physical_runtime) fn build_foundation(
         lifecycle_generation: LifecycleGeneration,
         profile: PhysicalWorkProfileDeclaration,
     ) -> Result<Self, PhysicalSignalConstructionFailure> {
@@ -293,6 +293,11 @@ impl PhysicalWorkSignalOwner {
         } else {
             PhysicalSignalShutdownOutcome::OwnerRevoked
         }
+    }
+
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(in crate::physical_runtime) fn reconciliation_counts(&self) -> (usize, u64) {
+        self.reconciliation.counts()
     }
 
     fn route(&self, route: PhysicalSignalAspectBindingDigest) -> Option<&PhysicalSignalRouteOwner> {

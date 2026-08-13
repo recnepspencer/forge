@@ -11,10 +11,8 @@ use bank_domain::{
     },
     reads::{EstateCapabilityContext, EstateGovernanceContext},
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationOneShotResult,
-    WorthQueryApprovedElevation, WorthQueryRequestedElevation,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 
 use super::super::{
     fixture::{
@@ -25,7 +23,10 @@ use super::super::{
         approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
     },
 };
-use crate::{queries, BankAuthenticatedPrincipal, BankMutationCommitOutcome, BankReadControls};
+use crate::{
+    queries, BankApprovedEstateElevation, BankAuthenticatedPrincipal, BankMutationCommitOutcome,
+    BankReadControls, BankRequestedEstateElevation,
+};
 
 pub(super) const FIRST_ACCESS: u64 = 601;
 pub(super) const SECOND_ACCESS: u64 = 602;
@@ -34,8 +35,8 @@ pub(super) struct ActivityWorld {
     pub(super) fixture: CapabilityFixture,
     pub(super) requester: BankAuthenticatedPrincipal,
     pub(super) approver: BankAuthenticatedPrincipal,
-    pub(super) first_requested: Option<WorthQueryRequestedElevation>,
-    pub(super) approved: WorthQueryApprovedElevation,
+    pub(super) first_requested: Option<BankRequestedEstateElevation>,
+    pub(super) approved: BankApprovedEstateElevation,
 }
 
 pub(super) fn activity_world(scenario: &str) -> ActivityWorld {
@@ -98,14 +99,14 @@ pub(super) fn controls(maximum_results: usize) -> BankReadControls {
     BankReadControls::current(request_scope(), maximum_results, 20_000).unwrap()
 }
 
-pub(super) fn take_first_requested(world: &mut ActivityWorld) -> WorthQueryRequestedElevation {
+pub(super) fn take_first_requested(world: &mut ActivityWorld) -> BankRequestedEstateElevation {
     world
         .first_requested
         .take()
         .expect("the first requested lifecycle should be approved once")
 }
 
-pub(super) fn approve_first(world: &ActivityWorld, requested: WorthQueryRequestedElevation) {
+pub(super) fn approve_first(world: &ActivityWorld, requested: BankRequestedEstateElevation) {
     let _ = approve_elevation(
         &world.fixture,
         &world.approver,
@@ -135,15 +136,17 @@ pub(super) fn revoke_exact_support(world: &ActivityWorld, seed: u8) {
 }
 
 pub(super) fn assert_exact_revoked_alternate_active(world: &ActivityWorld) {
-    let result: WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext> =
-        world
-            .fixture
-            .runtime
-            .query(queries::estate_governance_context(ESTATE))
-            .as_principal(&world.requester)
-            .controls(controls(1))
-            .execute()
-            .expect("governance readback should expose exact support identity");
+    let result: WorthQueryPublishedApplicationResult<
+        EstateGovernanceQuery,
+        EstateGovernanceContext,
+    > = world
+        .fixture
+        .runtime
+        .query(queries::estate_governance_context(ESTATE))
+        .as_principal(&world.requester)
+        .controls(controls(1))
+        .execute()
+        .expect("governance readback should expose exact support identity");
     assert_eq!(
         capability(&result, GRANT).status(),
         CapabilityGrantStatus::Revoked
@@ -166,6 +169,7 @@ pub(super) fn assert_resources_released(world: &ActivityWorld) {
     let buffers = application.result_buffer_observer().observe();
     assert_eq!(buffers.active_buffers(), 0);
     assert_eq!(buffers.retained_bytes(), 0);
+    assert!(buffers.peak_observed_bytes() > 0);
 }
 
 pub(super) fn items(
@@ -177,7 +181,7 @@ pub(super) fn items(
 }
 
 fn capability(
-    result: &WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>,
+    result: &WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>,
     grant: CapabilityGrantId,
 ) -> &EstateCapabilityContext {
     result.rows()[0]

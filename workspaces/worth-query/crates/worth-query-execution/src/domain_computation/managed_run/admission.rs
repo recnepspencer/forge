@@ -110,8 +110,7 @@ pub(super) fn validate_workflow_run_head(
     let attempt_operation = resource_attempt.binding_authority();
     if attempt_operation.binding_identity() != operation.binding_identity()
         || resource_attempt.operation_resources().binding_identity() != operation.binding_identity()
-        || resource_attempt.provider_session().attempt_identity()
-            != resource_attempt.attempt_identity().as_str()
+        || !super::WorthQueryWorkflowRunAffinity::provider_session_matches_attempt(resource_attempt)
     {
         return Err(denial(
             WorthQueryManagedRunDenialKind::ResourceAttemptMismatch,

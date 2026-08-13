@@ -1,16 +1,36 @@
 use worth_query_execution::facade::primary_graph::WorthQueryAdmittedDisclosedApplicationResult;
 
+mod basis;
+mod disclosure;
 mod inspection;
 mod receipt;
+mod terminal_release;
 
+pub use basis::{WorthQueryPublishedApplicationBasis, WorthQueryPublishedApplicationBasisPosture};
+pub use disclosure::{
+    WorthQueryPublishedApplicationDisclosure, WorthQueryPublishedApplicationDisclosureIdentity,
+    WorthQueryPublishedApplicationDisclosurePosture,
+};
 pub use inspection::WorthQueryApplicationQueryPublicationInspection;
-pub use receipt::WorthQueryApplicationQueryPublicationReceipt;
+pub use receipt::{
+    WorthQueryApplicationQueryPublicationReceipt,
+    WorthQueryPublishedApplicationQueryOmissionPosture,
+};
+pub use terminal_release::{
+    WorthQueryPublishedApplicationQueryReleasePosture,
+    WorthQueryPublishedApplicationQueryResultBufferRelease,
+    WorthQueryPublishedApplicationQueryTerminalRelease,
+};
+
+#[cfg(test)]
+mod source_residue_tests;
 
 /// Publication-owned result whose input was already governed before domain
 /// projection. Publication performs no field-policy decision or redaction.
 pub struct WorthQueryPublishedApplicationResult<Query, QueryResult> {
-    admitted: WorthQueryAdmittedDisclosedApplicationResult<Query, QueryResult>,
+    rows: Vec<QueryResult>,
     receipt: WorthQueryApplicationQueryPublicationReceipt,
+    _query: std::marker::PhantomData<fn() -> Query>,
 }
 
 /// Accepts only Query's admitted disclosed shape.
@@ -47,15 +67,25 @@ pub fn publish_application_result<Query, QueryResult>(
     admitted: WorthQueryAdmittedDisclosedApplicationResult<Query, QueryResult>,
 ) -> WorthQueryPublishedApplicationResult<Query, QueryResult> {
     let receipt = WorthQueryApplicationQueryPublicationReceipt::from_terminal(admitted.receipt());
-    WorthQueryPublishedApplicationResult { admitted, receipt }
+    let (rows, execution_receipt) = admitted.into_parts();
+    drop(execution_receipt);
+    WorthQueryPublishedApplicationResult {
+        rows,
+        receipt,
+        _query: std::marker::PhantomData,
+    }
 }
 
 impl<Query, QueryResult> WorthQueryPublishedApplicationResult<Query, QueryResult> {
     pub fn rows(&self) -> &[QueryResult] {
-        self.admitted.rows()
+        &self.rows
     }
 
     pub const fn receipt(&self) -> &WorthQueryApplicationQueryPublicationReceipt {
         &self.receipt
+    }
+
+    pub fn into_rows(self) -> Vec<QueryResult> {
+        self.rows
     }
 }

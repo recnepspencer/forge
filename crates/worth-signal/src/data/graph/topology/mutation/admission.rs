@@ -13,7 +13,7 @@ impl SignalGraph {
         node: NodeId,
         desired: impl IntoIterator<Item = DependencyEdge>,
     ) -> Result<(), SignalError> {
-        let desired = self.normalize_dependency_edges(desired)?;
+        let desired = CanonicalDependencies::new(desired);
         let _ = self.reconcile_dependencies(node, desired.as_slice())?;
         Ok(())
     }
@@ -73,19 +73,12 @@ impl SignalGraph {
         }
     }
 
-    fn normalize_dependency_edges(
+    pub(super) fn intern_dependency_edges(
         &mut self,
-        desired: impl IntoIterator<Item = DependencyEdge>,
-    ) -> Result<CanonicalDependencies, SignalError> {
-        let mut normalized = Vec::new();
-        for edge in desired {
-            self.validate_handle(edge.source())?;
-            normalized.push(self.build_dependency_edge(
-                edge.source(),
-                edge.aspect(),
-                edge.scope_ref().cloned(),
-            ));
-        }
-        Ok(CanonicalDependencies::new(normalized))
+        desired: CanonicalDependencies,
+    ) -> CanonicalDependencies {
+        CanonicalDependencies::new(desired.as_slice().iter().map(|edge| {
+            self.build_dependency_edge(edge.source(), edge.aspect(), edge.scope_ref().cloned())
+        }))
     }
 }

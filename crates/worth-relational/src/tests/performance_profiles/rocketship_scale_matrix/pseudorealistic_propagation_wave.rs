@@ -35,7 +35,7 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_propagation_wave(
                 "rocket.plumbing_and_feed.propagation_patch",
             );
             let hot_update_micros = hot_update_started_at.elapsed().as_micros();
-            let hot_phase_timing = update.execution.phase_timing.clone();
+            let hot_phase_timing = update.execution().phase_timing.clone();
 
             let snapshot = runtime.visibility_authority().snapshot();
             let context = runtime

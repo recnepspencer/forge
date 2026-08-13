@@ -1,0 +1,16 @@
+error[E0061]: this function takes 1 argument but 2 arguments were supplied
+ --> tests/ui/freshness_port_rejects_raw_session.rs:5:13
+  |
+5 |     let _ = PhysicalRecoveryFreshnessPort::admit(media, [7; 16]);
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^        ------- unexpected argument #2 of type `[{integer}; 16]`
+  |
+note: associated function defined here
+ --> $WORKSPACE/crates/worth-store/src/physical_runtime/recovery_freshness/port.rs
+  |
+  |     pub fn admit(
+  |            ^^^^^
+help: remove the extra argument
+  |
+5 -     let _ = PhysicalRecoveryFreshnessPort::admit(media, [7; 16]);
+5 +     let _ = PhysicalRecoveryFreshnessPort::admit(media);
+  |

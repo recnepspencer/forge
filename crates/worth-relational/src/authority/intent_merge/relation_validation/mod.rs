@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 
 use crate::capabilities::{SchemaSource, StorageRead};
 use crate::identity::data::VersionId;
-use crate::logic::runtime::{RelationalRuntime, RuntimeInstrumentation};
+use crate::runtime::{RelationalRuntime, RuntimeInstrumentation};
 use crate::transactions::data::{
     CreateIntent, CreatedEntityRef, MutationIntent, RelationMutationIntent,
 };

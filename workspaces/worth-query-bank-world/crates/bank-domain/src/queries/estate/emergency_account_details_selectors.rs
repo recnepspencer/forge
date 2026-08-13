@@ -3,7 +3,7 @@ use worth_query_decl::facade::application_query::{
     ForwardResultTraversal,
 };
 use worth_query_decl::facade::application_schema::{
-    EqualityPredicate, NoApplicationCurrency, ReadOnly, ReadWrite,
+    EqualityPredicate, NoApplicationUnit, ReadOnly, ReadWrite,
 };
 
 use crate::{
@@ -44,7 +44,7 @@ pub(super) fn account_identity() -> ApplicationQueryResultFieldRef<
     AccountId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("account", AccountIdentity::reference())
 }
@@ -59,7 +59,7 @@ pub(super) fn account_name() -> ApplicationQueryResultFieldRef<
     AccountName,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("display_name", AccountDisplayName::reference())
 }
@@ -74,7 +74,7 @@ pub(super) fn account_status() -> ApplicationQueryResultFieldRef<
     AccountStatus,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("status", Status::reference())
 }

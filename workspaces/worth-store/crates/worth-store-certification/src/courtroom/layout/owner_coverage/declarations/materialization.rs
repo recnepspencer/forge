@@ -36,9 +36,4 @@ pub(super) fn register(declarations: &mut LayoutOwnerCaseDeclarations) {
         LayoutOwnerFamily::ImportedBlobMaterialization,
         materialization::imported_blob_materialization_admission_cases().map(|case| case.as_str()),
     );
-    declarations.insert(
-        LayoutOwnerFamily::RestoredArtifactMaterialization,
-        materialization::restored_artifact_materialization_admission_cases()
-            .map(|case| case.as_str()),
-    );
 }

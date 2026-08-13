@@ -163,7 +163,7 @@ pub(super) fn operation_definition(
         invariants: WorthQueryOperationInvariantContract::NotRequired,
         invariant_execution: WorthQueryInvariantExecutionContract::NotRequired,
         replay: WorthQueryOperationReplayContract::ReExecutable,
-        reversal: WorthQueryOperationReversalContract::Irreversible,
+        aftermath: None,
         lineage: WorthQueryOperationLineageContract::NotRequired,
         promotion: WorthQueryOperationPromotionContract::NotRequired,
         publication: WorthQueryOperationPublicationContract::DerivedProjection {

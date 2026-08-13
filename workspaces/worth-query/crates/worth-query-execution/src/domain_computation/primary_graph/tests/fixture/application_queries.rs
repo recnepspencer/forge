@@ -137,7 +137,7 @@ pub(in crate::domain_computation::primary_graph::tests) fn status_result_field<Q
     String,
     worth_query_declaration::facade::application_schema::ReadWrite,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("status", AccountStatus::reference())
 }
@@ -153,7 +153,7 @@ pub(in crate::domain_computation::primary_graph::tests) fn label_result_field<Qu
     String,
     worth_query_declaration::facade::application_schema::ReadWrite,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("label", AccountLabel::reference())
 }
@@ -190,20 +190,18 @@ pub(super) fn scoped_account_summary_definition() -> ApplicationQueryDefinition<
     .field(status_result_field::<ScopedAccountSummaryQuery>())
     .field(label_result_field::<ScopedAccountSummaryQuery>())
     .build();
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        ScopedAccountSummaryQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 2),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        ViewAccount::reference(),
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(ScopedAccountSummaryQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 2))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(ViewAccount::reference())
+        .build()
+        .unwrap()
 }
 
 pub(in crate::domain_computation::primary_graph::tests) fn cross_root_definition(
@@ -223,39 +221,37 @@ pub(in crate::domain_computation::primary_graph::tests) fn cross_root_definition
     >::new(Activity::reference())
     .field(activity_sequence_result_field())
     .build();
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        CrossRootQuery::reference(),
-        Activity::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::Many,
-        ApplicationQueryDependencyCeiling::bounded(1, 3, 1),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        ViewAccount::reference(),
-    )
-    .root_path(
-        ApplicationQueryRootPath::from(Account::reference())
-            .where_equal(AccountStatus::reference(), status.to_string())
-            .forward(AccountPrimaryActivity::reference()),
-    )
-    .root_path(
-        ApplicationQueryRootPath::from(Account::reference())
-            .where_equal(AccountStatus::reference(), status.to_string())
-            .forward(AccountSecondaryActivity::reference()),
-    )
-    .root_path(
-        ApplicationQueryRootPath::from(Account::reference())
-            .where_equal(AccountStatus::reference(), status.to_string())
-            .forward(AccountAllActivity::reference()),
-    )
-    .order_by(
-        activity_sequence_result_field(),
-        ApplicationQueryOrderingDirection::Ascending,
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(CrossRootQuery::reference())
+        .root(Activity::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::Many)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 3, 1))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(ViewAccount::reference())
+        .root_path(
+            ApplicationQueryRootPath::from(Account::reference())
+                .where_equal(AccountStatus::reference(), status.to_string())
+                .forward(AccountPrimaryActivity::reference()),
+        )
+        .root_path(
+            ApplicationQueryRootPath::from(Account::reference())
+                .where_equal(AccountStatus::reference(), status.to_string())
+                .forward(AccountSecondaryActivity::reference()),
+        )
+        .root_path(
+            ApplicationQueryRootPath::from(Account::reference())
+                .where_equal(AccountStatus::reference(), status.to_string())
+                .forward(AccountAllActivity::reference()),
+        )
+        .order_by(
+            activity_sequence_result_field(),
+            ApplicationQueryOrderingDirection::Ascending,
+        )
+        .build()
+        .unwrap()
 }
 
 pub(super) fn governed_account_summary_definition() -> ApplicationQueryDefinition<
@@ -349,30 +345,27 @@ fn definition<Query: 'static>(
         ApplicationQueryLaneEligibility::one_shot()
     };
     let builder = if requires_view {
-        ApplicationQueryDefinitionBuilder::requires_ability(
-            reference,
-            Account::reference(),
-            Account::reference(),
-            shape,
-            ApplicationQueryCardinality::Many,
-            ApplicationQueryDependencyCeiling::bounded(0, 0, 2),
-            disclosure,
-            basis_support,
-            lanes,
-            ViewAccount::reference(),
-        )
+        ApplicationQueryDefinitionBuilder::declare(reference)
+            .root(Account::reference())
+            .scope(Account::reference())
+            .result_shape(shape)
+            .cardinality(ApplicationQueryCardinality::Many)
+            .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 2))
+            .disclosure(disclosure)
+            .basis_support(basis_support)
+            .lanes(lanes)
+            .requires_ability(ViewAccount::reference())
     } else {
-        ApplicationQueryDefinitionBuilder::public(
-            reference,
-            Account::reference(),
-            Account::reference(),
-            shape,
-            ApplicationQueryCardinality::Many,
-            ApplicationQueryDependencyCeiling::bounded(0, 0, 2),
-            disclosure,
-            basis_support,
-            lanes,
-        )
+        ApplicationQueryDefinitionBuilder::declare(reference)
+            .root(Account::reference())
+            .scope(Account::reference())
+            .result_shape(shape)
+            .cardinality(ApplicationQueryCardinality::Many)
+            .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 2))
+            .disclosure(disclosure)
+            .basis_support(basis_support)
+            .lanes(lanes)
+            .public()
     }
     .parameter(status_parameter())
     .where_equal(AccountStatus::reference(), status_parameter());

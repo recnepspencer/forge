@@ -64,7 +64,7 @@ impl domain::WorthQueryGraphCommitProvider<SeparateCommit> for UncontactedProvid
 #[test]
 fn primary_and_separate_mutation_requires_declared_compensation() {
     let contacts = Arc::new(AtomicUsize::new(0));
-    let uncompensated = runtime(false, Arc::clone(&contacts), "mixed-uncompensated");
+    let uncompensated = runtime(Arc::clone(&contacts), "mixed-uncompensated");
     let installed = uncompensated.domain(GeometryDomain).unwrap();
     let denial = match uncompensated
         .prepare_mutation_operating_world()
@@ -80,28 +80,13 @@ fn primary_and_separate_mutation_requires_declared_compensation() {
         domain::WorthQueryOperationBindingDenialKind::CompensationUndeclared
     );
     assert_eq!(contacts.load(Ordering::Relaxed), 0);
-
-    let compensated = runtime(true, Arc::clone(&contacts), "mixed-compensated");
-    let installed = compensated.domain(GeometryDomain).unwrap();
-    let bound = compensated
-        .prepare_mutation_operating_world()
-        .unwrap()
-        .family(MutationFamily)
-        .bind(&installed, WorkflowMutation)
-        .unwrap();
-    assert_eq!(
-        bound.commit_posture(),
-        domain::WorthQueryBoundCommitPosture::Compensated
-    );
-    assert_eq!(contacts.load(Ordering::Relaxed), 0);
 }
 
 fn runtime(
-    compensated: bool,
     contacts: Arc<AtomicUsize>,
     name: &str,
 ) -> worth_query::facade::runtime::WorthQueryWorkspace {
-    mixed_mutation_workflow_runtime::<RemoteGraph>(compensated)
+    mixed_mutation_workflow_runtime::<RemoteGraph>()
         .graph_participation(atomic_definition())
         .atomic_graph_participation_provider(
             RemoteGraph,

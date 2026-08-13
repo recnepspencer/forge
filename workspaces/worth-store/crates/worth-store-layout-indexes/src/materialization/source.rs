@@ -9,7 +9,6 @@ pub enum LayoutMaterializationSourceKind {
     BTreeRoot(worth_store_physical_format::PhysicalReference),
     LsmReplacement(worth_store_wal::BlobWalRecordIdentity),
     ImportedBlob(ImportedBlobMaterializationSourceIdentity),
-    RestoredArtifact(RestoredArtifactMaterializationSourceIdentity),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,19 +33,6 @@ impl ImportedBlobMaterializationSourceIdentity {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RestoredArtifactMaterializationSourceIdentity([u8; 32]);
-
-impl RestoredArtifactMaterializationSourceIdentity {
-    pub(super) fn from_readmission(witness: crate::integrity::LayoutReadmissionWitness) -> Self {
-        Self(witness.identity().fingerprint())
-    }
-
-    pub const fn fingerprint(self) -> [u8; 32] {
-        self.0
-    }
-}
-
 fn update_field(digest: &mut Sha256, value: &str) {
     digest.update((value.len() as u64).to_be_bytes());
     digest.update(value.as_bytes());
@@ -61,10 +47,6 @@ enum LayoutMaterializationSourceAuthority {
     LsmPublication(std::sync::Arc<worth_store_lsm_authority::PublishedLsmMembershipReplacement>),
     LsmReplay(std::sync::Arc<worth_store_lsm_authority::AdmittedLsmReplaySource>),
     ImportedBlob(std::sync::Arc<worth_store_blob_chunks::ImportedBlobWitness>),
-    RestoredArtifact {
-        readmission: crate::integrity::LayoutReadmissionWitness,
-        custody_authority: std::sync::Arc<worth_store_authority::StoreCurrentAuthorityWitness>,
-    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -187,24 +169,6 @@ impl LayoutMaterializationSourceIdentity {
             authority: LayoutMaterializationSourceAuthority::ImportedBlob(std::sync::Arc::new(
                 witness.clone(),
             )),
-        }
-    }
-
-    pub(super) fn from_restored_artifact(
-        catalog: &BootstrapCatalogReadAdmission,
-        witness: crate::integrity::LayoutReadmissionWitness,
-        custody: &worth_store_security::StoreReadmittedSecurityScope,
-    ) -> Self {
-        Self {
-            root_owner: catalog.root_owner(),
-            format_version: catalog.physical_format_version(),
-            kind: LayoutMaterializationSourceKind::RestoredArtifact(
-                RestoredArtifactMaterializationSourceIdentity::from_readmission(witness),
-            ),
-            authority: LayoutMaterializationSourceAuthority::RestoredArtifact {
-                readmission: witness,
-                custody_authority: std::sync::Arc::new(custody.current_authority().clone()),
-            },
         }
     }
 

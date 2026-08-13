@@ -1,5 +1,6 @@
 use worth_foundational::facade::ScalarAspectType;
 
+use crate::application_aftermath::PortableApplicationAftermathContract;
 use crate::application_capability::ErasedApplicationCapabilityContract;
 use crate::application_query::ErasedApplicationQueryDefinition;
 
@@ -67,7 +68,7 @@ pub enum ApplicationSchemaMember {
         presence: ApplicationFieldPresence,
         scalar_family: ScalarAspectType,
         value_type: String,
-        currency: Option<String>,
+        unit: Option<String>,
         writable: bool,
         equality_queryable: bool,
     },
@@ -135,6 +136,26 @@ pub enum ApplicationSchemaMember {
         operation: String,
         maximum_work_units: usize,
     },
+    /// The operation escapes the runtime into a named external correlation
+    /// family. Absence of this member means the operation declares no external
+    /// effect and pays nothing for one.
+    OperationExternalEffect {
+        operation: String,
+        effect: String,
+        rust_payload_type: String,
+        protocol: super::ApplicationExternalEffectProtocol,
+        maximum_payload_bytes: u64,
+        correlation_family: String,
+    },
+    /// Declared aftermath contract for one mutation operation.
+    ///
+    /// Absence means the operation carries no aftermath. Installation compiles
+    /// this member into the operation's installed contracts; callers never
+    /// supply an installed aftermath identity.
+    OperationAftermath {
+        operation: String,
+        contract: PortableApplicationAftermathContract,
+    },
     Policy {
         policy: String,
     },
@@ -153,8 +174,8 @@ pub enum ApplicationSchemaMember {
         policy: String,
         paths: Vec<ApplicationAuthorizationPath>,
     },
-    Currency {
-        currency: String,
+    Unit {
+        unit: String,
     },
     Effect {
         effect: String,

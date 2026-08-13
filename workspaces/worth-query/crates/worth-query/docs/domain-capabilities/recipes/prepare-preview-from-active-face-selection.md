@@ -90,7 +90,7 @@ This helper path still lowers onto the canonical Query surfaces:
 - declaration progression
 - signal compatibility orchestration
 - ordinary outcomes or proof-visible transcripts
-- recovery boundary
+- typed-stop remediation guidance
 
 The helper only makes the callsite family-native.
 

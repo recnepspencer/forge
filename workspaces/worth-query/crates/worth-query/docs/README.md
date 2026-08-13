@@ -4,7 +4,7 @@ These docs are organized by working category, not by implementation order.
 
 Start with the section that matches the job you are doing. Use
 `domain-capabilities/` when a downstream domain wants Query to own the
-artifact, orchestration, grouping, and recovery model.
+artifact, orchestration, grouping, continuation, and typed-stop model.
 
 ## Table Of Contents
 
@@ -15,8 +15,11 @@ artifact, orchestration, grouping, and recovery model.
 
 ## Start Here
 
+- [AI Agent Orientation](./AI_README.md)
+  Canonical runtime, substrate, authority, facade, and support model for AI
+  agents and contributors.
 - [Domain Capabilities](./domain-capabilities/README.md)
-  Typed domain entry, declaration pipeline, helpers, grouped work, recovery,
+  Typed domain entry, declaration pipeline, helpers, grouped work, remediation,
   continuation, and certification.
 - `foundations/`
   Runtime posture, support, operating modes, consumer proof, policy/tenant
@@ -46,9 +49,8 @@ artifact, orchestration, grouping, and recovery model.
   [Conditional Installed Operations](./domain-capabilities/conditional-installed-operations.md)
 - if you need ordinary workflow re-execution or cert-only semantic replay:
   [Installed Operation Re-Execution And Replay](./domain-capabilities/installed-operation-reexecution-and-replay.md)
-- if you need exact inverse, compensation, provisional discard, or recovery
-  evidence:
-  [Installed Operation Aftermath](./domain-capabilities/installed-operation-aftermath.md)
+- if a typed stop needs explanation and descriptive next-step guidance:
+  [Typed Stops And Remediation Guidance](./domain-capabilities/typed-stops-and-remediation-guidance.md)
 - if you need trace-bound identity evolution, persistent naming, or sparse
   graph promotion:
   [Installed Operation Lineage And Promotion](./domain-capabilities/installed-operation-lineage-and-promotion.md)
@@ -76,7 +78,10 @@ artifact, orchestration, grouping, and recovery model.
 - if you need installed product authorization, emergency elevation, or the
   command-versus-governed-bound distinction:
   [capabilities/application-authorization-and-emergency-elevation.md](./capabilities/application-authorization-and-emergency-elevation.md)
-- if you need basis phase lifecycle (not raw ids):
+- if a mutation declares aftermath, an external effect, idempotent dispatch,
+  or receipt-bound recovery:
+  [execution/application-aftermath-and-recovery.md](./execution/application-aftermath-and-recovery.md)
+- if you need basis capability lifecycle rather than raw identifiers:
   [capabilities/basis-capability-lifecycle.md](./capabilities/basis-capability-lifecycle.md)
 - if you need cross-runtime “why” (not `workspace.inspections()?.inspect` alone):
   [capabilities/cross-runtime-causal-inspection.md](./capabilities/cross-runtime-causal-inspection.md)
@@ -118,6 +123,7 @@ artifact, orchestration, grouping, and recovery model.
 - [Writes And Intent Boundaries](./execution/writes-and-intents.md)
 - [Projection consumption and downstream authority](./capabilities/projection-consumption.md)
 - [Authority-scoped effect execution](./execution/authority-scoped-effect-execution.md)
+- [Application aftermath, external effects, and recovery](./execution/application-aftermath-and-recovery.md)
 
 ## Runtime surfaces (feature docs)
 
@@ -141,7 +147,7 @@ artifact, orchestration, grouping, and recovery model.
 - [Runtime-installed domains and operations](./domain-capabilities/runtime-installed-domains.md)
 - [Conditional installed operations](./domain-capabilities/conditional-installed-operations.md)
 - [Installed operation re-execution and replay](./domain-capabilities/installed-operation-reexecution-and-replay.md)
-- [Installed operation aftermath](./domain-capabilities/installed-operation-aftermath.md)
+- [Typed stops and remediation guidance](./domain-capabilities/typed-stops-and-remediation-guidance.md)
 - [Installed operation lineage and promotion](./domain-capabilities/installed-operation-lineage-and-promotion.md)
 - [Consumption cost evidence](./domain-capabilities/consumption-cost-evidence.md)
 - [Lower-runtime capability routing](./domain-capabilities/lower-runtime-capability-routing.md)

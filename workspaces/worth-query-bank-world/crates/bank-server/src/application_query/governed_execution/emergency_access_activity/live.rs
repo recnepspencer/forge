@@ -12,11 +12,8 @@ use bank_domain::{
 use worth_query_host::facade::{
     declaration::application_query::ApplicationQueryParameterSet,
     primary_graph::{
-        WorthQueryApplicationLiveCauseDenialKind, WorthQueryApplicationLiveCloseOutcome,
         WorthQueryApplicationLiveControls, WorthQueryApplicationLiveLease,
-        WorthQueryApplicationLiveOutcome, WorthQueryApplicationLiveOverflow,
-        WorthQueryApplicationProjectionDenialKind, WorthQueryOperationAuthorizationDenial,
-        WorthQueryPrincipalResolutionMode,
+        WorthQueryApplicationLiveOutcome, WorthQueryPrincipalResolutionMode,
     },
     publication::domain_computation::{
         publish_application_result, WorthQueryPublishedApplicationResult,
@@ -24,7 +21,10 @@ use worth_query_host::facade::{
 };
 
 use super::admission::BankEstateEmergencyAccessActivityAdmission;
-use crate::BankApplicationQueryDenial;
+use crate::{
+    BankApplicationLiveCauseDenial, BankApplicationLiveCloseOutcome, BankApplicationLiveOverflow,
+    BankApplicationLiveProjectionDenial, BankApplicationQueryDenial, BankAuthorizationDenial,
+};
 
 type ActivityLiveLease<'runtime, 'principal> = WorthQueryApplicationLiveLease<
     'runtime,
@@ -45,40 +45,47 @@ pub struct BankEstateEmergencyAccessActivityLiveLease<'runtime, 'principal> {
 }
 
 pub struct BankEstateEmergencyAccessActivityLiveUpdate {
-    commit_ordinal: u64,
     published: WorthQueryPublishedApplicationResult<
         EstateEmergencyAccessActivityQuery,
         EstateEmergencyAccessActivity,
     >,
 }
 
+#[derive(Debug)]
 pub enum BankEstateEmergencyAccessActivityLiveOutcome {
     Delivered(BankEstateEmergencyAccessActivityLiveUpdate),
     Pending,
-    Overflow(WorthQueryApplicationLiveOverflow),
-    AuthorizationDenied(Box<WorthQueryOperationAuthorizationDenial>),
+    Overflow(BankApplicationLiveOverflow),
+    AuthorizationDenied(BankAuthorizationDenial),
     StalePrincipal,
     StaleScope,
-    ProjectionDenied(WorthQueryApplicationProjectionDenialKind),
-    CauseDenied(WorthQueryApplicationLiveCauseDenialKind),
+    ProjectionDenied(BankApplicationLiveProjectionDenial),
+    CauseDenied(BankApplicationLiveCauseDenial),
     Cancelled,
     DeadlineExceeded,
     Closed,
     Unavailable,
 }
 
-impl BankEstateEmergencyAccessActivityLiveUpdate {
-    pub const fn commit_ordinal(&self) -> u64 {
-        self.commit_ordinal
+impl std::fmt::Debug for BankEstateEmergencyAccessActivityLiveUpdate {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("BankEstateEmergencyAccessActivityLiveUpdate")
+            .field("row_count", &self.published.rows().len())
+            .field("receipt", self.published.receipt())
+            .finish()
     }
+}
 
+impl BankEstateEmergencyAccessActivityLiveUpdate {
     pub fn rows(&self) -> &[EstateEmergencyAccessActivity] {
         self.published.rows()
     }
 
     pub fn receipt(
         &self,
-    ) -> &worth_query_host::facade::publication::domain_computation::WorthQueryApplicationQueryPublicationReceipt{
+    ) -> &worth_query_host::facade::publication::domain_computation::WorthQueryApplicationQueryPublicationReceipt
+    {
         self.published.receipt()
     }
 }
@@ -91,11 +98,9 @@ impl BankEstateEmergencyAccessActivityLiveLease<'_, '_> {
     pub fn poll(&mut self) -> BankEstateEmergencyAccessActivityLiveOutcome {
         match self.query.poll() {
             WorthQueryApplicationLiveOutcome::Delivered(update) => {
-                let commit_ordinal = update.commit_ordinal();
                 let (_, admitted) = update.into_admitted_disclosed();
                 BankEstateEmergencyAccessActivityLiveOutcome::Delivered(
                     BankEstateEmergencyAccessActivityLiveUpdate {
-                        commit_ordinal,
                         published: publish_application_result(admitted),
                     },
                 )
@@ -104,10 +109,14 @@ impl BankEstateEmergencyAccessActivityLiveLease<'_, '_> {
                 BankEstateEmergencyAccessActivityLiveOutcome::Pending
             }
             WorthQueryApplicationLiveOutcome::Overflow(overflow) => {
-                BankEstateEmergencyAccessActivityLiveOutcome::Overflow(overflow)
+                BankEstateEmergencyAccessActivityLiveOutcome::Overflow(
+                    BankApplicationLiveOverflow::from_query(overflow),
+                )
             }
-            WorthQueryApplicationLiveOutcome::AuthorizationDenied(kind) => {
-                BankEstateEmergencyAccessActivityLiveOutcome::AuthorizationDenied(kind)
+            WorthQueryApplicationLiveOutcome::AuthorizationDenied(denial) => {
+                BankEstateEmergencyAccessActivityLiveOutcome::AuthorizationDenied(
+                    BankAuthorizationDenial::from_query(*denial),
+                )
             }
             WorthQueryApplicationLiveOutcome::StalePrincipal => {
                 BankEstateEmergencyAccessActivityLiveOutcome::StalePrincipal
@@ -116,10 +125,14 @@ impl BankEstateEmergencyAccessActivityLiveLease<'_, '_> {
                 BankEstateEmergencyAccessActivityLiveOutcome::StaleScope
             }
             WorthQueryApplicationLiveOutcome::ProjectionDenied(kind) => {
-                BankEstateEmergencyAccessActivityLiveOutcome::ProjectionDenied(kind)
+                BankEstateEmergencyAccessActivityLiveOutcome::ProjectionDenied(
+                    BankApplicationLiveProjectionDenial::from_query(kind),
+                )
             }
             WorthQueryApplicationLiveOutcome::CauseDenied(kind) => {
-                BankEstateEmergencyAccessActivityLiveOutcome::CauseDenied(kind)
+                BankEstateEmergencyAccessActivityLiveOutcome::CauseDenied(
+                    BankApplicationLiveCauseDenial::from_query(kind),
+                )
             }
             WorthQueryApplicationLiveOutcome::Cancelled => {
                 BankEstateEmergencyAccessActivityLiveOutcome::Cancelled
@@ -136,8 +149,8 @@ impl BankEstateEmergencyAccessActivityLiveLease<'_, '_> {
         }
     }
 
-    pub fn close(self) -> WorthQueryApplicationLiveCloseOutcome {
-        self.query.close()
+    pub fn close(self) -> BankApplicationLiveCloseOutcome {
+        BankApplicationLiveCloseOutcome::from_query(self.query.close())
     }
 }
 
@@ -155,23 +168,23 @@ impl<'runtime, 'principal>
         let query = application
             .installed_schema()
             .application_query(EstateEmergencyAccessActivityQuery::reference())
-            .map_err(BankApplicationQueryDenial::Installation)?;
+            .map_err(BankApplicationQueryDenial::from_installation)?;
         let capability = application
             .installed_schema()
             .capability(
                 ViewEstateEmergencyProtectionCapability::reference(),
                 ViewRestrictedEstateOperation::reference(),
             )
-            .map_err(BankApplicationQueryDenial::CapabilityInstallation)?;
+            .map_err(BankApplicationQueryDenial::from_capability_installation)?;
         let capability_access = application
             .admit_approved_elevation_access(
-                self.approved,
+                self.approved.query(),
                 self.principal.query(),
                 &capability,
                 self.request.capability_request(),
                 controls.request(),
             )
-            .map_err(BankApplicationQueryDenial::CapabilityAdmission)?;
+            .map_err(BankApplicationQueryDenial::from_capability_admission)?;
         let scope = application
             .resolve_entity(
                 EstateCaseIdentityField::reference(),
@@ -179,7 +192,7 @@ impl<'runtime, 'principal>
                 controls.request(),
                 WorthQueryPrincipalResolutionMode::Ordinary,
             )
-            .map_err(BankApplicationQueryDenial::ScopeResolution)?;
+            .map_err(BankApplicationQueryDenial::from_scope_resolution)?;
         let query = application
             .open_governed_application_query_live::<
                 EstateEmergencyAccessActivityQuery,
@@ -201,7 +214,7 @@ impl<'runtime, 'principal>
                 ApplicationQueryParameterSet::<EstateEmergencyAccessActivityQuery>::new(),
                 controls,
             )
-            .map_err(BankApplicationQueryDenial::LiveOpen)?;
+            .map_err(BankApplicationQueryDenial::from_live_open)?;
         Ok(BankEstateEmergencyAccessActivityLiveLease { query })
     }
 }

@@ -6,9 +6,7 @@ use bank_domain::{
     },
     model::{Money, USD},
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryOperationAuthorizationDenialKind,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
 use super::fixture::{
     delegation_world, delegation_world_with_parent_spec, request_scope, CapabilityFixture,
@@ -118,9 +116,9 @@ fn assert_denied(fixture: CapabilityFixture, action: EstateAction, seed: u8) {
     assert!(
         matches!(
             denial.kind(),
-            WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing
-                | WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
-                | WorthQueryOperationAuthorizationDenialKind::DelegationRejected
+            crate::BankAuthorizationDenialKind::CapabilityGrantMissing
+                | crate::BankAuthorizationDenialKind::CapabilityAuthorizationMissing
+                | crate::BankAuthorizationDenialKind::DelegationRejected
         ),
         "unexpected exact delegation denial: {:?}",
         denial.kind()

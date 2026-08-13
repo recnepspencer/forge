@@ -1,7 +1,7 @@
 use worth_query_decl::facade::{
     application_query::ApplicationQueryResultFieldRef,
     application_schema::{
-        EqualityPredicate, NoApplicationCurrency, ReadOnly,
+        EqualityPredicate, NoApplicationUnit, ReadOnly,
     },
 };
 use worth_query_execution::facade::primary_graph::WorthQueryApplicationProjectionRow;
@@ -26,7 +26,7 @@ fn project_foreign_selector(
         u64,
         ReadOnly,
         EqualityPredicate,
-        NoApplicationCurrency,
+        NoApplicationUnit,
     >,
 ) {
     let _ = row.field(selector);

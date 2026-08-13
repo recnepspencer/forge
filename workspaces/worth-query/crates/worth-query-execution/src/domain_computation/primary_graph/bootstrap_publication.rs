@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
 use worth_query_installation::facade::TypedApplicationValue;
-use worth_relational::facade::history::BranchId;
 use worth_relational::facade::identity::PartitionId;
 use worth_relational::facade::indexes::{DerivedIndexBuildRequest, DerivedIndexId};
 use worth_relational::facade::symbols::ClientKey;
@@ -15,7 +14,7 @@ use super::typed_bootstrap::{
     WorthQueryTypedEntityBootstrapRow, WorthQueryTypedRelationBootstrapRow,
 };
 use super::{
-    WorthQueryPrimaryGraph, WorthQueryPrimaryGraphInstallationDenial,
+    primary_relational_branch_id, WorthQueryPrimaryGraph, WorthQueryPrimaryGraphInstallationDenial,
     WorthQueryPrimaryGraphInstallationDenialKind,
 };
 
@@ -155,7 +154,7 @@ pub(super) fn build_identity_indexes(
             .index_authority()
             .build_for_commit(DerivedIndexBuildRequest {
                 source_commit_id,
-                branch_id: BranchId("main".to_string()),
+                branch_id: primary_relational_branch_id(),
                 index_ids: index_ids.to_vec(),
             });
         if build.failed_indexes.is_empty() && build.generations.len() == index_ids.len() {

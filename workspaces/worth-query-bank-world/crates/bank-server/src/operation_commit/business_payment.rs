@@ -254,7 +254,10 @@ fn commit<Operation, Input, Scope>(
         Input,
         Scope,
     >,
-) -> Result<BankMutationCommitOutcome, BankCommitPreparationDenial> {
+) -> Result<BankMutationCommitOutcome, BankCommitPreparationDenial>
+where
+    Input: Clone + Send + Sync + 'static,
+{
     let idempotency = application_idempotency(&invariant);
     Ok(runtime
         .application_runtime()

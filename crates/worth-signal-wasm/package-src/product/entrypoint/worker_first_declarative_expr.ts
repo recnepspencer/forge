@@ -22,6 +22,26 @@ export function evaluateWorkerFirstDeclarativeSpec(rootSession, family, spec, op
   });
 }
 
+/**
+ * Tip-local declarative evaluation over an explicit tip reader.
+ * Used by host tip projection before worker catch-up.
+ */
+export function evaluateWorkerFirstDeclarativeTip(spec, readSignalValue, operation = "tip.project") {
+  if (!spec || typeof spec !== "object" || Array.isArray(spec) || !spec.expr) {
+    throw new TypeError(`${operation}(...) requires a declarative tip spec with expr`);
+  }
+  if (typeof readSignalValue !== "function") {
+    throw new TypeError(`${operation}(...) requires a tip signal reader`);
+  }
+  if (spec.when != null) {
+    if (typeof spec.when !== "object" || Array.isArray(spec.when)) {
+      throw new TypeError(`${operation}(...) requires spec.when as a condition object when provided`);
+    }
+    evaluateExpr(spec.when.expr, readSignalValue, operation);
+  }
+  return evaluateExpr(spec.expr, readSignalValue, operation);
+}
+
 function normalizeDeclarativeReadIds(reads, operation) {
   if (reads === undefined) {
     return [];

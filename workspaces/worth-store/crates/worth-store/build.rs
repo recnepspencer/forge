@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -29,13 +30,11 @@ fn main() {
         digest.update(bytes);
     }
     let bytes: [u8; 32] = digest.finalize().into();
-    let generated = format!(
-        "pub(super) const COMPILED_DURABILITY_SOURCE_IDENTITY: [u8; 32] = {:?};\n",
-        bytes
-    );
-    let output = PathBuf::from(std::env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
-        .join("durability_source_identity.rs");
-    fs::write(output, generated).expect("write generated Store source identity");
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        write!(&mut encoded, "{byte:02x}").expect("hex encoding into String cannot fail");
+    }
+    println!("cargo:rustc-env=WORTH_STORE_DURABILITY_SOURCE_IDENTITY={encoded}");
 }
 
 fn collect_files(directory: &Path, inputs: &mut Vec<PathBuf>) {

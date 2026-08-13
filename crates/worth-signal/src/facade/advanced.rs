@@ -8,6 +8,7 @@ pub use crate::data::comparator::DefaultComparatorResolver;
 pub use crate::data::comparator::VersionComparatorPolicy;
 #[cfg(test)]
 pub use crate::data::comparator::VersionComparatorResolver;
+pub use crate::data::output_equivalence::OutputEquivalencePolicy;
 #[cfg(test)]
 pub use crate::logic::context::EvaluationContext;
 #[cfg(test)]

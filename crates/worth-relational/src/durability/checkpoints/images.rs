@@ -9,10 +9,11 @@ use crate::durability::data::{
 };
 use crate::identity::data::KindId;
 use crate::schema::data::{AspectContractPlanCatalog, LoweredAspectContractPlan};
-use crate::storage::logic::state::{
-    AdjacencySet, DenseSlotBitSet, EntityExtra, EntityRecordKind, PartitionState, RecordArena,
-    RecordKind, RelationEndpoints, RelationRecordKind, VersionedEntityMetadata,
-    VersionedRelationMetadata,
+use crate::storage::overlay::PartitionState;
+use crate::storage::partition::{AdjacencySet, DenseSlotBitSet};
+use crate::storage::substrate::{
+    EntityExtra, EntityRecordKind, RecordArena, RecordKind, RelationEndpoints, RelationRecordKind,
+    VersionedEntityMetadata, VersionedRelationMetadata,
 };
 
 use super::aspect_state_images::{export_state, readmit_state, CheckpointAspectContractCatalog};
@@ -160,7 +161,7 @@ impl CheckpointArenaKind for RelationRecordKind {
         extra: RelationExtraImage,
         contracts: &CheckpointAspectContractCatalog,
     ) -> Result<Self::Extra, DurabilityError> {
-        Ok(crate::storage::logic::state::RelationExtra {
+        Ok(crate::storage::substrate::RelationExtra {
             endpoints: extra.endpoints.map(|endpoints| RelationEndpoints {
                 source: endpoints.source,
                 target: endpoints.target,

@@ -19,7 +19,7 @@ use crate::logic::evaluation::{
     OperationalEffect,
 };
 
-fn test_effect_with_labels(labels: Vec<String>) -> EvaluationEffect {
+pub(super) fn test_effect_with_labels(labels: Vec<String>) -> EvaluationEffect {
     let node = NodeId::new(0, 0);
     let mut shape_store = crate::data::dependency::DependencySnapshotShapeStore::default();
     EvaluationEffect {
@@ -27,6 +27,7 @@ fn test_effect_with_labels(labels: Vec<String>) -> EvaluationEffect {
             node,
             verdict: EvaluationVerdict::Recomputed,
             aspect_version: AspectVersion::zero(),
+            changed_aspect_regions: Vec::new(),
             output_change: OutputChange::Replaced,
             reuse_basis: ReuseBasis::strategy(
                 ReuseStrategy::MemoizedArtifactReuse,
@@ -75,6 +76,33 @@ fn test_effect_with_labels(labels: Vec<String>) -> EvaluationEffect {
 }
 
 #[test]
+fn contradictory_unchanged_output_is_rejected_before_graph_mutation() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let node = graph.create_node();
+    let mut effect = test_effect_with_labels(Vec::new());
+    effect.operational.node = node;
+    effect.operational.aspect_version =
+        AspectVersion::from_updates([(crate::data::aspect::Aspect::new(1), 1)]);
+    effect.operational.output_change = OutputChange::Unchanged;
+
+    let error = graph
+        .compare_effect(
+            &effect,
+            None,
+            crate::data::output_equivalence::OutputEquivalencePolicy::ExactAspectVersion,
+        )
+        .expect_err("contradictory output must fail before apply");
+
+    assert!(error
+        .to_string()
+        .contains("output commit contract violation"));
+    assert_eq!(
+        graph.node_aspect_version(node).unwrap(),
+        AspectVersion::zero()
+    );
+}
+
+#[test]
 fn retained_reuse_certification_increments_cold_materialization_counter() {
     let mut telemetry = RuntimeTelemetry::default();
     let node = NodeId::new(0, 0);
@@ -86,6 +114,7 @@ fn retained_reuse_certification_increments_cold_materialization_counter() {
                 reason: crate::logic::evaluation::SuppressionReason::ComparatorMatch,
             },
             aspect_version: AspectVersion::zero(),
+            changed_aspect_regions: Vec::new(),
             output_change: OutputChange::Unchanged,
             reuse_basis: ReuseBasis::strategy(
                 ReuseStrategy::MemoizedArtifactReuse,

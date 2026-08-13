@@ -10,8 +10,10 @@ use super::{
     WorthQueryGraphProviderReceipt, WorthQueryGraphReadMaterial,
     WorthQueryGraphReceiptAdmissionDenial, WorthQueryProviderWorkReport,
 };
+use crate::domain_computation::domain_evidence_binding::WorthQueryBoundExecutionSnapshotIdentity;
 use crate::domain_computation::provider_session::{
-    WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAttemptEvidence,
+    WorthQueryClosedExecutionAttemptIdentity, WorthQueryExecutionProviderSession,
+    WorthQueryExecutionProviderSessionIdentity, WorthQueryExecutionResourceAttemptEvidence,
 };
 use crate::execution_digest::hash_parts;
 
@@ -96,9 +98,10 @@ impl WorthQueryGraphProviderCallRequest {
                 graph_role: Arc::from(graph.role()),
                 canonical_query_digest: Arc::from(binding.canonical_query_digest()),
                 basis_identity: Arc::from(binding.basis_identity()),
-                snapshot_identity: self
-                    .snapshot_identity
-                    .expect("provider session validates managed execution basis"),
+                snapshot_identity: WorthQueryBoundExecutionSnapshotIdentity::capture(
+                    self.snapshot_identity
+                        .expect("provider session validates managed execution basis"),
+                ),
             },
         }
     }
@@ -114,24 +117,25 @@ pub(in crate::domain_computation::provider_session) struct WorthQueryGraphCallSc
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation::provider_session) struct WorthQueryGraphCallReadBinding {
-    graph_role: Arc<str>,
-    canonical_query_digest: Arc<str>,
-    basis_identity: Arc<str>,
-    snapshot_identity: Arc<str>,
+    pub(super) graph_role: Arc<str>,
+    pub(super) canonical_query_digest: Arc<str>,
+    pub(super) basis_identity: Arc<str>,
+    pub(super) snapshot_identity: WorthQueryBoundExecutionSnapshotIdentity,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation::provider_session) struct WorthQueryGraphProviderCallSpec {
-    kind: WorthQueryGraphProviderCallKind,
-    scope: WorthQueryGraphCallScope,
-    read_binding: WorthQueryGraphCallReadBinding,
+    pub(super) kind: WorthQueryGraphProviderCallKind,
+    pub(super) scope: WorthQueryGraphCallScope,
+    pub(super) read_binding: WorthQueryGraphCallReadBinding,
 }
 
 #[derive(Clone, Debug)]
 pub struct WorthQueryGraphProviderCall {
     authority_identity: WorthQueryGraphCallAuthorityIdentity,
     call_identity: Arc<str>,
-    provider_session_identity: Arc<str>,
+    provider_session_identity: WorthQueryExecutionProviderSessionIdentity,
+    attempt_identity: WorthQueryClosedExecutionAttemptIdentity,
     spec: WorthQueryGraphProviderCallSpec,
     execution_resources: WorthQueryExecutionResourceAttemptEvidence,
     resource_envelope: Arc<WorthQueryExecutionResourceEnvelope>,
@@ -176,7 +180,7 @@ impl WorthQueryGraphProviderCall {
             format!("role:{}", spec.read_binding.graph_role),
             format!("query:{}", spec.read_binding.canonical_query_digest),
             format!("basis:{}", spec.read_binding.basis_identity),
-            format!("snapshot:{}", spec.read_binding.snapshot_identity),
+            format!("snapshot:{}", spec.read_binding.snapshot_identity.as_str()),
             format!("kind:{}", spec.kind.as_str()),
             format!("scope:{}", spec.scope.scope_identity),
             format!(
@@ -188,7 +192,8 @@ impl WorthQueryGraphProviderCall {
         Self {
             authority_identity,
             call_identity,
-            provider_session_identity: Arc::from(session.identity()),
+            provider_session_identity: session.closed_identity(),
+            attempt_identity: session.closed_attempt_identity(),
             spec,
             execution_resources: execution_resources.clone(),
             resource_envelope,
@@ -224,7 +229,7 @@ impl WorthQueryGraphProviderCall {
     }
 
     pub fn snapshot_identity(&self) -> &str {
-        &self.spec.read_binding.snapshot_identity
+        self.spec.read_binding.snapshot_identity.as_str()
     }
 
     pub fn execution_resources(&self) -> &WorthQueryExecutionResourceAttemptEvidence {
@@ -306,6 +311,20 @@ impl WorthQueryGraphProviderCall {
     }
 
     pub(super) fn provider_session_identity(&self) -> &str {
-        &self.provider_session_identity
+        self.provider_session_identity.as_str()
+    }
+
+    pub(super) fn closed_provider_session_identity(
+        &self,
+    ) -> WorthQueryExecutionProviderSessionIdentity {
+        self.provider_session_identity.clone()
+    }
+
+    pub(super) fn closed_attempt_identity(&self) -> WorthQueryClosedExecutionAttemptIdentity {
+        self.attempt_identity.clone()
+    }
+
+    pub(super) fn spec(&self) -> &WorthQueryGraphProviderCallSpec {
+        &self.spec
     }
 }

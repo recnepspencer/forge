@@ -303,6 +303,15 @@ fn blueprint_yaml(fixture: &IdentityFixture) -> String {
             )
         })
         .collect::<String>();
+    let redirect_uris = fixture
+        .redirect_urls()
+        .iter()
+        .map(|redirect_url| {
+            format!(
+                "        - matching_mode: strict\n          redirect_uri_type: authorization\n          url: {redirect_url}\n"
+            )
+        })
+        .collect::<String>();
     format!(
         r#"version: 1
 metadata:
@@ -331,9 +340,7 @@ entries:
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, email]]
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, profile]]
       redirect_uris:
-        - matching_mode: strict
-          redirect_uri_type: authorization
-          url: {redirect_url}
+{redirect_uris}
   - model: authentik_providers_oauth2.oauth2provider
     state: must_created
     id: alternate-provider
@@ -356,9 +363,7 @@ entries:
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, email]]
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, profile]]
       redirect_uris:
-        - matching_mode: strict
-          redirect_uri_type: authorization
-          url: {redirect_url}
+{redirect_uris}
   - model: authentik_core.application
     state: must_created
     identifiers:
@@ -381,6 +386,6 @@ entries:
         alternate_slug = fixture.alternate_slug(),
         alternate_client_id = fixture.alternate_client_id(),
         alternate_client_secret = fixture.alternate_client_secret(),
-        redirect_url = fixture.redirect_url(),
+        redirect_uris = redirect_uris,
     )
 }

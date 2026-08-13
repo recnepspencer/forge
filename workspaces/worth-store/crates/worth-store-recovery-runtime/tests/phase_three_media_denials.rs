@@ -1,0 +1,91 @@
+#[allow(dead_code)]
+mod phase_three_support;
+
+use phase_three_support::*;
+use worth_store::physical_runtime::{ArtifactTreeFailureKind, RecoveryDiscoveryArtifact};
+use worth_store_physical_format::RecordArtifactFile;
+use worth_store_recovery_runtime::{
+    PhysicalRecoveryBlockKind, PhysicalRecoveryMediaObservationFailure,
+    PhysicalRecoverySourceDenial,
+};
+
+#[test]
+fn media_denials_retain_exact_fixed_artifact_and_backend_cause() {
+    let selector_parent = tempfile::tempdir().unwrap();
+    let selector_root = selector_parent.path().join("selector-directory");
+    let selector_store = initialize_store(&selector_root);
+    publish_synthetic_genesis(&selector_root, selector_store);
+    replace_with_unreadable_entry(&current_selector(&selector_root));
+    let selector_blocked = expect_blocked(
+        admitted_recovery(&selector_root)
+            .discover()
+            .err()
+            .expect("a directory in the current-selector slot must block"),
+    );
+    assert_media_denial(
+        &selector_blocked,
+        RecoveryDiscoveryArtifact::Record(RecordArtifactFile::CurrentRootSelector),
+    );
+
+    let checkpoint_parent = tempfile::tempdir().unwrap();
+    let checkpoint_root = checkpoint_parent.path().join("checkpoint-directory");
+    let checkpoint_store = initialize_store(&checkpoint_root);
+    publish_synthetic_genesis(&checkpoint_root, checkpoint_store);
+    let checkpoint = checkpoint_root.join("families").join("checkpoint.current");
+    replace_absent_with_unreadable_entry(&checkpoint);
+    let checkpoint_blocked = expect_blocked(
+        admitted_recovery(&checkpoint_root)
+            .discover()
+            .err()
+            .expect("a directory in the checkpoint slot must block"),
+    );
+    assert_media_denial(
+        &checkpoint_blocked,
+        RecoveryDiscoveryArtifact::CurrentCheckpoint,
+    );
+}
+
+fn assert_media_denial(
+    blocked: &worth_store_recovery_runtime::PhysicalRecoveryBlock,
+    expected_artifact: RecoveryDiscoveryArtifact,
+) {
+    assert_eq!(blocked.kind, PhysicalRecoveryBlockKind::MediaObservation);
+    let [PhysicalRecoverySourceDenial::MediaObservation { artifact, failure }] =
+        blocked.evidence().source_denials.as_slice()
+    else {
+        panic!("media failure must retain one exact typed denial")
+    };
+    assert_eq!(artifact, &expected_artifact);
+    assert!(
+        matches!(
+            failure,
+            PhysicalRecoveryMediaObservationFailure::Backend {
+                kind: ArtifactTreeFailureKind::DeniedBeforeEffect,
+                io_kind: Some(_),
+            }
+        ),
+        "unexpected media failure: {failure:?}"
+    );
+    assert_eq!(blocked.recovery_effects(), 0);
+}
+
+fn current_selector(root: &std::path::Path) -> std::path::PathBuf {
+    root.join("families")
+        .join("records")
+        .join("root-current.selector")
+}
+
+fn replace_with_unreadable_entry(path: &std::path::Path) {
+    std::fs::remove_file(path).unwrap();
+    replace_absent_with_unreadable_entry(path);
+}
+
+#[cfg(windows)]
+fn replace_absent_with_unreadable_entry(path: &std::path::Path) {
+    std::fs::create_dir(path).unwrap();
+}
+
+#[cfg(unix)]
+fn replace_absent_with_unreadable_entry(path: &std::path::Path) {
+    std::os::unix::fs::symlink(path.file_name().unwrap(), path).unwrap();
+}

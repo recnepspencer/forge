@@ -1,0 +1,76 @@
+error: unused `WorthQueryDirectRunTerminal` that must be used
+ --> tests/ui/installed_domain/managed_run/direct_terminal_cleanup_must_be_resolved.rs:8:5
+  |
+8 |     std::convert::identity(terminal);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: a direct run terminal retains resources that must be cleaned up
+note: the lint level is defined here
+ --> tests/ui/installed_domain/managed_run/direct_terminal_cleanup_must_be_resolved.rs:1:9
+  |
+1 | #![deny(unused_must_use)]
+  |         ^^^^^^^^^^^^^^^
+help: use `let _ = ...` to ignore the resulting value
+  |
+8 |     let _ = std::convert::identity(terminal);
+  |     +++++++
+
+error: unused `WorthQueryDirectRunCleanupFailure` that must be used
+  --> tests/ui/installed_domain/managed_run/direct_terminal_cleanup_must_be_resolved.rs:12:5
+   |
+12 |     std::convert::identity(failure);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: direct cleanup failure retains the exact terminal owner for retry
+help: use `let _ = ...` to ignore the resulting value
+   |
+12 |     let _ = std::convert::identity(failure);
+   |     +++++++
+
+error: unused `Result` that must be used
+  --> tests/ui/installed_domain/managed_run/direct_terminal_cleanup_must_be_resolved.rs:16:5
+   |
+16 |     failure.retry();
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+   |
+16 |     let _ = failure.retry();
+   |     +++++++
+
+error: unused return value of `WorthQueryDirectRunCleanupFailure::retry` that must be used
+  --> tests/ui/installed_domain/managed_run/direct_terminal_cleanup_must_be_resolved.rs:16:5
+   |
+16 |     failure.retry();
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: retry returns the next cleanup result and must be resolved
+help: use `let _ = ...` to ignore the resulting value
+   |
+16 |     let _ = failure.retry();
+   |     +++++++
+
+error: unused `WorthQueryDirectRunTerminal` that must be used
+  --> tests/ui/installed_domain/managed_run/direct_terminal_cleanup_must_be_resolved.rs:20:5
+   |
+20 |     failure.into_terminal();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: a direct run terminal retains resources that must be cleaned up
+help: use `let _ = ...` to ignore the resulting value
+   |
+20 |     let _ = failure.into_terminal();
+   |     +++++++
+
+error: unused return value of `WorthQueryDirectRunCleanupFailure::into_terminal` that must be used
+  --> tests/ui/installed_domain/managed_run/direct_terminal_cleanup_must_be_resolved.rs:20:5
+   |
+20 |     failure.into_terminal();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: the returned terminal retains the exact cleanup authority
+help: use `let _ = ...` to ignore the resulting value
+   |
+20 |     let _ = failure.into_terminal();
+   |     +++++++

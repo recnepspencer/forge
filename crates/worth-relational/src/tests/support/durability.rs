@@ -15,7 +15,7 @@ pub(crate) fn create_branch_from_main(
 pub(crate) fn checkpoint_and_recover_with<F>(
     runtime: &mut RelationalRuntime,
     recovered_factory: F,
-) -> (crate::logic::runtime::RecoveryOutcome, RelationalRuntime)
+) -> (crate::runtime::RecoveryOutcome, RelationalRuntime)
 where
     F: FnOnce() -> RelationalRuntime,
 {

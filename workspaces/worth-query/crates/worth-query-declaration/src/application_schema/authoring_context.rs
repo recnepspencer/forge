@@ -182,7 +182,7 @@ fn validate_field_capability(
     let ApplicationSchemaMember::Field {
         scalar_family,
         value_type,
-        currency,
+        unit,
         writable,
         equality_queryable,
         ..
@@ -202,9 +202,9 @@ fn validate_field_capability(
             field,
         );
     }
-    if currency.as_deref() != field.currency {
+    if unit.as_deref() != field.unit {
         return field_denial(
-            ApplicationSchemaAuthoringDenialKind::FieldCurrencyMismatch,
+            ApplicationSchemaAuthoringDenialKind::FieldUnitMismatch,
             field,
         );
     }
@@ -236,7 +236,7 @@ pub(crate) struct ApplicationFieldAdmission<'a> {
     pub field: &'a str,
     pub scalar_family: ScalarAspectType,
     pub value_type: &'a str,
-    pub currency: Option<&'a str>,
+    pub unit: Option<&'a str>,
     pub requires_write: bool,
     pub requires_equality: bool,
 }
@@ -315,7 +315,7 @@ pub enum ApplicationSchemaAuthoringDenialKind {
     UnknownField,
     FieldFamilyMismatch,
     FieldValueTypeMismatch,
-    FieldCurrencyMismatch,
+    FieldUnitMismatch,
     FieldNotWritable,
     FieldNotEqualityQueryable,
     UnknownOperation,

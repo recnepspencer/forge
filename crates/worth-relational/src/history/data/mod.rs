@@ -1,5 +1,6 @@
 mod aspect_history;
 mod branch_creation;
+mod canonical_commit_envelope;
 mod committed_version;
 mod merge_branch_basis;
 mod merge_branch_basis_foundational;
@@ -16,6 +17,11 @@ pub use aspect_history::{
     LineageAspectHistory, LineageAspectHistoryQueryResult, LineageAspectResolutionDigest,
 };
 pub use branch_creation::{BranchCreateError, BranchCreateErrorClass};
+pub(crate) use canonical_commit_envelope::CommittedRecordChange;
+pub use canonical_commit_envelope::{
+    CanonicalCommitAuthorityKind, CanonicalCommitEnvelope, RelationalReplayRecord,
+    ReplaySchemaVersion,
+};
 pub use committed_version::CommittedVersionSummary;
 pub use merge_branch_basis::{
     MergeBaseSelectionRule, RelationalMergeBranchBasis, RelationalMergeBranchBasisDenial,

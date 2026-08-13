@@ -23,7 +23,10 @@ use worth_store_physical_backend::{
 
 use crate::TemporaryDirectory;
 
-use super::configuration::{record_publication_configuration, PhysicalResidencyStoreConfiguration};
+use super::configuration::{
+    dense_recovery_planning_configuration, record_publication_configuration,
+    recovery_planning_configuration, PhysicalResidencyStoreConfiguration,
+};
 
 #[derive(Debug)]
 pub enum PhysicalResidencyStoreWorldConstructionFailure {
@@ -50,12 +53,49 @@ pub struct PhysicalResidencyStoreWorld {
 
 impl PhysicalResidencyStoreWorld {
     pub fn initialize(label: &str) -> Result<Self, PhysicalResidencyStoreWorldConstructionFailure> {
-        Self::initialize_with_configuration(label, record_publication_configuration())
+        Self::initialize_with_configuration(
+            label,
+            record_publication_configuration(),
+            NonZeroU64::new(16 * 1024 * 1024).unwrap(),
+        )
+    }
+
+    pub fn initialize_for_recovery(
+        label: &str,
+    ) -> Result<Self, PhysicalResidencyStoreWorldConstructionFailure> {
+        Self::initialize_with_configuration(
+            label,
+            recovery_planning_configuration(),
+            NonZeroU64::new(16 * 1024 * 1024).unwrap(),
+        )
+    }
+
+    pub fn initialize_for_recovery_with_segment_pages(
+        label: &str,
+        segment_pages: u32,
+    ) -> Result<Self, PhysicalResidencyStoreWorldConstructionFailure> {
+        Self::initialize_with_configuration(
+            label,
+            dense_recovery_planning_configuration(segment_pages),
+            NonZeroU64::new(16 * 1024 * 1024).unwrap(),
+        )
+    }
+
+    pub fn initialize_for_recovery_with_wal_segment_bytes(
+        label: &str,
+        wal_segment_bytes: NonZeroU64,
+    ) -> Result<Self, PhysicalResidencyStoreWorldConstructionFailure> {
+        Self::initialize_with_configuration(
+            label,
+            recovery_planning_configuration(),
+            wal_segment_bytes,
+        )
     }
 
     fn initialize_with_configuration(
         label: &str,
         configuration: PhysicalResidencyStoreConfiguration,
+        wal_segment_bytes: NonZeroU64,
     ) -> Result<Self, PhysicalResidencyStoreWorldConstructionFailure> {
         let root = TemporaryDirectory::create(label)
             .map_err(PhysicalResidencyStoreWorldConstructionFailure::Directory)?;
@@ -65,7 +105,7 @@ impl PhysicalResidencyStoreWorld {
         )
         .map_err(PhysicalResidencyStoreWorldConstructionFailure::Runtime)?;
         let media = admit_media(runtime)?;
-        let durability = admit_durability(&media)?;
+        let durability = admit_durability(&media, wal_segment_bytes)?;
         let request = PhysicalRecordInitialization::new(
             configuration.format,
             configuration.placement,
@@ -85,6 +125,10 @@ impl PhysicalResidencyStoreWorld {
         self.root.path()
     }
 
+    pub fn retained_root(&self) -> crate::TemporaryDirectory {
+        self.root.clone()
+    }
+
     pub fn serving(&self) -> &ServingPhysicalRuntime {
         self.serving
             .as_ref()
@@ -101,6 +145,7 @@ impl PhysicalResidencyStoreWorld {
 
 fn admit_durability(
     media: &MediaOwnedPhysicalRuntime,
+    wal_segment_bytes: NonZeroU64,
 ) -> Result<AdmittedPhysicalDurabilityPolicy, PhysicalResidencyStoreWorldConstructionFailure> {
     let basis = media
         .physical_durability_admission_basis()
@@ -111,7 +156,7 @@ fn admit_durability(
             GroupCommitDelay::new(NonZeroU64::new(1).unwrap()),
         )
         .wal(PhysicalWalPolicy::segmented(
-            WalSegmentByteLimit::new(NonZeroU64::new(8 * 1024 * 1024).unwrap()),
+            WalSegmentByteLimit::new(wal_segment_bytes),
             WalSegmentInventoryLimit::new(NonZeroU32::new(1_024).unwrap()),
         ))
         .idempotency(PhysicalIdempotencyPolicy::new(
@@ -241,6 +286,7 @@ mod tests {
         let world = PhysicalResidencyStoreWorld::initialize_with_configuration(
             "physical-residency-scopes",
             successor_scope_pressure_configuration(),
+            NonZeroU64::new(16 * 1024 * 1024).unwrap(),
         )
         .unwrap();
         assert!(world.root().is_dir());

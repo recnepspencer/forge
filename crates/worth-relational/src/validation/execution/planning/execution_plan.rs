@@ -14,15 +14,12 @@ use crate::authority::commit::preparation::proofs::locality::{
 };
 use crate::authority::commit::preparation::proofs::validity::PreparationProofValidity;
 use crate::authority::commit::preparation::reduction::keys::ValidationReductionKey;
-use crate::logic::planning::RelationalExecutionModel;
-use crate::logic::runtime::RelationalRuntime;
+use crate::config::data::RelationalExecutionModel;
+use crate::runtime::RelationalRuntime;
 use crate::validation::engine::InvariantExecutionRequest;
 
 use super::packet_scope::packet_partition_scope;
 use super::packet_selection::eligible_registrations;
-
-#[cfg(test)]
-use super::test_faults::{current_test_preparation_fault, TestPreparationFault};
 
 pub(crate) fn plan_invariant_execution<'runtime>(
     runtime: &'runtime RelationalRuntime,
@@ -154,8 +151,7 @@ fn invariant_work_packets<'runtime>(
                     _ => PreparationWriteExclusionClass::ReadOnly,
                 },
             };
-            #[allow(unused_mut)]
-            let mut packet = crate::authority::commit::preparation::InvariantWorkPacket {
+            crate::authority::commit::preparation::InvariantWorkPacket {
                 packet_index,
                 registration,
                 reduction_key: ValidationReductionKey::new(
@@ -175,35 +171,7 @@ fn invariant_work_packets<'runtime>(
                 version_id: request.version_id(),
                 merged_plan: request.merged_plan(),
                 relation_integrity_scopes: relation_integrity_scopes.clone(),
-                #[cfg(test)]
-                injected_test_fault: current_test_preparation_fault(),
-            };
-            inject_test_preparation_fault(&mut packet);
-            packet
+            }
         })
         .collect()
-}
-
-#[cfg(test)]
-fn inject_test_preparation_fault(
-    packet: &mut crate::authority::commit::preparation::InvariantWorkPacket<'_>,
-) {
-    match current_test_preparation_fault() {
-        Some(TestPreparationFault::PlanningProofInsufficient) => {
-            Arc::make_mut(&mut packet.validity.context).invariant_registration_count += 1;
-        }
-        Some(TestPreparationFault::PublicationIsolationViolation) => {
-            packet.locality.write_exclusion =
-                PreparationWriteExclusionClass::RequiresSerialAuthority;
-        }
-        Some(TestPreparationFault::ReductionIdentityConflict) => {}
-        Some(TestPreparationFault::WorkerEvaluationFailure) => {}
-        None => {}
-    }
-}
-
-#[cfg(not(test))]
-fn inject_test_preparation_fault(
-    _packet: &mut crate::authority::commit::preparation::InvariantWorkPacket<'_>,
-) {
 }

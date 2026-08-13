@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
-use crate::storage::logic::state::{DenseSlotBitSet, SnapshotPartitionPins, SnapshotState};
+use crate::storage::overlay::{SnapshotPartitionPins, SnapshotState};
+use crate::storage::partition::DenseSlotBitSet;
 
 pub(crate) fn build_partition_pins_for_version(
     runtime: &RelationalRuntime,
@@ -84,7 +85,7 @@ pub(crate) fn build_visibility_state(
 
 fn retained_relation_slots_for_version(
     runtime: &RelationalRuntime,
-    state: &impl crate::storage::logic::state::PartitionAccess,
+    state: &impl crate::storage::overlay::PartitionAccess,
     partition_id: crate::identity::data::PartitionId,
     relation_slots: &DenseSlotBitSet,
     version_id: crate::identity::data::VersionId,

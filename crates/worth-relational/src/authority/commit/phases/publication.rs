@@ -7,12 +7,12 @@ use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsScope, RelationalDiagnosticFields, RelationalDiagnosticValue,
 };
 use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::LineageFinalizationArtifact;
 use crate::publication::bundle::PublicationStage;
 use crate::publication::data::PublicationError;
 use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
-use crate::replay::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::transactions::data::{
     MergedCommitPlan, PublishedMergeExecutionAuthority, RecordRef, TransactionCommitError,
 };
@@ -41,7 +41,7 @@ pub(crate) fn enforce_patch_budget(
 }
 
 pub(crate) fn canonical_commit_envelope(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     commit_reference: &CommitReference,
     branch_id: &BranchId,
     authority_kind: CanonicalCommitAuthorityKind,
@@ -101,16 +101,18 @@ pub(crate) fn canonical_commit_envelope(
 
 pub(crate) fn append_durable_commit(
     runtime: &mut (impl DiagnosticArtifactSink + DurabilityWrite),
+    append_authority: crate::durability::authority::DurableAppendAuthority,
     canonical_commit_envelope: &CanonicalCommitEnvelope,
-    commit_id: CommitId,
-    branch_id: &BranchId,
 ) -> Result<(), TransactionCommitError> {
-    if let Err(error) = runtime.append_durable_envelope(canonical_commit_envelope) {
+    let commit_id = append_authority.commit_id();
+    let branch_id = append_authority.branch_id().clone();
+    if let Err(error) = runtime.append_durable_envelope(append_authority, canonical_commit_envelope)
+    {
         runtime.emit_failure_diagnostic(
             DiagnosticsScope::History,
             DiagnosticCode::DurableAppendFailed,
             error.detail.clone(),
-            durable_append_failure_fields(commit_id, branch_id),
+            durable_append_failure_fields(commit_id, &branch_id),
         );
         return Err(TransactionCommitError::publication(PublicationError::new(
             PublicationStage::Visibility,

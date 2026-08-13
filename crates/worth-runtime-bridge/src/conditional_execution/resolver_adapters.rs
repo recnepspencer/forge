@@ -17,6 +17,8 @@ pub(super) struct ConditionAdapter<'a> {
         (worth_signal::facade::NodeId, usize),
         worth_foundational::facade::ContractValidatedAspectArtifact,
     >,
+    truth_branch_identity: Option<&'a str>,
+    truth_snapshot_identity: &'a str,
     observations: std::sync::Arc<[BridgeConditionalSemanticObservation]>,
     observation_denial: Option<BridgeConditionalDenial>,
 }
@@ -33,11 +35,15 @@ impl<'a> ConditionAdapter<'a> {
             (worth_signal::facade::NodeId, usize),
             worth_foundational::facade::ContractValidatedAspectArtifact,
         >,
+        truth_branch_identity: Option<&'a str>,
+        truth_snapshot_identity: &'a str,
     ) -> Self {
         Self {
             lowering,
             snapshot,
             previous,
+            truth_branch_identity,
+            truth_snapshot_identity,
             observations: std::sync::Arc::from([]),
             observation_denial: None,
         }
@@ -88,6 +94,8 @@ impl worth_signal::facade::InstalledSignalConditionResolver for ConditionAdapter
         let bridge_context = BridgeConditionalResolverContext::new(
             context.dirty_aspects,
             context.max_dependency_delta,
+            self.truth_branch_identity,
+            self.truth_snapshot_identity,
             std::sync::Arc::clone(&self.observations),
         );
         if let worth_signal::facade::SignalConditionalCondition::DeltaThreshold(threshold) =

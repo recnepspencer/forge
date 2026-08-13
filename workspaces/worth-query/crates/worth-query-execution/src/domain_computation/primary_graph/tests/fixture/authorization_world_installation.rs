@@ -29,14 +29,16 @@ pub(super) struct AuthorizationWorldSpec<'a> {
     pub(super) capability_grants: CapabilityGrantPopulation,
 }
 
-pub(in crate::domain_computation::primary_graph) struct AuthorizationWorld {
-    pub(in crate::domain_computation::primary_graph) application:
+pub(in crate::domain_computation) struct AuthorizationWorld {
+    pub(in crate::domain_computation) application:
         WorthQueryPrimaryGraphApplicationRuntime<IdentityExecutionSchema>,
     pub(in crate::domain_computation::primary_graph) binding: InstalledIdentityBinding,
     pub(in crate::domain_computation::primary_graph) invariant:
         WorthQueryApplicationInvariantProjectionAuthority<IdentityExecutionSchema>,
     pub(in crate::domain_computation::primary_graph) authorization_time:
         AuthorizationTimeController,
+    pub(in crate::domain_computation::primary_graph) faults:
+        std::sync::Arc<crate::domain_computation::primary_graph::tests::fault_controller::PrimaryGraphFaultController>,
 }
 
 struct PreparedAuthorizationWorld {
@@ -296,12 +298,16 @@ fn publish_authorization_world(prepared: PreparedAuthorizationWorld) -> Authoriz
     } = prepared;
     let invariant = bootstrap.retain_invariant_projection_authority();
     let authorization_time = AuthorizationTimeController::default();
+    let faults = std::sync::Arc::new(
+        crate::domain_computation::primary_graph::tests::fault_controller::PrimaryGraphFaultController::default(),
+    );
     let application = bootstrap
-        .publish_application_runtime_with_authorization_time_source(
+        .publish_application_runtime_with_ports(
             runtime,
             authority,
             schema,
             authorization_time.clone(),
+            faults.clone(),
         )
         .unwrap();
     AuthorizationWorld {
@@ -309,6 +315,7 @@ fn publish_authorization_world(prepared: PreparedAuthorizationWorld) -> Authoriz
         binding,
         invariant,
         authorization_time,
+        faults,
     }
 }
 

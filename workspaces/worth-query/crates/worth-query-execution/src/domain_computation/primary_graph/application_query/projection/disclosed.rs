@@ -5,7 +5,7 @@ use worth_query_declaration::facade::application_query::{
     ApplicationQueryResultTraversal, ExactlyOneResult, ManyResults, OptionalOneResult,
 };
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, OptionalApplicationFieldValue, TypedApplicationReadableValue,
+    ApplicationFieldUnit, OptionalApplicationFieldValue, TypedApplicationReadableValue,
     WritePosture,
 };
 
@@ -50,7 +50,7 @@ impl<Value> WorthQueryApplicationDisclosed<Value> {
 }
 
 impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query> {
-    pub fn disclosed_field<Slot, Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn disclosed_field<Slot, Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &self,
         selector: ApplicationQueryResultFieldRef<
             Query,
@@ -62,13 +62,13 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
     ) -> Result<WorthQueryApplicationDisclosed<Value>, WorthQueryApplicationProjectionDenial>
     where
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         Query: 'static,
         Slot: 'static,
     {
@@ -103,7 +103,7 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         Ok(WorthQueryApplicationDisclosed::Disclosed(value))
     }
 
-    pub fn disclosed_optional_field<Slot, Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn disclosed_optional_field<Slot, Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &self,
         selector: ApplicationQueryOptionalResultFieldRef<
             Query,
@@ -115,14 +115,14 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
             Value,
             Write,
             Equality,
-            Currency,
+            Unit,
         >,
     ) -> Result<WorthQueryApplicationDisclosed<Option<Value>>, WorthQueryApplicationProjectionDenial>
     where
         Field: OptionalApplicationFieldValue<Value = Value>,
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         Query: 'static,
         Slot: 'static,
     {

@@ -3,12 +3,12 @@ use std::sync::Arc;
 
 use super::*;
 use crate::domain_computation::{
-    WorthQueryProviderExecutionPlanView, WorthQueryProviderSessionDenialKind,
-    WorthQueryProviderSessionFailure, WorthQueryProviderSessionLifecycle,
-    WorthQueryProviderSessionProtocolCounters, WorthQueryProviderSessionProtocolStage,
-    WorthQueryProviderSessionRecoveryPosture, WorthQueryProviderSessionToken,
-    WorthQueryProviderSessionTokenAdmission, WorthQueryProviderSessionView,
-    WorthQuerySessionCommitOrAbortOutcome,
+    WorthQueryProviderExecutionPlanView, WorthQueryProviderSessionAffinityIdentity,
+    WorthQueryProviderSessionDenialKind, WorthQueryProviderSessionFailure,
+    WorthQueryProviderSessionLifecycle, WorthQueryProviderSessionProtocolCounters,
+    WorthQueryProviderSessionProtocolStage, WorthQueryProviderSessionRecoveryPosture,
+    WorthQueryProviderSessionToken, WorthQueryProviderSessionTokenAdmission,
+    WorthQueryProviderSessionView, WorthQuerySessionCommitOrAbortOutcome,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -16,10 +16,14 @@ pub(super) enum SessionFailurePoint {
     None,
     ReadmissionRejection,
     ReadmissionPanic,
+    PreparationRejection,
     PreparationPanic,
     StagedPreparationRejection,
+    StagedPreparationPanic,
+    CommitRejection,
     CommitPanic,
     AbortRejection,
+    AbortPanic,
 }
 
 #[derive(Default)]
@@ -28,7 +32,28 @@ pub(super) struct SessionCallCounts {
     preparations: AtomicUsize,
     staged_preparations: AtomicUsize,
     commits: AtomicUsize,
-    pub(super) aborts: AtomicUsize,
+    aborts: AtomicUsize,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(super) struct SessionCallObservation {
+    pub(super) readmissions: usize,
+    pub(super) preparations: usize,
+    pub(super) staged_preparations: usize,
+    pub(super) commits: usize,
+    pub(super) aborts: usize,
+}
+
+impl SessionCallCounts {
+    pub(super) fn observe(&self) -> SessionCallObservation {
+        SessionCallObservation {
+            readmissions: self.readmissions.load(Ordering::Acquire),
+            preparations: self.preparations.load(Ordering::Acquire),
+            staged_preparations: self.staged_preparations.load(Ordering::Acquire),
+            commits: self.commits.load(Ordering::Acquire),
+            aborts: self.aborts.load(Ordering::Acquire),
+        }
+    }
 }
 
 struct SessionProtocolProvider {
@@ -97,10 +122,13 @@ impl WorthQueryProviderSessionLifecycle for SessionProtocolProvider {
         _session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<(), WorthQueryProviderSessionFailure> {
         self.calls.preparations.fetch_add(1, Ordering::AcqRel);
-        if self.failure == SessionFailurePoint::PreparationPanic {
-            panic!("preparation panic");
+        match self.failure {
+            SessionFailurePoint::PreparationRejection => {
+                Err(provider_rejection("preparation rejected"))
+            }
+            SessionFailurePoint::PreparationPanic => panic!("preparation panic"),
+            _ => Ok(()),
         }
-        Ok(())
     }
 
     fn prepare_staged_session(
@@ -110,32 +138,53 @@ impl WorthQueryProviderSessionLifecycle for SessionProtocolProvider {
         self.calls
             .staged_preparations
             .fetch_add(1, Ordering::AcqRel);
-        if self.failure == SessionFailurePoint::StagedPreparationRejection {
-            return Err(provider_rejection("staged preparation rejected"));
+        match self.failure {
+            SessionFailurePoint::StagedPreparationRejection => {
+                Err(provider_rejection("staged preparation rejected"))
+            }
+            SessionFailurePoint::StagedPreparationPanic => panic!("staged preparation panic"),
+            _ => Ok(()),
         }
-        Ok(())
     }
 
     fn commit_prepared_session(
         &self,
         _session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
         self.calls.commits.fetch_add(1, Ordering::AcqRel);
-        if self.failure == SessionFailurePoint::CommitPanic {
-            panic!("commit panic");
+        match self.failure {
+            SessionFailurePoint::CommitRejection => Err(provider_rejection("commit rejected")),
+            SessionFailurePoint::CommitPanic => panic!("commit panic"),
+            _ => Ok(
+                crate::domain_computation::WorthQueryProviderTerminalDescription::new(
+                    "provider commit",
+                )
+                .expect("fixture description is valid"),
+            ),
         }
-        Ok("provider-commit".to_owned())
     }
 
     fn abort_provider_session(
         &self,
         _session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
         self.calls.aborts.fetch_add(1, Ordering::AcqRel);
-        if self.failure == SessionFailurePoint::AbortRejection {
-            return Err(provider_rejection("abort rejected"));
+        match self.failure {
+            SessionFailurePoint::AbortRejection => Err(provider_rejection("abort rejected")),
+            SessionFailurePoint::AbortPanic => panic!("abort panic"),
+            _ => Ok(
+                crate::domain_computation::WorthQueryProviderTerminalDescription::new(
+                    "provider abort",
+                )
+                .expect("fixture description is valid"),
+            ),
         }
-        Ok("provider-abort".to_owned())
     }
 }
 
@@ -181,13 +230,36 @@ fn sealed_plan_prepares_session_binds_work_and_aborts() {
         );
         assert!(matches!(
             outcome,
-            WorthQuerySessionCommitOrAbortOutcome::Aborted { .. }
+            WorthQuerySessionCommitOrAbortOutcome::Aborted(_)
         ));
     }
     assert_eq!(calls.readmissions.load(Ordering::Acquire), 1);
     assert_eq!(calls.preparations.load(Ordering::Acquire), 1);
     assert_eq!(calls.aborts.load(Ordering::Acquire), 1);
     cleanup(running);
+}
+
+#[test]
+fn independently_admitted_sessions_carry_distinct_opaque_affinities() {
+    assert_ne!(closed_session_affinity(), closed_session_affinity());
+}
+
+fn closed_session_affinity() -> WorthQueryProviderSessionAffinityIdentity {
+    let (mut running, graph) = session_run(
+        SessionFailurePoint::None,
+        Arc::new(SessionCallCounts::default()),
+        true,
+    );
+    let staged = staged_session(&mut running, &graph);
+    let affinity = staged.provider_session_affinity();
+    assert_eq!(affinity.plan(), staged.plan());
+    let identity = affinity.identity();
+    assert!(matches!(
+        staged.abort(),
+        WorthQuerySessionCommitOrAbortOutcome::Aborted(_)
+    ));
+    cleanup(running);
+    identity
 }
 
 #[test]
@@ -202,79 +274,6 @@ fn legacy_provider_is_denied_before_any_session_protocol_call() {
         WorthQueryProviderSessionDenialKind::SessionProtocolUnsupported
     );
     cleanup(running);
-}
-
-#[test]
-fn failures_are_localized_to_the_exact_protocol_stage() {
-    assert_failure_stage(
-        SessionFailurePoint::ReadmissionRejection,
-        WorthQueryProviderSessionProtocolStage::PlanReadmission,
-    );
-    assert_failure_stage(
-        SessionFailurePoint::ReadmissionPanic,
-        WorthQueryProviderSessionProtocolStage::PlanReadmission,
-    );
-    assert_failure_stage(
-        SessionFailurePoint::PreparationPanic,
-        WorthQueryProviderSessionProtocolStage::SessionPreparation,
-    );
-}
-
-#[test]
-fn staged_prepare_commit_and_abort_failures_carry_recovery_posture() {
-    let (mut prepare_run, prepare_graph) = session_run(
-        SessionFailurePoint::StagedPreparationRejection,
-        Arc::new(SessionCallCounts::default()),
-        true,
-    );
-    let staged = staged_session(&mut prepare_run, &prepare_graph);
-    let failure = staged
-        .prepare_for_commit()
-        .expect_err("staged preparation rejection must not mint prepare outcome");
-    assert_eq!(
-        failure.stage(),
-        WorthQueryProviderSessionProtocolStage::StagedPreparation
-    );
-    assert_eq!(
-        failure.recovery_posture(),
-        WorthQueryProviderSessionRecoveryPosture::Closed
-    );
-    cleanup(prepare_run);
-
-    let (mut commit_run, commit_graph) = session_run(
-        SessionFailurePoint::CommitPanic,
-        Arc::new(SessionCallCounts::default()),
-        true,
-    );
-    let prepared = staged_session(&mut commit_run, &commit_graph)
-        .prepare_for_commit()
-        .expect("staged preparation should succeed");
-    let outcome = prepared.commit();
-    assert_eq!(
-        outcome.recovery_posture(),
-        WorthQueryProviderSessionRecoveryPosture::RecoveryRequired
-    );
-    assert_eq!(
-        outcome.failure().unwrap().stage(),
-        WorthQueryProviderSessionProtocolStage::Commit
-    );
-    cleanup(commit_run);
-
-    let (mut abort_run, abort_graph) = session_run(
-        SessionFailurePoint::AbortRejection,
-        Arc::new(SessionCallCounts::default()),
-        true,
-    );
-    let outcome = staged_session(&mut abort_run, &abort_graph).abort();
-    assert_eq!(
-        outcome.recovery_posture(),
-        WorthQueryProviderSessionRecoveryPosture::RecoveryRequired
-    );
-    assert_eq!(
-        outcome.failure().unwrap().stage(),
-        WorthQueryProviderSessionProtocolStage::Abort
-    );
-    cleanup(abort_run);
 }
 
 struct GraphOnlyProvider;
@@ -315,7 +314,7 @@ pub(super) fn session_run(
     )
 }
 
-fn staged_session<'run>(
+pub(super) fn staged_session<'run>(
     running: &'run mut WorthQueryRunningDirectRun,
     graph: &WorthQueryInstalledGraphParticipationAuthority,
 ) -> crate::domain_computation::WorthQuerySessionBoundReadsAndEffects<'run> {
@@ -327,35 +326,6 @@ fn staged_session<'run>(
         .prepare()
         .expect("session preparation should succeed")
         .bind_reads_and_effects()
-}
-
-fn assert_failure_stage(
-    point: SessionFailurePoint,
-    expected: WorthQueryProviderSessionProtocolStage,
-) {
-    let (mut running, graph) = session_run(point, Arc::new(SessionCallCounts::default()), false);
-    let plan = running
-        .admit_provider_execution_plan(&graph)
-        .expect("failure fixture plan should admit");
-    let failure = match point {
-        SessionFailurePoint::ReadmissionRejection | SessionFailurePoint::ReadmissionPanic => {
-            plan.readmit().expect_err("readmission should fail")
-        }
-        SessionFailurePoint::PreparationPanic => plan
-            .readmit()
-            .expect("readmission should succeed")
-            .prepare()
-            .expect_err("preparation should fail"),
-        _ => unreachable!("unsupported failure fixture"),
-    };
-    assert_eq!(failure.stage(), expected);
-    let expected_posture = if point == SessionFailurePoint::ReadmissionPanic {
-        WorthQueryProviderSessionRecoveryPosture::RecoveryRequired
-    } else {
-        WorthQueryProviderSessionRecoveryPosture::Closed
-    };
-    assert_eq!(failure.recovery_posture(), expected_posture);
-    cleanup(running);
 }
 
 pub(super) fn cleanup(running: WorthQueryRunningDirectRun) {

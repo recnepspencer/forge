@@ -22,6 +22,10 @@ impl NodeEntry {
             dependencies_id: self.hot.dependencies_id,
             subscribers_id: self.hot.subscribers_id,
             dep_snapshot_id: self.hot.dep_snapshot_id,
+            pending_cause_set_id: self.hot.pending_cause_set_id,
+            dependency_revision: self.hot.dependency_revision,
+            pending_dependency_revalidation: self.warm.pending_dependency_revalidation.clone(),
+            direct_invalidation_basis: self.warm.direct_invalidation_basis.clone(),
             tombstoned: self.warm.tombstoned,
             runtime_artifact_state: self.warm.runtime_artifact_state.clone(),
             retained_artifact: self.cold_artifact_record().cloned(),
@@ -32,7 +36,8 @@ impl NodeEntry {
     }
 
     pub(crate) fn from_checkpoint_image(image: CheckpointNodeImage) -> Self {
-        let image = image.into_parts();
+        let mut image = image.into_parts();
+        image.eval_config = image.eval_config.upgrade_legacy_output_equivalence();
         let (aspect_version_header, aspect_version_overrides) =
             image.aspect_versions.into_storage_parts();
         let mut entry = Self {
@@ -44,9 +49,13 @@ impl NodeEntry {
                 dependencies_id: image.dependencies_id,
                 subscribers_id: image.subscribers_id,
                 dep_snapshot_id: image.dep_snapshot_id,
+                pending_cause_set_id: image.pending_cause_set_id,
+                dependency_revision: image.dependency_revision,
             },
             warm: NodeWarmData {
                 tombstoned: image.tombstoned,
+                pending_dependency_revalidation: image.pending_dependency_revalidation,
+                direct_invalidation_basis: image.direct_invalidation_basis,
                 aspect_version_overrides,
                 dirty_partition_scope_payload: image.dirty_partition_scopes.into_iter().collect(),
                 runtime_artifact_state: image.runtime_artifact_state,

@@ -114,7 +114,7 @@ If your app has an active face selection and needs a material-edit workflow:
 
 - [Ordinary Outcomes](../ordinary-outcomes.md) gives all three lanes a compact
   shared result vocabulary where applicable.
-- [Recovery Boundary](../recovery-boundary.md) explains what to do next when
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md) explains what to do next when
   any of these surfaces stop.
 - [Orchestration Inventory](../orchestration-inventory.md) is the registry for
   the public orchestration and helper surfaces.
@@ -157,4 +157,4 @@ projection over the canonical generic lane.
 - [Declaration Entry Orchestration](../declaration-entry-orchestration.md)
 - [Family Helpers](../family-helpers.md)
 - [Ordinary Outcomes](../ordinary-outcomes.md)
-- [Recovery Boundary](../recovery-boundary.md)
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md)

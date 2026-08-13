@@ -19,7 +19,7 @@ mod integrity_input;
 mod integrity_vetted_records;
 mod layout_readmission;
 mod memory_allocation;
-mod offline_verifier;
+mod operation_reconciliation;
 mod page_redo;
 mod partial_publication;
 mod point_in_time_recovery;
@@ -27,7 +27,6 @@ mod publication;
 mod recovery_blocking_integrity;
 mod recovery_budget;
 mod recovery_completion;
-mod recovery_evidence;
 mod recovery_integrity_handoff_receipt;
 mod redo_replay;
 mod replay_basis;
@@ -39,6 +38,7 @@ mod security_metadata_admission;
 mod security_metadata_tests;
 mod security_scope_propagation;
 mod source_precedence;
+mod wal_prefix;
 mod wal_recovery_basis;
 mod wal_topology;
 
@@ -121,30 +121,18 @@ pub use layout_projection::{
 };
 pub use layout_readmission::{
     layout_readmission, ImportLayoutReadmissionOutcome, LayoutReadmissionAuthority,
-    OfflineLayoutReadmissionOutcome, QuarantineLayoutReadmissionOutcome,
-    RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
-    RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionOutcomeView,
-    RecoveryLayoutReadmissionWitness,
+    QuarantineLayoutReadmissionOutcome, RecoveryLayoutReadmissionAdmissionDenial,
+    RecoveryLayoutReadmissionClass, RecoveryLayoutReadmissionIdentity,
+    RecoveryLayoutReadmissionOutcomeView, RecoveryLayoutReadmissionWitness,
 };
 pub use memory_allocation::{
     RecoveryMemoryAllocation, RecoveryMemoryCounterSnapshot, RecoveryMemoryObservation,
 };
-pub use offline_verifier::{
-    CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
-    CheckpointManifestRecoveryBasisMaterialization, CheckpointManifestSourceMaterialization,
-    CheckpointPageImageMaterialization, FreshRuntimeRecoveryDriver, FreshRuntimeRecoveryExecution,
-    FreshRuntimeRecoveryWitness, FreshRuntimeReopenHarnessDenial,
-    FreshRuntimeReopenHarnessEvidence, OfflineRecoveryVerificationReport,
-    OfflineRecoveryVerifierConclusion, PersistedRecoveryArtifactDenial,
-    PersistedRecoveryArtifactDigest, PersistedRecoveryArtifactMaterialization,
-    PersistedRecoveryArtifacts, RecoveryDeterminismClassification, RecoveryDeterminismReport,
-    RecoveryNondeterministicMetadata, RecoveryOfflineVerifier, RecoveryOfflineVerifierDenial,
-    RecoveryPersistedRecord, RecoveryPersistedRecordRole, RecoveryProfileId,
-    RecoveryRuntimeClassification, RecoveryRuntimePosture, ReopenedRecoveryArtifactAdmission,
-    ReopenedRecoveryArtifactAdmissionDenial, ReopenedRuntimeBoundaryEvidence,
-    ReopenedRuntimeRecoverySession, RuntimeRecoveryComparisonClassification,
-    RuntimeRecoveryComparisonReport, RuntimeRecoveryReport, RuntimeRecoveryReportDenial,
-    WalRedoFrameMaterialization,
+pub use operation_reconciliation::{
+    classify_binding_freshness, reconcile_materialized_operation_fates, reconcile_operation_fates,
+    OperationReconciliationDenial, ReconciledOperationFate, ReconciledOperationFates,
+    RecoveryBindingFreshness, RecoveryOperationEvidenceInput, RecoveryOperationFate,
+    RecoveryOperationIdentity,
 };
 pub use page_redo::{
     PageLsn, PageRedoApplicationBasis, PageRedoCounterSnapshot, PageRedoDenial, PageRedoDenialKind,
@@ -177,37 +165,32 @@ pub use recovery_blocking_integrity::{
     RecoveryBlockedByIntegrityDamage, RecoveryBlockingIntegritySource,
 };
 pub use recovery_budget::{
-    AdmittedRecoveryWorkBounds, BoundedRecoveryPlan, BoundedRecoveryReceipt,
-    BoundedRecoverySourceAdmission, CheckpointIntervalContract, ForbiddenFullStoreScanRejection,
-    RecoveryBudget, RecoveryBudgetDenial, RecoveryBudgetDenialKind, RecoveryCounterSnapshot,
-    RecoveryStoreFootprint, ReopenedRecoveryDenial, WalTailReplayBudget,
+    admit_recovery_plan_cost, AdmittedRecoveryWorkBounds, BoundedRecoveryPlan,
+    BoundedRecoveryReceipt, BoundedRecoverySourceAdmission, CheckpointIntervalContract,
+    ForbiddenFullStoreScanRejection, RecoveryBudget, RecoveryBudgetDenial,
+    RecoveryBudgetDenialKind, RecoveryCounterSnapshot, RecoveryPlanCost, RecoveryPlanCostDenial,
+    RecoveryPlanLimits, RecoveryPlanningCounters, RecoveryStoreFootprint, WalTailReplayBudget,
 };
 pub use recovery_completion::{complete_recovery, RecoveryCompletion, RecoveryCompletionDenial};
-pub use recovery_evidence::{
-    deny_non_applicable_surface, CurrentBasisRecoveryEvidencePosture,
-    FoundationalRecoveryEvidenceBundle, NonApplicableFoundationalSurface,
-    ProofProgressionRecoveryTrace, RecoveryAdmissionMechanism,
-    RecoveryAttachedCounterBackedPerformanceReceipt, RecoveryCertifiedDiagnosticSupportBundle,
-    RecoveryCertifiedPerformanceBundle, RecoveryCounterPerformanceReceipt,
-    RecoveryCurrentBasisBoundaryBundle, RecoveryCurrentBasisEvidence,
-    RecoveryEvidenceCanonicalBasis, RecoveryEvidenceConstructionSource, RecoveryEvidenceDenial,
-    RecoveryEvidenceLineagePosture, RecoveryEvidenceLineageReport, RecoveryEvidencePayloadKind,
-    RecoveryEvidenceRichness, RecoveryMaterializedPerformanceReport, RecoveryPerformanceSurface,
-    RecoveryPerformanceSurfaceKind, RecoveryPhysicsEvidenceSource, RecoveryPhysicsReceipt,
-    RecoveryPhysicsReport, RecoveryProofProgressionStep, RecoveryProofSourceFamily,
-    RecoverySourceDecisionReport, RecoverySourceDiagnosticKind, StoreRecoveryEvidenceAuthority,
-    NON_APPLICABLE_FOUNDATIONAL_SURFACES, RECOVERY_ADMISSION_MECHANISMS,
-};
 pub use recovery_integrity_handoff_receipt::RecoveryIntegrityHandoffReceipt;
 pub use redo_replay::{
-    AdmittedRedoFrame, MiddleWalCorruptionDenial, MissingAcknowledgedWalRangeDenial,
-    RecoveredPhysicalState, RecoveryRedoPlan, RedoApplicationCursor, RedoApplicationPageFact,
-    RedoExecutionReceipt, RedoPlanCounterExpectation, RedoPlanningDenial, RedoPlanningDenialKind,
-    RedoRecordGrammar, RedoRecordGrammarDenial, RedoRecordGrammarDenialKind,
-    RedoRecordIdempotenceBasis, RedoRecordIntegrityBinding, RedoRecordMaterializedForm,
-    RedoRecordOperationForm, RedoRecordTargetGeneration, SkippedRedoFrameReport,
-    StaleWalGenerationDenial, TornWalTailClassification, WalPrefixIntegrityObservation,
-    WalPrefixObservationScan, WalValidPrefix, WalValidPrefixCounters,
+    admit_physical_redo_members, decode_physical_redo_records,
+    physical_redo_observation_target_identities, physical_redo_observation_targets,
+    physical_redo_target_identities, plan_physical_redo, AdmittedPhysicalRedoMembers,
+    AdmittedRedoFrame, ImmutablePhysicalRedoPlan, MiddleWalCorruptionDenial,
+    MissingAcknowledgedWalRangeDenial, PhysicalRedoAdmissionLimits, PhysicalRedoDecision,
+    PhysicalRedoDecisionKind, PhysicalRedoDecisionPrior, PhysicalRedoDecisionView,
+    PhysicalRedoExtentCoordinate, PhysicalRedoGroupBinding, PhysicalRedoMemberInput,
+    PhysicalRedoPlanCounters, PhysicalRedoPlanningDenial, PhysicalRedoProjection,
+    PhysicalRedoRecord, PhysicalRedoTarget, PhysicalRedoTargetIdentity, RecoveredPhysicalState,
+    RecoveryPageObservation, RecoveryPageSource, RecoveryRedoPlan, RedoApplicationCursor,
+    RedoApplicationPageFact, RedoExecutionReceipt, RedoPlanCounterExpectation, RedoPlanningDenial,
+    RedoPlanningDenialKind, RedoRecordGrammar, RedoRecordGrammarDenial,
+    RedoRecordGrammarDenialKind, RedoRecordIdempotenceBasis, RedoRecordIntegrityBinding,
+    RedoRecordMaterializedForm, RedoRecordOperationForm, RedoRecordTargetGeneration,
+    SkippedRedoFrameReport, StaleWalGenerationDenial, TornWalTailClassification,
+    WalPrefixIntegrityObservation, WalPrefixObservationScan, WalValidPrefix,
+    WalValidPrefixCounters,
 };
 pub use replay_basis::{
     DurabilityReplayIdentity, DurabilityReplayIdentityDenial, DurabilityReplayKind,
@@ -234,16 +217,27 @@ pub use security_scope_propagation::{
 #[cfg(feature = "certification-test-authority")]
 pub use source_precedence::RecoverySourcePrecedenceGraph;
 pub use source_precedence::{
+    admit_physical_page_facts, admit_physical_root_slot, admit_physical_wal_tail,
+    inspect_physical_wal_artifacts, select_current_previous_root, select_physical_recovery_sources,
     AdmittedCompactionCutoverDurability, AdmittedCompactionCutoverRecord, AdmittedRecoverySource,
     BackendResidueKind, BackendResidueRejection, CheckpointBaseAdmission,
-    CompactionArtifactResidueReason, CompactionArtifactResidueRejection,
-    CompactionCutoverRecoveryPosture, CompactionGenerationIdentity, CompactionGenerationVisibility,
-    CompactionVisibleProductEvidence, CompactionVisibleProductEvidenceDenial,
-    ContiguousWalTailProof, PageLsnSkipApplyDecision, PhysicalRecoverySource,
-    RecoverableOldCompactionGeneration, RecoveryCandidateDiscoveryTrace,
-    RecoverySourceApplicationRole, RecoverySourceCandidate, RecoverySourceDecisionKind,
-    RecoverySourceDecisionOutcome, RecoverySourceDecisionRow, RecoverySourceDecisionTrace,
-    WalOnlyTailProof, WalOnlyTailProofDenial, WalTailIntegrityQuarantineHandoff, WalTailRedoSource,
+    CheckpointCoveredWalArtifact, CompactionArtifactResidueReason,
+    CompactionArtifactResidueRejection, CompactionCutoverRecoveryPosture,
+    CompactionGenerationIdentity, CompactionGenerationVisibility, CompactionVisibleProductEvidence,
+    CompactionVisibleProductEvidenceDenial, ContiguousWalTailProof, InspectedPhysicalWalArtifacts,
+    PageLsnSkipApplyDecision, PhysicalCheckpointBase, PhysicalCheckpointBaseDenial,
+    PhysicalManifestBlockCandidate, PhysicalPageFactDenial, PhysicalRecoveryResidue,
+    PhysicalRecoveryResidueKind, PhysicalRecoverySource, PhysicalRootCandidateDenial,
+    PhysicalRootSelectionDenial, PhysicalRootSlotObservation, PhysicalRootSourceCandidate,
+    PhysicalSourceSelection, PhysicalSourceSelectionDenial, PhysicalSourceSelectionTrace,
+    PhysicalWalArtifactCorruption, PhysicalWalArtifactInspectionDenial,
+    PhysicalWalSegmentCandidate, RecoverableOldCompactionGeneration,
+    RecoveryCandidateDiscoveryTrace, RecoverySourceApplicationRole, RecoverySourceCandidate,
+    RecoverySourceDecisionKind, RecoverySourceDecisionOutcome, RecoverySourceDecisionRow,
+    RecoverySourceDecisionTrace, SelectedCompactionProduct, SelectedPhysicalPageFacts,
+    SelectedPhysicalRoot, SelectedPhysicalRootRole, SelectedPhysicalWalTail,
+    SelectedPhysicalWalTailDenial, WalOnlyTailProof, WalOnlyTailProofDenial,
+    WalTailIntegrityQuarantineHandoff, WalTailRedoSource,
 };
 pub use staged_wal_application::{
     StagedWalApplicationDenial, StagedWalApplicationPort, StagedWalApplicationProviderReceipt,
@@ -258,6 +252,10 @@ pub use wal_recovery_basis::{
     WalDurabilityObservation, WalDurabilityObservationBasis, WalDurabilityObservationDenial,
     WalDurabilityObservationDenialKind, WalFrameDigest,
 };
-pub use wal_topology::{LogSequenceNumber, WalLsnRange, WalSegmentGeneration, WalSegmentId};
+pub use wal_topology::{
+    LogSequenceNumber, WalLsnRange, WalSegmentArtifactIdentity, WalSegmentGeneration, WalSegmentId,
+    WalSegmentInspection,
+};
 pub use worth_store_contracts::CorruptionHandoffDamageCase;
 pub use worth_store_wal::AdmittedReplayTailCursor;
+pub use worth_store_wal::VerifiedWalArtifact;

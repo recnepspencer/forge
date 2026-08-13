@@ -6,14 +6,14 @@ use worth_query_declaration::facade::application_capability::ApplicationCapabili
 
 use super::delegation_admission::WorthQueryCapabilityObservationPosture;
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
-use super::{WorthQueryAuthorizationDecisionFact, WorthQueryAuthorizationTimeSample};
+use super::{WorthQueryAuthorizationDecisionFact, WorthQueryRuntimeTimeSample};
 
 pub(in crate::domain_computation) struct WorthQueryRetainedCapabilitySupport {
     decision: WorthQueryAuthorizationDecisionFact,
     capability_authority_identity: Arc<str>,
     grant: worth_relational::facade::identity::EntityId,
     request: WorthQueryRetainedCapabilityRequest,
-    sample: WorthQueryAuthorizationTimeSample,
+    sample: WorthQueryRuntimeTimeSample,
     posture: WorthQueryCapabilityObservationPosture,
 }
 
@@ -31,7 +31,7 @@ impl WorthQueryRetainedCapabilitySupport {
         capability_authority_identity: Arc<str>,
         grant: worth_relational::facade::identity::EntityId,
         request: WorthQueryRetainedCapabilityRequest,
-        sample: WorthQueryAuthorizationTimeSample,
+        sample: WorthQueryRuntimeTimeSample,
     ) -> Self {
         Self::new(
             decision,
@@ -48,7 +48,7 @@ impl WorthQueryRetainedCapabilitySupport {
         capability_authority_identity: Arc<str>,
         grant: worth_relational::facade::identity::EntityId,
         request: WorthQueryRetainedCapabilityRequest,
-        sample: WorthQueryAuthorizationTimeSample,
+        sample: WorthQueryRuntimeTimeSample,
     ) -> Self {
         Self::new(
             decision,
@@ -65,7 +65,7 @@ impl WorthQueryRetainedCapabilitySupport {
         capability_authority_identity: Arc<str>,
         grant: worth_relational::facade::identity::EntityId,
         request: WorthQueryRetainedCapabilityRequest,
-        sample: WorthQueryAuthorizationTimeSample,
+        sample: WorthQueryRuntimeTimeSample,
         posture: WorthQueryCapabilityObservationPosture,
     ) -> Self {
         Self {
@@ -81,7 +81,7 @@ impl WorthQueryRetainedCapabilitySupport {
     pub(super) fn replace_current_session(
         &mut self,
         session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
-        sample: WorthQueryAuthorizationTimeSample,
+        sample: WorthQueryRuntimeTimeSample,
         mut decision: WorthQueryAuthorizationDecisionFact,
     ) -> Result<(), ()> {
         if decision.session_identity() != session
@@ -138,7 +138,7 @@ impl std::fmt::Debug for WorthQueryRetainedCapabilitySupport {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("WorthQueryRetainedCapabilitySupport")
-            .field("capability_identity", &self.request.capability_identity)
+            .field("capability_identity", &self.request.capability_identity())
             .field(
                 "capability_authority_identity",
                 &self.capability_authority_identity,

@@ -27,6 +27,7 @@ mod blob_corruption_observation;
 #[cfg(test)]
 mod blob_corruption_observation_tests;
 mod boundary;
+mod c8_recovery_observation;
 mod custody_capsule_observation;
 #[cfg(test)]
 mod custody_capsule_observation_tests;
@@ -61,6 +62,13 @@ pub use blob_corruption_observation::{
     OfflineBlobCorruptionObservationDenial, OfflineBlobDamageCaseHint,
 };
 pub use boundary::OfflineVerifierBoundarySeam;
+pub use c8_recovery_observation::{
+    observe_recovery_artifacts, RecoveryObserverCounters, RecoveryObserverDecodeDenial,
+    RecoveryObserverLimits, RecoveryObserverLimitsDenial, RecoveryObserverObservationDenial,
+    RecoveryObserverObservationFailure, RecoveryObserverReport,
+    RECOVERY_OBSERVER_REPORT_COMPATIBILITY_WINDOW, RECOVERY_OBSERVER_REPORT_PROTOCOL,
+    RECOVERY_OBSERVER_REPORT_VERSION,
+};
 pub use custody_capsule_observation::{
     OfflineCustodyCapsuleObservation, OfflineCustodyCapsuleObservationDenial,
 };

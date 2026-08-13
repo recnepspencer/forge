@@ -23,7 +23,8 @@ pub struct PageRedoEligibility {
 }
 
 impl PageRedoEligibility {
-    pub(crate) const fn from_reopened_artifact(
+    #[cfg(feature = "certification-test-authority")]
+    pub fn for_certification(
         profile_id: BackendDurabilityProfileId,
         page_generation: PageGenerationCell,
         classified_page_lsn: PageLsn,

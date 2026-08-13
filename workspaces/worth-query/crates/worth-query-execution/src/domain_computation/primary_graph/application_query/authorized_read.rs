@@ -3,8 +3,8 @@ use crate::domain_computation::primary_graph::{
         read_execution::WorthQueryApplicationReadExecutionDenial,
         WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationAuthorizationWorkEvidence,
     },
-    entity_resolution::validate_entity_freshness_at_snapshot,
-    WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryInstalledEntityResolutionContext, WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryPrincipalResolutionMode,
 };
 use worth_query_declaration::facade::application_schema::ApplicationSchema;
 
@@ -64,22 +64,34 @@ where
     Schema: ApplicationSchema,
 {
     let basis = plan.basis.identity();
+    let entity_resolution = application
+        .runtime
+        .primary_graph()
+        .ok_or(WorthQueryAuthorizedApplicationReadDenial::Session)?
+        .retain_entity_resolution_context();
     let (read_outcome, proof) = plan
         .graph_work
         .execute_query_read(basis, |runtime, layout| {
             let current = runtime.snapshots().snapshot();
-            let authorization_work =
-                validate_current_authorization(application, runtime, &current, plan);
+            let authorization_work = validate_current_authorization(
+                application,
+                &entity_resolution,
+                runtime,
+                &current,
+                plan,
+            );
             runtime.snapshots().release_snapshot(&current);
             let authorization_work = authorization_work?;
-            validate_entity_freshness_at_snapshot(
-                runtime,
-                plan.basis.snapshot_handle(),
-                plan.scope,
-            )
-            .map_err(|denial| {
-                WorthQueryAuthorizedApplicationReadDenial::StaleBasisScope(denial.kind())
-            })?;
+            entity_resolution
+                .at_snapshot(
+                    runtime,
+                    plan.basis.snapshot_handle(),
+                    WorthQueryPrincipalResolutionMode::Ordinary,
+                )
+                .and_then(|truth| truth.validate_entity_freshness(plan.scope))
+                .map_err(|denial| {
+                    WorthQueryAuthorizedApplicationReadDenial::StaleBasisScope(denial.kind())
+                })?;
             let output = read(runtime, layout, plan)
                 .map_err(WorthQueryAuthorizedApplicationReadDenial::Read)?;
             Ok((output, authorization_work))
@@ -99,6 +111,7 @@ fn validate_current_authorization<
     Scope,
 >(
     application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    entity_resolution: &WorthQueryInstalledEntityResolutionContext,
     runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
     current: &worth_relational::facade::snapshots::SnapshotHandle,
     plan: &WorthQueryAdmittedApplicationQueryPlan<
@@ -154,7 +167,13 @@ where
             ),
         ));
     }
-    validate_entity_freshness_at_snapshot(runtime, current, plan.scope)
+    entity_resolution
+        .at_snapshot(
+            runtime,
+            current,
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .and_then(|truth| truth.validate_entity_freshness(plan.scope))
         .map_err(|_| WorthQueryAuthorizedApplicationReadDenial::StaleScope)?;
     Ok(plan.authorization_work)
 }

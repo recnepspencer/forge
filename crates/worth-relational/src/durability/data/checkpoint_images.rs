@@ -6,12 +6,12 @@ use worth_foundational::facade::{PortableAspectContract, PortableRecordAspectSta
 
 use super::CheckpointCoverage;
 use crate::history::data::BranchHead;
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::identity::data::{
     EntityId, KindId, LineageId, PartitionId, RelationId, StructuralFingerprint, VersionId,
 };
 use crate::indexes::data::{DerivedIndexArtifacts, DerivedIndexDefinition};
 use crate::lineage::data::LineageCheckpointArtifact;
-use crate::replay::data::CanonicalCommitEnvelope;
 use crate::storage::data::RecordLifecycleState;
 use crate::symbols::data::{Symbol, SymbolTableSnapshot};
 

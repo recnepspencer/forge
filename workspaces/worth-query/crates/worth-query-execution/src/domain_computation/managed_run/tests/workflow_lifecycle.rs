@@ -25,17 +25,29 @@ fn composed_workflow_run_mints_artifact_authority_and_cleans_every_owner() {
     let terminal = running
         .completed()
         .expect("workflow without provider work should complete");
+    let terminal_identity = terminal.identity().to_owned();
+    let logical_run_identity = terminal.logical_run_identity().to_owned();
+    let provider_session_identity = terminal
+        .provider_work()
+        .provider_session_identity()
+        .to_owned();
     super::cost_bound::assert_exact_admission_work(terminal.counters());
     let cleanup = complete_cleanup(terminal.cleanup());
-    super::cost_bound::assert_exact_admission_work(cleanup.counters());
+    let inspection = cleanup.inspection();
+    super::cost_bound::assert_exact_admission_work(inspection.counters());
+    assert_eq!(inspection.run_identity(), terminal_identity);
+    assert_eq!(inspection.logical_run_identity(), logical_run_identity);
     assert_eq!(
-        cleanup.disposition(),
+        inspection.provider_session_identity(),
+        provider_session_identity
+    );
+    assert_eq!(
+        inspection.disposition(),
         WorthQueryManagedRunCleanupDisposition::CleanupComplete
     );
-    assert!(cleanup.bridge().reservation_released());
-    assert!(cleanup.relational().released());
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
-    assert_artifact_evidence(cleanup.artifact_evidence(), (0, 0, 0, 0));
+    assert!(inspection.resources_released());
+    assert_eq!(inspection.released_reservation_count(), 2);
+    assert_artifact_evidence(inspection.artifact_evidence(), (0, 0, 0, 0));
 }
 
 #[test]
@@ -85,6 +97,11 @@ fn workflow_cleanup_pending_retains_run_until_live_artifact_owner_closes() {
     let terminal = running
         .completed()
         .expect("artifact production without uncertain provider calls may complete");
+    let terminal_identity = terminal.identity().to_owned();
+    let provider_session_identity = terminal
+        .provider_work()
+        .provider_session_identity()
+        .to_owned();
     assert_artifact_evidence(terminal.artifact_evidence(), (1, 1, 0, 64));
     assert_eq!(terminal.provider_work().produced_artifact_count(), 0);
     let rejected_disposed = Arc::new(AtomicUsize::new(0));
@@ -110,18 +127,18 @@ fn workflow_cleanup_pending_retains_run_until_live_artifact_owner_closes() {
         crate::domain_computation::WorthQueryArtifactDenialKind::ProductionClosed
     );
     let rejected_release = match denial.rejected_resource_release() {
-        Some(crate::domain_computation::WorthQueryArtifactProviderReleasePosture::Complete(
+        Some(crate::domain_computation::artifact_owner::WorthQueryArtifactProviderReleasePosture::Complete(
             evidence,
         )) => evidence,
         posture => panic!("rejected resource reported {posture:?}"),
     };
     assert_eq!(
         rejected_release.disposal(),
-        crate::domain_computation::WorthQueryArtifactProviderDisposalDisposition::Completed
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDisposalDisposition::Completed
     );
     assert_eq!(
         rejected_release.destructor(),
-        crate::domain_computation::WorthQueryArtifactProviderDestructorDisposition::Completed
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDestructorDisposition::Completed
     );
     assert_eq!(rejected_disposed.load(Ordering::Acquire), 1);
 
@@ -143,21 +160,27 @@ fn workflow_cleanup_pending_retains_run_until_live_artifact_owner_closes() {
     let released_snapshot = handle.owner_snapshot();
     assert!(matches!(
         released_snapshot.provider_release(),
-        crate::domain_computation::WorthQueryArtifactProviderReleasePosture::Complete(_)
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderReleasePosture::Complete(_)
     ));
     assert_eq!(released_snapshot.counters().provider_disposals, 1);
     assert_eq!(released_snapshot.counters().provider_destructor_attempts, 1);
     assert_eq!(released_snapshot.counters().provider_release_failures, 0);
     drop(handle);
     let cleanup = complete_cleanup(pending.retry());
+    let inspection = cleanup.inspection();
+    assert_eq!(inspection.run_identity(), terminal_identity);
     assert_eq!(
-        cleanup.disposition(),
+        inspection.provider_session_identity(),
+        provider_session_identity
+    );
+    assert_eq!(
+        inspection.disposition(),
         WorthQueryManagedRunCleanupDisposition::CleanupComplete
     );
-    assert!(cleanup.relational().released());
-    assert_artifact_evidence(cleanup.artifact_evidence(), (1, 0, 1, 0));
+    assert!(inspection.resources_released());
+    assert_artifact_evidence(inspection.artifact_evidence(), (1, 0, 1, 0));
     assert_eq!(
-        cleanup
+        inspection
             .artifact_evidence()
             .provider_release_complete_count(),
         1
@@ -186,6 +209,11 @@ fn workflow_cleanup_thread_failure_returns_the_same_terminal_for_retry() {
         .expect("workflow run should start")
         .completed()
         .expect("empty workflow should complete");
+    let terminal_identity = terminal.identity().to_owned();
+    let provider_session_identity = terminal
+        .provider_work()
+        .provider_session_identity()
+        .to_owned();
 
     let failure = std::thread::spawn(move || match terminal.cleanup() {
         WorthQueryWorkflowRunCleanupOutcome::RecoveryRequired(failure) => failure,
@@ -207,13 +235,19 @@ fn workflow_cleanup_thread_failure_returns_the_same_terminal_for_retry() {
     );
     assert_artifact_evidence(failure.artifact_evidence(), (0, 0, 0, 0));
     let cleanup = complete_cleanup(failure.retry());
+    let inspection = cleanup.inspection();
+    assert_eq!(inspection.run_identity(), terminal_identity);
     assert_eq!(
-        cleanup.disposition(),
+        inspection.provider_session_identity(),
+        provider_session_identity
+    );
+    assert_eq!(
+        inspection.disposition(),
         WorthQueryManagedRunCleanupDisposition::CleanupComplete
     );
-    assert!(cleanup.relational().released());
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
-    assert_artifact_evidence(cleanup.artifact_evidence(), (0, 0, 0, 0));
+    assert!(inspection.resources_released());
+    assert_eq!(inspection.released_reservation_count(), 2);
+    assert_artifact_evidence(inspection.artifact_evidence(), (0, 0, 0, 0));
 }
 
 #[test]

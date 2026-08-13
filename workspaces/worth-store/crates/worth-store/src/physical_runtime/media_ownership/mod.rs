@@ -1,6 +1,8 @@
 mod admission;
 mod admission_outcome;
 mod observation;
+#[cfg(feature = "recovery-runtime-owner")]
+mod recovery_cleanup;
 mod runtime;
 mod shutdown;
 
@@ -13,6 +15,13 @@ pub use admission_outcome::{
 pub use observation::{
     MediaOwnedObservationPhase, PhysicalMediaObservation, PhysicalMediaObserver,
     RecordServingObservationPhase,
+};
+#[cfg(feature = "recovery-runtime-owner")]
+pub use recovery_cleanup::{
+    CompletedRecoveryCleanupPhysicalRemoval, DeniedRecoveryCleanupPhysicalRemoval,
+    IndeterminateRecoveryCleanupPhysicalRemoval, RecoveryCleanupArtifactRevalidationDenial,
+    RecoveryCleanupArtifactRevalidationProgress, RecoveryCleanupRemovalDenialCause,
+    RecoveryCleanupRemovalOutcome,
 };
 pub use runtime::MediaOwnedPhysicalRuntime;
 pub use shutdown::MediaShutdownOutcome;

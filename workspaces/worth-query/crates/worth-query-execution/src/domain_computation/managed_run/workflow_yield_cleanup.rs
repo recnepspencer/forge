@@ -1,178 +1,147 @@
-use std::sync::Arc;
+mod inspection;
 
-use worth_relational::facade::runtime::{
-    RelationalExecutionBasisLease, RelationalExecutionBasisReleaseReceipt,
-};
+use worth_relational::facade::runtime::RelationalExecutionBasisLease;
 use worth_runtime_bridge::facade::BridgeExecutionBasisFinalizationReceipt;
 
+pub use inspection::{
+    WorthQueryWorkflowYieldCleanupInspection, WorthQueryWorkflowYieldCleanupReceipt,
+};
+
+use self::inspection::WorthQueryCompletedWorkflowYieldCleanup;
 use super::{
-    WorthQueryManagedProviderWorkEvidence, WorthQueryManagedRunCounters,
-    WorthQueryYieldTransitionCounters, WorthQueryYieldedWorkflowRun,
+    workflow::WorthQueryWorkflowYieldReleasePending, WorthQueryManagedRunCleanupDisposition,
+    WorthQueryManagedRunCounters, WorthQueryYieldTransitionCounters, WorthQueryYieldedWorkflowRun,
 };
 use crate::domain_computation::artifact_owner::{
     WorthQueryFrozenWorkflowArtifactAuthority, WorthQueryWorkflowArtifactRegistryEvidence,
 };
-use crate::domain_computation::{
-    WorthQueryProviderCheckpointEvidence, WorthQueryProviderCheckpointReleaseEvidence,
-    WorthQueryWorkflowExecutionAttemptReleaseReceipt, WorthQueryWorkflowExecutionResourceAttempt,
-};
+use crate::domain_computation::WorthQueryProviderCheckpointReleaseEvidence;
 
+pub(super) struct WorthQueryWorkflowYieldCleanupPermit {
+    _owner: (),
+}
+
+impl WorthQueryWorkflowYieldCleanupPermit {
+    fn mint() -> Self {
+        Self { _owner: () }
+    }
+}
+
+#[must_use = "workflow yielded-run cleanup outcomes must be resolved"]
 pub enum WorthQueryWorkflowYieldCleanupOutcome {
     Complete(WorthQueryWorkflowYieldCleanupReceipt),
     Pending(WorthQueryWorkflowYieldCleanupPending),
     RecoveryRequired(WorthQueryWorkflowYieldCleanupReceipt),
 }
 
+#[must_use = "pending workflow yielded-run cleanup retains artifact and release authority"]
 pub struct WorthQueryWorkflowYieldCleanupPending {
-    logical_run_identity: Arc<str>,
-    attempt_identity: Arc<str>,
-    resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
+    association: WorthQueryWorkflowYieldCleanupAssociation,
+}
+
+struct WorthQueryWorkflowYieldCleanupAssociation {
+    affinity: WorthQueryWorkflowYieldReleasePending,
     relational_basis: RelationalExecutionBasisLease,
     bridge: BridgeExecutionBasisFinalizationReceipt,
     artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
     checkpoint_release: WorthQueryProviderCheckpointReleaseEvidence,
     artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
     run_counters: WorthQueryManagedRunCounters,
-    provider_work: WorthQueryManagedProviderWorkEvidence,
     yield_counters: WorthQueryYieldTransitionCounters,
 }
 
 impl WorthQueryWorkflowYieldCleanupPending {
-    pub const fn artifact_evidence(&self) -> WorthQueryWorkflowArtifactRegistryEvidence {
-        self.artifact_evidence
-    }
-
-    pub fn checkpoint(&self) -> &WorthQueryProviderCheckpointEvidence {
-        self.checkpoint_release.checkpoint()
-    }
-
-    pub fn checkpoint_release(&self) -> &WorthQueryProviderCheckpointReleaseEvidence {
-        &self.checkpoint_release
-    }
-
+    #[must_use = "retry returns the same workflow yielded-run cleanup authority"]
     pub fn retry(self) -> WorthQueryWorkflowYieldCleanupOutcome {
-        cleanup_without_checkpoint_owner(self)
-    }
-
-    pub const fn yield_counters(&self) -> WorthQueryYieldTransitionCounters {
-        self.yield_counters
-    }
-
-    pub fn run_counters(&self) -> &WorthQueryManagedRunCounters {
-        &self.run_counters
-    }
-}
-
-pub struct WorthQueryWorkflowYieldCleanupReceipt {
-    logical_run_identity: Arc<str>,
-    attempt_identity: Arc<str>,
-    checkpoint_release: WorthQueryProviderCheckpointReleaseEvidence,
-    bridge: BridgeExecutionBasisFinalizationReceipt,
-    relational: RelationalExecutionBasisReleaseReceipt,
-    attempt: WorthQueryWorkflowExecutionAttemptReleaseReceipt,
-    artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
-    provider_work: WorthQueryManagedProviderWorkEvidence,
-    run_counters: WorthQueryManagedRunCounters,
-    yield_counters: WorthQueryYieldTransitionCounters,
-}
-
-impl WorthQueryWorkflowYieldCleanupReceipt {
-    pub fn logical_run_identity(&self) -> &str {
-        &self.logical_run_identity
-    }
-
-    pub fn yielded_attempt_identity(&self) -> &str {
-        &self.attempt_identity
-    }
-
-    pub fn checkpoint(&self) -> &WorthQueryProviderCheckpointEvidence {
-        self.checkpoint_release.checkpoint()
-    }
-
-    pub fn checkpoint_release(&self) -> &WorthQueryProviderCheckpointReleaseEvidence {
-        &self.checkpoint_release
-    }
-
-    pub fn bridge(&self) -> &BridgeExecutionBasisFinalizationReceipt {
-        &self.bridge
-    }
-
-    pub fn relational(&self) -> &RelationalExecutionBasisReleaseReceipt {
-        &self.relational
-    }
-
-    pub fn attempt(&self) -> &WorthQueryWorkflowExecutionAttemptReleaseReceipt {
-        &self.attempt
-    }
-
-    pub const fn artifact_evidence(&self) -> WorthQueryWorkflowArtifactRegistryEvidence {
-        self.artifact_evidence
-    }
-
-    pub fn provider_work(&self) -> &WorthQueryManagedProviderWorkEvidence {
-        &self.provider_work
-    }
-
-    pub fn run_counters(&self) -> &WorthQueryManagedRunCounters {
-        &self.run_counters
-    }
-
-    pub const fn yield_counters(&self) -> WorthQueryYieldTransitionCounters {
-        self.yield_counters
+        cleanup_without_checkpoint_owner(self.association)
     }
 }
 
 pub(super) fn cleanup_yielded_workflow(
     yielded: WorthQueryYieldedWorkflowRun,
 ) -> WorthQueryWorkflowYieldCleanupOutcome {
-    let checkpoint_release = yielded.execution.release();
-    cleanup_without_checkpoint_owner(WorthQueryWorkflowYieldCleanupPending {
-        logical_run_identity: yielded.logical_run_identity,
-        attempt_identity: yielded.attempt_identity,
-        resource_attempt: yielded.resource_attempt,
-        relational_basis: yielded.relational_basis,
-        bridge: yielded.bridge.release(),
-        artifacts: yielded.artifacts,
+    let permit = WorthQueryWorkflowYieldCleanupPermit::mint();
+    let association = yielded.owner_into_cleanup_association(&permit);
+    let (
+        affinity,
+        relational_basis,
+        bridge,
+        artifacts,
         checkpoint_release,
-        artifact_evidence: yielded.artifact_evidence,
-        run_counters: yielded.run_counters,
-        provider_work: yielded.provider_work.into_evidence(),
-        yield_counters: yielded.yield_counters,
+        artifact_evidence,
+        run_counters,
+        yield_counters,
+    ) = association.owner_into_parts(&permit);
+    cleanup_without_checkpoint_owner(WorthQueryWorkflowYieldCleanupAssociation {
+        affinity,
+        relational_basis,
+        bridge,
+        artifacts,
+        checkpoint_release,
+        artifact_evidence,
+        run_counters,
+        yield_counters,
     })
 }
 
 fn cleanup_without_checkpoint_owner(
-    mut pending: WorthQueryWorkflowYieldCleanupPending,
+    mut association: WorthQueryWorkflowYieldCleanupAssociation,
 ) -> WorthQueryWorkflowYieldCleanupOutcome {
-    let registry = pending.artifacts.registry();
+    let registry = association.artifacts.registry();
     registry.close_cancelled();
-    pending.artifact_evidence = registry.evidence();
-    if pending.artifact_evidence.retained_artifact_count() != 0
-        || pending.artifact_evidence.provider_release_pending_count() != 0
-    {
-        return WorthQueryWorkflowYieldCleanupOutcome::Pending(pending);
+    association.artifact_evidence = registry.evidence();
+    if cleanup_remains_pending(association.artifact_evidence) {
+        return WorthQueryWorkflowYieldCleanupOutcome::Pending(
+            WorthQueryWorkflowYieldCleanupPending { association },
+        );
     }
-    drop(pending.artifacts);
-    let receipt = WorthQueryWorkflowYieldCleanupReceipt {
-        logical_run_identity: pending.logical_run_identity,
-        attempt_identity: pending.attempt_identity,
-        checkpoint_release: pending.checkpoint_release,
-        bridge: pending.bridge,
-        relational: pending.relational_basis.release(),
-        attempt: pending.resource_attempt.release(),
-        artifact_evidence: pending.artifact_evidence,
-        run_counters: pending.run_counters,
-        provider_work: pending.provider_work,
-        yield_counters: pending.yield_counters,
-    };
-    if receipt.checkpoint_release.disposition().recovery_required()
-        || receipt
+    let recovery_required = association
+        .checkpoint_release
+        .disposition()
+        .recovery_required()
+        || association
             .artifact_evidence
             .provider_release_recovery_required_count()
-            != 0
-    {
+            != 0;
+    let receipt = complete_cleanup(association, recovery_required);
+    if recovery_required {
         WorthQueryWorkflowYieldCleanupOutcome::RecoveryRequired(receipt)
     } else {
         WorthQueryWorkflowYieldCleanupOutcome::Complete(receipt)
     }
+}
+
+fn cleanup_remains_pending(evidence: WorthQueryWorkflowArtifactRegistryEvidence) -> bool {
+    evidence.retained_artifact_count() != 0 || evidence.provider_release_pending_count() != 0
+}
+
+fn complete_cleanup(
+    association: WorthQueryWorkflowYieldCleanupAssociation,
+    recovery_required: bool,
+) -> WorthQueryWorkflowYieldCleanupReceipt {
+    let WorthQueryWorkflowYieldCleanupAssociation {
+        affinity,
+        relational_basis,
+        bridge,
+        artifacts,
+        checkpoint_release,
+        artifact_evidence,
+        run_counters,
+        yield_counters,
+    } = association;
+    drop(artifacts);
+    WorthQueryWorkflowYieldCleanupReceipt::from_completed(WorthQueryCompletedWorkflowYieldCleanup {
+        affinity: affinity.release(),
+        disposition: if recovery_required {
+            WorthQueryManagedRunCleanupDisposition::RecoveryRequired
+        } else {
+            WorthQueryManagedRunCleanupDisposition::CleanupComplete
+        },
+        checkpoint_release,
+        bridge,
+        relational: relational_basis.release(),
+        artifact_evidence,
+        run_counters,
+        yield_counters,
+    })
 }

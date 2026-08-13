@@ -1,2 +1,6 @@
+mod access;
+mod authority;
 pub mod data;
-pub mod logic;
+
+pub use access::HistoryAccess;
+pub use authority::HistoryAuthority;

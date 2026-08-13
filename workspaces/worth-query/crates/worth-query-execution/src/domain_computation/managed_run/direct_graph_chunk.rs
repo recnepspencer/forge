@@ -134,6 +134,7 @@ fn release_or_retain_queue(
 ) -> bool {
     let running = &mut active.running;
     running
-        .provider_work
+        .affinity
+        .provider_work_mut()
         .release_or_retain_queue_occupancy(&mut running.bridge_basis, occupancy)
 }

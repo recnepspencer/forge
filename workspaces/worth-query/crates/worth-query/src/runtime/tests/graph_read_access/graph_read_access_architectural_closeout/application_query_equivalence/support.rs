@@ -276,23 +276,22 @@ fn query_definition(
         nested,
     )
     .build();
-    ApplicationQueryDefinitionBuilder::public(
-        query_reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::Many,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 3),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .order_by(
-        identity_ordering,
-        ApplicationQueryOrderingDirection::Ascending,
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(query_reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::Many)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 3))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .order_by(
+            identity_ordering,
+            ApplicationQueryOrderingDirection::Ascending,
+        )
+        .build()
+        .unwrap()
 }
 
 fn mature_schema() -> QuerySchemaView {

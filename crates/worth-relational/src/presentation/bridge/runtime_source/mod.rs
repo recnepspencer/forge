@@ -1,12 +1,11 @@
 use std::sync::{Arc, Mutex};
 
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 mod branch_heads;
 mod committed_patches;
 mod continuity_lineage;
 mod execution_basis;
-pub(super) mod runtime_authority;
 mod snapshot_authority;
 mod snapshot_reads;
 mod source_profile;
@@ -15,7 +14,7 @@ pub use execution_basis::RelationalBridgeTruthViewBasisDenial;
 
 #[derive(Debug, Clone)]
 pub struct RuntimeBridgeRelationalSource {
-    runtime: runtime_authority::RelationalBridgeRuntimeAuthority,
+    runtime: crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority,
     graph_role: Arc<str>,
     partition: Option<RelationalBridgePartitionBinding>,
 }
@@ -41,7 +40,7 @@ impl RuntimeBridgeRelationalSource {
             return Err(RelationalBridgeSourceConfigurationError::InvalidGraphRole);
         }
         Ok(Self {
-            runtime: runtime_authority::RelationalBridgeRuntimeAuthority::immutable(runtime),
+            runtime: crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority::immutable(runtime),
             graph_role,
             partition: None,
         })
@@ -54,7 +53,10 @@ impl RuntimeBridgeRelationalSource {
         let graph_role = graph_role.into();
         validate_graph_role(&graph_role)?;
         Ok(Self {
-            runtime: runtime_authority::RelationalBridgeRuntimeAuthority::shared(runtime),
+            runtime:
+                crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority::shared(
+                    runtime,
+                ),
             graph_role,
             partition: None,
         })

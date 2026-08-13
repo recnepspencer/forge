@@ -34,8 +34,13 @@ physical-isolation-fixtures = [
     "dep:worth-store-physical-backend",
     "dep:worth-store-physical-integrity",
     "dep:worth-store-recovery-physics",
+    "worth-store-recovery-physics/certification-test-authority",
     "dep:worth-store-security",
     "dep:worth-store-wal",
+]
+recovery-runtime-fixtures = [
+    "physical-isolation-fixtures",
+    "worth-store/certification-test-authority",
 ]
 physical-compaction-fixtures = [
     "physical-isolation-fixtures",

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 mod evaluation;
+mod installation;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct SignalAuthorizationPolicyIdentity([u8; 32]);

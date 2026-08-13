@@ -2,16 +2,6 @@ use super::LayoutOwnerObservationLedger;
 use crate::courtroom::layout::executed_evidence::LayoutExecutedEvidenceKind as Evidence;
 
 impl LayoutOwnerObservationLedger {
-    pub fn record_restored_layout_materialization(
-        &mut self,
-        observed: worth_store_operations::RestoredLayoutMaterializationObservation,
-    ) {
-        self.record(
-            super::LayoutOwnerFamily::RestoredLayoutMaterialization,
-            observed.case_id().as_str(),
-        );
-    }
-
     pub fn record_lsm_membership(
         &mut self,
         observed: worth_store_lsm_authority::LsmMembershipOwnerCaseObservation,

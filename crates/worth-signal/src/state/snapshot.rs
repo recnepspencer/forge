@@ -53,8 +53,8 @@ impl SignalSnapshotV1 {
         &self.diagnostic_graph
     }
 
-    pub fn authority_graph(&self) -> SignalGraph {
-        SignalGraph::restore_from_checkpoint_authority(&self.checkpoint_image.authority)
+    pub fn authority_graph(&self) -> Result<SignalGraph, crate::data::error::SignalError> {
+        SignalGraph::restore_from_checkpoint_image(&self.checkpoint_image)
     }
 
     pub fn reconstructability_proof(

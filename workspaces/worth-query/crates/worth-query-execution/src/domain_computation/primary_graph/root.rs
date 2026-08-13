@@ -13,6 +13,9 @@ use super::schema_layout::WorthQueryPrimaryGraphLayout;
 /// Query integration code receives a separate hidden handle so product
 /// consumers cannot bypass installed Query authority.
 pub struct WorthQueryPrimaryGraph {
+    runtime_authority:
+        crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
+    relational_runtime_instance_id: u64,
     binding_identity: ApplicationSchemaBindingIdentity,
     pub(super) layout: Arc<WorthQueryPrimaryGraphLayout>,
     runtime: Arc<Mutex<RelationalRuntime>>,
@@ -21,10 +24,14 @@ pub struct WorthQueryPrimaryGraph {
 
 impl WorthQueryPrimaryGraph {
     pub(super) fn new(
+        runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
         binding_identity: ApplicationSchemaBindingIdentity,
         mut layout: WorthQueryPrimaryGraphLayout,
         mut runtime: RelationalRuntime,
     ) -> Self {
+        let runtime_snapshot = runtime.snapshots().snapshot();
+        let relational_runtime_instance_id = runtime_snapshot.runtime_instance_id;
+        runtime.snapshots().release_snapshot(&runtime_snapshot);
         let mut indexes_by_locator = BTreeMap::new();
         for (binding, binding_layout) in layout.principal_bindings_mut() {
             let installed = runtime.index_authority().register(DerivedIndexDefinition {
@@ -72,7 +79,19 @@ impl WorthQueryPrimaryGraph {
             branch_scoped: false,
         });
         provider_idempotency.key_index_id = installed.index_id;
+        let aftermath_causality = layout.provider_aftermath_causality_mut();
+        let installed = runtime.index_authority().register(DerivedIndexDefinition {
+            index_id: worth_relational::facade::indexes::DerivedIndexId(0),
+            name: "worth-query-provider.aftermath-causality-key".to_owned(),
+            kind: DerivedIndexKind::EntityField {
+                field_locator: aftermath_causality.key_locator.clone(),
+            },
+            branch_scoped: false,
+        });
+        aftermath_causality.key_index_id = installed.index_id;
         Self {
+            runtime_authority,
+            relational_runtime_instance_id,
             binding_identity,
             layout: Arc::new(layout),
             runtime: Arc::new(Mutex::new(runtime)),
@@ -84,6 +103,16 @@ impl WorthQueryPrimaryGraph {
 
     pub fn binding_identity(&self) -> &ApplicationSchemaBindingIdentity {
         &self.binding_identity
+    }
+
+    pub(super) const fn runtime_authority(
+        &self,
+    ) -> crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity {
+        self.runtime_authority
+    }
+
+    pub(super) const fn relational_runtime_instance_id(&self) -> u64 {
+        self.relational_runtime_instance_id
     }
 
     pub(in crate::domain_computation) fn layout(&self) -> &WorthQueryPrimaryGraphLayout {
@@ -108,6 +137,9 @@ impl WorthQueryPrimaryGraph {
             .chain(self.layout.capability_grant_join_index_ids())
             .chain(std::iter::once(
                 self.layout.provider_idempotency().key_index_id,
+            ))
+            .chain(std::iter::once(
+                self.layout.provider_aftermath_causality().key_index_id,
             ))
             .collect::<BTreeSet<_>>()
             .into_iter()
@@ -192,6 +224,14 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
             "primary",
         )
         .expect("the installed primary graph role is canonical")
+    }
+
+    pub(crate) fn relational_execution_basis_source(
+        &self,
+    ) -> worth_relational::facade::runtime::RelationalApplicationCommitBasisSource {
+        worth_relational::facade::runtime::RelationalApplicationCommitBasisSource::for_shared_runtime(
+            Arc::clone(&self.runtime),
+        )
     }
 
     pub(crate) fn ensure_primary_indexes_current(

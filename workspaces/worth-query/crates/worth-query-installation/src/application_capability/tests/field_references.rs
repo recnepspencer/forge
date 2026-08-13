@@ -1,0 +1,114 @@
+//! Marker-bound field references used by capability identity tests.
+
+use worth_query_declaration::facade::{
+    application_capability::ApplicationCapabilityFieldBinding,
+    application_schema::{
+        ApplicationAspectMarkerIdentity, ApplicationEntityMarkerIdentity,
+        ApplicationFieldMarkerIdentity, ApplicationFieldRef, EqualityPredicate, NoApplicationUnit,
+        ReadOnly,
+    },
+};
+
+use super::{
+    Action, Amount, ChangedResourceWorkflow, ChangedValidFrom, ChangedWorkflow, DelegationLimit,
+    Facts, Field, Grant, Purpose, Resource, ResourceFacts, ResourceWorkflow, Schema, Status,
+    ValidFrom, ValidThrough, Workflow,
+};
+
+macro_rules! entity_identity {
+    ($marker:ty, $identifier:literal) => {
+        impl ApplicationEntityMarkerIdentity for $marker {
+            type Schema = Schema;
+            const IDENTIFIER: &'static str = $identifier;
+        }
+    };
+}
+
+macro_rules! aspect_identity {
+    ($marker:ty, $entity:ty, $identifier:literal) => {
+        impl ApplicationAspectMarkerIdentity for $marker {
+            type Schema = Schema;
+            type Entity = $entity;
+            const IDENTIFIER: &'static str = $identifier;
+        }
+    };
+}
+
+macro_rules! field_identity {
+    ($marker:ty, $entity:ty, $aspect:ty, $identifier:literal) => {
+        impl ApplicationFieldMarkerIdentity for $marker {
+            type Schema = Schema;
+            type Entity = $entity;
+            type Aspect = $aspect;
+            const IDENTIFIER: &'static str = $identifier;
+        }
+    };
+}
+
+entity_identity!(Grant, "Grant");
+entity_identity!(Resource, "Resource");
+aspect_identity!(Facts, Grant, "Facts");
+aspect_identity!(ResourceFacts, Resource, "ResourceFacts");
+field_identity!(Action, Grant, Facts, "Action");
+field_identity!(Purpose, Grant, Facts, "Purpose");
+field_identity!(Field, Grant, Facts, "Field");
+field_identity!(Amount, Grant, Facts, "Amount");
+field_identity!(Workflow, Grant, Facts, "Workflow");
+field_identity!(ChangedWorkflow, Grant, Facts, "ChangedWorkflow");
+field_identity!(
+    ResourceWorkflow,
+    Resource,
+    ResourceFacts,
+    "ResourceWorkflow"
+);
+field_identity!(
+    ChangedResourceWorkflow,
+    Resource,
+    ResourceFacts,
+    "ChangedResourceWorkflow"
+);
+field_identity!(Status, Grant, Facts, "Status");
+field_identity!(ValidFrom, Grant, Facts, "ValidFrom");
+field_identity!(ChangedValidFrom, Grant, Facts, "ChangedValidFrom");
+field_identity!(ValidThrough, Grant, Facts, "ValidThrough");
+field_identity!(DelegationLimit, Grant, Facts, "DelegationLimit");
+
+pub(super) fn field<FieldMarker>() -> ApplicationFieldRef<
+    Schema,
+    Grant,
+    Facts,
+    FieldMarker,
+    u64,
+    ReadOnly,
+    EqualityPredicate,
+    NoApplicationUnit,
+>
+where
+    FieldMarker: ApplicationFieldMarkerIdentity<Schema = Schema, Entity = Grant, Aspect = Facts>,
+{
+    ApplicationFieldRef::from_schema_types()
+}
+
+pub(super) fn field_binding<FieldMarker>() -> ApplicationCapabilityFieldBinding
+where
+    FieldMarker: ApplicationFieldMarkerIdentity<Schema = Schema, Entity = Grant, Aspect = Facts>,
+{
+    ApplicationCapabilityFieldBinding::from_reference(field::<FieldMarker>())
+}
+
+pub(super) fn resource_field_binding<FieldMarker>() -> ApplicationCapabilityFieldBinding
+where
+    FieldMarker:
+        ApplicationFieldMarkerIdentity<Schema = Schema, Entity = Resource, Aspect = ResourceFacts>,
+{
+    ApplicationCapabilityFieldBinding::from_reference(ApplicationFieldRef::<
+        Schema,
+        Resource,
+        ResourceFacts,
+        FieldMarker,
+        u64,
+        ReadOnly,
+        EqualityPredicate,
+        NoApplicationUnit,
+    >::from_schema_types())
+}

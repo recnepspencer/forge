@@ -175,7 +175,7 @@ fn durability_with_pending_limit(
         group_limit,
         pending_limit,
         PhysicalWalPolicy::segmented(
-            WalSegmentByteLimit::new(NonZeroU64::new(8 * 1024 * 1024).unwrap()),
+            WalSegmentByteLimit::new(NonZeroU64::new(16 * 1024 * 1024).unwrap()),
             WalSegmentInventoryLimit::new(NonZeroU32::new(1_024).unwrap()),
         ),
     )
@@ -219,7 +219,7 @@ fn durability_with_idempotency_limits(
         pending_limit,
         live_limit,
         PhysicalWalPolicy::segmented(
-            WalSegmentByteLimit::new(NonZeroU64::new(8 * 1024 * 1024).unwrap()),
+            WalSegmentByteLimit::new(NonZeroU64::new(16 * 1024 * 1024).unwrap()),
             WalSegmentInventoryLimit::new(NonZeroU32::new(1_024).unwrap()),
         ),
     )

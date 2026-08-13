@@ -46,4 +46,10 @@ impl<Query, QueryResult> WorthQueryAdmittedDisclosedApplicationResult<Query, Que
     pub const fn receipt(&self) -> &WorthQueryApplicationQueryAccessReceipt {
         &self.receipt
     }
+
+    /// Consumes the governed result at a downstream publication boundary.
+    /// The receipt remains execution-owned and must be projected before drop.
+    pub fn into_parts(self) -> (Vec<QueryResult>, WorthQueryApplicationQueryAccessReceipt) {
+        (self.rows, self.receipt)
+    }
 }

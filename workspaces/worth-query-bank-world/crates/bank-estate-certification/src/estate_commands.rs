@@ -1,14 +1,13 @@
 use bank_domain::estate::EstateAction;
-use bank_server::{BankAuthenticatedPrincipal, BankEstateProgressionDenial, BankIdentityRuntime};
+use bank_server::{
+    BankApprovedEstateElevation, BankAuthenticatedPrincipal, BankEstateElevationApprovalOutcome,
+    BankEstateElevationCloseOutcome, BankEstateElevationRequestOutcome, BankEstateMandatoryReview,
+    BankEstateMandatoryReviewOutcome, BankEstateProgressionDenial, BankIdentityRuntime,
+    BankRequestedEstateElevation, BankReviewedEstateElevation,
+};
 use worth_query_host::facade::{
     admission::authenticated_principal::WorthQueryRequestScope,
-    primary_graph::{
-        WorthQueryApplicationIdempotencyBinding, WorthQueryApprovedElevation,
-        WorthQueryElevationApprovalOutcome, WorthQueryElevationCloseOutcome,
-        WorthQueryElevationRequestOutcome, WorthQueryMandatoryReview,
-        WorthQueryMandatoryReviewOutcome, WorthQueryRequestedElevation,
-        WorthQueryReviewedElevation,
-    },
+    primary_graph::WorthQueryApplicationIdempotencyBinding,
 };
 
 pub struct EstateCommandInputs {
@@ -33,12 +32,12 @@ pub struct EstateLifecycleInputs {
 
 #[derive(Debug)]
 pub enum EstateLifecycleProgressionOutcome {
-    Reviewed(Box<WorthQueryReviewedElevation>),
-    AlreadyReviewed(Box<WorthQueryReviewedElevation>),
-    RequestStopped(Box<WorthQueryElevationRequestOutcome>),
-    ApprovalStopped(Box<WorthQueryElevationApprovalOutcome>),
-    CloseStopped(Box<WorthQueryElevationCloseOutcome>),
-    ReviewStopped(Box<WorthQueryMandatoryReviewOutcome>),
+    Reviewed(Box<BankReviewedEstateElevation>),
+    AlreadyReviewed(Box<BankReviewedEstateElevation>),
+    RequestStopped(Box<BankEstateElevationRequestOutcome>),
+    ApprovalStopped(Box<BankEstateElevationApprovalOutcome>),
+    CloseStopped(Box<BankEstateElevationCloseOutcome>),
+    ReviewStopped(Box<BankEstateMandatoryReviewOutcome>),
 }
 
 pub fn exercise_estate_commands(
@@ -128,43 +127,43 @@ pub fn exercise_estate_lifecycle(
 }
 
 fn requested_receipt(
-    outcome: WorthQueryElevationRequestOutcome,
-) -> Result<WorthQueryRequestedElevation, Box<WorthQueryElevationRequestOutcome>> {
+    outcome: BankEstateElevationRequestOutcome,
+) -> Result<BankRequestedEstateElevation, Box<BankEstateElevationRequestOutcome>> {
     match outcome {
-        WorthQueryElevationRequestOutcome::Requested(receipt)
-        | WorthQueryElevationRequestOutcome::AlreadyRequested(receipt) => Ok(receipt),
+        BankEstateElevationRequestOutcome::Requested(receipt)
+        | BankEstateElevationRequestOutcome::AlreadyRequested(receipt) => Ok(receipt),
         stopped => Err(Box::new(stopped)),
     }
 }
 
 fn approved_receipt(
-    outcome: WorthQueryElevationApprovalOutcome,
-) -> Result<WorthQueryApprovedElevation, Box<WorthQueryElevationApprovalOutcome>> {
+    outcome: BankEstateElevationApprovalOutcome,
+) -> Result<BankApprovedEstateElevation, Box<BankEstateElevationApprovalOutcome>> {
     match outcome {
-        WorthQueryElevationApprovalOutcome::Approved(receipt)
-        | WorthQueryElevationApprovalOutcome::AlreadyApproved(receipt) => Ok(receipt),
+        BankEstateElevationApprovalOutcome::Approved(receipt)
+        | BankEstateElevationApprovalOutcome::AlreadyApproved(receipt) => Ok(receipt),
         stopped => Err(Box::new(stopped)),
     }
 }
 
 fn mandatory_review_receipt(
-    outcome: WorthQueryElevationCloseOutcome,
-) -> Result<WorthQueryMandatoryReview, Box<WorthQueryElevationCloseOutcome>> {
+    outcome: BankEstateElevationCloseOutcome,
+) -> Result<BankEstateMandatoryReview, Box<BankEstateElevationCloseOutcome>> {
     match outcome {
-        WorthQueryElevationCloseOutcome::Closed(receipt)
-        | WorthQueryElevationCloseOutcome::AlreadyClosed(receipt) => Ok(receipt),
+        BankEstateElevationCloseOutcome::Closed(receipt)
+        | BankEstateElevationCloseOutcome::AlreadyClosed(receipt) => Ok(receipt),
         stopped => Err(Box::new(stopped)),
     }
 }
 
 fn reviewed_outcome(
-    outcome: WorthQueryMandatoryReviewOutcome,
+    outcome: BankEstateMandatoryReviewOutcome,
 ) -> EstateLifecycleProgressionOutcome {
     match outcome {
-        WorthQueryMandatoryReviewOutcome::Reviewed(receipt) => {
+        BankEstateMandatoryReviewOutcome::Reviewed(receipt) => {
             EstateLifecycleProgressionOutcome::Reviewed(Box::new(receipt))
         }
-        WorthQueryMandatoryReviewOutcome::AlreadyReviewed(receipt) => {
+        BankEstateMandatoryReviewOutcome::AlreadyReviewed(receipt) => {
             EstateLifecycleProgressionOutcome::AlreadyReviewed(Box::new(receipt))
         }
         stopped => EstateLifecycleProgressionOutcome::ReviewStopped(Box::new(stopped)),

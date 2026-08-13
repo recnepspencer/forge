@@ -2,7 +2,7 @@ mod support;
 
 use support::compile_fail::run_compile_fail_bundle;
 use support::compile_pass::run_compile_pass_bundle;
-use support::milestone6;
+use support::composition_family;
 use worth_proof::{
     lower_deterministic_family_pair, resolve_family_symbol, AuthoritativeFamilyMember,
     CompositionFamilySymbol, FamilyLifecycleAction,
@@ -10,14 +10,14 @@ use worth_proof::{
 
 #[test]
 fn static_fork_join_and_composition_family_certification() {
-    let compile_fail_bundle = milestone6::compile_fail_bundle();
-    let compile_pass_bundle = milestone6::compile_pass_bundle();
-    let transition_digest = milestone6::transition_digest();
-    let composition_digest = milestone6::composition_digest();
-    let proof_shape_digest = milestone6::proof_shape_digest();
-    let failure_digest = milestone6::failure_digest();
-    let codegen_honesty_report = milestone6::codegen_honesty_report();
-    let residual_debt_report = milestone6::residual_debt_report();
+    let compile_fail_bundle = composition_family::compile_fail_bundle();
+    let compile_pass_bundle = composition_family::compile_pass_bundle();
+    let transition_digest = composition_family::transition_digest();
+    let composition_digest = composition_family::composition_digest();
+    let proof_shape_digest = composition_family::proof_shape_digest();
+    let failure_digest = composition_family::failure_digest();
+    let codegen_honesty_report = composition_family::codegen_honesty_report();
+    let residual_debt_report = composition_family::residual_debt_report();
 
     run_compile_fail_bundle(&compile_fail_bundle);
     run_compile_pass_bundle(&compile_pass_bundle);

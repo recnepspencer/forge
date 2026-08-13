@@ -35,6 +35,16 @@ impl SettledPhysicalWork {
             PhysicalWorkSettlementEvidence::NewArtifact { physical, .. } => {
                 physical.write_operation()
             }
+            #[cfg(feature = "recovery-runtime-owner")]
+            PhysicalWorkSettlementEvidence::RecoveryStaging { physical, .. } => {
+                if let Some(created) = physical.created() {
+                    created.write_operation()
+                } else if let Some(verified) = physical.verified() {
+                    verified.operation()
+                } else {
+                    return None;
+                }
+            }
             PhysicalWorkSettlementEvidence::PublicationEffect { physical, .. } => {
                 physical.physical().operation()
             }

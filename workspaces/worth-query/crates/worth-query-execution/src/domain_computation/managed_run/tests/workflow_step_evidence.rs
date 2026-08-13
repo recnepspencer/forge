@@ -312,7 +312,13 @@ fn governed_artifact_retention_survives_a_later_provider_call() {
     assert_eq!(disposed.load(Ordering::Acquire), 1);
     match terminal.cleanup() {
         WorthQueryWorkflowRunCleanupOutcome::Complete(receipt) => {
-            assert_eq!(receipt.artifact_evidence().disposed_artifact_count(), 1);
+            assert_eq!(
+                receipt
+                    .inspection()
+                    .artifact_evidence()
+                    .disposed_artifact_count(),
+                1
+            );
         }
         _ => panic!("released governed artifact should permit cleanup"),
     }

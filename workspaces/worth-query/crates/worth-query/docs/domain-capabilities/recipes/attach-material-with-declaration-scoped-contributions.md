@@ -95,7 +95,7 @@ This helper path still lowers onto:
 
 - contribution-composed orchestration
 - the declaration-entry envelope ceiling
-- the shared recovery boundary
+- typed-stop remediation guidance
 
 The helper only packages the declaration family and common contribution kinds
 into one easier call shape.

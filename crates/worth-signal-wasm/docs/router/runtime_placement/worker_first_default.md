@@ -14,6 +14,40 @@ That is the useful starting point. It does **not** mean browser APIs moved into
 the worker, or that every JavaScript callback declared on a route is proven to
 execute there.
 
+## Tip Notify Vs Authored Settlement
+
+> **1.5 breaking change:** default `awaitSettlement()` no longer drains authored
+> work. See [migration-1.5](../../package/migration-1.5.md).
+
+Host tip is the UI paint authority. Every mutation ingress
+(`set` / `setWithAspects` / graph / import / resource binding apply) advances
+host tip and notifies React (`createReactSignalsStore` / `useSignalValue` /
+`useResourceLine`) in the same turn or next microtask. Do **not** put
+dialog/popover open in React `useState`, and do not use
+`mainThreadCompatibility` as a paint fallback.
+
+Settlement is tip-honest handoff only:
+
+| API | Resolves when | Use for |
+|---|---|---|
+| `line.awaitSettlement({ timeoutMs? })` | This line's **tip status** leaves pending | Wait for load/refresh tip |
+| `line.awaitSettlement({ drainAuthoredWork: true })` | Tip status settled, then global authored drain | Tip-honest handoff after load |
+| `signals.settleAuthoredWork()` | Pending pubs + mutations drained | Submit / write / worker proof |
+
+`timeoutMs` is a failure deadline only — never the paint path.
+
+```ts
+// Paint: follow tip notify (useSignalValue / useResourceLine).
+dialogOpen.set(false);
+
+// Tip-honest handoff only (submit, worker proof) — not required to close UI:
+await signals.settleAuthoredWork();
+```
+
+Form field mutations may return thenables under worker-first — await those (or
+call `settleAuthoredWork`) before submit paths that assume published
+summary/input truth on the worker.
+
 ## The Honest Boundary
 
 The browser host observes `location`, `popstate`, clicks, and external

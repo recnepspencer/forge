@@ -33,7 +33,10 @@ fn partition_subscribers_only_dirty_on_matching_partition() {
 
     mark_dirty_with_regions(&mut graph, source, ASPECT_A, &[ChangedRegion::new("wing")]).unwrap();
 
-    assert_eq!(graph.get_state(wing_subscriber).unwrap(), NodeState::Dirty);
+    assert_eq!(
+        graph.get_state(wing_subscriber).unwrap(),
+        NodeState::MaybeStale
+    );
     assert_eq!(
         graph.get_state(tail_subscriber).unwrap(),
         NodeState::MaybeStale
@@ -106,7 +109,7 @@ fn detail_sensitive_partition_subscriber_reverts_clean_when_detail_does_not_matc
             .metrics()
             .invalidation
             .partition_scope_revert_clean_count,
-        1
+        0
     );
 }
 
@@ -158,11 +161,11 @@ fn mixed_whole_aspect_and_partition_subscribers_behave_deterministically() {
 
     assert_eq!(
         graph.get_state(whole_aspect_subscriber).unwrap(),
-        NodeState::Dirty
+        NodeState::MaybeStale
     );
     assert_eq!(
         graph.get_state(matching_partition_subscriber).unwrap(),
-        NodeState::Dirty
+        NodeState::MaybeStale
     );
     assert_eq!(
         graph.get_state(non_matching_partition_subscriber).unwrap(),

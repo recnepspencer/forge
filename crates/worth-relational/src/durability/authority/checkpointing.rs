@@ -164,8 +164,10 @@ impl<'runtime> DurabilityAuthority<'runtime> {
 
     pub(crate) fn append_commit(
         &mut self,
-        envelope: &crate::replay::data::CanonicalCommitEnvelope,
+        authority: super::DurableAppendAuthority,
+        envelope: &crate::history::data::CanonicalCommitEnvelope,
     ) -> Result<(), DurabilityError> {
+        authority.validate(self.runtime.runtime_instance_id(), envelope)?;
         match self.runtime.runtime_config().durability.policy.mode {
             DurabilityMode::InMemoryCanonical => {
                 self.runtime.durability.push_log_envelope(envelope.clone());

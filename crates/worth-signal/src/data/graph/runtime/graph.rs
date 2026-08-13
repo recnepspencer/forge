@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::aspect::SignalAspectLoweringOwner;
 use crate::data::bitset::DenseBitset;
 use crate::data::error::SignalError;
+use crate::data::graph::storage::invalidation_causes::CanonicalCauseSetStore;
 use crate::data::handle::NodeId;
 use crate::data::node::{NodeColdData, NodeHotData, NodeWarmData};
 use crate::schema::data::SignalSchemaRegistry;
@@ -17,16 +18,21 @@ use super::super::storage::Slot;
 
 mod branch_mutations;
 mod capabilities;
+#[cfg(test)]
+mod cause_sets_tests;
 mod checkpoint;
 mod construction;
 mod counter_access;
+#[cfg(test)]
+mod direct_invalidation_basis_tests;
 mod observation_state;
 mod reconstruction_counters;
 mod scratch_lease;
 mod topology_state;
 mod traversal_state;
 
-pub(crate) use branch_mutations::BranchMutationRecord;
+pub(crate) use crate::logic::invalidation::causality::PreparedDirectCauseAdmission;
+pub(crate) use branch_mutations::{BranchMutationNodeImage, BranchMutationRecord};
 pub use branch_mutations::{
     BranchStructuralDelta, DependencySnapshotStructuralDelta, DependencyTopologyDelta,
     RuntimeArtifactStructuralDelta,
@@ -60,6 +66,13 @@ pub struct SignalGraph {
     pub(in crate::data::graph) instance_id: u64,
     pub(in crate::data::graph) arena: NodeArena,
     pub(in crate::data::graph) topology: EdgeTopology,
+    #[serde(
+        default,
+        serialize_with = "crate::data::graph::storage::invalidation_causes::serialize_canonical_cause_sets"
+    )]
+    pub(crate) cause_sets: CanonicalCauseSetStore,
+    #[serde(skip, default)]
+    pub(crate) cause_readmission_required: bool,
     pub(in crate::data::graph) traversal: TraversalResources,
     pub(in crate::data::graph) observation: RuntimeObservation,
     #[serde(skip, default)]

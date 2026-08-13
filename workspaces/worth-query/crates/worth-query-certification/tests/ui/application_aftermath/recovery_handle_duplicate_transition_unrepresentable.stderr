@@ -1,0 +1,11 @@
+error[E0382]: use of moved value: `handle`
+  --> tests/ui/application_aftermath/recovery_handle_duplicate_transition_unrepresentable.rs:11:43
+   |
+ 6 |     handle: WorthQueryRecoveryHandle,
+   |     ------ move occurs because `handle` has type `WorthQueryRecoveryHandle`, which does not implement the `Copy` trait
+...
+ 9 |     let _first = dispose_recovery_handle(handle, authority);
+   |                                          ------ value moved here
+10 |     // Handle was moved — a second transition is unrepresentable.
+11 |     let _second = dispose_recovery_handle(handle, authority);
+   |                                           ^^^^^^ value used here after move

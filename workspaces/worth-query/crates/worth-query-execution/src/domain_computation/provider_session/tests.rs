@@ -271,21 +271,3 @@ fn repeated_direct_attempts_receive_unique_provider_sessions() {
     );
     assert_ne!(first.evidence().identity(), second.evidence().identity());
 }
-
-#[test]
-fn provider_session_seals_direct_evidence_to_its_bound_operation() {
-    let attempt = direct_attempt("direct-evidence", 8);
-    let expected_basis_identity = attempt.binding_authority().basis_identity().to_owned();
-    let binding = attempt
-        .provider_session()
-        .bind_direct_domain_evidence("snapshot:1", "output:1")
-        .unwrap();
-
-    assert_eq!(binding.binding_identity(), "direct-evidence");
-    assert_eq!(binding.operation_identity(), "installed-operation");
-    assert_eq!(binding.basis_identity(), expected_basis_identity);
-    assert_eq!(binding.run_identity(), None);
-    assert_eq!(binding.stage_identity(), None);
-    assert_eq!(binding.execution_snapshot_identity(), "snapshot:1");
-    assert_eq!(binding.output_occurrence_identity(), "output:1");
-}

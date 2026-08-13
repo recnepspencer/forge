@@ -1,25 +1,12 @@
 use std::collections::BTreeMap;
-use std::sync::Arc;
-
-use worth_foundational::facade::{AspectFieldLocator, AspectValue};
-use worth_query_declaration::facade::application_capability::{
-    ApplicationCapabilityCardinalityDimension, ApplicationCapabilityFieldDimension,
-    ApplicationCapabilityValidityTimeline, ErasedApplicationCapabilityContract,
-};
 use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationCapability,
     WorthQueryInstalledApplicationSchema,
 };
-use worth_relational::facade::authorization::{
-    RelationalAuthorizationPathPlan, RelationalAuthorizationTraversal,
-};
-use worth_relational::facade::identity::KindId;
-use worth_runtime_bridge::facade::{
-    BridgeAuthorizationCorrespondenceIdentity, BridgeAuthorizationRuleContract,
-    BridgeAuthorizationRuntime,
-};
+use worth_runtime_bridge::facade::BridgeAuthorizationInstallationBatch;
 
 use super::capability_lowering::compile_capability_plan;
+pub(super) use super::capability_lowering::WorthQueryInstalledCapabilityPlan;
 use super::WorthQueryOperationAuthorizationDenial;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
@@ -36,6 +23,8 @@ pub(super) use elevation::{
 mod elevation_lifecycle;
 pub(super) use elevation_lifecycle::WorthQueryElevationLifecycleOperationRole;
 use elevation_lifecycle::WorthQueryInstalledElevationLifecycleRegistry;
+mod bindings;
+pub(super) use bindings::*;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryCapabilityPlanCompilationEvidence {
@@ -94,16 +83,16 @@ impl WorthQueryCapabilityPlanCompilationEvidence {
 
     pub(super) fn record(&mut self, plan: &WorthQueryInstalledCapabilityPlan) {
         self.capability_count += 1;
-        self.path_count += plan.paths.len();
-        self.rule_count += plan.bridge_rules.len();
-        self.clause_count += plan.paths.len();
+        self.path_count += plan.paths().len();
+        self.rule_count += plan.rules().len();
+        self.clause_count += plan.paths().len();
         self.guard_count += plan
-            .paths
+            .paths()
             .iter()
             .filter(|path| !matches!(path.guard, WorthQueryCapabilityRequestGuard::Unconditional))
             .count();
         self.context_anchor_count += plan
-            .paths
+            .paths()
             .iter()
             .map(|path| path.context_anchors.len())
             .sum::<usize>();
@@ -120,7 +109,7 @@ impl WorthQueryInstalledCapabilityRegistry {
     pub(super) fn compile<Schema>(
         schema: &WorthQueryInstalledApplicationSchema<Schema>,
         layout: &WorthQueryPrimaryGraphLayout,
-        bridge: &mut BridgeAuthorizationRuntime,
+        bridge_installation: &mut BridgeAuthorizationInstallationBatch,
     ) -> Result<Self, WorthQueryOperationAuthorizationDenial>
     where
         Schema: ApplicationSchema,
@@ -129,7 +118,7 @@ impl WorthQueryInstalledCapabilityRegistry {
         let mut elevation_lifecycles = WorthQueryInstalledElevationLifecycleRegistry::default();
         let mut compilation = WorthQueryCapabilityPlanCompilationEvidence::default();
         for source in schema.capability_plan_sources() {
-            let plan = compile_capability_plan(schema, source, layout, bridge)?;
+            let plan = compile_capability_plan(schema, source, layout, bridge_installation)?;
             compilation.record(&plan);
             if plans.insert(*source.identity().bytes(), plan).is_some() {
                 return Err(super::authorization_denial(
@@ -140,10 +129,10 @@ impl WorthQueryInstalledCapabilityRegistry {
         }
         for (capability_identity, plan) in &plans {
             elevation_lifecycles
-                .install(*capability_identity, &plans, &plan.contract)
+                .install(*capability_identity, &plans, plan.contract())
                 .map_err(|()| {
                     super::authorization_denial(
-                        plan.contract.name(),
+                        plan.contract().name(),
                         "invalid or competing installed elevation lifecycle transition",
                     )
                 })?;
@@ -187,119 +176,5 @@ impl WorthQueryInstalledCapabilityRegistry {
 
     pub(super) const fn compilation(&self) -> WorthQueryCapabilityPlanCompilationEvidence {
         self.compilation
-    }
-}
-
-pub(super) struct WorthQueryInstalledCapabilityPlan {
-    pub(super) correspondence: BridgeAuthorizationCorrespondenceIdentity,
-    pub(super) capability_authority_identity: Arc<str>,
-    pub(super) contract: ErasedApplicationCapabilityContract,
-    pub(super) principal_kind: KindId,
-    pub(super) grant_kind: KindId,
-    pub(super) scope_kind: KindId,
-    pub(super) grant_join_index_id: worth_relational::facade::indexes::DerivedIndexId,
-    pub(super) grant_witness: WorthQueryCapabilityGrantWitnessBinding,
-    pub(super) paths: Vec<WorthQueryCapabilityPathTemplate>,
-    pub(super) bridge_rules: Vec<BridgeAuthorizationRuleContract>,
-    pub(super) rule_path_indices: Vec<Vec<Vec<usize>>>,
-    pub(super) decision_rules: WorthQueryCapabilityDecisionRuleBindings,
-    pub(super) request: WorthQueryCapabilityRequestBindings,
-    pub(super) delegation: WorthQueryCapabilityDelegationBindings,
-    pub(super) elevation: Option<WorthQueryCapabilityElevationBindings>,
-    pub(super) upper_bound: Option<WorthQueryCapabilityUpperBoundBindings>,
-}
-
-#[derive(Clone)]
-pub(super) struct WorthQueryCapabilityDecisionRuleBindings {
-    pub(super) grant: usize,
-    pub(super) allow: usize,
-    pub(super) deny: Option<usize>,
-    pub(super) conflict: Option<usize>,
-    pub(super) separation_of_duty: Option<usize>,
-    pub(super) distinct_actor: Option<usize>,
-}
-
-#[derive(Clone, Copy)]
-pub(super) struct WorthQueryCapabilityGrantWitnessBinding {
-    path_index: usize,
-    entity_ordinal: usize,
-}
-
-impl WorthQueryCapabilityGrantWitnessBinding {
-    pub(super) const fn new(path_index: usize, entity_ordinal: usize) -> Self {
-        Self {
-            path_index,
-            entity_ordinal,
-        }
-    }
-
-    pub(super) const fn path_index(self) -> usize {
-        self.path_index
-    }
-
-    pub(super) const fn entity_ordinal(self) -> usize {
-        self.entity_ordinal
-    }
-}
-
-pub(super) struct WorthQueryCapabilityPathTemplate {
-    pub(super) plan: RelationalAuthorizationPathPlan,
-    pub(super) identity: [u8; 32],
-    pub(super) guard: WorthQueryCapabilityRequestGuard,
-    pub(super) grant_ordinal: Option<usize>,
-    pub(super) elevation_ordinals: Vec<usize>,
-    pub(super) elevation_resource_ordinal: Option<usize>,
-    pub(super) context_anchors: Vec<WorthQueryCapabilityContextAnchor>,
-}
-
-pub(super) enum WorthQueryCapabilityRequestGuard {
-    Unconditional,
-    Accepted {
-        axis: WorthQueryCapabilityRequestValueAxis,
-        values: Vec<AspectValue>,
-    },
-}
-
-#[derive(Clone, Copy)]
-pub(super) enum WorthQueryCapabilityRequestValueAxis {
-    Action,
-    Purpose,
-    Field,
-    Amount,
-}
-
-pub(super) struct WorthQueryCapabilityContextAnchor {
-    pub(super) ordinal: usize,
-    pub(super) kind: KindId,
-    pub(super) context: String,
-    pub(super) context_type: String,
-    pub(super) slot: String,
-    pub(super) slot_type: String,
-    pub(super) entity: String,
-}
-
-pub(super) struct WorthQueryCapabilityRequestBindings {
-    pub(super) action: AspectValue,
-    pub(super) purpose: AspectValue,
-    pub(super) resource_entity: String,
-    pub(super) related_relation: Option<RelationalAuthorizationTraversal>,
-    pub(super) field: Option<AspectFieldLocator>,
-    pub(super) amount: Option<AspectFieldLocator>,
-    pub(super) cardinality: ApplicationCapabilityCardinalityDimension,
-    pub(super) timeline: ApplicationCapabilityValidityTimeline,
-    pub(super) not_before: AspectFieldLocator,
-    pub(super) not_after: AspectFieldLocator,
-    pub(super) context: String,
-    pub(super) context_type: String,
-}
-
-pub(super) const fn field_binding(
-    dimension: &ApplicationCapabilityFieldDimension,
-) -> Option<
-    &worth_query_declaration::facade::application_capability::ApplicationCapabilityFieldBinding,
-> {
-    match dimension {
-        ApplicationCapabilityFieldDimension::NotApplicable => None,
-        ApplicationCapabilityFieldDimension::Bound(binding) => Some(binding),
     }
 }

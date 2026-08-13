@@ -15,7 +15,7 @@ use worth_query_installation::facade::{
 };
 use worth_relational::facade::identity::{EntityId, KindId};
 
-use super::capability_operation_progression::{
+use super::operation_progression::{
     progress_capability_operation, WorthQueryCapabilityOperationProgression,
 };
 use super::{
@@ -26,21 +26,53 @@ use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationR
 
 pub(in crate::domain_computation) struct WorthQueryCapabilityRevocationBinding {
     proposal_identity: [u8; 32],
-    pub(in crate::domain_computation) required_program_target: ApplicationOperationProgramTarget,
-    pub(in crate::domain_computation) target_kind: KindId,
-    pub(in crate::domain_computation) target_entity: String,
-    pub(in crate::domain_computation) resource: EntityId,
-    pub(in crate::domain_computation) resource_relation: KindId,
-    pub(in crate::domain_computation) identity: AspectFieldLocator,
-    pub(in crate::domain_computation) identity_value: AspectValue,
-    pub(in crate::domain_computation) status: AspectFieldLocator,
-    pub(in crate::domain_computation) active: AspectValue,
-    pub(in crate::domain_computation) revoked: AspectValue,
+    required_program_target: ApplicationOperationProgramTarget,
+    target_kind: KindId,
+    target_entity: String,
+    resource: EntityId,
+    resource_relation: KindId,
+    identity: AspectFieldLocator,
+    identity_value: AspectValue,
+    status: AspectFieldLocator,
+    active: AspectValue,
+    revoked: AspectValue,
 }
 
 impl WorthQueryCapabilityRevocationBinding {
     pub(in crate::domain_computation) const fn proposal_identity(&self) -> &[u8; 32] {
         &self.proposal_identity
+    }
+    pub(in crate::domain_computation) const fn required_program_target(
+        &self,
+    ) -> &ApplicationOperationProgramTarget {
+        &self.required_program_target
+    }
+    pub(in crate::domain_computation) const fn target_kind(&self) -> KindId {
+        self.target_kind
+    }
+    pub(in crate::domain_computation) fn target_entity(&self) -> &str {
+        &self.target_entity
+    }
+    pub(in crate::domain_computation) const fn resource(&self) -> EntityId {
+        self.resource
+    }
+    pub(in crate::domain_computation) const fn resource_relation(&self) -> KindId {
+        self.resource_relation
+    }
+    pub(in crate::domain_computation) const fn identity(&self) -> &AspectFieldLocator {
+        &self.identity
+    }
+    pub(in crate::domain_computation) const fn identity_value(&self) -> &AspectValue {
+        &self.identity_value
+    }
+    pub(in crate::domain_computation) const fn status(&self) -> &AspectFieldLocator {
+        &self.status
+    }
+    pub(in crate::domain_computation) const fn active(&self) -> &AspectValue {
+        &self.active
+    }
+    pub(in crate::domain_computation) const fn revoked(&self) -> &AspectValue {
+        &self.revoked
     }
 }
 
@@ -72,7 +104,7 @@ where
             + ApplicationCapabilityRevocationRequest<Schema, Capability>,
     {
         let projection = access
-            .input
+            .capability_input()
             .capability_revocation_target()
             .map_err(|denial| rejected(denial.subject()))?;
         let installed = self
@@ -80,7 +112,7 @@ where
             .capability_plan(capability)
             .ok_or_else(|| rejected(capability.contract().name()))?;
         let revocation = installed
-            .delegation
+            .delegation()
             .revocation
             .as_ref()
             .ok_or_else(|| rejected(capability.contract().name()))?;
@@ -99,18 +131,18 @@ where
             .ok_or_else(|| rejected(operation.operation()))?;
         let (proposal_identity, work) = proposal_identity(
             *capability.identity().bytes(),
-            access.resolved.resource.entity_id(),
-            installed.grant_kind,
-            installed.delegation.resource.relation_kind(),
+            access.resource_entity_id(),
+            installed.grant_kind(),
+            installed.delegation().resource.relation_kind(),
             projection.target(),
             &revocation.revoked_status.0,
-            &installed.delegation.active_status.1,
+            &installed.delegation().active_status.1,
             &revocation.revoked_status.1,
             budget,
         )?;
         let identity_value = projection.target().value().clone();
         let target_entity = projection.target().entity().to_owned();
-        let resource = access.resolved.resource.entity_id();
+        let resource = access.resource_entity_id();
         let admitted = progress_capability_operation(
             self,
             access,
@@ -122,14 +154,14 @@ where
             WorthQueryCapabilityRevocationBinding {
                 proposal_identity,
                 required_program_target,
-                target_kind: installed.grant_kind,
+                target_kind: installed.grant_kind(),
                 target_entity,
                 resource,
-                resource_relation: installed.delegation.resource.relation_kind(),
+                resource_relation: installed.delegation().resource.relation_kind(),
                 identity: revocation.identity.clone(),
                 identity_value,
                 status: revocation.revoked_status.0.clone(),
-                active: installed.delegation.active_status.1.clone(),
+                active: installed.delegation().active_status.1.clone(),
                 revoked: revocation.revoked_status.1.clone(),
             },
             work,

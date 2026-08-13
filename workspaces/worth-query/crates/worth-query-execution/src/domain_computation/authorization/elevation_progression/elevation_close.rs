@@ -1,28 +1,50 @@
-use worth_foundational::facade::AspectValue;
+use worth_foundational::facade::{AspectFieldLocator, AspectValue};
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
 use worth_query_declaration::facade::application_schema::TypedMutationPreconditions;
 use worth_query_installation::facade::{
-    ApplicationSchema, WorthQueryInstalledApplicationOperation,
+    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget, ApplicationSchema,
+    WorthQueryInstalledApplicationOperation,
 };
+use worth_relational::facade::identity::EntityId;
 
-use super::super::capability_operation_progression::{
-    progress_capability_operation, WorthQueryCapabilityOperationProgression,
-};
 use super::super::capability_registry::{
     WorthQueryElevationLifecycleOperationRole, WorthQueryInstalledCapabilityPlan,
+};
+use super::super::operation_progression::{
+    progress_capability_operation, WorthQueryCapabilityOperationProgression,
 };
 use super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
 use super::context_identity::selected_elevation_entity;
-use super::elevation_close_binding::WorthQueryElevationCloseDraft;
 use super::operation_role::installed_lifecycle_owner;
 use super::transition_contract::{close_program_targets, lifecycle_decision_reads};
 use crate::domain_computation::primary_graph::{
     WorthQueryApprovedElevation, WorthQueryElevationClosureKind,
     WorthQueryPrimaryGraphApplicationRuntime,
 };
+
+mod binding;
+pub(in crate::domain_computation) use binding::WorthQueryElevationCloseBinding;
+
+#[derive(Debug)]
+pub(in crate::domain_computation) struct WorthQueryElevationCloseDraft {
+    elevation: EntityId,
+    review: EntityId,
+    closer: EntityId,
+    closure_kind: WorthQueryElevationClosureKind,
+    closed_at: AspectValue,
+    closed_status: AspectValue,
+    approved_status: AspectValue,
+    elevation_entity: String,
+    status_field: AspectFieldLocator,
+    approver_relation: worth_relational::facade::identity::KindId,
+    reviewer_relation: worth_relational::facade::identity::KindId,
+    required_decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
+    required_program_targets: Vec<ApplicationOperationProgramTarget>,
+    lifecycle_effect: Option<worth_query_declaration::lifecycle_effect_derivation_authority::DerivedApplicationCapabilityLifecycleEffect>,
+}
 
 #[derive(Debug)]
 pub struct WorthQueryElevationCloseAuthorizationDenial {
@@ -100,31 +122,31 @@ where
 {
     let (capability_identity, installed) = installed_lifecycle_owner(
         runtime,
-        access.authorization.installed_capability_identity(),
+        access.installed_capability_identity(),
         operation,
         WorthQueryElevationLifecycleOperationRole::Revoke,
     )?;
     if !approved.belongs_to_lifecycle(
         runtime.runtime.authority_identity(),
-        access.graph_work.branch().relational(),
+        access.graph_work_branch(),
         capability_identity,
-        installed.capability_authority_identity.as_ref(),
+        installed.capability_authority_identity().as_ref(),
     ) {
-        return Err(close_rejected(installed.contract.name()));
+        return Err(close_rejected(installed.contract().name()));
     }
     let elevation = selected_elevation_entity(access, installed)
-        .ok_or_else(|| close_rejected(installed.contract.name()))?;
+        .ok_or_else(|| close_rejected(installed.contract().name()))?;
     if elevation != approved.elevation() {
-        return Err(close_rejected(installed.contract.name()));
+        return Err(close_rejected(installed.contract().name()));
     }
     let review = approved.review();
-    let lifecycle = installed.elevation.as_ref().unwrap();
+    let lifecycle = installed.elevation().as_ref().unwrap();
     let (closure_kind, closed_at, closed_status) = derive_closure(runtime, installed, approved)?;
-    let definition = installed.contract.elevation().definition().unwrap();
+    let definition = installed.contract().elevation().definition().unwrap();
     Ok(WorthQueryElevationCloseDraft {
         elevation,
         review,
-        closer: access.principal_entity_id,
+        closer: access.principal_entity_id(),
         closure_kind,
         closed_at,
         closed_status,
@@ -137,8 +159,8 @@ where
         required_program_targets: close_program_targets(installed),
         lifecycle_effect: super::lifecycle_effect::derive_lifecycle_effect(
             definition.lifecycle().revoke(),
-            &access.input,
-            installed.contract.name(),
+            access.capability_input(),
+            installed.contract().name(),
         )?,
     })
 }
@@ -154,14 +176,14 @@ fn derive_closure<Schema>(
 where
     Schema: ApplicationSchema,
 {
-    let lifecycle = installed.elevation.as_ref().unwrap();
+    let lifecycle = installed.elevation().as_ref().unwrap();
     let sample = runtime
         .authorization_clock
         .sample(lifecycle.temporal.timeline)
         .map_err(|_| {
             denial(
                 WorthQueryOperationAuthorizationDenialKind::TrustedTimeUnavailable,
-                installed.contract.name(),
+                installed.contract().name(),
             )
         })?;
     let (closure_kind, closed_status) = match (sample.value(), approved.expires_at()) {
@@ -173,7 +195,7 @@ where
             WorthQueryElevationClosureKind::Revoked,
             lifecycle.lifecycle.revoked.clone(),
         ),
-        _ => return Err(close_rejected(installed.contract.name())),
+        _ => return Err(close_rejected(installed.contract().name())),
     };
     Ok((closure_kind, sample.value().clone(), closed_status))
 }

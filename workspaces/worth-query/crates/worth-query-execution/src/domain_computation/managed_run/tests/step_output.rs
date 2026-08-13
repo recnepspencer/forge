@@ -110,10 +110,7 @@ fn stalled_consumer_cancellation_releases_the_chunk_before_terminal_cleanup() {
     let cleanup = terminal
         .cleanup()
         .expect("cancelled stream should clean up");
-    assert_eq!(
-        cleanup.bridge().signal_terminal(),
-        BridgeExecutionBasisSignalTerminal::Cancelled
-    );
+    assert!(cleanup.inspection().resources_released());
 }
 
 #[test]
@@ -135,12 +132,18 @@ fn foreign_consumer_failure_preserves_queue_occupancy_for_owner_cleanup() {
     let cleanup = terminal
         .cleanup()
         .expect("Signal owner should release the retained queue occupancy");
-    assert_eq!(cleanup.provider_work().queue_state_mutation_count(), 2);
     assert_eq!(
-        cleanup.disposition(),
+        cleanup
+            .inspection()
+            .provider_work()
+            .queue_state_mutation_count(),
+        2
+    );
+    assert_eq!(
+        cleanup.inspection().disposition(),
         WorthQueryManagedRunCleanupDisposition::RecoveryRequired
     );
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
+    assert_eq!(cleanup.inspection().released_reservation_count(), 2);
 }
 
 #[test]

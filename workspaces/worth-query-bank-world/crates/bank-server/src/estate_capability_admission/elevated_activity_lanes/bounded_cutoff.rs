@@ -1,7 +1,3 @@
-use worth_query_host::facade::primary_graph::{
-    WorthQueryBoundedLaneDenialKind, WorthQueryOperationAuthorizationDenialKind,
-};
-
 use super::support::{
     activity_request, activity_world, assert_exact_revoked_alternate_active,
     assert_resources_released, controls, revoke_exact_support,
@@ -64,11 +60,11 @@ fn preview_activity_denies_exact_support_loss_after_admission() {
     assert_resources_released(&world);
 }
 
-fn assert_stale_authorization(kind: WorthQueryBoundedLaneDenialKind) {
+fn assert_stale_authorization(kind: crate::BankBoundedLaneDenialKind) {
     assert_eq!(
         kind,
-        WorthQueryBoundedLaneDenialKind::Authorization(
-            WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
+        crate::BankBoundedLaneDenialKind::Authorization(
+            crate::BankAuthorizationDenialKind::StaleAuthorization,
         )
     );
 }

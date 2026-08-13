@@ -167,6 +167,7 @@ string_application_value!(EstateCapabilityPurpose, {
 });
 string_application_value!(EstateCapabilityOperation, {
     EstateCapabilityOperation::NotifyDeath => "notify-death",
+    EstateCapabilityOperation::RetransmitDeathNotice => "retransmit-death-notice",
     EstateCapabilityOperation::FreezeAccount => "freeze-account",
     EstateCapabilityOperation::OpenEstateCase => "open-estate-case",
     EstateCapabilityOperation::RecognizeExecutor => "recognize-executor",

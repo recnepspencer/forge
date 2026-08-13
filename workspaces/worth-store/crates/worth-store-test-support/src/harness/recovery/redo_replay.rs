@@ -1,14 +1,24 @@
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures",
+    feature = "physical-isolation-fixtures"
+))]
+use super::source_precedence as source_precedence_fixture;
 use super::wal_tail as wal_only_tail_fixture;
-#[cfg(feature = "certification-world")]
-use super::{
-    reopened_artifact::reopened_redo_eligibility, source_precedence as source_precedence_fixture,
-};
 
-#[cfg(feature = "certification-world")]
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures",
+    feature = "physical-isolation-fixtures"
+))]
 use source_precedence_fixture::{
     checkpoint_base, checkpoint_base_for_root, wal_only_tail, wal_tail_for_checkpoint,
 };
-#[cfg(feature = "certification-world")]
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures",
+    feature = "physical-isolation-fixtures"
+))]
 use worth_store_physical_format::PhysicalReference;
 use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalSegmentId,
@@ -24,7 +34,11 @@ use worth_store_recovery_physics::{
     RedoRecordOperationForm, RedoRecordTargetGeneration, WalLsnRange,
     WalPrefixIntegrityObservation, WalPrefixObservationScan, WalSegmentGeneration, WalValidPrefix,
 };
-#[cfg(feature = "certification-world")]
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures",
+    feature = "physical-isolation-fixtures"
+))]
 use worth_store_recovery_physics::{RecoverySourceCandidate, RecoverySourcePrecedenceGraph};
 
 pub fn assert_grammar_denial(
@@ -34,13 +48,21 @@ pub fn assert_grammar_denial(
     assert_eq!(result.unwrap_err().kind(), kind);
 }
 
-#[cfg(feature = "certification-world")]
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures",
+    feature = "physical-isolation-fixtures"
+))]
 pub fn checkpoint_plus_tail_source(start: u64, end: u64) -> AdmittedRecoverySource {
     let (checkpoint, receipt) = checkpoint_base(10, start, start - 1, 1);
     checkpoint_plus_tail_source_from_basis(checkpoint, receipt, end)
 }
 
-#[cfg(feature = "certification-world")]
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures",
+    feature = "physical-isolation-fixtures"
+))]
 pub fn checkpoint_plus_tail_source_for_root(
     start: u64,
     end: u64,
@@ -50,7 +72,11 @@ pub fn checkpoint_plus_tail_source_for_root(
     checkpoint_plus_tail_source_from_basis(checkpoint, receipt, end)
 }
 
-#[cfg(feature = "certification-world")]
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures",
+    feature = "physical-isolation-fixtures"
+))]
 fn checkpoint_plus_tail_source_from_basis(
     checkpoint: worth_store_recovery_physics::CheckpointBaseAdmission,
     receipt: worth_store_recovery_physics::CheckpointCutoverReceipt,
@@ -64,7 +90,11 @@ fn checkpoint_plus_tail_source_from_basis(
         .admit_sources()
 }
 
-#[cfg(feature = "certification-world")]
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures",
+    feature = "physical-isolation-fixtures"
+))]
 pub fn wal_only_source(start: u64, end: u64) -> AdmittedRecoverySource {
     RecoverySourcePrecedenceGraph::new("strict-test-profile")
         .discover(RecoverySourceCandidate::wal_tail(wal_only_tail(
@@ -92,18 +122,37 @@ pub fn valid_prefix<const N: usize>(
         .unwrap()
 }
 
-#[cfg(feature = "certification-world")]
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures",
+    feature = "physical-isolation-fixtures"
+))]
 pub fn redo_eligibility(current_lsn: u64, redo_lsn: u64) -> PageRedoEligibility {
     redo_eligibility_for_page(current_lsn, redo_lsn, 2)
 }
 
-#[cfg(feature = "certification-world")]
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures",
+    feature = "physical-isolation-fixtures"
+))]
 pub fn redo_eligibility_for_page(
     current_lsn: u64,
     redo_lsn: u64,
     page_value: u64,
 ) -> PageRedoEligibility {
-    reopened_redo_eligibility(current_lsn, redo_lsn, page_value)
+    let page_generation = PhysicalGenerationAuthority::for_canonical_physical_format()
+        .page_cell(
+            PhysicalSegmentId::from_raw(7).unwrap(),
+            PhysicalPageId::from_raw(page_value).unwrap(),
+        )
+        .with_page_generation(PhysicalGeneration::from_raw(7).unwrap());
+    PageRedoEligibility::for_certification(
+        worth_store_physical_backend::BackendDurabilityProfileId::PosixFileFsyncDirFsync,
+        page_generation,
+        page_lsn(current_lsn),
+        page_lsn(redo_lsn),
+    )
 }
 
 pub fn cursor(

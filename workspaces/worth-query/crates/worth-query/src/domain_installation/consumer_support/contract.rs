@@ -7,10 +7,10 @@ use super::{
     WorthQueryConsumerSupportPosture, WorthQueryConsumerSupportProfile,
 };
 use crate::domain_installation::{
-    WorthQueryBoundDomainOperation, WorthQueryOperationCollectionContract,
-    WorthQueryOperationLineageContract, WorthQueryOperationNativeProjectionContract,
-    WorthQueryOperationPromotionContract, WorthQueryOperationPublicationContract,
-    WorthQueryOperationReplayContract, WorthQueryOperationReversalContract,
+    WorthQueryBoundDomainOperation, WorthQueryInstalledAftermathContract,
+    WorthQueryOperationCollectionContract, WorthQueryOperationLineageContract,
+    WorthQueryOperationNativeProjectionContract, WorthQueryOperationPromotionContract,
+    WorthQueryOperationPublicationContract, WorthQueryOperationReplayContract,
     WorthQueryOperationSupportRequirements, WorthQueryOperationTerminalContract,
     WorthQuerySupportRequirement,
 };
@@ -39,7 +39,7 @@ pub struct WorthQueryConsumerProjectionContract<D, O, F, L: BasisOperationLane> 
     native_projection: WorthQueryOperationNativeProjectionContract,
     collection: WorthQueryOperationCollectionContract,
     replay: WorthQueryOperationReplayContract,
-    reversal: WorthQueryOperationReversalContract,
+    aftermath: Option<WorthQueryInstalledAftermathContract>,
     lineage: WorthQueryOperationLineageContract,
     promotion: WorthQueryOperationPromotionContract,
     publication: WorthQueryOperationPublicationContract,
@@ -100,7 +100,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryConsumerProjectionContract<D, O, 
             native_projection: bound.definition().semantics().native_projection.clone(),
             collection: bound.definition().semantics().collection.clone(),
             replay: bound.definition().semantics().replay,
-            reversal: bound.definition().semantics().reversal.clone(),
+            aftermath: bound.definition().semantics().aftermath.clone(),
             lineage: bound.definition().semantics().lineage,
             promotion: bound.definition().semantics().promotion,
             publication: bound.definition().semantics().publication.clone(),
@@ -174,8 +174,8 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryConsumerProjectionContract<D, O, 
         self.replay
     }
 
-    pub fn reversal(&self) -> &WorthQueryOperationReversalContract {
-        &self.reversal
+    pub fn aftermath(&self) -> Option<&WorthQueryInstalledAftermathContract> {
+        self.aftermath.as_ref()
     }
 
     pub fn lineage(&self) -> WorthQueryOperationLineageContract {

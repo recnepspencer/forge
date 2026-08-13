@@ -1,12 +1,21 @@
 mod authorization_mode;
 mod authorization_path_artifact;
 mod authorization_requirement;
+mod conditional_binding;
+mod conditional_clock;
+mod conditional_provider;
+mod conditional_temporal;
 mod contract_resolution;
 mod contracts;
 mod denial;
 mod execution_posture;
+#[cfg(not(test))]
 mod installed;
+#[cfg(test)]
+pub(crate) mod installed;
+mod installed_conditional;
 mod installed_contract_support;
+mod operation_declaration_resolution;
 mod precondition_contract;
 
 #[cfg(test)]
@@ -19,6 +28,13 @@ pub(crate) use authorization_requirement::{
 pub use authorization_requirement::{
     WorthQueryInstalledAbilityRequirement, WorthQueryInstalledAuthorizationPath,
 };
+pub use conditional_binding::{
+    WorthQueryApplicationConditionalOperationBinding,
+    WorthQueryPortableApplicationConditionalOperationBinding,
+};
+pub use conditional_clock::WorthQueryInstalledNamedClockConditionalNode;
+pub use conditional_provider::WorthQueryInstalledHostConditionalProvider;
+pub use conditional_temporal::WorthQueryInstalledTemporalConditionalOperation;
 pub use contracts::{
     WorthQueryCompiledApplicationOperationContracts, APPLICATION_AUTHORIZATION_FACT_FAMILY,
     APPLICATION_DECISION_FACT_FAMILY, APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY,
@@ -30,7 +46,16 @@ pub use denial::{
     WorthQueryApplicationOperationInstallationDenialKind,
 };
 pub use execution_posture::WorthQueryInstalledApplicationOperationExecutionPosture;
+pub(crate) use installed::WorthQueryOperationAftermathInstallationSource;
+pub(in crate::application_operation) use installed::WorthQuerySealedOperationContractCompilation;
+
 pub use installed::{
     WorthQueryInstalledApplicationOperation, WorthQueryInstalledApplicationOperationGraphAuthority,
+};
+pub use installed_conditional::{
+    WorthQueryConditionalApplicationOperationDenial,
+    WorthQueryConditionalApplicationOperationDenialKind,
+    WorthQueryInstalledApplicationConditionalNode,
+    WorthQueryInstalledApplicationConditionalOperation,
 };
 pub use precondition_contract::WorthQueryInstalledMutationPrecondition;

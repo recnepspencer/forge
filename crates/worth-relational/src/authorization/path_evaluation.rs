@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::identity::data::{EntityId, RelationId};
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::storage::data::RecordLifecycleState;
 use crate::visibility::materialization::read_records::{
     ProjectionAspectScope, VisibilityProjectionView,

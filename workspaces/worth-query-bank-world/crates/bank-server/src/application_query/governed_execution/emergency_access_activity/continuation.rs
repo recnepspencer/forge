@@ -24,13 +24,78 @@ use worth_query_host::facade::{
 use super::{admission::BankEstateEmergencyAccessActivityAdmission, bounded::ActivityPlan};
 use crate::BankApplicationQueryDenial;
 
-pub type BankEstateEmergencyAccessActivityContinuation = WorthQueryApplicationQueryContinuation<
+type QueryEstateEmergencyAccessActivityContinuation = WorthQueryApplicationQueryContinuation<
     BankSchema,
     EstateEmergencyAccessActivityQuery,
     EstateEmergencyAccessActivityQueryParameters,
     EstateEmergencyAccessActivity,
     EstateCase,
 >;
+
+/// Opaque Bank authority for resuming emergency-access activity.
+///
+/// ```compile_fail,E0451
+/// use bank_server::BankEstateEmergencyAccessActivityContinuation;
+///
+/// let _ = BankEstateEmergencyAccessActivityContinuation {
+///     query: panic!("foreign continuation"),
+/// };
+/// ```
+///
+/// The wrapper cannot be coerced to Query's continuation authority:
+///
+/// ```compile_fail,E0308
+/// use bank_domain::queries::{
+///     EstateEmergencyAccessActivity, EstateEmergencyAccessActivityQuery,
+///     EstateEmergencyAccessActivityQueryParameters,
+/// };
+/// use bank_domain::schema::{BankSchema, EstateCase};
+/// use bank_server::BankEstateEmergencyAccessActivityContinuation;
+/// use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryContinuation;
+///
+/// type RawContinuation = WorthQueryApplicationQueryContinuation<
+///     BankSchema,
+///     EstateEmergencyAccessActivityQuery,
+///     EstateEmergencyAccessActivityQueryParameters,
+///     EstateEmergencyAccessActivity,
+///     EstateCase,
+/// >;
+///
+/// fn raw_query_continuation(
+///     continuation: &BankEstateEmergencyAccessActivityContinuation,
+/// ) -> &RawContinuation {
+///     continuation
+/// }
+/// ```
+///
+/// Nor does it expose the former raw-authority accessor:
+///
+/// ```compile_fail,E0599
+/// use bank_domain::queries::{
+///     EstateEmergencyAccessActivity, EstateEmergencyAccessActivityQuery,
+///     EstateEmergencyAccessActivityQueryParameters,
+/// };
+/// use bank_domain::schema::{BankSchema, EstateCase};
+/// use bank_server::BankEstateEmergencyAccessActivityContinuation;
+/// use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryContinuation;
+///
+/// type RawContinuation = WorthQueryApplicationQueryContinuation<
+///     BankSchema,
+///     EstateEmergencyAccessActivityQuery,
+///     EstateEmergencyAccessActivityQueryParameters,
+///     EstateEmergencyAccessActivity,
+///     EstateCase,
+/// >;
+///
+/// fn raw_query_continuation(
+///     continuation: &BankEstateEmergencyAccessActivityContinuation,
+/// ) -> &RawContinuation {
+///     continuation.query()
+/// }
+/// ```
+pub struct BankEstateEmergencyAccessActivityContinuation {
+    query: QueryEstateEmergencyAccessActivityContinuation,
+}
 
 pub struct BankEstateEmergencyAccessActivityPageResult {
     published: WorthQueryPublishedApplicationResult<
@@ -43,6 +108,17 @@ pub struct BankEstateEmergencyAccessActivityPageResult {
 pub struct BankAdmittedEstateEmergencyAccessActivityContinuation<'a> {
     application: &'a WorthQueryPrimaryGraphApplicationRuntime<BankSchema>,
     plan: ActivityPlan<'a>,
+}
+
+impl std::fmt::Debug for BankEstateEmergencyAccessActivityPageResult {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("BankEstateEmergencyAccessActivityPageResult")
+            .field("row_count", &self.published.rows().len())
+            .field("has_continuation", &self.continuation.is_some())
+            .field("receipt", self.published.receipt())
+            .finish()
+    }
 }
 
 impl BankEstateEmergencyAccessActivityPageResult {
@@ -73,6 +149,12 @@ impl BankEstateEmergencyAccessActivityPageResult {
     }
 }
 
+impl BankEstateEmergencyAccessActivityContinuation {
+    const fn from_query(query: QueryEstateEmergencyAccessActivityContinuation) -> Self {
+        Self { query }
+    }
+}
+
 impl BankAdmittedEstateEmergencyAccessActivityContinuation<'_> {
     pub fn execute(
         self,
@@ -80,7 +162,7 @@ impl BankAdmittedEstateEmergencyAccessActivityContinuation<'_> {
         let page = self
             .application
             .execute_application_query_continuation_page(self.plan)
-            .map_err(BankApplicationQueryDenial::ContinuationExecution)?;
+            .map_err(BankApplicationQueryDenial::from_continuation_execution)?;
         Ok(publish_page(page))
     }
 }
@@ -97,7 +179,7 @@ impl BankEstateEmergencyAccessActivityAdmission<'_, '_, '_, '_> {
         self.with_admitted(controls, |application, plan| {
             let page = application
                 .execute_application_query_continuation_page(plan)
-                .map_err(BankApplicationQueryDenial::ContinuationExecution)?;
+                .map_err(BankApplicationQueryDenial::from_continuation_execution)?;
             Ok(publish_page(page))
         })
     }
@@ -119,27 +201,30 @@ impl BankEstateEmergencyAccessActivityAdmission<'_, '_, '_, '_> {
         )
             -> Result<Output, BankApplicationQueryDenial>,
     ) -> Result<Output, BankApplicationQueryDenial> {
+        let BankEstateEmergencyAccessActivityContinuation {
+            query: continuation,
+        } = continuation;
         let application = self.runtime.application_runtime();
         let query = application
             .installed_schema()
             .application_query(EstateEmergencyAccessActivityQuery::reference())
-            .map_err(BankApplicationQueryDenial::Installation)?;
+            .map_err(BankApplicationQueryDenial::from_installation)?;
         let capability = application
             .installed_schema()
             .capability(
                 ViewEstateEmergencyProtectionCapability::reference(),
                 ViewRestrictedEstateOperation::reference(),
             )
-            .map_err(BankApplicationQueryDenial::CapabilityInstallation)?;
+            .map_err(BankApplicationQueryDenial::from_capability_installation)?;
         let capability_access = application
             .admit_approved_elevation_access(
-                self.approved,
+                self.approved.query(),
                 self.principal.query(),
                 &capability,
                 self.request.capability_request(),
                 controls.request_scope(),
             )
-            .map_err(BankApplicationQueryDenial::CapabilityAdmission)?;
+            .map_err(BankApplicationQueryDenial::from_capability_admission)?;
         let scope = application
             .resolve_entity(
                 EstateCaseIdentityField::reference(),
@@ -147,7 +232,7 @@ impl BankEstateEmergencyAccessActivityAdmission<'_, '_, '_, '_> {
                 controls.request_scope(),
                 WorthQueryPrincipalResolutionMode::Ordinary,
             )
-            .map_err(BankApplicationQueryDenial::ScopeResolution)?;
+            .map_err(BankApplicationQueryDenial::from_scope_resolution)?;
         let access = WorthQueryApplicationQueryAccessContext::<
             BankSchema,
             Principal,
@@ -163,7 +248,7 @@ impl BankEstateEmergencyAccessActivityAdmission<'_, '_, '_, '_> {
                 continuation,
                 controls,
             )
-            .map_err(BankApplicationQueryDenial::Admission)?;
+            .map_err(BankApplicationQueryDenial::from_admission)?;
         after_readmission(BankAdmittedEstateEmergencyAccessActivityContinuation {
             application,
             plan,
@@ -183,6 +268,6 @@ fn publish_page(
     let (admitted, continuation) = page.into_admitted_disclosed();
     BankEstateEmergencyAccessActivityPageResult {
         published: publish_application_result(admitted),
-        continuation,
+        continuation: continuation.map(BankEstateEmergencyAccessActivityContinuation::from_query),
     }
 }

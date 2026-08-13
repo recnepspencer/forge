@@ -12,7 +12,6 @@ mod btree_admission;
 mod catalog_root_admission;
 mod import_admission;
 mod lsm_admission;
-mod restore_admission;
 
 pub use btree_admission::{
     btree_lookup_materialization_admission_cases,
@@ -39,11 +38,6 @@ pub use lsm_admission::{
     LsmPublicationMaterializationAdmissionCaseId, LsmPublicationMaterializationAdmissionOutcome,
     LsmPublicationMaterializationAdmissionView, LsmReplayMaterializationAdmissionCaseId,
     LsmReplayMaterializationAdmissionOutcome, LsmReplayMaterializationAdmissionView,
-};
-pub use restore_admission::{
-    restored_artifact_materialization_admission_cases,
-    RestoredArtifactMaterializationAdmissionCaseId,
-    RestoredArtifactMaterializationAdmissionOutcome, RestoredArtifactMaterializationAdmissionView,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -255,59 +249,6 @@ impl AdmittedLayoutMaterialization {
             PhysicalCoverageBasis::blob_generation(crate::BlobGenerationBasis::from_sequence(
                 witness.generation().sequence(),
             )),
-        )
-    }
-
-    fn admit_restored_artifact_exact(
-        family: AdmittedPhysicalArtifactFamily,
-        catalog: &BootstrapCatalogReadAdmission,
-        readmission: crate::integrity::LayoutReadmissionWitness,
-        custody: &worth_store_security::StoreReadmittedSecurityScope,
-    ) -> Result<Self, MaterializationDenial> {
-        if readmission.family() != family.declaration().family()
-            || readmission.source()
-                != crate::integrity::LayoutReadmissionSource::OfflineRecoveryEvidence
-        {
-            return Err(MaterializationDenial::RestoreOfflineReadmissionRequired);
-        }
-        let Some(frontier) = readmission.replay_frontier() else {
-            return Err(MaterializationDenial::RestoreReplayFrontierRequired);
-        };
-        let custody_identity = custody.admitted().identity();
-        if custody_identity.key_scope() != worth_store_security::StoreKeyScope::BackupExportEnvelope
-            || custody_identity.tenant_scope()
-                != worth_store_security::StoreTenantScope::ImportReadmissionBoundary
-            || custody_identity.key_version_posture()
-                != worth_store_security::StoreKeyVersionPosture::Current
-            || custody_identity.custody_posture()
-                != worth_store_security::StoreCustodyPosture::Readmitted
-            || custody_identity.authenticity_requirement()
-                != worth_store_security::StoreAuthenticityRequirement::required(
-                    worth_store_security::StoreAuthenticityRequirementClass::AuthenticatedBackupCapsule,
-                )
-        {
-            return Err(MaterializationDenial::RestoreCustodyReadmissionRequired);
-        }
-        worth_store_recovery_physics::verify_store_authority_for_readmission(
-            custody.current_authority(),
-        )
-        .map_err(|_| MaterializationDenial::RestoreCurrentStoreAuthorityRequired)?;
-        if family.security_identity().physical_witness()
-            != custody.current_authority().physical_witness()
-            || family.authority_identity() != custody.current_authority().authority_identity()
-        {
-            return Err(MaterializationDenial::RestoreCurrentStoreAuthorityRequired);
-        }
-
-        Self::admit_exact_from_source(
-            family,
-            catalog,
-            LayoutMaterializationSourceIdentity::from_restored_artifact(
-                catalog,
-                readmission,
-                custody,
-            ),
-            PhysicalCoverageBasis::wal_lsn(frontier),
         )
     }
 

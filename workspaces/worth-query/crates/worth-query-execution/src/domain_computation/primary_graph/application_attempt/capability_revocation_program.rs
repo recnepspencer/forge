@@ -39,7 +39,7 @@ impl<Schema, Operation, Input, Scope>
             .capability_revocation_binding()
             .ok_or_else(|| transition_required(self.admission.operation()))?;
         validate_installed_program(
-            &binding.required_program_target,
+            binding.required_program_target(),
             self.admission.allowed_graph_contract().program(),
         )?;
         validate_target(binding, target, &self.facts, &self.admission)?;
@@ -51,9 +51,9 @@ impl<Schema, Operation, Input, Scope>
             .envelope()
             .resource_ceiling(WorthQueryResourceDimension::RetainedBytes);
         let effect = WorthQueryApplicationRealizedEffect::UpdateEntity {
-            entity: binding.target_entity.clone(),
+            entity: binding.target_entity().to_owned(),
             entity_id: target.entity_id(),
-            fields: BTreeMap::from([(binding.status.clone(), binding.revoked.clone())]),
+            fields: BTreeMap::from([(binding.status().clone(), binding.revoked().clone())]),
         };
         Ok(WorthQueryCapabilityRevocationProgram {
             program: WorthQueryApplicationEffectProgram {
@@ -100,10 +100,10 @@ fn validate_target<Schema, Entity, Operation, Input, Scope>(
 ) -> Result<(), WorthQueryApplicationAttemptDenial> {
     let exact_identity = target.runtime_authority() == admission.runtime_authority()
         && target.binding_identity() == admission.binding_identity()
-        && target.entity_kind() == binding.target_kind
-        && target.entity_name() == binding.target_entity
-        && target.identity_locator() == &binding.identity
-        && target.identity_value() == &binding.identity_value;
+        && target.entity_kind() == binding.target_kind()
+        && target.entity_name() == binding.target_entity()
+        && target.identity_locator() == binding.identity()
+        && target.identity_value() == binding.identity_value();
     let active = facts.iter().any(|fact| {
         matches!(
             fact,
@@ -113,8 +113,8 @@ fn validate_target<Schema, Entity, Operation, Input, Scope>(
                 value,
                 ..
             } if *entity_id == target.entity_id()
-                && locator == &binding.status
-                && value == &binding.active
+                && locator == binding.status()
+                && value == binding.active()
         )
     });
     let resource = facts.iter().any(|fact| {
@@ -126,9 +126,9 @@ fn validate_target<Schema, Entity, Operation, Input, Scope>(
                 to,
                 matching_relations,
                 ..
-            } if *relation_kind == binding.resource_relation
+            } if *relation_kind == binding.resource_relation()
                 && *from == target.entity_id()
-                && *to == binding.resource
+                && *to == binding.resource()
                 && matching_relations.len() == 1
         )
     });

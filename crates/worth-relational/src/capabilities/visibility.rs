@@ -1,4 +1,4 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) trait VisibilityPolicySource {
     fn visibility_cache_enabled(&self) -> bool;

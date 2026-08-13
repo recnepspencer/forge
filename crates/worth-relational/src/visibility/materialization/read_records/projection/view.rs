@@ -1,6 +1,6 @@
 use crate::capabilities::AspectPlanSource;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::SnapshotHandle;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 
@@ -85,6 +85,26 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
         let record = self.authoritative_entity_record(entity_id)?;
         self.assert_entity_projection_scope(record.kind.kind_id, &projection_scope);
         project(EntityProjectionRecord::new(&record, &projection_scope))
+    }
+
+    pub(crate) fn entity_record_of_expected_kind_with_projection_scope<T>(
+        &self,
+        entity_id: EntityId,
+        expected_kind_id: KindId,
+        projection_scope: ProjectionAspectScope,
+        mut project: impl FnMut(EntityProjectionRecord<'_>) -> Option<T>,
+    ) -> Result<Option<T>, KindId> {
+        let Some(record) = self.authoritative_entity_record(entity_id) else {
+            return Ok(None);
+        };
+        if record.kind.kind_id != expected_kind_id {
+            return Err(record.kind.kind_id);
+        }
+        self.assert_entity_projection_scope(expected_kind_id, &projection_scope);
+        Ok(project(EntityProjectionRecord::new(
+            &record,
+            &projection_scope,
+        )))
     }
 
     pub fn relations<T: RelationRecordProjection>(&self) -> Vec<T> {

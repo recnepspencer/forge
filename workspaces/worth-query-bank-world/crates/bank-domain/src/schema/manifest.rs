@@ -225,18 +225,36 @@ worth_query_application_schema! {
                 .ability(ViewEstateCase::reference())
                 .ability(ViewEstateLegalCompliance::reference())
                 .ability(ViewEstateMandatoryReview::reference())
-                .operation(CreatePersonalAccountOperation::reference())
-                .operation(CreateBusinessAccountOperation::reference())
-                .operation(ApplyOpeningFundingOperation::reference())
-                .operation(DepositOperation::reference())
-                .operation(WithdrawOperation::reference())
-                .operation(SendMoneyOperation::reference())
-                .operation(InitiateBusinessPaymentOperation::reference())
-                .operation(ApprovePaymentOperation::reference())
-                .operation(RejectPaymentOperation::reference())
-                .operation(GrantAccountAuthorizationOperation::reference())
-                .operation(RevokeAccountAuthorizationOperation::reference())
-                .operation(ReverseJournalOperation::reference());
+                .operation(without_external_effect_or_aftermath(
+                    CreatePersonalAccountOperation::reference(),
+                ))
+                .operation(without_external_effect_or_aftermath(
+                    CreateBusinessAccountOperation::reference(),
+                ))
+                .operation(without_external_effect_or_aftermath(
+                    ApplyOpeningFundingOperation::reference(),
+                ))
+                .operation(without_external_effect_or_aftermath(DepositOperation::reference()))
+                .operation(without_external_effect_or_aftermath(WithdrawOperation::reference()))
+                .operation(without_external_effect_or_aftermath(SendMoneyOperation::reference()))
+                .operation(without_external_effect_or_aftermath(
+                    InitiateBusinessPaymentOperation::reference(),
+                ))
+                .operation(without_external_effect_or_aftermath(
+                    ApprovePaymentOperation::reference(),
+                ))
+                .operation(without_external_effect_or_aftermath(
+                    RejectPaymentOperation::reference(),
+                ))
+                .operation(without_external_effect_or_aftermath(
+                    GrantAccountAuthorizationOperation::reference(),
+                ))
+                .operation(without_external_effect_or_aftermath(
+                    RevokeAccountAuthorizationOperation::reference(),
+                ))
+                .operation(without_external_effect_or_aftermath(
+                    ReverseJournalOperation::reference(),
+                ));
             let schema = install_estate_world(schema);
             let schema = install_operation_preconditions(install_operation_decision_reads(
                 install_operation_program(schema),
@@ -245,7 +263,7 @@ worth_query_application_schema! {
                 .policy(AccountMutationScopePolicy::reference())
                 .policy(EmployeeScopePolicy::reference())
                 .policy(DistinctApproverPolicy::reference())
-                .currency(UsdCurrency::reference())
+                .unit(UsdCurrency::reference())
                 .effect(AccountActivityEffect::reference())
                 .application_query(crate::queries::account_authorized_users_definition())
                 .application_query(crate::queries::account_discovery_definition())
@@ -321,4 +339,22 @@ fn install_operation_abilities(
             ReverseJournalOperation::reference(),
             ServiceInstitutionAccount::reference(),
         )
+}
+
+fn without_external_effect_or_aftermath<Operation, Input>(
+    operation: worth_query_decl::facade::application_schema::ApplicationOperationRef<
+        BankSchema,
+        Operation,
+        Input,
+    >,
+) -> worth_query_decl::facade::application_schema::ApplicationOperationDefinition<
+    BankSchema,
+    Operation,
+    Input,
+> {
+    operation
+        .definition()
+        .no_external_effect()
+        .no_aftermath()
+        .finish()
 }

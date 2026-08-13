@@ -224,7 +224,6 @@ impl AuthoritativePreviewComparisonCandidate {
         self.artifact.shape_check_width()
     }
 
-    #[cfg(test)]
     pub(crate) fn artifact(&self) -> &PreviewComparisonCandidateArtifact {
         &self.artifact
     }

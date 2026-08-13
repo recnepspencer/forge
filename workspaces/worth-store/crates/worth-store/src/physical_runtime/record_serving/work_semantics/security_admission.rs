@@ -10,7 +10,7 @@ use worth_store_security::{
 
 use super::{contract, validated_value};
 
-pub(super) fn physical_witness() -> StorePhysicalBoundaryWitness {
+pub(in crate::physical_runtime) fn physical_witness() -> StorePhysicalBoundaryWitness {
     let authority =
         worth_store_contracts::StorePhysicalAuthorityWitness::for_aspect_native_boundary(
             worth_store_contracts::ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
@@ -40,10 +40,10 @@ pub(super) fn read_security_admission(
         StoreAspectAuthorityInput::new(state, witness),
     )
     .expect("built-in record state contains exactly its declared identity");
-    security_scope(&authority_fact)
+    admit_scheduler_scope(&authority_fact)
 }
 
-fn security_scope(
+pub(in crate::physical_runtime) fn admit_scheduler_scope(
     authority_fact: &StoreAspectBoundaryFact,
 ) -> (
     StoreAuthorityBoundSecurityScopeReceipt,

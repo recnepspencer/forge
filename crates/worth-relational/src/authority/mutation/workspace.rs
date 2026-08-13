@@ -110,7 +110,7 @@ impl<'a> MutationWorkspace<'a> {
         self.aspect_plans.relation_plans.get(&kind_id)
     }
 
-    pub(crate) fn execution_model(&self) -> crate::logic::planning::RelationalExecutionModel {
+    pub(crate) fn execution_model(&self) -> crate::config::data::RelationalExecutionModel {
         self.config.execution_model
     }
 
@@ -147,6 +147,15 @@ impl<'a> MutationWorkspace<'a> {
 
     pub(crate) fn preparation_telemetry(&self) -> MutationPreparationTelemetry {
         self.preparation_telemetry
+    }
+
+    pub(crate) fn into_created_entity_bindings(
+        self,
+    ) -> crate::transactions::data::CommitCreatedEntityBindings {
+        crate::transactions::data::CommitCreatedEntityBindings::from_owner_map(
+            self.created_entities,
+            self.symbols,
+        )
     }
 
     pub(crate) fn register_created_entity(

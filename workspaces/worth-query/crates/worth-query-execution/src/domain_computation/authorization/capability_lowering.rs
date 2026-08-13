@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use worth_query_declaration::facade::application_capability::{
     ApplicationCapabilityFieldBinding, ApplicationCapabilityGraphRule,
     ApplicationCapabilityScopeGuard, ErasedApplicationCapabilityContract,
@@ -7,154 +5,34 @@ use worth_query_declaration::facade::application_capability::{
 use worth_query_declaration::facade::application_schema::{
     ApplicationAuthorizationPath, ApplicationAuthorizationTraversalDirection,
 };
-use worth_query_installation::facade::{
-    ApplicationSchema, WorthQueryInstalledApplicationCapabilityPlanSource,
-    WorthQueryInstalledApplicationSchema,
-};
 use worth_relational::facade::authorization::{
     RelationalAuthorizationFieldComparison, RelationalAuthorizationFieldConstraint,
     RelationalAuthorizationPathPlan, RelationalAuthorizationTraversalDirection,
 };
-use worth_runtime_bridge::facade::{
-    BridgeAuthorizationClauseContract, BridgeAuthorizationInstallationRequest,
-    BridgeAuthorizationRequirementContract, BridgeAuthorizationRuleContract,
-    BridgeAuthorizationRuleEffect, BridgeAuthorizationRuntime,
-};
+use worth_runtime_bridge::facade::BridgeAuthorizationRuleEffect;
 
 use super::capability_binding_lowering::{
     capability_principal, clause_identity, kind, lower_context_anchors, operand, predicate,
     relation, request_bindings,
 };
+use super::capability_registry::WorthQueryCapabilityDecisionRuleBindings;
 use super::capability_registry::{
-    field_binding, WorthQueryCapabilityContextAnchor, WorthQueryCapabilityGrantWitnessBinding,
-    WorthQueryCapabilityPathTemplate, WorthQueryCapabilityRequestGuard,
-    WorthQueryCapabilityRequestValueAxis, WorthQueryCapabilityUpperBoundBindings,
-    WorthQueryInstalledCapabilityPlan,
-};
-use super::capability_registry::{
-    WorthQueryCapabilityDecisionRuleBindings, WorthQueryCapabilityDelegationBindings,
+    field_binding, WorthQueryCapabilityContextAnchor, WorthQueryCapabilityPathTemplate,
+    WorthQueryCapabilityRequestGuard, WorthQueryCapabilityRequestValueAxis,
 };
 use super::lowering::lower_authorization_path;
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
+mod accumulator;
 mod elevation;
+mod installed_plan;
+#[cfg(test)]
+mod semantic_model_tests;
 
-pub(super) fn compile_capability_plan<Schema>(
-    schema: &WorthQueryInstalledApplicationSchema<Schema>,
-    source: WorthQueryInstalledApplicationCapabilityPlanSource<'_>,
-    layout: &WorthQueryPrimaryGraphLayout,
-    bridge: &mut BridgeAuthorizationRuntime,
-) -> Result<WorthQueryInstalledCapabilityPlan, WorthQueryOperationAuthorizationDenial>
-where
-    Schema: ApplicationSchema,
-{
-    let contract = source.contract();
-    let principal = capability_principal(contract)?;
-    let principal_kind = kind(layout, principal)?;
-    let grant_kind = kind(layout, contract.grant_entity())?;
-    let scope_entity = contract.target().resource().to();
-    let scope_kind = kind(layout, scope_entity)?;
-    let grant_join_index_id = layout
-        .capability_grant_join_index_id(
-            contract.delegation().grantee().relation(),
-            contract.target().resource().relation(),
-        )
-        .ok_or_else(|| {
-            authorization_denial(contract.name(), "capability grant join is not installed")
-        })?;
-    let mut paths = Vec::new();
-    let grant_path_index = paths.len();
-    paths.push(compile_grant_path(
-        source.identity().bytes(),
-        contract,
-        layout,
-        principal_kind,
-        grant_kind,
-        scope_kind,
-    )?);
-    let grant_witness = WorthQueryCapabilityGrantWitnessBinding::new(grant_path_index, 1);
-    let mut rules = vec![bridge_rule(
-        BridgeAuthorizationRuleEffect::Required,
-        vec![vec![0]],
-        &paths,
-    )];
-    let mut rule_path_indices = vec![vec![vec![0]]];
-    let decision_rules = compile_composition_rules(
-        contract,
-        layout,
-        source.identity().bytes(),
-        &mut paths,
-        &mut rules,
-        &mut rule_path_indices,
-    )?;
-    let upper_bound_path_count = paths.len();
-    let upper_bound_rules = rules.clone();
-    let upper_bound_rule_path_indices = rule_path_indices.clone();
-    let elevation = elevation::compile_elevation_rules(
-        contract,
-        layout,
-        source.identity().bytes(),
-        principal_kind,
-        grant_kind,
-        scope_kind,
-        &mut paths,
-        &mut rules,
-        &mut rule_path_indices,
-    )?;
-    let upper_bound = if elevation.is_some() {
-        let identity = source.elevation_upper_bound_identity();
-        let correspondence = bridge
-            .install(BridgeAuthorizationInstallationRequest::new(
-                &identity,
-                super::bridge_authorization_binding_identity(&schema.binding_identity()),
-                format!("{}:elevation-upper-bound", contract.name()),
-                scope_entity,
-                format!("{}:elevation-upper-bound", contract.operation()),
-                upper_bound_rules.iter().cloned(),
-            ))
-            .map_err(|denial| {
-                authorization_denial(denial.subject(), "Bridge rejected elevation upper bound")
-            })?;
-        Some(WorthQueryCapabilityUpperBoundBindings {
-            correspondence,
-            path_count: upper_bound_path_count,
-            bridge_rules: upper_bound_rules,
-            rule_path_indices: upper_bound_rule_path_indices,
-            decision_rules: decision_rules.clone(),
-        })
-    } else {
-        None
-    };
-    let correspondence = bridge
-        .install(BridgeAuthorizationInstallationRequest::new(
-            source.identity().digest(),
-            super::bridge_authorization_binding_identity(&schema.binding_identity()),
-            contract.name(),
-            scope_entity,
-            contract.operation(),
-            rules.iter().cloned(),
-        ))
-        .map_err(|denial| authorization_denial(denial.subject(), "Bridge rejected capability"))?;
-    Ok(WorthQueryInstalledCapabilityPlan {
-        correspondence,
-        capability_authority_identity: Arc::from(source.authority_identity()),
-        contract: contract.clone(),
-        principal_kind,
-        grant_kind,
-        scope_kind,
-        grant_join_index_id,
-        grant_witness,
-        request: request_bindings(contract, layout)?,
-        delegation: WorthQueryCapabilityDelegationBindings::compile(contract, layout)?,
-        elevation,
-        upper_bound,
-        paths,
-        bridge_rules: rules,
-        rule_path_indices,
-        decision_rules,
-    })
-}
+use accumulator::WorthQueryCapabilityRuleLoweringAccumulator;
+pub(super) use accumulator::WorthQueryCapabilityRuleSet;
+pub(super) use installed_plan::{compile_capability_plan, WorthQueryInstalledCapabilityPlan};
 
 fn compile_grant_path(
     capability: &[u8; 32],
@@ -214,9 +92,7 @@ fn compile_composition_rules(
     contract: &ErasedApplicationCapabilityContract,
     layout: &WorthQueryPrimaryGraphLayout,
     capability: &[u8; 32],
-    paths: &mut Vec<WorthQueryCapabilityPathTemplate>,
-    rules: &mut Vec<BridgeAuthorizationRuleContract>,
-    rule_path_indices: &mut Vec<Vec<Vec<usize>>>,
+    lowering: &mut WorthQueryCapabilityRuleLoweringAccumulator,
 ) -> Result<WorthQueryCapabilityDecisionRuleBindings, WorthQueryOperationAuthorizationDenial> {
     let composition = contract.composition();
     let allow = compile_graph_rule(
@@ -225,9 +101,7 @@ fn compile_composition_rules(
         capability,
         BridgeAuthorizationRuleEffect::Required,
         composition.decision().allow().graph(),
-        paths,
-        rules,
-        rule_path_indices,
+        lowering,
     )?;
     let mut compile_optional = |graph: Option<&ApplicationCapabilityGraphRule>| {
         graph
@@ -238,9 +112,7 @@ fn compile_composition_rules(
                     capability,
                     BridgeAuthorizationRuleEffect::Prohibited,
                     graph,
-                    paths,
-                    rules,
-                    rule_path_indices,
+                    lowering,
                 )
             })
             .transpose()
@@ -259,22 +131,21 @@ fn compile_composition_rules(
     })
 }
 
-#[allow(clippy::too_many_arguments)]
 fn compile_graph_rule(
     contract: &ErasedApplicationCapabilityContract,
     layout: &WorthQueryPrimaryGraphLayout,
     capability: &[u8; 32],
     effect: BridgeAuthorizationRuleEffect,
     graph: &ApplicationCapabilityGraphRule,
-    paths: &mut Vec<WorthQueryCapabilityPathTemplate>,
-    rules: &mut Vec<BridgeAuthorizationRuleContract>,
-    rule_path_indices: &mut Vec<Vec<Vec<usize>>>,
+    lowering: &mut WorthQueryCapabilityRuleLoweringAccumulator,
 ) -> Result<usize, WorthQueryOperationAuthorizationDenial> {
     let mut requirements = Vec::with_capacity(graph.requirements().len());
+    let mut next_path_index = lowering.path_count();
     for requirement in graph.requirements() {
-        let mut indices = Vec::with_capacity(requirement.clauses().len());
+        let mut paths = Vec::with_capacity(requirement.clauses().len());
         for clause in requirement.clauses() {
-            let path_index = paths.len();
+            let path_index = next_path_index;
+            next_path_index += 1;
             let plan = lower_authorization_path(layout, clause.path())?;
             let guard = lower_guard(contract, clause.guard())?;
             let anchors = lower_context_anchors(contract, layout, clause)?;
@@ -288,14 +159,10 @@ fn compile_graph_rule(
                 elevation_resource_ordinal: None,
                 context_anchors: anchors,
             });
-            indices.push(path_index);
         }
-        requirements.push(indices);
+        requirements.push(paths);
     }
-    let rule_index = rules.len();
-    rules.push(bridge_rule(effect, requirements.clone(), paths));
-    rule_path_indices.push(requirements);
-    Ok(rule_index)
+    Ok(lowering.add_rule(effect, requirements).rule_index())
 }
 
 fn grant_ordinal(
@@ -326,23 +193,6 @@ fn command_grant_ordinal(
 ) -> Result<Option<usize>, WorthQueryOperationAuthorizationDenial> {
     let grant = grant_ordinal(contract, path)?;
     Ok(grant.filter(|grant| !context.iter().any(|anchor| anchor.ordinal < *grant)))
-}
-
-pub(super) fn bridge_rule(
-    effect: BridgeAuthorizationRuleEffect,
-    requirements: Vec<Vec<usize>>,
-    paths: &[WorthQueryCapabilityPathTemplate],
-) -> BridgeAuthorizationRuleContract {
-    BridgeAuthorizationRuleContract::all(
-        effect,
-        requirements.into_iter().map(|indices| {
-            BridgeAuthorizationRequirementContract::any(
-                indices
-                    .into_iter()
-                    .map(|index| BridgeAuthorizationClauseContract::new(paths[index].identity)),
-            )
-        }),
-    )
 }
 
 fn lower_guard(
@@ -378,8 +228,8 @@ fn guard_axis(
     if field_binding(contract.target().field()) == Some(field) {
         return Ok(WorthQueryCapabilityRequestValueAxis::Field);
     }
-    if field_binding(contract.constraints().amount()) == Some(field) {
-        return Ok(WorthQueryCapabilityRequestValueAxis::Amount);
+    if field_binding(contract.constraints().magnitude()) == Some(field) {
+        return Ok(WorthQueryCapabilityRequestValueAxis::Magnitude);
     }
     Err(authorization_denial(
         field.field(),

@@ -179,6 +179,7 @@ fn mutation_workflow_semantics() -> domain::WorthQueryDomainOperationSemanticClo
     semantics.effects = domain::WorthQueryOperationEffectContract::Declared {
         effect_families: vec![domain::WorthQueryOperationEffectFamily::Mutation],
     };
+    semantics.aftermath = None;
     semantics.invariants = domain::WorthQueryOperationInvariantContract::Declared {
         invariant_slots: vec!["workflow-invariant:1".into()],
     };
@@ -269,7 +270,6 @@ fn geometry_identity() -> domain::WorthQueryDomainIdentityDeclaration<GeometryDo
 }
 
 pub fn mixed_mutation_workflow_runtime<G: 'static>(
-    compensated: bool,
 ) -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder {
     let operation = domain::WorthQueryDomainOperationDefinition::<
         GeometryDomain,
@@ -277,7 +277,7 @@ pub fn mixed_mutation_workflow_runtime<G: 'static>(
         MutationFamily,
     >::new(
         domain::WorthQueryDomainOperationIdentity::new("mixed-workflow-mutation", 1),
-        mixed_mutation_semantics(compensated),
+        mixed_mutation_semantics(),
     );
     let package = domain::WorthQueryDomainPackage::declare(GeometryDomain, geometry_identity())
         .operation(operation)
@@ -290,7 +290,7 @@ pub fn mixed_mutation_workflow_runtime<G: 'static>(
     )
 }
 
-fn mixed_mutation_semantics(compensated: bool) -> domain::WorthQueryDomainOperationSemanticClosure {
+fn mixed_mutation_semantics() -> domain::WorthQueryDomainOperationSemanticClosure {
     let mut semantics = semantic_closure(
         canonical_bundle("Vertex"),
         domain::WorthQuerySupportRequirement::NotRequired,
@@ -314,16 +314,7 @@ fn mixed_mutation_semantics(compensated: bool) -> domain::WorthQueryDomainOperat
         effect_families: vec![domain::WorthQueryOperationEffectFamily::Mutation],
     };
     semantics.invariants = domain::WorthQueryOperationInvariantContract::NotRequired;
-    semantics.reversal = if compensated {
-        domain::WorthQueryOperationReversalContract::Compensation {
-            operation: domain::WorthQueryDomainOperationIdentity::new(
-                "compensate-mixed-workflow-mutation",
-                1,
-            ),
-        }
-    } else {
-        domain::WorthQueryOperationReversalContract::Irreversible
-    };
+    semantics.aftermath = None;
     semantics.lowering.family = "workflow-mutation-v1".into();
     semantics.cost.execution = domain::WorthQueryOperationCostClass::ExternalBoundary;
     semantics.workflow =

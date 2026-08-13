@@ -1,7 +1,6 @@
 use worth_store_offline_verifier::OfflineVerifierBoundarySeam;
-use worth_store_recovery_physics::{
-    RuntimeRecoveryComparisonClassification, RuntimeRecoveryComparisonReport,
-};
+use worth_store_offline_verifier::RecoveryObserverReport;
+use worth_store_recovery_runtime::{RecoveryReportEnvelope, RecoveryReportOutcome};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IndependentVerifierObservationKind {
@@ -12,14 +11,25 @@ pub enum IndependentVerifierObservationKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndependentVerifierObservation {
     seam: OfflineVerifierBoundarySeam,
-    comparison: RuntimeRecoveryComparisonClassification,
+    kind: IndependentVerifierObservationKind,
+    artifact_set_digest: [u8; 32],
 }
 
 impl IndependentVerifierObservation {
-    pub fn from_runtime_recovery_comparison(report: &RuntimeRecoveryComparisonReport) -> Self {
+    pub fn from_reports(
+        runtime: &RecoveryReportEnvelope,
+        observer: RecoveryObserverReport,
+    ) -> Self {
         Self {
             seam: OfflineVerifierBoundarySeam::RuntimeVerifierComparison,
-            comparison: report.classification(),
+            kind: if runtime.outcome() == RecoveryReportOutcome::Recovered
+                && observer.artifact_count() > 0
+            {
+                IndependentVerifierObservationKind::Agreement
+            } else {
+                IndependentVerifierObservationKind::Disagreement
+            },
+            artifact_set_digest: observer.artifact_set_digest(),
         }
     }
 
@@ -28,17 +38,10 @@ impl IndependentVerifierObservation {
     }
 
     pub const fn kind(&self) -> IndependentVerifierObservationKind {
-        if matches!(
-            self.comparison,
-            RuntimeRecoveryComparisonClassification::Equivalent
-        ) {
-            IndependentVerifierObservationKind::Agreement
-        } else {
-            IndependentVerifierObservationKind::Disagreement
-        }
+        self.kind
     }
 
-    pub const fn comparison(&self) -> RuntimeRecoveryComparisonClassification {
-        self.comparison
+    pub const fn artifact_set_digest(&self) -> [u8; 32] {
+        self.artifact_set_digest
     }
 }

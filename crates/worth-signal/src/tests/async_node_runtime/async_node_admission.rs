@@ -1,8 +1,8 @@
 use crate::facade::{
     mark_dirty, Aspect, AspectMask, AsyncNodeAdmissionClass, AsyncNodeConditionBlockClass,
     AsyncNodeRequestIntent, AsyncNodeRevalidationIntent, ClockAdvanceRequest, ClockDomain,
-    ClockTick, NodeId, ResourceGeneration, ResourceLifecycleClass, ResourceNodeId, SignalGraph,
-    TemporalCondition, TemporalWakeOwner,
+    ClockTick, NodeContract, NodeId, PartitionSubscription, ResourceGeneration,
+    ResourceLifecycleClass, ResourceNodeId, SignalGraph, TemporalCondition, TemporalWakeOwner,
 };
 use crate::tests::async_node_support::{
     async_node_capability_declaration, AsyncNodeTestRuntime as TestRuntime,
@@ -44,7 +44,7 @@ fn async_node_request_admission_flows_through_existing_lifecycle_substrate() {
 }
 
 #[test]
-fn async_node_condition_gated_request_blocks_without_mutating_lifecycle_truth() {
+fn async_node_pending_dependency_precedes_aspect_filter_admission() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let node = graph
@@ -75,13 +75,85 @@ fn async_node_condition_gated_request_blocks_without_mutating_lifecycle_truth() 
     );
     assert_eq!(
         report.classification().condition_block_class(),
-        Some(AsyncNodeConditionBlockClass::AspectFilterMismatch)
+        Some(AsyncNodeConditionBlockClass::DependencyNotReady)
     );
     assert!(report.resource_admission().is_none());
     assert_eq!(
         runtime.resource_runtime_summary().in_flight_request_count(),
         0
     );
+}
+
+#[test]
+fn async_node_resolved_cause_then_applies_aspect_filter() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().produces_aspects(Aspect::new(1)).build();
+    let node = graph
+        .node()
+        .aspect_filter(AspectMask::from_aspect(Aspect::new(0)))
+        .build();
+    graph
+        .append_dependency(node, source, Aspect::new(1))
+        .expect("dependency should wire");
+    evaluate(&mut graph, source, &mut |_id, _graph| Ok(version_ab(0, 1)))
+        .expect("source should evaluate");
+    evaluate(&mut graph, node, &mut |_id, _graph| Ok(version_ab(1, 0)))
+        .expect("dependent should evaluate");
+    mark_dirty(&mut graph, source, Aspect::new(1)).expect("dirty source should propagate");
+    evaluate(&mut graph, source, &mut |_id, _graph| Ok(version_ab(0, 2)))
+        .expect("source publication should resolve the direct cause");
+
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_async_node_capability(async_node_capability_declaration(node))
+        .expect("async capability declaration should lower");
+    let report = runtime
+        .admit_async_node_request(AsyncNodeRequestIntent::new(node))
+        .expect("resolved condition block should remain report-shaped");
+
+    assert_eq!(
+        report.classification().condition_block_class(),
+        Some(AsyncNodeConditionBlockClass::AspectFilterMismatch)
+    );
+    assert!(report.resource_admission().is_none());
+}
+
+#[test]
+fn async_locality_keeps_aspect_scope_pairs_correlated() {
+    let aspect_a = Aspect::new(0);
+    let aspect_b = Aspect::new(1);
+    let scope_x = PartitionSubscription::whole_partition("curve-x");
+    let scope_y = PartitionSubscription::whole_partition("curve-y");
+    let mut graph = SignalGraph::new();
+    let node = graph
+        .node()
+        .with_contract(
+            NodeContract::reads(AspectMask::from_aspect(aspect_a))
+                .with_partition_scope(scope_y.clone()),
+        )
+        .build();
+    evaluate(&mut graph, node, &mut |_id, _graph| Ok(version_ab(1, 0)))
+        .expect("node should establish clean truth");
+    graph
+        .transition_node_dirty(node, aspect_a, &[scope_x])
+        .expect("first scoped source mark should admit");
+    graph
+        .transition_node_dirty(node, aspect_b, &[scope_y])
+        .expect("second scoped source mark should admit");
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_async_node_capability(async_node_capability_declaration(node))
+        .expect("async capability declaration should lower");
+
+    let report = runtime
+        .admit_async_node_request(AsyncNodeRequestIntent::new(node))
+        .expect("locality mismatch remains report-shaped");
+
+    assert_eq!(
+        report.classification().condition_block_class(),
+        Some(AsyncNodeConditionBlockClass::PartitionScopeMismatch)
+    );
+    assert!(report.resource_admission().is_none());
 }
 
 #[test]
@@ -218,7 +290,7 @@ fn async_node_previous_value_drift_blocks_request_admission() {
 #[test]
 fn async_node_revalidation_can_refresh_when_new_lineage_condition_is_blocked() {
     let mut graph = SignalGraph::new();
-    let source = graph.node().build();
+    let source = graph.node().produces_aspects(Aspect::new(1)).build();
     let node = graph
         .node()
         .aspect_filter(AspectMask::from_aspect(Aspect::new(0)))
@@ -240,9 +312,25 @@ fn async_node_revalidation_can_refresh_when_new_lineage_condition_is_blocked() {
         .expect("initial request should admit");
     mark_dirty(runtime.graph_mut(), source, Aspect::new(1)).expect("dirty source should propagate");
 
+    let pending = runtime
+        .revalidate_async_node(AsyncNodeRevalidationIntent::new(node))
+        .expect("pending dependency should still return a report");
+    assert_eq!(
+        pending.classification().class(),
+        AsyncNodeAdmissionClass::BlockedByCondition
+    );
+    assert_eq!(
+        pending.classification().condition_block_class(),
+        Some(AsyncNodeConditionBlockClass::DependencyNotReady)
+    );
+    assert!(pending.resource_revalidation().is_none());
+
+    let mut source_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 2));
+    evaluate(runtime.graph_mut(), source, &mut source_v2)
+        .expect("source commit should resolve dependency causality");
     let report = runtime
         .revalidate_async_node(AsyncNodeRevalidationIntent::new(node))
-        .expect("refresh-eligible path should still return a report");
+        .expect("resolved filter mismatch should remain refresh-eligible");
 
     assert_eq!(
         report.classification().class(),

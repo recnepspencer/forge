@@ -2,14 +2,14 @@ use crate::durability::data::{
     RecoveryAuthorityContinuityCheck, RecoveryAuthorityContinuityMismatch, RecoveryAuthorityParity,
     RecoveryVerificationOutcome,
 };
-use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::ReplayVerificationLayer;
-use crate::schema::logic::SchemaContinuityBundleIssue;
+use crate::runtime::RelationalRuntime;
+use crate::schema::SchemaContinuityBundleIssue;
 
 pub(super) fn apply_continuity_issue(
     runtime: &RelationalRuntime,
     authority_continuity: &mut RecoveryAuthorityContinuityCheck,
-    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
     issue: SchemaContinuityBundleIssue,
 ) {
     let detail = issue.detail();
@@ -88,7 +88,7 @@ pub(super) fn apply_continuity_issue(
 
 fn apply_schema_transition_artifact_drift(
     authority_continuity: &mut RecoveryAuthorityContinuityCheck,
-    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
     detail: String,
 ) {
     authority_continuity.schema_transition_parity = RecoveryAuthorityParity::drift();
@@ -102,7 +102,7 @@ fn apply_schema_transition_artifact_drift(
 
 fn apply_continuation_descriptor_drift(
     authority_continuity: &mut RecoveryAuthorityContinuityCheck,
-    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
     boundary_fingerprint: Option<crate::schema::data::SchemaBoundaryFingerprint>,
     detail: String,
 ) {
@@ -118,7 +118,7 @@ fn apply_continuation_descriptor_drift(
 
 fn apply_reconciliation_descriptor_drift(
     authority_continuity: &mut RecoveryAuthorityContinuityCheck,
-    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
     detail: String,
 ) {
     authority_continuity.reconciliation_descriptor_parity = RecoveryAuthorityParity::drift();
@@ -162,7 +162,7 @@ fn apply_descriptor_canonical_basis_version_drift(
 
 fn apply_schema_lineage_drift(
     authority_continuity: &mut RecoveryAuthorityContinuityCheck,
-    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
     detail: String,
 ) {
     authority_continuity.schema_lineage_parity = RecoveryAuthorityParity::drift();

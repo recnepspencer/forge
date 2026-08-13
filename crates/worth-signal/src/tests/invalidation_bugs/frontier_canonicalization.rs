@@ -87,7 +87,7 @@ fn disjoint_aspect_batches_produce_disjoint_frontier_waves() {
 }
 
 #[test]
-fn reachable_cycle_detection_fails_before_false_frontier_commit() {
+fn cycle_admission_fails_before_false_frontier_commit() {
     let mut graph = SignalGraph::new();
     graph.set_runtime_policy(SignalRuntimePolicy::development());
     let source = graph.node().build();
@@ -96,12 +96,13 @@ fn reachable_cycle_detection_fails_before_false_frontier_commit() {
 
     graph.append_dependency(a, source, ASPECT_A).unwrap();
     graph.append_dependency(b, a, ASPECT_A).unwrap();
-    graph.append_dependency(a, b, ASPECT_A).unwrap();
     let source_state_before = graph.get_state(source).unwrap();
     let a_state_before = graph.get_state(a).unwrap();
     let b_state_before = graph.get_state(b).unwrap();
 
-    let err = mark_dirty(&mut graph, source, ASPECT_A).expect_err("reachable cycle should fail");
+    let err = graph
+        .append_dependency(a, b, ASPECT_A)
+        .expect_err("cycle admission should fail");
     match err {
         SignalError::CycleDetected { .. } => {}
         other => panic!("expected cycle-detected error, got {other:?}"),
@@ -115,7 +116,7 @@ fn reachable_cycle_detection_fails_before_false_frontier_commit() {
             .observe()
             .latest_frontier_execution_summary()
             .is_none(),
-        "failed frontier preflight must not leave behind a committed frontier summary"
+        "failed topology preflight must not leave behind a frontier summary"
     );
 }
 
@@ -254,11 +255,17 @@ fn transitive_wave_contains_only_nodes_reachable_from_planned_roots() {
         .latest_frontier_execution_summary()
         .cloned()
         .expect("frontier execution summary should be retained");
+    let direct_wave_index = summary
+        .direct_waves
+        .iter()
+        .find(|wave| wave.aspect == ASPECT_A)
+        .expect("expected direct aspect wave")
+        .wave_index;
     let transitive_wave = summary
         .transitive_waves
         .iter()
-        .find(|wave| wave.aspect == ASPECT_A)
-        .expect("expected aspect transitive wave");
+        .find(|wave| wave.wave_index == direct_wave_index)
+        .expect("expected structural transitive wave");
     let transitive_nodes = transitive_wave
         .entries
         .iter()

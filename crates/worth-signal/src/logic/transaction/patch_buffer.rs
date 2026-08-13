@@ -9,6 +9,7 @@ use std::collections::{BTreeSet, HashMap};
 struct NodePatch {
     original: CheckpointNodeImage,
     original_dependency_sources: Vec<NodeId>,
+    original_branch_mutation: crate::data::graph::signal_graph::BranchMutationNodeImage,
 }
 
 /// Sparse patch storage with O(touched) rollback/clear semantics.
@@ -35,12 +36,14 @@ impl SparsePatchBuffer {
         if !self.index_by_node.contains_key(&index) {
             let original = graph.node_checkpoint_image(node)?;
             let original_dependency_sources = graph.dependency_sources_of(node)?;
+            let original_branch_mutation = graph.branch_mutation_node_image(node);
             self.index_by_node.insert(index, self.patches.len());
             self.patches.push((
                 index,
                 NodePatch {
                     original,
                     original_dependency_sources,
+                    original_branch_mutation,
                 },
             ));
         }
@@ -88,6 +91,7 @@ impl SparsePatchBuffer {
                 &patch.original_dependency_sources,
             )?;
             graph.replace_entry_from_checkpoint_image(node, patch.original)?;
+            graph.restore_branch_mutation_node_image(node, patch.original_branch_mutation);
         }
         self.index_by_node.clear();
 
@@ -131,6 +135,7 @@ impl SparsePatchBuffer {
                 &patch.original_dependency_sources,
             )?;
             graph.replace_entry_from_checkpoint_image(node, patch.original)?;
+            graph.restore_branch_mutation_node_image(node, patch.original_branch_mutation);
         }
 
         Ok(())

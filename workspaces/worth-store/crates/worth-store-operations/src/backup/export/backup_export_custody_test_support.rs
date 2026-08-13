@@ -8,6 +8,7 @@ use worth_store_aspect_native::{
 };
 use worth_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use worth_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
+#[cfg(test)]
 use worth_store_security::{
     store_backup_restore_boundary_fact, store_custody_domain_boundary_fact,
     store_deployment_boundary_fact, store_instance_boundary_fact,
@@ -27,6 +28,7 @@ pub(crate) fn current_authority(label: &str) -> StoreCurrentAuthorityWitness {
     require_current_store_authority(boundary_fact(label, "current"))
 }
 
+#[cfg(test)]
 pub(crate) fn readmission_trigger(
     crossing: StoreTrustBoundaryCrossing,
     raw: StoreRawSecurityScopeDeclaration,

@@ -4,14 +4,13 @@ use bank_domain::estate::{
     CapabilityGrantId, EmergencyAccessId, EmergencyAccessReason, EstateAction, MandatoryReviewId,
     RestrictedBankField,
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryApprovedElevation,
-    WorthQueryElevationApprovalOutcome, WorthQueryElevationRequestOutcome,
-    WorthQueryRequestedElevation,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
 use super::fixture::{request_scope, CapabilityFixture, ESTATE};
-use crate::BankAuthenticatedPrincipal;
+use crate::{
+    BankApprovedEstateElevation, BankAuthenticatedPrincipal, BankEstateElevationApprovalOutcome,
+    BankEstateElevationRequestOutcome, BankRequestedEstateElevation,
+};
 
 pub(super) struct ElevationRequestSpec {
     pub(super) grant: CapabilityGrantId,
@@ -31,7 +30,7 @@ pub(super) fn request_elevation(
     fixture: &CapabilityFixture,
     requester: &BankAuthenticatedPrincipal,
     spec: ElevationRequestSpec,
-) -> WorthQueryRequestedElevation {
+) -> BankRequestedEstateElevation {
     let outcome = fixture
         .runtime
         .request_estate_emergency_access(
@@ -52,7 +51,7 @@ pub(super) fn request_elevation(
             &request_scope(),
         )
         .expect("the approval prerequisite request should commit");
-    let WorthQueryElevationRequestOutcome::Requested(requested) = outcome else {
+    let BankEstateElevationRequestOutcome::Requested(requested) = outcome else {
         panic!("the approval prerequisite must be fresh: {outcome:?}");
     };
     requested
@@ -61,9 +60,9 @@ pub(super) fn request_elevation(
 pub(super) fn approve_elevation(
     fixture: &CapabilityFixture,
     approver: &BankAuthenticatedPrincipal,
-    requested: WorthQueryRequestedElevation,
+    requested: BankRequestedEstateElevation,
     spec: ElevationApprovalSpec,
-) -> WorthQueryApprovedElevation {
+) -> BankApprovedEstateElevation {
     let outcome = fixture
         .runtime
         .approve_estate_emergency_access(
@@ -80,7 +79,7 @@ pub(super) fn approve_elevation(
             &request_scope(),
         )
         .expect("the terminal lifecycle prerequisite approval should commit");
-    let WorthQueryElevationApprovalOutcome::Approved(approved) = outcome else {
+    let BankEstateElevationApprovalOutcome::Approved(approved) = outcome else {
         panic!("the terminal prerequisite approval must be fresh: {outcome:?}");
     };
     approved

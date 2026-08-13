@@ -1,7 +1,6 @@
 use bank_domain::queries::EstateEmergencyAccessActivityRequest;
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationLiveControls, WorthQueryApplicationQueryResumeControls,
-    WorthQueryApprovedElevation,
 };
 
 use super::BankReadyQuery;
@@ -13,20 +12,21 @@ use crate::application_query::{
     BankEstateEmergencyAccessActivityLiveLease, BankEstateEmergencyAccessActivityPageResult,
     BankEstateEmergencyAccessActivityResult, BankPreviewSession,
 };
+use crate::BankApprovedEstateElevation;
 
 impl<'runtime, 'principal>
     BankReadyQuery<'runtime, 'principal, EstateEmergencyAccessActivityRequest>
 {
     pub fn execute_with_approved_elevation(
         self,
-        approved: &WorthQueryApprovedElevation,
+        approved: &BankApprovedEstateElevation,
     ) -> Result<BankEstateEmergencyAccessActivityResult, BankApplicationQueryDenial> {
         self.admission(approved).one_shot()
     }
 
     pub fn admit_historical_with_approved_elevation<Output>(
         self,
-        approved: &WorthQueryApprovedElevation,
+        approved: &BankApprovedEstateElevation,
         after_admission: impl for<'admitted> FnOnce(
             BankAdmittedEstateEmergencyAccessActivityHistorical<'admitted>,
         )
@@ -37,7 +37,7 @@ impl<'runtime, 'principal>
 
     pub fn admit_preview_with_approved_elevation<Output>(
         self,
-        approved: &WorthQueryApprovedElevation,
+        approved: &BankApprovedEstateElevation,
         session: &BankPreviewSession,
         after_admission: impl for<'admitted> FnOnce(
             BankAdmittedEstateEmergencyAccessActivityPreview<'admitted>,
@@ -49,14 +49,14 @@ impl<'runtime, 'principal>
 
     pub fn page_with_approved_elevation(
         self,
-        approved: &WorthQueryApprovedElevation,
+        approved: &BankApprovedEstateElevation,
     ) -> Result<BankEstateEmergencyAccessActivityPageResult, BankApplicationQueryDenial> {
         self.admission(approved).page()
     }
 
     pub fn resume_with_approved_elevation(
         self,
-        approved: &WorthQueryApprovedElevation,
+        approved: &BankApprovedEstateElevation,
         continuation: BankEstateEmergencyAccessActivityContinuation,
         controls: WorthQueryApplicationQueryResumeControls<'_>,
     ) -> Result<BankEstateEmergencyAccessActivityPageResult, BankApplicationQueryDenial> {
@@ -65,7 +65,7 @@ impl<'runtime, 'principal>
 
     pub fn readmit_resume_with_approved_elevation<Output>(
         self,
-        approved: &WorthQueryApprovedElevation,
+        approved: &BankApprovedEstateElevation,
         continuation: BankEstateEmergencyAccessActivityContinuation,
         controls: WorthQueryApplicationQueryResumeControls<'_>,
         after_readmission: impl for<'admitted> FnOnce(
@@ -79,7 +79,7 @@ impl<'runtime, 'principal>
 
     pub fn subscribe_with_approved_elevation(
         self,
-        approved: &WorthQueryApprovedElevation,
+        approved: &BankApprovedEstateElevation,
         controls: WorthQueryApplicationLiveControls,
     ) -> Result<
         BankEstateEmergencyAccessActivityLiveLease<'runtime, 'principal>,
@@ -90,7 +90,7 @@ impl<'runtime, 'principal>
 
     fn admission<'approved, 'controls>(
         &'controls self,
-        approved: &'approved WorthQueryApprovedElevation,
+        approved: &'approved BankApprovedEstateElevation,
     ) -> BankEstateEmergencyAccessActivityAdmission<'runtime, 'principal, 'approved, 'controls>
     {
         BankEstateEmergencyAccessActivityAdmission::new(

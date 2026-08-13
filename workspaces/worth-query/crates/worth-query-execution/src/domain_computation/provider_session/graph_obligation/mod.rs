@@ -10,7 +10,9 @@ pub(in crate::domain_computation) use branch_affinity::WorthQueryGraphWorkBranch
 pub use decision_read_set::WorthQueryGraphReadDependencyEvidence;
 pub(in crate::domain_computation) use decision_read_set::WorthQueryObservedGraphReadWork;
 pub use mutation_progression::WorthQueryMutationGraphWorkCompletion;
-pub(in crate::domain_computation) use mutation_progression::WorthQueryMutationRunBinding;
+pub(in crate::domain_computation) use mutation_progression::{
+    WorthQueryMutationRunBinding, WorthQueryProviderSessionBoundMutationRun,
+};
 pub(in crate::domain_computation) use owner_execution::{
     WorthQueryGraphReadOwnerPort, WorthQuerySessionGraphReadProof,
 };

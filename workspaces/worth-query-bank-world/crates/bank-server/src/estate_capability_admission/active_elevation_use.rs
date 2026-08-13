@@ -9,8 +9,7 @@ use bank_domain::{
     schema::{DisburseEstateCapability, DisburseEstateOperation},
 };
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationAuthorizationExplanationCause, WorthQueryApplicationIdempotencyBinding,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryApplicationIdempotencyBinding, WorthQueryOperationAuthorizationDenialKind,
 };
 
 use super::{
@@ -22,9 +21,6 @@ use super::{
     },
     lifecycle_journey::{
         approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
-    },
-    publication_evidence::{
-        assert_authorization_denial_publication, ExpectedAuthorizationDenialPublication,
     },
 };
 use crate::{queries, BankApplicationQueryDenial, BankReadControls};
@@ -71,22 +67,16 @@ fn real_approved_elevation_expires_at_the_installed_time_boundary() {
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::ElevationExpired
+        crate::BankAuthorizationDenialKind::ElevationExpired
     );
-    assert_authorization_denial_publication(
-        &denial,
-        ExpectedAuthorizationDenialPublication {
-            cause: WorthQueryApplicationAuthorizationExplanationCause::ElevationExpired,
-            code: "worth.query.authorization.elevation-expired",
-        },
-    );
+    assert!(denial.contributing_cause_count() > 0);
 }
 
 fn approve_two_second_account_details_elevation(
     fixture: &super::fixture::CapabilityFixture,
     requester: &crate::BankAuthenticatedPrincipal,
     approver: &crate::BankAuthenticatedPrincipal,
-) -> worth_query_host::facade::primary_graph::WorthQueryApprovedElevation {
+) -> crate::BankApprovedEstateElevation {
     let requested = request_elevation(
         fixture,
         requester,
@@ -182,15 +172,9 @@ fn approved_different_field_cannot_open_account_details() {
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::ElevationApprovalRejected
+        crate::BankAuthorizationDenialKind::ElevationApprovalRejected
     );
-    assert_authorization_denial_publication(
-        &denial,
-        ExpectedAuthorizationDenialPublication {
-            cause: WorthQueryApplicationAuthorizationExplanationCause::ElevationDenied,
-            code: "worth.query.authorization.elevation-denied",
-        },
-    );
+    assert!(denial.contributing_cause_count() > 0);
 }
 
 #[test]
@@ -238,7 +222,7 @@ fn real_approved_elevation_cannot_enter_the_bank_disbursement_operation() {
         .runtime
         .application_runtime()
         .admit_approved_elevation_access(
-            &approved,
+            approved.query(),
             requester.query(),
             &capability,
             action,

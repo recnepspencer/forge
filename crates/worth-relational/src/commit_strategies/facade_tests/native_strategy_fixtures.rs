@@ -30,7 +30,7 @@ pub(super) use crate::facade::transactions::{
     UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 pub(super) use crate::identity::data::{EntityId, KindId, PartitionId};
-pub(super) use crate::logic::builder::RelationalRuntimeBuilder;
+pub(super) use crate::runtime::builder::RelationalRuntimeBuilder;
 pub(super) use crate::snapshots::data::SnapshotHandle;
 pub(super) use crate::symbols::data::ClientKey;
 pub(super) use crate::tests::support::{

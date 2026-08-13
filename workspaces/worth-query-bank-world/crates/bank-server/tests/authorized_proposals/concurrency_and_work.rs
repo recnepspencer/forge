@@ -2,8 +2,8 @@ use bank_domain::model::{BankPrincipalId, Money};
 use bank_domain::proposals::{BankProposalDenial, BankProposedEffect};
 use bank_domain::schema::SendMoney;
 use bank_server::{
-    BankMutationCommitOutcome, BankOperationProposalError, BankOperationProposals,
-    BankPrincipalSeed, BankWorldSeed,
+    BankMutationCommitOutcome, BankMutationProjectionWork, BankOperationProposalError,
+    BankOperationProposals, BankPrincipalSeed, BankWorldSeed,
 };
 
 use super::fixture::{
@@ -255,7 +255,7 @@ fn projection_work(
     snapshot: bank_domain::proposals::BankSnapshot,
     identity: &str,
     unrelated_principals: usize,
-) -> worth_query_host::facade::primary_graph::WorthQueryInvariantProjectionWork {
+) -> BankMutationProjectionWork {
     let owner_name = format!("{identity}-owner");
     let recipient_name = format!("{identity}-recipient");
     let employee_name = format!("{identity}-employee");

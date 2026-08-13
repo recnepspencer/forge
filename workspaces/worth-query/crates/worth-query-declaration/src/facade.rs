@@ -4,6 +4,10 @@ pub mod application_schema {
     pub use crate::application_schema::*;
 }
 
+pub mod application_aftermath {
+    pub use crate::application_aftermath::*;
+}
+
 pub mod application_capability {
     pub use crate::application_capability::*;
 }

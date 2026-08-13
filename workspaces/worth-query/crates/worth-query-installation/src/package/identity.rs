@@ -69,7 +69,7 @@ pub(super) fn canonical_identity(
 > {
     let mut basis = InstallationCanonicalIdentityBasis::new(
         "worth-query.portable-domain-package",
-        "worth-query-portable-domain-package-v2",
+        "worth-query-portable-domain-package-v3",
         PACKAGE_BUDGET,
     );
     append_domain_identity(&mut basis, package)?;
@@ -77,11 +77,41 @@ pub(super) fn canonical_identity(
     append_definitions(&mut basis, package)?;
     append_domain_operations(&mut basis, package)?;
     append_contracts_and_schemas(&mut basis, package)?;
+    append_conditional_application_operations(&mut basis, package)?;
     for (index, contribution) in package.contributions.iter().enumerate() {
         basis.text(format!("contribution[{index}]"), contribution.as_str())?;
     }
     let (digest, work) = basis.derive()?;
     Ok((WorthQueryPortableDomainPackageIdentity(digest), work))
+}
+
+fn append_conditional_application_operations(
+    basis: &mut InstallationCanonicalIdentityBasis,
+    package: &WorthQueryPortableDomainPackage,
+) -> Result<(), CanonicalDigestDerivationDenial> {
+    for (index, binding) in package
+        .conditional_application_operations
+        .iter()
+        .enumerate()
+    {
+        let prefix = format!("conditional-application-operation[{index}]");
+        basis.text(format!("{prefix}.schema-owner"), binding.schema_owner())?;
+        basis.text(format!("{prefix}.schema-name"), binding.schema_name())?;
+        basis.text(
+            format!("{prefix}.application-operation"),
+            binding.application_operation(),
+        )?;
+        basis.text(format!("{prefix}.input-type"), binding.input_type())?;
+        basis.text(
+            format!("{prefix}.domain-operation-slot"),
+            binding.domain_operation_slot(),
+        )?;
+        basis.text(
+            format!("{prefix}.domain-operation-identity"),
+            binding.domain_operation_canonical_identity(),
+        )?;
+    }
+    Ok(())
 }
 
 fn append_domain_identity(

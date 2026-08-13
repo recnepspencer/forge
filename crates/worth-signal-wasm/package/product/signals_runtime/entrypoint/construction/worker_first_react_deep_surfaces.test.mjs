@@ -75,7 +75,8 @@ test("DEEP1: worker-first empty React attach + object form bind/submit/fulfill",
       actions: ({ submit }) => ({ submit: submit() }),
     });
 
-    form.fields.title.set("Ship docs");
+    await form.fields.title.set("Ship docs");
+    await signals.settleAuthoredWork();
     assert.equal(form.effective().title, "Ship docs");
 
     await waitUntil(
@@ -135,19 +136,24 @@ test("DEEP2: form over imported graph fails closed after importGraph supersessio
         actions: ({ submit }) => ({ submit: submit() }),
       });
       assert.equal(form.source().title, "Alpha");
-      form.fields.title.set("Beta");
+      await form.fields.title.set("Beta");
+      await signals.settleAuthoredWork();
       assert.equal(form.effective().title, "Beta");
 
       const replacement = signals.importGraph(definition, secondSnapshot);
       await replacement.ready();
 
-      assert.throws(
-        () => form.fields.title.set("Delta"),
-        /superseded|invalidated|not currently available|active imported graph/u,
+      // Drain any stale publish chains before probing fail-closed mutations.
+      await Promise.resolve();
+      await assert.rejects(
+        async () => {
+          await form.fields.title.set("Delta");
+        },
+        /superseded|invalidated|not currently available|active imported graph|replaced the worker-owned runtime/u,
       );
       assert.throws(
         () => form.executeAction("submit"),
-        /superseded|invalidated|not currently available|active imported graph/u,
+        /superseded|invalidated|not currently available|active imported graph|replaced the worker-owned runtime/u,
       );
     } finally {
       compatibility.free();
@@ -254,7 +260,8 @@ test("DEEP5: one React store hosts form + resource + router without crosstalk", 
       }),
       actions: ({ submit }) => ({ submit: submit() }),
     });
-    form.fields.title.set("Shared-edited");
+    await form.fields.title.set("Shared-edited");
+    await signals.settleAuthoredWork();
 
     const detail = signals.resource.detail({
       params: resourceParams(),

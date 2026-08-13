@@ -1,12 +1,6 @@
 use crate::integrity::{layout_corruption, LayoutCorruptionView};
 use crate::layout_declarations;
 use worth_store_contracts::DurableArtifactFamilyId;
-use worth_store_recovery_physics::{
-    CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
-    CheckpointManifestRecoveryBasisMaterialization, CheckpointManifestSourceMaterialization,
-    CheckpointPageImageMaterialization, PersistedRecoveryArtifactMaterialization,
-    RecoveryOfflineVerifier, RecoveryProfileId, WalRedoFrameMaterialization,
-};
 
 pub(super) fn family() -> crate::PhysicalArtifactFamily {
     layout_declarations().seed_family().family()
@@ -30,60 +24,14 @@ pub(super) fn admitted_family_for_store(
     .0
 }
 
-pub(super) fn offline_admission(
-    seed: &str,
-) -> worth_store_recovery_physics::ReopenedRecoveryArtifactAdmission {
-    let recovery_profile = RecoveryProfileId::strict_offline_recovery_artifacts();
-    let artifacts = PersistedRecoveryArtifactMaterialization::new(
-        seed,
-        "posix",
-        recovery_profile.clone(),
-        CheckpointManifestMaterialization::new(
-            format!("checkpoint-{seed}"),
-            CheckpointManifestRecoveryBasisMaterialization::new(1, 1, 10, 20),
-            CheckpointManifestSourceMaterialization::new("checkpoint", 1),
-            CheckpointManifestBudgetMaterialization::new(4096, 0, 4096, 1),
-        ),
-        WalRedoFrameMaterialization::new(
-            format!("wal-{seed}"),
-            20,
-            1,
-            format!("sha256:op-{seed}"),
-            format!("sha256:idem-{seed}"),
-        ),
-        CheckpointPageImageMaterialization::new(
-            format!("page-{seed}"),
-            1,
-            7,
-            19,
-            format!("sha256:page-{seed}"),
-        ),
-    )
-    .materialize()
-    .expect("persisted recovery artifacts should materialize");
-    let report = RecoveryOfflineVerifier::for_profile(seed, "posix", recovery_profile)
-        .verify_persisted_artifacts(&artifacts)
-        .expect("offline verifier should admit persisted artifacts");
-    worth_store_recovery_physics::ReopenedRecoveryArtifactAdmission::admit(report, &artifacts)
-        .expect("reopened admission should succeed")
-}
-
 #[test]
-fn corruption_assessment_adapts_physical_and_recovery_authority() {
+fn corruption_assessment_adapts_physical_and_import_authority() {
     let record =
         super::readmission_test_support::authoritative_quarantine_record("classification-owner");
     let quarantine = layout_corruption().assess_physical_quarantine(admitted_family(), record);
     assert!(matches!(
         quarantine.view(),
         LayoutCorruptionView::Quarantined(witness) if witness.family() == family()
-    ));
-
-    let offline = offline_admission("offline-required");
-    let offline = layout_corruption().require_offline_readmission(admitted_family(), &offline);
-    assert!(matches!(
-        offline.view(),
-        LayoutCorruptionView::OfflineReadmissionRequired(requirement)
-            if requirement.family() == family()
     ));
 
     let terminal = layout_corruption().require_import_readmission(
@@ -121,8 +69,6 @@ fn corruption_owner_inventory_equals_ordinary_owner_outputs() {
             .witnesses(),
         )
         .unwrap();
-    let offline = offline_admission("classification-matrix");
-
     let observed = [
         layout_corruption()
             .assess_derived_projection(
@@ -133,9 +79,6 @@ fn corruption_owner_inventory_equals_ordinary_owner_outputs() {
             .assess_physical_quarantine(admitted_family(), record)
             .case_id(),
         readmission.case_id(),
-        layout_corruption()
-            .require_offline_readmission(admitted_family(), &offline)
-            .case_id(),
         layout_corruption()
             .require_import_readmission(
                 admitted_family(),

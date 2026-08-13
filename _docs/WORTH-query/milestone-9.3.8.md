@@ -4441,7 +4441,7 @@ rebuild them from scratch.
   - `crates/worth-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md`
   - `crates/worth-query/docs/domain-capabilities/signal-compatibility-orchestration.md`
   - `crates/worth-query/docs/domain-capabilities/continuation-pipeline.md`
-  - `crates/worth-query/docs/domain-capabilities/recovery-boundary.md`
+  - `crates/worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md`
 - new public docs this phase must add:
   - `crates/worth-query/docs/domain-capabilities/collaborative-strategy-witness.md`
   - `crates/worth-query/docs/domain-capabilities/collaborative-strategy-compatibility.md`
@@ -4536,7 +4536,7 @@ without pretending Query executed or re-owned those lower authorities.
   - `crates/worth-query/docs/domain-capabilities/collaborative-strategy-witness.md`
   - `crates/worth-query/docs/domain-capabilities/continuation-pipeline.md`
   - `crates/worth-query/docs/domain-capabilities/signal-compatibility-orchestration.md`
-  - `crates/worth-query/docs/domain-capabilities/recovery-boundary.md`
+  - `crates/worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md`
   - `crates/worth-query/docs/domain-capabilities/explanation/lower-runtime-explanation-contributions.md`
 - new public docs this phase must add:
   - `crates/worth-query/docs/domain-capabilities/collaborative-strategy-inspection-and-preparation.md`
@@ -4755,7 +4755,7 @@ evolution, policy, or mutation semantics.
 - local Query substrate docs that this phase must extend honestly:
   - `crates/worth-query/docs/domain-capabilities/signal-compatibility-orchestration.md`
   - `crates/worth-query/docs/domain-capabilities/continuation-pipeline.md`
-  - `crates/worth-query/docs/domain-capabilities/recovery-boundary.md`
+  - `crates/worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md`
   - `crates/worth-query/docs/domain-capabilities/contribution-composed-orchestration.md`
   - `crates/worth-query/docs/domain-capabilities/grouped-authoring.md`
   - `crates/worth-query/docs/domain-capabilities/continuity/continuity-contributions-and-authoritative-successors.md`
@@ -4867,7 +4867,7 @@ lower-authority truths, not a second authority owner.
 - `Milestone 13` remains authoritative for later certification breadth over
   collaborative and merge-aware scenarios
 - local Query substrate docs that this phase must extend honestly:
-  - `crates/worth-query/docs/domain-capabilities/recovery-boundary.md`
+  - `crates/worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md`
   - `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/runtime-installed-domains.md`
   - `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/conditional-installed-operations.md`
   - `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/platform-entry-closeout.md`

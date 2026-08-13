@@ -1,15 +1,23 @@
-mod artifact_assembly_phase;
+mod artifact_execution;
 mod authority_context;
+mod boundary_validation;
 mod bulk_mutation_telemetry;
 mod complexity_delta;
+mod draft_execution;
 mod draft_preparation_phase;
 mod execution;
+mod execution_admission;
+mod history_binding;
 mod history_resolution_phase;
 mod invariant_phase;
-mod mutation_phase;
-mod publication_phase;
+mod mutation_execution;
+mod publication_execution;
 mod rejection;
+mod result_assembly;
+mod snapshot_validation;
 mod transaction_entrypoint;
 
 pub(crate) use authority_context::AuthoritativeCommitContext;
 pub(crate) use execution::execute_authoritative_commit;
+pub(crate) use publication_execution::CommitDurableAppendAdmission;
+pub(crate) use result_assembly::CommitResultSeal;

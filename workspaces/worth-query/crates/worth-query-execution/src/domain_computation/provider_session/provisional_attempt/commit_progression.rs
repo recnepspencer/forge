@@ -20,14 +20,48 @@ pub enum WorthQueryProviderCommitAdmissionDenial {
 
 #[derive(Debug)]
 pub enum WorthQueryProviderCompareAndCommitOutcome {
-    Committed {
-        plan_identity: String,
-        token_identity: String,
-        provider_receipt: String,
-    },
+    Committed(WorthQueryCommittedProviderSession),
     Stale(WorthQueryStaleDecisionReadSet),
     Denied(WorthQueryProviderCompareAndCommitDenial),
     Indeterminate(WorthQueryProviderSessionFailure),
+}
+
+/// Closed provider answer paired with the exact session that produced it.
+///
+/// Provider text remains available only as a descriptive projection. The
+/// terminal binding, not text, selects the exact committed owner evidence.
+#[derive(Debug)]
+pub struct WorthQueryCommittedProviderSession {
+    disposition:
+        crate::domain_computation::provider_session::WorthQueryClosedProviderSessionDisposition,
+}
+
+impl WorthQueryCommittedProviderSession {
+    fn from_disposition(
+        disposition: crate::domain_computation::provider_session::WorthQueryClosedProviderSessionDisposition,
+    ) -> Self {
+        Self { disposition }
+    }
+
+    pub fn provider_description(
+        &self,
+    ) -> &crate::domain_computation::provider_session::WorthQueryProviderTerminalDescription {
+        self.disposition.provider_description()
+    }
+
+    pub fn counters(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryProviderSessionProtocolCounters
+    {
+        self.disposition.counters()
+    }
+
+    pub(in crate::domain_computation) const fn terminal_binding(
+        &self,
+    ) -> &crate::domain_computation::provider_session::WorthQueryProviderSessionTerminalBinding
+    {
+        self.disposition.terminal_binding()
+    }
 }
 
 #[derive(Debug)]
@@ -70,6 +104,15 @@ impl<'run> WorthQueryProposedStateInspection<'run> {
 }
 
 impl WorthQueryInvariantApprovedProposedState<'_> {
+    pub(in crate::domain_computation) fn provider_session_terminal_binding(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryProviderSessionTerminalBinding {
+        self.proposed
+            .attempt
+            .staged
+            .provider_session_terminal_binding()
+    }
+
     pub fn invariant_receipt_identities(&self) -> &[std::sync::Arc<str>] {
         self.progression.receipt_identities()
     }
@@ -118,21 +161,14 @@ impl WorthQueryInvariantApprovedProposedState<'_> {
             }
         };
         match prepared.commit() {
-            WorthQuerySessionCommitOrAbortOutcome::Committed {
-                plan_identity,
-                token_identity,
-                provider_receipt,
-                ..
-            } => {
+            WorthQuerySessionCommitOrAbortOutcome::Committed(disposition) => {
                 self.proposed
                     .attempt
                     .overlay
                     .release_to_provider_resolution();
-                WorthQueryProviderCompareAndCommitOutcome::Committed {
-                    plan_identity,
-                    token_identity,
-                    provider_receipt,
-                }
+                WorthQueryProviderCompareAndCommitOutcome::Committed(
+                    WorthQueryCommittedProviderSession::from_disposition(disposition),
+                )
             }
             WorthQuerySessionCommitOrAbortOutcome::CommitRecoveryRequired(failure) => {
                 self.proposed
@@ -141,7 +177,7 @@ impl WorthQueryInvariantApprovedProposedState<'_> {
                     .release_to_provider_resolution();
                 WorthQueryProviderCompareAndCommitOutcome::Indeterminate(failure)
             }
-            WorthQuerySessionCommitOrAbortOutcome::Aborted { .. }
+            WorthQuerySessionCommitOrAbortOutcome::Aborted(_)
             | WorthQuerySessionCommitOrAbortOutcome::AbortRecoveryRequired(_) => {
                 unreachable!("commit transition cannot produce an abort outcome")
             }

@@ -1,6 +1,6 @@
 use crate::durability::data::{DurabilityError, DurableCheckpoint, DurableStore};
-use crate::logic::runtime::RelationalRuntime;
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::history::data::CanonicalCommitEnvelope;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) trait DurabilityRead {
     fn durable_checkpoints(&self) -> &[DurableCheckpoint];
@@ -25,6 +25,7 @@ impl DurabilityRead for RelationalRuntime {
 pub(crate) trait DurabilityWrite {
     fn append_durable_envelope(
         &mut self,
+        authority: crate::durability::authority::DurableAppendAuthority,
         envelope: &CanonicalCommitEnvelope,
     ) -> Result<(), DurabilityError>;
 }
@@ -32,8 +33,10 @@ pub(crate) trait DurabilityWrite {
 impl DurabilityWrite for RelationalRuntime {
     fn append_durable_envelope(
         &mut self,
+        authority: crate::durability::authority::DurableAppendAuthority,
         envelope: &CanonicalCommitEnvelope,
     ) -> Result<(), DurabilityError> {
-        self.durability_authority().append_commit(envelope)
+        self.durability_authority()
+            .append_commit(authority, envelope)
     }
 }

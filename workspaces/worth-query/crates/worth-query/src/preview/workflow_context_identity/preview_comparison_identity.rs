@@ -1,15 +1,10 @@
-#[cfg(test)]
 use crate::identity::{CanonicalQueryDigest, CanonicalResultShapeDigest, ValidatedQueryDigest};
-#[cfg(test)]
 use crate::identity::{CollectionPlanDigest, ResultDigest};
-#[cfg(test)]
 use crate::workflow::{
     workflow_canonical_query_digest_evidence, workflow_validated_query_digest_evidence,
 };
-#[cfg(test)]
 use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
 
-#[cfg(test)]
 pub(in crate::preview) fn compose_preview_comparison_ordering_digest(parts: &[String]) -> String {
     WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::WorkflowContextBinding)
         .field_shape(
@@ -25,7 +20,6 @@ pub(in crate::preview) fn compose_preview_comparison_ordering_digest(parts: &[St
         .to_string()
 }
 
-#[cfg(test)]
 pub(in crate::preview) fn compose_preview_comparison_materialization_boundary_digest(
     parts: &[String],
 ) -> String {
@@ -43,7 +37,6 @@ pub(in crate::preview) fn compose_preview_comparison_materialization_boundary_di
         .to_string()
 }
 
-#[cfg(test)]
 pub(in crate::preview) fn compose_preview_comparison_eligibility_digest(
     canonical_query_digest: &CanonicalQueryDigest,
     canonical_result_shape_digest: &CanonicalResultShapeDigest,
@@ -87,7 +80,6 @@ pub(in crate::preview) fn compose_preview_comparison_eligibility_digest(
         .to_string()
 }
 
-#[cfg(test)]
 pub(in crate::preview) fn compose_preview_comparison_candidate_digest(
     validated_query_digest: &ValidatedQueryDigest,
     result_digest: &ResultDigest,

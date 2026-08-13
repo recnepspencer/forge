@@ -3,10 +3,10 @@ use super::fixture::{
 };
 use crate::domain_computation::{
     WorthQueryConverged, WorthQueryDirectConvergenceIterationOutcome,
-    WorthQueryDirectConvergenceTerminal, WorthQueryDirectGraphStepOutcome,
+    WorthQueryDirectConvergenceStepOutcome, WorthQueryDirectConvergenceTerminal,
     WorthQueryGraphProviderCallKind, WorthQueryIndeterminate, WorthQueryManagedGraphCallRequest,
     WorthQueryStableWithoutProof, WorthQueryWorkflowConvergenceIterationOutcome,
-    WorthQueryWorkflowConvergenceTerminal, WorthQueryWorkflowGraphStepOutcome,
+    WorthQueryWorkflowConvergenceStepOutcome, WorthQueryWorkflowConvergenceTerminal,
 };
 
 pub(super) fn direct_terminal_outcome(
@@ -20,14 +20,9 @@ pub(super) fn direct_terminal_outcome(
         Ok(started) => started,
         Err(_) => panic!("terminal matrix iteration must start"),
     };
-    let (pending, active) = started.into_parts();
-    let completion = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("terminal matrix provider must complete"),
-    };
-    match pending.admit_completion(completion) {
-        Ok(outcome) => outcome,
-        Err(_) => panic!("terminal matrix completion must rejoin"),
+    match started.advance() {
+        WorthQueryDirectConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("terminal matrix provider must complete and rejoin"),
     }
 }
 
@@ -86,13 +81,8 @@ fn workflow_terminal_outcome(
         Ok(started) => started,
         Err(_) => panic!("ordinary workflow iteration must start"),
     };
-    let (pending, active) = started.into_parts();
-    let completion = match active.advance() {
-        WorthQueryWorkflowGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("ordinary workflow provider must complete"),
-    };
-    match pending.admit_completion(completion) {
-        Ok(outcome) => outcome,
-        Err(_) => panic!("ordinary workflow completion must rejoin"),
+    match started.advance() {
+        WorthQueryWorkflowConvergenceStepOutcome::Completed(outcome) => outcome,
+        _ => panic!("ordinary workflow provider must complete and rejoin"),
     }
 }

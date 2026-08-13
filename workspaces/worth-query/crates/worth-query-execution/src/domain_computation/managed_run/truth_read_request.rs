@@ -67,7 +67,7 @@ impl WorthQueryManagedTruthReadRequest {
 
 #[cfg(test)]
 mod tests {
-    use worth_runtime_bridge::facade::{BridgeReplayMode, SnapshotReadPacket, TruthBranchIdentity};
+    use worth_runtime_bridge::facade::{BridgeReplayMode, SnapshotReadPacket};
 
     use super::WorthQueryManagedTruthReadRequest;
 
@@ -75,7 +75,7 @@ mod tests {
     fn ordinary_managed_truth_requests_disable_replay_by_default() {
         let (_, _, _, replay, _, _) = WorthQueryManagedTruthReadRequest::new(
             worth_relational::facade::identity::VersionId(7),
-            TruthBranchIdentity::from_relational_branch_id("main"),
+            crate::domain_computation::primary_graph::primary_truth_branch_identity(),
             SnapshotReadPacket::new(Vec::new()),
         )
         .into_parts();

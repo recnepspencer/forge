@@ -2,14 +2,12 @@ mod admission;
 mod application;
 mod batching;
 mod evidence;
-mod suppression;
+mod output_commit;
 mod vocabulary;
 
 #[cfg(test)]
 mod tests;
 
-use crate::clock::RuntimeInstant;
-use crate::data::comparator::{ComparatorPolicyResolver, VersionComparatorPolicy};
 use crate::data::core_profile::StableHashValue;
 use crate::data::error::SignalError;
 use crate::data::node::NodeState;
@@ -18,122 +16,16 @@ use crate::data::trace::{
     ArtifactWriteDelta, ColdArtifactRecord, HotArtifactWrite, RuntimeArtifactState,
 };
 use crate::diagnostics::lineage::LineageArtifactId;
-use crate::logic::evaluation::{
-    AppliedEffectReport, DeferralReason, EvaluationEffect, EvaluationVerdict,
-};
+use crate::logic::evaluation::{DeferralReason, EvaluationEffect, EvaluationVerdict};
 
 use super::graph::{RuntimeArtifactStructuralDelta, SignalGraph};
 
 #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
-pub(crate) use batching::{ApplyCommitPacket, SuppressionFreeApplyCommitPacket};
+pub(crate) use batching::{
+    ApplyCommitPacket, OutputCommitPacket, PreparedParallelApplyCommitPacket,
+};
 
 impl SignalGraph {
-    pub(crate) fn apply_effect(
-        &mut self,
-        mut effect: EvaluationEffect,
-        comparator: VersionComparatorPolicy,
-        comparator_resolver: &mut impl ComparatorPolicyResolver,
-        defer_snapshot_commit: bool,
-    ) -> Result<
-        (
-            AppliedEffectReport,
-            Option<crate::logic::evaluation::PendingDependencySnapshot>,
-        ),
-        SignalError,
-    > {
-        let previous_warm = if let Some(snapshot) = effect.previous_artifact_warm().cloned() {
-            Some(snapshot)
-        } else {
-            self.node_runtime_artifact_reuse_boundary_snapshot(effect.operational.node)?
-                .map(
-                    |trace| crate::logic::evaluation::PreviousArtifactWarmSnapshot {
-                        output_identity: trace.output_identity,
-                        continuity_token: trace.continuity_token,
-                        reuse_boundary_authority: trace.reuse_boundary_authority,
-                    },
-                )
-        };
-        let comparison = self.compare_effect(&effect, previous_warm.as_ref(), comparator)?;
-        let artifact_write =
-            self.build_effect_artifact_write(&effect, previous_warm.as_ref(), comparison)?;
-        let pending_snapshot = if defer_snapshot_commit {
-            let snapshot_start = RuntimeInstant::now();
-            let pending = crate::logic::evaluation::PendingDependencySnapshot {
-                node: effect.operational.node,
-                update: std::mem::replace(
-                    &mut effect.operational.dependency_snapshot_update,
-                    crate::data::dependency::CommittedSnapshotUpdate::Replace(
-                        crate::data::dependency::ReplacementSnapshotUpdate::from_snapshot(
-                            crate::data::dependency::DependencySnapshot::empty(),
-                            &mut self.topology.dependency_snapshot_shapes,
-                        ),
-                    ),
-                ),
-                delta: effect.operational.snapshot_delta,
-            };
-            self.telemetry_mut()
-                .execution
-                .deferred_snapshot_packet_nanos += snapshot_start.elapsed().as_nanos();
-            Some(pending)
-        } else {
-            None
-        };
-        self.transition_effect_state(&mut effect, artifact_write)?;
-        if !defer_snapshot_commit {
-            self.commit_effect_snapshot(&mut effect)?;
-        }
-        let suppressed_downstream = self.apply_effect_suppression(
-            effect.operational.node,
-            &effect.operational.verdict,
-            comparison.propagation_suppressed,
-            comparator_resolver,
-        )?;
-        self.record_effect_telemetry(&effect, &comparison, suppressed_downstream);
-        Ok((
-            AppliedEffectReport {
-                verdict: effect.operational.verdict,
-                comparison,
-                suppressed_downstream,
-                temporal_eligibility: None,
-            },
-            pending_snapshot,
-        ))
-    }
-
-    #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
-    pub(crate) fn publish_suppression_free_apply_commit_packet(
-        &mut self,
-        packet: SuppressionFreeApplyCommitPacket,
-    ) -> Result<
-        (
-            AppliedEffectReport,
-            Option<crate::logic::evaluation::PendingDependencySnapshot>,
-        ),
-        SignalError,
-    > {
-        let ApplyCommitPacket {
-            mut effect,
-            comparison,
-            artifact_write,
-            pending_snapshot,
-            defer_snapshot_commit,
-        } = packet.0;
-        self.transition_effect_state(&mut effect, artifact_write)?;
-        if !defer_snapshot_commit {
-            self.commit_effect_snapshot(&mut effect)?;
-        }
-        self.record_effect_telemetry(&effect, &comparison, 0);
-        Ok((
-            AppliedEffectReport {
-                verdict: effect.operational.verdict,
-                comparison,
-                suppressed_downstream: 0,
-                temporal_eligibility: None,
-            },
-            pending_snapshot,
-        ))
-    }
-
     fn transition_effect_state(
         &mut self,
         effect: &mut EvaluationEffect,
@@ -254,6 +146,7 @@ impl SignalGraph {
         if let EvaluationVerdict::Deferred {
             reason:
                 DeferralReason::ConditionNotMet
+                | DeferralReason::DependencyPending
                 | DeferralReason::OnDemandNotRequested
                 | DeferralReason::DebounceWindow
                 | DeferralReason::TemporalConditionNotMet,

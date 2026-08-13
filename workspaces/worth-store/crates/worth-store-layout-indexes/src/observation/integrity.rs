@@ -1,8 +1,7 @@
 use super::owner_case::{sealed, ObserveOwnerCase, OwnerCaseObservation};
 use crate::integrity::{
     CorruptionClassificationCaseId, ImportReadmissionCaseId, ImportReadmissionOutcome,
-    LayoutCorruptionOutcome, OfflineReadmissionCaseId, OfflineReadmissionOutcome,
-    QuarantineReadmissionCaseId, QuarantineReadmissionOutcome,
+    LayoutCorruptionOutcome, QuarantineReadmissionCaseId, QuarantineReadmissionOutcome,
 };
 
 macro_rules! observe_owner_case {
@@ -21,5 +20,4 @@ macro_rules! observe_owner_case {
 
 observe_owner_case!(LayoutCorruptionOutcome => CorruptionClassificationCaseId);
 observe_owner_case!(QuarantineReadmissionOutcome => QuarantineReadmissionCaseId);
-observe_owner_case!(OfflineReadmissionOutcome => OfflineReadmissionCaseId);
 observe_owner_case!(ImportReadmissionOutcome => ImportReadmissionCaseId);

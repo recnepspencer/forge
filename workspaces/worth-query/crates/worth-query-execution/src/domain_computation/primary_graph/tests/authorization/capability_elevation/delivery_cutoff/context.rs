@@ -119,13 +119,7 @@ pub(super) fn historical_basis(
             crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::at_commit(
                 TruthBranchIdentity::from_relational_branch_id("main"),
                 TruthCommitIdentity::from_relational_commit_id(
-                    context
-                        .approved
-                        .as_ref()
-                        .unwrap()
-                        .approval_commit_receipt()
-                        .commit_id()
-                        .0,
+                    context.approved.as_ref().unwrap().approval_commit_id().0,
                 ),
             ),
             &context.request,

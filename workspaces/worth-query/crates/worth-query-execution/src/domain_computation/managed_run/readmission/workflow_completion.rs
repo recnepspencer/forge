@@ -2,124 +2,96 @@ use std::sync::Arc;
 
 use worth_runtime_bridge::facade::RuntimeBridge;
 
-use super::super::provider_restore::WorthQueryManagedGraphRestoreCommitOutcome;
-use super::super::run_identity::WorthQueryManagedRunIdentity;
-use super::super::{WorthQueryActiveWorkflowGraphExecution, WorthQueryRunningWorkflowRun};
-use super::evidence::WorthQueryReadmissionProgress;
-use super::recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
-use super::workflow_abort::{abort_provider_pending, map_recovery_kind};
-use super::workflow_outcome::{
+use super::super::super::provider_restore::{
+    WorthQueryManagedGraphRestoreCommitOutcome, WorthQueryManagedGraphRestorePending,
+};
+use super::super::super::WorthQueryActiveWorkflowGraphExecution;
+use super::super::evidence::WorthQueryReadmissionProgress;
+use super::super::workflow_outcome::{
     WorthQueryWorkflowReadmissionDenialKind, WorthQueryWorkflowReadmissionOutcome,
 };
+use super::super::workflow_recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
+use super::workflow_abort::{abort_provider_pending, map_recovery_kind};
 use super::workflow_state::{
-    WorthQueryWorkflowArtifactGenerationPending, WorthQueryWorkflowCommitReady,
-    WorthQueryWorkflowProviderAbortPending, WorthQueryWorkflowProviderGenerationRecoveryState,
-    WorthQueryWorkflowProviderPendingRecoveryState, WorthQueryWorkflowProviderRecoveryState,
-    WorthQueryWorkflowProviderRestorePending,
+    WorthQueryWorkflowCommittedAssociation, WorthQueryWorkflowRestoredAssociation,
 };
-use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderStepArtifactContext;
+use super::WorthQueryWorkflowReadmissionProgressionPermit;
+use crate::domain_computation::artifact_owner::WorthQueryArtifactProductionGenerationPending;
 
 pub(super) fn advance_artifact_generation(
-    pending: WorthQueryWorkflowProviderRestorePending,
+    association: WorthQueryWorkflowRestoredAssociation,
+    stage_identity: String,
+    provider: WorthQueryManagedGraphRestorePending,
     bridge_runtime: &RuntimeBridge,
     mut progress: WorthQueryReadmissionProgress,
+    owner: &WorthQueryWorkflowReadmissionProgressionPermit,
 ) -> WorthQueryWorkflowReadmissionOutcome {
-    let WorthQueryWorkflowProviderRestorePending {
-        state,
-        stage_identity,
-        provider,
-        resource,
-        bridge,
-    } = pending;
     progress.attempted_artifact_generation();
-    let registry = state.artifacts.registry();
-    let generation = match registry.prepare_next_generation() {
+    let generation = match association.owner_prepare_artifact_generation(owner) {
         Ok(generation) => generation,
         Err(denial) => {
             return abort_provider_pending(
                 WorthQueryWorkflowReadmissionDenialKind::ArtifactGenerationDenied,
                 denial.detail(),
-                WorthQueryWorkflowProviderAbortPending {
-                    state,
-                    provider,
-                    resource,
-                    bridge,
-                },
+                association,
+                provider,
                 progress,
+                owner,
             );
         }
     };
-    let production = match state
-        .artifacts
-        .production_authority_for_readmission(&stage_identity, &generation)
-    {
-        Ok(production) => production,
-        Err(denial) => {
-            let detail = Arc::from(denial.detail());
-            if let Err(generation_rollback) = generation.abort() {
-                return WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(
-                    WorthQueryWorkflowReadmissionRecoveryRequired::provider_pending(
-                        format!(
-                            "{detail}; generation rollback failed: {}",
-                            generation_rollback.detail()
-                        ),
-                        progress,
-                        WorthQueryWorkflowProviderPendingRecoveryState {
-                            state,
-                            resource,
-                            bridge,
+    let artifact_context =
+        match association.owner_artifact_context(&stage_identity, &generation, owner) {
+            Ok(context) => context,
+            Err(denial) => {
+                let detail = Arc::from(denial.detail());
+                if let Err(generation_rollback) = generation.abort() {
+                    return WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(
+                        WorthQueryWorkflowReadmissionRecoveryRequired::provider_pending(
+                            format!(
+                                "{detail}; generation rollback failed: {}",
+                                generation_rollback.detail()
+                            ),
+                            progress,
+                            association,
                             provider,
                             generation_rollback,
-                        },
-                    ),
+                            owner,
+                        ),
+                    );
+                }
+                return abort_provider_pending(
+                    WorthQueryWorkflowReadmissionDenialKind::ArtifactAuthorityDenied,
+                    detail,
+                    association,
+                    provider,
+                    progress,
+                    owner,
                 );
             }
-            return abort_provider_pending(
-                WorthQueryWorkflowReadmissionDenialKind::ArtifactAuthorityDenied,
-                detail,
-                WorthQueryWorkflowProviderAbortPending {
-                    state,
-                    provider,
-                    resource,
-                    bridge,
-                },
-                progress,
-            );
-        }
-    };
-    let artifact_context = production.map(|authority| {
-        WorthQueryGraphProviderStepArtifactContext::new(
-            authority,
-            Arc::clone(&state.provider_artifact_occurrences),
-        )
-    });
+        };
     commit_artifact_generation(
-        WorthQueryWorkflowArtifactGenerationPending {
-            state,
-            provider,
-            resource,
-            bridge,
-            generation,
-            artifact_context,
-        },
+        association,
+        provider,
+        generation,
+        artifact_context,
         bridge_runtime,
         progress,
+        owner,
     )
 }
 
 fn commit_artifact_generation(
-    pending: WorthQueryWorkflowArtifactGenerationPending,
+    association: WorthQueryWorkflowRestoredAssociation,
+    provider: WorthQueryManagedGraphRestorePending,
+    generation: WorthQueryArtifactProductionGenerationPending,
+    artifact_context: Option<
+        crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderStepArtifactContext,
+    >,
     bridge_runtime: &RuntimeBridge,
     mut progress: WorthQueryReadmissionProgress,
+    owner: &WorthQueryWorkflowReadmissionProgressionPermit,
 ) -> WorthQueryWorkflowReadmissionOutcome {
-    let WorthQueryWorkflowArtifactGenerationPending {
-        state,
-        provider,
-        resource,
-        bridge,
-        generation,
-        artifact_context,
-    } = pending;
     let execution = match provider.commit(artifact_context) {
         WorthQueryManagedGraphRestoreCommitOutcome::Restored(execution) => execution,
         WorthQueryManagedGraphRestoreCommitOutcome::RecoveryRequired(recovery) => {
@@ -132,13 +104,10 @@ fn commit_artifact_generation(
                     WorthQueryWorkflowReadmissionRecoveryRequired::provider_generation(
                         detail,
                         progress,
-                        WorthQueryWorkflowProviderGenerationRecoveryState {
-                            state,
-                            resource,
-                            bridge,
-                            provider: recovery,
-                            generation_rollback,
-                        },
+                        association,
+                        recovery,
+                        generation_rollback,
+                        owner,
                     ),
                 );
             }
@@ -147,12 +116,9 @@ fn commit_artifact_generation(
                     kind,
                     detail,
                     progress,
-                    WorthQueryWorkflowProviderRecoveryState {
-                        state,
-                        resource,
-                        bridge,
-                        provider: recovery,
-                    },
+                    association,
+                    recovery,
+                    owner,
                 ),
             );
         }
@@ -160,60 +126,26 @@ fn commit_artifact_generation(
     let committed_generation = generation.commit();
     progress.committed_artifact_generation();
     commit_workflow(
-        WorthQueryWorkflowCommitReady {
-            state: state.commit_artifact_generation(committed_generation),
-            execution,
-            resource,
-            bridge,
-        },
+        association.owner_commit_generation(committed_generation, owner),
+        execution,
         bridge_runtime,
         progress,
+        owner,
     )
 }
 
 fn commit_workflow(
-    pending: WorthQueryWorkflowCommitReady,
+    state: WorthQueryWorkflowCommittedAssociation,
+    execution: super::super::super::managed_graph_execution::WorthQueryManagedGraphExecution,
     bridge_runtime: &RuntimeBridge,
     mut progress: WorthQueryReadmissionProgress,
+    owner: &WorthQueryWorkflowReadmissionProgressionPermit,
 ) -> WorthQueryWorkflowReadmissionOutcome {
-    let WorthQueryWorkflowCommitReady {
-        state,
-        execution,
-        resource,
-        bridge,
-    } = pending;
-    let (bridge_basis, bridge_counters) = bridge_runtime
-        .commit_yielded_execution_basis_readmission(bridge)
-        .into_parts();
+    let (running, bridge_counters) = state.owner_commit(bridge_runtime, owner);
     progress.observe_bridge(bridge_counters);
-    let resource_attempt = resource.commit();
-    let identity = WorthQueryManagedRunIdentity::resumed(
-        "workflow",
-        Arc::clone(&state.logical_run_identity),
-        resource_attempt.attempt_identity().as_str(),
-        &bridge_basis,
-        &state.relational_basis,
-    );
-    let (logical_run_identity, identity) = identity.into_parts();
-    let provider_work = state
-        .provider_work
-        .rebind_provider_session(resource_attempt.provider_session().identity());
     progress.committed_attempt();
-    let active = WorthQueryActiveWorkflowGraphExecution::new(
-        WorthQueryRunningWorkflowRun {
-            logical_run_identity,
-            identity,
-            resource_attempt,
-            bridge_basis,
-            relational_basis: state.relational_basis,
-            counters: state.run_counters,
-            artifacts: state.artifacts,
-            provider_work,
-            provider_artifact_occurrences: state.provider_artifact_occurrences,
-        },
-        execution,
-    );
+    let active = WorthQueryActiveWorkflowGraphExecution::new(running, execution);
     WorthQueryWorkflowReadmissionOutcome::Readmitted(
-        super::WorthQueryReadmittedWorkflowGraphExecution::new(active, progress.evidence()),
+        super::super::WorthQueryReadmittedWorkflowGraphExecution::new(active, progress.evidence()),
     )
 }

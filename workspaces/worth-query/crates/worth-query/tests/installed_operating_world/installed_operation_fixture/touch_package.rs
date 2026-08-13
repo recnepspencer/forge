@@ -6,7 +6,6 @@ use super::{
 };
 
 pub fn federated_touch_package<G1: 'static, G2: 'static>(
-    compensated: bool,
     touches_remote_b: bool,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
     let mut semantics = read_vertex_definition(domain::WorthQuerySupportRequirement::Required)
@@ -44,14 +43,7 @@ pub fn federated_touch_package<G1: 'static, G2: 'static>(
         effect_families: vec![domain::WorthQueryOperationEffectFamily::Mutation],
     };
     semantics.resources = partial_effect_execution_resource_contract();
-    if compensated {
-        semantics.reversal = domain::WorthQueryOperationReversalContract::Compensation {
-            operation: domain::WorthQueryDomainOperationIdentity::new(
-                "compensate-federated-touch",
-                1,
-            ),
-        };
-    }
+    semantics.aftermath = None;
     semantics.cost.execution = domain::WorthQueryOperationCostClass::ExternalBoundary;
     let operation = domain::WorthQueryDomainOperationDefinition::<
         GeometryDomain,

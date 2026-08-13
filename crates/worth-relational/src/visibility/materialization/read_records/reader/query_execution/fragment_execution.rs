@@ -9,7 +9,7 @@ pub(in crate::visibility::materialization::read_records::reader) fn execute_expl
     reader: &VisibilityReadContext<'_>,
     plan: &SnapshotPinnedQueryPlan,
     packets: &[PacketizedQueryWork],
-    snapshot_state: &crate::storage::logic::state::SnapshotState,
+    snapshot_state: &crate::storage::overlay::SnapshotState,
     strategy: PreparationStrategySelection,
 ) -> Option<Vec<crate::query::data::QueryWorkerFragment>> {
     let current_state = reader.runtime().storage_access().current_state();

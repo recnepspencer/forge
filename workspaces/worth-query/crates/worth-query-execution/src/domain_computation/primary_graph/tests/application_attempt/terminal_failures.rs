@@ -3,8 +3,8 @@ use super::{
     live_scope, resolved_account,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
-    WorthQueryApplicationCommitTerminalKind,
+    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
+    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitTerminalKind,
 };
 
 #[test]
@@ -21,7 +21,7 @@ fn preparation_rejection_is_denied_without_effect_or_idempotency_residue() {
         "prepared-replacement",
     );
 
-    world.application.reject_next_session_prepare();
+    world.faults.reject_next_session_prepare();
     let WorthQueryApplicationCommitOutcome::Denied(denial) = world
         .application
         .compare_and_commit_application(rejected, idempotency(19, 19))
@@ -57,7 +57,7 @@ fn pretransaction_commit_failure_is_proved_aborted_and_applies_nothing() {
     let account = resolved_account(&world, "open", &request);
     let rejected = admitted_program(&world, &principal, &account, &request, "atomic-replacement");
 
-    world.application.reject_next_commit_before_transaction();
+    world.faults.reject_next_commit_before_transaction();
     assert!(matches!(
         world
             .application
@@ -84,7 +84,7 @@ fn index_publication_failure_recovers_the_committed_transaction_before_returning
     let first = admitted_program(&world, &principal, &account, &request, "index-replacement");
     let retry = admitted_program(&world, &principal, &account, &request, "index-replacement");
 
-    world.application.fail_next_index_publication();
+    world.faults.fail_next_index_publication();
     let WorthQueryApplicationCommitOutcome::Committed(first_receipt) = world
         .application
         .compare_and_commit_application(first, idempotency(21, 21))
@@ -111,6 +111,88 @@ fn index_publication_failure_recovers_the_committed_transaction_before_returning
 }
 
 #[test]
+fn causal_fact_survives_index_publication_failure_via_relational_owner_read() {
+    use crate::domain_computation::application_aftermath::{
+        WorthQueryAftermathCausalRole, WorthQueryPendingAftermathCausality,
+    };
+
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let program = admitted_program(&world, &principal, &account, &request, "causal-replacement");
+    let branch = crate::domain_computation::primary_graph::primary_relational_branch_id();
+    let parent = world
+        .application
+        .relational_branch_head(&branch)
+        .expect("fixture has an authoritative branch head");
+    let pending = WorthQueryPendingAftermathCausality::undo_of(parent.clone());
+
+    world.faults.fail_next_index_publication();
+    let WorthQueryApplicationCommitOutcome::Committed(receipt) = world
+        .application
+        .compare_and_commit_application_with_aftermath(
+            program,
+            idempotency(29, 29),
+            pending.clone(),
+        )
+    else {
+        panic!("owner reconstruction must recover the causal commit");
+    };
+    let carried = receipt
+        .aftermath_causality()
+        .expect("committed receipt carries recovered causal fact");
+    assert_eq!(carried.role(), WorthQueryAftermathCausalRole::Undo);
+    assert_eq!(carried.parent(), &parent);
+    assert_eq!(carried.child(), receipt.commit_reference());
+
+    let reread = world
+        .application
+        .committed_aftermath_causality(&pending)
+        .expect("owner read succeeds")
+        .expect("co-committed fact remains visible");
+    assert_eq!(reread, *carried);
+}
+
+#[test]
+fn idempotency_without_the_claimed_causal_fact_is_not_equivalent() {
+    use crate::domain_computation::application_aftermath::WorthQueryPendingAftermathCausality;
+
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let first = admitted_program(&world, &principal, &account, &request, "plain-commit");
+    let retry = admitted_program(&world, &principal, &account, &request, "plain-commit");
+    let branch = crate::domain_computation::primary_graph::primary_relational_branch_id();
+    let parent = world
+        .application
+        .relational_branch_head(&branch)
+        .expect("fixture head");
+    assert!(matches!(
+        world
+            .application
+            .compare_and_commit_application(first, idempotency(30, 30)),
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
+
+    let WorthQueryApplicationCommitOutcome::Denied(denial) = world
+        .application
+        .compare_and_commit_application_with_aftermath(
+            retry,
+            idempotency(30, 30),
+            WorthQueryPendingAftermathCausality::undo_of(parent),
+        )
+    else {
+        panic!("a plain idempotency row cannot impersonate a causal commit");
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift
+    );
+}
+
+#[test]
 fn forged_invariant_verdict_cannot_commit_without_relational_owner_candidate() {
     let world = installed_authorization_world(true);
     let request = live_scope();
@@ -124,7 +206,7 @@ fn forged_invariant_verdict_cannot_commit_without_relational_owner_candidate() {
         "must-not-bypass-relational",
     );
 
-    world.application.skip_next_invariant_owner_execution();
+    world.faults.skip_next_invariant_owner_execution();
     let outcome = world
         .application
         .compare_and_commit_application(rejected, idempotency(22, 22));
@@ -148,7 +230,7 @@ fn relational_invariant_violation_denies_before_provider_commit() {
         "must-not-pass-relational-invariant",
     );
 
-    world.application.violate_next_relational_invariant();
+    world.faults.violate_next_relational_invariant();
     let WorthQueryApplicationCommitOutcome::Denied(denial) = world
         .application
         .compare_and_commit_application(rejected, idempotency(23, 23))

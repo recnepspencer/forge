@@ -1,6 +1,6 @@
 use worth_query_decl::facade::{
     application_query::ApplicationQueryResultFieldRef,
-    application_schema::{EqualityPredicate, NoApplicationCurrency, ReadOnly, ReadWrite},
+    application_schema::{EqualityPredicate, NoApplicationUnit, ReadOnly, ReadWrite},
 };
 
 use crate::{
@@ -41,7 +41,7 @@ macro_rules! selector {
             $value,
             $write,
             EqualityPredicate,
-            NoApplicationCurrency,
+            NoApplicationUnit,
         > {
             ApplicationQueryResultFieldRef::new($alias, <$field>::reference())
         }

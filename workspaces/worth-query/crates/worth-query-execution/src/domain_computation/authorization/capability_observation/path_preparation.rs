@@ -9,25 +9,25 @@ use super::super::capability_registry::{
     WorthQueryCapabilityContextAnchor, WorthQueryCapabilityPathTemplate,
     WorthQueryInstalledCapabilityPlan,
 };
-use super::super::capability_request_resolution::WorthQueryCapabilityContextKey;
+use super::super::operation_progression::WorthQueryCapabilityContextKey;
 use super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::super::{
-    WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryRuntimeTimeSample,
 };
 
 pub(super) fn prepare_exact_policy_paths(
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: worth_relational::facade::identity::EntityId,
 ) -> Result<
     Vec<worth_relational::facade::authorization::RelationalAuthorizationPathPlan>,
     WorthQueryOperationAuthorizationDenial,
 > {
-    let grant_path_index = installed.grant_witness.path_index();
+    let grant_path_index = installed.grant_witness().path_index();
     installed
-        .paths
+        .paths()
         .iter()
         .enumerate()
         .map(|(index, template)| {
@@ -56,10 +56,10 @@ fn bind_exact_elevation_resource(
     let (Some(ordinal), Some(relation_kind), Some(elevation)) = (
         template.elevation_resource_ordinal,
         installed
-            .elevation
+            .elevation()
             .as_ref()
             .and_then(|bindings| bindings.lifecycle.resource_relation),
-        installed.elevation.as_ref(),
+        installed.elevation().as_ref(),
     ) else {
         return plan;
     };
@@ -69,10 +69,10 @@ fn bind_exact_elevation_resource(
         RelationalAuthorizationTraversal::new(
             relation_kind,
             elevation.elevation_kind,
-            installed.scope_kind,
+            installed.scope_kind(),
             RelationalAuthorizationTraversalDirection::Forward,
         ),
-        [request.resource],
+        [request.resource()],
     ));
     plan.with_exact_adjacencies(exact_adjacencies)
 }
@@ -80,19 +80,19 @@ fn bind_exact_elevation_resource(
 pub(super) fn prepare_upper_bound_policy_paths(
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: worth_relational::facade::identity::EntityId,
 ) -> Result<
     Vec<worth_relational::facade::authorization::RelationalAuthorizationPathPlan>,
     WorthQueryOperationAuthorizationDenial,
 > {
     let upper_bound = installed
-        .upper_bound
+        .upper_bound()
         .as_ref()
-        .ok_or_else(|| invalid_policy(installed.contract.name()))?;
-    let grant_path_index = installed.grant_witness.path_index();
+        .ok_or_else(|| invalid_policy(installed.contract().name()))?;
+    let grant_path_index = installed.grant_witness().path_index();
     installed
-        .paths
+        .paths()
         .iter()
         .take(upper_bound.path_count)
         .enumerate()
@@ -118,7 +118,7 @@ fn exact_anchors(
         .iter()
         .map(|anchor| {
             request
-                .context
+                .context()
                 .get(&context_key(anchor))
                 .copied()
                 .map(|entity| {
@@ -130,18 +130,18 @@ fn exact_anchors(
     if let Some(ordinal) = template.grant_ordinal {
         anchors.push(RelationalAuthorizationEntityAnchor::new(
             ordinal,
-            installed.grant_kind,
+            installed.grant_kind(),
             exact_grant,
         ));
     }
     if !template.elevation_ordinals.is_empty() {
         let elevation = request
-            .elevation
-            .ok_or_else(|| projection_denial(installed.contract.name()))?;
+            .elevation()
+            .ok_or_else(|| projection_denial(installed.contract().name()))?;
         let bindings = installed
-            .elevation
+            .elevation()
             .as_ref()
-            .ok_or_else(|| invalid_policy(installed.contract.name()))?;
+            .ok_or_else(|| invalid_policy(installed.contract().name()))?;
         anchors.extend(template.elevation_ordinals.iter().map(|ordinal| {
             RelationalAuthorizationEntityAnchor::new(*ordinal, bindings.elevation_kind, elevation)
         }));
@@ -150,7 +150,7 @@ fn exact_anchors(
 }
 
 fn is_temporal_path(installed: &WorthQueryInstalledCapabilityPlan, index: usize) -> bool {
-    installed.elevation.as_ref().is_some_and(|bindings| {
+    installed.elevation().as_ref().is_some_and(|bindings| {
         index == bindings.temporal.not_before_path_index
             || index == bindings.temporal.not_after_path_index
     })
@@ -159,13 +159,7 @@ fn is_temporal_path(installed: &WorthQueryInstalledCapabilityPlan, index: usize)
 pub(super) fn context_key(
     anchor: &WorthQueryCapabilityContextAnchor,
 ) -> WorthQueryCapabilityContextKey {
-    WorthQueryCapabilityContextKey {
-        context: anchor.context.clone(),
-        context_type: anchor.context_type.clone(),
-        slot: anchor.slot.clone(),
-        slot_type: anchor.slot_type.clone(),
-        entity: anchor.entity.clone(),
-    }
+    WorthQueryCapabilityContextKey::from_anchor(anchor)
 }
 
 fn projection_denial(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {

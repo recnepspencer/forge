@@ -239,7 +239,6 @@ impl LocalityFootprint {
 pub struct TouchedScopeSummary {
     pub seed_scopes: PartitionScopeSet,
     pub inclusion_scopes: PartitionScopeSet,
-    pub transitive_reached_scopes: PartitionScopeSet,
     pub direct_dirty_scopes: PartitionScopeSet,
     pub maybe_stale_scopes: PartitionScopeSet,
     pub touched_nodes: DedupedNodeBatch,
@@ -256,7 +255,6 @@ impl TouchedScopeSummary {
         Self {
             seed_scopes: scopes.clone(),
             inclusion_scopes: scopes.clone(),
-            transitive_reached_scopes: PartitionScopeSet::default(),
             direct_dirty_scopes: scopes,
             maybe_stale_scopes: PartitionScopeSet::default(),
             touched_nodes: touched_nodes.into(),
@@ -267,7 +265,6 @@ impl TouchedScopeSummary {
     pub fn new_invalidation(
         seed_scopes: impl Into<PartitionScopeSet>,
         inclusion_scopes: impl Into<PartitionScopeSet>,
-        transitive_reached_scopes: impl Into<PartitionScopeSet>,
         direct_dirty_scopes: impl Into<PartitionScopeSet>,
         maybe_stale_scopes: impl Into<PartitionScopeSet>,
         touched_nodes: impl Into<DedupedNodeBatch>,
@@ -276,7 +273,6 @@ impl TouchedScopeSummary {
         Self {
             seed_scopes: seed_scopes.into(),
             inclusion_scopes: inclusion_scopes.into(),
-            transitive_reached_scopes: transitive_reached_scopes.into(),
             direct_dirty_scopes: direct_dirty_scopes.into(),
             maybe_stale_scopes: maybe_stale_scopes.into(),
             touched_nodes: touched_nodes.into(),
@@ -287,7 +283,6 @@ impl TouchedScopeSummary {
     pub fn is_empty(&self) -> bool {
         self.seed_scopes.is_empty()
             && self.inclusion_scopes.is_empty()
-            && self.transitive_reached_scopes.is_empty()
             && self.direct_dirty_scopes.is_empty()
             && self.maybe_stale_scopes.is_empty()
             && self.touched_nodes.is_empty()

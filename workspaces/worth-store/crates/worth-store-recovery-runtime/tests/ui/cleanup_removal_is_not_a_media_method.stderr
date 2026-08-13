@@ -1,0 +1,17 @@
+error[E0432]: unresolved import `worth_store::physical_runtime::execute_recovery_cleanup_removal`
+ --> tests/ui/cleanup_removal_is_not_a_media_method.rs:2:5
+  |
+2 |     execute_recovery_cleanup_removal, AdmittedRecoveryFilesystemMedia,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `execute_recovery_cleanup_removal` in `physical_runtime`
+
+error[E0599]: no method named `remove_revalidated_recovery_artifact_scheduled` found for reference `&AdmittedRecoveryFilesystemMedia` in the current scope
+  --> tests/ui/cleanup_removal_is_not_a_media_method.rs:13:19
+   |
+13 |     let _ = media.remove_revalidated_recovery_artifact_scheduled(
+   |             ------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `read_recovery_artifact_scheduled` with a similar name
+   |
+13 -     let _ = media.remove_revalidated_recovery_artifact_scheduled(
+13 +     let _ = media.read_recovery_artifact_scheduled(
+   |

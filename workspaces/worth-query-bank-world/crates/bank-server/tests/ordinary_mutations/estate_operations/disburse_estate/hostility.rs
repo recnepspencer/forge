@@ -1,31 +1,8 @@
+use super::{assert_no_disbursement_effects, disburse, fixture::*, idempotency};
 use bank_domain::{proposals::BankProposalDenial, schema::AccountStatus};
 use bank_server::{
     BankEstateDisbursementProjectionDenial, BankEstateProgressionDenial, BankMutationCommitOutcome,
 };
-use worth_foundational::facade::{
-    AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalBoundaryArtifactCategory,
-    FoundationalBoundaryEvidenceCloseoutDisposition, FoundationalBoundaryEvidenceExecutionPosture,
-    FoundationalBoundaryEvidenceFreshnessPosture, FoundationalBoundaryEvidenceLocality,
-    FoundationalBoundaryEvidenceReceiptKind, FoundationalDiagnosticDenialClass,
-    FoundationalDiagnosticLocalityClaim, FoundationalDiagnosticOutcomeKind,
-    FoundationalDiagnosticRow, FoundationalDiagnosticWidenedFalloutPosture,
-    FoundationalProfileAttachmentTargetKind, FoundationalProfileSet, FoundationalProfileSetInput,
-    RetentionDeliveryProfile, SupportPostureProfile,
-};
-use worth_query_host::facade::{
-    primary_graph::{
-        WorthQueryApplicationAuthorizationExplanationCause, WorthQueryOperationAuthorizationDenial,
-        WorthQueryOperationAuthorizationDenialKind,
-    },
-    publication::domain_computation::{
-        publish_application_authorization_denial,
-        WorthQueryApplicationAuthorizationPublicationProfile,
-        WorthQueryPublishedApplicationAuthorizationDenial,
-    },
-};
-
-use super::{assert_no_disbursement_effects, disburse, fixture::*, idempotency};
 
 #[test]
 fn exact_beneficiary_and_destination_joint_ownership_are_required() {
@@ -191,158 +168,19 @@ fn beneficiary_and_executor_actors_deny_at_capability_composition() {
         let BankEstateProgressionDenial::Authorization(denial) = denial else {
             panic!("actor conflict must deny at Query authorization")
         };
-        let (kind, cause, code) = match actor_conflict {
-            ActorConflict::Beneficiary => (
-                WorthQueryOperationAuthorizationDenialKind::ConflictRuleMatched,
-                WorthQueryApplicationAuthorizationExplanationCause::Conflict,
-                "worth.query.authorization.conflict",
-            ),
-            ActorConflict::Executor => (
-                WorthQueryOperationAuthorizationDenialKind::SeparationOfDutyRuleMatched,
-                WorthQueryApplicationAuthorizationExplanationCause::SeparationOfDuty,
-                "worth.query.authorization.separation-of-duty",
-            ),
+        let kind = match actor_conflict {
+            ActorConflict::Beneficiary => {
+                bank_server::BankAuthorizationDenialKind::ConflictRuleMatched
+            }
+            ActorConflict::Executor => {
+                bank_server::BankAuthorizationDenialKind::SeparationOfDutyRuleMatched
+            }
             ActorConflict::None => unreachable!(),
         };
         assert_eq!(denial.kind(), kind);
-        assert_authorization_publication(&denial, ExpectedAuthorizationPublication { cause, code });
+        assert_eq!(denial.contributing_cause_count(), 1);
         assert_no_disbursement_effects(&fixture);
     }
-}
-
-struct ExpectedAuthorizationPublication {
-    cause: WorthQueryApplicationAuthorizationExplanationCause,
-    code: &'static str,
-}
-
-fn assert_authorization_publication(
-    denial: &WorthQueryOperationAuthorizationDenial,
-    expected: ExpectedAuthorizationPublication,
-) {
-    let profile = publication_profile();
-    let published = publish_application_authorization_denial(
-        denial,
-        WorthQueryApplicationAuthorizationPublicationProfile::exact(profile),
-    )
-    .unwrap();
-
-    assert_eq!(published.artifact().denial(), denial);
-    assert_eq!(published.artifact().cause(), expected.cause);
-    assert_boundary_profile(&published, profile);
-    assert_violation_diagnostic(&published, expected.code);
-    assert_denied_and_publication_receipts(&published);
-    assert_exact_provenance(&published, denial);
-}
-
-fn assert_boundary_profile(
-    published: &WorthQueryPublishedApplicationAuthorizationDenial,
-    expected_profile: FoundationalProfileSet,
-) {
-    assert_eq!(
-        published.boundary_category(),
-        FoundationalBoundaryArtifactCategory::Artifact
-    );
-    assert_eq!(
-        published.boundary().payload().target_kind(),
-        FoundationalProfileAttachmentTargetKind::BoundaryArtifact
-    );
-    let progression = published.boundary().payload().profile();
-    assert_eq!(progression.requested(), &expected_profile);
-    assert_eq!(progression.admitted(), &expected_profile);
-    assert_eq!(progression.materialized(), &expected_profile);
-}
-
-fn assert_violation_diagnostic(
-    published: &WorthQueryPublishedApplicationAuthorizationDenial,
-    expected_code: &str,
-) {
-    assert_eq!(
-        published.explanation().outcome_kind(),
-        FoundationalDiagnosticOutcomeKind::Violation
-    );
-    assert_eq!(
-        published.explanation().rows()[0].code().as_str(),
-        expected_code
-    );
-    let FoundationalDiagnosticRow::Decision(row) = &published.explanation().rows()[0] else {
-        panic!("conflict publication must contain one decision row");
-    };
-    assert_eq!(
-        row.denial_class(),
-        Some(FoundationalDiagnosticDenialClass::PolicyDenied)
-    );
-    assert_eq!(
-        row.locality_claim(),
-        FoundationalDiagnosticLocalityClaim::ExactSubject
-    );
-    assert_eq!(
-        row.widened_fallout_posture(),
-        FoundationalDiagnosticWidenedFalloutPosture::NotWidened
-    );
-}
-
-fn assert_denied_and_publication_receipts(
-    published: &WorthQueryPublishedApplicationAuthorizationDenial,
-) {
-    let closeout = published.denied_closeout_receipt();
-    assert_eq!(
-        closeout.closeout_disposition(),
-        Some(FoundationalBoundaryEvidenceCloseoutDisposition::Denied)
-    );
-    assert_eq!(
-        closeout.execution_posture(),
-        FoundationalBoundaryEvidenceExecutionPosture::NotExecuted
-    );
-    assert_eq!(
-        closeout.receipt_kind(),
-        FoundationalBoundaryEvidenceReceiptKind::Closeout
-    );
-    assert!(!closeout.did_execute());
-    let publication = published.publication_receipt();
-    assert_eq!(
-        publication.execution_posture(),
-        FoundationalBoundaryEvidenceExecutionPosture::Executed
-    );
-    assert_eq!(
-        publication.receipt_kind(),
-        FoundationalBoundaryEvidenceReceiptKind::Publication
-    );
-    assert!(publication.did_execute());
-}
-
-fn assert_exact_provenance(
-    published: &WorthQueryPublishedApplicationAuthorizationDenial,
-    denial: &WorthQueryOperationAuthorizationDenial,
-) {
-    assert_eq!(
-        published.provenance().locality(),
-        FoundationalBoundaryEvidenceLocality::Current
-    );
-    assert_eq!(
-        published.provenance().freshness_posture(),
-        FoundationalBoundaryEvidenceFreshnessPosture::FreshRetained
-    );
-    let locator = published
-        .provenance()
-        .source_basis()
-        .boundary_artifact_locator()
-        .unwrap();
-    assert_eq!(
-        locator.artifact_id().get(),
-        denial.identity().unwrap().get()
-    );
-}
-
-fn publication_profile() -> FoundationalProfileSet {
-    FoundationalProfileSet::new(FoundationalProfileSetInput {
-        diagnostic_richness: DiagnosticRichnessProfile::Standard,
-        support_posture: SupportPostureProfile::SupportReady,
-        compatibility_posture: CompatibilityPostureProfile::CompatibilityLowered,
-        admission_readiness: AdmissionReadinessProfile::Admitted,
-        retention_delivery: RetentionDeliveryProfile::Retained,
-        certification_posture: CertificationPostureProfile::EvidenceBacked,
-    })
-    .unwrap()
 }
 
 #[test]

@@ -1,0 +1,43 @@
+warning: unused import: `WorthQueryWorkflowConvergenceYieldRecoveryCleanupPending`
+ --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_is_sealed.rs:5:5
+  |
+5 |     WorthQueryWorkflowConvergenceYieldRecoveryCleanupPending,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `finish` found for struct `WorthQueryDirectConvergenceYieldRunningRecovery` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_is_sealed.rs:19:28
+   |
+19 |     let _ = direct_running.finish();
+   |                            ^^^^^^ method not found in `WorthQueryDirectConvergenceYieldRunningRecovery`
+
+error[E0599]: no method named `resume` found for struct `WorthQueryDirectConvergenceYieldTerminalCleanupRequired` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_is_sealed.rs:20:28
+   |
+20 |     let _ = direct_cleanup.resume();
+   |                            ^^^^^^ method not found in `WorthQueryDirectConvergenceYieldTerminalCleanupRequired`
+
+error[E0599]: no method named `retry` found for struct `WorthQueryDirectConvergenceYieldRecoveryCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_is_sealed.rs:21:28
+   |
+21 |     let _ = direct_receipt.retry();
+   |                            ^^^^^ method not found in `WorthQueryDirectConvergenceYieldRecoveryCleanupReceipt`
+
+error[E0599]: no method named `finish` found for struct `WorthQueryWorkflowConvergenceYieldRunningRecovery` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_is_sealed.rs:22:30
+   |
+22 |     let _ = workflow_running.finish();
+   |                              ^^^^^^ method not found in `WorthQueryWorkflowConvergenceYieldRunningRecovery`
+
+error[E0599]: no method named `resume` found for struct `WorthQueryWorkflowConvergenceYieldTerminalCleanupRequired` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_is_sealed.rs:23:30
+   |
+23 |     let _ = workflow_cleanup.resume();
+   |                              ^^^^^^ method not found in `WorthQueryWorkflowConvergenceYieldTerminalCleanupRequired`
+
+error[E0599]: no method named `retry` found for struct `WorthQueryWorkflowConvergenceYieldRecoveryCleanupReceipt` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/yield_recovery_authority_is_sealed.rs:24:30
+   |
+24 |     let _ = workflow_receipt.retry();
+   |                              ^^^^^ method not found in `WorthQueryWorkflowConvergenceYieldRecoveryCleanupReceipt`

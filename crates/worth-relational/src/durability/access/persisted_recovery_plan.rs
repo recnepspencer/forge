@@ -11,8 +11,8 @@ use crate::durability::data::{
 };
 use crate::durability::log::local_store::{load_store_from_disk, read_segment_entries};
 use crate::durability::log::native_file_codec::read_checkpoint_file;
-use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::ReplayVerificationLayer;
+use crate::runtime::RelationalRuntime;
 
 pub(super) fn persisted_recovery_plan(
     runtime: &RelationalRuntime,
@@ -88,7 +88,7 @@ struct SelectedPersistedCheckpoint {
 
 #[derive(Debug)]
 struct VerifiedTailLog {
-    tail_log: Vec<crate::replay::data::CanonicalCommitEnvelope>,
+    tail_log: Vec<crate::history::data::CanonicalCommitEnvelope>,
     verified_segment_ids: Vec<crate::durability::data::DurableSegmentId>,
     corrupt_segment_id: Option<crate::durability::data::DurableSegmentId>,
 }
@@ -185,7 +185,7 @@ fn persisted_authority_continuity(
     runtime: &RelationalRuntime,
     selected_checkpoint: Option<&crate::durability::data::DurableCheckpoint>,
     selected_checkpoint_manifest: Option<&crate::durability::data::DurableCheckpointManifest>,
-    tail_log: &[crate::replay::data::CanonicalCommitEnvelope],
+    tail_log: &[crate::history::data::CanonicalCommitEnvelope],
 ) -> RecoveryAuthorityContinuityCheck {
     let mut recovery_authority_continuity = authority_continuity_for_envelopes(
         runtime,

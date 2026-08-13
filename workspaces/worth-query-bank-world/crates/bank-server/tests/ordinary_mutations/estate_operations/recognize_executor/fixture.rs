@@ -24,9 +24,7 @@ pub(super) struct RecognitionFixture {
     pub(super) world: TestIdentityWorld,
     identities: [DynamicIdentity; 5],
     pub(super) estate: EstateCaseId,
-    pub(super) foreign_estate: EstateCaseId,
     pub(super) executor: BankPrincipalId,
-    pub(super) other_holder: BankPrincipalId,
     pub(super) authority: LegalAuthorityId,
 }
 
@@ -144,9 +142,7 @@ fn recognition_world(scenario: &str, posture: RecognitionPosture) -> Recognition
         world: runtime(seed),
         identities,
         estate: ESTATE,
-        foreign_estate: FOREIGN_ESTATE,
         executor: EXECUTOR,
-        other_holder: OTHER_HOLDER,
         authority: AUTHORITY,
     }
 }

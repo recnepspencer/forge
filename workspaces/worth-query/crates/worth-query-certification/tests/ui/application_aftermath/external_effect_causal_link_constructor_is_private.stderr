@@ -1,0 +1,10 @@
+error[E0624]: associated function `to` is private
+ --> tests/ui/application_aftermath/external_effect_causal_link_constructor_is_private.rs:6:39
+  |
+6 |     let _ = ExternalEffectCausalLink::to(posture.identity());
+  |                                       ^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/application_aftermath/external_effect/identity.rs
+  |
+  |     pub(super) const fn to(predecessor: &ExternalEffectPostureIdentity) -> Self {
+  |     --------------------------------------------------------------------------- private associated function defined here

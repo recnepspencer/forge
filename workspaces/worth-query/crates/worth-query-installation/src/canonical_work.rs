@@ -101,7 +101,7 @@ impl WorthQueryCanonicalWorkEvidence {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthQueryCanonicalWorkPhases {
     installation: WorthQueryCanonicalWorkEvidence,
     admission: WorthQueryCanonicalWorkEvidence,
@@ -112,12 +112,20 @@ pub struct WorthQueryCanonicalWorkPhases {
     retry_resolution: WorthQueryCanonicalWorkEvidence,
     recovery_inspection: WorthQueryCanonicalWorkEvidence,
     publication: WorthQueryCanonicalWorkEvidence,
+    external_dispatch: WorthQueryCanonicalWorkEvidence,
+    undo_admission: WorthQueryCanonicalWorkEvidence,
+    redo_admission: WorthQueryCanonicalWorkEvidence,
 }
 
 impl WorthQueryCanonicalWorkPhases {
+    /// Construct phase evidence. The three Phase-8 slots must be supplied at
+    /// every construction site (arch law 9 / R8.13); they are never invented.
     pub const fn new(
         installation: WorthQueryCanonicalWorkEvidence,
         admission: WorthQueryCanonicalWorkEvidence,
+        external_dispatch: WorthQueryCanonicalWorkEvidence,
+        undo_admission: WorthQueryCanonicalWorkEvidence,
+        redo_admission: WorthQueryCanonicalWorkEvidence,
     ) -> Self {
         Self {
             installation,
@@ -129,6 +137,9 @@ impl WorthQueryCanonicalWorkPhases {
             retry_resolution: WorthQueryCanonicalWorkEvidence::zero(),
             recovery_inspection: WorthQueryCanonicalWorkEvidence::zero(),
             publication: WorthQueryCanonicalWorkEvidence::zero(),
+            external_dispatch,
+            undo_admission,
+            redo_admission,
         }
     }
 
@@ -155,6 +166,26 @@ impl WorthQueryCanonicalWorkPhases {
             retry_resolution: self.retry_resolution,
             recovery_inspection: self.recovery_inspection,
             publication: self.publication,
+            external_dispatch: self.external_dispatch,
+            undo_admission: self.undo_admission,
+            redo_admission: self.redo_admission,
+        }
+    }
+
+    pub const fn with_external_dispatch_work(self, work: WorthQueryCanonicalWorkEvidence) -> Self {
+        Self {
+            installation: self.installation,
+            admission: self.admission,
+            execution: self.execution,
+            provider_commit: self.provider_commit,
+            projection: self.projection,
+            live_delivery: self.live_delivery,
+            retry_resolution: self.retry_resolution,
+            recovery_inspection: self.recovery_inspection,
+            publication: self.publication,
+            external_dispatch: self.external_dispatch.combine(work),
+            undo_admission: self.undo_admission,
+            redo_admission: self.redo_admission,
         }
     }
 
@@ -180,5 +211,45 @@ impl WorthQueryCanonicalWorkPhases {
 
     pub const fn publication(self) -> WorthQueryCanonicalWorkEvidence {
         self.publication
+    }
+
+    pub const fn external_dispatch(self) -> WorthQueryCanonicalWorkEvidence {
+        self.external_dispatch
+    }
+
+    pub const fn undo_admission(self) -> WorthQueryCanonicalWorkEvidence {
+        self.undo_admission
+    }
+
+    pub const fn redo_admission(self) -> WorthQueryCanonicalWorkEvidence {
+        self.redo_admission
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn phase_eight_slots_are_supplied_at_construction() {
+        let phases = WorthQueryCanonicalWorkPhases::new(
+            WorthQueryCanonicalWorkEvidence::zero(),
+            WorthQueryCanonicalWorkEvidence::zero(),
+            WorthQueryCanonicalWorkEvidence::zero(),
+            WorthQueryCanonicalWorkEvidence::zero(),
+            WorthQueryCanonicalWorkEvidence::zero(),
+        );
+        assert_eq!(
+            phases.external_dispatch(),
+            WorthQueryCanonicalWorkEvidence::zero()
+        );
+        assert_eq!(
+            phases.undo_admission(),
+            WorthQueryCanonicalWorkEvidence::zero()
+        );
+        assert_eq!(
+            phases.redo_admission(),
+            WorthQueryCanonicalWorkEvidence::zero()
+        );
     }
 }

@@ -4,6 +4,42 @@ use super::WorthQueryDomainOperationSemanticClosure;
 
 type DomainOperationMarker<D, O, F> = fn() -> (D, O, F);
 
+pub struct WorthQueryDomainOperationRef<D, O, F> {
+    identity: WorthQueryDomainOperationIdentity,
+    canonical_identity: String,
+    marker: PhantomData<DomainOperationMarker<D, O, F>>,
+}
+
+impl<D, O, F> WorthQueryDomainOperationRef<D, O, F> {
+    pub fn identity(&self) -> &WorthQueryDomainOperationIdentity {
+        &self.identity
+    }
+
+    pub fn canonical_identity(&self) -> &str {
+        &self.canonical_identity
+    }
+}
+
+impl<D, O, F> Clone for WorthQueryDomainOperationRef<D, O, F> {
+    fn clone(&self) -> Self {
+        Self {
+            identity: self.identity.clone(),
+            canonical_identity: self.canonical_identity.clone(),
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<D, O, F> std::fmt::Debug for WorthQueryDomainOperationRef<D, O, F> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("WorthQueryDomainOperationRef")
+            .field("identity", &self.identity)
+            .field("canonical_identity", &self.canonical_identity)
+            .finish_non_exhaustive()
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct WorthQueryDomainOperationIdentity {
     name: String,
@@ -82,6 +118,14 @@ impl<D, O, F> WorthQueryDomainOperationDefinition<D, O, F> {
 
     pub fn semantics(&self) -> &WorthQueryDomainOperationSemanticClosure {
         self.portable.semantics()
+    }
+
+    pub fn reference(&self) -> WorthQueryDomainOperationRef<D, O, F> {
+        WorthQueryDomainOperationRef {
+            identity: self.portable.identity.clone(),
+            canonical_identity: self.portable.canonical_identity.clone(),
+            marker: PhantomData,
+        }
     }
 
     pub fn into_portable(self) -> WorthQueryPortableDomainOperationDefinition {

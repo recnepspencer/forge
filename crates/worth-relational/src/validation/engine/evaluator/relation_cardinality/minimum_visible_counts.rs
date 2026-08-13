@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::schema::data::LoweredCardinalityMinimumContract;
-use crate::storage::logic::state::{HistoricalMetadata, RelationArena, VersionedRelationMetadata};
+use crate::storage::substrate::{HistoricalMetadata, RelationArena, VersionedRelationMetadata};
 use crate::transactions::data::{CreatedEntityRef, EntityReference};
 
 use super::super::super::context::InvariantExecutionContext;
@@ -58,7 +58,7 @@ pub(super) fn visible_relation_counts(
 fn collect_current_version_relation_counts(
     context: &InvariantExecutionContext<'_>,
     contract: &LoweredCardinalityMinimumContract,
-    partition: &crate::storage::logic::state::PartitionState,
+    partition: &crate::storage::overlay::PartitionState,
     snapshot: &mut VisibleRelationCountSnapshot,
 ) {
     for slot in partition.relation_arena.live_bitset.iter_set_slots() {
@@ -84,7 +84,7 @@ fn collect_current_version_candidate_entities(
     context: &InvariantExecutionContext<'_>,
     contract: &LoweredCardinalityMinimumContract,
     partition_id: crate::identity::data::PartitionId,
-    partition: &crate::storage::logic::state::PartitionState,
+    partition: &crate::storage::overlay::PartitionState,
     snapshot: &mut VisibleRelationCountSnapshot,
 ) {
     for slot in partition.entity_arena.live_bitset.iter_set_slots() {
@@ -110,7 +110,7 @@ fn collect_current_version_candidate_entities(
 fn collect_historical_relation_counts(
     context: &InvariantExecutionContext<'_>,
     contract: &LoweredCardinalityMinimumContract,
-    partition: &crate::storage::logic::state::PartitionState,
+    partition: &crate::storage::overlay::PartitionState,
     snapshot: &mut VisibleRelationCountSnapshot,
 ) {
     let state_view = context.state_view();
@@ -137,7 +137,7 @@ fn collect_historical_candidate_entities(
     context: &InvariantExecutionContext<'_>,
     contract: &LoweredCardinalityMinimumContract,
     partition_id: crate::identity::data::PartitionId,
-    partition: &crate::storage::logic::state::PartitionState,
+    partition: &crate::storage::overlay::PartitionState,
     snapshot: &mut VisibleRelationCountSnapshot,
 ) {
     let state_view = context.state_view();

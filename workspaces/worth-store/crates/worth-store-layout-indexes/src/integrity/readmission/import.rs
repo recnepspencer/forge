@@ -33,7 +33,6 @@ impl ImportReadmission {
                         family,
                         LayoutReadmissionSource::TerminalImport,
                         witness.identity(),
-                        None,
                     ),
                     LayoutReadmissionCounterSnapshot::new(1, 0, 1),
                 )

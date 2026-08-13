@@ -9,7 +9,7 @@ use worth_query_installation::facade::{
     WorthQueryInstalledApplicationOperation,
 };
 
-use super::capability_operation_progression::{
+use super::operation_progression::{
     progress_capability_operation, WorthQueryCapabilityOperationProgression,
 };
 use super::{
@@ -19,11 +19,10 @@ use super::{
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
 mod binding;
-use binding::bind_activation;
-pub(in crate::domain_computation) use binding::WorthQueryDelegationActivationBinding;
-mod narrowing;
-use narrowing::observe_narrowing;
-mod support;
+pub(in crate::domain_computation) use binding::{
+    WorthQueryDelegationActivationBinding, WorthQueryDelegationActivationEffect,
+};
+pub(in crate::domain_computation::authorization) mod support;
 use support::authorize_target_support;
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
@@ -71,51 +70,38 @@ where
         Input: ApplicationCapabilityRequest<Schema, CommandCapability>
             + ApplicationCapabilityDelegationRequest<Schema, TargetCapability>,
     {
-        let proposed = access.input.delegation_request().map_err(|rejection| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::DelegationRejected,
-                rejection.subject(),
-            )
-        })?;
+        let proposed = access
+            .capability_input()
+            .delegation_request()
+            .map_err(|rejection| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::DelegationRejected,
+                    rejection.subject(),
+                )
+            })?;
         let installed = self
             .authorization
             .capability_plan(target)
             .ok_or_else(|| stale(target.contract().name()))?;
         validate_activation_operation(installed, operation)?;
-        let (resolved, supporting) =
-            authorize_target_support(self, target, installed, &access, &proposed)?;
-        let required_program_targets = target
-            .delegation_activation_program_targets()
-            .ok_or_else(|| delegation_denial(installed))?;
-        let proposal_budget = operation
-            .contracts()
-            .delegation_activation_proposal_canonical_work_budget()
-            .ok_or_else(|| delegation_denial(installed))?;
-        let prepared = bind_activation(
+        let observed = authorize_target_support(self, target, &access, &proposed)?;
+        let mut access = access;
+        let prepared = observed.prepare_activation(
             self,
             installed,
             &proposed,
-            resolved,
-            *target.identity().bytes(),
-            required_program_targets,
-            proposal_budget,
+            target,
+            operation,
+            &mut access,
         )?;
-        let mut admitted = progress_capability_operation(
+        let admitted = progress_capability_operation(
             self,
             access,
             operation,
             preconditions,
             WorthQueryCapabilityOperationProgression::DelegationActivation,
         )?;
-        admitted.retain_delegation_proposal_canonical_work(prepared.canonical_work);
-        admitted
-            .authorization_mut()
-            .and_then(|authorization| authorization.capability_authorization_mut())
-            .ok_or_else(|| inconsistent(operation.operation()))?
-            .retain_supporting(supporting)
-            .map_err(|()| inconsistent(operation.operation()))?;
-        admitted.graph_work_mut().record_decision_facts(1);
-        admitted.bind_delegation_activation(prepared.binding)
+        prepared.finish(admitted)
     }
 }
 
@@ -124,7 +110,7 @@ fn validate_activation_operation<Schema, Operation, Input>(
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
     let activation = installed
-        .delegation
+        .delegation()
         .activation
         .as_ref()
         .ok_or_else(|| delegation_denial(installed))?;
@@ -145,19 +131,12 @@ fn stale(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {
     )
 }
 
-fn inconsistent(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {
-    denial(
-        WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-        subject,
-    )
-}
-
 fn delegation_denial(
     installed: &super::capability_registry::WorthQueryInstalledCapabilityPlan,
 ) -> WorthQueryOperationAuthorizationDenial {
     denial(
         WorthQueryOperationAuthorizationDenialKind::DelegationRejected,
-        installed.contract.name(),
+        installed.contract().name(),
     )
 }
 

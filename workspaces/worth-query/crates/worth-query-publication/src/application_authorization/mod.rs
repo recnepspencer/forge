@@ -15,6 +15,7 @@ pub use boundary_evidence::{
 pub use denial_publication::{
     publish_application_authorization_denial, WorthQueryApplicationAuthorizationDenialArtifact,
     WorthQueryPublishedApplicationAuthorizationDenial,
+    WorthQueryPublishedApplicationAuthorizationDenialCause,
 };
 pub use explanation::WorthQueryPublishedApplicationAuthorizationKind;
 pub use field_omission_publication::{

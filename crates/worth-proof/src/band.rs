@@ -94,9 +94,11 @@ mod tests {
 
     #[test]
     fn package_prefix_recognition_is_const_and_exact() {
-        assert!(PLATFORM_ENTRY_MATCHES);
-        assert!(PRODUCT_ENTRY_MATCHES);
-        assert!(!NEAR_PREFIX_DOES_NOT_MATCH);
+        // Const blocks, so a regression here is a compilation failure rather
+        // than a test that has to be run to find out.
+        const { assert!(PLATFORM_ENTRY_MATCHES) };
+        const { assert!(PRODUCT_ENTRY_MATCHES) };
+        const { assert!(!NEAR_PREFIX_DOES_NOT_MATCH) };
         assert!(__band_guard_package_matches_any_prefix(
             "worth-entry-",
             &["worth-entry-"]

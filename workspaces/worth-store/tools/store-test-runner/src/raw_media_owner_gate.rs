@@ -94,3 +94,92 @@ fn cargo_manifests(root: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
     manifests.sort();
     Ok(manifests)
 }
+
+#[test]
+fn recovery_cleanup_filesystem_mechanics_remain_in_the_c4_backend() {
+    let root = workspace_root();
+    let backend = std::fs::read_to_string(
+        root.join("crates/worth-store-physical-backend/src/recovery_media/cleanup.rs"),
+    )
+    .expect("read backend cleanup owner");
+    assert!(backend.contains("remove_file_durably_observed"));
+    assert!(backend.contains("execute_recovery_cleanup_removal"));
+    assert!(!backend.contains("BackendRecoveryCleanupEffectAuthority"));
+    assert!(!backend.contains("BackendRecoveryCleanupEffectIssuer"));
+    assert!(!backend.contains("VerifiedCheckpointStream"));
+    assert!(!backend.contains("VerifiedWalArtifact"));
+
+    let callsites = production_sources(&root)
+        .expect("read Store workspace sources")
+        .into_iter()
+        .filter(|source| {
+            std::fs::read_to_string(source)
+                .is_ok_and(|text| text.contains("execute_recovery_cleanup_removal("))
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(callsites.len(), 1, "cleanup C.4 entry escaped Store");
+    assert!(callsites[0].ends_with(
+        "worth-store/src/physical_runtime/recovery_coordination/cleanup/removal/execution.rs"
+    ));
+
+    let store_cleanup = root.join("crates/worth-store/src/physical_runtime");
+    let mut forbidden = Vec::new();
+    for source in rust_sources(&store_cleanup).expect("read Store physical runtime") {
+        let path = source.to_string_lossy().replace('\\', "/");
+        if !path.contains("/recovery_coordination/cleanup/")
+            && !path.contains("/media_ownership/recovery_cleanup/")
+        {
+            continue;
+        }
+        let text = std::fs::read_to_string(&source).expect("read Store cleanup source");
+        for token in [
+            "cap_std",
+            "open_ambient_dir",
+            "remove_file(",
+            "synchronize_directory(",
+        ] {
+            if text.contains(token) {
+                forbidden.push((source.clone(), token));
+            }
+        }
+    }
+    assert!(
+        forbidden.is_empty(),
+        "Store cleanup policy regained raw filesystem mechanics: {forbidden:?}"
+    );
+}
+
+#[test]
+fn cleanup_backend_is_explicitly_one_unpublished_trusted_c4_boundary() {
+    let root = workspace_root();
+    let manifest =
+        std::fs::read_to_string(root.join("crates/worth-store-physical-backend/Cargo.toml"))
+            .expect("read backend manifest");
+    assert!(manifest.contains("publish = false"));
+    assert!(manifest.contains("recovery-runtime-owner = []"));
+    assert!(manifest.contains("store-runtime-owner = []"));
+
+    let facade =
+        std::fs::read_to_string(root.join("crates/worth-store-physical-backend/src/facade.rs"))
+            .expect("read backend facade");
+    assert!(facade.contains(
+        "cfg(all(feature = \"recovery-runtime-owner\", feature = \"store-runtime-owner\"))"
+    ));
+
+    let topology = std::fs::read_to_string(
+        root.join("../../_docs/worth-store/physical-reconstruction-c8-destination-topology.csv"),
+    )
+    .expect("read destination topology");
+    let trusted = topology
+        .lines()
+        .filter(|line| line.contains("trusted-unpublished-c4-media-boundary"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        trusted.len(),
+        2,
+        "cleanup and revalidation form one trusted C4 family"
+    );
+    assert!(trusted.iter().all(|line| {
+        line.contains("crates/worth-store-physical-backend/src/recovery_media/cleanup")
+    }));
+}

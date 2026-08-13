@@ -1,8 +1,9 @@
-mod application_attempt;
+pub(in crate::domain_computation::primary_graph) mod application_attempt;
 mod application_outcome_identity;
 mod application_query;
 mod authorization;
-pub(in crate::domain_computation::primary_graph) mod fixture;
+pub(in crate::domain_computation::primary_graph) mod fault_controller;
+pub(in crate::domain_computation) mod fixture;
 mod hostile_resolution;
 mod invariant_projection;
 pub(in crate::domain_computation::primary_graph) mod live_delivery_support;

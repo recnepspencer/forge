@@ -6,46 +6,60 @@ runtimes that install and execute Query behavior.
 Use:
 
 ```rust
-use worth_query_host::facade::{domain, runtime};
+use worth_query_host::facade::{admission, domain, primary_graph, publication, runtime};
 ```
 
-The host facade exposes the same installed-domain and portable conditional
-authoring contracts as Query’s public domain facade. It does not expose Query
-implementation modules, certification-only replay, or lower-runtime internals.
+The host facade exposes the production Query authority graph without exposing
+Query implementation modules, certification-only replay, or raw lower-runtime
+internals.
 
 ## Installed Domain Use
 
 Host code may:
 
-- declare portable domain packages and typed operations
-- author semantic truth dependencies and conditional nodes
-- register runtime executors, graph providers, Runtime Bridge, Signal graph,
-  and exact conditional providers
-- obtain a workspace and installed domain handle
-- bind through the workspace-issued `workspace.observe_operating_world()` or
-  `workspace.prepare_mutation_operating_world()` root
-- execute the move-only operation or workflow progression
-- run ordinary installed workflow re-execution
-- admit and execute installed exact-inverse or compensation aftermath
+- install portable domain packages, application schemas, typed queries, and
+  typed operations;
+- register the exact providers and lower-runtime adapters required by installed
+  meaning;
+- obtain the installed application and domain handles;
+- resolve authenticated principals through installed principal bindings;
+- admit application queries and operations through current capability,
+  purpose, disclosure, conflict, and graph-obligation evidence;
+- execute managed provider sessions and consume typed terminal outcomes;
+- consume fresh, recovered, partial-effect, and indeterminate commit outcomes;
+- publish governed results and closed application-aftermath posture;
+- dispatch declared external effects only from co-committed outbox facts;
+- inspect, resolve, safely retry, dispose, or expire an exact receipt-bound
+  runtime recovery handle;
+- admit reconciliation or compensation against exact owner authority without
+  claiming that Query executes the corrective effect;
+- run ordinary installed workflow re-execution;
 - inspect trace-bound lineage and request sparse promotion from an exact
-  carrying publication
+  carrying publication.
 
 Host code must not:
 
-- create a second operating-world root
-- call operation executors directly
-- expose raw Signal node/aspect allocation as domain authoring
-- reconstruct Query authority from receipts or digests
-- import cert-only replay through the host facade
-- construct lineage outcomes or promoted graph identities from raw identities,
-  report rows, or digests
+- create a second operating-world or application-authority root;
+- call operation executors directly;
+- expose raw Relational, Bridge, or Signal handles to application code;
+- reconstruct Query authority from receipts, reports, projections, or digests;
+- import certification replay through the host facade;
+- construct lineage outcomes or promoted graph identities from raw identity
+  material.
+- treat acknowledgement, timeout, disconnect, or lost response as external
+  completion;
+- serialize a recovery handle or treat its opaque wire identity as live
+  authority;
+- teach `facade::provisional_aftermath` as accepted undo/redo support.
 
 ## Related Docs
 
-- [Worth Query Orientation](../worth-query/docs/AI_README.md)
+- [WORTH Query Orientation](../worth-query/docs/AI_README.md)
 - [Application Authorization And Emergency Elevation](../worth-query/docs/capabilities/application-authorization-and-emergency-elevation.md)
 - [Runtime-Installed Domains And Operations](../worth-query/docs/domain-capabilities/runtime-installed-domains.md)
+- [Canonical Graph Obligation Progression](../worth-query/docs/domain-capabilities/canonical-graph-obligation-progression.md)
 - [Conditional Installed Operations](../worth-query/docs/domain-capabilities/conditional-installed-operations.md)
 - [Installed Operation Re-Execution And Replay](../worth-query/docs/domain-capabilities/installed-operation-reexecution-and-replay.md)
-- [Installed Operation Aftermath](../worth-query/docs/domain-capabilities/installed-operation-aftermath.md)
+- [Typed Stops And Remediation Guidance](../worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md)
 - [Installed Operation Lineage And Promotion](../worth-query/docs/domain-capabilities/installed-operation-lineage-and-promotion.md)
+- [Application Aftermath, External Effects, And Recovery](../worth-query/docs/execution/application-aftermath-and-recovery.md)

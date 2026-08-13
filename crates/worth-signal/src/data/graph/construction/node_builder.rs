@@ -1,16 +1,16 @@
+mod conditions;
+
 use crate::data::aspect::{Aspect, AspectMask};
 use crate::data::comparator::VersionComparatorPolicy;
-use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::{
-    ArtifactPolicyClass, AuthorityPolicy, ContextRequirement, EquivalenceContract,
-    EvaluationCondition, MaintenanceMode, NodeContract, NodeEvaluationConfig,
-    NodeProjectionContract, PathClass,
+    ArtifactPolicyClass, AuthorityPolicy, ContextRequirement, EquivalenceContract, MaintenanceMode,
+    NodeContract, NodeEvaluationConfig, NodeProjectionContract, PathClass,
 };
 use crate::data::output::PartitionSubscription;
+use crate::data::output_equivalence::OutputEquivalencePolicy;
 use crate::data::reuse::{ArtifactEquivalenceContract, NodeReuseContract};
-use crate::data::temporal::{ClockTick, IntervalCondition, TemporalCondition};
 use crate::logic::transaction::{
     AspectMergePolicyBinding, AspectMergePolicyName, ConflictIsolationPolicyName,
     ConflictPolicyName, DeletionPolicyName, IdentityMatcherName, MergeStrategyName,
@@ -253,115 +253,21 @@ impl<'a> NodeBuilder<'a> {
         self
     }
 
-    /// Set the node evaluation condition directly.
-    ///
-    /// Prefer the helper methods like `on_demand()`, `debounce(...)`,
-    /// `after(...)`, and `custom_condition(...)` when one of them matches your
-    /// intent.
-    pub fn condition(mut self, condition: EvaluationCondition) -> Self {
-        self.config.condition = condition;
+    /// Override consumer-side dependency comparison for this node.
+    pub fn dependency_comparator(mut self, comparator: VersionComparatorPolicy) -> Self {
+        self.config.comparator = Some(comparator);
         self
     }
 
-    /// Always evaluate the node when dirty.
-    pub fn always(self) -> Self {
-        self.condition(EvaluationCondition::Always)
+    #[deprecated(note = "use dependency_comparator")]
+    pub fn comparator(self, comparator: VersionComparatorPolicy) -> Self {
+        self.dependency_comparator(comparator)
     }
 
-    /// Evaluate the node only on explicit request.
-    pub fn on_demand(self) -> Self {
-        self.condition(EvaluationCondition::OnDemand)
-    }
-
-    /// Evaluate the node only after the relative delay has elapsed.
-    ///
-    /// Returns an error when the declared delay is zero.
-    pub fn after(self, milliseconds: u64) -> Result<Self, SignalError> {
-        Ok(
-            self.condition(EvaluationCondition::Temporal(TemporalCondition::after(
-                milliseconds,
-            )?)),
-        )
-    }
-
-    /// Evaluate the node only at or after the explicit runtime tick.
-    pub fn at_or_after(self, tick_ms: u64) -> Self {
-        self.condition(EvaluationCondition::Temporal(
-            TemporalCondition::at_or_after(ClockTick::new(tick_ms)),
-        ))
-    }
-
-    /// Evaluate the node only after the quiet period has elapsed.
-    ///
-    /// Returns an error when the declared quiet period is zero.
-    pub fn debounce(self, milliseconds: u64) -> Result<Self, SignalError> {
-        Ok(
-            self.condition(EvaluationCondition::Temporal(TemporalCondition::debounce(
-                milliseconds,
-            )?)),
-        )
-    }
-
-    /// Evaluate the node at most once per throttle window.
-    ///
-    /// Returns an error when the declared window is zero.
-    pub fn throttle(self, milliseconds: u64) -> Result<Self, SignalError> {
-        Ok(
-            self.condition(EvaluationCondition::Temporal(TemporalCondition::throttle(
-                milliseconds,
-            )?)),
-        )
-    }
-
-    /// Treat the node as stale once the freshness window has elapsed.
-    ///
-    /// Returns an error when the declared freshness window is zero.
-    pub fn stale_after(self, milliseconds: u64) -> Result<Self, SignalError> {
-        Ok(self.condition(EvaluationCondition::Temporal(
-            TemporalCondition::stale_after(milliseconds)?,
-        )))
-    }
-
-    /// Evaluate the node on a recurring interval with default anchor and missed-tick policy.
-    ///
-    /// Returns an error when the declared period is zero.
-    pub fn interval(self, period_ms: u64) -> Result<Self, SignalError> {
-        Ok(
-            self.condition(EvaluationCondition::Temporal(TemporalCondition::interval(
-                IntervalCondition::try_new(period_ms)?,
-            ))),
-        )
-    }
-
-    /// Evaluate the node on a recurring interval with explicit scheduling semantics.
-    pub fn interval_with(self, interval: IntervalCondition) -> Self {
-        self.condition(EvaluationCondition::Temporal(TemporalCondition::interval(
-            interval,
-        )))
-    }
-
-    /// Evaluate the node only when the matching aspects are touched.
-    pub fn aspect_filter(self, mask: impl Into<AspectMask>) -> Self {
-        self.condition(EvaluationCondition::AspectFilter(mask.into()))
-    }
-
-    /// Evaluate the node only when the upstream delta crosses the threshold.
-    pub fn delta_threshold(self, threshold: f64) -> Self {
-        self.condition(EvaluationCondition::DeltaThreshold(threshold))
-    }
-
-    /// Defer the condition decision to a host-provided resolver.
-    ///
-    /// The key is a stable name chosen by the embedding runtime. `worth-signal`
-    /// stores it; the host decides what it means.
-    pub fn custom_condition(self, key: impl Into<String>) -> Self {
-        self.condition(EvaluationCondition::Custom(key.into()))
-    }
-
-    /// Override the comparator policy for this node.
-    pub fn comparator(mut self, comparator: VersionComparatorPolicy) -> Self {
-        self.config.comparator = Some(comparator.clone());
-        self.config.contract = self.config.contract.with_comparator_override(&comparator);
+    /// Configure producer-side semantic output equivalence for this node.
+    pub fn output_equivalence(mut self, policy: OutputEquivalencePolicy) -> Self {
+        self.config.contract = self.config.contract.with_output_equivalence(&policy);
+        self.config.output_equivalence = policy;
         self
     }
 
@@ -371,7 +277,7 @@ impl<'a> NodeBuilder<'a> {
     /// meaningful change for this node. This is different from
     /// `delta_threshold(...)`, which is an evaluation condition.
     pub fn tolerance(self, epsilon: u64) -> Self {
-        self.comparator(VersionComparatorPolicy::Tolerance { epsilon })
+        self.dependency_comparator(VersionComparatorPolicy::Tolerance { epsilon })
     }
 
     /// Use output-identity-aware downstream suppression for this node.
@@ -379,7 +285,7 @@ impl<'a> NodeBuilder<'a> {
     /// This is useful when the node can detect that the logical output did not
     /// change even though evaluation happened.
     pub fn output_identity(self) -> Self {
-        self.comparator(VersionComparatorPolicy::OutputIdentity)
+        self.output_equivalence(OutputEquivalencePolicy::OutputIdentity)
     }
 
     /// Declare that this node reports partition-aware output changes.

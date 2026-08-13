@@ -1,5 +1,5 @@
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::OrderedParentList;
-use crate::replay::data::CanonicalCommitEnvelope;
 use crate::transactions::data::{merge_commit_mutation_plan_token, MergeCommitMutationPlan};
 
 pub(super) fn merge_commit_mutation_plan_from_envelope(

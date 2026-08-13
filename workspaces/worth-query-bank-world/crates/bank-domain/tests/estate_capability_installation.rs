@@ -8,6 +8,8 @@ mod delegation_activation;
 mod disburse_estate;
 #[path = "estate_capability_installation/emergency_access_activity.rs"]
 mod emergency_access_activity;
+#[path = "estate_capability_installation/graph_authority_source.rs"]
+mod graph_authority_source;
 #[path = "estate_capability_installation/release_estate.rs"]
 mod release_estate;
 #[path = "estate_capability_installation/transition_dimensions.rs"]
@@ -61,6 +63,12 @@ fn every_estate_capability_installs_once_with_distinct_canonical_identity() {
         identities,
         NotifyDeathEstateCapability,
         NotifyDeathEstateOperation
+    );
+    assert_installed!(
+        bank,
+        identities,
+        RetransmitDeathNoticeEstateCapability,
+        RetransmitDeathNoticeEstateOperation
     );
     assert_installed!(
         bank,
@@ -159,7 +167,7 @@ fn every_estate_capability_installs_once_with_distinct_canonical_identity() {
         ViewRestrictedEstateOperation
     );
 
-    assert_eq!(identities.len(), 17);
+    assert_eq!(identities.len(), 18);
 
     let restricted_view_capability = bank
         .capability(

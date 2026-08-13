@@ -8,12 +8,8 @@ use bank_domain::{
     queries::EstateGovernanceQuery,
     reads::{EstateCapabilityContext, EstateGovernanceContext},
 };
-use worth_query_host::facade::admission::application_query::WorthQueryApplicationQueryLane;
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationOneShotResult,
-    WorthQueryApplicationQueryBasisPosture, WorthQueryApprovedElevation,
-    WorthQueryBoundedLaneDenialKind, WorthQueryOperationAuthorizationDenialKind,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 
 use super::{
     fixture::{
@@ -25,12 +21,12 @@ use super::{
     },
 };
 use crate::{
-    queries, BankApplicationQueryDenial, BankAuthenticatedPrincipal, BankMutationCommitOutcome,
-    BankReadControls,
+    queries, BankApplicationQueryDenial, BankApprovedEstateElevation, BankAuthenticatedPrincipal,
+    BankMutationCommitOutcome, BankReadControls,
 };
 
 type GovernanceResult =
-    WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>;
+    WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>;
 
 #[test]
 fn approved_emergency_historical_and_preview_preserve_one_shot_meaning() {
@@ -63,30 +59,9 @@ fn approved_emergency_historical_and_preview_preserve_one_shot_meaning() {
 
     assert_eq!(historical.rows(), one_shot.rows());
     assert_eq!(preview.rows(), one_shot.rows());
-    assert_eq!(
-        historical.receipt().query_identity(),
-        one_shot.receipt().query_identity()
-    );
-    assert_eq!(
-        preview.receipt().query_identity(),
-        one_shot.receipt().query_identity()
-    );
-    assert_eq!(
-        historical.receipt().basis_posture(),
-        WorthQueryApplicationQueryBasisPosture::Historical
-    );
-    assert_eq!(
-        historical.receipt().lane(),
-        WorthQueryApplicationQueryLane::Historical
-    );
-    assert_eq!(
-        preview.receipt().basis_posture(),
-        WorthQueryApplicationQueryBasisPosture::Preview
-    );
-    assert_eq!(
-        preview.receipt().lane(),
-        WorthQueryApplicationQueryLane::Preview
-    );
+    assert!(one_shot.receipt().inspect().terminal_resources_released());
+    assert!(historical.receipt().inspect().terminal_resources_released());
+    assert!(preview.receipt().inspect().terminal_resources_released());
     assert!(session.discard().unwrap().discarded());
     assert_resources_released(&fixture);
 }
@@ -190,7 +165,7 @@ fn approve(
     access: u64,
     review: u64,
     idempotency_seed: u8,
-) -> (BankAuthenticatedPrincipal, WorthQueryApprovedElevation) {
+) -> (BankAuthenticatedPrincipal, BankApprovedEstateElevation) {
     let requester = fixture.authenticate();
     let approver = fixture.authenticate_approver();
     let requested = request_elevation(
@@ -240,11 +215,11 @@ fn revoke_exact_support(
     assert!(matches!(outcome, BankMutationCommitOutcome::Committed(_)));
 }
 
-fn assert_stale_authorization(kind: WorthQueryBoundedLaneDenialKind) {
+fn assert_stale_authorization(kind: crate::BankBoundedLaneDenialKind) {
     assert_eq!(
         kind,
-        WorthQueryBoundedLaneDenialKind::Authorization(
-            WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
+        crate::BankBoundedLaneDenialKind::Authorization(
+            crate::BankAuthorizationDenialKind::StaleAuthorization,
         )
     );
 }

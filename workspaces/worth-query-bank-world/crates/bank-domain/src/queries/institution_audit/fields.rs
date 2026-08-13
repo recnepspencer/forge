@@ -1,7 +1,7 @@
 use worth_query_decl::facade::application_query::ApplicationQueryResultFieldRef;
 use worth_query_decl::facade::application_schema::{
-    DeclaredApplicationCurrency, EqualityPredicate, NoApplicationCurrency, NoEqualityPredicate,
-    ReadOnly, ReadWrite,
+    DeclaredApplicationUnit, EqualityPredicate, NoApplicationUnit, NoEqualityPredicate, ReadOnly,
+    ReadWrite,
 };
 
 use crate::model::{
@@ -36,7 +36,7 @@ pub(super) fn institution_identity() -> ApplicationQueryResultFieldRef<
     InstitutionId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("institution", InstitutionIdentityField::reference())
 }
@@ -51,7 +51,7 @@ pub(super) fn account_identity() -> ApplicationQueryResultFieldRef<
     AccountId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("account", AccountIdentity::reference())
 }
@@ -66,7 +66,7 @@ pub(super) fn posting_sequence() -> ApplicationQueryResultFieldRef<
     AccountJournalRevision,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("sequence", PostingAccountSequence::reference())
 }
@@ -81,7 +81,7 @@ pub(super) fn posting_identity() -> ApplicationQueryResultFieldRef<
     PostingId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("posting", PostingIdentityField::reference())
 }
@@ -96,7 +96,7 @@ pub(super) fn posting_amount() -> ApplicationQueryResultFieldRef<
     SignedMoney<USD>,
     ReadWrite,
     NoEqualityPredicate,
-    DeclaredApplicationCurrency<UsdCurrency, USD>,
+    DeclaredApplicationUnit<UsdCurrency, USD>,
 > {
     ApplicationQueryResultFieldRef::new("amount", PostingAmount::reference())
 }
@@ -111,7 +111,7 @@ pub(super) fn posting_purpose() -> ApplicationQueryResultFieldRef<
     PostingPurpose,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("purpose", Purpose::reference())
 }
@@ -128,7 +128,7 @@ pub(super) fn journal_identity<Slot: 'static>(
     JournalEntryId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new(name, JournalIdentityField::reference())
 }
@@ -143,7 +143,7 @@ pub(super) fn journal_purpose() -> ApplicationQueryResultFieldRef<
     PostingPurpose,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("purpose", JournalPurpose::reference())
 }

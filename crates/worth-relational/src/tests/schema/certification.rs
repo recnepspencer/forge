@@ -9,7 +9,7 @@ use crate::replay::data::{
     digest_schema_transition_decision, digest_schema_transition_descriptor,
     digest_subscriber_boundary_cdc_surface, digest_subscriber_continuation_summary,
 };
-use crate::schema::logic::{
+use crate::schema::{
     classify_schema_transition, lower_schema_transition, validate_schema_transition,
 };
 use crate::tests::support::*;

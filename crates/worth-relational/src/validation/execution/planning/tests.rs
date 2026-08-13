@@ -19,7 +19,7 @@ use crate::validation::engine::{
     InvariantRequestProfile, InvariantScopeWideningCause,
 };
 
-fn relation_runtime() -> crate::logic::runtime::RelationalRuntime {
+fn relation_runtime() -> crate::runtime::RelationalRuntime {
     let registry = RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
@@ -83,7 +83,7 @@ fn relation_runtime() -> crate::logic::runtime::RelationalRuntime {
 }
 
 fn request_for_plan<'runtime>(
-    runtime: &'runtime crate::logic::runtime::RelationalRuntime,
+    runtime: &'runtime crate::runtime::RelationalRuntime,
     plan: &'runtime MergedCommitPlan,
 ) -> InvariantExecutionRequest<'runtime> {
     InvariantExecutionRequest::from_profile_with_contract(
@@ -97,7 +97,7 @@ fn request_for_plan<'runtime>(
 }
 
 fn create_entity(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());

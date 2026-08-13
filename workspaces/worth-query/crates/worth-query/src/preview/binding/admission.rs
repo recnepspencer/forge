@@ -9,30 +9,44 @@ use crate::preview::binding::contract::{
 };
 use crate::preview::binding::error::{PreviewBindingError, PreviewBindingFailureClass};
 use crate::preview::evaluation::PreviewEvaluationClass;
-use crate::preview::session_context::PreviewSessionQueryContext;
+use crate::preview::session_context::{PreviewSessionQueryContext, PreviewSessionSnapshot};
 use crate::preview::workflow_context_identity;
 use worth_runtime_bridge::facade::BridgePreviewLifecycleStateKind;
 
-pub(crate) fn bind_preflight_to_preview_session(
+pub fn bind_preflight_to_preview_session(
     preflight: ExecutionPreflightBundle,
     query_context: PreviewSessionQueryContext,
 ) -> Result<PreviewSessionPlanBinding, PreviewBindingError> {
     reject_unsupported_preview_family(&preflight)?;
+    validate_runtime_basis(&preflight)?;
+    let source = query_context.source.snapshot();
+    validate_active_execution_record(source)?;
+    validate_execution_record_affinity(source)?;
+    validate_active_linkage(&query_context)?;
 
-    if matches!(
+    Ok(build_preview_binding(preflight, query_context))
+}
+
+fn validate_runtime_basis(preflight: &ExecutionPreflightBundle) -> Result<(), PreviewBindingError> {
+    if !matches!(
         preflight.basis().identity().authority_family(),
         BasisAuthorityFamily::Store
     ) {
-        let mut counters = PreviewBindingCounters::default();
-        counters.preview_invalid_basis_denial_count = 1;
-        return Err(PreviewBindingError::new(
-            PreviewBindingFailureClass::StoreBackedRouteForbidden,
-            "preview binding requires runtime basis authority",
-            counters,
-        ));
+        return Ok(());
     }
 
-    let source = query_context.source.snapshot();
+    let mut counters = PreviewBindingCounters::default();
+    counters.preview_invalid_basis_denial_count = 1;
+    Err(PreviewBindingError::new(
+        PreviewBindingFailureClass::StoreBackedRouteForbidden,
+        "preview binding requires runtime basis authority",
+        counters,
+    ))
+}
+
+fn validate_active_execution_record(
+    source: &PreviewSessionSnapshot,
+) -> Result<(), PreviewBindingError> {
     if source.lifecycle_state_kind != BridgePreviewLifecycleStateKind::Active {
         let mut counters = PreviewBindingCounters::default();
         counters.preview_invalid_lifecycle_denial_count = 1;
@@ -42,7 +56,6 @@ pub(crate) fn bind_preflight_to_preview_session(
             counters,
         ));
     }
-
     if source.execution_record_identity.is_none() || source.execution_record_digest.is_none() {
         let mut counters = PreviewBindingCounters::default();
         counters.preview_invalid_lifecycle_denial_count = 1;
@@ -53,19 +66,18 @@ pub(crate) fn bind_preflight_to_preview_session(
         ));
     }
 
-    if let Some(execution_record_digest) = source.execution_record_digest.as_ref() {
-        if execution_record_digest.is_empty() {
-            let mut counters = PreviewBindingCounters::default();
-            counters.preview_invalid_basis_denial_count = 1;
-            counters.preview_broad_fallback_denial_count = 1;
-            return Err(PreviewBindingError::new(
-                PreviewBindingFailureClass::InvalidPreviewBasis,
-                "preview execution record digest must not be empty",
-                counters,
-            ));
-        }
+    if source.execution_record_digest.as_deref() == Some("") {
+        return Err(invalid_preview_basis(
+            "preview execution record digest must not be empty",
+        ));
     }
 
+    Ok(())
+}
+
+fn validate_execution_record_affinity(
+    source: &PreviewSessionSnapshot,
+) -> Result<(), PreviewBindingError> {
     if let Some(execution_record_session_identity) =
         source.execution_record_preview_session_identity.as_ref()
     {
@@ -74,48 +86,37 @@ pub(crate) fn bind_preflight_to_preview_session(
                 &source.preview_session_identity,
             )
         {
-            let mut counters = PreviewBindingCounters::default();
-            counters.preview_invalid_basis_denial_count = 1;
-            counters.preview_broad_fallback_denial_count = 1;
-            return Err(PreviewBindingError::new(
-                PreviewBindingFailureClass::InvalidPreviewBasis,
+            return Err(invalid_preview_basis(
                 "preview execution record must belong to the requested preview session",
-                counters,
             ));
         }
     }
-
     if let Some(execution_record_declaration_digest) =
         source.execution_record_declaration_digest.as_ref()
     {
         if execution_record_declaration_digest != &source.declaration_digest {
-            let mut counters = PreviewBindingCounters::default();
-            counters.preview_invalid_basis_denial_count = 1;
-            counters.preview_broad_fallback_denial_count = 1;
-            return Err(PreviewBindingError::new(
-                PreviewBindingFailureClass::InvalidPreviewBasis,
+            return Err(invalid_preview_basis(
                 "preview execution record must match the requested preview declaration digest",
-                counters,
             ));
         }
     }
-
     if let (Some(execution_record_identity), Some(session_execution_record_identity)) = (
         source.execution_record_identity.as_ref(),
         source.session_execution_record_identity.as_ref(),
     ) {
         if execution_record_identity != session_execution_record_identity {
-            let mut counters = PreviewBindingCounters::default();
-            counters.preview_invalid_basis_denial_count = 1;
-            counters.preview_broad_fallback_denial_count = 1;
-            return Err(PreviewBindingError::new(
-                PreviewBindingFailureClass::InvalidPreviewBasis,
+            return Err(invalid_preview_basis(
                 "preview execution record identity must match the active preview session identity",
-                counters,
             ));
         }
     }
 
+    Ok(())
+}
+
+fn validate_active_linkage(
+    query_context: &PreviewSessionQueryContext,
+) -> Result<(), PreviewBindingError> {
     if matches!(
         query_context.evaluation_class(),
         PreviewEvaluationClass::ReadOnly(_)
@@ -130,7 +131,6 @@ pub(crate) fn bind_preflight_to_preview_session(
             counters,
         ));
     }
-
     if query_context.promotion_record.is_some() || query_context.replay_bundle.is_some() {
         let mut counters = PreviewBindingCounters::default();
         counters.preview_invalid_basis_denial_count = 1;
@@ -145,50 +145,20 @@ pub(crate) fn bind_preflight_to_preview_session(
         ));
     }
 
+    Ok(())
+}
+
+fn build_preview_binding(
+    preflight: ExecutionPreflightBundle,
+    query_context: PreviewSessionQueryContext,
+) -> PreviewSessionPlanBinding {
+    let source = query_context.source.snapshot();
     let counters = PreviewBindingCounters::for_admitted_path();
-    let lifecycle_metadata = PreviewLifecycleMetadata {
-        lifecycle_state_kind: source.lifecycle_state_kind,
-        execution_record_identity: source.execution_record_identity.clone(),
-        replay_bundle_digest: query_context
-            .replay_bundle
-            .as_ref()
-            .map(|bundle| bundle.digest.clone()),
-        promotion_record_identity: query_context
-            .promotion_record
-            .as_ref()
-            .map(|record| record.record_identity.clone()),
-        promotion_proof_digest: query_context
-            .promotion_record
-            .as_ref()
-            .map(|record| record.proof_digest.clone()),
-    };
-    let binding_tuple = PreviewSessionBindingTuple::new(
-        preflight.plan().query().canonical_query_digest().clone(),
-        preflight
-            .plan()
-            .result_shape()
-            .canonical_result_shape_digest()
-            .clone(),
-        preflight.plan().query().validated_query_digest().clone(),
-        preflight
-            .plan()
-            .result_shape()
-            .validated_result_shape_digest()
-            .clone(),
-        query_context.evaluation_class.clone(),
-        source.preview_session_identity.clone(),
-        source.declaration_identity.clone(),
-        source.declaration_digest.clone(),
+    let lifecycle_metadata = PreviewLifecycleMetadata::from_source(
         source.lifecycle_state_kind,
         source.execution_record_identity.clone(),
-        lifecycle_metadata.replay_bundle_digest().map(str::to_owned),
-        lifecycle_metadata
-            .promotion_record_identity()
-            .map(str::to_owned),
-        lifecycle_metadata
-            .promotion_proof_digest()
-            .map(str::to_owned),
     );
+    let binding_tuple = PreviewSessionBindingTuple::from_admitted(&preflight, &query_context);
     let basis = PreviewSessionBasis::new(binding_tuple.clone());
     let report = PreviewBindingReport::new(
         binding_tuple.digest().to_string(),
@@ -196,13 +166,24 @@ pub(crate) fn bind_preflight_to_preview_session(
         counters,
     );
 
-    Ok(PreviewSessionPlanBinding {
+    PreviewSessionPlanBinding::from_admitted(
         preflight,
         query_context,
         basis,
         lifecycle_metadata,
         report,
-    })
+    )
+}
+
+fn invalid_preview_basis(message: &'static str) -> PreviewBindingError {
+    let mut counters = PreviewBindingCounters::default();
+    counters.preview_invalid_basis_denial_count = 1;
+    counters.preview_broad_fallback_denial_count = 1;
+    PreviewBindingError::new(
+        PreviewBindingFailureClass::InvalidPreviewBasis,
+        message,
+        counters,
+    )
 }
 
 fn reject_unsupported_preview_family(

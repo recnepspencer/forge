@@ -1,22 +1,25 @@
 import {
-  applyCommittedWorkerFirstAuthoredInputs,
-  buildAuthoredInputMutationOperation,
   createAuthoredInputPublication,
   createWorkerFirstAuthoredInputState,
   hasMutableWorkerFirstAuthoredInputId,
-  isWorkerFirstAuthoredInputPublicationReady,
   readWorkerFirstAuthoredInputBaseline,
   invalidateWorkerFirstAuthoredInputs,
   nextGeneratedStandaloneSignalId,
   readWorkerFirstAuthoredInputValue,
-  writeWorkerFirstAuthoredInputBaseline,
 } from "./worker_first_authored_input_state.js";
+import {
+  applyCommittedWorkerFirstAuthoredInputOps,
+  beginWorkerFirstAuthoredInputMutation,
+  requireWorkerFirstAuthoredInputPublicationReady,
+  writeWorkerFirstAuthoredInputBaselineValue,
+} from "./worker_first_authored_input_mutation.js";
 import {
   createAuthoredReadablePublication,
   hasWorkerFirstAuthoredReadableId,
   invalidateWorkerFirstAuthoredReadables,
   readWorkerFirstAuthoredReadableValue,
 } from "./worker_first_authored_readable_state.js";
+import { assertAuthoredReadableReads } from "./worker_first_authored_readable_reads.js";
 import {
   captureWorkerFirstAuthoredCallback,
 } from "./worker_first_authored_callback_authoring.js";
@@ -25,6 +28,14 @@ import {
   refreshWorkerFirstAuthoredCallbackReadables,
   refreshWorkerFirstAuthoredReadableSignals,
 } from "./worker_first_authored_readable_refresh.js";
+import {
+  projectAuthoredInputTip,
+  refreshAuthoredCallbackTipsFromHost,
+} from "./worker_first_authored_tip_projection.js";
+import {
+  commitHostTipAndNotify,
+  notifyHostTipIds,
+} from "./worker_first_host_tip_commit.js";
 import {
   createAuthoredPublicationTracker,
   markAuthoredPublicationFailed,
@@ -43,7 +54,6 @@ import {
   ensureAuthoredInputsPresentOnWorkerTip,
   readmitStaleAuthoredOntoActiveTip,
 } from "./worker_first_authored_tip_catalog.js";
-import { materializeWorkerCachedValue } from "../worker_cached_value.js";
 import { outputProjectionSpec } from "../../../../output_projection_ids.js";
 
 export function createWorkerFirstRootAuthoredRuntime(
@@ -180,49 +190,53 @@ class WorkerFirstRootAuthoredRuntime {
   }
 
   beginAuthoredInputMutation(id, mutation) {
-    const authoredInput = this.#authoredInputs.get(id);
-    if (
-      !authoredInput
-      || authoredInput.invalidatedMessage !== null
-      || authoredInput.publicationState === "failed"
-    ) {
-      throw new TypeError(
-        `worker-first inputAsync(...) can mutate only currently available worker-first authored inputs; \`${id}\` is not currently available`,
-      );
-    }
-    const previousValue = authoredInput.currentValue;
-    const transactionOp = buildAuthoredInputMutationOperation(id, mutation, authoredInput);
-    authoredInput.currentValue = materializeWorkerCachedValue(transactionOp.value);
-    return Object.freeze({
-      transactionOps: [transactionOp],
-      rollback() {
-        authoredInput.currentValue = previousValue;
-      },
+    return beginWorkerFirstAuthoredInputMutation(this.#authoredInputs, id, mutation);
+  }
+
+  /** Advance authored input tip without enqueueing worker apply. */
+  projectAuthoredInputTip(id, value) {
+    return projectAuthoredInputTip(this.#authoredInputs, id, value);
+  }
+
+  /** Host-only tip recompute for callback readables that depend on changed ids. */
+  refreshAuthoredCallbackTipsFromHost(changedIds = [], changedHostDependencyIds = []) {
+    return refreshAuthoredCallbackTipsFromHost({
+      authoredInputs: this.#authoredInputs,
+      authoredReadables: this.#authoredReadables,
+      authoredCallbacks: this.#authoredCallbacks,
+      changedIds,
+      changedHostDependencyIds,
+      captureCallback: (callback, family) => this.#captureCallback(callback, family),
     });
   }
 
+  /** Unified tip ingress: write tips + project dependents + notify observers. */
+  commitHostTipAndNotify(observations, activeImportContext, tipWrites) {
+    return commitHostTipAndNotify({
+      authoredInputs: this.#authoredInputs,
+      activeImportContext,
+      refreshAuthoredCallbackTipsFromHost: (ids) => this.refreshAuthoredCallbackTipsFromHost(ids),
+      observations,
+    }, tipWrites);
+  }
+
+  notifyHostTipIds(observations, changedIds) {
+    return notifyHostTipIds({
+      refreshAuthoredCallbackTipsFromHost: (ids) => this.refreshAuthoredCallbackTipsFromHost(ids),
+      observations,
+    }, changedIds);
+  }
+
   requireAuthoredInputPublicationReady(id) {
-    if (!this.#authoredInputs.has(id)) {
-      return;
-    }
-    if (!isWorkerFirstAuthoredInputPublicationReady(this.#authoredInputs, id)) {
-      const authoredInput = this.#authoredInputs.get(id);
-      const detail = authoredInput?.invalidatedMessage
-        ?? (authoredInput?.publicationState === "pending"
-          ? "background publication has not completed"
-          : "it is not currently available");
-      throw new TypeError(
-        `worker-first authored input \`${id}\` cannot be mutated on the worker because ${detail}`,
-      );
-    }
+    requireWorkerFirstAuthoredInputPublicationReady(this.#authoredInputs, id);
   }
 
   applyCommittedInputs(transactionOps) {
-    applyCommittedWorkerFirstAuthoredInputs(this.#authoredInputs, transactionOps);
+    applyCommittedWorkerFirstAuthoredInputOps(this.#authoredInputs, transactionOps);
   }
 
   writeAuthoredInputBaseline(id, value) {
-    writeWorkerFirstAuthoredInputBaseline(this.#authoredInputs, id, value);
+    writeWorkerFirstAuthoredInputBaselineValue(this.#authoredInputs, id, value);
   }
 
   async refreshReadables(changedIds = [], changedHostDependencyIds = []) {
@@ -346,25 +360,7 @@ class WorkerFirstRootAuthoredRuntime {
   }
 
   #assertSupportedReadableSpec(family, spec) {
-    const reads = spec?.reads;
-    if (reads === undefined) {
-      return;
-    }
-    if (!Array.isArray(reads)) {
-      throw new TypeError(`worker-first ${family}Async(...) requires spec.reads as an array when provided`);
-    }
-    for (const readId of reads) {
-      if (typeof readId !== "string" || readId.length === 0) {
-        throw new TypeError(
-          `worker-first ${family}Async(...) requires every spec.reads entry to be a non-empty signal id`,
-        );
-      }
-      if (!this.hasKnownSignalId(readId)) {
-        throw new TypeError(
-          `worker-first ${family}Async(...) can read only currently available worker-first signals; \`${readId}\` is not currently available`,
-        );
-      }
-    }
+    assertAuthoredReadableReads(family, spec?.reads, (id) => this.hasKnownSignalId(id));
   }
 
   #captureCallback(callback, family) {

@@ -24,6 +24,8 @@ const LEFT: &[u8] = b"scheduler capacity left";
 const RIGHT: &[u8] = b"scheduler capacity right";
 const RETRY: &[u8] = b"scheduler capacity retry";
 const PAGE_GRANT_BYTES: u64 = 16_384;
+const SCHEDULER_BANDWIDTH_BYTES: u64 = 44 * 1_024;
+const BANDWIDTH_AFTER_TWO_DATA_EFFECTS: u64 = SCHEDULER_BANDWIDTH_BYTES - (PAGE_GRANT_BYTES * 2);
 
 #[test]
 fn wal_durable_data_retry_preserves_identity_across_exact_scheduler_exhaustion() {
@@ -35,7 +37,7 @@ fn wal_durable_data_retry_preserves_identity_across_exact_scheduler_exhaustion()
         256,
         1_024,
         PAGE_GRANT_BYTES as usize,
-        (PAGE_GRANT_BYTES * 2) as usize,
+        SCHEDULER_BANDWIDTH_BYTES as usize,
     )
     .unwrap();
     let serving =
@@ -84,7 +86,10 @@ fn wal_durable_data_retry_preserves_identity_across_exact_scheduler_exhaustion()
     }
     let saturated = serving.physical_scheduler_capacity();
     assert_eq!(saturated.active_reservations(), 2);
-    assert_eq!(saturated.available().bandwidth_tokens(), 0);
+    assert_eq!(
+        saturated.available().bandwidth_tokens(),
+        BANDWIDTH_AFTER_TWO_DATA_EFFECTS
+    );
 
     let media_before_denial = serving.media_counters();
     let (denied_tx, denied_rx) = mpsc::sync_channel(1);
@@ -170,7 +175,7 @@ fn exact_bandwidth_denial(outcome: PhysicalDataDispatchOutcome) -> WalDurablePhy
                 ForegroundReservationAdmissionDenial::InsufficientCapacity(
                     ForegroundReservationResourceShortfall::BandwidthToken {
                         requested: PAGE_GRANT_BYTES,
-                        available: 0,
+                        available: BANDWIDTH_AFTER_TWO_DATA_EFFECTS,
                     }
                 )
             )

@@ -62,13 +62,10 @@ fn proof_bearing_form_families_exist_as_real_types() {
     assert_delta::<StructuralDelta>();
     assert_delta::<PatchPlan>();
     assert_summary::<LocalityFootprint>();
-    assert_summary::<NarrowedPropagationSet>();
-    assert_summary::<FrontierWave>();
-    assert_summary::<InvalidationFrontier>();
     assert_summary::<InvalidationSeedBatch>();
     assert_summary::<FrontierPlan>();
     assert_summary::<FrontierExecutionSummary>();
-    assert_summary::<SemanticBatchCommit>();
+    assert_summary::<ChangeBatchAdmission>();
     assert_summary::<TouchedScopeSummary>();
     assert_summary::<PendingSnapshotBatch>();
     assert_summary::<SnapshotBatchCommit>();

@@ -121,11 +121,10 @@ impl WorthQuerySessionEffectAuthority<'_> {
             ));
         }
         let steps = steps.into_iter().collect::<Vec<_>>();
-        if steps.is_empty() {
-            return Err(WorthQueryProvisionalFailure::invalid_program(
-                "provisional effect program must contain at least one step",
-            ));
-        }
+        // Empty programs are lawful for emit-only / outbox-only commits (R8.55):
+        // the application may declare no domain mutation while still co-committing
+        // Query scaffolding (idempotency + dispatch outbox) registered on the
+        // provider attempt separately from provisional effect steps.
         validate_closure_and_symbols(self, read_set, &steps)?;
         Ok(WorthQueryLoweredProvisionalEffectProgram {
             identity: self.binding().canonical_identity().into(),

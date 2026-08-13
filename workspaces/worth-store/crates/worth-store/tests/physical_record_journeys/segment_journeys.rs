@@ -112,7 +112,7 @@ fn assert_segment_frame_and_media_evidence(
         .expect("the installed WAL owner must remain observable")
         .appended_frames()
         - before.wal_frames;
-    assert_eq!(media.replacements(), before.media.replacements() + 1);
+    assert_eq!(media.replacements(), before.media.replacements() + 3);
     assert_eq!(
         frames.declared_candidate_frames() - before.frames.declared_candidate_frames(),
         candidate_frames
@@ -121,11 +121,11 @@ fn assert_segment_frame_and_media_evidence(
         frames.candidate_publications() - before.frames.candidate_publications(),
         candidate_frames
     );
-    assert_eq!(candidate_frames, 14);
+    assert_eq!(candidate_frames, 16);
     assert_eq!(wal_frames, 1);
     assert_eq!(new_segment_candidates, 4);
     assert_eq!(writeback_frames, 4);
-    assert_eq!(root_candidate_artifacts, 6);
+    assert_eq!(root_candidate_artifacts, 8);
     assert_eq!(
         candidate_frames,
         new_segment_candidates + writeback_frames + root_candidate_artifacts

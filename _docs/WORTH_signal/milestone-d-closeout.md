@@ -265,3 +265,11 @@ a mentally separate node species, while preserving:
 
 Remaining work belongs to future product-facing layers and future specs, not to
 Milestone D substrate closure.
+
+## Successor Handoff
+
+[Milestone 12 - Aspect-Causal Invalidation](./milestone-12-plan.md) is the next
+numbered core-runtime milestone. It inherits Milestone D's condition, temporal,
+previous-value, partition, branch, replay, and async-capability guarantees and
+repairs the shared aspect-invalidation substrate without redefining async
+lifecycle truth.

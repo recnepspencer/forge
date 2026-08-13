@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::BackendQueueExecutionAdaptation;
 use worth_proof::TransitionOutcome;
 use worth_store_aspect_native::StorePhysicalBoundaryWitness;
 use worth_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
@@ -71,6 +72,78 @@ fn binding(
         profile,
         media.execution_capability().evidence_class(),
         0,
+    )
+}
+
+fn root_protocol_artifacts(
+    media: &QualifiedFilesystemMedia,
+) -> ([ArtifactTreeReplacement; 3], std::path::PathBuf) {
+    let records = ArtifactTreeDirectory::families().child("records").unwrap();
+    let tree = media.artifact_tree();
+    tree.create_directory(&records).unwrap();
+    let files = [
+        (
+            "previous.candidate",
+            "root-previous.selector",
+            b"new-previous".as_slice(),
+            b"old-previous".as_slice(),
+        ),
+        (
+            "current.candidate",
+            "root-current.selector",
+            b"new-current".as_slice(),
+            b"old-current".as_slice(),
+        ),
+        (
+            "catalog.candidate",
+            "bootstrap.catalog",
+            b"new-catalog".as_slice(),
+            b"old-catalog".as_slice(),
+        ),
+    ];
+    let replacements = files.map(|(source_name, destination_name, source, destination)| {
+        let source_file = records.file(source_name).unwrap();
+        let destination_file = records.file(destination_name).unwrap();
+        tree.write_new(&source_file, source).unwrap();
+        tree.write_new(&destination_file, destination).unwrap();
+        ArtifactTreeReplacement::new(source_file, destination_file)
+    });
+    (replacements, std::path::PathBuf::from("families/records"))
+}
+
+fn root_protocol_baseline_ordinal(root: &std::path::Path) -> u64 {
+    let media = qualified(root, MediaFaultSchedule::default());
+    root_protocol_artifacts(&media);
+    let ordinal = media
+        .counters()
+        .attempts_for(MediaOperationRole::AtomicReplace);
+    media.close();
+    ordinal
+}
+
+fn fail_before_root_protocol_rename(ordinal: u64) -> MediaFaultSchedule {
+    MediaFaultSchedule::for_certification(vec![MediaFaultRule::for_certification(
+        MediaOperationRole::AtomicReplace,
+        ordinal,
+        MediaFaultDirective::FailBefore {
+            kind: std::io::ErrorKind::Other,
+            raw_os_error: None,
+        },
+    )])
+    .unwrap()
+}
+
+fn execute_root_protocol(
+    media: &QualifiedFilesystemMedia,
+    replacements: [ArtifactTreeReplacement; 3],
+) -> ScheduledArtifactTreePublicationEffectOutcome {
+    let [previous, current, catalog] = replacements;
+    media.artifact_tree().replace_root_protocol_scheduled(
+        previous,
+        current,
+        catalog,
+        binding(media, media.execution_capability().profile()),
+        BackendQueueExecutionAdaptation::None,
     )
 }
 
@@ -180,5 +253,61 @@ fn post_effect_synchronization_fault_retains_indeterminate_identity() {
         ArtifactTreePublicationEffect::FileSynchronization(artifact)
             if artifact == &candidate
     ));
+    media.close();
+}
+
+#[test]
+fn root_protocol_fault_after_previous_exposes_exact_indeterminate_prefix() {
+    let parent = tempfile::tempdir().unwrap();
+    let baseline = root_protocol_baseline_ordinal(&parent.path().join("baseline"));
+    let root = parent.path().join("after-previous");
+    let media = qualified(&root, fail_before_root_protocol_rename(baseline + 2));
+    let (replacements, records) = root_protocol_artifacts(&media);
+
+    assert!(matches!(
+        execute_root_protocol(&media, replacements),
+        ScheduledArtifactTreePublicationEffectOutcome::Indeterminate(_)
+    ));
+    let records = root.join(records);
+    assert_eq!(
+        std::fs::read(records.join("root-previous.selector")).unwrap(),
+        b"new-previous"
+    );
+    assert_eq!(
+        std::fs::read(records.join("root-current.selector")).unwrap(),
+        b"old-current"
+    );
+    assert_eq!(
+        std::fs::read(records.join("bootstrap.catalog")).unwrap(),
+        b"old-catalog"
+    );
+    media.close();
+}
+
+#[test]
+fn root_protocol_fault_after_current_exposes_exact_indeterminate_prefix() {
+    let parent = tempfile::tempdir().unwrap();
+    let baseline = root_protocol_baseline_ordinal(&parent.path().join("baseline"));
+    let root = parent.path().join("after-current");
+    let media = qualified(&root, fail_before_root_protocol_rename(baseline + 3));
+    let (replacements, records) = root_protocol_artifacts(&media);
+
+    assert!(matches!(
+        execute_root_protocol(&media, replacements),
+        ScheduledArtifactTreePublicationEffectOutcome::Indeterminate(_)
+    ));
+    let records = root.join(records);
+    assert_eq!(
+        std::fs::read(records.join("root-previous.selector")).unwrap(),
+        b"new-previous"
+    );
+    assert_eq!(
+        std::fs::read(records.join("root-current.selector")).unwrap(),
+        b"new-current"
+    );
+    assert_eq!(
+        std::fs::read(records.join("bootstrap.catalog")).unwrap(),
+        b"old-catalog"
+    );
     media.close();
 }

@@ -4,7 +4,9 @@ use bank_domain::queries::{
     EstateMandatoryReviewRequest, EstateMandatoryReviewResult,
 };
 use bank_domain::reads::EstateGovernanceContext;
-use worth_query_host::facade::primary_graph::WorthQueryApplicationOneShotResult;
+use worth_query_host::facade::publication::domain_computation::{
+    publish_application_result, WorthQueryPublishedApplicationResult,
+};
 
 use super::BankReadyQuery;
 use crate::application_query::{
@@ -16,15 +18,16 @@ impl BankReadyQuery<'_, '_, EstateGovernanceRequest> {
     pub fn execute(
         self,
     ) -> Result<
-        WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>,
+        WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>,
         BankApplicationQueryDenial,
     > {
-        execute_estate_governance(
+        let result = execute_estate_governance(
             self.runtime,
             self.principal,
             self.query,
             self.controls.application_query_controls(),
-        )
+        )?;
+        Ok(publish_application_result(result.into_admitted_disclosed()))
     }
 }
 
@@ -32,15 +35,19 @@ impl BankReadyQuery<'_, '_, EstateLegalComplianceRequest> {
     pub fn execute(
         self,
     ) -> Result<
-        WorthQueryApplicationOneShotResult<EstateLegalComplianceQuery, EstateLegalComplianceResult>,
+        WorthQueryPublishedApplicationResult<
+            EstateLegalComplianceQuery,
+            EstateLegalComplianceResult,
+        >,
         BankApplicationQueryDenial,
     > {
-        execute_estate_legal_compliance(
+        let result = execute_estate_legal_compliance(
             self.runtime,
             self.principal,
             self.query,
             self.controls.application_query_controls(),
-        )
+        )?;
+        Ok(publish_application_result(result.into_admitted_disclosed()))
     }
 }
 
@@ -48,14 +55,18 @@ impl BankReadyQuery<'_, '_, EstateMandatoryReviewRequest> {
     pub fn execute(
         self,
     ) -> Result<
-        WorthQueryApplicationOneShotResult<EstateMandatoryReviewQuery, EstateMandatoryReviewResult>,
+        WorthQueryPublishedApplicationResult<
+            EstateMandatoryReviewQuery,
+            EstateMandatoryReviewResult,
+        >,
         BankApplicationQueryDenial,
     > {
-        execute_estate_mandatory_review(
+        let result = execute_estate_mandatory_review(
             self.runtime,
             self.principal,
             self.query,
             self.controls.application_query_controls(),
-        )
+        )?;
+        Ok(publish_application_result(result.into_admitted_disclosed()))
     }
 }

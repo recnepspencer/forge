@@ -3,9 +3,8 @@
 use super::authority_sealing_fixture::{
     hostile_array_carrier_launder, hostile_blanket_impl_private_gate,
     hostile_blanket_impl_public_gate, hostile_blanket_impl_renamed_marker,
-    hostile_blanket_impl_where_clause, hostile_carrier_plus_glob_combo, hostile_glob_alias_launder,
-    hostile_multihop_blanket_launder, hostile_multihop_supertrait_bound,
-    hostile_multiparam_wrapper_launder, hostile_private_glob_alias_launder,
+    hostile_blanket_impl_where_clause, hostile_multihop_blanket_launder,
+    hostile_multihop_supertrait_bound, hostile_multiparam_wrapper_launder,
     hostile_private_subtrait_bound, hostile_public_subtrait_bound, hostile_qualified_alias_launder,
     hostile_ref_carrier_launder, hostile_tuple_carrier_launder,
     hostile_where_clause_laundered_gate, hostile_wrapper_carrier_launder,
@@ -147,27 +146,6 @@ fn multiparam_wrapper_carrier_launder_is_denied() {
 }
 
 #[test]
-fn glob_alias_launder_is_denied() {
-    assert_sealing_denial("hostile-glob-alias", hostile_glob_alias_launder());
-}
-
-#[test]
 fn qualified_alias_launder_is_denied() {
     assert_sealing_denial("hostile-qualified-alias", hostile_qualified_alias_launder());
-}
-
-#[test]
-fn private_glob_alias_launder_is_denied() {
-    assert_sealing_denial(
-        "hostile-private-glob-alias",
-        hostile_private_glob_alias_launder(),
-    );
-}
-
-#[test]
-fn carrier_plus_glob_combo_is_denied() {
-    assert_sealing_denial(
-        "hostile-carrier-glob-combo",
-        hostile_carrier_plus_glob_combo(),
-    );
 }

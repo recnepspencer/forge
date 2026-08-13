@@ -1,11 +1,11 @@
 use crate::capabilities::PatchStreamSource;
-use crate::logic::runtime::RelationalRuntime;
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::publication::cdc::data::{
     SubscriberCheckpoint, SubscriberStreamFailure, SubscriberStreamFailureClass,
 };
 use crate::publication::cdc::diagnostics::{checkpoint_resolution_artifact, rejection_artifact};
 use crate::publication::patch::data::PatchStreamPosition;
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::runtime::RelationalRuntime;
 
 use super::basis::latest_available_checkpoint;
 use super::durable::{durable_checkpoint_envelope, durable_envelopes};

@@ -72,6 +72,16 @@ pub(super) fn classify(
                 dispatched, physical, coordinate, scheduler,
             )
         }
+        #[cfg(feature = "recovery-runtime-owner")]
+        PhysicalExecutorOutcome::RecoveryStagingCompleted {
+            physical,
+            scheduler,
+        } if dispatched.matches_recovery_staging(&physical) => {
+            PhysicalWorkSettlementEvidence::RecoveryStaging {
+                physical,
+                scheduler,
+            }
+        }
         PhysicalExecutorOutcome::PublicationEffectCompleted {
             physical,
             scheduler,
@@ -118,6 +128,19 @@ pub(super) fn classify(
             coordinate,
         } if dispatched.matches_new_artifact_indeterminate(&physical, coordinate) => {
             publication::indeterminate_new_artifact(dispatched, physical, coordinate)
+        }
+        #[cfg(feature = "recovery-runtime-owner")]
+        PhysicalExecutorOutcome::RecoveryStagingIndeterminate(physical)
+            if dispatched.matches_recovery_staging_indeterminate(&physical) =>
+        {
+            let coordinate = dispatched
+                .coordinate()
+                .expect("recovery staging work has one exact coordinate");
+            publication::indeterminate_new_artifact(
+                dispatched,
+                physical.into_physical(),
+                coordinate,
+            )
         }
         PhysicalExecutorOutcome::PublicationEffectIndeterminate(physical)
             if dispatched.matches_publication_effect_indeterminate(&physical) =>

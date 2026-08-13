@@ -1,4 +1,4 @@
-use crate::physical_runtime::{lifecycle::ObservedLifecyclePhase, record_serving::ServingHealth};
+use crate::physical_runtime::record_serving::ServingHealth;
 
 use super::{
     submission::PhysicalWorkSubmissionOwner, AdmittedPhysicalWork, AdmittedPhysicalWorkAuthority,
@@ -33,7 +33,21 @@ impl PhysicalWorkAdmission {
         health: &ServingHealth,
     ) -> Result<AdmittedPhysicalWork, PhysicalWorkPreEffectDenial> {
         let identity = receipt.identity();
-        let admitted = admit_declared(owner, receipt, physical, health);
+        let admitted = admit_declared(owner, receipt, physical, Some(health));
+        if admitted.is_err() {
+            owner.cancel_before_dispatch(identity);
+        }
+        admitted
+    }
+
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(in crate::physical_runtime) fn admit_recovery(
+        owner: &PhysicalWorkSubmissionOwner,
+        receipt: PhysicalWorkSubmissionReceipt,
+        physical: &PhysicalWorkAdmissionAuthority,
+    ) -> Result<AdmittedPhysicalWork, PhysicalWorkPreEffectDenial> {
+        let identity = receipt.identity();
+        let admitted = admit_declared(owner, receipt, physical, None);
         if admitted.is_err() {
             owner.cancel_before_dispatch(identity);
         }
@@ -49,7 +63,20 @@ impl PhysicalWorkAdmission {
             owner.state(),
             intent.identity(),
             intent.signal_profile(),
-            health,
+            Some(health),
+        )
+    }
+
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(in crate::physical_runtime) fn require_current_recovery(
+        owner: &PhysicalWorkSubmissionOwner,
+        intent: &PhysicalWorkIntent,
+    ) -> Result<(), PhysicalWorkPreEffectDenial> {
+        require_current_identity(
+            owner.state(),
+            intent.identity(),
+            intent.signal_profile(),
+            None,
         )
     }
 
@@ -67,7 +94,7 @@ fn admit_declared(
     owner: &PhysicalWorkSubmissionOwner,
     receipt: PhysicalWorkSubmissionReceipt,
     physical: &PhysicalWorkAdmissionAuthority,
-    health: &ServingHealth,
+    health: Option<&ServingHealth>,
 ) -> Result<AdmittedPhysicalWork, PhysicalWorkPreEffectDenial> {
     let state = owner.state();
     let identity = receipt.identity();
@@ -109,7 +136,7 @@ fn require_current_identity(
     state: &super::submission::PhysicalSubmissionState,
     identity: super::PhysicalWorkIdentity,
     signal_profile: super::PhysicalSignalProfileIdentity,
-    health: &ServingHealth,
+    health: Option<&ServingHealth>,
 ) -> Result<(), PhysicalWorkPreEffectDenial> {
     if identity.store() != state.store() {
         return Err(PhysicalWorkPreEffectDenial::ForeignStore);
@@ -123,14 +150,14 @@ fn require_current_identity(
     let lifecycle = state.lifecycle_snapshot();
     if identity.generation().lifecycle() != state.generation()
         || lifecycle.generation != state.generation()
-        || lifecycle.phase != ObservedLifecyclePhase::RecordServing
+        || lifecycle.phase != state.lifecycle_phase()
     {
         return Err(PhysicalWorkPreEffectDenial::StaleGeneration);
     }
     if signal_profile != state.signal_profile() {
         return Err(PhysicalWorkPreEffectDenial::SignalProfileMismatch);
     }
-    if health.requires_inspection() {
+    if health.is_some_and(ServingHealth::requires_inspection) {
         return Err(PhysicalWorkPreEffectDenial::UnhealthyServing);
     }
     if !state.signal_available() {

@@ -10,7 +10,7 @@ pub enum PhysicalManifestCapacityTransition {
 }
 
 impl PhysicalManifestCapacityTransition {
-    pub(in crate::physical_runtime::record_serving) const fn identity_code(self) -> u8 {
+    pub(in crate::physical_runtime) const fn identity_code(self) -> u8 {
         match self {
             Self::PreserveCurrent => 1,
             Self::ReconstructToRequested => 2,

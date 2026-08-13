@@ -128,7 +128,7 @@ fn apply_serial_input(
         None,
         input.dependency_updates,
         Some(input.dependency_inputs),
-        true,
+        false,
     )
     .inspect_err(|err| {
         record_execution_failure(

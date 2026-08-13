@@ -4,7 +4,7 @@ use worth_query_decl::facade::{
         ApplicationQueryResultShapeBuilder, ManyResults, ReverseResultTraversal,
     },
     application_schema::{
-        DeclaredApplicationCurrency, EqualityPredicate, NoApplicationCurrency, NoEqualityPredicate,
+        DeclaredApplicationUnit, EqualityPredicate, NoApplicationUnit, NoEqualityPredicate,
         ReadOnly, ReadWrite,
     },
 };
@@ -38,7 +38,7 @@ type AccountIdentitySelector<Query> = ApplicationQueryResultFieldRef<
     AccountId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type AccountDisplayNameSelector<Query> = ApplicationQueryResultFieldRef<
@@ -51,7 +51,7 @@ type AccountDisplayNameSelector<Query> = ApplicationQueryResultFieldRef<
     AccountName,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type AccountKindSelector<Query> = ApplicationQueryResultFieldRef<
@@ -64,7 +64,7 @@ type AccountKindSelector<Query> = ApplicationQueryResultFieldRef<
     AccountKind,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type AccountStatusSelector<Query> = ApplicationQueryResultFieldRef<
@@ -77,7 +77,7 @@ type AccountStatusSelector<Query> = ApplicationQueryResultFieldRef<
     AccountStatus,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type AccountRevisionSelector<Query> = ApplicationQueryResultFieldRef<
@@ -90,7 +90,7 @@ type AccountRevisionSelector<Query> = ApplicationQueryResultFieldRef<
     AccountJournalRevision,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type PostingAmountSelector<Query> = ApplicationQueryResultFieldRef<
@@ -103,7 +103,7 @@ type PostingAmountSelector<Query> = ApplicationQueryResultFieldRef<
     SignedMoney<USD>,
     ReadWrite,
     NoEqualityPredicate,
-    DeclaredApplicationCurrency<UsdCurrency, USD>,
+    DeclaredApplicationUnit<UsdCurrency, USD>,
 >;
 
 pub(super) fn account_summary_shape<Query, Result>(

@@ -1,8 +1,8 @@
 package,dependency,kind,optional
+store-test-runner,proc-macro2,dev,false
 store-test-runner,serde,normal,false
 store-test-runner,serde_json,normal,false
 store-test-runner,sha2,normal,false
-store-test-runner,proc-macro2,dev,false
 store-test-runner,syn,dev,false
 store-test-runner,tempfile,normal,false
 store-test-runner,trybuild,dev,false
@@ -98,8 +98,6 @@ worth-store-wal,worth-store-aspect-native,dev,false
 worth-store-wal,worth-store-authority,normal,false
 worth-store-wal,worth-store-contracts,normal,false
 worth-store-wal,worth-store-modes,normal,false
-worth-store-wal,worth-store-physical-backend,dev,false
-worth-store-wal,worth-store-physical-backend,normal,false
 worth-store-wal,worth-store-physical-format,normal,false
 worth-store-wal,worth-store-security,dev,false
 worth-store-wal,worth-store-security,normal,false

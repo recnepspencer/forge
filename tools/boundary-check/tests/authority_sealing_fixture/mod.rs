@@ -16,6 +16,9 @@ mod source_cases_graph;
 mod source_cases_launder;
 mod source_cases_resolve;
 mod source_cases_value_gate;
+mod source_cases_value_gate_nominal;
+mod source_cases_value_gate_projection;
+mod source_cases_value_gate_wrappers;
 
 pub use repository::AuthoritySealingTestRepository;
 pub use source_cases::*;
@@ -26,3 +29,6 @@ pub use source_cases_graph::*;
 pub use source_cases_launder::*;
 pub use source_cases_resolve::*;
 pub use source_cases_value_gate::*;
+pub use source_cases_value_gate_nominal::*;
+pub use source_cases_value_gate_projection::*;
+pub use source_cases_value_gate_wrappers::*;

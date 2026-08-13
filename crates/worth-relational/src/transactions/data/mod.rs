@@ -34,6 +34,7 @@ pub use intents::{
 };
 pub use mutation_planning::CommitTopology;
 pub(crate) use outcomes::merge_commit_mutation_plan_token;
+pub(crate) use outcomes::CommitCreatedEntityBindings;
 #[cfg(test)]
 pub(crate) use outcomes::EntityUpdateMissingState;
 pub use outcomes::{
@@ -57,7 +58,8 @@ pub use primitives::{
     AuthorityMode, BulkMutationLineagePlan, BulkMutationLocalityFootprint, BulkMutationNamingPlan,
     BulkMutationProvenancePlan, BulkMutationScope, CommitAuthority, CreatedEntityRef,
     CrossContextEndpointClass, EntityReference, EntitySpec, ExistingRecordTarget,
-    LineageSafeBulkMutationBatch, NamingStableBulkMutationBatch, PlannedBulkMutationBatch,
-    PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch, RecordRef, RelationIdentity,
-    RelationScope, RelationSpec, SavepointId, TransactionId, TransactionOptions, WorkerIntentBatch,
+    ExpectedBranchHead, LineageSafeBulkMutationBatch, NamingStableBulkMutationBatch,
+    PlannedBulkMutationBatch, PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch,
+    RecordRef, RelationIdentity, RelationScope, RelationSpec, SavepointId, TransactionId,
+    TransactionOptions, WorkerIntentBatch,
 };

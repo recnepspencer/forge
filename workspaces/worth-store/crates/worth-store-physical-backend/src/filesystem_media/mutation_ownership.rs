@@ -152,10 +152,49 @@ impl MutationOwnershipLease {
         }
     }
 
-    pub(super) fn try_acquire(
+    pub(super) fn try_acquire_or_create(
         owner: MediaOwnerIdentity,
         namespace_directory: &NamespaceDirectoryHandle,
         boundary: &super::fault_interposition::MediaFaultInterposer,
+    ) -> Result<Self, super::owner_admission_effect::MutationOwnershipAcquisitionFailure> {
+        Self::try_acquire_with(
+            owner,
+            namespace_directory,
+            boundary,
+            |owner, namespace, boundary| {
+                super::mutation_lock_file::open_or_create(owner, namespace, boundary)
+            },
+        )
+    }
+
+    #[cfg(feature = "recovery-runtime-owner")]
+    pub(super) fn try_acquire_existing(
+        owner: MediaOwnerIdentity,
+        namespace_directory: &NamespaceDirectoryHandle,
+        boundary: &super::fault_interposition::MediaFaultInterposer,
+    ) -> Result<Self, super::owner_admission_effect::MutationOwnershipAcquisitionFailure> {
+        Self::try_acquire_with(
+            owner,
+            namespace_directory,
+            boundary,
+            |owner, namespace, boundary| {
+                super::mutation_lock_file::open_existing(owner, namespace, boundary)
+            },
+        )
+    }
+
+    fn try_acquire_with(
+        owner: MediaOwnerIdentity,
+        namespace_directory: &NamespaceDirectoryHandle,
+        boundary: &super::fault_interposition::MediaFaultInterposer,
+        open_lock: impl FnOnce(
+            MediaOwnerIdentity,
+            &NamespaceDirectoryHandle,
+            &super::fault_interposition::MediaFaultInterposer,
+        ) -> Result<
+            super::mutation_lock_file::OpenedMutationLock,
+            super::owner_admission_effect::MutationOwnershipAcquisitionFailure,
+        >,
     ) -> Result<Self, super::owner_admission_effect::MutationOwnershipAcquisitionFailure> {
         use super::owner_admission_effect::MutationOwnershipAcquisitionFailure;
 
@@ -168,7 +207,7 @@ impl MutationOwnershipLease {
         }
         let attempt = MutationOwnershipAttempt::generate()
             .map_err(MutationOwnershipAcquisitionFailure::before_effect)?;
-        let opened = super::mutation_lock_file::open(owner, namespace_directory, boundary)?;
+        let opened = open_lock(owner, namespace_directory, boundary)?;
         if let Err(denial) = acquire_os_lease(&opened.file, boundary) {
             return Err(MutationOwnershipAcquisitionFailure::new(
                 denial,

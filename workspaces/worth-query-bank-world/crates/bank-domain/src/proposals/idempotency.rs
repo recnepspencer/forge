@@ -129,6 +129,11 @@ impl BankIdempotencyClaim {
         }
     }
 
+    /// Deterministic journal identity produced by this admitted operation.
+    pub const fn journal_identity(self, ordinal: u32) -> crate::model::JournalEntryId {
+        crate::model::JournalEntryId::from_operation(*self.key.0.bytes(), ordinal)
+    }
+
     pub(crate) fn derive(
         binding: BankOperationScopeBinding,
         key: &BankIdempotencyKey,

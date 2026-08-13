@@ -15,7 +15,8 @@ use worth_query_declaration::facade::application_schema::{
     ApplicationSchema, ApplicationSchemaDeclaration,
 };
 use worth_query_installation::facade::{
-    ErasedApplicationSchemaDeclaration, WorthQueryPortableArtifactContract,
+    ErasedApplicationSchemaDeclaration, WorthQueryApplicationConditionalOperationBinding,
+    WorthQueryPortableApplicationConditionalOperationBinding, WorthQueryPortableArtifactContract,
 };
 
 pub struct WorthQueryDomainPackage<D: WorthQueryDomainEntryMarker> {
@@ -33,6 +34,8 @@ pub struct WorthQueryDomainPackage<D: WorthQueryDomainEntryMarker> {
     pub(crate) operation_required_domains: Vec<WorthQueryDomainOperationRequiredDomainRecord>,
     pub(crate) artifact_contracts: Vec<WorthQueryPortableArtifactContract>,
     pub(crate) application_schemas: Vec<ErasedApplicationSchemaDeclaration>,
+    pub(crate) conditional_application_operations:
+        Vec<WorthQueryPortableApplicationConditionalOperationBinding>,
     pub(crate) contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
 }
 
@@ -52,6 +55,7 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
             operation_required_domains: Vec::new(),
             artifact_contracts: Vec::new(),
             application_schemas: Vec::new(),
+            conditional_application_operations: Vec::new(),
             contribution_policy: Vec::new(),
         }
     }
@@ -177,6 +181,23 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
         Schema: ApplicationSchema,
     {
         self.application_schemas.push(declaration.into_erased());
+        self
+    }
+
+    #[must_use]
+    pub fn conditional_application_operation<Schema, ApplicationOperation, Input, O, F>(
+        mut self,
+        binding: WorthQueryApplicationConditionalOperationBinding<
+            Schema,
+            ApplicationOperation,
+            Input,
+            D,
+            O,
+            F,
+        >,
+    ) -> Self {
+        self.conditional_application_operations
+            .push(binding.portable().clone());
         self
     }
 

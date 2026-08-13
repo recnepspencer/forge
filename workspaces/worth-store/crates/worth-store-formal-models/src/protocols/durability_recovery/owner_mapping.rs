@@ -3,9 +3,10 @@ use worth_store_physical_backend::{
 };
 use worth_store_recovery_physics::{
     CheckpointBaseAdmission, CheckpointCutoverReceipt, RecoveryCompletion, RedoExecutionReceipt,
-    RedoPlanningDenial, RedoPlanningDenialKind, ReopenedRecoveryArtifactAdmission,
-    WalDurabilityObservationDenial, WalDurabilityObservationDenialKind,
+    RedoPlanningDenial, RedoPlanningDenialKind, WalDurabilityObservationDenial,
+    WalDurabilityObservationDenialKind,
 };
+use worth_store_recovery_runtime::ReopenedPhysicalRecovery;
 
 use super::DurabilityRecoveryAction;
 
@@ -85,8 +86,8 @@ pub const fn map_recovery_completion(
     ]
 }
 
-pub const fn map_reopened_recovery_artifact(
-    _reopened: &ReopenedRecoveryArtifactAdmission,
+pub const fn map_reopened_physical_recovery(
+    _reopened: &ReopenedPhysicalRecovery,
 ) -> DurabilityRecoveryAction {
     DurabilityRecoveryAction::Reopen
 }

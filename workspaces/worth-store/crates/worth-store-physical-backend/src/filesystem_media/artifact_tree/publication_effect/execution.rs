@@ -15,6 +15,7 @@ mod directory_synchronization;
 mod durable_removal;
 mod file_synchronization;
 mod replacement;
+mod root_protocol_replacement;
 
 impl ArtifactTreeMedia<'_> {
     fn schedule_effect(

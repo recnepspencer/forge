@@ -68,6 +68,8 @@ impl ProtocolFamily {
 pub enum ProductionOwner {
     Wal,
     RecoveryPhysics,
+    RecoveryRuntime,
+    OfflineVerifier,
     PhysicalBackend,
     LayoutIndexes,
     LsmAuthority,
@@ -114,7 +116,6 @@ pub enum OwnerOperationFamily {
     RecoveryCompletion,
     RecoveryReopenObservation,
     RecoveryDeterminism,
-    ReopenedArtifactAdmission,
     LsmMembership,
     LsmCompactionExecution,
     LsmMaintenanceAdmission,
@@ -137,8 +138,6 @@ pub enum OwnerOperationFamily {
     LayoutReadmission,
     ImportCustodyReadmission,
     ExportCustodyAdmission,
-    RestoredLayoutOutcome,
-    RestoredLayoutMaterialization,
     ImportPublicationReadiness,
     ImportPublicationCompletion,
     TrustBoundaryReadmission,
@@ -167,8 +166,7 @@ impl OwnerOperationFamily {
             | Self::RecoverySourceSelection
             | Self::RecoverySourceAdmission
             | Self::RecoveryCheckpointBase
-            | Self::RecoveryWalTailSource
-            | Self::ReopenedArtifactAdmission => ModelActionFamily::RecoverySourcePrecedence,
+            | Self::RecoveryWalTailSource => ModelActionFamily::RecoverySourcePrecedence,
             Self::RecoveryRedoPlanning
             | Self::RedoExecution
             | Self::RecoveryCompletion
@@ -195,8 +193,6 @@ impl OwnerOperationFamily {
             | Self::LayoutReadmission => ModelActionFamily::QuarantineReadmission,
             Self::ImportCustodyReadmission
             | Self::ExportCustodyAdmission
-            | Self::RestoredLayoutOutcome
-            | Self::RestoredLayoutMaterialization
             | Self::ImportPublicationReadiness
             | Self::ImportPublicationCompletion => ModelActionFamily::ImportPublication,
             Self::TrustBoundaryReadmission | Self::SecurityScopeReadmission => {

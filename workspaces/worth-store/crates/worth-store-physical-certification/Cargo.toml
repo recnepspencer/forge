@@ -30,6 +30,7 @@ worth-store-physical-isolation = { workspace = true, features = ["certification-
 worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
 worth-store-readiness.workspace = true
 worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+worth-store-recovery-runtime.workspace = true
 worth-store-replication.workspace = true
 worth-store-security = { workspace = true, features = ["certification-test-authority"] }
 worth-store-tiering = { workspace = true, features = ["certification-test-authority"] }

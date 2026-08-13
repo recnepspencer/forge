@@ -33,10 +33,9 @@ fn managed_run_work_is_invariant_to_unrelated_live_authority_width() {
     assert_exact_admission_work(terminal.counters());
     assert_eq!(terminal.provider_work().issued_call_count(), 0);
     let cleanup = terminal.cleanup().expect("target cleanup should complete");
-    assert_exact_admission_work(cleanup.counters());
-    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 1);
-    assert!(cleanup.relational().released());
-    assert!(cleanup.bridge().reservation_released());
+    assert_exact_admission_work(cleanup.inspection().counters());
+    assert_eq!(cleanup.inspection().released_reservation_count(), 1);
+    assert!(cleanup.inspection().resources_released());
     assert_eq!(disposed.load(Ordering::Acquire), 0);
 
     assert_rejection_work_is_constant_with_unrelated_authority();

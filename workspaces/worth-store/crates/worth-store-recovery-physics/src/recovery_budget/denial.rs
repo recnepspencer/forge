@@ -16,19 +16,15 @@ impl RecoveryBudgetDenial {
             redo_execution_attempts: 0,
         }
     }
-
     pub const fn kind(&self) -> &RecoveryBudgetDenialKind {
         &self.kind
     }
-
     pub const fn decision(&self) -> BudgetAdmissionDecision {
         self.decision
     }
-
     pub const fn redo_execution_attempts(&self) -> u64 {
         self.redo_execution_attempts
     }
-
     pub const fn execution_started(&self) -> bool {
         self.redo_execution_attempts != 0
     }
@@ -85,4 +81,15 @@ pub enum RecoveryBudgetDenialKind {
         allocated_bytes: u64,
         max_bytes: u64,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RecoveryPlanCostDenial {
+    RedoTargets,
+    RedoBytes,
+    DistinctTargets,
+    OperationBindings,
+    ObservationBytes,
+    StagingBytes,
+    DirtyFrames,
 }

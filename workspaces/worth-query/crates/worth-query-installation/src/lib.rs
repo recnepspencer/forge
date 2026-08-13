@@ -8,6 +8,7 @@
 
 mod admission;
 mod application_ability;
+mod application_aftermath;
 mod application_capability;
 mod application_operation;
 mod application_principal_binding;
@@ -35,6 +36,8 @@ mod admission_profile_tests;
 mod application_principal_binding_tests;
 #[cfg(test)]
 mod application_schema_tests;
+#[cfg(test)]
+mod conditional_application_operation_test_fixture;
 #[cfg(test)]
 mod domain_computation_admission_tests;
 #[cfg(test)]
@@ -75,8 +78,8 @@ pub mod facade {
     pub use worth_query_declaration::facade::application_schema::{
         ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect,
         ApplicationAuthorizationPredicate, ApplicationAuthorizationTraversal,
-        ApplicationAuthorizationTraversalDirection, ApplicationEntityRef, ApplicationFieldCurrency,
-        ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationDecisionReadTarget,
+        ApplicationAuthorizationTraversalDirection, ApplicationEntityRef, ApplicationFieldPresence,
+        ApplicationFieldRef, ApplicationFieldUnit, ApplicationOperationDecisionReadTarget,
         ApplicationOperationProgramTarget, ApplicationRelationRef, ApplicationSchema,
         ApplicationSchemaBindingIdentity, ApplicationSchemaMember, EqualityPosture,
         EqualityPredicate, ErasedApplicationSchemaDeclaration, OperationCreates, OperationDeletes,
@@ -100,6 +103,21 @@ pub mod facade {
         WorthQueryAbilityInstallationDenial, WorthQueryAbilityInstallationDenialKind,
         WorthQueryInstalledAbility,
     };
+    pub use crate::application_aftermath::{
+        aftermath_owner_identity_digest, derive_published_posture,
+        AftermathLoweringCorrespondenceCatalog, CompensatableNextActionContract,
+        CompensateNextAction, InstalledAftermathNextActionContract,
+        InstalledAftermathPostcondition, InstalledAftermathRecoveryContract, InstalledCompensation,
+        InstalledCorrectionAuthority, InstalledCorrectionMechanism,
+        InstalledExternalEffectContract, InstalledExternalEffectPosture,
+        InstalledLoweringCorrespondence, InstalledLoweringCorrespondenceRef,
+        InstalledPreImageDemand, InstalledPreImageLocus, InstalledRecordedInverse,
+        IrreversibleNextActionContract, PublishedAftermathPosture, ReconcilableNextActionContract,
+        ReconcileNextAction, ReversibleNextActionContract, UndoViaRecordedInverse,
+        WorthQueryAftermathCanonicalArtifact, WorthQueryAftermathInstallationDenial,
+        WorthQueryAftermathInstallationDenialKind, WorthQueryInstalledAftermathContract,
+        WorthQueryInstalledAftermathIdentity,
+    };
     pub use crate::application_capability::{
         derive_capability_revocation_proposal_identity, derive_delegation_proposal_identity,
         WorthQueryApplicationCapabilityInstallationDenial,
@@ -111,14 +129,22 @@ pub mod facade {
         WorthQueryInstalledApplicationCapabilityPlanSource,
     };
     pub use crate::application_operation::{
+        WorthQueryApplicationConditionalOperationBinding,
         WorthQueryApplicationOperationInstallationDenial,
         WorthQueryApplicationOperationInstallationDenialKind,
-        WorthQueryCompiledApplicationOperationContracts, WorthQueryInstalledAbilityRequirement,
+        WorthQueryCompiledApplicationOperationContracts,
+        WorthQueryConditionalApplicationOperationDenial,
+        WorthQueryConditionalApplicationOperationDenialKind, WorthQueryInstalledAbilityRequirement,
+        WorthQueryInstalledApplicationConditionalNode,
+        WorthQueryInstalledApplicationConditionalOperation,
         WorthQueryInstalledApplicationOperation,
         WorthQueryInstalledApplicationOperationAuthorization,
         WorthQueryInstalledApplicationOperationExecutionPosture,
         WorthQueryInstalledApplicationOperationGraphAuthority,
-        WorthQueryInstalledAuthorizationPath, WorthQueryInstalledMutationPrecondition,
+        WorthQueryInstalledAuthorizationPath, WorthQueryInstalledHostConditionalProvider,
+        WorthQueryInstalledMutationPrecondition, WorthQueryInstalledNamedClockConditionalNode,
+        WorthQueryInstalledTemporalConditionalOperation,
+        WorthQueryPortableApplicationConditionalOperationBinding,
         APPLICATION_AUTHORIZATION_FACT_FAMILY, APPLICATION_DECISION_FACT_FAMILY,
         APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY, APPLICATION_EXECUTION_ALLOCATOR_FAMILY,
         APPLICATION_EXECUTION_PROVIDER_FAMILY, APPLICATION_EXECUTION_SAFE_POINT_FAMILY,

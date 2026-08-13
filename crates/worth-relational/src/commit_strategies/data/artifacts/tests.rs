@@ -21,7 +21,7 @@ use crate::facade::transactions::{
     CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
 };
 use crate::identity::data::{EntityId, KindId, PartitionId};
-use crate::logic::builder::RelationalRuntimeBuilder;
+use crate::runtime::builder::RelationalRuntimeBuilder;
 use crate::symbols::data::ClientKey;
 use crate::transactions::data::{AspectFieldPatch, CommitValidationSummary, EntitySpec};
 use worth_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};

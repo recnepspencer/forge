@@ -24,10 +24,9 @@ pub(super) fn lower_bridge_observation(
         projection,
         evidence,
         dependency_identity,
-        installed.correspondence,
-        &installed.bridge_rules,
-        &installed.rule_path_indices,
-        installed.paths.len(),
+        installed.correspondence(),
+        installed.rules(),
+        installed.paths().len(),
     )
 }
 
@@ -38,38 +37,36 @@ pub(super) fn lower_upper_bound_observation(
     dependency_identity: [u8; 32],
 ) -> Result<BridgeAuthorizationObservation, WorthQueryOperationAuthorizationDenial> {
     let upper_bound = installed
-        .upper_bound
+        .upper_bound()
         .as_ref()
-        .ok_or_else(|| super::invalid_policy(installed.contract.name()))?;
+        .ok_or_else(|| super::invalid_policy(installed.contract().name()))?;
     lower_observation(
         installed,
         projection,
         evidence,
         dependency_identity,
         upper_bound.correspondence,
-        &upper_bound.bridge_rules,
-        &upper_bound.rule_path_indices,
+        &upper_bound.rules,
         upper_bound.path_count,
     )
 }
 
-#[allow(clippy::too_many_arguments)]
 fn lower_observation(
     installed: &WorthQueryInstalledCapabilityPlan,
     projection: &WorthQueryRetainedCapabilityRequest,
     evidence: &worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence,
     dependency_identity: [u8; 32],
     correspondence: worth_runtime_bridge::facade::BridgeAuthorizationCorrespondenceIdentity,
-    bridge_rules: &[worth_runtime_bridge::facade::BridgeAuthorizationRuleContract],
-    rule_path_indices: &[Vec<Vec<usize>>],
+    rules: &[super::super::capability_registry::WorthQueryCapabilityRuleBinding],
     path_count: usize,
 ) -> Result<BridgeAuthorizationObservation, WorthQueryOperationAuthorizationDenial> {
-    if bridge_rules.len() != rule_path_indices.len() || evidence.paths().len() != path_count {
-        return Err(super::invalid_policy(installed.contract.name()));
+    if evidence.paths().len() != path_count {
+        return Err(super::invalid_policy(installed.contract().name()));
     }
-    let mut rules = Vec::with_capacity(bridge_rules.len());
-    for (rule, requirements) in bridge_rules.iter().zip(rule_path_indices) {
-        let observed_requirements = requirements
+    let mut observed_rules = Vec::with_capacity(rules.len());
+    for rule in rules {
+        let observed_requirements = rule
+            .path_requirements()
             .iter()
             .map(|indices| {
                 let clauses = indices
@@ -79,15 +76,15 @@ fn lower_observation(
                 Ok(BridgeAuthorizationRequirementObservation::any(clauses))
             })
             .collect::<Result<Vec<_>, WorthQueryOperationAuthorizationDenial>>()?;
-        rules.push(BridgeAuthorizationRuleObservation::all(
-            rule.effect(),
+        observed_rules.push(BridgeAuthorizationRuleObservation::all(
+            rule.bridge().effect(),
             observed_requirements,
         ));
     }
     Ok(BridgeAuthorizationObservation::new(
         correspondence,
         dependency_identity,
-        rules,
+        observed_rules,
     ))
 }
 
@@ -98,13 +95,13 @@ fn observe_clause(
     index: usize,
 ) -> Result<BridgeAuthorizationClauseObservation, WorthQueryOperationAuthorizationDenial> {
     let template = installed
-        .paths
+        .paths()
         .get(index)
-        .ok_or_else(|| super::invalid_policy(installed.contract.name()))?;
+        .ok_or_else(|| super::invalid_policy(installed.contract().name()))?;
     let path = evidence
         .paths()
         .get(index)
-        .ok_or_else(|| super::invalid_policy(installed.contract.name()))?;
+        .ok_or_else(|| super::invalid_policy(installed.contract().name()))?;
     let guard = guard_matches(&template.guard, projection);
     Ok(BridgeAuthorizationClauseObservation::new(
         template.identity,
@@ -127,10 +124,10 @@ fn guard_matches(
         return true;
     };
     let actual = match axis {
-        WorthQueryCapabilityRequestValueAxis::Action => Some(&projection.action),
-        WorthQueryCapabilityRequestValueAxis::Purpose => Some(&projection.purpose),
-        WorthQueryCapabilityRequestValueAxis::Field => projection.field.as_ref(),
-        WorthQueryCapabilityRequestValueAxis::Amount => projection.amount.as_ref(),
+        WorthQueryCapabilityRequestValueAxis::Action => Some(projection.action()),
+        WorthQueryCapabilityRequestValueAxis::Purpose => Some(projection.purpose()),
+        WorthQueryCapabilityRequestValueAxis::Field => projection.field(),
+        WorthQueryCapabilityRequestValueAxis::Magnitude => projection.magnitude(),
     };
     actual.is_some_and(|actual| values.contains(actual))
 }

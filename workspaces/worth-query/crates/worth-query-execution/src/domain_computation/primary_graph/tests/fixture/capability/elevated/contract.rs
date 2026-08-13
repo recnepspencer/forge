@@ -1,16 +1,16 @@
 use worth_query_declaration::facade::{
     application_capability::{
         ApplicationCapabilityAcceptedValues, ApplicationCapabilityActorComposition,
-        ApplicationCapabilityAllowRule, ApplicationCapabilityAmountDimension,
-        ApplicationCapabilityCardinalityDimension, ApplicationCapabilityComposition,
-        ApplicationCapabilityConflictRule, ApplicationCapabilityConstraintDefinition,
-        ApplicationCapabilityContract, ApplicationCapabilityContractBuilder,
-        ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDecisionComposition,
-        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationDepth,
-        ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
-        ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
-        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-        ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRule,
+        ApplicationCapabilityAllowRule, ApplicationCapabilityCardinalityDimension,
+        ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
+        ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContract,
+        ApplicationCapabilityContractBuilder, ApplicationCapabilityCurrentnessDefinition,
+        ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
+        ApplicationCapabilityDelegationDepth, ApplicationCapabilityDelegationRule,
+        ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
+        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityFieldBinding,
+        ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
+        ApplicationCapabilityGraphRule, ApplicationCapabilityMagnitudeDimension,
         ApplicationCapabilityPropagationComposition, ApplicationCapabilityRelationBinding,
         ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
         ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
@@ -18,9 +18,20 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
     },
     application_schema::{
-        ApplicationAuthorizationPathBuilder, ApplicationSchemaDeclarationBuilder,
+        ApplicationAuthorizationPathBuilder, ApplicationOperationDefinition,
+        ApplicationOperationRef, ApplicationSchemaDeclarationBuilder,
     },
 };
+
+fn without_external_effect_or_aftermath<Operation, Input>(
+    operation: ApplicationOperationRef<IdentityExecutionSchema, Operation, Input>,
+) -> ApplicationOperationDefinition<IdentityExecutionSchema, Operation, Input> {
+    operation
+        .definition()
+        .no_external_effect()
+        .no_aftermath()
+        .finish()
+}
 
 use super::super::super::{
     Account, AccountLabel, AccountStatus, IdentityExecutionSchema, Principal,
@@ -140,11 +151,21 @@ pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn 
         )
         .capability_context_entity_slot(CapabilityElevationSlot::reference())
         .capability_context_entity_slot(CapabilityReviewSlot::reference())
-        .operation(ElevatedCapabilityTouchOperation::reference())
-        .operation(RequestCapabilityElevationOperation::reference())
-        .operation(ApproveCapabilityElevationOperation::reference())
-        .operation(RevokeCapabilityElevationOperation::reference())
-        .operation(CompleteCapabilityReviewOperation::reference())
+        .operation(without_external_effect_or_aftermath(
+            ElevatedCapabilityTouchOperation::reference(),
+        ))
+        .operation(without_external_effect_or_aftermath(
+            RequestCapabilityElevationOperation::reference(),
+        ))
+        .operation(without_external_effect_or_aftermath(
+            ApproveCapabilityElevationOperation::reference(),
+        ))
+        .operation(without_external_effect_or_aftermath(
+            RevokeCapabilityElevationOperation::reference(),
+        ))
+        .operation(without_external_effect_or_aftermath(
+            CompleteCapabilityReviewOperation::reference(),
+        ))
         .operation_decision_fact_budget(ElevatedCapabilityTouchOperation::reference(), 1)
         .operation_projection_work_budget(ElevatedCapabilityTouchOperation::reference(), 32)
         .operation_read_field(
@@ -212,7 +233,7 @@ pub(super) fn command_target(action: CapabilityAction) -> ApplicationCapabilityT
 
 pub(super) fn constraints() -> ApplicationCapabilityConstraintDefinition {
     ApplicationCapabilityConstraintDefinition::new(
-        ApplicationCapabilityAmountDimension::bound(CapabilityAmountField::reference()),
+        ApplicationCapabilityMagnitudeDimension::bound(CapabilityAmountField::reference()),
         ApplicationCapabilityCardinalityDimension::One,
         ApplicationCapabilityCurrentnessDefinition::new(
             ApplicationCapabilityValueBinding::new(
@@ -241,7 +262,7 @@ pub(super) fn constraints() -> ApplicationCapabilityConstraintDefinition {
 
 pub(super) fn command_constraints() -> ApplicationCapabilityConstraintDefinition {
     ApplicationCapabilityConstraintDefinition::new(
-        ApplicationCapabilityAmountDimension::not_applicable(),
+        ApplicationCapabilityMagnitudeDimension::not_applicable(),
         ApplicationCapabilityCardinalityDimension::One,
         ApplicationCapabilityCurrentnessDefinition::new(
             ApplicationCapabilityValueBinding::new(

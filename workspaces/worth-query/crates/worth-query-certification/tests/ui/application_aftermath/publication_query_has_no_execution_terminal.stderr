@@ -1,0 +1,5 @@
+error[E0599]: no method named `read_completion` found for reference `&WorthQueryApplicationQueryPublicationReceipt` in the current scope
+ --> tests/ui/application_aftermath/publication_query_has_no_execution_terminal.rs:4:21
+  |
+4 |     let _ = receipt.read_completion();
+  |                     ^^^^^^^^^^^^^^^ method not found in `&WorthQueryApplicationQueryPublicationReceipt`

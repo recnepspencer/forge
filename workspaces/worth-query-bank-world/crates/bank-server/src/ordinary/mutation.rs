@@ -11,6 +11,10 @@ pub use continuation::{
 pub use controls::BankMutationControls;
 pub use explanation::{BankMutationExplanation, BankMutationExplanationStage};
 pub use outcome::{
-    BankMutationDenial, BankMutationMetadata, BankMutationOutcome, BankMutationStatus,
+    BankAuthorizationDenial, BankAuthorizationDenialKind, BankEntityResolutionDenial,
+    BankEntityResolutionDenialKind, BankIdempotencyResolutionDenialKind, BankMutationDenial,
+    BankMutationMetadata, BankMutationOutcome, BankMutationProjectionWork,
+    BankMutationProposalDenial, BankMutationStatus, BankOperationInstallationDenial,
+    BankOperationInstallationDenialKind,
 };
 pub use query::{mutations, BankMutation, BankMutationForPrincipal, BankReadyMutation};

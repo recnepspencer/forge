@@ -3,6 +3,8 @@ use std::rc::Rc;
 
 use worth_foundational::facade::AspectValue;
 use worth_query_admission::facade::authenticated_principal::WorthQueryRequestInterruption;
+#[cfg(test)]
+use worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope;
 use worth_query_declaration::facade::{
     application_query::{ApplicationQueryLiveCauseBinding, ApplicationQueryParameterSet},
     application_schema::{ApplicationSchema, TypedApplicationValue},
@@ -300,6 +302,13 @@ where
         } else {
             WorthQueryApplicationLiveCloseOutcome::Unavailable
         }
+    }
+
+    /// Test harness only: bind an already-settled request scope to the open
+    /// lease so deadline/cancellation poll outcomes are deterministic.
+    #[cfg(test)]
+    pub(crate) fn replace_request(&mut self, request: WorthQueryRequestScope) {
+        self.controls.replace_request(request);
     }
 }
 

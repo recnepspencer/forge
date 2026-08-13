@@ -27,7 +27,7 @@ pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityDele
     pub(in crate::domain_computation::authorization) action: AspectFieldLocator,
     pub(in crate::domain_computation::authorization) purpose: AspectFieldLocator,
     pub(in crate::domain_computation::authorization) disclosure: Option<AspectFieldLocator>,
-    pub(in crate::domain_computation::authorization) amount: Option<AspectFieldLocator>,
+    pub(in crate::domain_computation::authorization) magnitude: Option<AspectFieldLocator>,
     pub(in crate::domain_computation::authorization) active_status:
         (AspectFieldLocator, AspectValue),
     pub(in crate::domain_computation::authorization) grant_workflow: AspectFieldLocator,
@@ -113,7 +113,7 @@ impl WorthQueryCapabilityDelegationBindings {
             disclosure: field_binding(contract.target().field())
                 .map(|binding| field_locator(layout, binding))
                 .transpose()?,
-            amount: field_binding(contract.constraints().amount())
+            magnitude: field_binding(contract.constraints().magnitude())
                 .map(|binding| field_locator(layout, binding))
                 .transpose()?,
             active_status: active_status.clone(),

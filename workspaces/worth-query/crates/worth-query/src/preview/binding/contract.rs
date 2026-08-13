@@ -14,14 +14,26 @@ use worth_runtime_bridge::facade::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreviewLifecycleMetadata {
-    pub(super) lifecycle_state_kind: BridgePreviewLifecycleStateKind,
-    pub(super) execution_record_identity: Option<PreviewExecutionRecordIdentity>,
-    pub(super) replay_bundle_digest: Option<String>,
-    pub(super) promotion_record_identity: Option<String>,
-    pub(super) promotion_proof_digest: Option<String>,
+    lifecycle_state_kind: BridgePreviewLifecycleStateKind,
+    execution_record_identity: Option<PreviewExecutionRecordIdentity>,
+    replay_bundle_digest: Option<String>,
+    promotion_record_identity: Option<String>,
+    promotion_proof_digest: Option<String>,
 }
 
 impl PreviewLifecycleMetadata {
+    pub(super) fn from_source(
+        lifecycle_state_kind: BridgePreviewLifecycleStateKind,
+        execution_record_identity: Option<PreviewExecutionRecordIdentity>,
+    ) -> Self {
+        Self {
+            lifecycle_state_kind,
+            execution_record_identity,
+            replay_bundle_digest: None,
+            promotion_record_identity: None,
+            promotion_proof_digest: None,
+        }
+    }
     pub fn lifecycle_state_kind(&self) -> BridgePreviewLifecycleStateKind {
         self.lifecycle_state_kind
     }
@@ -62,53 +74,38 @@ pub struct PreviewSessionBindingTuple {
 }
 
 impl PreviewSessionBindingTuple {
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn new(
-        canonical_query_digest: CanonicalQueryDigest,
-        canonical_result_shape_digest: CanonicalResultShapeDigest,
-        validated_query_digest: ValidatedQueryDigest,
-        validated_result_shape_digest: ValidatedResultShapeDigest,
-        evaluation_class: PreviewEvaluationClass,
-        preview_session_identity: BridgePreviewSessionIdentity,
-        declaration_identity: BridgePreviewSessionDeclarationIdentity,
-        declaration_digest: String,
-        lifecycle_state_kind: BridgePreviewLifecycleStateKind,
-        execution_record_identity: Option<PreviewExecutionRecordIdentity>,
-        replay_bundle_digest: Option<String>,
-        promotion_record_identity: Option<String>,
-        promotion_proof_digest: Option<String>,
+    pub(super) fn from_admitted(
+        preflight: &ExecutionPreflightBundle,
+        query_context: &PreviewSessionQueryContext,
     ) -> Self {
-        let digest = workflow_context_identity::compose_preview_session_binding_tuple_digest(
-            &canonical_query_digest,
-            &canonical_result_shape_digest,
-            &validated_query_digest,
-            &validated_result_shape_digest,
-            &evaluation_class,
-            &preview_session_identity,
-            &declaration_identity,
-            &declaration_digest,
-            lifecycle_state_kind,
-            execution_record_identity.as_ref(),
-            replay_bundle_digest.as_deref(),
-            promotion_record_identity.as_deref(),
-            promotion_proof_digest.as_deref(),
-        );
-        Self {
-            digest,
-            canonical_query_digest,
-            canonical_result_shape_digest,
-            validated_query_digest,
-            validated_result_shape_digest,
-            evaluation_class,
-            preview_session_identity,
-            declaration_identity,
-            declaration_digest,
-            lifecycle_state_kind,
-            execution_record_identity,
-            replay_bundle_digest,
-            promotion_record_identity,
-            promotion_proof_digest,
-        }
+        let source = query_context.source.snapshot();
+        let mut binding = Self {
+            digest: String::new(),
+            canonical_query_digest: preflight.plan().query().canonical_query_digest().clone(),
+            canonical_result_shape_digest: preflight
+                .plan()
+                .result_shape()
+                .canonical_result_shape_digest()
+                .clone(),
+            validated_query_digest: preflight.plan().query().validated_query_digest().clone(),
+            validated_result_shape_digest: preflight
+                .plan()
+                .result_shape()
+                .validated_result_shape_digest()
+                .clone(),
+            evaluation_class: query_context.evaluation_class.clone(),
+            preview_session_identity: source.preview_session_identity.clone(),
+            declaration_identity: source.declaration_identity.clone(),
+            declaration_digest: source.declaration_digest.clone(),
+            lifecycle_state_kind: source.lifecycle_state_kind,
+            execution_record_identity: source.execution_record_identity.clone(),
+            replay_bundle_digest: None,
+            promotion_record_identity: None,
+            promotion_proof_digest: None,
+        };
+        binding.digest =
+            workflow_context_identity::compose_preview_session_binding_tuple_digest(&binding);
+        binding
     }
 
     pub fn digest(&self) -> &str {
@@ -231,14 +228,29 @@ impl PreviewBindingReport {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreviewSessionPlanBinding {
-    pub(super) preflight: ExecutionPreflightBundle,
-    pub(super) query_context: PreviewSessionQueryContext,
-    pub(super) basis: PreviewSessionBasis,
-    pub(super) lifecycle_metadata: PreviewLifecycleMetadata,
-    pub(super) report: PreviewBindingReport,
+    preflight: ExecutionPreflightBundle,
+    query_context: PreviewSessionQueryContext,
+    basis: PreviewSessionBasis,
+    lifecycle_metadata: PreviewLifecycleMetadata,
+    report: PreviewBindingReport,
 }
 
 impl PreviewSessionPlanBinding {
+    pub(super) fn from_admitted(
+        preflight: ExecutionPreflightBundle,
+        query_context: PreviewSessionQueryContext,
+        basis: PreviewSessionBasis,
+        lifecycle_metadata: PreviewLifecycleMetadata,
+        report: PreviewBindingReport,
+    ) -> Self {
+        Self {
+            preflight,
+            query_context,
+            basis,
+            lifecycle_metadata,
+            report,
+        }
+    }
     pub fn preflight(&self) -> &ExecutionPreflightBundle {
         &self.preflight
     }
@@ -262,10 +274,13 @@ impl PreviewSessionPlanBinding {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReadOnlyPreviewSessionPlanBinding {
-    pub(in crate::preview) inner: PreviewSessionPlanBinding,
+    inner: PreviewSessionPlanBinding,
 }
 
 impl ReadOnlyPreviewSessionPlanBinding {
+    pub(in crate::preview) fn from_admitted(inner: PreviewSessionPlanBinding) -> Self {
+        Self { inner }
+    }
     pub fn preflight(&self) -> &ExecutionPreflightBundle {
         self.inner.preflight()
     }
@@ -286,7 +301,6 @@ impl ReadOnlyPreviewSessionPlanBinding {
         self.inner.report()
     }
 
-    #[cfg(test)]
     pub(crate) fn as_preview_binding(&self) -> &PreviewSessionPlanBinding {
         &self.inner
     }
@@ -294,10 +308,13 @@ impl ReadOnlyPreviewSessionPlanBinding {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PromotionEligiblePreviewSessionPlanBinding {
-    pub(in crate::preview) inner: PreviewSessionPlanBinding,
+    inner: PreviewSessionPlanBinding,
 }
 
 impl PromotionEligiblePreviewSessionPlanBinding {
+    pub(in crate::preview) fn from_admitted(inner: PreviewSessionPlanBinding) -> Self {
+        Self { inner }
+    }
     pub fn preflight(&self) -> &ExecutionPreflightBundle {
         self.inner.preflight()
     }
@@ -318,7 +335,6 @@ impl PromotionEligiblePreviewSessionPlanBinding {
         self.inner.report()
     }
 
-    #[cfg(test)]
     pub(crate) fn as_preview_binding(&self) -> &PreviewSessionPlanBinding {
         &self.inner
     }

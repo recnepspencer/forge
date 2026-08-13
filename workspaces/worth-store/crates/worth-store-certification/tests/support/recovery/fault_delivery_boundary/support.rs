@@ -1,5 +1,5 @@
-use crate::runtime_recovery_fixture;
-
+use sha2::{Digest, Sha256};
+use worth_store_offline_verifier::{observe_recovery_artifacts, RecoveryObserverLimits};
 use worth_store_physical_backend::ProductionStorageBoundarySeam;
 use worth_store_physical_certification::{
     lower_physical_simulation_plan, physical_scenario, AdmittedDriverContractSet,
@@ -13,17 +13,13 @@ use worth_store_physical_certification::{
     ProductionStorageBoundaryDriver, SimulationEvidencePolicy, SimulationPlanningContext,
     SupportedObserverSet, SupportedOracleFamilySet,
 };
-use worth_store_recovery_physics::{
-    FreshRuntimeRecoveryDriver, RecoveryOfflineVerifier, RecoveryProfileId,
-    RecoveryRuntimeClassification, RuntimeRecoveryReport,
-};
+use worth_store_recovery_runtime::RecoveryReportEnvelope;
 use worth_store_test_support::harness::test_authority::{
     io_pressure_fault_locus, observed_checksum_mismatch_boundary, observed_io_pressure_boundary,
     observed_torn_frame_boundary, page_generation_fault_locus, wal_frame_payload_fault_locus,
 };
 use worth_store_test_support::{
-    admitted_developer_smoke_driver_contracts, deterministic_recovery_artifacts,
-    NativeStoreAspectFixture,
+    admitted_developer_smoke_driver_contracts, NativeStoreAspectFixture,
 };
 
 #[derive(Clone)]
@@ -208,29 +204,35 @@ pub fn complete_context() -> SimulationPlanningContext {
 }
 
 pub fn fresh_runtime_crash_evidence() -> FreshRuntimeCrashRecoveryEvidence {
-    let artifacts = deterministic_recovery_artifacts();
-    let verifier = RecoveryOfflineVerifier::for_profile(
-        "s4-format-v1",
-        "strict-posix-fsync-dir-fsync",
-        RecoveryProfileId::strict_offline_recovery_artifacts(),
-    );
-    let offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
-    let (receipt, execution) =
-        runtime_recovery_fixture::execute_reopened_recovery_fixture(&offline, &artifacts).unwrap();
-    let evidence = verifier.verify_fresh_runtime_reopen(&artifacts).unwrap();
-    let witness = FreshRuntimeRecoveryDriver::from_reopen_harness_evidence(evidence)
-        .witness_from_reopened_execution(execution)
-        .unwrap();
-    let runtime_report = RuntimeRecoveryReport::from_verified_bounded_recovery(
-        witness,
-        &offline,
-        RecoveryRuntimeClassification::Recovered,
-        &receipt,
-        Vec::new(),
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(root.path().join("selector"), b"observed").unwrap();
+    let observer = observe_recovery_artifacts(
+        root.path(),
+        RecoveryObserverLimits::new(1, 1, 1, 8).unwrap(),
     )
     .unwrap();
+    FreshRuntimeCrashRecoveryEvidence::from_reports(recovered_runtime_report(), observer).unwrap()
+}
 
-    FreshRuntimeCrashRecoveryEvidence::from_runtime_report(receipt, runtime_report).unwrap()
+fn recovered_runtime_report() -> RecoveryReportEnvelope {
+    let family = worth_store_recovery_runtime::RECOVERY_REPORT_PROTOCOL
+        .as_str()
+        .as_bytes();
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(&(family.len() as u64).to_le_bytes());
+    bytes.extend_from_slice(family);
+    bytes.extend_from_slice(&1_u32.to_le_bytes());
+    bytes.push(1);
+    bytes.push(1);
+    bytes.extend_from_slice(&[7; 16]);
+    bytes.push(1);
+    bytes.extend_from_slice(&1_u64.to_le_bytes());
+    bytes.extend_from_slice(&0_u64.to_le_bytes());
+    bytes.extend_from_slice(&0_u64.to_le_bytes());
+    bytes.extend_from_slice(&0_u64.to_le_bytes());
+    let digest: [u8; 32] = Sha256::digest(&bytes).into();
+    bytes.extend_from_slice(&digest);
+    RecoveryReportEnvelope::decode(&bytes).unwrap()
 }
 
 pub fn developer_smoke_production_trace(

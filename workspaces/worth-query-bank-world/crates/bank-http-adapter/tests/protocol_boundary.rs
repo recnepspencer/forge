@@ -154,3 +154,51 @@ fn assert_callback_denial(
         AuthentikAuthorizationCallback::new(code, state).expect_err("malformed callback must fail");
     assert_eq!(error, expected);
 }
+
+#[test]
+fn r8_49_wire_protocol_carries_no_runtime_or_aftermath_authority() {
+    let protocol_root = concat!(env!("CARGO_MANIFEST_DIR"), "/src/http/protocol");
+    let forbidden = [
+        "worth_query",
+        "WorthQueryRecoveryHandle",
+        "WorthQueryAuthority",
+        "BankCommitReceipt",
+        "BankCommitRecoveryHandle",
+        "BankRecordedInverseUndoAdmission",
+        "BankCompensationUndoAdmission",
+        "BankRedoRecovery",
+        "BankRequestedEstateElevation",
+        "BankApprovedEstateElevation",
+        "BankEstateMandatoryReview",
+        "BankEstateProgressionFailure",
+    ];
+    let mut hits = Vec::new();
+    for path in rust_files(std::path::Path::new(protocol_root)) {
+        let text = std::fs::read_to_string(&path).expect("read protocol source");
+        for needle in forbidden {
+            if text.contains(needle) {
+                hits.push(format!("{}:{needle}", path.display()));
+            }
+        }
+    }
+    assert!(
+        hits.is_empty(),
+        "HTTP wire protocol must remain descriptive and authority-free: {hits:?}"
+    );
+}
+
+fn rust_files(root: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut pending = vec![root.to_path_buf()];
+    let mut files = Vec::new();
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(directory).expect("protocol directory") {
+            let path = entry.expect("protocol entry").path();
+            if path.is_dir() {
+                pending.push(path);
+            } else if path.extension().is_some_and(|extension| extension == "rs") {
+                files.push(path);
+            }
+        }
+    }
+    files
+}

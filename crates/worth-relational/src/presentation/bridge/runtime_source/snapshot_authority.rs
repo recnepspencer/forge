@@ -1,7 +1,7 @@
 use crate::capabilities::{CommitEnvelopeSource, SnapshotSource};
 use crate::history::data::CommitId;
 use crate::identity::data::VersionId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::{RelationalBridgeSourceError, TruthSnapshotIdentity};
 
 use crate::presentation::bridge::identities::parse_bridge_snapshot_identity;

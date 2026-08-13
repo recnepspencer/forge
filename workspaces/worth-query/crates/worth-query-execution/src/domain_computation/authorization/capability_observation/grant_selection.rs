@@ -27,8 +27,8 @@ impl SelectedCapabilityGrant {
 use super::super::capability_registry::WorthQueryInstalledCapabilityPlan;
 use super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::super::{
-    WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryRuntimeTimeSample,
 };
 
 pub(super) fn select_exact_grant(
@@ -36,7 +36,7 @@ pub(super) fn select_exact_grant(
     snapshot: worth_relational::facade::snapshots::SnapshotHandle,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
 ) -> Result<SelectedCapabilityGrant, WorthQueryOperationAuthorizationDenial> {
     let lookup = lookup_candidate_grants(relational, snapshot.clone(), installed, request)?;
     let paths = prepare_candidate_paths(installed, request, sample, lookup.candidate_entity_ids())?;
@@ -57,32 +57,32 @@ fn lookup_candidate_grants(
 > {
     let lookup_request = BoundedRelationJoinLookupRequest::new(
         snapshot,
-        installed.grant_join_index_id,
-        request.principal,
-        request.resource,
+        installed.grant_join_index_id(),
+        request.principal(),
+        request.resource(),
         MAX_BOUNDED_INDEX_CANDIDATES,
     )
-    .map_err(|_| invalid_policy(installed.contract.name()))?;
+    .map_err(|_| invalid_policy(installed.contract().name()))?;
     let lookup = relational
         .index_access()
         .execute_bounded_relation_join_lookup(lookup_request, BoundedIndexParityMode::Production)
         .map_err(|_| {
             denial(
                 WorthQueryOperationAuthorizationDenialKind::RelationalObservationRejected,
-                installed.contract.name(),
+                installed.contract().name(),
             )
         })?;
     if lookup.overflowed() {
         return Err(denial(
             WorthQueryOperationAuthorizationDenialKind::GrantSelectionLimitExceeded,
-            installed.contract.name(),
+            installed.contract().name(),
         ));
     }
     let candidates = lookup.candidate_entity_ids();
     if candidates.is_empty() {
         return Err(denial(
             WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing,
-            installed.contract.name(),
+            installed.contract().name(),
         ));
     }
     Ok(lookup)
@@ -91,7 +91,7 @@ fn lookup_candidate_grants(
 fn prepare_candidate_paths(
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     candidates: &[worth_relational::facade::identity::EntityId],
 ) -> Result<Vec<RelationalAuthorizationPathPlan>, WorthQueryOperationAuthorizationDenial> {
     candidates
@@ -99,8 +99,8 @@ fn prepare_candidate_paths(
         .map(|grant| {
             prepare_grant_path(installed, request, sample).map(|path| {
                 path.with_entity_anchors([RelationalAuthorizationEntityAnchor::new(
-                    installed.grant_witness.entity_ordinal(),
-                    installed.grant_kind,
+                    installed.grant_witness().entity_ordinal(),
+                    installed.grant_kind(),
                     *grant,
                 )])
             })
@@ -120,18 +120,18 @@ fn observe_candidate_paths(
 > {
     let plan = RelationalAuthorizationObservationPlan::try_new(
         snapshot,
-        request.principal,
-        request.resource,
-        installed.principal_kind,
-        installed.scope_kind,
+        request.principal(),
+        request.resource(),
+        installed.principal_kind(),
+        installed.scope_kind(),
         paths,
         [],
     )
-    .map_err(|_| invalid_policy(installed.contract.name()))?;
+    .map_err(|_| invalid_policy(installed.contract().name()))?;
     relational.observe_authorization(plan).map_err(|_| {
         denial(
             WorthQueryOperationAuthorizationDenialKind::RelationalObservationRejected,
-            installed.contract.name(),
+            installed.contract().name(),
         )
     })
 }
@@ -144,11 +144,11 @@ fn selected_grant(
         .paths()
         .iter()
         .find_map(|path| path.witness())
-        .and_then(|witness| witness.entity_at(installed.grant_witness.entity_ordinal()))
+        .and_then(|witness| witness.entity_at(installed.grant_witness().entity_ordinal()))
         .ok_or_else(|| {
             denial(
                 WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing,
-                installed.contract.name(),
+                installed.contract().name(),
             )
         })
 }
@@ -170,16 +170,17 @@ fn selection_work(
 pub(super) fn prepare_grant_path(
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
 ) -> Result<RelationalAuthorizationPathPlan, WorthQueryOperationAuthorizationDenial> {
     let template = grant_template(installed)?;
     let mut predicates = template.plan.predicates().to_vec();
     append_grant_predicates(installed, request, sample, &mut predicates);
     let mut plan = template.plan.clone().with_predicates(predicates);
-    if let (Some(traversal), Some(entity)) = (&installed.request.related_relation, request.related)
+    if let (Some(traversal), Some(entity)) =
+        (&installed.request().related_relation, request.related())
     {
         plan = plan.with_related_entities([RelationalAuthorizationRelatedEntityConstraint::new(
-            installed.grant_witness.entity_ordinal(),
+            installed.grant_witness().entity_ordinal(),
             traversal.clone(),
             entity,
         )]);
@@ -194,13 +195,13 @@ fn grant_template(
     WorthQueryOperationAuthorizationDenial,
 > {
     let template = installed
-        .paths
-        .get(installed.grant_witness.path_index())
-        .ok_or_else(|| invalid_policy(installed.contract.name()))?;
+        .paths()
+        .get(installed.grant_witness().path_index())
+        .ok_or_else(|| invalid_policy(installed.contract().name()))?;
     if !template.context_anchors.is_empty()
-        || template.grant_ordinal != Some(installed.grant_witness.entity_ordinal())
+        || template.grant_ordinal != Some(installed.grant_witness().entity_ordinal())
     {
-        return Err(invalid_policy(installed.contract.name()));
+        return Err(invalid_policy(installed.contract().name()));
     }
     Ok(template)
 }
@@ -208,36 +209,36 @@ fn grant_template(
 fn append_grant_predicates(
     installed: &WorthQueryInstalledCapabilityPlan,
     projection: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     predicates: &mut Vec<RelationalAuthorizationPredicate>,
 ) {
-    let ordinal = installed.grant_witness.entity_ordinal();
+    let ordinal = installed.grant_witness().entity_ordinal();
     predicates.push(RelationalAuthorizationPredicate::compare(
         ordinal,
-        installed.grant_kind,
-        installed.request.not_before.clone(),
+        installed.grant_kind(),
+        installed.request().not_before.clone(),
         RelationalAuthorizationFieldComparison::AtMost,
         sample.value().clone(),
     ));
     predicates.push(RelationalAuthorizationPredicate::compare(
         ordinal,
-        installed.grant_kind,
-        installed.request.not_after.clone(),
+        installed.grant_kind(),
+        installed.request().not_after.clone(),
         RelationalAuthorizationFieldComparison::AtLeast,
         sample.value().clone(),
     ));
-    if let (Some(field), Some(value)) = (&installed.request.field, projection.field.as_ref()) {
+    if let (Some(field), Some(value)) = (&installed.request().field, projection.field()) {
         predicates.push(RelationalAuthorizationPredicate::new(
             ordinal,
-            installed.grant_kind,
+            installed.grant_kind(),
             field.clone(),
             value.clone(),
         ));
     }
-    if let (Some(field), Some(value)) = (&installed.request.amount, projection.amount.as_ref()) {
+    if let (Some(field), Some(value)) = (&installed.request().magnitude, projection.magnitude()) {
         predicates.push(RelationalAuthorizationPredicate::compare(
             ordinal,
-            installed.grant_kind,
+            installed.grant_kind(),
             field.clone(),
             RelationalAuthorizationFieldComparison::AtLeast,
             value.clone(),

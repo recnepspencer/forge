@@ -142,17 +142,16 @@ The focused example uses `mainThreadCompatibility` because it authors a fresh,
 explicitly named aspect graph synchronously. That is an honest specialist lane,
 not the platform deployment default.
 
-Worker-first remains the production default. On that path, put the aspect
-contracts in a published graph definition, import that definition into the
-worker runtime, and `await graph.ready()` before using its named handles. The
-imported graph preserves `producesAspects`, aspect-filtered `reads`, and
-aspect-aware writes. See [Graphs And Controllers](./graphs-and-controllers.md)
-for the publication and import boundary.
+Worker-first remains the production default. Empty-root worker authoring and
+imported graph definitions both admit the three-part aspect contract:
+`producesAspects`, aspect-filtered `reads: [{ id, aspect }]`, and
+`setWithAspects` / related writes. Prefer a published graph definition when the
+contract must travel as portable graph truth; see
+[Graphs And Controllers](./graphs-and-controllers.md).
 
-The current root worker authoring shortcut accepts ordinary declarative read
-IDs, but not fresh aspect-filtered read objects. Do not delete the aspect
-contract merely to make that shortcut fit; move the contract into the graph
-definition.
+Do not delete the aspect contract merely to make a string-id `reads` list fit.
+If a consumer depends on one meaning and not another, keep the filtered read
+descriptor.
 
 ## Prove What Happened
 
@@ -216,9 +215,10 @@ default aspect (`0`). Once an input has multiple aspect lanes, use
 - Aspect names are application-owned. The runtime stores IDs, not your domain
   vocabulary.
 - Aspect-filtered reads live in explicit structural specs, not ordinary
-  callback-computed authoring. Fresh named aspect specs use the compatibility
-  authoring lane; worker-first executes them through imported graph
-  definitions.
+  callback-computed authoring. Worker-first and mainThreadCompatibility both
+  admit `reads: [{ id, aspect }]` on `signals.spec.computed` /
+  `signals.spec.output`; portable graphs remain the preferred publication path
+  when the contract must cross process boundaries as a definition artifact.
 - The runtime trusts the change set supplied by the application. A false claim
   can make invalidation precisely wrong, which is much worse than vaguely
   inefficient.

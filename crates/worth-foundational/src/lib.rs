@@ -29,6 +29,7 @@ mod boundary;
 mod boundary_artifacts;
 mod boundary_evidence;
 pub mod boundary_evidence_api;
+mod boundary_protocol;
 mod canonicalization;
 pub mod canonicalization_api;
 mod compatibility;

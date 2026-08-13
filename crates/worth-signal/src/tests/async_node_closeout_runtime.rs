@@ -1,7 +1,7 @@
 use crate::facade::*;
 use crate::tests::async_node_support::{
     async_node_capability_declaration, async_node_capability_with_dependents,
-    AsyncNodeTestRuntime as TestRuntime,
+    settle_async_dependency_baseline, AsyncNodeTestRuntime as TestRuntime,
 };
 use crate::tests::support::define_keyed_computation;
 
@@ -196,6 +196,7 @@ fn async_node_hierarchy_historical_parity_report_preserves_restore_honesty() {
     graph
         .append_dependency(grandchild, child, Aspect::new(0))
         .expect("grandchild should depend on child");
+    settle_async_dependency_baseline(&mut graph, [parent, child, grandchild]);
 
     let mut runtime = TestRuntime::build(graph);
     let parent_handle = runtime

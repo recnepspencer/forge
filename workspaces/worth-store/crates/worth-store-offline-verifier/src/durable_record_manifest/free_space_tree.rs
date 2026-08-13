@@ -1,7 +1,9 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use worth_store_physical_format::PhysicalRecordFormatDeclaration;
+use worth_store_physical_format::{
+    maximum_segment_manifest_pages, PhysicalRecordFormatDeclaration,
+};
 
 use super::independent_frame::{artifact_checksum, decode_frame};
 use super::observation::{OfflineAllocationClass, OfflineFreeSpaceMembership};
@@ -94,6 +96,7 @@ struct OfflineFreeSpaceHeader {
     generation: u64,
     tree_identity: u64,
     node_capacity: u16,
+    segment_page_capacity: u32,
     entry_count: u64,
     next_block: u64,
     root: Option<FreeSpaceBlockReference>,
@@ -107,7 +110,7 @@ fn decode_header(
     let frame = decode_frame(bytes, 7, format)?;
     let payload = frame.payload;
     if payload.len() != HEADER_PAYLOAD_BYTES
-        || payload[18..24] != [0; 6]
+        || payload[22..24] != [0; 2]
         || payload[65..72] != [0; 7]
     {
         return Err(OfflineDurableManifestDenial::MalformedFreeSpace);
@@ -116,6 +119,7 @@ fn decode_header(
         generation: read_u64(payload, 0),
         tree_identity: read_u64(payload, 8),
         node_capacity: read_u16(payload, 16),
+        segment_page_capacity: read_u32(payload, 18),
         entry_count: read_u64(payload, 24),
         next_block: read_u64(payload, 56),
         root: optional_reference(payload[64], &payload[72..128])?,
@@ -124,6 +128,8 @@ fn decode_header(
         || header.generation != frame.identity
         || header.tree_identity != root.tree_identity
         || header.node_capacity != root.node_capacity
+        || header.segment_page_capacity == 0
+        || header.segment_page_capacity > maximum_segment_manifest_pages(format)
         || header.next_block == 0
         || (header.entry_count == 0) != header.root.is_none()
         || header.root != root.free_space_root

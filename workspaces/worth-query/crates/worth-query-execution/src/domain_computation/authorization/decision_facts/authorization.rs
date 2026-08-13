@@ -25,7 +25,25 @@ pub(in crate::domain_computation) struct WorthQueryAuthorizationDecisionFact {
 }
 
 impl WorthQueryAuthorizationDecisionFact {
-    pub(in crate::domain_computation) fn new(
+    pub(in crate::domain_computation::authorization) fn from_capability_observation(
+        _permit: crate::domain_computation::authorization::capability_observation::WorthQueryAuthorizationDecisionPermit,
+        session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+        relational: RelationalAuthorizationObservationEvidence,
+        bridge: BridgeAuthorizationDecisionEvidence,
+    ) -> Self {
+        Self::mint(session_identity, relational, bridge)
+    }
+
+    pub(in crate::domain_computation::authorization) fn from_conventional_observation(
+        _permit: crate::domain_computation::authorization::admission::WorthQueryConventionalAuthorizationDecisionPermit,
+        session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+        relational: RelationalAuthorizationObservationEvidence,
+        bridge: BridgeAuthorizationDecisionEvidence,
+    ) -> Self {
+        Self::mint(session_identity, relational, bridge)
+    }
+
+    fn mint(
         session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
         relational: RelationalAuthorizationObservationEvidence,
         bridge: BridgeAuthorizationDecisionEvidence,

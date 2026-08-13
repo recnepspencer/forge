@@ -50,7 +50,13 @@ where
     )
     .map_err(SignalRuntime::<D, I, E, Ctx, T>::branch_transfer_error_to_fork_denial)?;
     let snapshot_state = snapshot_state.clone();
-    let mut graph = snapshot.authority_graph();
+    let mut graph =
+        snapshot
+            .authority_graph()
+            .map_err(|_| SignalBranchForkDenial::UnknownForkSnapshot {
+                parent_branch_id: parent_branch.id,
+                snapshot_id: snapshot.meta.snapshot_id,
+            })?;
     *graph.telemetry_mut() = snapshot.checkpoint_image.graph_telemetry;
     for requirement in &reconstructability_proof.required_rebuild {
         match requirement {
@@ -78,6 +84,12 @@ where
             crate::logic::transaction::RequiredDerivedRebuildSet::TemporalState(_) => {}
         }
     }
+    graph
+        .readmit_checkpoint_causes()
+        .map_err(|_| SignalBranchForkDenial::UnknownForkSnapshot {
+            parent_branch_id: parent_branch.id,
+            snapshot_id: snapshot.meta.snapshot_id,
+        })?;
     graph
         .diagnostics_state_mut()
         .restore_snapshot_payload(snapshot.diagnostics.clone());

@@ -46,8 +46,8 @@ pub trait OptionalApplicationFieldValue: DeclaredApplicationFieldValue {}
 /// principal's stable application identity.
 pub trait TypedApplicationIdentityValue: TypedApplicationReadableValue {}
 
-pub trait TypedCurrencyApplicationValue: TypedApplicationValue {
-    type Currency: 'static;
+pub trait TypedUnitApplicationValue: TypedApplicationValue {
+    type Unit: 'static;
 }
 
 impl TypedApplicationValue for bool {

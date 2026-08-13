@@ -23,7 +23,11 @@ pub struct WorthQueryDomainOperationSemanticClosure {
     pub invariants: WorthQueryOperationInvariantContract,
     pub invariant_execution: super::WorthQueryInvariantExecutionContract,
     pub replay: WorthQueryOperationReplayContract,
-    pub reversal: WorthQueryOperationReversalContract,
+    /// Installed aftermath classification for mutation operations.
+    ///
+    /// `None` means the operation carries no aftermath contract (not a
+    /// mutation, or provisional-only work). Absence is not a posture variant.
+    pub aftermath: Option<crate::application_aftermath::WorthQueryInstalledAftermathContract>,
     pub lineage: WorthQueryOperationLineageContract,
     pub promotion: WorthQueryOperationPromotionContract,
     pub publication: WorthQueryOperationPublicationContract,
@@ -252,37 +256,6 @@ impl WorthQueryOperationEffectFamily {
 pub enum WorthQueryOperationInvariantContract {
     NotRequired,
     Declared { invariant_slots: Vec<String> },
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthQueryOperationReversalContract {
-    Irreversible,
-    ProvisionalDiscard,
-    ExactInverse {
-        lowering_family: String,
-    },
-    Compensation {
-        operation: super::WorthQueryDomainOperationIdentity,
-    },
-    ExactInverseWithPostcondition {
-        operation: super::WorthQueryDomainOperationIdentity,
-        lowering_family: String,
-        postcondition: WorthQueryAftermathPostcondition,
-    },
-    CompensationWithPostcondition {
-        operation: super::WorthQueryDomainOperationIdentity,
-        postcondition: WorthQueryAftermathPostcondition,
-    },
-    RebuildRequired {
-        recovery_family: String,
-    },
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthQueryAftermathPostcondition {
-    ExactPriorTruth,
-    InvariantRestored { invariant: String },
-    BusinessPostcondition { identity: String },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

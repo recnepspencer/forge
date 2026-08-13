@@ -42,7 +42,8 @@ fn pleasant_lane_dx_certification() {
     );
     assert!(failure_digest
         .entries()
-        .contains(&"compile_fail:pleasant_lane_cannot_skip_progression"));
+        .iter()
+        .any(|entry| entry == "compile_fail:pleasant_lane_cannot_skip_progression"));
 
     let codegen_honesty_report = dx::codegen_honesty_report();
     assert_eq!(
@@ -97,6 +98,7 @@ fn pleasant_lane_dx_certification() {
     assert!(docs_audit.structural_facts_feature_declares_dx_posture());
     assert!(docs_audit.transition_outcomes_feature_declares_dx_posture());
     assert!(docs_audit.witnesses_feature_declares_dx_posture());
+    assert!(docs_audit.authority_and_workflow_contracts_are_explicit());
 
     let residual_debt_report = dx::residual_debt_report();
     assert_eq!(residual_debt_report.suite(), "pleasant_lane_closeout_debt");

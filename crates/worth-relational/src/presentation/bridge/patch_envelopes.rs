@@ -1,10 +1,10 @@
+#[cfg(test)]
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::{BranchId, CommitId};
 use crate::publication::patch::data::{
     PublishedAspectChangePrecision, PublishedAuthoritativeAspectChange,
     PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
 };
-#[cfg(test)]
-use crate::replay::data::CanonicalCommitEnvelope;
 use worth_foundational::facade::{AspectLocator, LocatorAuthority};
 use worth_proof::TransitionOutcome;
 use worth_runtime_bridge::facade::{

@@ -36,7 +36,7 @@ fn chain_1000_minimal_recomputation() {
     assert_eq!(state_first, NodeState::Dirty);
 
     let state_second = graph.get_state(chain[1]).unwrap();
-    assert_eq!(state_second, NodeState::Dirty);
+    assert_eq!(state_second, NodeState::MaybeStale);
 
     let state_last = graph.get_state(chain[999]).unwrap();
     assert_eq!(state_last, NodeState::MaybeStale);

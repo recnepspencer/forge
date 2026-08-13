@@ -17,19 +17,32 @@ use super::boundary_evidence::{
 };
 use super::denial_explanation::materialize_denial_explanation;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryPublishedApplicationAuthorizationDenialCause {
+    MissingCapability,
+    ExplicitPolicyDenial,
+    ScopeMismatch,
+    PurposeMismatch,
+    Conflict,
+    SeparationOfDuty,
+    ElevationRequired,
+    ElevationDenied,
+    ElevationExpired,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationAuthorizationDenialArtifact {
-    cause: WorthQueryApplicationAuthorizationExplanationCause,
-    denial: WorthQueryOperationAuthorizationDenial,
+    cause: WorthQueryPublishedApplicationAuthorizationDenialCause,
+    contributing_cause_count: usize,
 }
 
 impl WorthQueryApplicationAuthorizationDenialArtifact {
-    pub const fn cause(&self) -> WorthQueryApplicationAuthorizationExplanationCause {
+    pub const fn cause(&self) -> WorthQueryPublishedApplicationAuthorizationDenialCause {
         self.cause
     }
 
-    pub const fn denial(&self) -> &WorthQueryOperationAuthorizationDenial {
-        &self.denial
+    pub const fn contributing_cause_count(&self) -> usize {
+        self.contributing_cause_count
     }
 }
 
@@ -104,23 +117,27 @@ pub fn publish_application_authorization_denial(
     WorthQueryPublishedApplicationAuthorizationDenial,
     WorthQueryApplicationAuthorizationPublicationDenial,
 > {
-    let denial_identity = denial
-        .identity()
-        .ok_or(WorthQueryApplicationAuthorizationPublicationDenial::OutcomeIdentityUnavailable)?;
-    let cause = denial
+    let execution_cause = denial
         .explanation_cause()
         .ok_or(WorthQueryApplicationAuthorizationPublicationDenial::OutcomeNotPublishable)?;
-    let identity = WorthQueryApplicationAuthorizationBoundaryIdentity::from_denial(denial_identity);
+    let cause = publish_denial_cause(execution_cause);
+    let cause_count = denial.causes().len();
+    let identity = WorthQueryApplicationAuthorizationBoundaryIdentity::from_closed_publication(
+        cause.label(),
+        &[cause_count.to_string()],
+        profile,
+    );
     let artifact = WorthQueryApplicationAuthorizationDenialArtifact {
         cause,
-        denial: denial.clone(),
+        contributing_cause_count: cause_count,
     };
     let boundary = profile::profile_boundary_artifact(
         FoundationalBoundaryArtifactSurface::new(artifact, 0),
         profile,
     )?;
-    let explanation = materialize_denial_explanation(cause, identity, profile.materialized())
-        .map_err(WorthQueryApplicationAuthorizationPublicationDenial::Diagnostic)?;
+    let explanation =
+        materialize_denial_explanation(execution_cause, identity, profile.materialized())
+            .map_err(WorthQueryApplicationAuthorizationPublicationDenial::Diagnostic)?;
     let provenance = current_provenance(identity)?;
     let receipt_boundary =
         FoundationalBoundaryEvidenceReceiptBoundary::boundary_artifact(identity.locator());
@@ -139,4 +156,53 @@ pub fn publish_application_authorization_denial(
         denied_closeout_receipt,
         publication_receipt,
     })
+}
+
+impl WorthQueryPublishedApplicationAuthorizationDenialCause {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::MissingCapability => "missing-capability",
+            Self::ExplicitPolicyDenial => "explicit-policy-denial",
+            Self::ScopeMismatch => "scope-mismatch",
+            Self::PurposeMismatch => "purpose-mismatch",
+            Self::Conflict => "conflict",
+            Self::SeparationOfDuty => "separation-of-duty",
+            Self::ElevationRequired => "elevation-required",
+            Self::ElevationDenied => "elevation-denied",
+            Self::ElevationExpired => "elevation-expired",
+        }
+    }
+}
+
+const fn publish_denial_cause(
+    cause: WorthQueryApplicationAuthorizationExplanationCause,
+) -> WorthQueryPublishedApplicationAuthorizationDenialCause {
+    use WorthQueryApplicationAuthorizationExplanationCause as Execution;
+    match cause {
+        Execution::MissingCapability => {
+            WorthQueryPublishedApplicationAuthorizationDenialCause::MissingCapability
+        }
+        Execution::ExplicitPolicyDenial => {
+            WorthQueryPublishedApplicationAuthorizationDenialCause::ExplicitPolicyDenial
+        }
+        Execution::ScopeMismatch => {
+            WorthQueryPublishedApplicationAuthorizationDenialCause::ScopeMismatch
+        }
+        Execution::PurposeMismatch => {
+            WorthQueryPublishedApplicationAuthorizationDenialCause::PurposeMismatch
+        }
+        Execution::Conflict => WorthQueryPublishedApplicationAuthorizationDenialCause::Conflict,
+        Execution::SeparationOfDuty => {
+            WorthQueryPublishedApplicationAuthorizationDenialCause::SeparationOfDuty
+        }
+        Execution::ElevationRequired => {
+            WorthQueryPublishedApplicationAuthorizationDenialCause::ElevationRequired
+        }
+        Execution::ElevationDenied => {
+            WorthQueryPublishedApplicationAuthorizationDenialCause::ElevationDenied
+        }
+        Execution::ElevationExpired => {
+            WorthQueryPublishedApplicationAuthorizationDenialCause::ElevationExpired
+        }
+    }
 }

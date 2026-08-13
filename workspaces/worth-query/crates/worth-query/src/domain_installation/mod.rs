@@ -15,7 +15,6 @@ mod installation_state;
 mod installed_authority;
 mod native_access;
 mod operating_world;
-mod operation_aftermath;
 mod operation_authority_chain;
 mod operation_execution;
 mod operation_identity_basis;
@@ -24,6 +23,7 @@ mod package_authority;
 mod package_installation_error;
 #[cfg(test)]
 mod pending_installations_tests;
+mod provisional_discard;
 pub(crate) use execution_index::{
     WorthQueryInstalledDomainExecutionIndex, WorthQueryInstalledDomainSemantics,
     WorthQueryInstalledOperationGraphBinding,
@@ -36,7 +36,6 @@ pub use installation_state::*;
 pub use installed_authority::*;
 pub use native_access::*;
 pub use operating_world::*;
-pub use operation_aftermath::*;
 pub(crate) use operation_authority_chain::WorthQueryOperationAuthorityBasis;
 pub use operation_execution::*;
 pub(crate) use operation_execution::{
@@ -45,6 +44,7 @@ pub(crate) use operation_execution::{
 pub use operation_lineage::*;
 pub use package_authority::*;
 pub use package_installation_error::WorthQueryDomainPackageInstallationError;
+pub use provisional_discard::*;
 
 #[cfg(test)]
 mod package_validation_matrix_tests;

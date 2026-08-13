@@ -68,21 +68,4 @@ impl BankReadControls {
             &self.request,
         )
     }
-
-    pub(super) fn application_query_preview_controls(
-        &self,
-        basis: worth_query_host::facade::primary_graph::WorthQueryApplicationPreviewBasis<
-            bank_domain::schema::BankSchema,
-        >,
-    ) -> worth_query_host::facade::primary_graph::WorthQueryApplicationQueryControls<
-        '_,
-        bank_domain::schema::BankSchema,
-    > {
-        worth_query_host::facade::primary_graph::WorthQueryApplicationQueryControls::preview(
-            basis,
-            self.maximum_results,
-            self.maximum_work,
-            &self.request,
-        )
-    }
 }

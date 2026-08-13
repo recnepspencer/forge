@@ -977,8 +977,9 @@ not duplicate or contradict the progression.
 - Runtime Phase 7.3 disclosure and noninterference implementation;
 - Runtime Phase 7.4 delegation, Phase 7.5 conflict composition, Phase 7.6
   emergency elevation, or Phase 7.7 Bank estate cutover;
-- Runtime Phase 8 aftermath or Runtime Phase 9 public policy cutover;
-- advanced Milestone 9.17 access products;
+- Runtime Phase 8 aftermath, Runtime Phase 9 host-installed conditional
+  operations, or Runtime Phase 10 public policy cutover;
+- advanced Milestone 9.19 access products;
 - multiple branch heads, per-branch version allocation, concurrent branch
   writers, branch creation, merge, rebase, or branch-local inversion;
 - a generic cross-runtime workflow engine;
@@ -1047,7 +1048,8 @@ Runtime Phase 7.3 and every later 9.16 phase inherit the session's typed branch
 unchanged. They may not default to `"main"`, treat version identity as global,
 or introduce a disclosure-, recovery-, aftermath-, transport-, or
 publication-local branch choice. Actual multiple-head and concurrent-writer
-mechanics remain the Milestone 9.17 handoff.
+mechanics, exact Relational/Signal component selection, and composite product-
+branch publication remain the Milestone 9.17 handoff.
 
 The 9.16 Runtime Phase 7 ledger retains its existing historical rows. The
 9.16.1 closure ledger is the additional prerequisite for Phase 7.3 and all

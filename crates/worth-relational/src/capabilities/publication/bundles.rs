@@ -1,6 +1,6 @@
 use crate::history::data::CommitReference;
-use crate::logic::runtime::{RelationalReplayRecord, RelationalRuntime};
 use crate::publication::bundle::PublicationBundle;
+use crate::runtime::{RelationalReplayRecord, RelationalRuntime};
 
 pub(crate) trait PublicationBundleSource {
     fn latest_publication_bundle(&self) -> Option<&PublicationBundle<RelationalReplayRecord>>;

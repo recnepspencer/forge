@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 
-use crate::logic::runtime::RelationalRuntime;
 use crate::publication::cdc::data::{
     NormalizedContinuationProof, SubscriberBoundaryAssessment, SubscriberContractDeclaration,
     SubscriberStreamFailure, SubscriberStreamFailureClass, MAX_NORMALIZED_CONTINUATION_BOUNDARIES,
 };
+use crate::runtime::RelationalRuntime;
 use crate::schema::data::{DescriptorSemanticsVersion, SchemaBoundaryFingerprint};
 
 use super::failures::unsupported_continuation_failure;

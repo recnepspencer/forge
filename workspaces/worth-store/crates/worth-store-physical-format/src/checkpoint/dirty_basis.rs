@@ -47,6 +47,12 @@ pub(super) fn decode_dirty_basis(
 fn encode_artifact(artifact: RecordArtifactFile) -> (u8, u64, u64) {
     match artifact {
         RecordArtifactFile::BootstrapCatalog => (1, 0, 0),
+        RecordArtifactFile::CurrentRootSelector => (12, 0, 0),
+        RecordArtifactFile::PreviousRootSelector => (13, 0, 0),
+        RecordArtifactFile::RootSelectorCandidate { role, publication } => match role {
+            crate::RootSelectorRole::Current => (14, publication, 0),
+            crate::RootSelectorRole::Previous => (15, publication, 0),
+        },
         RecordArtifactFile::CatalogCandidate { publication } => (2, publication, 0),
         RecordArtifactFile::RootManifest { generation } => (3, generation, 0),
         RecordArtifactFile::RootRoutingBlock { generation, block } => (4, generation, block),
@@ -105,6 +111,16 @@ fn decode_artifact(
         11 => RecordArtifactFile::FreeSpaceMembershipBlock {
             generation: first,
             block: second,
+        },
+        12 if first == 0 && second == 0 => RecordArtifactFile::CurrentRootSelector,
+        13 if first == 0 && second == 0 => RecordArtifactFile::PreviousRootSelector,
+        14 if second == 0 => RecordArtifactFile::RootSelectorCandidate {
+            role: crate::RootSelectorRole::Current,
+            publication: first,
+        },
+        15 if second == 0 => RecordArtifactFile::RootSelectorCandidate {
+            role: crate::RootSelectorRole::Previous,
+            publication: first,
         },
         _ => return Err(CheckpointStreamDecodeDenial::InvalidArtifactKind(kind)),
     };

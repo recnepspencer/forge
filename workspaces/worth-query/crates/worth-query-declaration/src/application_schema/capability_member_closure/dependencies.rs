@@ -35,7 +35,7 @@ pub(super) fn dependencies_are_closed(
         && relation_exists(members, contract.target().resource())
         && field_dimension_exists(members, contract.target().field())
         && relation_dimension_exists(members, contract.target().relation())
-        && field_dimension_exists(members, contract.constraints().amount())
+        && field_dimension_exists(members, contract.constraints().magnitude())
         && field_exists(
             members,
             contract.constraints().currentness().active_status().field(),

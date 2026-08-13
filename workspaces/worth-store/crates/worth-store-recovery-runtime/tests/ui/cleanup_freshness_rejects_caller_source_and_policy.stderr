@@ -1,0 +1,19 @@
+error: cannot construct `StoreRecoveryCleanupPlan` with struct literal syntax due to private fields
+  --> tests/ui/cleanup_freshness_rejects_caller_source_and_policy.rs:8:19
+   |
+ 8 |     let _forged = StoreRecoveryCleanupPlan {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^
+ 9 |         identity: [1; 32],
+   |         ----------------- private field
+10 |         store: fake(),
+   |         ------------- private field
+11 |         media_generation: fake(),
+   |         ------------------------ private field
+12 |         session: [1; 16],
+   |         ---------------- private field
+13 |         policy_identity: [2; 32],
+   |         ------------------------ private field
+14 |         candidates: fake(),
+   |         ------------------ private field
+   |
+   = note: ...and other private fields `descriptive_plan_identity`, `reopen`, `checkpoint`, `terminal_binding_evaluations` and `media_handle_baseline` that were not provided

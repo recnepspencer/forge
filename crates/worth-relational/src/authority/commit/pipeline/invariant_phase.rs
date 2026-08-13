@@ -1,6 +1,6 @@
 use super::rejection::{attach_rejection, elapsed_micros};
 use crate::identity::data::VersionId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{CommitLog, CommitPhase, CommitPhaseTiming, MergedCommitPlan};
 use crate::validation::engine::InvariantExecutionResult;
 

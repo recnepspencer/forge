@@ -1,12 +1,5 @@
 use std::marker::PhantomData;
 
-use worth_foundational::facade::ScalarAspectType;
-
-use super::capabilities::{
-    ApplicationFieldCurrency, NoApplicationCurrency, NoEqualityPredicate, ReadOnly,
-};
-use super::values::TypedApplicationValue;
-
 macro_rules! named_reference {
     ($name:ident, $($marker:ident),+) => {
         pub struct $name<$($marker),+> {
@@ -58,7 +51,7 @@ macro_rules! named_reference {
 named_reference!(ApplicationEntityRef, Schema, Entity);
 named_reference!(ApplicationAspectRef, Schema, Entity, Aspect);
 named_reference!(ApplicationPolicyRef, Schema, Policy);
-named_reference!(ApplicationCurrencyRef, Schema, Currency);
+named_reference!(ApplicationUnitRef, Schema, Unit);
 
 pub struct ApplicationAbilityRef<Schema, Ability, Scope> {
     name: &'static str,
@@ -172,117 +165,6 @@ impl<Schema, Relation, From, To> ApplicationRelationRef<Schema, Relation, From, 
 
     pub const fn to(&self) -> &'static str {
         self.to
-    }
-}
-
-pub struct ApplicationFieldRef<
-    Schema,
-    Entity,
-    Aspect,
-    Field,
-    Value,
-    Write = ReadOnly,
-    Equality = NoEqualityPredicate,
-    Currency = NoApplicationCurrency,
-> {
-    entity: &'static str,
-    aspect: &'static str,
-    field: &'static str,
-    _marker: PhantomData<
-        fn() -> (
-            Schema,
-            Entity,
-            Aspect,
-            Field,
-            Value,
-            Write,
-            Equality,
-            Currency,
-        ),
-    >,
-}
-
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> Copy
-    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
-{
-}
-
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> Clone
-    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
-{
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> std::fmt::Debug
-    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
-{
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("ApplicationFieldRef")
-            .field("entity", &self.entity)
-            .field("aspect", &self.aspect)
-            .field("field", &self.field)
-            .finish_non_exhaustive()
-    }
-}
-
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> PartialEq
-    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
-{
-    fn eq(&self, other: &Self) -> bool {
-        (self.entity, self.aspect, self.field) == (other.entity, other.aspect, other.field)
-    }
-}
-
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> Eq
-    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
-{
-}
-
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
-    ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
-where
-    Value: TypedApplicationValue,
-    Currency: ApplicationFieldCurrency,
-{
-    #[doc(hidden)]
-    pub const fn from_schema_identifiers(
-        entity: &'static str,
-        aspect: &'static str,
-        field: &'static str,
-    ) -> Self {
-        Self {
-            entity,
-            aspect,
-            field,
-            _marker: PhantomData,
-        }
-    }
-
-    pub const fn entity(&self) -> &'static str {
-        self.entity
-    }
-
-    pub const fn aspect(&self) -> &'static str {
-        self.aspect
-    }
-
-    pub const fn field(&self) -> &'static str {
-        self.field
-    }
-
-    pub const fn scalar_family(&self) -> ScalarAspectType {
-        Value::SCALAR_FAMILY
-    }
-
-    pub fn value_type_name(&self) -> &'static str {
-        std::any::type_name::<Value>()
-    }
-
-    pub const fn currency(&self) -> Option<&'static str> {
-        Currency::NAME
     }
 }
 

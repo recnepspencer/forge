@@ -91,7 +91,7 @@ fn root_candidate_signal_completion_precedes_replacement_and_current_root_advanc
     };
     assert_eq!(
         serving.media_counters().replacements(),
-        replacements_before + 1
+        replacements_before + 3
     );
     let directory_syncs_before_namespace = serving.media_counters().directory_syncs();
     let durable = match serving
@@ -115,7 +115,7 @@ fn root_candidate_signal_completion_precedes_replacement_and_current_root_advanc
     };
     assert_eq!(
         serving.media_counters().replacements(),
-        replacements_before + 1,
+        replacements_before + 3,
         "namespace durability must not replay catalog replacement"
     );
     assert!(

@@ -34,7 +34,6 @@ impl QuarantineReadmission {
                         admitted_family,
                         LayoutReadmissionSource::QuarantineRecovery,
                         witness.identity(),
-                        None,
                     ),
                     LayoutReadmissionCounterSnapshot::new(1, 0, 1),
                 )

@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::application_schema::{
-    ApplicationEntityRef, ApplicationFieldCurrency, ApplicationFieldRef, ApplicationRelationRef,
+    ApplicationEntityRef, ApplicationFieldRef, ApplicationFieldUnit, ApplicationRelationRef,
     EqualityCapable, EqualityPredicate, TypedApplicationValue, WritePosture,
 };
 
@@ -138,7 +138,7 @@ impl<Schema, Start, Current> ApplicationQueryRootPath<Schema, Start, Current> {
         }
     }
 
-    pub fn where_equal<Aspect, Field, Value, Write, Currency>(
+    pub fn where_equal<Aspect, Field, Value, Write, Unit>(
         mut self,
         field: ApplicationFieldRef<
             Schema,
@@ -148,7 +148,7 @@ impl<Schema, Start, Current> ApplicationQueryRootPath<Schema, Start, Current> {
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         expected: Value,
     ) -> Self
@@ -156,7 +156,7 @@ impl<Schema, Start, Current> ApplicationQueryRootPath<Schema, Start, Current> {
         Value: TypedApplicationValue,
         Write: WritePosture,
         EqualityPredicate: EqualityCapable,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.guards.push(ApplicationQueryRootPathGuard::new(
             self.steps.len(),

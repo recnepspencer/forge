@@ -39,7 +39,7 @@ pub(super) fn topology_is_valid(contract: &ErasedApplicationCapabilityContract) 
         && delegation_activation_topology_is_valid(contract)
         && capability_revocation_topology_is_valid(contract)
         && field_dimension_belongs_to(target.field(), grant)
-        && field_dimension_belongs_to(constraints.amount(), grant)
+        && field_dimension_belongs_to(constraints.magnitude(), grant)
         && elevation_topology_is_valid(contract)
 }
 

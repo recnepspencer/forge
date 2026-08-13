@@ -62,7 +62,7 @@ fn semantic_closure() -> domain::WorthQueryDomainOperationSemanticClosure {
         invariants: domain::WorthQueryOperationInvariantContract::NotRequired,
         invariant_execution: domain::WorthQueryInvariantExecutionContract::NotRequired,
         replay: domain::WorthQueryOperationReplayContract::ReExecutable,
-        reversal: domain::WorthQueryOperationReversalContract::Irreversible,
+        aftermath: None,
         lineage: domain::WorthQueryOperationLineageContract::NotRequired,
         promotion: domain::WorthQueryOperationPromotionContract::NotRequired,
         publication: domain::WorthQueryOperationPublicationContract::DerivedProjection {

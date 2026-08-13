@@ -3,6 +3,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::EvaluationCondition;
+use crate::data::proof::invalidation::revalidation::NodeInvalidationInput;
 use crate::data::temporal::{
     DeferredTemporalEligibility, LoweredTemporalEligibility, ReadyTemporalEligibility,
     TemporalCondition,
@@ -52,7 +53,9 @@ pub(super) fn prevalidate_stage_tasks(
 ) -> Result<Vec<PrevalidatedTask>, SignalError> {
     let mut prevalidated = Vec::with_capacity(tasks.len());
     for task in tasks {
-        let prepared = if let Some(prepared) =
+        let prepared = if let Some(prepared) = prepare_invalidation_outcome(graph, task)? {
+            prepared
+        } else if let Some(prepared) =
             prepare_condition_outcome_if_blocked(graph, task, temporal_lowering)?
         {
             prepared
@@ -68,12 +71,56 @@ pub(super) fn prevalidate_stage_tasks(
     Ok(prevalidated)
 }
 
+fn prepare_invalidation_outcome(
+    graph: &SignalGraph,
+    task: &EligibleTask,
+) -> Result<Option<PrevalidatedTask>, SignalError> {
+    match graph.node_invalidation_input(task.node)? {
+        NodeInvalidationInput::Pending(_) => {
+            let dependencies = capture_current_dependencies_without_refresh(graph, task.node)?;
+            Ok(Some(PrevalidatedTask::Prepared(
+                PreparedEvaluation::deferred_by_invalidation().with_dependencies(dependencies),
+            )))
+        }
+        NodeInvalidationInput::Resolved(_) => {
+            let structural = graph
+                .pending_dependency_revalidation(task.node)?
+                .is_some_and(|pending| pending.requires_structural_recompute());
+            Ok(structural.then_some(PrevalidatedTask::NeedsCompute {
+                temporal_ready: None,
+            }))
+        }
+        NodeInvalidationInput::ResolvedNoChange(_) => {
+            let validates_clean = matches!(
+                task.admission.node_state_at_admission,
+                Some(crate::data::node::NodeState::MaybeStale)
+            ) && !matches!(
+                task.request_mode,
+                crate::logic::evaluation::EvaluationRequestMode::ForceOnDemand
+            );
+            if !validates_clean {
+                return Ok(None);
+            }
+            let dependencies = capture_current_dependencies_without_refresh(graph, task.node)?;
+            Ok(Some(PrevalidatedTask::Prepared(
+                PreparedEvaluation::validated_clean().with_dependencies(dependencies),
+            )))
+        }
+    }
+}
+
 fn prepare_condition_outcome_if_blocked(
     graph: &mut SignalGraph,
     task: &EligibleTask,
     temporal_lowering: &TemporalLoweringContext,
 ) -> Result<Option<PrevalidatedTask>, SignalError> {
-    let dirty_aspects = graph.node_dirty_aspects(task.node)?;
+    let invalidation = graph.node_invalidation_input(task.node)?;
+    let Some(dirty_aspects) = invalidation.resolved_dirty_aspects() else {
+        let dependencies = capture_current_dependencies_without_refresh(graph, task.node)?;
+        return Ok(Some(PrevalidatedTask::Prepared(
+            PreparedEvaluation::deferred_by_invalidation().with_dependencies(dependencies),
+        )));
+    };
     let required_context = graph.get_contract(task.node)?.semantics.required_context;
     let max_dependency_delta = max_dependency_delta(graph, task.node)?;
     let ctx = ConditionEvaluationContext {
@@ -89,7 +136,10 @@ fn prepare_condition_outcome_if_blocked(
     match graph.node_eval_config(task.node)?.condition.clone() {
         EvaluationCondition::Always | EvaluationCondition::OnDemand => Ok(None),
         EvaluationCondition::AspectFilter(mask) => {
-            if dirty_aspects.is_empty() || dirty_aspects.intersects(mask) {
+            if !has_dependency_snapshot
+                || dirty_aspects.is_empty()
+                || dirty_aspects.intersects(mask)
+            {
                 Ok(None)
             } else {
                 prepare_condition_blocked_result(
@@ -232,8 +282,14 @@ fn lower_temporal_condition_from_runtime_clock(
 fn prepare_validated_clean_if_unchanged(
     graph: &mut SignalGraph,
     task: &EligibleTask,
-    _comparator_resolver: &mut impl ComparatorPolicyResolver,
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<Option<PrevalidatedTask>, SignalError> {
+    if matches!(
+        graph.node_invalidation_input(task.node)?,
+        NodeInvalidationInput::Resolved(ref causes) if causes.is_source_recompute()
+    ) {
+        return Ok(None);
+    }
     if matches!(
         task.request_mode,
         crate::logic::evaluation::EvaluationRequestMode::ForceOnDemand
@@ -252,11 +308,9 @@ fn prepare_validated_clean_if_unchanged(
         return Ok(None);
     }
 
-    if !task
-        .admission
-        .maybe_stale
-        .is_some_and(|admission| admission.unchanged_at_admission)
-    {
+    let preview =
+        super::super::validation::preview_maybe_stale(graph, task.node, comparator_resolver)?;
+    if !preview.unchanged {
         return Ok(None);
     }
 

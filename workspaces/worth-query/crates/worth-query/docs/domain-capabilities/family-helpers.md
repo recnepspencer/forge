@@ -180,4 +180,4 @@ understanding the canonical Query lanes underneath.
 - [Grouped Authoring](./grouped-authoring.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
-- [Recovery Boundary](./recovery-boundary.md)
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)

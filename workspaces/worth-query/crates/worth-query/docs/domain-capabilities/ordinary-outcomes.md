@@ -10,7 +10,7 @@ status enum.
 ## Why You Use It
 
 - keep success and typed stop posture in one inspectable result
-- pass a stopped operation to the recovery boundary without flattening it
+- project a stopped operation into remediation guidance without flattening it
 - share outcome handling across contribution, grouped, continuation, and
   Signal-compatibility orchestration
 
@@ -26,6 +26,10 @@ Declaration-entry convenience methods that return `Result` should keep their
 typed error. Convert to an ordinary outcome only when the owning public API
 explicitly exposes that lane.
 
+Despite the method name, `recover_from_outcome(...)` derives descriptive
+remediation guidance. It does not mint the receipt-bound
+`WorthQueryRecoveryHandle` used by committed application-aftermath recovery.
+
 ## Core Mental Model
 
 An ordinary outcome does not erase the boundary. `Bound` retains the public
@@ -36,8 +40,8 @@ artifact; `Stopped` retains the stop that explains why no artifact was bound.
 1. Execute through the installed declaration context.
 2. Preserve the returned ordinary outcome.
 3. Branch on `bound()` or `stop()` when the caller needs immediate handling.
-4. Ask `recover_from_outcome(...)` for a typed recovery brief when remediation
-   is needed.
+4. Ask `recover_from_outcome(...)` for a typed remediation brief when the
+   application needs next-step guidance.
 
 ## Small Example
 
@@ -56,14 +60,15 @@ let outcome = context.orchestrate_declaration_with_contributions_outcome(input);
 
 match (outcome.bound(), context.recover_from_outcome(&outcome)) {
     (Some(bound), _) => publish(bound),
-    (None, Some(recovery)) => schedule(recovery.next_action()),
+    (None, Some(brief)) => schedule_review(brief.recommended_action()),
     (None, None) => retain_for_inspection(outcome),
 }
 ```
 
 ## How It Relates To Other Features
 
-- [Recovery Boundary](./recovery-boundary.md) derives actionable next steps.
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md) derives descriptive next-step guidance.
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md) owns operational recovery after commit.
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
   exposes an ordinary outcome lane.
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
@@ -90,4 +95,5 @@ by the owning API.
 
 - [Domain Capabilities](./README.md)
 - [Runtime-Installed Domains](./runtime-installed-domains.md)
-- [Recovery Boundary](./recovery-boundary.md)
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)
+- [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)

@@ -1,5 +1,5 @@
 use crate::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationRelationRef, TypedApplicationValue,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationRelationRef, TypedApplicationValue,
     WritePosture,
 };
 use worth_foundational::facade::{AspectValue, ScalarAspectType};
@@ -19,13 +19,13 @@ pub struct ApplicationCapabilityFieldBinding {
 }
 
 impl ApplicationCapabilityFieldBinding {
-    pub fn from_reference<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>(
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+    pub fn from_reference<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>(
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Self
     where
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         Self {
             entity: field.entity().to_string(),
@@ -64,14 +64,14 @@ pub struct ApplicationCapabilityValueBinding {
 }
 
 impl ApplicationCapabilityValueBinding {
-    pub fn new<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>(
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+    pub fn new<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>(
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
         value: Value,
     ) -> Self
     where
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         Self {
             field: ApplicationCapabilityFieldBinding::from_reference(field),
@@ -130,13 +130,13 @@ impl ApplicationCapabilityFieldDimension {
         Self::NotApplicable
     }
 
-    pub fn bound<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>(
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+    pub fn bound<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>(
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Self
     where
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         Self::Bound(ApplicationCapabilityFieldBinding::from_reference(field))
     }
@@ -162,7 +162,7 @@ impl ApplicationCapabilityRelationDimension {
     }
 }
 
-pub type ApplicationCapabilityAmountDimension = ApplicationCapabilityFieldDimension;
+pub type ApplicationCapabilityMagnitudeDimension = ApplicationCapabilityFieldDimension;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ApplicationCapabilityCardinalityDimension {
@@ -220,7 +220,7 @@ impl ApplicationCapabilityTargetDefinition {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityConstraintDefinition {
-    amount: ApplicationCapabilityAmountDimension,
+    magnitude: ApplicationCapabilityMagnitudeDimension,
     cardinality: ApplicationCapabilityCardinalityDimension,
     currentness: ApplicationCapabilityCurrentnessDefinition,
     context: String,
@@ -229,13 +229,13 @@ pub struct ApplicationCapabilityConstraintDefinition {
 
 impl ApplicationCapabilityConstraintDefinition {
     pub fn new<Schema, Context>(
-        amount: ApplicationCapabilityAmountDimension,
+        magnitude: ApplicationCapabilityMagnitudeDimension,
         cardinality: ApplicationCapabilityCardinalityDimension,
         currentness: ApplicationCapabilityCurrentnessDefinition,
         context: ApplicationCapabilityContextRef<Schema, Context>,
     ) -> Self {
         Self {
-            amount,
+            magnitude,
             cardinality,
             currentness,
             context: context.name().to_string(),
@@ -243,8 +243,8 @@ impl ApplicationCapabilityConstraintDefinition {
         }
     }
 
-    pub const fn amount(&self) -> &ApplicationCapabilityAmountDimension {
-        &self.amount
+    pub const fn magnitude(&self) -> &ApplicationCapabilityMagnitudeDimension {
+        &self.magnitude
     }
 
     pub const fn cardinality(&self) -> ApplicationCapabilityCardinalityDimension {

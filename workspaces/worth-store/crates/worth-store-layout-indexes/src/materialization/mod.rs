@@ -21,9 +21,9 @@ pub use admission::{
     btree_replay_materialization_admission_cases, catalog_root_materialization_admission_cases,
     imported_blob_materialization_admission_cases, lsm_lookup_materialization_admission_cases,
     lsm_publication_materialization_admission_cases, lsm_replay_materialization_admission_cases,
-    restored_artifact_materialization_admission_cases, AdmittedLayoutMaterialization,
-    BTreeLookupMaterializationAdmissionCaseId, BTreeLookupMaterializationAdmissionOutcome,
-    BTreeLookupMaterializationAdmissionView, BTreePublicationMaterializationAdmissionCaseId,
+    AdmittedLayoutMaterialization, BTreeLookupMaterializationAdmissionCaseId,
+    BTreeLookupMaterializationAdmissionOutcome, BTreeLookupMaterializationAdmissionView,
+    BTreePublicationMaterializationAdmissionCaseId,
     BTreePublicationMaterializationAdmissionOutcome, BTreePublicationMaterializationAdmissionView,
     BTreeReplayMaterializationAdmissionCaseId, BTreeReplayMaterializationAdmissionOutcome,
     BTreeReplayMaterializationAdmissionView, CatalogRootMaterializationAdmissionCaseId,
@@ -34,8 +34,6 @@ pub use admission::{
     LsmPublicationMaterializationAdmissionCaseId, LsmPublicationMaterializationAdmissionOutcome,
     LsmPublicationMaterializationAdmissionView, LsmReplayMaterializationAdmissionCaseId,
     LsmReplayMaterializationAdmissionOutcome, LsmReplayMaterializationAdmissionView,
-    RestoredArtifactMaterializationAdmissionCaseId,
-    RestoredArtifactMaterializationAdmissionOutcome, RestoredArtifactMaterializationAdmissionView,
 };
 pub(crate) use coverage::LayoutCoverageWitness;
 pub use coverage_basis::AdmittedCoverageBasis;
@@ -48,7 +46,7 @@ pub use freshness::{
 };
 pub use source::{
     ImportedBlobMaterializationSourceIdentity, LayoutMaterializationSourceIdentity,
-    LayoutMaterializationSourceKind, RestoredArtifactMaterializationSourceIdentity,
+    LayoutMaterializationSourceKind,
 };
 pub(crate) use state::{LayoutMaterializationState, MaterializationStateClass};
 pub(crate) use watermark::{CoverageBasisKind, LayoutWatermark, PhysicalCoverageBasis};

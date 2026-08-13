@@ -171,6 +171,31 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
         &self.execution_authority
     }
 
+    pub(crate) fn direct_domain_evidence_contract(
+        &self,
+    ) -> Option<
+        std::sync::Arc<
+            worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
+        >,
+    > {
+        self.execution_authority
+            .ordinary_direct_domain_evidence_contract()
+            .cloned()
+    }
+
+    pub(crate) fn workflow_stage_domain_evidence_contract(
+        &self,
+        stage: &worth_query_installation::facade::WorthQueryPortableWorkflowStage,
+    ) -> Option<
+        std::sync::Arc<
+            worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
+        >,
+    > {
+        self.execution_authority
+            .ordinary_workflow_domain_evidence_contract(stage.identity())
+            .cloned()
+    }
+
     pub const fn binding_counters(&self) -> super::WorthQueryOperationBindingCounters {
         self.binding_counters
     }

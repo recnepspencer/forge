@@ -8,10 +8,12 @@ publish = false
 
 [dependencies]
 bank-domain.workspace = true
+worth-foundational.workspace = true
 worth-query-host.workspace = true
 
 [dev-dependencies]
-worth-foundational.workspace = true
+bank-external-rail.workspace = true
+tokio.workspace = true
 
 [lints]
 workspace = true

@@ -1,0 +1,44 @@
+diff --git a/crates/worth-signal/src/tests/node_conditions/condition_admission.rs b/crates/worth-signal/src/tests/node_conditions/condition_admission.rs
+index 841c94088..e74976491 100644
+--- a/crates/worth-signal/src/tests/node_conditions/condition_admission.rs
++++ b/crates/worth-signal/src/tests/node_conditions/condition_admission.rs
+@@ -125,6 +125,38 @@ fn aspect_filter_recomputes_on_matched_aspect() {
+     assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
+ }
+-
++
++#[test]
++fn phase1_red_control_translated_aspect_must_recompute_matched_leaf() {
++    let mut graph = SignalGraph::new();
++    let source = graph.create_node();
++    let translator = graph.create_node();
++    let leaf = graph.node().aspect_filter(mask_b()).build();
++    graph.append_dependency(translator, source, ASPECT_A).unwrap();
++    graph.append_dependency(leaf, translator, ASPECT_B).unwrap();
++
++    let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
++    let mut translator_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 1));
++    let mut leaf_calls = 0_u64;
++    let mut leaf_compute = |_id: NodeId, _graph: &SignalGraph| {
++        leaf_calls += 1;
++        Ok(version_ab(0, 10 + leaf_calls))
++    };
++
++    evaluate(&mut graph, source, &mut source_compute).unwrap();
++    evaluate(&mut graph, translator, &mut translator_compute).unwrap();
++    evaluate(&mut graph, leaf, &mut leaf_compute).unwrap();
++    mark_dirty(&mut graph, source, ASPECT_A).unwrap();
++
++    let mut source_recompute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(2, 0));
++    let mut translator_recompute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 2));
++    evaluate(&mut graph, source, &mut source_recompute).unwrap();
++    evaluate(&mut graph, translator, &mut translator_recompute).unwrap();
++    evaluate(&mut graph, leaf, &mut leaf_compute).unwrap();
++
++    assert_eq!(leaf_calls, 2, "RISK/B change must pass the matched leaf filter");
++    assert_eq!(graph.get_state(leaf).unwrap(), NodeState::Clean);
++}
++
+ #[test]
+ fn invalidation_skips_direct_subscriber_when_contract_reads_do_not_care() {
+     let mut graph = SignalGraph::new();

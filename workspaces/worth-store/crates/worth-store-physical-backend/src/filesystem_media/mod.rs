@@ -63,6 +63,8 @@ mod qualification_request;
 #[cfg(any(test, feature = "certification-test-authority"))]
 mod qualification_transaction;
 mod qualified_capabilities;
+#[cfg(feature = "recovery-runtime-owner")]
+pub(crate) mod recovery_qualification;
 mod staged_namespace_write;
 mod synchronization;
 mod transfer;
@@ -76,16 +78,16 @@ pub use allocation::{
 pub use artifact_tree::{
     ArtifactAppendOutcome, ArtifactAppendRange, ArtifactNewWriteOutcome, ArtifactNewWriteRange,
     ArtifactRangeReadOutcome, ArtifactRangeWriteDurability,
-    ArtifactRangeWriteDurabilityRequirement, ArtifactRangeWriteOutcome, ArtifactTreeDirectory,
-    ArtifactTreeFailure, ArtifactTreeFailureKind, ArtifactTreeFile, ArtifactTreeMedia,
-    ArtifactTreeNewFile, ArtifactTreePathDenial, ArtifactTreePublicationEffect,
-    ArtifactTreePublicationEffectOutcome, CompletedArtifactAppend, CompletedArtifactMetadataRead,
-    CompletedArtifactNewWrite, CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
-    CompletedArtifactTreePublicationEffect, CompletedScheduledArtifactAppend,
-    CompletedScheduledArtifactMetadataRead, CompletedScheduledArtifactNewWrite,
-    CompletedScheduledArtifactRangeRead, CompletedScheduledArtifactRangeWrite,
-    CompletedScheduledArtifactTreePublicationEffect, IndeterminateArtifactAppend,
-    IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
+    ArtifactRangeWriteDurabilityRequirement, ArtifactRangeWriteOutcome, ArtifactTreeAccessLimit,
+    ArtifactTreeDirectory, ArtifactTreeFailure, ArtifactTreeFailureKind, ArtifactTreeFile,
+    ArtifactTreeMedia, ArtifactTreeNewFile, ArtifactTreePathDenial, ArtifactTreePublicationEffect,
+    ArtifactTreePublicationEffectOutcome, ArtifactTreeReplacement, CompletedArtifactAppend,
+    CompletedArtifactMetadataRead, CompletedArtifactNewWrite, CompletedArtifactRangeRead,
+    CompletedArtifactRangeWrite, CompletedArtifactTreePublicationEffect,
+    CompletedScheduledArtifactAppend, CompletedScheduledArtifactMetadataRead,
+    CompletedScheduledArtifactNewWrite, CompletedScheduledArtifactRangeRead,
+    CompletedScheduledArtifactRangeWrite, CompletedScheduledArtifactTreePublicationEffect,
+    IndeterminateArtifactAppend, IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
     IndeterminateArtifactTreePublicationEffect, ScheduledArtifactAppendOutcome,
     ScheduledArtifactMetadataReadOutcome, ScheduledArtifactNewWriteOutcome,
     ScheduledArtifactRangeReadOutcome, ScheduledArtifactRangeWriteOutcome,
@@ -120,6 +122,8 @@ pub use fault_activation::{CertificationMediaFaultActivation, MediaFaultActivati
 pub use fault_schedule::{
     MediaFaultDirective, MediaFaultRule, MediaFaultSchedule, MediaFaultScheduleDenial,
 };
+#[cfg(feature = "certification-test-authority")]
+pub(crate) use file_handle::CertificationRetainedMediaFileHandle;
 pub use file_handle::{
     MutableFileAccess, NamespaceFileHandle, NamespaceFileOpenKind, NamespaceFileOpenOutcome,
     NamespaceFileOpenResult, ReadOnlyFileAccess,

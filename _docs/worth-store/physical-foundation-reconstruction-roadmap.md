@@ -1238,10 +1238,12 @@ merely share a durability barrier.
 
 ## C.8: Fresh-Process Recovery And Reopen
 
-C.8 starts from the bounded
+C.8 is governed by the
+[standalone fresh-process recovery specification](physical-reconstruction-c8-fresh-process-recovery-and-reopen.md).
+It starts from the bounded crash-recovery contract described by the
 [C.7 successor handoff](physical-reconstruction-c7-durable-publication-join.md#c8-successor-handoff),
-not from a live runtime. The caller-facing boundary and current exclusions are
-summarized in the
+not from that in-memory closeout value or a live runtime. The caller-facing
+boundary and current exclusions are summarized in the
 [C.7 current limits and C.8 handoff](physical-durability-and-checkpoints.md#current-limits-and-c8-handoff).
 
 ### Goal
@@ -1258,6 +1260,14 @@ readmission. Recovery resolves physical operation fate by Store identity; it
 does not know which branch submitted the work or whether Relational may admit a
 successor writer.
 
+Worth Proof supplies only private up-front contract substrate beneath concrete
+Store types: sealed lane markers, exact per-axis bindings, one-terminal session
+law, owner-sampled generation freshness, and performed-effect evidence. A bare
+witness, binding match, freshness carrier, terminal receipt, or performed value
+opens no C.8 public door. Foundational versions the recovery and independent
+observer report protocols for compatible cross-process interpretation; those
+descriptive protocols never admit persisted Store formats or recovery truth.
+
 ### Must Ship
 
 - bounded bootstrap from current checkpoint plus WAL tail, never history from
@@ -1266,22 +1276,39 @@ successor writer.
   checkpoints, WAL segments, partial pages, compaction products, and residue
 - torn-tail rejection, idempotent redo, pageLSN comparison, incomplete
   publication handling, and closed-work quiescence
-- exact resolution of acknowledged, unacknowledged-not-durable, durable-but-
-  unacknowledged, and indeterminate physical operations
+- exact resolution of `AcknowledgedDurable`, `ProvenNoEffect`,
+  `DurableUnacknowledged`, and `Indeterminate` physical operation fates;
+  `ProvenNoEffect` requires positive persisted no-effect evidence
 - recovery reconciliation indexed by stable physical operation identity and
   Store incarnation, returning the weakest exact fate rather than promoting an
   unresolved effect to success or no-effect
+- a separate reconstruction-band composition facade; recovery physics remains
+  pure selection, redo, fate, and cost law and ordinary Store crates do not
+  import replay
+- concrete sealed recovery authority with private exact bindings for root,
+  Store, session, backend profile, media generation, configuration, and budget,
+  including one-axis-at-a-time drift proof
+- one owner-tracked linear recovery session reaching exactly one top-level
+  terminal outcome
+- owner-sampled checkpoint-generation freshness for retained idempotency
+  bindings and current-root-generation freshness for cleanup retry
+- concrete Store evidence recorded only after each C.4 staging, publication,
+  namespace, reopen, and cleanup effect completes
 - new runtime identity and fresh handles after every recovery
 - recovery time/work bounded by checkpoint interval, tail, and damaged scope,
   not total store size
 - post-recovery checkpoint/root cleanup policy that preserves evidence until
-  current truth is safely published
+  current truth is namespace durable and independently reopened, with cleanup
+  failure reported as deferred maintenance rather than recovery rollback
 - a narrow recovery handoff exposing verified physical roots, bounded access
   capabilities, reconciled physical operation fates, and unsupported or
   quarantined scope; no semantic checkpoint, branch head, or writer lease is
   reconstructed here
 - exact bootstrap bytes, manifests, WAL frames, page redo, skipped redo,
   rejected tails, residue denials, and recovery allocation counters
+- version-1 `store.physical.recovery-report` and
+  `store.physical.recovery-observer-report` families with exact consumer
+  windows, typed incompatibility, and no Store authority
 
 ### Non-Fake Acceptance Setup
 
@@ -1293,7 +1320,9 @@ successor writer.
 - **Execution:** the parent harness starts the writer, waits for a named
   production yieldpoint, terminates it without cleanup, records writer process
   identity, then launches the recovery executable with only root,
-  configuration, backend profile, and output-evidence path.
+  configuration, backend profile, physical recovery limits, and an
+  output-evidence path. Concrete platform authority is minted inside the
+  recovery process and is never a launch input.
 - **Independent observation:** a third offline process parses persisted
   artifacts without constructing the runtime. Neither recovery nor verifier
   receives writer heap objects, replay artifacts, decoded values, or expected
@@ -1303,7 +1332,10 @@ successor writer.
   acknowledged/indeterminate outcomes, bounded tail work, and disagreement
   visibility between runtime and verifier. Every submitted physical identity
   resolves to exact fate or remains explicitly indeterminate; no branch or
-  semantic-writer state is reconstructed.
+  semantic-writer state is reconstructed. Bare lane witnesses cannot cross
+  recovery bindings, freshness cannot be caller-sampled, admitted work cannot
+  stand in for performed effects, the recovery session has one terminal
+  outcome, and report protocol admission cannot promote Store bytes.
 - **Controlled defect:** preserve one writer registry across restart or ignore
   pageLSN during redo. Crash-isolation or redo predicates must fail and
   localize separately.
@@ -1318,6 +1350,10 @@ successor writer.
 process that reconstructs one deterministic physical truth from persisted
 authority alone inside declared memory and recovery-work bounds, and exposes
 exact physical reconciliation without making a semantic readmission decision.
+Every governed transition must also retain its exact dynamic binding, sample
+generation freshness through its Store owner, advance past effects only from
+concrete performed evidence, terminate the recovery session exactly once, and
+keep versioned cross-process reports descriptive.
 
 ## C.9: Physical Integrity, Corruption Localization, And Offline Truth
 
@@ -1713,7 +1749,7 @@ implementation:
 - `physical-reconstruction-c5-1-physical-store-work-runtime.md`
 - `physical-reconstruction-c6-buffer-pool-runtime-join.md`
 - `physical-reconstruction-c7-durable-publication-join.md`
-- `physical-reconstruction-c8-fresh-process-recovery.md`
+- `physical-reconstruction-c8-fresh-process-recovery-and-reopen.md`
 - `physical-reconstruction-c9-integrity-and-offline-truth.md`
 - `physical-reconstruction-c10-isolation-and-io-coordination.md`
 - `physical-reconstruction-c11-layout-index-blob-adoption.md`

@@ -3,14 +3,3 @@ error[E0432]: unresolved import `worth_query_execution::facade::provider_session
   |
 1 | use worth_query_execution::facade::provider_session::WorthQueryDirectResourceReadmissionPending;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryDirectResourceReadmissionPending` in `facade::provider_session`
-
-error[E0624]: method `commit` is private
-   --> tests/ui/installed_domain/managed_run/partial_readmission_states_cannot_advance.rs:5:13
-    |
-  5 |     pending.commit();
-    |             ^^^^^^ private method
-    |
-   ::: C:/forge_workspace/worktree_3/crates/worth-runtime-bridge/src/execution_basis/readmission/pending.rs:102:5
-    |
-102 |     pub(crate) fn commit(mut self) -> BridgeExecutionBasisReadmissionCommitted {
-    |     -------------------------------------------------------------------------- private method defined here

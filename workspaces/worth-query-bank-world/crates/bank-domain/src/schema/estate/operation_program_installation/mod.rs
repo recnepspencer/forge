@@ -7,6 +7,7 @@ mod notify_death;
 mod open_estate_case;
 mod recognize_executor;
 mod release_estate;
+mod retransmit_death_notice;
 
 use worth_query_decl::facade::application_schema::ApplicationSchemaDeclarationBuilder;
 
@@ -21,6 +22,7 @@ pub(super) fn install(
     let schema = capability_revocation::install(schema);
     let schema = recognize_executor::install(schema);
     let schema = notify_death::install(schema);
+    let schema = retransmit_death_notice::install(schema);
     let schema = open_estate_case::install(schema);
     let schema = disburse_estate::install(schema);
     release_estate::install(schema)

@@ -76,15 +76,29 @@ impl WorthQueryProviderSessionLifecycle for WorkflowSessionProvider {
     fn commit_prepared_session(
         &self,
         _session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
-        Ok("workflow-commit".into())
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
+        Ok(
+            crate::domain_computation::WorthQueryProviderTerminalDescription::new(
+                "workflow commit",
+            )
+            .expect("fixture description is valid"),
+        )
     }
 
     fn abort_provider_session(
         &self,
         _session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
-        Ok("workflow-abort".into())
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
+        Ok(
+            crate::domain_computation::WorthQueryProviderTerminalDescription::new("workflow abort")
+                .expect("fixture description is valid"),
+        )
     }
 }
 
@@ -106,7 +120,7 @@ fn workflow_stage_uses_stage_resources_and_scope_in_the_same_protocol() {
             .abort();
         assert!(matches!(
             outcome,
-            WorthQuerySessionCommitOrAbortOutcome::Aborted { .. }
+            WorthQuerySessionCommitOrAbortOutcome::Aborted(_)
         ));
     }
     cleanup_workflow(running);

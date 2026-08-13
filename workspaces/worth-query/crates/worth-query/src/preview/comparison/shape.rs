@@ -1,25 +1,20 @@
-#[cfg(test)]
+//! Production comparison shape derived from an admitted execution preflight.
+
 use crate::basis::ExecutionPreflightBundle;
-#[cfg(test)]
 use crate::collection::MaterializationBreadthClass;
-#[cfg(test)]
 use crate::identity::CollectionPlanDigest;
-#[cfg(test)]
 use crate::preview::workflow_context_identity;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg(test)]
 pub(in crate::preview) struct PreviewComparisonShapeContract {
-    pub(super) collection_digest: Option<CollectionPlanDigest>,
-    pub(super) result_family: String,
-    pub(super) ordering_digest: String,
-    pub(super) materialization_boundary_digest: String,
+    pub(in crate::preview) collection_digest: Option<CollectionPlanDigest>,
+    pub(in crate::preview) result_family: String,
+    pub(in crate::preview) ordering_digest: String,
+    pub(in crate::preview) materialization_boundary_digest: String,
     pub(in crate::preview) shape_check_width: usize,
 }
 
-#[cfg(test)]
 impl PreviewComparisonShapeContract {
-    #[cfg(test)]
     pub(in crate::preview) fn from_preflight(preflight: &ExecutionPreflightBundle) -> Self {
         let collection = preflight.plan().collection();
         let ordering_digest = workflow_context_identity::compose_preview_comparison_ordering_digest(

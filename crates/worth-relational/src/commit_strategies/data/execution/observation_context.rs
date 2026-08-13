@@ -30,7 +30,7 @@ pub struct StrategyObservationContext<'runtime> {
 
 impl<'runtime> StrategyObservationContext<'runtime> {
     pub(crate) fn new(
-        _runtime: &'runtime crate::logic::runtime::RelationalRuntime,
+        _runtime: &'runtime crate::runtime::RelationalRuntime,
         snapshot: &'runtime SnapshotHandle,
         read_contract: &'runtime crate::commit_strategies::data::StrategyReadContract,
         schema_registry: &'runtime RelationalSchemaRegistry,

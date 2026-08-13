@@ -1,12 +1,23 @@
 # Milestone 9.16: Authenticated Async Bank World And The Ordinary Query Front Door
 
 > **Current execution posture:** Runtime Hardening Phase 7 is closed through
-> Phase 7.7 Gate D; Runtime Phase 8 is the next implementation boundary.
+> Phase 7.7 Gate D. Runtime Phase 8's accepted application-aftermath,
+> external-effect, recovery, retention, and publication foundation is
+> **closed through C8 (2026-08-12)** under the
+> [Runtime Phase 8 finish plan](./milestone-9.16-runtime-phase-8-finish-plan.md); see the
+> [Phase 8 closure ledger](./milestone-9.16-runtime-phase-8-closure-ledger.md)
+> for closure evidence and the
+> [feature guide](../../workspaces/worth-query/crates/worth-query/docs/execution/application-aftermath-and-recovery.md) for the
+> supported developer surface. Historical gate labels remain evidence only.
+> The present undo/redo implementation is provisional: it may remain in the
+> tree, but its product semantics and final public contract belong to
+> [Milestone 9.18](./milestone-9.18.md).
 > [Milestone 9.16.1](./milestone-9.16.1.md) is closed, and its canonical
 > graph-progression substrate remains inherited. Gates A-C and the executable
-> release/disbursement slices are closed; typed outcome publication, the two
-> lower-capability product consumers, complete warm-locality proof, and final
-> external certification must close before Runtime Phase 8 begins.
+> release/disbursement slices remain historical prerequisites. Bank World
+> Phase 5 is closed by the real Docker-backed, separate-process transport court
+> (2026-08-13). Milestone 9.16 itself remains open for Runtime Phases 9-10,
+> Bank Phase 6, and Closure Phase 1 before the roadmap may advance to 9.17.
 
 ## Goal
 
@@ -19,7 +30,7 @@ The proving application is an in-memory bank and person-to-person payment world.
 It has real users, personal, business, institution, branch, and estate scopes,
 capability-constrained customer and employee authority, field-level disclosure,
 double-entry monetary effects, deposits, withdrawals, transfers, approvals,
-compensating reversals, linear undo and redo, concurrent requests, live
+compensating reversals, provisional linear undo and redo experiments, concurrent requests, live
 updates, and a real Authentik OIDC boundary. Its hostile authorization world
 includes an employee whose institutional power conflicts with a personal
 interest in a deceased relative's estate, plus a governed break-glass path that
@@ -45,11 +56,15 @@ schema-bound typed intent
     -> provider compare-and-commit
     -> typed outcome
     -> ordinary read / mutation / workflow / history / live result
-    -> governed recovery / compensation / linear redo
+    -> governed recovery / compensation
+    -> provisional undo / redo experimentation (not accepted product closure)
 ```
 
-Milestone 9.17 follows this milestone. Advanced access and computation features
-must be built through the same public front door proven here.
+Milestone 9.17 follows with composite Runtime Bridge product branches over
+exact Relational and Signal bases plus Relational branch-local MVCC. Milestone
+9.18 accepts tree-based semantic undo/redo over that composite history.
+Advanced access and computation begin in Milestone 9.19 and must use the same
+public front door.
 
 ## Work Types And Phase Identity
 
@@ -74,9 +89,13 @@ The Runtime Hardening Track owns generic Query product work:
   Query-owned continuations, and one-shot/history/live/preview parity;
 - Runtime Phase 7 establishes purpose-bound capabilities, field disclosure,
   conflict-of-interest, delegation, and break-glass authority;
-- Runtime Phase 8 establishes actionable recovery plus linear undo and redo;
-  and
-- Runtime Phase 9 performs public policy cutover and workaround deletion.
+- Runtime Phase 8 establishes the accepted aftermath, external-effect,
+  recovery, retention, and publication foundation; its existing undo and redo
+  lane remains provisional for Milestone 9.18;
+- Runtime Phase 9 establishes host-installed conditional providers, managed
+  clocks, Signal-owned temporal wakes, and reconstruction from authoritative
+  domain truth; and
+- Runtime Phase 10 performs public policy cutover and workaround deletion.
 
 Bank phases consume and pressure those runtime capabilities:
 
@@ -117,7 +136,7 @@ classify it:
 5. **The discovery changes public cutover, deletion, documentation, or the
    decisive courtroom.** Add the next Closure phase.
 6. **The discovery has an independent advanced-computation purpose.** Assign it
-   to Milestone 9.17 rather than expanding the bank milestone.
+   to Milestones 9.19 through 9.22 rather than expanding the bank milestone.
 
 A new phase must be an appropriate vertical slice with one causal guarantee,
 not a ticket-sized patch. It states what proof it consumes, what architecture it
@@ -262,6 +281,40 @@ At minimum, the courtroom must include:
 The system must fail closed. Authentication success is not authorization,
 permission declaration is not permission evaluation, and policy evaluation is
 not commit authority.
+
+### Conditional-operation host courtroom
+
+The conditional-operation courtroom installs one exact application operation
+with one domain-specific conditional node, one temporal node, and one named
+host clock source through `worth-query-host`. Its authoritative Relational
+truth contains future, already-due, cancelled, superseded, and completed
+temporal intents. The same courtroom must survive:
+
+- a Query application-runtime reinstallation after durable intent commit but
+  before a wake is scheduled;
+- reinstallation after Signal makes a wake eligible but before Query invokes
+  the operation;
+- reinstallation after the operation commits but before derived wake
+  completion is observed;
+- duplicate, reordered, stale, and foreign-source clock observations;
+- a provider replacement, an installed-operation generation change, and a
+  conditional-node identity substitution; and
+- unrelated domain, operation, node, clock, and temporal-intent growth.
+
+Current authoritative truth, not a retained host timer or copied wake handle,
+decides what is reconstructed. Query must re-admit the exact installed
+application operation against current authentication, capability, purpose,
+disclosure, invariant, idempotency, and provider truth. Signal alone decides
+wake eligibility and suppression. A cancelled or completed intent causes no
+invocation; a commit-before-observation fault cannot duplicate application
+effects; and stale or foreign bindings fail before predicate, scheduling, or
+operation work.
+
+Any implementation is convicted if the host constructs a `SignalGraph`,
+imports `worth_runtime_bridge` or `worth_signal`, returns a Signal decision,
+runs a timer/scheduler loop, invokes an operation callback directly, treats an
+in-memory wake table as durable truth, or scans all application truth on each
+clock observation.
 
 ## Product Decision Lock
 
@@ -577,10 +630,15 @@ F14. Descriptive digests and installation authority seals are different
     post-materialization sort, or repeated child query cannot satisfy the
     contract. Covered receipts prove exact-zero caller-owned N+1 work and zero
     undeclared fallback.
-61. Every installed mutation declares `Reversible`, `Compensatable`,
-    `Reconcilable`, or `Irreversible` aftermath posture. The public result
-    exposes only next actions valid for that operation, outcome, current
-    authority, and provider posture.
+61. Every installed mutation declares two things: its correction authority --
+    the runtime alone, the runtime together with a distinct actor or external
+    truth owner, or none -- and, unless that authority is none, exactly one
+    correction mechanism. Query derives the published `Reversible`,
+    `Compensatable`, `Reconcilable`, or `Irreversible` posture from that pair.
+    A declaration may not state a posture directly, and an omitted or
+    contradictory axis fails installation rather than defaulting in either
+    direction. The public result exposes only next actions valid for that
+    operation, outcome, current authority, and provider posture.
 62. Undo never deletes or rewrites committed truth. It is a newly admitted
     operation derived from the exact committed receipt and installed inverse
     or compensation contract, with fresh authentication, authorization,
@@ -594,14 +652,22 @@ F14. Descriptive digests and installation authority seals are different
     may expose a descriptive redo intent for fresh execution against current
     truth. Relevant drift, changed policy, expired capability, or changed
     invariant posture may deny it.
-65. Milestone 9.16 guarantees only a linear, current-head, receipt-linked
-    undo/redo journey.
-    A new divergent operation may invalidate the convenience redo chain
-    without deleting history. Branch selection, branch-local inversion,
-    branch-shaped redo, merge interaction, and history navigation are owned by
-    the [cross-runtime merging-and-branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
-    This milestone creates no placeholder API, directory, support posture, or
-    implied authority for them.
+65. Milestone 9.16 historically proposed a linear, current-head,
+    receipt-linked undo/redo journey. The implementation is now provisional;
+    Milestone 9.18 must accept, revise, or replace it before it becomes a
+    guarantee.
+    Relational remains the sole owner of its current commit identity, parents,
+    branch head, ancestry, and publication. Query owns typed `undo-of` /
+    `redo-of` operation meaning but owns no parallel history chain or head.
+    Milestone 9.17 adds Runtime Bridge-owned composite product branches over
+    exact Relational and Signal bases while preserving each component owner;
+    Milestone 9.18 owns exact composite source/target selection, tree-based
+    reversal/reapplication, and fresh Query admission as new composite history.
+    Runtime Bridge coordinates component correspondence and publication but
+    owns neither correction meaning nor Relational or Signal internal
+    currentness. Semantic merge, rebase, multi-parent publication, offline
+    synchronization, and distributed recovery remain governed by the
+    [cross-runtime merging-and-branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
 66. Indeterminate and externally unresolved outcomes carry a framework-owned
     recovery handle naming the legal next actions: inspect, resolve by
     idempotency, retry safely, compensate, reconcile, or dispose. A bare status
@@ -610,6 +676,79 @@ F14. Descriptive digests and installation authority seals are different
     remain distinct typed facts. Local commit may authorize managed dispatch,
     but it cannot claim that a device, payment rail, notification system, or
     other external authority completed its effect.
+68. No operation emits an escaping effect without a committed local fact
+    anchoring it. An application may declare an operation with no domain
+    mutation; the runtime still commits that operation's dispatch intent in the
+    same transaction, and that record is the anchor. There is therefore no
+    mutation-free external effect -- only an operation whose sole domain effect
+    is its dispatch record. An escaping effect without an anchor has no
+    correlation target, no idempotency record, no recovery handle, and no
+    authoritative local answer to whether it occurred, so anchoring is a
+    property of the runtime rather than a per-operation choice. An operation
+    that declares an escaping effect can never publish `Reversible` posture,
+    because reversal derives from recorded inverse data without external
+    reread.
+
+### Host-installed conditional operations and managed time
+
+69. `worth-query-host` owns the only application-host installation contract
+    for conditional execution in the primary-graph application runtime. The
+    host binds a provider to an exact installed schema generation, application
+    operation, conditional-node identity, provider family, and graph
+    participation authority. A label, digest, portable declaration, or equal
+    node ordinal cannot substitute for that installed binding.
+70. A domain condition provider receives a Query-owned, read-only observation
+    set admitted from the node's declared semantic dependencies. It may compute
+    only the application predicate result or a typed provider failure. It may
+    not return a Signal condition decision, choose eligibility, schedule work,
+    mint provenance, widen observations, invoke an operation, or retain an
+    executable snapshot or provider session.
+71. Query adapts the admitted predicate result into the existing pair-bound
+    Runtime Bridge conditional lowering. Runtime Bridge owns installed
+    Relational-to-Signal correspondence and lowering; Signal owns condition
+    resolution, wake scheduling, eligibility, coalescing, suppression, and
+    decision provenance. Query consumes that decision without restamping it.
+72. A temporal conditional node binds an exact named host clock source during
+    application-runtime installation. The host may submit observations only
+    through a Query-owned clock-observation port bound to that source and
+    runtime. Query validates source identity, timeline, monotonic progression,
+    duplication, reordering, and installation generation before forwarding an
+    admitted observation. A host observation is time evidence, never an
+    eligibility decision or operation authority. A temporal clock source is
+    not the authorization-time source and cannot satisfy authentication,
+    capability-expiry, elevation-expiry, deadline, or idempotency time checks.
+73. Signal's wake table is derived, volatile runtime state. Reconstructible
+    temporal intent -- target operation, node, application input or input
+    derivation, due basis, active/cancelled/completed posture, stable intent
+    identity, and idempotency relation -- lives in authoritative
+    Relational/domain truth under an installed, bounded reconstruction
+    contract. A host-local timer, task, cache, or serialized Signal wake is not
+    a truth source.
+74. Application-runtime installation and reinstallation reconstruct missing
+    temporal wakes from the exact current Relational projection before the
+    runtime reports conditional readiness. Reconstruction revalidates the
+    installed operation, node, provider, clock, graph, generation, and current
+    intent posture. It may create a new derived wake identity linked to the
+    stable domain intent; it may not treat an old wake identity as authority.
+75. A ready wake re-enters the same installed application-operation path used
+    by an ordinary request. Wake evidence does not authorize execution. Query
+    performs fresh principal or governed system-actor admission, capability and
+    purpose evaluation, touched-graph admission, invariant progression,
+    idempotency, and compare-and-commit. The operation must atomically consume
+    or advance the authoritative temporal-intent posture when its effect
+    commits, so reconstruction after commit cannot duplicate effects.
+76. Provider registration, clock observation, wake ownership, and reconstructed
+    intent resources are bounded and lifecycle-managed. Closing or replacing
+    an application runtime cancels its derived work and releases its leases;
+    stale tasks, providers, clocks, decisions, and wake handles open no door in
+    the successor runtime.
+77. Ordinary clock observation and wake promotion are bounded by admitted due
+    work and never scan unrelated domain rows, operations, nodes, or clocks.
+    Reinstallation reconstruction is an explicitly measured cold path bounded
+    by the installed reconstruction projection. Counters distinguish clock
+    admission, truth rows inspected, wakes reconstructed, eligibility,
+    suppression, predicate contacts, operation admissions, idempotent
+    resolutions, and committed invocations.
 
 ## Destination Topology
 
@@ -629,6 +768,8 @@ worth-query-installation
     query identity, basis, cursor, disclosure, and lane-eligibility contracts
     capability composition, conflict, break-glass, and review contracts
     inverse, compensation, redo, and external-effect posture contracts
+    installed conditional-provider, named-clock, temporal-intent, and
+    reconstruction contracts
     monetary operation and invariant contribution admission
 
 worth-query-admission
@@ -646,6 +787,8 @@ worth-query-execution
     canonical application-query basis and continuation progression
     provider compare-and-commit progression
     current capability and disclosure revalidation
+    host-provider binding, managed clock observations, conditional re-entry,
+    and temporal wake reconstruction
     idempotent typed outcomes and managed recovery
     linear inverse, compensation, and redo progression
 
@@ -654,7 +797,9 @@ worth-query-publication
     history, live, recovery, and aftermath contracts
 
 worth-query-host
-    ordinary host composition without raw Relational or authority exposure
+    ordinary host composition, conditional-provider installation, and named
+    clock observation without raw Relational, Runtime Bridge, Signal, or
+    authority exposure
 
 worth-query-certification
     hostile public-consumer, capability, disclosure, elevation, aftermath,
@@ -2957,9 +3102,9 @@ work.
 ### Inherited Branch-Affinity Contract After Runtime Phase 7
 
 Milestone 9.16.1 makes typed branch identity part of the canonical provider
-session and branch-qualifies every snapshot and version basis. Runtime Phase 8,
-Bank World Phases 5-6, Runtime Phase 9, and closure inherit that identity
-without creating another branch-selection surface.
+session and branch-qualifies every snapshot and version basis. Runtime Phases
+8-10, Bank World Phases 5-6, and closure inherit that identity without creating
+another branch-selection surface.
 
 From this point forward:
 
@@ -2984,19 +3129,22 @@ From this point forward:
 Milestone 9.16 still has one ordinary installed branch and does not implement
 multiple branch heads, branch-local version allocation, concurrent writers on
 different branches, branch creation, merge, rebase, or branch-local inversion.
-Per-branch MVCC and concurrent independent-branch writers begin in Milestone
-9.17. Semantic branch management, merge, and branch-shaped aftermath remain in
-the cross-runtime merging-and-branching roadmap. The prohibition on
+Composite product-branch creation, exact Relational/Signal basis selection, and
+Relational branch-local MVCC begin in Milestone 9.17; tree-based semantic
+reversal and reapplication begin in Milestone 9.18. Semantic merge, rebase,
+multi-parent publication, offline synchronization, and distributed recovery
+remain in the cross-runtime merging-and-branching roadmap. The prohibition on
 branch-shaped aftermath below does not permit branch affinity to be omitted
 from ordinary execution evidence.
 
-### Runtime Hardening Track — Phase 8: Recovery, Linear Undo, And Redo
+### Runtime Hardening Track — Phase 8: Application Aftermath, External Effects, And Recovery
 
 **Requirement**
 
-Expose actionable recovery and receipt-linked linear aftermath without
-rewriting history, importing certification replay, or pretending that a local
-commit proves an external effect.
+Expose installed application aftermath, recoverable external effects, exact
+retained prior truth, and closed publication without rewriting history,
+importing certification replay, or pretending that a local commit proves an
+external effect.
 
 Runtime Phase 8 is implemented through the ordered internal proof gates
 8.1-8.6 below. They are not parallel aftermath conveniences: each gate may
@@ -3004,6 +3152,18 @@ expose only next actions justified by the installed posture and authority
 proved before it. A discovery that strengthens a completed gate becomes an
 append-only corrective phase or milestone and blocks unfinished dependents
 rather than adding an exceptional rollback path.
+
+The refined requirement text, lower-runtime gap inventory, carrier repairs,
+counter contract, and `R8.*` requirement identifiers for these gates live in
+[`milestone-9.16-runtime-phase-8.md`](./milestone-9.16-runtime-phase-8.md).
+That document specifies; it does not relax or renumber the gates below.
+
+**Current scope amendment:** the
+[Runtime Phase 8 finish plan](./milestone-9.16-runtime-phase-8-finish-plan.md)
+governs cleanup. The undo- and redo-specific bullets below record the historical
+design and are provisional successor requirements, not current Phase 8 closure
+requirements. Existing code may remain, but only accepted aftermath, external
+effect, recovery, retention, authority, and publication foundations close here.
 
 **Must establish**
 
@@ -3023,8 +3183,12 @@ rather than adding an exceptional rollback path.
   irreversible legal, audit, approval, or escaped-effect cases;
 - redo as a descriptive intent available only after a proved undo, requiring
   fresh authority and current-truth validation and never importing replay;
-- one linear parent-causality chain with explicit redo invalidation after a
-  divergent current-head operation; and
+- Query-owned typed `undo-of` / `redo-of` semantics co-committed through the
+  ordinary Relational transaction, with Relational remaining the sole owner of
+  commit identity, parents, branch head, ancestry, and publication;
+- explicit redo invalidation when Relational's authoritative current head
+  diverges from the head bound by the redo intent, enforced again as an atomic
+  compare-and-commit precondition rather than by a Query-owned chain; and
 - provider commit, emitted application causality, dispatch, external
   acknowledgement, external completion, compensation, and reconciliation as
   distinct typed postures; and
@@ -3053,8 +3217,18 @@ worth-query-execution/src/domain_computation/application_aftermath/
     undo_progression.rs
     redo_intent.rs
     redo_admission.rs
-    linear_lineage.rs
+    causality/
+        undo.rs
+        redo.rs
+        committed.rs
+        current_head.rs
     external_effect.rs
+
+worth-query-execution/src/domain_computation/primary_graph/provider/
+    application_causality/
+        prepare.rs
+        commit_fact.rs
+        lookup.rs
 
 worth-query-publication/src/application_aftermath/
     outcome.rs
@@ -3068,6 +3242,16 @@ next actions. Execution owns attempt-bound progression and consumes current
 runtime authority. Publication describes the resulting posture and available
 next actions but cannot manufacture a recovery, undo, reconciliation, or redo
 handle from identities carried over the wire.
+
+Relational remains the sole owner of commit identity, ordered parents, branch
+head, ancestry, serialization, and canonical publication. Query owns only the
+operation-semantic statement that an admitted correction is `undo-of` or
+`redo-of` an exact committed target; it prepares that fact and co-commits it
+with the ordinary mutation. Query owns no parallel commit chain or mutable
+history head. Runtime Bridge owns installed inverse correspondence and may
+transport completed admitted causality for a real cross-runtime consumer, but
+it cannot decide undo/redo legality, Relational currentness, or history
+publication.
 
 Branch-shaped aftermath is intentionally absent from this topology. Its
 semantic-history, reference, inversion, merge, publication, recovery, and
@@ -3181,7 +3365,10 @@ foreign-runtime, and duplicate-transition attacks. The public wire boundary may
 carry opaque recovery identity and descriptive posture but never the runtime
 authority object.
 
-#### Runtime Phase 8.4: Fresh Undo, Inverse Operations, And Compensation
+#### Runtime Phase 8.4: Fresh Undo, Inverse Operations, And Compensation (provisional history)
+
+The requirements below describe the current experiment. They remain regression
+evidence only and do not establish a supported undo product.
 
 Runtime Phase 8.4 implements undo as a new admitted operation derived from an
 exact committed receipt, never as history mutation or direct provider repair.
@@ -3201,7 +3388,7 @@ It must:
 Undo is a fresh admission and may derive one new bounded intent identity for
 the inverse or compensation request. It carries the original committed and
 aftermath identities and cannot regenerate them per posting, decision fact, or
-lineage edge.
+co-committed causal fact.
 
 The original, inverse or compensation request, and resulting Query receipts
 remain the authority chain. Foundational transition/provenance rows may
@@ -3214,41 +3401,61 @@ journals preserved, current-policy denial after drift, idempotent retry after a
 lost response, inverse capability progression, and rejection of copied,
 foreign, irreversible, or twice-consumed receipts.
 
-#### Runtime Phase 8.5: Fresh Redo Intent And Linear Lineage
+#### Runtime Phase 8.5: Fresh Redo Intent And Relational-Head-Bound Causality (provisional history)
+
+The requirements below describe the current experiment. They remain regression
+evidence only and do not establish a supported redo product.
 
 Runtime Phase 8.5 derives descriptive redo intent only from a proved undo and
 runs it as a fresh operation against current truth.
 
 It must:
 
-- bind redo intent to the original operation meaning, proved undo receipt,
-  current linear head, principal scope, and compatibility generation without
-  embedding runtime authority or replay state;
+- bind redo intent to the original operation meaning, proved undo receipt, an
+  owner-observed projection of the exact Relational branch head, principal
+  scope, and compatibility generation without embedding runtime authority or
+  replay state;
 - require fresh capability, policy, conflict, touched-graph, invariant,
   idempotency, provider, and compare-and-commit admission;
-- append one parent-causality edge for every original, undo, and redo outcome;
-  and
-- invalidate redo when a divergent operation advances the current head, with
-  no branch object, merge placeholder, or hidden alternate lineage.
+- represent the original only by its Relational-backed Query commit receipt and
+  co-commit exactly one private typed Query causal fact for each undo or redo;
+- take the child commit identity, ordered parents, branch, and publication order
+  only from the Relational commit result; and
+- invalidate redo when a divergent operation advances Relational's current
+  head, with the expected head consumed atomically by compare-and-commit and no
+  Query-owned chain, mutable head, branch object, merge placeholder, or hidden
+  alternate lineage.
 
 Redo is likewise one fresh bounded admission identity. Current-head checks,
-lineage append, provider comparison, and publication carry the original, undo,
-and redo identities without rehashing them per edge or transition.
+co-committed causal-fact preparation, provider comparison, and publication
+carry the original, undo, and redo identities without rehashing them per edge
+or transition.
 
-The published chain lowers into Foundational attested-continuity or
-completed-receipt vocabulary only after each Query transition completes.
-Replayed, reconstructed, restored, branch-local, partial, or promoted lineage
-postures cannot be relabeled as the ordinary linear chain.
+Completed aftermath causality lowers into Foundational attested-continuity or
+completed-receipt vocabulary only after the Relational commit succeeds. Runtime
+Bridge may transport that owner-admitted projection only when causality crosses
+runtimes; Bridge admission cannot upgrade it into Query legality or Relational
+currentness. Replayed, reconstructed, restored, branch-local, partial, or
+promoted lineage postures cannot be relabeled as ordinary linear aftermath.
 
 Proof requires lawful redo, stale or newly unauthorized redo, copied intent,
 foreign principal, changed operation meaning, duplicate redo, and divergence
-attacks. Certification replay may verify evidence but must not be imported into
-the ordinary redo path.
+attacks. A hostile schedule must allow two operations to observe the same
+Relational head, commit one intervening operation, and prove the stale redo
+cannot commit even if its Query precheck already passed. Residue checks reject
+a Query-owned lineage chain/head, raw append APIs, and ordinary Phase 8 Bridge
+legality or history authority. Certification replay may verify evidence but
+must not be imported into the ordinary redo path.
 
 #### Runtime Phase 8.6: Bank Aftermath Cutover, Publication, And Certification
 
 Runtime Phase 8.6 moves the bank's real transfer and estate aftermath through
 the public installed progression after Phases 8.1-8.5 are proved.
+
+The accepted cutover is committed aftermath, external-effect, recovery, exact
+retention, and closed publication. References below to undo, redo, or
+receipt-linked correction causality describe provisional regression coverage,
+not a supported product facade.
 
 It must:
 
@@ -3314,8 +3521,8 @@ network boundaries.
 - one independently authenticated user-node process per fixture participant;
 - an Axum adapter that maps HTTP and SSE onto the public Query facade;
 - typed wire representations for query identity, basis, opaque continuation,
-  capability purpose, disclosure omissions, elevation progression, recovery,
-  undo, and redo without serializing runtime authority;
+  capability purpose, disclosure omissions, elevation progression, and
+  recovery without serializing runtime authority;
 - bounded request and stream queues, cancellation, deadlines, backpressure, and
   disconnect handling;
 - dynamic ports, health/readiness, deterministic teardown, and leak detection;
@@ -3330,7 +3537,222 @@ The full courtroom runs over TCP with separate process IDs and runtimes.
 Disconnects, restarts of non-authoritative user nodes, response loss, queue
 saturation, token expiry, and live revocation preserve semantic outcomes.
 
-### Runtime Hardening Track — Phase 9: Public Policy Cutover And Workaround Deletion
+### Runtime Hardening Track — Phase 9: Host-Installed Conditional Operations, Managed Time, And Reconstructible Wakes
+
+**Requirement**
+
+Complete the primary-graph application runtime's conditional-operation front
+door. An ordinary host must be able to install application predicate providers
+and named clock sources, submit clock observations, and let Query invoke the
+same installed application operation when Signal admits a wake, without
+importing Runtime Bridge or Signal or owning a scheduler.
+
+**Discovery classification**
+
+This is a generic Query API, authority, lifecycle, and reconstruction gap under
+the milestone's phase-amendment rule. The portable contract is already visible
+through `worth-query-host`, but the only implemented provider installation path
+is the legacy
+[`WorthQueryRuntimeBuilder::conditional_node(...)`](../../workspaces/worth-query/crates/worth-query/src/runtime/builder/conditional_execution.rs),
+which accepts a raw Signal graph and `BridgeConditionalProviderSet`. At the same
+time, Query's
+[`installed-operation` consumer-residue registry](../../workspaces/worth-query/crates/worth-query/src/consumer_kit/consumer_residue/registry/installed_operation_rows.rs)
+forbids direct `worth_signal` and `worth_runtime_bridge` use. The
+primary-graph application runtime creates and retains its managed Runtime Bridge
+but exposes no corresponding host installation port. A consumer therefore
+cannot satisfy both the feature contract and the dependency law. Phase 9 closes
+that contradiction; it is not a Workflow Editor adapter phase.
+
+**Consumes**
+
+- Milestone 9.14 portable conditional declarations, semantic dependencies,
+  pair-bound Bridge lowering, and Signal decision provenance;
+- Milestone 9.16 Runtime Phase 6 installed application-operation identity and
+  the primary-graph application runtime;
+- Runtime Phase 7 authorization, disclosure, purpose, governed actor, and
+  trusted-time rules;
+- Runtime Phase 8 idempotency, aftermath, recovery, and retained authoritative
+  application truth; and
+- Milestone 9.16.1 exact branch, graph, provider-session, installation, and
+  generation affinity.
+
+**Public host contract**
+
+`worth-query-host` must expose one typed conditional-operation installation
+surface under its existing runtime facade. The surface must let the host:
+
+1. resolve an installed application operation and one of its installed
+   conditional nodes without a string lookup, raw node ID, graph handle, or
+   lower-runtime identity;
+2. bind a typed domain condition provider whose input is Query's immutable,
+   dependency-indexed observation view and whose output is only satisfied,
+   unsatisfied, or a typed provider failure;
+3. bind a named host clock source to the exact temporal node and obtain a
+   runtime-bound observation port after successful publication;
+4. submit typed clock observations carrying source, timeline, sequence, and
+   observed-time evidence, while receiving typed accepted, duplicate, stale,
+   reordered, foreign, closed, or failed posture;
+5. declare the exact bounded Relational projection from which active temporal
+   intents, due basis, operation input, stable intent identity, and idempotency
+   relation are reconstructed; and
+6. inspect non-authoritative lifecycle and work evidence without receiving a
+   provider session, Signal wake, scheduling capability, or executable
+   operation authority.
+
+The intended host journey is one installation progression, not a collection of
+independently valid ingredients:
+
+```text
+installed application schema
+    -> installed application operation
+    -> installed conditional node
+    -> admitted host predicate provider
+    -> admitted named clock and temporal-intent reconstruction contract
+    -> published primary-graph application runtime
+    -> runtime-bound clock-observation port
+```
+
+Publication fails atomically if a declared conditional node has no exact
+provider, a provider has no declaration, a temporal node lacks its clock or
+reconstruction contract, or any operation/node/provider/clock/projection axis
+is foreign, stale, ambiguous, unsupported, or duplicated.
+
+**Destination topology**
+
+Implementation names may become more specific, but responsibilities must land
+in this semantic shape rather than in a facade or helper bag:
+
+```text
+worth-query-installation/src/
+    domain_operation/conditional_node/
+        host_provider_contract.rs
+        named_clock_contract.rs
+        temporal_intent_contract.rs
+
+worth-query-execution/src/domain_computation/primary_graph/
+    conditional_operation/
+        installation.rs
+        predicate_observation.rs
+        predicate_admission.rs
+        clock_observation.rs
+        temporal_intent_projection.rs
+        wake_reconstruction.rs
+        signal_decision_reentry.rs
+        application_operation_invocation.rs
+        lifecycle.rs
+        work_evidence.rs
+
+worth-query-host/src/facade.rs
+    re-export the narrow installation, provider, observation, clock, denial,
+    and inspection contracts from their semantic owners
+
+worth-query-certification/
+    host-only conditional consumer and reinstall courtroom
+```
+
+Runtime Bridge's existing conditional-execution owner remains the only
+Relational-to-Signal correspondence and lowering lane. Signal's existing
+temporal owner remains the only wake scheduler and eligibility/suppression
+authority. If those owners require a narrower upstream port, that port belongs
+to their existing conditional or temporal modules and must not expose raw
+Signal decisions through `worth-query-host`.
+
+**Must establish**
+
+- one application-runtime-owned conditional registry keyed by exact installed
+  operation, node, installation generation, graph, provider, branch, and clock
+  affinity;
+- Query-owned observation types that preserve declared dependency ordinal,
+  exact previous/current Foundational contract values, truth basis, and
+  absence posture without exposing Bridge resolver context or Signal masks;
+- a host predicate adapter that translates satisfied/unsatisfied into the
+  installed Bridge provider contract internally, with Query performing no
+  second predicate evaluation and no eligibility restamping;
+- one named clock source per declared clock binding, immutable for the
+  application-runtime lifetime, with duplicate idempotence, monotonic sequence
+  and timeline enforcement, source isolation, bounded admission, and explicit
+  close/failure posture;
+- typed separation between temporal clock observation, authorization time,
+  request deadline time, and provider commit time so no source can be
+  substituted for another;
+- clock observations delivered to the Bridge-owned Signal runtime so Signal
+  alone promotes due wakes, coalesces or suppresses work, and emits exact
+  decision provenance;
+- an installed, branch-affine Relational access plan for active temporal
+  intents; ordinary clock delivery must use the derived due index, while
+  runtime reinstallation may execute the separately budgeted reconstruction
+  plan;
+- readiness that remains closed until provider binding, clock binding, current
+  intent reconstruction, Signal wake installation, and lifecycle publication
+  all succeed atomically;
+- fresh Query application-operation admission for each eligible wake, using
+  the operation's normal governed principal/system-actor, capability, purpose,
+  touched-graph, invariant, idempotency, compare-and-commit, aftermath, and
+  publication path;
+- atomic consumption or advancement of the durable temporal intent in the
+  same application operation that commits its effects, so duplicate wakes and
+  commit-before-observation faults resolve idempotently;
+- typed provenance joining stable temporal intent, reconstructed wake, Signal
+  decision, application-operation attempt, and terminal outcome without making
+  any descriptive row reusable authority;
+- successor-installation behavior that either proves exact compatibility and
+  reconstructs current work or fails closed with a typed rebind requirement;
+- bounded queues, cancellation, deadlines, shutdown, provider failure,
+  predicate panic isolation, and lease cleanup; and
+- public documentation and migration guidance that replace the legacy raw
+  builder example for primary-graph application hosts.
+
+**Mechanically forbid**
+
+- `worth_signal`, `worth_runtime_bridge`, `SignalGraph`,
+  `BridgeConditionalProviderSet`, or lower-runtime condition-decision types in
+  host-consumer manifests or source;
+- application-local temporal scheduler, timer wheel, wake registry, scheduler
+  task, or direct operation callback;
+- a provider returning raw Signal eligibility, suppression, provenance, node,
+  aspect, or wake values;
+- caller-authored `now`, post-publication clock replacement, wall-clock sleep
+  as temporal proof, and cross-source clock substitution;
+- reconstruction from serialized wake handles, process memory, logs, or
+  copied receipts instead of current authoritative domain truth;
+- invocation that bypasses ordinary application-operation admission or treats
+  wake eligibility as authorization;
+- full-domain, full-operation, or full-node scans on ordinary clock
+  observation; and
+- parallel primary-graph conditional installation through the legacy
+  `WorthQueryRuntimeBuilder::conditional_node(...)` path.
+
+The legacy builder may remain only for its separately governed pre-primary-
+graph runtime while live consumers still require it. It is not the host
+contract, must not be re-exported by `worth-query-host`, and cannot satisfy this
+phase's acceptance evidence.
+
+**Proof before Runtime Hardening Phase 10**
+
+The conditional-operation courtroom closes every crash/reinstall boundary
+listed above with independently asserted effects and non-effects. Host-only
+compile tests install the provider, clock, reconstruction contract, and
+application operation using `worth-query-host`; compile-fail and residue tests
+prove that raw Signal/Bridge types, local scheduling, raw decision return, and
+direct callback invocation are unavailable.
+
+The proof compares the host path with the existing internal conditional oracle
+for satisfied, unsatisfied, failed, future, due, cancelled, superseded,
+completed, duplicate-clock, reordered-clock, provider-replaced, and
+generation-changed cases. Signal provenance and Query terminal outcomes must
+agree without Query or the host reproducing the lower-runtime decision.
+Reinstallation from retained authoritative Relational truth restores exactly
+the active wakes, restores none for cancelled or completed intents, invokes
+the exact installed operation, and cannot duplicate a committed effect.
+
+Work evidence holds installed operation/node/clock counts constant while
+growing unrelated rows and proves that ordinary observation cost follows only
+the admitted observation plus due wake fan-out. Reconstruction cost is reported
+separately and follows only the installed temporal-intent projection. Lifecycle
+tests close, replace, cancel, and drop runtimes with exact-zero leaked provider,
+clock, wake, task, queue, operation-attempt, and lease resources.
+
+### Runtime Hardening Track — Phase 10: Public Policy Cutover And Workaround Deletion
 
 **Requirement**
 
@@ -3342,16 +3764,22 @@ that the bank world or existing consumers no longer need.
 - contracted declaration and host facade snapshots;
 - public API documentation for typed schema use, authentication adaptation,
   installed application queries, capability and disclosure composition,
-  break-glass progression, mutation outcomes, recovery, linear undo/redo,
-  history, preview posture, and live delivery;
+  break-glass progression, mutation outcomes, recovery, accepted aftermath and
+  publication, host-installed conditional providers, named clocks, temporal
+  reconstruction, and the provisional status of undo/redo, history, preview
+  posture, and live delivery;
 - `AI_README.md` orientation links that lead agents from the runtime model to
   the relevant feature documents;
 - migration of relevant Worth UI or other reference-consumer workarounds where
   the new surface owns the capability;
+- migration of Workflow Editor from its local Signal graph and temporal
+  scheduler onto the Phase 9 host contract, with no `worth_signal` or
+  `worth_runtime_bridge` dependency;
 - deletion of raw aspect strings, manual permission registries, local Query
   authority builders, application-local generic cursors, lane-specific query
   copies, undo stacks, break-glass booleans, post-projection redaction, and
-  duplicate outcome assembly; and
+  duplicate outcome assembly, local temporal scheduler, and raw conditional
+  provider assembly; and
 - residue checks that prevent their return.
 
 **Proof before Bank World Phase 6**
@@ -3381,10 +3809,13 @@ application without internal imports, local authority, or fixture shortcuts.
 - permission grant, revocation, and live-stream narrowing; and
 - one installed query exercised as one-shot, paged continuation, historical,
   live, and admitted preview work wherever its support posture permits;
-- compensating undo, freshly authorized redo, divergent-redo invalidation, and
-  honest irreversible posture; and
 - typed explanations and actionable recovery for denial, conflict,
   cancellation, disclosure omission, elevation, and indeterminacy.
+
+Linear undo/redo journeys are explicitly excluded from Bank Phase 6 and
+Milestone 9.16 closure. Existing experiments may remain as non-authoritative
+regression coverage, but Milestone 9.18 owns their product semantics, public
+contract, and acceptance evidence.
 
 **Proof before Closure Track Phase 1**
 
@@ -3511,7 +3942,8 @@ let inspection = active.query(queries::estate_preservation_view(account)).await?
 let review = active.close()?.mandatory_review();
 ```
 
-Undo and redo should expose only the operation's installed aftermath:
+The following undo/redo sketch is retained only as historical input to
+Milestone 9.18. It is not a Milestone 9.16 DX target or acceptance surface:
 
 ```rust
 let committed = bank.mutate(commands::send_money(input))
@@ -3582,9 +4014,13 @@ The completed application must answer, through public typed APIs:
 - Can an employee who is also a customer keep those authorities distinct?
 - If the employee is also a beneficiary, can conflict-of-interest prevent
   self-benefiting access even though each relationship is individually valid?
+- Can my host bind this domain predicate to the exact installed operation and
+  conditional node without importing Signal or Runtime Bridge?
+- Can my host submit an observation from this named temporal clock while
+  Signal, not my application, owns wake eligibility and suppression?
+- If the application runtime is reinstalled, which active wakes reconstruct
+  from current domain truth, and why can none duplicate a committed operation?
 - If the outcome is indeterminate, what typed recovery action remains legal?
-- Can I undo this committed action without erasing history, and can redo be
-  denied when current authority or truth changed?
 - Which operations are reversible, compensatable, reconcilable, or
   irreversible?
 
@@ -3598,15 +4034,17 @@ callback, or result reinterpretation, the front door is not finished.
 - Query-agnostic schema and domain meaning;
 - Relational ownership of authoritative graph facts and transaction mechanics;
 - runtime-bridge ownership of exact installed correspondence;
-- Signal ownership of policy-node evaluation truth;
+- Signal ownership of policy-node evaluation truth, temporal wake scheduling,
+  eligibility, and suppression provenance;
+- Query ownership of exact installed conditional-provider binding and
+  application-operation re-entry through the host facade;
+- authoritative Relational/domain temporal intent distinct from volatile,
+  reconstructible Signal wake state;
 - authentication distinct from authorization;
 - roles and relationships distinct from scoped capability authority;
 - ordinary capability distinct from governed emergency elevation;
 - entity visibility distinct from field disclosure;
 - one canonical application-query identity across supported execution lanes;
-- committed history preserved by inverse or compensation rather than erased by
-  undo;
-- redo as fresh execution rather than replay or retained authority;
 - exact Foundational value, aspect-contract, mask, canonical-basis,
   boundary-evidence, diagnostic, profile, lineage, and performance meaning at
   the cross-crate boundaries where those vocabularies apply;
@@ -3628,15 +4066,22 @@ callback, or result reinterpretation, the front door is not finished.
 - browser UI polish;
 - multi-currency conversion;
 - distributed consensus or multi-bank settlement;
-- branch- or tree-shaped undo/redo navigation, branch-local inversion, branch
-  merge, or conflict resolution. Those are cross-runtime semantic-history
-  capabilities, not a deferred Query-local extension of linear aftermath;
+- accepting the current linear undo/redo experiments as product semantics,
+  public contract, or closure evidence before Milestone 9.18;
+- branch- or tree-shaped undo/redo navigation and branch-local inversion before
+  Milestone 9.18, or semantic merge, rebase, and conflict resolution before
+  their cross-runtime milestones;
 - multiple branch heads, branch-local version allocation, and concurrent
   writers on different branches before the Milestone 9.17 handoff;
 - durable recovery handles, restart-stable cursors, or restart-stable
   undo/redo history before the Store handoff;
-- advanced domain access products, correlated paths, conflict partitions, or
-  geometry/provider certification governed by Milestone 9.17.
+- persistence or replay of Signal wake handles, a Query-owned durable timer
+  journal, or provider-process recovery before the Store handoff; Phase 9
+  reconstructs derived wakes only when the authoritative Relational/domain
+  truth source survives application-runtime reinstallation;
+- advanced domain access products, correlated paths, conflict partitions,
+  decision evidence, reuse, or provider certification governed by Milestones
+  9.19 through 9.22.
 
 The absence of those capabilities cannot justify fake authentication, fake
 money, fake concurrency, or fake authorization in the supported world.
@@ -3666,6 +4111,14 @@ Milestone 9.16 closes only when:
   distinct from canonical encoding and allocation;
 - the Relational -> runtime-bridge -> Signal -> Query authorization chain is
   exercised and independently challenged;
+- a host-only consumer installs an exact conditional provider and named clock,
+  submits clock observations, receives Signal-owned eligibility/suppression
+  provenance, and invokes the same freshly admitted installed application
+  operation without importing Runtime Bridge or Signal;
+- active temporal wakes reconstruct exactly from current authoritative
+  Relational/domain truth after application-runtime reinstallation, while
+  cancelled, superseded, completed, stale-generation, and foreign-clock cases
+  invoke nothing and commit-before-observation cannot duplicate effects;
 - capability scope, purpose, delegation, conflict-of-interest, field
   disclosure, break-glass approval, expiry, revocation, and review are
   exercised and independently challenged;
@@ -3689,9 +4142,6 @@ Milestone 9.16 closes only when:
   rejects equal-version cross-branch substitution, and contains no hard-coded
   ordinary-branch authority;
 - revocation prevents subsequent unauthorized live delivery;
-- compensating undo preserves original truth, redo requires fresh authority,
-  divergent or relevant change can deny redo, and irreversible actions expose
-  no fake inverse;
 - every indeterminate outcome exposes an actionable governed recovery posture;
 - Query-owned execution counters lower into honest Foundational
   counter-backed performance evidence at explicit support/certification
@@ -3700,25 +4150,34 @@ Milestone 9.16 closes only when:
 - all workaround deletions and permanent prohibitions are enforced; and
 - the closure ledger has no unresolved high- or critical-impact row.
 
-## Handoff To Milestone 9.17
+## Handoff To Milestones 9.17 Through 9.22
 
-Milestone 9.17 may add advanced computation only through the public typed
-declaration, admission, execution, publication, and certification path proven
-here. Advanced search, spatial access, membership, paths, bulk execution,
-decision attachments, and reuse bind to the installed application-query,
-capability, disclosure, basis, recovery, and aftermath contracts established
-here. It may extend that path; it may not reintroduce a specialist-only
-authority lane, a provider-owned cursor, a field-disclosure bypass, or replay
-disguised as redo.
+Milestone 9.17 replaces the conservative single-product-branch and global-
+coordinator limits with Runtime Bridge-owned composite product branches over
+exact owner-issued Relational and Signal bases plus Relational branch-local
+MVCC. Query continues to carry the branch-affine authority established here;
+it does not become the owner of component truth, composite correspondence,
+version allocation, or conflict mechanics. Product branches may share one
+immutable Signal basis while their Relational branches diverge, and unrelated
+branches must progress concurrently.
 
-Milestone 9.17 also replaces the conservative single-branch/global-coordinator
-implementation limit with Relational-owned per-branch MVCC. Query continues to
-carry the branch-affine authority established here; it does not become the
-owner of branch truth, version allocation, or conflict mechanics. Writers on
-different branches must be able to progress concurrently, while writers on the
-same branch remain governed by that branch's MVCC comparison and commit laws.
-Semantic branch creation, merge, rebase, branch-shaped undo/redo, and conflict
-resolution remain governed by the cross-runtime merging-and-branching roadmap.
+Milestone 9.18 then accepts tree-based semantic undo and redo over exact source
+composite commits and target product-branch heads. Corrections coordinate
+owner-local retain, inverse, compensation, reapplication, and Signal
+reconciliation posture, publish freshly admitted composite commits, and
+preserve every prior history alternative. Query owns correction semantics and
+DX but no component or composite history head. Merge, rebase, multi-parent
+publication, offline synchronization, and distributed recovery remain governed
+by the cross-runtime merging-and-branching roadmap.
+
+Milestones 9.19 through 9.22 add advanced computation only through the public
+typed declaration, admission, execution, publication, and certification path
+proven here and the accepted branch/aftermath paths above. Advanced search,
+spatial access, membership, paths, bulk execution, decision attachments, and
+reuse bind to the installed application-query, capability, disclosure, basis,
+recovery, and aftermath contracts. They may extend that path; they may not
+reintroduce a specialist-only authority lane, provider-owned cursor,
+field-disclosure bypass, or replay disguised as redo.
 
 Geometry and other high-fan-out kernels consume installed typed slots, paths,
 masks, plans, and fixed-width semantic identities. Adding cells, features,

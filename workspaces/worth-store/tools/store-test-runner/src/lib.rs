@@ -8,6 +8,8 @@ mod courtroom_campaign;
 #[cfg(test)]
 mod durable_publication_boundary_gate;
 mod execution;
+#[cfg(test)]
+mod fresh_process_recovery_boundary_gate;
 mod local_source_fingerprint;
 mod mutation_campaign;
 #[cfg(test)]

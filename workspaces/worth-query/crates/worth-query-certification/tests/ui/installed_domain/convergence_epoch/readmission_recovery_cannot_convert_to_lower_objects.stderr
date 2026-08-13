@@ -1,0 +1,177 @@
+error[E0277]: the trait bound `WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:20:14
+   |
+20 |     let _ = <WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery as Deref>::deref(
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery`
+
+error[E0277]: the trait bound `WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery: AsRef<WorthQueryDirectReadmissionYieldReassemblyRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:23:80
+   |
+23 |     let _: &ManagedDirectReassembly = AsRef::<ManagedDirectReassembly>::as_ref(&recovery);
+   |                                       ---------------------------------------- ^^^^^^^^^ unsatisfied trait bound
+   |                                       |
+   |                                       required by a bound introduced by this call
+   |
+   = help: the trait `AsRef<WorthQueryDirectReadmissionYieldReassemblyRecovery>` is not implemented for `WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery`
+
+error[E0277]: the trait bound `WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery: Borrow<WorthQueryDirectReadmissionYieldReassemblyRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:24:81
+   |
+24 |     let _: &ManagedDirectReassembly = Borrow::<ManagedDirectReassembly>::borrow(&recovery);
+   |                                       ----------------------------------------- ^^^^^^^^^ unsatisfied trait bound
+   |                                       |
+   |                                       required by a bound introduced by this call
+   |
+   = help: the trait `Borrow<WorthQueryDirectReadmissionYieldReassemblyRecovery>` is not implemented for `WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery`
+
+error[E0277]: the trait bound `WorthQueryDirectReadmissionYieldReassemblyRecovery: From<WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:25:76
+   |
+25 |     let _: ManagedDirectReassembly = Into::<ManagedDirectReassembly>::into(recovery);
+   |                                      ------------------------------------- ^^^^^^^^ unsatisfied trait bound
+   |                                      |
+   |                                      required by a bound introduced by this call
+   |
+   = help: the trait `From<WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery>` is not implemented for `WorthQueryDirectReadmissionYieldReassemblyRecovery`
+   = note: required for `WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery` to implement `Into<WorthQueryDirectReadmissionYieldReassemblyRecovery>`
+
+error[E0277]: the trait bound `WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:20:13
+   |
+20 |       let _ = <WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery as Deref>::deref(
+   |  _____________^
+21 | |         &recovery,
+22 | |     );
+   | |_____^ the trait `Deref` is not implemented for `WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery`
+
+error[E0277]: the trait bound `WorthQueryDirectConvergenceReadmissionTerminalRecovery: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:29:14
+   |
+29 |     let _ = <WorthQueryDirectConvergenceReadmissionTerminalRecovery as Deref>::deref(&recovery);
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryDirectConvergenceReadmissionTerminalRecovery`
+
+error[E0277]: the trait bound `WorthQueryDirectConvergenceReadmissionTerminalRecovery: AsRef<WorthQueryDirectReadmissionTerminalRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:30:76
+   |
+30 |     let _: &ManagedDirectTerminal = AsRef::<ManagedDirectTerminal>::as_ref(&recovery);
+   |                                     -------------------------------------- ^^^^^^^^^ unsatisfied trait bound
+   |                                     |
+   |                                     required by a bound introduced by this call
+   |
+   = help: the trait `AsRef<WorthQueryDirectReadmissionTerminalRecovery>` is not implemented for `WorthQueryDirectConvergenceReadmissionTerminalRecovery`
+
+error[E0277]: the trait bound `WorthQueryDirectConvergenceReadmissionTerminalRecovery: Borrow<WorthQueryDirectReadmissionTerminalRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:31:77
+   |
+31 |     let _: &ManagedDirectTerminal = Borrow::<ManagedDirectTerminal>::borrow(&recovery);
+   |                                     --------------------------------------- ^^^^^^^^^ unsatisfied trait bound
+   |                                     |
+   |                                     required by a bound introduced by this call
+   |
+   = help: the trait `Borrow<WorthQueryDirectReadmissionTerminalRecovery>` is not implemented for `WorthQueryDirectConvergenceReadmissionTerminalRecovery`
+
+error[E0277]: the trait bound `WorthQueryDirectReadmissionTerminalRecovery: From<WorthQueryDirectConvergenceReadmissionTerminalRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:32:72
+   |
+32 |     let _: ManagedDirectTerminal = Into::<ManagedDirectTerminal>::into(recovery);
+   |                                    ----------------------------------- ^^^^^^^^ unsatisfied trait bound
+   |                                    |
+   |                                    required by a bound introduced by this call
+   |
+   = help: the trait `From<WorthQueryDirectConvergenceReadmissionTerminalRecovery>` is not implemented for `WorthQueryDirectReadmissionTerminalRecovery`
+   = note: required for `WorthQueryDirectConvergenceReadmissionTerminalRecovery` to implement `Into<WorthQueryDirectReadmissionTerminalRecovery>`
+
+error[E0277]: the trait bound `WorthQueryDirectConvergenceReadmissionTerminalRecovery: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:29:13
+   |
+29 |     let _ = <WorthQueryDirectConvergenceReadmissionTerminalRecovery as Deref>::deref(&recovery);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryDirectConvergenceReadmissionTerminalRecovery`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:38:14
+   |
+38 |     let _ = <WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery as Deref>::deref(
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery: AsRef<WorthQueryWorkflowReadmissionYieldReassemblyRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:41:84
+   |
+41 |     let _: &ManagedWorkflowReassembly = AsRef::<ManagedWorkflowReassembly>::as_ref(&recovery);
+   |                                         ------------------------------------------ ^^^^^^^^^ unsatisfied trait bound
+   |                                         |
+   |                                         required by a bound introduced by this call
+   |
+   = help: the trait `AsRef<WorthQueryWorkflowReadmissionYieldReassemblyRecovery>` is not implemented for `WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery: Borrow<WorthQueryWorkflowReadmissionYieldReassemblyRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:42:85
+   |
+42 |     let _: &ManagedWorkflowReassembly = Borrow::<ManagedWorkflowReassembly>::borrow(&recovery);
+   |                                         ------------------------------------------- ^^^^^^^^^ unsatisfied trait bound
+   |                                         |
+   |                                         required by a bound introduced by this call
+   |
+   = help: the trait `Borrow<WorthQueryWorkflowReadmissionYieldReassemblyRecovery>` is not implemented for `WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery`
+
+error[E0277]: the trait bound `WorthQueryWorkflowReadmissionYieldReassemblyRecovery: From<WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:43:80
+   |
+43 |     let _: ManagedWorkflowReassembly = Into::<ManagedWorkflowReassembly>::into(recovery);
+   |                                        --------------------------------------- ^^^^^^^^ unsatisfied trait bound
+   |                                        |
+   |                                        required by a bound introduced by this call
+   |
+   = help: the trait `From<WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery>` is not implemented for `WorthQueryWorkflowReadmissionYieldReassemblyRecovery`
+   = note: required for `WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery` to implement `Into<WorthQueryWorkflowReadmissionYieldReassemblyRecovery>`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:38:13
+   |
+38 |       let _ = <WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery as Deref>::deref(
+   |  _____________^
+39 | |         &recovery,
+40 | |     );
+   | |_____^ the trait `Deref` is not implemented for `WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceReadmissionTerminalRecovery: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:47:14
+   |
+47 |     let _ = <WorthQueryWorkflowConvergenceReadmissionTerminalRecovery as Deref>::deref(&recovery);
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryWorkflowConvergenceReadmissionTerminalRecovery`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceReadmissionTerminalRecovery: AsRef<WorthQueryWorkflowReadmissionTerminalRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:48:80
+   |
+48 |     let _: &ManagedWorkflowTerminal = AsRef::<ManagedWorkflowTerminal>::as_ref(&recovery);
+   |                                       ---------------------------------------- ^^^^^^^^^ unsatisfied trait bound
+   |                                       |
+   |                                       required by a bound introduced by this call
+   |
+   = help: the trait `AsRef<WorthQueryWorkflowReadmissionTerminalRecovery>` is not implemented for `WorthQueryWorkflowConvergenceReadmissionTerminalRecovery`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceReadmissionTerminalRecovery: Borrow<WorthQueryWorkflowReadmissionTerminalRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:49:81
+   |
+49 |     let _: &ManagedWorkflowTerminal = Borrow::<ManagedWorkflowTerminal>::borrow(&recovery);
+   |                                       ----------------------------------------- ^^^^^^^^^ unsatisfied trait bound
+   |                                       |
+   |                                       required by a bound introduced by this call
+   |
+   = help: the trait `Borrow<WorthQueryWorkflowReadmissionTerminalRecovery>` is not implemented for `WorthQueryWorkflowConvergenceReadmissionTerminalRecovery`
+
+error[E0277]: the trait bound `WorthQueryWorkflowReadmissionTerminalRecovery: From<WorthQueryWorkflowConvergenceReadmissionTerminalRecovery>` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:50:76
+   |
+50 |     let _: ManagedWorkflowTerminal = Into::<ManagedWorkflowTerminal>::into(recovery);
+   |                                      ------------------------------------- ^^^^^^^^ unsatisfied trait bound
+   |                                      |
+   |                                      required by a bound introduced by this call
+   |
+   = help: the trait `From<WorthQueryWorkflowConvergenceReadmissionTerminalRecovery>` is not implemented for `WorthQueryWorkflowReadmissionTerminalRecovery`
+   = note: required for `WorthQueryWorkflowConvergenceReadmissionTerminalRecovery` to implement `Into<WorthQueryWorkflowReadmissionTerminalRecovery>`
+
+error[E0277]: the trait bound `WorthQueryWorkflowConvergenceReadmissionTerminalRecovery: Deref` is not satisfied
+  --> tests/ui/installed_domain/convergence_epoch/readmission_recovery_cannot_convert_to_lower_objects.rs:47:13
+   |
+47 |     let _ = <WorthQueryWorkflowConvergenceReadmissionTerminalRecovery as Deref>::deref(&recovery);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deref` is not implemented for `WorthQueryWorkflowConvergenceReadmissionTerminalRecovery`

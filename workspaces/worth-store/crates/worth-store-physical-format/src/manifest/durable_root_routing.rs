@@ -9,6 +9,12 @@ use super::durable_root::RootManifestDenial;
 use super::durable_root_entry::{decode_entry, encode_entry};
 use super::durable_root_placement::CurrentPhysicalRecordPlacement;
 
+#[cfg(test)]
+mod bounded_decode_tests;
+mod decode_limits;
+
+pub use decode_limits::{BoundedRootRoutingBlockDecodeDenial, RootRoutingBlockDecodeLimits};
+
 const ROUTING_BLOCK_PREFIX_BYTES: usize = 40;
 const ROUTING_REFERENCE_BYTES: usize = 72;
 const ROUTING_LEAF_ENTRY_BYTES: usize = 88;
@@ -233,13 +239,37 @@ impl PhysicalRootRoutingBlock {
         bytes: &[u8],
         capacity: u16,
     ) -> Result<(Self, PhysicalRecordFormatDeclaration), RootRoutingBlockDenial> {
+        match Self::decode_bounded(
+            bytes,
+            capacity,
+            RootRoutingBlockDecodeLimits {
+                leaf_entries: u64::MAX,
+                branch_children: u64::MAX,
+            },
+        ) {
+            Ok(decoded) => Ok(decoded),
+            Err(BoundedRootRoutingBlockDecodeDenial::Format(denial)) => Err(denial),
+            Err(
+                BoundedRootRoutingBlockDecodeDenial::LeafEntries { .. }
+                | BoundedRootRoutingBlockDecodeDenial::BranchChildren { .. },
+            ) => {
+                unreachable!("unbounded routing decode cannot exceed its cardinality")
+            }
+        }
+    }
+
+    pub fn decode_bounded(
+        bytes: &[u8],
+        capacity: u16,
+        limits: RootRoutingBlockDecodeLimits,
+    ) -> Result<(Self, PhysicalRecordFormatDeclaration), BoundedRootRoutingBlockDecodeDenial> {
         let (format, frame) = decode_durable_frame(bytes, DurableFrameKind::RootRoutingBlock)
             .map_err(RootRoutingBlockDenial::Frame)?;
         if frame.payload.len() < ROUTING_BLOCK_PREFIX_BYTES
             || frame.payload[21..24] != [0; 3]
             || frame.payload[32..40] != [0; 8]
         {
-            return Err(RootRoutingBlockDenial::MalformedPrefix);
+            return Err(RootRoutingBlockDenial::MalformedPrefix.into());
         }
         let tree_identity = u64::from_le_bytes(frame.payload[..8].try_into().unwrap());
         let block = u64::from_le_bytes(frame.payload[8..16].try_into().unwrap());
@@ -253,15 +283,28 @@ impl PhysicalRootRoutingBlock {
             || count == 0
             || count > capacity
         {
-            return Err(RootRoutingBlockDenial::IdentityOrCapacity);
+            return Err(RootRoutingBlockDenial::IdentityOrCapacity.into());
         }
         let entry_bytes = match frame.payload[20] {
             1 if level == 0 => ROUTING_LEAF_ENTRY_BYTES,
             2 if level != 0 => ROUTING_REFERENCE_BYTES,
-            _ => return Err(RootRoutingBlockDenial::LevelOrKind),
+            _ => return Err(RootRoutingBlockDenial::LevelOrKind.into()),
         };
         if frame.payload.len() != ROUTING_BLOCK_PREFIX_BYTES + usize::from(count) * entry_bytes {
-            return Err(RootRoutingBlockDenial::MalformedLength);
+            return Err(RootRoutingBlockDenial::MalformedLength.into());
+        }
+        let observed = u64::from(count);
+        if level == 0 && observed > limits.leaf_entries {
+            return Err(BoundedRootRoutingBlockDecodeDenial::LeafEntries {
+                observed,
+                admitted: limits.leaf_entries,
+            });
+        }
+        if level != 0 && observed > limits.branch_children {
+            return Err(BoundedRootRoutingBlockDecodeDenial::BranchChildren {
+                observed,
+                admitted: limits.branch_children,
+            });
         }
         let body = &frame.payload[ROUTING_BLOCK_PREFIX_BYTES..];
         let decoded = if level == 0 {
@@ -282,6 +325,7 @@ impl PhysicalRootRoutingBlock {
         decoded
             .map(|block| (block, format))
             .ok_or(RootRoutingBlockDenial::CanonicalOrder)
+            .map_err(Into::into)
     }
 }
 

@@ -21,7 +21,8 @@ where
     let direct_rebuild_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification,
     );
-    crate::logic::runtime::RelationalRuntime::rebuild_runtime_from_plan(direct_rebuild_plan)
+    runtime
+        .rebuild_runtime_from_plan(direct_rebuild_plan)
         .unwrap_or_else(|error| panic!("direct replay rebuild failed: {error:?}"));
     let replay =
         runtime

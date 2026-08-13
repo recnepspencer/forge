@@ -21,7 +21,7 @@ impl SignalGraph {
             )));
         }
         let mut restored =
-            SignalGraph::restore_from_checkpoint_authority(&snapshot.checkpoint_image.authority);
+            SignalGraph::restore_from_checkpoint_authority(&snapshot.checkpoint_image.authority)?;
         restored
             .telemetry_mut()
             .checkpoint
@@ -71,6 +71,7 @@ impl SignalGraph {
             .telemetry_mut()
             .checkpoint
             .restore_required_derived_breadth += rebuild_breadth;
+        restored.readmit_checkpoint_causes()?;
         Ok(())
     }
 

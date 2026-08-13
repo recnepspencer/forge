@@ -4,39 +4,69 @@ pub trait AuthorityMarker: 'static {}
 
 pub trait CapabilityMarker: 'static {}
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct AuthorityWitness<A>(PhantomData<A>)
 where
     A: AuthorityMarker;
+
+// Not derived, so an authority marker never needs `PartialEq` to let two
+// witnesses be compared. Deliberately **not** `Copy`: a witness is passed where
+// authority is exercised, and silent duplication is not a property this type
+// should hand out for free.
+crate::type_level_traits!(AuthorityWitness<A: AuthorityMarker>);
 
 impl<A> AuthorityWitness<A>
 where
     A: AuthorityMarker,
 {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn mint() -> Self {
         Self(PhantomData)
     }
 
+    /// Mint a witness by surrendering a value of the marker type.
+    ///
+    /// **The witness is exactly as sealed as your marker's constructor.** This
+    /// crate cannot seal it for you: `AuthorityMarker` is an open trait, and
+    /// this function accepts any `A` implementing it. Sealing is delegated, by
+    /// design — possession of an `A` *is* the authority.
+    ///
+    /// That makes the marker's visibility load-bearing:
+    ///
+    /// ```text
+    /// pub struct MyAuthority;      // NOT a seal — any consumer can construct it
+    /// pub struct MyAuthority(());  // a seal — only the owning module can
+    /// struct MyAuthority;          // a seal — private to its module
+    /// ```
+    ///
+    /// Prefer [`crate::authority_marker!`], which generates the sealed shape so
+    /// the correct pattern is the default rather than something each consumer
+    /// has to know. See `tests/ui/milestone2/` for the compile-fail and
+    /// compile-pass cases that hold this contract to its word.
     pub fn from_authority_marker(_marker: A) -> Self {
         Self(PhantomData)
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct CapabilityWitness<C>(PhantomData<C>)
 where
     C: CapabilityMarker;
+
+crate::type_level_traits!(CapabilityWitness<C: CapabilityMarker>);
 
 impl<C> CapabilityWitness<C>
 where
     C: CapabilityMarker,
 {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn mint() -> Self {
         Self(PhantomData)
     }
 
+    /// Mint a witness by surrendering a value of the marker type.
+    ///
+    /// **The witness is exactly as sealed as your marker's constructor** — see
+    /// [`AuthorityWitness::from_authority_marker`] for the full contract and
+    /// [`crate::capability_marker!`] for the sealed shape.
     pub fn from_capability_marker(_marker: C) -> Self {
         Self(PhantomData)
     }

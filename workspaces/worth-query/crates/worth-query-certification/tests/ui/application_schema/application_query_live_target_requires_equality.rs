@@ -4,7 +4,7 @@ use worth_query_decl::facade::{
         ApplicationQueryLiveResourceContract, ApplicationQueryResultFieldRef,
     },
     application_schema::{
-        ApplicationEffectRef, EqualityPredicate, NoApplicationCurrency, NoEqualityPredicate,
+        ApplicationEffectRef, EqualityPredicate, NoApplicationUnit, NoEqualityPredicate,
         ReadOnly,
     },
 };
@@ -55,7 +55,7 @@ fn declare_live_with_unindexed_target(
         String,
         ReadOnly,
         EqualityPredicate,
-        NoApplicationCurrency,
+        NoApplicationUnit,
     >,
     target: ApplicationQueryResultFieldRef<
         Query,
@@ -67,7 +67,7 @@ fn declare_live_with_unindexed_target(
         String,
         ReadOnly,
         NoEqualityPredicate,
-        NoApplicationCurrency,
+        NoApplicationUnit,
     >,
 ) {
     let _ = builder.live_by::<Target, Binding, _, _, _, _, _, _, _, _>(

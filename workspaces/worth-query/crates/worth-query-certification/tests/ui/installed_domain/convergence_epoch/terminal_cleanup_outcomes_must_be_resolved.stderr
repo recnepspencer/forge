@@ -1,0 +1,124 @@
+error: unused `WorthQueryWorkflowConvergenceTerminal` that must be used
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cleanup_outcomes_must_be_resolved.rs:15:5
+   |
+15 |     std::convert::identity(terminal);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: a workflow convergence terminal retains resources that must be cleaned up
+note: the lint level is defined here
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cleanup_outcomes_must_be_resolved.rs:1:9
+   |
+ 1 | #![deny(unused_must_use)]
+   |         ^^^^^^^^^^^^^^^
+help: use `let _ = ...` to ignore the resulting value
+   |
+15 |     let _ = std::convert::identity(terminal);
+   |     +++++++
+
+error: unused `WorthQueryWorkflowConvergenceCleanupOutcome` that must be used
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cleanup_outcomes_must_be_resolved.rs:19:5
+   |
+19 |     std::convert::identity(outcome);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: workflow convergence cleanup must resolve Complete, Pending, or RecoveryRequired
+help: use `let _ = ...` to ignore the resulting value
+   |
+19 |     let _ = std::convert::identity(outcome);
+   |     +++++++
+
+error: unused `WorthQueryWorkflowConvergenceCleanupPending` that must be used
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cleanup_outcomes_must_be_resolved.rs:23:5
+   |
+23 |     std::convert::identity(pending);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: workflow convergence cleanup pending retains exact retry authority
+help: use `let _ = ...` to ignore the resulting value
+   |
+23 |     let _ = std::convert::identity(pending);
+   |     +++++++
+
+error: unused `WorthQueryWorkflowConvergenceCleanupFailure` that must be used
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cleanup_outcomes_must_be_resolved.rs:27:5
+   |
+27 |     std::convert::identity(failure);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: workflow convergence cleanup failure retains exact retry authority
+help: use `let _ = ...` to ignore the resulting value
+   |
+27 |     let _ = std::convert::identity(failure);
+   |     +++++++
+
+error: unused `WorthQueryWorkflowConvergenceCleanupOutcome` that must be used
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cleanup_outcomes_must_be_resolved.rs:31:5
+   |
+31 |     terminal.cleanup();
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+   = note: workflow convergence cleanup must resolve Complete, Pending, or RecoveryRequired
+help: use `let _ = ...` to ignore the resulting value
+   |
+31 |     let _ = terminal.cleanup();
+   |     +++++++
+
+error: unused return value of `worth_query_execution::domain_computation::convergence_epoch::workflow_cleanup::<impl WorthQueryWorkflowConvergenceTerminal<State>>::cleanup` that must be used
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cleanup_outcomes_must_be_resolved.rs:31:5
+   |
+31 |     terminal.cleanup();
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+   = note: cleanup returns workflow convergence authority that must be resolved
+help: use `let _ = ...` to ignore the resulting value
+   |
+31 |     let _ = terminal.cleanup();
+   |     +++++++
+
+error: unused `WorthQueryWorkflowConvergenceCleanupOutcome` that must be used
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cleanup_outcomes_must_be_resolved.rs:35:5
+   |
+35 |     pending.retry();
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: workflow convergence cleanup must resolve Complete, Pending, or RecoveryRequired
+help: use `let _ = ...` to ignore the resulting value
+   |
+35 |     let _ = pending.retry();
+   |     +++++++
+
+error: unused return value of `WorthQueryWorkflowConvergenceCleanupPending::<State>::retry` that must be used
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cleanup_outcomes_must_be_resolved.rs:35:5
+   |
+35 |     pending.retry();
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: retry returns the next workflow convergence cleanup outcome
+help: use `let _ = ...` to ignore the resulting value
+   |
+35 |     let _ = pending.retry();
+   |     +++++++
+
+error: unused `WorthQueryWorkflowConvergenceCleanupOutcome` that must be used
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cleanup_outcomes_must_be_resolved.rs:39:5
+   |
+39 |     failure.retry();
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: workflow convergence cleanup must resolve Complete, Pending, or RecoveryRequired
+help: use `let _ = ...` to ignore the resulting value
+   |
+39 |     let _ = failure.retry();
+   |     +++++++
+
+error: unused return value of `WorthQueryWorkflowConvergenceCleanupFailure::<State>::retry` that must be used
+  --> tests/ui/installed_domain/convergence_epoch/terminal_cleanup_outcomes_must_be_resolved.rs:39:5
+   |
+39 |     failure.retry();
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: retry returns the next workflow convergence cleanup outcome
+help: use `let _ = ...` to ignore the resulting value
+   |
+39 |     let _ = failure.retry();
+   |     +++++++

@@ -1,3 +1,4 @@
+mod marker_authoring;
 mod markers;
 mod minting;
 mod sets;

@@ -1,7 +1,6 @@
 use worth_query::facade::domain::{
     WorthQueryOperationLineageContract, WorthQueryOperationReplayContract,
-    WorthQueryOperationResultState, WorthQueryOperationReversalContract,
-    WorthQuerySupportRequirement,
+    WorthQueryOperationResultState, WorthQuerySupportRequirement,
 };
 use worth_query_certification::facade::{
     certify_provider_pair, WorthQueryCertificationCounter, WorthQueryCertificationCounters,
@@ -170,9 +169,9 @@ fn provider_fact(kind: Kind, facts: &WorthUiInstalledOperationCertificationFacts
         },
         Kind::ConditionalNode => facts.conditional_node_count().to_string(),
         Kind::SemanticAspectCorrespondence => facts.semantic_read_count().to_string(),
-        Kind::Reversal => match facts.reversal() {
-            WorthQueryOperationReversalContract::Irreversible => "irreversible".to_owned(),
-            _ => "unexpected-reversal-contract".to_owned(),
+        Kind::Reversal => match facts.aftermath() {
+            None => "irreversible".to_owned(),
+            Some(_) => "unexpected-reversal-contract".to_owned(),
         },
         Kind::Lineage => match facts.lineage() {
             WorthQueryOperationLineageContract::NotRequired => "not-required".to_owned(),

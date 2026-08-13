@@ -6,11 +6,11 @@ use crate::commit_strategies::data::{
     StrategyCommitRequestError, StrategyExecutionDraft, StrategyLoweringError,
     ValidatedStrategyCommitPlan,
 };
-use crate::commit_strategies::logic::{
+use crate::commit_strategies::{
     bind_execution, canonicalize_request, execute_bound_strategy, lower_execution,
     validate_lowered_plan as validate_lowered_strategy_plan,
 };
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::SnapshotHandle;
 use crate::transactions::data::{CommitResult, TransactionCommitError, TransactionOptions};
 

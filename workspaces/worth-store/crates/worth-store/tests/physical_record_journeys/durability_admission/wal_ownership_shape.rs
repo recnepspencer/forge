@@ -124,8 +124,8 @@ fn displaced_wal_executors_are_absent_from_default_facades() {
     }
 
     let wal_root = read(&crates.join("worth-store-wal").join("src").join("lib.rs"));
-    let guarded_wal_planner =
-        "#[cfg(feature = \"certification-authority\")]\npub use artifact_store::WalAppendPlanner;";
+    let guarded_wal_planner = "#[cfg(feature = \"certification-authority\")]\n\
+pub use artifact_store::{WalAppendPlanner, WalAppendPlannerDenial};";
     assert!(has_only_guarded_surface(
         &wal_root,
         guarded_wal_planner,
@@ -135,8 +135,8 @@ fn displaced_wal_executors_are_absent_from_default_facades() {
 
 #[test]
 fn cleanup_gate_rejects_unguarded_duplicate_exports() {
-    let guarded_wal_planner =
-        "#[cfg(feature = \"certification-authority\")]\npub use artifact_store::WalAppendPlanner;";
+    let guarded_wal_planner = "#[cfg(feature = \"certification-authority\")]\n\
+pub use artifact_store::{WalAppendPlanner, WalAppendPlannerDenial};";
     let wal_mutant = format!("{guarded_wal_planner}\npub use artifact_store::WalAppendPlanner;");
     assert!(!has_only_guarded_surface(
         &wal_mutant,

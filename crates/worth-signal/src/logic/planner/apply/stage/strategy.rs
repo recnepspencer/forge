@@ -9,12 +9,13 @@ use crate::logic::planner::types::{
 };
 
 pub(super) fn build_lowered_apply_plan(
+    graph: &crate::data::graph::SignalGraph,
     stage_index: u32,
     tasks: &[LoweredTask],
     executor: StageExecutor,
 ) -> LoweredApplyPlan {
     #[cfg(not(feature = "parallel"))]
-    let _ = (stage_index, executor);
+    let _ = (graph, stage_index, executor);
 
     let serial_groups = || {
         tasks
@@ -31,7 +32,7 @@ pub(super) fn build_lowered_apply_plan(
     if executor.is_full_parallel() {
         if let Some(policy) = executor.parallel_policy() {
             let groups = super::concurrent_packets::build_stage_apply_groups(tasks, policy);
-            if super::concurrent_packets::can_lower_true_grouped_concurrent(tasks, &groups) {
+            if super::concurrent_packets::can_lower_true_grouped_concurrent(graph, tasks, &groups) {
                 let group_footprints = groups.iter().map(|group| group.footprint.clone()).collect();
                 return LoweredApplyPlan::GroupedConcurrent(ConcurrentApplyPlan {
                     groups,

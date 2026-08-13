@@ -2,6 +2,11 @@ mod emission;
 mod model;
 mod relation_effects;
 
+#[cfg(test)]
+mod external_payload_tests;
+#[cfg(test)]
+mod outbox_persistence_tests;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -9,7 +14,7 @@ use std::sync::Arc;
 use worth_foundational::facade::AspectFieldLocator;
 use worth_query_declaration::facade::domain_computation::WorthQueryResourceDimension;
 use worth_query_installation::facade::{
-    ApplicationEntityRef, ApplicationFieldCurrency, ApplicationFieldRef,
+    ApplicationEntityRef, ApplicationFieldRef, ApplicationFieldUnit,
     ApplicationOperationProgramTarget, OperationCreates, OperationDeletes, OperationWrites,
     TypedApplicationValue, WritableCapability,
 };
@@ -159,17 +164,17 @@ impl<Schema, Operation, Input, Scope>
         })
     }
 
-    pub fn initialize_field<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn initialize_field<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &mut self,
         target: &WorthQueryApplicationEffectEntity<Schema, Entity>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
         value: Value,
     ) -> Result<(), WorthQueryApplicationAttemptDenial>
     where
         Entity: OperationCreates<Operation>,
         Field: OperationWrites<Operation>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.validate_target(target, field.entity())?;
         self.admit_program_target(&ApplicationOperationProgramTarget::Write {
@@ -191,17 +196,17 @@ impl<Schema, Operation, Input, Scope>
         Ok(())
     }
 
-    pub fn write_field<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn write_field<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &mut self,
         target: &WorthQueryApplicationEffectEntity<Schema, Entity>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
         value: Value,
     ) -> Result<(), WorthQueryApplicationAttemptDenial>
     where
         Field: OperationWrites<Operation>,
         Value: TypedApplicationValue,
         Write: WritableCapability,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.validate_target(target, field.entity())?;
         self.admit_program_target(&ApplicationOperationProgramTarget::Write {

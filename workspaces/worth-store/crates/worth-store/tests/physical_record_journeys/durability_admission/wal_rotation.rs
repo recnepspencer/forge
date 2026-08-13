@@ -14,7 +14,7 @@ use worth_store::physical_runtime::{
 use super::super::{configuration, durability_with_wal_policy, media, success};
 use super::independent_wal_oracle::inspect_wal_inventory;
 
-const SEGMENT_BYTES: u64 = 1_656;
+const SEGMENT_BYTES: u64 = 35_268;
 
 #[test]
 fn whole_groups_rotate_twice_and_reopen_reconstructs_the_exact_bounded_inventory() {

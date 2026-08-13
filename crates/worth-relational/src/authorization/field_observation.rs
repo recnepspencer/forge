@@ -2,7 +2,7 @@ use worth_foundational::facade::{AspectFieldLocator, AspectValue};
 
 use crate::capabilities::AspectPlanSource;
 use crate::identity::data::{EntityId, KindId};
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::storage::data::RecordLifecycleState;
 use crate::visibility::materialization::read_records::{
     ProjectionAspectRequirement, ProjectionAspectScope, VisibilityProjectionView,

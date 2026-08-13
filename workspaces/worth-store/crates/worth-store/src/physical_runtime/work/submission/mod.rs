@@ -55,6 +55,8 @@ pub(in crate::physical_runtime) struct PhysicalWorkSubmissionFoundation {
     pub(in crate::physical_runtime) runtime: RuntimeIdentity,
     pub(in crate::physical_runtime) generation: LifecycleGeneration,
     pub(in crate::physical_runtime) lifecycle: Arc<LifecycleState>,
+    pub(in crate::physical_runtime) lifecycle_phase:
+        crate::physical_runtime::lifecycle::ObservedLifecyclePhase,
     pub(in crate::physical_runtime) signal_profile: PhysicalSignalProfileIdentity,
     pub(in crate::physical_runtime) bindings: Arc<PhysicalSignalAspectBindingSet>,
     pub(in crate::physical_runtime) signal_admission: PhysicalSignalAdmissionStatus,
@@ -75,6 +77,7 @@ pub(super) struct PhysicalSubmissionState {
     runtime: RuntimeIdentity,
     generation: LifecycleGeneration,
     lifecycle: Arc<LifecycleState>,
+    lifecycle_phase: crate::physical_runtime::lifecycle::ObservedLifecyclePhase,
     signal_admission: PhysicalSignalAdmissionStatus,
     signal_profile: PhysicalSignalProfileIdentity,
     bindings: Arc<PhysicalSignalAspectBindingSet>,
@@ -104,6 +107,7 @@ impl PhysicalWorkSubmissionOwner {
                 runtime: foundation.runtime,
                 generation: foundation.generation,
                 lifecycle: foundation.lifecycle,
+                lifecycle_phase: foundation.lifecycle_phase,
                 signal_admission: foundation.signal_admission,
                 signal_profile: foundation.signal_profile,
                 bindings: foundation.bindings,
@@ -254,6 +258,12 @@ impl PhysicalSubmissionState {
         &self,
     ) -> crate::physical_runtime::lifecycle::LifecycleStateSnapshot {
         self.lifecycle.snapshot()
+    }
+
+    pub(super) const fn lifecycle_phase(
+        &self,
+    ) -> crate::physical_runtime::lifecycle::ObservedLifecyclePhase {
+        self.lifecycle_phase
     }
 
     pub(super) const fn signal_profile(&self) -> PhysicalSignalProfileIdentity {

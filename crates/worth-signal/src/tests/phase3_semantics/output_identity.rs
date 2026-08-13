@@ -26,11 +26,12 @@ fn output_identity_unchanged_suppresses_downstream_propagation() {
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
 
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
-    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Dirty);
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::MaybeStale);
 
     evaluate(&mut graph, source, &mut source_v2_same_identity).unwrap();
 
     assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
+    assert_eq!(graph.node_aspect_version(source).unwrap(), version_ab(1, 0));
     let explanation = graph.observe().explain(source).unwrap();
     assert_eq!(explanation.output_change, Some(OutputChange::Unchanged));
     assert!(explanation.propagation_suppressed);
@@ -42,6 +43,24 @@ fn output_identity_unchanged_suppresses_downstream_propagation() {
             .suppressed_downstream_propagations,
         1
     );
+}
+
+#[test]
+fn undeclared_output_slots_cannot_advance_dependency_visible_versions() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().produces_aspects(ASPECT_A).build();
+    let mut baseline = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)))
+    };
+    evaluate(&mut graph, source, &mut baseline).unwrap();
+    mark_dirty(&mut graph, source, ASPECT_A).unwrap();
+    let mut candidate = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 99)))
+    };
+
+    evaluate(&mut graph, source, &mut candidate).unwrap();
+
+    assert_eq!(graph.node_aspect_version(source).unwrap(), version_ab(2, 0));
 }
 
 #[test]

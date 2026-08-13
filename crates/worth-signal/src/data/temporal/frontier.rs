@@ -120,6 +120,41 @@ pub struct TemporalReadyPromotionSummary {
     broad_scan_denial_count_delta: u64,
 }
 
+/// Cost-honest result of promoting no more than one caller-declared due-wake
+/// batch from the indexed frontier.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BoundedTemporalReadyPromotionSummary {
+    promotion: TemporalReadyPromotionSummary,
+    selection_limit: u64,
+    due_work_remaining: bool,
+}
+
+impl BoundedTemporalReadyPromotionSummary {
+    pub(crate) fn new(
+        promotion: TemporalReadyPromotionSummary,
+        selection_limit: usize,
+        due_work_remaining: bool,
+    ) -> Self {
+        Self {
+            promotion,
+            selection_limit: selection_limit as u64,
+            due_work_remaining,
+        }
+    }
+
+    pub fn promotion(&self) -> &TemporalReadyPromotionSummary {
+        &self.promotion
+    }
+
+    pub fn selection_limit(&self) -> u64 {
+        self.selection_limit
+    }
+
+    pub fn due_work_remaining(&self) -> bool {
+        self.due_work_remaining
+    }
+}
+
 impl TemporalReadyPromotionSummary {
     pub(crate) fn new(
         frontier_before: TemporalFrontierSnapshot,

@@ -52,7 +52,7 @@ impl<Schema, Operation, Input, Scope>
             .resource_ceiling(WorthQueryResourceDimension::RetainedBytes);
         let emission_retained_bytes = append_lifecycle_emission(
             &mut effects,
-            binding.draft.lifecycle_effect.as_ref(),
+            binding.lifecycle_effect(),
             emission_retained_bytes_ceiling,
             self.admission.operation(),
         )?;
@@ -101,7 +101,7 @@ pub(in crate::domain_computation::primary_graph) fn validate_elevation_close_pro
         && lifecycle_emission_is_exact(
             &program.effects,
             1,
-            binding.draft.lifecycle_effect.as_ref(),
+            binding.lifecycle_effect(),
             program.emission_retained_bytes,
         )
     {
@@ -122,8 +122,7 @@ fn validate_installed_contract<Schema, Operation, Input, Scope>(
     >,
 ) -> Result<(), WorthQueryApplicationAttemptDenial> {
     let expected_reads = binding
-        .draft
-        .required_decision_reads
+        .required_decision_reads()
         .iter()
         .collect::<BTreeSet<_>>();
     let installed_reads = read_set
@@ -133,8 +132,7 @@ fn validate_installed_contract<Schema, Operation, Input, Scope>(
         .iter()
         .collect::<BTreeSet<_>>();
     let expected_targets = binding
-        .draft
-        .required_program_targets
+        .required_program_targets()
         .iter()
         .collect::<BTreeSet<_>>();
     let installed_targets = read_set
@@ -143,9 +141,9 @@ fn validate_installed_contract<Schema, Operation, Input, Scope>(
         .program()
         .iter()
         .collect::<BTreeSet<_>>();
-    if expected_reads.len() == binding.draft.required_decision_reads.len()
+    if expected_reads.len() == binding.required_decision_reads().len()
         && expected_reads == installed_reads
-        && expected_targets.len() == binding.draft.required_program_targets.len()
+        && expected_targets.len() == binding.required_program_targets().len()
         && expected_targets == installed_targets
     {
         Ok(())
@@ -158,38 +156,41 @@ fn validate_lifecycle_facts(
     binding: &WorthQueryElevationCloseBinding,
     facts: &[super::WorthQueryApplicationObservedFact],
 ) -> Result<(), WorthQueryApplicationAttemptDenial> {
-    let requested = binding.approved.request_binding();
+    let requested = binding.approved().request_binding();
     if lifecycle_facts_are_exact(
         facts,
         WorthQueryElevationLifecycleFactExpectation {
-            elevation: binding.draft.elevation,
-            review: binding.draft.review,
+            elevation: binding.elevation(),
+            review: binding.review(),
             resource: requested.resource(),
             requester: requested.requester(),
-            approver: WorthQueryExpectedLifecycleRelation::Present(binding.approved.approver()),
+            approver: WorthQueryExpectedLifecycleRelation::Present(binding.approved().approver()),
             grant: requested.grant(),
             reviewer: WorthQueryExpectedLifecycleRelation::Absent,
             elevation_identity: (
-                &requested.elevation_identity_field,
-                &requested.elevation_identity,
+                requested.elevation_identity_field(),
+                requested.elevation_identity(),
             ),
-            reason: (&requested.reason_field, &requested.reason),
-            status: (&requested.status_field, &binding.draft.approved_status),
-            not_before: (&requested.not_before_field, &requested.issued_at),
-            not_after: (&requested.not_after_field, &requested.expires_at),
-            review_identity: (&requested.review_identity_field, &requested.review_identity),
-            review_type: (&requested.review_type_field, &requested.review_type),
+            reason: (requested.reason_field(), requested.reason()),
+            status: (requested.status_field(), binding.approved_status()),
+            not_before: (requested.not_before_field(), requested.issued_at()),
+            not_after: (requested.not_after_field(), requested.expires_at()),
+            review_identity: (
+                requested.review_identity_field(),
+                requested.review_identity(),
+            ),
+            review_type: (requested.review_type_field(), requested.review_type()),
             review_status: (
-                &requested.review_status_field,
-                &requested.review_required_status,
+                requested.review_status_field(),
+                requested.review_required_status(),
             ),
-            requester_relation: requested.requester_relation,
-            approver_relation: binding.draft.approver_relation,
-            grant_relation: requested.grant_relation,
-            resource_relation: requested.resource_relation,
-            review_relation: requested.review_relation,
-            review_scope_relation: requested.review_scope_relation,
-            reviewer_relation: binding.draft.reviewer_relation,
+            requester_relation: requested.requester_relation(),
+            approver_relation: binding.approver_relation(),
+            grant_relation: requested.grant_relation(),
+            resource_relation: requested.resource_relation(),
+            review_relation: requested.review_relation(),
+            review_scope_relation: requested.review_scope_relation(),
+            reviewer_relation: binding.reviewer_relation(),
         },
     ) {
         Ok(())
@@ -202,11 +203,11 @@ fn close_effects(
     binding: &WorthQueryElevationCloseBinding,
 ) -> Vec<WorthQueryApplicationRealizedEffect> {
     vec![WorthQueryApplicationRealizedEffect::UpdateEntity {
-        entity: binding.draft.elevation_entity.clone(),
-        entity_id: binding.draft.elevation,
+        entity: binding.elevation_entity().to_owned(),
+        entity_id: binding.elevation(),
         fields: BTreeMap::from([(
-            binding.draft.status_field.clone(),
-            binding.draft.closed_status.clone(),
+            binding.status_field().clone(),
+            binding.closed_status().clone(),
         )]),
     }]
 }

@@ -7,5 +7,4 @@ pub(crate) mod savepoints;
 pub(crate) mod structural_summary;
 mod touched_scope;
 
-#[cfg(test)]
-pub(crate) use publication::{with_test_diff_preparation_fault, TestDiffPreparationFault};
+pub(crate) use pipeline::{CommitDurableAppendAdmission, CommitResultSeal};

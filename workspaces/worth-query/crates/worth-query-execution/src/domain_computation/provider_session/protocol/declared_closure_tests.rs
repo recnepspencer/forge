@@ -1,11 +1,7 @@
-use worth_query_installation::facade::{
-    WorthQueryAftermathPostcondition, WorthQueryDomainOperationIdentity,
-    WorthQueryOperationReversalContract,
-};
-
 use super::declared_closure::{
     bind_direct_role_closure, reversal_posture, WorthQueryProviderPlanDeclaredClosure,
 };
+use crate::domain_computation::application_aftermath::aftermath_schema_fixture as fixture;
 
 #[test]
 fn read_only_roles_receive_no_effect_authority() {
@@ -29,21 +25,15 @@ fn read_only_roles_receive_no_effect_authority() {
 
 #[test]
 fn reversal_posture_retains_the_exact_declared_recovery_contract() {
+    let inverse = fixture::freeze_balance();
     assert_eq!(
-        reversal_posture(&WorthQueryOperationReversalContract::ExactInverse {
-            lowering_family: "inverse-v2".to_owned(),
-        }),
-        "exact-inverse:inverse-v2"
+        reversal_posture(Some(&inverse)),
+        "exact-inverse:unfreeze:inverse-v2:exact-prior-truth"
     );
+
+    let compensation = fixture::charge();
     assert_eq!(
-        reversal_posture(
-            &WorthQueryOperationReversalContract::CompensationWithPostcondition {
-                operation: WorthQueryDomainOperationIdentity::new("undo-charge", 3),
-                postcondition: WorthQueryAftermathPostcondition::InvariantRestored {
-                    invariant: "balanced-ledger".to_owned(),
-                },
-            }
-        ),
-        "compensation:undo-charge:3:invariant-restored:balanced-ledger"
+        reversal_posture(Some(&compensation)),
+        "compensation:undo-charge:invariant-restored:balanced-ledger"
     );
 }

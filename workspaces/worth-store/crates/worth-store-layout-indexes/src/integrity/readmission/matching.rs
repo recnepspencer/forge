@@ -19,10 +19,6 @@ pub(super) fn matches_identity(
                 witness.source_store_authority_identity() == Some(family.authority_identity())
                     && witness.source_security_scope_identity() == Some(family.security_identity())
             }
-            RecoveryLayoutReadmissionClass::OfflineVerifiedArtifact => {
-                witness.source_store_authority_identity().is_none()
-                    && witness.source_security_scope_identity().is_none()
-            }
             RecoveryLayoutReadmissionClass::NoForegroundAuthority => false,
         }
 }

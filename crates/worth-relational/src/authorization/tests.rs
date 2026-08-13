@@ -244,7 +244,7 @@ fn unrelated_graph_scale_does_not_change_observation_work() {
 }
 
 struct AuthorizationFixture {
-    runtime: crate::logic::runtime::RelationalRuntime,
+    runtime: crate::runtime::RelationalRuntime,
     principal: crate::identity::data::EntityId,
     scope: crate::identity::data::EntityId,
     role_scope_relation: crate::identity::data::RelationId,

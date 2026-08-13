@@ -60,14 +60,6 @@ impl LayoutCorruptionCounterSnapshot {
         }
     }
 
-    pub(super) const fn offline_admission() -> Self {
-        Self {
-            recovery_admissions_inspected: 1,
-            outcomes_issued: 1,
-            ..Self::empty()
-        }
-    }
-
     pub(super) const fn terminal_import() -> Self {
         Self {
             terminal_imports_inspected: 1,

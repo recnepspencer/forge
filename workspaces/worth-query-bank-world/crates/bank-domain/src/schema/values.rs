@@ -1,7 +1,7 @@
 use worth_foundational::facade::{AspectValue, InternedString, ScalarAspectType};
 use worth_query_decl::facade::application_schema::{
     TypedApplicationIdentityValue, TypedApplicationReadableValue, TypedApplicationValue,
-    TypedCurrencyApplicationValue,
+    TypedUnitApplicationValue,
 };
 
 use crate::model::{
@@ -161,7 +161,7 @@ macro_rules! created_identity_application_value {
                 fn from_foundational_value(value: &AspectValue) -> Option<Self> {
                     match value {
                         AspectValue::String(InternedString::Raw(value)) => {
-                            <$Type>::from_canonical_text(value)
+                            <$Type>::parse_canonical_text(value)
                         }
                         _ => None,
                     }
@@ -230,8 +230,8 @@ impl<C: Currency> TypedApplicationReadableValue for Money<C> {
     }
 }
 
-impl<C: Currency> TypedCurrencyApplicationValue for Money<C> {
-    type Currency = C;
+impl<C: Currency> TypedUnitApplicationValue for Money<C> {
+    type Unit = C;
 }
 
 impl<C: Currency> TypedApplicationValue for SignedMoney<C> {
@@ -259,8 +259,8 @@ impl<C: Currency> worth_query_decl::facade::application_schema::TypedApplication
     }
 }
 
-impl<C: Currency> TypedCurrencyApplicationValue for SignedMoney<C> {
-    type Currency = C;
+impl<C: Currency> TypedUnitApplicationValue for SignedMoney<C> {
+    type Unit = C;
 }
 
 macro_rules! idempotency_application_value {

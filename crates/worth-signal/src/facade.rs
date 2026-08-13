@@ -27,15 +27,16 @@ pub use self::core::*;
 pub use self::core::{
     apply_installed_aspect_changes, mark_changed, mark_changed_with_regions, mark_dirty,
     mark_dirty_with_regions, resolve_signal_delta_threshold, AdmittedHostComputedReadSet,
-    AfterCondition, Aspect, AspectMask, AspectVersion, AtOrAfterCondition, CanonicalChangedRegions,
-    ChangedRegion, ClockAdvanceOrdinal, ClockAdvanceRequest, ClockAuthority, ClockCheckpointId,
-    ClockDomain, ClockTick, CommittedHostComputedArtifact, ComparatorPolicyResolver,
-    ConditionEvaluationContext, DebounceCondition, DeferredTemporalEligibility,
-    DeniedHostComputedEvaluation, DeniedHostComputedReadSet, DependencyEdge, EvaluationCondition,
-    HostComputedApiFamily, HostComputedDenialClass, HostComputedDependencyPatch,
-    HostComputedDescriptor, HostComputedDescriptorId, HostComputedDiagnosticsSummary,
-    HostComputedEvaluationOutcome, HostComputedEvaluationRequest, HostComputedEvaluationResponse,
-    HostComputedEvaluator, HostComputedFailure, HostComputedFailureClass, HostComputedOutcomeClass,
+    AfterCondition, Aspect, AspectMask, AspectVersion, AtOrAfterCondition,
+    BoundedTemporalReadyPromotionSummary, CanonicalChangedRegions, ChangedRegion,
+    ClockAdvanceOrdinal, ClockAdvanceRequest, ClockAuthority, ClockCheckpointId, ClockDomain,
+    ClockTick, CommittedHostComputedArtifact, ComparatorPolicyResolver, ConditionEvaluationContext,
+    DebounceCondition, DeferredTemporalEligibility, DeniedHostComputedEvaluation,
+    DeniedHostComputedReadSet, DependencyEdge, EvaluationCondition, HostComputedApiFamily,
+    HostComputedDenialClass, HostComputedDependencyPatch, HostComputedDescriptor,
+    HostComputedDescriptorId, HostComputedDiagnosticsSummary, HostComputedEvaluationOutcome,
+    HostComputedEvaluationRequest, HostComputedEvaluationResponse, HostComputedEvaluator,
+    HostComputedFailure, HostComputedFailureClass, HostComputedOutcomeClass,
     HostComputedPreparedResponse, InstalledSignalAspectCapability,
     InstalledSignalAspectLoweringAuthority, InstalledSignalAspectSetCapability,
     InstalledSignalAuthorizationPolicy, InstalledSignalComparatorIdentity,
@@ -95,10 +96,11 @@ pub use self::history::{
 #[cfg(test)]
 pub use self::runtime::*;
 #[cfg(not(test))]
+#[allow(deprecated)]
 pub use self::runtime::{
     bridge_signal_branch_basis_trust_boundary, mark_dirty_batch, BatchChange, BatchChangeResult,
     BatchChangeSession, BranchTargetedTransactionDenial, BranchTargetedTransactionExecutionOutcome,
-    BranchTargetedTransactionRequest, ChangeBatch, ChangeBatchCommit,
+    BranchTargetedTransactionRequest, ChangeBatch, ChangeBatchAdmission, ChangeBatchCommit,
     ExecutedBranchTargetedTransactionReceipt, History, IntervalWakeRegeneration,
     LoweredBranchTargetedTransactionPlan, PlannedSignalBranchRetirement,
     PlannedSignalBranchRetirementBatch, PreviousValueRevision, ReadyTemporalWake, RecipeInstance,
@@ -116,6 +118,7 @@ pub use self::runtime::{
     ValidatedBranchTargetedTransactionRequest, WakeOrdinal,
 };
 #[cfg(test)]
+#[allow(deprecated)]
 pub use self::runtime::{
     ChangeBatch as DirtyBatch, ChangeBatchCommit as SemanticBatchCommit, History as RuntimeHistory,
     KeyedRecipe as KeyedComputation, KeyedRecipeInstance as DefinedKeyedComputation,

@@ -1,23 +1,25 @@
-use worth_foundational::facade::AspectValue;
+use worth_foundational::facade::{AspectFieldLocator, AspectValue};
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
 use worth_query_declaration::facade::application_schema::TypedMutationPreconditions;
 use worth_query_installation::facade::{
-    ApplicationSchema, WorthQueryInstalledApplicationOperation,
+    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget, ApplicationSchema,
+    WorthQueryInstalledApplicationOperation,
 };
-use worth_relational::facade::identity::EntityId;
+use worth_relational::facade::identity::{EntityId, KindId};
 
-use super::super::capability_operation_progression::{
-    progress_capability_operation, WorthQueryCapabilityOperationProgression,
-};
 use super::super::capability_registry::{
     WorthQueryElevationLifecycleOperationRole, WorthQueryInstalledCapabilityPlan,
+};
+use super::super::operation_progression::{
+    progress_capability_operation, WorthQueryCapabilityOperationProgression,
 };
 use super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
-use super::approval_binding::WorthQueryElevationApprovalDraft;
-use super::context_identity::{resolve_lifecycle_identity, selected_elevation_entity};
+use super::context_identity::{
+    resolve_elevation_identity, resolve_review_identity, selected_elevation_entity,
+};
 use super::operation_role::installed_lifecycle_owner;
 use super::transition_contract::{approval_program_targets, lifecycle_decision_reads};
 use crate::domain_computation::primary_graph::{
@@ -26,6 +28,30 @@ use crate::domain_computation::primary_graph::{
 
 mod support_currentness;
 use support_currentness::refresh_exact_support;
+mod binding;
+pub(in crate::domain_computation) use binding::WorthQueryElevationApprovalBinding;
+
+pub(in crate::domain_computation) struct WorthQueryElevationApprovalBindingPermit(());
+
+impl WorthQueryElevationApprovalBindingPermit {
+    fn mint() -> Self {
+        Self(())
+    }
+}
+
+pub(in crate::domain_computation) struct WorthQueryElevationApprovalDraft {
+    elevation: EntityId,
+    review: EntityId,
+    approver: EntityId,
+    approved_status: AspectValue,
+    elevation_entity: String,
+    status_field: AspectFieldLocator,
+    approver_relation: KindId,
+    reviewer_relation: KindId,
+    required_decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
+    required_program_targets: Vec<ApplicationOperationProgramTarget>,
+    lifecycle_effect: Option<worth_query_declaration::lifecycle_effect_derivation_authority::DerivedApplicationCapabilityLifecycleEffect>,
+}
 
 #[derive(Debug)]
 pub struct WorthQueryElevationApprovalAuthorizationDenial {
@@ -79,8 +105,7 @@ where
             Ok(draft) => draft,
             Err(denial) => return Err(approval_denial(requested, denial)),
         };
-        let support_sample = match refresh_exact_support(self, requested.binding_mut(), &mut access)
-        {
+        let support_sample = match refresh_exact_support(self, &mut requested, &mut access) {
             Ok(sample) => sample,
             Err(denial) => return Err(approval_denial(requested, denial)),
         };
@@ -118,27 +143,27 @@ where
 {
     let (capability_identity, installed) = installed_lifecycle_owner(
         runtime,
-        access.authorization.installed_capability_identity(),
+        access.installed_capability_identity(),
         operation,
         WorthQueryElevationLifecycleOperationRole::Approve,
     )?;
     let requested_binding = requested.binding();
     validate_receipt_authority(runtime, capability_identity, installed, requested, access)?;
     let lifecycle = installed
-        .elevation
+        .elevation()
         .as_ref()
-        .ok_or_else(|| approval_rejected(installed.contract.name()))?;
+        .ok_or_else(|| approval_rejected(installed.contract().name()))?;
     let elevation_definition = installed
-        .contract
+        .contract()
         .elevation()
         .definition()
-        .ok_or_else(|| approval_rejected(installed.contract.name()))?;
+        .ok_or_else(|| approval_rejected(installed.contract().name()))?;
     let (elevation, review) =
         resolve_approval_entities(runtime, access, installed, requested_binding)?;
     Ok(WorthQueryElevationApprovalDraft {
         elevation,
         review,
-        approver: access.principal_entity_id,
+        approver: access.principal_entity_id(),
         approved_status: lifecycle.lifecycle.approved.clone(),
         elevation_entity: elevation_definition.status().entity().to_string(),
         status_field: lifecycle.lifecycle.status.clone(),
@@ -148,8 +173,8 @@ where
         required_program_targets: approval_program_targets(installed),
         lifecycle_effect: super::lifecycle_effect::derive_lifecycle_effect(
             elevation_definition.lifecycle().approve(),
-            &access.input,
-            installed.contract.name(),
+            access.capability_input(),
+            installed.contract().name(),
         )?,
     })
 }
@@ -164,27 +189,28 @@ where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    let definition = installed.contract.elevation().definition().unwrap();
     let elevation = selected_elevation_entity(access, installed)
-        .ok_or_else(|| approval_rejected(installed.contract.name()))?;
-    let resolved_elevation = resolve_lifecycle_identity(
+        .ok_or_else(|| approval_rejected(installed.contract().name()))?;
+    let resolved_elevation = resolve_elevation_identity(
         runtime,
         access,
-        definition.identity(),
-        &requested.elevation_identity,
+        requested.capability_identity(),
+        installed,
+        requested.elevation_identity(),
     )
-    .ok_or_else(|| approval_rejected(installed.contract.name()))?;
-    let review = resolve_lifecycle_identity(
+    .ok_or_else(|| approval_rejected(installed.contract().name()))?;
+    let review = resolve_review_identity(
         runtime,
         access,
-        definition.review().identity(),
-        &requested.review_identity,
+        requested.capability_identity(),
+        installed,
+        requested.review_identity(),
     )
-    .ok_or_else(|| approval_rejected(installed.contract.name()))?;
+    .ok_or_else(|| approval_rejected(installed.contract().name()))?;
     if resolved_elevation == elevation {
         Ok((elevation, review))
     } else {
-        Err(approval_rejected(installed.contract.name()))
+        Err(approval_rejected(installed.contract().name()))
     }
 }
 
@@ -200,24 +226,28 @@ where
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
     let binding = requested.binding();
-    if binding.runtime_authority != runtime.runtime.authority_identity()
-        || binding.branch != *access.graph_work.branch().relational()
-        || requested.commit_receipt().terminal().branch() != &binding.branch
-        || binding.capability_identity != capability_identity
-        || binding.capability_authority_identity.as_ref()
-            != installed.capability_authority_identity.as_ref()
+    if binding.runtime_authority() != &runtime.runtime.authority_identity()
+        || binding.branch() != access.graph_work_branch()
+        || requested.commit_receipt().terminal().branch() != binding.branch()
+        || binding.capability_identity() != capability_identity
+        || binding.capability_authority_identity()
+            != installed.capability_authority_identity().as_ref()
     {
-        return Err(approval_rejected(installed.contract.name()));
+        return Err(approval_rejected(installed.contract().name()));
     }
     Ok(())
 }
 
 fn validate_approval_time(
     requested: &super::WorthQueryElevationRequestBinding,
-    sample: &super::super::WorthQueryAuthorizationTimeSample,
+    sample: &super::super::WorthQueryRuntimeTimeSample,
     subject: &str,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-    match (sample.value(), &requested.issued_at, &requested.expires_at) {
+    match (
+        sample.value(),
+        requested.issued_at(),
+        requested.expires_at(),
+    ) {
         (AspectValue::UInt64(now), AspectValue::UInt64(start), AspectValue::UInt64(end))
             if start <= now && now < end =>
         {

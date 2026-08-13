@@ -54,7 +54,7 @@ Envelope truth can move forward into:
 The key rule is that later surfaces should reuse retained targets instead of
 pretending the earlier declaration work never happened.
 
-For mutation aftermath, the same rule applies one step earlier too: if you
+For post-mutation consumption, the same rule applies one step earlier: if you
 already have a retained batch-write receipt and the next step needs the
 matching inspection plus one exact retained derived artifact, use
 `materialize_batch_write_artifact_binding(...)` so Query owns that retained

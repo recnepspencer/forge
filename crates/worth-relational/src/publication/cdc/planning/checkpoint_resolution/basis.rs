@@ -1,12 +1,12 @@
 use crate::capabilities::{PatchStreamSource, RuntimeConfigSource};
-use crate::logic::runtime::RelationalRuntime;
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::publication::cdc::data::{
     SubscriberCheckpoint, SubscriberCheckpointBasis, SubscriberContinuationAssessment,
 };
-use crate::publication::logic::durable_canonical_envelopes;
+use crate::publication::durable_canonical_envelopes;
 use crate::publication::patch::data::PatchStreamPosition;
-use crate::replay::data::CanonicalCommitEnvelope;
 use crate::replay::data::ReplaySchemaVersion;
+use crate::runtime::RelationalRuntime;
 #[cfg(test)]
 use crate::schema::data::SchemaVersionId;
 

@@ -42,7 +42,7 @@ fn checkpoint_image_strips_node_local_cold_payloads_while_snapshot_bundle_retain
 
     let snapshot = graph.capture_snapshot();
 
-    let checkpoint_graph = snapshot.authority_graph();
+    let checkpoint_graph = snapshot.authority_graph().unwrap();
     let checkpoint_entry = checkpoint_graph
         .get_entry(node)
         .expect("checkpoint node entry");
@@ -89,7 +89,9 @@ fn checkpoint_image_omits_dependency_snapshots_and_restore_rebuilds_them_from_ex
     .unwrap();
 
     let snapshot = graph.capture_snapshot();
-    let authority_graph = snapshot.authority_graph();
+    let authority_graph =
+        SignalGraph::restore_from_checkpoint_authority(&snapshot.checkpoint_image.authority)
+            .unwrap();
     assert!(
         authority_graph
             .get_dep_snapshot(target)
@@ -106,6 +108,17 @@ fn checkpoint_image_omits_dependency_snapshots_and_restore_rebuilds_them_from_ex
             .as_slice(),
         &[target],
         "checkpoint image should carry dependency snapshot rebuild work explicitly"
+    );
+    assert_eq!(
+        snapshot
+            .authority_graph()
+            .unwrap()
+            .get_dep_snapshot(target)
+            .unwrap()
+            .entries()[0]
+            .cached_version,
+        1,
+        "supported authority graph reconstruction must apply the explicit rebuild batch"
     );
 
     let mut overwritten = DependencySnapshot::empty();

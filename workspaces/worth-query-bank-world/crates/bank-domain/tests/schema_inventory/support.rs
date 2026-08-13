@@ -68,9 +68,9 @@ pub(super) fn policy_name(member: &ApplicationSchemaMember) -> Option<&str> {
     }
 }
 
-pub(super) fn currency_name(member: &ApplicationSchemaMember) -> Option<&str> {
+pub(super) fn unit_name(member: &ApplicationSchemaMember) -> Option<&str> {
     match member {
-        ApplicationSchemaMember::Currency { currency } => Some(currency),
+        ApplicationSchemaMember::Unit { unit } => Some(unit),
         _ => None,
     }
 }

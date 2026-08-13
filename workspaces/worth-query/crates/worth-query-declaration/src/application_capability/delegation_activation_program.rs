@@ -41,7 +41,7 @@ pub fn application_capability_delegation_activation_program_targets(
         link_target(delegation.grantee()),
     ]);
     extend_optional_field(&mut required, target.field());
-    extend_optional_field(&mut required, constraints.amount());
+    extend_optional_field(&mut required, constraints.magnitude());
     extend_optional_relation(&mut required, target.relation());
     required.extend(activation.context_relations().iter().map(link_target));
     Some(required.into_iter().collect())

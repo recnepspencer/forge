@@ -26,7 +26,13 @@ pub use crate::conditional_execution::{
     BridgeConditionalResolverContext, BridgeConditionalSemanticObservation,
     BridgeConditionalTriggerProvider, BridgeConditionalWakeProvider,
     BridgeInstalledConditionalLowering, BridgeInstalledConditionalLoweringCounters,
-    BridgeLiveConditionalLowering, BridgeOwnedSignalRuntime, BridgeRetainedConditionalDecisionSeed,
+    BridgeLiveConditionalLowering, BridgeManagedClockAcceptedObservation,
+    BridgeManagedClockBinding, BridgeManagedClockClosure, BridgeManagedClockInstallationParts,
+    BridgeManagedClockObservationOutcome, BridgeManagedClockObservationParts, BridgeManagedDueWake,
+    BridgeManagedDueWakeBatch, BridgeManagedTemporalDenial, BridgeManagedTemporalDenialKind,
+    BridgeManagedTemporalIntentIdentity, BridgeManagedTemporalIntentLifecycle,
+    BridgeManagedTemporalIntentReconciliation, BridgeManagedTemporalIntentReconciliationParts,
+    BridgeOwnedSignalRuntime, BridgeRetainedConditionalDecisionSeed,
 };
 pub use crate::continuity::{
     BridgeContinuityArtifact, BridgeContinuityAuthorityBasis, BridgeContinuityAuthorityKind,

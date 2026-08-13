@@ -8,8 +8,9 @@
 use super::authority_sealing_surface::SurfaceHit;
 use super::authority_value_gate_defs::{
     collect_default_impls, collect_public_self_constructors, collect_public_values,
-    collect_trait_factories, index_type_definitions, mintability_reason_for,
+    collect_trait_factories, index_type_definitions,
 };
+use super::authority_value_gate_mintability::mintability_reason_for;
 use super::authority_value_gate_scan::collect_ceremony_admissions;
 use super::authority_value_identity::{carrier_aliases, local_type_key};
 use super::callable_surface::SurfaceViolation;
@@ -40,7 +41,7 @@ pub(super) fn collect_value_gate_violations(
 
     let definitions = index_type_definitions(graph);
     let defaults = collect_default_impls(graph);
-    let constructors = collect_public_self_constructors(graph);
+    let constructors = collect_public_self_constructors(graph, reachability);
     let public_values = collect_public_values(graph, reachability);
     let trait_factories = collect_trait_factories(graph, reachability);
 

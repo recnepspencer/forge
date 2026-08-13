@@ -88,6 +88,18 @@ impl WorthQueryInstalledDomainOperationAuthority {
             authority_binding_identity,
         })
     }
+
+    pub(crate) fn conditional_node_declaration(
+        &self,
+        location: &WorthQueryConditionalNodeLocation,
+    ) -> Result<
+        WorthQueryPortableConditionalNodeDeclaration,
+        WorthQueryConditionalDependencyLookupDenial,
+    > {
+        resolve_node(self.definition().semantics(), location)
+            .cloned()
+            .ok_or(WorthQueryConditionalDependencyLookupDenial::NodeNotDeclared)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

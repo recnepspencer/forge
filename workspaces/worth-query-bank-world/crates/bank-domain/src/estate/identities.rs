@@ -16,6 +16,15 @@ macro_rules! estate_identity {
                 pub const fn get(self) -> u64 {
                     self.0
                 }
+
+                pub fn canonical_text(self) -> String {
+                    format!("fixture:{}", self.0)
+                }
+
+                pub fn parse_canonical_text(value: &str) -> Option<Self> {
+                    let value = value.strip_prefix("fixture:")?.parse::<u64>().ok()?;
+                    Self::new(value)
+                }
             }
         )+
     };

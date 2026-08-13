@@ -58,20 +58,18 @@ pub fn estate_legal_compliance_definition() -> ApplicationQueryDefinition<
     EstateLegalComplianceResult,
     EstateCase,
 > {
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        EstateLegalComplianceQuery::reference(),
-        EstateCase::reference(),
-        EstateCase::reference(),
-        legal_compliance_shape(),
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(3, 16, 16),
-        disclosure_contract(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        ViewEstateLegalCompliance::reference(),
-    )
-    .build()
-    .expect("bank estate legal-compliance query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(EstateLegalComplianceQuery::reference())
+        .root(EstateCase::reference())
+        .scope(EstateCase::reference())
+        .result_shape(legal_compliance_shape())
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(3, 16, 16))
+        .disclosure(disclosure_contract())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(ViewEstateLegalCompliance::reference())
+        .build()
+        .expect("bank estate legal-compliance query is statically canonical")
 }
 
 fn disclosure_contract() -> ApplicationQueryDisclosureContract {

@@ -5,7 +5,7 @@ use crate::facade::schema::{
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
-use crate::logic::runtime::{RelationalRuntime, RelationalRuntimeConfig};
+use crate::runtime::{RelationalRuntime, RelationalRuntimeConfig};
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::overlay::PartitionState;
 use crate::storage::partition::AdjacencySet;

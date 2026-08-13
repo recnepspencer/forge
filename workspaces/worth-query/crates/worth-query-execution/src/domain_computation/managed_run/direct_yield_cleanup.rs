@@ -1,123 +1,70 @@
-use std::sync::Arc;
+mod inspection;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt;
-use worth_runtime_bridge::facade::BridgeExecutionBasisFinalizationReceipt;
+use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use worth_runtime_bridge::facade::BridgeYieldedExecutionBasis;
 
+pub use inspection::{WorthQueryDirectYieldCleanupInspection, WorthQueryDirectYieldCleanupReceipt};
+
+use self::inspection::WorthQueryCompletedDirectYieldCleanup;
 use super::{
-    WorthQueryManagedProviderWorkEvidence, WorthQueryManagedRunCounters,
+    run_affinity::WorthQueryDirectRunTerminalAffinity, WorthQueryDirectYieldRecoveryRequired,
+    WorthQueryManagedProviderWorkEvidence, WorthQueryManagedRunCleanupDisposition,
+    WorthQueryManagedRunCounters, WorthQueryYieldRecoveryResourceEvidence,
     WorthQueryYieldTransitionCounters, WorthQueryYieldedDirectRun,
 };
-use crate::domain_computation::{
-    WorthQueryDirectExecutionAttemptReleaseReceipt, WorthQueryProviderCheckpointEvidence,
-    WorthQueryProviderCheckpointReleaseEvidence, WorthQueryYieldRecoveryResourceEvidence,
-};
 
+pub(super) struct WorthQueryDirectYieldCleanupPermit {
+    _owner: (),
+}
+
+impl WorthQueryDirectYieldCleanupPermit {
+    fn mint() -> Self {
+        Self { _owner: () }
+    }
+}
+
+#[must_use = "direct yielded-run cleanup outcomes must be resolved"]
 pub enum WorthQueryDirectYieldCleanupOutcome {
     Complete(WorthQueryDirectYieldCleanupReceipt),
     RecoveryRequired(WorthQueryDirectYieldCleanupReceipt),
 }
 
-pub struct WorthQueryDirectYieldCleanupReceipt {
-    logical_run_identity: Arc<str>,
-    attempt_identity: Arc<str>,
-    checkpoint_release: Option<WorthQueryProviderCheckpointReleaseEvidence>,
-    recovery_evidence: Option<WorthQueryYieldRecoveryResourceEvidence>,
-    bridge: BridgeExecutionBasisFinalizationReceipt,
-    relational: RelationalExecutionBasisReleaseReceipt,
-    attempt: WorthQueryDirectExecutionAttemptReleaseReceipt,
+struct WorthQueryDirectYieldCleanupAssociation {
+    logical_run_identity: std::sync::Arc<str>,
+    attempt_identity: std::sync::Arc<str>,
+    affinity: WorthQueryDirectRunTerminalAffinity,
+    relational_basis: RelationalExecutionBasisLease,
+    bridge: BridgeYieldedExecutionBasis,
     run_counters: WorthQueryManagedRunCounters,
     provider_work: WorthQueryManagedProviderWorkEvidence,
     yield_counters: WorthQueryYieldTransitionCounters,
 }
 
-pub(super) struct WorthQueryDirectYieldCleanupReceiptParts {
-    pub(super) logical_run_identity: Arc<str>,
-    pub(super) attempt_identity: Arc<str>,
-    pub(super) bridge: BridgeExecutionBasisFinalizationReceipt,
-    pub(super) relational: RelationalExecutionBasisReleaseReceipt,
-    pub(super) attempt: WorthQueryDirectExecutionAttemptReleaseReceipt,
-    pub(super) run_counters: WorthQueryManagedRunCounters,
-    pub(super) provider_work: WorthQueryManagedProviderWorkEvidence,
-    pub(super) yield_counters: WorthQueryYieldTransitionCounters,
-    pub(super) recovery_evidence: Option<WorthQueryYieldRecoveryResourceEvidence>,
-}
-
-impl WorthQueryDirectYieldCleanupReceipt {
-    pub fn logical_run_identity(&self) -> &str {
-        &self.logical_run_identity
-    }
-
-    pub fn yielded_attempt_identity(&self) -> &str {
-        &self.attempt_identity
-    }
-
-    pub fn checkpoint(&self) -> Option<&WorthQueryProviderCheckpointEvidence> {
-        self.checkpoint_release
-            .as_ref()
-            .map(WorthQueryProviderCheckpointReleaseEvidence::checkpoint)
-    }
-
-    pub fn checkpoint_release(&self) -> Option<&WorthQueryProviderCheckpointReleaseEvidence> {
-        self.checkpoint_release.as_ref()
-    }
-
-    pub fn recovery_evidence(&self) -> Option<&WorthQueryYieldRecoveryResourceEvidence> {
-        self.recovery_evidence.as_ref()
-    }
-
-    pub fn bridge(&self) -> &BridgeExecutionBasisFinalizationReceipt {
-        &self.bridge
-    }
-
-    pub fn relational(&self) -> &RelationalExecutionBasisReleaseReceipt {
-        &self.relational
-    }
-
-    pub fn attempt(&self) -> &WorthQueryDirectExecutionAttemptReleaseReceipt {
-        &self.attempt
-    }
-
-    pub fn provider_work(&self) -> &WorthQueryManagedProviderWorkEvidence {
-        &self.provider_work
-    }
-
-    pub fn run_counters(&self) -> &WorthQueryManagedRunCounters {
-        &self.run_counters
-    }
-
-    pub const fn yield_counters(&self) -> WorthQueryYieldTransitionCounters {
-        self.yield_counters
-    }
-}
-
 pub(super) fn cleanup_yielded_direct(
     yielded: WorthQueryYieldedDirectRun,
 ) -> WorthQueryDirectYieldCleanupOutcome {
-    let WorthQueryYieldedDirectRun {
-        logical_run_identity,
-        attempt_identity,
-        resource_attempt,
-        relational_basis,
-        bridge,
-        execution,
-        run_counters,
-        provider_work,
-        yield_counters,
-    } = yielded;
+    let permit = WorthQueryDirectYieldCleanupPermit::mint();
+    let (affinity, relational_basis, bridge, execution, run_counters, yield_counters) =
+        yielded.owner_into_cleanup_parts(&permit);
+    let (affinity, provider_work, _) = affinity.into_terminal_parts();
+    let (logical_run_identity, attempt_identity) = affinity.terminal_descriptions();
     let checkpoint_release = execution.release();
     let recovery_required = checkpoint_release.disposition().recovery_required();
-    let receipt = WorthQueryDirectYieldCleanupReceipt {
-        logical_run_identity,
-        attempt_identity,
-        checkpoint_release: Some(checkpoint_release),
-        recovery_evidence: None,
-        bridge: bridge.release(),
-        relational: relational_basis.release(),
-        attempt: resource_attempt.release(),
-        run_counters,
-        provider_work: provider_work.into_evidence(),
-        yield_counters,
-    };
+    let receipt = complete_cleanup(
+        WorthQueryDirectYieldCleanupAssociation {
+            logical_run_identity,
+            attempt_identity,
+            affinity,
+            relational_basis,
+            bridge,
+            run_counters,
+            provider_work,
+            yield_counters,
+        },
+        Some(checkpoint_release),
+        None,
+        recovery_required,
+    );
     if recovery_required {
         WorthQueryDirectYieldCleanupOutcome::RecoveryRequired(receipt)
     } else {
@@ -125,19 +72,71 @@ pub(super) fn cleanup_yielded_direct(
     }
 }
 
-pub(super) fn terminalized_cleanup_receipt(
-    parts: WorthQueryDirectYieldCleanupReceiptParts,
+pub(super) fn cleanup_terminalized(
+    recovery: WorthQueryDirectYieldRecoveryRequired,
+) -> Result<WorthQueryDirectYieldCleanupReceipt, WorthQueryDirectYieldRecoveryRequired> {
+    let permit = WorthQueryDirectYieldCleanupPermit::mint();
+    let (
+        logical_run_identity,
+        attempt_identity,
+        affinity,
+        relational_basis,
+        bridge,
+        run_counters,
+        provider_work,
+        yield_counters,
+        recovery_evidence,
+    ) = recovery.owner_into_terminal_cleanup_parts(&permit)?;
+    Ok(complete_cleanup(
+        WorthQueryDirectYieldCleanupAssociation {
+            logical_run_identity,
+            attempt_identity,
+            affinity,
+            relational_basis,
+            bridge,
+            run_counters,
+            provider_work,
+            yield_counters,
+        },
+        None,
+        Some(recovery_evidence),
+        true,
+    ))
+}
+
+fn complete_cleanup(
+    association: WorthQueryDirectYieldCleanupAssociation,
+    checkpoint_release: Option<
+        crate::domain_computation::WorthQueryProviderCheckpointReleaseEvidence,
+    >,
+    recovery_evidence: Option<WorthQueryYieldRecoveryResourceEvidence>,
+    recovery_required: bool,
 ) -> WorthQueryDirectYieldCleanupReceipt {
-    WorthQueryDirectYieldCleanupReceipt {
-        logical_run_identity: parts.logical_run_identity,
-        attempt_identity: parts.attempt_identity,
-        checkpoint_release: None,
-        recovery_evidence: parts.recovery_evidence,
-        bridge: parts.bridge,
-        relational: parts.relational,
-        attempt: parts.attempt,
-        run_counters: parts.run_counters,
-        provider_work: parts.provider_work,
-        yield_counters: parts.yield_counters,
-    }
+    let WorthQueryDirectYieldCleanupAssociation {
+        logical_run_identity,
+        attempt_identity,
+        affinity,
+        relational_basis,
+        bridge,
+        run_counters,
+        provider_work,
+        yield_counters,
+    } = association;
+    WorthQueryDirectYieldCleanupReceipt::from_completed(WorthQueryCompletedDirectYieldCleanup {
+        logical_run_identity,
+        attempt_identity,
+        disposition: if recovery_required {
+            WorthQueryManagedRunCleanupDisposition::RecoveryRequired
+        } else {
+            WorthQueryManagedRunCleanupDisposition::CleanupComplete
+        },
+        checkpoint_release,
+        recovery_evidence,
+        bridge: bridge.release(),
+        relational: relational_basis.release(),
+        attempt: affinity.release(),
+        run_counters,
+        provider_work,
+        yield_counters,
+    })
 }

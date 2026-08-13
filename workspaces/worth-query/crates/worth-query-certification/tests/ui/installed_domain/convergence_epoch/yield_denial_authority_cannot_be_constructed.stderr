@@ -1,0 +1,27 @@
+error[E0451]: field `association` of struct `WorthQueryDeniedDirectConvergenceYield` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_denial_authority_cannot_be_constructed.rs:11:9
+   |
+10 |     let _ = WorthQueryDeniedDirectConvergenceYield {
+   |             -------------------------------------- in this type
+11 |         association: impossible(),
+   |         ^^^^^^^^^^^ private field
+
+error[E0451]: field `association` of struct `WorthQueryDeniedWorkflowConvergenceYield` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_denial_authority_cannot_be_constructed.rs:14:9
+   |
+13 |     let _ = WorthQueryDeniedWorkflowConvergenceYield {
+   |             ---------------------------------------- in this type
+14 |         association: impossible(),
+   |         ^^^^^^^^^^^ private field
+
+error: type `worth_query_execution::domain_computation::convergence_epoch::iteration_owner::direct::association::DirectIterationAssociation<WorthQueryDirectYieldDenied>` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_denial_authority_cannot_be_constructed.rs:11:22
+   |
+11 |         association: impossible(),
+   |                      ^^^^^^^^^^^^ private type
+
+error: type `worth_query_execution::domain_computation::convergence_epoch::iteration_owner::workflow::association::WorkflowIterationAssociation<WorthQueryWorkflowYieldDenied>` is private
+  --> tests/ui/installed_domain/convergence_epoch/yield_denial_authority_cannot_be_constructed.rs:14:22
+   |
+14 |         association: impossible(),
+   |                      ^^^^^^^^^^^^ private type

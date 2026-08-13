@@ -15,9 +15,9 @@ use crate::domain_computation::operation_binding::direct_authority_with_graph;
 use crate::domain_computation::provider_session::tests::admitted_plan;
 use crate::domain_computation::provider_session::WorthQueryDirectExecutionResourceAttempt;
 
-struct GraphAttempt {
-    attempt: WorthQueryDirectExecutionResourceAttempt,
-    graph: WorthQueryInstalledGraphParticipationAuthority,
+pub(super) struct GraphAttempt {
+    pub(super) attempt: WorthQueryDirectExecutionResourceAttempt,
+    pub(super) graph: WorthQueryInstalledGraphParticipationAuthority,
     foreign_graph: WorthQueryInstalledGraphParticipationAuthority,
 }
 
@@ -275,7 +275,7 @@ fn direct_provider_session_rejects_a_caller_authored_workflow_stage() {
     );
 }
 
-fn call(attempt: &GraphAttempt, scope: &str) -> super::WorthQueryGraphProviderCall {
+pub(super) fn call(attempt: &GraphAttempt, scope: &str) -> super::WorthQueryGraphProviderCall {
     call_with_kind(attempt, scope, WorthQueryGraphProviderCallKind::Project)
 }
 
@@ -347,7 +347,7 @@ fn material_with_identity_value(value: &str) -> WorthQueryGraphReadMaterial {
     .unwrap()])
 }
 
-fn attempt() -> GraphAttempt {
+pub(super) fn attempt() -> GraphAttempt {
     attempt_with_access(worth_query_installation::facade::WorthQueryOperationGraphAccess::Project)
 }
 

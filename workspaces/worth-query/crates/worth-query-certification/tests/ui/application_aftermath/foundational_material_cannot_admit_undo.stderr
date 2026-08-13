@@ -1,0 +1,15 @@
+error[E0308]: arguments to this function are incorrect
+  --> tests/ui/application_aftermath/foundational_material_cannot_admit_undo.rs:13:13
+   |
+13 |     let _ = admit_undo(lineage, &lineage);
+   |             ^^^^^^^^^^ -------  -------- expected `&WorthQueryRecoveryEffectAuthority`, found `&...`
+   |                        |
+   |                        expected `WorthQueryRecoveryHandle`, found `FoundationalBoundaryEvidenceLineageOutcomeKind`
+   |
+   = note: expected reference `&WorthQueryRecoveryEffectAuthority`
+              found reference `&FoundationalBoundaryEvidenceLineageOutcomeKind`
+note: function defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/application_aftermath/undo_admission.rs
+   |
+   | pub fn admit_undo(
+   |        ^^^^^^^^^^

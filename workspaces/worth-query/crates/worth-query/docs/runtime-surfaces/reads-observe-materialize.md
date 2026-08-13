@@ -80,7 +80,7 @@ Good to know:
   - if you already know the next step is one exact named retained artifact, use
   `materialize_derived_artifact_binding(...)` instead of a caller-owned
   bundle-then-bind sequence
-- if a mutation aftermath step already holds one retained batch-write receipt
+- if a post-mutation step already holds one retained batch-write receipt
   and needs the matching receipt inspection plus one exact retained derived
   artifact, use `materialize_batch_write_artifact_binding(...)` instead of
   reopening those as separate caller-owned inspection and materialization
@@ -244,7 +244,7 @@ If the data does not look right:
   `bind_retained_artifact(...)`.
 - Treating retained-artifact helper seams such as scalar extraction, row-pair
   decode, or live-artifact bundle binding as the default typed product lane
-  after Phase 9.5 closed projection consumption for retained/live sources.
+  when projection consumption owns retained and live typed facts.
 
 ## Current Limits
 

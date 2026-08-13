@@ -9,6 +9,7 @@ use worth_foundational::facade::{
 use worth_query_declaration::facade::application_schema::ErasedApplicationSchemaDeclaration;
 
 use super::WorthQueryInstalledPackageRecord;
+use crate::application_operation::WorthQueryPortableApplicationConditionalOperationBinding;
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::domain_computation::WorthQueryPortableArtifactContract;
 use crate::domain_operation::WorthQueryValidatedDomainOperation;
@@ -16,7 +17,7 @@ use crate::generation::{WorthQueryInstallationGeneration, WorthQueryInstallation
 use crate::package::{WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind};
 
 const DOMAIN: CanonicalBasisDomain = CanonicalBasisDomain::Future("worth-query.installed-index");
-const RULE_VERSION: &str = "worth-query-installed-index-v2";
+const RULE_VERSION: &str = "worth-query-installed-index-v3";
 const INDEX_BUDGET: CanonicalDigestWorkBudget =
     match CanonicalDigestWorkBudget::new(32_768, 4 * 1_024 * 1_024) {
         Some(budget) => budget,
@@ -59,6 +60,10 @@ pub(super) struct IndexIdentityInput<'a> {
     pub artifact_contracts:
         &'a BTreeMap<(String, String, u32, u32), WorthQueryPortableArtifactContract>,
     pub application_schemas: &'a BTreeMap<(String, String), ErasedApplicationSchemaDeclaration>,
+    pub conditional_application_operations: &'a BTreeMap<
+        (String, String, String),
+        WorthQueryPortableApplicationConditionalOperationBinding,
+    >,
 }
 
 pub(super) fn index_identity(
@@ -78,12 +83,20 @@ pub(super) fn index_identity(
         count("domain-operation-count", input.domain_operations.len()),
         count("artifact-contract-count", input.artifact_contracts.len()),
         count("application-schema-count", input.application_schemas.len()),
+        count(
+            "conditional-application-operation-count",
+            input.conditional_application_operations.len(),
+        ),
     ];
     append_records(&mut entries, input.records);
     append_definitions(&mut entries, input.definitions);
     append_domain_operations(&mut entries, input.domain_operations);
     append_artifact_contracts(&mut entries, input.artifact_contracts);
     append_application_schemas(&mut entries, input.application_schemas);
+    append_conditional_application_operations(
+        &mut entries,
+        input.conditional_application_operations,
+    );
 
     let version = CanonicalizationRuleVersion::new(RULE_VERSION)
         .expect("the installed-index identity rule is valid");
@@ -99,6 +112,35 @@ pub(super) fn index_identity(
         WorthQueryInstalledPackageIndexIdentity(CanonicalDigestId::new(*derived.value().bytes())),
         WorthQueryCanonicalWorkEvidence::one_digest(derived.metadata().work()),
     ))
+}
+
+fn append_conditional_application_operations(
+    entries: &mut Vec<CanonicalBasisEntry>,
+    bindings: &BTreeMap<
+        (String, String, String),
+        WorthQueryPortableApplicationConditionalOperationBinding,
+    >,
+) {
+    for (index, ((owner, schema, application_operation), binding)) in bindings.iter().enumerate() {
+        let prefix = format!("conditional-application-operation[{index}]");
+        entries.extend([
+            text(format!("{prefix}.owner"), owner),
+            text(format!("{prefix}.schema"), schema),
+            text(
+                format!("{prefix}.application-operation"),
+                application_operation,
+            ),
+            text(format!("{prefix}.input-type"), binding.input_type()),
+            text(
+                format!("{prefix}.domain-operation-slot"),
+                binding.domain_operation_slot(),
+            ),
+            text(
+                format!("{prefix}.domain-operation-identity"),
+                binding.domain_operation_canonical_identity(),
+            ),
+        ]);
+    }
 }
 
 fn append_records(

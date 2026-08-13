@@ -670,6 +670,240 @@ WORTH Signal answers not only what must recompute, but what must not.
 
 That is one of the core promises of the whole system.
 
+### Milestones 12-13 financial invalidation binding addendum
+
+The adversarial granularity suppression test is not satisfied by direct-edge
+same-aspect examples or by proving only that transitive nodes are graph-
+reachable.
+
+Milestones 12 and 13 must expand the existing causally valid fintech financial
+world and certify their guarantees during implementation. A generic graph
+fixture may support a focused local proof, but cannot close either milestone.
+There is no later invalidation-certification milestone.
+
+Every adversarial test is a named scenario with:
+
+- a production-valid financial baseline and semantic handles issued by the
+  existing world compiler
+- one named market, portfolio, partition, condition, topology, or branch delta
+- a falsifiable production claim and the plausible implementation defect it
+  must expose
+- independently declared expected financial truth and semantic necessity set
+- consequential observations through the real runtime composition root
+- a positive/negative twin or mutation probe proving intended sensitivity
+- scenario identity, seed, financial scale tuple, policy tuple, diagnostic
+  tier, and exact failing mutation step for reproduction
+
+#### Financial world authenticity floor
+
+The current financial-shaped lifecycle fixture is inherited setup, not by
+itself Milestone 12 certification. The Milestone 12 world compiler must issue a
+sealed `CausallyCompleteFinancialBaseline` from an immutable
+`FinancialWorldDefinition` with:
+
+- deterministic fixed-point market values for quotes, FX pairs, curve buckets,
+  and volatility buckets
+- typed positions with instrument identity, quantity, currency, maturity or
+  bucket ownership, pricing/risk model assignment, factor subscriptions, and
+  book/desk ownership
+- at least one rates-sensitive, one FX-sensitive, and one volatility-sensitive
+  position whose required dependency changes follow from those economic facts
+- exact declared producer output aspects and consumer dependencies for every
+  node used by a decisive scenario
+- typed semantic handles issued by construction rather than scenario-authored
+  raw `NodeId`, aspect-slot, partition-token, or revision literals
+- initialized source truth, committed output truth, dependency snapshots, and
+  branch/checkpoint posture required by the named baseline
+
+Financial values and Signal revisions are different truth domains. Pricing,
+risk, aggregation, and oracle formulas must consume financial values, never
+perform economic arithmetic on `AspectVersion` counters. A deterministic
+projection may convert an economic result into a dependency-visible semantic
+version only after the economic result exists. The projection must retain the
+prior producer-local revision for an unchanged canonical result and advance a
+monotonic revision for a changed result; it cannot decide consumer routing,
+condition eligibility, or the necessity manifest.
+
+The reference financial formulas require focused closed-form or table-driven
+tests independent of Signal invalidation. This is an authenticity floor, not a
+request for a production quant library: day-count, calibration, exchange, or
+regulatory detail is required only when a named scenario depends on it.
+
+`FreshFinancialRecompute` must reconstruct expected outputs from authoritative
+market and portfolio inputs without consuming the incremental frontier, dirty
+masks, incremental condition classification, suppression routing, or ready
+queues. `FinancialNecessityManifest` must enumerate economically affected work
+from scenario-owned positions, factor subscriptions, aspect translations, and
+partition ownership without calling production routing or scheduling logic.
+
+Milestone 12 must own these scenario families:
+
+- `quote_to_risk_aspect_translation`: `PRICE -> RISK` positive/negative filter
+  twins expose root-aspect copying
+- `heterogeneous_consumer_comparators`: exact, tolerance, and installed
+  comparator consumers observe one producer delta and admit it independently
+- `tolerance_suppressed_repricing`: small and large quote moves distinguish
+  lawful suppression from real downstream change
+- `producer_local_factor_slot_collision`: equal numeric slots on distinct FX,
+  curve, or market dependencies retain producer identity
+- `partitioned_curve_bucket_bump`: a rates detail change remains separate from
+  unrelated regions; at least two detail changes commit while the valuation
+  and its threshold-gated risk consumer remain unevaluated, so lost or
+  cross-product scopes are visible before the settled financial gate admits
+- `gated_repricing_release`: authentic small/large financial delta-threshold
+  twins prove blocked then admitted work cannot strand a necessary risk
+  consumer; named domain-neutral production scenarios prove pending precedence
+  for on-demand, temporal, custom, installed, and async orchestration axes
+- `instrument_dependency_rewire`: committed dependency changes and cycle
+  rejection cannot reuse stale causes, including removal and recreation of an
+  identical edge under a new dependency revision
+- `branch_shock_restore_replay`: branch, checkpoint, replay, diagnostic tier,
+  and async-capability composition preserve financial truth
+
+Phase 1 must demonstrate the inherited defect with the named red control before
+production invalidation repair begins. Each later Milestone 12 phase must pass the focused or
+financial evidence assigned to the authority that phase establishes; once a
+scenario's production path cuts over, it may not be left red for a successor
+phase. Final construction of
+`FinancialAspectCausalityCertificationRun` must reject missing, duplicate,
+stale, wrong-scenario, wrong-policy, wrong-revision, or mismatched-oracle
+evidence.
+
+Focused Milestone 12 transition evidence must additionally prove:
+
+- every dependency-cause binding axis has a matching positive case and a
+  one-axis-drift denial twin
+- producer output-equivalence decisions are invariant under exact, tolerance,
+  custom, and installed consumer dependency comparators; consumer admission is
+  invariant under the producer's output-equivalence policy once the same
+  committed delta exists
+- installed conditional dependency and output comparators retain distinct
+  role-bound identities and reach their respective admission/commit boundaries
+- a legacy output-identity configuration restores to the same canonical split
+  producer/consumer policies and behavior as its explicit replacement
+- a root recompute seed cannot construct a resolved descendant aspect cause
+- a prepared or compared apply packet cannot construct performed output-commit
+  evidence
+- contradictory `OutputChange::Unchanged` plus changed semantic aspect versions
+  is rejected before publication
+- failure at each pre-publication effect seam exposes no committed delta, cause,
+  observation, or replay truth
+- clearing and rebuilding dirty aspect/scope caches from canonical cause state
+  is exact
+- conservative legacy scope unions remain correctness-compatible but cannot
+  satisfy exact locality evidence
+- eligible grouped-parallel cases prove that the parallel preparation/apply
+  path actually executed, while honest serial fallback is separately reported;
+  equality between two silently serial runs is not parallel-path evidence
+
+#### Milestone 12 phase evidence map
+
+| Phase | Evidence required before the phase closes |
+|---|---|
+| Phase 1 - Authentic Financial Courtroom And Red Control | authentic financial definition and sealed baseline; independent reference-formula tests; runnable fresh-recompute and necessity-manifest cores; failing `quote_to_risk_aspect_translation` matched/unmatched red control against the inherited runtime |
+| Phase 2 - Output Contract And Owner-Specific Proof Forms | producer/consumer policy separation; installed-role preservation; legacy upgrade equivalence; contradictory-output denial; every binding-axis drift twin; prepared packets denied performed authority |
+| Phase 3 - Canonical Cause Storage And Recovery Basis | exact cause-set/cache rebuild; repeated-scope accumulation; rollback removal; checkpoint serialization and fresh-runtime readmission; same-shaped rewire rejects the prior revision |
+| Phase 4 - Atomic Output Commit And Direct Cause Admission | `quote_to_risk_aspect_translation`, `heterogeneous_consumer_comparators`, and `tolerance_suppressed_repricing`; prepublication failure seams expose no partial state; serial and exercised parallel-feature commits agree |
+| Phase 5 - Planner, Condition, Scope, And Rewire Cutover | `partitioned_curve_bucket_bump`, `gated_repricing_release`, and `instrument_dependency_rewire`; conditions consume settled immediate causes; copied-aspect, cross-product-scope, last-scope-only, and stale-revision mutations fail |
+| Phase 6 - Branch Composition, Financial Certification, And Documentation | `branch_shock_restore_replay`; unresolved causes cross branch/checkpoint/replay/diagnostic/async lanes without being drained before capture; producer-local slot collision; aspect-free/scope-free structural transitive summaries; every earlier scenario and mutation probe remains green/red as appropriate; sealed `FinancialAspectCausalityCertificationRun` rejects missing, duplicate, mixed-seed, stale, wrong-scenario, wrong-policy, wrong-revision, wrong-diagnostics-tier, mismatched-oracle/work, or incomplete-lifecycle evidence |
+
+Milestone 13 must own these scale-sensitive scenario families:
+
+- `sparse_book_fanout`: one relevant depth-16 pricing/risk chain under
+  increasing disjoint instrument/audit fanout
+- `partitioned_curve_universe`: one rates bucket among 16, 256, and 1,024
+  independently owned regions
+- `convergent_factor_batch`: price, FX, curve, and volatility shocks converge
+  with duplicate causes and insertion-order permutations
+- `dense_market_close`: sparse, medium, and dense legitimate frontiers at
+  `10^3`, `10^4`, and `10^5` scheduled-lane node scales
+- `portfolio_dependency_churn`: instrument/desk/factor/model rewiring and cycle
+  rejection under repeated mutations
+- `branch_restore_locality_replay`: the narrow and dense traces repeat after
+  capture, restore, replay, and deterministic rerun
+
+For increasing aspect- or partition-disjoint financial fanout, report and
+assert realized:
+
+- dependency edges examined
+- candidates rejected before enqueue
+- work items enqueued and popped
+- nodes visited and evaluated
+- produced deltas and unchanged-output stops
+- non-semantic traversal visits
+- maximum ready-frontier width
+
+The pass condition is semantic-frontier scaling. Increasing irrelevant
+reachable fanout must not cause proportional dirty mutation, enqueue, or node
+visits. Planned/predicted counters cannot satisfy this requirement.
+
+Every Milestone 13 implementation phase must name and pass its assigned
+financial scenarios before it closes. Correctness and locality are separate
+verdicts, strategy comparisons consume exactly the same admitted work stream,
+and `FinancialFrontierLocalityCertificationRun` rejects missing, duplicate,
+stale, or mismatched evidence. The ordinary gate includes a small instance of
+every scenario plus sparse/dense slopes; scheduled lanes own broad seeds and
+the largest scales, but no correctness claim may exist only there.
+
+### Milestones 14-17 binding addendum
+
+Parallel execution evidence must use an independent serial oracle and hostile
+schedule control. Running the same happy-path graph once with `parallel`
+enabled does not prove any milestone in this sequence.
+
+Milestone 14 must prove:
+
+- configured worker and memory budgets are strict hierarchical leases rather
+  than dispatch hints
+- nested execution cannot create independent capacity or oversubscribe the
+  parent lease
+- worker-local compute has no authoritative graph mutation capability
+- schedule and completion-order perturbation cannot change canonical
+  publication, replay, history, or explanation under bitwise determinism
+- cancellation, deadline, and failure at each precompute/apply/publication
+  boundary expose exact typed progress and preserve precommit atomicity
+- a serial-only target consumes the same lowered plan without semantic drift
+
+Milestone 15 must combine wide antichains, long critical chains, reconvergence,
+dynamic rewiring, overlapping mutation footprints, and bounded ready queues.
+The evidence must fail if readiness, control-order proof, any synchronous
+mutation-footprint axis, or atomic epoch publication is removed. Serial and
+graph-parallel mutation histories must agree step by step, not only at one
+final output.
+
+Milestone 16 must certify map, reduce, scan, fork/join, and synchronous rounds
+using stable partition identity and explicit read/write sets. The test matrix
+must vary worker count, partition count, skew, grain size, numerical reducer,
+nesting depth, cancellation point, and serial-only capability. Floating-point
+bitwise claims require fixed partition and join order; approximate equality
+cannot certify a bitwise contract.
+
+Milestone 17 must cross real external boundaries:
+
+- a real WASM worker/host boundary for worker claims
+- a real child-process or network loopback boundary for distributed claims
+- serialized versioned submissions and results rather than in-memory artifact
+  reuse
+- duplicate, delayed, reordered, lost, corrupt, incompatible, and stale-epoch
+  result delivery
+- crash before execution, during execution, after retained result, and during
+  response delivery
+- stable idempotency identity, typed indeterminate outcomes, and recovery
+  handles
+- explicit worker-unavailable and product-declared WASM fallback behavior
+
+An accelerator backend may be claimed only from a real adapter on named
+hardware running the common conformance suite. A trait, mock device, or CPU
+implementation labeled as an accelerator is negative evidence, not support.
+
+Every performance report in Milestones 14-17 must name total work, span,
+critical path, active versus leased workers, queues, steals, barriers, conflict
+partitions, publication breadth, nested leases, partitions, reductions,
+transient and peak memory, transferred bytes and round trips where applicable,
+fallbacks, workload distribution, hardware/runtime versions, cold/warm
+posture, repetitions, variance, and percentiles. Elapsed time cannot compensate
+for a structural-bound failure.
+
 3. The dual-history branch and restoration torture test
 Purpose
 

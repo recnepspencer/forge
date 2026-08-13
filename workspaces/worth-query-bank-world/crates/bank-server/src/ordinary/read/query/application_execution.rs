@@ -18,10 +18,6 @@ use bank_domain::schema::{
 };
 use worth_query_host::facade::{
     declaration::application_query::ApplicationQueryParameterSet,
-    primary_graph::{
-        WorthQueryApplicationOneShotResult, WorthQueryApplicationPreviewResult,
-        WorthQueryApprovedElevation,
-    },
     publication::domain_computation::WorthQueryPublishedApplicationResult,
 };
 
@@ -32,12 +28,13 @@ use crate::application_query::{
     BankAdmittedEstateEmergencyAccountDetailsPreview, BankApplicationQueryDenial,
     BankApplicationQueryInvocation, BankEstateEmergencyAccountDetailsAdmission, BankPreviewSession,
 };
+use crate::BankApprovedEstateElevation;
 
 impl BankReadyQuery<'_, '_, AccountSummaryRequest> {
     pub fn execute(
         self,
     ) -> Result<
-        WorthQueryApplicationOneShotResult<AccountSummaryQuery, AccountSummary>,
+        WorthQueryPublishedApplicationResult<AccountSummaryQuery, AccountSummary>,
         BankApplicationQueryDenial,
     > {
         let controls = self.controls.application_query_controls();
@@ -59,7 +56,7 @@ impl BankReadyQuery<'_, '_, AccountDiscoveryRequest> {
     pub fn execute(
         self,
     ) -> Result<
-        WorthQueryApplicationOneShotResult<AccountDiscoveryQuery, VisibleAccount>,
+        WorthQueryPublishedApplicationResult<AccountDiscoveryQuery, VisibleAccount>,
         BankApplicationQueryDenial,
     > {
         let controls = self.controls.application_query_controls();
@@ -81,7 +78,7 @@ impl BankReadyQuery<'_, '_, AccountDetailRequest> {
     pub fn execute(
         self,
     ) -> Result<
-        WorthQueryApplicationOneShotResult<AccountDetailQuery, AccountDetail>,
+        WorthQueryPublishedApplicationResult<AccountDetailQuery, AccountDetail>,
         BankApplicationQueryDenial,
     > {
         let controls = self.controls.application_query_controls();
@@ -103,7 +100,7 @@ impl BankReadyQuery<'_, '_, AccountAuthorizedUsersRequest> {
     pub fn execute(
         self,
     ) -> Result<
-        WorthQueryApplicationOneShotResult<
+        WorthQueryPublishedApplicationResult<
             AccountAuthorizedUsersQuery,
             AccountAuthorizedUsersQueryResult,
         >,
@@ -128,7 +125,7 @@ impl BankReadyQuery<'_, '_, PaymentDetailRequest> {
     pub fn execute(
         self,
     ) -> Result<
-        WorthQueryApplicationOneShotResult<PaymentDetailQuery, PaymentSummary>,
+        WorthQueryPublishedApplicationResult<PaymentDetailQuery, PaymentSummary>,
         BankApplicationQueryDenial,
     > {
         let controls = self.controls.application_query_controls();
@@ -150,7 +147,7 @@ impl BankReadyQuery<'_, '_, PendingPaymentsRequest> {
     pub fn execute(
         self,
     ) -> Result<
-        WorthQueryApplicationOneShotResult<PendingPaymentsQuery, PaymentSummary>,
+        WorthQueryPublishedApplicationResult<PendingPaymentsQuery, PaymentSummary>,
         BankApplicationQueryDenial,
     > {
         let controls = self.controls.application_query_controls();
@@ -172,7 +169,7 @@ impl BankReadyQuery<'_, '_, EstateCaseOverviewRequest> {
     pub fn execute(
         self,
     ) -> Result<
-        WorthQueryApplicationOneShotResult<EstateCaseOverviewQuery, EstateCaseOverview>,
+        WorthQueryPublishedApplicationResult<EstateCaseOverviewQuery, EstateCaseOverview>,
         BankApplicationQueryDenial,
     > {
         let controls = self.controls.application_query_controls();
@@ -193,14 +190,16 @@ impl BankReadyQuery<'_, '_, EstateCaseOverviewRequest> {
         self,
         session: &BankPreviewSession,
     ) -> Result<
-        WorthQueryApplicationPreviewResult<EstateCaseOverviewQuery, EstateCaseOverview>,
+        WorthQueryPublishedApplicationResult<EstateCaseOverviewQuery, EstateCaseOverview>,
         BankApplicationQueryDenial,
     > {
         let application = self.runtime.application_runtime();
-        let basis = application
-            .admit_application_preview_basis(session, self.controls.request())
-            .map_err(BankApplicationQueryDenial::Admission)?;
-        let controls = self.controls.application_query_preview_controls(basis);
+        let controls = session.admit_controls(
+            application,
+            self.controls.maximum_result_count(),
+            self.controls.maximum_work(),
+            self.controls.request(),
+        )?;
         execute_preview(
             self.runtime,
             self.principal,
@@ -237,7 +236,7 @@ impl BankReadyQuery<'_, '_, EstateCustomerDisclosureRequest> {
 impl BankReadyQuery<'_, '_, EstateEmergencyAccountDetailsRequest> {
     pub fn execute_with_approved_elevation(
         self,
-        approved: &WorthQueryApprovedElevation,
+        approved: &BankApprovedEstateElevation,
     ) -> Result<
         WorthQueryPublishedApplicationResult<
             EstateEmergencyAccountDetailsQuery,
@@ -256,7 +255,7 @@ impl BankReadyQuery<'_, '_, EstateEmergencyAccountDetailsRequest> {
 
     pub fn admit_historical_with_approved_elevation<Output>(
         self,
-        approved: &WorthQueryApprovedElevation,
+        approved: &BankApprovedEstateElevation,
         after_admission: impl for<'admitted> FnOnce(
             BankAdmittedEstateEmergencyAccountDetailsHistorical<'admitted>,
         )
@@ -274,7 +273,7 @@ impl BankReadyQuery<'_, '_, EstateEmergencyAccountDetailsRequest> {
 
     pub fn admit_preview_with_approved_elevation<Output>(
         self,
-        approved: &WorthQueryApprovedElevation,
+        approved: &BankApprovedEstateElevation,
         session: &BankPreviewSession,
         after_admission: impl for<'admitted> FnOnce(
             BankAdmittedEstateEmergencyAccountDetailsPreview<'admitted>,
@@ -296,7 +295,7 @@ impl BankReadyQuery<'_, '_, InstitutionAuditRequest> {
     pub fn execute(
         self,
     ) -> Result<
-        WorthQueryApplicationOneShotResult<InstitutionAuditQuery, InstitutionAuditView>,
+        WorthQueryPublishedApplicationResult<InstitutionAuditQuery, InstitutionAuditView>,
         BankApplicationQueryDenial,
     > {
         let controls = self.controls.application_query_controls();

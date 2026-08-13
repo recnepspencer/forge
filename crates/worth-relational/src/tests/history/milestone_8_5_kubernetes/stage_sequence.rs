@@ -246,7 +246,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
         revalidated_shared_truth,
         revalidation_noop: KubernetesNoopEvidence {
             strategy_artifacts: revalidation_commit
-                .publication
+                .publication()
                 .strategy_artifacts
                 .as_ref()
                 .expect("revalidation strategy artifacts")
@@ -256,7 +256,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
                 .expect("revalidation change summary")
                 .changed_record_count,
             patch_record_count: revalidation_commit
-                .publication
+                .publication()
                 .envelope
                 .patch
                 .authoritative_record_patches

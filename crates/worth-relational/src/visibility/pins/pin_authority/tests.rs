@@ -1,7 +1,7 @@
 use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
-use crate::logic::builder::RelationalRuntimeBuilder;
-use crate::storage::logic::state::PartitionState;
+use crate::runtime::builder::RelationalRuntimeBuilder;
+use crate::storage::overlay::PartitionState;
 use crate::storage::substrate::{
     EntityArena, EntityExtra, RelationArena, RelationEndpoints, RelationExtra, SlotInit,
 };
@@ -29,27 +29,27 @@ fn initial_branch_head_bulk_pin_advancement_sets_branch_pins_for_changed_records
     let partition = runtime.partitions.get_mut(&partition_id).unwrap();
     partition
         .entity_arena
-        .push_slot(SlotInit::<crate::storage::logic::state::EntityRecordKind> {
+        .push_slot(SlotInit::<crate::storage::substrate::EntityRecordKind> {
             partition_id,
             kind_id: KindId(1),
             version_id: VersionId(1),
             extra: EntityExtra::default(),
         });
     let entity_id = EntityId::new(partition_id, 0, 1);
-    partition.relation_arena.push_slot(SlotInit::<
-        crate::storage::logic::state::RelationRecordKind,
-    > {
-        partition_id,
-        kind_id: KindId(2),
-        version_id: VersionId(1),
-        extra: RelationExtra {
-            endpoints: Some(RelationEndpoints {
-                source: entity_id,
-                target: entity_id,
-            }),
-            authoritative_aspect_state: None,
-        },
-    });
+    partition
+        .relation_arena
+        .push_slot(SlotInit::<crate::storage::substrate::RelationRecordKind> {
+            partition_id,
+            kind_id: KindId(2),
+            version_id: VersionId(1),
+            extra: RelationExtra {
+                endpoints: Some(RelationEndpoints {
+                    source: entity_id,
+                    target: entity_id,
+                }),
+                authoritative_aspect_state: None,
+            },
+        });
 
     let relation_id = RelationId::new(partition_id, 0, 1);
     runtime

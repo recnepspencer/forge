@@ -26,11 +26,18 @@ pub(in crate::physical_runtime::record_serving) struct FreeSpacePublicationPlan 
 pub(in crate::physical_runtime::record_serving) struct FreeSpaceSuccessorRequest {
     pub(in crate::physical_runtime::record_serving) generation: u64,
     pub(in crate::physical_runtime::record_serving) node_capacity: u16,
+    pub(in crate::physical_runtime::record_serving) segment_page_capacity: u32,
     pub(in crate::physical_runtime::record_serving) next_segment: u64,
     pub(in crate::physical_runtime::record_serving) next_page: u64,
     pub(in crate::physical_runtime::record_serving) next_extent: u64,
     pub(in crate::physical_runtime::record_serving) updates:
         BTreeMap<FreeSpaceKey, FreeSpaceUpdate>,
+}
+
+impl FreeSpaceSuccessorRequest {
+    fn segment_page_capacity(&self) -> u32 {
+        self.segment_page_capacity
+    }
 }
 
 pub(in crate::physical_runtime::record_serving) fn plan_free_space_successor(
@@ -41,6 +48,7 @@ pub(in crate::physical_runtime::record_serving) fn plan_free_space_successor(
     current: &DurableFreeSpaceManifestHeader,
     request: FreeSpaceSuccessorRequest,
 ) -> Result<FreeSpacePublicationPlan, ManifestLookupFailure> {
+    let segment_page_capacity = request.segment_page_capacity();
     if !super::super::policy_units::manifest_capacity_can_branch(request.node_capacity)
         || !super::super::policy_units::manifest_capacity_can_branch(current.node_capacity())
     {
@@ -77,6 +85,7 @@ pub(in crate::physical_runtime::record_serving) fn plan_free_space_successor(
         request.generation,
         current.tree_identity(),
         request.node_capacity,
+        segment_page_capacity,
         entry_count,
         request.next_segment,
         request.next_page,

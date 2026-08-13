@@ -101,7 +101,7 @@ pub mod history {
         LineageAspectHistoryQueryResult, LineageAspectResolutionDigest, MergeConflictRecord,
         MergeInspection, OrderedParentList, VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
     };
-    pub use crate::history::logic::{HistoryAccess, HistoryAuthority};
+    pub use crate::history::{HistoryAccess, HistoryAuthority};
 }
 
 #[path = "facade/identity.rs"]
@@ -133,7 +133,7 @@ pub mod inspection {
         StructuralIdentityComparisonVerdict, StructuralIdentityEvidence,
         StructuralIdentityQueryRequest, TransactionInspectionSurface, TransactionIntentCounts,
     };
-    pub use crate::inspection::logic::InspectionAccess;
+    pub use crate::inspection::InspectionAccess;
 }
 
 #[path = "facade/indexes.rs"]
@@ -207,18 +207,26 @@ pub mod merge {
         SchemaDeclaredCorrespondenceValidationSummary, TopologyExecutionClass,
         TopologyRegionConflictReason, TopologyRewireAdmissionPolicy,
     };
-    pub use crate::merge::logic::MergeAccess;
+    pub use crate::merge::MergeAccess;
     pub use crate::transactions::data::MergeExecutionOutcome;
 }
 
 pub mod runtime {
     pub use super::runtime_validation_exports::*;
-    pub use crate::logic::builder::RelationalRuntimeBuilder;
-    pub use crate::logic::commit::CommitAuthorityContract;
-    pub use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
+    pub use crate::config::data::{
+        CommitAuthorityContract, PlanningContract, RelationalExecutionModel,
+    };
+    pub use crate::presentation::facade::runtime::{
+        ImmutableReadContract, RelationalBoundaryContract, RelationalRuntimeApi,
+        SerializedAuthorityContract,
+    };
+    pub use crate::publication::{
+        PostCommitConsumer, PostCommitConsumptionContext, PostCommitConsumptionFailure,
+    };
+    pub use crate::runtime::builder::RelationalRuntimeBuilder;
     #[cfg(test)]
-    pub use crate::logic::runtime::HarnessAuditMode;
-    pub use crate::logic::runtime::{
+    pub use crate::runtime::HarnessAuditMode;
+    pub use crate::runtime::{
         CompiledArtifactAuthorityStatus, CompiledArtifactError, CompiledExecutionArtifact,
         ComplexityContract, ComplexityStatus, EntityProjectionRecord, EntityRecordProjection,
         InvariantAccess, RelationProjectionRecord, RelationRecordProjection,
@@ -229,16 +237,18 @@ pub mod runtime {
         TopologyFreezeMode, VisibilityProjectionView, VisibilityReadContext,
         VisibilityRetentionAuthority,
     };
-    pub use crate::presentation::facade::runtime::{
-        ImmutableReadContract, RelationalBoundaryContract, RelationalRuntimeApi,
-        SerializedAuthorityContract,
-    };
     pub use crate::storage::data::{
         ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord, PartitionStorageStats,
         RelationReadRecord, RelationalReadView, StorageStats,
     };
     pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
+    pub use crate::visibility::exact_commit_snapshot::{
+        RelationalRetainedCommitEntityProjection, RelationalRetainedCommitProjectionWork,
+        RelationalRetainedCommitSnapshot, RelationalRetainedCommitSnapshotDenial,
+        RelationalRetainedCommitSnapshotDenialKind,
+    };
     pub use crate::visibility::execution_basis::{
+        RelationalApplicationCommitBasisDenial, RelationalApplicationCommitBasisSource,
         RelationalExecutionBasisCounters, RelationalExecutionBasisDenial,
         RelationalExecutionBasisDenialKind, RelationalExecutionBasisIdentity,
         RelationalExecutionBasisLease, RelationalExecutionBasisReleaseReceipt,
@@ -273,10 +283,6 @@ pub mod publication {
         PublicationArtifactSnapshot, PublicationDiagnosticsSnapshot, PublicationError,
         PublicationObservationSnapshot,
     };
-    pub use crate::publication::logic::{
-        PublicationArtifactsAccess, PublicationDiagnosticsAccess, PublicationPatchStreamAccess,
-        PublicationSubscriberStreamAccess, PublicationSurface,
-    };
     pub use crate::publication::patch::data::{
         PatchDetail, PatchFragmentBudget, PatchOrdering, PatchPublicationMode, PatchStreamBatch,
         PatchStreamPosition, PatchStreamReadError, PatchStreamReadErrorClass, PatchStreamRequest,
@@ -284,6 +290,10 @@ pub mod publication {
         PublishedAuthoritativeFieldSet, PublishedAuthoritativePatch,
         PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
         RecordStructuralChange,
+    };
+    pub use crate::publication::{
+        PublicationArtifactsAccess, PublicationDiagnosticsAccess, PublicationPatchStreamAccess,
+        PublicationSubscriberStreamAccess, PublicationSurface,
     };
 }
 
@@ -300,8 +310,8 @@ pub mod query {
 }
 
 pub mod replay {
+    pub use crate::history::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
     pub use crate::replay::data::{
-        CanonicalCommitAuthorityKind, CanonicalCommitEnvelope,
         CertifiedLineageSurfaceComparisonBasis, CertifiedLineageSurfaceDigest,
         LineageCertifiedSurfaceKind, RelationalReplayOutcome, RelationalReplayRequest,
         ReplayAuthorityBasisKind, ReplayError, ReplayExecutionMode, ReplayFailureClass,
@@ -370,31 +380,5 @@ pub mod symbols {
     };
 }
 
-pub mod transactions {
-    pub use crate::transactions::data::{
-        ApplyEntityAspectPatchIntent, ApplyRelationAspectPatchIntent, AspectEmissionTrace,
-        AspectEvaluationTrace, AspectEvaluationTraceRow, AspectFieldPatch,
-        AspectLifecycleTransitionClass, AspectTagAccuracyReport, AspectTraceEvidence,
-        AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkMutationLineagePlan,
-        BulkMutationLocalityFootprint, BulkMutationNamingPlan, BulkMutationProvenancePlan,
-        BulkMutationScope, BulkRelationCreateIntent, CommitAspectSummary, CommitAuthority,
-        CommitChangeSummary, CommitConflict, CommitHistorySummary, CommitLog, CommitOutcome,
-        CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, CommitPublicationSummary,
-        CommitResult, CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
-        CommitTraceEvent, ConflictClass, CreateIntent, CreatedEntityRef, CrossContextEndpointClass,
-        DeleteEntityIntent, DeleteRelationIntent, EntityAspectCreateIntent, EntityMutationIntent,
-        EntityReference, EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan,
-        MergeExecutionOutcome, MergeExecutionStructuralSummary, MergeExecutionSummary,
-        MergedCommitPlan, MutationIntent, NamingStableBulkMutationBatch, PatchVsTruthDeltaReport,
-        PlannedBulkMutationBatch, PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch,
-        PublishedMergeExecutionAuthority, RecordRef, RelationAspectCreateIntent,
-        RelationMutationIntent, RelationScope, RelationSpec, ReplaceEntityIntent, RollbackEffect,
-        RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
-        TransactionOptions, UndoRecord, UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent,
-        WorkerIntentBatch,
-    };
-    pub use crate::transactions::logic::{
-        RelationalMutationInvariantEvidence, RelationalTransaction, ValidatedRelationalMutation,
-    };
-    pub use worth_foundational::facade::AspectFieldLocator;
-}
+#[path = "facade/transactions.rs"]
+pub mod transactions;

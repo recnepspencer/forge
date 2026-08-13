@@ -1,10 +1,14 @@
 use super::fixture::FintechWorld;
 use super::regimes::MarketRegime;
 use super::scales::FintechScale;
-use super::world_assembly::WorldAssembly;
+use super::world::{compile_runtime_fixture, FinancialWorldDefinition};
 
 pub(crate) fn setup_world() -> FintechWorld {
-    WorldAssembly::smoke().build()
+    compile_runtime_fixture(FinancialWorldDefinition::runtime_fixture(
+        FintechScale::smoke(),
+        MarketRegime::Calm,
+        7,
+    ))
 }
 
 pub(crate) fn setup_seeded_world() -> FintechWorld {
@@ -16,5 +20,7 @@ pub(crate) fn setup_seeded_world_with(
     regime: MarketRegime,
     seed: u64,
 ) -> FintechWorld {
-    WorldAssembly::new(scale).with_regime(regime, seed).build()
+    compile_runtime_fixture(FinancialWorldDefinition::runtime_fixture(
+        scale, regime, seed,
+    ))
 }

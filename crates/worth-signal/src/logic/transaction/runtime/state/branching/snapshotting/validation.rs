@@ -24,7 +24,7 @@ where
             )));
         }
         let mut graph =
-            SignalGraph::restore_from_checkpoint_authority(&snapshot.checkpoint_image.authority);
+            SignalGraph::restore_from_checkpoint_authority(&snapshot.checkpoint_image.authority)?;
         graph.telemetry_mut().checkpoint.restore_authority_breadth +=
             graph.active_node_count() as u64;
         Ok(graph)
@@ -72,6 +72,7 @@ where
             .telemetry_mut()
             .checkpoint
             .restore_required_derived_breadth += rebuild_breadth;
+        graph.readmit_checkpoint_causes()?;
         Ok(())
     }
 

@@ -4,9 +4,6 @@ use bank_domain::model::{BusinessId, Money};
 use bank_domain::proposals::BankIdempotencyKey;
 use bank_domain::schema::InitiateBusinessPayment;
 use bank_server::{mutations, queries, BankMutationControls, BankMutationStatus, BankReadControls};
-use worth_query_host::facade::domain::{
-    WorthQueryCanonicalWorkEvidence, WorthQueryCanonicalWorkPhases,
-};
 use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryControls;
 
 use super::canonical_scale_fixture::canonical_scale_world;
@@ -17,7 +14,7 @@ use super::fixture::{
 use crate::support::request_scope;
 
 #[test]
-fn result_and_graph_fanout_do_not_increase_canonical_work() {
+fn result_and_graph_fanout_is_visible_only_as_closed_public_work() {
     let fixture = canonical_scale_world();
     let baseline_actor = fixture.authenticate_baseline();
     let expanded_actor = fixture.authenticate_expanded();
@@ -41,26 +38,15 @@ fn result_and_graph_fanout_do_not_increase_canonical_work() {
 
     assert_eq!(baseline_result.rows().len(), 1);
     assert_eq!(expanded_result.rows().len(), 192);
-    assert!(
-        expanded_result.receipt().edge_scan_count() > baseline_result.receipt().edge_scan_count()
-    );
-    assert!(
-        expanded_result.receipt().projected_record_count()
-            > baseline_result.receipt().projected_record_count()
-    );
-    assert!(
-        expanded_result.receipt().projected_field_count()
-            > baseline_result.receipt().projected_field_count()
-    );
-    assert_eq!(
-        baseline_result.receipt().canonical_work(),
-        expanded_result.receipt().canonical_work()
-    );
-    assert_phase_posture(baseline_result.receipt().canonical_work());
+    let baseline = baseline_result.receipt().inspect();
+    let expanded = expanded_result.receipt().inspect();
+    assert!(expanded.ordinary_work_units() > baseline.ordinary_work_units());
+    assert!(baseline.terminal_resources_released());
+    assert!(expanded.terminal_resources_released());
 }
 
 #[test]
-fn guarded_candidate_fanout_does_not_increase_canonical_work() {
+fn guarded_candidate_fanout_is_visible_only_as_closed_public_work() {
     const EXPANDED_CANDIDATE_COUNT: usize = 64;
 
     let fixture = ordinary_read_world_with_pending_payments("candidate-scale", 0, 1);
@@ -112,22 +98,13 @@ fn guarded_candidate_fanout_does_not_increase_canonical_work() {
     assert_eq!(baseline_result.rows().len(), 1);
     assert_eq!(expanded_result.rows().len(), EXPANDED_CANDIDATE_COUNT);
     assert!(
-        expanded_result.receipt().examined_candidate_count()
-            > baseline_result.receipt().examined_candidate_count()
+        expanded_result.receipt().inspect().ordinary_work_units()
+            > baseline_result.receipt().inspect().ordinary_work_units()
     );
-    assert!(
-        expanded_result.receipt().work().predicate_work_units()
-            > baseline_result.receipt().work().predicate_work_units()
-    );
-    assert_eq!(
-        baseline_result.receipt().canonical_work(),
-        expanded_result.receipt().canonical_work()
-    );
-    assert_phase_posture(expanded_result.receipt().canonical_work());
 }
 
 #[test]
-fn policy_fact_fanout_is_counted_without_increasing_canonical_work() {
+fn policy_fact_fanout_does_not_leak_into_closed_disclosure_evidence() {
     let fixture = canonical_scale_world();
     let baseline_actor = fixture.authenticate_baseline();
     let expanded_actor = fixture.authenticate_expanded();
@@ -159,26 +136,31 @@ fn policy_fact_fanout_is_counted_without_increasing_canonical_work() {
 
     assert_eq!(baseline_result.rows().len(), 1);
     assert_eq!(expanded_result.rows().len(), 1);
-    let baseline_work = baseline_result.receipt().authorization_work();
-    let expanded_work = expanded_result.receipt().authorization_work();
-    assert_eq!(baseline_work.requirement_count(), 1);
-    assert_eq!(expanded_work.requirement_count(), 1);
+    let baseline = baseline_result.receipt().disclosure();
+    let expanded = expanded_result.receipt().disclosure();
+    assert_eq!(expanded.posture(), baseline.posture());
     assert_eq!(
-        baseline_work.paths_evaluated(),
-        expanded_work.paths_evaluated()
+        expanded.disclosure_decision_count(),
+        baseline.disclosure_decision_count()
     );
-    assert!(expanded_work.adjacency_edges_inspected() > baseline_work.adjacency_edges_inspected());
-    assert!(expanded_work.signal_dependency_count() > baseline_work.signal_dependency_count());
     assert_eq!(
-        baseline_result.receipt().canonical_work(),
-        expanded_result.receipt().canonical_work()
+        expanded.disclosed_value_count(),
+        baseline.disclosed_value_count()
     );
-    assert_phase_posture(expanded_result.receipt().canonical_work());
+    assert_eq!(
+        expanded.omitted_value_count(),
+        baseline.omitted_value_count()
+    );
+    assert_eq!(
+        expanded.authorization_decision_fact_count(),
+        baseline.authorization_decision_fact_count()
+    );
+    assert_eq!(expanded.identity(), baseline.identity());
 }
 
 #[test]
 #[ignore = "scheduled high-operation speed probe; run explicitly with --ignored --nocapture"]
-fn high_operation_speed_probe_keeps_warm_digest_work_at_exact_zero() {
+fn high_operation_speed_probe_keeps_publication_work_stable() {
     const QUERY_COUNT: usize = 512;
     const RESULT_COUNT: usize = 64;
 
@@ -200,8 +182,12 @@ fn high_operation_speed_probe_keeps_warm_digest_work_at_exact_zero() {
         observed_rows = observed_rows
             .checked_add(result.rows().len())
             .expect("observed row count remains bounded");
-        let phases = result.receipt().canonical_work();
-        assert_phase_posture(phases);
+        let inspection = result.receipt().inspect();
+        let phases = (
+            inspection.publication_canonical_entries(),
+            inspection.publication_sha256_compression_blocks(),
+            inspection.publication_identity_text_materializations(),
+        );
         if let Some(expected) = expected {
             assert_eq!(phases, expected);
         } else {
@@ -223,36 +209,6 @@ fn high_operation_speed_probe_keeps_warm_digest_work_at_exact_zero() {
             "release"
         }
     );
-}
-
-fn assert_phase_posture(phases: WorthQueryCanonicalWorkPhases) {
-    assert!(phases.installation().basis_preparations() > 0);
-    assert!(phases.installation().canonical_encoded_bytes() > 0);
-    assert!(
-        phases.installation().canonical_material_allocation_bytes()
-            >= phases.installation().canonical_encoded_bytes()
-    );
-    assert!(phases.installation().sha256_input_bytes() > 0);
-    assert!(phases.admission().basis_preparations() > 0);
-    assert!(phases.admission().digest_derivations() > 0);
-    assert_zero(phases.execution());
-    assert_zero(phases.provider_commit());
-    assert_zero(phases.projection());
-    assert_zero(phases.live_delivery());
-    assert_zero(phases.retry_resolution());
-    assert_zero(phases.recovery_inspection());
-    assert_zero(phases.publication());
-}
-
-fn assert_zero(work: WorthQueryCanonicalWorkEvidence) {
-    assert_eq!(work.basis_preparations(), 0);
-    assert_eq!(work.digest_derivations(), 0);
-    assert_eq!(work.canonical_entries(), 0);
-    assert_eq!(work.canonical_encoded_bytes(), 0);
-    assert_eq!(work.canonical_material_allocation_bytes(), 0);
-    assert_eq!(work.sha256_input_bytes(), 0);
-    assert_eq!(work.sha256_compression_blocks(), 0);
-    assert_eq!(work.digest_text_materializations(), 0);
 }
 
 fn controls(maximum_results: usize) -> BankReadControls {

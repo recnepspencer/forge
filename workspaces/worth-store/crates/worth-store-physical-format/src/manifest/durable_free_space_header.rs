@@ -11,6 +11,7 @@ pub struct DurableFreeSpaceManifestHeader {
     generation: u64,
     tree_identity: u64,
     node_capacity: u16,
+    segment_page_capacity: u32,
     entry_count: u64,
     next_segment: u64,
     next_page: u64,
@@ -25,6 +26,7 @@ impl DurableFreeSpaceManifestHeader {
         generation: u64,
         tree_identity: u64,
         node_capacity: u16,
+        segment_page_capacity: u32,
         entry_count: u64,
         next_segment: u64,
         next_page: u64,
@@ -36,6 +38,7 @@ impl DurableFreeSpaceManifestHeader {
         (generation != 0
             && tree_identity != 0
             && node_capacity >= 2
+            && segment_page_capacity != 0
             && next_segment != 0
             && next_page != 0
             && next_extent != 0
@@ -51,6 +54,7 @@ impl DurableFreeSpaceManifestHeader {
             generation,
             tree_identity,
             node_capacity,
+            segment_page_capacity,
             entry_count,
             next_segment,
             next_page,
@@ -67,6 +71,9 @@ impl DurableFreeSpaceManifestHeader {
     }
     pub const fn node_capacity(&self) -> u16 {
         self.node_capacity
+    }
+    pub const fn segment_page_capacity(&self) -> u32 {
+        self.segment_page_capacity
     }
     pub const fn entry_count(&self) -> u64 {
         self.entry_count
@@ -91,6 +98,7 @@ impl DurableFreeSpaceManifestHeader {
         payload[..8].copy_from_slice(&self.generation.to_le_bytes());
         payload[8..16].copy_from_slice(&self.tree_identity.to_le_bytes());
         payload[16..18].copy_from_slice(&self.node_capacity.to_le_bytes());
+        payload[18..22].copy_from_slice(&self.segment_page_capacity.to_le_bytes());
         payload[24..32].copy_from_slice(&self.entry_count.to_le_bytes());
         payload[32..40].copy_from_slice(&self.next_segment.to_le_bytes());
         payload[40..48].copy_from_slice(&self.next_page.to_le_bytes());
@@ -114,13 +122,14 @@ impl DurableFreeSpaceManifestHeader {
         let (format, frame) = decode_durable_frame(bytes, DurableFrameKind::FreeSpaceManifest)
             .map_err(FreeSpaceRoutingDenial::Frame)?;
         if frame.payload.len() != 128
-            || frame.payload[18..24] != [0; 6]
+            || frame.payload[22..24] != [0; 2]
             || frame.payload[65..72] != [0; 7]
         {
             return Err(FreeSpaceRoutingDenial::Malformed);
         }
         let generation = read_u64(frame.payload, 0);
         let capacity = u16::from_le_bytes(frame.payload[16..18].try_into().unwrap());
+        let segment_page_capacity = u32::from_le_bytes(frame.payload[18..22].try_into().unwrap());
         let root = match frame.payload[64] {
             0 => None,
             1 => Some(
@@ -129,13 +138,17 @@ impl DurableFreeSpaceManifestHeader {
             ),
             _ => return Err(FreeSpaceRoutingDenial::Malformed),
         };
-        if generation != frame.identity || capacity > maximum_capacity {
+        if generation != frame.identity
+            || capacity > maximum_capacity
+            || segment_page_capacity > crate::maximum_segment_manifest_pages(format)
+        {
             return Err(FreeSpaceRoutingDenial::IdentityOrCapacity);
         }
         Self::new(
             generation,
             read_u64(frame.payload, 8),
             capacity,
+            segment_page_capacity,
             read_u64(frame.payload, 24),
             read_u64(frame.payload, 32),
             read_u64(frame.payload, 40),

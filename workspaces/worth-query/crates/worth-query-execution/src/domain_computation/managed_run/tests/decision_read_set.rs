@@ -88,15 +88,27 @@ impl WorthQueryProviderSessionLifecycle for DecisionProvider {
     fn commit_prepared_session(
         &self,
         _session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
-        Ok("unused-commit".to_owned())
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
+        Ok(
+            crate::domain_computation::WorthQueryProviderTerminalDescription::new("unused commit")
+                .expect("fixture description is valid"),
+        )
     }
 
     fn abort_provider_session(
         &self,
         _session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
-        Ok("decision-abort".to_owned())
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
+        Ok(
+            crate::domain_computation::WorthQueryProviderTerminalDescription::new("decision abort")
+                .expect("fixture description is valid"),
+        )
     }
 }
 

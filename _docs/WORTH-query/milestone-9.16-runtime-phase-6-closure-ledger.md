@@ -351,7 +351,7 @@ projection, live-delivery, retry-resolution, recovery-inspection, and
 publication canonical work.
 
 There is no geometry implementation in this milestone. The real bank
-application is the current high-fan-out surrogate. The Milestone 9.17 handoff
+application is the current high-fan-out surrogate. The Milestone 9.19 handoff
 therefore remains a prohibition and admission contract: future geometry may
 consume the installed typed identities proven here, but ordinary kernels may
 not hash per cell, feature, node, edge, candidate, projected field, or result.

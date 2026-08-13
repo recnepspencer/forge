@@ -30,18 +30,32 @@ fn exact_invariant_progression_is_consumed_by_provider_commit() {
     };
 
     let outcome = candidate.compare_and_commit();
-    let WorthQueryProviderCompareAndCommitOutcome::Committed {
-        provider_receipt, ..
-    } = outcome
-    else {
+    let WorthQueryProviderCompareAndCommitOutcome::Committed(committed) = outcome else {
         panic!("fresh invariant-approved state must commit")
     };
-    assert!(provider_receipt.starts_with("provisional-commit:"));
+    assert_eq!(
+        committed.provider_description().as_str(),
+        "provisional commit completed"
+    );
     assert_eq!(
         state.lock().unwrap().authoritative.get("base").unwrap(),
         "replaced"
     );
     cleanup(running);
+}
+
+#[test]
+fn identical_provider_text_cannot_substitute_for_terminal_owner_binding() {
+    let first = committed_provider_session();
+    let second = committed_provider_session();
+
+    assert_eq!(first.provider_description(), second.provider_description());
+    assert!(
+        !first
+            .terminal_binding()
+            .same_session(second.terminal_binding()),
+        "equal provider-authored descriptions must not identify a terminal owner"
+    );
 }
 
 #[test]
@@ -139,4 +153,22 @@ fn blocking_requirements() -> Vec<WorthQueryInstalledInvariantExecutionRequireme
 
 fn provider_state() -> Arc<Mutex<ProvisionalProviderState>> {
     super::invariant_execution::state()
+}
+
+fn committed_provider_session() -> crate::domain_computation::WorthQueryCommittedProviderSession {
+    let state = provider_state();
+    let (mut running, graph) = invariant_run(Arc::clone(&state), blocking_requirements());
+    let inspection = proposed_inspection(&mut running, &graph);
+    let receipt = execute_installed_invariant(&inspection);
+    let progression = inspection.admit_invariant_progression([receipt]).unwrap();
+    let candidate = inspection
+        .bind_invariant_progression(progression)
+        .unwrap_or_else(|_| panic!("exact progression must bind"));
+    let WorthQueryProviderCompareAndCommitOutcome::Committed(committed) =
+        candidate.compare_and_commit()
+    else {
+        panic!("fresh invariant-approved state must commit")
+    };
+    cleanup(running);
+    committed
 }

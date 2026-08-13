@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::sync::Arc;
+use std::sync::{mpsc::Receiver, Arc};
 
 use worth_query_admission::facade::convergence_epoch::WorthQueryAdmittedConvergenceContract;
 use worth_query_admission::facade::resource_admission::{
@@ -14,6 +14,7 @@ use worth_query_installation::facade::{
     WorthQueryOperationWorkflowContract,
 };
 
+use crate::domain_computation::artifact_owner::WorthQueryMoveOnlyArtifactHandle;
 use crate::domain_computation::managed_run::tests::causal_fixture;
 use crate::domain_computation::operation_binding::{
     WorthQueryExecutionCommitPosture, WorthQueryInstalledOperationExecutionSupport,
@@ -32,6 +33,7 @@ use super::fixture_identity::{
 use super::package::admitted_workflow_package;
 use super::provider::{
     execution_support_with_limit, ConvergentProvider, FixtureDisposition, FixtureGraph,
+    FixtureReportHistoryProbe, FixtureYieldRecoveryArtifact, FixtureYieldRecoveryProbe,
 };
 use super::resource_contract::resource_contract;
 
@@ -71,18 +73,100 @@ impl WorkflowAdmissionFixture {
 pub(crate) fn workflow_admission_fixture(
     disposition: FixtureDisposition,
 ) -> WorkflowAdmissionFixture {
+    workflow_admission_fixture_with_provider(disposition, ConvergentProvider::new(disposition))
+}
+
+pub(crate) fn workflow_admission_fixture_with_report_history_probe(
+    disposition: FixtureDisposition,
+) -> (WorkflowAdmissionFixture, FixtureReportHistoryProbe) {
+    let probe = FixtureReportHistoryProbe::default();
+    let provider = ConvergentProvider::new(disposition).with_report_history_probe(probe.clone());
+    (
+        workflow_admission_fixture_with_provider(disposition, provider),
+        probe,
+    )
+}
+
+pub(crate) fn workflow_yield_pending_admission_fixture() -> (
+    WorkflowAdmissionFixture,
+    Receiver<WorthQueryMoveOnlyArtifactHandle>,
+) {
+    let (sender, receiver) = std::sync::mpsc::channel();
+    let disposition = FixtureDisposition::YieldThenConverged;
+    let provider = ConvergentProvider::new(disposition).with_cleanup_artifact_handle_sender(sender);
+    (
+        workflow_admission_fixture_with_provider(disposition, provider),
+        receiver,
+    )
+}
+
+pub(crate) fn workflow_yield_recovery_admission_fixture(
+) -> (WorkflowAdmissionFixture, FixtureYieldRecoveryProbe) {
+    let disposition = FixtureDisposition::YieldThenSuspensionFailure;
+    let probe = FixtureYieldRecoveryProbe::default();
+    let provider = ConvergentProvider::new(disposition).with_yield_recovery_probe(probe.clone());
+    (
+        workflow_admission_fixture_with_provider(disposition, provider),
+        probe,
+    )
+}
+
+pub(crate) fn workflow_yield_denial_admission_fixture(
+) -> (WorkflowAdmissionFixture, FixtureYieldRecoveryProbe) {
+    let disposition = FixtureDisposition::YieldThenCheckpointUnavailable;
+    let probe = FixtureYieldRecoveryProbe::default();
+    let provider = ConvergentProvider::new(disposition).with_yield_recovery_probe(probe.clone());
+    (
+        workflow_admission_fixture_with_provider(disposition, provider),
+        probe,
+    )
+}
+
+pub(crate) fn workflow_yield_recovery_artifact_admission_fixture(
+    behavior: FixtureYieldRecoveryArtifact,
+) -> (
+    WorkflowAdmissionFixture,
+    Receiver<WorthQueryMoveOnlyArtifactHandle>,
+    FixtureYieldRecoveryProbe,
+) {
+    let (sender, receiver) = std::sync::mpsc::channel();
+    let disposition = FixtureDisposition::YieldThenSuspensionFailure;
+    let probe = FixtureYieldRecoveryProbe::default();
+    let provider = ConvergentProvider::new(disposition).with_yield_recovery_artifact(
+        sender,
+        behavior,
+        probe.clone(),
+    );
+    (
+        workflow_admission_fixture_with_provider(disposition, provider),
+        receiver,
+        probe,
+    )
+}
+
+fn workflow_admission_fixture_with_provider(
+    disposition: FixtureDisposition,
+    provider: ConvergentProvider,
+) -> WorkflowAdmissionFixture {
     let installer = WorthQueryExecutionRuntimeInstaller::new();
     let anchor = Arc::new(WorthQueryGraphProviderAnchor::install_convergent::<
         FixtureGraph,
         _,
-    >(ConvergentProvider::new(disposition)));
+    >(provider));
     let graph_support = anchor.resource_support().clone();
     let operation_limit = if matches!(disposition, FixtureDisposition::StageQueueContractMismatch) {
         4
     } else {
         8
     };
-    let yieldable = matches!(disposition, FixtureDisposition::YieldThenConverged);
+    let yieldable = matches!(
+        disposition,
+        FixtureDisposition::YieldThenCheckpointUnavailable
+            | FixtureDisposition::YieldThenConverged
+            | FixtureDisposition::YieldThenRestorePanic
+            | FixtureDisposition::YieldThenCheckpointDropPanic
+            | FixtureDisposition::YieldThenSuspensionFailure
+    );
     let operation_executor =
         if matches!(disposition, FixtureDisposition::StageQueueContractMismatch) {
             execution_support_with_limit(operation_limit, yieldable)

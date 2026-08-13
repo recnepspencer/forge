@@ -25,11 +25,11 @@ fn execute_lowered_commit_routes_strategy_plan_through_authoritative_pipeline() 
     assert_eq!(commit.commit.commit_id.0, 1);
     assert_eq!(commit.version_id.0, 1);
     assert_eq!(runtime.current_version_id().0, 1);
-    assert!(commit.publication.strategy_artifacts.is_some());
-    assert!(commit.publication.envelope.strategy_artifacts.is_some());
+    assert!(commit.publication().strategy_artifacts.is_some());
+    assert!(commit.publication().envelope.strategy_artifacts.is_some());
     assert_eq!(
         commit
-            .publication
+            .publication()
             .strategy_artifacts
             .as_ref()
             .expect("strategy artifacts")
@@ -111,10 +111,10 @@ fn execute_validated_commit_routes_prevalidated_strategy_plan_through_authoritat
     };
 
     assert_eq!(commit.commit.commit_id.0, 1);
-    assert!(commit.validation.summary.execution_count >= 3);
-    assert!(commit.validation.summary.commit_boundary_seen);
+    assert!(commit.validation().summary.execution_count >= 3);
+    assert!(commit.validation().summary.commit_boundary_seen);
     let strategy_artifacts = commit
-        .publication
+        .publication()
         .strategy_artifacts
         .as_ref()
         .expect("strategy artifacts on publication");
@@ -134,7 +134,7 @@ fn execute_validated_commit_routes_prevalidated_strategy_plan_through_authoritat
         crate::commit_strategies::data::StrategyMergeConflictClass::IntentReconciliation
     );
     assert_eq!(
-        commit.publication.envelope.strategy_artifacts.as_ref(),
+        commit.publication().envelope.strategy_artifacts.as_ref(),
         Some(strategy_artifacts)
     );
 }

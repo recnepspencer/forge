@@ -24,12 +24,6 @@ impl LayoutOwnerObservationLedger {
         as_str
     );
     record_layout_observation!(
-        record_offline_readmission,
-        OfflineReadmission,
-        worth_store_layout_indexes::integrity::OfflineReadmissionCaseId,
-        as_str
-    );
-    record_layout_observation!(
         record_import_readmission,
         ImportReadmission,
         worth_store_layout_indexes::integrity::ImportReadmissionCaseId,

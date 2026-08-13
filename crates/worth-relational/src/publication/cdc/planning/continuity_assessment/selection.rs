@@ -1,5 +1,5 @@
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::publication::patch::data::PatchStreamPosition;
-use crate::replay::data::CanonicalCommitEnvelope;
 
 pub(crate) fn select_execution_envelopes(
     source: &[CanonicalCommitEnvelope],

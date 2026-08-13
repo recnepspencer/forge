@@ -64,21 +64,20 @@ pub(super) fn forged_selector_definition() -> ApplicationQueryDefinition<
     let shape = ApplicationQueryResultShapeBuilder::new(Account::reference())
         .relation(activity(), nested)
         .build();
-    ApplicationQueryDefinitionBuilder::public(
-        ForgedSelectorQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 1),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .parameter(status_parameter())
-    .where_equal(AccountStatus::reference(), status_parameter())
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(ForgedSelectorQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 1))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .parameter(status_parameter())
+        .where_equal(AccountStatus::reference(), status_parameter())
+        .build()
+        .unwrap()
 }
 
 fn declared_sequence() -> SequenceSelector {
@@ -115,5 +114,5 @@ type SequenceSelector = ApplicationQueryResultFieldRef<
     u64,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::NoEqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 >;

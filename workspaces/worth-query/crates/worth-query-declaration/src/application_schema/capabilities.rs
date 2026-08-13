@@ -81,30 +81,27 @@ pub trait OperationUnlinks<Operation> {}
 /// operation marker.
 pub trait OperationEmits<Operation> {}
 
-pub trait ApplicationCurrencyMarker<DomainCurrency> {
+pub trait ApplicationUnitMarker<DomainUnit> {
     const NAME: &'static str;
 }
 
-pub trait ApplicationFieldCurrency {
+pub trait ApplicationFieldUnit {
     const NAME: Option<&'static str>;
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct NoApplicationCurrency;
+pub struct NoApplicationUnit;
 
-impl ApplicationFieldCurrency for NoApplicationCurrency {
+impl ApplicationFieldUnit for NoApplicationUnit {
     const NAME: Option<&'static str> = None;
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct DeclaredApplicationCurrency<Marker, DomainCurrency>(
-    PhantomData<fn() -> (Marker, DomainCurrency)>,
-);
+pub struct DeclaredApplicationUnit<Marker, DomainUnit>(PhantomData<fn() -> (Marker, DomainUnit)>);
 
-impl<Marker, DomainCurrency> ApplicationFieldCurrency
-    for DeclaredApplicationCurrency<Marker, DomainCurrency>
+impl<Marker, DomainUnit> ApplicationFieldUnit for DeclaredApplicationUnit<Marker, DomainUnit>
 where
-    Marker: ApplicationCurrencyMarker<DomainCurrency>,
+    Marker: ApplicationUnitMarker<DomainUnit>,
 {
     const NAME: Option<&'static str> = Some(Marker::NAME);
 }

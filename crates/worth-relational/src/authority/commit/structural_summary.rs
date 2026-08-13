@@ -5,7 +5,7 @@ use crate::authority::commit::touched_scope::{
     touched_partitions_for_flat_plan_set, touched_partitions_for_plan_set,
 };
 use crate::identity::data::PartitionId;
-use crate::logic::runtime::PartitionAccess;
+use crate::runtime::PartitionAccess;
 use crate::transactions::data::{CommitTopology, MergedCommitPlan};
 use crate::validation::data::InvariantPlanContract;
 

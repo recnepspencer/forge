@@ -11,6 +11,8 @@ pub struct BridgeConditionalResolverContext {
     /// Signal-version distance only. This is never a unitful semantic delta;
     /// typed threshold providers must use their installed domain observation.
     pub max_signal_version_delta: u64,
+    truth_branch_identity: Option<Arc<str>>,
+    truth_snapshot_identity: Arc<str>,
     observations: Arc<[BridgeConditionalSemanticObservation]>,
 }
 
@@ -18,13 +20,25 @@ impl BridgeConditionalResolverContext {
     pub(super) fn new(
         dirty_aspects: worth_signal::facade::AspectMask,
         max_signal_version_delta: u64,
+        truth_branch_identity: Option<&str>,
+        truth_snapshot_identity: &str,
         observations: Arc<[BridgeConditionalSemanticObservation]>,
     ) -> Self {
         Self {
             dirty_aspects,
             max_signal_version_delta,
+            truth_branch_identity: truth_branch_identity.map(Arc::from),
+            truth_snapshot_identity: Arc::from(truth_snapshot_identity),
             observations,
         }
+    }
+
+    pub fn truth_branch_identity(&self) -> Option<&str> {
+        self.truth_branch_identity.as_deref()
+    }
+
+    pub fn truth_snapshot_identity(&self) -> &str {
+        &self.truth_snapshot_identity
     }
 
     pub fn observations(&self) -> &[BridgeConditionalSemanticObservation] {

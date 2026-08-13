@@ -17,7 +17,7 @@ use super::super::{
 };
 use super::PersistedPhysicalMutationAttemptBinding;
 
-const PERSISTED_BINDING_DOMAIN: &[u8] = b"store.physical.mutation-attempt-binding.v1";
+const PERSISTED_BINDING_DOMAIN: &[u8] = worth_store_wal::PHYSICAL_MUTATION_ATTEMPT_BINDING_DOMAIN;
 
 #[derive(Clone, Copy)]
 pub(in crate::physical_runtime) struct PhysicalBindingDecodingContext {

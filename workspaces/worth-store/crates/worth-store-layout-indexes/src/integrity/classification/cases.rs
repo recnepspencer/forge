@@ -7,13 +7,12 @@ impl CorruptionClassificationCaseId {
     }
 }
 
-pub(super) const CORRUPTION_CLASSIFICATION_CASES: [CorruptionClassificationCaseId; 5] = [
+pub(super) const CORRUPTION_CLASSIFICATION_CASES: [CorruptionClassificationCaseId; 4] = [
     CorruptionClassificationCaseId("layout.integrity.classification.rebuild_required"),
     CorruptionClassificationCaseId("layout.integrity.classification.quarantined"),
     CorruptionClassificationCaseId(
         "layout.integrity.classification.quarantine_readmission_required",
     ),
-    CorruptionClassificationCaseId("layout.integrity.classification.offline_readmission_required"),
     CorruptionClassificationCaseId("layout.integrity.classification.import_readmission_required"),
 ];
 

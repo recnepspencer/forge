@@ -1,15 +1,12 @@
 #[path = "freeze_account/fixture.rs"]
-mod fixture;
+pub(crate) mod fixture;
 
 use bank_domain::{estate::EstateWorkflowStage, schema::AccountStatus};
 use bank_server::{
-    queries, BankEstateFreezeProjectionDenial, BankEstateProgressionDenial,
-    BankMutationCommitOutcome, BankReadControls,
+    queries, BankCommitDenialKind, BankCommitDenialStage, BankEstateFreezeProjectionDenial,
+    BankEstateProgressionDenial, BankMutationCommitOutcome, BankReadControls,
 };
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationIdempotencyBinding,
-};
+use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
 use self::fixture::{exact_freeze_world, foreign_account_freeze_world, FreezeFixture};
 use crate::support::request_scope;
@@ -37,7 +34,7 @@ fn public_query_progression_freezes_the_exact_estate_account() {
     assert_eq!(receipt.emitted_effect_count(), 0);
     assert_eq!(receipt.expected_fact_count(), 0);
     assert_eq!(receipt.decision_fact_count(), Some(5));
-    assert_zero_canonical_work(receipt.canonical_work());
+    assert_freeze_canonical_work(receipt.canonical_work());
     assert_eq!(estate_account_status(&fixture), AccountStatus::Frozen);
 
     let retry = fixture
@@ -53,8 +50,13 @@ fn public_query_progression_freezes_the_exact_estate_account() {
     let BankMutationCommitOutcome::AlreadyCommitted(recovered) = retry else {
         panic!("the equivalent retry must recover the exact commit: {retry:?}");
     };
-    assert!(receipt.is_same_authoritative_commit(&recovered));
-    assert_zero_canonical_work(recovered.canonical_work());
+    assert_eq!(receipt.aftermath(), recovered.aftermath());
+    assert!(recovered.retained_preimage());
+    assert!(
+        recovered.performed_preimage_retention_work(),
+        "the installed recorded inverse must pay its explicit retention work"
+    );
+    assert_freeze_canonical_work(recovered.canonical_work());
     assert_eq!(estate_account_status(&fixture), AccountStatus::Frozen);
 
     let drift = fixture
@@ -70,8 +72,8 @@ fn public_query_progression_freezes_the_exact_estate_account() {
     assert!(matches!(
         drift,
         BankMutationCommitOutcome::Denied {
-            kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
-            stage: WorthQueryApplicationCommitDenialStage::Idempotency,
+            kind: BankCommitDenialKind::IdempotencyIntentDrift,
+            stage: BankCommitDenialStage::Idempotency,
         }
     ));
 }
@@ -94,11 +96,8 @@ fn foreign_grant_account_reaches_projection_but_cannot_receive_effect_authority(
     assert!(matches!(
         denial,
         BankEstateProgressionDenial::FreezeProjection(
-            BankEstateFreezeProjectionDenial::RelatedAccountMismatch {
-                expected,
-                observed,
-            }
-        ) if expected == fixture.foreign_account && observed == fixture.estate_account
+            BankEstateFreezeProjectionDenial::RelatedAccountMismatch
+        )
     ));
     assert_eq!(estate_account_status(&fixture), AccountStatus::Open);
     assert_eq!(foreign_account_status(&fixture), AccountStatus::Open);
@@ -106,6 +105,7 @@ fn foreign_grant_account_reaches_projection_but_cannot_receive_effect_authority(
 
 #[test]
 fn non_open_accounts_cannot_begin_a_second_freeze_transition() {
+    let mut first_public_debug = None;
     for (ordinal, status) in [AccountStatus::Frozen, AccountStatus::Closed]
         .into_iter()
         .enumerate()
@@ -126,9 +126,15 @@ fn non_open_accounts_cannot_begin_a_second_freeze_transition() {
         assert!(matches!(
             denial,
             BankEstateProgressionDenial::FreezeProjection(
-                BankEstateFreezeProjectionDenial::AccountNotOpen(observed)
-            ) if observed == status
+                BankEstateFreezeProjectionDenial::AccountNotOpen
+            )
         ));
+        let public_debug = format!("{denial:?}");
+        if let Some(first) = &first_public_debug {
+            assert_eq!(first, &public_debug);
+        } else {
+            first_public_debug = Some(public_debug);
+        }
         assert_eq!(estate_account_status(&fixture), status);
     }
 }
@@ -171,12 +177,14 @@ fn idempotency(identity: u8) -> WorthQueryApplicationIdempotencyBinding {
     WorthQueryApplicationIdempotencyBinding::new([identity; 32], [identity + 1; 32])
 }
 
-fn assert_zero_canonical_work(
-    phases: worth_query_host::facade::domain::WorthQueryCanonicalWorkPhases,
-) {
+fn assert_freeze_canonical_work(phases: bank_server::BankCommitCanonicalWorkPhases) {
+    let input_identity = phases.admission();
+    assert_eq!(input_identity.basis_preparations(), 1);
+    assert_eq!(input_identity.digest_derivations(), 1);
+    assert_eq!(input_identity.canonical_encoded_bytes(), 821);
+    assert_eq!(input_identity.digest_text_materializations(), 0);
     for work in [
         phases.installation(),
-        phases.admission(),
         phases.execution(),
         phases.provider_commit(),
         phases.projection(),

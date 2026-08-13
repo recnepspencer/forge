@@ -19,12 +19,8 @@ fn ordinary_owner_execution_covers_every_import_publication_action() {
 #[test]
 fn real_import_owner_outcomes_map_to_pending_and_durable_actions() {
     let catalog = worth_store_test_support::harness::layout::admitted_layout_bootstrap_catalog();
-    let reopened = worth_store_test_support::harness::recovery::reopened_recovery_artifact_fixture(
-        "formal-import-publication",
-    );
     let preparation = worth_store_operations::certification_test_authority::prepare_import_publication_owner_scenario(
         &catalog,
-        &reopened,
     );
     let authority = preparation.authority().clone();
     let store = PhysicalStoreIdentity::from_aspect_identity(authority.identity().clone());

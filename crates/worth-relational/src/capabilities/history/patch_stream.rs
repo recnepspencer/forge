@@ -1,7 +1,7 @@
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::CommitId;
-use crate::logic::runtime::RelationalRuntime;
 use crate::publication::patch::data::PatchStreamPosition;
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::runtime::RelationalRuntime;
 
 use super::CommitEnvelopeSource;
 
