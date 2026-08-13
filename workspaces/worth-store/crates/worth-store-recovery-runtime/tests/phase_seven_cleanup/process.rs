@@ -11,7 +11,7 @@ use worth_store::physical_runtime::{
 };
 use worth_store_recovery_physics::WalSegmentArtifactIdentity;
 use worth_store_recovery_runtime::{
-    PhysicalRecoveryLimits, PhysicalRecoveryOutcome, RecoveryCleanupTarget, WorthStoreRecovery,
+    PhysicalRecoveryLimits, PhysicalRecoveryOutcome, RecoveryCleanupTarget,
 };
 use worth_store_test_support::harness::physical_residency::{
     canonical_durable_wal_attempt_without_execution, canonical_physical_mutation_acknowledgment,
@@ -91,30 +91,34 @@ fn phase_seven_writer_process() {
 #[ignore = "launched by the Phase 7 process-boundary parent"]
 fn phase_seven_cleanup_process() {
     let root = required_path(CHILD_ROOT);
-    let artifacts = ArtifactSnapshot::capture(&root);
+    let mut artifacts = ArtifactSnapshot::capture(&root);
     let expected = required_text(EXPECTED_WAL);
     let cleanup_bytes = required_text(CLEANUP_BYTES).parse::<u64>().unwrap();
     let cleanup_candidates = required_text(CLEANUP_CANDIDATES).parse::<u64>().unwrap();
     let expected_deferred = required_text(EXPECTED_DEFERRED).parse::<u64>().unwrap();
     let limits = cleanup_limits(cleanup_bytes, cleanup_candidates);
     let request = recovery_request_with_limits(&root, limits);
+    let reopened = request
+        .admit()
+        .unwrap()
+        .discover()
+        .unwrap()
+        .select()
+        .unwrap()
+        .plan()
+        .unwrap()
+        .stage()
+        .unwrap()
+        .publish()
+        .unwrap()
+        .reopen()
+        .unwrap();
+    artifacts.include_recovery_created(
+        &root,
+        reopened.publication_expectation().created_artifacts(),
+    );
     let outcome = match std::env::var(CANCEL_AFTER).ok() {
         Some(cancel_after) => {
-            let reopened = request
-                .admit()
-                .unwrap()
-                .discover()
-                .unwrap()
-                .select()
-                .unwrap()
-                .plan()
-                .unwrap()
-                .stage()
-                .unwrap()
-                .publish()
-                .unwrap()
-                .reopen()
-                .unwrap();
             let cancellation = if cancel_after == "0" {
                 reopened.cleanup_cancellation_before_first().unwrap()
             } else {
@@ -124,7 +128,7 @@ fn phase_seven_cleanup_process() {
             };
             reopened.finish_with_cleanup_cancellation(cancellation)
         }
-        None => WorthStoreRecovery::recover(request),
+        None => reopened.finish(),
     };
     let PhysicalRecoveryOutcome::Recovered(handoff) = outcome else {
         panic!("cleanup debt must not invalidate recovered success")
@@ -144,7 +148,10 @@ fn phase_seven_cleanup_process() {
         disposition,
         expected_identity,
         expected_deferred,
-        cleanup_bytes,
+        cleanup_bytes
+            + std::fs::metadata(root.join("families").join("checkpoint.current"))
+                .unwrap()
+                .len(),
     );
 }
 

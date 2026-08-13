@@ -255,13 +255,13 @@ fn ordinary_store_mutation_reopens_as_a_nonempty_effect_free_plan() {
     assert_eq!(cost.redo_bytes(), 34_258);
     assert_eq!(cost.distinct_targets(), 2);
     assert_eq!(cost.operation_bindings(), 3);
-    assert_eq!(cost.observation_reads(), 5);
-    assert_eq!(cost.observation_bytes(), 72_894);
+    assert_eq!(cost.observation_reads(), 7);
+    assert_eq!(cost.observation_bytes(), 73_238);
     assert_eq!(cost.staging_bytes(), 3_276_800);
     assert_eq!(cost.dirty_frames(), 1);
     let counters = planned.planning_counters();
-    assert_eq!(counters.page_extent_reads(), 5);
-    assert_eq!(counters.page_extent_bytes(), 16_984);
+    assert_eq!(counters.page_extent_reads(), 7);
+    assert_eq!(counters.page_extent_bytes(), 17_328);
     assert_eq!(counters.redo_records(), 2);
     assert_eq!(counters.redo_targets(), 2);
     assert_eq!(counters.redo_apply(), 1);

@@ -32,6 +32,13 @@ pub struct NamespaceFileHandle<'owner, Access = MutableFileAccess> {
     access: PhantomData<Access>,
 }
 
+#[cfg(feature = "certification-test-authority")]
+#[derive(Debug)]
+pub(crate) struct CertificationRetainedMediaFileHandle {
+    _file: std::fs::File,
+    _accounting: super::handle_accounting::MediaFileHandleAccounting,
+}
+
 impl<Access> NamespaceFileHandle<'_, Access> {
     pub const fn identity(&self) -> MediaHandleIdentity {
         self.identity
@@ -51,6 +58,19 @@ impl<Access> NamespaceFileHandle<'_, Access> {
 
     pub(super) const fn stable_file(&self) -> &same_file::Handle {
         &self.stable_file
+    }
+}
+
+#[cfg(feature = "certification-test-authority")]
+impl NamespaceFileHandle<'_, ReadOnlyFileAccess> {
+    pub(crate) fn retain_for_certification(self) -> CertificationRetainedMediaFileHandle {
+        let Self {
+            file, _accounting, ..
+        } = self;
+        CertificationRetainedMediaFileHandle {
+            _file: file,
+            _accounting,
+        }
     }
 }
 

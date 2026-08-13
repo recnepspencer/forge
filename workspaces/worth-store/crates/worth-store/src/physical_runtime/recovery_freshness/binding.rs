@@ -92,6 +92,7 @@ pub(super) fn sample_binding<'frame>(
     maximum_operation_bindings: u64,
     maximum_redo_bytes: u64,
 ) -> Result<StoreRecoveryBindingFreshnessSample, StoreRecoveryBindingSampleFailure> {
+    freshness.record_binding_sample();
     if !freshness.matches_media_generation(media.media_generation()) {
         return Err(empty_failure(
             StoreRecoveryBindingSampleDenial::FreshnessMediaMismatch,

@@ -7,8 +7,9 @@ use crate::handoff::RecoveryCleanupDeferralEvidence;
 use crate::progression::ReopenedPhysicalRecovery;
 
 use super::{
-    command_basis::RecoveryCleanupCommandBasis, PerformedRecoveryCleanupRemoval,
-    RecoveryCleanupEligibility, RecoveryCleanupPlan, RecoveryCleanupTarget,
+    command_basis::{RecoveryCleanupCommandBasis, StoreCleanupCommandExecution},
+    PerformedRecoveryCleanupRemoval, RecoveryCleanupEligibility, RecoveryCleanupPlan,
+    RecoveryCleanupTarget,
 };
 
 pub(super) enum RecoveryCleanupAttempt {
@@ -27,14 +28,14 @@ pub(super) enum RecoveryCleanupAttempt {
 pub(super) struct RecoveryCleanupAttemptBasis<'recovery, 'basis> {
     reopened: &'recovery ReopenedPhysicalRecovery,
     plan: &'basis RecoveryCleanupPlan,
-    command_basis: Option<&'basis RecoveryCleanupCommandBasis<'recovery>>,
+    command_basis: &'basis RecoveryCleanupCommandBasis,
 }
 
 impl<'recovery, 'basis> RecoveryCleanupAttemptBasis<'recovery, 'basis> {
     pub(super) const fn new(
         reopened: &'recovery ReopenedPhysicalRecovery,
         plan: &'basis RecoveryCleanupPlan,
-        command_basis: Option<&'basis RecoveryCleanupCommandBasis<'recovery>>,
+        command_basis: &'basis RecoveryCleanupCommandBasis,
     ) -> Self {
         Self {
             reopened,
@@ -49,18 +50,28 @@ impl<'recovery, 'basis> RecoveryCleanupAttemptBasis<'recovery, 'basis> {
         candidate: RecoveryCleanupEligibility,
     ) -> RecoveryCleanupAttempt {
         let target = RecoveryCleanupTarget::Wal(candidate.artifact());
-        let Some(command_basis) = self.command_basis else {
-            return RecoveryCleanupAttempt::Deferred {
-                freshness: None,
-                evidence: RecoveryCleanupDeferralEvidence::EligibilityChanged { target },
-                stop: true,
-            };
-        };
-        match command_basis.execute(
+        let attempt = match self.command_basis.execute(
             self.reopened.state.coordination.owner(),
             &self.reopened.state.authority.media,
             candidate.artifact(),
         ) {
+            StoreCleanupCommandExecution::Attempt(attempt) => attempt,
+            StoreCleanupCommandExecution::AdmissionDenied(failure) => {
+                return RecoveryCleanupAttempt::Deferred {
+                    freshness: None,
+                    evidence: RecoveryCleanupDeferralEvidence::Freshness { target, failure },
+                    stop: true,
+                };
+            }
+            StoreCleanupCommandExecution::Unavailable => {
+                return RecoveryCleanupAttempt::Deferred {
+                    freshness: None,
+                    evidence: RecoveryCleanupDeferralEvidence::EligibilityChanged { target },
+                    stop: true,
+                };
+            }
+        };
+        match attempt {
             StoreRecoveryCleanupAttempt::FreshnessDenied(failure) => {
                 RecoveryCleanupAttempt::Deferred {
                     // The failure owns any completed freshness sample. Keeping

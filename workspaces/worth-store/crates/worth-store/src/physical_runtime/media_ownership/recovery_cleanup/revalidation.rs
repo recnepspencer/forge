@@ -1,7 +1,7 @@
-use std::io::Read;
-
-use sha2::{Digest, Sha256};
-use worth_store_physical_backend::{ArtifactTreeFailure, ArtifactTreeFailureKind};
+use worth_store_physical_backend::{
+    ArtifactTreeFailure, BackendRecoveryCleanupArtifactRevalidationDenial,
+    BackendRecoveryCleanupArtifactRevalidationProgress,
+};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct RecoveryCleanupArtifactRevalidationProgress {
@@ -12,6 +12,15 @@ pub struct RecoveryCleanupArtifactRevalidationProgress {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecoveryCleanupArtifactRevalidationDenial {
+    CheckpointRead(ArtifactTreeFailure),
+    CheckpointLengthMismatch {
+        expected_bytes: u64,
+        observed_bytes: u64,
+    },
+    CheckpointDigestMismatch {
+        expected_digest: [u8; 32],
+        observed_digest: [u8; 32],
+    },
     Read(ArtifactTreeFailure),
     LengthMismatch {
         expected_bytes: u64,
@@ -23,101 +32,69 @@ pub enum RecoveryCleanupArtifactRevalidationDenial {
     },
 }
 
-pub(super) struct RecoveryCleanupArtifactRevalidationFailure {
-    denial: RecoveryCleanupArtifactRevalidationDenial,
-    progress: RecoveryCleanupArtifactRevalidationProgress,
-}
-
-pub(super) fn verify(
-    directory: &cap_std::fs::Dir,
-    file_name: &str,
-    expected_bytes: u64,
-    expected_digest: [u8; 32],
-) -> Result<RecoveryCleanupArtifactRevalidationProgress, RecoveryCleanupArtifactRevalidationFailure>
-{
-    let attempted = RecoveryCleanupArtifactRevalidationProgress::attempted();
-    let file = directory
-        .open(file_name)
-        .map_err(|error| RecoveryCleanupArtifactRevalidationFailure::read(attempted, &error))?;
-    let capacity = usize::try_from(expected_bytes)
-        .ok()
-        .and_then(|bytes| bytes.checked_add(1))
-        .ok_or_else(|| RecoveryCleanupArtifactRevalidationFailure {
-            denial: RecoveryCleanupArtifactRevalidationDenial::Read(
-                ArtifactTreeFailure::recovery_denial(),
-            ),
-            progress: attempted,
-        })?;
-    let mut observed = Vec::with_capacity(capacity.min(64 * 1024));
-    file.take(expected_bytes.saturating_add(1))
-        .read_to_end(&mut observed)
-        .map_err(|error| RecoveryCleanupArtifactRevalidationFailure::read(attempted, &error))?;
-    let progress = RecoveryCleanupArtifactRevalidationProgress::completed(observed.len() as u64);
-    if observed.len() as u64 != expected_bytes {
-        return Err(RecoveryCleanupArtifactRevalidationFailure {
-            denial: RecoveryCleanupArtifactRevalidationDenial::LengthMismatch {
-                expected_bytes,
-                observed_bytes: observed.len() as u64,
-            },
-            progress,
-        });
-    }
-    let observed_digest = <[u8; 32]>::from(Sha256::digest(&observed));
-    if observed_digest != expected_digest {
-        return Err(RecoveryCleanupArtifactRevalidationFailure {
-            denial: RecoveryCleanupArtifactRevalidationDenial::DigestMismatch {
-                expected_digest,
-                observed_digest,
-            },
-            progress,
-        });
-    }
-    Ok(progress)
-}
-
 impl RecoveryCleanupArtifactRevalidationProgress {
-    const fn attempted() -> Self {
-        Self {
-            reads_attempted: 1,
-            reads_completed: 0,
-            bytes_read: 0,
-        }
-    }
-
-    const fn completed(bytes_read: u64) -> Self {
-        Self {
-            reads_attempted: 1,
-            reads_completed: 1,
-            bytes_read,
-        }
-    }
-
     pub const fn reads_attempted(self) -> u64 {
         self.reads_attempted
     }
+
     pub const fn reads_completed(self) -> u64 {
         self.reads_completed
     }
+
     pub const fn bytes_read(self) -> u64 {
         self.bytes_read
     }
 }
 
-impl RecoveryCleanupArtifactRevalidationFailure {
-    fn read(progress: RecoveryCleanupArtifactRevalidationProgress, error: &std::io::Error) -> Self {
+impl From<BackendRecoveryCleanupArtifactRevalidationProgress>
+    for RecoveryCleanupArtifactRevalidationProgress
+{
+    fn from(progress: BackendRecoveryCleanupArtifactRevalidationProgress) -> Self {
         Self {
-            denial: RecoveryCleanupArtifactRevalidationDenial::Read(
-                ArtifactTreeFailure::recovery_io(ArtifactTreeFailureKind::Damaged, error.kind()),
-            ),
-            progress,
+            reads_attempted: progress.reads_attempted(),
+            reads_completed: progress.reads_completed(),
+            bytes_read: progress.bytes_read(),
         }
     }
+}
 
-    pub(super) const fn denial(&self) -> RecoveryCleanupArtifactRevalidationDenial {
-        self.denial
-    }
-
-    pub(super) const fn progress(&self) -> RecoveryCleanupArtifactRevalidationProgress {
-        self.progress
+impl From<BackendRecoveryCleanupArtifactRevalidationDenial>
+    for RecoveryCleanupArtifactRevalidationDenial
+{
+    fn from(denial: BackendRecoveryCleanupArtifactRevalidationDenial) -> Self {
+        match denial {
+            BackendRecoveryCleanupArtifactRevalidationDenial::CheckpointRead(failure) => {
+                Self::CheckpointRead(failure)
+            }
+            BackendRecoveryCleanupArtifactRevalidationDenial::CheckpointLengthMismatch {
+                expected_bytes,
+                observed_bytes,
+            } => Self::CheckpointLengthMismatch {
+                expected_bytes,
+                observed_bytes,
+            },
+            BackendRecoveryCleanupArtifactRevalidationDenial::CheckpointDigestMismatch {
+                expected_digest,
+                observed_digest,
+            } => Self::CheckpointDigestMismatch {
+                expected_digest,
+                observed_digest,
+            },
+            BackendRecoveryCleanupArtifactRevalidationDenial::Read(failure) => Self::Read(failure),
+            BackendRecoveryCleanupArtifactRevalidationDenial::LengthMismatch {
+                expected_bytes,
+                observed_bytes,
+            } => Self::LengthMismatch {
+                expected_bytes,
+                observed_bytes,
+            },
+            BackendRecoveryCleanupArtifactRevalidationDenial::DigestMismatch {
+                expected_digest,
+                observed_digest,
+            } => Self::DigestMismatch {
+                expected_digest,
+                observed_digest,
+            },
+        }
     }
 }

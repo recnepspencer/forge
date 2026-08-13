@@ -11,7 +11,7 @@ use super::{
 };
 
 pub(crate) fn execute(
-    reopened: ReopenedPhysicalRecovery,
+    mut reopened: ReopenedPhysicalRecovery,
     cancellation: Option<PhysicalRecoveryCleanupCancellation>,
 ) -> crate::entry::PhysicalRecoveryOutcome {
     let limits = reopened.state.authority.limits.declaration();
@@ -22,73 +22,101 @@ pub(crate) fn execute(
         fates: &reopened.state.fates,
         limits,
     });
-    let command_basis =
-        RecoveryCleanupCommandBasis::from_reopened(&reopened, plan.identity(), plan.candidates());
-    if let Some(command_basis) = &command_basis {
-        debug_assert_eq!(command_basis.descriptive_plan_identity(), plan.identity());
-        plan.bind_authority_identity(command_basis.plan_identity());
+    let command_basis = RecoveryCleanupCommandBasis::from_reopened(
+        &mut reopened,
+        plan.identity(),
+        plan.candidates(),
+    );
+    debug_assert_eq!(command_basis.descriptive_plan_identity(), plan.identity());
+    if let Some(identity) = command_basis.plan_identity() {
+        plan.bind_authority_identity(identity);
     }
-    let mut accounting = RecoveryCleanupAccounting::begin(&plan);
+    let mut accounting =
+        RecoveryCleanupAccounting::begin(&plan, command_basis.terminal_binding_evaluations());
     let candidates = plan.take_eligibilities();
     let cancellation_at = match cancellation {
         Some(cancellation) => match cancellation.admit(plan.identity(), candidates.len() as u64) {
             Some(safe_point) => Some(safe_point),
             None => {
                 defer_for_invalid_cancellation(&mut plan, &mut accounting, &candidates);
-                return finish(reopened, plan, accounting);
+                return finish(reopened, plan, accounting, command_basis);
             }
         },
         None => None,
     };
-    let mut policy = None;
-    for (index, candidate) in candidates.into_iter().enumerate() {
-        if cancellation_at == Some(index as u64) {
-            defer_for_cancellation(&mut plan, &mut accounting, candidate, index as u64);
-            break;
-        }
-        let artifact = candidate.artifact();
-        let byte_count = candidate.byte_count();
-        let attempt = RecoveryCleanupAttemptBasis::new(&reopened, &plan, command_basis.as_ref())
-            .execute(policy, candidate);
-        match attempt {
-            RecoveryCleanupAttempt::Completed {
-                freshness,
-                performed,
-                revalidation,
-            } => {
-                policy.get_or_insert(freshness.policy_identity());
-                accounting.record_freshness_sample(freshness);
-                accounting.record_completed(byte_count, performed, revalidation);
-                debug_assert!(
-                    plan.transition_candidate(
+    CandidateExecution {
+        reopened: &reopened,
+        plan: &mut plan,
+        command_basis: &command_basis,
+        accounting: &mut accounting,
+        policy: None,
+    }
+    .run(candidates, cancellation_at);
+    finish(reopened, plan, accounting, command_basis)
+}
+
+struct CandidateExecution<'a> {
+    reopened: &'a ReopenedPhysicalRecovery,
+    plan: &'a mut super::RecoveryCleanupPlan,
+    command_basis: &'a RecoveryCleanupCommandBasis,
+    accounting: &'a mut RecoveryCleanupAccounting,
+    policy: Option<[u8; 32]>,
+}
+
+impl CandidateExecution<'_> {
+    fn run(
+        &mut self,
+        candidates: Vec<super::RecoveryCleanupEligibility>,
+        cancellation_at: Option<u64>,
+    ) {
+        for (index, candidate) in candidates.into_iter().enumerate() {
+            if cancellation_at == Some(index as u64) {
+                defer_for_cancellation(self.plan, self.accounting, candidate, index as u64);
+                break;
+            }
+            let artifact = candidate.artifact();
+            let byte_count = candidate.byte_count();
+            let attempt =
+                RecoveryCleanupAttemptBasis::new(self.reopened, self.plan, self.command_basis)
+                    .execute(self.policy, candidate);
+            match attempt {
+                RecoveryCleanupAttempt::Completed {
+                    freshness,
+                    performed,
+                    revalidation,
+                } => {
+                    self.policy.get_or_insert(freshness.policy_identity());
+                    self.accounting.record_freshness_sample(freshness);
+                    self.accounting
+                        .record_completed(byte_count, performed, revalidation);
+                    debug_assert!(self.plan.transition_candidate(
                         artifact,
                         RecoveryCleanupDispositionKind::SafelyRemoved,
-                    )
-                );
-            }
-            RecoveryCleanupAttempt::Deferred {
-                freshness,
-                evidence,
-                stop,
-            } => {
-                if let Some(freshness) = freshness {
-                    policy.get_or_insert(freshness.policy_identity());
-                    accounting.record_freshness_sample(freshness);
+                    ));
                 }
-                let reason = deferral_reason(&evidence);
-                debug_assert!(plan.transition_candidate(
-                    artifact,
-                    RecoveryCleanupDispositionKind::Deferred(reason),
-                ));
-                accounting.record_deferral(evidence);
-                if stop {
-                    plan.defer_remaining(reason);
-                    break;
+                RecoveryCleanupAttempt::Deferred {
+                    freshness,
+                    evidence,
+                    stop,
+                } => {
+                    if let Some(freshness) = freshness {
+                        self.policy.get_or_insert(freshness.policy_identity());
+                        self.accounting.record_freshness_sample(freshness);
+                    }
+                    let reason = deferral_reason(&evidence);
+                    debug_assert!(self.plan.transition_candidate(
+                        artifact,
+                        RecoveryCleanupDispositionKind::Deferred(reason),
+                    ));
+                    self.accounting.record_deferral(evidence);
+                    if stop {
+                        self.plan.defer_remaining(reason);
+                        break;
+                    }
                 }
             }
         }
     }
-    finish(reopened, plan, accounting)
 }
 
 fn defer_for_cancellation(
@@ -142,13 +170,34 @@ fn defer_for_invalid_cancellation(
     );
 }
 
+#[cfg_attr(not(feature = "certification-test-authority"), allow(unused_mut))]
 fn finish(
-    reopened: ReopenedPhysicalRecovery,
+    mut reopened: ReopenedPhysicalRecovery,
     plan: super::RecoveryCleanupPlan,
     accounting: RecoveryCleanupAccounting,
+    command_basis: RecoveryCleanupCommandBasis,
 ) -> crate::entry::PhysicalRecoveryOutcome {
-    let posture = accounting.finish(plan);
-    crate::orchestration::finish_recovery_without_cleanup(reopened, posture)
+    #[cfg(feature = "certification-test-authority")]
+    if reopened
+        .state
+        .coordination
+        .owner()
+        .take_certification_cleanup_media_handle_leak()
+    {
+        assert!(
+            reopened
+                .state
+                .authority
+                .media
+                .certification_retain_cleanup_media_handle(),
+            "certification cleanup handle leak must reach the admitted backend owner"
+        );
+    }
+    let live_media_handles_after_close =
+        command_basis.live_media_handle_delta(&reopened.state.authority.media);
+    let closed_cleanup = command_basis.close(live_media_handles_after_close);
+    let posture = accounting.finish(plan, live_media_handles_after_close);
+    crate::orchestration::finish_recovery_after_cleanup(reopened, closed_cleanup, posture)
 }
 
 const fn deferral_reason(

@@ -27,14 +27,14 @@ pub(super) struct CleanupEffectBinding {
 }
 
 pub(super) fn effect(
-    coordination: &PhysicalRecoveryCoordination,
-    command: &PhysicalRecoveryCleanupRemovalCommand<'_>,
+    _coordination: &PhysicalRecoveryCoordination,
+    command: &PhysicalRecoveryCleanupRemovalCommand,
     work: crate::physical_runtime::PhysicalWorkIdentity,
 ) -> CleanupEffectBinding {
     let inspection = command.verified_wal.inspection();
     #[cfg(feature = "certification-test-authority")]
     let artifact_generation =
-        if coordination.take_certification_cleanup_authorization_substitution() {
+        if _coordination.take_certification_cleanup_authorization_substitution() {
             command.artifact.generation().get().saturating_add(1)
         } else {
             command.artifact.generation().get()
@@ -61,7 +61,7 @@ pub(super) fn effect(
 }
 
 pub(super) fn matches(
-    command: &PhysicalRecoveryCleanupRemovalCommand<'_>,
+    command: &PhysicalRecoveryCleanupRemovalCommand,
     work: crate::physical_runtime::PhysicalWorkIdentity,
     binding: CleanupEffectBinding,
 ) -> bool {

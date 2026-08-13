@@ -1,4 +1,6 @@
 mod admitted;
+#[cfg(feature = "store-runtime-owner")]
+mod cleanup;
 mod discovery;
 mod generation;
 mod profile;
@@ -12,6 +14,14 @@ mod reopen;
 mod staging;
 
 pub use admitted::{AdmittedRecoveryFilesystemMedia, RecoveryMediaHandleObservation};
+#[cfg(feature = "store-runtime-owner")]
+pub use cleanup::{
+    execute_recovery_cleanup_removal, BackendCompletedRecoveryCleanupRemoval,
+    BackendDeniedRecoveryCleanupRemoval, BackendIndeterminateRecoveryCleanupRemoval,
+    BackendRecoveryArtifactExpectation, BackendRecoveryCleanupArtifactRevalidationDenial,
+    BackendRecoveryCleanupArtifactRevalidationProgress, BackendRecoveryCleanupRemovalDenialCause,
+    BackendRecoveryCleanupRemovalOutcome, BackendRecoveryCleanupRemovalRequest,
+};
 pub use discovery::{
     BoundedRecoveryFilesystemDiscovery, ObservedRecoveryArtifact, ObservedWalArtifact,
     RecoveryDiscoveryArtifact, RecoveryDiscoveryByteLimitScope, RecoveryDiscoveryCounters,

@@ -122,6 +122,8 @@ pub use fault_activation::{CertificationMediaFaultActivation, MediaFaultActivati
 pub use fault_schedule::{
     MediaFaultDirective, MediaFaultRule, MediaFaultSchedule, MediaFaultScheduleDenial,
 };
+#[cfg(feature = "certification-test-authority")]
+pub(crate) use file_handle::CertificationRetainedMediaFileHandle;
 pub use file_handle::{
     MutableFileAccess, NamespaceFileHandle, NamespaceFileOpenKind, NamespaceFileOpenOutcome,
     NamespaceFileOpenResult, ReadOnlyFileAccess,

@@ -174,6 +174,14 @@ pub use crate::placement_observation::{
     StoreOwnedBlobPhysicalManifestTraversal, StoreOwnedExternalPlacementCleanup,
     StoreOwnedExternalPlacementRecoveryProbe,
 };
+#[cfg(all(feature = "recovery-runtime-owner", feature = "store-runtime-owner"))]
+pub use crate::recovery_media::{
+    execute_recovery_cleanup_removal, BackendCompletedRecoveryCleanupRemoval,
+    BackendDeniedRecoveryCleanupRemoval, BackendIndeterminateRecoveryCleanupRemoval,
+    BackendRecoveryArtifactExpectation, BackendRecoveryCleanupArtifactRevalidationDenial,
+    BackendRecoveryCleanupArtifactRevalidationProgress, BackendRecoveryCleanupRemovalDenialCause,
+    BackendRecoveryCleanupRemovalOutcome, BackendRecoveryCleanupRemovalRequest,
+};
 #[cfg(feature = "recovery-runtime-owner")]
 pub use crate::recovery_media::{
     AdmittedRecoveryFilesystemMedia, BoundedRecoveryFilesystemDiscovery,

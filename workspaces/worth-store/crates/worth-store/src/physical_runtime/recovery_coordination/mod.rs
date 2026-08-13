@@ -11,13 +11,13 @@ mod staging;
 pub use capacity::PhysicalRecoveryCoordinationCapacity;
 pub(in crate::physical_runtime) use cleanup::PhysicalRecoveryCleanupRemovalCommand;
 pub use cleanup::{
-    CompletedPhysicalRecoveryCleanupFreshnessRead, CompletedPhysicalRecoveryCleanupRemoval,
-    PhysicalRecoveryCleanupAdmissionDenial, PhysicalRecoveryCleanupAdmissionDenialKind,
-    PhysicalRecoveryCleanupCommandStage, PhysicalRecoveryCleanupFreshnessReadDenial,
-    PhysicalRecoveryCleanupFreshnessReadDenialKind, PhysicalRecoveryCleanupFreshnessReadOutcome,
-    PhysicalRecoveryCleanupFreshnessReadProgress, PhysicalRecoveryCleanupRemovalDenial,
-    PhysicalRecoveryCleanupRemovalDenialKind, PhysicalRecoveryCleanupRemovalIndeterminate,
-    PhysicalRecoveryCleanupRemovalOutcome,
+    ClosedPhysicalRecoveryCleanup, CompletedPhysicalRecoveryCleanupFreshnessRead,
+    CompletedPhysicalRecoveryCleanupRemoval, PhysicalRecoveryCleanupAdmissionDenial,
+    PhysicalRecoveryCleanupAdmissionDenialKind, PhysicalRecoveryCleanupCommandStage,
+    PhysicalRecoveryCleanupFreshnessReadDenial, PhysicalRecoveryCleanupFreshnessReadDenialKind,
+    PhysicalRecoveryCleanupFreshnessReadOutcome, PhysicalRecoveryCleanupFreshnessReadProgress,
+    PhysicalRecoveryCleanupRemovalDenial, PhysicalRecoveryCleanupRemovalDenialKind,
+    PhysicalRecoveryCleanupRemovalIndeterminate, PhysicalRecoveryCleanupRemovalOutcome,
 };
 pub use effect::{
     PerformedRecoveryPhysicalEffect, RecoveryCleanupRemovalAction,

@@ -15,7 +15,7 @@ pub(in crate::physical_runtime) use cleanup::StoreRecoveryCleanupRemovalBasis;
 pub use cleanup::{
     StoreRecoveryCleanupAttempt, StoreRecoveryCleanupFreshnessDenial,
     StoreRecoveryCleanupFreshnessFailure, StoreRecoveryCleanupFreshnessSample,
-    StoreRecoveryCleanupPlan,
+    StoreRecoveryCleanupPlan, StoreRecoveryCleanupPlanAdmissionFailure,
 };
 pub use port::PhysicalRecoveryFreshnessPort;
 pub use registration::PhysicalRecoveryRegisteredSessionAuthority;

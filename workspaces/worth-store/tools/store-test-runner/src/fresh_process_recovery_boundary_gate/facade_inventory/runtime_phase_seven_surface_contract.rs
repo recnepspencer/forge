@@ -3,6 +3,7 @@ mod format;
 mod media_effect;
 mod runtime;
 mod store;
+mod store_cleanup_lifecycle;
 mod wal;
 
 pub(super) fn phase_seven_delivery_surfaces(
@@ -13,5 +14,6 @@ pub(super) fn phase_seven_delivery_surfaces(
         .chain(media_effect::MEDIA_EFFECT_SURFACES)
         .chain(runtime::RUNTIME_SURFACES)
         .chain(store::STORE_SURFACES)
+        .chain(store_cleanup_lifecycle::STORE_CLEANUP_LIFECYCLE_SURFACES)
         .chain(wal::WAL_SURFACES)
 }

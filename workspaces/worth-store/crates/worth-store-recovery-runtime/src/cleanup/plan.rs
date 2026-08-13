@@ -42,7 +42,9 @@ pub(crate) fn build_plan(basis: RecoveryCleanupPlanBasis<'_>) -> RecoveryCleanup
     } = basis;
     let checkpoint = publication.checkpoint_identity();
     let mut dispositions = retained_dispositions(selection, base, publication, checkpoint);
-    dispositions.extend(consumed_publication_candidates(publication));
+    dispositions.extend(consumed_publication_candidates(
+        publication.created_artifacts(),
+    ));
     let covered_wal = admit_checkpoint_covered_wal(selection, fates, limits);
     let candidates = covered_wal.candidates;
     dispositions.extend(covered_wal.dispositions);
@@ -146,6 +148,16 @@ fn retained_dispositions(
     publication: &RecoveryPublicationExpectation,
     checkpoint: PhysicalCheckpointIdentity,
 ) -> Vec<RecoveryCleanupDisposition> {
+    let mut dispositions = retained_record_dispositions(base, publication);
+    dispositions.push(checkpoint_disposition(selection, checkpoint));
+    dispositions.extend(retained_wal_dispositions(selection));
+    dispositions
+}
+
+fn retained_record_dispositions(
+    base: &RecoveryBaseImagePlan,
+    publication: &RecoveryPublicationExpectation,
+) -> Vec<RecoveryCleanupDisposition> {
     let mut records = BTreeMap::new();
     records.insert(
         RecordArtifactFile::BootstrapCatalog,
@@ -175,7 +187,7 @@ fn retained_dispositions(
             records.insert(*artifact, RecoveryCleanupDispositionKind::Current);
         }
     }
-    let mut dispositions = records
+    records
         .into_iter()
         .map(|(artifact, kind)| {
             RecoveryCleanupDisposition::new(
@@ -186,8 +198,14 @@ fn retained_dispositions(
                 None,
             )
         })
-        .collect::<Vec<_>>();
-    dispositions.push(RecoveryCleanupDisposition::new(
+        .collect()
+}
+
+fn checkpoint_disposition(
+    selection: &PhysicalSourceSelection,
+    checkpoint: PhysicalCheckpointIdentity,
+) -> RecoveryCleanupDisposition {
+    RecoveryCleanupDisposition::new(
         RecoveryCleanupTarget::Checkpoint(checkpoint),
         RecoveryCleanupDispositionKind::Retained,
         None,
@@ -195,8 +213,13 @@ fn retained_dispositions(
             .checkpoint()
             .map_or(0, |checkpoint| checkpoint.checkpoint().encoded_bytes()),
         None,
-    ));
-    dispositions.extend(selection.wal_tail().segments().iter().map(|segment| {
+    )
+}
+
+fn retained_wal_dispositions(
+    selection: &PhysicalSourceSelection,
+) -> impl Iterator<Item = RecoveryCleanupDisposition> + '_ {
+    selection.wal_tail().segments().iter().map(|segment| {
         RecoveryCleanupDisposition::new(
             RecoveryCleanupTarget::Wal(segment.identity()),
             RecoveryCleanupDispositionKind::Retained,
@@ -204,8 +227,7 @@ fn retained_dispositions(
             segment.inspection().byte_count(),
             Some(segment.inspection().artifact_digest()),
         )
-    }));
-    dispositions
+    })
 }
 
 fn is_consumed_publication_candidate(artifact: RecordArtifactFile) -> bool {
@@ -217,25 +239,22 @@ fn is_consumed_publication_candidate(artifact: RecordArtifactFile) -> bool {
 }
 
 fn consumed_publication_candidates(
-    publication: &RecoveryPublicationExpectation,
+    created: &[RecordArtifactFile],
 ) -> Vec<RecoveryCleanupDisposition> {
-    let root_protocol = publication.root_protocol();
-    [
-        root_protocol.previous_candidate(),
-        root_protocol.current_candidate(),
-        root_protocol.catalog_candidate(),
-    ]
-    .into_iter()
-    .map(|artifact| {
-        RecoveryCleanupDisposition::new(
-            RecoveryCleanupTarget::Record(artifact),
-            RecoveryCleanupDispositionKind::SafelyRemoved,
-            None,
-            0,
-            None,
-        )
-    })
-    .collect()
+    created
+        .iter()
+        .copied()
+        .filter(|artifact| is_consumed_publication_candidate(*artifact))
+        .map(|artifact| {
+            RecoveryCleanupDisposition::new(
+                RecoveryCleanupTarget::Record(artifact),
+                RecoveryCleanupDispositionKind::SafelyRemoved,
+                None,
+                0,
+                None,
+            )
+        })
+        .collect()
 }
 
 impl RecoveryCleanupPlan {

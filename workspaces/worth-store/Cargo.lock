@@ -1186,8 +1186,6 @@ dependencies = [
 name = "worth-store"
 version = "0.1.0"
 dependencies = [
- "cap-fs-ext",
- "cap-std",
  "getrandom",
  "serde",
  "serde_json",
@@ -1557,7 +1555,6 @@ dependencies = [
  "worth-store-contracts",
  "worth-store-physical-format",
  "worth-store-security",
- "worth-store-wal",
 ]
 
 [[package]]

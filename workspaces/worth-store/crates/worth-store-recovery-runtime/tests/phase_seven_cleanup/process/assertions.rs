@@ -39,6 +39,8 @@ pub(super) fn assert_expected_posture(
             );
             assert_eq!(evidence.counters().actions_planned, 1);
             assert_eq!(evidence.counters().actions_completed, 1);
+            assert_eq!(evidence.counters().terminal_binding_evaluations, 1);
+            assert_eq!(evidence.counters().live_media_handles_after_close, 0);
             assert_eq!(evidence.counters().actions_deferred, expected_deferred);
             assert!(evidence
                 .dispositions()
@@ -68,6 +70,7 @@ fn assert_cancelled(
     };
     assert_eq!(disposition.kind(), expected_kind);
     assert_eq!(evidence.counters().cancellation_requests, 1);
+    assert_eq!(evidence.counters().terminal_binding_evaluations, 1);
     assert_eq!(evidence.counters().actions_completed, settled_actions);
     assert!(evidence.counters().actions_cancelled > 0);
     assert!(evidence.counters().bytes_cancelled > 0);
@@ -93,6 +96,7 @@ fn assert_complete(
         RecoveryCleanupDispositionKind::SafelyRemoved
     );
     assert_eq!(evidence.performed_removals().len(), 1);
+    assert_eq!(evidence.counters().terminal_binding_evaluations, 1);
     let occurrence = evidence.performed_removals()[0].occurrence();
     assert_ne!(occurrence.plan(), [0; 32]);
     assert_ne!(evidence.plan_identity(), [0; 32]);
@@ -106,8 +110,8 @@ fn assert_complete(
         occurrence.artifact().generation(),
         expected_identity.generation()
     );
-    assert_eq!(evidence.counters().artifact_revalidation_reads_attempted, 1);
-    assert_eq!(evidence.counters().artifact_revalidation_reads_completed, 1);
+    assert_eq!(evidence.counters().artifact_revalidation_reads_attempted, 2);
+    assert_eq!(evidence.counters().artifact_revalidation_reads_completed, 2);
     assert_eq!(evidence.counters().artifact_revalidation_read_failures, 0);
     assert_eq!(evidence.counters().artifact_revalidation_mismatches, 0);
     assert_eq!(
@@ -128,4 +132,8 @@ fn assert_deferred(
     );
     assert!(posture.evidence().performed_removals().is_empty());
     assert_eq!(posture.evidence().counters().freshness_evaluations, 0);
+    assert_eq!(
+        posture.evidence().counters().terminal_binding_evaluations,
+        0
+    );
 }

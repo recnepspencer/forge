@@ -19,6 +19,7 @@ pub struct RecoveryCleanupCounters {
     pub bytes_planned: u64,
     pub actions_attempted: u64,
     pub freshness_evaluations: u64,
+    pub terminal_binding_evaluations: u64,
     pub freshness_reads_completed: u64,
     pub freshness_reads_denied: u64,
     pub freshness_bytes_read: u64,
@@ -49,6 +50,7 @@ pub struct RecoveryCleanupCounters {
     pub removal_scheduler_deferred: u64,
     pub removal_scheduler_cancelled: u64,
     pub removal_scheduler_settled: u64,
+    pub live_media_handles_after_close: u64,
 }
 
 pub enum RecoveryCleanupDeferralEvidence {

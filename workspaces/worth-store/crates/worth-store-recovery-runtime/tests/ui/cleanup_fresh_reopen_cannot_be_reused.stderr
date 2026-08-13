@@ -1,0 +1,41 @@
+error[E0308]: mismatched types
+  --> tests/ui/cleanup_fresh_reopen_cannot_be_reused.rs:19:9
+   |
+16 |     let _first = coordination.admit_cleanup_plan(
+   |                               ------------------ arguments to this method are incorrect
+...
+19 |         checkpoint.clone(),
+   |         ^^^^^^^^^^^^^^^^^^ expected `Arc<VerifiedCheckpointStream>`, found `VerifiedCheckpointStream`
+   |
+   = note: expected struct `Arc<VerifiedCheckpointStream>`
+              found struct `VerifiedCheckpointStream`
+note: method defined here
+  --> $WORKSPACE/crates/worth-store/src/physical_runtime/recovery_coordination/cleanup/mod.rs
+   |
+   |     pub fn admit_cleanup_plan<'e>(
+   |            ^^^^^^^^^^^^^^^^^^
+help: call `Into::into` on this expression to convert `VerifiedCheckpointStream` into `Arc<VerifiedCheckpointStream>`
+   |
+19 |         checkpoint.clone().into(),
+   |                           +++++++
+
+error[E0308]: mismatched types
+  --> tests/ui/cleanup_fresh_reopen_cannot_be_reused.rs:26:9
+   |
+23 |     let _second = coordination.admit_cleanup_plan(
+   |                                ------------------ arguments to this method are incorrect
+...
+26 |         checkpoint,
+   |         ^^^^^^^^^^ expected `Arc<VerifiedCheckpointStream>`, found `VerifiedCheckpointStream`
+   |
+   = note: expected struct `Arc<VerifiedCheckpointStream>`
+              found struct `VerifiedCheckpointStream`
+note: method defined here
+  --> $WORKSPACE/crates/worth-store/src/physical_runtime/recovery_coordination/cleanup/mod.rs
+   |
+   |     pub fn admit_cleanup_plan<'e>(
+   |            ^^^^^^^^^^^^^^^^^^
+help: call `Into::into` on this expression to convert `VerifiedCheckpointStream` into `Arc<VerifiedCheckpointStream>`
+   |
+26 |         checkpoint.into(),
+   |                   +++++++

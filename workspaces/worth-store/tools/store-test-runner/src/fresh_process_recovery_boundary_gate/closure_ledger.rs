@@ -94,6 +94,7 @@ fn per_guarantee_source_closures_are_causal() {
         "runtime_phase_seven_surface_contract/media_effect.rs",
         "runtime_phase_seven_surface_contract/runtime.rs",
         "runtime_phase_seven_surface_contract/store.rs",
+        "runtime_phase_seven_surface_contract/store_cleanup_lifecycle.rs",
         "runtime_phase_seven_surface_contract/wal.rs",
     ] {
         assert!(

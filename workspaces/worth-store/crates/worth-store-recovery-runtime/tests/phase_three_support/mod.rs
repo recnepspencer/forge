@@ -8,11 +8,12 @@ use worth_store::physical_runtime::{
 use worth_store_physical_format::{
     durable_artifact_checksum, CheckpointBindingCompactionHeader, CheckpointRootBasis,
     CheckpointStreamEncoder, CheckpointWalSourceRange, CurrentPhysicalRecordPlacement,
-    DurableExtentRecordPlacement, DurablePhysicalRootManifest, DurableRootSelector,
-    FreeSpaceBlockReference, FreeSpaceKey, PersistedRecordIdentity, PhysicalCheckpointIdentity,
-    PhysicalCheckpointSource, PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority,
+    DurableExtentRecordPlacement, DurableFreeSpaceManifestHeader, DurablePhysicalRootManifest,
+    DurableRootSelector, FreeSpaceBlockReference, FreeSpaceKey, PersistedRecordIdentity,
+    PhysicalCheckpointIdentity, PhysicalCheckpointSource, PhysicalExtentId,
+    PhysicalFreeSpaceMembershipBlock, PhysicalGeneration, PhysicalGenerationAuthority,
     PhysicalRecordFormatDeclaration, PhysicalRootRoutingBlock, RecordAllocationClass,
-    RootSelectorIdentity, RootSelectorRole,
+    RecordArtifactFile, RecordFreeSpaceManifestEntry, RootSelectorIdentity, RootSelectorRole,
 };
 use worth_store_recovery_runtime::{
     PhysicalRecoveryLimitDeclaration, PhysicalRecoveryLimits, PhysicalRecoveryOpenRequest,
@@ -83,13 +84,29 @@ pub(crate) fn publish_synthetic_genesis(
     store: worth_store_physical_format::store_namespace::StableStoreIdentity,
 ) {
     let format = PhysicalRecordFormatDeclaration::builder().admit().unwrap();
-    let free_key = FreeSpaceKey::new(RecordAllocationClass::Extent, 1).unwrap();
-    let free_space =
-        FreeSpaceBlockReference::new(1, 1, 0, 0x0102_0304, free_key, free_key).unwrap();
-    let manifest = DurablePhysicalRootManifest::builder(1, 7, 4, 0x8a9b_acbd)
-        .free_space_root(Some(free_space))
-        .admit()
-        .unwrap();
+    let free_entry =
+        RecordFreeSpaceManifestEntry::new(RecordAllocationClass::Extent, 1, 1, 1, 1).unwrap();
+    let free_block = PhysicalFreeSpaceMembershipBlock::leaf(7, 1, 1, vec![free_entry], 4).unwrap();
+    let free_block_bytes = free_block.encode(format);
+    let free_space = DurableFreeSpaceManifestHeader::new(
+        1,
+        7,
+        4,
+        4,
+        1,
+        1,
+        1,
+        2,
+        2,
+        Some(free_block.reference(durable_artifact_checksum(&free_block_bytes))),
+    )
+    .unwrap();
+    let free_space_bytes = free_space.encode(format);
+    let manifest =
+        DurablePhysicalRootManifest::builder(1, 7, 4, durable_artifact_checksum(&free_space_bytes))
+            .free_space_root(free_space.root())
+            .admit()
+            .unwrap();
     let selector = DurableRootSelector::new(
         store,
         format,
@@ -102,11 +119,30 @@ pub(crate) fn publish_synthetic_genesis(
     .unwrap();
     let records = root.join("families").join("records");
     let roots = records.join("roots");
+    let free_space_directory = records.join("free-space");
     std::fs::create_dir_all(&roots).unwrap();
+    std::fs::create_dir_all(&free_space_directory).unwrap();
     std::fs::write(records.join("root-current.selector"), selector.encode()).unwrap();
     std::fs::write(
         roots.join("root-0000000000000001.manifest"),
         manifest.encode(format),
+    )
+    .unwrap();
+    std::fs::write(
+        free_space_directory
+            .join(RecordArtifactFile::FreeSpaceManifest { generation: 1 }.file_name()),
+        free_space_bytes,
+    )
+    .unwrap();
+    std::fs::write(
+        free_space_directory.join(
+            RecordArtifactFile::FreeSpaceMembershipBlock {
+                generation: 1,
+                block: 1,
+            }
+            .file_name(),
+        ),
+        free_block_bytes,
     )
     .unwrap();
 }
