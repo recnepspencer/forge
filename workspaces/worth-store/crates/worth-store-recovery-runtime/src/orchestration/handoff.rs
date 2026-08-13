@@ -2,8 +2,9 @@ use crate::entry::{PhysicalRecoveryOutcome, PhysicalRecoveryPublicationIndetermi
 use crate::handoff::{RecoveredPhysicalRuntimeHandoff, RecoveredPhysicalRuntimeHandoffEvidence};
 use crate::progression::ReopenedPhysicalRecovery;
 
-pub(crate) fn finish_recovery_without_cleanup(
+pub(crate) fn finish_recovery_after_cleanup(
     reopened: ReopenedPhysicalRecovery,
+    closed_cleanup: worth_store::physical_runtime::ClosedPhysicalRecoveryCleanup,
     cleanup: crate::handoff::RecoveryCleanupPosture,
 ) -> PhysicalRecoveryOutcome {
     let ReopenedPhysicalRecovery {
@@ -11,9 +12,10 @@ pub(crate) fn finish_recovery_without_cleanup(
         expectation,
         publication_counters,
         publication_settlement,
-        reopened,
+        reopened: pending_reopen,
         reopen_counters,
     } = reopened;
+    debug_assert!(pending_reopen.is_none());
     let store = state.authority.media.store_identity();
     let session_identity = state.authority.session.identity();
     let recovery_effects = state.authority.media.recovery_effect_count();
@@ -22,7 +24,7 @@ pub(crate) fn finish_recovery_without_cleanup(
     let construction = worth_store::physical_runtime::PhysicalRecoveryConstructionPort::construct(
         coordination,
         media,
-        reopened,
+        closed_cleanup,
     );
     match construction {
         Ok(core) => {

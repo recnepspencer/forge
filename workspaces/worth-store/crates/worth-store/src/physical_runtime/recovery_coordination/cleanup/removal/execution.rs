@@ -37,7 +37,7 @@ struct CompletedRemovalSettlement {
 pub(in crate::physical_runtime::recovery_coordination::cleanup) fn execute(
     coordination: &PhysicalRecoveryCoordination,
     media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
-    command: PhysicalRecoveryCleanupRemovalCommand<'_>,
+    command: PhysicalRecoveryCleanupRemovalCommand,
 ) -> PhysicalRecoveryCleanupRemovalOutcome {
     let execution = match admit_execution(coordination, media, &command) {
         Ok(execution) => execution,
@@ -45,63 +45,82 @@ pub(in crate::physical_runtime::recovery_coordination::cleanup) fn execute(
     };
     let binding = super::binding::effect(coordination, &command, execution.work);
     if !super::binding::matches(&command, execution.work, binding) {
-        return deny_removal(
-            coordination,
-            execution,
-            Box::new(
-                crate::physical_runtime::DeniedRecoveryCleanupPhysicalRemoval::new(
-                    command.artifact,
-                    binding.identity(),
-                    crate::physical_runtime::RecoveryCleanupRemovalDenialCause::Admission,
-                    None,
-                    crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress::default(),
-                ),
-            ),
-        );
+        return deny_invalid_binding(coordination, execution);
     }
-    let Some(queue) = media.complete_recovery_queue_binding(
+    let Some(request) = super::request::from_command(&command, binding.identity()) else {
+        return deny_invalid_binding(coordination, execution);
+    };
+    match worth_store_physical_backend::execute_recovery_cleanup_removal(
+        media,
+        request,
         execution
             .plan
             .backend_completion_binding()
             .backend_execution_binding(),
-    ) else {
-        return deny_removal(
-            coordination,
-            execution,
-            Box::new(
-                crate::physical_runtime::DeniedRecoveryCleanupPhysicalRemoval::new(
-                    command.artifact,
-                    binding.identity(),
-                    crate::physical_runtime::RecoveryCleanupRemovalDenialCause::Admission,
-                    None,
-                    crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress::default(),
-                ),
-            ),
-        );
-    };
-    match coordination.cleanup_media.remove_wal(
-        media.store_identity(),
-        command.checkpoint_stream,
-        &command.verified_wal,
-        binding.identity(),
-        queue,
     ) {
-        crate::physical_runtime::RecoveryCleanupRemovalOutcome::Completed(completed) => {
-            complete_removal(coordination, command, execution, *completed)
+        worth_store_physical_backend::BackendRecoveryCleanupRemovalOutcome::Completed(
+            completed,
+        ) => {
+            let physical =
+                crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval::from_backend(
+                    command.artifact,
+                    *completed,
+                );
+            complete_removal(coordination, command, execution, physical)
         }
-        crate::physical_runtime::RecoveryCleanupRemovalOutcome::DeniedBeforeEffect(denied) => {
-            deny_removal(coordination, execution, denied)
+        worth_store_physical_backend::BackendRecoveryCleanupRemovalOutcome::DeniedBeforeEffect(
+            denied,
+        ) => {
+            let physical =
+                crate::physical_runtime::DeniedRecoveryCleanupPhysicalRemoval::from_backend(
+                    command.artifact,
+                    *denied,
+                );
+            deny_removal(coordination, execution, Box::new(physical))
         }
-        crate::physical_runtime::RecoveryCleanupRemovalOutcome::Indeterminate(indeterminate) => {
-            indeterminate_removal(coordination, command, execution, indeterminate)
+        worth_store_physical_backend::BackendRecoveryCleanupRemovalOutcome::Indeterminate(
+            indeterminate,
+        ) => {
+            let physical =
+                crate::physical_runtime::IndeterminateRecoveryCleanupPhysicalRemoval::from_backend(
+                    command.artifact,
+                    *indeterminate,
+                );
+            indeterminate_removal(coordination, command, execution, Box::new(physical))
         }
     }
+}
+
+fn deny_invalid_binding(
+    coordination: &PhysicalRecoveryCoordination,
+    execution: RemovalExecution,
+) -> PhysicalRecoveryCleanupRemovalOutcome {
+    let signal = settle(
+        coordination,
+        PhysicalExecutorDispatch::new(
+            execution.dispatched,
+            PhysicalExecutorOutcome::DeniedBeforeEffect {
+                failure: worth_store_physical_backend::ArtifactTreeFailure::recovery_denial(),
+                retry: PhysicalRetryPayload::WalReclamation,
+            },
+            PhysicalEffectRecoveryObligation::Cleared,
+        ),
+    );
+    PhysicalRecoveryCleanupRemovalOutcome::DeniedBeforeEffect(
+        PhysicalRecoveryCleanupRemovalDenial {
+            kind: PhysicalRecoveryCleanupRemovalDenialKind::InvalidCommand,
+            physical: None,
+            work: Some(execution.work),
+            scheduler: None,
+            signal: Some(signal),
+        },
+    )
 }
 
 fn admit_execution(
     coordination: &PhysicalRecoveryCoordination,
     media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
-    command: &PhysicalRecoveryCleanupRemovalCommand<'_>,
+    command: &PhysicalRecoveryCleanupRemovalCommand,
 ) -> Result<RemovalExecution, PhysicalRecoveryCleanupRemovalOutcome> {
     let scope =
         validated_scope(coordination, media, command).ok_or_else(invalid_command_outcome)?;
@@ -122,7 +141,7 @@ fn admit_execution(
 fn validated_scope(
     coordination: &PhysicalRecoveryCoordination,
     media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
-    command: &PhysicalRecoveryCleanupRemovalCommand<'_>,
+    command: &PhysicalRecoveryCleanupRemovalCommand,
 ) -> Option<PhysicalWalReclamationScope> {
     if command.store != media.store_identity()
         || command.media_generation != media.media_generation()
@@ -184,7 +203,7 @@ fn denied_without_physical(
 
 fn complete_removal(
     coordination: &PhysicalRecoveryCoordination,
-    command: PhysicalRecoveryCleanupRemovalCommand<'_>,
+    command: PhysicalRecoveryCleanupRemovalCommand,
     execution: RemovalExecution,
     completed: crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval,
 ) -> PhysicalRecoveryCleanupRemovalOutcome {
@@ -239,7 +258,7 @@ fn complete_removal(
 
 fn settle_completed_removal(
     coordination: &PhysicalRecoveryCoordination,
-    command: &PhysicalRecoveryCleanupRemovalCommand<'_>,
+    command: &PhysicalRecoveryCleanupRemovalCommand,
     execution: RemovalExecution,
     completed: crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval,
 ) -> CompletedRemovalSettlement {
@@ -315,7 +334,7 @@ fn deny_removal(
 
 fn indeterminate_removal(
     coordination: &PhysicalRecoveryCoordination,
-    command: PhysicalRecoveryCleanupRemovalCommand<'_>,
+    command: PhysicalRecoveryCleanupRemovalCommand,
     execution: RemovalExecution,
     indeterminate: Box<crate::physical_runtime::IndeterminateRecoveryCleanupPhysicalRemoval>,
 ) -> PhysicalRecoveryCleanupRemovalOutcome {

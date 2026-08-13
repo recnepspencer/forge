@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use worth_store_physical_format::VerifiedCheckpointStream;
 
 use super::SelectedPhysicalRoot;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalCheckpointBase {
-    checkpoint: VerifiedCheckpointStream,
+    checkpoint: Arc<VerifiedCheckpointStream>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,14 +42,24 @@ impl PhysicalCheckpointBase {
         {
             return Err(PhysicalCheckpointBaseDenial::CompactionCutoffOutsideCheckpoint);
         }
-        Ok(Self { checkpoint })
+        Ok(Self {
+            checkpoint: Arc::new(checkpoint),
+        })
     }
 
-    pub const fn checkpoint(&self) -> &VerifiedCheckpointStream {
-        &self.checkpoint
+    pub fn checkpoint(&self) -> &VerifiedCheckpointStream {
+        self.checkpoint.as_ref()
     }
 
-    pub const fn wal_tail_begin_lsn(&self) -> u64 {
+    /// Shares the admitted checkpoint with a later recovery owner that must
+    /// retain it beyond this borrow. The ordinary observation accessor stays
+    /// representation-agnostic; this method makes the ownership transfer and
+    /// its reference-counting cost explicit at the call site.
+    pub fn share_checkpoint(&self) -> Arc<VerifiedCheckpointStream> {
+        Arc::clone(&self.checkpoint)
+    }
+
+    pub fn wal_tail_begin_lsn(&self) -> u64 {
         self.checkpoint.source().wal().covered_end_lsn_exclusive()
     }
 }

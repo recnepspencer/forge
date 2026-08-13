@@ -2,7 +2,7 @@ use worth_store_physical_backend::AdmittedRecoveryFilesystemMedia;
 use worth_store_physical_format::RecordArtifactFile;
 
 use crate::physical_runtime::{
-    CompletedPhysicalRecoveryFreshReopen, PhysicalRecoveryCoordination, RuntimeIdentity,
+    ClosedPhysicalRecoveryCleanup, PhysicalRecoveryCoordination, RuntimeIdentity,
 };
 
 use super::{RecoveredPhysicalRuntimeConstructionDenial, RecoveredPhysicalRuntimeCore};
@@ -16,8 +16,13 @@ impl PhysicalRecoveryConstructionPort {
     pub fn construct(
         coordination: PhysicalRecoveryCoordination,
         media: AdmittedRecoveryFilesystemMedia,
-        reopen: CompletedPhysicalRecoveryFreshReopen,
+        cleanup: ClosedPhysicalRecoveryCleanup,
     ) -> Result<RecoveredPhysicalRuntimeCore, RecoveredPhysicalRuntimeConstructionDenial> {
+        if cleanup.live_media_handle_delta() != 0 {
+            let _ = coordination.shutdown_is_quiescent();
+            return Err(RecoveredPhysicalRuntimeConstructionDenial::CleanupMediaNotQuiescent);
+        }
+        let reopen = cleanup.into_reopen();
         let occurrence = reopen.fresh_reopen_occurrence();
         let expected_root = RecordArtifactFile::RootManifest {
             generation: reopen.root().generation(),

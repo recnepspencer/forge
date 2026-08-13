@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use worth_proof::AuthorityWitness;
 use worth_store_physical_backend::PhysicalRecoveryMediaGeneration;
 
@@ -12,21 +14,18 @@ pub struct PhysicalRecoveryFreshnessAuthority {
     _witness: AuthorityWitness<PhysicalRecoveryFreshnessMarker>,
     _media_generation: PhysicalRecoveryMediaGeneration,
     _sample_identity: [u8; 16],
-    cleanup_media: Option<crate::physical_runtime::media_ownership::RecoveryCleanupMediaOwner>,
+    binding_samples: AtomicU64,
 }
 
 impl PhysicalRecoveryFreshnessAuthority {
-    pub(super) fn issue(
-        media_generation: PhysicalRecoveryMediaGeneration,
-        cleanup_media: crate::physical_runtime::media_ownership::RecoveryCleanupMediaOwner,
-    ) -> Option<Self> {
+    pub(super) fn issue(media_generation: PhysicalRecoveryMediaGeneration) -> Option<Self> {
         let mut sample_identity = [0; 16];
         getrandom::fill(&mut sample_identity).ok()?;
         (sample_identity != [0; 16]).then_some(Self {
             _witness: PhysicalRecoveryFreshnessMarker::witness(),
             _media_generation: media_generation,
             _sample_identity: sample_identity,
-            cleanup_media: Some(cleanup_media),
+            binding_samples: AtomicU64::new(0),
         })
     }
 
@@ -41,9 +40,11 @@ impl PhysicalRecoveryFreshnessAuthority {
         self._sample_identity
     }
 
-    pub(super) fn take_cleanup_media(
-        &mut self,
-    ) -> Option<crate::physical_runtime::media_ownership::RecoveryCleanupMediaOwner> {
-        self.cleanup_media.take()
+    pub(super) fn record_binding_sample(&self) {
+        self.binding_samples.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(super) fn binding_samples(&self) -> u64 {
+        self.binding_samples.load(Ordering::Relaxed)
     }
 }

@@ -17,8 +17,6 @@ pub use observation::{
     RecordServingObservationPhase,
 };
 #[cfg(feature = "recovery-runtime-owner")]
-pub(in crate::physical_runtime) use recovery_cleanup::RecoveryCleanupMediaOwner;
-#[cfg(feature = "recovery-runtime-owner")]
 pub use recovery_cleanup::{
     CompletedRecoveryCleanupPhysicalRemoval, DeniedRecoveryCleanupPhysicalRemoval,
     IndeterminateRecoveryCleanupPhysicalRemoval, RecoveryCleanupArtifactRevalidationDenial,

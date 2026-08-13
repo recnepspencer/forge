@@ -11,7 +11,7 @@ pub(crate) struct RecoveryCoordination {
 
 impl RecoveryCoordination {
     pub(crate) fn fresh(
-        media: &AdmittedRecoveryFilesystemMedia,
+        media: &mut AdmittedRecoveryFilesystemMedia,
         session: PhysicalRecoveryRegisteredSessionAuthority,
         limits: PhysicalRecoveryLimits,
     ) -> Result<Self, PhysicalRecoveryCoordinationAdmissionError> {
@@ -88,6 +88,11 @@ impl RecoveryCoordination {
     }
 
     #[cfg(feature = "certification-test-authority")]
+    pub(crate) fn fail_cleanup_plan_admission_for_certification(&self) {
+        self.owner.certification_fail_cleanup_plan_admission();
+    }
+
+    #[cfg(feature = "certification-test-authority")]
     pub(crate) fn fail_cleanup_eligibility_after_read_for_certification(&self) {
         self.owner
             .certification_fail_cleanup_eligibility_after_read();
@@ -116,6 +121,11 @@ impl RecoveryCoordination {
     #[cfg(feature = "certification-test-authority")]
     pub(crate) fn certification_substitute_cleanup_authorization(&self) {
         self.owner.certification_substitute_cleanup_authorization();
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(crate) fn certification_leak_cleanup_media_handle(&self) {
+        self.owner.certification_leak_cleanup_media_handle();
     }
 
     pub(crate) fn shutdown_is_quiescent(self) -> bool {

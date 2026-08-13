@@ -63,4 +63,5 @@ pub(super) const REQUIRED_FINDINGS: &[&str] = &[
     "C8-P1-F62",
     "C8-P1-F63",
     "C8-P1-F64",
+    "C8-P1-F65",
 ];

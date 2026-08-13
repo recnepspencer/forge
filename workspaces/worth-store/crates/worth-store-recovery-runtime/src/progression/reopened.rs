@@ -16,7 +16,7 @@ pub struct ReopenedPhysicalRecovery {
     pub(crate) expectation: RecoveryPublicationExpectation,
     pub(crate) publication_counters: PhysicalRecoveryPublicationCounters,
     pub(crate) publication_settlement: PhysicalRecoveryPublicationSettlementLedger,
-    pub(crate) reopened: CompletedPhysicalRecoveryFreshReopen,
+    pub(crate) reopened: Option<CompletedPhysicalRecoveryFreshReopen>,
     pub(crate) reopen_counters: PhysicalRecoveryReopenCounters,
 }
 
@@ -34,7 +34,7 @@ impl ReopenedPhysicalRecovery {
             expectation,
             publication_counters,
             publication_settlement,
-            reopened,
+            reopened: Some(reopened),
             reopen_counters,
         }
     }
@@ -45,13 +45,18 @@ impl ReopenedPhysicalRecovery {
     pub const fn recovered_root(
         &self,
     ) -> &worth_store_physical_format::DurablePhysicalRootManifest {
-        self.reopened.root()
+        self.reopened
+            .as_ref()
+            .expect("fresh reopen remains present before cleanup entry")
+            .root()
     }
     pub const fn reopen_counters(&self) -> PhysicalRecoveryReopenCounters {
         self.reopen_counters
     }
     pub const fn fresh_reopen(&self) -> &CompletedPhysicalRecoveryFreshReopen {
-        &self.reopened
+        self.reopened
+            .as_ref()
+            .expect("fresh reopen remains present before cleanup entry")
     }
     pub const fn publication_expectation(&self) -> &RecoveryPublicationExpectation {
         &self.expectation
@@ -79,6 +84,12 @@ impl ReopenedPhysicalRecovery {
     }
     pub fn is_quiescent(&self) -> bool {
         self.state.coordination.is_ready()
+    }
+
+    pub(crate) fn take_fresh_reopen(&mut self) -> CompletedPhysicalRecoveryFreshReopen {
+        self.reopened
+            .take()
+            .expect("cleanup entry consumes fresh reopen exactly once")
     }
 
     /// Consumes the recovery-only runtime and returns the narrow Store-owned
@@ -119,6 +130,13 @@ impl ReopenedPhysicalRecovery {
     }
 
     #[cfg(feature = "certification-test-authority")]
+    pub fn certification_fail_cleanup_plan_admission(&self) {
+        self.state
+            .coordination
+            .fail_cleanup_plan_admission_for_certification();
+    }
+
+    #[cfg(feature = "certification-test-authority")]
     pub fn certification_fail_cleanup_eligibility_after_read(&self) {
         self.state
             .coordination
@@ -154,5 +172,12 @@ impl ReopenedPhysicalRecovery {
         self.state
             .coordination
             .certification_substitute_cleanup_authorization();
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub fn certification_leak_cleanup_media_handle(&self) {
+        self.state
+            .coordination
+            .certification_leak_cleanup_media_handle();
     }
 }

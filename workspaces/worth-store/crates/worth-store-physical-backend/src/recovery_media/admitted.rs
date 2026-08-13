@@ -4,6 +4,9 @@ use super::{BoundedRecoveryFilesystemDiscovery, RecoveryFilesystemQualificationE
 
 pub struct AdmittedRecoveryFilesystemMedia {
     pub(super) parts: crate::filesystem_media::recovery_qualification::AdmittedRecoveryParts,
+    #[cfg(feature = "certification-test-authority")]
+    certification_cleanup_handle:
+        Option<crate::filesystem_media::CertificationRetainedMediaFileHandle>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,7 +19,11 @@ impl AdmittedRecoveryFilesystemMedia {
     pub(crate) const fn from_parts(
         parts: crate::filesystem_media::recovery_qualification::AdmittedRecoveryParts,
     ) -> Self {
-        Self { parts }
+        Self {
+            parts,
+            #[cfg(feature = "certification-test-authority")]
+            certification_cleanup_handle: None,
+        }
     }
 
     pub const fn store_identity(&self) -> StableStoreIdentity {
@@ -37,6 +44,25 @@ impl AdmittedRecoveryFilesystemMedia {
 
     pub fn handle_observation(&self) -> RecoveryMediaHandleObservation {
         RecoveryMediaHandleObservation::from_owner(&self.parts.owner)
+    }
+
+    /// Creates one real command-scoped backend file handle and deliberately
+    /// retains it so certification can prove cleanup closeout observes media
+    /// ownership rather than a runtime-supplied counter.
+    #[cfg(feature = "certification-test-authority")]
+    #[doc(hidden)]
+    pub fn certification_retain_cleanup_media_handle(&mut self) -> bool {
+        if self.certification_cleanup_handle.is_some() {
+            return false;
+        }
+        let path = self.parts.owner.identity_record_path();
+        match self.parts.owner.open_existing(&path).into_result() {
+            crate::filesystem_media::NamespaceFileOpenResult::Opened { handle, .. } => {
+                self.certification_cleanup_handle = Some(handle.retain_for_certification());
+                true
+            }
+            crate::filesystem_media::NamespaceFileOpenResult::Failed(_) => false,
+        }
     }
 
     #[cfg(feature = "recovery-runtime-owner")]

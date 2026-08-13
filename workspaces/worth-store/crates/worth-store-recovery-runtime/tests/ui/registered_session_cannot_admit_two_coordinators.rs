@@ -5,7 +5,7 @@ use worth_store::physical_runtime::{
 
 fn duplicate_coordination(
     session: PhysicalRecoveryRegisteredSessionAuthority,
-    media: &AdmittedRecoveryFilesystemMedia,
+    media: &mut AdmittedRecoveryFilesystemMedia,
     capacity: PhysicalRecoveryCoordinationCapacity,
 ) {
     let _first = session.admit_coordination(media, capacity);

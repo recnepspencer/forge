@@ -1,0 +1,13 @@
+error[E0451]: fields `reopen`, `descriptive_plan_identity`, `authority_plan_identity` and `live_media_handle_delta` of struct `ClosedPhysicalRecoveryCleanup` are private
+  --> tests/ui/cleanup_close_cannot_be_forged.rs:7:9
+   |
+ 6 |     ClosedPhysicalRecoveryCleanup {
+   |     ----------------------------- in this type
+ 7 |         reopen,
+   |         ^^^^^^ private field
+ 8 |         descriptive_plan_identity: [0x11; 32],
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         authority_plan_identity: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         live_media_handle_delta: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field

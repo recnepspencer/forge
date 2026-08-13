@@ -21,7 +21,7 @@ pub(super) struct RecoveryCleanupAccounting {
 }
 
 impl RecoveryCleanupAccounting {
-    pub(super) fn begin(plan: &RecoveryCleanupPlan) -> Self {
+    pub(super) fn begin(plan: &RecoveryCleanupPlan, terminal_binding_evaluations: u64) -> Self {
         let bytes_planned = plan
             .candidates()
             .iter()
@@ -37,6 +37,7 @@ impl RecoveryCleanupAccounting {
                 dispositions: plan.dispositions().len() as u64,
                 actions_planned: plan.candidates().len() as u64,
                 bytes_planned,
+                terminal_binding_evaluations,
                 ..RecoveryCleanupCounters::default()
             },
         }
@@ -84,8 +85,15 @@ impl RecoveryCleanupAccounting {
             PhysicalRecoveryCleanupFreshnessReadDenialKind::Execution(_) => {
                 self.record_freshness_scheduler(true, false, true, false);
             }
-            PhysicalRecoveryCleanupFreshnessReadDenialKind::Media
-            | PhysicalRecoveryCleanupFreshnessReadDenialKind::SchedulerSettlement(_)
+            PhysicalRecoveryCleanupFreshnessReadDenialKind::Media => {
+                self.record_freshness_scheduler(
+                    read.progress().work().is_some(),
+                    false,
+                    false,
+                    read.progress().scheduler().is_some(),
+                );
+            }
+            PhysicalRecoveryCleanupFreshnessReadDenialKind::SchedulerSettlement(_)
             | PhysicalRecoveryCleanupFreshnessReadDenialKind::SignalSettlement(_)
             | PhysicalRecoveryCleanupFreshnessReadDenialKind::InvalidSelector => {
                 self.record_freshness_scheduler(true, false, false, true);
@@ -117,7 +125,14 @@ impl RecoveryCleanupAccounting {
                 self.counters.actions_attempted += 1;
                 self.counters.denied_before_effect += 1;
                 match denial.kind() {
-                    PhysicalRecoveryCleanupRemovalDenialKind::InvalidCommand => {}
+                    PhysicalRecoveryCleanupRemovalDenialKind::InvalidCommand => {
+                        self.record_removal_scheduler(
+                            denial.work().is_some(),
+                            false,
+                            false,
+                            denial.scheduler().is_some(),
+                        );
+                    }
                     PhysicalRecoveryCleanupRemovalDenialKind::Admission(admission) => {
                         self.record_removal_scheduler(
                             admission.submission_recorded(),
@@ -130,7 +145,12 @@ impl RecoveryCleanupAccounting {
                         self.record_removal_scheduler(true, false, true, false);
                     }
                     PhysicalRecoveryCleanupRemovalDenialKind::Media(cause) => {
-                        self.record_removal_scheduler(true, false, false, true);
+                        self.record_removal_scheduler(
+                            denial.work().is_some(),
+                            false,
+                            false,
+                            denial.scheduler().is_some(),
+                        );
                         if let Some(physical) = denial.physical() {
                             let revalidation_denial = match cause {
                                 worth_store::physical_runtime::RecoveryCleanupRemovalDenialCause::Revalidation(
@@ -219,12 +239,17 @@ impl RecoveryCleanupAccounting {
         self.counters.artifact_revalidation_reads_completed += progress.reads_completed();
         self.counters.artifact_revalidation_bytes_read += progress.bytes_read();
         match denial {
-            Some(RecoveryCleanupArtifactRevalidationDenial::Read(_)) => {
+            Some(
+                RecoveryCleanupArtifactRevalidationDenial::Read(_)
+                | RecoveryCleanupArtifactRevalidationDenial::CheckpointRead(_),
+            ) => {
                 self.counters.artifact_revalidation_read_failures += 1;
             }
             Some(
                 RecoveryCleanupArtifactRevalidationDenial::LengthMismatch { .. }
-                | RecoveryCleanupArtifactRevalidationDenial::DigestMismatch { .. },
+                | RecoveryCleanupArtifactRevalidationDenial::DigestMismatch { .. }
+                | RecoveryCleanupArtifactRevalidationDenial::CheckpointLengthMismatch { .. }
+                | RecoveryCleanupArtifactRevalidationDenial::CheckpointDigestMismatch { .. },
             ) => {
                 self.counters.artifact_revalidation_mismatches += 1;
             }
@@ -232,7 +257,12 @@ impl RecoveryCleanupAccounting {
         }
     }
 
-    pub(super) fn finish(mut self, plan: RecoveryCleanupPlan) -> RecoveryCleanupPosture {
+    pub(super) fn finish(
+        mut self,
+        plan: RecoveryCleanupPlan,
+        live_media_handles_after_close: u64,
+    ) -> RecoveryCleanupPosture {
+        self.counters.live_media_handles_after_close = live_media_handles_after_close;
         for disposition in plan.dispositions() {
             match disposition.kind() {
                 RecoveryCleanupDispositionKind::Current => self.counters.current += 1,

@@ -27,7 +27,6 @@ pub enum PhysicalRecoveryCoordinationAdmissionError {
     SignalUnavailable,
     SignalBindingMismatch,
     SchedulerUnavailable,
-    CleanupMediaMismatch,
     DiscoveryReservationDenied,
     RuntimeIdentityUnavailable,
 }
@@ -43,7 +42,6 @@ pub struct PhysicalRecoveryCoordination {
     pub(super) bases: [crate::physical_runtime::PhysicalWorkSemanticBasis; 4],
     pub(super) construction: crate::physical_runtime::PhysicalRecoveryConstructionAuthority,
     pub(super) cleanup_capacity: PhysicalRecoveryCoordinationCapacity,
-    pub(super) cleanup_media: crate::physical_runtime::media_ownership::RecoveryCleanupMediaOwner,
     runtime: RuntimeIdentity,
     #[cfg(feature = "certification-test-authority")]
     certification_faults: RecoveryCoordinationCertificationFaults,
@@ -61,18 +59,12 @@ pub struct PhysicalRecoveryQuiescenceObservation {
 impl PhysicalRecoveryCoordination {
     pub(super) fn admit(
         media: &AdmittedRecoveryFilesystemMedia,
-        mut session: PhysicalRecoveryRegisteredSessionAuthority,
+        session: PhysicalRecoveryRegisteredSessionAuthority,
         capacity: PhysicalRecoveryCoordinationCapacity,
     ) -> Result<Self, PhysicalRecoveryCoordinationAdmissionError> {
         let freshness = session.freshness();
         if !freshness.matches_media_generation(media.media_generation()) {
             return Err(PhysicalRecoveryCoordinationAdmissionError::FreshnessMediaMismatch);
-        }
-        if !session
-            .cleanup_media()
-            .matches_store(media.store_identity())
-        {
-            return Err(PhysicalRecoveryCoordinationAdmissionError::CleanupMediaMismatch);
         }
         let cleanup_capacity = capacity;
         let capacity = capacity.work_capacity();
@@ -119,7 +111,6 @@ impl PhysicalRecoveryCoordination {
         });
         let admission =
             PhysicalWorkAdmissionAuthority::from_recovery_media(media, runtime, lifecycle);
-        let cleanup_media = session.take_cleanup_media();
         Ok(Self {
             _registered_session: session,
             signal,
@@ -131,7 +122,6 @@ impl PhysicalRecoveryCoordination {
             bases: semantics.bases,
             construction,
             cleanup_capacity,
-            cleanup_media,
             runtime,
             #[cfg(feature = "certification-test-authority")]
             certification_faults: RecoveryCoordinationCertificationFaults::new(),

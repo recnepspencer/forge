@@ -1,6 +1,5 @@
 use crate::progression::ReopenedPhysicalRecovery;
 
-use super::command_basis::RecoveryCleanupCommandBasis;
 use super::plan::{build_plan, RecoveryCleanupPlanBasis};
 
 /// Plan-bound request to stop optional post-publication cleanup at one exact
@@ -43,17 +42,13 @@ fn cancellation_at(
     reopened: &ReopenedPhysicalRecovery,
     settled_actions: u64,
 ) -> Option<PhysicalRecoveryCleanupCancellation> {
-    let mut plan = build_plan(RecoveryCleanupPlanBasis {
+    let plan = build_plan(RecoveryCleanupPlanBasis {
         selection: &reopened.state.selection,
         base: &reopened.state.base,
         publication: &reopened.expectation,
         fates: &reopened.state.fates,
         limits: reopened.state.authority.limits.declaration(),
     });
-    let command_basis =
-        RecoveryCleanupCommandBasis::from_reopened(reopened, plan.identity(), plan.candidates())?;
-    debug_assert_eq!(command_basis.descriptive_plan_identity(), plan.identity());
-    plan.bind_authority_identity(command_basis.plan_identity());
     (settled_actions < plan.candidates().len() as u64).then_some(
         PhysicalRecoveryCleanupCancellation::new(plan.identity(), settled_actions),
     )

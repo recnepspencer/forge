@@ -1,0 +1,11 @@
+error[E0382]: use of moved value: `closed`
+  --> tests/ui/cleanup_close_cannot_be_reused.rs:21:9
+   |
+11 |     closed: ClosedPhysicalRecoveryCleanup,
+   |     ------ move occurs because `closed` has type `ClosedPhysicalRecoveryCleanup`, which does not implement the `Copy` trait
+...
+16 |         closed,
+   |         ------ value moved here
+...
+21 |         closed,
+   |         ^^^^^^ value used here after move

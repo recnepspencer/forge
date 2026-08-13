@@ -34,15 +34,15 @@ fn page_failures_retain_distinct_exact_phase_four_read_counters() {
 
     let invalid_counters = invalid.evidence().planning_counters.unwrap();
     let page_counters = invalid_page.evidence().planning_counters.unwrap();
-    assert_eq!(invalid_counters.page_extent_reads(), 1);
-    assert_eq!(invalid_counters.page_extent_bytes(), 32);
+    assert_eq!(invalid_counters.page_extent_reads(), 2);
+    assert_eq!(invalid_counters.page_extent_bytes(), 208);
     assert_eq!(
         invalid_counters.freshness_retained() + invalid_counters.freshness_expired(),
         3
     );
     assert_eq!(invalid_counters.fate_counts(), [1, 0, 0, 2]);
-    assert_eq!(page_counters.page_extent_reads(), 2);
-    assert!(page_counters.page_extent_bytes() > invalid_counters.page_extent_bytes());
+    assert_eq!(page_counters.page_extent_reads(), 7);
+    assert_eq!(page_counters.page_extent_bytes(), 17_328);
     assert_eq!(
         page_counters.freshness_retained() + page_counters.freshness_expired(),
         3
@@ -82,7 +82,7 @@ fn redo_denial_retains_completed_phase_four_read_counters() {
         ))
     );
     let counters = blocked.evidence().planning_counters.unwrap();
-    assert_eq!(counters.page_extent_reads(), 5);
+    assert_eq!(counters.page_extent_reads(), 7);
     assert!(counters.page_extent_bytes() > 0);
     assert_eq!(counters.fate_counts(), [1, 0, 0, 2]);
     assert_eq!(blocked.recovery_effects(), 0);
@@ -118,8 +118,8 @@ fn staging_denial_retains_every_completed_planning_stage_counter() {
     assert_eq!(limit.observed, 3_276_800);
     assert_eq!(limit.admitted, 3_276_799);
     let counters = blocked.evidence().planning_counters.unwrap();
-    assert_eq!(counters.page_extent_reads(), 5);
-    assert_eq!(counters.page_extent_bytes(), 16_984);
+    assert_eq!(counters.page_extent_reads(), 7);
+    assert_eq!(counters.page_extent_bytes(), 17_328);
     assert_eq!(counters.redo_records(), 2);
     assert_eq!(counters.redo_targets(), 2);
     assert_eq!(counters.redo_apply(), 1);

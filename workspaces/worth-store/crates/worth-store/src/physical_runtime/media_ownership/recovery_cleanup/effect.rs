@@ -171,3 +171,67 @@ impl RecoveryCleanupRemovalDenialCause {
         }
     }
 }
+
+impl CompletedRecoveryCleanupPhysicalRemoval {
+    pub(in crate::physical_runtime) fn from_backend(
+        artifact: WalSegmentArtifactIdentity,
+        completed: worth_store_physical_backend::BackendCompletedRecoveryCleanupRemoval,
+    ) -> Self {
+        Self::new(
+            artifact,
+            completed.admission(),
+            completed.operation(),
+            completed.queue(),
+            completed.revalidation().into(),
+        )
+    }
+}
+
+impl DeniedRecoveryCleanupPhysicalRemoval {
+    pub(in crate::physical_runtime) fn from_backend(
+        artifact: WalSegmentArtifactIdentity,
+        denied: worth_store_physical_backend::BackendDeniedRecoveryCleanupRemoval,
+    ) -> Self {
+        Self::new(
+            artifact,
+            denied.admission(),
+            denied.cause().into(),
+            denied.queue(),
+            denied.revalidation().into(),
+        )
+    }
+}
+
+impl IndeterminateRecoveryCleanupPhysicalRemoval {
+    pub(in crate::physical_runtime) fn from_backend(
+        artifact: WalSegmentArtifactIdentity,
+        indeterminate: worth_store_physical_backend::BackendIndeterminateRecoveryCleanupRemoval,
+    ) -> Self {
+        Self::new(
+            artifact,
+            indeterminate.admission(),
+            indeterminate.operation(),
+            indeterminate.failure(),
+            indeterminate.queue(),
+            indeterminate.revalidation().into(),
+        )
+    }
+}
+
+impl From<worth_store_physical_backend::BackendRecoveryCleanupRemovalDenialCause>
+    for RecoveryCleanupRemovalDenialCause
+{
+    fn from(cause: worth_store_physical_backend::BackendRecoveryCleanupRemovalDenialCause) -> Self {
+        match cause {
+            worth_store_physical_backend::BackendRecoveryCleanupRemovalDenialCause::Admission => {
+                Self::Admission
+            }
+            worth_store_physical_backend::BackendRecoveryCleanupRemovalDenialCause::Revalidation(
+                denial,
+            ) => Self::Revalidation(denial.into()),
+            worth_store_physical_backend::BackendRecoveryCleanupRemovalDenialCause::Removal(
+                failure,
+            ) => Self::Removal(failure),
+        }
+    }
+}

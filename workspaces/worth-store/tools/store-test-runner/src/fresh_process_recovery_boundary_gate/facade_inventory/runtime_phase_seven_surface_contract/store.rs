@@ -305,6 +305,11 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
         "phase-7",
     ),
     (
+        "StoreRecoveryCleanupFreshnessFailure::terminal_binding_evaluations",
+        "worth-store/recovery-freshness/cleanup",
+        "phase-7",
+    ),
+    (
         "StoreRecoveryCleanupPlan",
         "worth-store/recovery-freshness/cleanup/plan",
         "phase-7",
@@ -316,6 +321,16 @@ pub(super) const STORE_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "StoreRecoveryCleanupPlan::descriptive_plan_identity",
+        "worth-store/recovery-freshness/cleanup/plan",
+        "phase-7",
+    ),
+    (
+        "StoreRecoveryCleanupPlan::live_media_handle_delta",
+        "worth-store/recovery-freshness/cleanup/plan",
+        "phase-7",
+    ),
+    (
+        "StoreRecoveryCleanupPlan::terminal_binding_evaluations",
         "worth-store/recovery-freshness/cleanup/plan",
         "phase-7",
     ),

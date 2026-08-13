@@ -13,6 +13,7 @@ mod selected_records;
 pub(super) struct ArtifactSnapshot {
     required_preexisting: BTreeSet<PathBuf>,
     all_preexisting: BTreeSet<PathBuf>,
+    recovery_created: BTreeSet<PathBuf>,
 }
 
 impl ArtifactSnapshot {
@@ -29,7 +30,20 @@ impl ArtifactSnapshot {
         Self {
             required_preexisting,
             all_preexisting,
+            recovery_created: BTreeSet::new(),
         }
+    }
+
+    pub(super) fn include_recovery_created(
+        &mut self,
+        root: &Path,
+        artifacts: &[RecordArtifactFile],
+    ) {
+        self.recovery_created.extend(
+            artifacts
+                .iter()
+                .map(|artifact| record_artifact_path(root, *artifact)),
+        );
     }
 
     pub(super) fn assert_reconciled(&self, root: &Path, evidence: &RecoveryCleanupEvidence) {
@@ -52,7 +66,19 @@ impl ArtifactSnapshot {
                 dispositions.keys().collect::<Vec<_>>()
             );
         }
+        if let Some(path) = missing_created_path(&self.recovery_created, &dispositions) {
+            panic!(
+                "recovery-created artifact has no cleanup disposition: {}; dispositions: {:?}",
+                path.display(),
+                dispositions.keys().collect::<Vec<_>>()
+            );
+        }
         for (path, kind) in dispositions {
+            assert!(
+                self.all_preexisting.contains(&path) || self.recovery_created.contains(&path),
+                "cleanup disposition names an artifact outside preexisting and recovery-created truth: {}",
+                path.display(),
+            );
             let exists = path.exists();
             match kind {
                 RecoveryCleanupDispositionKind::SafelyRemoved => assert!(
@@ -129,6 +155,16 @@ fn missing_surviving_path(
         .cloned()
 }
 
+fn missing_created_path(
+    snapshot: &BTreeSet<PathBuf>,
+    dispositions: &BTreeMap<PathBuf, RecoveryCleanupDispositionKind>,
+) -> Option<PathBuf> {
+    snapshot
+        .iter()
+        .find(|path| !dispositions.contains_key(*path))
+        .cloned()
+}
+
 fn collect_files(directory: &Path, paths: &mut BTreeSet<PathBuf>) {
     if !directory.exists() {
         return;
@@ -189,7 +225,7 @@ fn an_omitted_preexisting_artifact_cannot_be_hidden_by_the_cleanup_oracle() {
 fn an_omitted_recovery_created_artifact_cannot_be_hidden_by_the_cleanup_oracle() {
     let path = PathBuf::from("families/records/segments/segment-9-generation-2.data");
     assert_eq!(
-        missing_surviving_path(&BTreeSet::from([path.clone()]), &BTreeMap::new()),
+        missing_created_path(&BTreeSet::from([path.clone()]), &BTreeMap::new()),
         Some(path)
     );
 }

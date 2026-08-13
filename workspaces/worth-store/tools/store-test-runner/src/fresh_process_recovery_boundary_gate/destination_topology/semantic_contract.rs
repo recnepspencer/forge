@@ -13,6 +13,11 @@ pub(super) fn expected_phase(path: &str) -> &'static str {
     {
         return "phase-6";
     }
+    if path.ends_with("worth-store-physical-backend/src/recovery_media/cleanup.rs")
+        || path.ends_with("worth-store-physical-backend/src/recovery_media/cleanup/revalidation.rs")
+    {
+        return "phase-7";
+    }
     if path
         .ends_with("worth-store-physical-backend/src/recovery_media/discovery/addressed_payload.rs")
     {
@@ -62,7 +67,7 @@ pub(super) fn expected_phase(path: &str) -> &'static str {
         return "phase-4";
     }
     if path.contains("worth-store/src/physical_runtime/recovery_freshness/") {
-        return if path.ends_with("/cleanup.rs") {
+        return if path.ends_with("/cleanup.rs") || path.contains("/cleanup/plan/") {
             "phase-7"
         } else if path.ends_with("/binding.rs") || path.contains("/binding/") {
             "phase-4"

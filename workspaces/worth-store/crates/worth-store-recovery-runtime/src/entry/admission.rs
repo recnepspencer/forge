@@ -33,8 +33,10 @@ pub(crate) fn admit_request(
         authority: admitted,
         registered_session,
     } = admitted;
+    let mut admitted = admitted;
     let coordination =
-        match RecoveryCoordination::fresh(&admitted.media, registered_session, admitted.limits) {
+        match RecoveryCoordination::fresh(&mut admitted.media, registered_session, admitted.limits)
+        {
             Ok(coordination) => coordination,
             Err(_) => {
                 let recovery_effects = admitted.media.recovery_effect_count();

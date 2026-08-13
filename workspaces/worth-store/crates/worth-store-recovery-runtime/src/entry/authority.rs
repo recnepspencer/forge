@@ -143,7 +143,7 @@ impl PhysicalRecoveryPlatformAuthority {
     ) -> Result<Self, PhysicalRecoveryPlatformAdmissionError> {
         let media = QualifiedRecoveryFilesystemMedia::qualify_existing(&root)
             .map_err(PhysicalRecoveryPlatformAdmissionError::BackendQualification)?;
-        let Some(freshness) = PhysicalRecoveryFreshnessPort::admit(&media, &root) else {
+        let Some(freshness) = PhysicalRecoveryFreshnessPort::admit(&media) else {
             return Err(PhysicalRecoveryPlatformAdmissionError::FreshnessUnavailable);
         };
         Self::from_qualified_media(root, configuration, limits, media, freshness)
@@ -161,9 +161,7 @@ impl PhysicalRecoveryPlatformAuthority {
             schedule.clone(),
         )
         .map_err(PhysicalRecoveryPlatformAdmissionError::BackendQualification)?;
-        let Some(freshness) =
-            PhysicalRecoveryFreshnessPort::admit_for_certification(&media, &root, schedule)
-        else {
+        let Some(freshness) = PhysicalRecoveryFreshnessPort::admit_for_certification(&media) else {
             return Err(PhysicalRecoveryPlatformAdmissionError::FreshnessUnavailable);
         };
         Self::from_qualified_media(root, configuration, limits, media, freshness)

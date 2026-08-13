@@ -19,6 +19,7 @@ pub enum RecoveredPhysicalRuntimeConstructionDenial {
     BindingMismatch,
     ConstructionAuthorityMismatch,
     CoordinationNotQuiescent,
+    CleanupMediaNotQuiescent,
     RuntimeIdentityUnavailable,
 }
 

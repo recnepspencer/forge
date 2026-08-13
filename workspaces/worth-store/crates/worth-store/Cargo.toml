@@ -31,8 +31,6 @@ worth-foundational = { path = "../../../../crates/worth-foundational" }
 sha2 = "0.10"
 getrandom = "0.4"
 tracking-allocator = { version = "0.4", default-features = false }
-cap-std = "4.0.2"
-cap-fs-ext = "4.0.2"
 
 [build-dependencies]
 sha2 = "0.10"

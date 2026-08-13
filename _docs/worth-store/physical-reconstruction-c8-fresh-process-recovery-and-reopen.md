@@ -1252,6 +1252,18 @@ exact removal it names. A cleanup batch cannot be constructed from filenames,
 age, generation comparison, a checkpoint-present boolean, or a generic
 `recovered=true` receipt.
 
+The unpublished `worth-store-physical-backend` package is part of the trusted
+C.4 implementation boundary, not a separately supported product facade or an
+untrusted downstream caller. Store is the sole workspace package permitted to
+enable its owner feature and invoke its cleanup mechanism. The backend adapter
+accepts only the already-admitted physical request and cannot mint Store
+eligibility, freshness, policy, performed evidence, or recovery progression.
+The public authority guarantee therefore applies at the delivered Store and
+recovery-runtime boundaries; a package deliberately added as a direct
+dependency of the unpublished backend joins the C.4 trusted computing base and
+is governed by the workspace manifest and callsite gates rather than Rust
+cross-crate visibility.
+
 Never delete or recycle:
 
 - the current recovered root or any referenced artifact;
@@ -1682,7 +1694,7 @@ cleanup counters.
 | Guarantee | Normative Phase 7 requirement |
 | --- | --- |
 | C8-P7-PLAN-01 | Every discovered or C.8-created artifact has one exact cleanup disposition derived from the sealed reopened basis. |
-| C8-P7-AUTHORITY-01 | The Store deletion boundary consumes owner-issued authority bound to fresh reopen, verified checkpoint coverage, exact WAL facts, and the cleanup plan; raw coordinates cannot authorize deletion. |
+| C8-P7-AUTHORITY-01 | The Store product deletion boundary consumes owner-issued authority bound to fresh reopen, verified checkpoint coverage, exact WAL facts, and the cleanup plan; raw coordinates cannot authorize deletion through a delivered Store or recovery-runtime facade, while the unpublished physical backend remains inside the trusted C.4 implementation boundary. |
 | C8-P7-ELIGIBILITY-01 | Cleanup eligibility is consuming and per artifact, and is never widened by a batch, filename, age, or generic recovery receipt. |
 | C8-P7-FRESHNESS-01 | The Store owner samples current published generation and concrete policy immediately before each effect. |
 | C8-P7-SCHEDULER-01 | Freshness reads and removals traverse Store Signal, C.5.1 scheduling/execution, and exact C.4 settlement. |
@@ -1695,8 +1707,8 @@ cleanup counters.
 | C8-P7-COUNTERS-01 | Cleanup dispositions, bytes, freshness, scheduling, cancellation, settlement, and effect counters are stage-honest and exact. |
 | C8-P7-QUIESCENCE-01 | Cleanup returns to handoff with zero live work, reservations, handles, or pending Signal reconciliation. |
 | C8-P7-PROGRESSION-01 | Only consuming reopened recovery enters cleanup, and complete or deferred cleanup enriches but never defines success. |
-| C8-P7-COMPILE-01 | External code cannot forge, reuse, or substitute cleanup authorization, eligibility, freshness, cancellation, or performed evidence. |
-| C8-P7-API-01 | Every delivered Phase 7 surface has one exact facade and topology disposition with no raw deletion bypass. |
+| C8-P7-COMPILE-01 | External product code cannot forge, reuse, or substitute cleanup authorization, eligibility, freshness, cancellation, or performed evidence; direct dependencies of the unpublished backend are explicitly inside the trusted C.4 boundary. |
+| C8-P7-API-01 | Every delivered Phase 7 product surface has one exact facade and topology disposition with no raw deletion bypass outside the trusted unpublished C.4 implementation boundary. |
 | C8-P7-LEDGER-01 | The Phase 7 ledger is a bijection with this normative inventory and preserves exact findings, source closure, audits, and inherited continuity. |
 <!-- c8-phase7-requirements:end -->
 

@@ -159,6 +159,53 @@ fn owner_sampled_generation_change_rejects_the_stale_cleanup_plan() {
 }
 
 #[test]
+fn cleanup_plan_admission_denial_is_retained_before_any_freshness_read() {
+    let world = cleanup_world("cleanup-plan-admission-denial");
+    let candidate = world.oldest_wal();
+    let reopened = reopen_with_schedule(&world.root, empty_fault_schedule());
+    reopened.certification_fail_cleanup_plan_admission();
+    let PhysicalRecoveryOutcome::Recovered(handoff) = reopened.finish() else {
+        panic!("cleanup-plan denial remains deferred maintenance")
+    };
+    let RecoveryCleanupPosture::Deferred(evidence) = handoff.cleanup_posture() else {
+        panic!("cleanup-plan denial must be retained")
+    };
+    assert!(candidate.exists());
+    assert!(evidence.performed_removals().is_empty());
+    assert_eq!(evidence.counters().freshness_evaluations, 1);
+    assert_eq!(evidence.counters().freshness_reads_completed, 0);
+    assert_eq!(evidence.counters().freshness_bytes_read, 0);
+    assert_eq!(evidence.counters().scheduler_commands_submitted, 0);
+    assert_eq!(evidence.counters().actions_attempted, 0);
+    let [RecoveryCleanupDeferralEvidence::Freshness { failure, .. }] = evidence.deferrals() else {
+        panic!("one exact Store cleanup-plan admission denial")
+    };
+    assert_eq!(
+        failure.denial(),
+        StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility
+    );
+    assert!(failure.sample().is_none());
+    assert!(failure.read().is_none());
+}
+
+#[test]
+fn cleanup_media_handle_leak_blocks_the_recovered_handoff() {
+    let world = cleanup_world("cleanup-media-handle-leak");
+    let reopened = reopen_with_schedule(&world.root, empty_fault_schedule());
+    reopened.certification_leak_cleanup_media_handle();
+    let PhysicalRecoveryOutcome::PublicationIndeterminate(indeterminate) = reopened.finish() else {
+        panic!("one live cleanup media handle must block recovered handoff")
+    };
+    assert_eq!(
+        indeterminate.handoff_failure(),
+        Some(
+            worth_store::physical_runtime::RecoveredPhysicalRuntimeConstructionDenial::
+                CleanupMediaNotQuiescent,
+        )
+    );
+}
+
+#[test]
 fn post_read_eligibility_denial_retains_the_completed_freshness_stage() {
     let world = cleanup_world("cleanup-post-read-eligibility");
     let candidate = world.oldest_wal();
