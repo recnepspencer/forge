@@ -32,4 +32,3 @@ fn main() {
 }
 // sealed-minting-case
 
-

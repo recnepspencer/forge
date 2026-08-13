@@ -13,4 +13,3 @@ fn duplicate(proof: &Proof<CanonicalOrder, StructuralProofAuthority>) {
 fn main() {}
 // sealed-minting-case
 
-

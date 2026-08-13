@@ -23,4 +23,3 @@ fn invalid_calls(
 fn main() {}
 // sealed-minting-case
 
-
