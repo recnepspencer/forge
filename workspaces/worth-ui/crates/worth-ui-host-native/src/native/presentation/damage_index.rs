@@ -1,38 +1,45 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
-use worth_ui_host_contract::UiMountedCanonicalBox;
+use worth_ui_host_contract::{UiMountedCanonicalBox, UiMountedCoordinateSpace};
 
-const LOGICAL_CELL_EXTENT: f32 = 64.0;
-const MAX_CELLS_PER_COMMAND: usize = 65_536;
+#[path = "damage_index/aabb.rs"]
+mod aabb;
+#[path = "damage_index/arena.rs"]
+mod arena;
+#[path = "damage_index/hierarchy.rs"]
+mod hierarchy;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-struct DamageCell {
-    x: i64,
-    y: i64,
-}
+use arena::{NodeId, MAX_LEAVES};
+use hierarchy::DamageHierarchy;
 
 pub(super) struct UiNativeDamageIndex<Identity> {
-    cells: HashMap<DamageCell, HashSet<Identity>>,
-    records: HashMap<Identity, DamageRecord>,
+    hierarchy: DamageHierarchy<Identity>,
+    leaves: HashMap<Identity, DamageRecord>,
+    high_water: usize,
 }
 
+#[derive(Clone, Copy)]
 struct DamageRecord {
-    bounds: UiMountedCanonicalBox,
-    cells: Box<[DamageCell]>,
+    leaf: NodeId,
+    space: UiMountedCoordinateSpace,
 }
 
 pub(super) struct UiNativeDamageQuery<Identity> {
     pub(super) identities: HashSet<Identity>,
-    pub(super) cell_probes: usize,
-    pub(super) candidate_probes: usize,
+    pub(super) branch_aabb_probes: usize,
+    pub(super) leaf_command_bounds_probes: usize,
+    pub(super) stored_records: usize,
+    pub(super) high_water_records: usize,
+    #[cfg(test)]
+    pub(super) hierarchy_height: u16,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum UiNativeDamageIndexDenial {
     DuplicateIdentity,
     MissingIdentity,
-    CellCapacityExceeded,
+    CapacityExceeded,
 }
 
 impl<Identity> UiNativeDamageIndex<Identity>
@@ -41,8 +48,9 @@ where
 {
     pub(super) fn new() -> Self {
         Self {
-            cells: HashMap::new(),
-            records: HashMap::new(),
+            hierarchy: DamageHierarchy::new(),
+            leaves: HashMap::with_capacity(MAX_LEAVES),
+            high_water: 0,
         }
     }
 
@@ -51,44 +59,32 @@ where
         identity: Identity,
         bounds: UiMountedCanonicalBox,
     ) -> Result<(), UiNativeDamageIndexDenial> {
-        if self.records.contains_key(&identity) {
+        if self.leaves.contains_key(&identity) {
             return Err(UiNativeDamageIndexDenial::DuplicateIdentity);
         }
-        let cells = cells_for(bounds)?;
-        for cell in &cells {
-            self.cells.entry(*cell).or_default().insert(identity);
+        if self.leaves.len() == MAX_LEAVES {
+            return Err(UiNativeDamageIndexDenial::CapacityExceeded);
         }
-        self.records.insert(
-            identity,
-            DamageRecord {
-                bounds,
-                cells: cells.into_boxed_slice(),
-            },
-        );
+        let space = bounds.coordinate_space();
+        let leaf = self.hierarchy.insert(identity, bounds);
+        self.leaves.insert(identity, DamageRecord { leaf, space });
+        self.high_water = self.high_water.max(self.leaves.len());
         Ok(())
     }
 
     pub(super) fn validate_bounds(
         &self,
-        bounds: UiMountedCanonicalBox,
+        _bounds: UiMountedCanonicalBox,
     ) -> Result<(), UiNativeDamageIndexDenial> {
-        cells_for(bounds).map(|_| ())
+        Ok(())
     }
 
     pub(super) fn remove(&mut self, identity: Identity) -> Result<(), UiNativeDamageIndexDenial> {
         let record = self
-            .records
+            .leaves
             .remove(&identity)
             .ok_or(UiNativeDamageIndexDenial::MissingIdentity)?;
-        for cell in record.cells {
-            let remove_cell = self.cells.get_mut(&cell).is_some_and(|identities| {
-                identities.remove(&identity);
-                identities.is_empty()
-            });
-            if remove_cell {
-                self.cells.remove(&cell);
-            }
-        }
+        self.hierarchy.remove(record.leaf, record.space);
         Ok(())
     }
 
@@ -97,125 +93,32 @@ where
         identity: Identity,
         bounds: UiMountedCanonicalBox,
     ) -> Result<(), UiNativeDamageIndexDenial> {
-        self.remove(identity)?;
-        self.insert(identity, bounds)
+        let record = self
+            .leaves
+            .get_mut(&identity)
+            .ok_or(UiNativeDamageIndexDenial::MissingIdentity)?;
+        self.hierarchy.replace(record.leaf, record.space, bounds);
+        record.space = bounds.coordinate_space();
+        Ok(())
     }
 
     pub(super) fn intersecting(
         &self,
         damage: UiMountedCanonicalBox,
     ) -> Result<UiNativeDamageQuery<Identity>, UiNativeDamageIndexDenial> {
-        let cells = cells_for(damage)?;
-        let mut candidates = HashSet::new();
-        let mut candidate_probes = 0usize;
-        for cell in &cells {
-            if let Some(identities) = self.cells.get(cell) {
-                candidate_probes = candidate_probes.saturating_add(identities.len());
-                candidates.extend(identities.iter().copied());
-            }
-        }
-        candidates.retain(|identity| {
-            self.records
-                .get(identity)
-                .is_some_and(|record| intersects(record.bounds, damage))
-        });
+        let query = self.hierarchy.query(damage);
         Ok(UiNativeDamageQuery {
-            identities: candidates,
-            cell_probes: cells.len(),
-            candidate_probes,
+            identities: query.identities,
+            branch_aabb_probes: query.branch_aabb_probes,
+            leaf_command_bounds_probes: query.leaf_command_bounds_probes,
+            stored_records: self.leaves.len(),
+            high_water_records: self.high_water,
+            #[cfg(test)]
+            hierarchy_height: query.height,
         })
     }
-}
-
-fn cells_for(bounds: UiMountedCanonicalBox) -> Result<Vec<DamageCell>, UiNativeDamageIndexDenial> {
-    let x_start = cell_floor(bounds.x());
-    let y_start = cell_floor(bounds.y());
-    let x_end = cell_ceiling(bounds.x() + bounds.width());
-    let y_end = cell_ceiling(bounds.y() + bounds.height());
-    let width = usize::try_from(x_end.saturating_sub(x_start))
-        .map_err(|_| UiNativeDamageIndexDenial::CellCapacityExceeded)?;
-    let height = usize::try_from(y_end.saturating_sub(y_start))
-        .map_err(|_| UiNativeDamageIndexDenial::CellCapacityExceeded)?;
-    let count = width
-        .checked_mul(height)
-        .filter(|count| *count <= MAX_CELLS_PER_COMMAND)
-        .ok_or(UiNativeDamageIndexDenial::CellCapacityExceeded)?;
-    let mut cells = Vec::with_capacity(count);
-    for y in y_start..y_end {
-        for x in x_start..x_end {
-            cells.push(DamageCell { x, y });
-        }
-    }
-    Ok(cells)
-}
-
-fn cell_floor(value: f32) -> i64 {
-    (value / LOGICAL_CELL_EXTENT).floor() as i64
-}
-
-fn cell_ceiling(value: f32) -> i64 {
-    (value / LOGICAL_CELL_EXTENT).ceil() as i64
-}
-
-fn intersects(left: UiMountedCanonicalBox, right: UiMountedCanonicalBox) -> bool {
-    left.coordinate_space() == right.coordinate_space()
-        && left.x() < right.x() + right.width()
-        && right.x() < left.x() + left.width()
-        && left.y() < right.y() + right.height()
-        && right.y() < left.y() + left.height()
 }
 
 #[cfg(test)]
-mod tests {
-    use super::UiNativeDamageIndex;
-    use worth_ui_host_contract::{
-        UiMountedCanonicalBox, UiMountedCanonicalBoxInput, UiMountedCoordinateSpace,
-    };
-
-    fn bounds(x: f32, y: f32, width: f32, height: f32) -> UiMountedCanonicalBox {
-        UiMountedCanonicalBox::canonicalize(UiMountedCanonicalBoxInput {
-            x,
-            y,
-            width,
-            height,
-            coordinate_space: UiMountedCoordinateSpace::HostSurface,
-        })
-        .unwrap()
-    }
-
-    #[test]
-    fn sparse_damage_probes_only_intersecting_cells_and_exact_bounds() {
-        let mut index = UiNativeDamageIndex::new();
-        index.insert(1_u64, bounds(0.0, 0.0, 20.0, 20.0)).unwrap();
-        index
-            .insert(2_u64, bounds(2_000.0, 2_000.0, 20.0, 20.0))
-            .unwrap();
-        let query = index.intersecting(bounds(4.0, 4.0, 2.0, 2.0)).unwrap();
-        assert_eq!(query.identities.into_iter().collect::<Vec<_>>(), vec![1]);
-        assert_eq!(query.cell_probes, 1);
-        assert_eq!(query.candidate_probes, 1);
-    }
-
-    #[test]
-    fn replacement_and_removal_update_only_owned_cells() {
-        let mut index = UiNativeDamageIndex::new();
-        index.insert(1_u64, bounds(0.0, 0.0, 10.0, 10.0)).unwrap();
-        index.replace(1, bounds(128.0, 128.0, 10.0, 10.0)).unwrap();
-        assert!(index
-            .intersecting(bounds(0.0, 0.0, 10.0, 10.0))
-            .unwrap()
-            .identities
-            .is_empty());
-        assert!(index
-            .intersecting(bounds(128.0, 128.0, 10.0, 10.0))
-            .unwrap()
-            .identities
-            .contains(&1));
-        index.remove(1).unwrap();
-        assert!(index
-            .intersecting(bounds(128.0, 128.0, 10.0, 10.0))
-            .unwrap()
-            .identities
-            .is_empty());
-    }
-}
+#[path = "damage_index/tests.rs"]
+mod tests;

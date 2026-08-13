@@ -26,12 +26,7 @@ impl UiMountedProjectionFrame {
             surface.binding = replacement.binding_generation();
             rebound.semantic.surfaces.insert(surface.binding, surface);
         }
-        super::super::static_paint::rebind_filled_rects(&mut rebound.filled_rects, replacements)?;
-        super::super::semantic_text::rebind_semantic_text(
-            &mut rebound.semantic_text,
-            replacements,
-        )?;
-        super::super::hit_test::rebind_hit_tests(&mut rebound.hit_tests, replacements)?;
+        rebound.mechanics.rebind(replacements)?;
         Ok(rebound)
     }
 }

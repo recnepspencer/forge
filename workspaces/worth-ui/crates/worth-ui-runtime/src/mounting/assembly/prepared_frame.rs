@@ -1,6 +1,6 @@
 use worth_ui_host_contract::{
     UiMountedFrameCanonicalCore, UiMountedFrameIntegrity, UiMountedFrameManifest,
-    UiMountedSurfaceBindingRequirement, UiSemanticSurfaceIdentity,
+    UiMountedSurfaceBindingRequirement,
 };
 
 use super::{
@@ -29,13 +29,10 @@ impl UiPreparedMountedFrame {
             .surfaces()
             .iter()
             .map(|requirement| {
-                let projection = candidate
-                    .frame()
-                    .view_for(requirement.binding())
-                    .expect("validated manifest binding is present in finalized projection");
                 Ok(UiMountedSurfaceReceipt {
                     requirement: *requirement,
-                    projection,
+                    projection_frame: std::sync::Arc::clone(&candidate.frame),
+                    projection: std::cell::OnceCell::new(),
                 })
             })
             .collect::<Result<Vec<_>, UiMountedFramePreparationDenial>>()?;
@@ -44,7 +41,7 @@ impl UiPreparedMountedFrame {
             candidate.frame().plan_digest(),
             graph_world,
             allocation_truth_revision,
-            table_range_digest(&surfaces),
+            candidate.frame().table_range_digest(),
         );
         let integrity = UiMountedFrameIntegrity::derive(canonical_core, &manifest);
         if !integrity.verifies(canonical_core, &manifest) {
@@ -88,17 +85,10 @@ impl UiPreparedMountedFrame {
         &self.surfaces
     }
 
-    pub(in crate::mounting) fn presentation_changed_instances(
+    pub(in crate::mounting) fn presentation_delta_source(
         &self,
-    ) -> &[worth_ui_host_contract::UiMountedInstanceIdentity] {
-        self.candidate.presentation_changed_instances()
-    }
-
-    pub(in crate::mounting) fn presentation_surface_changed(
-        &self,
-        surface: UiSemanticSurfaceIdentity,
-    ) -> bool {
-        self.candidate.presentation_surface_changed(surface)
+    ) -> super::super::UiMountedPresentationDeltaSource<'_> {
+        self.candidate.presentation_delta_source()
     }
 
     pub fn receipt(&self) -> UiMountedFrameReceipt {
@@ -119,10 +109,13 @@ impl UiPreparedMountedFrame {
     }
 
     pub(crate) fn visual_region_basis(&self) -> crate::mounting::UiMountedVisualRegionBasis {
-        crate::mounting::UiMountedVisualRegionBasis::new(
-            self.candidate.frame().static_paint_rows(),
-            self.candidate.frame().hit_test_rows(),
-        )
+        self.candidate.frame().visual_region_basis()
+    }
+
+    pub(in crate::mounting) fn diagnostic_source(
+        &self,
+    ) -> crate::mounting::projection::UiMountedDiagnosticSource {
+        self.candidate.frame().diagnostic_source()
     }
 
     pub(crate) fn identity_trace_basis(&self) -> &crate::mounting::UiMountedIdentityTraceBasis {
@@ -152,34 +145,6 @@ impl UiPreparedMountedFrame {
             self.reuse_contract,
         )
     }
-}
-
-fn table_range_digest(surfaces: &[UiMountedSurfaceReceipt]) -> u64 {
-    surfaces.iter().fold(0_u64, |digest, receipt| {
-        let view = receipt.projection();
-        let table_digest = [
-            view.nodes().len(),
-            view.clips().rows().len(),
-            view.layers().rows().len(),
-            view.hit_tests().rows().len(),
-            view.paint_batches().rows().len(),
-            view.spatial_batches().rows().len(),
-            view.realtime_batches().rows().len(),
-            view.resources().entries().len(),
-        ]
-        .into_iter()
-        .fold(
-            digest ^ view.binding().diagnostic_value(),
-            |value, length| value.rotate_left(7) ^ u64::try_from(length).unwrap_or(u64::MAX),
-        );
-        table_digest.rotate_left(11)
-            ^ view.filled_rects().rows().iter().fold(0_u64, |value, row| {
-                value.rotate_left(9) ^ row.semantic_digest()
-            })
-            ^ view.hit_tests().rows().iter().fold(0_u64, |value, row| {
-                value.rotate_left(9) ^ row.semantic_digest()
-            })
-    })
 }
 
 pub(crate) fn binding_requirement(

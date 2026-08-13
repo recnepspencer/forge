@@ -82,6 +82,10 @@ impl UiNativePlatformCloseReceipt {
     pub const fn peak_census(&self) -> worth_ui_host_native::UiNativeResourceCensus {
         self.report.peak_census()
     }
+
+    pub fn retained_frames(&self) -> &[worth_ui_host_native::UiNativeRetainedFrameObservation] {
+        self.report.retained_frames()
+    }
 }
 
 impl UiNativePlatformStopReport {

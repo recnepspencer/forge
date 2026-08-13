@@ -14,6 +14,7 @@ struct WorthUiPreparedCutoverEvidence {
     reload_cost_seed: crate::runtime::WorthUiReloadCostSeed,
     runtime_basis: crate::runtime::session::WorthUiRuntimePublicationBasis,
     host_session: crate::facade::WorthUiHostSessionIdentity,
+    font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
 }
 
 struct WorthUiCutoverPreparationInput {
@@ -28,6 +29,7 @@ struct WorthUiPreparedCatalogActivation {
     reload_cost_seed: crate::runtime::WorthUiReloadCostSeed,
     visual_trace_source:
         crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
+    font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
 }
 
 impl WorthUiActiveApplicationSession {
@@ -111,6 +113,7 @@ impl WorthUiActiveApplicationSession {
             reload_cost_seed: prepared_catalog.reload_cost_seed,
             runtime_basis: self.application.runtime_publication_basis(),
             host_session: self.host_session.identity(),
+            font_collection: prepared_catalog.font_collection,
         };
         match prepared_catalog.prepared.into_activation() {
             Err(receipt) => Ok(seal_semantic_no_op(evidence, receipt)),
@@ -130,6 +133,7 @@ impl WorthUiActiveApplicationSession {
         let pending = input.pending;
         let reload_cost_seed = pending.reload_cost_seed;
         let visual_trace_source = pending.next_app.visual_trace_source();
+        let font_collection = std::sync::Arc::clone(pending.next_app.font_collection());
         let successor_planning_authority =
             std::rc::Rc::clone(pending.next_app.retained_planning_authority());
         let application_publication =
@@ -157,6 +161,7 @@ impl WorthUiActiveApplicationSession {
             prepared,
             reload_cost_seed,
             visual_trace_source,
+            font_collection,
         })
     }
 
@@ -362,6 +367,7 @@ fn seal_prepared_activation(
             }),
             publication: Box::new(publication),
             visual_trace_source: evidence.visual_trace_source,
+            font_collection: evidence.font_collection,
             reload_cost,
             transition: Some(WorthUiApplicationCutoverTransition::Prepared(activation)),
         },

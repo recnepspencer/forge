@@ -91,6 +91,24 @@ pub(crate) fn component_candidate_submission(
     component_submission(source_name, component_id, session.capabilities())
 }
 
+pub(crate) fn component_candidate_submission_with_removal_token(
+    session: &WorthUiActiveApplicationSession,
+    source_name: &str,
+    component_id: &str,
+) -> WorthUiWatchedCandidateSubmission {
+    lower_file_submission(
+        WorthUiSourceProvider::in_memory(source_name).with_file(
+            "app/main.wui",
+            format!(
+                "{}\ntoken theme.removal_only = \"theme.removal_only\";",
+                component_declaration(component_id)
+            ),
+        ),
+        [WorthUiWatcherEvent::provider_revision(source_name)],
+        session.capabilities(),
+    )
+}
+
 pub(crate) fn scaled_component_candidate_submission(
     session: &WorthUiActiveApplicationSession,
     source_name: &str,

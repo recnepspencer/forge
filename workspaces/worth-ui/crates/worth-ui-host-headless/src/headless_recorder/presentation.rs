@@ -12,12 +12,19 @@ use super::{UiHeadlessRecorderCapacity, UiHeadlessRetainedPresentation};
 use crate::headless_translation::translate_headless_frame;
 
 mod delta;
+mod node_delta;
 
 pub(super) fn apply_work(
     view: &UiMountedFrameConsumptionView<'_>,
     capacity: UiHeadlessRecorderCapacity,
     current: &mut Option<UiHeadlessRetainedPresentation>,
-) -> Result<Option<UiHeadlessRecordedFrame>, UiHostSurfacePresentationDenial> {
+) -> Result<
+    (
+        Option<UiHeadlessRecordedFrame>,
+        worth_ui_retained_order::UiRetainedOrderCost,
+    ),
+    UiHostSurfacePresentationDenial,
+> {
     match view.presentation_work() {
         UiMountedPresentationWorkView::Initial(initial) => {
             if current.is_some() {
@@ -32,24 +39,71 @@ pub(super) fn apply_work(
                 initial.damage(),
             )?;
             let recorded = UiHeadlessRecordedFrame::complete(transcript);
+            let order = UiHeadlessRetainedOrder::initial(
+                initial.order(),
+                initial.order_integrity(),
+                capacity.mechanics_per_frame(),
+            )
+            .map_err(|_| malformed())?;
+            let order_cost = order.take_cost();
             *current = Some(UiHeadlessRetainedPresentation {
                 frame: view.frame(),
                 surface: view.surface(),
                 binding: view.binding(),
                 baseline: initial.affinity().baseline(),
                 commands,
-                order: UiHeadlessRetainedOrder::initial(initial.order(), initial.order_integrity())
-                    .map_err(|_| malformed())?,
+                order,
+                node_positions: initial_node_positions(initial.projection())?,
+                node_by_position: initial_nodes_by_position(initial.projection())?,
                 auxiliary: initial.auxiliary().clone(),
-                reconstruction: vec![recorded.clone()],
             });
-            Ok(Some(recorded))
+            Ok((Some(recorded), order_cost))
         }
         UiMountedPresentationWorkView::Delta(work) => {
             let Some(current) = current.as_mut() else {
                 return Err(malformed());
             };
-            delta::apply(view, capacity, current, work).map(Some)
+            current.order.take_cost();
+            let recorded = delta::apply(view, capacity, current, work)?;
+            Ok((Some(recorded), current.order.take_cost()))
+        }
+        UiMountedPresentationWorkView::Reconstruction(work) => {
+            if current.is_some() {
+                return Err(malformed());
+            }
+            let commands = validated_complete_commands(
+                work.commands(),
+                work.projection(),
+                work.order(),
+                work.order_integrity(),
+            )?;
+            let transcript = translate_headless_frame(
+                view,
+                work.projection(),
+                capacity,
+                work.order(),
+                work.damage(),
+            )?;
+            let recorded = UiHeadlessRecordedFrame::complete(transcript);
+            let order = UiHeadlessRetainedOrder::initial(
+                work.order(),
+                work.order_integrity(),
+                capacity.mechanics_per_frame(),
+            )
+            .map_err(|_| malformed())?;
+            let order_cost = order.take_cost();
+            *current = Some(UiHeadlessRetainedPresentation {
+                frame: view.frame(),
+                surface: view.surface(),
+                binding: view.binding(),
+                baseline: work.affinity().baseline(),
+                commands,
+                order,
+                node_positions: initial_node_positions(work.projection())?,
+                node_by_position: initial_nodes_by_position(work.projection())?,
+                auxiliary: work.auxiliary().clone(),
+            });
+            Ok((Some(recorded), order_cost))
         }
         UiMountedPresentationWorkView::Unchanged(unchanged) => {
             let current = current.as_mut().ok_or_else(malformed)?;
@@ -57,9 +111,52 @@ pub(super) fn apply_work(
                 return Err(malformed());
             }
             current.frame = view.frame();
-            Ok(None)
+            Ok((
+                None,
+                worth_ui_retained_order::UiRetainedOrderCost::default(),
+            ))
         }
     }
+}
+
+fn initial_node_positions(
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
+) -> Result<
+    HashMap<worth_ui_host_contract::UiMountedInstanceIdentity, u64>,
+    UiHostSurfacePresentationDenial,
+> {
+    projection
+        .nodes()
+        .iter()
+        .enumerate()
+        .map(|(position, node)| {
+            Ok((
+                node.mounted_instance(),
+                u64::try_from(position)
+                    .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+            ))
+        })
+        .collect()
+}
+
+fn initial_nodes_by_position(
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
+) -> Result<
+    HashMap<u64, worth_ui_host_contract::UiMountedInstanceIdentity>,
+    UiHostSurfacePresentationDenial,
+> {
+    projection
+        .nodes()
+        .iter()
+        .enumerate()
+        .map(|(position, node)| {
+            Ok((
+                u64::try_from(position)
+                    .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+                node.mounted_instance(),
+            ))
+        })
+        .collect()
 }
 
 fn affinity_matches(
@@ -79,11 +176,29 @@ fn malformed() -> UiHostSurfacePresentationDenial {
 fn validated_initial_commands(
     initial: &worth_ui_host_contract::UiMountedPresentationInitial,
 ) -> Result<
-    HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
+    super::retained_command_store::UiHeadlessRetainedCommandStore,
     UiHostSurfacePresentationDenial,
 > {
-    let mut commands = HashMap::with_capacity(initial.commands().len());
-    for command in initial.commands() {
+    validated_complete_commands(
+        initial.commands(),
+        initial.projection(),
+        initial.order(),
+        initial.order_integrity(),
+    )
+}
+
+fn validated_complete_commands(
+    source: &[UiMountedPaintCommand],
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
+    order: &[UiMountedPaintOrderIdentity],
+    integrity: worth_ui_host_contract::UiMountedPaintOrderIntegrity,
+) -> Result<
+    super::retained_command_store::UiHeadlessRetainedCommandStore,
+    UiHostSurfacePresentationDenial,
+> {
+    let mut commands =
+        super::retained_command_store::UiHeadlessRetainedCommandStore::with_capacity(source.len());
+    for command in source {
         if commands
             .insert(command.identity(), command.clone())
             .is_some()
@@ -91,13 +206,13 @@ fn validated_initial_commands(
             return Err(UiHostSurfacePresentationDenial::MalformedProjection);
         }
     }
-    validate_initial_projection(&commands, initial.projection())?;
-    validate_order(&commands, initial.order(), initial.order_integrity())?;
+    validate_initial_projection(&commands, projection)?;
+    validate_order(&commands, order, integrity)?;
     Ok(commands)
 }
 
 fn validate_initial_projection(
-    commands: &HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
+    commands: &super::retained_command_store::UiHeadlessRetainedCommandStore,
     projection: &worth_ui_host_contract::UiMountedProjectionView,
 ) -> Result<(), UiHostSurfacePresentationDenial> {
     let expected_count =
@@ -106,17 +221,11 @@ fn validate_initial_projection(
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
     }
     let aligned = commands.values().all(|command| match command {
-        UiMountedPaintCommand::FilledRect {
-            identity,
-            mechanic,
-        } => {
+        UiMountedPaintCommand::FilledRect { identity, mechanic } => {
             *identity == UiMountedPaintCommandIdentity::filled_rect(mechanic)
                 && projection.filled_rects().rows().contains(mechanic)
         }
-        UiMountedPaintCommand::SemanticText {
-            identity,
-            mechanic,
-        } => {
+        UiMountedPaintCommand::SemanticText { identity, mechanic } => {
             *identity == UiMountedPaintCommandIdentity::semantic_text(mechanic)
                 && projection.semantic_text().rows().contains(mechanic)
         }
@@ -128,7 +237,7 @@ fn validate_initial_projection(
 }
 
 fn validate_order(
-    commands: &HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
+    commands: &super::retained_command_store::UiHeadlessRetainedCommandStore,
     order: &[UiMountedPaintOrderIdentity],
     integrity: worth_ui_host_contract::UiMountedPaintOrderIntegrity,
 ) -> Result<(), UiHostSurfacePresentationDenial> {
@@ -136,7 +245,7 @@ fn validate_order(
         .iter()
         .map(|identity| identity.command())
         .collect::<HashSet<_>>();
-    let commanded = commands.keys().copied().collect::<HashSet<_>>();
+    let commanded = commands.identities().collect::<HashSet<_>>();
     if ordered.len() != order.len() || ordered != commanded || !integrity.admits(order) {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
     }
@@ -159,12 +268,24 @@ pub(super) fn work_cost(
             ),
             UiMountedPresentationWorkView::Delta(delta) => (
                 1,
-                delta.changes().len(),
-                std::mem::size_of_val(delta.changes()),
-                delta.changes().len() + delta.order().len() + delta.damage().len(),
+                delta.changes().len() + delta.nodes().len(),
+                std::mem::size_of_val(delta.changes()) + std::mem::size_of_val(delta.nodes()),
+                delta.changes().len()
+                    + delta.nodes().len()
+                    + delta.order().len()
+                    + delta.damage().len(),
                 delta.changes().len(),
                 delta.order().len(),
                 delta.damage().len(),
+            ),
+            UiMountedPresentationWorkView::Reconstruction(work) => (
+                1,
+                work.commands().len(),
+                std::mem::size_of_val(work.commands()),
+                work.commands().len() + work.order().len() + work.damage().len(),
+                work.commands().len(),
+                work.order().len(),
+                work.damage().len(),
             ),
             UiMountedPresentationWorkView::Unchanged(_) => (0, 0, 0, 0, 0, 0, 0),
         };
@@ -189,6 +310,22 @@ pub(super) fn work_cost(
             ..Default::default()
         },
     ))
+}
+
+pub(super) fn add_order_cost(
+    base: UiHostPresentationCostReport,
+    order: worth_ui_retained_order::UiRetainedOrderCost,
+) -> UiHostPresentationCostReport {
+    base.checked_add(UiHostPresentationCostReport::from_adapter(
+        UiHostPresentationCostInput {
+            order_index_lookups: order.identity_lookups(),
+            order_index_node_touches: order.node_touches(),
+            order_index_rotations: order.rotations(),
+            order_index_high_water: order.high_water_entries(),
+            ..Default::default()
+        },
+    ))
+    .expect("profile-bounded retained-order evidence cannot overflow")
 }
 
 #[cfg(test)]

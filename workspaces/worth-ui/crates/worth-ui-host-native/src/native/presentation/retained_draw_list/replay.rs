@@ -1,10 +1,8 @@
-use std::collections::HashSet;
-
 use worth_ui_host_contract::{UiMountedLogicalDamage, UiMountedPaintOrderIdentity};
 
 use super::{
     UiNativeRetainedDrawList, UiNativeRetainedDrawListDenial, UiNativeRetainedMutationCounters,
-    UiNativeRetainedReplayPlan,
+    UiNativeRetainedReplayPlan, UiNativeRetainedReplayRegion,
 };
 use crate::native::presentation::damage_regions::normalize_damage;
 
@@ -15,34 +13,52 @@ impl UiNativeRetainedDrawList {
         draw_mutations: usize,
         order_mutations: usize,
     ) -> Result<UiNativeRetainedReplayPlan, UiNativeRetainedDrawListDenial> {
-        let mut affected = HashSet::new();
         let mut counters = UiNativeRetainedMutationCounters {
             draw_mutations: exact_u64(draw_mutations)?,
             order_mutations: exact_u64(order_mutations)?,
-            damage_regions: exact_u64(regions.len())?,
+            damage_rows_carried: exact_u64(regions.len())?,
             ..Default::default()
         };
         let clear_regions = normalize_damage(regions)?;
-        for region in &clear_regions {
+        counters.damage_regions = exact_u64(clear_regions.len())?;
+        let mut replay_regions = Vec::with_capacity(clear_regions.len());
+        for region in clear_regions {
             let query = self.damage.intersecting(region.bounds())?;
-            counters.damage_cell_probes = add(counters.damage_cell_probes, query.cell_probes)?;
-            counters.damage_candidate_probes =
-                add(counters.damage_candidate_probes, query.candidate_probes)?;
-            affected.extend(query.identities);
+            counters.damage_index_branch_aabb_probes = add(
+                counters.damage_index_branch_aabb_probes,
+                query.branch_aabb_probes,
+            )?;
+            counters.damage_index_leaf_command_bounds_probes = add(
+                counters.damage_index_leaf_command_bounds_probes,
+                query.leaf_command_bounds_probes,
+            )?;
+            counters.damage_index_stored_records = exact_u64(query.stored_records)?;
+            counters.damage_index_high_water = exact_u64(query.high_water_records)?;
+            let replay = self.order.ordered_subset(
+                query
+                    .identities
+                    .into_iter()
+                    .map(UiMountedPaintOrderIdentity::for_command),
+            )?;
+            counters.damage_region_command_checks =
+                add(counters.damage_region_command_checks, replay.len())?;
+            counters.replayed_commands = add(counters.replayed_commands, replay.len())?;
+            replay_regions.push(UiNativeRetainedReplayRegion {
+                damage: region,
+                replay: replay
+                    .into_iter()
+                    .map(UiMountedPaintOrderIdentity::command)
+                    .collect(),
+            });
         }
-        let replay = self.order.ordered_subset(
-            affected
-                .into_iter()
-                .map(UiMountedPaintOrderIdentity::for_command),
-        )?;
-        counters.replayed_commands = exact_u64(replay.len())?;
+        let order_cost = self.order.take_cost();
+        counters.order_index_lookups = order_cost.identity_lookups();
+        counters.order_index_node_touches = order_cost.node_touches();
+        counters.order_index_rotations = order_cost.rotations();
+        counters.order_index_high_water = order_cost.high_water_entries();
         Ok(UiNativeRetainedReplayPlan {
             baseline_rgba8: self.baseline.transparent_rgba8(),
-            clear_regions: clear_regions.into_boxed_slice(),
-            replay: replay
-                .into_iter()
-                .map(UiMountedPaintOrderIdentity::command)
-                .collect(),
+            regions: replay_regions.into_boxed_slice(),
             counters,
         })
     }

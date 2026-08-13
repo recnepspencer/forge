@@ -41,6 +41,7 @@ mod mounted_publication;
 mod native_application_identity_trace_test_support;
 #[cfg(test)]
 mod native_application_identity_trace_tests;
+mod native_application_program;
 mod native_application_shell;
 #[cfg(test)]
 mod native_identity_trace_audit;
@@ -138,6 +139,10 @@ pub use mounted_preview::{
     WorthUiMountedPreviewPreparationDenial, WorthUiMountedPreviewPreparationRejection,
     WorthUiMountedPreviewRetentionRejection, WorthUiPendingMountedPreview,
     WorthUiPreparedMountedPreview, WorthUiResolvedMountedPreview,
+};
+pub use native_application_program::{
+    UiNativeApplicationFrame, UiNativeApplicationProgram, UiNativeApplicationProgramDenial,
+    UiNativeComponentPresenceChange,
 };
 pub use native_application_shell::{
     WorthUiNativeApplicationCleanup, WorthUiNativeApplicationShell,

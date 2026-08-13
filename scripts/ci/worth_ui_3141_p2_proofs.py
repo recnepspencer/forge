@@ -114,7 +114,7 @@ def lifecycle_proofs(control_type, proof_factory):
             ),
         ),
         "P2-PORTS-01": proof_factory(
-            f"{HOST}/presentation.rs::settle_port_result",
+            f"{HOST}/presentation/transaction_state.rs::settle_port_result",
             control(
                 control_type,
                 "worth-ui-host-native",

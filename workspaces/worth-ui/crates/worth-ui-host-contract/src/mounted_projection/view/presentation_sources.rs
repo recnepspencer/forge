@@ -16,6 +16,7 @@ pub(super) struct PresentationSources {
     pub(super) order_predecessors:
         HashMap<UiMountedPaintCommandIdentity, Option<UiMountedPaintOrderIdentity>>,
     pub(super) order_positions: HashMap<UiMountedPaintCommandIdentity, usize>,
+    pub(super) order_integrity: crate::UiMountedPaintOrderIntegrity,
 }
 
 impl PresentationSources {
@@ -30,7 +31,8 @@ impl PresentationSources {
         validate_drawable_set(nodes, filled_rects, semantic_text, &command_indices);
         let commands_by_instance =
             commands_by_instance(nodes, &commands, filled_rects, semantic_text);
-        let (order_predecessors, order_positions) = order_indexes(&order, &command_indices);
+        let (order_predecessors, order_positions, order_integrity) =
+            order_indexes(&order, &command_indices);
         Self {
             commands,
             order,
@@ -38,6 +40,7 @@ impl PresentationSources {
             commands_by_instance,
             order_predecessors,
             order_positions,
+            order_integrity,
         }
     }
 }
@@ -101,6 +104,7 @@ fn order_indexes(
 ) -> (
     HashMap<UiMountedPaintCommandIdentity, Option<UiMountedPaintOrderIdentity>>,
     HashMap<UiMountedPaintCommandIdentity, usize>,
+    crate::UiMountedPaintOrderIntegrity,
 ) {
     assert_eq!(order.len(), command_indices.len());
     let ordered = order
@@ -114,12 +118,16 @@ fn order_indexes(
     let mut previous = None;
     let mut predecessors = HashMap::new();
     let mut positions = HashMap::new();
+    let mut integrity = crate::UiMountedPaintOrderIntegrity::for_order(&[]);
     for (position, identity) in order.iter().enumerate() {
         predecessors.insert(identity.command(), previous);
         positions.insert(identity.command(), position);
+        integrity = integrity
+            .insert_edge(previous, *identity, None)
+            .expect("admitted paint order fits its integrity length");
         previous = Some(*identity);
     }
-    (predecessors, positions)
+    (predecessors, positions, integrity)
 }
 
 fn command_for(
@@ -150,23 +158,15 @@ fn command_for(
     }
 }
 
-fn validate_command(
-    command: &UiMountedPaintCommand,
-) {
+fn validate_command(command: &UiMountedPaintCommand) {
     match command {
-        UiMountedPaintCommand::FilledRect {
-            identity,
-            mechanic,
-        } => {
+        UiMountedPaintCommand::FilledRect { identity, mechanic } => {
             assert_eq!(
                 *identity,
                 UiMountedPaintCommandIdentity::filled_rect(mechanic)
             );
         }
-        UiMountedPaintCommand::SemanticText {
-            identity,
-            mechanic,
-        } => {
+        UiMountedPaintCommand::SemanticText { identity, mechanic } => {
             assert_eq!(
                 *identity,
                 UiMountedPaintCommandIdentity::semantic_text(mechanic)

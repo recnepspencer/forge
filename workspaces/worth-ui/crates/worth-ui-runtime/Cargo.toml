@@ -1,5 +1,6 @@
 [package]
 name = "worth-ui-runtime"
+workspace = "../.."
 edition.workspace = true
 version.workspace = true
 license.workspace = true
@@ -28,6 +29,8 @@ worth-ui-dsl = { path = "../worth-ui-dsl" }
 worth-ui-inspection = { path = "../worth-ui-inspection" }
 worth-ui-query-binding = { path = "../worth-ui-query-binding" }
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
+worth-ui-text = { path = "../worth-ui-text" }
+sha2.workspace = true
 worth-ui-host-egui = { path = "../worth-ui-host-egui", optional = true }
 worth-ui-host-headless = { path = "../worth-ui-host-headless", optional = true }
 worth-ui-host-native = { path = "../worth-ui-host-native" }

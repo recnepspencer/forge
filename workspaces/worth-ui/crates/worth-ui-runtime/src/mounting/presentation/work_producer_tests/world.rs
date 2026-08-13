@@ -12,6 +12,7 @@ use worth_ui_host_contract::{
 };
 
 use super::rect_node::rect_node;
+use super::text_node::text_node;
 
 pub(super) struct MountedPresentationWorld {
     surface: UiSemanticSurfaceIdentity,
@@ -115,6 +116,64 @@ impl MountedPresentationWorld {
         })
     }
 
+    pub(super) fn mixed_projection(
+        &self,
+        frame: UiMountedFrameIdentity,
+        instances: &[UiMountedInstanceIdentity],
+        changed_first: bool,
+    ) -> UiMountedProjectionView {
+        let split = instances.len() / 2;
+        let text_layout =
+            crate::mounting::qualified_text_test_support::inert_qualified_layout("WORTH");
+        let rects = instances[..split]
+            .iter()
+            .enumerate()
+            .map(|(index, instance)| {
+                let mut spec = rect_spec(*instance, index as f32 * 40.0);
+                if changed_first && index == 0 {
+                    spec.color = UiMountedRgba8::new(242, 204, 96, 255);
+                }
+                self.rect(frame, spec)
+            })
+            .collect::<Vec<_>>();
+        let texts = instances[split..]
+            .iter()
+            .enumerate()
+            .map(|(index, instance)| self.text(frame, *instance, index, text_layout.view()))
+            .collect::<Vec<_>>();
+        let nodes = rects
+            .iter()
+            .enumerate()
+            .map(|(index, row)| rect_node(index, row))
+            .chain(
+                texts
+                    .iter()
+                    .enumerate()
+                    .map(|(index, row)| text_node(index, row)),
+            )
+            .collect::<Vec<_>>();
+        let (authored_paint_commands, authored_paint_order) =
+            crate::mounting::compile_presentation_sources(&nodes, &rects, &texts);
+        UiMountedProjectionView::new(UiMountedProjectionViewInput {
+            frame,
+            surface: self.surface,
+            binding: self.binding,
+            content_generation: self.content,
+            nodes,
+            clips: UiMountedClipTable::produced(Vec::new()),
+            layers: UiMountedLayerTable::produced(Vec::new()),
+            filled_rects: UiMountedFilledRectTable::from_runtime_mounting(rects).unwrap(),
+            semantic_text: UiMountedSemanticTextTable::from_runtime_mounting(texts).unwrap(),
+            hit_tests: UiMountedHitTestTable::empty(),
+            paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
+            spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
+            realtime_batches: worth_ui_host_contract::UiMountedRealtimeBatchTable::new(Vec::new()),
+            resources: UiMountedResourceTable::new(Vec::new()),
+            authored_paint_commands,
+            authored_paint_order,
+        })
+    }
+
     fn rect(&self, frame: UiMountedFrameIdentity, spec: RectSpec) -> UiMountedFilledRectMechanic {
         let bounds = canonical_box(spec.x, 0.0, 32.0, 24.0);
         UiMountedFilledRectMechanic::complete_from_runtime_mounting(
@@ -136,6 +195,58 @@ impl MountedPresentationWorld {
                 color: spec.color,
                 layer_semantic_order: (spec.x as u32) / 40,
                 clip_bounds: canonical_box(spec.clip_x, 0.0, spec.clip_width, 24.0),
+            },
+        )
+        .unwrap()
+    }
+
+    fn text(
+        &self,
+        frame: UiMountedFrameIdentity,
+        instance: UiMountedInstanceIdentity,
+        index: usize,
+        layout: worth_ui_host_contract::UiQualifiedTextLayoutView<'_>,
+    ) -> worth_ui_host_contract::UiMountedSemanticTextMechanic {
+        use std::sync::Arc;
+        let bounds = canonical_box(index as f32 * 40.0, 32.0, 32.0, 24.0);
+        worth_ui_host_contract::UiMountedSemanticTextMechanic::complete_from_runtime_mounting(
+            worth_ui_host_contract::UiMountedSemanticTextCompletionInput {
+                content_generation: self.content,
+                frame,
+                surface: self.surface,
+                binding: self.binding,
+                mounted_instance: instance,
+                node_receipt: UiMountedNodeReceiptIssuer::mint_for(frame)
+                    .unwrap()
+                    .receipt_for(instance),
+                allocation_basis: UiMountedAllocationBasis::new(
+                    1,
+                    2,
+                    3,
+                    UiMountedTransformProjection::Identity,
+                ),
+                bounds,
+                clip_bounds: bounds,
+                origin_x: bounds.x(),
+                origin_y: bounds.y(),
+                text: Arc::from("WORTH"),
+                layout,
+                slot: worth_ui_host_contract::UiSemanticTextSlot::Value,
+                collection_row: None,
+                foregrounds: Arc::from([
+                    worth_ui_host_contract::UiMountedTextForegroundSpan::from_runtime_mounting(
+                        worth_ui_host_contract::UiTextOriginalRange::from_text_mechanics(0, 5)
+                            .unwrap(),
+                        UiMountedRgba8::new(255, 255, 255, 255),
+                        worth_ui_host_contract::UiMountedTextPaintSpanIdentity::from_runtime_mounting(
+                            [1; 32],
+                        ),
+                    ),
+                ]),
+                profile: worth_ui_host_contract::UiSemanticTextProfile::BodyDefault,
+                layer_semantic_order: u32::try_from(index + 2_048).unwrap(),
+                capability_generation: WorthUiHostCapabilityObservationGeneration::new(7),
+                capability_profile_digest: 11,
             },
         )
         .unwrap()

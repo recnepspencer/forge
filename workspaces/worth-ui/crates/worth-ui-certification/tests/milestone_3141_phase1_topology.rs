@@ -8,8 +8,12 @@ mod authority_residue;
 mod compile_contract_artifact;
 #[path = "milestone_3141_phase1_topology/external_ports.rs"]
 mod external_ports;
+#[path = "milestone_3141_phase1_topology/font_authority.rs"]
+mod font_authority;
 #[path = "milestone_3141_phase1_topology/host_activation.rs"]
 mod host_activation;
+#[path = "milestone_3141_phase1_topology/phase_three_application.rs"]
+mod phase_three_application;
 #[path = "milestone_3141_phase1_topology/preparation_call_graph.rs"]
 mod preparation_call_graph;
 #[path = "milestone_3141_phase1_topology/pulse_text.rs"]
@@ -50,14 +54,14 @@ fn phase_one_host_platform_topology_verdict_covers_every_workspace_manifest() {
     );
 }
 
-fn assert_protocol_revision_four_rejects_mixed_revision() {
+fn assert_current_protocol_rejects_mixed_revision() {
     use worth_ui_host_contract::{
         UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolContract,
         UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
         UiHostProtocolVersion, UiMountedFrameSchemaVersion, UiMountedPresentationSchemaVersion,
     };
     let current = UiHostProtocolContract::current();
-    assert_eq!(current.protocol().revision(), 4);
+    assert_eq!(current.protocol().revision(), 5);
     let mixed = UiHostProtocolContract::new(
         UiHostProtocolIdentity::worth_ui(),
         UiHostProtocolVersion::new(3),
@@ -74,11 +78,13 @@ fn assert_protocol_revision_four_rejects_mixed_revision() {
 
 #[test]
 fn phase_one_consumer_inventory_rejects_legacy_protocol_branches() {
+    assert_current_protocol_rejects_mixed_revision();
     let protocol = repository_document(
         "workspaces/worth-ui/crates/worth-ui-host-contract/src/mounted_frame/protocol.rs",
     );
-    assert!(protocol.contains("const COMPATIBLE_FLOOR: u16 = 4;"));
-    assert!(protocol.contains("const CURRENT: u16 = 4;"));
+    assert!(protocol.contains("const COMPATIBLE_FLOOR: u16 = 5;"));
+    assert!(protocol.contains("const CURRENT: u16 = 5;"));
+    assert!(protocol.contains("const CURRENT_PRESENTATION_SCHEMA: u16 = 5;"));
     assert!(protocol.contains("const CURRENT_OBSERVATION_SCHEMA: u16 = 6;"));
     let inventory = workspace_source_inventory();
     let consumers = [

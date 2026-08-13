@@ -1,16 +1,13 @@
-use std::collections::{BTreeMap, HashMap};
-use std::ops::Bound::{Excluded, Unbounded};
+use std::collections::HashMap;
 
 use worth_ui_host_contract::{
     UiMountedPaintOrderEdit, UiMountedPaintOrderIdentity, UiMountedPaintOrderIntegrity,
 };
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-struct OrderLabel(Box<[u16]>);
+use worth_ui_retained_order::UiRetainedOrderIndex;
 
 pub(super) struct UiHeadlessRetainedOrder {
-    labels: HashMap<UiMountedPaintOrderIdentity, OrderLabel>,
-    identities: BTreeMap<OrderLabel, UiMountedPaintOrderIdentity>,
+    index: UiRetainedOrderIndex<UiMountedPaintOrderIdentity>,
     integrity: UiMountedPaintOrderIntegrity,
 }
 
@@ -23,7 +20,7 @@ struct OriginalOrderEntry {
     identity: UiMountedPaintOrderIdentity,
     predecessor: Option<UiMountedPaintOrderIdentity>,
     existed: bool,
-    label: Option<OrderLabel>,
+    rank: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,19 +30,20 @@ pub(super) enum UiHeadlessRetainedOrderDenial {
     MissingPredecessor,
     SelfPredecessor,
     IntegrityMismatch,
+    CapacityExceeded,
 }
 
 impl UiHeadlessRetainedOrder {
     pub(super) fn initial(
         identities: &[UiMountedPaintOrderIdentity],
         integrity: UiMountedPaintOrderIntegrity,
+        capacity: usize,
     ) -> Result<Self, UiHeadlessRetainedOrderDenial> {
         if !integrity.admits(identities) {
             return Err(UiHeadlessRetainedOrderDenial::IntegrityMismatch);
         }
         let mut order = Self {
-            labels: HashMap::new(),
-            identities: BTreeMap::new(),
+            index: UiRetainedOrderIndex::new(capacity),
             integrity,
         };
         let mut predecessor = None;
@@ -53,7 +51,6 @@ impl UiHeadlessRetainedOrder {
             order.insert_after(*identity, predecessor)?;
             predecessor = Some(*identity);
         }
-        order.integrity = integrity;
         Ok(order)
     }
 
@@ -75,14 +72,12 @@ impl UiHeadlessRetainedOrder {
         Ok(())
     }
 
-    pub(super) fn ordered(
-        &self,
-    ) -> impl ExactSizeIterator<Item = UiMountedPaintOrderIdentity> + '_ {
-        self.identities.values().copied()
+    pub(super) fn contains(&self, identity: UiMountedPaintOrderIdentity) -> bool {
+        self.index.contains(identity)
     }
 
-    pub(super) fn contains(&self, identity: UiMountedPaintOrderIdentity) -> bool {
-        self.labels.contains_key(&identity)
+    pub(super) fn take_cost(&self) -> worth_ui_retained_order::UiRetainedOrderCost {
+        self.index.take_cost()
     }
 
     pub(super) fn snapshot(
@@ -95,21 +90,18 @@ impl UiHeadlessRetainedOrder {
             if seen.insert(identity, ()).is_some() {
                 continue;
             }
-            let label = self.labels.get(&identity).cloned();
-            let predecessor = label.as_ref().and_then(|label| {
-                self.identities
-                    .range((Unbounded, Excluded(label)))
-                    .next_back()
-                    .map(|(_, identity)| *identity)
-            });
+            let rank = self.index.rank(identity);
+            let predecessor = rank
+                .and_then(|value| value.checked_sub(1))
+                .and_then(|value| self.index.identity_at(value));
             entries.push(OriginalOrderEntry {
                 identity,
                 predecessor,
-                existed: label.is_some(),
-                label,
+                existed: rank.is_some(),
+                rank,
             });
         }
-        entries.sort_unstable_by(|left, right| left.label.cmp(&right.label));
+        entries.sort_unstable_by_key(|entry| entry.rank);
         UiHeadlessRetainedOrderSnapshot {
             entries,
             integrity: self.integrity,
@@ -122,11 +114,7 @@ impl UiHeadlessRetainedOrder {
     ) -> Result<(), UiHeadlessRetainedOrderDenial> {
         for entry in &snapshot.entries {
             if self.contains(entry.identity) {
-                let label = self
-                    .labels
-                    .remove(&entry.identity)
-                    .ok_or(UiHeadlessRetainedOrderDenial::MissingIdentity)?;
-                self.identities.remove(&label);
+                self.index.remove(entry.identity);
             }
         }
         for entry in snapshot.entries.into_iter().filter(|entry| entry.existed) {
@@ -141,17 +129,14 @@ impl UiHeadlessRetainedOrder {
         identity: UiMountedPaintOrderIdentity,
     ) -> Result<(), UiHeadlessRetainedOrderDenial> {
         let (predecessor, successor) = self.neighbors(identity)?;
-        self.integrity = self
+        let integrity = self
             .integrity
             .remove_edge(predecessor, identity, successor)
             .ok_or(UiHeadlessRetainedOrderDenial::IntegrityMismatch)?;
-        let label = self
-            .labels
-            .remove(&identity)
-            .ok_or(UiHeadlessRetainedOrderDenial::MissingIdentity)?;
-        self.identities
-            .remove(&label)
-            .ok_or(UiHeadlessRetainedOrderDenial::MissingIdentity)?;
+        if !self.index.remove(identity) {
+            return Err(UiHeadlessRetainedOrderDenial::MissingIdentity);
+        }
+        self.integrity = integrity;
         Ok(())
     }
 
@@ -163,15 +148,20 @@ impl UiHeadlessRetainedOrder {
         if predecessor == Some(identity) {
             return Err(UiHeadlessRetainedOrderDenial::SelfPredecessor);
         }
+        if predecessor.is_some_and(|value| !self.index.contains(value)) {
+            return Err(UiHeadlessRetainedOrderDenial::MissingPredecessor);
+        }
         if self.contains(identity) {
             self.remove(identity)?;
         }
         let successor = self.successor_after(predecessor)?;
-        self.integrity = self
+        let integrity = self
             .integrity
             .insert_edge(predecessor, identity, successor)
             .ok_or(UiHeadlessRetainedOrderDenial::IntegrityMismatch)?;
-        self.insert_after(identity, predecessor)
+        self.insert_after(identity, predecessor)?;
+        self.integrity = integrity;
+        Ok(())
     }
 
     fn neighbors(
@@ -184,19 +174,14 @@ impl UiHeadlessRetainedOrder {
         ),
         UiHeadlessRetainedOrderDenial,
     > {
-        let label = self
-            .labels
-            .get(&identity)
+        let rank = self
+            .index
+            .rank(identity)
             .ok_or(UiHeadlessRetainedOrderDenial::MissingIdentity)?;
         Ok((
-            self.identities
-                .range((Unbounded, Excluded(label)))
-                .next_back()
-                .map(|(_, identity)| *identity),
-            self.identities
-                .range((Excluded(label), Unbounded))
-                .next()
-                .map(|(_, identity)| *identity),
+            rank.checked_sub(1)
+                .and_then(|value| self.index.identity_at(value)),
+            self.index.identity_at(rank + 1),
         ))
     }
 
@@ -205,21 +190,12 @@ impl UiHeadlessRetainedOrder {
         predecessor: Option<UiMountedPaintOrderIdentity>,
     ) -> Result<Option<UiMountedPaintOrderIdentity>, UiHeadlessRetainedOrderDenial> {
         match predecessor {
-            Some(predecessor) => {
-                let label = self
-                    .labels
-                    .get(&predecessor)
-                    .ok_or(UiHeadlessRetainedOrderDenial::MissingPredecessor)?;
-                Ok(self
-                    .identities
-                    .range((Excluded(label), Unbounded))
-                    .next()
-                    .map(|(_, identity)| *identity))
-            }
-            None => Ok(self
-                .identities
-                .first_key_value()
-                .map(|(_, identity)| *identity)),
+            Some(predecessor) => self
+                .index
+                .rank(predecessor)
+                .map(|rank| self.index.identity_at(rank + 1))
+                .ok_or(UiHeadlessRetainedOrderDenial::MissingPredecessor),
+            None => Ok(self.index.identity_at(0)),
         }
     }
 
@@ -231,47 +207,103 @@ impl UiHeadlessRetainedOrder {
         if self.contains(identity) {
             return Err(UiHeadlessRetainedOrderDenial::DuplicateIdentity);
         }
-        let left = predecessor
-            .map(|predecessor| {
-                self.labels
-                    .get(&predecessor)
-                    .ok_or(UiHeadlessRetainedOrderDenial::MissingPredecessor)
-            })
-            .transpose()?;
-        let right = match left {
-            Some(left) => self
-                .identities
-                .range((Excluded(left), Unbounded))
-                .next()
-                .map(|(label, _)| label),
-            None => self.identities.first_key_value().map(|(label, _)| label),
+        let rank = match predecessor {
+            Some(predecessor) => self
+                .index
+                .rank(predecessor)
+                .map(|rank| rank + 1)
+                .ok_or(UiHeadlessRetainedOrderDenial::MissingPredecessor)?,
+            None => 0,
         };
-        let label = label_between(left, right);
-        self.labels.insert(identity, label.clone());
-        if self.identities.insert(label, identity).is_some() {
-            return Err(UiHeadlessRetainedOrderDenial::DuplicateIdentity);
-        }
-        Ok(())
+        self.index
+            .insert_at(rank, identity)
+            .map_err(|denial| match denial {
+                worth_ui_retained_order::UiRetainedOrderDenial::CapacityExceeded => {
+                    UiHeadlessRetainedOrderDenial::CapacityExceeded
+                }
+                worth_ui_retained_order::UiRetainedOrderDenial::DuplicateIdentity => {
+                    UiHeadlessRetainedOrderDenial::DuplicateIdentity
+                }
+                worth_ui_retained_order::UiRetainedOrderDenial::InvalidRank => {
+                    UiHeadlessRetainedOrderDenial::MissingPredecessor
+                }
+            })
     }
 }
 
-fn label_between(left: Option<&OrderLabel>, right: Option<&OrderLabel>) -> OrderLabel {
-    let mut label = Vec::new();
-    let mut index = 0;
-    loop {
-        let lower = left
-            .and_then(|value| value.0.get(index))
-            .copied()
-            .unwrap_or(0);
-        let upper = right
-            .and_then(|value| value.0.get(index))
-            .copied()
-            .unwrap_or(u16::MAX);
-        if upper.saturating_sub(lower) > 1 {
-            label.push(lower + (upper - lower) / 2);
-            return OrderLabel(label.into_boxed_slice());
-        }
-        label.push(lower);
-        index += 1;
+#[cfg(test)]
+mod tests {
+    use super::{UiHeadlessRetainedOrder, UiHeadlessRetainedOrderDenial};
+    use worth_ui_host_contract::{
+        UiMountedAllocationBasis, UiMountedCanonicalBox, UiMountedCanonicalBoxInput,
+        UiMountedCoordinateSpace, UiMountedFilledRectCompletionInput, UiMountedFrameIdentity,
+        UiMountedInstanceIdentity, UiMountedNodeReceiptIssuer, UiMountedPaintCommandIdentity,
+        UiMountedPaintOrderIdentity, UiMountedPaintOrderIntegrity, UiMountedRgba8,
+        UiMountedTransformProjection, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+    };
+
+    const PROFILE_CAPACITY: usize = 4_096;
+
+    #[test]
+    fn profile_ceiling_denies_4097_without_mutating_order_integrity_or_high_water() {
+        let identities = (0..u64::try_from(PROFILE_CAPACITY).unwrap())
+            .map(order_identity)
+            .collect::<Vec<_>>();
+        let integrity = UiMountedPaintOrderIntegrity::for_order(&identities);
+        let mut order =
+            UiHeadlessRetainedOrder::initial(&identities, integrity, PROFILE_CAPACITY).unwrap();
+        let expected = order.index.ordered().collect::<Vec<_>>();
+        order.take_cost();
+
+        assert_eq!(
+            order.place_after(order_identity(4_097), Some(identities[0])),
+            Err(UiHeadlessRetainedOrderDenial::CapacityExceeded)
+        );
+        assert_eq!(order.integrity, integrity);
+        let denied = order.take_cost();
+        assert_eq!(denied.live_entries(), 4_096);
+        assert_eq!(denied.allocated_slots(), 4_096);
+        assert_eq!(denied.high_water_entries(), 4_096);
+        assert_eq!(denied.rotations(), 0);
+        assert_eq!(order.index.ordered().collect::<Vec<_>>(), expected);
+    }
+
+    fn order_identity(slot: u64) -> UiMountedPaintOrderIdentity {
+        let frame = UiMountedFrameIdentity::mint_unbound().unwrap();
+        let instance = UiMountedInstanceIdentity::mint_unbound().unwrap();
+        let bounds = UiMountedCanonicalBox::canonicalize(UiMountedCanonicalBoxInput {
+            x: slot as f32,
+            y: 0.0,
+            width: 1.0,
+            height: 1.0,
+            coordinate_space: UiMountedCoordinateSpace::HostSurface,
+        })
+        .unwrap();
+        let mechanic =
+            worth_ui_host_contract::UiMountedFilledRectMechanic::complete_from_runtime_mounting(
+                UiMountedFilledRectCompletionInput {
+                    frame,
+                    surface: UiSemanticSurfaceIdentity::mint_unbound().unwrap(),
+                    binding: UiSurfaceBindingGeneration::mint_unbound().unwrap(),
+                    mounted_instance: instance,
+                    node_receipt: UiMountedNodeReceiptIssuer::mint_for(frame)
+                        .unwrap()
+                        .receipt_for(instance),
+                    allocation_basis: UiMountedAllocationBasis::new(
+                        1,
+                        1,
+                        1,
+                        UiMountedTransformProjection::Identity,
+                    ),
+                    bounds,
+                    color: UiMountedRgba8::new(1, 2, 3, 255),
+                    layer_semantic_order: 0,
+                    clip_bounds: bounds,
+                },
+            )
+            .unwrap();
+        UiMountedPaintOrderIdentity::for_command(UiMountedPaintCommandIdentity::filled_rect(
+            &mechanic,
+        ))
     }
 }

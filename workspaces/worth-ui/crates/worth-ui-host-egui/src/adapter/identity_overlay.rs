@@ -5,6 +5,7 @@ use worth_ui_host_contract::{
 
 #[derive(Clone)]
 pub(super) struct UiEguiPreparedIdentityOverlay {
+    target: Option<worth_ui_host_contract::UiMountedInstanceIdentity>,
     layer: egui::LayerId,
     clip_rect: egui::Rect,
     strips: Vec<egui::Rect>,
@@ -28,12 +29,7 @@ impl UiEguiPreparedIdentityOverlay {
             return Err(UiHostSurfacePresentationDenial::MalformedProjection);
         }
         let Some((node, mechanic)) = mechanics.first() else {
-            return Ok(Self {
-                layer: overlay_layer(projection.binding()),
-                clip_rect: egui::Rect::NOTHING,
-                strips: Vec::new(),
-                color: egui::Color32::TRANSPARENT,
-            });
+            return Ok(Self::empty(projection.binding()));
         };
         validate_mechanic(projection, node, *mechanic)?;
         let geometry = UiEguiClientGeometry::observe(context)?;
@@ -49,11 +45,76 @@ impl UiEguiPreparedIdentityOverlay {
             channels[3],
         );
         Ok(Self {
+            target: Some(node.mounted_instance()),
             layer: overlay_layer(projection.binding()),
             clip_rect: geometry.logical_client,
             strips,
             color,
         })
+    }
+
+    pub(super) fn prepare_delta(
+        context: &egui::Context,
+        view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+        current: &Self,
+        changes: &[worth_ui_host_contract::UiMountedPresentationNodeChange],
+    ) -> Result<Self, UiHostSurfacePresentationDenial> {
+        let touched = |target| {
+            changes
+                .iter()
+                .any(|change| change.mounted_instance() == target)
+        };
+        let retained_target = current.target.filter(|target| !touched(*target));
+        let mut replacement = None;
+        for change in changes {
+            let worth_ui_host_contract::UiMountedPresentationNodeChange::Upsert(state) = change
+            else {
+                continue;
+            };
+            let UiMountedDiagnosticProjection::IdentityOverlay(mechanic) = state.diagnostic()
+            else {
+                continue;
+            };
+            if replacement.replace((*state, mechanic)).is_some() {
+                return Err(UiHostSurfacePresentationDenial::MalformedProjection);
+            }
+        }
+        if retained_target.is_some() && replacement.is_some() {
+            return Err(UiHostSurfacePresentationDenial::MalformedProjection);
+        }
+        let Some((state, mechanic)) = replacement else {
+            return Ok(
+                retained_target.map_or_else(|| Self::empty(view.binding()), |_| current.clone())
+            );
+        };
+        validate_state_mechanic(view, state, mechanic)?;
+        let geometry = UiEguiClientGeometry::observe(context)?;
+        if !geometry.matches(mechanic.coordinate_basis()) {
+            return Err(UiHostSurfacePresentationDenial::MalformedProjection);
+        }
+        let channels = mechanic.color().channels();
+        Ok(Self {
+            target: Some(state.mounted_instance()),
+            layer: overlay_layer(view.binding()),
+            clip_rect: geometry.logical_client,
+            strips: geometry.overlay_strips(mechanic)?.into(),
+            color: egui::Color32::from_rgba_unmultiplied(
+                channels[0],
+                channels[1],
+                channels[2],
+                channels[3],
+            ),
+        })
+    }
+
+    fn empty(binding: worth_ui_host_contract::UiSurfaceBindingGeneration) -> Self {
+        Self {
+            target: None,
+            layer: overlay_layer(binding),
+            clip_rect: egui::Rect::NOTHING,
+            strips: Vec::new(),
+            color: egui::Color32::TRANSPARENT,
+        }
     }
 
     pub(super) fn is_empty(&self) -> bool {
@@ -68,6 +129,21 @@ impl UiEguiPreparedIdentityOverlay {
             painter.rect_filled(*strip, 0.0, self.color);
         }
     }
+}
+
+fn validate_state_mechanic(
+    view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+    state: worth_ui_host_contract::UiMountedPresentationNodeState,
+    mechanic: UiMountedIdentityOverlayMechanic,
+) -> Result<(), UiHostSurfacePresentationDenial> {
+    if mechanic.successor_frame() != view.frame()
+        || mechanic.surface() != view.surface()
+        || mechanic.binding() != view.binding()
+        || mechanic.target_receipt().mounted_instance() != state.mounted_instance()
+    {
+        return Err(UiHostSurfacePresentationDenial::MalformedProjection);
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy)]

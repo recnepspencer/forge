@@ -13,6 +13,8 @@ pub(super) use historical::file_at_revision;
 
 const LEDGER: &str = "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv";
 const EVIDENCE_ROOT: &str = "_docs/worth-ui/milestone-3.14.1-evidence/";
+const PORTFOLIO_REVISION_ENV: &str = "WORTH_UI_LEDGER_PORTFOLIO_SOURCE_REVISION";
+const PORTFOLIO_DIGEST_ENV: &str = "WORTH_UI_LEDGER_PORTFOLIO_SOURCE_STATE_DIGEST";
 
 pub(super) fn repository_root() -> PathBuf {
     workspace_source_inventory()
@@ -64,6 +66,9 @@ pub(super) fn calculate(source_identity: &str) -> Result<String, String> {
 }
 
 pub(crate) fn calculate_source_state(revision: &str) -> Result<String, String> {
+    if let Some(snapshot) = portfolio_source_state(revision)? {
+        return Ok(snapshot);
+    }
     static SOURCE_STATE: OnceLock<(String, Result<String, String>)> = OnceLock::new();
     let (cached_revision, cached_result) = SOURCE_STATE.get_or_init(|| {
         (
@@ -75,6 +80,34 @@ pub(crate) fn calculate_source_state(revision: &str) -> Result<String, String> {
         return Err("source revision changed during ledger validation".to_owned());
     }
     cached_result.clone()
+}
+
+fn portfolio_source_state(revision: &str) -> Result<Option<String>, String> {
+    validate_portfolio_source_state(
+        revision,
+        std::env::var(PORTFOLIO_REVISION_ENV).ok().as_deref(),
+        std::env::var(PORTFOLIO_DIGEST_ENV).ok().as_deref(),
+    )
+}
+
+fn validate_portfolio_source_state(
+    revision: &str,
+    snapshot_revision: Option<&str>,
+    snapshot_digest: Option<&str>,
+) -> Result<Option<String>, String> {
+    match (snapshot_revision, snapshot_digest) {
+        (None, None) => Ok(None),
+        (Some(snapshot_revision), Some(snapshot_digest))
+            if snapshot_revision == revision
+                && snapshot_digest.len() == 64
+                && snapshot_digest
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)) =>
+        {
+            Ok(Some(snapshot_digest.to_owned()))
+        }
+        _ => Err("operational portfolio source snapshot is incomplete or stale".to_owned()),
+    }
 }
 
 fn calculate_source_state_uncached(revision: &str) -> Result<String, String> {
@@ -129,18 +162,27 @@ fn update_source_state_entry(digest: &mut Sha256, identity: &[u8], bytes: Option
 }
 
 const GOVERNANCE_PATHS: &[&str] = &[
+    ".",
     "workspaces/worth-ui",
     "_docs/worth-ui/milestone-3.14.1.md",
     "_docs/worth-ui/native-host-platform.md",
     "_docs/worth-ui/worth_ui_roadmap.md",
     "scripts/ci/run_worth_ui_ledger_test.py",
     "scripts/ci/run_worth_ui_shared_ledger_control.py",
+    "scripts/ci/worth_ui_ledger_command.py",
     "scripts/ci/close_worth_ui_3141_ledger.py",
     "scripts/ci/verify_worth_ui_3141_ledger.py",
     "scripts/ci/worth_ui_3141_ledger_contracts.py",
+    "scripts/ci/worth_ui_3141_proof_plan.py",
     "scripts/ci/worth_ui_3141_p1_proofs.py",
     "scripts/ci/worth_ui_3141_p2_proofs.py",
+    "scripts/ci/worth_ui_3141_p3_proofs.py",
+    "scripts/ci/worth_ui_3141_supporting_world.py",
+    "scripts/ci/worth_ui_ledger_dependency.py",
+    "scripts/ci/worth_ui_ledger_artifact_transaction.py",
+    "scripts/ci/worth_ui_ledger_observation.py",
     "scripts/ci/worth_ui_ledger_source_state.py",
+    "scripts/ci/worth_ui_predecessor_handoff.py",
     "scripts/ci/run_worth_ui_compile_contracts.py",
     "scripts/ci/test_worth_ui_ledger_races.py",
     "tools/boundary-check/config/road1.toml",
@@ -159,6 +201,7 @@ fn governed_source_state_matches_every_transitive_local_package_root() {
     assert!(governed
         .iter()
         .any(|path| path == "scripts/ci/verify_worth_ui_3141_ledger.py"));
+    assert!(governed.iter().any(|path| path == "."));
 }
 
 #[test]
@@ -169,6 +212,37 @@ fn query_dependency_byte_mutation_changes_the_governed_state_digest() {
     update_source_state_entry(&mut original, identity, Some(b"query-v1"));
     update_source_state_entry(&mut mutant, identity, Some(b"query-v2"));
     assert_ne!(original.finalize(), mutant.finalize());
+}
+
+#[test]
+fn operational_portfolio_snapshot_requires_exact_revision_and_digest() {
+    let revision = "a".repeat(40);
+    let digest = "b".repeat(64);
+    assert_eq!(
+        validate_portfolio_source_state(&revision, Some(&revision), Some(&digest)).unwrap(),
+        Some(digest)
+    );
+    assert!(validate_portfolio_source_state(
+        &revision,
+        Some(&"c".repeat(40)),
+        Some(&"b".repeat(64))
+    )
+    .is_err());
+    assert!(validate_portfolio_source_state(&revision, Some(&revision), None).is_err());
+    assert!(
+        validate_portfolio_source_state(&revision, Some(&revision), Some(&"B".repeat(64))).is_err()
+    );
+}
+
+#[test]
+fn whole_tree_selector_includes_root_manifest_and_agent_laws() {
+    let inventory = git_output(&["ls-files", "--cached", "-z", "--", "."]).unwrap();
+    let identities = inventory
+        .split(|byte| *byte == 0)
+        .filter_map(|identity| std::str::from_utf8(identity).ok())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert!(identities.contains("Cargo.toml"));
+    assert!(identities.contains("AGENTS.md"));
 }
 
 fn source_state_paths() -> Result<Vec<String>, String> {

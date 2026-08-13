@@ -1,4 +1,7 @@
-use super::{settle_presentation_failure, UiNativePresentationFailure};
+use super::{
+    presentation_epoch, require_owner_reconstruction, settle_presentation_failure,
+    UiNativePresentationFailure,
+};
 use crate::native::presentation::{
     reserve_presentation_owners, settle_port_result, UiNativePendingExternalObligation,
     UiNativePresentationPortFailure,
@@ -70,4 +73,42 @@ fn external_port_orchestration_and_effect_postures_are_exact() {
     assert_eq!(state.resources.current().pending_submissions, 1);
     state.pending_presentations.clear();
     assert!(external_dropped.get());
+}
+
+#[test]
+fn derived_state_loss_rejects_without_effects_until_owner_reconstruction_arrives() {
+    let mut state = UiNativeHostState::new();
+    let binding = 71;
+    state.reconstruction_required.insert(binding);
+
+    let first = require_owner_reconstruction(&mut state, binding);
+    let second = require_owner_reconstruction(&mut state, binding);
+
+    for outcome in [first, second] {
+        assert!(matches!(
+            outcome,
+            worth_ui_host_contract::UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
+                worth_ui_host_contract::UiHostSurfacePresentationDenial::ReconstructionRequired
+            )
+        ));
+    }
+    assert!(state.reconstruction_required.contains(&binding));
+    assert!(state.pending_presentations.is_empty());
+    assert_eq!(state.effect_posture, UiNativeEffectPosture::BeforeEffects);
+    assert!(state.resources.current().is_zero());
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-RECONSTRUCTION-01\":\"stale-derived-state\"}}"
+    );
+}
+
+#[test]
+fn unchanged_reuses_the_last_physical_presentation_epoch() {
+    let mut state = UiNativeHostState::new();
+    let binding = 73;
+    let physical = presentation_epoch(&mut state, binding, 101, true).unwrap();
+    let unchanged = presentation_epoch(&mut state, binding, 102, false).unwrap();
+    assert_eq!(unchanged, physical);
+    assert_eq!(unchanged.diagnostic_value(), 101);
+    assert!(presentation_epoch(&mut state, binding + 1, 103, false).is_none());
+    println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-UNCHANGED-01\":\"fresh-unchanged-epoch\"}}");
 }

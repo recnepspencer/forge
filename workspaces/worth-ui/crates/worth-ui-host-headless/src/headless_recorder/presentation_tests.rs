@@ -1,11 +1,15 @@
 use worth_ui_host_contract::{
-    UiHostSurfaceIdentity, UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
-    UiMountedPaintCommand, UiMountedPaintOrderIdentity, UiMountedPaintOrderIntegrity,
-    UiMountedPresentationInitial, UiMountedPresentationInitialInput,
+    UiHostProtocolContract, UiHostProtocolNegotiation, UiHostSurfaceIdentity,
+    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedFrameConsumptionInput,
+    UiMountedFrameIdentity, UiMountedLogicalDamage, UiMountedPaintCommand,
+    UiMountedPaintCommandChange, UiMountedPaintOrderEdit, UiMountedPaintOrderIdentity,
+    UiMountedPaintOrderIntegrity, UiMountedPresentationAttemptIdentity, UiMountedPresentationDelta,
+    UiMountedPresentationDeltaInput, UiMountedPresentationInitial,
+    UiMountedPresentationInitialInput, UiMountedPresentationWorkView,
     UiMountedSurfaceBindingRequirement, WorthUiHostCapabilityObservationGeneration,
 };
 
-use super::validated_initial_commands;
+use super::{apply_work, validated_initial_commands};
 
 #[test]
 fn initial_rejects_duplicate_command_identity_before_retention() {
@@ -19,10 +23,10 @@ fn initial_rejects_duplicate_command_identity_before_retention() {
         valid.order_integrity(),
     );
 
-    assert_eq!(
+    assert!(matches!(
         validated_initial_commands(&malformed),
         Err(UiHostSurfacePresentationDenial::MalformedProjection)
-    );
+    ));
 }
 
 #[test]
@@ -37,10 +41,10 @@ fn initial_rejects_order_that_omits_a_command() {
         valid.order_integrity(),
     );
 
-    assert_eq!(
+    assert!(matches!(
         validated_initial_commands(&malformed),
         Err(UiHostSurfacePresentationDenial::MalformedProjection)
-    );
+    ));
 }
 
 #[test]
@@ -53,10 +57,10 @@ fn initial_rejects_stale_order_integrity_for_exact_membership() {
         UiMountedPaintOrderIntegrity::for_order(&[]),
     );
 
-    assert_eq!(
+    assert!(matches!(
         validated_initial_commands(&malformed),
         Err(UiHostSurfacePresentationDenial::MalformedProjection)
-    );
+    ));
 }
 
 #[test]
@@ -77,6 +81,86 @@ fn initial_rejects_command_payload_that_disagrees_with_projection_row() {
     assert_malformed_commands(&valid, commands);
 }
 
+#[test]
+fn ordinary_delta_returns_one_delta_record_without_parallel_retained_history() {
+    let (initial, requirement) = valid_initial_with_requirement();
+    let capacity = crate::UiHeadlessRecorderCapacity::production_default();
+    let mut retained = None;
+    let text = worth_ui_test_support::semantic_text_layout_resolver_for_certification();
+    let initial_view = view(
+        &text,
+        requirement,
+        UiMountedPresentationWorkView::Initial(&initial),
+    );
+    let (recorded, _) = apply_work(&initial_view, capacity, &mut retained).unwrap();
+    assert!(matches!(
+        recorded,
+        Some(super::super::recorded_frame::UiHeadlessRecordedFrame::Complete(_))
+    ));
+    let removed = initial.commands()[0].identity();
+    let remaining = &initial.order()[1..];
+    let delta = UiMountedPresentationDelta::from_inert_mechanics(UiMountedPresentationDeltaInput {
+        predecessor: initial.affinity().successor(),
+        successor: UiMountedFrameIdentity::mint_unbound().unwrap(),
+        surface: initial.affinity().surface(),
+        binding: initial.affinity().binding(),
+        content: initial.affinity().content(),
+        baseline: initial.affinity().baseline(),
+        changes: vec![UiMountedPaintCommandChange::Remove(removed)],
+        nodes: Vec::new(),
+        order: vec![UiMountedPaintOrderEdit::remove(
+            UiMountedPaintOrderIdentity::for_command(removed),
+        )],
+        order_integrity: UiMountedPaintOrderIntegrity::for_order(remaining),
+        damage: vec![UiMountedLogicalDamage::from_runtime_mounting(
+            initial.commands()[0].bounds(),
+        )],
+        auxiliary: None,
+        production_cost: Default::default(),
+    });
+    let delta_view = view(
+        &text,
+        requirement,
+        UiMountedPresentationWorkView::Delta(&delta),
+    );
+    let (recorded, _) = apply_work(&delta_view, capacity, &mut retained).unwrap();
+    assert!(matches!(
+        recorded,
+        Some(super::super::recorded_frame::UiHeadlessRecordedFrame::Delta(_))
+    ));
+    let retained = retained.as_ref().unwrap();
+    assert_eq!(retained.frame, delta.affinity().successor());
+    assert_eq!(retained.commands.len(), initial.commands().len() - 1);
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-HEADLESS-COST-01\":\"complete-transcript-clone\"}}"
+    );
+}
+
+fn view<'work>(
+    text: &'work dyn worth_ui_host_contract::UiMountedQualifiedTextResolver,
+    requirement: UiMountedSurfaceBindingRequirement,
+    presentation_work: UiMountedPresentationWorkView<'work>,
+) -> worth_ui_host_contract::UiMountedFrameConsumptionView<'work> {
+    let protocol = match UiHostProtocolContract::current().negotiate() {
+        UiHostProtocolNegotiation::Compatible(protocol) => protocol,
+        UiHostProtocolNegotiation::Incompatible(_) => panic!("current protocol must negotiate"),
+    };
+    worth_ui_host_contract::UiMountedFrameConsumptionView::from_inert_mechanics(
+        UiMountedFrameConsumptionInput {
+            qualified_text: text,
+            authority: std::rc::Rc::new(()),
+            host_session_identity: 13,
+            protocol,
+            capability_generation: requirement.capability_generation(),
+            capability_profile_digest: requirement.capability_profile_digest(),
+            attempt: UiMountedPresentationAttemptIdentity::mint_unbound().unwrap(),
+            deadline: worth_ui_host_contract::UiPresentationDeadline::at_tick(20),
+            requirement,
+            presentation_work,
+        },
+    )
+}
+
 fn assert_malformed_commands(
     valid: &UiMountedPresentationInitial,
     commands: Vec<UiMountedPaintCommand>,
@@ -87,10 +171,10 @@ fn assert_malformed_commands(
         valid.order().to_vec(),
         valid.order_integrity(),
     );
-    assert_eq!(
+    assert!(matches!(
         validated_initial_commands(&malformed),
         Err(UiHostSurfacePresentationDenial::MalformedProjection)
-    );
+    ));
 }
 
 fn command_with_identity(
@@ -113,30 +197,25 @@ fn command_with_payload(
 ) -> UiMountedPaintCommand {
     match (command, donor) {
         (
-            UiMountedPaintCommand::FilledRect {
-                identity,
-                ..
-            },
+            UiMountedPaintCommand::FilledRect { identity, .. },
             UiMountedPaintCommand::FilledRect { mechanic, .. },
-        ) => UiMountedPaintCommand::FilledRect {
-            identity,
-            mechanic,
-        },
+        ) => UiMountedPaintCommand::FilledRect { identity, mechanic },
         (
-            UiMountedPaintCommand::SemanticText {
-                identity,
-                ..
-            },
+            UiMountedPaintCommand::SemanticText { identity, .. },
             UiMountedPaintCommand::SemanticText { mechanic, .. },
-        ) => UiMountedPaintCommand::SemanticText {
-            identity,
-            mechanic,
-        },
+        ) => UiMountedPaintCommand::SemanticText { identity, mechanic },
         _ => panic!("fixture donor must use the same drawable family"),
     }
 }
 
 fn valid_initial() -> UiMountedPresentationInitial {
+    valid_initial_with_requirement().0
+}
+
+fn valid_initial_with_requirement() -> (
+    UiMountedPresentationInitial,
+    UiMountedSurfaceBindingRequirement,
+) {
     let projection = worth_ui_test_support::semantic_text_projection_for_certification(
         worth_ui_test_support::UiSemanticTextProjectionCertificationMutation::Exact,
     );
@@ -148,8 +227,11 @@ fn valid_initial() -> UiMountedPresentationInitial {
         11,
         UiHostSurfacePresentationMode::RecordOnly,
     );
-    worth_ui_test_support::initial_presentation_mechanics_for_certification(
-        &projection,
+    (
+        worth_ui_test_support::initial_presentation_mechanics_for_certification(
+            &projection,
+            requirement,
+        ),
         requirement,
     )
 }

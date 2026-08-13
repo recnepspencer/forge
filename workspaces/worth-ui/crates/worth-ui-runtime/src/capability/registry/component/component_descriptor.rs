@@ -183,12 +183,10 @@ impl ComponentDescriptor {
     }
 
     pub fn with_semantic_text(mut self, contract: super::ComponentSemanticTextContract) -> Self {
-        if !self
-            .theme_token_dependencies
-            .contains(contract.theme_token())
-        {
-            self.theme_token_dependencies
-                .push(contract.theme_token().clone());
+        for token in contract.foreground_tokens() {
+            if !self.theme_token_dependencies.contains(token) {
+                self.theme_token_dependencies.push(token.clone());
+            }
         }
         self.semantic_text_contract = Some(contract);
         self

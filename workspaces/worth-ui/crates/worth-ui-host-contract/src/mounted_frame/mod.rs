@@ -37,7 +37,10 @@ pub use presentation_work::{
     UiMountedPaintOrderIntegrity, UiMountedPresentationAffinity,
     UiMountedPresentationAuxiliaryState, UiMountedPresentationDelta,
     UiMountedPresentationDeltaInput, UiMountedPresentationInitial,
-    UiMountedPresentationInitialInput, UiMountedPresentationReconstructionDenial,
+    UiMountedPresentationInitialInput, UiMountedPresentationNodeChange,
+    UiMountedPresentationNodePaint, UiMountedPresentationNodeState,
+    UiMountedPresentationNodeStateInput, UiMountedPresentationReconstruction,
+    UiMountedPresentationReconstructionDenial, UiMountedPresentationReconstructionInput,
     UiMountedPresentationUnchanged, UiMountedPresentationUnchangedInput,
     UiMountedPresentationWorkView,
 };

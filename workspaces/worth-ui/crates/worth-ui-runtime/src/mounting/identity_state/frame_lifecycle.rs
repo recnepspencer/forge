@@ -40,6 +40,10 @@ impl UiMountedIdentityState {
         self.current_publication.is_some()
     }
 
+    pub(in crate::mounting) fn current_frame_identity(&self) -> Option<UiMountedFrameIdentity> {
+        self.current_frame
+    }
+
     pub(crate) fn advance_frame(
         &mut self,
     ) -> Result<UiMountedFrameIdentity, UiMountedIdentityDenial> {
@@ -208,7 +212,7 @@ impl UiMountedIdentityState {
             .rebound(replacement_views)
             .map_err(|_| UiMountedIdentityDenial::ReconciliationBasisMismatch)?;
         Ok(super::super::UiProjectedMountedFrameCandidate {
-            frame: projection,
+            frame: std::sync::Arc::new(projection),
             identity_candidate: UiMountedIdentityFrameCandidate {
                 receipt_basis: self
                     .current_receipt_basis
@@ -216,6 +220,7 @@ impl UiMountedIdentityState {
                     .ok_or(UiMountedIdentityDenial::NoPublishedMountedFrame)?,
             },
             projection_changes,
+            presentation_predecessor: self.current_frame,
             presentation_changed_instances: current_instances.into(),
         })
     }

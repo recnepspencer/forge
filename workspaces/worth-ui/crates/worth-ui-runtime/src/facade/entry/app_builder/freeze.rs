@@ -4,6 +4,7 @@ struct HostNeutralFreeze {
     prepared: crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
     mounted_frame_retention_budget: crate::mounting::UiMountedFrameRetentionBudget,
     host_observation_capacity: crate::facade::observation_report::UiHostObservationCapacity,
+    font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
 }
 
 impl WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied> {
@@ -47,6 +48,7 @@ impl WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied
             prepared,
             mounted_frame_retention_budget: self.mounted_frame_retention_budget,
             host_observation_capacity: self.host_observation_capacity,
+            font_collection: self.font_collection,
         })
     }
 }
@@ -61,6 +63,7 @@ impl WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied
             frozen.prepared,
             frozen.mounted_frame_retention_budget,
             frozen.host_observation_capacity,
+            frozen.font_collection,
         ))
     }
 }

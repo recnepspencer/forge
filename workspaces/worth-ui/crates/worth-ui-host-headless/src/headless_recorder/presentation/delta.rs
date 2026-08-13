@@ -16,13 +16,15 @@ pub(super) fn apply(
     delta: &UiMountedPresentationDelta,
 ) -> Result<UiHeadlessRecordedFrame, UiHostSurfacePresentationDenial> {
     validate_delta(current, delta, capacity)?;
-    let auxiliary_predecessor = delta
-        .auxiliary()
-        .map(|_| {
-            super::super::recorded_frame::materialize_latest(current.reconstruction.iter().cloned())
-        })
-        .transpose()?;
-    let undo = DeltaUndo::capture(current, delta);
+    let nodes = super::node_delta::UiHeadlessNodeMutation::prepare(
+        current,
+        delta.changes(),
+        delta.nodes(),
+        delta.auxiliary().unwrap_or(&current.auxiliary),
+        capacity.mechanics_per_frame(),
+    )?;
+    let undo = DeltaUndo::capture(current, delta, nodes);
+    undo.nodes.apply(current);
     for change in delta.changes() {
         if apply_command_change(&mut current.commands, change).is_err() {
             undo.restore(current);
@@ -38,28 +40,10 @@ pub(super) fn apply(
         return Err(malformed());
     }
     current.frame = view.frame();
-    let recorded = match delta.auxiliary() {
-        None => UiHeadlessRecordedFrame::delta(view, delta),
-        Some(auxiliary) => match complete_auxiliary_delta(
-            view,
-            capacity,
-            current,
-            auxiliary.clone(),
-            delta.damage(),
-            auxiliary_predecessor.as_ref().ok_or_else(malformed)?,
-        ) {
-            Ok(recorded) => recorded,
-            Err(denial) => {
-                undo.restore(current);
-                return Err(denial);
-            }
-        },
-    };
-    if matches!(recorded, UiHeadlessRecordedFrame::Complete(_)) {
-        current.reconstruction.clear();
+    if let Some(auxiliary) = delta.auxiliary() {
+        current.auxiliary = auxiliary.clone();
     }
-    current.reconstruction.push(recorded.clone());
-    Ok(recorded)
+    UiHeadlessRecordedFrame::delta(view, delta, capacity)
 }
 
 struct DeltaUndo {
@@ -67,12 +51,14 @@ struct DeltaUndo {
     commands: Vec<(UiMountedPaintCommandIdentity, Option<UiMountedPaintCommand>)>,
     order: super::super::retained_order::UiHeadlessRetainedOrderSnapshot,
     auxiliary: Option<worth_ui_host_contract::UiMountedPresentationAuxiliaryState>,
+    nodes: super::node_delta::UiHeadlessNodeMutation,
 }
 
 impl DeltaUndo {
     fn capture(
         current: &UiHeadlessRetainedPresentation,
         delta: &UiMountedPresentationDelta,
+        nodes: super::node_delta::UiHeadlessNodeMutation,
     ) -> Self {
         Self {
             frame: current.frame,
@@ -88,10 +74,12 @@ impl DeltaUndo {
                 .order
                 .snapshot(delta.order().iter().map(|edit| edit.identity())),
             auxiliary: delta.auxiliary().map(|_| current.auxiliary.clone()),
+            nodes,
         }
     }
 
     fn restore(self, current: &mut UiHeadlessRetainedPresentation) {
+        self.nodes.restore(current);
         for (identity, _) in &self.commands {
             current.commands.remove(identity);
         }
@@ -202,49 +190,8 @@ fn final_command_exists(
         && (inserted.contains(&identity) || current.commands.contains_key(&identity))
 }
 
-fn complete_auxiliary_delta(
-    view: &UiMountedFrameConsumptionView<'_>,
-    capacity: UiHeadlessRecorderCapacity,
-    current: &mut UiHeadlessRetainedPresentation,
-    auxiliary: worth_ui_host_contract::UiMountedPresentationAuxiliaryState,
-    damage: &[worth_ui_host_contract::UiMountedLogicalDamage],
-    predecessor: &crate::UiHeadlessMountedFrameTranscript,
-) -> Result<UiHeadlessRecordedFrame, UiHostSurfacePresentationDenial> {
-    let projection = auxiliary
-        .reconstruct(&current.commands)
-        .map_err(|_| malformed())?;
-    let order = current.order.ordered().collect::<Vec<_>>();
-    let delta = match view.presentation_work() {
-        worth_ui_host_contract::UiMountedPresentationWorkView::Delta(delta) => delta,
-        _ => return Err(malformed()),
-    };
-    let command_transcript = predecessor.successor_recorded_delta(
-        crate::headless_transcript::UiHeadlessTranscriptSuccessorIdentity {
-            host_session_identity: view.host_session_identity(),
-            protocol: view.protocol(),
-            attempt: view.attempt(),
-            frame: view.frame(),
-            binding: view.binding(),
-        },
-        delta.changes(),
-        delta.order(),
-        delta.order_integrity(),
-        damage,
-    )?;
-    let transcript = crate::headless_translation::translate_auxiliary_delta(
-        view,
-        &projection,
-        &command_transcript,
-        capacity,
-        &order,
-        damage,
-    )?;
-    current.auxiliary = auxiliary;
-    Ok(UiHeadlessRecordedFrame::complete(transcript))
-}
-
 fn apply_command_change(
-    commands: &mut std::collections::HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
+    commands: &mut super::super::retained_command_store::UiHeadlessRetainedCommandStore,
     change: &UiMountedPaintCommandChange,
 ) -> Result<(), UiHostSurfacePresentationDenial> {
     match change {

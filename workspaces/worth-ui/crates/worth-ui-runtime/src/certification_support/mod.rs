@@ -98,9 +98,10 @@ pub use scripted_presentation_host::{
     ScriptedSurfaceCompletion,
 };
 pub use semantic_text_projection::{
+    empty_projection_for_certification, semantic_text_layout_resolver_for_certification,
     semantic_text_projection_for_certification,
     semantic_text_projection_for_certification_with_capability,
-    UiSemanticTextProjectionCertificationMutation,
+    UiCertificationQualifiedTextResolver, UiSemanticTextProjectionCertificationMutation,
 };
 pub use touch_origin::{
     runtime_origin_fixture, WorthUiTouchOriginCertificationFixture,

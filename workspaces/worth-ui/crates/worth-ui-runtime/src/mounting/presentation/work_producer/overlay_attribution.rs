@@ -36,9 +36,9 @@ pub(super) fn refresh_commands(
         })
         .collect::<HashSet<_>>();
     let mut command_lookups = 0;
+    let order = successor.order();
     changes.extend(
-        successor
-            .order
+        order
             .iter()
             .map(|order| order.command())
             .filter_map(|identity| {
@@ -52,8 +52,8 @@ pub(super) fn refresh_commands(
             }),
     );
     OverlayRefreshCost {
-        commands_considered: successor.order.len(),
+        commands_considered: order.len(),
         command_lookups,
-        order_items_scanned: successor.order.len(),
+        order_items_scanned: order.len(),
     }
 }

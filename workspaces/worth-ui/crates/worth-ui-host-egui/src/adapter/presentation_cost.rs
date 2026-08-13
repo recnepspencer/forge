@@ -29,17 +29,35 @@ pub(super) fn for_work(
                 let rows = delta
                     .changes()
                     .len()
-                    .checked_add(delta.order().len())
+                    .checked_add(delta.nodes().len())
+                    .and_then(|value| value.checked_add(delta.order().len()))
                     .and_then(|value| value.checked_add(delta.damage().len()))
                     .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
                 (
                     1,
                     rows,
-                    std::mem::size_of_val(delta.changes()),
+                    std::mem::size_of_val(delta.changes()) + std::mem::size_of_val(delta.nodes()),
                     rows,
                     delta.changes().len(),
                     delta.order().len(),
                     delta.damage().len(),
+                )
+            }
+            UiMountedPresentationWorkView::Reconstruction(work) => {
+                let rows = work
+                    .commands()
+                    .len()
+                    .checked_add(work.order().len())
+                    .and_then(|value| value.checked_add(work.damage().len()))
+                    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+                (
+                    1,
+                    rows,
+                    std::mem::size_of_val(work.commands()),
+                    rows,
+                    work.commands().len(),
+                    work.order().len(),
+                    work.damage().len(),
                 )
             }
             UiMountedPresentationWorkView::Unchanged(_) => (0, 0, 0, 0, 0, 0, 0),

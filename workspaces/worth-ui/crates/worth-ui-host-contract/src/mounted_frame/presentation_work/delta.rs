@@ -8,6 +8,7 @@ use super::{
 pub struct UiMountedPresentationDelta {
     pub(super) affinity: UiMountedPresentationAffinity,
     pub(super) changes: Box<[UiMountedPaintCommandChange]>,
+    pub(super) nodes: Box<[super::UiMountedPresentationNodeChange]>,
     pub(super) order: Box<[UiMountedPaintOrderEdit]>,
     pub(super) order_integrity: UiMountedPaintOrderIntegrity,
     pub(super) damage: Box<[UiMountedLogicalDamage]>,
@@ -24,6 +25,7 @@ pub struct UiMountedPresentationDeltaInput {
     pub content: crate::UiMountedContentGeneration,
     pub baseline: crate::UiHostSurfaceBaselineIdentity,
     pub changes: Vec<UiMountedPaintCommandChange>,
+    pub nodes: Vec<super::UiMountedPresentationNodeChange>,
     pub order: Vec<UiMountedPaintOrderEdit>,
     pub order_integrity: UiMountedPaintOrderIntegrity,
     pub damage: Vec<UiMountedLogicalDamage>,
@@ -47,6 +49,7 @@ impl UiMountedPresentationDelta {
         Self {
             affinity,
             changes: input.changes.into_boxed_slice(),
+            nodes: input.nodes.into_boxed_slice(),
             order: input.order.into_boxed_slice(),
             order_integrity: input.order_integrity,
             damage: input.damage.into_boxed_slice(),
@@ -61,6 +64,10 @@ impl UiMountedPresentationDelta {
 
     pub fn changes(&self) -> &[UiMountedPaintCommandChange] {
         &self.changes
+    }
+
+    pub fn nodes(&self) -> &[super::UiMountedPresentationNodeChange] {
+        &self.nodes
     }
 
     pub fn order(&self) -> &[UiMountedPaintOrderEdit] {

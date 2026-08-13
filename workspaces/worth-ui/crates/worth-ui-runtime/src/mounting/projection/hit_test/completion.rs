@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use worth_ui_host_contract::{
     UiMountedAllocationProjection, UiMountedHitTestCompletionInput, UiMountedHitTestMechanic,
     UiMountedParticipationStatus, UiSurfaceBindingGeneration,
@@ -8,32 +6,7 @@ use worth_ui_host_contract::{
 use super::super::frame_storage::UiMountedSemanticProjection;
 use super::super::UiMountedProjectionDenial;
 
-pub(in crate::mounting::projection) fn complete_hit_tests(
-    frame: worth_ui_host_contract::UiMountedFrameIdentity,
-    receipt_basis: &super::super::super::UiMountedNodeReceiptBasis,
-    semantic: &UiMountedSemanticProjection,
-) -> Result<Vec<UiMountedHitTestMechanic>, UiMountedProjectionDenial> {
-    let mut rows = Vec::new();
-    let mut orders = BTreeSet::new();
-    for node in semantic.nodes_in_order() {
-        let Some(row) = complete_hit_test(frame, receipt_basis, semantic, node)? else {
-            continue;
-        };
-        if rows.len() >= worth_ui_host_contract::UiMountedHitTestTable::MAX_ROWS {
-            return Err(UiMountedProjectionDenial::HitTestCapacityExceeded);
-        }
-        if !orders.insert((row.surface(), row.order())) {
-            return Err(UiMountedProjectionDenial::DuplicateHitTestOrder {
-                surface: row.surface(),
-                order: row.order(),
-            });
-        }
-        rows.push(row);
-    }
-    Ok(rows)
-}
-
-fn complete_hit_test(
+pub(in crate::mounting::projection) fn complete_hit_test(
     frame: worth_ui_host_contract::UiMountedFrameIdentity,
     receipt_basis: &super::super::super::UiMountedNodeReceiptBasis,
     semantic: &UiMountedSemanticProjection,

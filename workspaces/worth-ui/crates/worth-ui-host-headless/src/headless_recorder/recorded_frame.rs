@@ -1,11 +1,12 @@
 use std::collections::BTreeMap;
 use worth_ui_host_contract::{
-    UiHostSurfacePresentationDenial, UiMountedLogicalDamage, UiMountedPaintCommandChange,
-    UiMountedPaintOrderEdit, UiMountedPaintOrderIntegrity,
+    UiHostSurfacePresentationDenial, UiMountedLogicalDamage, UiMountedPaintCommand,
+    UiMountedPaintCommandChange, UiMountedPaintOrderEdit, UiMountedPaintOrderIntegrity,
+    UiMountedPresentationAuxiliaryState,
 };
 
 use crate::headless_transcript::UiHeadlessTranscriptSuccessorIdentity;
-use crate::UiHeadlessMountedFrameTranscript;
+use crate::{UiHeadlessMountedFrameTranscript, UiHeadlessRecorderCapacity};
 
 #[derive(Clone)]
 pub(super) enum UiHeadlessRecordedFrame {
@@ -20,6 +21,15 @@ pub(super) struct UiHeadlessRecordedDelta {
     order: Box<[UiMountedPaintOrderEdit]>,
     order_integrity: UiMountedPaintOrderIntegrity,
     damage: Box<[UiMountedLogicalDamage]>,
+    nodes: Box<[worth_ui_host_contract::UiMountedPresentationNodeChange]>,
+    auxiliary: Option<UiMountedPresentationAuxiliaryState>,
+    semantic_text: Box<
+        [(
+            worth_ui_host_contract::UiMountedPaintCommandIdentity,
+            crate::headless_transcript::UiHeadlessSemanticTextMechanic,
+        )],
+    >,
+    capacity: UiHeadlessRecorderCapacity,
 }
 
 impl UiHeadlessRecordedFrame {
@@ -30,8 +40,28 @@ impl UiHeadlessRecordedFrame {
     pub(super) fn delta(
         view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
         delta: &worth_ui_host_contract::UiMountedPresentationDelta,
-    ) -> Self {
-        Self::Delta(UiHeadlessRecordedDelta {
+        capacity: UiHeadlessRecorderCapacity,
+    ) -> Result<Self, UiHostSurfacePresentationDenial> {
+        let semantic_text = delta
+            .changes()
+            .iter()
+            .filter_map(|change| match change {
+                UiMountedPaintCommandChange::Insert(UiMountedPaintCommand::SemanticText {
+                    identity,
+                    mechanic,
+                })
+                | UiMountedPaintCommandChange::Replace(UiMountedPaintCommand::SemanticText {
+                    identity,
+                    mechanic,
+                }) => Some((*identity, mechanic)),
+                _ => None,
+            })
+            .map(|(identity, mechanic)| {
+                crate::headless_translation::semantic_text::translate_command(view, mechanic)
+                    .map(|translated| (identity, translated))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self::Delta(UiHeadlessRecordedDelta {
             identity: UiHeadlessTranscriptSuccessorIdentity {
                 host_session_identity: view.host_session_identity(),
                 protocol: view.protocol(),
@@ -43,7 +73,11 @@ impl UiHeadlessRecordedFrame {
             order: delta.order().into(),
             order_integrity: delta.order_integrity(),
             damage: delta.damage().into(),
-        })
+            nodes: delta.nodes().into(),
+            auxiliary: delta.auxiliary().cloned(),
+            semantic_text: semantic_text.into_boxed_slice(),
+            capacity,
+        }))
     }
 
     fn materialize(
@@ -52,15 +86,9 @@ impl UiHeadlessRecordedFrame {
     ) -> Result<UiHeadlessMountedFrameTranscript, UiHostSurfacePresentationDenial> {
         match self {
             Self::Complete(transcript) => Ok(transcript.clone()),
-            Self::Delta(delta) => predecessor
-                .ok_or(UiHostSurfacePresentationDenial::MalformedProjection)?
-                .successor_recorded_delta(
-                    delta.identity,
-                    &delta.changes,
-                    &delta.order,
-                    delta.order_integrity,
-                    &delta.damage,
-                ),
+            Self::Delta(delta) => delta.materialize(
+                predecessor.ok_or(UiHostSurfacePresentationDenial::MalformedProjection)?,
+            ),
         }
     }
 
@@ -69,6 +97,37 @@ impl UiHeadlessRecordedFrame {
             Self::Complete(transcript) => transcript.binding(),
             Self::Delta(delta) => delta.identity.binding,
         }
+    }
+}
+
+impl UiHeadlessRecordedDelta {
+    fn materialize(
+        &self,
+        predecessor: &UiHeadlessMountedFrameTranscript,
+    ) -> Result<UiHeadlessMountedFrameTranscript, UiHostSurfacePresentationDenial> {
+        let commands = predecessor.successor_recorded_delta(
+            self.identity,
+            &self.changes,
+            &self.order,
+            self.order_integrity,
+            &self.damage,
+            &self.nodes,
+            &self.semantic_text,
+        )?;
+        let Some(auxiliary) = &self.auxiliary else {
+            return Ok(commands);
+        };
+        let projection = auxiliary
+            .reconstruct_authored()
+            .map_err(|_| UiHostSurfacePresentationDenial::MalformedProjection)?;
+        crate::headless_translation::translate_auxiliary_delta(
+            self.identity,
+            &projection,
+            &commands,
+            self.capacity,
+            commands.paint_order(),
+            &self.damage,
+        )
     }
 }
 
@@ -87,14 +146,4 @@ pub(super) fn materialize_frames(
         transcripts.push(transcript);
     }
     Ok(transcripts.into_boxed_slice())
-}
-
-pub(super) fn materialize_latest(
-    records: impl IntoIterator<Item = UiHeadlessRecordedFrame>,
-) -> Result<UiHeadlessMountedFrameTranscript, UiHostSurfacePresentationDenial> {
-    let mut latest = None;
-    for record in records {
-        latest = Some(record.materialize(latest.as_ref())?);
-    }
-    latest.ok_or(UiHostSurfacePresentationDenial::MalformedProjection)
 }

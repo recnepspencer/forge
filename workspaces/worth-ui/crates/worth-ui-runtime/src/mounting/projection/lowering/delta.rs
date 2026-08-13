@@ -242,10 +242,18 @@ impl UiMountedDeltaApplication {
         if !input.changes.order_changed() && !self.membership_changed {
             return 0;
         }
+        if let Some(order) = input
+            .state
+            .projection_order_snapshot(input.requested_surfaces)
+        {
+            let declared_rows = usize::from(input.changes.order_changed()) * order.len();
+            self.semantic.replace_order_snapshot(order);
+            return declared_rows;
+        }
         let order = input.state.projection_order(input.requested_surfaces);
-        let count = order.len();
+        let copied_rows = order.len();
         self.semantic.replace_order(order);
-        count
+        copied_rows
     }
 
     fn finish(

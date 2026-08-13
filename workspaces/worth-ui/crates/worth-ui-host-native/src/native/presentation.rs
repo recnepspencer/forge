@@ -19,12 +19,12 @@ mod reconstruction;
 mod retained_draw_list;
 mod retained_evidence_copy;
 mod retained_order;
+mod transaction_state;
 
 use pipeline::{
-    clear_target, draw_rectangle, draw_rectangle_after_clear, draw_retained_to_surface, pipeline,
-    replace_pipeline, retained_transfer,
+    draw_raster_operations, draw_retained_to_surface, raster_pipelines, retained_transfer,
 };
-use raster::{raster_rect, rectangle_shader, RasterRect};
+use raster::{raster_rect, rectangle_vertices, RasterRect, RasterVertex};
 #[cfg(test)]
 pub(crate) use readback_port::prove_nonuniform_readback_port;
 use readback_port::{UiNativeReadbackPort, UiWgpuNativeReadbackPort};
@@ -35,8 +35,13 @@ pub(crate) use port::{
     UiNativePresentationPort, UiNativePresentationPortFailure, UiNativePresentationPortPlan,
     UiNativeRasterOperation, UiWgpuNativePresentationPort,
 };
-pub(crate) use reconstruction::present_reconstruction;
+pub(crate) use reconstruction::present_cold_reconstruction;
 pub(crate) use retained_draw_list::UiNativeRetainedDrawList;
+pub(crate) use transaction_state::UiNativePendingPresentation;
+pub(crate) use transaction_state::{
+    reserve_presentation_owners, settle_port_result, UiNativePendingExternalObligation,
+    UiNativePendingWgpuObligation,
+};
 
 pub(crate) const GPU_WAIT_DEADLINE: std::time::Duration = std::time::Duration::from_millis(5_000);
 
@@ -52,88 +57,7 @@ pub(crate) struct UiNativePresentedFrame {
 }
 
 struct ValidatedInitial {
-    frame: u64,
     mechanics: Box<[worth_ui_host_contract::UiMountedFilledRectMechanic]>,
-}
-
-pub(super) struct UiNativePresentationOwners {
-    readback: super::UiNativeResourceOwner,
-    submission: super::UiNativeResourceOwner,
-}
-
-pub(crate) struct UiNativePendingPresentation {
-    external: Box<dyn UiNativePendingExternalObligation>,
-    readback_owner: super::UiNativeResourceOwner,
-    submission_owner: super::UiNativeResourceOwner,
-}
-
-pub(super) trait UiNativePendingExternalObligation {
-    fn try_settle(&mut self, device: Option<&wgpu::Device>) -> bool;
-}
-
-pub(super) struct UiNativePendingWgpuObligation {
-    _readback: wgpu::Buffer,
-    _submission: wgpu::SubmissionIndex,
-}
-
-impl UiNativePendingWgpuObligation {
-    pub(super) fn new(readback: wgpu::Buffer, submission: wgpu::SubmissionIndex) -> Self {
-        Self {
-            _readback: readback,
-            _submission: submission,
-        }
-    }
-}
-
-impl UiNativePendingExternalObligation for UiNativePendingWgpuObligation {
-    fn try_settle(&mut self, device: Option<&wgpu::Device>) -> bool {
-        let Some(device) = device else {
-            return false;
-        };
-        let settled = device
-            .poll(wgpu::PollType::Wait {
-                submission_index: Some(self._submission.clone()),
-                timeout: Some(GPU_WAIT_DEADLINE),
-            })
-            .is_ok();
-        if settled {
-            self._readback.unmap();
-        }
-        settled
-    }
-}
-
-impl UiNativePendingPresentation {
-    fn external(
-        external: Box<dyn UiNativePendingExternalObligation>,
-        readback_owner: super::UiNativeResourceOwner,
-        submission_owner: super::UiNativeResourceOwner,
-    ) -> Self {
-        Self {
-            external,
-            readback_owner,
-            submission_owner,
-        }
-    }
-
-    pub(crate) fn try_settle(&mut self, device: Option<&wgpu::Device>) -> bool {
-        self.external.try_settle(device)
-    }
-
-    pub(crate) fn release(self, resources: &mut UiNativeResourceRegistry) {
-        let Self {
-            external,
-            readback_owner,
-            submission_owner,
-        } = self;
-        drop(external);
-        resources
-            .release(readback_owner)
-            .expect("settled readback owner must remain exact");
-        resources
-            .release(submission_owner)
-            .expect("settled submission owner must remain exact");
-    }
 }
 
 impl UiNativePresentedFrame {
@@ -199,59 +123,6 @@ pub(crate) fn present_initial<Port: UiNativePresentationPort>(
     ))
 }
 
-pub(super) fn reserve_presentation_owners(
-    resources: &mut UiNativeResourceRegistry,
-) -> Result<UiNativePresentationOwners, UiNativePresentationFailure> {
-    let mut owners = resources
-        .reserve(&[
-            UiNativeResourceClass::ReadbackBuffer,
-            UiNativeResourceClass::PendingSubmission,
-        ])
-        .map_err(|_| {
-            UiNativePresentationFailure::BeforeEffects(
-                UiHostSurfacePresentationDenial::CapacityExceeded,
-            )
-        })?;
-    Ok(UiNativePresentationOwners {
-        readback: owners.remove(0),
-        submission: owners.remove(0),
-    })
-}
-
-pub(super) fn settle_port_result(
-    resources: &mut UiNativeResourceRegistry,
-    owners: UiNativePresentationOwners,
-    result: Result<port::UiNativePresentationPortObservation, UiNativePresentationPortFailure>,
-) -> Result<port::UiNativePresentationPortObservation, UiNativePresentationFailure> {
-    match result {
-        Ok(observation) => {
-            resources
-                .release(owners.readback)
-                .expect("readback owner must remain exact");
-            resources
-                .release(owners.submission)
-                .expect("submission owner must remain exact");
-            Ok(observation)
-        }
-        Err(UiNativePresentationPortFailure::SurfaceUnavailable) => {
-            resources
-                .release(owners.readback)
-                .expect("readback reservation must remain exact");
-            resources
-                .release(owners.submission)
-                .expect("submission reservation must remain exact");
-            Err(UiNativePresentationFailure::BeforeEffects(
-                UiHostSurfacePresentationDenial::AdapterDeclined,
-            ))
-        }
-        Err(UiNativePresentationPortFailure::ReadbackUnsettled(external)) => {
-            Err(UiNativePresentationFailure::Indeterminate(
-                UiNativePendingPresentation::external(external, owners.readback, owners.submission),
-            ))
-        }
-    }
-}
-
 fn build_presented_frame(
     view: &UiMountedFrameConsumptionView<'_>,
     graphics: &UiNativeGraphics,
@@ -259,18 +130,64 @@ fn build_presented_frame(
     external: port::UiNativePresentationPortObservation,
     retained: UiNativeRetainedDrawList,
 ) -> UiNativePresentedFrame {
-    let ValidatedInitial { frame, mechanics } = initial;
-    let mechanic = mechanics[0];
+    let ValidatedInitial { mechanics } = initial;
+    let order_ordinal = mechanics.len().saturating_sub(1);
+    let mechanic = mechanics[order_ordinal];
     let (pixels, cost, port_crossings) = external.into_parts();
+    let observation = observation_for_mechanic(
+        view,
+        graphics,
+        mechanic,
+        order_ordinal,
+        pixels,
+        cost,
+        port_crossings,
+    );
+    UiNativePresentedFrame {
+        observation,
+        cost,
+        retained,
+    }
+}
+
+pub(crate) fn observation_for_retained(
+    view: &UiMountedFrameConsumptionView<'_>,
+    graphics: &UiNativeGraphics,
+    retained: &UiNativeRetainedDrawList,
+    pixels: [[u8; 4]; 2],
+    cost: UiHostPresentationCostReport,
+    port_crossings: u8,
+) -> Option<UiNativePresentationObservation> {
+    let (ordinal, mechanic) = retained.top_filled_rect()?;
+    Some(observation_for_mechanic(
+        view,
+        graphics,
+        mechanic,
+        ordinal,
+        pixels,
+        cost,
+        port_crossings,
+    ))
+}
+
+fn observation_for_mechanic(
+    view: &UiMountedFrameConsumptionView<'_>,
+    graphics: &UiNativeGraphics,
+    mechanic: worth_ui_host_contract::UiMountedFilledRectMechanic,
+    order_ordinal: usize,
+    pixels: [[u8; 4]; 2],
+    cost: UiHostPresentationCostReport,
+    port_crossings: u8,
+) -> UiNativePresentationObservation {
     let [retained_baseline_rgba8, retained_center_rgba8] = pixels;
     let bounds = mechanic.bounds();
-    let observation = UiNativePresentationObservation::new(UiNativePresentationInput {
+    UiNativePresentationObservation::new(UiNativePresentationInput {
         client_physical_size: graphics.extent(),
         scale_factor_milli: (graphics.scale_factor * 1_000.0).round() as u32,
         source_rgba8: mechanic.color().channels(),
         retained_center_rgba8,
         retained_baseline_rgba8,
-        presented_frame: frame,
+        presented_frame: view.frame().diagnostic_value(),
         semantic_surface: view.surface().diagnostic_value(),
         binding_generation: view.binding().diagnostic_value(),
         mounted_instance: mechanic.mounted_instance().diagnostic_value(),
@@ -282,15 +199,10 @@ fn build_presented_frame(
             milli(bounds.width()),
             milli(bounds.height()),
         ],
-        order_ordinal: 0,
+        order_ordinal: u16::try_from(order_ordinal).expect("native profile bounds paint order"),
         port_crossings,
         cost,
-    });
-    UiNativePresentedFrame {
-        observation,
-        cost,
-        retained,
-    }
+    })
 }
 
 fn milli(value: f32) -> i64 {
@@ -315,8 +227,8 @@ fn initial_presentation_cost(
         cleared_pixels: pixels,
         rendered_pixels,
         presented_pixels: pixels,
-        gpu_writes: rows + 1,
-        render_passes: rows + 1,
+        gpu_writes: u64::from(!rects.is_empty()),
+        render_passes: 2,
         surface_acquisitions: 1,
         queue_submissions: 1,
         presents: 1,
@@ -349,12 +261,16 @@ fn validate_initial(
         .commands()
         .iter()
         .map(|command| match command {
-            UiMountedPaintCommand::FilledRect {
-                identity,
-                mechanic,
-            } if *identity
-                == worth_ui_host_contract::UiMountedPaintCommandIdentity::filled_rect(mechanic)
-                && initial.projection().filled_rects().rows().contains(mechanic) =>
+            UiMountedPaintCommand::FilledRect { identity, mechanic }
+                if *identity
+                    == worth_ui_host_contract::UiMountedPaintCommandIdentity::filled_rect(
+                        mechanic,
+                    )
+                    && initial
+                        .projection()
+                        .filled_rects()
+                        .rows()
+                        .contains(mechanic) =>
             {
                 Ok((*identity, *mechanic))
             }
@@ -375,7 +291,6 @@ fn validate_initial(
         })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(ValidatedInitial {
-        frame: initial.affinity().successor().diagnostic_value(),
         mechanics: mechanics.into_boxed_slice(),
     })
 }

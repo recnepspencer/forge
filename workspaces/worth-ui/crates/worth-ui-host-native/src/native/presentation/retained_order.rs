@@ -1,13 +1,10 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::hash::Hash;
-use std::ops::Bound::{Excluded, Unbounded};
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-struct OrderLabel(Box<[u16]>);
+use worth_ui_retained_order::UiRetainedOrderIndex;
 
 pub(super) struct UiNativeRetainedOrder<Identity> {
-    labels: HashMap<Identity, OrderLabel>,
-    identities: BTreeMap<OrderLabel, Identity>,
+    index: UiRetainedOrderIndex<Identity>,
 }
 
 pub(super) struct UiNativeRetainedOrderSnapshot<Identity> {
@@ -18,7 +15,7 @@ struct OriginalOrderEntry<Identity> {
     identity: Identity,
     predecessor: Option<Identity>,
     existed: bool,
-    label: Option<OrderLabel>,
+    rank: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -27,6 +24,7 @@ pub(super) enum UiNativeRetainedOrderDenial {
     MissingIdentity,
     MissingPredecessor,
     SelfPredecessor,
+    CapacityExceeded,
 }
 
 impl<Identity> UiNativeRetainedOrder<Identity>
@@ -37,8 +35,9 @@ where
         identities: impl IntoIterator<Item = Identity>,
     ) -> Result<Self, UiNativeRetainedOrderDenial> {
         let mut order = Self {
-            labels: HashMap::new(),
-            identities: BTreeMap::new(),
+            index: UiRetainedOrderIndex::new(usize::from(
+                crate::UiNativeMechanicsCapacities::QUALIFIED.retained_commands,
+            )),
         };
         let mut previous = None;
         for identity in identities {
@@ -49,14 +48,10 @@ where
     }
 
     pub(super) fn remove(&mut self, identity: Identity) -> Result<(), UiNativeRetainedOrderDenial> {
-        let label = self
-            .labels
-            .remove(&identity)
-            .ok_or(UiNativeRetainedOrderDenial::MissingIdentity)?;
-        self.identities
-            .remove(&label)
-            .ok_or(UiNativeRetainedOrderDenial::MissingIdentity)?;
-        Ok(())
+        self.index
+            .remove(identity)
+            .then_some(())
+            .ok_or(UiNativeRetainedOrderDenial::MissingIdentity)
     }
 
     pub(super) fn place_after(
@@ -67,39 +62,47 @@ where
         if predecessor == Some(identity) {
             return Err(UiNativeRetainedOrderDenial::SelfPredecessor);
         }
-        if self.labels.contains_key(&identity) {
+        if predecessor.is_some_and(|value| !self.index.contains(value)) {
+            return Err(UiNativeRetainedOrderDenial::MissingPredecessor);
+        }
+        if self.index.contains(identity) {
             self.remove(identity)?;
         }
         self.insert_after(identity, predecessor)
     }
 
     pub(super) fn ordered(&self) -> impl ExactSizeIterator<Item = Identity> + '_ {
-        self.identities.values().copied()
+        self.index.ordered()
+    }
+
+    pub(super) fn last(&self) -> Option<(usize, Identity)> {
+        let rank = self.index.len().checked_sub(1)?;
+        self.index
+            .identity_at(rank)
+            .map(|identity| (rank, identity))
     }
 
     pub(super) fn contains(&self, identity: Identity) -> bool {
-        self.labels.contains_key(&identity)
+        self.index.contains(identity)
+    }
+
+    pub(super) fn take_cost(&self) -> worth_ui_retained_order::UiRetainedOrderCost {
+        self.index.take_cost()
     }
 
     pub(super) fn neighbors(
         &self,
         identity: Identity,
     ) -> Result<(Option<Identity>, Option<Identity>), UiNativeRetainedOrderDenial> {
-        let label = self
-            .labels
-            .get(&identity)
+        let rank = self
+            .index
+            .rank(identity)
             .ok_or(UiNativeRetainedOrderDenial::MissingIdentity)?;
-        let predecessor = self
-            .identities
-            .range((Unbounded, Excluded(label)))
-            .next_back()
-            .map(|(_, identity)| *identity);
-        let successor = self
-            .identities
-            .range((Excluded(label), Unbounded))
-            .next()
-            .map(|(_, identity)| *identity);
-        Ok((predecessor, successor))
+        Ok((
+            rank.checked_sub(1)
+                .and_then(|value| self.index.identity_at(value)),
+            self.index.identity_at(rank + 1),
+        ))
     }
 
     pub(super) fn successor_after(
@@ -107,21 +110,12 @@ where
         predecessor: Option<Identity>,
     ) -> Result<Option<Identity>, UiNativeRetainedOrderDenial> {
         match predecessor {
-            Some(predecessor) => {
-                let label = self
-                    .labels
-                    .get(&predecessor)
-                    .ok_or(UiNativeRetainedOrderDenial::MissingPredecessor)?;
-                Ok(self
-                    .identities
-                    .range((Excluded(label), Unbounded))
-                    .next()
-                    .map(|(_, identity)| *identity))
-            }
-            None => Ok(self
-                .identities
-                .first_key_value()
-                .map(|(_, identity)| *identity)),
+            Some(predecessor) => self
+                .index
+                .rank(predecessor)
+                .map(|rank| self.index.identity_at(rank + 1))
+                .ok_or(UiNativeRetainedOrderDenial::MissingPredecessor),
+            None => Ok(self.index.identity_at(0)),
         }
     }
 
@@ -129,18 +123,17 @@ where
         &self,
         identities: impl IntoIterator<Item = Identity>,
     ) -> Result<Vec<Identity>, UiNativeRetainedOrderDenial> {
-        let mut labeled = identities
+        let mut ranked = identities
             .into_iter()
             .map(|identity| {
-                self.labels
-                    .get(&identity)
-                    .cloned()
-                    .map(|label| (label, identity))
+                self.index
+                    .rank(identity)
+                    .map(|rank| (rank, identity))
                     .ok_or(UiNativeRetainedOrderDenial::MissingIdentity)
             })
             .collect::<Result<Vec<_>, _>>()?;
-        labeled.sort_unstable_by(|left, right| left.0.cmp(&right.0));
-        Ok(labeled.into_iter().map(|(_, identity)| identity).collect())
+        ranked.sort_unstable_by_key(|entry| entry.0);
+        Ok(ranked.into_iter().map(|entry| entry.1).collect())
     }
 
     pub(super) fn snapshot(
@@ -153,21 +146,18 @@ where
             if seen.insert(identity, ()).is_some() {
                 continue;
             }
-            let label = self.labels.get(&identity).cloned();
-            let predecessor = label.as_ref().and_then(|label| {
-                self.identities
-                    .range((Unbounded, Excluded(label)))
-                    .next_back()
-                    .map(|(_, identity)| *identity)
-            });
+            let rank = self.index.rank(identity);
+            let predecessor = rank
+                .and_then(|value| value.checked_sub(1))
+                .and_then(|value| self.index.identity_at(value));
             entries.push(OriginalOrderEntry {
                 identity,
                 predecessor,
-                existed: label.is_some(),
-                label,
+                existed: rank.is_some(),
+                rank,
             });
         }
-        entries.sort_unstable_by(|left, right| left.label.cmp(&right.label));
+        entries.sort_unstable_by_key(|entry| entry.rank);
         UiNativeRetainedOrderSnapshot { entries }
     }
 
@@ -186,61 +176,40 @@ where
         Ok(())
     }
 
-    #[cfg(test)]
-    pub(super) fn label_for(&self, identity: Identity) -> Option<&[u16]> {
-        self.labels.get(&identity).map(|label| label.0.as_ref())
-    }
-
     fn insert_after(
         &mut self,
         identity: Identity,
         predecessor: Option<Identity>,
     ) -> Result<(), UiNativeRetainedOrderDenial> {
-        if self.labels.contains_key(&identity) {
+        if self.index.contains(identity) {
             return Err(UiNativeRetainedOrderDenial::DuplicateIdentity);
         }
-        let left = predecessor
-            .map(|predecessor| {
-                self.labels
-                    .get(&predecessor)
-                    .ok_or(UiNativeRetainedOrderDenial::MissingPredecessor)
-            })
-            .transpose()?;
-        let right = match left {
-            Some(left) => self
-                .identities
-                .range((Excluded(left), Unbounded))
-                .next()
-                .map(|(label, _)| label),
-            None => self.identities.first_key_value().map(|(label, _)| label),
+        let rank = match predecessor {
+            Some(predecessor) => self
+                .index
+                .rank(predecessor)
+                .map(|rank| rank + 1)
+                .ok_or(UiNativeRetainedOrderDenial::MissingPredecessor)?,
+            None => 0,
         };
-        let label = label_between(left, right);
-        self.labels.insert(identity, label.clone());
-        if self.identities.insert(label, identity).is_some() {
-            return Err(UiNativeRetainedOrderDenial::DuplicateIdentity);
-        }
-        Ok(())
+        self.index
+            .insert_at(rank, identity)
+            .map_err(|denial| match denial {
+                worth_ui_retained_order::UiRetainedOrderDenial::CapacityExceeded => {
+                    UiNativeRetainedOrderDenial::CapacityExceeded
+                }
+                worth_ui_retained_order::UiRetainedOrderDenial::DuplicateIdentity => {
+                    UiNativeRetainedOrderDenial::DuplicateIdentity
+                }
+                worth_ui_retained_order::UiRetainedOrderDenial::InvalidRank => {
+                    UiNativeRetainedOrderDenial::MissingPredecessor
+                }
+            })
     }
-}
 
-fn label_between(left: Option<&OrderLabel>, right: Option<&OrderLabel>) -> OrderLabel {
-    let mut label = Vec::new();
-    let mut index = 0;
-    loop {
-        let lower = left
-            .and_then(|label| label.0.get(index))
-            .copied()
-            .unwrap_or(0);
-        let upper = right
-            .and_then(|label| label.0.get(index))
-            .copied()
-            .unwrap_or(u16::MAX);
-        if upper.saturating_sub(lower) > 1 {
-            label.push(lower + (upper - lower) / 2);
-            return OrderLabel(label.into_boxed_slice());
-        }
-        label.push(lower);
-        index += 1;
+    #[cfg(test)]
+    fn height(&self) -> usize {
+        self.index.height()
     }
 }
 
@@ -256,17 +225,16 @@ mod tests {
         order.place_after(5, Some(2)).unwrap();
         order.remove(1).unwrap();
         assert_eq!(order.ordered().collect::<Vec<_>>(), vec![4, 3, 2, 5]);
-        assert!(order.label_for(4) < order.label_for(3));
-        assert!(order.label_for(3) < order.label_for(2));
     }
 
     #[test]
-    fn invalid_edits_deny_without_identity_ordering() {
+    fn invalid_edits_deny_without_mutating_retained_order() {
         let mut order = UiNativeRetainedOrder::initial([1_u64, 2]).unwrap();
         assert_eq!(
-            order.place_after(3, Some(9)),
+            order.place_after(1, Some(9)),
             Err(UiNativeRetainedOrderDenial::MissingPredecessor)
         );
+        assert_eq!(order.ordered().collect::<Vec<_>>(), vec![1, 2]);
         assert_eq!(
             order.place_after(1, Some(1)),
             Err(UiNativeRetainedOrderDenial::SelfPredecessor)
@@ -278,14 +246,35 @@ mod tests {
     }
 
     #[test]
-    fn repeated_insertions_into_one_gap_never_require_global_relabeling() {
+    fn repeated_insertions_into_one_gap_keep_a_bounded_balanced_index() {
         let mut order = UiNativeRetainedOrder::initial([1_u64, 2]).unwrap();
-        for identity in 3..2_000 {
+        for identity in 3..=4_096 {
             order.place_after(identity, Some(1)).unwrap();
         }
-        assert_eq!(order.ordered().count(), 1_999);
-        assert!(order.label_for(1) < order.label_for(1_999));
-        assert!(order.label_for(1_999) < order.label_for(1_998));
-        assert!(order.label_for(3) < order.label_for(2));
+        assert_eq!(order.ordered().count(), 4_096);
+        assert_eq!(
+            order.ordered().take(4).collect::<Vec<_>>(),
+            vec![1, 4_096, 4_095, 4_094]
+        );
+        assert!(
+            order.height() <= 18,
+            "AVL height exceeded its logarithmic bound"
+        );
+        let expected = order.ordered().collect::<Vec<_>>();
+        order.take_cost();
+        assert_eq!(
+            order.place_after(4_097, Some(1)),
+            Err(UiNativeRetainedOrderDenial::CapacityExceeded)
+        );
+        let denied = order.take_cost();
+        assert_eq!(denied.live_entries(), 4_096);
+        assert_eq!(denied.allocated_slots(), 4_096);
+        assert_eq!(denied.high_water_entries(), 4_096);
+        assert_eq!(denied.rotations(), 0);
+        assert_eq!(order.ordered().collect::<Vec<_>>(), expected);
+        println!("WORTH_UI_LEDGER_COUNTERS={{\"P3-TOTAL-ORDER-01\":4096}}");
+        println!(
+            "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-TOTAL-ORDER-01\":\"identity-ordering\"}}"
+        );
     }
 }

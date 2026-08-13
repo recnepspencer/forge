@@ -7,8 +7,8 @@ use worth_ui_host_contract::{
     UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt, UiHostSurfacePresentationDenial,
     UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome,
     UiHostSurfaceRegistrationDenial, UiHostSurfaceRegistrationRequest, UiMountedCompletedEffects,
-    UiMountedEffectFamily, UiMountedFrameConsumptionView, UiMountedPaintCommand,
-    UiMountedPaintCommandIdentity, UiMountedSurfacePresentationCompletion,
+    UiMountedEffectFamily, UiMountedFrameConsumptionView, UiMountedPresentationProductionCost,
+    UiMountedPresentationWorkView, UiMountedSurfacePresentationCompletion,
     UiViewportExtentObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
     WorthUiHostContract, WorthUiHostMechanicsAdapter, WorthUiMeasurementHostAdapter,
 };
@@ -18,10 +18,12 @@ use super::{UiHeadlessMountedFrameTranscript, UiHeadlessRecorderCapacity};
 
 mod presentation;
 mod recorded_frame;
+mod retained_command_store;
 mod retained_order;
 
-use presentation::{apply_work, work_cost};
+use presentation::{add_order_cost, apply_work, work_cost};
 use recorded_frame::{materialize_frames, UiHeadlessRecordedFrame};
+use retained_command_store::UiHeadlessRetainedCommandStore;
 use retained_order::UiHeadlessRetainedOrder;
 
 #[derive(Clone)]
@@ -43,6 +45,7 @@ struct WorthUiHeadlessRecorderState {
         worth_ui_host_contract::UiSurfaceBindingGeneration,
         UiHeadlessRetainedPresentation,
     >,
+    latest_production_cost: Option<UiMountedPresentationProductionCost>,
 }
 
 struct UiHeadlessRetainedPresentation {
@@ -50,10 +53,11 @@ struct UiHeadlessRetainedPresentation {
     surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
     binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
     baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
-    commands: HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
+    commands: UiHeadlessRetainedCommandStore,
     order: UiHeadlessRetainedOrder,
+    node_positions: HashMap<worth_ui_host_contract::UiMountedInstanceIdentity, u64>,
+    node_by_position: HashMap<u64, worth_ui_host_contract::UiMountedInstanceIdentity>,
     auxiliary: worth_ui_host_contract::UiMountedPresentationAuxiliaryState,
-    reconstruction: Vec<UiHeadlessRecordedFrame>,
 }
 
 impl WorthUiHeadlessRecorder {
@@ -97,8 +101,13 @@ impl WorthUiHeadlessRecorder {
                 transcripts: VecDeque::new(),
                 transcript_checkpoints: BTreeMap::new(),
                 retained_presentations: BTreeMap::new(),
+                latest_production_cost: None,
             })),
         }
+    }
+
+    pub fn latest_production_cost(&self) -> Option<UiMountedPresentationProductionCost> {
+        self.state.borrow().latest_production_cost
     }
 
     pub fn observed_transcripts(&self) -> Box<[UiHeadlessMountedFrameTranscript]> {
@@ -298,7 +307,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
         };
         let mut state = self.state.borrow_mut();
         let mut retained = state.retained_presentations.remove(&binding);
-        let recorded = match apply_work(view, capacity, &mut retained) {
+        let (recorded, order_cost) = match apply_work(view, capacity, &mut retained) {
             Ok(recorded) => recorded,
             Err(denial) => {
                 if let Some(retained) = retained {
@@ -307,6 +316,8 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
                 return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
             }
         };
+        let adapter_cost = add_order_cost(adapter_cost, order_cost);
+        state.latest_production_cost = Some(production_cost(view.presentation_work()));
         if let Some(recorded) = recorded {
             state.transcripts.push_back(recorded);
         }
@@ -347,5 +358,14 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
             host_session_identity,
             retained_before - state.registrations.len(),
         ))
+    }
+}
+
+fn production_cost(work: UiMountedPresentationWorkView<'_>) -> UiMountedPresentationProductionCost {
+    match work {
+        UiMountedPresentationWorkView::Initial(work) => work.production_cost(),
+        UiMountedPresentationWorkView::Delta(work) => work.production_cost(),
+        UiMountedPresentationWorkView::Reconstruction(work) => work.production_cost(),
+        UiMountedPresentationWorkView::Unchanged(work) => work.production_cost(),
     }
 }

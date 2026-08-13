@@ -10,8 +10,8 @@ pub use native::{
     UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
     UiNativeEventLoopDirective, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
     UiNativeEventLoopStopReport, UiNativeGraphicsObservation, UiNativePresentationObservation,
-    UiNativeReadinessGrant, UiNativeResourceCensus, WorthUiNativeEventLoop,
-    WorthUiNativeMechanicsAdapter,
+    UiNativePresentationWorkKind, UiNativeReadinessGrant, UiNativeResourceCensus,
+    UiNativeRetainedFrameObservation, WorthUiNativeEventLoop, WorthUiNativeMechanicsAdapter,
 };
 pub use native_profile::{
     UiNativeMechanicsCapacities, UiNativePlatformProfileIdentity, WORTH_UI_NATIVE_PROFILE_MANIFEST,

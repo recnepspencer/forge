@@ -17,32 +17,75 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
 }
 "#;
 
-pub(super) fn pipeline(
-    device: &wgpu::Device,
-    shader: &wgpu::ShaderModule,
-    format: wgpu::TextureFormat,
-) -> wgpu::RenderPipeline {
-    pipeline_with_blend(
-        device,
-        shader,
-        format,
-        wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING,
-    )
+const RASTER_SHADER: &str = r#"
+struct VertexOutput {
+    @builtin(position) position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+};
+
+@vertex
+fn vs_main(
+    @location(0) position: vec2<f32>,
+    @location(1) color: vec4<f32>,
+) -> VertexOutput {
+    var output: VertexOutput;
+    output.position = vec4<f32>(position, 0.0, 1.0);
+    output.color = color;
+    return output;
 }
 
-pub(super) fn replace_pipeline(
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    return input.color;
+}
+"#;
+
+const RASTER_ATTRIBUTES: [wgpu::VertexAttribute; 2] =
+    wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x4];
+
+fn transfer_pipeline(
     device: &wgpu::Device,
     shader: &wgpu::ShaderModule,
     format: wgpu::TextureFormat,
 ) -> wgpu::RenderPipeline {
-    pipeline_with_blend(device, shader, format, wgpu::BlendState::REPLACE)
+    pipeline_with_blend(device, shader, format, None, &[])
+}
+
+pub(super) fn raster_pipelines(
+    device: &wgpu::Device,
+) -> (wgpu::RenderPipeline, wgpu::RenderPipeline) {
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("worth-ui-retained-raster"),
+        source: wgpu::ShaderSource::Wgsl(RASTER_SHADER.into()),
+    });
+    let buffers = [wgpu::VertexBufferLayout {
+        array_stride: 24,
+        step_mode: wgpu::VertexStepMode::Vertex,
+        attributes: &RASTER_ATTRIBUTES,
+    }];
+    let blended = pipeline_with_blend(
+        device,
+        &shader,
+        wgpu::TextureFormat::Rgba8UnormSrgb,
+        Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+        &buffers,
+    );
+    let replacing = pipeline_with_blend(
+        device,
+        &shader,
+        wgpu::TextureFormat::Rgba8UnormSrgb,
+        Some(wgpu::BlendState::REPLACE),
+        &buffers,
+    );
+    (blended, replacing)
 }
 
 fn pipeline_with_blend(
     device: &wgpu::Device,
     shader: &wgpu::ShaderModule,
     format: wgpu::TextureFormat,
-    blend: wgpu::BlendState,
+    blend: Option<wgpu::BlendState>,
+    buffers: &[wgpu::VertexBufferLayout<'_>],
 ) -> wgpu::RenderPipeline {
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("worth-ui-filled-rectangle-pipeline"),
@@ -50,7 +93,7 @@ fn pipeline_with_blend(
         vertex: wgpu::VertexState {
             module: shader,
             entry_point: Some("vs_main"),
-            buffers: &[],
+            buffers,
             compilation_options: Default::default(),
         },
         primitive: Default::default(),
@@ -61,7 +104,7 @@ fn pipeline_with_blend(
             entry_point: Some("fs_main"),
             targets: &[Some(wgpu::ColorTargetState {
                 format,
-                blend: Some(blend),
+                blend,
                 write_mask: wgpu::ColorWrites::ALL,
             })],
             compilation_options: Default::default(),
@@ -71,67 +114,41 @@ fn pipeline_with_blend(
     })
 }
 
-pub(super) fn clear_target(encoder: &mut wgpu::CommandEncoder, target: &wgpu::TextureView) {
-    let attachments = [Some(wgpu::RenderPassColorAttachment {
-        view: target,
-        depth_slice: None,
-        resolve_target: None,
-        ops: wgpu::Operations {
-            load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-            store: wgpu::StoreOp::Store,
-        },
-    })];
-    let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some("worth-ui-retained-baseline-clear"),
-        color_attachments: &attachments,
-        ..Default::default()
-    });
-}
-
-pub(super) fn draw_rectangle(
+pub(super) fn draw_raster_operations(
     encoder: &mut wgpu::CommandEncoder,
     target: &wgpu::TextureView,
-    pipeline: &wgpu::RenderPipeline,
+    vertex_buffer: Option<&wgpu::Buffer>,
+    replace_operations: &[bool],
+    pipelines: (&wgpu::RenderPipeline, &wgpu::RenderPipeline),
+    clear_target: bool,
 ) {
     let attachments = [Some(wgpu::RenderPassColorAttachment {
         view: target,
         depth_slice: None,
         resolve_target: None,
         ops: wgpu::Operations {
-            load: wgpu::LoadOp::Load,
+            load: if clear_target {
+                wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT)
+            } else {
+                wgpu::LoadOp::Load
+            },
             store: wgpu::StoreOp::Store,
         },
     })];
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some("worth-ui-filled-rectangle-pass"),
+        label: Some("worth-ui-retained-raster-pass"),
         color_attachments: &attachments,
         ..Default::default()
     });
-    pass.set_pipeline(pipeline);
-    pass.draw(0..6, 0..1);
-}
-
-pub(super) fn draw_rectangle_after_clear(
-    encoder: &mut wgpu::CommandEncoder,
-    target: &wgpu::TextureView,
-    pipeline: &wgpu::RenderPipeline,
-) {
-    let attachments = [Some(wgpu::RenderPassColorAttachment {
-        view: target,
-        depth_slice: None,
-        resolve_target: None,
-        ops: wgpu::Operations {
-            load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-            store: wgpu::StoreOp::Store,
-        },
-    })];
-    let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some("worth-ui-cleared-filled-rectangle-pass"),
-        color_attachments: &attachments,
-        ..Default::default()
-    });
-    pass.set_pipeline(pipeline);
-    pass.draw(0..6, 0..1);
+    let Some(vertex_buffer) = vertex_buffer else {
+        return;
+    };
+    pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+    for (index, replace) in replace_operations.iter().copied().enumerate() {
+        pass.set_pipeline(if replace { pipelines.1 } else { pipelines.0 });
+        let start = u32::try_from(index * 6).expect("profile-bounded raster vertices fit u32");
+        pass.draw(start..start + 6, 0..1);
+    }
 }
 
 pub(super) fn retained_transfer(
@@ -143,7 +160,7 @@ pub(super) fn retained_transfer(
             label: Some("worth-ui-retained-to-surface"),
             source: wgpu::ShaderSource::Wgsl(RETAINED_TO_SURFACE_SHADER.into()),
         });
-    let pipeline = pipeline(
+    let pipeline = transfer_pipeline(
         &graphics.device,
         &shader,
         wgpu::TextureFormat::Bgra8UnormSrgb,

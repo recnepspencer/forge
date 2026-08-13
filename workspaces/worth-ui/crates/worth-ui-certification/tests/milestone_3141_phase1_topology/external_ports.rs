@@ -201,7 +201,10 @@ fn uses_native_vendor_path(source: &str) -> bool {
             let test_only = item.attrs.iter().any(|attribute| {
                 attribute.path().is_ident("cfg")
                     && attribute.meta.require_list().is_ok_and(|list| {
-                        list.tokens.to_string().split_whitespace().any(|token| token == "test")
+                        list.tokens
+                            .to_string()
+                            .split_whitespace()
+                            .any(|token| token == "test")
                     })
             });
             if !test_only {

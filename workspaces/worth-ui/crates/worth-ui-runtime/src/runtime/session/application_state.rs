@@ -44,6 +44,10 @@ impl WorthUiApplicationSessionState {
         self.app.host_session_plan()
     }
 
+    pub(crate) fn font_collection(&self) -> &std::sync::Arc<worth_ui_text::UiGlobalFontCollection> {
+        self.app.font_collection()
+    }
+
     pub(crate) fn capabilities(&self) -> &CapabilitySnapshot {
         self.app.capabilities()
     }

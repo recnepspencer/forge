@@ -5,6 +5,7 @@ pub struct WorthUiHostNeutralApp {
     prepared: crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
     mounted_frame_retention_budget: crate::mounting::UiMountedFrameRetentionBudget,
     host_observation_capacity: crate::facade::observation_report::UiHostObservationCapacity,
+    font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
 }
 
 impl WorthUiHostNeutralApp {
@@ -12,11 +13,13 @@ impl WorthUiHostNeutralApp {
         prepared: crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
         mounted_frame_retention_budget: crate::mounting::UiMountedFrameRetentionBudget,
         host_observation_capacity: crate::facade::observation_report::UiHostObservationCapacity,
+        font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     ) -> Self {
         Self {
             prepared,
             mounted_frame_retention_budget,
             host_observation_capacity,
+            font_collection,
         }
     }
 
@@ -63,6 +66,10 @@ impl WorthUiHostNeutralApp {
             crate::facade::prepared_application_authority::WorthUiHostSessionPlan::prepare(host);
         plan.set_mounted_frame_retention_budget(self.mounted_frame_retention_budget);
         plan.set_host_observation_capacity(self.host_observation_capacity);
-        crate::facade::WorthUiApp::from_prepared_authority(self.prepared, plan)
+        crate::facade::WorthUiApp::from_prepared_authority(
+            self.prepared,
+            plan,
+            self.font_collection,
+        )
     }
 }

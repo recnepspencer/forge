@@ -41,7 +41,7 @@ pub(super) fn translate(
                 return Err(UiHostSurfacePresentationDenial::MalformedProjection);
             }
             validate_row(view, projection, node, row)?;
-            translated.push(translate_command(row));
+            translated.push(translate_command(view, row)?);
         }
     }
     if visited.iter().any(|visited| !visited) {
@@ -120,23 +120,31 @@ fn matching_allocation(
 }
 
 pub(crate) fn translate_command(
+    view: &UiMountedFrameConsumptionView<'_>,
     row: &UiMountedSemanticTextMechanic,
-) -> UiHeadlessSemanticTextMechanic {
-    UiHeadlessSemanticTextMechanic::new(UiHeadlessSemanticTextMechanicInput {
-        command_identity: worth_ui_host_contract::UiMountedPaintCommandIdentity::semantic_text(row),
-        content_generation: row.content_generation(),
-        mounted_instance: row.mounted_instance(),
-        node_receipt: row.node_receipt(),
-        allocation_basis: row.allocation_basis(),
-        bounds: row.bounds(),
-        origin_x: row.origin_x(),
-        origin_y: row.origin_y(),
-        text: Arc::from(row.text()),
-        slot: row.slot(),
-        collection_row: row.collection_row().cloned(),
-        color: row.color(),
-        profile: row.profile(),
-        layer_semantic_order: row.layer_semantic_order(),
-        semantic_digest: row.semantic_digest(),
-    })
+) -> Result<UiHeadlessSemanticTextMechanic, UiHostSurfacePresentationDenial> {
+    let layout = view
+        .qualified_text_layout(row)
+        .ok_or(UiHostSurfacePresentationDenial::MalformedProjection)?;
+    Ok(UiHeadlessSemanticTextMechanic::new(
+        UiHeadlessSemanticTextMechanicInput {
+            command_identity: worth_ui_host_contract::UiMountedPaintCommandIdentity::semantic_text(
+                row,
+            ),
+            content_generation: row.content_generation(),
+            mounted_instance: row.mounted_instance(),
+            node_receipt: row.node_receipt(),
+            allocation_basis: row.allocation_basis(),
+            bounds: row.bounds(),
+            origin_x: row.origin_x(),
+            origin_y: row.origin_y(),
+            layout,
+            slot: row.slot(),
+            collection_row: row.collection_row().cloned(),
+            foregrounds: Arc::from(row.foregrounds()),
+            profile: row.profile(),
+            layer_semantic_order: row.layer_semantic_order(),
+            semantic_digest: row.semantic_digest(),
+        },
+    ))
 }

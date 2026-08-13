@@ -12,6 +12,7 @@ pub(crate) struct UiNativeApplicationDriver {
     attribution: Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
     consumed_application_cleanup_complete: bool,
     pending_cleanup: Option<UiNativeApplicationDriverCleanup>,
+    program: crate::facade::entry::UiNativeApplicationProgram,
 }
 
 enum UiNativeApplicationDriverCleanup {
@@ -22,7 +23,10 @@ enum UiNativeApplicationDriverCleanup {
 }
 
 impl UiNativeApplicationDriver {
-    pub(crate) fn new(application: WorthUiApp) -> Self {
+    pub(crate) fn new(
+        application: WorthUiApp,
+        program: crate::facade::entry::UiNativeApplicationProgram,
+    ) -> Self {
         Self {
             application: Some(application),
             shell: None,
@@ -31,6 +35,7 @@ impl UiNativeApplicationDriver {
             attribution: None,
             consumed_application_cleanup_complete: false,
             pending_cleanup: None,
+            program,
         }
     }
 
@@ -93,8 +98,7 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             shell.rebind_native_surface_scale(grant.scale_factor_milli())?;
             self.scale_factor_milli = Some(grant.scale_factor_milli());
         }
-        let outcome = shell.present_frame(u64::MAX, 0).map_err(|_| ())?;
-        self.attribution = shell.presentation_attribution(&outcome);
+        self.attribution = present_program(shell, &self.program)?;
         if self.attribution.is_none() {
             return Err(());
         }
@@ -139,6 +143,28 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             ))
         }
     }
+}
+
+fn present_once(
+    shell: &mut WorthUiNativeApplicationShell,
+    tick: u64,
+) -> Result<Option<worth_ui_host_native::UiNativeClientPresentationAttribution>, ()> {
+    let outcome = shell.present_frame(u64::MAX, tick).map_err(|_| ())?;
+    Ok(shell.presentation_attribution(&outcome))
+}
+
+fn present_program(
+    shell: &mut WorthUiNativeApplicationShell,
+    program: &crate::facade::entry::UiNativeApplicationProgram,
+) -> Result<Option<worth_ui_host_native::UiNativeClientPresentationAttribution>, ()> {
+    let mut attribution = None;
+    for (index, frame) in program.frames().iter().enumerate() {
+        shell
+            .apply_component_presence(frame.component_presence())
+            .map_err(|_| ())?;
+        attribution = present_once(shell, u64::try_from(index + 1).map_err(|_| ())?)?;
+    }
+    Ok(attribution)
 }
 
 impl UiNativeEventLoopClientCleanup for UiNativeApplicationDriverCleanup {

@@ -22,6 +22,7 @@ mod admission;
 mod presentation_attempt;
 mod presented;
 mod settlement;
+mod work_preparation;
 
 use presentation_attempt::{
     present_one_surface, UiMountedPresentationProgress, UiMountedPresentationStart,
@@ -143,47 +144,29 @@ impl UiMountedPresentationCoordinator {
             self.active.borrow_mut().remove(&start.attempt);
             return rejected_outcome(start.attempt, start.frame, start.retention, rejections);
         }
+        let prepared = match work_preparation::prepare(
+            &start.frame,
+            &self.presentation_states,
+            &start.authority,
+        ) {
+            Ok(prepared) => prepared,
+            Err(denial) => {
+                self.active.borrow_mut().remove(&start.attempt);
+                let rejections = frame_rejections(&start.frame, denial);
+                return rejected_outcome(start.attempt, start.frame, start.retention, rejections);
+            }
+        };
         let mut progress = UiMountedPresentationProgress::default();
-        let mut candidates = BTreeMap::new();
-        for surface in start.frame.surfaces() {
-            let predecessor = self
-                .presentation_states
-                .get(&surface.requirement().binding());
-            let candidate = super::work_producer::UiMountedPresentationState::from_projection(
-                surface.projection(),
-                surface.requirement(),
-                predecessor.map(super::work_producer::UiMountedPresentationState::frame),
-            );
-            let presentation_work = match predecessor {
-                Some(predecessor) => predecessor
-                    .issue_successor(
-                        &candidate,
-                        start.frame.presentation_changed_instances(),
-                        start
-                            .frame
-                            .presentation_surface_changed(surface.projection().surface()),
-                        start.authority.presentation(),
-                    )
-                    .expect("retained presentation state has the same surface binding"),
-                None => {
-                    candidate.issue_initial(start.authority.presentation(), surface.projection())
-                }
-            };
-            let expected_effects = candidate.expected_completion_effects(
-                predecessor,
-                &presentation_work,
-                surface.requirement().presentation_mode(),
-            );
+        for (surface, prepared_surface) in start.frame.surfaces().iter().zip(&prepared.surfaces) {
             if let Err(evidence) = present_one_surface(
                 &start,
                 surface,
-                &presentation_work,
-                &expected_effects,
+                &prepared_surface.work,
+                &prepared_surface.expected_effects,
                 &mut progress,
             ) {
                 return self.indeterminate(start.frame, start.retention, start.attempt, evidence);
             }
-            candidates.insert(surface.requirement().binding(), candidate);
         }
         self.finish_or_wait(UiMountedPresentationSettlement {
             frame: start.frame,
@@ -193,7 +176,7 @@ impl UiMountedPresentationCoordinator {
             pending: progress.pending,
             rejected: progress.rejected,
             completed: progress.completed,
-            candidates,
+            candidates: prepared.candidates,
             host: start.host,
         })
     }
@@ -258,6 +241,13 @@ impl UiMountedPresentationCoordinator {
         settlement: UiMountedPresentationSettlement<'_>,
     ) -> UiMountedPresentationOutcome {
         self.active.borrow_mut().remove(&settlement.attempt);
+        for rejection in &settlement.rejected {
+            if rejection.denial()
+                == worth_ui_host_contract::UiHostSurfacePresentationDenial::ReconstructionRequired
+            {
+                self.presentation_states.remove(&rejection.binding());
+            }
+        }
         rejected_outcome(
             settlement.attempt,
             settlement.frame,

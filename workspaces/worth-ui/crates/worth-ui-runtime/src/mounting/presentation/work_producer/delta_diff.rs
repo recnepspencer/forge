@@ -19,9 +19,7 @@ pub(super) fn affected_commands(
     for instance in changed_instances {
         for identity in predecessor
             .command_identities_for_instance(*instance)
-            .iter()
             .chain(successor.command_identities_for_instance(*instance))
-            .copied()
         {
             if seen.insert(identity) {
                 affected.push(identity);
@@ -30,9 +28,9 @@ pub(super) fn affected_commands(
     }
     affected.sort_unstable_by_key(|identity| {
         successor
-            .order_position(*identity)
-            .or_else(|| predecessor.order_position(*identity))
-            .unwrap_or(usize::MAX)
+            .order_key(*identity)
+            .or_else(|| predecessor.order_key(*identity))
+            .unwrap_or((u32::MAX, u64::MAX, usize::MAX))
     });
     affected
 }
@@ -113,16 +111,19 @@ pub(super) fn order_edits(
         .collect::<Vec<_>>();
     removals.sort_unstable_by_key(|edit| {
         predecessor
-            .order_position(edit.identity().command())
-            .unwrap_or(usize::MAX)
+            .order_key(edit.identity().command())
+            .unwrap_or((u32::MAX, u64::MAX, usize::MAX))
     });
     let mut placement_identities = affected_set
         .iter()
         .filter(|identity| successor.command_option(**identity).is_some())
         .copied()
         .collect::<Vec<_>>();
-    placement_identities
-        .sort_unstable_by_key(|identity| successor.order_position(*identity).unwrap_or(usize::MAX));
+    placement_identities.sort_unstable_by_key(|identity| {
+        successor
+            .order_key(*identity)
+            .unwrap_or((u32::MAX, u64::MAX, usize::MAX))
+    });
     let mut placements = placement_identities
         .into_iter()
         .filter_map(|identity| {

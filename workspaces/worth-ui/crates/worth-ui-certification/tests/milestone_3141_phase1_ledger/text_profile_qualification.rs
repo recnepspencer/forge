@@ -4,9 +4,18 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 const ROOT: &str = "workspaces/worth-ui/profiles/worth-ui-global-text-v2";
+const PROFILE_DIGEST: &str = "cec6005c5baef6d69ada9c30c02ced25b0f253f80c012784fe925e307935c3f2";
 
+#[path = "text_profile_qualification/dependency_graph.rs"]
+mod dependency_graph;
 #[path = "text_profile_qualification/emoji.rs"]
 mod emoji;
+#[path = "text_profile_qualification/generated_indexes.rs"]
+mod generated_indexes;
+#[path = "text_profile_qualification/license.rs"]
+mod license;
+#[path = "text_profile_qualification/manifest.rs"]
+mod manifest;
 
 fn profile_root() -> PathBuf {
     super::source_digest::repository_root().join(ROOT)
@@ -23,10 +32,13 @@ pub(super) fn validate_profile(expected_digest: &str) -> Result<(), String> {
         return Err("qualified text manifest digest drifted".to_owned());
     }
     let manifest = parse_toml(&manifest_bytes)?;
-    validate_manifest_contract(&manifest)?;
+    manifest::validate(&manifest)?;
+    dependency_graph::validate(&root, &manifest)?;
     validate_inventory(&root, &manifest)?;
+    license::validate(&root, &manifest)?;
     validate_faces(&root, &manifest)?;
     emoji::validate(&root, &manifest)?;
+    generated_indexes::validate(&root)?;
     validate_generated_indexes(&root, &manifest)
 }
 
@@ -35,45 +47,6 @@ fn parse_toml(bytes: &[u8]) -> Result<toml::Value, String> {
         .map_err(|error| error.to_string())?
         .parse::<toml::Value>()
         .map_err(|error| error.to_string())
-}
-
-fn validate_manifest_contract(manifest: &toml::Value) -> Result<(), String> {
-    require_string(manifest, "schema", "worth-ui-global-text-profile-v2")?;
-    require_string(manifest, "profile", "worth-ui-global-text-v2")?;
-    require_string(manifest, "unicode_version", "17.0.0")?;
-    require_bool(manifest, "ambient_system_fonts", false)?;
-    require_string(
-        manifest,
-        "fallback",
-        "complete-cluster-first-qualified-face",
-    )?;
-    let dependencies = table(manifest, "dependencies")?;
-    require_dependency(dependencies, "unicode_segmentation", "=1.13.3")?;
-    require_dependency(dependencies, "unicode_bidi", "=0.3.18")?;
-    require_dependency(dependencies, "icu_segmenter", "=2.2.0")?;
-    require_dependency(dependencies, "harfrust", "=0.12.0")?;
-    require_dependency(dependencies, "swash", "=0.2.10")?;
-    validate_capacities(table(manifest, "capacity")?)
-}
-
-fn validate_capacities(capacity: &toml::value::Table) -> Result<(), String> {
-    let exact = [
-        ("retained_paragraphs", 4096),
-        ("retained_utf8_bytes", 8_388_608),
-        ("paragraph_utf8_bytes", 65_536),
-        ("glyphs", 262_144),
-        ("grapheme_cluster_records", 262_144),
-        ("line_records", 65_536),
-        ("runs_per_paragraph", 32),
-        ("atlas_entries", 8192),
-        ("staged_upload_bytes", 8_388_608),
-    ];
-    for (field, expected) in exact {
-        if capacity.get(field).and_then(toml::Value::as_integer) != Some(expected) {
-            return Err(format!("text capacity drifted: {field}"));
-        }
-    }
-    Ok(())
 }
 
 fn validate_inventory(root: &Path, manifest: &toml::Value) -> Result<(), String> {
@@ -270,26 +243,6 @@ fn require_integer(value: &toml::Value, key: &str, expected: i64) -> Result<(), 
     }
 }
 
-fn require_bool(value: &toml::Value, key: &str, expected: bool) -> Result<(), String> {
-    if value.get(key).and_then(toml::Value::as_bool) == Some(expected) {
-        Ok(())
-    } else {
-        Err(format!("field drifted: {key}"))
-    }
-}
-
-fn require_dependency(table: &toml::value::Table, key: &str, version: &str) -> Result<(), String> {
-    let dependency = table
-        .get(key)
-        .and_then(toml::Value::as_table)
-        .ok_or("dependency missing")?;
-    if table_string(dependency, "version")? == version {
-        Ok(())
-    } else {
-        Err(format!("dependency drifted: {key}"))
-    }
-}
-
 fn table_string<'a>(table: &'a toml::value::Table, key: &str) -> Result<&'a str, String> {
     table
         .get(key)
@@ -305,9 +258,12 @@ fn table_integer(table: &toml::value::Table, key: &str) -> Result<i64, String> {
 }
 
 #[test]
+#[ignore = "Phase 4 closure: invokes the pinned external profile-index builder"]
 fn global_text_profile_assets_indexes_and_dependencies_are_exact() {
     let digest = digest(&fs::read(manifest_path()).expect("manifest bytes"));
-    validate_profile(&digest).expect("qualified Unicode text profile");
+    assert_eq!(digest, PROFILE_DIGEST);
+    validate_profile(PROFILE_DIGEST).expect("qualified Unicode text profile");
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P4-TEXT-PROFILE-01\":34}}");
 }
 
 #[test]
@@ -318,6 +274,60 @@ fn global_text_profile_rejects_manifest_and_artifact_drift() {
     let mut mutated = manifest.clone();
     mutated["artifact_inventory_sha256"] = toml::Value::String("0".repeat(64));
     assert!(validate_inventory(&profile_root(), &mutated).is_err());
+
+    let mut dependency_mutant = manifest.clone();
+    dependency_mutant["dependencies"]["icu_segmenter"]["resolved_features"] =
+        toml::Value::Array(vec!["auto".into(), "compiled_data".into()]);
+    assert!(manifest::validate(&dependency_mutant).is_err());
+
+    let mut color_parser_mutant = manifest.clone();
+    color_parser_mutant["dependencies"]["read_fonts"]["features"] =
+        toml::Value::Array(vec!["std".into()]);
+    assert!(manifest::validate(&color_parser_mutant).is_err());
+
+    let mut saturation_mutant = manifest;
+    saturation_mutant["saturation"]["live_eviction"] = toml::Value::Boolean(true);
+    assert!(manifest::validate(&saturation_mutant).is_err());
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P4-TEXT-PROFILE-01\":\"font-or-unicode-digest-drift\"}}"
+    );
+}
+
+#[test]
+fn global_text_profile_rejects_interaction_color_capacity_and_locality_drift() {
+    let bytes = fs::read(manifest_path()).expect("manifest bytes");
+    let manifest = parse_toml(&bytes).expect("manifest");
+
+    let mut caret = manifest.clone();
+    caret["layout"]["bidi_boundary_rule"] = toml::Value::String("one-caret".into());
+    assert!(manifest::validate(&caret).is_err());
+
+    let mut accessibility = manifest.clone();
+    accessibility["layout_identity"]["consumers"]
+        .as_array_mut()
+        .expect("consumer list")
+        .pop();
+    assert!(manifest::validate(&accessibility).is_err());
+
+    let mut color = manifest.clone();
+    color["application_fonts"]["admitted_color_tables"]
+        .as_array_mut()
+        .expect("color table list")
+        .remove(1);
+    assert!(manifest::validate(&color).is_err());
+
+    let mut sbix = manifest.clone();
+    sbix["application_fonts"]["sbix_graphic_types"] =
+        toml::Value::Array(vec!["jpg".into(), "dupe".into()]);
+    assert!(manifest::validate(&sbix).is_err());
+
+    let mut capacity = manifest.clone();
+    capacity["capacity_admission"]["staging"] = toml::Value::String("published".into());
+    assert!(manifest::validate(&capacity).is_err());
+
+    let mut locality = manifest;
+    locality["locality"]["content_edit"] = toml::Value::String("global".into());
+    assert!(manifest::validate(&locality).is_err());
 }
 
 #[test]
@@ -328,5 +338,30 @@ fn global_text_profile_rejects_emoji_sequence_class_or_count_drift() {
     assert_eq!(
         emoji::validate(&profile_root(), &manifest),
         Err("emoji corpus count drifted: flag_sequence_records".to_owned())
+    );
+}
+
+#[test]
+fn global_text_profile_rejects_count_preserving_emoji_set_drift() {
+    let root = profile_root();
+    let test = fs::read_to_string(root.join("unicode/emoji/emoji-test.txt")).expect("emoji-test");
+    let sequences =
+        fs::read_to_string(root.join("unicode/emoji/emoji-sequences.txt")).expect("sequences");
+    let zwj = fs::read_to_string(root.join("unicode/emoji/emoji-zwj-sequences.txt")).expect("ZWJ");
+    let mutated = sequences.replacen("0023 FE0F 20E3", "0024 FE0F 20E3", 1);
+    assert_eq!(
+        emoji::require_exact_rgi_set(&test, &mutated, &zwj),
+        Err("Unicode 17 RGI emoji corpus sets disagree".to_owned())
+    );
+}
+
+#[test]
+fn global_text_profile_rejects_count_preserving_variation_pair_drift() {
+    let path = profile_root().join("unicode/ucd/emoji/emoji-variation-sequences.txt");
+    let variations = fs::read_to_string(path).expect("variation sequences");
+    let mutated = variations.replacen("0023 FE0E", "0024 FE0E", 1);
+    assert_eq!(
+        emoji::require_complete_variation_pairs(&mutated),
+        Err("emoji text/presentation variation pair is incomplete".to_owned())
     );
 }

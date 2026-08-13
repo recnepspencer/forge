@@ -6,6 +6,7 @@ use worth_ui_host_contract::{
 use super::super::frame_storage::UiMountedSemanticProjection;
 use super::super::UiMountedProjectionDenial;
 
+#[cfg(test)]
 pub(in crate::mounting::projection) fn complete_static_filled_rects(
     frame: worth_ui_host_contract::UiMountedFrameIdentity,
     receipt_basis: &super::super::super::UiMountedNodeReceiptBasis,
@@ -23,7 +24,7 @@ pub(in crate::mounting::projection) fn complete_static_filled_rects(
     Ok(rows)
 }
 
-fn complete_static_filled_rect(
+pub(in crate::mounting::projection) fn complete_static_filled_rect(
     frame: worth_ui_host_contract::UiMountedFrameIdentity,
     receipt_basis: &super::super::super::UiMountedNodeReceiptBasis,
     semantic: &UiMountedSemanticProjection,

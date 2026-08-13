@@ -10,11 +10,13 @@ from pathlib import Path
 from typing import Any
 
 import run_worth_ui_ledger_test as ledger
+from worth_ui_ledger_dependency import require_proved_artifact
 from worth_ui_3141_ledger_contracts import COUNTERS, construction_cost, execution_cost
 
 
 P1_WORLD = Path("_docs/worth-ui/milestone-3.14.1-evidence/p1-worlds-01.json")
 P2_WORLD = Path("_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json")
+P3_WORLD = Path("_docs/worth-ui/milestone-3.14.1-evidence/p3-hp02-world-01.json")
 
 
 @dataclass(frozen=True)
@@ -81,6 +83,36 @@ def shared_world_spec(test: ledger.GovernedTest) -> SharedWorldSpec:
             "shared-native-worlds",
             1,
         )
+    if test.requirement in {
+        "P3-BASELINE-REPLAY-01", "P3-DAMAGE-REPLAY-01", "P3-DRAW-LIST-01",
+        "P3-PHYSICAL-AMPLIFICATION-01",
+        "P3-TRANSACTION-01", "P3-UNCHANGED-01",
+    }:
+        return SharedWorldSpec(
+            "P3-HP02-WORLD-01",
+            P3_WORLD,
+            "worth-ui-platform-pulse",
+            "test",
+            "executable_world",
+            ("executable-world",),
+            "courtroom::native_phase3::maximum_overlap_deltas_cross_public_runtime_native_pixels_and_exact_costs",
+            True,
+            "shared-native-worlds",
+            7,
+        )
+    if test.requirement in {"P3-HEADLESS-COST-01", "P3-PRODUCER-SLOPE-01"}:
+        return SharedWorldSpec(
+            "P3-DELTA-SOURCE-01",
+            Path("_docs/worth-ui/milestone-3.14.1-evidence/p3-delta-source-01.json"),
+            "worth-ui-certification",
+            "test",
+            "application_contracts",
+            (),
+            "host_platform::mixed_carrier_successors_are_local_at_the_4096_command_ceiling",
+            True,
+            "shared-mounted-worlds",
+            5,
+        )
     raise ValueError("requirement has no governed shared world")
 
 
@@ -100,7 +132,10 @@ def read_shared_world(
     if not isinstance(value, dict):
         raise ValueError("shared native world artifact is not an object")
     validate_shared_world(value, spec)
-    return value, hashlib.sha256(raw).hexdigest()
+    digest = require_proved_artifact(
+        ledger.ROOT, spec.requirement, path.relative_to(ledger.ROOT).as_posix(), value
+    )
+    return value, digest
 
 
 def validate_shared_world(value: dict[str, Any], spec: SharedWorldSpec) -> None:
@@ -135,7 +170,7 @@ def validate_shared_world(value: dict[str, Any], spec: SharedWorldSpec) -> None:
         raise ValueError("shared native world omits its boundary observation")
     if value.get("source_revision") != ledger.source_revision():
         raise ValueError("shared native world revision is stale")
-    if value.get("source_state_digest") != ledger.source_state_digest(value["source_revision"]):
+    if value.get("source_state_digest") != ledger.source_state_for_row(value["source_revision"]):
         raise ValueError("shared native world source state is stale")
 
 
@@ -169,11 +204,28 @@ def result_payload(test: ledger.GovernedTest) -> tuple[dict[str, Any], int]:
     snapshot = GovernedSnapshot(
         revision,
         ledger.source_digest(test.sources),
-        ledger.source_state_digest(revision),
+        ledger.source_state_for_row(revision),
         ledger.claim_digest(test.requirement),
     )
     shared, shared_digest = read_shared_world(test, spec)
-    control = ledger.control_payload(test.control) if test.control is not None else None
+    receipts = shared_main_receipts(shared)
+
+    def execute(command: list[str], role: str):
+        result, duration, receipt = ledger.timed_execution(
+            command,
+            ledger.ROOT,
+            snapshot.revision,
+            snapshot.source_state_digest,
+            role,
+        )
+        receipts.append({"role": role, **receipt})
+        return result, duration
+
+    control = (
+        ledger.control_payload(test.control, test.requirement, execute)
+        if test.control is not None
+        else None
+    )
     observation = shared.get("boundary_observation")
     counter = (
         ledger.p2_counter_observation(test, observation)
@@ -196,7 +248,20 @@ def result_payload(test: ledger.GovernedTest) -> tuple[dict[str, Any], int]:
         snapshot,
         RowVerdict(counter, costs, posture),
     )
+    payload["execution_receipts"] = receipts
     return payload, 0 if posture == "passed" else 1
+
+
+def shared_main_receipts(shared: dict[str, Any]) -> list[dict[str, Any]]:
+    allowed = {"main-discovery", "ignored-discovery", "main-test"}
+    receipts = shared.get("execution_receipts", [])
+    if not isinstance(receipts, list):
+        raise ValueError("shared evidence has an invalid execution receipt inventory")
+    return [
+        dict(receipt)
+        for receipt in receipts
+        if isinstance(receipt, dict) and receipt.get("role") in allowed
+    ]
 
 
 def shared_row_posture(

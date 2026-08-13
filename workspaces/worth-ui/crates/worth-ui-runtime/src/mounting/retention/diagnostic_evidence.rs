@@ -12,33 +12,22 @@ pub(crate) type UiRetainedMountedDiagnosticRow = (
 #[derive(Clone)]
 pub(crate) struct UiRetainedMountedDiagnostics {
     frame: UiMountedFrameIdentity,
-    rows: Box<[UiRetainedMountedDiagnosticRow]>,
+    source: crate::mounting::projection::UiMountedDiagnosticSource,
+    rows: std::cell::OnceCell<Box<[UiRetainedMountedDiagnosticRow]>>,
     structural_bytes: usize,
 }
 
 impl UiRetainedMountedDiagnostics {
     pub(crate) fn prepare(frame: &super::super::UiPreparedMountedFrame) -> Option<Self> {
-        let mut rows = frame
-            .surfaces()
-            .iter()
-            .flat_map(|surface| {
-                let binding = surface.requirement().binding();
-                surface
-                    .projection()
-                    .nodes()
-                    .iter()
-                    .map(move |node| (binding, node.mounted_instance(), node.diagnostic()))
-            })
-            .collect::<Vec<_>>();
-        rows.sort_by_key(|(binding, instance, _)| (*binding, *instance));
-        rows.dedup_by_key(|(binding, instance, _)| (*binding, *instance));
-        let row_bytes = rows
+        let source = frame.diagnostic_source();
+        let row_bytes = source
             .len()
             .checked_mul(std::mem::size_of::<UiRetainedMountedDiagnosticRow>())?;
         let structural_bytes = std::mem::size_of::<Self>().checked_add(row_bytes)?;
         Some(Self {
             frame: frame.canonical_core().frame(),
-            rows: rows.into_boxed_slice(),
+            source,
+            rows: std::cell::OnceCell::new(),
             structural_bytes,
         })
     }
@@ -48,7 +37,11 @@ impl UiRetainedMountedDiagnostics {
     }
 
     pub(crate) fn rows(&self) -> &[UiRetainedMountedDiagnosticRow] {
-        &self.rows
+        self.rows.get_or_init(|| {
+            let mut rows = self.source.rows().collect::<Vec<_>>();
+            rows.sort_by_key(|(binding, instance, _)| (*binding, *instance));
+            rows.into_boxed_slice()
+        })
     }
 
     pub(crate) fn structural_bytes(&self) -> usize {

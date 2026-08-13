@@ -23,6 +23,12 @@ pub(super) fn validate(
     require_str(artifact, "shared_main_requirement", shared_requirement)?;
     let expected_digest = super::source_digest::file_digest(identity)?;
     let shared = read_artifact(identity)?;
+    super::dependency_row::require_proved_artifact(
+        shared_requirement,
+        identity,
+        &expected_digest,
+        &shared,
+    )?;
     validate_content(
         artifact,
         &shared,
@@ -85,8 +91,20 @@ fn validate_content(
 fn shared_requirement(requirement: &str) -> Result<&'static str, String> {
     if requirement == "P1-HEADLESS-COST-01" {
         Ok("P1-WORLDS-01")
+    } else if matches!(requirement, "P3-HEADLESS-COST-01" | "P3-PRODUCER-SLOPE-01") {
+        Ok("P3-DELTA-SOURCE-01")
     } else if requirement.starts_with("P2-") && requirement != "P2-WORLD-01" {
         Ok("P2-WORLD-01")
+    } else if matches!(
+        requirement,
+        "P3-BASELINE-REPLAY-01"
+            | "P3-DAMAGE-REPLAY-01"
+            | "P3-DRAW-LIST-01"
+            | "P3-PHYSICAL-AMPLIFICATION-01"
+            | "P3-TRANSACTION-01"
+            | "P3-UNCHANGED-01"
+    ) {
+        Ok("P3-HP02-WORLD-01")
     } else {
         Err("requirement has no governed shared world".to_owned())
     }
@@ -128,6 +146,40 @@ fn shared_native_world_rejects_digest_observation_and_source_substitution() {
     }
     command.sources.clear();
     assert!(validate_content(&row, &shared, &command, binding()).is_err());
+}
+
+#[test]
+fn shared_world_entrypoint_rejects_an_open_producer_before_reuse() {
+    let identity = "workspaces/worth-ui/target/milestone-3141-open-producer.json";
+    let destination = super::source_digest::repository_root().join(identity);
+    let mut shared = fixture_shared();
+    shared["requirement"] = Value::from("P3-DELTA-SOURCE-01");
+    std::fs::write(&destination, serde_json::to_vec(&shared).unwrap()).unwrap();
+    let digest = super::source_digest::file_digest(identity).unwrap();
+    let mut row = shared.clone();
+    row["shared_main_artifact"] = Value::from(identity);
+    row["shared_main_artifact_digest"] = Value::from(digest);
+    row["shared_main_requirement"] = Value::from("P3-DELTA-SOURCE-01");
+    let command = CommandBinding {
+        shared_main: true,
+        requirement: "P3-HEADLESS-COST-01".to_owned(),
+        package: "worth-ui-certification".to_owned(),
+        target_kind: "test".to_owned(),
+        target_name: "application_contracts".to_owned(),
+        features: Vec::new(),
+        test_name: "host_platform::mixed_carrier_successors_are_local_at_the_4096_command_ceiling"
+            .to_owned(),
+        sources: vec![identity.to_owned()],
+        artifact: "row.json".to_owned(),
+        control: None,
+    };
+    let ledger = format!(
+        "requirement,result,final_source,retained_result_artifact,result_artifact_digest\nP3-DELTA-SOURCE-01,OPEN,false,{identity},unused\n"
+    );
+    let _active = super::dependency_row::install(&ledger);
+    let denial = validate(&row, &command, "revision", "state").unwrap_err();
+    assert!(denial.contains("wrong result"));
+    std::fs::remove_file(destination).unwrap();
 }
 
 fn fixture_shared() -> Value {

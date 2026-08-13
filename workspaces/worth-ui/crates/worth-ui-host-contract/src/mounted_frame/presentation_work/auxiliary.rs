@@ -95,6 +95,30 @@ impl UiMountedPresentationAuxiliaryState {
     }
 
     #[doc(hidden)]
+    pub fn reconstruct_authored(
+        &self,
+    ) -> Result<crate::UiMountedProjectionView, UiMountedPresentationReconstructionDenial> {
+        let commands = self
+            .filled_rects
+            .rows()
+            .iter()
+            .copied()
+            .map(|mechanic| UiMountedPaintCommand::FilledRect {
+                identity: UiMountedPaintCommandIdentity::filled_rect(&mechanic),
+                mechanic,
+            })
+            .chain(self.semantic_text.rows().iter().cloned().map(|mechanic| {
+                UiMountedPaintCommand::SemanticText {
+                    identity: UiMountedPaintCommandIdentity::semantic_text(&mechanic),
+                    mechanic,
+                }
+            }))
+            .map(|command| (command.identity(), command))
+            .collect::<HashMap<_, _>>();
+        self.reconstruct(&commands)
+    }
+
+    #[doc(hidden)]
     pub fn same_presentation_meaning(&self, other: &Self) -> bool {
         self.surface == other.surface
             && self.binding == other.binding
@@ -130,6 +154,10 @@ impl UiMountedPresentationAuxiliaryState {
 
     pub const fn content(&self) -> crate::UiMountedContentGeneration {
         self.content
+    }
+
+    pub fn paint_batch_count(&self) -> usize {
+        self.paint_batches.rows().len()
     }
 }
 

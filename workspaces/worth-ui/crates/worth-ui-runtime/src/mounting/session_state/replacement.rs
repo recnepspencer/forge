@@ -3,6 +3,7 @@ use super::WorthUiMountedSessionState;
 pub(crate) struct UiMountedGraphReplacementSuccessor {
     identity: Box<crate::mounting::UiMountedIdentityState>,
     semantic_predecessor: Option<Box<crate::mounting::projection::UiMountedSemanticProjection>>,
+    presentation_predecessor: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
 }
 
 pub(crate) struct UiMountedGraphReplacementAdmission {
@@ -74,6 +75,7 @@ impl UiMountedGraphReplacementSuccessor {
         crate::mounting::UiMountedFrameAssembler::begin_graph_replacement(
             &self.identity,
             self.semantic_predecessor.as_deref(),
+            self.presentation_predecessor,
             input,
         )
     }
@@ -94,11 +96,13 @@ impl WorthUiMountedSessionState {
             .identity
             .current_projection()
             .map(|frame| Box::new(frame.semantic_projection().clone()));
+        let presentation_predecessor = self.identity.current_frame_identity();
         self.identity
             .prepare_graph_replacement_successor(graph)
             .map(|identity| UiMountedGraphReplacementSuccessor {
                 identity: Box::new(identity),
                 semantic_predecessor,
+                presentation_predecessor,
             })
     }
 

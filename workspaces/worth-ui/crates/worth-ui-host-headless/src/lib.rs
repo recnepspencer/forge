@@ -22,5 +22,6 @@ pub use headless_transcript::{
     UiHeadlessClipMechanic, UiHeadlessFilledRectMechanic, UiHeadlessLayerMechanic,
     UiHeadlessMountedFrameTranscript, UiHeadlessNodeMechanic, UiHeadlessNodePaintMechanic,
     UiHeadlessPaintBatchMechanic, UiHeadlessRecorderCapacity, UiHeadlessResolvedClip,
-    UiHeadlessResourceContact, UiHeadlessSemanticTextMechanic, UiHeadlessUnperformedEffect,
+    UiHeadlessResourceContact, UiHeadlessSemanticTextMechanic, UiHeadlessTextAccessibilityGeometry,
+    UiHeadlessTextMeasurement, UiHeadlessUnperformedEffect,
 };

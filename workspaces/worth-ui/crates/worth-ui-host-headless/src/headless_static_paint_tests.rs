@@ -1,7 +1,6 @@
 use worth_ui_host_contract::{
-    UiHostMeasurementSchemaVersion, UiHostProtocolAgreement, UiHostProtocolContract,
-    UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
-    UiHostProtocolSchemaFamily, UiHostProtocolVersion, UiHostSurfaceIdentity,
+    UiHostProtocolAgreement, UiHostProtocolContract, UiHostProtocolDenial, UiHostProtocolIdentity,
+    UiHostProtocolNegotiation, UiHostProtocolSchemaFamily, UiHostSurfaceIdentity,
     UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
     UiMountedAccessibilityProjection, UiMountedAllocationBasis, UiMountedAllocationProjection,
     UiMountedCanonicalBox, UiMountedCanonicalBoxInput, UiMountedCoordinateSpace,
@@ -14,11 +13,11 @@ use worth_ui_host_contract::{
     UiMountedPaintCommandIdentity, UiMountedPaintOrderIdentity, UiMountedPaintPrimitiveKind,
     UiMountedPaintProjection, UiMountedParticipation, UiMountedParticipationFact,
     UiMountedParticipationInput, UiMountedParticipationStatus,
-    UiMountedPresentationAttemptIdentity, UiMountedPresentationSchemaVersion,
-    UiMountedPresentationWorkView, UiMountedPreviewProjection, UiMountedProjectionView,
-    UiMountedProjectionViewInput, UiMountedRealtimeBatchTable, UiMountedResourceTable,
-    UiMountedRgba8, UiMountedSpatialBatchTable, UiMountedSurfaceBindingRequirement,
-    UiMountedTransformProjection, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+    UiMountedPresentationAttemptIdentity, UiMountedPresentationWorkView,
+    UiMountedPreviewProjection, UiMountedProjectionView, UiMountedProjectionViewInput,
+    UiMountedRealtimeBatchTable, UiMountedResourceTable, UiMountedRgba8,
+    UiMountedSpatialBatchTable, UiMountedSurfaceBindingRequirement, UiMountedTransformProjection,
+    UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
     WorthUiHostCapabilityObservationGeneration,
 };
 
@@ -108,6 +107,7 @@ fn translate(
     );
     let view = worth_ui_host_contract::UiMountedFrameConsumptionView::from_inert_mechanics(
         UiMountedFrameConsumptionInput {
+            qualified_text: &(),
             authority: std::rc::Rc::new(()),
             host_session_identity: 13,
             protocol,
@@ -138,13 +138,14 @@ fn current_protocol() -> UiHostProtocolAgreement {
 }
 
 fn mounted_frame_revision_two() -> UiHostProtocolContract {
+    let current = UiHostProtocolContract::current();
     UiHostProtocolContract::new(
         UiHostProtocolIdentity::worth_ui(),
-        UiHostProtocolVersion::new(4),
+        current.protocol(),
         UiMountedFrameSchemaVersion::new(2),
-        UiMountedPresentationSchemaVersion::new(4),
-        UiHostProtocolContract::current().observation(),
-        UiHostMeasurementSchemaVersion::new(4),
+        current.mounted_presentation(),
+        current.observation(),
+        current.measurement(),
     )
 }
 

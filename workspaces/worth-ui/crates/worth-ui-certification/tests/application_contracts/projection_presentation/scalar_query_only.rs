@@ -135,8 +135,16 @@ fn real_query_scalar_publishes_same_generation_semantic_text_to_headless_host() 
         .expect("the Query posture has a semantic row");
     assert_eq!(value.text(), "Ready");
     assert_eq!(posture.text(), "CURRENT");
-    assert_eq!(value.color(), UiMountedRgba8::new(255, 255, 255, 255));
-    assert_eq!(posture.color(), value.color());
+    assert_eq!(value.foregrounds().len(), 1);
+    assert_eq!(posture.foregrounds().len(), 1);
+    assert_eq!(
+        value.foregrounds()[0].color(),
+        UiMountedRgba8::new(255, 255, 255, 255)
+    );
+    assert_eq!(
+        posture.foregrounds()[0].color(),
+        value.foregrounds()[0].color()
+    );
     assert_eq!(value.mounted_instance(), posture.mounted_instance());
     assert!(mounted_instances.contains(&value.mounted_instance()));
     assert_eq!(value.content_generation(), posture.content_generation());
@@ -157,7 +165,7 @@ fn real_query_scalar_publishes_same_generation_semantic_text_to_headless_host() 
     assert!(shutdown.mounted_presentation().is_empty());
 }
 
-pub(super) fn scalar_registration(world: &ScalarLifecycleWorld) -> UiScalarProjectionRegistration {
+pub(crate) fn scalar_registration(world: &ScalarLifecycleWorld) -> UiScalarProjectionRegistration {
     let domain = world
         .workspace
         .worth_ui()
@@ -203,6 +211,14 @@ pub(super) fn projection_module(component: &str) -> WorthUiRustAuthoredArtifactI
             WorthUiArtifactInputBodyAtom::Identifier(PROJECTION.to_owned()),
         ],
     )
+}
+
+pub(super) fn projection_module_with_additional_token(
+    component: &str,
+    token: &str,
+    value: &str,
+) -> WorthUiRustAuthoredArtifactInputModule {
+    projection_module(component).with_token(token, value)
 }
 
 pub(super) fn projection_module_with_region(

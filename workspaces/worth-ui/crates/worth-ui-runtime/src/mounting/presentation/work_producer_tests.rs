@@ -3,13 +3,25 @@ use worth_ui_host_contract::{
     UiMountedPresentationWorkView, UiMountedRgba8,
 };
 
-use super::work_producer::{UiMountedPresentationState, UiMountedPresentationWorkProductionDenial};
+use super::work_producer::UiMountedPresentationState;
+
+#[path = "work_producer_tests/delta_source.rs"]
+mod delta_source;
+
+#[path = "work_producer_tests/damage_bounds.rs"]
+mod damage_bounds;
 
 #[path = "work_producer_tests/rect_node.rs"]
 mod rect_node;
 
+#[path = "work_producer_tests/text_node.rs"]
+mod text_node;
+
 #[path = "work_producer_tests/producer_slope.rs"]
 mod producer_slope;
+
+#[path = "work_producer_tests/precise_damage.rs"]
+mod precise_damage;
 
 #[path = "work_producer_tests/world.rs"]
 mod world;
@@ -56,6 +68,73 @@ fn equal_layer_total_order_follows_authored_node_order_not_command_identity() {
 }
 
 #[test]
+fn equal_layer_successor_reorder_remains_authored_when_identity_order_opposes_it() {
+    let world = MountedPresentationWorld::new();
+    let predecessor = world.projection(
+        UiMountedFrameIdentity::mint_unbound().unwrap(),
+        [
+            rect_spec(world.first_instance, 0.0),
+            rect_spec(world.second_instance, 0.0),
+        ],
+    );
+    let successor = world.projection(
+        UiMountedFrameIdentity::mint_unbound().unwrap(),
+        [
+            rect_spec(world.second_instance, 0.0),
+            rect_spec(world.first_instance, 0.0),
+        ],
+    );
+    let predecessor_state =
+        UiMountedPresentationState::from_projection(&predecessor, world.requirement, None);
+    let successor_state = UiMountedPresentationState::from_projection(
+        &successor,
+        world.requirement,
+        Some(predecessor.frame()),
+    );
+    let lease = super::UiMountedPresentationLeaseGate::default()
+        .claim()
+        .unwrap();
+    let work = predecessor_state
+        .issue_successor(
+            &successor_state,
+            &[world.first_instance, world.second_instance],
+            &[],
+            false,
+            Some(predecessor.frame()),
+            &lease,
+        )
+        .unwrap();
+    let UiMountedPresentationWorkView::Delta(delta) = work.view() else {
+        panic!("authored equal-layer reorder must issue delta work");
+    };
+    let expected = successor
+        .retained_paint_order()
+        .iter()
+        .copied()
+        .collect::<Vec<_>>();
+    let mut observed = predecessor.retained_paint_order().to_vec();
+    for edit in delta.order() {
+        if let Some(position) = observed.iter().position(|entry| *entry == edit.identity()) {
+            observed.remove(position);
+        }
+        if !edit.is_removal() {
+            let position = edit
+                .predecessor()
+                .and_then(|predecessor| observed.iter().position(|entry| *entry == predecessor))
+                .map_or(0, |position| position + 1);
+            observed.insert(position, edit.identity());
+        }
+    }
+    assert_eq!(observed, expected);
+    assert!(
+        expected[0].command().mounted_instance().diagnostic_value()
+            > expected[1].command().mounted_instance().diagnostic_value(),
+        "successor authored order must oppose identity ordering"
+    );
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P3-TOTAL-ORDER-01\":2}}");
+}
+
+#[test]
 fn unchanged_successor_carries_zero_command_order_and_damage_work() {
     let world = MountedPresentationWorld::new();
     let predecessor_frame = UiMountedFrameIdentity::mint_unbound().unwrap();
@@ -74,7 +153,14 @@ fn unchanged_successor_carries_zero_command_order_and_damage_work() {
         .unwrap();
 
     let work = predecessor_state
-        .issue_successor(&successor_state, &[], false, &lease)
+        .issue_successor(
+            &successor_state,
+            &[],
+            &[],
+            false,
+            Some(predecessor.frame()),
+            &lease,
+        )
         .unwrap();
     let UiMountedPresentationWorkView::Unchanged(unchanged) = work.view() else {
         panic!("frame-only affinity progression must be unchanged work");
@@ -120,7 +206,14 @@ fn one_replacement_carries_one_change_and_exact_predecessor_successor_damage() {
     assert_eq!(initial.affinity().baseline(), world.requirement.baseline());
 
     let work = predecessor_state
-        .issue_successor(&successor_state, &[world.first_instance], false, &lease)
+        .issue_successor(
+            &successor_state,
+            &[world.first_instance],
+            &[],
+            false,
+            Some(predecessor.frame()),
+            &lease,
+        )
         .unwrap();
     let UiMountedPresentationWorkView::Delta(delta) = work.view() else {
         panic!("changed retained command must produce delta work");
@@ -151,7 +244,14 @@ fn one_replacement_carries_one_change_and_exact_predecessor_successor_damage() {
         Some(successor.frame()),
     );
     let unchanged_work = successor_state
-        .issue_successor(&unchanged_state, &[], false, &lease)
+        .issue_successor(
+            &unchanged_state,
+            &[],
+            &[],
+            false,
+            Some(successor.frame()),
+            &lease,
+        )
         .unwrap();
     let UiMountedPresentationWorkView::Unchanged(unchanged) = unchanged_work.view() else {
         panic!("frame-only progression must issue unchanged work");
@@ -201,7 +301,9 @@ fn removal_and_insert_carry_exact_identities_vacated_damage_and_total_order() {
         .issue_successor(
             &successor_state,
             &[world.first_instance, third],
+            &[],
             false,
+            Some(predecessor.frame()),
             &lease,
         )
         .unwrap();
@@ -245,132 +347,6 @@ fn removal_and_insert_carry_exact_identities_vacated_damage_and_total_order() {
         "WORTH_UI_LEDGER_COUNTERS={{\"P1-PRODUCER-01\":{}}}",
         delta.changes().len()
     );
-}
-
-#[test]
-fn removal_damage_follows_authored_order_after_identity_replacement() {
-    let world = MountedPresentationWorld::new();
-    let remounted_first = UiMountedInstanceIdentity::mint_unbound().unwrap();
-    let predecessor = world.projection(
-        UiMountedFrameIdentity::mint_unbound().unwrap(),
-        [
-            rect_spec(remounted_first, 0.0),
-            rect_spec(world.first_instance, 40.0),
-        ],
-    );
-    let successor = world.projection(
-        UiMountedFrameIdentity::mint_unbound().unwrap(),
-        std::iter::empty(),
-    );
-    let predecessor_state =
-        UiMountedPresentationState::from_projection(&predecessor, world.requirement, None);
-    let successor_state = UiMountedPresentationState::from_projection(
-        &successor,
-        world.requirement,
-        Some(predecessor.frame()),
-    );
-    let lease = super::UiMountedPresentationLeaseGate::default()
-        .claim()
-        .unwrap();
-
-    let work = predecessor_state
-        .issue_successor(
-            &successor_state,
-            &[world.first_instance, remounted_first],
-            false,
-            &lease,
-        )
-        .unwrap();
-    let UiMountedPresentationWorkView::Delta(delta) = work.view() else {
-        panic!("removal must produce delta work");
-    };
-    assert_eq!(
-        delta
-            .damage()
-            .iter()
-            .map(|damage| damage.bounds().x())
-            .collect::<Vec<_>>(),
-        vec![0.0, 40.0]
-    );
-}
-
-#[test]
-fn replacement_damage_is_clipped_to_predecessor_and_successor_visibility() {
-    let world = MountedPresentationWorld::new();
-    let frame = UiMountedFrameIdentity::mint_unbound().unwrap();
-    let predecessor = world.projection(
-        frame,
-        [rect_spec_with_clip(world.first_instance, 0.0, 4.0, 16.0)],
-    );
-    let mut successor_spec = rect_spec_with_clip(world.first_instance, 0.0, 8.0, 10.0);
-    successor_spec.color = UiMountedRgba8::new(200, 20, 40, 255);
-    let successor = world.projection(
-        UiMountedFrameIdentity::mint_unbound().unwrap(),
-        [successor_spec],
-    );
-    let predecessor_state =
-        UiMountedPresentationState::from_projection(&predecessor, world.requirement, None);
-    let successor_state = UiMountedPresentationState::from_projection(
-        &successor,
-        world.requirement,
-        Some(predecessor.frame()),
-    );
-    let lease = super::UiMountedPresentationLeaseGate::default()
-        .claim()
-        .unwrap();
-
-    let work = predecessor_state
-        .issue_successor(&successor_state, &[world.first_instance], false, &lease)
-        .unwrap();
-    let UiMountedPresentationWorkView::Delta(delta) = work.view() else {
-        panic!("changed visible rectangle must produce delta work");
-    };
-    let exact_damage = delta
-        .damage()
-        .iter()
-        .map(|damage| (damage.bounds().x(), damage.bounds().width()))
-        .collect::<Vec<_>>();
-    assert_eq!(exact_damage, vec![(4.0, 16.0), (8.0, 10.0)]);
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P1-DAMAGE-01\":{}}}",
-        exact_damage.len()
-    );
-}
-
-#[test]
-fn stale_successor_affinity_is_denied_before_work_issuance() {
-    let world = MountedPresentationWorld::new();
-    let predecessor = world.projection(
-        UiMountedFrameIdentity::mint_unbound().unwrap(),
-        [rect_spec(world.first_instance, 0.0)],
-    );
-    let successor = world.projection(
-        UiMountedFrameIdentity::mint_unbound().unwrap(),
-        [rect_spec(world.first_instance, 0.0)],
-    );
-    let predecessor_state =
-        UiMountedPresentationState::from_projection(&predecessor, world.requirement, None);
-    let stale_state = UiMountedPresentationState::from_projection(
-        &successor,
-        world.requirement,
-        Some(UiMountedFrameIdentity::mint_unbound().unwrap()),
-    );
-    let lease = super::UiMountedPresentationLeaseGate::default()
-        .claim()
-        .unwrap();
-
-    assert!(matches!(
-        predecessor_state.issue_successor(&stale_state, &[], false, &lease),
-        Err(UiMountedPresentationWorkProductionDenial::StalePredecessor)
-    ));
-    let current_state = UiMountedPresentationState::from_projection(
-        &successor,
-        world.requirement,
-        Some(predecessor.frame()),
-    );
-    assert!(predecessor_state
-        .issue_successor(&current_state, &[], false, &lease)
-        .is_ok());
 }
 
 trait CommandChangeIdentity {

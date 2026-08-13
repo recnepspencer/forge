@@ -240,6 +240,7 @@ impl WorthUiActiveApplicationSession {
             return Err(crate::mounting::UiMountedPublicationLeaseDenial::PresentationInFlight);
         }
         let host_session_identity = self.host_session.identity();
+        let font_collection = std::sync::Arc::clone(self.application.font_collection());
         let turn = self.application.execute_framework_turn(collect_sources);
         let (generation_identity, visual_trace_source, graph, active_plan_digest, completion) =
             turn.into_parts();
@@ -247,6 +248,7 @@ impl WorthUiActiveApplicationSession {
             generation_identity,
             visual_trace_source,
             graph,
+            font_collection,
             active_plan_digest,
             host_session_identity,
             completion,

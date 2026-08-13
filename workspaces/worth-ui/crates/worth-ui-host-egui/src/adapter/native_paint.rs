@@ -26,7 +26,6 @@ struct UiEguiPreparedFilledRect {
 #[derive(Clone)]
 enum UiEguiPreparedNativePaintCommand {
     FilledRect(UiEguiPreparedFilledRect),
-    SemanticText(super::semantic_text::UiEguiPreparedSemanticText),
 }
 
 impl UiEguiPreparedNativePaint {
@@ -34,25 +33,52 @@ impl UiEguiPreparedNativePaint {
         view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
         initial: &UiMountedPresentationInitial,
     ) -> Result<Self, UiHostSurfacePresentationDenial> {
-        let projection = initial.projection();
+        Self::prepare_complete(
+            view,
+            initial.projection(),
+            initial.commands(),
+            initial.order(),
+            initial.order_integrity(),
+        )
+    }
+
+    pub(super) fn prepare_reconstruction(
+        view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+        work: &worth_ui_host_contract::UiMountedPresentationReconstruction,
+    ) -> Result<Self, UiHostSurfacePresentationDenial> {
+        Self::prepare_complete(
+            view,
+            work.projection(),
+            work.commands(),
+            work.order(),
+            work.order_integrity(),
+        )
+    }
+
+    fn prepare_complete(
+        view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+        projection: &UiMountedProjectionView,
+        source_commands: &[UiMountedPaintCommand],
+        order: &[UiMountedPaintOrderIdentity],
+        integrity: worth_ui_host_contract::UiMountedPaintOrderIntegrity,
+    ) -> Result<Self, UiHostSurfacePresentationDenial> {
         validate_protocol(view, projection)?;
         validate_table_schema(projection)?;
         validate_projection_rows(view, projection)?;
-        let commands = initial
-            .commands()
+        let commands = source_commands
             .iter()
             .map(|command| {
                 prepare_command(view, command).map(|prepared| (command.identity(), prepared))
             })
             .collect::<Result<HashMap<_, _>, _>>()?;
-        validate_order(&commands, initial.order())?;
-        if !initial.order_integrity().admits(initial.order()) {
+        validate_order(&commands, order)?;
+        if !integrity.admits(order) {
             return Err(UiHostSurfacePresentationDenial::MalformedProjection);
         }
         Ok(Self {
             layer: surface_layer(projection.binding()),
             commands,
-            order: initial.order().to_vec(),
+            order: order.to_vec(),
         })
     }
 
@@ -123,7 +149,6 @@ impl UiEguiPreparedNativePaintCommand {
                     .with_clip_rect(row.clip_rect)
                     .rect_filled(row.rect, 0.0, row.color);
             }
-            Self::SemanticText(row) => row.paint(painter),
         }
     }
 }
@@ -188,8 +213,11 @@ fn prepare_command(
             {
                 return Err(UiHostSurfacePresentationDenial::MalformedProjection);
             }
-            Ok(UiEguiPreparedNativePaintCommand::SemanticText(
-                super::semantic_text::translate(mechanic),
+            if view.qualified_text_layout(mechanic).is_none() {
+                return Err(UiHostSurfacePresentationDenial::MalformedProjection);
+            }
+            Err(UiHostSurfacePresentationDenial::UnsupportedEffect(
+                worth_ui_host_contract::UiMountedEffectFamily::NativePaint,
             ))
         }
     }

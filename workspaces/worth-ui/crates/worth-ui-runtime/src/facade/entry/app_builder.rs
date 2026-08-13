@@ -10,6 +10,8 @@ use crate::runtime::WorthUiWatchedCandidateSubmission;
 
 mod application_fact_registration;
 mod capability_registration;
+#[cfg(test)]
+mod font_collection_tests;
 mod freeze;
 mod intent_registration;
 mod query_registration;
@@ -35,6 +37,7 @@ pub struct WorthUiApplicationBuilder<
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
     intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     intent_execution_bindings: crate::runtime::intent_execution::UiIntentExecutionBindingPlan,
+    font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     change_profile: ChangeProfileState,
     intent_wiring: IntentWiringState,
 }
@@ -82,6 +85,11 @@ impl WorthUiApplicationBuilder<UiChangeProfileMissing, UiIntentWiringSatisfied> 
             intent_application_facts: Default::default(),
             intent_execution_bindings:
                 crate::runtime::intent_execution::UiIntentExecutionBindingPlan::new(),
+            font_collection: std::sync::Arc::new(
+                worth_ui_text::UiGlobalFontCollection::admit_qualified_profile()
+                    .expect("embedded qualified text profile")
+                    .0,
+            ),
             change_profile: UiChangeProfileMissing { _sealed: () },
             intent_wiring: UiIntentWiringSatisfied { _sealed: () },
         }
@@ -196,6 +204,7 @@ impl<ChangeProfileState, IntentWiringState>
             query_binding_plan: self.query_binding_plan,
             intent_application_facts: self.intent_application_facts,
             intent_execution_bindings: self.intent_execution_bindings,
+            font_collection: self.font_collection,
             change_profile,
             intent_wiring: self.intent_wiring,
         }
@@ -203,6 +212,14 @@ impl<ChangeProfileState, IntentWiringState>
 
     pub fn with_minimal_registration_diagnostics(mut self) -> Self {
         self.inner = self.inner.with_minimal_registration_diagnostics();
+        self
+    }
+
+    pub fn with_font_collection(
+        mut self,
+        collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
+    ) -> Self {
+        self.font_collection = collection;
         self
     }
 

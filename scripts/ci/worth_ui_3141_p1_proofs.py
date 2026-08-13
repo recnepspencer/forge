@@ -5,6 +5,10 @@ RUNTIME_TESTS = (
     "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/"
     "work_producer_tests.rs"
 )
+DAMAGE_TESTS = (
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/"
+    "work_producer_tests/damage_bounds.rs"
+)
 HOST_WORLD = (
     "workspaces/worth-ui/crates/worth-ui-certification/tests/"
     "application_contracts/host_platform/mod.rs"
@@ -28,15 +32,15 @@ def retained_work_proofs(rust_lib, rust_test):
         ),
         "P1-DAMAGE-01": rust_lib(
             "worth-ui-runtime",
-            "mounting::presentation::work_producer_tests::replacement_damage_is_clipped_to_predecessor_and_successor_visibility",
+            "mounting::presentation::work_producer_tests::damage_bounds::replacement_damage_is_clipped_to_predecessor_and_successor_visibility",
             "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer/delta_diff.rs::append_damage",
-            f"{RUNTIME_TESTS}::replacement_damage_is_clipped_to_predecessor_and_successor_visibility",
+            f"{DAMAGE_TESTS}::replacement_damage_is_clipped_to_predecessor_and_successor_visibility",
         ),
         "P1-HEADLESS-01": rust_test(
             "worth-ui-certification",
             "application_contracts",
             "mounted_headless_recorder::real_cross_lane_recording_preserves_exact_unperformed_external_mechanics",
-            "workspaces/worth-ui/crates/worth-ui-host-headless/src/headless_recorder/presentation.rs::prepare_candidate",
+            "workspaces/worth-ui/crates/worth-ui-host-headless/src/headless_recorder/presentation.rs::apply_work",
             "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/mounted_headless_recorder.rs::real_cross_lane_recording_preserves_exact_unperformed_external_mechanics",
         ),
         "P1-HEADLESS-COST-01": rust_test(
@@ -52,11 +56,11 @@ def ordering_proofs(compile_proof, rust_lib):
         "P1-ORDER-01": rust_lib(
             "worth-ui-runtime",
             "mounting::presentation::work_producer_tests::equal_layer_total_order_follows_authored_node_order_not_command_identity",
-            "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer/order_source.rs::commands_and_total_order",
+            "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/projection/frame_storage/presentation_sources.rs::compile",
             f"{RUNTIME_TESTS}::equal_layer_total_order_follows_authored_node_order_not_command_identity",
         ),
         "P1-ORDER-SOURCE-01": compile_proof(
-            "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer/order_source.rs::commands_and_total_order"
+            "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/projection/frame_storage/presentation_sources.rs::compile"
         ),
         "P1-PRODUCER-01": rust_lib(
             "worth-ui-runtime",

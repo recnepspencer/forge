@@ -1,13 +1,11 @@
 use worth_ui_host_contract::{
-    UiHostMeasurementSchemaVersion, UiHostProtocolAgreement, UiHostProtocolContract,
-    UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
-    UiHostProtocolSchemaFamily, UiHostProtocolVersion, UiHostSurfaceIdentity,
+    UiHostProtocolAgreement, UiHostProtocolContract, UiHostProtocolDenial, UiHostProtocolIdentity,
+    UiHostProtocolNegotiation, UiHostProtocolSchemaFamily, UiHostSurfaceIdentity,
     UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedFrameConsumptionInput,
     UiMountedFrameSchemaVersion, UiMountedPaintOrderIntegrity,
     UiMountedPresentationAttemptIdentity, UiMountedPresentationInitial,
-    UiMountedPresentationInitialInput, UiMountedPresentationSchemaVersion,
-    UiMountedPresentationWorkView, UiMountedProjectionView, UiMountedSurfaceBindingRequirement,
-    WorthUiHostCapabilityObservationGeneration,
+    UiMountedPresentationInitialInput, UiMountedPresentationWorkView, UiMountedProjectionView,
+    UiMountedSurfaceBindingRequirement, WorthUiHostCapabilityObservationGeneration,
 };
 use worth_ui_test_support::{
     semantic_text_projection_for_certification as projection,
@@ -17,12 +15,11 @@ use worth_ui_test_support::{
 #[test]
 fn validated_agreement_semantic_text_consumes_and_mixed_contract_stops_before_consumer() {
     let projection = projection(Mutation::Exact);
-    let prepared = consume_projection(&projection, current_protocol(), super::prepare).unwrap();
+    consume_projection(&projection, current_protocol(), super::prepare).unwrap();
 
-    assert_eq!(prepared.len(), 1);
-    assert_eq!(prepared[0].origin, egui::pos2(8.0, 12.0));
-    assert_eq!(prepared[0].text.as_ref(), "ONLINE");
-    assert_eq!(prepared[0].font.size, 14.0);
+    let adapter = include_str!("semantic_text.rs");
+    assert!(!adapter.contains("FontId"));
+    assert!(!adapter.contains("Painter::text"));
     assert!(matches!(
         mounted_frame_revision_two().negotiate(),
         UiHostProtocolNegotiation::Incompatible(UiHostProtocolDenial::SchemaTooOld(
@@ -84,6 +81,32 @@ fn consume_projection<T>(
     protocol: UiHostProtocolAgreement,
     consume: impl FnOnce(&worth_ui_host_contract::UiMountedFrameConsumptionView<'_>) -> T,
 ) -> T {
+    let row = &projection.semantic_text().rows()[0];
+    let qualified_text = ExactLayoutResolver {
+        view: worth_ui_host_contract::UiQualifiedTextLayoutView::from_text_mechanics(
+            worth_ui_host_contract::UiQualifiedTextLayoutViewInput {
+                request_identity: row.qualified_layout_request(),
+                identity: row.qualified_layout_identity(),
+                source: row.text(),
+                graphemes: &[],
+                word_boundaries: &[],
+                styles: &[],
+                logical_runs: &[],
+                glyphs: &[],
+                lines: &[],
+                visual_runs: &[],
+                positioned_glyphs: &[],
+                logical_bounds: Default::default(),
+                ink_bounds: Default::default(),
+                carets: &[],
+                coverage: &[],
+                cost: Default::default(),
+                profile: row.qualified_layout_profile(),
+                font_collection: row.qualified_layout_fonts(),
+                text_scale: row.qualified_layout_scale(),
+            },
+        ),
+    };
     let generation = WorthUiHostCapabilityObservationGeneration::new(7);
     let requirement = UiMountedSurfaceBindingRequirement::new(
         projection.surface(),
@@ -109,6 +132,7 @@ fn consume_projection<T>(
         });
     let view = worth_ui_host_contract::UiMountedFrameConsumptionView::from_inert_mechanics(
         UiMountedFrameConsumptionInput {
+            qualified_text: &qualified_text,
             authority: std::rc::Rc::new(()),
             host_session_identity: 13,
             protocol,
@@ -123,18 +147,32 @@ fn consume_projection<T>(
     consume(&view)
 }
 
+struct ExactLayoutResolver<'layout> {
+    view: worth_ui_host_contract::UiQualifiedTextLayoutView<'layout>,
+}
+
+impl worth_ui_host_contract::UiMountedQualifiedTextResolver for ExactLayoutResolver<'_> {
+    fn resolve(
+        &self,
+        identity: worth_ui_host_contract::UiQualifiedTextLayoutIdentity,
+    ) -> Option<worth_ui_host_contract::UiQualifiedTextLayoutView<'_>> {
+        (identity == self.view.identity()).then_some(self.view)
+    }
+}
+
 fn current_protocol() -> UiHostProtocolAgreement {
     compatible(UiHostProtocolContract::current())
 }
 
 fn mounted_frame_revision_two() -> UiHostProtocolContract {
+    let current = UiHostProtocolContract::current();
     UiHostProtocolContract::new(
         UiHostProtocolIdentity::worth_ui(),
-        UiHostProtocolVersion::new(4),
+        current.protocol(),
         UiMountedFrameSchemaVersion::new(2),
-        UiMountedPresentationSchemaVersion::new(3),
-        UiHostProtocolContract::current().observation(),
-        UiHostMeasurementSchemaVersion::new(3),
+        current.mounted_presentation(),
+        current.observation(),
+        current.measurement(),
     )
 }
 

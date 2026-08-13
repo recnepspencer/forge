@@ -23,6 +23,7 @@ impl UiNativeRetainedDrawList {
         (UiNativeRetainedReplayPlan, UiNativeRetainedDeltaUndo),
         UiNativeRetainedDrawListDenial,
     > {
+        self.order.take_cost();
         self.validate_affinity(delta)?;
         let membership = self.validate_changes(delta.changes())?;
         self.validate_order_edits(delta.order(), &membership)?;

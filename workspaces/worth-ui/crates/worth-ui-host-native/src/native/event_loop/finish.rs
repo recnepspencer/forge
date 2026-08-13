@@ -12,6 +12,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         mut self,
     ) -> Result<UiNativeEventLoopRunReport, UiNativeEventLoopStopReport> {
         let presentation = self.shared.borrow().last_presentation.clone();
+        let retained_frames = self.shared.borrow().retained_frame_observations.clone();
         let client_attribution = self
             .client
             .as_ref()
@@ -66,6 +67,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             client_attribution.expect("validated client attribution"),
             peak_census,
             host_census,
+            retained_frames,
         ))
     }
 
@@ -115,6 +117,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         client_attribution: super::UiNativeClientPresentationAttribution,
         peak_census: crate::native::UiNativeResourceCensus,
         terminal_census: crate::native::UiNativeResourceCensus,
+        retained_frames: Vec<crate::native::UiNativeRetainedFrameObservation>,
     ) -> UiNativeEventLoopRunReport {
         let thread = self
             .thread_observation
@@ -134,6 +137,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             coalesced_wakes: self.coalesced_wakes,
             peak_census,
             terminal_census,
+            retained_frames: retained_frames.into_boxed_slice(),
         }
     }
 }

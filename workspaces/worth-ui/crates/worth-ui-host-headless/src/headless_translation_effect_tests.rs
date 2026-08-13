@@ -37,6 +37,7 @@ fn headless_translation_records_motion_and_diagnostic_mechanics_independently() 
     );
     let view = worth_ui_host_contract::UiMountedFrameConsumptionView::from_inert_mechanics(
         UiMountedFrameConsumptionInput {
+            qualified_text: &(),
             authority: std::rc::Rc::new(()),
             host_session_identity: 13,
             protocol,

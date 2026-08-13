@@ -181,6 +181,7 @@ impl WorthUiActiveApplicationSession {
         let mut prepared = WorthUiPreparedApplicationReplacement::from_changed_rebind_plan(
             self.identity,
             self.application.host_session_plan().clone(),
+            std::sync::Arc::clone(self.application.font_collection()),
             *changed,
         )
         .ok_or(crate::runtime::rebind::UiRebindPreparationDenial::CandidateBindingMismatch)?;

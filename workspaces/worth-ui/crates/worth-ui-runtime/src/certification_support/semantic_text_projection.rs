@@ -14,9 +14,9 @@ use worth_ui_host_contract::{
     UiMountedProjectionView, UiMountedProjectionViewInput, UiMountedRealtimeBatchTable,
     UiMountedResourceTable, UiMountedRgba8, UiMountedSemanticTextCompletionInput,
     UiMountedSemanticTextMechanic, UiMountedSemanticTextReference, UiMountedSemanticTextTable,
-    UiMountedSpatialBatchTable, UiMountedTransformProjection, UiSemanticSurfaceIdentity,
-    UiSemanticTextProfile, UiSemanticTextSlot, UiSurfaceBindingGeneration,
-    WorthUiHostCapabilityObservationGeneration,
+    UiMountedSpatialBatchTable, UiMountedTextForegroundSpan, UiMountedTextPaintSpanIdentity,
+    UiMountedTransformProjection, UiSemanticSurfaceIdentity, UiSemanticTextProfile,
+    UiSemanticTextSlot, UiSurfaceBindingGeneration, WorthUiHostCapabilityObservationGeneration,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -70,6 +70,27 @@ pub fn semantic_text_projection_for_certification_with_capability(
         capability_generation,
         capability_profile_digest,
     )
+}
+
+pub fn empty_projection_for_certification() -> UiMountedProjectionView {
+    UiMountedProjectionView::new(UiMountedProjectionViewInput {
+        frame: UiMountedFrameIdentity::mint_unbound().expect("frame identity"),
+        surface: UiSemanticSurfaceIdentity::mint_unbound().expect("surface identity"),
+        binding: UiSurfaceBindingGeneration::mint_unbound().expect("binding generation"),
+        content_generation: UiMountedContentGeneration::mint_unbound().expect("content generation"),
+        nodes: Vec::new(),
+        clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
+        layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
+        filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
+        semantic_text: UiMountedSemanticTextTable::empty(),
+        hit_tests: worth_ui_host_contract::UiMountedHitTestTable::empty(),
+        paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
+        spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
+        realtime_batches: UiMountedRealtimeBatchTable::new(Vec::new()),
+        resources: UiMountedResourceTable::new(Vec::new()),
+        authored_paint_commands: Vec::new(),
+        authored_paint_order: Vec::new(),
+    })
 }
 
 fn semantic_text_projection(
@@ -216,9 +237,15 @@ fn semantic_row(input: SemanticTextRowBasis) -> UiMountedSemanticTextMechanic {
             origin_x: 8.0,
             origin_y: 12.0,
             text: Arc::from("ONLINE"),
+            layout: crate::mounting::qualified_text_test_support::inert_qualified_layout("ONLINE")
+                .view(),
             slot: UiSemanticTextSlot::Value,
             collection_row: None,
-            color: UiMountedRgba8::new(255, 255, 255, 255),
+            foregrounds: Arc::from([UiMountedTextForegroundSpan::from_runtime_mounting(
+                worth_ui_host_contract::UiTextOriginalRange::from_text_mechanics(0, 6).unwrap(),
+                UiMountedRgba8::new(255, 255, 255, 255),
+                UiMountedTextPaintSpanIdentity::from_runtime_mounting([1; 32]),
+            )]),
             profile: UiSemanticTextProfile::BodyDefault,
             layer_semantic_order: 1,
             capability_generation: if input.mutation
@@ -345,3 +372,23 @@ mint_identity!(
     UiMountedContentGeneration,
     UiMountedInstanceIdentity,
 );
+pub struct UiCertificationQualifiedTextResolver {
+    layout: std::sync::Arc<worth_ui_text::UiQualifiedTextLayout>,
+}
+
+pub fn semantic_text_layout_resolver_for_certification() -> UiCertificationQualifiedTextResolver {
+    UiCertificationQualifiedTextResolver {
+        layout: crate::mounting::qualified_text_test_support::inert_qualified_layout("ONLINE"),
+    }
+}
+
+impl worth_ui_host_contract::UiMountedQualifiedTextResolver
+    for UiCertificationQualifiedTextResolver
+{
+    fn resolve(
+        &self,
+        identity: worth_ui_host_contract::UiQualifiedTextLayoutIdentity,
+    ) -> Option<worth_ui_host_contract::UiQualifiedTextLayoutView<'_>> {
+        (self.layout.identity() == identity).then(|| self.layout.view())
+    }
+}

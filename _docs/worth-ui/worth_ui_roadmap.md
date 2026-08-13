@@ -1831,7 +1831,7 @@ Unicode 17 conformance data, deterministic cluster fallback, complex shaping,
 bidirectional and line layout, original-range and caret geometry, Unicode 17
 RGI color emoji, alpha/color raster formats, and bounded layout/atlas
 capacities under manifest digest
-`3f059e7b017da04fb958695567bf668e577504cd16463492f1c404a0c0c3e4de`.
+`cec6005c5baef6d69ada9c30c02ced25b0f253f80c012784fe925e307935c3f2`.
 Phase 4 may consume it only after the append-only Phase 3 predecessor gate
 allows `P4-TEXT-PROFILE-01` to become final-source `PROVED`. The text work is
 split into canonical Unicode layout/measurement first and color glyph/emoji/
@@ -1853,19 +1853,31 @@ text platform, input, resize, capture, recovery, Pulse parity, and egui
 deletion stay in their ordered phases. The stronger future text requirement
 separately reopens Phase 4 qualification.
 
-The proof ledger advances append-only. Phase 3 adds sixteen exact retained-
+The proof ledger advances append-only. Phase 3 adds seventeen exact retained-
 presentation rows, including one current-source handoff over the immutable
-Phase 1-2 prefix; Phase 4 adds fourteen exact Unicode/layout rows before the v2
+Phase 1-2 prefix; Phase 4 adds twenty-one exact Unicode/layout rows, including
+its own current-source predecessor and final closure rows, before the v2
 qualification gate is executed. Historical row nonces, claims, artifacts, and
 selected-source digests are never regenerated merely because later governed
 source changes. Each new phase instead proves that its current source still
 lawfully consumes the closed predecessor contract.
 
+Phase closure is proof-economical as well as atomic. One source-state/claim
+snapshot executes each distinct Cargo discovery, exact main, hostile control,
+compile contract, and native world once; rows that share an execution validate
+the same content-addressed receipt rather than launching a substitute process.
+Successful row bundles remain resumable outside canonical evidence after a
+later-row failure, but source, claim, command, ledger-basis, dependency, or
+content drift invalidates them. The final gate validates the newly retained
+portfolio and Rust ledger contracts without replaying the predecessor or Phase
+4 portfolio. Row-level start/reuse/finish telemetry and measured durations are
+part of the closure runner contract.
+
 The custody boundary moves down, not sideways. The new host owns a retained
 draw list in which every quad and glyph run carries its mounted node receipt,
 frame generation, surface generation, and binding generation. Damage-scoped
 presentation derives from an owner-issued, compiler-total
-`Initial | Delta | Unchanged` work contract and a runtime-issued total paint
+`Initial | Delta | Reconstruction | Unchanged` work contract and a runtime-issued total paint
 order, not host-side projection comparison. An unchanged turn performs zero
 draw-list, Unicode analysis, shaping, line layout, raster, atlas, and surface
 work, provable by named counters rather than elapsed time. A dedicated host-
@@ -1882,19 +1894,74 @@ writing, general vector tessellation, any platform beyond the currently
 certified Windows lane, and accessibility-tree projection remain explicit
 non-goals; the v2 artifacts must nevertheless be the foundation those later
 semantic owners consume.
+
+Application-bundled fonts are a normal Phase 4 product capability, not a
+single-font exception. Applications can admit multiple content-addressed
+OpenType `TTF`/`OTF`/`TTC`/`OTC` packs from owned bytes, address distinct
+application-scoped families, and author an ordered family stack with explicit
+weight, width, slant, variable-axis, and feature requests on each style span.
+Static regular/bold/italic/oblique faces, variable fonts, multiple collection
+face indices, and deterministic family-name collision handling are must-ship.
+After later authored families, complete RGI emoji clusters use qualified color
+emoji then Last Resort; non-RGI clusters use qualified profile defaults then
+Last Resort. Neither route may decompose a cluster or use the other route as a
+silent substitute. Ambient OS fonts, path/name lookup, registration-order tie
+breaks, and renderer-local defaults remain forbidden; `WOFF`/`WOFF2` remain a
+typed unsupported format until a later profile qualifies their decoding and
+limits.
+
+Font-pack changes advance `UiFontCollectionGeneration` rather than mutating a
+live collection. Existing layouts pin their exact predecessor bytes; new work
+uses the successor generation; stale layouts deny before effects; and only
+paragraphs whose resolved layout-affecting input changes may be reanalyzed.
+That input includes the authored family stack, exact selected face, weight,
+width, slant, variation coordinates, OpenType features, language, source text,
+and paragraph constraints. A foreground-color value change with unchanged
+paint-span boundaries is the sole explicit no-reshape exception.
+The same selected-face and generation identity must be consumed by layout,
+measurement, hit testing, accessibility geometry, headless evidence, native
+rendering, and reconstruction. Phase 4 cannot close on a default-only font
+demo: its font-collection courtroom must use at least two overlapping
+application families, multiple styles/axes, a multi-face collection, missing-
+cluster and emoji fallback, generation replacement/removal with a live old
+layout, and hostile hard-coded-family/system-font/stale-generation mutants.
+
+Mixed span appearance is also must-ship. One line may combine different
+application families, font sizes, weights/slants, languages, bidi directions,
+and foreground colors alongside intrinsic-color emoji. Layout owns stable
+original-range paint-span boundaries but not authored color authority; mounted
+appearance supplies logical straight RGBA to headless/native glyph-run paint.
+A color-value-only edit reuses analysis, shaping, layout, metrics, interaction
+geometry, and atlas entries and updates only affected paint commands/damage.
+Foreground follows logical source ranges through bidi reordering, alpha glyphs
+are tinted by the qualified pipeline, and color emoji is never accidentally
+tinted by neighboring text.
+Canonical text interaction includes visual-edge plus upstream/downstream caret
+affinity, point-to-line-to-visual-run-to-cluster hit records, discontiguous
+bidi selection rectangles, and one shared accessibility-geometry consumer.
+Content-only, paragraph-width-only, and document-wide width changes have
+separate locality courtrooms. Capacity uses conservative qualified-font bounds
+and bounded unpublished staging, so derived overflow can deny atomically before
+publication or raster effects.
 Phase 4 treats every Unicode 17 RGI emoji sequence as one qualified text unit
 through segmentation, fallback, shaping, wrapping, ellipsis, caret movement,
 hit testing, selection, and original-range mapping. That includes variation
 selectors, keycaps, flags, tag sequences, skin tones, and gendered/family ZWJ
-sequences. Phase 5 owns color-glyph raster, atlas, and native pixel evidence;
+sequences. Phase 5 owns exhaustive exact-sequence color-glyph raster, atlas,
+and representative native pixel evidence for COLRv0/CPAL, COLRv1/CPAL,
+CBDT/CBLC, and sbix `png`/one-hop-`dupe`; sbix `jpg`/`tiff` and OpenType SVG are
+explicitly rejected by this profile.
 it may not compensate for a Phase 4 sequence split.
 
-Phase 3 keeps revision 4 and its 2,048-row/1 MiB text-carrier ceiling. Its
+Phase 3 keeps protocol revision 4, advances the mounted-presentation schema to
+revision 5 for the distinct cold reconstruction envelope, and keeps the
+2,048-row/1 MiB text-carrier ceiling. Its
 native damage courtroom is a 2,048-rectangle pixel world; its separate
 4,096-command mixed rectangle/text world proves runtime/headless carrier and
 index slope without claiming text layout or native glyph pixels. After the v2
-qualification gate closes, Phase 4 advances mounted-frame, presentation, and
-measurement together to revision 5 and admits 4,096 paragraphs, 65,536 UTF-8
+qualification gate closes, Phase 4 advances the protocol, mounted-frame, and
+measurement schemas to revision 5, retains presentation schema 5, and admits
+4,096 paragraphs, 65,536 UTF-8
 bytes per paragraph, and 8 MiB aggregate retained text. Mixed revision-4/v5
 frames and retained generations reject before effects.
 
@@ -1936,7 +2003,7 @@ retained dual-host fallback does not close the pulse.
   bounds, and damage-scoped presentation derived from admitted plans
 - a surface-issued canonical transparent baseline for clearing uncovered
   damage; every opaque background remains an attributed runtime-issued command
-- a host-neutral initial/delta/unchanged presentation-work protocol and unique
+- a host-neutral initial/delta/reconstruction/unchanged presentation-work protocol and unique
   total paint order that make host-side semantic diffing unnecessary
 - a host-neutral Unicode 17 text-mechanics crate shared by headless and native
   hosts, with content-addressed default/application font collections,
@@ -1944,9 +2011,10 @@ retained dual-host fallback does not close the pulse.
   analysis, complex shaping, line layout, original-range cluster/caret/
   selection geometry, and one canonical measurement/rendering layout artifact
 - filled-rectangle plus multilingual, bidirectional, complex-script, symbols,
-  CJK, and Unicode 17 RGI color-emoji glyph-run presentation with bounded
-  alpha/color atlas ownership and metrics derived from that canonical layout,
-  never from adapter-local font defaults
+  CJK, mixed-family/mixed-size/mixed-foreground spans, and Unicode 17 RGI
+  color-emoji glyph-run presentation with bounded alpha/color atlas ownership
+  and metrics derived from that canonical layout, never from adapter-local
+  font defaults
 - snapshot capture through surface readback feeding the existing visual
   snapshot contract
 - host-neutral input observation translation sufficient for the shipped 3.14
@@ -1971,9 +2039,11 @@ retained dual-host fallback does not close the pulse.
   mounted identity, language/direction policy, wrapping, or clipping evidence
 - the independent text courtroom convicts Basic-Latin-only handling, scalar
   fallback, bidi/source-order corruption, grapheme/emoji-sequence splitting,
-  missing color layers, duplicate measurement shaping, system-font lookup,
-  stale width/text-scale/DPI reuse, pinned-glyph eviction, and broad retained-
-  paragraph reshaping
+  missing color layers, single-foreground substitution, visual-order color
+  assignment, intrinsic-emoji tinting, layout regeneration on a color-only
+  edit, duplicate measurement shaping, system-font lookup, stale width/text-
+  scale/DPI reuse, pinned-glyph eviction, and broad retained-paragraph
+  reshaping
 - hostile controls turn red on receiptless paint, whole-frame repaint of an
   unchanged turn, adapter-invented geometry, internal-state snapshot
   substitution, and leaked window, surface, device, or atlas resources

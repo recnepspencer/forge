@@ -33,6 +33,7 @@ pub struct UiNativeApplicationPreparation {
     preparation_identity: u64,
     binding: UiNativePlatformBindingGrant,
     builder: Option<UiNativeBuilderState>,
+    program: Option<crate::facade::entry::UiNativeApplicationProgram>,
 }
 
 #[must_use]
@@ -44,6 +45,7 @@ pub struct UiNativeApplicationBuilder<'preparation> {
 pub struct UiPreparedNativeApplication {
     application: WorthUiHostNeutralApp,
     binding: UiNativePlatformBindingGrant,
+    program: crate::facade::entry::UiNativeApplicationProgram,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -53,6 +55,7 @@ pub enum UiNativeApplicationPreparationDenialCause {
     ChangeProfileMissing,
     ChangeProfileAlreadyInstalled,
     ApplicationFreezeRejected,
+    FrameProgramAlreadyInstalled,
 }
 
 #[must_use]
@@ -74,6 +77,7 @@ impl UiNativeApplicationPreparation {
             preparation_identity,
             binding,
             builder: Some(builder),
+            program: None,
         }
     }
 
@@ -81,6 +85,17 @@ impl UiNativeApplicationPreparation {
         UiNativeApplicationBuilder {
             builder: &mut self.builder,
         }
+    }
+
+    pub fn install_frame_program(
+        &mut self,
+        program: crate::facade::entry::UiNativeApplicationProgram,
+    ) -> Result<(), UiNativeApplicationPreparationDenialCause> {
+        if self.program.is_some() {
+            return Err(UiNativeApplicationPreparationDenialCause::FrameProgramAlreadyInstalled);
+        }
+        self.program = Some(program);
+        Ok(())
     }
 
     pub fn complete(mut self) -> UiNativeApplicationPreparationOutcome {
@@ -96,6 +111,9 @@ impl UiNativeApplicationPreparation {
                 UiNativeApplicationPreparationOutcome::Prepared(UiPreparedNativeApplication {
                     application,
                     binding: self.binding,
+                    program: self.program.take().unwrap_or_else(
+                        crate::facade::entry::UiNativeApplicationProgram::single_frame,
+                    ),
                 })
             }
             Err(_) => {
@@ -227,12 +245,12 @@ impl UiPreparedNativeApplication {
     pub(crate) fn bind_qualified_native(
         self,
         host: worth_ui_host_native::WorthUiNativeMechanicsAdapter,
-    ) -> crate::facade::WorthUiApp {
+    ) -> (crate::facade::WorthUiApp, super::UiNativeApplicationProgram) {
         debug_assert_eq!(
             self.binding.profile(),
             worth_ui_host_native::UiNativePlatformProfileIdentity::WORTH_UI_WINDOWS_DX12_V1
         );
-        self.application.bind_qualified_native(host)
+        (self.application.bind_qualified_native(host), self.program)
     }
 }
 

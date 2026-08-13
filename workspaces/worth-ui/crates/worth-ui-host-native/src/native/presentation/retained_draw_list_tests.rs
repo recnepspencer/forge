@@ -21,106 +21,12 @@ use worth_ui_host_contract::{
 
 use super::{UiNativeRetainedDrawList, UiNativeRetainedDrawListDenial};
 
-#[test]
-fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
-    let world = DrawListWorld::new();
-    let initial_frame = UiMountedFrameIdentity::mint_unbound().unwrap();
-    let initial_rows = [
-        world.rect(
-            initial_frame,
-            world.first,
-            0.0,
-            UiMountedRgba8::new(20, 30, 40, 255),
-        ),
-        world.rect(
-            initial_frame,
-            world.second,
-            80.0,
-            UiMountedRgba8::new(50, 60, 70, 255),
-        ),
-    ];
-    let initial = world.initial(initial_frame, initial_rows.clone());
-    let mut retained = UiNativeRetainedDrawList::initial(&initial).unwrap();
-    let successor_frame = UiMountedFrameIdentity::mint_unbound().unwrap();
-    let replaced = world.rect(
-        successor_frame,
-        world.first,
-        0.0,
-        UiMountedRgba8::new(90, 100, 110, 255),
-    );
-    let inserted = world.rect(
-        successor_frame,
-        world.third,
-        160.0,
-        UiMountedRgba8::new(120, 130, 140, 255),
-    );
-    let replaced_command = command(replaced);
-    let inserted_command = command(inserted);
-    let removed_identity = UiMountedPaintOrderIdentity::for_command(
-        UiMountedPaintCommand::identity(&command(initial_rows[1])),
-    );
-    let retained_identity = UiMountedPaintOrderIdentity::for_command(replaced_command.identity());
-    let inserted_identity = UiMountedPaintOrderIdentity::for_command(inserted_command.identity());
-    let damage = [
-        initial_rows[0].bounds(),
-        replaced.bounds(),
-        initial_rows[1].bounds(),
-        inserted.bounds(),
-    ]
-    .map(UiMountedLogicalDamage::from_runtime_mounting);
-    let delta = UiMountedPresentationDelta::from_inert_mechanics(UiMountedPresentationDeltaInput {
-        predecessor: initial_frame,
-        successor: successor_frame,
-        surface: world.surface,
-        binding: world.binding,
-        content: world.content,
-        baseline: world.requirement.baseline(),
-        changes: vec![
-            UiMountedPaintCommandChange::Replace(replaced_command),
-            UiMountedPaintCommandChange::Remove(removed_identity.command()),
-            UiMountedPaintCommandChange::Insert(inserted_command),
-        ],
-        order: vec![
-            UiMountedPaintOrderEdit::remove(removed_identity),
-            UiMountedPaintOrderEdit::place_after(inserted_identity, Some(retained_identity)),
-        ],
-        order_integrity: UiMountedPaintOrderIntegrity::for_order(&[
-            retained_identity,
-            inserted_identity,
-        ]),
-        damage: damage.to_vec(),
-        auxiliary: None,
-        production_cost: Default::default(),
-    });
-
-    let (staged, undo) = retained.stage_delta(&delta).unwrap();
-    assert_eq!(
-        retained.order.ordered().collect::<Vec<_>>(),
-        vec![retained_identity, inserted_identity]
-    );
-    retained.rollback_delta(undo).unwrap();
-    assert_eq!(
-        retained.order.ordered().collect::<Vec<_>>(),
-        vec![retained_identity, removed_identity]
-    );
-    assert_eq!(
-        retained.command(removed_identity.command()),
-        Some(&initial.commands()[1])
-    );
-    let plan = retained.apply_delta(&delta).unwrap();
-    assert_eq!(plan, staged);
-    assert_eq!(plan.baseline_rgba8, [0, 0, 0, 0]);
-    assert_eq!(plan.clear_regions.len(), 3);
-    assert_eq!(
-        plan.replay.as_ref(),
-        &[retained_identity.command(), inserted_identity.command()]
-    );
-    assert_eq!(plan.counters.draw_mutations, 3);
-    assert_eq!(plan.counters.order_mutations, 2);
-    assert_eq!(plan.counters.damage_regions, 4);
-    assert_eq!(plan.counters.retained_command_scans, 0);
-    assert!(retained.command(removed_identity.command()).is_none());
-}
+#[path = "retained_draw_list/delta_transaction_tests.rs"]
+mod delta_transaction_tests;
+#[path = "retained_draw_list/reconstruction_tests.rs"]
+mod reconstruction_tests;
+#[path = "retained_draw_list/replay_tests.rs"]
+mod replay_tests;
 
 #[test]
 fn unchanged_advances_exact_affinity_without_draw_order_or_damage_work() {
@@ -165,6 +71,7 @@ fn stale_delta_denies_without_mutating_retained_commands() {
         content: world.content,
         baseline: world.requirement.baseline(),
         changes: Vec::new(),
+        nodes: Vec::new(),
         order: Vec::new(),
         order_integrity: initial.order_integrity(),
         damage: Vec::new(),
@@ -176,20 +83,23 @@ fn stale_delta_denies_without_mutating_retained_commands() {
         Err(UiNativeRetainedDrawListDenial::AffinityMismatch)
     ));
     assert_eq!(retained.command(identity), Some(&initial.commands()[0]));
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-STALE-DELTA-01\":\"stale-affinity-acceptance\"}}"
+    );
 }
 
-struct DrawListWorld {
-    surface: UiSemanticSurfaceIdentity,
-    binding: UiSurfaceBindingGeneration,
-    content: UiMountedContentGeneration,
-    first: UiMountedInstanceIdentity,
+pub(in crate::native::presentation) struct DrawListWorld {
+    pub(in crate::native::presentation) surface: UiSemanticSurfaceIdentity,
+    pub(in crate::native::presentation) binding: UiSurfaceBindingGeneration,
+    pub(in crate::native::presentation) content: UiMountedContentGeneration,
+    pub(in crate::native::presentation) first: UiMountedInstanceIdentity,
     second: UiMountedInstanceIdentity,
     third: UiMountedInstanceIdentity,
-    requirement: UiMountedSurfaceBindingRequirement,
+    pub(in crate::native::presentation) requirement: UiMountedSurfaceBindingRequirement,
 }
 
 impl DrawListWorld {
-    fn new() -> Self {
+    pub(in crate::native::presentation) fn new() -> Self {
         let surface = UiSemanticSurfaceIdentity::mint_unbound().unwrap();
         let binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();
         let requirement = UiMountedSurfaceBindingRequirement::new(
@@ -211,7 +121,7 @@ impl DrawListWorld {
         }
     }
 
-    fn rect(
+    pub(in crate::native::presentation) fn rect(
         &self,
         frame: UiMountedFrameIdentity,
         instance: UiMountedInstanceIdentity,
@@ -243,7 +153,7 @@ impl DrawListWorld {
         .unwrap()
     }
 
-    fn initial<const N: usize>(
+    pub(in crate::native::presentation) fn initial<const N: usize>(
         &self,
         frame: UiMountedFrameIdentity,
         rows: [UiMountedFilledRectMechanic; N],
@@ -276,7 +186,9 @@ impl DrawListWorld {
     }
 }
 
-fn command(mechanic: UiMountedFilledRectMechanic) -> UiMountedPaintCommand {
+pub(in crate::native::presentation) fn command(
+    mechanic: UiMountedFilledRectMechanic,
+) -> UiMountedPaintCommand {
     UiMountedPaintCommand::FilledRect {
         identity: worth_ui_host_contract::UiMountedPaintCommandIdentity::filled_rect(&mechanic),
         mechanic,
@@ -293,11 +205,7 @@ fn projection(
         .enumerate()
         .map(|(index, row)| rect_node(index, row))
         .collect();
-    let authored_paint_commands = rows
-        .iter()
-        .copied()
-        .map(command)
-        .collect::<Vec<_>>();
+    let authored_paint_commands = rows.iter().copied().map(command).collect::<Vec<_>>();
     let mut authored_paint_order = authored_paint_commands
         .iter()
         .enumerate()

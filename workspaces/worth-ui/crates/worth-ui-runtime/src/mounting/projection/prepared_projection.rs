@@ -16,6 +16,7 @@ pub(crate) struct UiPreparedMountedProjection {
     counters: super::super::UiMountStageCounters,
     capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
+    font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
 }
 
 pub(super) struct UiPreparedMountedProjectionInput {
@@ -30,16 +31,51 @@ pub(super) struct UiPreparedMountedProjectionInput {
     pub(super) capability_generation:
         worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     pub(super) capability_profile_digest: u64,
+    pub(super) font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
 }
 
 #[derive(Clone)]
 pub struct UiProjectedMountedFrameCandidate {
-    pub(in crate::mounting) frame: UiMountedProjectionFrame,
+    pub(in crate::mounting) frame: std::sync::Arc<UiMountedProjectionFrame>,
     pub(in crate::mounting) identity_candidate:
         super::super::identity_state::UiMountedIdentityFrameCandidate,
     pub(in crate::mounting) projection_changes: super::super::UiMountedProjectionChangeSnapshot,
+    pub(in crate::mounting) presentation_predecessor:
+        Option<worth_ui_host_contract::UiMountedFrameIdentity>,
     pub(in crate::mounting) presentation_changed_instances:
         std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct UiMountedPresentationDeltaSource<'a> {
+    frame: &'a UiMountedProjectionFrame,
+    predecessor: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
+    changed_instances: &'a [worth_ui_host_contract::UiMountedInstanceIdentity],
+    changes: &'a super::super::UiMountedProjectionChangeSnapshot,
+}
+
+impl UiMountedPresentationDeltaSource<'_> {
+    pub(in crate::mounting) const fn frame(&self) -> &UiMountedProjectionFrame {
+        self.frame
+    }
+    pub(in crate::mounting) const fn predecessor(
+        &self,
+    ) -> Option<worth_ui_host_contract::UiMountedFrameIdentity> {
+        self.predecessor
+    }
+
+    pub(in crate::mounting) const fn changed_instances(
+        &self,
+    ) -> &[worth_ui_host_contract::UiMountedInstanceIdentity] {
+        self.changed_instances
+    }
+
+    pub(in crate::mounting) fn surface_changed(
+        &self,
+        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    ) -> bool {
+        self.changes.affects_surface(surface)
+    }
 }
 
 impl UiProjectedMountedFrameCandidate {
@@ -56,23 +92,21 @@ impl UiProjectedMountedFrameCandidate {
         self.identity_candidate.receipt_basis()
     }
 
-    pub(in crate::mounting) fn presentation_changed_instances(
+    pub(in crate::mounting) fn presentation_delta_source(
         &self,
-    ) -> &[worth_ui_host_contract::UiMountedInstanceIdentity] {
-        &self.presentation_changed_instances
-    }
-
-    pub(in crate::mounting) fn presentation_surface_changed(
-        &self,
-        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
-    ) -> bool {
-        self.projection_changes.affects_surface(surface)
+    ) -> UiMountedPresentationDeltaSource<'_> {
+        UiMountedPresentationDeltaSource {
+            frame: &self.frame,
+            predecessor: self.presentation_predecessor,
+            changed_instances: &self.presentation_changed_instances,
+            changes: &self.projection_changes,
+        }
     }
 
     pub(crate) fn into_parts(
         self,
     ) -> (
-        UiMountedProjectionFrame,
+        std::sync::Arc<UiMountedProjectionFrame>,
         super::super::identity_state::UiMountedIdentityFrameCandidate,
         super::super::UiMountedProjectionChangeSnapshot,
     ) {
@@ -96,6 +130,7 @@ impl UiPreparedMountedProjection {
             counters: input.counters,
             capability_generation: input.capability_generation,
             capability_profile_digest: input.capability_profile_digest,
+            font_collection: input.font_collection,
         }
     }
 
@@ -139,6 +174,7 @@ impl UiPreparedMountedProjection {
     pub(crate) fn finish(
         self,
         state: &super::super::UiMountedIdentityState,
+        presentation_predecessor: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
     ) -> Result<UiProjectedMountedFrameCandidate, UiMountedProjectionDenial> {
         self.validate_capacity()?;
         let identity_candidate = state.prepare_frame_candidate_for(self.semantic.membership())?;
@@ -148,6 +184,18 @@ impl UiPreparedMountedProjection {
                     super::super::UiMountedIdentityDenial::IdentityExhausted,
                 )
             })?;
+        let predecessor = state
+            .current_projection()
+            .filter(|projection| projection.plan_digest() == self.plan_digest);
+        let mechanics = predecessor
+            .map(UiMountedProjectionFrame::mechanic_source)
+            .unwrap_or_default();
+        let presentation_effects = predecessor
+            .map(UiMountedProjectionFrame::presentation_effect_source)
+            .unwrap_or_default();
+        let diagnostics = predecessor
+            .map(UiMountedProjectionFrame::diagnostic_source)
+            .unwrap_or_default();
         let mut frame = UiMountedProjectionFrame::new(UiMountedProjectionFrameInput {
             frame: identity_candidate.frame(),
             content_generation,
@@ -157,10 +205,13 @@ impl UiPreparedMountedProjection {
             counters: self.counters,
             capability_generation: self.capability_generation,
             capability_profile_digest: self.capability_profile_digest,
+            font_collection: self.font_collection,
+            mechanics,
+            presentation_effects,
+            diagnostics,
+            changed_instances: self.presentation_changed_instances.clone(),
         });
-        frame.complete_static_paint()?;
-        frame.complete_semantic_text()?;
-        frame.complete_hit_tests()?;
+        frame.complete_mechanics()?;
         if let Some(receipt) = self.ordinary.as_ref() {
             frame.record_ordinary(receipt)?;
         }
@@ -177,10 +228,13 @@ impl UiPreparedMountedProjection {
             frame.record_preview(preview)?;
         }
         frame.record_visual_overlay(self.visual_overlay)?;
+        frame.complete_presentation_effects();
+        frame.complete_diagnostics();
         Ok(UiProjectedMountedFrameCandidate {
-            frame,
+            frame: std::sync::Arc::new(frame),
             identity_candidate,
             projection_changes: self.projection_changes,
+            presentation_predecessor,
             presentation_changed_instances: self.presentation_changed_instances,
         })
     }

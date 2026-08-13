@@ -5,7 +5,7 @@ use worth_ui_host_contract::UiHostSurfaceRegistrationRequest;
 use super::{
     event_loop::UiNativeOwnedWindow, UiNativeOwnedGraphics, UiNativePendingPresentation,
     UiNativePresentationObservation, UiNativeResourceCensus, UiNativeResourceOwner,
-    UiNativeResourceRegistry, UiNativeRetainedDrawList,
+    UiNativeResourceRegistry, UiNativeRetainedDrawList, UiNativeRetainedFrameObservation,
 };
 
 pub(crate) struct UiNativeHostState {
@@ -14,10 +14,12 @@ pub(crate) struct UiNativeHostState {
     pub(crate) window: Option<UiNativeOwnedWindow>,
     pub(crate) graphics: Option<UiNativeOwnedGraphics>,
     pub(crate) last_presentation: Option<UiNativePresentationObservation>,
+    pub(crate) retained_frame_observations: Vec<UiNativeRetainedFrameObservation>,
     pub(crate) resources: UiNativeResourceRegistry,
     pub(crate) effect_posture: UiNativeEffectPosture,
     pub(crate) pending_presentations: Vec<UiNativePendingPresentation>,
     pub(crate) retained_draw_lists: BTreeMap<u64, UiNativeRetainedDrawList>,
+    pub(crate) presentation_epochs: BTreeMap<u64, worth_ui_host_contract::UiHostPresentationEpoch>,
     pub(crate) reconstruction_required: BTreeSet<u64>,
 }
 
@@ -37,10 +39,12 @@ impl UiNativeHostState {
             window: None,
             graphics: None,
             last_presentation: None,
+            retained_frame_observations: Vec::new(),
             resources: UiNativeResourceRegistry::new(),
             effect_posture: UiNativeEffectPosture::BeforeEffects,
             pending_presentations: Vec::new(),
             retained_draw_lists: BTreeMap::new(),
+            presentation_epochs: BTreeMap::new(),
             reconstruction_required: BTreeSet::new(),
         }
     }
@@ -61,6 +65,7 @@ impl UiNativeHostState {
         self.pending_presentations = retained;
         if self.pending_presentations.is_empty() {
             self.retained_draw_lists.clear();
+            self.presentation_epochs.clear();
             self.reconstruction_required.clear();
             if let Some(graphics) = self.graphics.take() {
                 graphics.close(&mut self.resources);

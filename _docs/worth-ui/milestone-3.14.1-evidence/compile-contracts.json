@@ -1,9 +1,9 @@
 {
   "schema": "worth-ui-compile-contract-result-v1",
   "exit_posture": "passed",
-  "run_nonce": "b939014f5ec45a2b4b6d72d37dfed706",
-  "source_revision": "57e76d24913e05dc5b6f73bdccad24078c92c3c7",
-  "source_state_digest": "68f1c419d130bb321958135d5fb9f622d494c2023d2ba0d0c83588b3ca1557a4",
+  "run_nonce": "81240b5251873ea8aff908041975bb57",
+  "source_revision": "eb3c101f1887989d5a569d4f70f5238f0d6645c8",
+  "source_state_digest": "68c92f07db0f7814cda36c9fe91d2d5776cb3771fb8f70cb9ca1d5f47ed922ff",
   "cargo_sessions": 2,
   "fail_targets": 70,
   "pass_targets": 22,
@@ -157,7 +157,7 @@
       "kind": "pass",
       "target": "host-presentation-mechanics-consumer",
       "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/presentation_mechanics_consumer_is_lawful.rs",
-      "source_sha256": "9e0e0c5d94ef4e7fe2a27aa1391646edbd71f46870a846f4399cc9b3ec18c35d",
+      "source_sha256": "78f1da2456979511c03c94779603177348e0400917d61e98dd73ba621e13edd5",
       "snapshot": null,
       "snapshot_sha256": null
     },

@@ -42,8 +42,9 @@ impl UiPreparedNativePlatform {
             self.profile.window().initial_logical_size(),
         );
         let (adapter, event_loop) = host.into_parts(window);
-        let bound_application = prepared.bind_qualified_native(adapter);
-        let driver = super::application_driver::UiNativeApplicationDriver::new(bound_application);
+        let (bound_application, program) = prepared.bind_qualified_native(adapter);
+        let driver =
+            super::application_driver::UiNativeApplicationDriver::new(bound_application, program);
         match driver.run(event_loop) {
             Ok(report) => UiNativePlatformOutcome::Closed(
                 super::UiNativePlatformCloseReceipt::from_native_report(report),

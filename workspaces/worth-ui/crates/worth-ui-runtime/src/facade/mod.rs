@@ -36,6 +36,7 @@ pub mod registry;
 mod retained_obligation_registry;
 pub mod runtime_handoff;
 pub mod source_ingress;
+pub mod text;
 
 #[cfg(test)]
 pub(crate) use crate::declaration::WorthUiRustAuthoredDeclarationFixture;

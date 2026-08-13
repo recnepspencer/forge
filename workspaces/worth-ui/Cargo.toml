@@ -9,8 +9,10 @@ members = [
     "crates/worth-ui-inspection",
     "crates/worth-ui-query-binding",
     "crates/worth-ui-host-contract",
+    "crates/worth-ui-text",
     "crates/worth-ui-host-native",
     "crates/worth-ui-host-headless",
+    "crates/worth-ui-retained-order",
     "crates/worth-ui-native-platform",
     "crates/worth-ui-host-egui",
     "crates/worth-ui-certification",
@@ -40,8 +42,10 @@ worth-ui-runtime = { path = "crates/worth-ui-runtime" }
 worth-ui-inspection = { path = "crates/worth-ui-inspection" }
 worth-ui-query-binding = { path = "crates/worth-ui-query-binding" }
 worth-ui-host-contract = { path = "crates/worth-ui-host-contract" }
+worth-ui-text = { path = "crates/worth-ui-text" }
 worth-ui-host-native = { path = "crates/worth-ui-host-native" }
 worth-ui-host-headless = { path = "crates/worth-ui-host-headless" }
+worth-ui-retained-order = { path = "crates/worth-ui-retained-order" }
 worth-ui-native-platform = { path = "crates/worth-ui-native-platform" }
 worth-ui-host-egui = { path = "crates/worth-ui-host-egui" }
 worth-ui-certification = { path = "crates/worth-ui-certification" }
@@ -61,6 +65,11 @@ winit = { version = "=0.30.13", default-features = false, features = ["rwh_06"] 
 wgpu = { version = "=29.0.4", default-features = false, features = ["std", "parking_lot", "dx12", "wgsl"] }
 pollster = "=0.4.0"
 harfrust = { version = "=0.12.0", default-features = false, features = ["std"] }
+read-fonts = { version = "=0.41.0", default-features = false, features = ["std", "experimental_traverse"] }
+skrifa = { version = "=0.44.0", default-features = false, features = ["std"] }
+kurbo = { version = "=0.13.1", default-features = false, features = ["std"] }
+linesweeper = { version = "=0.4.0", default-features = false }
+png = { version = "=0.18.1", default-features = false }
 icu_segmenter = { version = "=2.2.0", default-features = false, features = ["compiled_data", "auto"] }
 rustybuzz = "=0.20.1"
 swash = { version = "=0.2.10", default-features = false, features = ["std", "scale", "render"] }

@@ -33,7 +33,8 @@ fn phase_two_artifact_rejects_missing_renamed_or_nonexecuted_hostile_control() {
         "list_command": result_artifact_control::cargo_command(&binding, true),
         "test_command": result_artifact_control::cargo_command(&binding, false),
     }});
-    result_artifact_control::validate(&artifact, Some(&binding)).unwrap();
+    result_artifact_control::validate(&artifact, Some(&binding), 10_000, "P2-READINESS-01")
+        .unwrap();
     for (field, value) in [
         ("matched_test_count", json!(0)),
         ("executed_test_count", json!(0)),
@@ -43,11 +44,23 @@ fn phase_two_artifact_rejects_missing_renamed_or_nonexecuted_hostile_control() {
     ] {
         let original = artifact["hostile_control"][field].clone();
         artifact["hostile_control"][field] = value;
-        assert!(result_artifact_control::validate(&artifact, Some(&binding)).is_err());
+        assert!(result_artifact_control::validate(
+            &artifact,
+            Some(&binding),
+            10_000,
+            "P2-READINESS-01"
+        )
+        .is_err());
         artifact["hostile_control"][field] = original;
     }
     artifact["hostile_control"] = Value::Null;
-    assert!(result_artifact_control::validate(&artifact, Some(&binding)).is_err());
+    assert!(result_artifact_control::validate(
+        &artifact,
+        Some(&binding),
+        10_000,
+        "P2-READINESS-01"
+    )
+    .is_err());
 }
 
 #[test]

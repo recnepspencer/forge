@@ -9,9 +9,9 @@ use winsafe::{self as win, co, HwndPlace, HWND, POINT, SIZE};
 use xcap::Window;
 
 use crate::external_observation::{
-    NativeClientAreaBounds, NativeClientPixelCapture, NativeClientPixelPoint,
-    NativeInputDeliveryObservation, NativeInputProbeKind, NativeWindowIdentity,
-    NormalNativeCloseRequestObservation, ProcessBoundNativeClientAreaObservation,
+    NativeClientPixelCapture, NativeClientPixelPoint, NativeInputDeliveryObservation,
+    NativeInputProbeKind, NativeWindowIdentity, NormalNativeCloseRequestObservation,
+    ProcessBoundNativeClientAreaObservation,
 };
 
 use super::contract::sealed::Sealed;
@@ -22,6 +22,7 @@ mod client_capture;
 mod environment;
 mod gdi_capture;
 mod input_delivery;
+mod process_windows;
 
 use capture_region::{
     capture_bound_client_area, client_bounds, monitor_capture_region, monitor_for_client,
@@ -36,11 +37,6 @@ pub(crate) struct WindowsProcessBoundNativeClientArea {
     window: HWND,
     capture_window: Window,
     observation: ProcessBoundNativeClientAreaObservation,
-}
-
-struct ProcessWindowCandidate {
-    window: HWND,
-    bounds: NativeClientAreaBounds,
 }
 
 struct WindowsCaptureExposure<'bound> {
@@ -91,30 +87,6 @@ impl WindowsNativePlatform {
         } else {
             Err(NativePlatformFailure::EnvironmentQualification(version))
         }
-    }
-
-    fn process_windows(
-        process_id: u32,
-    ) -> Result<Vec<ProcessWindowCandidate>, NativePlatformFailure> {
-        let mut candidates = Vec::new();
-        win::EnumWindows(|window| {
-            let (_, owner_process_id) = window.GetWindowThreadProcessId();
-            if owner_process_id == process_id && window.IsWindowVisible() && !window.IsIconic() {
-                if let Ok(client) = client_bounds(&window) {
-                    if let Some(bounds) = NativeClientAreaBounds::new(
-                        client.left(),
-                        client.top(),
-                        client.right(),
-                        client.bottom(),
-                    ) {
-                        candidates.push(ProcessWindowCandidate { window, bounds });
-                    }
-                }
-            }
-            true
-        })
-        .map_err(|error| NativePlatformFailure::WindowEnumeration(error.to_string()))?;
-        Ok(candidates)
     }
 
     fn expose_bound_client_area<'bound>(
@@ -289,7 +261,7 @@ impl NativePlatformContract for WindowsNativePlatform {
         let mut stable_observations = 0_u8;
         loop {
             lookup_count = lookup_count.saturating_add(1);
-            let mut candidates = Self::process_windows(process_id)?;
+            let mut candidates = process_windows::enumerate(process_id)?;
             match candidates.len() {
                 0 if Instant::now() < deadline => {
                     thread::sleep(Duration::from_millis(20));
@@ -400,7 +372,7 @@ impl NativePlatformContract for WindowsNativePlatform {
     }
 
     fn verify_process_window_released(&self, process_id: u32) -> Result<(), NativePlatformFailure> {
-        let windows = Self::process_windows(process_id)?;
+        let windows = process_windows::enumerate(process_id)?;
         if windows.is_empty() {
             Ok(())
         } else {

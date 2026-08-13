@@ -33,10 +33,23 @@ pub(super) fn validate_completion(
     if input.text.len() > UiMountedSemanticTextMechanic::MAX_CONTENT_BYTES {
         return Err(UiMountedSemanticTextCompletionDenial::ContentCapacityExceeded);
     }
+    let layout = input.layout;
+    if layout.source() != input.text.as_ref() {
+        return Err(UiMountedSemanticTextCompletionDenial::QualifiedLayoutSourceMismatch);
+    }
+    if layout.font_collection_generation().get() == 0
+        || layout.profile_generation().get() == 0
+        || layout.text_scale_generation().get() == 0
+    {
+        return Err(UiMountedSemanticTextCompletionDenial::QualifiedLayoutGenerationMismatch);
+    }
     if matches!(input.slot, UiSemanticTextSlot::CollectionValue { .. })
         != input.collection_row.is_some()
     {
         return Err(UiMountedSemanticTextCompletionDenial::CollectionIdentityMismatch);
+    }
+    if !matching_foregrounds(input) {
+        return Err(UiMountedSemanticTextCompletionDenial::ForegroundSpanMismatch);
     }
     Ok(())
 }
@@ -49,18 +62,40 @@ pub(super) fn semantic_digest(input: &UiMountedSemanticTextCompletionInput) -> u
     for byte in input.text.bytes() {
         digest = fold(digest, u64::from(byte));
     }
+    for byte in input.layout.identity().digest() {
+        digest = fold(digest, u64::from(byte));
+    }
     if let Some(row) = &input.collection_row {
         for byte in row.0 {
             digest = fold(digest, u64::from(byte));
         }
     }
-    for channel in input.color.channels() {
-        digest = fold(digest, u64::from(channel));
+    for foreground in input.foregrounds.iter() {
+        digest = fold(digest, u64::from(foreground.original_range().start()));
+        digest = fold(digest, u64::from(foreground.original_range().end()));
+        for byte in foreground.identity().digest() {
+            digest = fold(digest, u64::from(byte));
+        }
+        for channel in foreground.color().channels() {
+            digest = fold(digest, u64::from(channel));
+        }
     }
     for value in profile_values(input) {
         digest = fold(digest, value);
     }
     digest
+}
+
+fn matching_foregrounds(input: &UiMountedSemanticTextCompletionInput) -> bool {
+    let styles = input.layout.styles();
+    if input.text.is_empty() {
+        return styles.is_empty() && input.foregrounds.is_empty();
+    }
+    styles.len() == input.foregrounds.len()
+        && styles
+            .iter()
+            .zip(input.foregrounds.iter())
+            .all(|(style, foreground)| style.original_range() == foreground.original_range())
 }
 
 fn identity_values(input: &UiMountedSemanticTextCompletionInput) -> [u64; 15] {

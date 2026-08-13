@@ -5,7 +5,11 @@ use super::oracle::{adjudicate, removal_expectation, OracleExpectation, OracleRe
 mod attribution;
 mod production;
 
-pub(super) use production::{produce_maximum_overlap, ProducedMaximumDelta, ProducedUnchanged};
+pub(super) use production::{
+    application_builder, color, color_token, component, component_identity, establish_allocations,
+    execute_frame, produce_maximum_overlap, token_identity, ProducedMaximumDelta,
+    ProducedUnchanged,
+};
 
 pub(super) struct MountedPresentationWorld {
     identity: String,
@@ -106,13 +110,7 @@ impl MountedPresentationWorld {
     pub(super) fn assert_restoration(&self, delta: &ProducedMaximumDelta) {
         assert_exact_rows(&delta.transcript, &self.baseline);
         assert_exact_order(&delta.transcript, &self.baseline);
-        assert_eq!(delta.draw_mutations, delta.changed_rows as u64);
-        assert_eq!(delta.order_mutations, delta.changed_rows as u64);
-        assert_eq!(delta.damage_regions, delta.changed_rows as u64);
-        assert_eq!(
-            delta.delta_rows_carried,
-            (delta.changed_rows * 3) as u64
-        );
+        assert_exact_cost(delta, delta.changed_rows);
         attribution::assert_exact_attribution(
             &delta.transcript,
             &delta.authored_instances,
@@ -189,7 +187,9 @@ fn assert_exact_cost(delta: &ProducedMaximumDelta, count: usize) {
     assert_eq!(delta.draw_mutations, count);
     assert_eq!(delta.order_mutations, count);
     assert_eq!(delta.damage_regions, count);
-    assert_eq!(delta.delta_rows_carried, count * 3);
+    // Each changed drawable carries its mechanic change, mounted-node source,
+    // order edit, and exact damage row.
+    assert_eq!(delta.delta_rows_carried, count * 4);
 }
 
 fn assert_exact_rows(

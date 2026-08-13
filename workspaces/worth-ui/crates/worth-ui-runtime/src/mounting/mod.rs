@@ -14,6 +14,8 @@ pub(crate) mod presentation;
 mod projection;
 mod projection_changes;
 mod publication;
+#[cfg(any(test, feature = "certification-support"))]
+pub(crate) mod qualified_text_test_support;
 mod receipt_basis;
 mod retention;
 mod reuse;
@@ -63,7 +65,8 @@ pub(crate) use presentation::{
 pub(crate) use projection::compile_presentation_sources;
 pub(crate) use projection::{
     prepare_projection, UiIntentPostureCommit, UiIntentPostureObservation, UiIntentPostureTable,
-    UiMountedPreviewProjectionInput, UiMountedProjectionInput, UiPreparedMountedProjection,
+    UiMountedPresentationDeltaSource, UiMountedPreviewProjectionInput, UiMountedProjectionInput,
+    UiPreparedMountedProjection,
 };
 pub use projection::{
     UiMountedNodeReceipt, UiMountedProjectionDenial, UiMountedProjectionFrame,

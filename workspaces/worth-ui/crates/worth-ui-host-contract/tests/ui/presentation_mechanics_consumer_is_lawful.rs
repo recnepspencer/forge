@@ -8,6 +8,9 @@ fn consume_inert_mechanics(view: &UiMountedFrameConsumptionView<'_>) {
         UiMountedPresentationWorkView::Delta(delta) => {
             let _ = (delta.changes(), delta.order(), delta.damage());
         }
+        UiMountedPresentationWorkView::Reconstruction(work) => {
+            let _ = (work.commands(), work.order(), work.damage());
+        }
         UiMountedPresentationWorkView::Unchanged(unchanged) => {
             let _ = unchanged.affinity();
         }

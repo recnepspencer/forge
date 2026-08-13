@@ -51,24 +51,31 @@ pub struct WorthUiApp {
     host_session_plan: crate::facade::prepared_application_authority::WorthUiHostSessionPlan,
     retained_obligations: WorthUiRetainedObligationRegistry,
     retained_allocation_planning_evidence: Rc<WorthUiRetainedAllocationPlanningEvidenceRegistry>,
+    font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
 }
 
 impl WorthUiApp {
     pub(crate) fn from_prepared_authority(
         prepared: WorthUiPreparedApplicationAuthority,
         host_session_plan: crate::facade::prepared_application_authority::WorthUiHostSessionPlan,
+        font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     ) -> Self {
         Self {
             prepared,
             host_session_plan,
             retained_obligations: WorthUiRetainedObligationRegistry::default(),
             retained_allocation_planning_evidence: Rc::default(),
+            font_collection,
         }
     }
 
     /// Inspect the comparison-safe identity of this prepared generation.
     pub fn generation_identity(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
         self.prepared.generation_identity()
+    }
+
+    pub fn font_collection(&self) -> &std::sync::Arc<worth_ui_text::UiGlobalFontCollection> {
+        &self.font_collection
     }
 
     pub(super) fn mounted_frame_retention_budget(

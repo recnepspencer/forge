@@ -33,6 +33,7 @@ pub(crate) struct UiMountedFrameAssemblyInput<'input, 'graph> {
     pub preview: Option<UiMountedPreviewProjectionInput>,
     pub visual_overlay: Option<super::UiMountedVisualOverlayProjectionInput>,
     pub semantic_content: super::UiMountedSemanticContentInput,
+    pub font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     pub reuse_contract: super::UiMountedFrameReuseContract,
 }
 
@@ -48,6 +49,7 @@ pub(crate) struct UiMountedFrameAssembler<'state> {
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
     manifest: UiMountedFrameManifest,
     projection: UiPreparedMountedProjection,
+    presentation_predecessor: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
     graph_world: u64,
     allocation_truth_revision: u64,
     trace_source: crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
@@ -95,9 +97,9 @@ impl UiMountedPlanProjectionSource<'_> {
         }
     }
 
-    pub(crate) fn component_semantic_text_token(
+    pub(crate) fn semantic_text_token(
         self,
-        component: &crate::runtime::planning::execution_plan_input::WorthUiComponentPlanMeaning,
+        token_id: &crate::capability::ThemeTokenId,
     ) -> Result<
         Option<(
             u32,
@@ -105,9 +107,6 @@ impl UiMountedPlanProjectionSource<'_> {
         )>,
         (),
     > {
-        let Some(token_id) = component.semantic_text_theme_token_dependency() else {
-            return Ok(None);
-        };
         match self {
             Self::Executed(plan) => plan.mounted_projection_theme_token(token_id),
             Self::PreviewOnly => Ok(None),
@@ -123,20 +122,32 @@ impl<'state> UiMountedFrameAssembler<'state> {
         let semantic_predecessor = state
             .current_projection()
             .map(|frame| frame.semantic_projection());
-        Self::begin_with_semantic_predecessor(state, semantic_predecessor, input)
+        Self::begin_with_semantic_predecessor(
+            state,
+            semantic_predecessor,
+            state.current_frame_identity(),
+            input,
+        )
     }
 
     pub(in crate::mounting) fn begin_graph_replacement(
         state: &'state UiMountedIdentityState,
         semantic_predecessor: Option<&super::projection::UiMountedSemanticProjection>,
+        presentation_predecessor: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
         input: UiMountedFrameAssemblyInput<'_, '_>,
     ) -> Result<Self, UiMountedFramePreparationDenial> {
-        Self::begin_with_semantic_predecessor(state, semantic_predecessor, input)
+        Self::begin_with_semantic_predecessor(
+            state,
+            semantic_predecessor,
+            presentation_predecessor,
+            input,
+        )
     }
 
     fn begin_with_semantic_predecessor(
         state: &'state UiMountedIdentityState,
         semantic_predecessor: Option<&super::projection::UiMountedSemanticProjection>,
+        presentation_predecessor: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
         input: UiMountedFrameAssemblyInput<'_, '_>,
     ) -> Result<Self, UiMountedFramePreparationDenial> {
         let bindings = input
@@ -165,6 +176,7 @@ impl<'state> UiMountedFrameAssembler<'state> {
                 preview: input.preview,
                 visual_overlay: input.visual_overlay,
                 semantic_content: &input.semantic_content,
+                font_collection: input.font_collection,
                 semantic_predecessor,
                 capability_generation: input.reuse_contract.capability_generation(),
                 capability_profile_digest: input.reuse_contract.capability_profile_digest(),
@@ -177,6 +189,7 @@ impl<'state> UiMountedFrameAssembler<'state> {
             generation: input.generation,
             manifest,
             projection,
+            presentation_predecessor,
             allocation_truth_revision: input.allocation_truth_revision,
             trace_source: input.trace_source,
             required: input.lanes,
@@ -232,7 +245,7 @@ impl<'state> UiMountedFrameAssembler<'state> {
         }
         let candidate = self
             .projection
-            .finish(self.state)
+            .finish(self.state, self.presentation_predecessor)
             .map_err(UiMountedFramePreparationDenial::Projection)?;
         UiPreparedMountedFrame::admit(UiPreparedMountedFrameAdmission {
             candidate,

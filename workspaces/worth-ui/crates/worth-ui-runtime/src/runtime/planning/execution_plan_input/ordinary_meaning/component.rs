@@ -38,16 +38,18 @@ impl WorthUiComponentPlanMeaning {
         Some(self.static_paint_contract()?.order())
     }
 
-    pub(crate) fn semantic_text_theme_token_dependency(&self) -> Option<&ThemeTokenId> {
-        Some(self.descriptor.semantic_text_contract()?.theme_token())
-    }
-
     pub(crate) fn semantic_text_layer_order(&self) -> Option<u32> {
         Some(
             self.descriptor
                 .semantic_text_contract()?
                 .layer_semantic_order(),
         )
+    }
+
+    pub(crate) fn semantic_text_contract(
+        &self,
+    ) -> Option<&crate::capability::ComponentSemanticTextContract> {
+        self.descriptor.semantic_text_contract()
     }
 
     pub(crate) fn hit_test_contract(&self) -> Option<ComponentHitTestContract> {

@@ -3,14 +3,17 @@ use std::sync::Arc;
 use super::{
     UiMountedCollectionRowCorrelation, UiMountedSemanticTextCompletionDenial,
     UiMountedSemanticTextCompletionInput, UiMountedSemanticTextMechanic,
-    UiMountedSemanticTextTable, UiMountedSemanticTextTableDenial, UiSemanticTextProfile,
-    UiSemanticTextSlot,
+    UiMountedSemanticTextTable, UiMountedSemanticTextTableDenial, UiMountedTextForegroundSpan,
+    UiMountedTextPaintSpanIdentity, UiSemanticTextProfile, UiSemanticTextSlot,
 };
 use crate::{
-    UiMountedAllocationBasis, UiMountedCanonicalBox, UiMountedCanonicalBoxInput,
-    UiMountedContentGeneration, UiMountedCoordinateSpace, UiMountedFrameIdentity,
-    UiMountedInstanceIdentity, UiMountedNodeReceiptIssuer, UiMountedRgba8,
-    UiMountedTransformProjection, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+    UiFontCollectionGeneration, UiFontSlant, UiMountedAllocationBasis, UiMountedCanonicalBox,
+    UiMountedCanonicalBoxInput, UiMountedContentGeneration, UiMountedCoordinateSpace,
+    UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIssuer, UiMountedRgba8,
+    UiMountedTransformProjection, UiQualifiedTextCostRecord, UiQualifiedTextLayoutIdentity,
+    UiQualifiedTextLayoutView, UiQualifiedTextLayoutViewInput, UiQualifiedTextStyleInput,
+    UiQualifiedTextStyleRecord, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+    UiTextProfileGeneration, UiTextRect, UiTextScaleGeneration,
     WorthUiHostCapabilityObservationGeneration,
 };
 
@@ -95,7 +98,9 @@ fn digest_changes_with_content_context_and_placement() {
     let baseline = fixture();
     let digest = complete(baseline.clone()).semantic_digest();
     let mut variants = Vec::new();
-    variants.push(with(&baseline, |input| input.text = Arc::from("UPDATED")));
+    variants.push(with(&baseline, |input| {
+        set_text(input, Arc::from("UPDATED"));
+    }));
     variants.push(with(&baseline, |input| input.origin_y = 41.0));
     variants.push(with(&baseline, |input| {
         input.slot = UiSemanticTextSlot::Posture
@@ -152,24 +157,43 @@ fn collection_slot_and_row_correlation_are_atomic() {
 
 #[test]
 fn row_and_table_byte_caps_are_enforced() {
+    assert_eq!(UiMountedSemanticTextMechanic::MAX_CONTENT_BYTES, 65_536);
+    assert_eq!(UiMountedSemanticTextTable::MAX_ROWS, 4_096);
+    assert_eq!(UiMountedSemanticTextTable::MAX_BYTES, 8 * 1_024 * 1_024);
+
     let mut input = fixture();
-    input.text = Arc::from("x".repeat(UiMountedSemanticTextMechanic::MAX_CONTENT_BYTES + 1));
+    let oversized: Arc<str> =
+        Arc::from("x".repeat(UiMountedSemanticTextMechanic::MAX_CONTENT_BYTES + 1));
+    set_text(&mut input, Arc::clone(&oversized));
     assert_denial(
         input,
         UiMountedSemanticTextCompletionDenial::ContentCapacityExceeded,
     );
 
     let mut row_input = fixture();
-    row_input.text = Arc::from("x".repeat(UiMountedSemanticTextMechanic::MAX_CONTENT_BYTES));
+    let maximum: Arc<str> = Arc::from("x".repeat(UiMountedSemanticTextMechanic::MAX_CONTENT_BYTES));
+    set_text(&mut row_input, Arc::clone(&maximum));
     let row = complete(row_input);
-    let rows = vec![row; UiMountedSemanticTextTable::MAX_BYTES / 4_096 + 1];
+    let rows = vec![
+        row;
+        UiMountedSemanticTextTable::MAX_BYTES
+            / UiMountedSemanticTextMechanic::MAX_CONTENT_BYTES
+            + 1
+    ];
     assert_eq!(
         UiMountedSemanticTextTable::from_runtime_mounting(rows),
         Err(UiMountedSemanticTextTableDenial::ByteCapacityExceeded)
     );
+
+    let row = complete(fixture());
+    let rows = vec![row; UiMountedSemanticTextTable::MAX_ROWS + 1];
+    assert_eq!(
+        UiMountedSemanticTextTable::from_runtime_mounting(rows),
+        Err(UiMountedSemanticTextTableDenial::CapacityExceeded)
+    );
 }
 
-fn fixture() -> UiMountedSemanticTextCompletionInput {
+fn fixture() -> UiMountedSemanticTextCompletionInput<'static> {
     let frame = UiMountedFrameIdentity::mint_unbound().unwrap();
     let mounted_instance = UiMountedInstanceIdentity::mint_unbound().unwrap();
     let bounds = canonical_box(32.0, 32.0, 160.0, 96.0);
@@ -193,9 +217,14 @@ fn fixture() -> UiMountedSemanticTextCompletionInput {
         origin_x: 32.0,
         origin_y: 40.0,
         text: Arc::from("ONLINE"),
+        layout: inert_layout("ONLINE"),
         slot: UiSemanticTextSlot::Value,
         collection_row: None,
-        color: UiMountedRgba8::new(255, 255, 255, 255),
+        foregrounds: Arc::from([UiMountedTextForegroundSpan::from_runtime_mounting(
+            crate::UiTextOriginalRange::from_text_mechanics(0, 6).unwrap(),
+            UiMountedRgba8::new(255, 255, 255, 255),
+            UiMountedTextPaintSpanIdentity::from_runtime_mounting([7; 32]),
+        )]),
         profile: UiSemanticTextProfile::BodyDefault,
         layer_semantic_order: 7,
         capability_generation: WorthUiHostCapabilityObservationGeneration::new(7),
@@ -203,12 +232,80 @@ fn fixture() -> UiMountedSemanticTextCompletionInput {
     }
 }
 
-fn complete(input: UiMountedSemanticTextCompletionInput) -> UiMountedSemanticTextMechanic {
+#[test]
+fn raw_text_cannot_impersonate_a_different_qualified_layout() {
+    let mut input = fixture();
+    input.text = Arc::from("UPDATED");
+    assert_denial(
+        input,
+        UiMountedSemanticTextCompletionDenial::QualifiedLayoutSourceMismatch,
+    );
+}
+
+#[test]
+fn foreground_spans_must_match_the_canonical_layout_itemization() {
+    let mut input = fixture();
+    input.foregrounds = Arc::from([UiMountedTextForegroundSpan::from_runtime_mounting(
+        crate::UiTextOriginalRange::new(0, 5).unwrap(),
+        UiMountedRgba8::new(255, 255, 255, 255),
+        UiMountedTextPaintSpanIdentity::from_runtime_mounting([7; 32]),
+    )]);
+    assert_denial(
+        input,
+        UiMountedSemanticTextCompletionDenial::ForegroundSpanMismatch,
+    );
+}
+
+fn inert_layout(source: &str) -> UiQualifiedTextLayoutView<'static> {
+    let source: &'static str = Box::leak(source.to_owned().into_boxed_str());
+    let styles: &'static [UiQualifiedTextStyleRecord] = if source.is_empty() {
+        &[]
+    } else {
+        Box::leak(Box::new([UiQualifiedTextStyleRecord::from_text_mechanics(
+            UiQualifiedTextStyleInput {
+                original_range: crate::UiTextOriginalRange::new(0, source.len() as u32).unwrap(),
+                language: "und".into(),
+                font_size_millipoints: 14_000,
+                letter_spacing_millipoints: 0,
+                word_spacing_millipoints: 0,
+                family_stack: Box::new([]),
+                weight: 400,
+                width_milli_percent: 100_000,
+                slant: UiFontSlant::Upright,
+                features: Box::new([]),
+                variations: Box::new([]),
+            },
+        )]))
+    };
+    UiQualifiedTextLayoutView::from_text_mechanics(UiQualifiedTextLayoutViewInput {
+        request_identity: crate::UiQualifiedTextLayoutRequestIdentity::from_text_mechanics([6; 32]),
+        identity: UiQualifiedTextLayoutIdentity::from_text_mechanics([7; 32]),
+        source,
+        graphemes: &[],
+        word_boundaries: &[],
+        styles,
+        logical_runs: &[],
+        glyphs: &[],
+        lines: &[],
+        visual_runs: &[],
+        positioned_glyphs: &[],
+        logical_bounds: UiTextRect::from_text_mechanics(0, 0, 80_000, 18_000).unwrap(),
+        ink_bounds: UiTextRect::from_text_mechanics(0, 2_000, 78_000, 16_000).unwrap(),
+        carets: &[],
+        coverage: &[],
+        cost: UiQualifiedTextCostRecord::default(),
+        profile: UiTextProfileGeneration::new(1).unwrap(),
+        font_collection: UiFontCollectionGeneration::new(1).unwrap(),
+        text_scale: UiTextScaleGeneration::new(1).unwrap(),
+    })
+}
+
+fn complete(input: UiMountedSemanticTextCompletionInput<'_>) -> UiMountedSemanticTextMechanic {
     UiMountedSemanticTextMechanic::complete_from_runtime_mounting(input).unwrap()
 }
 
 fn assert_denial(
-    input: UiMountedSemanticTextCompletionInput,
+    input: UiMountedSemanticTextCompletionInput<'_>,
     expected: UiMountedSemanticTextCompletionDenial,
 ) {
     assert_eq!(
@@ -217,13 +314,23 @@ fn assert_denial(
     );
 }
 
-fn with(
-    input: &UiMountedSemanticTextCompletionInput,
-    mutate: impl FnOnce(&mut UiMountedSemanticTextCompletionInput),
-) -> UiMountedSemanticTextCompletionInput {
+fn with<'layout>(
+    input: &UiMountedSemanticTextCompletionInput<'layout>,
+    mutate: impl FnOnce(&mut UiMountedSemanticTextCompletionInput<'layout>),
+) -> UiMountedSemanticTextCompletionInput<'layout> {
     let mut input = input.clone();
     mutate(&mut input);
     input
+}
+
+fn set_text(input: &mut UiMountedSemanticTextCompletionInput<'static>, text: Arc<str>) {
+    input.layout = inert_layout(&text);
+    input.foregrounds = Arc::from([UiMountedTextForegroundSpan::from_runtime_mounting(
+        crate::UiTextOriginalRange::new(0, text.len() as u32).unwrap(),
+        UiMountedRgba8::new(255, 255, 255, 255),
+        UiMountedTextPaintSpanIdentity::from_runtime_mounting([7; 32]),
+    )]);
+    input.text = text;
 }
 
 fn canonical_box(x: f32, y: f32, width: f32, height: f32) -> UiMountedCanonicalBox {

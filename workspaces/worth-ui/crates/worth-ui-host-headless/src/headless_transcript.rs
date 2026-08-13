@@ -12,11 +12,15 @@ mod delta;
 mod mechanic_accessors;
 mod semantic_text;
 mod static_paint;
+mod text_accessibility;
+mod text_measurement;
 
 pub use self::semantic_text::UiHeadlessSemanticTextMechanic;
 pub(crate) use self::semantic_text::UiHeadlessSemanticTextMechanicInput;
 pub use self::static_paint::UiHeadlessFilledRectMechanic;
 pub(crate) use self::static_paint::UiHeadlessFilledRectMechanicInput;
+pub use self::text_accessibility::UiHeadlessTextAccessibilityGeometry;
+pub use self::text_measurement::UiHeadlessTextMeasurement;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiHeadlessRecorderCapacity {
@@ -73,6 +77,7 @@ pub enum UiHeadlessNodePaintMechanic {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct UiHeadlessNodeMechanic {
     mounted_instance: UiMountedInstanceIdentity,
+    authored_position: u64,
     role: UiMountedMechanicalRole,
     participation: UiMountedParticipation,
     allocation: UiMountedAllocationProjection,
@@ -85,6 +90,7 @@ pub struct UiHeadlessNodeMechanic {
 
 pub(crate) struct UiHeadlessNodeMechanicInput {
     pub mounted_instance: UiMountedInstanceIdentity,
+    pub authored_position: u64,
     pub role: UiMountedMechanicalRole,
     pub participation: UiMountedParticipation,
     pub allocation: UiMountedAllocationProjection,

@@ -91,8 +91,9 @@ impl UiHostProtocolVersion {
 }
 
 impl UiHostProtocolContract {
-    const COMPATIBLE_FLOOR: u16 = 4;
-    const CURRENT: u16 = 4;
+    const COMPATIBLE_FLOOR: u16 = 5;
+    const CURRENT: u16 = 5;
+    const CURRENT_PRESENTATION_SCHEMA: u16 = 5;
     const CURRENT_OBSERVATION_SCHEMA: u16 = 6;
 
     pub const fn current() -> Self {
@@ -100,7 +101,7 @@ impl UiHostProtocolContract {
             UiHostProtocolIdentity::worth_ui(),
             UiHostProtocolVersion::new(Self::CURRENT),
             UiMountedFrameSchemaVersion::new(Self::CURRENT),
-            UiMountedPresentationSchemaVersion::new(Self::CURRENT),
+            UiMountedPresentationSchemaVersion::new(Self::CURRENT_PRESENTATION_SCHEMA),
             UiHostObservationSchemaVersion::new(Self::CURRENT_OBSERVATION_SCHEMA),
             UiHostMeasurementSchemaVersion::new(Self::CURRENT),
         )
@@ -221,16 +222,23 @@ fn schema_denial(
     family: UiHostProtocolSchemaFamily,
     revision: u16,
 ) -> Option<UiHostProtocolDenial> {
-    let denial = if family == UiHostProtocolSchemaFamily::Observation {
-        if revision < UiHostProtocolContract::CURRENT_OBSERVATION_SCHEMA {
-            Some(RevisionDenial::TooOld)
-        } else if revision > UiHostProtocolContract::CURRENT_OBSERVATION_SCHEMA {
-            Some(RevisionDenial::TooNew)
-        } else {
-            None
+    let current = match family {
+        UiHostProtocolSchemaFamily::MountedPresentation => {
+            UiHostProtocolContract::CURRENT_PRESENTATION_SCHEMA
         }
+        UiHostProtocolSchemaFamily::Observation => {
+            UiHostProtocolContract::CURRENT_OBSERVATION_SCHEMA
+        }
+        UiHostProtocolSchemaFamily::MountedFrame | UiHostProtocolSchemaFamily::Measurement => {
+            UiHostProtocolContract::CURRENT
+        }
+    };
+    let denial = if revision < current {
+        Some(RevisionDenial::TooOld)
+    } else if revision > current {
+        Some(RevisionDenial::TooNew)
     } else {
-        revision_denial(revision)
+        None
     };
     denial.map(|denial| match denial {
         RevisionDenial::TooOld => UiHostProtocolDenial::SchemaTooOld(family),

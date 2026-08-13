@@ -15,6 +15,7 @@ workspace = true
 [features]
 default = []
 legacy-egui-migration = ["worth-ui-runtime/legacy-egui-migration"]
+certification-support = ["worth-ui-runtime/certification-support"]
 
 [dependencies]
 worth-ui-inspection = { path = "../worth-ui-inspection" }

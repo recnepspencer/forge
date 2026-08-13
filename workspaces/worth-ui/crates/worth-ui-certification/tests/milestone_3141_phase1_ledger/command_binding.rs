@@ -1,4 +1,4 @@
-const PACKAGES: [&str; 8] = [
+const PACKAGES: [&str; 9] = [
     "worth-ui-host-contract",
     "worth-ui-host-egui",
     "worth-ui-runtime",
@@ -7,6 +7,7 @@ const PACKAGES: [&str; 8] = [
     "worth-ui-native-platform",
     "worth-ui-platform-pulse",
     "worth-ui-certification",
+    "worth-ui-text",
 ];
 
 pub(super) struct CommandBinding {
@@ -36,6 +37,7 @@ pub(super) struct CommandClaim<'a> {
     pub(super) production_entry: &'a str,
     pub(super) oracle_entry: &'a str,
     pub(super) source_identity: &'a str,
+    pub(super) current_source: bool,
 }
 
 pub(super) fn validate(claim: CommandClaim<'_>) -> Result<CommandBinding, String> {
@@ -64,18 +66,24 @@ pub(super) fn validate(claim: CommandClaim<'_>) -> Result<CommandBinding, String
     {
         return Err("governed command lacks one exact hostile control".to_owned());
     }
-    validate_execution_identity(&binding)?;
+    validate_execution_identity(&binding, claim.current_source)?;
     Ok(binding)
 }
 
-fn validate_execution_identity(binding: &CommandBinding) -> Result<(), String> {
-    let expected_shared = binding.requirement == "P1-HEADLESS-COST-01"
-        || (binding.requirement.starts_with("P2-") && binding.requirement != "P2-WORLD-01");
+fn validate_execution_identity(
+    binding: &CommandBinding,
+    current_source: bool,
+) -> Result<(), String> {
+    let expected_shared = super::execution_contract::is_shared_main(&binding.requirement);
     if binding.shared_main != expected_shared {
         return Err("ledger command has the wrong shared-world posture".to_owned());
     }
-    let expected = super::execution_contract::main_for(&binding.requirement)
-        .ok_or_else(|| "requirement omits an execution contract".to_owned())?;
+    let expected = (if current_source {
+        super::execution_contract::current_predecessor_main_for(&binding.requirement)
+    } else {
+        super::execution_contract::main_for(&binding.requirement)
+    })
+    .ok_or_else(|| "requirement omits an execution contract".to_owned())?;
     if !matches_test(TestBinding::main(binding), expected) {
         return Err("ledger command swapped its exact main test".to_owned());
     }
@@ -350,13 +358,13 @@ fn exact_execution_contract_rejects_main_control_and_feature_swaps() {
             test_name: "native::readiness::tests::committed_readiness_requests_exactly_one_redraw_and_preserves_the_latest_generation".to_owned(),
         }),
     };
-    validate_execution_identity(&binding).unwrap();
+    validate_execution_identity(&binding, false).unwrap();
     binding.shared_main = false;
-    assert!(validate_execution_identity(&binding).is_err());
+    assert!(validate_execution_identity(&binding, false).is_err());
     binding.shared_main = true;
     binding.control.as_mut().unwrap().test_name =
         "native::graphics::tests::window_basis_classifier_rearms_only_for_new_scale_or_nonzero_extent".to_owned();
-    assert!(validate_execution_identity(&binding).is_err());
+    assert!(validate_execution_identity(&binding, false).is_err());
     binding.requirement = "P2-PIXELS-01".to_owned();
     binding.control = Some(ControlBinding {
         package: "worth-ui-platform-pulse".to_owned(),
@@ -365,9 +373,9 @@ fn exact_execution_contract_rejects_main_control_and_feature_swaps() {
         features: vec!["executable-world".to_owned()],
         test_name: "native_platform::windows::independent_window_capture_rejects_monitor_pixel_substitution".to_owned(),
     });
-    validate_execution_identity(&binding).unwrap();
+    validate_execution_identity(&binding, false).unwrap();
     binding.control.as_mut().unwrap().features.clear();
-    assert!(validate_execution_identity(&binding).is_err());
+    assert!(validate_execution_identity(&binding, false).is_err());
     binding.test_name = "courtroom::unrelated::passing_test".to_owned();
-    assert!(validate_execution_identity(&binding).is_err());
+    assert!(validate_execution_identity(&binding, false).is_err());
 }

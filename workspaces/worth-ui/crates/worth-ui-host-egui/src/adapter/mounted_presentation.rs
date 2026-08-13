@@ -25,6 +25,7 @@ pub(super) struct UiEguiPresentationCandidate {
 #[derive(Clone, Copy)]
 enum UiEguiPresentationExecution {
     Initial,
+    Reconstruction,
     Delta {
         native_paint: bool,
         identity_overlay: bool,
@@ -94,7 +95,12 @@ impl UiEguiPresentationCandidate {
                             context, projection,
                         )?
                     }
-                    None => current.identity_overlay.clone(),
+                    None => super::identity_overlay::UiEguiPreparedIdentityOverlay::prepare_delta(
+                        context,
+                        view,
+                        &current.identity_overlay,
+                        delta.nodes(),
+                    )?,
                 };
                 let native_regions = match changed_projection.as_ref() {
                     Some(projection) => {
@@ -111,7 +117,8 @@ impl UiEguiPresentationCandidate {
                 let native_paint_changed = !delta.changes().is_empty()
                     || !delta.order().is_empty()
                     || !delta.damage().is_empty();
-                let identity_overlay_changed = changed_projection.is_some()
+                let identity_overlay_changed = (!delta.nodes().is_empty()
+                    || changed_projection.is_some())
                     && (!current.identity_overlay.is_empty() || !identity_overlay.is_empty());
                 Ok(Self {
                     presentation: UiEguiPreparedMountedPresentation {
@@ -126,6 +133,37 @@ impl UiEguiPresentationCandidate {
                         native_paint: native_paint_changed,
                         identity_overlay: identity_overlay_changed,
                     },
+                })
+            }
+            UiMountedPresentationWorkView::Reconstruction(work) => {
+                if current.is_some() {
+                    return Err(UiHostSurfacePresentationDenial::MalformedProjection);
+                }
+                deny_unsupported(work.projection())?;
+                let commands = command_map(work.commands());
+                let native_paint =
+                    super::native_paint::UiEguiPreparedNativePaint::prepare_reconstruction(
+                        view, work,
+                    )?;
+                Ok(Self {
+                    presentation: UiEguiPreparedMountedPresentation {
+                        frame: view.frame(),
+                        commands: commands.clone(),
+                        auxiliary: work.auxiliary().clone(),
+                        identity_overlay:
+                            super::identity_overlay::UiEguiPreparedIdentityOverlay::prepare(
+                                context,
+                                work.projection(),
+                            )?,
+                        native_regions:
+                            super::native_regions::UiEguiRetainedNativeRegions::prepare_projection(
+                                work.projection(),
+                                &commands,
+                                work.order(),
+                            )?,
+                        native_paint,
+                    },
+                    execution: UiEguiPresentationExecution::Reconstruction,
                 })
             }
             UiMountedPresentationWorkView::Unchanged(unchanged) => {
@@ -145,7 +183,7 @@ impl UiEguiPresentationCandidate {
     pub(super) fn completed_effects(&self) -> UiMountedCompletedEffects {
         let mut effects = Vec::new();
         match self.execution {
-            UiEguiPresentationExecution::Initial => {
+            UiEguiPresentationExecution::Initial | UiEguiPresentationExecution::Reconstruction => {
                 if !self.presentation.native_paint.is_empty() {
                     effects.push(UiMountedEffectFamily::NativePaint);
                 }
@@ -178,7 +216,7 @@ impl UiEguiPresentationCandidate {
 
     pub(super) fn paint(&self, context: &egui::Context) {
         match self.execution {
-            UiEguiPresentationExecution::Initial => {
+            UiEguiPresentationExecution::Initial | UiEguiPresentationExecution::Reconstruction => {
                 self.presentation.native_paint.paint(context);
                 self.presentation.identity_overlay.paint(context);
             }

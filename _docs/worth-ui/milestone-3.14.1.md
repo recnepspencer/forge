@@ -49,7 +49,7 @@ The closure claim is:
 
 ```text
 admitted runtime change
--> owner-issued Initial | Delta | Unchanged presentation work
+-> owner-issued Initial | Delta | Reconstruction | Unchanged presentation work
 -> receipt-keyed retained native commands
 -> canonical Unicode analysis, bidi/line layout, complex shaping,
    deterministic font fallback, and original-range cluster geometry
@@ -188,11 +188,14 @@ The normative contract for that manifest is:
 | Run formation | paragraphs split into exhaustive runs by bidi level, script, explicit BCP-47 language or `und`, style, selected face, variation axes, and feature set before shaping; no code-point, font-family, or arrival-order tie break may replace that sequence |
 | Shaping | HarfBuzz-compatible complex shaping through one pinned dependency and configuration for Arabic, Hebrew, Indic, Southeast Asian, Tibetan, Hangul, combining-mark, ligature, and joining behavior; cluster level preserves monotone grapheme mapping and never permits a line, caret, selection, fallback, or ellipsis boundary inside an indivisible shaping cluster |
 | Default font collection | a repository-pinned Noto release catalog, including the required script faces, CJK coverage, symbols, math, and a Unicode-17-compatible Noto Color Emoji face; the final manifest enumerates every consumed face rather than naming an archive or family as a wildcard |
-| Application fonts | an application may register an immutable content-addressed font pack before layout effects; admission validates bytes, face metadata, axes, features, coverage, license record, limits, and fallback position and returns a font-collection generation; ambient installation state never participates |
+| Application fonts | an application may register one or more immutable content-addressed packs from application-owned OpenType `TTF`, `OTF`, `TTC`, or `OTC` bytes before layout effects; each admitted face receives an application-pack-scoped content identity, so identical pack bytes and metadata reconstruct identically across application instances while same-name families in different packs never alias; admission validates the table directory, face index, family/style metadata, weight, width, slant, variable axes, features, coverage, license record, and limits before returning a font-collection generation; fallback position is authored only by each span's explicit ordered family stack, never by pack registration order; `WOFF`/`WOFF2`, ambient installation state, and path/name lookup outside the admitted bytes are excluded until separately qualified |
+| Authored family selection | every text style span carries an ordered, nonempty `UiFontFamilyStack` of qualified application or profile family identities plus an explicit weight, width, slant, variation-coordinate, and OpenType-feature request; deterministic matching selects a face from that stack before complete-cluster fallback, and neither a renderer nor a platform adapter may replace it with a local default |
+| Application font lifecycle | admitted packs are immutable within one `UiFontCollectionGeneration`; adding, replacing, or removing a pack creates a successor generation, while already-published layouts pin the exact predecessor face bytes and remain valid until their owners release them; family-name collisions never merge authority; a paragraph is reanalyzed exactly when its resolved layout-affecting input changes, including family stack, selected face, weight, width, slant, variation coordinates, OpenType features, language, text, or constraints, while unchanged siblings remain zero-work and a color-value-only change with unchanged paint-span boundaries remains the explicit no-reshape exception |
 | Fallback | deterministic cluster-level fallback over the exact admitted collection and generated coverage index; a face must support the complete grapheme/shaping cluster before selection, and fallback cannot split combining sequences, Indic syllables, or emoji sequences |
 | Missing coverage | valid UTF-8 never aborts an otherwise admissible presentation merely because a face lacks a glyph; a pinned Last Resort face renders one attributable missing-cluster glyph and records `UiTextCoverageDisposition::MissingCluster` with the original range and attempted collection generation |
 | Emoji | all Unicode 17.0 RGI emoji sequences are qualified, including text/emoji variation selectors, keycaps, flags, tag sequences, skin-tone modifiers, gendered and family ZWJ sequences; fallback and line layout treat each qualified sequence as one grapheme/cluster, and rasterization preserves every required color layer or color bitmap |
 | Layout | hard line breaks, preserved whitespace, tabs with explicit tab stops, no-wrap, Unicode word-wrap and grapheme-wrap, start/center/end alignment, explicit line height, letter/word spacing, maximum lines, clip, and cluster-safe ellipsis are typed constraints decided before mechanics execution |
+| Span foreground | authored foreground is an exact original-range `UiTextForegroundSpan` carrying logical straight RGBA and a paint-span identity; its boundaries participate in run itemization so no glyph crosses two foreground spans, but the RGBA value is excluded from the layout cache key, so a color-only successor with unchanged boundaries reuses analysis, fallback, shaping, line fitting, metrics, and interaction geometry and changes only text paint commands and damage |
 | Layout result | one immutable reconstructible `UiQualifiedTextLayout` carries original-range mapping, paragraph and line records, logical and visual runs, selected faces, glyph positions/advances, ink and logical bounds, baselines, break and overflow decisions, coverage dispositions, grapheme-safe caret stops, selection rectangles, profile/font/locale/direction/width/text-scale generations, and exact work counters |
 | Measurement/rendering identity | intrinsic measurement, baseline metrics, hit testing, selection geometry, glyph rasterization, and native rendering consume the same qualified layout artifact or its exact identity; no adapter may reshape, refallback, rebreak, or recompute metrics independently |
 | Rasterization | grayscale outline glyphs and color outline/bitmap glyphs are distinct typed raster outputs; source order, palette, hinting, antialiasing, fractional-origin quantization, and premultiplication are manifest fields; emoji color is not replaced by the surrounding text color |
@@ -210,6 +213,11 @@ Custom rich-text authoring remains later product meaning, but the mechanics
 input and layout artifact are span-capable from their first v2 revision so
 adding rich text does not require replacing the shaping, fallback, line,
 measurement, hit-testing, or atlas architecture.
+Basic per-span font, size, slant, feature, and foreground appearance is part of
+that v2 mechanics contract rather than deferred rich-text product semantics.
+Foreground authority remains outside `worth-ui-text`: text mechanics owns the
+stable paint-span boundaries and cluster mapping, while mounted appearance
+owns the RGBA value consumed by headless and native glyph-run presentation.
 
 The v1 `UnsupportedCodePoint` denial remains valid only for the already-closed
 Phase 1-2 seed profile. Under v2, unsupported formatting, malformed admitted
@@ -261,7 +269,7 @@ test constants.
 
 That first text digest identifies `worth-ui-body-default-v1` only. The
 canonical `worth-ui-global-text-v2` candidate now has manifest digest
-`3f059e7b017da04fb958695567bf668e577504cd16463492f1c404a0c0c3e4de`.
+`cec6005c5baef6d69ada9c30c02ced25b0f253f80c012784fe925e307935c3f2`.
 Its exact 30-face catalog, Unicode 17 source and conformance data, dependency
 pins, generated coverage/fallback indexes, capacities, licenses, and artifact
 inventory are repository-owned and mutation-validated. The qualification
@@ -375,6 +383,20 @@ their machine-readable observations. The ledger binds canonical immutable
 claim fields while the source-state digest excludes the ledger bytes that the
 runner must update. A stored artifact alone, even with internally consistent
 digests, cannot change a row to `PROVED`.
+
+That execution authority does not license duplicate work. Within one exact
+source-state and immutable-claim snapshot, the closure runner executes each
+unique discovery, main test, hostile control, compile session, and external
+world exactly once. Content-addressed execution receipts may be shared by
+multiple requirement validators, and a successfully assembled row bundle may
+resume after a later atomic-closure failure only when its command, claim,
+ledger basis, source revision, whole-source digest, dependency artifacts, and
+retained bytes all still match. Any drift forces fresh execution. The final
+gate validates the just-produced content-addressed portfolio and every bound
+row artifact; it does not operationally replay that portfolio a second time.
+Cached or retained bytes never promote a row by themselves: only the governed
+runner may admit them into the candidate ledger, and the Rust closure laws
+independently revalidate the complete candidate before publication.
 
 `UiNativeApplicationPreparation` owns the host-neutral
 `WorthUiApplicationBuilder` and no live subsystem resource. Its public
@@ -560,6 +582,11 @@ sequences. Include hard breaks, tabs, whitespace, narrow and wide wrapping,
 grapheme wrapping, maximum lines plus ellipsis, clipping, multiple style and
 fallback runs, maximum lawful paragraph bytes, and one valid unassigned scalar
 that must use the pinned Last Resort disposition.
+Include one single-line mixed-span case with a small red application-font run,
+a large green run from the same family, a differently sized blue italic Arabic
+run from another family, and intrinsic-color emoji. The application supplies
+the reference font bytes; the courtroom never depends on a proprietary or
+ambient machine-installed face.
 
 The courtroom establishes four independent observations over the same
 causally issued mounted rows:
@@ -576,9 +603,13 @@ causally issued mounted rows:
    selection rectangles. Measurement requests and native presentation must
    name the same `UiQualifiedTextLayout` identity.
 4. The existing external pixel boundary adjudicates monochrome glyph coverage,
-   color emoji layers, clipping, ordering, and transparent pixels outside
-   glyph ink. The atlas oracle independently models alpha/color capacity,
-   pinning, candidate eviction, retained bytes, and reconstruction.
+   exact per-span foreground RGBA, color emoji layers, clipping, ordering, and
+   transparent pixels outside glyph ink. The oracle verifies that foreground
+   follows original ranges through bidi visual reordering, that mixed-size
+   runs share the qualified baseline and line box, and that intrinsic-color
+   emoji is not tinted by adjacent text. The atlas oracle independently models
+   alpha/color capacity, pinning, candidate eviction, retained bytes, and
+   reconstruction.
 
 The hostile sequence changes one paragraph and width while leaving all other
 text identical, introduces repeated and new alpha/color glyphs, reaches both
@@ -596,10 +627,12 @@ before bidi/run segmentation, reorders source bytes, breaks inside a grapheme
 or shaping cluster, chooses fallback per scalar, splits a ZWJ/flag/modifier
 sequence, ignores FE0E/FE0F, drops a color layer, uses a system font, allows
 measurement and rendering to reshape independently, elides Last Resort
-attribution, evicts a pinned glyph, retains stale width/text-scale/DPI state,
-clears to an opaque adapter color, scans or reshapes every retained paragraph
-for one changed row, or reconstructs pixels from an atlas/cache instead of
-mounted authority.
+attribution, collapses several foreground spans into one color, assigns color
+by visual rather than original range, tints intrinsic-color emoji, reshapes or
+remeasures on a color-value-only edit, evicts a pinned glyph, retains stale
+width/text-scale/DPI state, clears to an opaque adapter color, scans or
+reshapes every retained paragraph for one changed row, or reconstructs pixels
+from an atlas/cache instead of mounted authority.
 
 ### `HP-04`: Native lifecycle courtroom
 
@@ -796,6 +829,7 @@ variant:
 pub enum UiMountedPresentationWork<'frame> {
     Initial(UiMountedPresentationSeed<'frame>),
     Delta(UiMountedPresentationDelta<'frame>),
+    Reconstruction(UiMountedPresentationReconstruction<'frame>),
     Unchanged(UiMountedPresentationUnchanged),
 }
 ```
@@ -807,23 +841,33 @@ replacements, removals, order changes, and logical damage issued from the
 admitted mounting/rebind scope. `Unchanged` proves equivalence to the retained
 generation and carries no projection rows.
 
+`Reconstruction` is a complete, cold, owner-issued projection for a current
+mounted successor whose per-surface derived host state is absent or was
+explicitly discarded. It carries exact predecessor/successor affinity but is
+neither an initial surface generation nor a delta. The host rebuilds command,
+order, damage, and presentation state from this envelope; it cannot reuse an
+intact cache and call the repaint a reconstruction.
+
 Removal and replacement work retains enough predecessor affinity to validate
 the retained command. Logical damage covers the union of predecessor and
 successor visible bounds after clipping, so vacated pixels cannot survive a
 removal or move. The host may coalesce those regions mechanically but cannot
 omit them or derive a broader semantic scope from the full projection.
 
-This contract publishes Worth host protocol revision 4: mounted-frame,
-mounted-presentation, and measurement schemas advance to revision 4 while the
-3.14 observation schema remains revision 6. Both hosts implement that exact
+This contract retains Worth host protocol revision 4 and advances only the
+mounted-presentation schema to revision 5 for the compiler-total
+`Reconstruction` carrier. Mounted-frame and measurement remain revision 4 and
+the 3.14 observation schema remains revision 6. Both hosts implement that exact
 contract during coexistence. Older or mixed revisions reject before effects;
 there is no downgrade or reinterpretation path, and the superseded protocol
 window is retired with egui at cutover.
 
-Revision 4 remains the complete Phase 1-3 carrier contract and retains its
+Protocol revision 4 with mounted-presentation schema 5 is the complete Phase 3
+carrier contract and retains its
 2,048 semantic-text-row, 4,096-byte-per-row, and 1 MiB aggregate text bounds.
 After `worth-ui-global-text-v2` qualification closes, Phase 4 advances the
-mounted-frame, presentation, and measurement schemas together to revision 5.
+protocol, mounted-frame, and measurement schemas to revision 5; the already
+reconstructive mounted-presentation schema remains revision 5.
 Revision 5 replaces the v1 semantic-text mechanic with span-capable admitted
 paragraph constraints and raises only the qualified-text capacities to the v2
 limits above: 4,096 paragraphs, 65,536 UTF-8 bytes per paragraph, and 8 MiB
@@ -1265,7 +1309,7 @@ compatible implementations.
 ## Compile-Time and Mechanical Enforcement
 
 - Runtime's owning `UiMountedPresentationWork` envelope, its
-  initial/delta/unchanged choice, lease seal, and completion authority have
+  initial/delta/reconstruction/unchanged choice, lease seal, and completion authority have
   private fields. The host contract may expose inert command, order, damage,
   and input mechanics, but they enter an active host session only through the
   runtime-owned envelope and lease.
@@ -1336,9 +1380,11 @@ compatible implementations.
   dependency checks reject imports from `worth-ui`, runtime, DSL, Query
   binding, and inspection.
 - `worth-ui-host-headless` and `worth-ui-host-native` may depend on
-  `worth-ui-host-contract` but not `worth-ui-runtime`, `worth-ui`, DSL, Query,
-  inspection, certification, or one another. Runtime-facing session authority
-  wraps their inert mechanics contracts from above.
+  `worth-ui-host-contract` and the identity-agnostic
+  `worth-ui-retained-order` mechanism, but not `worth-ui-runtime`, `worth-ui`,
+  DSL, Query, inspection, certification, or one another. The retained-order
+  crate has no WUI dependency and owns no protocol or host policy. Runtime-facing
+  session authority wraps the hosts' inert mechanics contracts from above.
 - The host contract and native mechanics cannot import runtime or product
   internals. Runtime's ordinary semantic and mounting modules cannot import
   native mechanics. One isolated host-activation composition module may depend
@@ -1405,7 +1451,7 @@ local delta to a retained-list scan or an unchanged paragraph to reanalysis.
 
 Counters separately expose:
 
-- initial/delta/unchanged work and rows consumed;
+- initial/delta/reconstruction/unchanged work and rows consumed;
 - commands inserted, replaced, removed, reordered, reused, and retained;
 - logical damage regions/pixels, damage-index probes, commands selected and
   replayed, cleared/rerendered pixels, and physical copy/present pixels;
@@ -1439,6 +1485,7 @@ requires that boundary; exhaustive schedules remain in independent models.
 | --- | --- | --- |
 | runtime mounting | mounted projection, total paint order, exact presentation work, logical damage, publication affinity | native scheduling, GPU resources, font fallback |
 | `worth-ui-host-contract` | inert presentation-work protocol, mounted mechanics, host observations, capture and typed outcomes | runtime truth, vendor types, native implementation |
+| `worth-ui-retained-order` | bounded generic order-statistic sequence, exact mutation/high-water cost, and rollback-safe indexed ordering | UI identities, presentation protocol, runtime truth, host policy |
 | `worth-ui-host-headless` | production headless mechanics, bounded transcripts, measurement evidence, and record-only presentation over the inert host contract | runtime internals, native resources, application truth, certification-only authority |
 | `worth-ui-text` | qualified font collections, Unicode analysis, deterministic fallback, complex shaping, line layout, canonical measurement/cluster geometry, and alpha/color glyph rasterization | authored meaning, mounted authority, GPU resources, system fonts, input/focus/editing authority |
 | `worth-ui-host-native` | native scheduling and readiness, windows, surfaces, graphics device, derived draw list, input translation, alpha/color atlas, readback, resource recovery | runtime, authored meaning, text-layout policy, targeting, intents, Query, publication |
@@ -1492,6 +1539,10 @@ workspaces/worth-ui/
         lib.rs                                  [facade only]
         adapter/{mod,host,measurement,recorder,presentation}.rs
         transcript/{mod,frame,static_paint,semantic_text}.rs
+
+    worth-ui-retained-order/                    [create in Phase 3: shared bounded mechanism]
+      Cargo.toml                                [no WUI dependencies]
+      src/{lib,index,cost}.rs                   [generic identities only]
 
     worth-ui-text/                              [create in Phase 4: shared text mechanics]
       Cargo.toml                                [host-contract-only WUI dependency]
@@ -1629,7 +1680,7 @@ decision separately reopens the future Phase 4 qualification gate.
 
 Consume the closed qualified native/text profile and public native-application
 authority records without altering them. Implement the owner-issued
-initial/delta/unchanged protocol, exact
+initial/delta/reconstruction/unchanged protocol, exact
 predecessor/successor affinity, stable total paint order, logical damage,
 expanded cost vocabulary, explicit transparent surface baseline, and the
 runtime/mounting producer. Move presentation issuance, the authoritative
@@ -1734,7 +1785,7 @@ Phase 3 closes only when the append-only ledger proves
 `P3-PRODUCER-SLOPE-01`,
 `P3-DRAW-LIST-01`, `P3-TOTAL-ORDER-01`, `P3-DAMAGE-INDEX-01`,
 `P3-DAMAGE-REPLAY-01`, `P3-BASELINE-REPLAY-01`, `P3-TRANSACTION-01`,
-`P3-UNCHANGED-01`,
+`P3-UNCHANGED-01`, `P3-CLIPPED-DELTA-01`,
 `P3-RECONSTRUCTION-01`, `P3-HEADLESS-COST-01`,
 `P3-PHYSICAL-AMPLIFICATION-01`, `P3-HP02-WORLD-01`, and `P3-CLOSE-01`.
 `P3-PREDECESSOR-01` records the current-source operational revalidation of the
@@ -1744,6 +1795,11 @@ row scan and clone counters rather than elapsed-time thresholds. The native
 world row owns the 2,048-rectangle pixel courtroom; the mixed 4,096-command
 headless world supports carrier/index/slope rows and cannot supply native text
 pixel evidence.
+`P3-CLIPPED-DELTA-01` proves the distinct lawful case where a mounted logical
+successor changes retained truth but clips wholly outside the current physical
+target: it advances successor affinity with zero acquire, submission, present,
+or newly minted physical presentation epoch and the following unchanged frame
+remains ordinary rather than entering reconstruction.
 
 Phase 4 may trust scalable filled-rectangle initial, delta, unchanged,
 overlap-correct replay, and reconstruction behavior.
@@ -1770,6 +1826,53 @@ testing, selection, and original-range mapping. Phase 5 adds their actual
 color-glyph raster and native pixel proof; it does not get to repair a broken
 Phase 4 cluster or fallback decision.
 
+Application fonts are an ordinary framework path, not a certification-only
+escape hatch. Phase 4 must expose a public, host-neutral
+`UiApplicationFontPackDefinition -> UiQualifiedFontPackReceipt` admission
+transition and an authored `UiFontFamilyStack` on every style span. A pack may
+contain several families and several faces per family, including static
+regular/bold/italic/oblique faces, variable weight/width/slant axes, and
+multiple face indices from one collection. The resolver matches the authored
+family order and requested face attributes deterministically, then performs
+complete-cluster fallback through later authored families. An RGI emoji
+cluster then resolves through qualified color emoji and Last Resort; every
+other cluster resolves through the qualified profile defaults and Last
+Resort. Profile defaults may not decompose or monochrome-substitute an RGI
+emoji, and the color-emoji face is not a generic fallback for non-RGI text.
+File extensions, localized name records, registration order, ambient OS
+installation, and adapter availability are never identity or tie-break
+authority.
+
+Font-pack mutation is generational and reconstructible. Adding, replacing,
+or removing a pack publishes a successor
+`UiFontCollectionGeneration`; live predecessor layouts keep their exact face
+bytes pinned, newly admitted work cannot use a stale generation, and
+reconstruction consumes the mounted paragraph plus its exact collection
+generation rather than reopening a path or querying the operating system.
+One application may use different qualified families in adjacent spans and
+different paragraphs without forking shaping, measurement, hit testing,
+accessibility geometry, headless recording, or native rendering into separate
+font-selection authorities.
+
+Interaction geometry is part of the canonical layout, not a later renderer
+guess. `UiTextCaretPosition` carries an exact original UTF-8 boundary, visual
+edge, and upstream/downstream affinity. `UiTextHitTestResult` records the
+point-to-line-to-visual-run-to-cluster decision and returns one of those typed
+caret positions. A logical selection owns an ordered, potentially
+discontiguous set of per-visual-run rectangles. At a shared LTR/RTL visual
+edge, both lawful affine caret positions remain distinguishable even when
+their pixel coordinate is equal. Accessibility geometry is an inert consumer
+of this same layout identity; it may not reshape, refallback, rebreak, or
+derive logical-order bounds independently.
+
+Capacity admission is two-stage and effect-free. Exact input bytes and
+declared constraints reserve before analysis; a conservative bound derived
+from the qualified font collection reserves worst-case glyph/run/line output.
+Actual segmentation, shaping, and line layout occur in bounded unpublished
+staging. Any derived overflow denies atomically before publication,
+rasterization, upload, or retained insertion. Partial shaped output is never
+observable.
+
 Headless measurement and transcripts must consume this exact artifact; the
 native host may not yet render it. Close the Unicode, shaping-fixture, layout,
 measurement-identity, missing-cluster, stale-affinity, capacity, unchanged-
@@ -1778,15 +1881,31 @@ scalar fallback, separate measurement shaper, or output lacking original-range
 cluster/caret geometry cannot pass this gate.
 
 Phase 4 closes only when the append-only ledger proves
-`P4-TEXT-PROFILE-01`, `P4-FONT-COLLECTION-01`, `P4-UNICODE-SEGMENTATION-01`,
+`P4-PREDECESSOR-01`, `P4-TEXT-PROFILE-01`, `P4-FONT-COLLECTION-01`,
+`P4-COLOR-FONT-ADMISSION-01`, `P4-UNICODE-SEGMENTATION-01`,
 `P4-EMOJI-SEQUENCE-01`, `P4-BIDI-01`, `P4-FALLBACK-01`,
 `P4-SHAPING-01`, `P4-LINE-LAYOUT-01`, `P4-CAPACITY-01`,
 `P4-MEASUREMENT-IDENTITY-01`, `P4-ORIGINAL-RANGE-01`,
-`P4-TEXT-RECONSTRUCTION-01`, `P4-UNCHANGED-01`, and `P4-TEXT-COST-01`.
+`P4-BIDI-INTERACTION-01`, `P4-ACCESSIBILITY-GEOMETRY-01`,
+`P4-TEXT-CONTENT-LOCALITY-01`, `P4-TEXT-WIDTH-LOCALITY-01`,
+`P4-TEXT-RECONSTRUCTION-01`, `P4-UNCHANGED-01`, `P4-TEXT-COST-01`, and
+`P4-CLOSE-01`.
 Each row owns its exact
 Unicode/reference-data digest, corpus slice, production transition,
 independent oracle, mutation, counters, and artifact identity; one generic
 multilingual screenshot cannot satisfy them.
+
+`P4-FONT-COLLECTION-01` is not satisfied by counting the profile's default
+faces. Its governed cases must include two application families with
+overlapping coverage that select different face identities, regular/bold/
+italic and variable-axis matching, a multi-face collection index, an authored
+fallback stack whose first family lacks a complete cluster, emoji fallback,
+family-name collision, over-capacity and malformed-pack denial, successor
+generation replacement/removal while a predecessor layout remains live, and
+reconstruction from the exact pinned generation. Independent font-table and
+layout oracles must reject ambient-system substitution, a hard-coded single
+family, registration-order selection, stale-generation reuse, or face/style
+matching that differs between measurement and presentation.
 
 The Phase 4 qualification gate and production closure are separate ledger
 events. `P4-TEXT-PROFILE-01` cannot become `PROVED` until the canonical v2
@@ -1796,6 +1915,21 @@ validate. The other Phase 4 rows remain `OPEN` until that row is final-source
 green; a provisional manifest identity or dependency-default behavior cannot
 be consumed as production configuration.
 
+Locality evidence keeps independent axes separate: a content-only edit holds
+width, locale, direction, font collection, profile, and text-scale generations
+fixed; a one-paragraph width edit changes only that paragraph; a document-wide
+width replacement is named separately. Each axis runs retained sizes 1, 32,
+2,048, and 4,096 and reports analyzed bytes, bidi contexts, fallback probes,
+shaped runs/glyphs, lines, and unchanged-sibling work. Combining content and
+width mutation into one favorable fixture cannot prove paragraph locality.
+
+Application font admission explicitly accepts COLRv0/CPAL, COLRv1/CPAL,
+CBDT/CBLC, and sbix under the qualified compositing, palette, strike-selection,
+and resampling rules. The sbix lane admits `png` and one-hop `dupe`-to-`png` records;
+`jpg`, `tiff`, and OpenType SVG are explicitly unsupported in this profile and
+are rejected atomically before layout effects. Silent color-layer loss,
+monochrome fallback, or adapter-selected raster semantics are forbidden.
+
 Phase 5 may trust bounded deterministic multilingual/RTL/complex-script/emoji
 layout and measurement from repository or explicitly application-bundled fonts,
 with no system-font or adapter-layout authority.
@@ -1804,13 +1938,27 @@ with no system-font or adapter-layout authority.
 
 Consume only Phase 4 `UiQualifiedTextLayout` artifacts. Implement typed alpha
 and color glyph raster batches, grayscale outline and color outline/bitmap
-source order, receipt-attributed glyph-run commands, separate bounded alpha and
-RGBA atlases, live-layout pinning, deterministic candidate eviction, staged
-uploads, pure-DPI raster replacement, text-scale/layout replacement, and
-complete layout/raster/atlas reconstruction from mounted authority. Exercise
-the full Unicode 17 RGI emoji corpus classes, including variation selectors,
+source order, receipt-attributed glyph-run commands carrying exact paint-span
+identity and logical straight foreground RGBA, separate bounded alpha and RGBA
+atlases, live-layout pinning, deterministic candidate eviction, staged uploads,
+pure-DPI raster replacement, text-scale/layout replacement, and complete
+layout/raster/atlas reconstruction from mounted authority. Alpha-mask glyphs
+are tinted and premultiplied only in the qualified presentation pipeline;
+intrinsic-color glyphs preserve their palette/bitmap color and ignore the
+surrounding foreground unless a later profile explicitly qualifies tinting.
+Exercise
+every exact sequence in the full Unicode 17 RGI emoji corpus, including variation selectors,
 flags, modifiers, tags, keycaps, and multi-person ZWJ sequences; no color layer
 or cluster may be dropped or split.
+
+A color-only successor with unchanged text, font collection, style-span
+boundaries, width, locale, direction, and text scale reuses the exact
+`UiQualifiedTextLayout`, shaped glyphs, metrics, caret/hit/selection geometry,
+and atlas entries. It updates only affected glyph-run foreground payloads and
+their logical damage. Changing a paint-span boundary may re-itemize and reshape
+only the intersecting run because one glyph may not straddle two foreground
+colors. Headless transcripts and native pixels must report the same mounted
+paint-span identity and RGBA.
 
 Close all remaining `HP-03` atlas, native pixel, external adjudication, cost,
 saturation, and hostile mutation evidence and produce the glyph rebaseline
@@ -1819,9 +1967,16 @@ hit testing, rasterization, and rendering must report one layout identity.
 
 Phase 5 closes only when the ledger proves `P5-GLYPH-RASTER-01`,
 `P5-COLOR-EMOJI-01`, `P5-ATLAS-01`, `P5-ATLAS-PINNING-01`,
-`P5-TEXT-DPI-01`, `P5-TEXT-PIXELS-01`, `P5-TEXT-RECONSTRUCTION-01`, and
-`P5-TEXT-COST-01`, including an external color-emoji observation and separate
-alpha/color atlas/resource census.
+`P5-TEXT-DPI-01`, `P5-TEXT-SPAN-PAINT-01`, `P5-TEXT-PIXELS-01`,
+`P5-TEXT-RECONSTRUCTION-01`, and `P5-TEXT-COST-01`, including an external
+mixed-font/mixed-size/bidi/mixed-foreground observation, an external
+color-emoji observation, and separate alpha/color atlas/resource census.
+`P5-TEXT-SPAN-PAINT-01` must reject single-color substitution, visual-order
+color assignment, emoji tinting, and layout regeneration on a color-only edit.
+`P5-COLOR-EMOJI-01` must raster every exact
+RGI sequence mapping internally; native pixel evidence supplies representative
+observations for every admitted color source and sequence class and cannot
+replace the exhaustive internal corpus proof.
 
 Phase 6 may trust deterministic framework-grade text layout and attributable
 multilingual/color-emoji pixels without system fallback, environment-selected
@@ -2005,8 +2160,8 @@ are green on the exact final source.
 
 `milestone-3.14.1-proof-ledger.csv` is the single closure ledger. Its current
 thirty-row Phase 1-2 prefix is immutable predecessor evidence. Phase 3 appends
-its sixteen rows before implementation evidence is admitted; Phase 4 appends
-its fourteen rows before v2 qualification work begins, and later phases append
+its seventeen rows before implementation evidence is admitted; Phase 4 appends
+its twenty-one rows before v2 qualification work begins, and later phases append
 their named rows in the same fashion. Existing rows, nonces, artifacts, claims,
 and selected-source digests are not rewritten to make room. Historical rows
 retain their recorded revision, source metadata, claim, and artifact byte-for-
@@ -2035,6 +2190,11 @@ distinct from product denial or non-success. The ledger explains and certifies;
 it cannot configure the host or substitute for production profile types.
 
 The ordinary warm gate must satisfy the numerical phase budgets above.
+Closed predecessor rows retain the execution-cost claim that governed their
+historical closure. The newest phase's predecessor handoff separately owns and
+derives the current unique-execution portfolio totals from content-addressed
+receipts; it may neither rewrite an immutable predecessor row nor repeat its
+old non-deduplicated total.
 Ledger commands are executed by one governed phase-closure runner. For every
 required row through the requested phase it lists the compiled test target,
 requires the fully qualified `--exact` test name to match exactly once, runs
@@ -2054,6 +2214,17 @@ result-artifact identity. The closure runner, not the retained file, is the
 evidence authority: a zero-match success, trivial unrelated passing test,
 stale source state, missing required observation, or hand-authored artifact
 cannot close a phase.
+The runner streams row start, reuse/execute disposition, completion posture,
+and measured duration. It stages successful content-addressed receipts outside
+the canonical evidence directory so a late failure can roll canonical ledger
+and artifacts back atomically without discarding valid work. A retry may reuse
+only receipts whose complete binding remains unchanged. The phase portfolio
+records unique execution identities separately from row references, so shared
+worlds and repeated test/control identities are charged once while every row
+retains its independent claim validation. The predecessor handoff performs the
+one required current-source execution of the immutable prefix; the phase-final
+verifier validates that handoff plus the newly produced portfolio rather than
+reexecuting either.
 Maximum-table model proofs reuse immutable worlds inside existing targets,
 real GPU/window startup is paid only by the serialized platform/executable
 lanes that require it, and no claim is supported solely by a rarely run soak

@@ -38,7 +38,8 @@ pub use component::{
     ComponentHitTestContract, ComponentHitTestInset, ComponentHitTestOrder, ComponentPropSchema,
     ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
     ComponentRealtimeOverlayContractDenialReason, ComponentRealtimeOverlayPriority,
-    ComponentSemanticTextContract, ComponentStateOwnership, ComponentStaticPaintContract,
+    ComponentSemanticTextContract, ComponentSemanticTextContractDenial,
+    ComponentSemanticTextSpanContract, ComponentStateOwnership, ComponentStaticPaintContract,
     ComponentStaticPaintOrder, ComponentViewportInset, FrozenComponentCapabilities,
 };
 pub(crate) use family_names::{

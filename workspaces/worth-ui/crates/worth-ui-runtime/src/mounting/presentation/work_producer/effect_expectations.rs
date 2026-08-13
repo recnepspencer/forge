@@ -16,6 +16,7 @@ impl UiMountedPresentationState {
         }
         match work.view() {
             UiMountedPresentationWorkView::Initial(_) => self.effects.to_vec(),
+            UiMountedPresentationWorkView::Reconstruction(_) => self.effects.to_vec(),
             UiMountedPresentationWorkView::Delta(delta) => {
                 let mut effects = Vec::new();
                 if !delta.changes().is_empty()

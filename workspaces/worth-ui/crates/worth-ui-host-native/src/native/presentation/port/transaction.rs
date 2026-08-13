@@ -1,9 +1,10 @@
 use crate::native::UiNativeGraphics;
+use wgpu::util::DeviceExt;
 
 use super::super::{
-    clear_target, copy_evidence_pixels, draw_rectangle, draw_rectangle_after_clear,
-    draw_retained_to_surface, pipeline, rectangle_shader, replace_pipeline, retained_transfer,
-    UiNativePendingWgpuObligation, UiNativeReadbackPort, UiWgpuNativeReadbackPort,
+    copy_evidence_pixels, draw_raster_operations, draw_retained_to_surface, raster_pipelines,
+    rectangle_vertices, retained_transfer, RasterVertex, UiNativePendingWgpuObligation,
+    UiNativeReadbackPort, UiWgpuNativeReadbackPort,
 };
 use super::{
     UiNativePresentationPortFailure, UiNativePresentationPortObservation,
@@ -24,6 +25,23 @@ pub(super) fn present(
         .texture
         .create_view(&wgpu::TextureViewDescriptor::default());
     let readback = evidence_buffer(&graphics.device);
+    let vertices = raster_vertices(&plan.operations);
+    let vertex_bytes = encode_vertices(&vertices);
+    let vertex_buffer = (!vertex_bytes.is_empty()).then(|| {
+        graphics
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("worth-ui-retained-raster-vertices"),
+                contents: &vertex_bytes,
+                usage: wgpu::BufferUsages::VERTEX,
+            })
+    });
+    let replace_operations = plan
+        .operations
+        .iter()
+        .map(|operation| matches!(operation, UiNativeRasterOperation::Clear(_)))
+        .collect::<Vec<_>>();
+    let raster_pipelines = raster_pipelines(&graphics.device);
     let submission = encode_and_present(
         graphics,
         output,
@@ -32,6 +50,9 @@ pub(super) fn present(
         surface_pipeline,
         surface_bind_group,
         &readback,
+        vertex_buffer.as_ref(),
+        &replace_operations,
+        (&raster_pipelines.0, &raster_pipelines.1),
         plan,
     );
     let (pixels, readback_crossings) =
@@ -78,6 +99,9 @@ fn encode_and_present(
     surface_pipeline: wgpu::RenderPipeline,
     surface_bind_group: wgpu::BindGroup,
     readback: &wgpu::Buffer,
+    vertex_buffer: Option<&wgpu::Buffer>,
+    replace_operations: &[bool],
+    raster_pipelines: (&wgpu::RenderPipeline, &wgpu::RenderPipeline),
     plan: UiNativePresentationPortPlan,
 ) -> wgpu::SubmissionIndex {
     let mut encoder = graphics
@@ -85,18 +109,14 @@ fn encode_and_present(
         .create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("worth-ui-initial-presentation"),
         });
-    if plan.clear_retained_target && plan.operations.is_empty() {
-        clear_target(&mut encoder, &retained_view);
-    }
-    for (index, operation) in plan.operations.iter().copied().enumerate() {
-        draw_operation(
-            graphics,
-            &mut encoder,
-            &retained_view,
-            operation,
-            plan.clear_retained_target && index == 0,
-        );
-    }
+    draw_raster_operations(
+        &mut encoder,
+        &retained_view,
+        vertex_buffer,
+        replace_operations,
+        raster_pipelines,
+        plan.clear_retained_target,
+    );
     draw_retained_to_surface(
         &mut encoder,
         &surface_view,
@@ -114,39 +134,24 @@ fn encode_and_present(
     submission
 }
 
-fn draw_operation(
-    graphics: &UiNativeGraphics,
-    encoder: &mut wgpu::CommandEncoder,
-    retained_view: &wgpu::TextureView,
-    operation: UiNativeRasterOperation,
-    clear_before: bool,
-) {
-    let (rect, rgba, replace) = match operation {
-        UiNativeRasterOperation::Clear(rect) => (rect, [0, 0, 0, 0], true),
-        UiNativeRasterOperation::FilledRect { rect, source_rgba8 } => (rect, source_rgba8, false),
-    };
-    let shader = graphics
-        .device
-        .create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("worth-ui-retained-draw-operation"),
-            source: wgpu::ShaderSource::Wgsl(rectangle_shader(rect, rgba).into()),
-        });
-    let pipeline = if replace {
-        replace_pipeline(
-            &graphics.device,
-            &shader,
-            wgpu::TextureFormat::Rgba8UnormSrgb,
-        )
-    } else {
-        pipeline(
-            &graphics.device,
-            &shader,
-            wgpu::TextureFormat::Rgba8UnormSrgb,
-        )
-    };
-    if clear_before {
-        draw_rectangle_after_clear(encoder, retained_view, &pipeline);
-    } else {
-        draw_rectangle(encoder, retained_view, &pipeline);
+fn raster_vertices(operations: &[UiNativeRasterOperation]) -> Vec<RasterVertex> {
+    operations
+        .iter()
+        .flat_map(|operation| match *operation {
+            UiNativeRasterOperation::Clear(rect) => rectangle_vertices(rect, [0, 0, 0, 0]),
+            UiNativeRasterOperation::FilledRect { rect, source_rgba8 } => {
+                rectangle_vertices(rect, source_rgba8)
+            }
+        })
+        .collect()
+}
+
+fn encode_vertices(vertices: &[RasterVertex]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(vertices.len() * 24);
+    for vertex in vertices {
+        for value in vertex.position.into_iter().chain(vertex.color) {
+            bytes.extend_from_slice(&value.to_ne_bytes());
+        }
     }
+    bytes
 }

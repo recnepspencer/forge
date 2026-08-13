@@ -36,6 +36,7 @@ pub enum ScriptedSurfaceCompletion {
 }
 
 struct ScriptedPresentationState {
+    contract: worth_ui_host_contract::WorthUiHostContract,
     protocol: worth_ui_host_contract::UiHostProtocolContract,
     capabilities: WorthUiHostCapabilityReport,
     presentations: VecDeque<ScriptedPresentationStart>,
@@ -69,6 +70,7 @@ struct ScriptedPresentationState {
 impl Default for ScriptedPresentationState {
     fn default() -> Self {
         Self {
+            contract: worth_ui_host_contract::WorthUiHostContract::headless(),
             protocol: worth_ui_host_contract::UiHostProtocolContract::current(),
             capabilities: recording_capabilities(),
             presentations: VecDeque::new(),
@@ -130,6 +132,20 @@ pub fn presented_completion() -> ScriptedSurfaceCompletion {
 }
 
 impl ScriptedPresentationHost {
+    pub fn native_display() -> Self {
+        let host = Self::default();
+        {
+            let mut state = host.state.lock().unwrap();
+            state.contract = worth_ui_host_contract::WorthUiHostContract::native();
+            state.capabilities = WorthUiHostCapabilityReport::available(vec![
+                worth_ui_host_contract::WorthUiHostCapability::NativePaint,
+                worth_ui_host_contract::WorthUiHostCapability::ViewportObservation,
+                worth_ui_host_contract::WorthUiHostCapability::DpiObservation,
+            ]);
+        }
+        host
+    }
+
     pub fn set_protocol(&self, protocol: worth_ui_host_contract::UiHostProtocolContract) {
         self.state.lock().unwrap().protocol = protocol;
     }

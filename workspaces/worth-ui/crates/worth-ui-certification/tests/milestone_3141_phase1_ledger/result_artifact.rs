@@ -136,6 +136,7 @@ fn validate_artifact_proofs(
     ledger: &LedgerResult<'_>,
     command: &CommandBinding,
 ) -> Result<(), String> {
+    super::phase_four_case_contract::validate(&command.requirement, artifact)?;
     if command.shared_main {
         super::shared_world_artifact::validate(
             artifact,
@@ -144,13 +145,27 @@ fn validate_artifact_proofs(
             ledger.source_state_digest,
         )?;
     }
-    super::result_artifact_control::validate(artifact, command.control.as_ref())?;
-    super::compile_case_binding::validate(&command.requirement, &command.sources)?;
+    super::supporting_world_artifact::validate(
+        artifact,
+        command,
+        ledger.source_revision,
+        ledger.source_state_digest,
+    )?;
+    super::result_artifact_control::validate(
+        artifact,
+        command.control.as_ref(),
+        super::execution_contract::control_budget_ms(&command.requirement),
+        &command.requirement,
+    )?;
+    super::compile_case_binding::validate(&command.requirement, &command.sources, artifact)?;
     super::result_artifact_counter::validate(
         &command.requirement,
         artifact,
-        super::execution_contract::counter_amount(&command.requirement)
-            .expect("every requirement has one counter"),
+        ledger
+            .structural_counter
+            .split_once('=')
+            .and_then(|(_, amount)| amount.parse::<u64>().ok())
+            .ok_or_else(|| "ledger structural counter has no exact amount".to_owned())?,
     )?;
     super::result_artifact_cost::validate(&command.requirement, artifact)?;
     if command.requirement.starts_with("P2-") {
@@ -175,3 +190,7 @@ fn require_json(value: &Value, field: &str, expected: &Value) -> Result<(), Stri
 #[cfg(test)]
 #[path = "result_artifact_mutation.rs"]
 mod mutation_tests;
+
+#[cfg(test)]
+#[path = "result_artifact_phase_three_tests.rs"]
+mod phase_three_tests;

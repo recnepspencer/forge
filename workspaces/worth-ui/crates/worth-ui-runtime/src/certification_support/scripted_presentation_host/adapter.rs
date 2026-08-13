@@ -10,7 +10,7 @@ use super::*;
 
 impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
     fn operational_host_contract(&self) -> WorthUiHostContract {
-        WorthUiHostContract::headless()
+        self.state.lock().unwrap().contract
     }
 
     fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {

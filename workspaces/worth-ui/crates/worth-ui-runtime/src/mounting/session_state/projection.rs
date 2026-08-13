@@ -18,9 +18,10 @@ impl WorthUiMountedSessionState {
         if view.frame() != frame {
             return None;
         }
-        let [mechanic] = view.filled_rects().rows() else {
-            return None;
-        };
+        let top = view.authored_paint_order().last()?.command();
+        let mechanic = view.filled_rects().rows().iter().find(|mechanic| {
+            worth_ui_host_contract::UiMountedPaintCommandIdentity::filled_rect(mechanic) == top
+        })?;
         let authored = self
             .identity
             .presented_authored_attribution(mechanic.mounted_instance(), mechanic.node_receipt())?;

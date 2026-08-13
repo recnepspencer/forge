@@ -11,8 +11,17 @@ autobins = false
 winit = { version = "=0.30.13", default-features = false, features = ["rwh_06"] }
 wgpu = { version = "=29.0.4", default-features = false, features = ["std", "parking_lot", "dx12", "wgsl"] }
 pollster = "=0.4.0"
+harfrust = { version = "=0.12.0", default-features = false, features = ["std"] }
+icu_segmenter = { version = "=2.2.0", default-features = false, features = ["compiled_data", "auto"] }
+kurbo = { version = "=0.13.1", default-features = false, features = ["std"] }
+linesweeper = { version = "=0.4.0", default-features = false }
+png = { version = "=0.18.1", default-features = false }
+read-fonts = { version = "=0.41.0", default-features = false, features = ["std", "experimental_traverse"] }
 rustybuzz = "=0.20.1"
+sha2 = "=0.10.9"
 swash = "=0.2.10"
+unicode-bidi = { version = "=0.3.18", default-features = false, features = ["std"] }
+unicode-segmentation = { version = "=1.13.3", default-features = false }
 egui = "=0.35.0"
 
 [dependencies]
@@ -33,27 +42,21 @@ egui.workspace = true
 [[bin]]
 name = "product-runtime-authority"
 path = "../../../../worth-ui/tests/ui/runtime_authority/fail/prepared_application_authority_has_no_canonical_extraction.rs"
-
 [[bin]]
 name = "host-presentation-work-authority"
 path = "../../../../worth-ui-host-contract/tests/ui/presentation_work_issuance_requires_runtime_authority.rs"
-
 [[bin]]
 name = "host-presentation-mechanics-consumer"
 path = "../../../../worth-ui-host-contract/tests/ui/presentation_mechanics_consumer_is_lawful.rs"
-
 [[bin]]
 name = "product-paint-identities-non-orderable"
 path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/paint_identities_are_not_orderable.rs"
-
 [[bin]]
 name = "product-paint-identities-lawful-correlation"
 path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/paint_identities_support_lawful_correlation.rs"
-
 [[bin]]
 name = "product-raw-protocol-consumer-substitution"
 path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/raw_protocol_contract_cannot_enter_consumers.rs"
-
 [[bin]]
 name = "product-native-event-loop-client-substitution"
 path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/product_cannot_substitute_native_event_loop_client.rs"

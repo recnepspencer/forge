@@ -21,6 +21,23 @@ pub struct UiNativePresentationObservation {
     cost: UiHostPresentationCostReport,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiNativePresentationWorkKind {
+    Initial,
+    Delta,
+    Reconstruction,
+    Unchanged,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiNativeRetainedFrameObservation {
+    frame: u64,
+    kind: UiNativePresentationWorkKind,
+    retained_baseline_rgba8: [u8; 4],
+    retained_center_rgba8: [u8; 4],
+    cost: UiHostPresentationCostReport,
+}
+
 pub(crate) struct UiNativePresentationInput {
     pub(crate) client_physical_size: [u32; 2],
     pub(crate) scale_factor_milli: u32,
@@ -130,6 +147,43 @@ impl UiNativePresentationObservation {
 
     pub const fn port_crossings(&self) -> u8 {
         self.port_crossings
+    }
+
+    pub const fn cost(&self) -> UiHostPresentationCostReport {
+        self.cost
+    }
+}
+
+impl UiNativeRetainedFrameObservation {
+    pub(crate) const fn observed(
+        frame: u64,
+        kind: UiNativePresentationWorkKind,
+        pixels: [[u8; 4]; 2],
+        cost: UiHostPresentationCostReport,
+    ) -> Self {
+        Self {
+            frame,
+            kind,
+            retained_baseline_rgba8: pixels[0],
+            retained_center_rgba8: pixels[1],
+            cost,
+        }
+    }
+
+    pub const fn frame(&self) -> u64 {
+        self.frame
+    }
+
+    pub const fn kind(&self) -> UiNativePresentationWorkKind {
+        self.kind
+    }
+
+    pub const fn retained_baseline_rgba8(&self) -> [u8; 4] {
+        self.retained_baseline_rgba8
+    }
+
+    pub const fn retained_center_rgba8(&self) -> [u8; 4] {
+        self.retained_center_rgba8
     }
 
     pub const fn cost(&self) -> UiHostPresentationCostReport {

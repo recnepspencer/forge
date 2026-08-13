@@ -15,7 +15,7 @@ name = "worth-ui-platform-pulse"
 path = "src/main.rs"
 
 [features]
-executable-world = []
+executable-world = ["worth-ui/certification-support"]
 
 [[test]]
 name = "executable_world"

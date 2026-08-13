@@ -118,13 +118,18 @@ fn reverse_index(
 fn retained_visible_order(
     predecessor: &UiMountedIdentityState,
     instances: &BTreeMap<UiMountedInstanceIdentity, MountedInstanceRecord>,
-) -> Vec<UiMountedInstanceIdentity> {
-    predecessor
+) -> crate::runtime::persistent_index::UiPersistentOrder<UiMountedInstanceIdentity> {
+    let retained = predecessor
         .visible_order
         .iter()
         .copied()
         .filter(|identity| instances.contains_key(identity))
-        .collect()
+        .collect::<Vec<_>>();
+    let mut order = crate::runtime::persistent_index::UiPersistentOrder::default();
+    order
+        .replace_all(&retained)
+        .expect("retained graph replacement order remains unique");
+    order
 }
 
 fn persistent_membership(

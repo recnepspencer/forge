@@ -7,6 +7,10 @@ mod outcome;
 mod platform;
 mod profile;
 
+pub use crate::facade::entry::{
+    UiNativeApplicationFrame, UiNativeApplicationProgram, UiNativeApplicationProgramDenial,
+    UiNativeComponentPresenceChange,
+};
 pub use application::{
     UiNativeApplicationBuilder, UiNativeApplicationDefinition, UiNativeApplicationPreparation,
     UiNativeApplicationPreparationDenial, UiNativeApplicationPreparationDenialCause,

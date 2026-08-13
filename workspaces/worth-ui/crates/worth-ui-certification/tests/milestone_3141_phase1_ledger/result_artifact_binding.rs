@@ -1,5 +1,6 @@
+use std::collections::BTreeMap;
 use std::process::{Command, Stdio};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 use serde_json::Value;
 
@@ -50,6 +51,16 @@ fn validate_source_revision(revision: &str) -> Result<(), String> {
     if !is_lower_hex(revision, 40) {
         return Err("result artifact source revision is invalid".to_owned());
     }
+    static VALIDATED: OnceLock<Mutex<BTreeMap<String, Result<(), String>>>> = OnceLock::new();
+    let validated = VALIDATED.get_or_init(|| Mutex::new(BTreeMap::new()));
+    if let Some(result) = validated
+        .lock()
+        .map_err(|_| "source revision cache is poisoned".to_owned())?
+        .get(revision)
+        .cloned()
+    {
+        return result;
+    }
     let status = Command::new("git")
         .args(["cat-file", "-e", &format!("{revision}^{{commit}}")])
         .current_dir(source_digest::repository_root())
@@ -57,10 +68,15 @@ fn validate_source_revision(revision: &str) -> Result<(), String> {
         .stderr(Stdio::null())
         .status()
         .map_err(|error| format!("cannot resolve source revision: {error}"))?;
-    status
+    let result = status
         .success()
         .then_some(())
-        .ok_or_else(|| "result artifact source revision is not repository lineage".to_owned())
+        .ok_or_else(|| "result artifact source revision is not repository lineage".to_owned());
+    validated
+        .lock()
+        .map_err(|_| "source revision cache is poisoned".to_owned())?
+        .insert(revision.to_owned(), result.clone());
+    result
 }
 
 pub(super) fn read_artifact(identity: &str) -> Result<Value, String> {

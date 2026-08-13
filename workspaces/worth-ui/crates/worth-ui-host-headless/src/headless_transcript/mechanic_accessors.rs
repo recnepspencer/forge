@@ -108,6 +108,7 @@ impl UiHeadlessNodeMechanic {
     pub(crate) fn new(input: UiHeadlessNodeMechanicInput) -> Self {
         Self {
             mounted_instance: input.mounted_instance,
+            authored_position: input.authored_position,
             role: input.role,
             participation: input.participation,
             allocation: input.allocation,
@@ -121,6 +122,10 @@ impl UiHeadlessNodeMechanic {
 
     pub const fn mounted_instance(self) -> UiMountedInstanceIdentity {
         self.mounted_instance
+    }
+
+    pub(crate) const fn authored_position(self) -> u64 {
+        self.authored_position
     }
 
     pub const fn role(self) -> UiMountedMechanicalRole {

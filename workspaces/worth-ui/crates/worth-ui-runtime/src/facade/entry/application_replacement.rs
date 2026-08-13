@@ -114,6 +114,7 @@ pub(super) struct WorthUiPreparedApplicationActivation {
     publication: Box<WorthUiApplicationPublicationObservation>,
     visual_trace_source:
         crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
+    font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     reload_cost: Result<
         crate::runtime::WorthUiReloadLoweringCounterReceipt,
         crate::runtime::WorthUiReloadCounterBoundaryDenial,

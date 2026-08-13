@@ -6,17 +6,54 @@ ambient_system_fonts = false
 normalization = "preserve-original-utf8"
 fallback = "complete-cluster-first-qualified-face"
 missing_coverage = "one-last-resort-glyph-per-cluster"
+dependency_qualification_manifest = "tools/worth-ui-text-profile-qualification/Cargo.toml"
+dependency_qualification_lock_sha256 = "84ef06e5d4609b183d1e484881c7d43fb3e51835d0ee3f71759c707e136b45c5"
 artifact_inventory = "artifact-inventory.toml"
 artifact_inventory_entries = 34
-artifact_inventory_bytes = 4926
-artifact_inventory_sha256 = "42acaf34c4128da1d6b153cd99952f9095ea00750f4fa54b8095407c675bc026"
+artifact_inventory_bytes = 5353
+artifact_inventory_sha256 = "df8a5b4b08518189b983aaca0a8d04d99ddff1762bf6476c2eb02df71829fd35"
 
 [dependencies]
-unicode_segmentation = { version = "=1.13.3", default_features = false, unicode = "17.0.0" }
-unicode_bidi = { version = "=0.3.18", default_features = false, features = ["std"], data = "repository-generated-unicode-17" }
-icu_segmenter = { version = "=2.2.0", default_features = false, features = ["compiled_data", "auto"], cldr = "48.2.0", icu = "78.1rc", unicode = "17.0.0" }
-harfrust = { version = "=0.12.0", default_features = false, features = ["std"], unicode = "17.0.0" }
-swash = { version = "=0.2.10", default_features = false, features = ["std", "scale", "render"] }
+unicode_segmentation = { version = "=1.13.3", default_features = false, resolved_features = [], checksum = "c6f5d3c3b1bf09027a88a6bc961fc00497d651009560b5463668dc81b0fa87a8", unicode = "17.0.0" }
+unicode_bidi = { version = "=0.3.18", default_features = false, features = ["std"], resolved_features = ["std"], checksum = "5c1cb5db39152898a79168971543b1cb5020dff7fe43c8dc468b0885f5e29df5", data = "repository-generated-unicode-17" }
+icu_segmenter = { version = "=2.2.0", default_features = false, features = ["compiled_data", "auto"], resolved_features = ["auto", "compiled_data", "lstm"], checksum = "5c0794db0b1a86193ac9c48768d0e6c52c54448e0870ad87907d456ee0dac964", cldr = "48.2.0", icu = "78.1rc", unicode = "17.0.0" }
+harfrust = { version = "=0.12.0", default_features = false, features = ["std"], resolved_features = ["std"], checksum = "c03d949a14aa089bbb282f7dd76a498a7f684428e4257202efc119ec010376f9", unicode = "17.0.0" }
+read_fonts = { version = "=0.41.0", default_features = false, features = ["std", "experimental_traverse"], resolved_features = ["experimental_font_api", "experimental_traverse", "std"], checksum = "046a7d674daf459825b32f5062056d6882db0d2f5a479fbd76ccfc870ac18709" }
+skrifa = { version = "=0.44.0", default_features = false, features = ["std"], resolved_features = ["std"], checksum = "819ab7d62b1d3e72d9d9dea5650bac30424f9111364bb94928dbf5ecad1baa68" }
+kurbo = { version = "=0.13.1", default_features = false, features = ["std"], resolved_features = ["default", "serde", "std"], checksum = "4b60dfc32f652b926df6192e55525b16d186c69d47876c3ead4da5cc9f8450e2" }
+linesweeper = { version = "=0.4.0", default_features = false, resolved_features = [], checksum = "9c19728333c060c6569a53c9a0e56c4be0df52cb4e6e07a8fbe16084cecce769" }
+png = { version = "=0.18.1", default_features = false, resolved_features = [], checksum = "60769b8b31b2a9f263dae2776c37b1b28ae246943cf719eb6946a1db05128a61" }
+swash = { version = "=0.2.10", default_features = false, features = ["std", "scale", "render"], resolved_features = ["render", "scale", "std"], checksum = "6c2499c2d826531388872b2268718aed907a39bd785ab0dcfe57fab26283f92e" }
+
+[application_fonts]
+registration = "immutable-content-addressed-before-layout-effects"
+validation = ["container-kind", "table-directory", "face-index", "localized-family-style-metadata", "weight-width-slant", "variation-axes", "opentype-features", "unicode-coverage", "color-table-integrity", "license-record", "face-count", "byte-capacity"]
+fallback_authority = "per-span-ordered-family-stack"
+fallback_routes = ["rgi:qualified-color-emoji->last-resort", "non-rgi:qualified-profile-defaults->last-resort"]
+generation = "font-collection-generation"
+fresh_admission = "current-generation-only"
+predecessor_layout_bytes = "retained-until-layout-owner-release"
+ambient_installation = "excluded"
+admission_failure = "typed-atomic-before-layout-effects"
+identity = ["pack-content-digest", "font-bytes-digest", "face-index", "family-identity", "style-metadata", "variation-axes", "feature-inventory", "license-record"]
+admitted_color_tables = ["COLR-v0-CPAL", "COLR-v1-CPAL", "CBDT-CBLC", "sbix"]
+unsupported_color_tables = ["SVG"]
+sbix_graphic_types = ["png", "dupe"]
+sbix_dupe = "one-hop-to-png"
+unsupported_sbix_graphic_types = ["jpg", "tiff"]
+color_table_failure = "typed-atomic-before-layout-effects"
+
+[run_formation]
+partition_order = ["bidi-level", "script", "language", "style", "selected-face", "variation-axes", "feature-set"]
+default_language = "und"
+shaping = "harfbuzz-compatible-complex"
+scripts = ["Arabic", "Hebrew", "Indic", "Southeast-Asian", "Tibetan", "Hangul", "combining-mark", "ligature", "joining"]
+cluster_level = "monotone-graphemes"
+indivisible_boundaries = ["line", "caret", "selection", "fallback", "ellipsis"]
+feature_posture = "profile-and-authored-span-explicit-only"
+variation_posture = "qualified-axis-coordinates-only"
+fallback_unit = "complete-grapheme-or-rgi-emoji-cluster"
+face_admission = "complete-cluster-shapes-without-notdef"
 
 [unicode]
 grapheme = "unicode/ucd/auxiliary/GraphemeBreakTest.txt"
@@ -49,8 +86,35 @@ alignments = ["start", "center", "end"]
 overflow = ["clip", "ellipsis"]
 whitespace = "preserved"
 tab_stops = "explicit"
+hard_line_breaks = "preserved"
+line_height = "explicit"
+letter_spacing = "explicit"
+word_spacing = "explicit"
+maximum_lines = "explicit"
 cluster_level = "monotone-graphemes"
 caret_boundaries = "grapheme-and-indivisible-shaping-cluster"
+bidi_caret = "original-byte-boundary-plus-visual-edge-plus-upstream-downstream-affinity"
+hit_testing = "point-to-line-to-visual-run-to-cluster"
+selection = "discontiguous-visual-run-rectangles"
+bidi_boundary_rule = "two-affine-caret-positions-at-shared-visual-edge"
+
+[layout_identity]
+artifact = "immutable-reconstructible-qualified-text-layout"
+original_ranges = "exact-source-utf8"
+consumers = ["measurement", "baseline", "hit-testing", "selection", "rasterization", "native-rendering", "accessibility-geometry"]
+independent_reshape = false
+affinity = ["profile", "font-collection-content", "locale", "direction", "width", "text-scale"]
+records = ["line-order", "visual-run-order", "selected-face", "feature-set", "variation-coordinates", "glyph-clusters", "glyph-positions", "logical-metrics", "ink-metrics", "baselines", "break-decisions", "overflow-decisions", "original-range-caret-stops", "bidi-caret-affinities", "point-hit-records", "selection-rectangles-per-visual-run", "coverage-disposition", "cost"]
+authority = "non-authoritative-derived"
+reconstruction_source = ["mounted-text", "exact-layout-request", "profile-generation", "font-collection-generation", "font-collection-content", "pinned-face-bytes", "text-scale-generation"]
+
+[scale_generation]
+logical_layout_keys = ["logical-constraints", "text-scale-generation"]
+dpi_change = "replace-raster-and-atlas-generations-only"
+text_scale_change = "replace-layout-before-presentation"
+width_change = "replace-layout-before-presentation"
+font_collection_change = "replace-layout-before-presentation"
+profile_change = "replace-layout-before-presentation"
 
 [raster]
 alpha_format = "R8Unorm"
@@ -61,6 +125,28 @@ antialiasing = "grayscale"
 fractional_origin_quantum = "1/64-pixel"
 premultiplication = "linear-rgb-before-storage"
 emoji_foreground_substitution = false
+admitted_color_sources = ["COLR-v0-CPAL", "COLR-v1-CPAL", "CBDT-CBLC", "sbix"]
+unsupported_color_sources = ["SVG"]
+sbix_graphic_types = ["png", "dupe"]
+sbix_dupe = "one-hop-to-png"
+unsupported_sbix_graphic_types = ["jpg", "tiff"]
+colr_compositing = "ordered-premultiplied-linear-rgba-with-explicit-palette"
+bitmap_strike_selection = "nearest-qualified-strike-then-deterministic-resample"
+bitmap_resampling = "premultiplied-linear-bilinear"
+
+[capacity_admission]
+input_reservation = "exact-before-analysis"
+derived_reservation = "conservative-qualified-font-expansion-bound"
+staging = "bounded-effect-free-analysis-shaping-and-layout"
+overflow = "typed-atomic-before-publication-raster-upload-or-retention"
+partial_publication = false
+
+[locality]
+content_edit = "one-paragraph-with-width-and-all-generations-fixed"
+paragraph_width_edit = "one-paragraph-only"
+global_width_edit = "explicit-document-wide-layout-replacement"
+proof_sizes = ["1", "32", "2048", "4096"]
+unchanged_siblings = "zero-analysis-zero-shaping-zero-layout"
 
 [capacity]
 retained_paragraphs = 4096
@@ -83,6 +169,18 @@ maximum_glyph_width = 512
 maximum_glyph_height = 512
 atlas_texel_bytes = 37748736
 staged_upload_bytes = 8388608
+
+[saturation]
+retained_layouts = "pin-exact-alpha-and-color-glyphs"
+candidate_admission = "complete-before-raster-or-upload"
+eviction = "deterministic-unpinned-only"
+live_eviction = false
+unbounded_growth = false
+silent_quality_reduction = false
+color_to_monochrome_fallback = false
+atlas_key = ["font-collection-generation", "profile-generation", "face", "glyph", "variation-coordinates", "palette", "size", "raster-source", "dpi-scale", "fractional-origin"]
+separate_alpha_color_atlases = true
+reconstructive_saturation = "named-posture-only"
 
 [[face]]
 id = "noto-sans-roman"

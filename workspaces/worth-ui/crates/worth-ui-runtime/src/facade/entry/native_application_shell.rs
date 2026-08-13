@@ -1,13 +1,27 @@
-use super::{WorthUiActiveApplicationSession, WorthUiApp};
+use super::WorthUiActiveApplicationSession;
 use crate::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiPresentationDeadline,
     UiSurfaceBindingCoordinatePosture, UiSurfaceBindingGeneration, UiSurfaceBindingProfile,
 };
+use std::collections::HashMap;
+
+#[path = "native_application_shell/component_presence.rs"]
+mod component_presence;
+#[path = "native_application_shell/launch.rs"]
+mod launch;
 
 /// High-level native lifecycle for one downstream application composition root.
 pub struct WorthUiNativeApplicationShell {
     pub(super) session: WorthUiActiveApplicationSession,
     binding: UiSurfaceBindingGeneration,
+    surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    mounted_rows: Vec<NativeMountedRow>,
+    mounted_row_indices: HashMap<Box<str>, usize>,
+}
+
+struct NativeMountedRow {
+    graph_node: crate::graph::UiGraphNodeIdentity,
+    mounted: Option<worth_ui_host_contract::UiMountedInstanceIdentity>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -34,134 +48,6 @@ pub enum WorthUiNativeApplicationShellLaunchDenial {
     MountedInstanceCreation,
     ViewportAllocation,
     ApplicationCleanup(WorthUiNativeApplicationCleanup),
-}
-
-struct NativeSurfaceConfigurationFailure {
-    cause: WorthUiNativeApplicationShellLaunchDenial,
-    expected_released_surface_count: usize,
-}
-
-impl WorthUiApp {
-    /// Launch one native surface without exposing mounted construction authority.
-    pub fn launch_native_surface(
-        self,
-    ) -> Result<WorthUiNativeApplicationShell, WorthUiNativeApplicationShellLaunchDenial> {
-        self.launch_native_surface_at_scale(1_000)
-    }
-
-    #[doc(hidden)]
-    pub fn launch_native_surface_at_scale(
-        self,
-        scale_factor_milli: u32,
-    ) -> Result<WorthUiNativeApplicationShell, WorthUiNativeApplicationShellLaunchDenial> {
-        let mut session = self.launch().map_err(|denial| match denial {
-            crate::runtime::WorthUiRuntimeLaunchDenial::HostSessionReleaseIndeterminate {
-                ..
-            }
-            | crate::runtime::WorthUiRuntimeLaunchDenial::HostSessionReleaseMismatch { .. } => {
-                WorthUiNativeApplicationShellLaunchDenial::RuntimeLaunchCleanup(denial)
-            }
-            _ => WorthUiNativeApplicationShellLaunchDenial::RuntimeLaunch,
-        })?;
-        let binding = match configure_native_surface(&mut session, scale_factor_milli) {
-            Ok(binding) => binding,
-            Err(failure) => {
-                let mut cleanup = session.shutdown();
-                return Err(
-                    if launch_cleanup_complete(&cleanup, failure.expected_released_surface_count) {
-                        failure.cause
-                    } else {
-                        WorthUiNativeApplicationShellLaunchDenial::ApplicationCleanup(
-                            WorthUiNativeApplicationCleanup {
-                                host_cleanup: cleanup.take_host_session_recovery(),
-                            },
-                        )
-                    },
-                );
-            }
-        };
-        Ok(WorthUiNativeApplicationShell { session, binding })
-    }
-}
-
-fn configure_native_surface(
-    session: &mut WorthUiActiveApplicationSession,
-    scale_factor_milli: u32,
-) -> Result<UiSurfaceBindingGeneration, NativeSurfaceConfigurationFailure> {
-    let surface = session.create_semantic_surface().map_err(|_| {
-        configuration_failure(
-            WorthUiNativeApplicationShellLaunchDenial::SemanticSurfaceCreation,
-            0,
-        )
-    })?;
-    let profile = UiSurfaceBindingProfile::new(
-        scale_factor_milli,
-        UiSurfaceBindingCoordinatePosture::LogicalPoints,
-        1,
-    )
-    .map_err(|_| {
-        configuration_failure(
-            WorthUiNativeApplicationShellLaunchDenial::HostSurfaceRegistration,
-            0,
-        )
-    })?;
-    let binding = session
-        .register_host_surface(
-            surface,
-            UiHostSurfacePresentationMode::NativeDisplay,
-            profile,
-        )
-        .map_err(|_| {
-            configuration_failure(
-                WorthUiNativeApplicationShellLaunchDenial::HostSurfaceRegistration,
-                0,
-            )
-        })?;
-    let graph_nodes = session.graph().node_identities().collect::<Vec<_>>();
-    for graph_node in graph_nodes {
-        let handle = session.mounted_graph_node(graph_node).map_err(|_| {
-            configuration_failure(
-                WorthUiNativeApplicationShellLaunchDenial::MountedInstanceCreation,
-                1,
-            )
-        })?;
-        session.mount_instance(handle, surface).map_err(|_| {
-            configuration_failure(
-                WorthUiNativeApplicationShellLaunchDenial::MountedInstanceCreation,
-                1,
-            )
-        })?;
-    }
-    session
-        .establish_native_viewport_allocation()
-        .map_err(|_| {
-            configuration_failure(
-                WorthUiNativeApplicationShellLaunchDenial::ViewportAllocation,
-                1,
-            )
-        })?;
-    Ok(binding.binding_generation())
-}
-
-fn configuration_failure(
-    cause: WorthUiNativeApplicationShellLaunchDenial,
-    expected_released_surface_count: usize,
-) -> NativeSurfaceConfigurationFailure {
-    NativeSurfaceConfigurationFailure {
-        cause,
-        expected_released_surface_count,
-    }
-}
-
-fn launch_cleanup_complete(
-    receipt: &crate::runtime::WorthUiRuntimeShutdownReceipt,
-    expected_released_surface_count: usize,
-) -> bool {
-    matches!(
-        receipt.host_session_release(),
-        Some(worth_ui_host_contract::UiHostSessionReleaseOutcome::Released(released))
-            if released.released_surface_count() == expected_released_surface_count
-    )
 }
 
 impl WorthUiNativeApplicationShell {

@@ -35,6 +35,8 @@ pub enum UiHostSurfacePresentationDenial {
     CapabilityGenerationChanged,
     CapabilityProfileChanged,
     SurfaceBindingChanged,
+    ReconstructionRequired,
+    StalePredecessor,
     MalformedProjection,
     DeadlineExpired,
     CapacityExceeded,
@@ -55,6 +57,7 @@ pub struct UiMountedFrameConsumptionView<'frame> {
     deadline: UiPresentationDeadline,
     requirement: crate::UiMountedSurfaceBindingRequirement,
     presentation_work: super::presentation_work::UiMountedPresentationWorkView<'frame>,
+    qualified_text: &'frame dyn crate::UiMountedQualifiedTextResolver,
 }
 
 #[doc(hidden)]
@@ -68,6 +71,7 @@ pub struct UiMountedFrameConsumptionInput<'frame> {
     pub deadline: UiPresentationDeadline,
     pub requirement: crate::UiMountedSurfaceBindingRequirement,
     pub presentation_work: super::presentation_work::UiMountedPresentationWorkView<'frame>,
+    pub qualified_text: &'frame dyn crate::UiMountedQualifiedTextResolver,
 }
 
 pub struct UiHostPresentationCompletionToken {
@@ -84,6 +88,9 @@ impl<'frame> UiMountedFrameConsumptionView<'frame> {
             }
             super::presentation_work::UiMountedPresentationWorkView::Delta(delta) => {
                 delta.affinity()
+            }
+            super::presentation_work::UiMountedPresentationWorkView::Reconstruction(work) => {
+                work.affinity()
             }
             super::presentation_work::UiMountedPresentationWorkView::Unchanged(unchanged) => {
                 unchanged.affinity()
@@ -120,6 +127,7 @@ impl<'frame> UiMountedFrameConsumptionView<'frame> {
             deadline: input.deadline,
             requirement: input.requirement,
             presentation_work: input.presentation_work,
+            qualified_text: input.qualified_text,
         }
     }
 
@@ -162,6 +170,21 @@ impl<'frame> UiMountedFrameConsumptionView<'frame> {
         &self,
     ) -> super::presentation_work::UiMountedPresentationWorkView<'frame> {
         self.presentation_work
+    }
+
+    pub fn qualified_text_layout(
+        &self,
+        mechanic: &crate::UiMountedSemanticTextMechanic,
+    ) -> Option<crate::UiQualifiedTextLayoutView<'frame>> {
+        let view = self
+            .qualified_text
+            .resolve(mechanic.qualified_layout_identity())?;
+        (view.identity() == mechanic.qualified_layout_identity()
+            && view.request_identity() == mechanic.qualified_layout_request()
+            && view.profile_generation() == mechanic.qualified_layout_profile()
+            && view.font_collection_generation() == mechanic.qualified_layout_fonts()
+            && view.text_scale_generation() == mechanic.qualified_layout_scale())
+        .then_some(view)
     }
 
     pub fn frame(&self) -> crate::UiMountedFrameIdentity {

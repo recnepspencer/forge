@@ -10,6 +10,7 @@ const NATIVE_DEPS: &[&str] = &[
     "wgpu",
     "winit",
     "worth_ui_host_contract",
+    "worth_ui_retained_order",
 ];
 
 #[test]
@@ -64,7 +65,11 @@ fn validate(graph: &serde_json::Value) -> Result<(), String> {
         graph,
         "worth-ui-host-headless",
         "0.1.0",
-        &["worth_ui_host_contract", "worth_ui_test_support"],
+        &[
+            "worth_ui_host_contract",
+            "worth_ui_retained_order",
+            "worth_ui_test_support",
+        ],
     )
 }
 

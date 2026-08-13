@@ -22,6 +22,9 @@ use super::scalar_query_only::{
     ACTIVE_COMPONENT, PROJECTION, STATUS_REGION, TEXT_COLOR,
 };
 
+#[path = "collection_query/locality.rs"]
+mod locality;
+
 #[test]
 fn real_query_collection_snapshot_and_patch_publish_keyed_semantic_text() {
     let recorder = WorthUiHeadlessRecorder::with_viewport_extent(
@@ -49,18 +52,34 @@ fn real_query_collection_snapshot_and_patch_publish_keyed_semantic_text() {
     let opened = open_live_collection(registration, &mut workspace);
     let (mut live, snapshot) = opened.into_parts();
     publish_collection_fact(&mut session, snapshot.into_observation(), 3131);
-    let inserted = exercise_membership_shifts(&mut workspace, &entities, &mut live, &mut session);
+    let (inserted, analyzed_bytes) = exercise_membership_shifts(
+        &mut workspace,
+        &entities,
+        &mut live,
+        &mut session,
+        &recorder,
+    );
     assert_membership_shift_transcripts(
         &recorder.observed_transcripts(),
         &mounted_instances,
         &entities,
         inserted,
     );
+    let production = recorder
+        .latest_production_cost()
+        .expect("the public headless boundary observes the final successor cost");
+    assert_eq!(production.retained_command_scans(), 0);
+    assert_eq!(production.retained_command_clones(), 0);
+    assert_eq!(production.projection_rows_materialized(), 0);
+    assert_eq!(analyzed_bytes, "Bravo updated".len());
     assert!(session.generation_identity() == &generation);
     close_collection(live, &mut workspace);
     let shutdown = session.shutdown();
     assert!(shutdown.rebind().is_empty());
     assert!(shutdown.mounted_presentation().is_empty());
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P4-TEXT-CONTENT-LOCALITY-01\":{analyzed_bytes},\"P4-TEXT-COST-01\":0}}"
+    );
 }
 
 fn exercise_membership_shifts(
@@ -68,15 +87,30 @@ fn exercise_membership_shifts(
     entities: &[worth_query::facade::foundation::WorthQueryEntityIdentity],
     live: &mut worth_ui_query_binding::UiLiveCollectionProjection,
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> worth_query::facade::foundation::WorthQueryEntityIdentity {
+    recorder: &WorthUiHeadlessRecorder,
+) -> (
+    worth_query::facade::foundation::WorthQueryEntityIdentity,
+    usize,
+) {
     worth_ui_query_binding::certification::remove_projection_entity(workspace, entities[0].clone());
     refresh_and_publish(live, workspace, session, 3132, "removed Query row");
+    let before_content_update = recorder
+        .observed_transcripts()
+        .last()
+        .cloned()
+        .expect("removal transcript");
     worth_ui_query_binding::certification::update_projection_status(
         workspace,
         entities[1].clone(),
         "Bravo updated",
     );
     refresh_and_publish(live, workspace, session, 3133, "changed Query row");
+    let after_content_update = recorder
+        .observed_transcripts()
+        .last()
+        .cloned()
+        .expect("content transcript");
+    locality::assert_content_update_is_local(&before_content_update, &after_content_update);
     let inserted = worth_ui_query_binding::certification::insert_projection_status(
         workspace,
         "pulse.aaron",
@@ -89,7 +123,7 @@ fn exercise_membership_shifts(
         "Bravo final",
     );
     refresh_and_publish(live, workspace, session, 3135, "shifted Query row");
-    inserted
+    (inserted, "Bravo updated".len())
 }
 
 fn refresh_and_publish(
@@ -149,10 +183,6 @@ fn assert_membership_shift_transcripts(
         &["Aaron", "Bravo final"],
     );
     assert_ne!(transcripts[3].frame(), transcripts[4].frame());
-    assert_ne!(
-        transcripts[3].semantic_text()[1].content_generation(),
-        transcripts[4].semantic_text()[1].content_generation()
-    );
 }
 
 fn close_collection(

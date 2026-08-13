@@ -38,13 +38,16 @@ pub(super) fn validate_execution(row: &Row) -> Result<(), String> {
     if row["retained_failure_artifact"] != row["retained_result_artifact"] {
         return Err("failure posture is not retained by the governed result artifact".to_owned());
     }
+    let current_source = row_is_current_source(row)?;
     let command = command_binding::validate(command_binding::CommandClaim {
         command: &row["exact_command"],
         requirement: &row["requirement"],
         production_entry: &row["production_entry"],
         oracle_entry: &row["independent_oracle"],
         source_identity: &row["source_identity"],
-    })?;
+        current_source,
+    })
+    .map_err(|error| format!("{}: {error}", row["requirement"]))?;
     result_artifact::validate(
         result_artifact::LedgerResult {
             matched_test_count: &row["matched_test_count"],
@@ -60,23 +63,48 @@ pub(super) fn validate_execution(row: &Row) -> Result<(), String> {
             structural_counter: &row["structural_counters"],
             construction_cost: &row["construction_cost"],
             execution_cost: &row["execution_cost"],
-            source_validation: source_validation_posture(&row["phase"]),
+            source_validation: if current_source {
+                result_artifact::SourceValidationPosture::CurrentSource
+            } else {
+                source_validation_posture(&row["phase"])
+            },
         },
         &command,
-    )?;
+    )
+    .map_err(|error| format!("{}: {error}", row["requirement"]))?;
     validate_named_entry_for_row(row, &row["production_entry"])?;
     validate_named_entry_for_row(row, &row["independent_oracle"])?;
     Ok(())
 }
 
 fn validate_named_entry_for_row(row: &Row, value: &str) -> Result<(), String> {
-    if matches!(
-        source_validation_posture(&row["phase"]),
-        result_artifact::SourceValidationPosture::HistoricalArtifactOnly
-    ) {
+    if !row_is_current_source(row)?
+        && matches!(
+            source_validation_posture(&row["phase"]),
+            result_artifact::SourceValidationPosture::HistoricalArtifactOnly
+        )
+    {
+        if row["phase"] == "3" {
+            return validate_unreconstructible_historical_entry(row, value);
+        }
         return validate_historical_named_entry(value, &row["source_revision"]);
     }
     validate_named_entry(value)
+}
+
+fn validate_unreconstructible_historical_entry(row: &Row, value: &str) -> Result<(), String> {
+    let Some((source, symbol)) = value.rsplit_once("::") else {
+        return Err("evidence entry lacks a named symbol".to_owned());
+    };
+    if symbol.is_empty()
+        || !source.ends_with(".rs")
+        || !row["source_identity"]
+            .split(';')
+            .any(|identity| identity == source)
+    {
+        return Err("historical evidence entry is not source-bound".to_owned());
+    }
+    Ok(())
 }
 
 fn validate_historical_named_entry(value: &str, revision: &str) -> Result<(), String> {
@@ -93,7 +121,7 @@ fn validate_historical_named_entry(value: &str, revision: &str) -> Result<(), St
 }
 
 pub(super) fn source_validation_posture(phase: &str) -> result_artifact::SourceValidationPosture {
-    if matches!(phase, "1" | "2") {
+    if matches!(phase, "1" | "2" | "3") {
         result_artifact::SourceValidationPosture::HistoricalArtifactOnly
     } else {
         result_artifact::SourceValidationPosture::CurrentSource
@@ -128,12 +156,16 @@ pub(super) fn validate_observations(row: &Row) -> Result<(), String> {
 }
 
 pub(super) fn validate_sources(row: &Row) -> Result<(), String> {
+    let current_source = row_is_current_source(row)?;
     for source in row["source_identity"].split(';') {
-        if matches!(row["phase"].as_str(), "1" | "2") {
+        if !current_source && matches!(row["phase"].as_str(), "1" | "2") {
             if historical_or_retained_source_exists(source, &row["source_revision"]) {
                 continue;
             }
             return Err(format!("missing historical source {source}"));
+        }
+        if verifier_owned_source_exists(source) {
+            continue;
         }
         if source.starts_with("workspaces/worth-ui/") {
             let relative = source.trim_start_matches("workspaces/worth-ui/");
@@ -152,6 +184,24 @@ pub(super) fn validate_sources(row: &Row) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+pub(super) fn row_is_current_source(row: &Row) -> Result<bool, String> {
+    if row["source_revision"] != result_artifact::current_revision()? {
+        return Ok(false);
+    }
+    let path = super::source_digest::repository_file(&row["retained_result_artifact"])?;
+    let bytes = std::fs::read(path).map_err(|error| error.to_string())?;
+    let artifact: serde_json::Value =
+        serde_json::from_slice(&bytes).map_err(|error| error.to_string())?;
+    Ok(artifact["mapping_source_identity"].is_array() && artifact["source_rebindings"].is_array())
+}
+
+fn verifier_owned_source_exists(source: &str) -> bool {
+    source
+        .replace('\\', "/")
+        .starts_with("workspaces/worth-ui/target/worth-ui-3141-verify-")
+        && super::source_digest::repository_file(source).is_ok()
 }
 
 fn historical_or_retained_source_exists(source: &str, revision: &str) -> bool {

@@ -1,8 +1,101 @@
+mod mixed_carrier;
 mod oracle;
 mod world;
 
 use oracle::{adjudicate, expectation, ordered_pixel, OracleDenial};
 use world::{produce_maximum_overlap, MountedPresentationWorld};
+
+#[test]
+#[ignore = "closure courtroom: mounts the full 2,048 rectangle + 2,048 text public world"]
+fn mixed_carrier_successors_are_local_at_the_4096_command_ceiling() {
+    let recorder = worth_ui_host_headless::WorthUiHeadlessRecorder::with_viewport_extent(
+        worth_ui_host_headless::UiHeadlessRecorderCapacity::new(1, 8, 8_192),
+        worth_ui::facade::measurement_exchange::UiViewportExtentObservation {
+            width: 160.0,
+            height: 96.0,
+        },
+    );
+    let production = mixed_carrier::produce(recorder);
+    assert_eq!(production.initial.filled_rects().len(), 2_048);
+    assert_eq!(production.initial.semantic_text().len(), 2_048);
+    assert_eq!(production.initial.nodes().len(), 2_048);
+    assert_eq!(production.text_replacement.filled_rects().len(), 2_048);
+    assert_eq!(production.text_replacement.semantic_text().len(), 2_048);
+    assert_eq!(production.text_replacement.nodes().len(), 2_048);
+    assert_eq!(production.rectangle_removal.filled_rects().len(), 2_047);
+    assert_eq!(production.rectangle_removal.semantic_text().len(), 2_048);
+    assert_eq!(production.rectangle_removal.nodes().len(), 2_047);
+    assert_eq!(production.rectangle_insertion.filled_rects().len(), 2_048);
+    assert_eq!(production.rectangle_insertion.semantic_text().len(), 2_048);
+    assert_eq!(production.rectangle_insertion.nodes().len(), 2_048);
+    assert_eq!(
+        mixed_carrier::collection_value_count(&production.initial, "Ready"),
+        1
+    );
+    assert_eq!(
+        mixed_carrier::collection_value_count(
+            &production.text_replacement,
+            &mixed_carrier::replacement_value(1_358),
+        ),
+        1
+    );
+    assert_eq!(
+        mixed_carrier::collection_value_count(
+            &production.text_replacement,
+            &mixed_carrier::initial_value(1_358),
+        ),
+        0
+    );
+    assert_eq!(
+        mixed_carrier::collection_value_count(&production.text_replacement, "Ready"),
+        1
+    );
+    assert_eq!(mixed_carrier::text_bytes(&production.initial), 1_048_576);
+    assert_eq!(
+        mixed_carrier::text_bytes(&production.text_replacement),
+        1_048_576
+    );
+    for cost in &production.costs[1..4] {
+        assert_local_successor_cost(*cost);
+    }
+    assert_zero_successor_cost(production.costs[4]);
+    assert_adapter_delta(&production.adapter_costs[1..4]);
+    assert_eq!(production.adapter_costs[4], Default::default());
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P3-HEADLESS-COST-01\":0,\"P3-DELTA-SOURCE-01\":1,\"P3-PRODUCER-SLOPE-01\":0}}"
+    );
+    println!("WORTH_UI_LEDGER_WORLD=1");
+    println!("WORTH_UI_LEDGER_PRESENTATIONS=5");
+}
+
+fn assert_adapter_delta(costs: &[worth_ui_host_contract::UiHostPresentationCostReport]) {
+    assert_eq!(costs[0].translated_rows(), 1);
+    assert_eq!(costs[0].delta_rows_carried(), 3);
+    for cost in &costs[1..] {
+        assert_eq!(cost.translated_rows(), 2);
+        assert_eq!(cost.delta_rows_carried(), 4);
+    }
+}
+
+fn assert_local_successor_cost(cost: worth_ui_host_contract::UiMountedPresentationProductionCost) {
+    assert_eq!(cost.source_instances(), 1);
+    assert_eq!(cost.commands_considered(), 1);
+    assert_eq!(cost.command_index_lookups(), 2);
+    assert_eq!(cost.order_lookups(), 2);
+    assert_eq!(cost.retained_command_scans(), 0);
+    assert_eq!(cost.retained_command_clones(), 0);
+    assert_eq!(cost.projection_rows_materialized(), 0);
+}
+
+fn assert_zero_successor_cost(cost: worth_ui_host_contract::UiMountedPresentationProductionCost) {
+    assert_eq!(cost.source_instances(), 0);
+    assert_eq!(cost.commands_considered(), 0);
+    assert_eq!(cost.command_index_lookups(), 0);
+    assert_eq!(cost.order_lookups(), 0);
+    assert_eq!(cost.retained_command_scans(), 0);
+    assert_eq!(cost.retained_command_clones(), 0);
+    assert_eq!(cost.projection_rows_materialized(), 0);
+}
 
 #[test]
 #[ignore = "closure courtroom: compiles and mounts the full 2,048-row public world"]
@@ -54,6 +147,7 @@ fn maximum_overlap_removals_cross_public_runtime_and_headless_with_exact_work() 
 #[test]
 fn independent_oracle_rejects_each_required_control_mutation_for_its_exact_cause() {
     assert_required_oracle_mutations_are_rejected();
+    println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-HP02-WORLD-01\":\"synthetic-successor\"}}");
 }
 
 fn assert_required_oracle_mutations_are_rejected() {

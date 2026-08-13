@@ -29,8 +29,10 @@ const WORKSPACE_MANIFESTS: &[&str] = &[
     "crates/worth-ui-inspection/Cargo.toml",
     "crates/worth-ui-native-platform/Cargo.toml",
     "crates/worth-ui-query-binding/Cargo.toml",
+    "crates/worth-ui-retained-order/Cargo.toml",
     "crates/worth-ui-runtime/Cargo.toml",
     "crates/worth-ui-test-support/Cargo.toml",
+    "crates/worth-ui-text/Cargo.toml",
     "crates/worth-ui-theme/Cargo.toml",
 ];
 
@@ -40,15 +42,23 @@ pub(super) fn validate_topology(manifests: &Manifests) -> Result<(), String> {
     let exact = [
         (
             "crates/worth-ui-host-headless/Cargo.toml",
-            set(["worth-ui-host-contract", "worth-ui-test-support"]),
+            set([
+                "worth-ui-host-contract",
+                "worth-ui-retained-order",
+                "worth-ui-test-support",
+            ]),
         ),
         (
             "crates/worth-ui-host-native/Cargo.toml",
-            set(["worth-ui-host-contract"]),
+            set(["worth-ui-host-contract", "worth-ui-retained-order"]),
         ),
         (
             "crates/worth-ui-native-platform/Cargo.toml",
             set(["worth-ui-runtime"]),
+        ),
+        (
+            "crates/worth-ui-text/Cargo.toml",
+            set(["worth-ui-host-contract"]),
         ),
     ];
     for (path, allowed) in exact {
@@ -132,6 +142,11 @@ pub(super) fn assert_hiding_mutations_fail_topology_verdict() {
             "dependencies",
             "worth-ui-runtime",
         ),
+        (
+            "crates/worth-ui-text/Cargo.toml",
+            "dependencies",
+            "worth-ui-runtime",
+        ),
     ] {
         let mut mutated = lawful.clone();
         mutated.get_mut(path).unwrap().push_str(&format!(
@@ -168,7 +183,7 @@ fn validate_manifest(
         .filter(|package| package.starts_with("worth-ui"))
         .collect::<BTreeSet<_>>();
     let expected = if path.contains("host-headless") || path.contains("host-native") {
-        set(["worth-ui-host-contract"])
+        set(["worth-ui-host-contract", "worth-ui-retained-order"])
     } else {
         allowed.clone()
     };

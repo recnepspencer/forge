@@ -22,44 +22,87 @@ pub(super) fn compile_content_plan(
     let governed_nodes = schema_transition::compile(predecessor, candidate, scope, &mut content)?;
     project_intent_postures(scope, &governed_nodes, &mut content)?;
     for lookup in scope.lookups() {
-        let Some(query) = scope
-            .facts()
-            .get(lookup.fact_ordinal())
-            .and_then(crate::fact_contract::UiProducedFact::query)
-        else {
-            continue;
-        };
-        let projection = match (query.scalar_projection(), query.collection_projection()) {
-            (Some(scalar), None) => UiProjectedSemanticContent::Scalar(project_scalar(scalar)),
-            (None, Some(collection)) => {
-                UiProjectedSemanticContent::Collection(collection::project_collection(collection)?)
-            }
-            (None, None) => continue,
-            (Some(_), Some(_)) => unreachable!("a Query projection fact has one sealed shape"),
-        };
-        for entry in lookup.candidate().entries() {
-            let UiGraphFactConsumerIdentity::GraphNode(graph_node) = entry.consumer() else {
-                continue;
-            };
-            if governed_nodes.contains(&graph_node) {
-                continue;
-            }
-            let inserted = match &projection {
-                UiProjectedSemanticContent::Scalar((value, posture)) => {
-                    content.insert_scalar(graph_node, value.clone(), Arc::clone(posture))
-                }
-                UiProjectedSemanticContent::Collection((value, posture)) => {
-                    content.insert_collection(graph_node, value.clone(), Arc::clone(posture))
-                }
-            };
-            if inserted.is_err() {
-                return Err(super::UiRebindPlanningDenial::AmbiguousProjectionContent {
-                    graph_node,
-                });
-            }
-        }
+        project_query_content(candidate, scope, lookup, &governed_nodes, &mut content)?;
     }
     Ok(content)
+}
+
+fn project_query_content(
+    candidate: &crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
+    scope: &super::super::UiResolvedAffectedScope,
+    lookup: &super::super::UiAffectedFactLookup,
+    governed: &std::collections::BTreeSet<crate::graph::UiGraphNodeIdentity>,
+    content: &mut crate::mounting::UiMountedSemanticContentInput,
+) -> Result<(), super::UiRebindPlanningDenial> {
+    let Some(query) = scope
+        .facts()
+        .get(lookup.fact_ordinal())
+        .and_then(crate::fact_contract::UiProducedFact::query)
+    else {
+        return Ok(());
+    };
+    let Some((identity, projected)) = projected_query_content(query)? else {
+        return Ok(());
+    };
+    for entry in lookup.candidate().entries().iter().filter(|entry| {
+        candidate
+            .semantic_handoff()
+            .projection_contents()
+            .iter()
+            .any(|edge| {
+                edge.projection_identity() == identity
+                    && edge.component_identity() == entry.consumer_key().authored_identity()
+            })
+    }) {
+        let UiGraphFactConsumerIdentity::GraphNode(graph_node) = entry.consumer() else {
+            continue;
+        };
+        if !governed.contains(&graph_node) {
+            insert_projected_content(content, graph_node, &projected)?;
+        }
+    }
+    Ok(())
+}
+
+fn projected_query_content(
+    query: &crate::fact_contract::UiQueryChangedFact,
+) -> Result<
+    Option<(
+        &worth_ui_query_binding::WorthUiQueryViewIdentity,
+        UiProjectedSemanticContent,
+    )>,
+    super::UiRebindPlanningDenial,
+> {
+    Ok(
+        match (query.scalar_projection(), query.collection_projection()) {
+            (Some(scalar), None) => Some((
+                scalar.core().projection_identity(),
+                UiProjectedSemanticContent::Scalar(project_scalar(scalar)),
+            )),
+            (None, Some(collection)) => Some((
+                collection.core().projection_identity(),
+                UiProjectedSemanticContent::Collection(collection::project_collection(collection)?),
+            )),
+            (None, None) => None,
+            (Some(_), Some(_)) => unreachable!("a Query projection fact has one sealed shape"),
+        },
+    )
+}
+
+fn insert_projected_content(
+    content: &mut crate::mounting::UiMountedSemanticContentInput,
+    graph_node: crate::graph::UiGraphNodeIdentity,
+    projected: &UiProjectedSemanticContent,
+) -> Result<(), super::UiRebindPlanningDenial> {
+    let inserted = match projected {
+        UiProjectedSemanticContent::Scalar((value, posture)) => {
+            content.insert_scalar(graph_node, value.clone(), Arc::clone(posture))
+        }
+        UiProjectedSemanticContent::Collection((value, posture)) => {
+            content.insert_collection(graph_node, value.clone(), Arc::clone(posture))
+        }
+    };
+    inserted.map_err(|()| super::UiRebindPlanningDenial::AmbiguousProjectionContent { graph_node })
 }
 
 fn project_intent_postures(

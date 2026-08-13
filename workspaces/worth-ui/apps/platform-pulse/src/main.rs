@@ -2,6 +2,8 @@ mod application;
 mod launch_configuration;
 mod lifecycle_observation_publication;
 mod native_frame;
+#[cfg(feature = "executable-world")]
+mod native_phase3_application;
 mod query_source;
 mod source_watch;
 mod visual_identity_adjudication;
@@ -16,6 +18,10 @@ use lifecycle_observation_publication::PlatformPulseObservationPublisher;
 fn main() -> ExitCode {
     if std::env::args_os().any(|argument| argument == "--worth-ui-native-phase2-world") {
         return run_native_phase2_world();
+    }
+    #[cfg(feature = "executable-world")]
+    if std::env::args_os().any(|argument| argument == "--worth-ui-native-phase3-world") {
+        return run_native_phase3_world();
     }
     let publisher = match PlatformPulseObservationPublisher::start() {
         Ok(publisher) => publisher,
@@ -67,6 +73,83 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+#[cfg(feature = "executable-world")]
+fn run_native_phase3_world() -> ExitCode {
+    use worth_ui_native_platform::{
+        UiNativePlatformOutcome, UiNativePlatformProfile, UiNativeWindowSpec, WorthUiNativePlatform,
+    };
+    let profile = UiNativePlatformProfile::single_window(UiNativeWindowSpec::new(
+        "WORTH UI Platform Pulse Phase 3",
+        [160, 96],
+    ));
+    let Ok(platform) = WorthUiNativePlatform::prepare(profile) else {
+        return ExitCode::from(2);
+    };
+    let outcome = platform.run(native_phase3_application::PlatformPulseNativePhase3Application);
+    match outcome {
+        UiNativePlatformOutcome::Closed(receipt) if receipt.terminal_census().is_zero() => {
+            println!("{}", native_phase3_evidence(&receipt));
+            ExitCode::SUCCESS
+        }
+        outcome => {
+            eprintln!("worth-ui-native-phase3 stopped: {outcome:?}");
+            ExitCode::from(3)
+        }
+    }
+}
+
+#[cfg(feature = "executable-world")]
+fn native_phase3_evidence(
+    receipt: &worth_ui_native_platform::UiNativePlatformCloseReceipt,
+) -> serde_json::Value {
+    let frames = receipt
+        .retained_frames()
+        .iter()
+        .map(|frame| {
+            serde_json::json!({
+                "frame": frame.frame(),
+                "kind": format!("{:?}", frame.kind()),
+                "baseline": frame.retained_baseline_rgba8(),
+                "center": frame.retained_center_rgba8(),
+                "cost": phase3_frame_cost(frame.cost()),
+            })
+        })
+        .collect::<Vec<_>>();
+    serde_json::json!({
+        "schema": "worth-ui-native-phase3-evidence-v1",
+        "frames": frames,
+        "terminal_zero": receipt.terminal_census().is_zero(),
+    })
+}
+
+#[cfg(feature = "executable-world")]
+fn phase3_frame_cost(
+    cost: worth_ui::facade::app::UiHostPresentationCostReport,
+) -> serde_json::Value {
+    serde_json::json!({
+        "delta_rows_carried": cost.delta_rows_carried(),
+        "draw_list_mutations": cost.draw_list_mutations(),
+        "order_mutations": cost.order_mutations(),
+        "logical_damage_regions": cost.logical_damage_regions(),
+        "retained_command_scans": cost.retained_command_scans(),
+        "intersecting_commands": cost.intersecting_commands(),
+        "replayed_commands": cost.replayed_commands(),
+        "damage_region_command_checks": cost.damage_region_command_checks(),
+        "damage_index_probes": cost.damage_index_probes(),
+        "damage_index_stored_records": cost.damage_index_stored_records(),
+        "damage_index_high_water": cost.damage_index_high_water(),
+        "cleared_pixels": cost.cleared_pixels(),
+        "rendered_pixels": cost.rendered_pixels(),
+        "presented_pixels": cost.presented_pixels(),
+        "queue_submissions": cost.queue_submissions(),
+        "surface_acquisitions": cost.surface_acquisitions(),
+        "surface_copies": cost.surface_copies(),
+        "gpu_writes": cost.gpu_writes(),
+        "render_passes": cost.render_passes(),
+        "presents": cost.presents(),
+    })
 }
 
 fn run_native_phase2_world() -> ExitCode {

@@ -21,7 +21,7 @@ const TEST_NAME: &str = "mounting::presentation::work_producer_tests::one_replac
 static FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 #[test]
 fn milestone_ledger_has_exact_schema_inventory_and_honest_posture() {
-    let rows = parse(&repository_document(LEDGER)).expect("the milestone ledger should parse");
+    let rows = parse(&super::ledger_document()).expect("the milestone ledger should parse");
     let observed = rows.keys().map(String::as_str).collect::<BTreeSet<_>>();
     assert_eq!(observed, EXPECTED_REQUIREMENTS.into_iter().collect());
     assert!(rows.values().all(|row| matches!(
@@ -185,6 +185,9 @@ fn phase_two_proof_requires_complete_phase_one_closure() {
 #[test]
 fn future_proof_requires_every_predecessor_and_a_qualified_text_profile() {
     let mut rows = parse(&repository_document(LEDGER)).unwrap();
+    rows.get_mut("P3-PREDECESSOR-01")
+        .unwrap()
+        .insert("result".to_owned(), "OPEN".to_owned());
     rows.get_mut("P3-DRAW-LIST-01")
         .unwrap()
         .insert("result".to_owned(), "PROVED".to_owned());
@@ -201,6 +204,9 @@ fn future_proof_requires_every_predecessor_and_a_qualified_text_profile() {
     rows.get_mut("P4-BIDI-01")
         .unwrap()
         .insert("result".to_owned(), "PROVED".to_owned());
+    rows.get_mut("P4-TEXT-PROFILE-01")
+        .unwrap()
+        .insert("result".to_owned(), "OPEN".to_owned());
     assert!(validate_phase_progression(&rows).is_err());
 
     let digest = super::source_digest::file_digest(
@@ -212,8 +218,7 @@ fn future_proof_requires_every_predecessor_and_a_qualified_text_profile() {
             result: "PROVED",
             identity: "worth-ui-global-text-v2",
             digest: &digest,
-            platform_versions:
-                "protocol=5;text-profile=worth-ui-global-text-v2;qualification=qualified",
+            platform_versions: super::claim_contract::TEXT_PLATFORM_VERSIONS,
         })
         .is_ok()
     );
@@ -222,8 +227,7 @@ fn future_proof_requires_every_predecessor_and_a_qualified_text_profile() {
             result: "PROVED",
             identity: "worth-ui-global-text-v2",
             digest: "0000000000000000000000000000000000000000000000000000000000000000",
-            platform_versions:
-                "protocol=5;text-profile=worth-ui-global-text-v2;qualification=qualified",
+            platform_versions: super::claim_contract::TEXT_PLATFORM_VERSIONS,
         });
     assert_eq!(
         qualification.unwrap_err(),
@@ -260,11 +264,24 @@ fn open_future_claims_reject_identity_mutation_before_execution_exists() {
 
 #[test]
 fn phase_closure_mode_rejects_open_rows_at_or_before_its_gate() {
-    let mut rows = parse(&repository_document(LEDGER)).unwrap();
-    for row in rows.values_mut() {
-        row.insert("result".to_owned(), "PROVED".to_owned());
-        row.insert("final_source".to_owned(), "true".to_owned());
-    }
+    let mut rows = EXPECTED_REQUIREMENTS
+        .iter()
+        .map(|requirement| {
+            let phase = requirement
+                .strip_prefix('P')
+                .and_then(|suffix| suffix.split('-').next())
+                .expect("requirement owns a phase");
+            (
+                (*requirement).to_owned(),
+                std::collections::BTreeMap::from([
+                    ("requirement".to_owned(), (*requirement).to_owned()),
+                    ("phase".to_owned(), phase.to_owned()),
+                    ("result".to_owned(), "PROVED".to_owned()),
+                    ("final_source".to_owned(), "true".to_owned()),
+                ]),
+            )
+        })
+        .collect();
     assert!(validate_phase_closure(&rows, 1).is_ok());
     assert!(validate_phase_closure(&rows, 2).is_ok());
     assert!(validate_phase_closure(&rows, 3).is_ok());
@@ -286,27 +303,25 @@ fn phase_closure_mode_rejects_open_rows_at_or_before_its_gate() {
     assert!(validate_phase_closure(&rows, 2).is_err());
     assert!(validate_phase_closure(&rows, 3).is_err());
     assert!(validate_phase_closure(&rows, 4).is_err());
-}
-
-#[test]
-fn only_the_immutable_prefix_uses_historical_artifact_validation() {
-    use super::result_artifact::SourceValidationPosture;
-
-    assert_eq!(
-        super::row_evidence::source_validation_posture("1"),
-        SourceValidationPosture::HistoricalArtifactOnly
-    );
-    assert_eq!(
-        super::row_evidence::source_validation_posture("2"),
-        SourceValidationPosture::HistoricalArtifactOnly
-    );
-    assert_eq!(
-        super::row_evidence::source_validation_posture("3"),
-        SourceValidationPosture::CurrentSource
-    );
-    assert_eq!(
-        super::row_evidence::source_validation_posture("4"),
-        SourceValidationPosture::CurrentSource
+    let phase_two = rows.get_mut("P2-APPLICATION-01").unwrap();
+    phase_two.insert("result".to_owned(), "PROVED".to_owned());
+    phase_two.insert("final_source".to_owned(), "true".to_owned());
+    let phase_three = rows.get_mut("P3-BASELINE-REPLAY-01").unwrap();
+    phase_three.insert("result".to_owned(), "OPEN".to_owned());
+    phase_three.insert("final_source".to_owned(), "false".to_owned());
+    assert!(validate_phase_closure(&rows, 2).is_ok());
+    assert!(validate_phase_closure(&rows, 3).is_err());
+    assert!(validate_phase_closure(&rows, 4).is_err());
+    let phase_three = rows.get_mut("P3-BASELINE-REPLAY-01").unwrap();
+    phase_three.insert("result".to_owned(), "PROVED".to_owned());
+    phase_three.insert("final_source".to_owned(), "true".to_owned());
+    let phase_four = rows.get_mut("P4-BIDI-01").unwrap();
+    phase_four.insert("result".to_owned(), "OPEN".to_owned());
+    phase_four.insert("final_source".to_owned(), "false".to_owned());
+    assert!(validate_phase_closure(&rows, 3).is_ok());
+    assert!(validate_phase_closure(&rows, 4).is_err());
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-CLOSE-01\":\"open-requirement\",\"P4-CLOSE-01\":\"open-requirement\"}}"
     );
 }
 

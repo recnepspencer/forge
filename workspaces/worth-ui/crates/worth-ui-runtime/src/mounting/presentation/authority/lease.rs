@@ -124,9 +124,21 @@ mod tests {
                 presentation_work: worth_ui_host_contract::UiMountedPresentationWorkView::Initial(
                     &initial,
                 ),
+                qualified_text: &NoQualifiedText,
             },
         );
         assert!(!gate.admits(&view));
         assert!(!gate.admits_token(&view.issue_completion_token()));
+    }
+
+    struct NoQualifiedText;
+
+    impl worth_ui_host_contract::UiMountedQualifiedTextResolver for NoQualifiedText {
+        fn resolve(
+            &self,
+            _identity: worth_ui_host_contract::UiQualifiedTextLayoutIdentity,
+        ) -> Option<worth_ui_host_contract::UiQualifiedTextLayoutView<'_>> {
+            None
+        }
     }
 }

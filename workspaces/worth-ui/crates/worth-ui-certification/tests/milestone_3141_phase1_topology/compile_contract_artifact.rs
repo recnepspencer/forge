@@ -8,7 +8,7 @@ const ARTIFACT: &str = "_docs/worth-ui/milestone-3.14.1-evidence/compile-contrac
 
 #[test]
 fn phase_one_compile_contract_artifact_matches_every_executed_case() {
-    super::assert_protocol_revision_four_rejects_mixed_revision();
+    super::assert_current_protocol_rejects_mixed_revision();
     let root = repository_root();
     let artifact: Value = serde_json::from_str(
         &std::fs::read_to_string(compile_artifact(&root)).expect("retained compile result"),

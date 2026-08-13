@@ -6,6 +6,7 @@ use worth_ui_host_contract::{
 
 use super::headless_transcript::{
     UiHeadlessMountedFrameTranscriptInput, UiHeadlessNodeMechanicInput,
+    UiHeadlessTranscriptSuccessorIdentity,
 };
 use super::{
     UiHeadlessClipMechanic, UiHeadlessLayerMechanic, UiHeadlessMountedFrameTranscript,
@@ -58,7 +59,7 @@ pub(super) fn translate_headless_frame(
 }
 
 pub(super) fn translate_auxiliary_delta(
-    view: &UiMountedFrameConsumptionView<'_>,
+    identity: UiHeadlessTranscriptSuccessorIdentity,
     projection: &UiMountedProjectionView,
     retained: &UiHeadlessMountedFrameTranscript,
     capacity: UiHeadlessRecorderCapacity,
@@ -72,11 +73,11 @@ pub(super) fn translate_auxiliary_delta(
     paint_batches.sort_by_key(paint_order);
     Ok(UiHeadlessMountedFrameTranscript::new(
         UiHeadlessMountedFrameTranscriptInput {
-            host_session_identity: view.host_session_identity(),
-            protocol: view.protocol(),
-            attempt: view.attempt(),
-            frame: view.frame(),
-            binding: view.requirement().binding(),
+            host_session_identity: identity.host_session_identity,
+            protocol: identity.protocol,
+            attempt: identity.attempt,
+            frame: identity.frame,
+            binding: identity.binding,
             nodes: translate_nodes(projection)?,
             clips,
             filled_rects: retained.filled_rects().to_vec(),
@@ -250,7 +251,8 @@ fn translate_nodes(
     projection
         .nodes()
         .iter()
-        .map(|node| {
+        .enumerate()
+        .map(|(authored_position, node)| {
             let paint = match node.paint() {
                 UiMountedPaintProjection::Omitted(reason) => {
                     UiHeadlessNodePaintMechanic::Omitted(reason)
@@ -273,6 +275,8 @@ fn translate_nodes(
             };
             Ok(UiHeadlessNodeMechanic::new(UiHeadlessNodeMechanicInput {
                 mounted_instance: node.mounted_instance(),
+                authored_position: u64::try_from(authored_position)
+                    .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
                 role: node.role(),
                 participation: node.participation(),
                 allocation: node.allocation(),

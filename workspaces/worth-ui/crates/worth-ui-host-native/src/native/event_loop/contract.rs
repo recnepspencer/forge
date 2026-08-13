@@ -1,6 +1,6 @@
 use super::super::{
     UiNativeEffectPosture, UiNativeGraphicsObservation, UiNativePresentationObservation,
-    UiNativeResourceCensus,
+    UiNativeResourceCensus, UiNativeRetainedFrameObservation,
 };
 use super::UiNativeEventLoopCleanup;
 
@@ -95,6 +95,7 @@ pub struct UiNativeEventLoopRunReport {
     pub(super) peak_census: UiNativeResourceCensus,
     pub(super) terminal_census: UiNativeResourceCensus,
     pub(super) port_crossings: u8,
+    pub(super) retained_frames: Box<[UiNativeRetainedFrameObservation]>,
 }
 
 impl UiNativeEventLoopRunReport {
@@ -144,6 +145,10 @@ impl UiNativeEventLoopRunReport {
 
     pub const fn port_crossings(&self) -> u8 {
         self.port_crossings
+    }
+
+    pub fn retained_frames(&self) -> &[UiNativeRetainedFrameObservation] {
+        &self.retained_frames
     }
 }
 

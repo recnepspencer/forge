@@ -50,6 +50,7 @@ fn inert_initial_delta_and_unchanged_mechanics_remain_distinct() {
         content,
         baseline,
         changes: Vec::new(),
+        nodes: Vec::new(),
         order: Vec::new(),
         order_integrity: empty_order_integrity,
         damage: Vec::new(),

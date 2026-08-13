@@ -167,13 +167,26 @@ impl CargoBuiltPlatformPulse {
     pub(crate) fn launch_native_phase2(
         self,
     ) -> Result<NativePhase2ProcessLaunch, PlatformPulseProcessLaunchFailure> {
+        self.launch_native("--worth-ui-native-phase2-world")
+    }
+
+    pub(crate) fn launch_native_phase3(
+        self,
+    ) -> Result<NativePhase2ProcessLaunch, PlatformPulseProcessLaunchFailure> {
+        self.launch_native("--worth-ui-native-phase3-world")
+    }
+
+    fn launch_native(
+        self,
+        argument: &str,
+    ) -> Result<NativePhase2ProcessLaunch, PlatformPulseProcessLaunchFailure> {
         let deadline = Instant::now()
             .checked_add(NATIVE_DESKTOP_LEASE_DEADLINE)
             .ok_or(PlatformPulseProcessLaunchFailure::NativeDesktopLease)?;
         let native_desktop_lease = NativeDesktopLease::acquire(deadline)
             .map_err(|_| PlatformPulseProcessLaunchFailure::NativeDesktopLease)?;
         let mut child = Command::new(&self.executable)
-            .arg("--worth-ui-native-phase2-world")
+            .arg(argument)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())

@@ -3,6 +3,7 @@ mod mounted_frame;
 mod mounted_projection;
 mod observation_report;
 mod operational_adapter;
+mod qualified_text;
 mod runtime;
 mod visual_snapshot;
 
@@ -30,8 +31,11 @@ pub use mounted_frame::{
     UiMountedPresentationAffinity, UiMountedPresentationAttemptIdentity,
     UiMountedPresentationAuxiliaryState, UiMountedPresentationDelta,
     UiMountedPresentationDeltaInput, UiMountedPresentationInitial,
-    UiMountedPresentationInitialInput, UiMountedPresentationProductionCost,
-    UiMountedPresentationProductionCostInput, UiMountedPresentationReconstructionDenial,
+    UiMountedPresentationInitialInput, UiMountedPresentationNodeChange,
+    UiMountedPresentationNodePaint, UiMountedPresentationNodeState,
+    UiMountedPresentationNodeStateInput, UiMountedPresentationProductionCost,
+    UiMountedPresentationProductionCostInput, UiMountedPresentationReconstruction,
+    UiMountedPresentationReconstructionDenial, UiMountedPresentationReconstructionInput,
     UiMountedPresentationSchemaVersion, UiMountedPresentationUnchanged,
     UiMountedPresentationUnchangedInput, UiMountedPresentationWorkView,
     UiMountedSurfaceBindingRequirement, UiMountedSurfacePresentationCompletion,
@@ -58,13 +62,14 @@ pub use mounted_projection::{
     UiMountedPaintProjection, UiMountedParticipation, UiMountedParticipationFact,
     UiMountedParticipationInput, UiMountedParticipationStatus, UiMountedPreviewProjection,
     UiMountedProjectionAudience, UiMountedProjectionView, UiMountedProjectionViewInput,
-    UiMountedRealtimeBatchReference, UiMountedRealtimeBatchRow, UiMountedRealtimeBatchTable,
-    UiMountedResourceEntry, UiMountedResourceKind, UiMountedResourceReference,
-    UiMountedResourceTable, UiMountedRgba8, UiMountedSemanticTextCompletionDenial,
-    UiMountedSemanticTextCompletionInput, UiMountedSemanticTextMechanic,
-    UiMountedSemanticTextReference, UiMountedSemanticTextTable, UiMountedSemanticTextTableDenial,
-    UiMountedSpatialBatchReference, UiMountedSpatialBatchRow, UiMountedSpatialBatchTable,
-    UiMountedStaticPaintSchemaVersion, UiMountedTableProjectionStatus, UiMountedTextSchemaVersion,
+    UiMountedQualifiedTextResolver, UiMountedRealtimeBatchReference, UiMountedRealtimeBatchRow,
+    UiMountedRealtimeBatchTable, UiMountedResourceEntry, UiMountedResourceKind,
+    UiMountedResourceReference, UiMountedResourceTable, UiMountedRgba8,
+    UiMountedSemanticTextCompletionDenial, UiMountedSemanticTextCompletionInput,
+    UiMountedSemanticTextMechanic, UiMountedSemanticTextReference, UiMountedSemanticTextTable,
+    UiMountedSemanticTextTableDenial, UiMountedSpatialBatchReference, UiMountedSpatialBatchRow,
+    UiMountedSpatialBatchTable, UiMountedStaticPaintSchemaVersion, UiMountedTableProjectionStatus,
+    UiMountedTextForegroundSpan, UiMountedTextPaintSpanIdentity, UiMountedTextSchemaVersion,
     UiMountedTransformProjection, UiSemanticTextBaselinePosture, UiSemanticTextProfile,
     UiSemanticTextSlot, UiSemanticTextWrapPosture, WorthUiHeadlessMountedProjectionRecord,
     WorthUiHeadlessMountedResourceCache, WorthUiMountedResourceCacheDenial,
@@ -91,6 +96,22 @@ pub use observation_report::{
 pub use operational_adapter::{
     UiHostSessionReleaseIndeterminate, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
     WorthUiHostMechanicsAdapter,
+};
+pub use qualified_text::{
+    UiFontCollectionGeneration, UiFontSlant, UiPositionedTextGlyphInput,
+    UiPositionedTextGlyphRecord, UiQualifiedFontFaceIdentity, UiQualifiedFontFamilyIdentity,
+    UiQualifiedFontPackIdentity, UiQualifiedTextCaretRecord, UiQualifiedTextCostInput,
+    UiQualifiedTextCostRecord, UiQualifiedTextCoverageRecord, UiQualifiedTextFeatureRecord,
+    UiQualifiedTextGlyphInput, UiQualifiedTextGlyphRecord, UiQualifiedTextGraphemeRecord,
+    UiQualifiedTextLayoutIdentity, UiQualifiedTextLayoutRequestIdentity, UiQualifiedTextLayoutView,
+    UiQualifiedTextLayoutViewInput, UiQualifiedTextLineInput, UiQualifiedTextLineRecord,
+    UiQualifiedTextRunInput, UiQualifiedTextRunRecord, UiQualifiedTextSelectionRect,
+    UiQualifiedTextStyleInput, UiQualifiedTextStyleRecord, UiQualifiedTextVariationRecord,
+    UiQualifiedTextVisualRunInput, UiQualifiedTextVisualRunRecord,
+    UiQualifiedTextWordBoundaryRecord, UiTextCaretAffinity, UiTextCaretPosition,
+    UiTextCoverageDisposition, UiTextDirection, UiTextFontUnitRect, UiTextHitResult,
+    UiTextOriginalRange, UiTextPoint, UiTextProfileGeneration, UiTextRect, UiTextScaleGeneration,
+    UiTextVisualEdge,
 };
 pub use runtime::{
     UiDpiScaleFactorObservation, UiDpiScaleFactorRequest, UiFontMeasurementKey,

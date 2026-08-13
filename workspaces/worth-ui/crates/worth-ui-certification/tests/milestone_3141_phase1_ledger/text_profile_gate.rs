@@ -1,6 +1,8 @@
 use super::text_profile_qualification;
+use std::sync::OnceLock;
 
 const PROFILE_IDENTITY: &str = "worth-ui-global-text-v2";
+const PROFILE_DIGEST: &str = "cec6005c5baef6d69ada9c30c02ced25b0f253f80c012784fe925e307935c3f2";
 const PROFILE_PATH: &str = "workspaces/worth-ui/profiles/worth-ui-global-text-v2/manifest.toml";
 const OPEN_VERSIONS: &str = "protocol=5;text-profile=worth-ui-global-text-v2;qualification=open";
 
@@ -23,7 +25,10 @@ pub(super) fn validate(claim: ProfileClaim<'_>) -> Result<(), String> {
 }
 
 fn validate_open(claim: ProfileClaim<'_>) -> Result<(), String> {
-    if claim.digest != "not-qualified" || claim.platform_versions != OPEN_VERSIONS {
+    let unprepared = claim.digest == "not-qualified" && claim.platform_versions == OPEN_VERSIONS;
+    let prepared = claim.digest == PROFILE_DIGEST
+        && claim.platform_versions == super::claim_contract::TEXT_PLATFORM_VERSIONS;
+    if !unprepared && !prepared {
         return Err("open text profile claim pretends to be qualified".to_owned());
     }
     Ok(())
@@ -37,18 +42,51 @@ fn validate_qualified(claim: ProfileClaim<'_>) -> Result<(), String> {
         || !claim
             .platform_versions
             .contains("text-profile=worth-ui-global-text-v2")
-        || !claim.platform_versions.contains("qualification=qualified")
+        || !claim.platform_versions.contains("qualification=closed")
     {
         return Err("qualified text profile versions are incomplete".to_owned());
     }
     let digest = super::source_digest::file_digest(PROFILE_PATH)
         .map_err(|_| "canonical text profile manifest is not qualified".to_owned())?;
-    if claim.digest != digest {
+    if claim.digest != PROFILE_DIGEST || digest != PROFILE_DIGEST {
         return Err("qualified text profile digest does not match canonical bytes".to_owned());
     }
-    text_profile_qualification::validate_profile(claim.digest)
+    static QUALIFICATION: OnceLock<Result<(), String>> = OnceLock::new();
+    QUALIFICATION
+        .get_or_init(|| text_profile_qualification::validate_profile(PROFILE_DIGEST))
+        .clone()
 }
 
 fn is_lower_hex(byte: u8) -> bool {
     byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn open_profile_claim_is_either_unprepared_or_exactly_prepared() {
+        assert!(validate(ProfileClaim {
+            result: "OPEN",
+            identity: PROFILE_IDENTITY,
+            digest: "not-qualified",
+            platform_versions: OPEN_VERSIONS,
+        })
+        .is_ok());
+        assert!(validate(ProfileClaim {
+            result: "OPEN",
+            identity: PROFILE_IDENTITY,
+            digest: PROFILE_DIGEST,
+            platform_versions: super::super::claim_contract::TEXT_PLATFORM_VERSIONS,
+        })
+        .is_ok());
+        assert!(validate(ProfileClaim {
+            result: "OPEN",
+            identity: PROFILE_IDENTITY,
+            digest: "0000000000000000000000000000000000000000000000000000000000000000",
+            platform_versions: super::super::claim_contract::TEXT_PLATFORM_VERSIONS,
+        })
+        .is_err());
+    }
 }

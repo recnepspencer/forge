@@ -86,9 +86,7 @@ impl UiMountedFrameRetentionCoordinator {
         evidence.classify(presentation, None, None)?;
         let rows = evidence
             .visual_region_basis(presentation.binding())
-            .hit_test()
-            .to_vec()
-            .into_boxed_slice();
+            .hit_test();
         Ok(UiPresentedHitTestBasis::new(presentation, relation, rows))
     }
 

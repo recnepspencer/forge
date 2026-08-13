@@ -23,6 +23,7 @@ impl WorthUiActiveApplicationSession {
         let next_app = WorthUiApp::from_prepared_authority(
             next_authority,
             self.application.host_session_plan().clone(),
+            std::sync::Arc::clone(self.application.font_collection()),
         );
         let Some(basis) = WorthUiPreparedApplicationReplacementBasis::bind(
             self.session_identity(),

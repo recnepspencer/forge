@@ -17,7 +17,10 @@ pub use event_loop::{
 };
 pub use host_state::UiNativeEffectPosture;
 pub use mechanics_adapter::WorthUiNativeMechanicsAdapter;
-pub use observation::{UiNativeGraphicsObservation, UiNativePresentationObservation};
+pub use observation::{
+    UiNativeGraphicsObservation, UiNativePresentationObservation, UiNativePresentationWorkKind,
+    UiNativeRetainedFrameObservation,
+};
 pub use resource_census::UiNativeResourceCensus;
 
 #[cfg(test)]

@@ -1,6 +1,33 @@
 use crate::native::UiNativeGraphics;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) struct UiNativeRasterBasis {
+    extent: [u32; 2],
+    scale_factor: f32,
+}
+
+impl UiNativeRasterBasis {
+    pub(super) fn from_graphics(graphics: &UiNativeGraphics) -> Self {
+        Self {
+            extent: graphics.extent(),
+            scale_factor: graphics.scale_factor as f32,
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) const fn new(extent: [u32; 2], scale_factor: f32) -> Self {
+        Self {
+            extent,
+            scale_factor,
+        }
+    }
+
+    pub(super) const fn extent(self) -> [u32; 2] {
+        self.extent
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct RasterRect {
     left: f32,
     top: f32,
@@ -8,6 +35,12 @@ pub(crate) struct RasterRect {
     bottom: f32,
     pub(super) physical_width: u32,
     pub(super) physical_height: u32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) struct RasterVertex {
+    pub(super) position: [f32; 2],
+    pub(super) color: [f32; 4],
 }
 
 pub(super) fn raster_rect(
@@ -24,15 +57,15 @@ pub(super) fn raster_rect(
     )
 }
 
-pub(super) fn raster_damage(
+pub(super) fn raster_damage_for_basis(
     bounds: worth_ui_host_contract::UiMountedCanonicalBox,
-    graphics: &UiNativeGraphics,
+    basis: UiNativeRasterBasis,
 ) -> Result<Option<RasterRect>, ()> {
     raster_from_basis_optional(
         [bounds.x(), bounds.y(), bounds.width(), bounds.height()],
         [bounds.x(), bounds.y(), bounds.width(), bounds.height()],
-        graphics.extent(),
-        graphics.scale_factor as f32,
+        basis.extent,
+        basis.scale_factor,
     )
 }
 
@@ -102,7 +135,7 @@ fn snap_axis(
 
 #[cfg(test)]
 mod tests {
-    use super::{raster_from_basis, rectangle_shader};
+    use super::{raster_from_basis, rectangle_vertices};
 
     #[test]
     fn geometry_and_color_are_derived_from_the_admitted_command() {
@@ -123,21 +156,21 @@ mod tests {
         ] {
             assert!((observed - expected).abs() < 0.000_001);
         }
-        let red = rectangle_shader(rect, [255, 0, 0, 128]);
-        let blue = rectangle_shader(rect, [0, 0, 255, 128]);
-        let shifted = rectangle_shader(
+        let red = rectangle_vertices(rect, [255, 0, 0, 128]);
+        let blue = rectangle_vertices(rect, [0, 0, 255, 128]);
+        let shifted = rectangle_vertices(
             raster_from_basis([1.0, 2.0, 3.0, 4.0], [1.0, 2.0, 3.0, 4.0], [20, 20], 1.0).unwrap(),
             [255, 0, 0, 128],
         );
         assert_ne!(red, blue);
         assert_ne!(red, shifted);
-        for coordinate in
-            [rect.left, rect.right, rect.top, rect.bottom].map(|value| value.to_string())
-        {
-            assert!(red.contains(&coordinate), "shader omits {coordinate}");
-        }
-        assert!(red.contains("vec3<f32>(1, 0, 0)"));
-        assert!(blue.contains("vec3<f32>(0, 0, 1)"));
+        assert_eq!(red[0].position, [rect.left, rect.bottom]);
+        assert_eq!(red[2].position, [rect.left, rect.top]);
+        assert_eq!(red[5].position, [rect.right, rect.top]);
+        assert!(red.iter().all(|vertex| vertex.color[0] > 0.0));
+        assert!(red.iter().all(|vertex| vertex.color[2] == 0.0));
+        assert!(blue.iter().all(|vertex| vertex.color[0] == 0.0));
+        assert!(blue.iter().all(|vertex| vertex.color[2] > 0.0));
     }
 
     #[test]
@@ -174,33 +207,36 @@ mod tests {
     }
 }
 
-pub(super) fn rectangle_shader(rect: RasterRect, rgba: [u8; 4]) -> String {
-    let encoded = rgba.map(|channel| f32::from(channel) / 255.0);
-    format!(
-        r#"@vertex
-fn vs_main(@builtin(vertex_index) index: u32) -> @builtin(position) vec4<f32> {{
-    var positions = array<vec2<f32>, 6>(
-        vec2<f32>({left}, {bottom}), vec2<f32>({right}, {bottom}),
-        vec2<f32>({left}, {top}), vec2<f32>({left}, {top}),
-        vec2<f32>({right}, {bottom}), vec2<f32>({right}, {top})
-    );
-    return vec4<f32>(positions[index], 0.0, 1.0);
-}}
-@fragment
-fn fs_main() -> @location(0) vec4<f32> {{
-    let encoded = vec3<f32>({red}, {green}, {blue});
-    let low = encoded / vec3<f32>(12.92);
-    let high = pow((encoded + vec3<f32>(0.055)) / vec3<f32>(1.055), vec3<f32>(2.4));
-    let straight = select(high, low, encoded <= vec3<f32>(0.04045));
-    return vec4<f32>(straight * {alpha}, {alpha});
-}}"#,
-        left = rect.left,
-        right = rect.right,
-        top = rect.top,
-        bottom = rect.bottom,
-        red = encoded[0],
-        green = encoded[1],
-        blue = encoded[2],
-        alpha = encoded[3],
-    )
+pub(super) fn rectangle_vertices(rect: RasterRect, rgba: [u8; 4]) -> [RasterVertex; 6] {
+    let alpha = f32::from(rgba[3]) / 255.0;
+    let color = [
+        linear_channel(rgba[0]) * alpha,
+        linear_channel(rgba[1]) * alpha,
+        linear_channel(rgba[2]) * alpha,
+        alpha,
+    ];
+    [
+        vertex(rect.left, rect.bottom, color),
+        vertex(rect.right, rect.bottom, color),
+        vertex(rect.left, rect.top, color),
+        vertex(rect.left, rect.top, color),
+        vertex(rect.right, rect.bottom, color),
+        vertex(rect.right, rect.top, color),
+    ]
+}
+
+fn vertex(x: f32, y: f32, color: [f32; 4]) -> RasterVertex {
+    RasterVertex {
+        position: [x, y],
+        color,
+    }
+}
+
+fn linear_channel(channel: u8) -> f32 {
+    let encoded = f32::from(channel) / 255.0;
+    if encoded <= 0.040_45 {
+        encoded / 12.92
+    } else {
+        ((encoded + 0.055) / 1.055).powf(2.4)
+    }
 }

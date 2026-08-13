@@ -1,6 +1,4 @@
-use worth_ui_host_contract::{
-    UiMountedFrameIdentity, UiMountedPaintCommand, UiMountedPresentationUnchanged,
-};
+use worth_ui_host_contract::{UiMountedPaintCommand, UiMountedPresentationUnchanged};
 
 use super::{UiNativeRetainedDrawList, UiNativeRetainedDrawListDenial};
 
@@ -19,19 +17,6 @@ impl UiNativeRetainedDrawList {
         }
         self.frame = affinity.successor();
         Ok(())
-    }
-
-    pub(crate) fn stage_unchanged(
-        &mut self,
-        unchanged: &UiMountedPresentationUnchanged,
-    ) -> Result<UiMountedFrameIdentity, UiNativeRetainedDrawListDenial> {
-        let predecessor = self.frame;
-        self.apply_unchanged(unchanged)?;
-        Ok(predecessor)
-    }
-
-    pub(crate) fn rollback_unchanged(&mut self, predecessor: UiMountedFrameIdentity) {
-        self.frame = predecessor;
     }
 
     pub(in crate::native::presentation) fn reconstruction_commands(

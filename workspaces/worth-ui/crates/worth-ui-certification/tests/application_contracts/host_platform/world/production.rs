@@ -67,7 +67,7 @@ pub(crate) fn produce_maximum_overlap(
     let app = build_application(recorder.clone());
     let mut session = app.launch().expect("maximum-overlap application launches");
     let mut mounted = mount_maximum_overlap(&mut session);
-    establish_allocations(&mut session);
+    establish_allocations(&mut session, RECTANGLE_COUNT);
     execute_frame(&mut session, 10);
     let initial = one_transcript(&recorder, "maximum-overlap initial transcript");
     let unchanged = produce_unchanged(&mut session, &recorder, 11);
@@ -265,7 +265,7 @@ fn mount_maximum_overlap(
     MountedMaximumRows { surface, rows }
 }
 
-fn execute_frame(
+pub(in crate::host_platform) fn execute_frame(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
     tick: u64,
 ) -> worth_ui_host_contract::UiHostPresentationCostReport {
@@ -284,7 +284,7 @@ fn execute_frame(
     }
 }
 
-fn application_builder(
+pub(in crate::host_platform) fn application_builder(
     recorder: worth_ui_host_headless::WorthUiHeadlessRecorder,
 ) -> worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder{
     let builder = worth_ui::facade::app::WorthUi::app()
@@ -295,7 +295,7 @@ fn application_builder(
     )
 }
 
-fn component(identity: &str, index: usize) -> ComponentDescriptor {
+pub(in crate::host_platform) fn component(identity: &str, index: usize) -> ComponentDescriptor {
     let allocation = if index == 1 {
         ComponentAllocationMeasurementContract::viewport_inset(ComponentViewportInset::symmetric(
             48, 24,
@@ -318,7 +318,7 @@ fn component(identity: &str, index: usize) -> ComponentDescriptor {
     )
 }
 
-fn color_token(identity: &str, value: &str) -> ThemeTokenDescriptor {
+pub(in crate::host_platform) fn color_token(identity: &str, value: &str) -> ThemeTokenDescriptor {
     ThemeTokenDescriptor::define(
         ThemeTokenId::new(identity).unwrap(),
         ThemeTokenFamily::surface(),
@@ -327,15 +327,15 @@ fn color_token(identity: &str, value: &str) -> ThemeTokenDescriptor {
     )
 }
 
-fn component_identity(index: usize) -> String {
+pub(in crate::host_platform) fn component_identity(index: usize) -> String {
     format!("host.platform.maximum.rect_{index:04}")
 }
 
-fn token_identity(index: usize) -> String {
+pub(in crate::host_platform) fn token_identity(index: usize) -> String {
     format!("host.platform.maximum.color_{index:04}")
 }
 
-fn color(index: usize) -> &'static str {
+pub(in crate::host_platform) fn color(index: usize) -> &'static str {
     if index == 1 {
         YELLOW
     } else {
@@ -343,7 +343,10 @@ fn color(index: usize) -> &'static str {
     }
 }
 
-fn establish_allocations(session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession) {
+pub(in crate::host_platform) fn establish_allocations(
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+    expected_nodes: usize,
+) {
     let capability = session.host_measurement_capability();
     let assumptions = UiHostMeasurementAssumptionProfile::from_capability_report(
         capability.capability_report(),
@@ -360,5 +363,5 @@ fn establish_allocations(session: &mut worth_ui::facade::app::WorthUiActiveAppli
     let receipt = session
         .establish_mounted_allocation_catalog(1, [request])
         .expect("maximum-overlap allocation catalog");
-    assert_eq!(receipt.committed().receipts().len(), RECTANGLE_COUNT);
+    assert_eq!(receipt.committed().receipts().len(), expected_nodes);
 }

@@ -60,6 +60,7 @@ pub struct UiMountedProjectionView {
         HashMap<crate::UiMountedPaintCommandIdentity, Option<crate::UiMountedPaintOrderIdentity>>,
     >,
     order_positions: Arc<HashMap<crate::UiMountedPaintCommandIdentity, usize>>,
+    order_integrity: crate::UiMountedPaintOrderIntegrity,
     native_effects: Arc<[crate::UiMountedEffectFamily]>,
 }
 
@@ -193,6 +194,7 @@ impl UiMountedProjectionView {
             commands_by_instance: Arc::new(presentation.commands_by_instance),
             order_predecessors: Arc::new(presentation.order_predecessors),
             order_positions: Arc::new(presentation.order_positions),
+            order_integrity: presentation.order_integrity,
             native_effects: native_effects.into(),
         }
     }
@@ -320,6 +322,11 @@ impl UiMountedProjectionView {
         &self,
     ) -> Arc<HashMap<crate::UiMountedPaintCommandIdentity, usize>> {
         Arc::clone(&self.order_positions)
+    }
+
+    #[doc(hidden)]
+    pub const fn retained_order_integrity(&self) -> crate::UiMountedPaintOrderIntegrity {
+        self.order_integrity
     }
 
     #[doc(hidden)]

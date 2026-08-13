@@ -41,10 +41,11 @@ pub enum UiMountedFramePreparationDenial {
     IntegrityMismatch,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone)]
 pub struct UiMountedSurfaceReceipt {
     requirement: UiMountedSurfaceBindingRequirement,
-    projection: UiMountedProjectionView,
+    projection_frame: std::sync::Arc<super::UiMountedProjectionFrame>,
+    projection: std::cell::OnceCell<UiMountedProjectionView>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -194,7 +195,40 @@ impl UiMountedSurfaceReceipt {
     }
 
     pub fn projection(&self) -> &UiMountedProjectionView {
-        &self.projection
+        self.projection.get_or_init(|| {
+            self.projection_frame
+                .view_for(self.requirement.binding())
+                .expect("admitted surface binding remains present in mounted authority")
+        })
+    }
+
+    pub(crate) fn projection_owner(&self) -> std::sync::Arc<super::UiMountedProjectionFrame> {
+        std::sync::Arc::clone(&self.projection_frame)
+    }
+
+    pub(crate) fn presentation_effects(
+        &self,
+    ) -> Box<[worth_ui_host_contract::UiMountedEffectFamily]> {
+        self.projection_frame.presentation_effects(
+            self.requirement.presentation_mode(),
+            self.requirement.binding(),
+        )
+    }
+}
+
+impl std::fmt::Debug for UiMountedSurfaceReceipt {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("UiMountedSurfaceReceipt")
+            .field("requirement", &self.requirement)
+            .field("projection_materialized", &self.projection.get().is_some())
+            .finish()
+    }
+}
+
+impl PartialEq for UiMountedSurfaceReceipt {
+    fn eq(&self, other: &Self) -> bool {
+        self.requirement == other.requirement && self.projection() == other.projection()
     }
 }
 

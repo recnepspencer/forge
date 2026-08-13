@@ -6,7 +6,6 @@ pub(crate) enum UiNativeRetainedDrawListDenial {
     BaselineUnavailable,
     CommandMismatch,
     OrderMismatch,
-    DamageMismatch,
     DamageIndex,
     CounterOverflow,
 }

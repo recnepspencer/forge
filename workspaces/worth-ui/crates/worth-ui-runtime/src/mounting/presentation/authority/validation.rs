@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use worth_ui_host_contract::{
     UiMountedPaintCommandChange, UiMountedPresentationAuxiliaryState,
     UiMountedPresentationDeltaInput, UiMountedPresentationInitialInput,
-    UiMountedPresentationUnchangedInput,
+    UiMountedPresentationReconstructionInput, UiMountedPresentationUnchangedInput,
 };
 
 pub(super) fn validate_initial(input: &UiMountedPresentationInitialInput) {
@@ -29,12 +29,53 @@ pub(super) fn validate_delta(input: &UiMountedPresentationDeltaInput) {
         .iter()
         .map(|edit| edit.identity().command())
         .collect::<HashSet<_>>();
+    let node_identities = input
+        .nodes
+        .iter()
+        .map(|change| change.mounted_instance())
+        .collect::<HashSet<_>>();
     assert_eq!(change_identities.len(), input.changes.len());
     assert_eq!(order_identities.len(), input.order.len());
+    assert_eq!(node_identities.len(), input.nodes.len());
     assert!(
-        !input.changes.is_empty() || !input.order.is_empty() || input.auxiliary.is_some(),
+        !input.changes.is_empty()
+            || !input.nodes.is_empty()
+            || !input.order.is_empty()
+            || input.auxiliary.is_some(),
         "an empty transition must use unchanged work"
     );
+}
+
+pub(super) fn validate_reconstruction(input: &UiMountedPresentationReconstructionInput) {
+    assert_ne!(input.predecessor, input.successor);
+    assert_eq!(input.projection.frame(), input.successor);
+    assert_eq!(input.projection.surface(), input.surface);
+    assert_eq!(input.projection.binding(), input.binding);
+    assert_eq!(input.projection.content_generation(), input.content);
+    let command_identities = input
+        .commands
+        .iter()
+        .map(|command| command.identity())
+        .collect::<HashSet<_>>();
+    let order_identities = input
+        .order
+        .iter()
+        .map(|identity| identity.command())
+        .collect::<HashSet<_>>();
+    assert_eq!(command_identities.len(), input.commands.len());
+    assert_eq!(command_identities, order_identities);
+    assert!(input.order_integrity.admits(&input.order));
+    let command_map = input
+        .commands
+        .iter()
+        .cloned()
+        .map(|command| (command.identity(), command))
+        .collect::<HashMap<_, _>>();
+    let reconstructed =
+        UiMountedPresentationAuxiliaryState::from_runtime_mounting(&input.projection)
+            .reconstruct(&command_map)
+            .expect("reconstruction work must rebuild its complete projection");
+    assert_eq!(reconstructed, input.projection);
 }
 
 pub(super) fn validate_unchanged(input: &UiMountedPresentationUnchangedInput) {

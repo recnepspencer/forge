@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use worth_ui_host_contract::{
     UiHostSurfacePresentationDenial, UiMountedAllocationProjection, UiMountedCoordinateSpace,
     UiMountedGeometryPosture, UiMountedParticipationStatus, UiMountedSemanticTextMechanic,
@@ -7,32 +5,17 @@ use worth_ui_host_contract::{
     UiSemanticTextSlot, UiSemanticTextWrapPosture,
 };
 
-#[derive(Clone)]
-pub(super) struct UiEguiPreparedSemanticText {
-    pub(super) origin: egui::Pos2,
-    pub(super) clip_rect: egui::Rect,
-    pub(super) text: Arc<str>,
-    pub(super) color: egui::Color32,
-    pub(super) font: egui::FontId,
-}
-
 #[cfg(test)]
 pub(super) fn prepare(
     view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
-) -> Result<Vec<UiEguiPreparedSemanticText>, UiHostSurfacePresentationDenial> {
+) -> Result<(), UiHostSurfacePresentationDenial> {
     let worth_ui_host_contract::UiMountedPresentationWorkView::Initial(initial) =
         view.presentation_work()
     else {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
     };
     let projection = initial.projection();
-    validate_projection(view, projection)?;
-    Ok(projection
-        .semantic_text()
-        .rows()
-        .iter()
-        .map(translate)
-        .collect())
+    validate_projection(view, projection)
 }
 
 pub(super) fn validate_projection(
@@ -90,7 +73,9 @@ fn validate_row(
         || row.profile() != UiSemanticTextProfile::BodyDefault
         || row.profile().wrap() != UiSemanticTextWrapPosture::Clip
         || row.profile().baseline() != UiSemanticTextBaselinePosture::Alphabetic
+        || row.foregrounds().len() != 1
         || !matching_collection_identity(row)
+        || view.qualified_text_layout(row).is_none()
     {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
     }
@@ -121,37 +106,6 @@ fn matching_allocation(
         UiMountedAllocationProjection::Known { bounds, basis }
             if bounds == row.bounds() && basis == row.allocation_basis()
     )
-}
-
-pub(super) fn translate(row: &UiMountedSemanticTextMechanic) -> UiEguiPreparedSemanticText {
-    let channels = row.color().channels();
-    UiEguiPreparedSemanticText {
-        origin: egui::pos2(row.origin_x(), row.origin_y()),
-        clip_rect: super::native_paint::egui_rect(row.clip_bounds()),
-        text: Arc::from(row.text()),
-        color: egui::Color32::from_rgba_unmultiplied(
-            channels[0],
-            channels[1],
-            channels[2],
-            channels[3],
-        ),
-        font: egui::FontId::new(
-            f32::from(row.profile().size_millipoints()) / 1_000.0,
-            egui::FontFamily::Proportional,
-        ),
-    }
-}
-
-impl UiEguiPreparedSemanticText {
-    pub(super) fn paint(&self, painter: &egui::Painter) {
-        painter.clone().with_clip_rect(self.clip_rect).text(
-            self.origin,
-            egui::Align2::LEFT_TOP,
-            self.text.as_ref(),
-            self.font.clone(),
-            self.color,
-        );
-    }
 }
 
 #[cfg(test)]

@@ -3,18 +3,16 @@ from __future__ import annotations
 import csv
 import argparse
 import difflib
-import hashlib
 import json
 import os
 import re
-import secrets
 import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from run_worth_ui_ledger_test import source_revision, source_state_digest
+from worth_ui_compile_contract_evidence import compile_source_snapshot, result_artifact
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -60,6 +58,7 @@ def fixture_targets() -> dict[Path, str]:
         "metadata",
         "--manifest-path",
         str(FIXTURE),
+        "--locked",
         "--no-deps",
         "--format-version",
         "1",
@@ -103,6 +102,7 @@ def cargo_check(cases: list[Case]) -> tuple[int, dict[str, list[dict[str, object
     command = [
         "cargo",
         "check",
+        "--locked",
         "--keep-going",
         "--manifest-path",
         str(FIXTURE),
@@ -282,64 +282,10 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def file_digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def compile_source_snapshot(
-    cases: list[Case], ignore_snapshot_updates: bool = False
-) -> dict[str, object]:
-    revision = source_revision()
-    excluded_snapshots = {
-        case.snapshot.relative_to(ROOT).as_posix()
-        for case in cases
-        if ignore_snapshot_updates and case.kind == "fail"
-    }
-    records = []
-    for case in sorted(cases, key=lambda item: (item.owner, item.kind, item.target)):
-        records.append({
-            "owner": case.owner,
-            "kind": case.kind,
-            "target": case.target,
-            "source": case.source.relative_to(ROOT).as_posix(),
-            "source_sha256": file_digest(case.source),
-            "snapshot": (
-                case.snapshot.relative_to(ROOT).as_posix()
-                if case.kind == "fail" else None
-            ),
-            "snapshot_sha256": (
-                file_digest(case.snapshot)
-                if case.kind == "fail" and not ignore_snapshot_updates
-                else None
-            ),
-        })
-    return {
-        "source_revision": revision,
-        "source_state_digest": source_state_digest(revision, excluded_snapshots),
-        "cases": records,
-    }
-
-
 def governed_snapshot_changed(
     before: dict[str, object], after: dict[str, object]
 ) -> bool:
     return before != after
-
-
-def result_artifact(
-    cases: list[Case], source_snapshot: dict[str, object]
-) -> dict[str, object]:
-    return {
-        "schema": "worth-ui-compile-contract-result-v1",
-        "exit_posture": "passed",
-        "run_nonce": secrets.token_hex(16),
-        "source_revision": source_snapshot["source_revision"],
-        "source_state_digest": source_snapshot["source_state_digest"],
-        "cargo_sessions": 2,
-        "fail_targets": sum(case.kind == "fail" for case in cases),
-        "pass_targets": sum(case.kind == "pass" for case in cases),
-        "cases": source_snapshot["cases"],
-    }
 
 
 def write_artifact(identity: str, payload: dict[str, object]) -> None:

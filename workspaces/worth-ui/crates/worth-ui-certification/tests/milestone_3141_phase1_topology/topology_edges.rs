@@ -71,7 +71,9 @@ fn fixture_dependencies(path: &str) -> Option<&'static [&'static str]> {
         | "crates/worth-ui-certification/tests/fixtures/topology_negative/admission_facade_bypass_consumer/crates/fake-admission-consumer-extern-alias/Cargo.toml"
         | "crates/worth-ui-certification/tests/fixtures/topology_negative/admission_facade_bypass_consumer/crates/fake-admission-consumer/Cargo.toml"
         | "crates/worth-ui-certification/tests/fixtures/topology_negative/host_egui_forbidden_runtime_import/crates/worth-ui-host-egui/Cargo.toml"
-        | "crates/worth-ui-certification/tests/fixtures/topology_negative/obligation_facade_bypass_consumer/crates/fake-obligation-consumer/Cargo.toml" => &["worth-ui-runtime"],
+        | "crates/worth-ui-certification/tests/fixtures/topology_negative/obligation_facade_bypass_consumer/crates/fake-obligation-consumer/Cargo.toml" => {
+            &["worth-ui-runtime"]
+        }
         "crates/worth-ui-certification/tests/fixtures/topology_negative/inspection_facade_bypass_consumer/crates/fake-inspection-consumer/Cargo.toml" => {
             &["worth-ui-inspection", "worth-ui-runtime"]
         }
@@ -86,14 +88,19 @@ fn crate_dependencies(path: &str) -> Option<&'static [&'static str]> {
         | "crates/worth-ui-host-contract/Cargo.toml"
         | "crates/worth-ui-inspection/Cargo.toml"
         | "crates/worth-ui-query-binding/Cargo.toml"
+        | "crates/worth-ui-retained-order/Cargo.toml"
         | "crates/worth-ui-theme/Cargo.toml" => &[],
         "crates/worth-ui-host-egui/Cargo.toml" => {
             &["worth-ui-host-contract", "worth-ui-test-support"]
         }
-        "crates/worth-ui-host-headless/Cargo.toml" => {
-            &["worth-ui-host-contract", "worth-ui-test-support"]
+        "crates/worth-ui-host-headless/Cargo.toml" => &[
+            "worth-ui-host-contract",
+            "worth-ui-retained-order",
+            "worth-ui-test-support",
+        ],
+        "crates/worth-ui-host-native/Cargo.toml" => {
+            &["worth-ui-host-contract", "worth-ui-retained-order"]
         }
-        "crates/worth-ui-host-native/Cargo.toml" => &["worth-ui-host-contract"],
         "crates/worth-ui-native-platform/Cargo.toml" => &["worth-ui-runtime"],
         "crates/worth-ui-runtime/Cargo.toml" => &[
             "worth-ui-dsl",
@@ -103,8 +110,10 @@ fn crate_dependencies(path: &str) -> Option<&'static [&'static str]> {
             "worth-ui-host-native",
             "worth-ui-inspection",
             "worth-ui-query-binding",
+            "worth-ui-text",
         ],
         "crates/worth-ui-test-support/Cargo.toml" => &["worth-ui-runtime"],
+        "crates/worth-ui-text/Cargo.toml" => &["worth-ui-host-contract"],
         _ => return None,
     })
 }
