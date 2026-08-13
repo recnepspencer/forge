@@ -1,7 +1,8 @@
 use crate::facade::*;
 use crate::tests::async_node_support::{
     admit_and_commit_async_node_completion, async_node_capability_declaration,
-    async_node_capability_with_dependents, AsyncNodeTestRuntime as TestRuntime,
+    async_node_capability_with_dependents, settle_async_dependency_baseline,
+    AsyncNodeTestRuntime as TestRuntime,
 };
 use crate::tests::support::{evaluate, version_ab};
 
@@ -75,6 +76,7 @@ pub(crate) fn public_hierarchy_branch_workload() -> PublicHierarchyBranchWorkloa
     };
     evaluate(&mut graph, source, &mut source_eval).expect("source should evaluate");
     evaluate(&mut graph, gate, &mut gate_eval).expect("gate should evaluate");
+    settle_async_dependency_baseline(&mut graph, [sink, parent, child, grandchild]);
 
     let mut runtime = TestRuntime::build(graph);
     let gate_declaration = async_node_capability_declaration(gate)

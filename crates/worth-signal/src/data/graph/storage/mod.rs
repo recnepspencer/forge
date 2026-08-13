@@ -1,5 +1,6 @@
 mod entries;
 mod handles;
+pub(crate) mod invalidation_causes;
 mod segmented;
 mod slot;
 

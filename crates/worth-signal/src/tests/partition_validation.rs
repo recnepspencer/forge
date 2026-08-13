@@ -1,11 +1,10 @@
-use crate::data::aspect::AspectMask;
 use crate::data::output::PartitionSubscription;
 use crate::data::trace::TraceSummary;
 use crate::facade::*;
 use crate::tests::support::*;
 
 #[test]
-fn maybe_stale_partition_nodes_recompute_when_changed_region_evidence_is_absent() {
+fn direct_partition_recompute_runs_when_dependency_change_evidence_is_absent() {
     let mut graph = SignalGraph::new();
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
@@ -22,15 +21,13 @@ fn maybe_stale_partition_nodes_recompute_when_changed_region_evidence_is_absent(
         source_entry.set_aspect_version(version_ab(2, 0));
         source_entry.set_trace_summary(Some(TraceSummary::default()));
     }
-    {
-        let mut entry = graph.get_entry_mut(dependent).unwrap();
-        entry.set_state(NodeState::MaybeStale);
-        entry.set_dirty_aspects(AspectMask::from_aspect(ASPECT_A));
-        entry.add_dirty_partition_scope(
-            ASPECT_A,
-            PartitionSubscription::partition_and_detail("wing", "rib-12"),
-        );
-    }
+    mark_dirty_with_regions(
+        &mut graph,
+        dependent,
+        ASPECT_A,
+        &[ChangedRegion::new("wing").with_detail("rib-12")],
+    )
+    .unwrap();
 
     let plan = graph
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
@@ -101,6 +98,6 @@ fn maybe_stale_partition_nodes_validate_clean_when_other_detail_changes() {
         })
         .unwrap();
 
-    assert_eq!(report.tasks_validated_clean, 1);
+    assert_eq!(report.tasks_validated_clean, 0);
     assert_eq!(report.tasks_executed, 0);
 }

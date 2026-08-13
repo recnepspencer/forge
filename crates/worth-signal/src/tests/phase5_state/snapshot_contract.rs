@@ -118,6 +118,7 @@ fn checkpoint_image_omits_diagnostic_richness_while_snapshot_bundle_retains_it()
     assert!(
         snapshot
             .authority_graph()
+            .unwrap()
             .observe()
             .replay_events()
             .is_empty(),
@@ -126,6 +127,7 @@ fn checkpoint_image_omits_diagnostic_richness_while_snapshot_bundle_retains_it()
     assert!(
         snapshot
             .authority_graph()
+            .unwrap()
             .observe()
             .lineage_records()
             .is_empty(),
@@ -134,6 +136,7 @@ fn checkpoint_image_omits_diagnostic_richness_while_snapshot_bundle_retains_it()
     assert!(
         snapshot
             .authority_graph()
+            .unwrap()
             .diagnostics_state()
             .explanation_facts()
             .is_empty(),

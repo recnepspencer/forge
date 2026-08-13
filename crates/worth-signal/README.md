@@ -58,6 +58,41 @@ Most days, the shape is:
 If you start in `easy`, that is still the same system.
 You are not signing up for a toy path you need to throw away later.
 
+## Change And Commit Semantics
+
+`mark_changed` records source recompute intent. It says which producer-local
+aspect may need to be recomputed; it does **not** assert that the producer has
+already emitted a semantic change. The returned `ChangeBatchAdmission` proves
+that Signal admitted that root work. Older `ChangeBatchCommit` and
+`SemanticBatchCommit` names are deprecated aliases for the same admission and
+must not be interpreted as output-commit evidence.
+
+After evaluation, Signal compares the candidate output with the producer's
+last committed output. Only a meaningful committed difference creates a
+producer delta and downstream dependency causes. Configure the two comparison
+roles separately:
+
+- `.output_equivalence(...)` is producer-side: did this evaluation publish a
+  meaningfully different output?
+- `.dependency_comparator(...)` is consumer-side: does the committed upstream
+  difference matter to this consumer?
+
+Nodes that can change more than one aspect should declare
+`.produces_aspects(...)`. Use
+`NodeEvaluationResult::with_changed_aspect_region(aspect, region)` when a
+partition or detail applies to one particular output aspect. The legacy
+`.with_changed_region(...)` form is conservative when several aspects change:
+its scope is treated as a union, never as exact cross-aspect locality.
+
+Aspects are producer-local. If source aspect `A` makes a middle node publish
+aspect `B`, a leaf that depends on the middle node receives a cause for `B`.
+Signal does not copy `A` through the graph. Conditions are evaluated only after
+the leaf's immediate dependency causes have settled, so an
+`aspect_filter(B)` sees `B`, not the original root aspect. The executable
+counterpart is
+`aspect_filter_uses_the_immediate_producers_translated_aspect` in the node
+condition test suite.
+
 ## Where It Fits
 
 - web backends and reactive views
@@ -120,8 +155,15 @@ struct CheckoutState {
 }
 
 let mut graph = SignalGraph::new();
-let price = graph.node().build();
-let total = graph.node().on_demand().build();
+let price = graph
+    .node()
+    .produces_aspects(AspectMask::from_aspect(PRICE))
+    .build();
+let total = graph
+    .node()
+    .produces_aspects(AspectMask::from_aspect(TOTAL))
+    .on_demand()
+    .build();
 
 graph.set_dependencies(total, [DependencyEdge::new(price, PRICE)])?;
 

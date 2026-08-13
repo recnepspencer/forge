@@ -1,4 +1,3 @@
-use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::{MemoizedResultOrigin, NodeEvaluationResult};
@@ -41,6 +40,7 @@ pub(crate) fn build_evaluation_effect(
             node,
             verdict,
             aspect_version: result.aspect_version,
+            changed_aspect_regions: result.changed_aspect_regions,
             output_change: result.output_change,
             reuse_basis,
             reuse_origin,
@@ -67,11 +67,11 @@ pub(crate) fn build_evaluation_effect(
     }
 }
 
-pub(super) fn resolve_effect_comparator(
+pub(super) fn resolve_output_equivalence(
     graph: &SignalGraph,
     node: NodeId,
-    comparator_resolver: &mut impl ComparatorPolicyResolver,
-) -> Result<crate::data::comparator::VersionComparatorPolicy, crate::data::error::SignalError> {
+) -> Result<crate::data::output_equivalence::OutputEquivalencePolicy, crate::data::error::SignalError>
+{
     let config = graph.node_eval_config(node)?;
-    Ok(comparator_resolver.policy_for_node(node, config.comparator.as_ref()))
+    Ok(config.output_equivalence.clone())
 }

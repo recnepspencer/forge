@@ -3,6 +3,16 @@ use crate::facade::*;
 use crate::tests::async_node_nightmare_support::milestone_d_combined_workload;
 use crate::tests::async_node_restore_lineage_nightmare_support::milestone_d_restore_lineage_nightmare_workload;
 
+fn explanation_without_ephemeral_execution_ids(
+    summary: Option<&ExplanationSummary>,
+) -> Option<ExplanationSummary> {
+    summary.cloned().map(|mut summary| {
+        summary.execution_record_id = None;
+        summary.semantic_segment_id = None;
+        summary
+    })
+}
+
 #[test]
 fn async_node_nightmare_workload_preserves_combined_capability_truth_across_restore() {
     let workload = milestone_d_combined_workload();
@@ -227,14 +237,18 @@ fn async_node_nightmare_restore_lineage_keeps_hierarchy_honest_and_rebinds_keyed
             .explanation_availability()
     );
     assert_eq!(
-        workload
-            .baseline_hierarchy_historical
-            .historical_parity_report()
-            .explanation_summary(),
-        workload
-            .restored_hierarchy_historical
-            .historical_parity_report()
-            .explanation_summary()
+        explanation_without_ephemeral_execution_ids(
+            workload
+                .baseline_hierarchy_historical
+                .historical_parity_report()
+                .explanation_summary(),
+        ),
+        explanation_without_ephemeral_execution_ids(
+            workload
+                .restored_hierarchy_historical
+                .historical_parity_report()
+                .explanation_summary(),
+        )
     );
     assert_ne!(
         workload

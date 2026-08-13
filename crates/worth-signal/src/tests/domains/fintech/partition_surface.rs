@@ -18,12 +18,14 @@ impl MarketPartition {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum PartitionDetail {
     Bucket0,
+    Bucket1,
 }
 
 impl PartitionDetail {
     pub(super) fn token(self) -> &'static str {
         match self {
             Self::Bucket0 => "bucket-0",
+            Self::Bucket1 => "bucket-1",
         }
     }
 }

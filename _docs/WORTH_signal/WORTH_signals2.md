@@ -664,6 +664,26 @@ The highest-signal remaining product directions are:
 - adaptive tolerance propagation
 - bridge-grade dual-runtime integration over relational snapshots and patchsets
 
+The current numbered core-runtime continuation is:
+
+- [Milestone 12 - Aspect-Causal Invalidation](./milestone-12-plan.md)
+- [Milestone 13 - Locality-First Frontier Execution](./milestone-13-plan.md)
+- [Milestone 14 - Deterministic Parallel Execution Foundation](./milestone-14-plan.md)
+- [Milestone 15 - Proof-Carrying Graph Parallelism](./milestone-15-plan.md)
+- [Milestone 16 - Structured Partitioned Parallelism](./milestone-16-plan.md)
+- [Milestone 17 - Portable Execution Backends And Distributed Coordination](./milestone-17-plan.md)
+
+Milestones 12 and 13 expand the existing fintech financial world and certify
+aspect correctness, locality, cost slopes, and strategy readiness during their
+implementation phases. Milestones 14-17 build the independent parallel-
+execution sequence:
+one deterministic resource authority, graph-wide proof-carrying concurrency,
+domain-agnostic partitioned computation, and portable native, WASM-worker,
+accelerator-ready, and remote execution boundaries.
+
+Geometry remains a future consumer and certification pressure source. It does
+not become semantic vocabulary or authority inside `worth-signal`.
+
 ## Non-Goals
 
 - turning the runtime into the owner of truth-state storage

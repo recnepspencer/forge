@@ -62,15 +62,18 @@ fn transaction_partition_invalidations_union_dirty_scopes_until_runtime_evaluati
         })
         .unwrap();
 
-    let entry = runtime.graph().get_entry(dependent).unwrap();
-    let scopes = entry.get_dirty_partition_scopes();
-    assert_eq!(entry.get_state(), &NodeState::Dirty);
+    let scopes = runtime.graph().node_dirty_scoped_aspects(source).unwrap();
+    assert_eq!(runtime.graph().get_state(source).unwrap(), NodeState::Dirty);
+    assert_eq!(
+        runtime.graph().get_state(dependent).unwrap(),
+        NodeState::MaybeStale
+    );
     assert!(scopes
         .iter()
-        .any(|scope| scope.detail.as_deref() == Some("rib-12")));
+        .any(|(_, scope)| scope.detail.as_deref() == Some("rib-12")));
     assert!(scopes
         .iter()
-        .any(|scope| scope.detail.as_deref() == Some("rib-13")));
+        .any(|(_, scope)| scope.detail.as_deref() == Some("rib-13")));
 }
 
 #[test]
@@ -116,8 +119,8 @@ fn sparse_partition_fanout_keeps_most_subscribers_out_of_dirty_state() {
         .filter(|&&subscriber| graph.get_state(subscriber).unwrap() == NodeState::MaybeStale)
         .count();
 
-    assert_eq!(dirty_count, 1);
-    assert_eq!(maybe_stale_count, 127);
+    assert_eq!(dirty_count, 0);
+    assert_eq!(maybe_stale_count, 128);
     assert_eq!(
         graph
             .observe()

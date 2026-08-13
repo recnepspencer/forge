@@ -1,12 +1,16 @@
+mod lowering;
+
 use crate::data::aspect::{AspectMask, InstalledSignalNodeCapability, SignalAspectLoweringOwner};
 use crate::data::comparator::{
     InstalledSignalComparatorIdentity, InstalledSignalComparatorRole, VersionComparatorPolicy,
 };
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::node::{
-    EvaluationCondition, InstalledSignalConditionIdentity, InstalledSignalConditionRole,
-    NodeEvaluationConfig,
+use crate::data::node::{EvaluationCondition, InstalledSignalConditionIdentity};
+use crate::data::output_equivalence::OutputEquivalencePolicy;
+use lowering::{
+    install_node_evaluation_config, installed_comparator_identity,
+    installed_output_equivalence_identity, lower_artifact_reuse, lower_comparator, lower_condition,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -152,6 +156,7 @@ pub struct InstalledSignalConditionalContract {
     trigger_aspects: AspectMask,
     dependency_comparator: VersionComparatorPolicy,
     output_comparator: VersionComparatorPolicy,
+    output_equivalence: OutputEquivalencePolicy,
     artifact_reuse: SignalConditionalArtifactReusePolicy,
 }
 
@@ -188,6 +193,10 @@ impl InstalledSignalConditionalContract {
         &self.output_comparator
     }
 
+    pub fn output_equivalence(&self) -> &OutputEquivalencePolicy {
+        &self.output_equivalence
+    }
+
     pub fn artifact_reuse(&self) -> &SignalConditionalArtifactReusePolicy {
         &self.artifact_reuse
     }
@@ -209,7 +218,7 @@ impl InstalledSignalConditionalContract {
         {
             return Some(InstalledSignalComparatorUse::DependencyVersion);
         }
-        if installed_comparator_identity(&self.output_comparator)
+        if installed_output_equivalence_identity(&self.output_equivalence)
             .is_some_and(|installed| installed.is_same_installed_identity(candidate))
         {
             return Some(InstalledSignalComparatorUse::OutputEquivalence);
@@ -263,6 +272,9 @@ impl SignalGraph {
             InstalledSignalComparatorRole::OutputEquivalence,
             definition.output_comparator,
         );
+        let output_equivalence =
+            OutputEquivalencePolicy::from_installed_comparator(output_comparator.clone())
+                .expect("output comparator lowering must retain the output-equivalence role");
         let artifact_reuse = lower_artifact_reuse(
             self.runtime_instance_id(),
             node.node(),
@@ -273,7 +285,9 @@ impl SignalGraph {
             .map_err(|_| SignalConditionalContractDenial::StaleNode)?
             .clone();
         config.condition = condition.clone();
-        config.comparator = Some(output_comparator.clone());
+        config.comparator = Some(dependency_comparator.clone());
+        config.output_equivalence = output_equivalence.clone();
+        config.contract = config.contract.with_output_equivalence(&output_equivalence);
         install_node_evaluation_config(self, node.node(), config)?;
         Ok(InstalledSignalConditionalContract {
             authority: std::sync::Arc::new(InstalledSignalConditionalAuthority { _owner_seal: () }),
@@ -285,100 +299,8 @@ impl SignalGraph {
             trigger_aspects: definition.trigger_aspects,
             dependency_comparator,
             output_comparator,
+            output_equivalence,
             artifact_reuse,
         })
-    }
-}
-
-fn installed_comparator_identity(
-    policy: &VersionComparatorPolicy,
-) -> Option<&InstalledSignalComparatorIdentity> {
-    match policy {
-        VersionComparatorPolicy::Installed { identity } => Some(identity),
-        _ => None,
-    }
-}
-
-fn lower_artifact_reuse(
-    graph: u64,
-    node: NodeId,
-    reuse: SignalConditionalArtifactReuse,
-) -> SignalConditionalArtifactReusePolicy {
-    match reuse {
-        SignalConditionalArtifactReuse::NotReusable => {
-            SignalConditionalArtifactReusePolicy::NotReusable
-        }
-        SignalConditionalArtifactReuse::DependencyAndOutputEquivalent => {
-            SignalConditionalArtifactReusePolicy::DependencyAndOutputEquivalent
-        }
-        SignalConditionalArtifactReuse::OutputEquivalent => {
-            SignalConditionalArtifactReusePolicy::OutputEquivalent
-        }
-        SignalConditionalArtifactReuse::RuntimeResolved => {
-            SignalConditionalArtifactReusePolicy::Installed(InstalledSignalComparatorIdentity::new(
-                graph,
-                node,
-                InstalledSignalComparatorRole::ArtifactReuse,
-            ))
-        }
-    }
-}
-
-fn install_node_evaluation_config(
-    graph: &mut SignalGraph,
-    node: NodeId,
-    config: NodeEvaluationConfig,
-) -> Result<(), SignalConditionalContractDenial> {
-    graph
-        .get_entry_mut(node)
-        .map_err(|_| SignalConditionalContractDenial::StaleNode)?
-        .set_eval_config(config);
-    Ok(())
-}
-
-fn lower_condition(
-    graph: u64,
-    node: NodeId,
-    condition: &SignalConditionalCondition,
-) -> EvaluationCondition {
-    match condition {
-        SignalConditionalCondition::Always => EvaluationCondition::Always,
-        SignalConditionalCondition::AspectFilter(mask) => EvaluationCondition::AspectFilter(*mask),
-        SignalConditionalCondition::OnDemand => EvaluationCondition::OnDemand,
-        SignalConditionalCondition::DeltaThreshold(_)
-        | SignalConditionalCondition::RuntimePredicate => {
-            EvaluationCondition::Installed(InstalledSignalConditionIdentity::new(
-                graph,
-                node,
-                InstalledSignalConditionRole::Predicate,
-            ))
-        }
-        SignalConditionalCondition::TemporalWake => {
-            EvaluationCondition::Installed(InstalledSignalConditionIdentity::new(
-                graph,
-                node,
-                InstalledSignalConditionRole::TemporalWake,
-            ))
-        }
-    }
-}
-
-fn lower_comparator(
-    graph: u64,
-    node: NodeId,
-    role: InstalledSignalComparatorRole,
-    comparator: SignalConditionalVersionComparator,
-) -> VersionComparatorPolicy {
-    match comparator {
-        SignalConditionalVersionComparator::Exact => VersionComparatorPolicy::Exact,
-        SignalConditionalVersionComparator::Tolerance(epsilon) => {
-            VersionComparatorPolicy::Tolerance { epsilon }
-        }
-        SignalConditionalVersionComparator::OutputIdentity => {
-            VersionComparatorPolicy::OutputIdentity
-        }
-        SignalConditionalVersionComparator::RuntimeResolved => VersionComparatorPolicy::Installed {
-            identity: InstalledSignalComparatorIdentity::new(graph, node, role),
-        },
     }
 }

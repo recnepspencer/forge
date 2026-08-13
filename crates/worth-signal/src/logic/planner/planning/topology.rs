@@ -107,12 +107,7 @@ fn visit_node(
                     graph.get_contract(node)?.semantics.required_context,
                 )?;
                 let state = graph.get_state(node)?;
-                let dirty_partition_scopes = graph.node_dirty_partition_scopes(node)?;
-                let contract_reads_dirty = graph
-                    .get_contract(node)?
-                    .cares_about_change(graph.node_dirty_aspects(node)?, &dirty_partition_scopes);
-                let should_include = matches!(state, NodeState::MaybeStale)
-                    || (matches!(state, NodeState::Dirty) && contract_reads_dirty)
+                let should_include = matches!(state, NodeState::Dirty | NodeState::MaybeStale)
                     || (candidate.direct_request
                         && matches!(candidate.request_mode, EvaluationRequestMode::ForceOnDemand));
                 if !should_include {

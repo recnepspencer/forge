@@ -13,13 +13,21 @@ impl super::FintechEvaluationShape {
     ) -> Result<Option<EvaluationOutput>, SignalError> {
         let node = view.node();
         if node == self.partition.rates_partition {
-            let price = view
+            let bucket_zero = view
                 .read_partitioned_aspect_version(
                     self.partition.market_regions,
                     PRICE,
-                    PartitionSubscription::whole_partition("rates"),
+                    PartitionSubscription::partition_and_detail("rates", "bucket-0"),
                 )?
                 .get(PRICE);
+            let bucket_one = view
+                .read_partitioned_aspect_version(
+                    self.partition.market_regions,
+                    PRICE,
+                    PartitionSubscription::partition_and_detail("rates", "bucket-1"),
+                )?
+                .get(PRICE);
+            let price = bucket_zero.saturating_add(bucket_one);
             return Ok(Some(
                 view.finish(
                     NodeEvaluationResult::from_version(AspectVersion::from_updates([(

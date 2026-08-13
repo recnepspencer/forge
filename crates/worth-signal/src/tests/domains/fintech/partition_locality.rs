@@ -32,7 +32,7 @@ fn fintech_partition_locality_surfaces_changed_region_pressure_through_locality_
     );
     assert_eq!(
         world.node_state(world.credit_partition_node()).unwrap(),
-        NodeState::MaybeStale
+        NodeState::Clean
     );
     assert_eq!(
         world.node_state(world.rates_bucket_zero_node()).unwrap(),
@@ -58,7 +58,7 @@ fn fintech_partition_locality_surfaces_changed_region_pressure_through_locality_
 
     assert_eq!(
         world.node_state(world.rates_partition_node()).unwrap(),
-        NodeState::MaybeStale
+        NodeState::Clean
     );
     assert_eq!(
         world.node_state(world.credit_partition_node()).unwrap(),
@@ -66,7 +66,7 @@ fn fintech_partition_locality_surfaces_changed_region_pressure_through_locality_
     );
     assert_eq!(
         world.node_state(world.rates_bucket_zero_node()).unwrap(),
-        NodeState::MaybeStale
+        NodeState::Clean
     );
 
     let credit_after_credit_shock = world

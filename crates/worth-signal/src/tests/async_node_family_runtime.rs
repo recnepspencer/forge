@@ -162,6 +162,11 @@ fn async_node_partition_local_revalidation_matches_contract_scope_and_records_lo
         &[ChangedRegion::new("wing").with_detail("rib-12")],
     )
     .expect("matching changed region should mark dirty");
+    evaluate(runtime.graph_mut(), source, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+            .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")))
+    })
+    .expect("producer commit should resolve the consumer-local scoped cause");
 
     let report = runtime
         .revalidate_async_node(AsyncNodeRevalidationIntent::new(node))

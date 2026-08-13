@@ -1,6 +1,6 @@
-use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::error::SignalError;
 use crate::data::output::CanonicalChangedRegions;
+use crate::data::output_equivalence::OutputEquivalencePolicy;
 use crate::data::proof::PartitionScopeSet;
 use crate::data::trace::{
     ArtifactMergeAuthority, ArtifactTransitionKey, CompactChangedScopeProof,
@@ -22,8 +22,17 @@ impl SignalGraph {
         &self,
         effect: &EvaluationEffect,
         previous_trace: Option<&crate::logic::evaluation::PreviousArtifactWarmSnapshot>,
-        comparator: VersionComparatorPolicy,
+        output_equivalence: OutputEquivalencePolicy,
     ) -> Result<EffectComparison, SignalError> {
+        crate::data::proof::invalidation::output_commit::SemanticOutputCommitDecision::validate_declared_change(
+            self.node_aspect_version(effect.operational.node)?,
+            effect.operational.aspect_version,
+            self.get_contract(effect.operational.node)?.semantics.produces,
+            effect.operational.output_change == crate::data::output::OutputChange::Unchanged,
+        )
+        .map_err(|violation| {
+            SignalError::invalid_input(format!("output commit contract violation: {violation:?}"))
+        })?;
         let output_identity_unchanged = matches!(
             (
                 previous_trace.and_then(|trace| trace.output_identity.as_ref()),
@@ -38,16 +47,17 @@ impl SignalGraph {
             ),
             (Some(previous), Some(current)) if previous == current
         );
-        let propagation_suppressed = matches!(comparator, VersionComparatorPolicy::OutputIdentity)
-            && output_identity_unchanged
-            && !matches!(
-                effect.operational.verdict,
-                EvaluationVerdict::Deferred { .. }
-                    | EvaluationVerdict::Suppressed {
-                        reason: SuppressionReason::ValidatedClean
-                            | SuppressionReason::ConditionRevertedClean,
-                    }
-            );
+        let propagation_suppressed =
+            matches!(output_equivalence, OutputEquivalencePolicy::OutputIdentity)
+                && output_identity_unchanged
+                && !matches!(
+                    effect.operational.verdict,
+                    EvaluationVerdict::Deferred { .. }
+                        | EvaluationVerdict::Suppressed {
+                            reason: SuppressionReason::ValidatedClean
+                                | SuppressionReason::ConditionRevertedClean,
+                        }
+                );
 
         Ok(EffectComparison {
             output_identity_unchanged,
@@ -142,7 +152,7 @@ impl SignalGraph {
     pub(crate) fn build_apply_commit_packet(
         &self,
         effect: EvaluationEffect,
-        comparator: VersionComparatorPolicy,
+        output_equivalence: OutputEquivalencePolicy,
         defer_snapshot_commit: bool,
     ) -> Result<ApplyCommitPacket, SignalError> {
         let previous_warm = if let Some(snapshot) = effect.previous_artifact_warm().cloned() {
@@ -157,7 +167,8 @@ impl SignalGraph {
                     },
                 )
         };
-        let comparison = self.compare_effect(&effect, previous_warm.as_ref(), comparator)?;
+        let comparison =
+            self.compare_effect(&effect, previous_warm.as_ref(), output_equivalence)?;
         let artifact_write =
             self.build_effect_artifact_write(&effect, previous_warm.as_ref(), comparison)?;
         let pending_snapshot = if defer_snapshot_commit {

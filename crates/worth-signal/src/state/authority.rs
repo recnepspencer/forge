@@ -57,6 +57,11 @@ pub struct SignalCheckpointTopology {
 pub struct SignalCheckpointAuthority {
     pub(crate) arena: SignalCheckpointArena,
     pub(crate) topology: SignalCheckpointTopology,
+    #[serde(
+        default,
+        serialize_with = "crate::data::graph::storage::invalidation_causes::serialize_canonical_cause_sets"
+    )]
+    pub(crate) cause_sets: crate::data::graph::storage::invalidation_causes::CanonicalCauseSetStore,
     pub(crate) diagnostics: DiagnosticsState,
 }
 

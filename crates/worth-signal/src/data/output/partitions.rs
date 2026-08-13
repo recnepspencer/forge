@@ -242,26 +242,6 @@ pub(crate) fn scope_touched_by_artifact_state(
         .any(|changed_scope| scopes_overlap(scope, changed_scope))
 }
 
-pub(crate) fn scope_touched_by_hot_artifact(
-    artifact_state: Option<&crate::data::trace::RuntimeArtifactHot>,
-    scope: &PartitionSubscription,
-) -> bool {
-    let Some(artifact_state) = artifact_state else {
-        return false;
-    };
-    if artifact_state.output_change == OutputChange::Unchanged {
-        return false;
-    }
-    if artifact_state.changed_scopes.is_empty() {
-        return true;
-    }
-    artifact_state
-        .changed_scopes
-        .as_slice()
-        .iter()
-        .any(|changed_scope| scopes_overlap(scope, changed_scope))
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PartitionInterner {
     partitions: Vec<String>,

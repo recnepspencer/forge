@@ -1,6 +1,7 @@
 use super::failure_subscribers::FailingSubscriber;
 use super::runtime_world::{build_runtime, Ev, Tier};
 use crate::data::checkpoint::CheckpointBarrier;
+use crate::data::proof::invalidation::revalidation::NodeInvalidationInput;
 use crate::facade::{EvaluationRequestMode, NodeEvaluationResult, NodeState};
 use crate::logic::transaction::TransactionOutcome;
 use crate::tests::support::{
@@ -182,8 +183,16 @@ fn mark_dirty_after_evaluate_staging_still_stages_downstream_rollback_coverage()
 
     assert_eq!(
         tx.staged_graph().get_state(downstream).unwrap(),
-        NodeState::Dirty
+        NodeState::MaybeStale
     );
+    let NodeInvalidationInput::Pending(pending) = tx
+        .staged_graph()
+        .node_invalidation_input(downstream)
+        .unwrap()
+    else {
+        panic!("downstream rollback coverage must retain unresolved producer authority");
+    };
+    assert_eq!(pending.unresolved_producers(), &[source]);
     assert_eq!(
         tx.rollback().unwrap().outcome,
         TransactionOutcome::RolledBack

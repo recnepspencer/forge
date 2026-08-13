@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::tests::support::{evaluate_on_demand, version_ab};
 
 pub(crate) type AsyncNodeTestRuntime = SignalRuntime<(), (), (), (), ()>;
 
@@ -15,6 +16,17 @@ pub(crate) fn async_node_capability_with_dependents(
     dependents: impl IntoIterator<Item = NodeId>,
 ) -> AsyncNodeCapabilityDeclaration {
     async_node_capability_declaration(node).with_declared_dependent_cancellation_nodes(dependents)
+}
+
+pub(crate) fn settle_async_dependency_baseline(
+    graph: &mut SignalGraph,
+    nodes: impl IntoIterator<Item = NodeId>,
+) {
+    let mut evaluator = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 0));
+    for node in nodes {
+        evaluate_on_demand(&mut *graph, node, &mut evaluator)
+            .expect("async dependency baseline should settle before lifecycle admission");
+    }
 }
 
 pub(crate) fn raw_async_node_completion(

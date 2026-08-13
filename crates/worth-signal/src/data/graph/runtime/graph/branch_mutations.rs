@@ -21,6 +21,12 @@ pub(crate) struct BranchMutationRecord {
     pub structural_deltas: Vec<BranchStructuralDelta>,
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct BranchMutationNodeImage {
+    view: Option<BranchMutationRecord>,
+    pending: Option<BranchMutationRecord>,
+}
+
 impl BranchMutationRecord {
     pub(crate) fn merge_relevant(&self) -> bool {
         self.introduced
@@ -155,6 +161,26 @@ pub struct RuntimeArtifactStructuralDelta {
 }
 
 impl SignalGraph {
+    pub(crate) fn branch_mutation_node_image(&self, node: NodeId) -> BranchMutationNodeImage {
+        BranchMutationNodeImage {
+            view: self.observation.branch_mutation_view.get(&node).cloned(),
+            pending: self.observation.branch_mutation_records.get(&node).cloned(),
+        }
+    }
+
+    pub(crate) fn restore_branch_mutation_node_image(
+        &mut self,
+        node: NodeId,
+        image: BranchMutationNodeImage,
+    ) {
+        restore_optional_record(&mut self.observation.branch_mutation_view, node, image.view);
+        restore_optional_record(
+            &mut self.observation.branch_mutation_records,
+            node,
+            image.pending,
+        );
+    }
+
     fn record_branch_mutation(
         &mut self,
         node: NodeId,
@@ -239,5 +265,20 @@ impl SignalGraph {
 
     pub(crate) fn clear_branch_mutation_nodes(&mut self) {
         self.observation.branch_mutation_records.clear();
+    }
+}
+
+fn restore_optional_record(
+    records: &mut std::collections::BTreeMap<NodeId, BranchMutationRecord>,
+    node: NodeId,
+    record: Option<BranchMutationRecord>,
+) {
+    match record {
+        Some(record) => {
+            records.insert(node, record);
+        }
+        None => {
+            records.remove(&node);
+        }
     }
 }

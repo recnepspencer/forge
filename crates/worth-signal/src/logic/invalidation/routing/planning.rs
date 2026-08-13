@@ -7,7 +7,7 @@ use crate::data::handle::NodeId;
 use crate::data::proof::{
     DedupedNodeBatch, DirtyBatch, FrontierEntryClassification, FrontierInclusionBasis,
     FrontierPlan, FrontierPredictedCounters, FrontierWavePlan, PartitionScopeSet,
-    SortedSourceBatch, TouchedScopeSummary, TransitiveFrontierRoot,
+    SortedSourceBatch, TouchedScopeSummary,
 };
 
 use super::super::subscription::subscriber_invalidation_evidence;
@@ -58,7 +58,6 @@ pub(super) fn plan_invalidation_frontier(
     }
 
     let mut direct_waves = Vec::new();
-    let mut transitive_roots = Vec::new();
     let mut seed_scopes = Vec::new();
     let mut inclusion_scopes = Vec::new();
     let mut direct_dirty_scopes = Vec::new();
@@ -111,30 +110,17 @@ pub(super) fn plan_invalidation_frontier(
                 FrontierInclusionBasis::DirectSubscriptionMatch
                 | FrontierInclusionBasis::TransitiveReachability => {}
             }
-            transitive_roots.push(TransitiveFrontierRoot::new(
-                entry.node,
-                wave.aspect,
-                entry.classification,
-                entry.narrowed_scopes.clone(),
-                entry.source_seed_refs.iter().copied(),
-            ));
         }
         direct_waves.push(wave);
     }
-
-    transitive_roots.sort_unstable_by_key(|root| {
-        (
-            root.aspect.index(),
-            root.node.index(),
-            root.node.generation(),
-        )
-    });
     predicted.partition_scoped_checks = partition_scoped_checks;
-    predicted.cycle_check_candidate_count = transitive_roots.len() as u64;
+    predicted.cycle_check_candidate_count = direct_waves
+        .iter()
+        .map(|wave| wave.entries.len() as u64)
+        .sum();
     let touched_scope_summary = TouchedScopeSummary::new_invalidation(
         PartitionScopeSet::new(seed_scopes),
         PartitionScopeSet::new(inclusion_scopes),
-        PartitionScopeSet::default(),
         PartitionScopeSet::new(direct_dirty_scopes),
         PartitionScopeSet::new(maybe_stale_scopes),
         DedupedNodeBatch::new(touched_nodes),
@@ -143,7 +129,6 @@ pub(super) fn plan_invalidation_frontier(
     Ok(FrontierPlan::new(
         seed_batch,
         direct_waves,
-        transitive_roots,
         touched_scope_summary,
         predicted,
     ))

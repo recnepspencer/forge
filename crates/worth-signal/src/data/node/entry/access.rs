@@ -100,6 +100,80 @@ impl NodeEntry {
 
     /// Replace per-node evaluation policy descriptor.
     pub fn set_eval_config(&mut self, config: NodeEvaluationConfig) {
-        self.warm.eval_config = config;
+        self.warm.eval_config = config.upgrade_legacy_output_equivalence();
+    }
+
+    pub(crate) const fn pending_cause_set_id(
+        &self,
+    ) -> crate::data::graph::storage::invalidation_causes::PendingCauseSetId {
+        self.hot.pending_cause_set_id
+    }
+
+    pub(crate) fn set_pending_cause_set_id(
+        &mut self,
+        id: crate::data::graph::storage::invalidation_causes::PendingCauseSetId,
+    ) {
+        self.hot.pending_cause_set_id = id;
+    }
+
+    pub(crate) const fn dependency_revision(
+        &self,
+    ) -> crate::data::proof::invalidation::binding::DependencyRevision {
+        self.hot.dependency_revision
+    }
+
+    pub(crate) fn pending_dependency_revalidation(
+        &self,
+    ) -> Option<&crate::data::proof::invalidation::binding::PendingDependencyRevalidation> {
+        self.warm.pending_dependency_revalidation.as_ref()
+    }
+
+    pub(crate) fn direct_invalidation_basis(
+        &self,
+    ) -> Option<&crate::data::proof::invalidation::source_seed::DirectInvalidationBasis> {
+        self.warm.direct_invalidation_basis.as_ref()
+    }
+
+    pub(crate) fn dirty_partition_scope_payload(&self) -> &[(Aspect, PartitionSubscription)] {
+        self.warm.dirty_partition_scope_payload.as_slice()
+    }
+
+    pub(crate) fn mark_pending_dependency_revalidation(
+        &mut self,
+        producers: impl IntoIterator<Item = crate::data::handle::NodeId>,
+    ) {
+        self.warm.pending_dependency_revalidation = Some(
+            crate::data::proof::invalidation::binding::PendingDependencyRevalidation::new(
+                self.hot.dependency_revision,
+                producers,
+            ),
+        );
+    }
+
+    pub(crate) fn mark_pending_structural_revalidation(
+        &mut self,
+        producers: impl IntoIterator<Item = crate::data::handle::NodeId>,
+    ) {
+        self.warm.pending_dependency_revalidation = Some(
+            crate::data::proof::invalidation::binding::PendingDependencyRevalidation::structural(
+                self.hot.dependency_revision,
+                producers,
+            ),
+        );
+    }
+
+    pub(crate) fn resolve_pending_dependency_producer(
+        &mut self,
+        producer: crate::data::handle::NodeId,
+    ) -> bool {
+        let Some(pending) = self.warm.pending_dependency_revalidation.as_mut() else {
+            return false;
+        };
+        pending.resolve_producer(producer);
+        if pending.is_resolved() && !pending.requires_structural_recompute() {
+            self.warm.pending_dependency_revalidation = None;
+            return true;
+        }
+        false
     }
 }

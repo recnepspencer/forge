@@ -27,6 +27,7 @@ pub enum PreparedEvaluationOutcome {
     #[default]
     Evaluate,
     ValidatedClean,
+    DeferredByInvalidation,
     DeferredByCondition,
     RevertedCleanByCondition,
 }
@@ -106,6 +107,18 @@ impl PreparedEvaluation {
             dependencies: PreparedDependencyCapture::default(),
             trace_data: PreparedTraceData::default(),
             outcome: PreparedEvaluationOutcome::DeferredByCondition,
+            origin: PreparedEvaluationOrigin::DirectPrecompute,
+            memo_decision: PreparedMemoDecision::None,
+            keyed: None,
+        }
+    }
+
+    pub(crate) fn deferred_by_invalidation() -> Self {
+        Self {
+            result: NodeEvaluationResult::from_version(AspectVersion::zero()),
+            dependencies: PreparedDependencyCapture::default(),
+            trace_data: PreparedTraceData::default(),
+            outcome: PreparedEvaluationOutcome::DeferredByInvalidation,
             origin: PreparedEvaluationOrigin::DirectPrecompute,
             memo_decision: PreparedMemoDecision::None,
             keyed: None,

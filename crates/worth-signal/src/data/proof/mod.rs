@@ -4,10 +4,7 @@ mod contracts;
 mod delta;
 mod dependency_batch;
 mod dirty_batch;
-mod invalidation_admission;
-mod invalidation_execution;
-mod invalidation_frontier;
-mod invalidation_plan;
+pub(crate) mod invalidation;
 mod locality;
 mod ordered_stream;
 mod snapshot_commit;
@@ -18,19 +15,14 @@ pub use contracts::{
 };
 pub use delta::{DirtyDelta, PatchPlan, StructuralDelta};
 pub use dependency_batch::{DependencyBatchEdit, DependencySetEdit};
-pub use dirty_batch::{DirtyBatch, DirtyBatchEntry, SemanticBatchCommit};
-pub use invalidation_admission::{
-    FrontierEntryClassification, FrontierInclusionBasis, FrontierSeedCause,
-    FrontierValidationDecision, InvalidationSeed, InvalidationSeedBatch,
-};
-pub use invalidation_execution::{
-    FrontierExecutionCounters, FrontierExecutionSummary, FrontierWaveEntrySummary,
-    FrontierWaveSummary, InvalidationTraceRecord,
-};
-pub use invalidation_frontier::{FrontierWave, InvalidationFrontier, NarrowedPropagationSet};
-pub use invalidation_plan::{
-    FrontierPlan, FrontierPredictedCounters, FrontierWaveEntryPlan, FrontierWavePlan,
-    TransitiveFrontierRoot,
+#[allow(deprecated)]
+pub use dirty_batch::{DirtyBatch, DirtyBatchEntry, SemanticBatchCommit, SourceRecomputeAdmission};
+pub use invalidation::{
+    FrontierEntryClassification, FrontierExecutionCounters, FrontierExecutionSummary,
+    FrontierInclusionBasis, FrontierPlan, FrontierPredictedCounters, FrontierSeedCause,
+    FrontierValidationDecision, FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan,
+    FrontierWaveSummary, InvalidationSeed, InvalidationSeedBatch, InvalidationTraceRecord,
+    TransitiveFrontierEntrySummary, TransitiveFrontierWaveSummary,
 };
 pub use locality::{
     DedupedNodeBatch, LocalityFootprint, PartitionScopeSet, SortedSourceBatch, TouchedScopeSummary,

@@ -43,8 +43,8 @@ fn whole_partition_invalidates_partition_detail_subscribers() {
 
     assert_eq!(
         graph.get_state(dependent).unwrap(),
-        NodeState::Dirty,
-        "whole-partition changes must invalidate detail subscribers on the same partition"
+        NodeState::MaybeStale,
+        "source seeds must leave detail subscribers pending until a committed delta exists"
     );
 }
 

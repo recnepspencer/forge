@@ -25,7 +25,7 @@ pub(super) fn run_grouped_concurrent_apply_pass(
     stage_index: u32,
     tasks: Vec<LoweredTask>,
     plan: ConcurrentApplyPlan,
-    _comparator_resolver: &mut impl ComparatorPolicyResolver,
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
     stage_identities: &[StageSemanticIdentity],
     stage_record: &mut StageExecutionRecord,
 ) -> Result<StageScratch, SignalError> {
@@ -39,6 +39,7 @@ pub(super) fn run_grouped_concurrent_apply_pass(
             plan,
             stage_identities,
             stage_record,
+            comparator_resolver,
         );
         return Err(SignalError::internal(
             "grouped concurrent apply requires the `parallel` feature",
@@ -113,6 +114,7 @@ pub(super) fn run_grouped_concurrent_apply_pass(
             stage_index,
             group_packets,
             plan.reduction,
+            comparator_resolver,
         )
     }
 }

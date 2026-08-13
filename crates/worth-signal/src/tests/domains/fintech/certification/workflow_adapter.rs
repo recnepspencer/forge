@@ -11,7 +11,8 @@ use crate::facade::SignalError;
 use crate::tests::domains::fintech::FintechScale;
 
 use super::super::market_seed::MarketSeed;
-use super::super::world_assembly::WorldAssembly;
+use super::super::regimes::MarketRegime;
+use super::super::world::{compile_unseeded_runtime_fixture, FinancialWorldDefinition};
 use super::independent_oracle;
 use super::workflow_session::{
     CertifiedFintechWorkflowSession, FintechWorkflowStep, SignalFintechWorkflowCertificationAdapter,
@@ -23,9 +24,11 @@ pub(super) fn initialize_session(
 ) -> Result<CertifiedFintechWorkflowSession, SignalError> {
     let policy = SignalFintechWorkflowCertificationAdapter::runtime_policy(profile)?;
     let executor = SignalFintechWorkflowCertificationAdapter::executor(profile)?;
-    let mut world = WorldAssembly::new(FintechScale::smoke())
-        .without_market_seed()
-        .build();
+    let mut world = compile_unseeded_runtime_fixture(FinancialWorldDefinition::runtime_fixture(
+        FintechScale::smoke(),
+        MarketRegime::Calm,
+        7,
+    ));
     world.runtime.set_runtime_policy(policy);
     let main = world.current_branch();
     Ok(CertifiedFintechWorkflowSession {

@@ -59,7 +59,8 @@ fn invalidation_emits_lineage_without_replacement_and_branch_restore_is_local() 
                     LineageRecordKind::Invalidation {
                         cause: InvalidationCause::SourceAspectChanged { .. }
                             | InvalidationCause::DirectDependencyChanged { .. }
-                            | InvalidationCause::TransitiveDependencyChanged { .. },
+                            | InvalidationCause::TransitiveDependencyChanged { .. }
+                            | InvalidationCause::PendingDependencyRevalidation { .. },
                         ..
                     }
                 )

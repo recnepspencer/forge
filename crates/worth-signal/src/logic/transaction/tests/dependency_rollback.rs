@@ -85,6 +85,8 @@ fn rollback_restores_original_source_subscriber_membership_after_rewire() {
 
     assert_eq!(runtime.graph().subscribers_of(source_a).unwrap(), &[target]);
     assert!(runtime.graph().subscribers_of(source_b).unwrap().is_empty());
+    let baseline_branch_view = runtime.graph().branch_mutation_records();
+    let baseline_pending_journal = runtime.graph().pending_branch_mutation_records();
 
     let mut tx = runtime.begin(&mut ctx);
     tx.evaluate_with_plan(
@@ -114,6 +116,14 @@ fn rollback_restores_original_source_subscriber_membership_after_rewire() {
 
     assert_eq!(runtime.graph().subscribers_of(source_a).unwrap(), &[target]);
     assert!(runtime.graph().subscribers_of(source_b).unwrap().is_empty());
+    assert_eq!(
+        runtime.graph().branch_mutation_records(),
+        baseline_branch_view
+    );
+    assert_eq!(
+        runtime.graph().pending_branch_mutation_records(),
+        baseline_pending_journal
+    );
     runtime
         .graph()
         .assert_bidirectional_consistency()
@@ -131,5 +141,59 @@ fn rollback_restores_original_source_subscriber_membership_after_rewire() {
             .transaction
             .rollback_packet_subscriber_repair_count,
         1
+    );
+}
+
+#[test]
+fn rollback_rewinds_cause_storage_and_output_commit_ordinal() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let producer = graph.node().build();
+    let consumer = graph.node().build();
+    graph
+        .append_dependency(consumer, producer, ASPECT_A)
+        .unwrap();
+    let mut runtime = build_runtime(graph);
+    let mut ctx = ();
+    evaluate(runtime.graph_mut(), producer, &mut |_id, _graph| {
+        Ok(version_ab(1, 0))
+    })
+    .unwrap();
+    evaluate(runtime.graph_mut(), consumer, &mut |_id, _graph| {
+        Ok(version_ab(1, 0))
+    })
+    .unwrap();
+    let baseline_ordinal = runtime.graph().cause_sets.reserve_output_commit_ordinal();
+    let baseline_slots = runtime.graph().cause_sets.allocated_slot_count();
+
+    let mut tx = runtime.begin(&mut ctx);
+    tx.mark_dirty(producer, ASPECT_A).unwrap();
+    tx.evaluate_with_plan(
+        producer,
+        &|view| Ok(view.finish(version_ab(2, 0))),
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+    assert_eq!(tx.staged_graph().pending_causes(consumer).unwrap().len(), 1);
+    assert_eq!(
+        tx.staged_graph()
+            .cause_sets
+            .reserve_output_commit_ordinal()
+            .0,
+        baseline_ordinal.0 + 1
+    );
+
+    assert_eq!(
+        tx.rollback().unwrap().outcome,
+        TransactionOutcome::RolledBack
+    );
+
+    assert!(runtime.graph().pending_causes(consumer).unwrap().is_empty());
+    assert_eq!(
+        runtime.graph().cause_sets.reserve_output_commit_ordinal(),
+        baseline_ordinal
+    );
+    assert_eq!(
+        runtime.graph().cause_sets.allocated_slot_count(),
+        baseline_slots
     );
 }

@@ -3,7 +3,7 @@ mod construction;
 mod diagnostics_access;
 mod lifecycle;
 mod runtime;
-mod storage;
+pub(crate) mod storage;
 mod topology;
 
 pub(crate) use construction::node_builder;
@@ -14,7 +14,7 @@ pub use runtime::ScratchLeaseKind;
 pub use runtime::SignalGraph;
 pub(crate) use runtime::TraversalScratch;
 #[cfg_attr(not(feature = "parallel"), allow(unused_imports))]
-pub(crate) use runtime::{ApplyCommitPacket, SuppressionFreeApplyCommitPacket};
+pub(crate) use runtime::{ApplyCommitPacket, PreparedParallelApplyCommitPacket};
 #[allow(unused_imports)]
 pub(crate) use runtime::{BranchMutationRecord, BranchStructuralDelta};
 pub use runtime::{

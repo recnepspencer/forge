@@ -10,7 +10,7 @@ impl SignalGraph {
             let scratch = scratch.traversal_mut();
             graph.collect_retired_node_adjacency(id, scratch)?;
             graph.sever_retired_upstream_links(id, &scratch.node_buffer_a)?;
-            graph.mark_retired_downstream_dependents_dirty(id, &scratch.node_buffer_b)?;
+            graph.repair_retired_downstream_topology(id, &scratch.node_buffer_b)?;
             graph.retire_node_slot(id);
             Ok(())
         })
@@ -43,24 +43,19 @@ impl SignalGraph {
         self.reconcile_subscriber_sets(retired, sources, &[])
     }
 
-    fn mark_retired_downstream_dependents_dirty(
+    fn repair_retired_downstream_topology(
         &mut self,
         retired: NodeId,
         subscribers: &[NodeId],
     ) -> Result<(), SignalError> {
         for &subscriber in subscribers {
             if self.is_alive(subscriber) {
-                let dirty_dependencies = self
-                    .runtime_dependencies_of(subscriber)?
-                    .iter()
-                    .filter(|edge| edge.source() == retired)
-                    .map(|edge| (edge.aspect(), edge.scope_ref().cloned()))
+                let current = self.current_runtime_dependencies_of(subscriber)?.to_vec();
+                let retained = current
+                    .into_iter()
+                    .filter(|edge| edge.source() != retired)
                     .collect::<Vec<_>>();
-                let mut entry = self.get_entry_mut(subscriber)?;
-                for (aspect, scope) in dirty_dependencies {
-                    let scopes = scope.into_iter().collect::<Vec<_>>();
-                    entry.transition_dirty(aspect, &scopes);
-                }
+                self.set_dependency_edges_sorted(subscriber, &retained)?;
             }
         }
         Ok(())
