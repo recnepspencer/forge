@@ -206,13 +206,36 @@ Outcomes retain typed denial, invariant, stale, abort, cancellation, deadline,
 partial-effect, indeterminate, committed, and recovered meaning. Use
 `explanation()` for presentation; do not parse diagnostic text.
 
-## Current limits
+## Process transport
 
-The stable front door is currently an in-process Rust API. The Authentik
-identity adapter is real, but HTTP transport and independent user-node
-orchestration belong to Bank World Phase 4. Live delivery is poll-based at this
-boundary; a transport adapter may translate typed outcomes to server-sent
-events or another protocol without acquiring Query authority.
+`bank-http-adapter` now provides the authoritative Axum HTTP/SSE process and
+`bank-user-node` provides one independently authenticated client process per
+participant. Both bind dynamic ports, report typed `bound` and `ready`
+postures, accept one named JSON installation document over stdin, and shut down
+through the typed process command. Production callers use the versioned
+`BankHttp*` and `BankUserNode*` request/outcome families rather than parsing
+status text.
+
+The user node stores only its Authentik credential and forwards fresh requests.
+The Bank server retains continuation, recovery, and elevation authority behind
+bounded opaque tokens. Elevation approval, revocation, and
+mandatory review accept only that token plus a fresh credential, deadline, and
+idempotency key; callers cannot transmit estate, branch, grant, phase, or Query
+authority at those transitions. Live account activity is translated to SSE
+without moving the underlying Query lease into the user node.
+
+The principal supported endpoints are `/v1/queries/account-summary`, the
+account-activity page/resume and live paths, `/v1/mutations`, the estate
+notification and disbursement paths, recovery inspection, and the four
+`/v1/estate/elevation/*` transitions. The same application request shapes are
+available at a user node without a credential field; that process supplies its
+own authenticated session. Linear undo/redo routes remain provisional
+Milestone 9.18 experiments rather than a Bank Phase 5 product contract.
+
+Bank Phase 5 is closed. The Docker-backed Authentik courtroom executed the
+complete separate-process failure matrix through the production Bank server and
+independent user-node binaries; its evidence is recorded in
+`front-door-closure-ledger.md`. Runtime Phase 9 is the next milestone frontier.
 
 ## Prohibitions
 
@@ -230,6 +253,7 @@ is the authoritative terminal surface.
 
 ## Related docs
 
+- [Bank Process Transport](process-transport.md)
 - [Banking Product Contract](banking-product-contract.md)
 - [Async Identity Courtroom](async-identity-courtroom.md)
 - [Front-Door Closure Ledger](front-door-closure-ledger.md)

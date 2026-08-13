@@ -283,7 +283,7 @@ fn redo_through_undo_handle_rail_and_aftermath() {
     // admits undo (derivation precondition) through the rail-backed recovery
     // handle, then derives a descriptive redo intent bound to the linear head.
     use super::disburse_estate::fixture::disbursement_world;
-    use super::phase8_redo_support::commit_and_prove_undo;
+    use super::phase8_proved_undo_fixture::commit_and_prove_undo;
 
     let fixture = disbursement_world("redo-cross-gate-stack", 1_000);
     let proved = commit_and_prove_undo(&fixture, 77);

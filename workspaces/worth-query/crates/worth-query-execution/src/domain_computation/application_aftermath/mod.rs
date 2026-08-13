@@ -68,7 +68,8 @@ pub use redo_admission::WorthQueryRedoAdmission;
 pub use redo_denial::{WorthQueryRedoDenial, WorthQueryRedoDenialKind};
 pub use redo_intent::{WorthQueryProvedUndo, WorthQueryRedoIntent, WorthQueryRedoIntentIdentity};
 pub use redo_progression::{
-    map_ordinary_commit_conflict_to_redo, progress_admitted_redo, WorthQueryRedoProgressionHandoff,
+    consume_redo_progression, map_ordinary_commit_conflict_to_redo, progress_admitted_redo,
+    WorthQueryRedoProgressionHandoff,
 };
 pub use redo_recovery::WorthQueryRedoRecovery;
 pub use retained_preimage::{
@@ -87,7 +88,8 @@ pub use undo_intent::WorthQueryUndoIntentIdentity;
 // consumes it by name, and this phase does not export for consumers that do
 // not exist.
 pub use undo_progression::{
-    map_ordinary_commit_conflict, progress_admitted_undo, WorthQueryUndoProgressionHandoff,
+    consume_unresolved_undo_progression, map_ordinary_commit_conflict,
+    progress_admitted_reconciliation, progress_admitted_undo, WorthQueryUndoProgressionHandoff,
 };
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 use bank_domain::{
     estate::{EstateAction, EstateDisbursement, LegalAuthorityId},
     model::BankPrincipalId,
-    proposals::{BankIdempotencyClaim, BankProposalEngine, BankProposedEffect},
+    proposals::{BankIdempotencyClaim, BankIdempotencyKey, BankProposalEngine, BankProposedEffect},
     schema::{
         AccountIdentity, BankSchema, DisburseEstateCapability, DisburseEstateOperation,
         EstateAccount, EstateBeneficiary, EstateCase, EstateCaseIdentityField, EstateExecutor,
@@ -43,6 +43,17 @@ type EstateDisbursementEffectProgram = WorthQueryApplicationEffectProgram<
 >;
 
 impl BankIdentityRuntime {
+    pub fn disburse_estate_with_key(
+        &self,
+        principal: &BankAuthenticatedPrincipal,
+        action: EstateAction,
+        idempotency_key: &BankIdempotencyKey,
+        request: &WorthQueryRequestScope,
+    ) -> Result<BankMutationCommitOutcome, BankEstateProgressionDenial> {
+        let idempotency = super::idempotency::disbursement_binding(idempotency_key, action)?;
+        self.disburse_estate(principal, action, idempotency, request)
+    }
+
     pub fn disburse_estate(
         &self,
         principal: &BankAuthenticatedPrincipal,

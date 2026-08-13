@@ -161,7 +161,7 @@ macro_rules! created_identity_application_value {
                 fn from_foundational_value(value: &AspectValue) -> Option<Self> {
                     match value {
                         AspectValue::String(InternedString::Raw(value)) => {
-                            <$Type>::from_canonical_text(value)
+                            <$Type>::parse_canonical_text(value)
                         }
                         _ => None,
                     }

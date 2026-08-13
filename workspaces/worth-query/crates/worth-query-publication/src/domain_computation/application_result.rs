@@ -1,10 +1,12 @@
 use worth_query_execution::facade::primary_graph::WorthQueryAdmittedDisclosedApplicationResult;
 
+mod basis;
 mod disclosure;
 mod inspection;
 mod receipt;
 mod terminal_release;
 
+pub use basis::{WorthQueryPublishedApplicationBasis, WorthQueryPublishedApplicationBasisPosture};
 pub use disclosure::{
     WorthQueryPublishedApplicationDisclosure, WorthQueryPublishedApplicationDisclosureIdentity,
     WorthQueryPublishedApplicationDisclosurePosture,

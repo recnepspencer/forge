@@ -43,7 +43,9 @@ pub struct BankApprovedEstateElevation {
 }
 
 impl BankApprovedEstateElevation {
-    pub(super) const fn from_query(query: WorthQueryApprovedElevation) -> Self {
+    pub(in crate::estate_progression) const fn from_query(
+        query: WorthQueryApprovedElevation,
+    ) -> Self {
         Self { query }
     }
 

@@ -1,6 +1,7 @@
 use worth_query_execution::facade::primary_graph::WorthQueryApplicationQueryAccessReceipt;
 
 use super::WorthQueryApplicationQueryPublicationInspection;
+use super::WorthQueryPublishedApplicationBasis;
 use super::WorthQueryPublishedApplicationDisclosure;
 use super::WorthQueryPublishedApplicationQueryTerminalRelease;
 use crate::application_aftermath::WorthQueryPublishedCanonicalWork;
@@ -35,6 +36,9 @@ pub enum WorthQueryPublishedApplicationQueryOmissionPosture {
 /// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationQueryPublicationReceipt {
+    query_identity: String,
+    parameter_binding_identity: String,
+    basis: WorthQueryPublishedApplicationBasis,
     result_count: usize,
     ordinary_work_units: usize,
     disclosure: WorthQueryPublishedApplicationDisclosure,
@@ -46,6 +50,9 @@ impl WorthQueryApplicationQueryPublicationReceipt {
     pub(super) fn from_terminal(terminal: &WorthQueryApplicationQueryAccessReceipt) -> Self {
         let disclosure = WorthQueryPublishedApplicationDisclosure::capture(terminal.disclosure());
         Self {
+            query_identity: terminal.query_identity().render_support_hex(),
+            parameter_binding_identity: terminal.parameter_binding_identity().render_hex(),
+            basis: WorthQueryPublishedApplicationBasis::capture(terminal),
             result_count: terminal.result_count(),
             ordinary_work_units: terminal.total_work_units(),
             disclosure,
@@ -62,6 +69,15 @@ impl WorthQueryApplicationQueryPublicationReceipt {
 
     pub(super) const fn result_count(&self) -> usize {
         self.result_count
+    }
+    pub(super) fn query_identity(&self) -> &str {
+        &self.query_identity
+    }
+    pub(super) fn parameter_binding_identity(&self) -> &str {
+        &self.parameter_binding_identity
+    }
+    pub(super) const fn basis(&self) -> &WorthQueryPublishedApplicationBasis {
+        &self.basis
     }
     pub(super) const fn ordinary_work_units(&self) -> usize {
         self.ordinary_work_units

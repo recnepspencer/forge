@@ -196,24 +196,24 @@ impl BankEstateProgressionDenial {
         Self::Authorization(crate::BankAuthorizationDenial::from_query(denial))
     }
 
-    pub(crate) fn from_approval_authorization(
-        denial: WorthQueryElevationApprovalAuthorizationDenial,
+    pub(crate) fn from_approval_authorization_ref(
+        denial: &WorthQueryElevationApprovalAuthorizationDenial,
     ) -> Self {
         Self::ApprovalAuthorization(crate::BankAuthorizationDenial::from_query(
             denial.denial().clone(),
         ))
     }
 
-    pub(crate) fn from_close_authorization(
-        denial: WorthQueryElevationCloseAuthorizationDenial,
+    pub(crate) fn from_close_authorization_ref(
+        denial: &WorthQueryElevationCloseAuthorizationDenial,
     ) -> Self {
         Self::CloseAuthorization(crate::BankAuthorizationDenial::from_query(
             denial.denial().clone(),
         ))
     }
 
-    pub(crate) fn from_review_authorization(
-        denial: WorthQueryMandatoryReviewAuthorizationDenial,
+    pub(crate) fn from_review_authorization_ref(
+        denial: &WorthQueryMandatoryReviewAuthorizationDenial,
     ) -> Self {
         Self::ReviewAuthorization(crate::BankAuthorizationDenial::from_query(
             denial.denial().clone(),

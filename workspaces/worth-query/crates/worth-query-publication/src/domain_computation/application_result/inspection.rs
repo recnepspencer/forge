@@ -1,6 +1,6 @@
 use super::receipt::WorthQueryPublishedApplicationQueryOmissionPosture;
 use super::{
-    WorthQueryApplicationQueryPublicationReceipt,
+    WorthQueryApplicationQueryPublicationReceipt, WorthQueryPublishedApplicationBasis,
     WorthQueryPublishedApplicationQueryTerminalRelease,
 };
 
@@ -19,6 +19,18 @@ impl<'receipt> WorthQueryApplicationQueryPublicationInspection<'receipt> {
 
     pub const fn result_count(&self) -> usize {
         self.receipt.result_count()
+    }
+
+    pub fn query_identity(&self) -> &str {
+        self.receipt.query_identity()
+    }
+
+    pub fn parameter_binding_identity(&self) -> &str {
+        self.receipt.parameter_binding_identity()
+    }
+
+    pub const fn basis(&self) -> &WorthQueryPublishedApplicationBasis {
+        self.receipt.basis()
     }
 
     pub const fn ordinary_work_units(&self) -> usize {

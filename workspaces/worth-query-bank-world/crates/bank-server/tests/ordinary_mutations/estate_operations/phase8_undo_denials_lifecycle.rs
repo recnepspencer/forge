@@ -2,7 +2,7 @@
 
 use bank_domain::proposals::BankIdempotencyKey;
 use bank_external_rail::test_control::FaultScript;
-use bank_server::BankEstateProgressionDenial;
+use bank_server::{BankEstateProgressionDenial, BankUndoRetry};
 use worth_query_host::facade::provisional_aftermath::WorthQueryUndoDenialKind;
 
 use super::disburse_estate::fixture::disbursement_world;
@@ -97,6 +97,10 @@ fn conflicted_reverse_journal_undo_denies_and_writes_nothing() {
             &request_scope(),
         )
         .expect_err("foreign journal must conflict");
+    let (denied, retry) = denied.into_parts();
+    let Some(BankUndoRetry::Compensation(_retry)) = retry else {
+        panic!("safe conflict must return the exact compensation authority");
+    };
     match denied {
         BankEstateProgressionDenial::Undo(d) => {
             assert_eq!(d.kind(), WorthQueryUndoDenialKind::Conflicted)
@@ -128,8 +132,8 @@ fn conflicted_reverse_journal_undo_denies_and_writes_nothing() {
 /// to hold through `Drop`, which is why this test denies through the *production*
 /// Bank entry point rather than a Query-internal path.
 ///
-/// Re-minting alone would only show a freed slot, so this also re-admits — a
-/// usable capability is the claim (Q8.22-C5).
+/// The exact move-only retry carrier must return. The original receipt must
+/// not mint a parallel recovery authority after that safe denial.
 #[test]
 fn bank_side_undo_denial_leaves_the_commit_recoverable() {
     let fixture = disbursement_world("undo-denial-keeps-recovery", 800);
@@ -155,20 +159,17 @@ fn bank_side_undo_denial_leaves_the_commit_recoverable() {
             &request_scope(),
         )
         .expect_err("foreign journal must conflict");
+    let (denied, retry) = denied.into_parts();
+    assert!(matches!(retry, Some(BankUndoRetry::Compensation(_))));
     match denied {
         BankEstateProgressionDenial::Undo(d) => {
             assert_eq!(d.kind(), WorthQueryUndoDenialKind::Conflicted)
         }
         other => panic!("expected Undo(Conflicted), got {other:?}"),
     }
-    let handle = fixture
-        .world
-        .runtime
-        .open_commit_recovery(&receipt)
-        .expect("a Bank-side denial must leave the commit recoverable");
-    fixture
-        .world
-        .runtime
-        .admit_undo_disbursement_recovery(handle, &specialist, &request_scope())
-        .expect("the returned capability re-admits, not merely re-mints");
+    let remint = fixture.world.runtime.open_commit_recovery(&receipt);
+    assert!(
+        remint.is_err(),
+        "the receipt must not mint a parallel retry"
+    );
 }

@@ -18,7 +18,9 @@ pub struct BankEstateMandatoryReview {
 }
 
 impl BankEstateMandatoryReview {
-    pub(super) const fn from_query(query: WorthQueryMandatoryReview) -> Self {
+    pub(in crate::estate_progression) const fn from_query(
+        query: WorthQueryMandatoryReview,
+    ) -> Self {
         Self { query }
     }
 

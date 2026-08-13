@@ -15,6 +15,15 @@ macro_rules! domain_id {
             pub const fn get(self) -> u64 {
                 self.0
             }
+
+            pub fn canonical_text(self) -> String {
+                format!("fixture:{}", self.0)
+            }
+
+            pub fn parse_canonical_text(value: &str) -> Option<Self> {
+                let value = value.strip_prefix("fixture:")?.parse::<u64>().ok()?;
+                Self::new(value)
+            }
         }
     };
 }
@@ -53,7 +62,7 @@ macro_rules! created_domain_id {
                 canonical_created_identity(self.0)
             }
 
-            pub(crate) fn from_canonical_text(value: &str) -> Option<Self> {
+            pub fn parse_canonical_text(value: &str) -> Option<Self> {
                 parse_created_identity(value).map(Self)
             }
         }
@@ -158,8 +167,18 @@ mod tests {
     fn created_identity_text_round_trips_without_loss() {
         let identity = PostingId::from_operation([0xab; 32], u32::MAX);
         assert_eq!(
-            PostingId::from_canonical_text(&identity.canonical_text()),
+            PostingId::parse_canonical_text(&identity.canonical_text()),
             Some(identity)
         );
+    }
+
+    #[test]
+    fn fixture_identity_text_round_trips_without_crossing_zero() {
+        let identity = InstitutionId::new(7).unwrap();
+        assert_eq!(
+            InstitutionId::parse_canonical_text(&identity.canonical_text()),
+            Some(identity)
+        );
+        assert_eq!(InstitutionId::parse_canonical_text("fixture:0"), None);
     }
 }

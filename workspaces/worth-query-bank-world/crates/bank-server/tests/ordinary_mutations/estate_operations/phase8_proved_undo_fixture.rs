@@ -1,4 +1,4 @@
-//! Shared Gate 8.5 redo courtroom helpers — prove through production path.
+//! Production-path fixture that commits and proves one provisional undo.
 
 use bank_domain::proposals::BankIdempotencyKey;
 use bank_server::{
@@ -7,7 +7,6 @@ use bank_server::{
 use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
 use super::disburse_estate::fixture::DisbursementFixture;
-pub(super) use super::phase8_undo_denial_support::graph_snapshot;
 use crate::support::request_scope;
 
 pub(super) struct ProvedUndoFixture {
@@ -41,17 +40,17 @@ pub(super) fn commit_and_prove_undo(fixture: &DisbursementFixture, key: u8) -> P
         .runtime
         .admit_undo_disbursement_recovery(handle, &specialist, &request_scope())
         .expect("admit undo");
-    let compensation_key =
-        BankIdempotencyKey::new(format!("redo-support-undo-{key}")).expect("key");
+    let compensation_key = BankIdempotencyKey::new(format!("proved-undo-{key}")).expect("key");
     let compensated = fixture
         .world
         .runtime
         .progress_undo_commit_recovery(admission, &specialist, &compensation_key, &request_scope())
         .expect("undo commit");
-    let (compensated, proved) = compensated.into_parts();
+    let (compensated, proved, retry) = compensated.into_parts();
+    assert!(retry.is_none(), "a committed undo is not retryable");
     let _undo = match compensated {
-        BankMutationCommitOutcome::Committed(r)
-        | BankMutationCommitOutcome::AlreadyCommitted(r) => r,
+        BankMutationCommitOutcome::Committed(receipt)
+        | BankMutationCommitOutcome::AlreadyCommitted(receipt) => receipt,
         other => panic!("undo must commit: {other:?}"),
     };
     let recovery = proved.expect("committed undo seals causal evidence");

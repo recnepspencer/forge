@@ -4,6 +4,7 @@ use bank_domain::{
         EstateDeathNotificationRequest,
     },
     model::BankPrincipalId,
+    proposals::BankIdempotencyKey,
     schema::{
         BankSchema, DeathNoticeIdentityField, DeathNoticeStatusField, DeathNoticeSubject,
         EstateCase, EstateDeathNotice, EstateDeathNotificationEffect, EstateDeceased,
@@ -58,6 +59,17 @@ pub enum BankDeathNotificationProjectionDenial {
 }
 
 impl BankIdentityRuntime {
+    pub fn notify_estate_death_with_key(
+        &self,
+        principal: &BankAuthenticatedPrincipal,
+        action: EstateAction,
+        key: &BankIdempotencyKey,
+        request: &WorthQueryRequestScope,
+    ) -> Result<BankMutationCommitOutcome, BankEstateProgressionDenial> {
+        let binding = super::idempotency::notification_binding(key, action)?;
+        self.notify_estate_death(principal, action, binding, request)
+    }
+
     pub fn notify_estate_death(
         &self,
         principal: &BankAuthenticatedPrincipal,

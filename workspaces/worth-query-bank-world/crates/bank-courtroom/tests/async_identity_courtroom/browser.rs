@@ -109,7 +109,7 @@ async fn complete_browser_authorization_with_delivery(
     callback_result
 }
 
-async fn enter_value(
+pub(super) async fn enter_value(
     driver: &WebDriver,
     selector: &str,
     value: &str,
@@ -214,7 +214,7 @@ async fn deep_visible_field(
     }
 }
 
-async fn submit_focused_stage(driver: &WebDriver, stage: &str) -> Result<(), String> {
+pub(super) async fn submit_focused_stage(driver: &WebDriver, stage: &str) -> Result<(), String> {
     if let Err(error) = driver.action_chain().send_keys(Key::Enter).perform().await {
         return Err(format!(
             "browser {stage} stage rejected submission: {error}; {}",

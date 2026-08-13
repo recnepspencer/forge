@@ -20,6 +20,8 @@ mod phase8_exact_handle_authority;
 mod phase8_fanout_courtroom;
 #[path = "estate_operations/phase8_ordinary_commit_cost.rs"]
 mod phase8_ordinary_commit_cost;
+#[path = "estate_operations/phase8_proved_undo_fixture.rs"]
+mod phase8_proved_undo_fixture;
 #[path = "estate_operations/phase8_publication_noninterference.rs"]
 mod phase8_publication_noninterference;
 #[path = "estate_operations/phase8_recovery_counters.rs"]
@@ -32,8 +34,6 @@ mod phase8_recovery_mechanism;
 mod phase8_recovery_policy;
 #[path = "estate_operations/phase8_redo_denials.rs"]
 mod phase8_redo_denials;
-#[path = "estate_operations/phase8_redo_support.rs"]
-mod phase8_redo_support;
 #[path = "estate_operations/phase8_redo_world_drift.rs"]
 mod phase8_redo_world_drift;
 #[path = "estate_operations/phase8_residue.rs"]

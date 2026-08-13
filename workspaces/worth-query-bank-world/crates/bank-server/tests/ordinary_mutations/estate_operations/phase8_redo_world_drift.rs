@@ -7,7 +7,8 @@ use bank_server::BankEstateProgressionDenial;
 use worth_query_host::facade::provisional_aftermath::WorthQueryRedoDenialKind;
 
 use super::disburse_estate::fixture::disbursement_world_with_clock_and_grant_validity;
-use super::phase8_redo_support::{commit_and_prove_undo, graph_snapshot};
+use super::phase8_proved_undo_fixture::commit_and_prove_undo;
+use super::phase8_undo_denial_support::graph_snapshot;
 use crate::authorization_time::AuthorizationTimeController;
 use crate::support::request_scope;
 

@@ -33,24 +33,18 @@ impl BankIdentityRuntime {
             .into())
     }
 
-    pub(crate) fn commit_reverse_journal_as_undo(
+    pub(crate) fn commit_materialized_reverse_journal_as_undo(
         &self,
-        proposal: BankAuthorizedProposal<
-            ReverseJournalOperation,
-            ReverseJournal,
-            Institution,
-            bank_domain::model::InstitutionId,
-        >,
+        program: ReverseJournalEffectProgram,
+        idempotency: WorthQueryApplicationIdempotencyBinding,
         handoff: &WorthQueryUndoProgressionHandoff,
-    ) -> Result<BankMutationCommitOutcome, BankCommitPreparationDenial> {
-        let (program, idempotency) = self.materialize_reverse_journal(proposal)?;
-        Ok(self
-            .application_runtime()
+    ) -> BankMutationCommitOutcome {
+        self.application_runtime()
             .compare_and_commit_undo_application(program, idempotency, handoff)
-            .into())
+            .into()
     }
 
-    fn materialize_reverse_journal(
+    pub(crate) fn materialize_reverse_journal(
         &self,
         proposal: BankAuthorizedProposal<
             ReverseJournalOperation,

@@ -9,6 +9,11 @@ use super::recovery_handle::RelinquishOnDenial;
 use super::retained_preimage::WorthQueryRetainedPreImage;
 use super::undo_admission::{WorthQueryUndoAdmission, WorthQueryUndoDerivedRequest};
 use super::undo_denial::{WorthQueryUndoDenial, WorthQueryUndoDenialKind};
+use super::{
+    reconcile_recovery_handle, WorthQueryRecoveryEffectAuthority, WorthQueryRecoveryHandleDenial,
+    WorthQueryRecoveryHandleDenialKind, WorthQueryRecoveryReconcileAdmission,
+};
+use crate::domain_computation::managed_run::WorthQueryRecoveryResourceTerminal;
 
 /// Sealed handoff from undo admission into ordinary mutation progression.
 #[derive(Debug)]
@@ -74,6 +79,36 @@ pub fn progress_admitted_undo(
         retained_preimage,
         _private: (),
     })
+}
+
+/// Consume an admitted reconciliation through the recovery owner's transition.
+pub fn progress_admitted_reconciliation(
+    admission: WorthQueryUndoAdmission,
+    authority: &WorthQueryRecoveryEffectAuthority,
+) -> Result<WorthQueryRecoveryReconcileAdmission, WorthQueryRecoveryHandleDenial> {
+    let handoff = progress_admitted_undo(admission).map_err(|_| {
+        WorthQueryRecoveryHandleDenial::new(
+            WorthQueryRecoveryHandleDenialKind::FreshAuthorityDenied,
+        )
+    })?;
+    if handoff.derived_request() != WorthQueryUndoDerivedRequest::Reconciliation {
+        return Err(WorthQueryRecoveryHandleDenial::new(
+            WorthQueryRecoveryHandleDenialKind::ReconciliationNotAdmitted,
+        ));
+    }
+    reconcile_recovery_handle(handoff.into_recovery_handle(), authority)
+}
+
+/// Close an undo continuation whose commit outcome may contain effects but
+/// cannot lawfully mint a redo continuation.
+pub fn consume_unresolved_undo_progression(
+    handoff: WorthQueryUndoProgressionHandoff,
+) -> Result<(), WorthQueryUndoDenial> {
+    handoff
+        .into_recovery_handle()
+        .consume(WorthQueryRecoveryResourceTerminal::Consumed)
+        .map(|_| ())
+        .map_err(|denial| super::undo_admission::map_recovery_denial(denial.kind()))
 }
 
 /// Map an ordinary compare-and-commit denial into an undo denial cause.
