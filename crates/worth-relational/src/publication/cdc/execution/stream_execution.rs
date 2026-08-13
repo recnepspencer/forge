@@ -1,8 +1,8 @@
-use crate::logic::runtime::RelationalRuntime;
 use crate::publication::cdc::data::{
     SubscriberCheckpoint, SubscriberStreamBatch, SubscriberStreamFailure,
 };
 use crate::publication::cdc::planning::checkpoint_basis_from_patch_position;
+use crate::runtime::RelationalRuntime;
 #[cfg(test)]
 use crate::schema::data::SchemaBoundaryFingerprint;
 #[cfg(test)]
@@ -52,7 +52,7 @@ pub(crate) fn execute_subscriber_stream(
 
 #[cfg(test)]
 pub(crate) fn collect_crossed_boundaries(
-    selected_envelopes: &[crate::replay::data::CanonicalCommitEnvelope],
+    selected_envelopes: &[crate::history::data::CanonicalCommitEnvelope],
 ) -> Vec<SchemaBoundaryFingerprint> {
     let mut boundaries = Vec::new();
     let mut seen = BTreeSet::new();

@@ -1,8 +1,8 @@
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::performance::data::RuntimeComplexityCounters;
 use crate::publication::bundle::PublicationStatus;
 use crate::publication::patch::data::PublishedAuthoritativeRecordPatch;
-use crate::replay::data::CanonicalCommitEnvelope;
 use crate::schema::data::{DescriptorSemanticsVersion, SchemaTransitionSummary};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId};
 use crate::transactions::data::{

@@ -5,9 +5,9 @@ use crate::authority::intent_merge::{
 };
 use crate::capabilities::{InstrumentationSource, RuntimeConfigSource};
 use crate::history::data::{BranchId, CommitId};
-use crate::logic::runtime::PartitionAccess;
+use crate::runtime::PartitionAccess;
 use crate::transactions::data::{CommitConflict, ConflictClass, MergedCommitPlan, MutationIntent};
-use crate::transactions::logic::RelationalTransaction;
+use crate::transactions::RelationalTransaction;
 use std::time::Instant;
 
 #[derive(Debug, Clone, Copy, Default)]

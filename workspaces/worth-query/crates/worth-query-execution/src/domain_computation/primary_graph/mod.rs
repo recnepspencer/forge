@@ -27,7 +27,7 @@ mod schema_layout;
 mod typed_bootstrap;
 
 #[cfg(test)]
-pub(in crate::domain_computation::primary_graph) mod tests;
+pub(in crate::domain_computation) mod tests;
 
 pub use crate::domain_computation::authorization::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
@@ -45,17 +45,24 @@ pub(in crate::domain_computation) use application_attempt::precondition_binding:
     bind_mutation_preconditions, WorthQueryBoundMutationPreconditions,
 };
 pub(in crate::domain_computation) use application_attempt::WorthQueryApplicationSnapshotLease;
+pub(in crate::domain_computation) use application_attempt::WorthQueryApplicationObservedFact;
+pub(in crate::domain_computation) use application_attempt::{
+    progression_denied, WorthQueryApplicationAttemptAffinity, WorthQueryApplicationAttemptBasis,
+    WorthQueryPreparedApplicationProviderAttempt, WorthQueryProviderAttemptRegistrationContext,
+    WorthQueryProviderProgressionOutcome, WorthQueryRegisteredProviderAttempt,
+};
 pub(crate) use application_attempt::WorthQueryRetainedGovernedInput;
 pub(crate) use application_attempt::WorthQueryPerformedExternalRedispatchSeal;
 pub(crate) use provider::WorthQueryRetainedPreImageSeal;
-#[cfg(test)]
-pub(in crate::domain_computation) use application_attempt::perform_external_redispatch_owner_fixture;
+pub(in crate::domain_computation) use provider::WorthQueryPrimaryGraphApplicationDecisionFact;
 pub use application_attempt::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
     WorthQueryApplicationCommitAuthorityBinding, WorthQueryApplicationCommitDenial,
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
     WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitOutcomeIdentity,
-    WorthQueryApplicationCommitReceipt, WorthQueryApplicationCommitRecoveryKind,
+    WorthQueryApplicationCommitPublicationExternalEffect,
+    WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
+    WorthQueryApplicationCommitRecoveryKind,
     WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
     WorthQueryApplicationEffectEntity, WorthQueryApplicationEffectProgram,
     WorthQueryApplicationEffectProgramBuilder, WorthQueryApplicationIdempotencyBinding,

@@ -130,7 +130,7 @@ fn strictly_greater_observation_stales_when_the_governing_field_reaches_equality
     assert_eq!(denied.counters(), predicate_counters(false));
 }
 
-fn comparison_runtime() -> crate::logic::runtime::RelationalRuntime {
+fn comparison_runtime() -> crate::runtime::RelationalRuntime {
     let mut schema = AspectSchemaFixture::with_default_declared_aspects(
         CascadeDeletePolicy::CascadeDeleteRelations,
     );
@@ -142,7 +142,7 @@ fn comparison_runtime() -> crate::logic::runtime::RelationalRuntime {
 }
 
 fn create_comparison_entity(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     name: &str,
     remaining: Option<u64>,
     text_bound: Option<&str>,
@@ -155,7 +155,7 @@ fn create_comparison_entity(
 }
 
 fn write_comparison_fields(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     entity: EntityId,
     remaining: Option<u64>,
     text_bound: Option<&str>,
@@ -190,7 +190,7 @@ fn write_comparison_fields(
 }
 
 fn observe_predicate(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     principal: EntityId,
     scope: EntityId,
     expected: AspectValue,
@@ -211,7 +211,7 @@ fn observe_predicate(
 }
 
 fn observe_field_constraint(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     principal: EntityId,
     scope: EntityId,
     right_field: worth_foundational::facade::AspectFieldLocator,
@@ -231,7 +231,7 @@ fn observe_field_constraint(
 }
 
 fn observe_path(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     principal: EntityId,
     scope: EntityId,
     path: RelationalAuthorizationPathPlan,

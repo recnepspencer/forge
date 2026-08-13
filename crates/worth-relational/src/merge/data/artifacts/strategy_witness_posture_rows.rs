@@ -6,7 +6,7 @@ use crate::merge::data::{
     DeletionExecutionClass, LoweredMergeBlockedReason, MergeExecutionReadiness,
     MergeResolutionClass, TopologyExecutionClass,
 };
-use crate::merge::logic::{
+use crate::merge::{
     blocked_reason_for_deletion_class, blocked_reason_for_topology_resolution_class,
 };
 use crate::transactions::data::RecordRef;

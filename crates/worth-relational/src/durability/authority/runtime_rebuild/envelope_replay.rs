@@ -6,8 +6,8 @@ use crate::authority::commit::pipeline::{
 };
 use crate::durability::data::{DurabilityError, RecoveryFailureClass, RecoveryPlan};
 use crate::history::data::HistoryDriftClass;
-use crate::logic::runtime::RelationalRuntime;
-use crate::replay::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
+use crate::history::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{TransactionOptions, WorkerIntentBatch};
 
 use super::history_parity::{
@@ -21,6 +21,18 @@ pub(super) fn replay_durable_envelope(
     envelope: &CanonicalCommitEnvelope,
     available_commit_ids: &BTreeSet<crate::history::data::CommitId>,
     plan: &RecoveryPlan,
+) -> Result<(), DurabilityError> {
+    validate_parent_closure(restored, envelope, available_commit_ids)?;
+    validate_expected_recovery_parent_shape(restored, envelope)?;
+    install_admitted_branch_head(restored, envelope);
+    replay_envelope_effect(restored, envelope)?;
+    restore_authoritative_artifacts_when_required(restored, envelope, plan)
+}
+
+fn validate_parent_closure(
+    restored: &RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+    available_commit_ids: &BTreeSet<crate::history::data::CommitId>,
 ) -> Result<(), DurabilityError> {
     let authoritative_parent_list = envelope.commit.ordered_parents();
     restored
@@ -54,6 +66,13 @@ pub(super) fn replay_durable_envelope(
         )
         .with_history_drift_class(HistoryDriftClass::CanonicalHistoryDrift));
     }
+    Ok(())
+}
+
+fn install_admitted_branch_head(
+    restored: &mut RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+) {
     if !restored
         .history
         .branch_heads
@@ -71,7 +90,12 @@ pub(super) fn replay_durable_envelope(
             .branch_heads
             .insert(envelope.branch_context.clone(), parent_head);
     }
-    validate_expected_recovery_parent_shape(restored, envelope)?;
+}
+
+fn replay_envelope_effect(
+    restored: &mut RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+) -> Result<(), DurabilityError> {
     if is_metadata_only_lineage_commit(envelope) || is_metadata_only_merge_commit(envelope) {
         restored.history_authority().publish_metadata_only_commit(
             envelope.commit.commit_id,
@@ -80,67 +104,87 @@ pub(super) fn replay_durable_envelope(
             envelope.patch.position,
             Arc::new(envelope.clone()),
         );
-        if plan.should_restore_authoritative_envelope(envelope.commit.commit_id) {
-            apply_authoritative_commit_artifacts(restored, envelope);
-            validate_recovered_history_parity(restored, envelope)?;
-        }
         return Ok(());
     }
     if envelope.merge_parent_branches.is_empty() {
-        let mut txn = restored.begin_transaction(TransactionOptions {
+        replay_ordinary_commit(restored, envelope)?;
+    } else {
+        replay_merge_commit(restored, envelope)?;
+    }
+    Ok(())
+}
+
+fn restore_authoritative_artifacts_when_required(
+    restored: &mut RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+    plan: &RecoveryPlan,
+) -> Result<(), DurabilityError> {
+    if plan.should_restore_authoritative_envelope(envelope.commit.commit_id) {
+        apply_authoritative_commit_artifacts(restored, envelope);
+        validate_recovered_history_parity(restored, envelope)?;
+    }
+    Ok(())
+}
+
+fn replay_ordinary_commit(
+    restored: &mut RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+) -> Result<(), DurabilityError> {
+    let mut txn = restored.begin_transaction(TransactionOptions {
+        target_branch: Some(envelope.branch_context.clone()),
+        merge_parent_branches: envelope.merge_parent_branches.clone(),
+        ..schema_transition_options_for_replay(envelope)
+    });
+    txn.push_batch(WorkerIntentBatch {
+        name: format!("recovery-commit-{}", envelope.commit.commit_id.0),
+        partition_key: None,
+        worker_local_only: true,
+        intents: envelope.merged_plan.merged_intents.clone().to_vec(),
+    });
+    txn.commit().map(|_| ()).map_err(|error| {
+        DurabilityError::new(
+            RecoveryFailureClass::ReplayFailure,
+            format!(
+                "failed to replay durable commit {}: {error:?}",
+                envelope.commit.commit_id.0
+            ),
+        )
+    })
+}
+
+fn replay_merge_commit(
+    restored: &mut RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+) -> Result<(), DurabilityError> {
+    let merge_plan = merge_commit_mutation_plan_from_envelope(envelope).ok_or_else(|| {
+        DurabilityError::new(
+            RecoveryFailureClass::ReplayFailure,
+            format!(
+                "failed to reconstruct merge execution summary for durable merge commit {}",
+                envelope.commit.commit_id.0
+            ),
+        )
+    })?;
+    let context = AuthoritativeCommitContext::from_merge(
+        TransactionOptions {
             target_branch: Some(envelope.branch_context.clone()),
             merge_parent_branches: envelope.merge_parent_branches.clone(),
-            ..schema_transition_options_for_replay(envelope)
-        });
-        txn.push_batch(WorkerIntentBatch {
-            name: format!("recovery-commit-{}", envelope.commit.commit_id.0),
-            partition_key: None,
-            worker_local_only: true,
-            intents: envelope
-                .merged_plan
-                .merged_intents
-                .clone()
-                .into_iter()
-                .map(crate::transactions::data::MutationIntent::from)
-                .collect(),
-        });
-        txn.commit().map_err(|error| {
-            DurabilityError::new(
-                RecoveryFailureClass::ReplayFailure,
-                format!(
-                    "failed to replay durable commit {}: {error:?}",
-                    envelope.commit.commit_id.0
-                ),
-            )
-        })?;
-    } else {
-        let merge_plan = merge_commit_mutation_plan_from_envelope(envelope).ok_or_else(|| {
-            DurabilityError::new(
-                RecoveryFailureClass::ReplayFailure,
-                format!(
-                    "failed to reconstruct merge execution summary for durable merge commit {}",
-                    envelope.commit.commit_id.0
-                ),
-            )
-        })?;
-        let context = AuthoritativeCommitContext::from_merge(
-            TransactionOptions {
-                target_branch: Some(envelope.branch_context.clone()),
-                merge_parent_branches: envelope.merge_parent_branches.clone(),
-                ..TransactionOptions::default()
-            },
-            merge_plan,
+            ..TransactionOptions::default()
+        },
+        merge_plan,
+    )
+    .map_err(|_| {
+        DurabilityError::new(
+            RecoveryFailureClass::ReplayFailure,
+            format!(
+                "failed to reconstruct merge authority context for durable merge commit {}",
+                envelope.commit.commit_id.0
+            ),
         )
+    })?;
+    execute_authoritative_commit(restored, context)
+        .map(|_| ())
         .map_err(|_| {
-            DurabilityError::new(
-                RecoveryFailureClass::ReplayFailure,
-                format!(
-                    "failed to reconstruct merge authority context for durable merge commit {}",
-                    envelope.commit.commit_id.0
-                ),
-            )
-        })?;
-        execute_authoritative_commit(restored, context).map_err(|_| {
             DurabilityError::new(
                 RecoveryFailureClass::ReplayFailure,
                 format!(
@@ -148,13 +192,7 @@ pub(super) fn replay_durable_envelope(
                     envelope.commit.commit_id.0
                 ),
             )
-        })?;
-    }
-    if plan.should_restore_authoritative_envelope(envelope.commit.commit_id) {
-        apply_authoritative_commit_artifacts(restored, envelope);
-        validate_recovered_history_parity(restored, envelope)?;
-    }
-    Ok(())
+        })
 }
 
 fn is_metadata_only_lineage_commit(envelope: &CanonicalCommitEnvelope) -> bool {

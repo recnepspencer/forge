@@ -37,12 +37,10 @@ impl WorthQuerySessionBinding {
         self.token_generation
     }
 
-    #[expect(dead_code, reason = "Phase 11 binds provider identity into commit")]
     pub(crate) fn provider_identity(&self) -> &str {
         &self.provider_identity
     }
 
-    #[expect(dead_code, reason = "Phase 11 binds provider generation into commit")]
     pub(crate) fn provider_generation(&self) -> u64 {
         self.provider_generation
     }

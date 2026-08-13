@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::data::aspect::AspectVersion;
+use crate::data::aspect::{Aspect, AspectVersion};
 use crate::data::dependency::{CommittedSnapshotUpdate, DependencySnapshotId, SnapshotDeltaRecord};
 use crate::data::graph::DependencySetId;
 use crate::data::handle::NodeId;
-use crate::data::output::OutputChange;
+use crate::data::output::{ChangedRegion, OutputChange};
 use crate::data::reuse::{ReuseBasis, ReuseBoundaryAuthority, ReuseOrigin};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -18,6 +18,7 @@ pub enum SuppressionReason {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeferralReason {
+    DependencyPending,
     ConditionNotMet,
     OnDemandNotRequested,
     DebounceWindow,
@@ -42,6 +43,7 @@ pub struct OperationalEffect {
     pub node: NodeId,
     pub verdict: EvaluationVerdict,
     pub aspect_version: AspectVersion,
+    pub changed_aspect_regions: Vec<(Aspect, ChangedRegion)>,
     pub output_change: OutputChange,
     pub reuse_basis: ReuseBasis,
     pub reuse_origin: ReuseOrigin,

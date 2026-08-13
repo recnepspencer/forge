@@ -2,6 +2,50 @@ use crate::diagnostics::replay::ReplayEventDetail;
 use crate::facade::*;
 use crate::tests::support::{version_ab, ASPECT_A, ASPECT_B};
 
+fn operational_graph_digest(graph: &SignalGraph) -> String {
+    let rows = graph
+        .live_node_ids()
+        .into_iter()
+        .map(|node| {
+            let parts = graph.node_checkpoint_image(node).unwrap().into_parts();
+            let causes = graph
+                .pending_causes(node)
+                .unwrap()
+                .iter()
+                .map(|cause| {
+                    format!(
+                        "{:?}:{:?}:{:?}:{:?}:{}:{}:{}:{:?}",
+                        cause.key.producer,
+                        cause.key.aspect,
+                        cause.key.edge_scope,
+                        cause.key.dependency_revision,
+                        cause.binding_axes.cached_version,
+                        cause.binding_axes.output_commit_ordinal.0,
+                        cause.binding_axes.committed_version,
+                        cause.changed_scopes,
+                    )
+                })
+                .collect::<Vec<_>>();
+            format!(
+                "{node:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{:?}|{causes:?}",
+                parts.state,
+                parts.dirty_aspects,
+                parts.dirty_partition_scopes,
+                parts.aspect_versions,
+                parts.dependency_revision,
+                parts.pending_dependency_revalidation,
+                parts.direct_invalidation_basis,
+                parts.eval_config,
+                parts.runtime_artifact_state,
+                graph.dependencies_of(node).unwrap(),
+                graph.subscribers_of(node).unwrap(),
+                graph.get_dep_snapshot(node).unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+    canonical_digest(&rows)
+}
+
 fn build_scoped_proof_runtime() -> (
     SignalRuntime<(), (), (), (), ()>,
     SignalBranchHandle,
@@ -182,7 +226,9 @@ fn scoped_merge_preview_execution_and_replay_preserve_the_same_proof_packet() {
             strategy_witness: Some(result.strategy_witness.clone()),
             compatibility_witness: Some(result.compatibility_witness.clone()),
             scoped_merge_proof: Some(result.scoped_merge_proof.clone()),
-            branch_state_digest: canonical_digest(&merged_snapshot.authority_graph()),
+            branch_state_digest: operational_graph_digest(
+                &merged_snapshot.authority_graph().unwrap(),
+            ),
         },
         ReplayArtifactProofInput {
             proof_schema_version: MERGE_PROOF_SCHEMA_VERSION.to_owned(),
@@ -196,7 +242,9 @@ fn scoped_merge_preview_execution_and_replay_preserve_the_same_proof_packet() {
             strategy_witness: Some(result.strategy_witness.clone()),
             compatibility_witness: Some(result.compatibility_witness.clone()),
             scoped_merge_proof: Some(result.scoped_merge_proof.clone()),
-            branch_state_digest: canonical_digest(&restored_snapshot.authority_graph()),
+            branch_state_digest: operational_graph_digest(
+                &restored_snapshot.authority_graph().unwrap(),
+            ),
         },
     );
     assert!(parity.parity);
@@ -288,8 +336,8 @@ fn restore_after_merge_preserves_branch_local_scoped_merge_truth_without_widenin
         .expect("same scoped merge on an equivalent fresh branch basis should stay bounded");
 
     assert_eq!(
-        canonical_digest(&merged_snapshot.authority_graph()),
-        canonical_digest(&restored_snapshot.authority_graph()),
+        operational_graph_digest(&merged_snapshot.authority_graph().unwrap()),
+        operational_graph_digest(&restored_snapshot.authority_graph().unwrap()),
         "restoring the merged snapshot should recover the same branch-local authority graph"
     );
     assert_eq!(merged.scoped_merge_proof, replayed.scoped_merge_proof);

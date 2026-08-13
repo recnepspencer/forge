@@ -10,19 +10,20 @@ pub use crate::data::node::{
     PathClass, PerformanceCounterSurface, PerformanceEnforcementLayer, ResolvedPerformancePolicy,
     SuppressionBasis,
 };
+#[allow(deprecated)]
 pub use crate::data::proof::{
     CanonicalForm, DedupedNodeBatch, DeltaForm, DependencyBatchEdit, DependencySetEdit,
     DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, FrontierEntryClassification,
     FrontierExecutionCounters, FrontierExecutionSummary, FrontierInclusionBasis, FrontierPlan,
-    FrontierPredictedCounters, FrontierSeedCause, FrontierWave, FrontierWaveEntryPlan,
-    FrontierWaveEntrySummary, FrontierWavePlan, FrontierWaveSummary, InvalidationFrontier,
-    InvalidationSeed, InvalidationSeedBatch, InvalidationTraceRecord, LocalityFootprint,
-    LocallyOrderedShard, LoweredForm, MergeableOrderedStream, MixedSnapshotBatchCommit,
-    NarrowedPropagationSet, OrderedStreamItem, OrderedStreamMergeError, PartitionScopeSet,
-    PatchPlan, PendingSnapshotBatch, ResolvedForm, SemanticBatchCommit, SingleConsumer,
-    SnapshotBatchCommit, SortedSourceBatch, StableShapeSnapshotBatchCommit, StructuralDelta,
-    SubscriberRepair, SubscriberRepairBatch, SummaryForm, TouchedScopeSummary,
-    TransitiveFrontierRoot,
+    FrontierPredictedCounters, FrontierSeedCause, FrontierWaveEntryPlan, FrontierWaveEntrySummary,
+    FrontierWavePlan, FrontierWaveSummary, InvalidationSeed, InvalidationSeedBatch,
+    InvalidationTraceRecord, LocalityFootprint, LocallyOrderedShard, LoweredForm,
+    MergeableOrderedStream, MixedSnapshotBatchCommit, OrderedStreamItem, OrderedStreamMergeError,
+    PartitionScopeSet, PatchPlan, PendingSnapshotBatch, ResolvedForm, SemanticBatchCommit,
+    SingleConsumer, SnapshotBatchCommit, SortedSourceBatch, SourceRecomputeAdmission,
+    StableShapeSnapshotBatchCommit, StructuralDelta, SubscriberRepair, SubscriberRepairBatch,
+    SummaryForm, TouchedScopeSummary, TransitiveFrontierEntrySummary,
+    TransitiveFrontierWaveSummary,
 };
 pub use crate::data::reuse::{
     ArtifactEquivalenceContract, ArtifactSemanticBoundary, PersistentCorrespondenceEvidence,

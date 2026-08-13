@@ -1,2 +1,5 @@
+mod access;
 pub mod data;
-pub mod logic;
+
+pub use access::PerformanceAccess;
+pub(crate) use access::ReplayLineageAuthorityIndexedSource;

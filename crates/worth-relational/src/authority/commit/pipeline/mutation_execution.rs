@@ -38,7 +38,7 @@ impl MutatedCommitExecution {
 }
 
 pub(super) fn mutate_commit_execution(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     mut validated: BoundaryValidatedCommitExecution,
 ) -> Result<MutatedCommitExecution, crate::transactions::data::TransactionCommitError> {
     let (admitted, working_state) = validated.prepared_mut().mutation_parts();

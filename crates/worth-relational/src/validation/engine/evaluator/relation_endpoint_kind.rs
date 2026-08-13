@@ -13,8 +13,9 @@ pub(super) fn evaluate_endpoint_kind_contract(
     class: InvariantClass,
     contract: &LoweredEndpointKindContract,
 ) -> Vec<InvariantViolation> {
-    let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
-        return Vec::new();
+    let scope = match context.required_relation_integrity_scope(contract.relation_kind_id, class) {
+        Ok(scope) => scope,
+        Err(violation) => return vec![violation],
     };
     if scope.planned_edges.is_empty() {
         return Vec::new();

@@ -9,7 +9,7 @@ error[E0382]: use of moved value: `terminal`
   |                   ^^^^^^^^ value used here after move
   |
 note: `WorthQueryDirectRunTerminal::cleanup` takes ownership of the receiver `self`, which moves `terminal`
- --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/managed_run/direct_terminal.rs
+ --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/managed_run/direct_terminal/owner.rs
   |
   |         self,
   |         ^^^^

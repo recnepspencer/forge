@@ -57,7 +57,7 @@ fn dirty_partition_scopes_are_classified_before_stale_output_diff_trace() {
 }
 
 #[test]
-fn maybe_stale_nodes_with_dirty_partition_scopes_do_not_fast_validate_clean() {
+fn direct_recompute_with_dirty_partition_scopes_does_not_fast_validate_clean() {
     let mut graph = SignalGraph::new();
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
@@ -69,15 +69,13 @@ fn maybe_stale_nodes_with_dirty_partition_scopes_do_not_fast_validate_clean() {
     evaluate(&mut graph, source, &mut compute).unwrap();
     evaluate(&mut graph, dependent, &mut compute).unwrap();
 
-    {
-        let mut entry = graph.get_entry_mut(dependent).unwrap();
-        entry.set_state(NodeState::MaybeStale);
-        entry.set_dirty_aspects(AspectMask::from_aspect(ASPECT_A));
-        entry.add_dirty_partition_scope(
-            ASPECT_A,
-            PartitionSubscription::partition_and_detail("wing", "rib-12"),
-        );
-    }
+    mark_dirty_with_regions(
+        &mut graph,
+        dependent,
+        ASPECT_A,
+        &[ChangedRegion::new("wing").with_detail("rib-12")],
+    )
+    .unwrap();
 
     let plan = graph
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)

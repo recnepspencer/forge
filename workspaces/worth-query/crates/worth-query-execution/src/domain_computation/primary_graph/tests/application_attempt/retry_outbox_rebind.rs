@@ -61,7 +61,7 @@ fn commit_response_lost(
         "response-lost",
         RetentionMutationBreadth::Narrow,
     );
-    world.application.lose_next_commit_response();
+    world.faults.lose_next_commit_response();
     let before_commit = world.application.application_attempt_work();
     let WorthQueryApplicationCommitOutcome::Committed(original) = world
         .application
@@ -100,8 +100,8 @@ fn retry_without_managed_work(
         "response-lost",
         RetentionMutationBreadth::Narrow,
     );
-    world.application.reject_next_session_prepare();
-    world.application.skip_next_invariant_owner_execution();
+    world.faults.reject_next_session_prepare();
+    world.faults.skip_next_invariant_owner_execution();
     let before_retry = world.application.application_attempt_work();
     let WorthQueryApplicationCommitOutcome::AlreadyCommitted(recovered) = world
         .application

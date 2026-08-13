@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::indexes::data::DerivedIndexArtifacts;
-use crate::logic::runtime::RelationalRuntime;
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) fn checkpoint_derived_index_artifacts(
     runtime: &RelationalRuntime,

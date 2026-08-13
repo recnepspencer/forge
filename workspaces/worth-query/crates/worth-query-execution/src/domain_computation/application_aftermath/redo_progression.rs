@@ -13,10 +13,12 @@ use crate::domain_computation::primary_graph::{
 use worth_query_installation::facade::WorthQueryCanonicalWorkEvidence;
 
 use super::redo_intent::WorthQueryRedoIntent;
+use super::redo_recovery::WorthQueryRedoRecovery;
 
 /// Sealed handoff from redo admission into ordinary mutation progression.
 #[derive(Debug)]
 pub struct WorthQueryRedoProgressionHandoff {
+    recovery: WorthQueryRedoRecovery,
     intent: WorthQueryRedoIntent,
     retained_governed_input: WorthQueryRetainedGovernedInput,
     idempotency: WorthQueryApplicationIdempotencyBinding,
@@ -44,24 +46,38 @@ impl WorthQueryRedoProgressionHandoff {
     pub(crate) fn pending_causality(&self) -> super::WorthQueryPendingAftermathCausality {
         super::WorthQueryPendingAftermathCausality::redo_of(self.intent.undo_commit().clone())
     }
+
+    /// Return the exact proved-undo continuation after a zero-effect outcome.
+    pub fn into_retry_recovery(self) -> WorthQueryRedoRecovery {
+        self.recovery
+    }
 }
 
 /// Progress an admitted redo into the ordinary mutation lane.
 pub fn progress_admitted_redo(
     admission: WorthQueryRedoAdmission,
 ) -> Result<WorthQueryRedoProgressionHandoff, WorthQueryRedoDenial> {
-    let (handle, intent, retained_governed_input, idempotency, redo_admission_work) =
+    let (recovery, intent, retained_governed_input, idempotency, redo_admission_work) =
         admission.into_progression_parts();
-    handle
-        .consume(WorthQueryRecoveryResourceTerminal::Consumed)
-        .map_err(|denial| super::redo_admission::map_recovery_denial(denial.kind()))?;
     Ok(WorthQueryRedoProgressionHandoff {
+        recovery,
         intent,
         retained_governed_input,
         idempotency,
         redo_admission_work,
         _private: (),
     })
+}
+
+/// Close a redo continuation only after an effect may have committed.
+pub fn consume_redo_progression(
+    handoff: WorthQueryRedoProgressionHandoff,
+) -> Result<(), WorthQueryRedoDenial> {
+    let (_, handle) = handoff.recovery.into_parts();
+    handle
+        .consume(WorthQueryRecoveryResourceTerminal::Consumed)
+        .map(|_| ())
+        .map_err(|denial| super::redo_admission::map_recovery_denial(denial.kind()))
 }
 
 /// Map an ordinary compare-and-commit denial into a redo denial cause.

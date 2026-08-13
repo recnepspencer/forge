@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::capabilities::StorageRead;
-use crate::logic::runtime::RuntimeInstrumentation;
+use crate::runtime::RuntimeInstrumentation;
 use crate::transactions::data::EntityReference;
 
 pub(super) fn existing_relation_targets_for_source(
@@ -76,11 +76,10 @@ mod tests {
 
     use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
     use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
-    use crate::logic::runtime::RuntimeInstrumentation;
-    use crate::storage::logic::state::{
-        AdjacencySet, EntityArena, PartitionState, RelationArena, RelationEndpoints, RelationExtra,
-        WorkingState,
-    };
+    use crate::runtime::RuntimeInstrumentation;
+    use crate::storage::overlay::{PartitionState, WorkingState};
+    use crate::storage::partition::AdjacencySet;
+    use crate::storage::substrate::{EntityArena, RelationArena, RelationEndpoints, RelationExtra};
     use crate::storage::substrate::{EntityRecordKind, RecordKind, SlotInit};
     use crate::transactions::data::EntityReference;
 

@@ -39,8 +39,4 @@ mod resolve_tests;
 mod authority_tests;
 
 #[cfg(test)]
-#[path = "safe_retry_tests.rs"]
-mod safe_retry_tests;
-
-#[cfg(test)]
 mod mechanism_tests;

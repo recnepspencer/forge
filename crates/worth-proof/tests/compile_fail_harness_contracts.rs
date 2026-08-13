@@ -1,12 +1,12 @@
 mod support;
 
 use support::compile_fail::{run_compile_fail_bundle, run_compile_fail_family, CompileFailBundle};
-use support::milestone1;
+use support::core_artifact;
 
 #[test]
 #[should_panic(expected = "compile-fail family 'missing_family' is not declared")]
 fn compile_fail_family_selection_fails_closed_for_unknown_family() {
-    let bundle = milestone1::compile_fail_bundle();
+    let bundle = core_artifact::compile_fail_bundle();
     run_compile_fail_family(&bundle, "missing_family");
 }
 

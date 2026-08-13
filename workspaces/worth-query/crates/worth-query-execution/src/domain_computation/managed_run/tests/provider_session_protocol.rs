@@ -150,24 +150,40 @@ impl WorthQueryProviderSessionLifecycle for SessionProtocolProvider {
     fn commit_prepared_session(
         &self,
         _session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
         self.calls.commits.fetch_add(1, Ordering::AcqRel);
         match self.failure {
             SessionFailurePoint::CommitRejection => Err(provider_rejection("commit rejected")),
             SessionFailurePoint::CommitPanic => panic!("commit panic"),
-            _ => Ok("provider-commit".to_owned()),
+            _ => Ok(
+                crate::domain_computation::WorthQueryProviderTerminalDescription::new(
+                    "provider commit",
+                )
+                .expect("fixture description is valid"),
+            ),
         }
     }
 
     fn abort_provider_session(
         &self,
         _session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
         self.calls.aborts.fetch_add(1, Ordering::AcqRel);
         match self.failure {
             SessionFailurePoint::AbortRejection => Err(provider_rejection("abort rejected")),
             SessionFailurePoint::AbortPanic => panic!("abort panic"),
-            _ => Ok("provider-abort".to_owned()),
+            _ => Ok(
+                crate::domain_computation::WorthQueryProviderTerminalDescription::new(
+                    "provider abort",
+                )
+                .expect("fixture description is valid"),
+            ),
         }
     }
 }

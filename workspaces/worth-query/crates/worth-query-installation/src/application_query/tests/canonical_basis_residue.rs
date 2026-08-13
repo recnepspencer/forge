@@ -191,7 +191,7 @@ fn phase_six_warm_consumers_cannot_hide_hashing_behind_a_helper() {
         "../worth-query-execution/src/domain_computation/provider_session/graph_obligation",
         "../worth-query-execution/src/domain_computation/provider_session/attempt_evidence.rs",
         "../worth-query-admission/src/graph_obligation",
-        "../worth-query-execution/src/domain_computation/managed_run/run_identity.rs",
+        "../worth-query-execution/src/domain_computation/managed_run/run_affinity",
         "../worth-query-execution/src/domain_computation/provider_session/protocol/plan_contract.rs",
         "../worth-query-execution/src/domain_computation/provider_session/protocol/provider_port.rs",
         "../worth-query-execution/src/domain_computation/provider_session/protocol/session_binding.rs",

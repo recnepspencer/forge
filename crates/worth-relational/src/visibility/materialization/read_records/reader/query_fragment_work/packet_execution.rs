@@ -210,7 +210,7 @@ pub(crate) fn execute_query_fragment(
 
 pub(crate) fn execute_explicit_query_fragment_from_state(
     read_context: &VisibilityReadContext<'_>,
-    snapshot_state: &crate::storage::logic::state::SnapshotState,
+    snapshot_state: &crate::storage::overlay::SnapshotState,
     current_state: &(impl PartitionAccess + Sync),
     version_id: crate::identity::data::VersionId,
     packet: &PlannedQueryPacket,

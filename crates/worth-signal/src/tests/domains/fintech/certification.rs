@@ -1,5 +1,6 @@
 mod artifact_matrix;
 mod independent_oracle;
+pub(super) mod invalidation;
 mod workflow_adapter;
 mod workflow_scenario;
 mod workflow_session;
@@ -104,6 +105,23 @@ fn workflow_certification_runner_proves_hostile_fintech_branch_replay_and_audit(
         .session_data
         .named_lineages
         .contains_key("correction_lineage"));
+}
+
+#[test]
+fn financial_aspect_causality_certification_seals_all_required_scenarios() {
+    let run = invalidation::run_financial_causality_courtroom()
+        .expect("all financial aspect-causality evidence should seal");
+    assert_eq!(run.seed(), 41);
+    assert_eq!(run.scenario_count(), 8);
+    assert!(run.minimum_dependency_revision() > 0);
+}
+
+#[cfg(feature = "parallel")]
+#[test]
+fn financial_aspect_causality_certification_survives_parallel_feature_composition() {
+    let run = invalidation::run_financial_causality_courtroom()
+        .expect("parallel feature must preserve financial causality semantics");
+    assert_eq!(run.scenario_count(), 8);
 }
 
 #[cfg(feature = "parallel")]

@@ -24,7 +24,7 @@ fn final_commit_rejects_a_replacement_policy_path_for_the_same_grant() {
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let mut admission = admitted_capability_operation(&world, &principal, &request);
-    let (_, commit_basis) = admission
+    let commit_authorization = admission
         .take_authorization_dependencies(world.application.authorization.bridge())
         .unwrap();
 
@@ -34,11 +34,11 @@ fn final_commit_rejects_a_replacement_policy_path_for_the_same_grant() {
         .application
         .primary_provider
         .serialize_application_commit();
-    let Err(denial) =
-        world
-            .application
-            .authorize_application_commit(&admission, &commit_basis, &serialization)
-    else {
+    let Err(denial) = commit_authorization.authorize_application_commit(
+        &world.application,
+        &admission,
+        &serialization,
+    ) else {
         panic!("a replacement policy path must not inherit retained commit authority");
     };
     assert_eq!(

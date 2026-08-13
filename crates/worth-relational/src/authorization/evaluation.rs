@@ -1,4 +1,4 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 use super::field_observation::entity_is_live_kind;
 use super::observation_identity::mint_observation_identity;

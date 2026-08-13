@@ -1,0 +1,4 @@
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    bank_http_adapter::run_bank_http_server_process().await
+}

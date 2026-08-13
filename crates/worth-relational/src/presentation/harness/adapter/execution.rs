@@ -92,17 +92,17 @@ pub(super) fn execute_request(
 
 fn relational_execution_model(
     execution_mode: ExecutionMode,
-) -> Option<crate::logic::planning::RelationalExecutionModel> {
+) -> Option<crate::config::data::RelationalExecutionModel> {
     match execution_mode {
         ExecutionMode::RuntimeDefault => None,
         ExecutionMode::Serial => {
-            Some(crate::logic::planning::RelationalExecutionModel::SerialAuthority)
+            Some(crate::config::data::RelationalExecutionModel::SerialAuthority)
         }
         ExecutionMode::StagedParallel => {
-            Some(crate::logic::planning::RelationalExecutionModel::StagedParallelPreparation)
+            Some(crate::config::data::RelationalExecutionModel::StagedParallelPreparation)
         }
         ExecutionMode::FullParallel => {
-            Some(crate::logic::planning::RelationalExecutionModel::ParallelPostCommitConsumption)
+            Some(crate::config::data::RelationalExecutionModel::ParallelPostCommitConsumption)
         }
     }
 }

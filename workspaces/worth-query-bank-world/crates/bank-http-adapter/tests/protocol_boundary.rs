@@ -156,35 +156,49 @@ fn assert_callback_denial(
 }
 
 #[test]
-fn r8_49_http_adapter_deserializes_no_aftermath_authority_and_makes_no_recovery_decision() {
-    // Temporary HTTP boundary stays descriptive: no recovery/undo/redo route-local
-    // decision vocabulary in the adapter crate.
-    let adapter_root = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
+fn r8_49_wire_protocol_carries_no_runtime_or_aftermath_authority() {
+    let protocol_root = concat!(env!("CARGO_MANIFEST_DIR"), "/src/http/protocol");
     let forbidden = [
-        "admit_undo",
-        "admit_redo",
-        "open_commit_recovery",
+        "worth_query",
         "WorthQueryRecoveryHandle",
-        "compensate_recovery",
-        "reconcile_recovery",
-        "rollback",
-        "aftermath",
+        "WorthQueryAuthority",
+        "BankCommitReceipt",
+        "BankCommitRecoveryHandle",
+        "BankRecordedInverseUndoAdmission",
+        "BankCompensationUndoAdmission",
+        "BankRedoRecovery",
+        "BankRequestedEstateElevation",
+        "BankApprovedEstateElevation",
+        "BankEstateMandatoryReview",
+        "BankEstateProgressionFailure",
     ];
     let mut hits = Vec::new();
-    for entry in std::fs::read_dir(adapter_root).expect("adapter src") {
-        let entry = entry.expect("entry");
-        let path = entry.path();
-        if path.extension().is_some_and(|ext| ext == "rs") {
-            let text = std::fs::read_to_string(&path).expect("read");
-            for needle in forbidden {
-                if text.contains(needle) {
-                    hits.push(format!("{}:{needle}", path.display()));
-                }
+    for path in rust_files(std::path::Path::new(protocol_root)) {
+        let text = std::fs::read_to_string(&path).expect("read protocol source");
+        for needle in forbidden {
+            if text.contains(needle) {
+                hits.push(format!("{}:{needle}", path.display()));
             }
         }
     }
     assert!(
         hits.is_empty(),
-        "HTTP adapter must not carry aftermath/recovery authority: {hits:?}"
+        "HTTP wire protocol must remain descriptive and authority-free: {hits:?}"
     );
+}
+
+fn rust_files(root: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut pending = vec![root.to_path_buf()];
+    let mut files = Vec::new();
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(directory).expect("protocol directory") {
+            let path = entry.expect("protocol entry").path();
+            if path.is_dir() {
+                pending.push(path);
+            } else if path.extension().is_some_and(|extension| extension == "rs") {
+                files.push(path);
+            }
+        }
+    }
+    files
 }

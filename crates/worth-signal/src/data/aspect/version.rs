@@ -79,6 +79,8 @@ pub struct PartitionVersionMap {
     global: AspectVersion,
     #[serde(default)]
     partitions: BTreeMap<PartitionToken, AspectVersion>,
+    #[serde(default)]
+    details: BTreeMap<PartitionSubscription, AspectVersion>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -123,6 +125,8 @@ impl AspectVersionHeader {
 pub struct PartitionVersionOverrides {
     #[serde(default)]
     partitions: BTreeMap<PartitionToken, AspectVersion>,
+    #[serde(default)]
+    details: BTreeMap<PartitionSubscription, AspectVersion>,
 }
 
 impl PartitionVersionOverrides {
@@ -131,6 +135,11 @@ impl PartitionVersionOverrides {
         scope: &PartitionSubscription,
         global: AspectVersion,
     ) -> AspectVersion {
+        if scope.detail.is_some() {
+            if let Some(version) = self.details.get(scope) {
+                return *version;
+            }
+        }
         self.partitions
             .get(&scope.partition)
             .copied()
@@ -153,6 +162,9 @@ impl PartitionVersionOverrides {
         for partition in self.partitions.values_mut() {
             *partition = version;
         }
+        for detail in self.details.values_mut() {
+            *detail = version;
+        }
     }
 
     pub fn apply_evaluation(&mut self, version: AspectVersion, changed_regions: &[ChangedRegion]) {
@@ -161,11 +173,26 @@ impl PartitionVersionOverrides {
         }
         for region in changed_regions {
             self.partitions.insert(region.partition.clone(), version);
+            if let Some(detail) = region.detail.as_ref() {
+                self.details.insert(
+                    PartitionSubscription::partition_and_detail(
+                        region.partition.clone(),
+                        detail.clone(),
+                    ),
+                    version,
+                );
+            } else {
+                for (scope, scoped_version) in &mut self.details {
+                    if scope.partition == region.partition {
+                        *scoped_version = version;
+                    }
+                }
+            }
         }
     }
 
     pub fn has_overrides(&self) -> bool {
-        !self.partitions.is_empty()
+        !self.partitions.is_empty() || !self.details.is_empty()
     }
 }
 
@@ -181,6 +208,7 @@ impl PartitionVersionMap {
         Self {
             global: AspectVersion::zero(),
             partitions: BTreeMap::new(),
+            details: BTreeMap::new(),
         }
     }
 
@@ -189,6 +217,11 @@ impl PartitionVersionMap {
     }
 
     pub fn scoped(&self, scope: &PartitionSubscription) -> AspectVersion {
+        if scope.detail.is_some() {
+            if let Some(version) = self.details.get(scope) {
+                return *version;
+            }
+        }
         self.partitions
             .get(&scope.partition)
             .copied()
@@ -207,6 +240,9 @@ impl PartitionVersionMap {
         for partition in self.partitions.values_mut() {
             *partition = version;
         }
+        for detail in self.details.values_mut() {
+            *detail = version;
+        }
     }
 
     pub fn apply_evaluation(&mut self, version: AspectVersion, changed_regions: &[ChangedRegion]) {
@@ -216,12 +252,28 @@ impl PartitionVersionMap {
         }
         for region in changed_regions {
             self.partitions.insert(region.partition.clone(), version);
+            if let Some(detail) = region.detail.as_ref() {
+                self.details.insert(
+                    PartitionSubscription::partition_and_detail(
+                        region.partition.clone(),
+                        detail.clone(),
+                    ),
+                    version,
+                );
+            } else {
+                for (scope, scoped_version) in &mut self.details {
+                    if scope.partition == region.partition {
+                        *scoped_version = version;
+                    }
+                }
+            }
         }
     }
 
     pub fn into_storage_parts(self) -> (AspectVersionHeader, PartitionVersionOverrides) {
         let overrides = PartitionVersionOverrides {
             partitions: self.partitions,
+            details: self.details,
         };
         (
             AspectVersionHeader {
@@ -239,6 +291,7 @@ impl PartitionVersionMap {
         Self {
             global: header.global(),
             partitions: overrides.partitions,
+            details: overrides.details,
         }
     }
 }

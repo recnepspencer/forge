@@ -73,7 +73,7 @@ impl AssembledCommitExecution {
 }
 
 pub(super) fn assemble_commit_artifacts(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     validated: SnapshotValidatedCommitExecution,
 ) -> Result<AssembledCommitExecution, crate::transactions::data::TransactionCommitError> {
     let (

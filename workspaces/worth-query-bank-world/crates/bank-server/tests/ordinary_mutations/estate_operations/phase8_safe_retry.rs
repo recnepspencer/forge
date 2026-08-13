@@ -6,10 +6,7 @@
 
 use bank_external_rail::test_control::FaultScript;
 use bank_external_rail::LedgerStatus;
-use bank_server::BankEstateProgressionDenial;
-use worth_query_host::facade::primary_graph::{
-    WorthQueryDispatchOutboxDurabilityPosture, WorthQueryRecoveryHandleDenialKind,
-};
+use bank_server::{BankEstateProgressionDenial, BankRecoveryDenialKind, BankRecoveryDurability};
 use worth_query_host::facade::publication::application_aftermath::WorthQueryPublishedExternalEffectPostureKind;
 
 use super::phase8_cross_gate::world;
@@ -45,11 +42,11 @@ fn faulted_dispatch_then_safe_retry_escapes_exactly_once() {
         .runtime
         .safe_retry_commit_recovery(handle, &specialist, action, &scope)
         .expect("safe-retry through production admission");
-    assert!(admission.dispatch().is_external_completion());
-    assert_retry_has_fresh_attempt(admission.dispatch());
+    assert!(admission.is_external_completion());
+    assert!(admission.has_fresh_attempt());
     assert_eq!(
-        admission.outbox_durability(),
-        WorthQueryDispatchOutboxDurabilityPosture::StoreCapabilityRequired
+        admission.durability(),
+        BankRecoveryDurability::StoreCapabilityRequired
     );
     assert_eq!(
         world.transport.ledger_status(&correlation),
@@ -102,8 +99,8 @@ fn lost_response_safe_retry_reissues_same_request_and_completes_once() {
         .runtime
         .safe_retry_commit_recovery(handle, &specialist, action, &scope)
         .expect("safe-retry under unresolved lost-response posture");
-    assert!(admission.dispatch().is_external_completion());
-    assert_retry_has_fresh_attempt(admission.dispatch());
+    assert!(admission.is_external_completion());
+    assert!(admission.has_fresh_attempt());
     assert_eq!(
         world.transport.ledger_status(&correlation),
         LedgerStatus::Completed
@@ -185,7 +182,7 @@ fn safe_retry_of_already_completed_effect_repeats_dispatch_but_not_physical_cons
         .runtime
         .safe_retry_commit_recovery(handle, &specialist, action, &scope)
         .expect("safe-retry of completed effect");
-    assert!(admission.dispatch().is_external_completion());
+    assert!(admission.is_external_completion());
     assert_eq!(
         world.transport.ledger_status(&correlation),
         LedgerStatus::Completed
@@ -204,25 +201,6 @@ fn safe_retry_of_already_completed_effect_repeats_dispatch_but_not_physical_cons
         world.transport.completed_effect_count(),
         1,
         "the completed correlation must not repeat its physical consequence"
-    );
-}
-
-fn assert_retry_has_fresh_attempt(
-    retry: &worth_query_host::facade::primary_graph::WorthQueryExternalEffectDispatch,
-) {
-    let retried = retry.causal_ladder();
-    assert_eq!(
-        retried.attempt().predecessor().unwrap().predecessor(),
-        retried.emission().identity()
-    );
-    assert_eq!(
-        retried
-            .observation()
-            .expect("successful retry has owner observation")
-            .predecessor()
-            .unwrap()
-            .predecessor(),
-        retried.attempt().identity()
     );
 }
 
@@ -291,7 +269,7 @@ fn expired_handle_safe_retry_denies_before_transport() {
         .expect_err("expired handle must deny");
     match denied {
         BankEstateProgressionDenial::Recovery(d) => {
-            assert_eq!(d.kind(), WorthQueryRecoveryHandleDenialKind::Expired);
+            assert_eq!(d.kind(), BankRecoveryDenialKind::Expired);
         }
         other => panic!("expected Expired, got {other:?}"),
     }

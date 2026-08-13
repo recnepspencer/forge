@@ -4,7 +4,6 @@ pub(in crate::domain_computation) mod application_disclosure;
 mod authorization_revalidation;
 mod bridge_binding;
 mod bridge_observation;
-mod capability_admission;
 mod capability_binding_lowering;
 mod capability_decision_fact;
 mod capability_elevation_projection;
@@ -32,7 +31,6 @@ pub(in crate::domain_computation) use crate::domain_computation::runtime_time::{
 };
 pub(in crate::domain_computation) use application_commit_authorization::WorthQueryApplicationCommitAuthorization;
 pub(super) use bridge_binding::bridge_authorization_binding_identity;
-pub use capability_admission::WorthQueryAdmittedApplicationCapabilityAccess;
 pub(in crate::domain_computation) use capability_decision_fact::{
     WorthQueryCapabilityCommitBasis, WorthQueryRetainedCapabilityAuthorization,
 };
@@ -40,25 +38,31 @@ pub(in crate::domain_computation) use capability_decision_fact::{
 pub(in crate::domain_computation) use capability_elevation_projection::validate_elevation_projection;
 pub use capability_registry::WorthQueryCapabilityPlanCompilationEvidence;
 pub(in crate::domain_computation) use capability_revocation_progression::WorthQueryCapabilityRevocationBinding;
+use decision_facts::WorthQueryCommitAuthorizationBasis;
 pub(in crate::domain_computation) use decision_facts::{
-    WorthQueryAuthorizationDecisionFact, WorthQueryCommitAuthorizationBasis,
-    WorthQueryPrincipalCurrentnessDependency, WorthQueryProviderAuthorizationDecisionFacts,
+    WorthQueryAuthorizationDecisionFact, WorthQueryPrincipalCurrentnessDependency,
+    WorthQueryProviderAuthorizationDecisionFacts, WorthQueryProviderCommitAuthorization,
+    WorthQueryProviderDecisionFactBinding, WorthQueryRegisteredCommitAuthorization,
     WorthQueryRetainedAuthorizationDecisionFacts,
 };
-pub(in crate::domain_computation) use delegation_progression::WorthQueryDelegationActivationBinding;
+pub(in crate::domain_computation) use delegation_progression::{
+    WorthQueryDelegationActivationBinding, WorthQueryDelegationActivationEffect,
+};
 pub use denial::{
     WorthQueryApplicationAuthorizationExplanationCause, WorthQueryOperationAuthorizationDenial,
     WorthQueryOperationAuthorizationDenialIdentity, WorthQueryOperationAuthorizationDenialKind,
+};
+pub(in crate::domain_computation) use elevation_progression::{
+    WorthQueryCurrentElevationSupport, WorthQueryElevationApprovalBinding,
+    WorthQueryElevationApprovalBindingPermit, WorthQueryElevationCloseBinding,
+    WorthQueryElevationRequestBinding, WorthQueryMandatoryReviewBinding,
 };
 pub use elevation_progression::{
     WorthQueryElevationApprovalAuthorizationDenial, WorthQueryElevationCloseAuthorizationDenial,
     WorthQueryMandatoryReviewAuthorizationDenial,
 };
-pub(in crate::domain_computation) use elevation_progression::{
-    WorthQueryElevationApprovalBinding, WorthQueryElevationCloseBinding,
-    WorthQueryElevationRequestBinding, WorthQueryMandatoryReviewBinding,
-};
 pub(in crate::domain_computation) use installed_policy::WorthQueryInstalledAuthorizationRegistry;
+pub use operation_progression::WorthQueryAdmittedApplicationCapabilityAccess;
 pub use operation_progression::WorthQueryAdmittedApplicationOperation;
 pub(in crate::domain_computation) use operation_progression::WorthQueryOperationAdmissionIdentity;
 pub use operation_scope_binding::{

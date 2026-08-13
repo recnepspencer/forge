@@ -47,10 +47,7 @@ fn derive_merge_commit_mutation_plan_emits_source_authorized_create_intent() {
         })
         .expect("prepared merge");
 
-    let plan = runtime
-        .merge()
-        .derive_merge_commit_mutation_plan(TransactionId(77), &prepared)
-        .expect("merge mutation plan");
+    let plan = prepared.bind_mutation_plan_for_test(TransactionId(77));
 
     assert_eq!(plan.transaction_id, TransactionId(77));
     assert_eq!(plan.structural_summary.executed_record_count, 1);
@@ -120,10 +117,7 @@ fn derive_merge_commit_mutation_plan_preserves_exact_shared_truth_without_mutati
         })
         .expect("prepared merge");
 
-    let plan = runtime
-        .merge()
-        .derive_merge_commit_mutation_plan(TransactionId(88), &prepared)
-        .expect("merge mutation plan");
+    let plan = prepared.bind_mutation_plan_for_test(TransactionId(88));
 
     assert_eq!(plan.structural_summary.preserved_shared_record_count, 1);
     assert_eq!(plan.structural_summary.emitted_mutation_intent_count, 0);
@@ -235,10 +229,7 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
         })
         .expect("prepared merge");
 
-    let plan = runtime
-        .merge()
-        .derive_merge_commit_mutation_plan(TransactionId(99), &prepared)
-        .expect("merge mutation plan");
+    let plan = prepared.bind_mutation_plan_for_test(TransactionId(99));
 
     assert_eq!(plan.structural_summary.reconciled_record_count, 1);
     assert_eq!(plan.structural_summary.emitted_entity_update_count, 1);
@@ -275,10 +266,7 @@ fn derive_merge_commit_mutation_plan_does_not_rely_on_raw_lowered_record_arrays(
         .expect("prepared merge");
     prepared.execution_ready_plan_mut_for_test().lowered_records = Arc::from([]);
 
-    let plan = runtime
-        .merge()
-        .derive_merge_commit_mutation_plan(TransactionId(123), &prepared)
-        .expect("merge mutation plan");
+    let plan = prepared.bind_mutation_plan_for_test(TransactionId(123));
 
     assert_eq!(plan.structural_summary.executed_record_count, 1);
     assert_eq!(plan.merged_plan.merged_intents.len(), 1);

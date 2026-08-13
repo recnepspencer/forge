@@ -1,4 +1,4 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::validation::execution::{
     evaluate_invariant_packet, plan_invariant_execution, planned_proof_boundary_summary,
 };

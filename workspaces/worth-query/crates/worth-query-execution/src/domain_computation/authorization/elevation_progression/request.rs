@@ -10,11 +10,11 @@ use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationOperation,
 };
 
-use super::super::capability_admission::{
-    progress_capability_operation, WorthQueryCapabilityOperationProgression,
-};
 use super::super::capability_registry::{
     WorthQueryElevationLifecycleOperationRole, WorthQueryInstalledCapabilityPlan,
+};
+use super::super::operation_progression::{
+    progress_capability_operation, WorthQueryCapabilityOperationProgression,
 };
 use super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
@@ -22,8 +22,7 @@ use super::super::{
 };
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
-mod binding;
-use binding::bind_request;
+use super::request_binding::bind_request;
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
@@ -69,14 +68,15 @@ where
         let (capability_identity, installed) =
             installed_request_lifecycle(self, &access, operation)?;
         validate_request_projection::<Schema, Operation, Input>(installed, &proposed)?;
-        let (binding, supporting) =
-            bind_request(self, capability_identity, installed, &access, &proposed)?;
-        access.retain_observed_support(supporting).map_err(|()| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                installed.contract.name(),
-            )
-        })?;
+        let binding = bind_request(self, capability_identity, installed, &access, &proposed)?;
+        access
+            .retain_observed_support(binding.supporting().retained_for_operation())
+            .map_err(|()| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                    installed.contract().name(),
+                )
+            })?;
         progress_capability_operation(
             self,
             access,
@@ -121,7 +121,7 @@ where
     let installed = runtime
         .authorization
         .capability_plan_by_identity(&capability)
-        .filter(|plan| plan.elevation.is_some())
+        .filter(|plan| plan.elevation().is_some())
         .ok_or_else(|| stale_operation(operation.operation()))?;
     Ok((capability, installed))
 }
@@ -138,12 +138,12 @@ where
     Input: ApplicationCapabilityElevationRequest<Schema, Operation>,
 {
     let target = proposed.target();
-    let request = &installed.request;
+    let request = &installed.request();
     let elevation = installed
-        .contract
+        .contract()
         .elevation()
         .definition()
-        .ok_or_else(|| projection_denial(installed.contract.name()))?;
+        .ok_or_else(|| projection_denial(installed.contract().name()))?;
     if target.elevation_selector().is_some()
         || target.action() != &request.action
         || target.purpose() != &request.purpose
@@ -155,24 +155,24 @@ where
         || target.magnitude_value().is_some() != request.magnitude.is_some()
         || !relation_matches(installed, target)
         || !context_matches(installed, target)
-        || proposed.grant().entity() != installed.contract.grant_entity()
+        || proposed.grant().entity() != installed.contract().grant_entity()
         || proposed.elevation_identity().field() != elevation.identity()
         || proposed.review_identity().field() != elevation.review().identity()
         || proposed.reason().field() != elevation.reason()
     {
-        return Err(projection_denial(installed.contract.name()));
+        return Err(projection_denial(installed.contract().name()));
     }
     let duration = proposed.duration();
     let maximum_duration = installed
-        .elevation
+        .elevation()
         .as_ref()
-        .ok_or_else(|| projection_denial(installed.contract.name()))?
+        .ok_or_else(|| projection_denial(installed.contract().name()))?
         .lifecycle
         .maximum_duration;
     if duration.is_zero() || duration > maximum_duration {
         return Err(denial(
             WorthQueryOperationAuthorizationDenialKind::ElevationDurationExceeded,
-            installed.contract.name(),
+            installed.contract().name(),
         ));
     }
     Ok(())
@@ -186,7 +186,10 @@ fn relation_matches<Schema, Scope, Context>(
         Context,
     >,
 ) -> bool {
-    match (installed.contract.target().relation(), projection.related()) {
+    match (
+        installed.contract().target().relation(),
+        projection.related(),
+    ) {
         (ApplicationCapabilityRelationDimension::NotApplicable, None) => true,
         (ApplicationCapabilityRelationDimension::Bound(expected), Some(actual)) => {
             expected == actual.relation()
@@ -204,7 +207,7 @@ fn context_matches<Schema, Scope, Context>(
     >,
 ) -> bool {
     let expected = installed
-        .paths
+        .paths()
         .iter()
         .flat_map(|path| path.context_anchors.iter())
         .map(|anchor| {
@@ -246,7 +249,9 @@ const fn cardinality_admitted(
     }
 }
 
-fn projection_denial(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {
+pub(super) fn projection_denial(
+    subject: impl Into<String>,
+) -> WorthQueryOperationAuthorizationDenial {
     denial(
         WorthQueryOperationAuthorizationDenialKind::ElevationRequestRejected,
         subject,
@@ -260,7 +265,7 @@ fn stale_operation(subject: impl Into<String>) -> WorthQueryOperationAuthorizati
     )
 }
 
-fn denial(
+pub(super) fn denial(
     kind: WorthQueryOperationAuthorizationDenialKind,
     subject: impl Into<String>,
 ) -> WorthQueryOperationAuthorizationDenial {

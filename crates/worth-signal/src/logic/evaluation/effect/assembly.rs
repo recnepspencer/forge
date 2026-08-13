@@ -52,6 +52,10 @@ impl EvaluationEffect {
             .unwrap_or(&[])
     }
 
+    pub(crate) fn changed_aspect_regions(&self) -> &[(crate::data::aspect::Aspect, ChangedRegion)] {
+        &self.operational.changed_aspect_regions
+    }
+
     pub(crate) fn labels(&self) -> &[String] {
         self.diagnostics
             .as_ref()
@@ -111,6 +115,7 @@ mod tests {
                 node: NodeId::new(0, 0),
                 verdict: crate::logic::evaluation::EvaluationVerdict::Recomputed,
                 aspect_version: AspectVersion::zero(),
+                changed_aspect_regions: Vec::new(),
                 output_change: OutputChange::Replaced,
                 reuse_basis: ReuseBasis::fresh_compute(),
                 reuse_origin: ReuseOrigin::FreshCompute,

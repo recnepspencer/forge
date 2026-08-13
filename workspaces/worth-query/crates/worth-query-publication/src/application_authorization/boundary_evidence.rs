@@ -12,7 +12,7 @@ use worth_foundational::facade::{
 };
 use worth_proof::TransitionOutcome;
 use worth_query_execution::facade::primary_graph::{
-    WorthQueryApplicationCommitReceipt, WorthQueryApprovedElevation,
+    WorthQueryApplicationCommitPublicationSource, WorthQueryApprovedElevation,
     WorthQueryElevationClosureKind, WorthQueryMandatoryReview, WorthQueryRequestedElevation,
     WorthQueryReviewedElevation,
 };
@@ -203,9 +203,10 @@ pub fn publish_requested_elevation(
     WorthQueryPublishedApplicationAuthorization,
     WorthQueryApplicationAuthorizationPublicationDenial,
 > {
+    let source = requested.publication_source();
     publish_transition(
         WorthQueryPublishedApplicationAuthorizationKind::ElevationRequested,
-        requested.commit_receipt(),
+        &source,
         profile,
     )
 }
@@ -217,9 +218,10 @@ pub fn publish_approved_elevation(
     WorthQueryPublishedApplicationAuthorization,
     WorthQueryApplicationAuthorizationPublicationDenial,
 > {
+    let source = approved.publication_source();
     publish_transition(
         WorthQueryPublishedApplicationAuthorizationKind::ElevationApproved,
-        approved.approval_commit_receipt(),
+        &source,
         profile,
     )
 }
@@ -239,7 +241,8 @@ pub fn publish_mandatory_review(
             WorthQueryPublishedApplicationAuthorizationKind::ExpiredReviewRequired
         }
     };
-    publish_transition(kind, review.close_commit_receipt(), profile)
+    let source = review.publication_source();
+    publish_transition(kind, &source, profile)
 }
 
 pub fn publish_reviewed_elevation(
@@ -257,12 +260,13 @@ pub fn publish_reviewed_elevation(
             WorthQueryPublishedApplicationAuthorizationKind::ExpiredElevationReviewed
         }
     };
-    publish_transition(kind, reviewed.review_commit_receipt(), profile)
+    let source = reviewed.publication_source();
+    publish_transition(kind, &source, profile)
 }
 
 fn publish_transition(
     kind: WorthQueryPublishedApplicationAuthorizationKind,
-    commit: &WorthQueryApplicationCommitReceipt,
+    source: &WorthQueryApplicationCommitPublicationSource,
     profile: WorthQueryApplicationAuthorizationPublicationProfile,
 ) -> Result<
     WorthQueryPublishedApplicationAuthorization,
@@ -270,13 +274,13 @@ fn publish_transition(
 > {
     let identity = WorthQueryApplicationAuthorizationBoundaryIdentity::from_closed_publication(
         kind.diagnostic_code(),
-        &[commit.emitted_effect_count().to_string()],
+        &[source.emitted_effect_count().to_string()],
         profile,
     );
-    let lowered = lower_boundary_material(kind, identity, commit.emitted_effect_count(), profile)?;
+    let lowered = lower_boundary_material(kind, identity, source.emitted_effect_count(), profile)?;
     Ok(WorthQueryPublishedApplicationAuthorization {
         kind,
-        query_receipt: crate::domain_computation::publish_application_commit(commit.clone())
+        query_receipt: crate::domain_computation::publish_application_commit_source(source)
             .into_receipt(),
         boundary: lowered.boundary,
         explanation: lowered.explanation,

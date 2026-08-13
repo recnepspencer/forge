@@ -1,6 +1,6 @@
 use crate::identity::data::{VersionBound, VersionId};
-use crate::logic::runtime::RelationalRuntime;
 use crate::query::data::{PlannedQueryPacket, ReadPacketPlan};
+use crate::runtime::RelationalRuntime;
 use crate::storage::data::{
     ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, RecordLifecycleState,
 };
@@ -192,7 +192,7 @@ fn summarize_relation_chunks(
 }
 
 fn summarize_current_entity_chunks(
-    partition: &crate::storage::logic::state::PartitionState,
+    partition: &crate::storage::overlay::PartitionState,
     chunk_size: usize,
 ) -> Vec<ChunkVisibilitySummary> {
     summarize_current_chunks(
@@ -216,7 +216,7 @@ fn summarize_current_entity_chunks(
 }
 
 fn summarize_current_relation_chunks(
-    partition: &crate::storage::logic::state::PartitionState,
+    partition: &crate::storage::overlay::PartitionState,
     chunk_size: usize,
 ) -> Vec<ChunkVisibilitySummary> {
     summarize_current_chunks(

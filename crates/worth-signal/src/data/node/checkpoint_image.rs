@@ -2,8 +2,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::{Aspect, AspectMask, PartitionVersionMap};
 use crate::data::dependency::DependencySnapshotId;
+use crate::data::graph::storage::invalidation_causes::PendingCauseSetId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
 use crate::data::output::PartitionSubscription;
+use crate::data::proof::invalidation::binding::{
+    DependencyRevision, PendingDependencyRevalidation,
+};
 use crate::data::trace::{
     CausalityMetadata, ExecutionTraceStamp, RetainedDiagnosticArtifact, RuntimeArtifactState,
 };
@@ -19,6 +23,11 @@ pub(crate) struct CheckpointNodeImageParts {
     pub(crate) dependencies_id: DependencySetId,
     pub(crate) subscribers_id: SubscriberSetId,
     pub(crate) dep_snapshot_id: DependencySnapshotId,
+    pub(crate) pending_cause_set_id: PendingCauseSetId,
+    pub(crate) dependency_revision: DependencyRevision,
+    pub(crate) pending_dependency_revalidation: Option<PendingDependencyRevalidation>,
+    pub(crate) direct_invalidation_basis:
+        Option<crate::data::proof::invalidation::source_seed::DirectInvalidationBasis>,
     pub(crate) tombstoned: bool,
     pub(crate) runtime_artifact_state: Option<RuntimeArtifactState>,
     pub(crate) retained_artifact: Option<RetainedDiagnosticArtifact>,
@@ -37,6 +46,15 @@ pub struct CheckpointNodeImage {
     dependencies_id: DependencySetId,
     subscribers_id: SubscriberSetId,
     dep_snapshot_id: DependencySnapshotId,
+    #[serde(default)]
+    pending_cause_set_id: PendingCauseSetId,
+    #[serde(default)]
+    dependency_revision: DependencyRevision,
+    #[serde(default)]
+    pending_dependency_revalidation: Option<PendingDependencyRevalidation>,
+    #[serde(default)]
+    direct_invalidation_basis:
+        Option<crate::data::proof::invalidation::source_seed::DirectInvalidationBasis>,
     tombstoned: bool,
     #[serde(default)]
     runtime_artifact_state: Option<RuntimeArtifactState>,
@@ -60,6 +78,10 @@ impl CheckpointNodeImage {
             dependencies_id: parts.dependencies_id,
             subscribers_id: parts.subscribers_id,
             dep_snapshot_id: parts.dep_snapshot_id,
+            pending_cause_set_id: parts.pending_cause_set_id,
+            dependency_revision: parts.dependency_revision,
+            pending_dependency_revalidation: parts.pending_dependency_revalidation,
+            direct_invalidation_basis: parts.direct_invalidation_basis,
             tombstoned: parts.tombstoned,
             runtime_artifact_state: parts.runtime_artifact_state,
             retained_artifact: parts.retained_artifact,
@@ -78,6 +100,10 @@ impl CheckpointNodeImage {
             dependencies_id: self.dependencies_id,
             subscribers_id: self.subscribers_id,
             dep_snapshot_id: self.dep_snapshot_id,
+            pending_cause_set_id: self.pending_cause_set_id,
+            dependency_revision: self.dependency_revision,
+            pending_dependency_revalidation: self.pending_dependency_revalidation,
+            direct_invalidation_basis: self.direct_invalidation_basis,
             tombstoned: self.tombstoned,
             runtime_artifact_state: self.runtime_artifact_state,
             retained_artifact: self.retained_artifact,

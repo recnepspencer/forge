@@ -5,10 +5,10 @@ use worth_query_declaration::facade::application_capability::ApplicationCapabili
 use worth_query_declaration::facade::application_schema::ApplicationOperationProgramTarget;
 use worth_query_installation::facade::{
     derive_delegation_proposal_identity, WorthQueryDelegationProposalIdentityBasis,
+    WorthQueryInstalledApplicationCapability, WorthQueryInstalledApplicationOperation,
 };
 use worth_relational::facade::identity::{EntityId, KindId};
 
-use super::super::capability_binding_lowering::field_locator;
 use super::super::capability_registry::WorthQueryInstalledCapabilityPlan;
 use super::denial;
 use super::support::WorthQueryDelegationResolvedRequest;
@@ -16,24 +16,28 @@ use crate::domain_computation::authorization::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
 
+mod activation_material;
+mod program;
+use activation_material::collect_activation_material;
+pub(in crate::domain_computation) use program::WorthQueryDelegationActivationEffect;
+
 pub(in crate::domain_computation) struct WorthQueryDelegationActivationBinding {
     proposal_identity: [u8; 32],
-    pub(in crate::domain_computation) required_program_targets:
-        Vec<ApplicationOperationProgramTarget>,
-    pub(in crate::domain_computation) child_kind: KindId,
-    pub(in crate::domain_computation) child_key: String,
-    pub(in crate::domain_computation) fields: BTreeMap<AspectFieldLocator, AspectValue>,
-    pub(in crate::domain_computation) parent_relation: KindId,
-    pub(in crate::domain_computation) grantor_relation: KindId,
-    pub(in crate::domain_computation) grantee_relation: KindId,
-    pub(in crate::domain_computation) resource_relation: KindId,
-    pub(in crate::domain_computation) related_relation: Option<KindId>,
-    pub(in crate::domain_computation) parent: EntityId,
-    pub(in crate::domain_computation) grantor: EntityId,
-    pub(in crate::domain_computation) grantee: EntityId,
-    pub(in crate::domain_computation) resource: EntityId,
-    pub(in crate::domain_computation) related: Option<EntityId>,
-    pub(in crate::domain_computation) activation_context: Vec<(KindId, EntityId)>,
+    required_program_targets: Vec<ApplicationOperationProgramTarget>,
+    child_kind: KindId,
+    child_key: String,
+    fields: BTreeMap<AspectFieldLocator, AspectValue>,
+    parent_relation: KindId,
+    grantor_relation: KindId,
+    grantee_relation: KindId,
+    resource_relation: KindId,
+    related_relation: Option<KindId>,
+    parent: EntityId,
+    grantor: EntityId,
+    grantee: EntityId,
+    resource: EntityId,
+    related: Option<EntityId>,
+    activation_context: Vec<(KindId, EntityId)>,
 }
 
 impl WorthQueryDelegationActivationBinding {
@@ -43,92 +47,202 @@ impl WorthQueryDelegationActivationBinding {
 }
 
 pub(super) struct WorthQueryPreparedDelegationActivation {
-    pub(super) binding: WorthQueryDelegationActivationBinding,
-    pub(super) canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkEvidence,
+    binding: WorthQueryDelegationActivationBinding,
+    canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkEvidence,
 }
 
-pub(super) fn bind_activation<Schema, Scope, Context>(
+impl WorthQueryPreparedDelegationActivation {
+    pub(super) fn finish<Schema, Operation, Input, Scope>(
+        self,
+        mut admitted: crate::domain_computation::authorization::WorthQueryAdmittedApplicationOperation<
+            Schema,
+            Operation,
+            Input,
+            Scope,
+        >,
+    ) -> Result<
+        crate::domain_computation::authorization::WorthQueryAdmittedApplicationOperation<
+            Schema,
+            Operation,
+            Input,
+            Scope,
+        >,
+        WorthQueryOperationAuthorizationDenial,
+    > {
+        admitted.retain_delegation_proposal_canonical_work(self.canonical_work);
+        admitted.bind_delegation_activation(self.binding)
+    }
+}
+
+struct WorthQueryDelegationActivationAuthority<'a> {
+    target_capability_identity: [u8; 32],
+    required_program_targets: &'a [ApplicationOperationProgramTarget],
+    proposal_budget: worth_foundational::facade::CanonicalDigestWorkBudget,
+}
+
+struct WorthQueryDelegationActivationMaterial {
+    fields: BTreeMap<AspectFieldLocator, AspectValue>,
+    related: Option<(KindId, EntityId)>,
+    activation_context: Vec<(KindId, EntityId)>,
+    canonical_activation_context: Vec<(u32, (u32, u64, u32))>,
+}
+
+impl<'a> WorthQueryDelegationActivationAuthority<'a> {
+    fn from_validated_context<
+        Schema,
+        TargetCapability,
+        TargetOperation,
+        TargetInput,
+        Operation,
+        Input,
+    >(
+        target: &'a WorthQueryInstalledApplicationCapability<
+            Schema,
+            TargetCapability,
+            TargetOperation,
+            TargetInput,
+        >,
+        operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+    ) -> Option<Self>
+    where
+        Schema: worth_query_installation::facade::ApplicationSchema,
+    {
+        Some(Self {
+            target_capability_identity: *target.identity().bytes(),
+            required_program_targets: target.delegation_activation_program_targets()?,
+            proposal_budget: operation
+                .contracts()
+                .delegation_activation_proposal_canonical_work_budget()?,
+        })
+    }
+}
+
+pub(super) fn bind_activation<
+    Schema,
+    TargetCapability,
+    TargetOperation,
+    TargetInput,
+    Operation,
+    Input,
+    Scope,
+    Context,
+>(
     runtime: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime<
         Schema,
     >,
     installed: &WorthQueryInstalledCapabilityPlan,
     proposed: &ApplicationCapabilityDelegationRequestProjection<Schema, Scope, Context>,
     resolved: WorthQueryDelegationResolvedRequest,
-    target_capability_identity: [u8; 32],
-    required_program_targets: &[ApplicationOperationProgramTarget],
-    proposal_budget: worth_foundational::facade::CanonicalDigestWorkBudget,
+    target: &WorthQueryInstalledApplicationCapability<
+        Schema,
+        TargetCapability,
+        TargetOperation,
+        TargetInput,
+    >,
+    operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
 ) -> Result<WorthQueryPreparedDelegationActivation, WorthQueryOperationAuthorizationDenial>
 where
     Schema: worth_query_installation::facade::ApplicationSchema,
 {
+    let authority =
+        WorthQueryDelegationActivationAuthority::from_validated_context(target, operation)
+            .ok_or_else(|| delegation_denial(installed))?;
     let activation = installed
-        .delegation
+        .delegation()
         .activation
         .as_ref()
         .ok_or_else(|| delegation_denial(installed))?;
-    validate_field_bindings(runtime, installed, proposed, activation)?;
-    let fields = child_fields(installed, proposed, &activation.identity)?;
-    let related = match (&installed.delegation.related, resolved.related()) {
-        (Some(relation), Some(entity)) => Some((relation.relation_kind(), entity)),
-        (None, None) => None,
-        _ => return Err(delegation_denial(installed)),
-    };
-    let activation_context = resolved.activation_context().collect::<Vec<_>>();
-    let canonical_activation_context = activation_context
-        .iter()
-        .copied()
-        .map(|(relation, entity)| canonical_relation(relation, entity))
-        .collect::<Vec<_>>();
-    let (proposal_identity, canonical_work) = derive_delegation_proposal_identity(
-        WorthQueryDelegationProposalIdentityBasis {
-            target_capability_identity,
-            child_kind: installed.grant_kind.as_u32(),
-            child_key: proposed.child_key(),
-            fields: &fields,
-            parent: canonical_relation(
-                installed.delegation.parent.relation_kind(),
-                resolved.parent(),
-            ),
-            grantor: canonical_relation(
-                installed.delegation.grantor.relation_kind(),
-                resolved.grantor(),
-            ),
-            grantee: canonical_relation(
-                installed.delegation.grantee.relation_kind(),
-                resolved.grantee(),
-            ),
-            resource: canonical_relation(
-                installed.delegation.resource.relation_kind(),
-                resolved.resource(),
-            ),
-            related: related.map(|(relation, entity)| canonical_relation(relation, entity)),
-            activation_context: &canonical_activation_context,
-        },
-        proposal_budget,
-    )
-    .map_err(|_| delegation_denial(installed))?;
-    let binding = WorthQueryDelegationActivationBinding {
+    let material =
+        collect_activation_material(runtime, installed, proposed, &resolved, activation)?;
+    let (proposal_identity, canonical_work) =
+        derive_activation_proposal(&authority, installed, proposed, &resolved, &material)?;
+    let binding = material.into_binding(
+        installed,
+        proposed,
+        &resolved,
+        &authority,
         proposal_identity,
-        required_program_targets: required_program_targets.to_vec(),
-        child_kind: installed.grant_kind,
-        child_key: proposed.child_key().to_string(),
-        fields,
-        parent_relation: installed.delegation.parent.relation_kind(),
-        grantor_relation: installed.delegation.grantor.relation_kind(),
-        grantee_relation: installed.delegation.grantee.relation_kind(),
-        resource_relation: installed.delegation.resource.relation_kind(),
-        related_relation: related.map(|(relation, _)| relation),
-        parent: resolved.parent(),
-        grantor: resolved.grantor(),
-        grantee: resolved.grantee(),
-        resource: resolved.resource(),
-        related: related.map(|(_, entity)| entity),
-        activation_context,
-    };
+    );
     Ok(WorthQueryPreparedDelegationActivation {
         binding,
         canonical_work,
     })
+}
+
+fn derive_activation_proposal<Schema, Scope, Context>(
+    authority: &WorthQueryDelegationActivationAuthority<'_>,
+    installed: &WorthQueryInstalledCapabilityPlan,
+    proposed: &ApplicationCapabilityDelegationRequestProjection<Schema, Scope, Context>,
+    resolved: &WorthQueryDelegationResolvedRequest,
+    material: &WorthQueryDelegationActivationMaterial,
+) -> Result<
+    (
+        [u8; 32],
+        worth_query_installation::facade::WorthQueryCanonicalWorkEvidence,
+    ),
+    WorthQueryOperationAuthorizationDenial,
+> {
+    let (proposal_identity, canonical_work) = derive_delegation_proposal_identity(
+        WorthQueryDelegationProposalIdentityBasis {
+            target_capability_identity: authority.target_capability_identity,
+            child_kind: installed.grant_kind().as_u32(),
+            child_key: proposed.child_key(),
+            fields: &material.fields,
+            parent: canonical_relation(
+                installed.delegation().parent.relation_kind(),
+                resolved.parent(),
+            ),
+            grantor: canonical_relation(
+                installed.delegation().grantor.relation_kind(),
+                resolved.grantor(),
+            ),
+            grantee: canonical_relation(
+                installed.delegation().grantee.relation_kind(),
+                resolved.grantee(),
+            ),
+            resource: canonical_relation(
+                installed.delegation().resource.relation_kind(),
+                resolved.resource(),
+            ),
+            related: material
+                .related
+                .map(|(relation, entity)| canonical_relation(relation, entity)),
+            activation_context: &material.canonical_activation_context,
+        },
+        authority.proposal_budget,
+    )
+    .map_err(|_| delegation_denial(installed))?;
+    Ok((proposal_identity, canonical_work))
+}
+
+impl WorthQueryDelegationActivationMaterial {
+    fn into_binding<Schema, Scope, Context>(
+        self,
+        installed: &WorthQueryInstalledCapabilityPlan,
+        proposed: &ApplicationCapabilityDelegationRequestProjection<Schema, Scope, Context>,
+        resolved: &WorthQueryDelegationResolvedRequest,
+        authority: &WorthQueryDelegationActivationAuthority<'_>,
+        proposal_identity: [u8; 32],
+    ) -> WorthQueryDelegationActivationBinding {
+        WorthQueryDelegationActivationBinding {
+            proposal_identity,
+            required_program_targets: authority.required_program_targets.to_vec(),
+            child_kind: installed.grant_kind(),
+            child_key: proposed.child_key().to_string(),
+            fields: self.fields,
+            parent_relation: installed.delegation().parent.relation_kind(),
+            grantor_relation: installed.delegation().grantor.relation_kind(),
+            grantee_relation: installed.delegation().grantee.relation_kind(),
+            resource_relation: installed.delegation().resource.relation_kind(),
+            related_relation: self.related.map(|(relation, _)| relation),
+            parent: resolved.parent(),
+            grantor: resolved.grantor(),
+            grantee: resolved.grantee(),
+            resource: resolved.resource(),
+            related: self.related.map(|(_, entity)| entity),
+            activation_context: self.activation_context,
+        }
+    }
 }
 
 fn canonical_relation(relation: KindId, entity: EntityId) -> (u32, (u32, u64, u32)) {
@@ -142,126 +256,11 @@ fn canonical_relation(relation: KindId, entity: EntityId) -> (u32, (u32, u64, u3
     )
 }
 
-fn validate_field_bindings<Schema, Scope, Context>(
-    runtime: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime<
-        Schema,
-    >,
-    installed: &WorthQueryInstalledCapabilityPlan,
-    proposed: &ApplicationCapabilityDelegationRequestProjection<Schema, Scope, Context>,
-    activation: &super::super::capability_registry::WorthQueryCapabilityDelegationActivationBindings,
-) -> Result<(), WorthQueryOperationAuthorizationDenial>
-where
-    Schema: worth_query_installation::facade::ApplicationSchema,
-{
-    let graph = runtime
-        .runtime
-        .primary_graph()
-        .ok_or_else(|| delegation_denial(installed))?;
-    let layout = graph.layout();
-    let bindings = [
-        (proposed.child_identity().field(), &activation.identity),
-        (
-            proposed.workflow().field(),
-            &installed.delegation.grant_workflow,
-        ),
-        (
-            proposed.not_before().field(),
-            &installed.delegation.not_before,
-        ),
-        (
-            proposed.not_after().field(),
-            &installed.delegation.not_after,
-        ),
-        (
-            proposed.remaining_delegations().field(),
-            &installed.delegation.remaining,
-        ),
-    ];
-    if bindings.into_iter().all(|(declared, expected)| {
-        field_locator(layout, declared).is_ok_and(|found| &found == expected)
-    }) && proposed.not_before().value() <= proposed.not_after().value()
-    {
-        Ok(())
-    } else {
-        Err(delegation_denial(installed))
-    }
-}
-
-fn child_fields<Schema, Scope, Context>(
-    installed: &WorthQueryInstalledCapabilityPlan,
-    proposed: &ApplicationCapabilityDelegationRequestProjection<Schema, Scope, Context>,
-    identity: &AspectFieldLocator,
-) -> Result<BTreeMap<AspectFieldLocator, AspectValue>, WorthQueryOperationAuthorizationDenial> {
-    let target = proposed.target();
-    let mut fields = BTreeMap::from([
-        (identity.clone(), proposed.child_identity().value().clone()),
-        (installed.delegation.action.clone(), target.action().clone()),
-        (
-            installed.delegation.purpose.clone(),
-            target.purpose().clone(),
-        ),
-        (
-            installed.delegation.active_status.0.clone(),
-            installed.delegation.active_status.1.clone(),
-        ),
-        (
-            installed.delegation.grant_workflow.clone(),
-            proposed.workflow().value().clone(),
-        ),
-        (
-            installed.delegation.not_before.clone(),
-            proposed.not_before().value().clone(),
-        ),
-        (
-            installed.delegation.not_after.clone(),
-            proposed.not_after().value().clone(),
-        ),
-        (
-            installed.delegation.remaining.clone(),
-            proposed.remaining_delegations().value().clone(),
-        ),
-    ]);
-    bind_optional(
-        &mut fields,
-        installed.delegation.disclosure.as_ref(),
-        target.field_value(),
-    )?;
-    bind_optional(
-        &mut fields,
-        installed.delegation.magnitude.as_ref(),
-        target.magnitude_value(),
-    )?;
-    let expected = 8
-        + usize::from(installed.delegation.disclosure.is_some())
-        + usize::from(installed.delegation.magnitude.is_some());
-    (fields.len() == expected)
-        .then_some(fields)
-        .ok_or_else(|| delegation_denial(installed))
-}
-
-fn bind_optional(
-    fields: &mut BTreeMap<AspectFieldLocator, AspectValue>,
-    locator: Option<&AspectFieldLocator>,
-    value: Option<&AspectValue>,
-) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-    match (locator, value) {
-        (Some(locator), Some(value)) => {
-            fields.insert(locator.clone(), value.clone());
-            Ok(())
-        }
-        (None, None) => Ok(()),
-        _ => Err(denial(
-            WorthQueryOperationAuthorizationDenialKind::DelegationRejected,
-            "delegated capability optional dimension",
-        )),
-    }
-}
-
 fn delegation_denial(
     installed: &WorthQueryInstalledCapabilityPlan,
 ) -> WorthQueryOperationAuthorizationDenial {
     denial(
         WorthQueryOperationAuthorizationDenialKind::DelegationRejected,
-        installed.contract.name(),
+        installed.contract().name(),
     )
 }

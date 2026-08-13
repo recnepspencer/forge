@@ -12,11 +12,16 @@ pub struct IdentityFixture {
     postgres_password: String,
     authentik_secret: String,
     bootstrap_token: String,
-    redirect_url: String,
+    redirect_urls: Vec<String>,
 }
 
 impl IdentityFixture {
     pub fn dynamic(redirect_url: String) -> Self {
+        Self::dynamic_with_redirects(vec![redirect_url])
+    }
+
+    pub fn dynamic_with_redirects(redirect_urls: Vec<String>) -> Self {
+        assert!(!redirect_urls.is_empty(), "a courtroom needs a redirect");
         let suffix = random_text(12).to_ascii_lowercase();
         let participants = CourtroomIdentityRole::ALL
             .into_iter()
@@ -38,7 +43,7 @@ impl IdentityFixture {
             postgres_password: random_text(36),
             authentik_secret: random_text(72),
             bootstrap_token: random_text(48),
-            redirect_url,
+            redirect_urls,
         }
     }
 
@@ -88,8 +93,8 @@ impl IdentityFixture {
         &self.bootstrap_token
     }
 
-    pub fn redirect_url(&self) -> &str {
-        &self.redirect_url
+    pub fn redirect_urls(&self) -> &[String] {
+        &self.redirect_urls
     }
 }
 

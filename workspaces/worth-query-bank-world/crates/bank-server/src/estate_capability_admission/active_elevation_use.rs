@@ -76,7 +76,7 @@ fn approve_two_second_account_details_elevation(
     fixture: &super::fixture::CapabilityFixture,
     requester: &crate::BankAuthenticatedPrincipal,
     approver: &crate::BankAuthenticatedPrincipal,
-) -> worth_query_host::facade::primary_graph::WorthQueryApprovedElevation {
+) -> crate::BankApprovedEstateElevation {
     let requested = request_elevation(
         fixture,
         requester,
@@ -222,7 +222,7 @@ fn real_approved_elevation_cannot_enter_the_bank_disbursement_operation() {
         .runtime
         .application_runtime()
         .admit_approved_elevation_access(
-            &approved,
+            approved.query(),
             requester.query(),
             &capability,
             action,

@@ -9,8 +9,8 @@ use bank_domain::{
 use worth_query_host::facade::{
     declaration::application_query::ApplicationQueryParameterSet,
     primary_graph::{
-        WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationHistoricalRead,
-        WorthQueryApplicationQueryControls, WorthQueryPrimaryGraphApplicationRuntime,
+        WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationQueryControls,
+        WorthQueryPrimaryGraphApplicationRuntime,
     },
     publication::domain_computation::{
         publish_application_result, WorthQueryPublishedApplicationResult,
@@ -98,9 +98,7 @@ impl BankEstateEmergencyAccessActivityAdmission<'_, '_, '_, '_> {
             .runtime
             .application_runtime()
             .admit_application_historical_basis(
-                WorthQueryApplicationHistoricalRead::at_application_commit(
-                    self.approved.approval_commit_receipt(),
-                ),
+                self.approved.historical_read(),
                 self.controls.request(),
             )
             .map_err(BankApplicationQueryDenial::from_admission)?;
@@ -126,14 +124,12 @@ impl BankEstateEmergencyAccessActivityAdmission<'_, '_, '_, '_> {
         )
             -> Result<Output, BankApplicationQueryDenial>,
     ) -> Result<Output, BankApplicationQueryDenial> {
-        let basis =
-            session.admit_basis(self.runtime.application_runtime(), self.controls.request())?;
-        let controls = WorthQueryApplicationQueryControls::preview(
-            basis,
+        let controls = session.admit_controls(
+            self.runtime.application_runtime(),
             self.controls.maximum_result_count(),
             self.controls.maximum_work(),
             self.controls.request(),
-        );
+        )?;
         self.with_admitted(controls, |application, plan| {
             after_admission(BankAdmittedEstateEmergencyAccessActivityPreview { application, plan })
         })
@@ -162,7 +158,7 @@ impl BankEstateEmergencyAccessActivityAdmission<'_, '_, '_, '_> {
             .map_err(BankApplicationQueryDenial::from_capability_installation)?;
         let capability_access = application
             .admit_approved_elevation_access(
-                self.approved,
+                self.approved.query(),
                 self.principal.query(),
                 &capability,
                 self.request.capability_request(),

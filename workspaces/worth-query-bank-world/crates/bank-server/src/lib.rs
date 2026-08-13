@@ -58,16 +58,25 @@ pub use error::{
     BankPrincipalAdmissionError, BankWorldSeedDenial,
 };
 pub use estate_progression::{
-    compensating_reverse_journal, BankCapabilityDelegationProjectionDenial,
-    BankCapabilityRevocationProjectionDenial, BankCompensationUndoAdmission,
-    BankDeathNotificationProjectionDenial, BankDisbursementRedoAdmission,
-    BankEstateCaseOpeningProjectionDenial, BankEstateDisbursementProjectionDenial,
+    compensating_reverse_journal, BankApprovedEstateElevation,
+    BankCapabilityDelegationProjectionDenial, BankCapabilityRevocationProjectionDenial,
+    BankCommitRecoveryHandle, BankCompensationUndoAdmission, BankDeathNotificationProjectionDenial,
+    BankDisbursementRedoAdmission, BankEstateCaseOpeningProjectionDenial,
+    BankEstateDisbursementProjectionDenial, BankEstateElevationApprovalOutcome,
+    BankEstateElevationCloseOutcome, BankEstateElevationClosureKind,
+    BankEstateElevationRequestOutcome, BankEstateElevationRetentionWork,
     BankEstateFreezeProjectionDenial, BankEstateIdempotencyResolutionDenial,
-    BankEstateLifecycleProjectionDenial, BankEstateOperationProjectionDenial,
+    BankEstateLifecycleProjectionDenial, BankEstateMandatoryReview,
+    BankEstateMandatoryReviewOutcome, BankEstateOperationProjectionDenial,
     BankEstateProgressionDenial, BankEstateReleaseProjectionDenial,
     BankExecutorRecognitionProjectionDenial, BankInvariantDecisionPlanDenial,
-    BankInvariantProjectionTraversalDenial, BankRecordedInverseUndoAdmission,
-    BankUndoCommitOutcome,
+    BankInvariantProjectionTraversalDenial, BankRecordedInverseUndoAdmission, BankRecoveryDenial,
+    BankRecoveryDenialKind, BankRecoveryDurability, BankRecoveryExpiryDecision,
+    BankRecoveryExpiryEvaluation, BankRecoveryIdempotencyResolution, BankRecoveryInspection,
+    BankRecoveryPosture, BankRecoverySafeRetryReceipt, BankRecoverySupportTruth,
+    BankRecoveryTransitionReceipt, BankRedoCommitOutcome, BankRedoIntent, BankRedoRecovery,
+    BankRequestedEstateElevation, BankReviewedEstateElevation, BankUndoCommitOutcome,
+    BankUndoCorrection, BankUndoRetry,
 };
 pub use external_effect_transport::BankExternalEffectTransportDenial;
 pub use identity_runtime::{BankAuthenticationConfiguration, BankIdentityRuntime};

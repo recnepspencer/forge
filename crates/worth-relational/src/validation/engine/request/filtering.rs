@@ -14,7 +14,8 @@ pub(super) fn rule_matches_plan_scope(
     };
     request
         .relation_integrity_scopes()
-        .is_some_and(|scopes| scopes.contains_relation_kind(relation_kind_id))
+        .and_then(|scopes| scopes.scope_for(relation_kind_id))
+        .is_some_and(super::PreparedRelationIntegrityScope::should_execute)
 }
 
 #[cfg(test)]
@@ -38,6 +39,15 @@ pub(super) fn relation_rule_kind(
             Some(contract.relation_kind_id)
         }
         crate::validation::data::InvariantRule::EndpointDeletionIntegrityContract(contract) => {
+            Some(contract.relation_kind_id)
+        }
+        crate::validation::data::InvariantRule::AcyclicityContract(contract) => {
+            Some(contract.relation_kind_id)
+        }
+        crate::validation::data::InvariantRule::PartitionIsolationContract(contract) => {
+            Some(contract.relation_kind_id)
+        }
+        crate::validation::data::InvariantRule::ConnectivityMinimumContract(contract) => {
             Some(contract.relation_kind_id)
         }
         _ => None,

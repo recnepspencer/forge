@@ -9,7 +9,7 @@ use crate::domain_computation::primary_graph::{
 mod composition;
 
 pub(super) use composition::bind_composed_grant;
-pub(in crate::domain_computation::primary_graph) use composition::CapabilityCompositionScenario;
+pub(in crate::domain_computation) use composition::CapabilityCompositionScenario;
 
 pub(super) fn bind_grant(bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>) {
     bind_grant_window(bootstrap, "capability-1", 90, 110, 50);

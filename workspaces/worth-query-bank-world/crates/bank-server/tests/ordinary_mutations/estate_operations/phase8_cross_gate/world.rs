@@ -148,19 +148,11 @@ impl CrossGateWorld {
     /// The action behind [`Self::commit_second_notification`] — a different
     /// estate, so `NotificationFixture::action` (which pins its own estate)
     /// cannot build it.
-    pub(crate) const fn second_specialist_action(&self) -> bank_domain::estate::EstateAction {
-        bank_domain::estate::EstateAction::NotifyDeath {
-            estate: self.fixture.second_estate,
-            notice: self.fixture.second_notice,
-            subject: self.fixture.other_subject,
-        }
-    }
-
     /// Open recovery through the production Bank assembly path (R8.31 / §10.4).
     pub(crate) fn open_recovery(
         &self,
         receipt: &BankCommitReceipt,
-    ) -> worth_query_host::facade::primary_graph::WorthQueryRecoveryHandle {
+    ) -> bank_server::BankCommitRecoveryHandle {
         self.fixture
             .world
             .runtime

@@ -1,6 +1,7 @@
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::storage::data::{EntityReadRecord, RecordLifecycleState};
-use crate::storage::logic::state::{HistoricalMetadata, PartitionState};
+use crate::storage::overlay::PartitionState;
+use crate::storage::substrate::HistoricalMetadata;
 
 use super::super::visibility::{
     entity_visible_in_partition_at_version, historical_lifecycle, visible_metadata,

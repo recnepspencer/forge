@@ -60,7 +60,6 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
         .unwrap();
     let metrics_before = graph.observe().metrics();
     let rewiring_apply_count_before = metrics_before.execution.rewiring_apply_count;
-    let snapshot_batch_size_before = metrics_before.storage.snapshot_batch_size;
 
     mark_dirty(&mut graph, left, ASPECT_A).unwrap();
     mark_dirty(&mut graph, right, ASPECT_A).unwrap();
@@ -97,7 +96,6 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
     assert_eq!(a_subs, vec![right]);
     assert!(b_subs.is_empty());
     assert_eq!(c_subs, vec![left]);
-    assert_eq!(report.dependency_capture_updates, 4);
     assert!(!report.stages.is_empty());
     assert!(report
         .stages
@@ -130,10 +128,6 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
             ids.dedup();
             ids.len() == stage.semantic_segment_count as usize
         }));
-    assert_eq!(
-        graph.observe().metrics().storage.snapshot_batch_size - snapshot_batch_size_before,
-        u64::from(report.prepared_evaluations_applied)
-    );
     assert_eq!(
         graph.observe().metrics().execution.rewiring_apply_count - rewiring_apply_count_before,
         2

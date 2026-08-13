@@ -1,10 +1,10 @@
 use crate::capabilities::{SchemaSource, SchemaVersionSource};
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::schema::data::{
     DescriptorSemanticsVersion, LoweredSchemaTransitionPlan, SchemaContinuationDescriptor,
     SchemaReconciliationDescriptor, SchemaTransitionArtifact,
 };
-use crate::schema::logic::{
+use crate::schema::{
     lower_schema_transition, validate_schema_continuity_bundle, validate_schema_transition,
 };
 use crate::transactions::data::{CommitConflict, ConflictClass, TransactionCommitError};
@@ -36,7 +36,7 @@ impl SchemaContinuityPlan {
 }
 
 pub(crate) fn resolve_schema_continuity(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
     options: &crate::transactions::data::TransactionOptions,
 ) -> Result<SchemaContinuityPlan, TransactionCommitError> {
@@ -146,13 +146,13 @@ pub(crate) fn resolve_schema_continuity(
 }
 
 fn materialize_declared_transition(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     proposed_transition: crate::schema::data::ProposedSchemaTransition,
     policy: Option<crate::schema::data::SchemaReconciliationPolicy>,
     descriptor_semantics_version: DescriptorSemanticsVersion,
     descriptor_canonical_basis_version: crate::schema::data::DescriptorCanonicalBasisVersion,
     branch_id: &crate::history::data::BranchId,
-    previous_envelope: Option<&crate::replay::data::CanonicalCommitEnvelope>,
+    previous_envelope: Option<&crate::history::data::CanonicalCommitEnvelope>,
     current_schema_basis: Option<(
         crate::schema::data::SchemaId,
         crate::schema::data::SchemaVersionId,
@@ -324,10 +324,10 @@ fn schema_continuity_plan_from_lowered(
 }
 
 fn schema_continuity_conflict(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
     proposed_transition: Option<&crate::schema::data::ProposedSchemaTransition>,
-    previous_envelope: Option<&crate::replay::data::CanonicalCommitEnvelope>,
+    previous_envelope: Option<&crate::history::data::CanonicalCommitEnvelope>,
     class: ConflictClass,
 ) -> TransactionCommitError {
     let conflict = CommitConflict::new(class);
@@ -342,7 +342,7 @@ fn schema_continuity_conflict(
 }
 
 pub(crate) fn validate_schema_continuity_publication(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
     _plan: &SchemaContinuityPlan,
     envelope: &CanonicalCommitEnvelope,

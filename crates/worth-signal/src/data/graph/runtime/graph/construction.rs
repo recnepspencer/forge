@@ -8,10 +8,15 @@ use super::{EdgeTopology, NodeArena, RuntimeObservation, SignalGraph, TraversalR
 
 impl Clone for SignalGraph {
     fn clone(&self) -> Self {
+        let instance_id = super::next_signal_graph_instance_id();
+        let mut cause_sets = self.cause_sets.clone();
+        cause_sets.readmit_graph_instance(instance_id);
         Self {
-            instance_id: super::next_signal_graph_instance_id(),
+            instance_id,
             arena: self.arena.clone(),
             topology: self.topology.clone(),
+            cause_sets,
+            cause_readmission_required: self.cause_readmission_required,
             traversal: self.traversal.clone(),
             observation: self.observation.clone(),
             schema_registry: self.schema_registry.clone(),
@@ -46,6 +51,8 @@ impl SignalGraph {
                 compaction: CompactionState::default(),
             },
             topology: EdgeTopology::default(),
+            cause_sets: Default::default(),
+            cause_readmission_required: false,
             traversal: TraversalResources::default(),
             observation: RuntimeObservation::default(),
             schema_registry: SignalSchemaRegistry::default(),

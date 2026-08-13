@@ -13,17 +13,6 @@ use crate::domain_computation::primary_graph::{
 };
 
 #[test]
-fn every_mutation_terminal_returns_snapshot_and_provider_session_baselines() {
-    committed_terminal();
-    stale_terminal();
-    cancelled_terminal();
-    provider_denial_terminal();
-    aborted_terminal();
-    skipped_owner_terminal();
-    response_loss_terminal();
-    idempotent_retry_terminal();
-}
-
 fn committed_terminal() {
     let world = installed_authorization_world(true);
     let baseline = baselines(&world);
@@ -40,6 +29,7 @@ fn committed_terminal() {
     assert_baselines(&world, baseline);
 }
 
+#[test]
 fn stale_terminal() {
     let world = installed_authorization_world(true);
     let baseline = baselines(&world);
@@ -63,6 +53,7 @@ fn stale_terminal() {
     assert_baselines(&world, baseline);
 }
 
+#[test]
 fn cancelled_terminal() {
     let world = installed_authorization_world(true);
     let baseline = baselines(&world);
@@ -84,11 +75,12 @@ fn cancelled_terminal() {
     assert_baselines(&world, baseline);
 }
 
+#[test]
 fn provider_denial_terminal() {
     let world = installed_authorization_world(true);
     let baseline = baselines(&world);
     let program = program(&world, "terminal-denied");
-    world.application.reject_next_session_prepare();
+    world.faults.reject_next_session_prepare();
     assert!(matches!(
         world
             .application
@@ -99,11 +91,12 @@ fn provider_denial_terminal() {
     assert_baselines(&world, baseline);
 }
 
+#[test]
 fn aborted_terminal() {
     let world = installed_authorization_world(true);
     let baseline = baselines(&world);
     let program = program(&world, "terminal-abort");
-    world.application.reject_next_commit_before_transaction();
+    world.faults.reject_next_commit_before_transaction();
     assert!(matches!(
         world
             .application
@@ -113,11 +106,12 @@ fn aborted_terminal() {
     assert_baselines(&world, baseline);
 }
 
+#[test]
 fn skipped_owner_terminal() {
     let world = installed_authorization_world(true);
     let baseline = baselines(&world);
     let program = program(&world, "terminal-skipped-owner");
-    world.application.skip_next_invariant_owner_execution();
+    world.faults.skip_next_invariant_owner_execution();
     assert!(matches!(
         world
             .application
@@ -127,11 +121,12 @@ fn skipped_owner_terminal() {
     assert_baselines(&world, baseline);
 }
 
+#[test]
 fn response_loss_terminal() {
     let world = installed_authorization_world(true);
     let baseline = baselines(&world);
     let program = program(&world, "terminal-response-loss");
-    world.application.lose_next_commit_response();
+    world.faults.lose_next_commit_response();
     assert!(matches!(
         world
             .application
@@ -141,6 +136,7 @@ fn response_loss_terminal() {
     assert_baselines(&world, baseline);
 }
 
+#[test]
 fn idempotent_retry_terminal() {
     let world = installed_authorization_world(true);
     let baseline = baselines(&world);

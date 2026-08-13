@@ -2,7 +2,6 @@ mod checkpoint_projection;
 mod envelope_sources;
 mod request_validation;
 
-use crate::logic::runtime::RelationalRuntime;
 use crate::publication::cdc::data::{
     SubscriberRecoveryDecision, SubscriberRecoveryPlan, SubscriberRecoverySource,
     SubscriberResumeRequest, SubscriberStreamFailure,
@@ -16,6 +15,7 @@ use crate::publication::cdc::planning::checkpoint_resolution::{
 use crate::publication::cdc::planning::{
     assess_subscriber_continuity, disposition_for_assessment, select_execution_envelopes,
 };
+use crate::runtime::RelationalRuntime;
 
 use self::checkpoint_projection::{
     latest_available_assessment, latest_available_checkpoint_for_recovery,

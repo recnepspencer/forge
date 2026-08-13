@@ -20,8 +20,8 @@ pub(super) struct WorthQueryProviderEffectAccumulator<'facts> {
     lowered: Vec<WorthQueryLoweredProviderEffect>,
 }
 
-pub(super) struct WorthQueryCompletedProviderEffectLowering {
-    steps: Vec<WorthQueryProvisionalEffectStep>,
+pub(super) struct WorthQueryRegisteredProviderEffects {
+    lowered: Vec<WorthQueryLoweredProviderEffect>,
     batch: WorkerIntentBatch,
     emissions: WorthQueryAdmittedApplicationEmissionBatch,
 }
@@ -51,8 +51,8 @@ impl<'facts> WorthQueryProviderEffectAccumulator<'facts> {
         self,
         expected_emission_retained_bytes: u64,
         emission_retained_bytes_ceiling: u64,
-    ) -> Result<WorthQueryCompletedProviderEffectLowering, WorthQueryApplicationAttemptDenial> {
-        let (steps, intents, emissions) = materialize_effect_collections(self.lowered);
+    ) -> Result<WorthQueryRegisteredProviderEffects, WorthQueryApplicationAttemptDenial> {
+        let (intents, emissions) = materialize_commit_projections(&self.lowered);
         let batch = intents.into_iter().fold(
             WorkerIntentBatch::new("application-provider-attempt"),
             WorkerIntentBatch::push,
@@ -65,47 +65,98 @@ impl<'facts> WorthQueryProviderEffectAccumulator<'facts> {
         if emissions.retained_bytes() != expected_emission_retained_bytes {
             return Err(retained_bytes_denial());
         }
-        Ok(WorthQueryCompletedProviderEffectLowering {
-            steps,
+        Ok(WorthQueryRegisteredProviderEffects {
+            lowered: self.lowered,
             batch,
             emissions,
         })
     }
 }
 
-impl WorthQueryCompletedProviderEffectLowering {
-    pub(super) fn into_parts(
+impl WorthQueryRegisteredProviderEffects {
+    pub(super) fn expected_steps(&self) -> Vec<WorthQueryProvisionalEffectStep> {
+        self.lowered
+            .iter()
+            .filter_map(|effect| match effect {
+                WorthQueryLoweredProviderEffect::Mutation { steps, .. } => Some(steps.as_slice()),
+                WorthQueryLoweredProviderEffect::Emission(_) => None,
+            })
+            .flatten()
+            .cloned()
+            .collect()
+    }
+
+    pub(super) const fn batch(&self) -> &WorkerIntentBatch {
+        &self.batch
+    }
+
+    pub(super) const fn emissions(&self) -> &WorthQueryAdmittedApplicationEmissionBatch {
+        &self.emissions
+    }
+
+    /// Appends the Primary Graph registration records without releasing or
+    /// replacing the sealed provider-effect batch.
+    pub(super) fn bind_registration_intents(
         self,
-    ) -> (
-        Vec<WorthQueryProvisionalEffectStep>,
-        WorkerIntentBatch,
-        WorthQueryAdmittedApplicationEmissionBatch,
-    ) {
-        (self.steps, self.batch, self.emissions)
+        provider: &crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphProvider,
+        emitted_effect_count: u64,
+        aftermath_causality: Option<
+            &crate::domain_computation::application_aftermath::WorthQueryPendingAftermathCausality,
+        >,
+        dispatch_basis: crate::domain_computation::primary_graph::provider::dispatch_outbox::WorthQueryDispatchOutboxBasis<'_>,
+    ) -> Result<
+        (
+            Self,
+            Option<
+                crate::domain_computation::application_aftermath::WorthQueryPendingDispatchOutbox,
+            >,
+        ),
+        &'static str,
+    > {
+        let idempotency = dispatch_basis.idempotency;
+        let outcome_identity = dispatch_basis.outcome_identity;
+        let mut batch = provider.bind_application_idempotency_intent(
+            self.batch,
+            idempotency,
+            outcome_identity,
+            emitted_effect_count,
+        );
+        if let Some(causality) = aftermath_causality {
+            batch = provider.bind_application_aftermath_causality_intent(
+                batch,
+                causality,
+                outcome_identity,
+            );
+        }
+        let (batch, dispatch_outbox) =
+            provider.bind_application_dispatch_outbox(batch, dispatch_basis)?;
+        Ok((
+            Self {
+                lowered: self.lowered,
+                batch,
+                emissions: self.emissions,
+            },
+            dispatch_outbox,
+        ))
+    }
+
+    pub(super) fn into_emissions(self) -> WorthQueryAdmittedApplicationEmissionBatch {
+        self.emissions
     }
 }
 
-fn materialize_effect_collections(
-    lowered: Vec<WorthQueryLoweredProviderEffect>,
-) -> (
-    Vec<WorthQueryProvisionalEffectStep>,
-    Vec<MutationIntent>,
-    Vec<WorthQueryApplicationEmission>,
-) {
-    let mut steps = Vec::new();
+fn materialize_commit_projections(
+    lowered: &[WorthQueryLoweredProviderEffect],
+) -> (Vec<MutationIntent>, Vec<WorthQueryApplicationEmission>) {
     let mut intents = Vec::new();
     let mut emissions = Vec::new();
     for effect in lowered {
         match effect {
-            WorthQueryLoweredProviderEffect::Mutation {
-                steps: effect_steps,
-                intent,
-            } => {
-                steps.extend(effect_steps);
-                intents.push(intent);
+            WorthQueryLoweredProviderEffect::Mutation { intent, .. } => {
+                intents.push(intent.clone());
             }
-            WorthQueryLoweredProviderEffect::Emission(emission) => emissions.push(emission),
+            WorthQueryLoweredProviderEffect::Emission(emission) => emissions.push(emission.clone()),
         }
     }
-    (steps, intents, emissions)
+    (intents, emissions)
 }

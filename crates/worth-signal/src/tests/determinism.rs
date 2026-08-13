@@ -8,9 +8,7 @@ fn kv63_circular_reference_detected() {
     let b = graph.node().build();
 
     graph.append_dependency(b, a, ASPECT_B).unwrap();
-    graph.append_dependency(a, b, ASPECT_B).unwrap();
-
-    let result = mark_dirty(&mut graph, a, ASPECT_B);
+    let result = graph.append_dependency(a, b, ASPECT_B);
     assert!(
         result.is_err(),
         "Circular reference A↔B should produce an error"

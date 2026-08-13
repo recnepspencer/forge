@@ -86,10 +86,10 @@ fn unsupported_continuation_failure_deduplicates_boundary_already_present_in_pri
 }
 
 fn envelope_with_continuation(
-    mut envelope: crate::replay::data::CanonicalCommitEnvelope,
+    mut envelope: crate::history::data::CanonicalCommitEnvelope,
     fingerprint: SchemaBoundaryFingerprint,
     continuation: SchemaContinuationClassification,
-) -> crate::replay::data::CanonicalCommitEnvelope {
+) -> crate::history::data::CanonicalCommitEnvelope {
     envelope.schema_continuation_descriptor = Some(SchemaContinuationDescriptor::new(
         fingerprint,
         SchemaBridgeDescriptor::new(

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use super::{
     WorthQueryProviderSessionAffinity, WorthQueryProviderSessionAffinityIdentity,
     WorthQuerySessionBinding,
@@ -14,9 +12,7 @@ use super::{
 pub(in crate::domain_computation) struct WorthQueryProviderSessionTerminalBinding {
     affinity: WorthQueryProviderSessionAffinityIdentity,
     session: WorthQuerySessionBinding,
-    managed_run: Arc<str>,
-    graph_work_session: Option<u64>,
-    graph_work_managed_run: Option<u64>,
+    plan: super::WorthQueryProviderExecutionPlanContract,
 }
 
 impl WorthQueryProviderSessionTerminalBinding {
@@ -26,9 +22,7 @@ impl WorthQueryProviderSessionTerminalBinding {
                 affinity.session().token(),
             ),
             session: affinity.binding().clone(),
-            managed_run: affinity.plan().managed_run_identity().into(),
-            graph_work_session: affinity.plan().graph_work_session_identity(),
-            graph_work_managed_run: affinity.plan().graph_work_managed_run_identity(),
+            plan: affinity.plan().clone(),
         }
     }
 
@@ -44,12 +38,44 @@ impl WorthQueryProviderSessionTerminalBinding {
         managed_run: super::super::WorthQueryGraphWorkManagedRunIdentity,
         worker: &str,
     ) -> bool {
-        self.managed_run.as_ref() == worker
-            && self.graph_work_session == Some(session.as_u64())
-            && self.graph_work_managed_run == Some(managed_run.as_u64())
+        self.plan.managed_run_identity() == worker
+            && self.plan.graph_work_session_identity() == Some(session.as_u64())
+            && self.plan.graph_work_managed_run_identity() == Some(managed_run.as_u64())
+    }
+
+    pub(in crate::domain_computation) const fn plan(
+        &self,
+    ) -> &super::WorthQueryProviderExecutionPlanContract {
+        &self.plan
+    }
+
+    pub(in crate::domain_computation) fn admits_session_view(
+        &self,
+        session: super::WorthQueryProviderSessionView<'_>,
+    ) -> bool {
+        self.affinity == session.affinity_identity()
+            && self.session.token_identity() == session.identity()
+            && self.session.token_generation() == session.generation()
+            && self.session.provider_identity() == session.provider_identity()
+            && self.session.provider_generation() == session.provider_generation()
+            && self.plan.provider_identity() == session.provider_identity()
+            && self.plan.provider_generation() == session.provider_generation()
+            && self.plan.identity() == session.plan_identity()
     }
 
     pub(in crate::domain_computation) fn same_session(&self, other: &Self) -> bool {
         self == other
+    }
+
+    pub(in crate::domain_computation) fn admits_cleanup_binding(
+        &self,
+        cleanup: &crate::domain_computation::provider_session::WorthQueryProvisionalOverlayCleanupBinding,
+    ) -> bool {
+        self.affinity == cleanup.affinity_identity()
+            && self.session.token_identity() == cleanup.token_identity()
+            && self.session.token_generation() == cleanup.token_generation()
+            && self.session.provider_identity() == cleanup.provider_identity()
+            && self.session.provider_generation() == cleanup.provider_generation()
+            && self.plan.identity() == cleanup.plan_identity()
     }
 }

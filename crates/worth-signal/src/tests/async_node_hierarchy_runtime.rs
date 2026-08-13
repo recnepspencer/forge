@@ -1,7 +1,7 @@
 use crate::facade::*;
 use crate::tests::async_node_support::{
     async_node_capability_declaration, async_node_capability_with_dependents,
-    AsyncNodeTestRuntime as TestRuntime,
+    settle_async_dependency_baseline, AsyncNodeTestRuntime as TestRuntime,
 };
 
 #[test]
@@ -16,6 +16,7 @@ fn async_node_hierarchy_cancellation_propagates_and_replay_summary_restores_iden
     graph
         .append_dependency(grandchild, child, Aspect::new(0))
         .expect("grandchild should depend on child");
+    settle_async_dependency_baseline(&mut graph, [parent, child, grandchild]);
 
     let mut runtime = TestRuntime::build(graph);
     runtime
@@ -134,6 +135,7 @@ fn async_node_hierarchy_restore_is_branch_local_and_checkpoint_honest() {
     graph
         .append_dependency(grandchild, child, Aspect::new(0))
         .expect("grandchild should depend on child");
+    settle_async_dependency_baseline(&mut graph, [parent, child, grandchild]);
 
     let mut runtime = TestRuntime::build(graph);
     runtime

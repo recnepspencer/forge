@@ -55,25 +55,24 @@ impl SignalGraph {
         &self,
         id: NodeId,
     ) -> Result<crate::data::aspect::AspectMask, SignalError> {
+        self.ensure_cause_readmission_complete()?;
         Ok(self.hot_ref(id)?.dirty_aspects)
     }
 
-    pub(crate) fn node_dirty_partition_scopes(
+    #[cfg(test)]
+    pub(crate) fn node_dirty_scoped_aspects(
         &self,
         id: NodeId,
-    ) -> Result<Vec<PartitionSubscription>, SignalError> {
-        Ok(self
-            .warm_ref(id)?
-            .dirty_partition_scope_payload
-            .iter()
-            .map(|(_, scope)| scope.clone())
-            .collect())
+    ) -> Result<Vec<(crate::data::aspect::Aspect, PartitionSubscription)>, SignalError> {
+        self.ensure_cause_readmission_complete()?;
+        Ok(self.warm_ref(id)?.dirty_partition_scope_payload.to_vec())
     }
 
     pub(crate) fn node_dirty_partition_scopes_present(
         &self,
         id: NodeId,
     ) -> Result<bool, SignalError> {
+        self.ensure_cause_readmission_complete()?;
         Ok(!self.hot_ref(id)?.dirty_partition_scope_aspects.is_empty())
     }
 
@@ -170,6 +169,10 @@ impl SignalGraph {
             dependencies_id: hot.dependencies_id,
             subscribers_id: hot.subscribers_id,
             dep_snapshot_id: hot.dep_snapshot_id,
+            pending_cause_set_id: hot.pending_cause_set_id,
+            dependency_revision: hot.dependency_revision,
+            pending_dependency_revalidation: warm.pending_dependency_revalidation.clone(),
+            direct_invalidation_basis: warm.direct_invalidation_basis.clone(),
             tombstoned: warm.tombstoned,
             runtime_artifact_state: warm.runtime_artifact_state.clone(),
             retained_artifact: cold.and_then(|cold| cold.retained_artifact.clone()),

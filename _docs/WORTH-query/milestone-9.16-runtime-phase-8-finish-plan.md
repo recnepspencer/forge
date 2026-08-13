@@ -1,14 +1,18 @@
 # Runtime Phase 8 Finish Plan
 
-**Status:** **OPEN — corrections C1-C6 are closed; C7-C8 remain open.**
+**Status:** **CLOSED (2026-08-12).** Corrections C1-C8 are proved against the
+final source record in the closure ledger. The last hostile pass found one
+missing foreign-runtime denial in commit reauthorization; the denial and its
+two-runtime regression are included in the final candidate. Any later source
+or test edit that changes an accepted guarantee reopens the affected row.
 The earlier F6A closure is historical evidence, not current authority. The
 opening audit found compile-time contract collapse, facade escape, copied
 publication truth, non-exact outbox observation, hidden ordinary-lane work,
-string identity authority, and dishonest proof fixtures. C1-C6 have now closed
-their respective facade, authoring, protocol, outbox, retention, and publication
-defects through independent hostile review. C7 remains open for provider phase
-affinity and C8 remains open for final-source verification. Undo and redo remain
-compiled but provisional;
+string identity authority, and dishonest proof fixtures. C1-C6 closed their
+respective facade, authoring, protocol, outbox, retention, and publication
+defects through independent hostile review. C7's provider phase
+affinity/ownership correction and C8's final courtroom are closed. Undo and
+redo remain compiled but provisional;
 this plan neither accepts nor redesigns their product semantics.
 
 **Opened:** 2026-08-07 after the correction-slice implementation was reviewed
@@ -859,8 +863,7 @@ remain open.
 
 ### C7 - Provider attempt affinity and owner-sealed progression
 
-**Status (2026-08-09): OPEN; implementation plan frozen after three independent
-boundary, test-evidence, and composition audits.** C7 is an architectural
+**Status (2026-08-12): CLOSED.** C7 is an architectural
 correction, not a visibility-only cleanup. The current application provider
 copies an admitted session into a string, joins four independently mutable maps
 with that string, and passes sibling-constructible phase bags. Capability and
@@ -920,10 +923,14 @@ successor-head policy, inverse/compensation semantics, redo lifecycle, or the
 later workflow-artifact product. Narrow mechanical carriage changes are allowed
 only where required to eliminate a generic authority escape.
 
-**C7 exit evidence.** Compiler attacks must fail for affinity construction,
-raw-string substitution, cross-runtime/snapshot/plan/session/branch use,
-sibling phase construction/destructuring, and wrong-phase progression. Runtime
-proofs must interleave two real attempts, preserve the rightful peer across
+**C7 exit evidence.** Consumer compiler attacks must fail for every public
+wrong-phase progression and raw-authority substitution that the supported
+facade exposes. Private implementation topology is not tested by compiling
+hostile production configurations: source/visibility enforcement proves that
+private phase construction and destructuring remain with their transition
+owners. Runtime owner proofs independently vary runtime, snapshot, plan,
+session, branch, and attempt axes and must reject each mismatch. Runtime proofs
+must also interleave two real attempts, preserve the rightful peer across
 every denial, prove duplicate/overlay overwrite impossible, and cover
 readmission, preparation, registration, read-set, invariant, pre-transaction,
 commit, abort, cancellation, response-loss, index-publication, and abandonment

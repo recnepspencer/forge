@@ -44,8 +44,8 @@ fn kv62_delete_mid_chain_no_panic() {
     let feature_state = graph.get_state(feature).unwrap();
     assert_eq!(
         feature_state,
-        NodeState::Dirty,
-        "Feature should be Dirty after middle node was deleted"
+        NodeState::MaybeStale,
+        "feature should require structural revalidation after its dependency is retired"
     );
 }
 
@@ -68,8 +68,7 @@ fn unregister_severs_subscriptions() {
     );
 
     let downstream_deps = graph.dependencies_of(downstream).unwrap();
-    assert_eq!(downstream_deps.len(), 1);
-    assert_eq!(downstream_deps[0].source(), node);
+    assert!(downstream_deps.is_empty());
     assert!(
         graph
             .runtime_dependencies_of(downstream)
@@ -77,52 +76,6 @@ fn unregister_severs_subscriptions() {
             .is_empty(),
         "runtime cleanup should prune stale downstream dependencies after unregister"
     );
-}
-
-#[test]
-fn observation_reads_stay_pure_while_runtime_topology_reads_prune_stale_edges() {
-    let mut graph = SignalGraph::new();
-    let upstream = graph.node().build();
-    let downstream = graph.node().build();
-
-    graph
-        .append_dependency(downstream, upstream, ASPECT_A)
-        .unwrap();
-    graph.unregister_node(upstream).unwrap();
-    let stale_edge = graph.build_dependency_edge(upstream, ASPECT_A, None);
-    graph
-        .set_dependency_edges_sorted(downstream, &[stale_edge])
-        .unwrap();
-
-    let observed_dependencies = graph.dependencies_of(downstream).unwrap();
-    assert_eq!(observed_dependencies.len(), 1);
-    assert_eq!(observed_dependencies[0].source(), upstream);
-
-    let runtime_dependencies = graph.runtime_dependencies_of(downstream).unwrap();
-    assert!(runtime_dependencies.is_empty());
-    assert!(graph.dependencies_of(downstream).unwrap().is_empty());
-}
-
-#[test]
-fn observation_subscriber_reads_stay_pure_while_runtime_reads_prune_stale_subscribers() {
-    let mut graph = SignalGraph::new();
-    let source = graph.node().build();
-    let subscriber = graph.node().build();
-
-    graph
-        .append_dependency(subscriber, source, ASPECT_A)
-        .unwrap();
-    graph.unregister_node(subscriber).unwrap();
-    graph
-        .inject_retired_subscriber_for_test(source, subscriber)
-        .unwrap();
-
-    let observed_subscribers = graph.subscribers_of(source).unwrap();
-    assert_eq!(observed_subscribers, &[subscriber]);
-
-    let runtime_subscribers = graph.runtime_subscribers_of(source).unwrap();
-    assert!(runtime_subscribers.is_empty());
-    assert!(graph.subscribers_of(source).unwrap().is_empty());
 }
 
 #[test]

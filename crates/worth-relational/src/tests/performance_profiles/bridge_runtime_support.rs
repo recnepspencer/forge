@@ -176,7 +176,7 @@ pub(super) fn diagnostics_boundary_code(profile: RelationalRuntimeProfile) -> u6
 }
 
 pub(super) fn profile_boundary_metrics(
-    runtime: &crate::logic::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     profile: RelationalRuntimeProfile,
 ) -> PerfMetricSet {
     let boundary = runtime.config.boundary_policy();

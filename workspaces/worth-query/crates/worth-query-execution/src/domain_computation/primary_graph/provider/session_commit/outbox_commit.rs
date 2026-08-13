@@ -52,7 +52,7 @@ impl std::fmt::Display for WorthQueryCommittedDispatchOutboxBindingDenial {
 impl std::error::Error for WorthQueryCommittedDispatchOutboxBindingDenial {}
 
 impl WorthQueryCommittedDispatchOutboxResolution {
-    pub(super) fn from_commit(
+    pub(in crate::domain_computation::primary_graph::provider) fn from_commit(
         pending: Option<&WorthQueryPendingDispatchOutbox>,
         committed: &CommitResult,
     ) -> Self {

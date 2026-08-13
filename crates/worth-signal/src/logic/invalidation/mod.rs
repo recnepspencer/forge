@@ -1,3 +1,4 @@
+pub(crate) mod causality;
 mod cycles;
 mod routing;
 mod subscription;

@@ -2,8 +2,8 @@ use crate::authority::mutation::canonical_deltas::{
     CanonicalDeltaError, CanonicalRecordAspectDelta,
 };
 use crate::identity::data::VersionId;
-use crate::storage::logic::state::{partition_of, slot_of, EntityRecordKind, RelationRecordKind};
 use crate::storage::overlay::WorkingState;
+use crate::storage::substrate::{partition_of, slot_of, EntityRecordKind, RelationRecordKind};
 use crate::symbols::data::StringInterner;
 use crate::transactions::data::RecordRef;
 

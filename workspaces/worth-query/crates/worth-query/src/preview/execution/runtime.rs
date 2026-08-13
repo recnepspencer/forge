@@ -1,28 +1,21 @@
-#[cfg(test)]
+//! Production preview execution admission and envelope construction.
+
 use crate::execution::execute_preflight_bundle;
-#[cfg(test)]
 use crate::preview::binding::contract::{
     PreviewSessionPlanBinding, PromotionEligiblePreviewSessionPlanBinding,
     ReadOnlyPreviewSessionPlanBinding,
 };
-#[cfg(test)]
 use crate::preview::comparison::admission::derive_preview_comparison_eligibility;
-#[cfg(test)]
 use crate::preview::evaluation::PreviewEvaluationClass;
-#[cfg(test)]
 use crate::preview::execution::accounting::PreviewExecutionCounters;
-#[cfg(test)]
 use crate::preview::execution::outcome::{
     PreviewExecutionEnvelope, PreviewExecutionError, PreviewExecutionReport,
     PromotionEligiblePreviewExecutionEnvelope, ReadOnlyPreviewExecutionEnvelope,
 };
-#[cfg(test)]
 use crate::preview::workflow_context_identity;
-#[cfg(test)]
 use crate::preview::workflow_foundation::admit_preview_workflow_foundation;
 
-#[cfg(test)]
-pub(crate) fn execute_preview_session_plan(
+fn execute_preview_session_plan(
     binding: &PreviewSessionPlanBinding,
 ) -> Result<PreviewExecutionEnvelope, PreviewExecutionError> {
     let execution = execute_preflight_bundle(binding.preflight())
@@ -97,8 +90,7 @@ pub(crate) fn execute_preview_session_plan(
     Ok(envelope)
 }
 
-#[cfg(test)]
-pub(crate) fn admit_read_only_preview_session_plan_binding(
+pub fn admit_read_only_preview_session_plan_binding(
     binding: PreviewSessionPlanBinding,
 ) -> Result<ReadOnlyPreviewSessionPlanBinding, PreviewExecutionError> {
     if !matches!(
@@ -111,11 +103,10 @@ pub(crate) fn admit_read_only_preview_session_plan_binding(
         });
     }
 
-    Ok(ReadOnlyPreviewSessionPlanBinding { inner: binding })
+    Ok(ReadOnlyPreviewSessionPlanBinding::from_admitted(binding))
 }
 
-#[cfg(test)]
-pub(crate) fn admit_promotion_eligible_preview_session_plan_binding(
+pub fn admit_promotion_eligible_preview_session_plan_binding(
     binding: PreviewSessionPlanBinding,
 ) -> Result<PromotionEligiblePreviewSessionPlanBinding, PreviewExecutionError> {
     if !matches!(
@@ -128,11 +119,12 @@ pub(crate) fn admit_promotion_eligible_preview_session_plan_binding(
         });
     }
 
-    Ok(PromotionEligiblePreviewSessionPlanBinding { inner: binding })
+    Ok(PromotionEligiblePreviewSessionPlanBinding::from_admitted(
+        binding,
+    ))
 }
 
-#[cfg(test)]
-pub(crate) fn execute_read_only_preview_session_plan(
+pub fn execute_read_only_preview_session_plan(
     binding: &ReadOnlyPreviewSessionPlanBinding,
 ) -> Result<ReadOnlyPreviewExecutionEnvelope, PreviewExecutionError> {
     Ok(ReadOnlyPreviewExecutionEnvelope {
@@ -140,8 +132,7 @@ pub(crate) fn execute_read_only_preview_session_plan(
     })
 }
 
-#[cfg(test)]
-pub(crate) fn execute_promotion_eligible_preview_session_plan(
+pub fn execute_promotion_eligible_preview_session_plan(
     binding: &PromotionEligiblePreviewSessionPlanBinding,
 ) -> Result<PromotionEligiblePreviewExecutionEnvelope, PreviewExecutionError> {
     Ok(PromotionEligiblePreviewExecutionEnvelope {

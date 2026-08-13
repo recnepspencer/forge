@@ -1,13 +1,12 @@
-use crate::data::aspect::Aspect;
 use crate::data::bitset::BitsetFrontier;
 use crate::data::error::SignalError;
 use crate::data::graph::{SignalGraph, TraversalScratch};
 use crate::data::node::NodeState;
 use crate::data::proof::{
-    DedupedNodeBatch, FrontierEntryClassification, FrontierExecutionCounters,
-    FrontierExecutionSummary, FrontierInclusionBasis, FrontierPlan, FrontierWaveEntryPlan,
-    FrontierWaveEntrySummary, FrontierWaveSummary, PartitionScopeSet, SortedSourceBatch,
-    TouchedScopeSummary,
+    DedupedNodeBatch, FrontierExecutionCounters, FrontierExecutionSummary, FrontierPlan,
+    FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWaveSummary, PartitionScopeSet,
+    SortedSourceBatch, TouchedScopeSummary, TransitiveFrontierEntrySummary,
+    TransitiveFrontierWaveSummary,
 };
 use crate::diagnostics::lineage::InvalidationCause;
 use crate::diagnostics::recorder::record_invalidation_lineage;
@@ -36,8 +35,7 @@ pub(super) fn execute_invalidation_frontier(
             .iter()
             .map(|seed| seed.source_node),
     );
-    let mut transitive_reached_scopes = Vec::new();
-    let mut maybe_stale_scopes = plan
+    let maybe_stale_scopes = plan
         .touched_scope_summary
         .maybe_stale_scopes
         .as_slice()
@@ -58,9 +56,9 @@ pub(super) fn execute_invalidation_frontier(
     };
 
     let cycle_candidates = plan
-        .transitive_roots
+        .direct_waves
         .iter()
-        .map(|root| root.node)
+        .flat_map(|wave| wave.entries.iter().map(|entry| entry.node))
         .collect::<Vec<_>>();
     scratch.cycle_visiting.next_pass(len);
     scratch.cycle_finished.next_pass(len);
@@ -75,7 +73,7 @@ pub(super) fn execute_invalidation_frontier(
         scratch.visited.next_pass(len);
         let mut summary_entries = Vec::with_capacity(wave.entries.len());
         for entry in &wave.entries {
-            super::apply_direct_entry(graph, entry, wave.aspect, &plan.seed_batch)?;
+            super::apply_direct_entry(graph, entry, &plan.seed_batch)?;
             summary_entries.push(FrontierWaveEntrySummary::new(
                 entry.node,
                 entry.classification,
@@ -90,30 +88,13 @@ pub(super) fn execute_invalidation_frontier(
                 .invalidation_nodes_visited += 1;
         }
 
-        let root_scope_union = PartitionScopeSet::new(
-            wave.entries
-                .iter()
-                .flat_map(|entry| entry.narrowed_scopes.as_slice().iter().cloned()),
-        );
         let mut transitive_summary_entries = Vec::new();
         execute_transitive_wave(
             graph,
             scratch,
-            wave.aspect,
             &wave.entries,
-            &root_scope_union,
             &mut transitive_summary_entries,
         )?;
-        transitive_reached_scopes.extend(
-            transitive_summary_entries
-                .iter()
-                .flat_map(|entry| entry.narrowed_scopes.as_slice().iter().cloned()),
-        );
-        maybe_stale_scopes.extend(
-            transitive_summary_entries
-                .iter()
-                .flat_map(|entry| entry.narrowed_scopes.as_slice().iter().cloned()),
-        );
         counters.frontier_maybe_stale_count += transitive_summary_entries.len() as u64;
         touched_nodes.extend(transitive_summary_entries.iter().map(|entry| entry.node));
 
@@ -129,9 +110,8 @@ pub(super) fn execute_invalidation_frontier(
             wave.aspect,
             summary_entries,
         ));
-        transitive_waves.push(FrontierWaveSummary::new(
+        transitive_waves.push(TransitiveFrontierWaveSummary::new(
             wave.wave_index,
-            wave.aspect,
             transitive_summary_entries,
         ));
     }
@@ -139,7 +119,6 @@ pub(super) fn execute_invalidation_frontier(
     let touched_scope_summary = TouchedScopeSummary::new_invalidation(
         plan.touched_scope_summary.seed_scopes.clone(),
         plan.touched_scope_summary.inclusion_scopes.clone(),
-        PartitionScopeSet::new(transitive_reached_scopes),
         plan.touched_scope_summary.direct_dirty_scopes.clone(),
         PartitionScopeSet::new(maybe_stale_scopes),
         DedupedNodeBatch::new(touched_nodes),
@@ -159,10 +138,8 @@ pub(super) fn execute_invalidation_frontier(
 fn execute_transitive_wave(
     graph: &mut SignalGraph,
     scratch: &mut TraversalScratch,
-    aspect: Aspect,
     roots: &[FrontierWaveEntryPlan],
-    root_scope_union: &PartitionScopeSet,
-    out: &mut Vec<FrontierWaveEntrySummary>,
+    out: &mut Vec<TransitiveFrontierEntrySummary>,
 ) -> Result<(), SignalError> {
     let mut wave = BitsetFrontier::new();
     for root in roots {
@@ -189,27 +166,17 @@ fn execute_transitive_wave(
             }
             scratch.visited.mark(node.index() as usize);
 
-            let already_dirty = matches!(graph.get_state(node), Ok(NodeState::Dirty));
-            if !already_dirty {
-                let previous_state = graph.get_state(node)?;
-                graph.transition_node_maybe_stale(node, aspect)?;
-                if matches!(previous_state, NodeState::Clean) {
-                    record_invalidation_lineage(
-                        graph,
-                        node,
-                        InvalidationCause::TransitiveDependencyChanged {
-                            aspect_index: aspect.index(),
-                        },
-                    );
-                }
+            let previous_state = graph.get_state(node)?;
+            graph.transition_node_pending_revalidation(node)?;
+            if matches!(previous_state, NodeState::Clean) {
+                record_invalidation_lineage(
+                    graph,
+                    node,
+                    InvalidationCause::PendingDependencyRevalidation { upstream: None },
+                );
             }
 
-            out.push(FrontierWaveEntrySummary::new(
-                node,
-                FrontierEntryClassification::MaybeStale,
-                FrontierInclusionBasis::TransitiveReachability,
-                root_scope_union.clone(),
-            ));
+            out.push(TransitiveFrontierEntrySummary::new(node));
 
             if let Ok(subscribers) = graph.runtime_subscribers_of(node) {
                 for &subscriber in subscribers {

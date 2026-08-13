@@ -53,12 +53,18 @@ pub(super) trait WorthQueryErasedProviderSessionLifecycle: Send + Sync {
     fn commit(
         &self,
         session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure>;
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    >;
 
     fn abort(
         &self,
         session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure>;
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    >;
 }
 
 pub(crate) enum WorthQueryGraphProviderStartInvocation {
@@ -111,14 +117,20 @@ impl<P: WorthQueryProviderSessionLifecycle> WorthQueryErasedProviderSessionLifec
     fn commit(
         &self,
         session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
         self.commit_prepared_session(session)
     }
 
     fn abort(
         &self,
         session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
         self.abort_provider_session(session)
     }
 }
@@ -294,7 +306,10 @@ impl WorthQueryGraphProviderAnchor {
     pub(crate) fn commit_session(
         &self,
         session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
         self.session_lifecycle
             .as_ref()
             .ok_or_else(WorthQueryProviderSessionFailure::unsupported)?
@@ -304,7 +319,10 @@ impl WorthQueryGraphProviderAnchor {
     pub(crate) fn abort_session(
         &self,
         session: &WorthQueryProviderSessionView<'_>,
-    ) -> Result<String, WorthQueryProviderSessionFailure> {
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderTerminalDescription,
+        WorthQueryProviderSessionFailure,
+    > {
         self.session_lifecycle
             .as_ref()
             .ok_or_else(WorthQueryProviderSessionFailure::unsupported)?

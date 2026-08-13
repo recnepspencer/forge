@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 mod branch_heads;
 mod committed_patches;

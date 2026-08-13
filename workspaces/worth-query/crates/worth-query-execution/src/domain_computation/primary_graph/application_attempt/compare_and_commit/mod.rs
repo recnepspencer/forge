@@ -9,7 +9,10 @@ pub use commit_outcome::{
     WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationStaleAttempt,
     WorthQueryApplicationUnresolvedCommitEvidence,
 };
-pub use commit_receipt::WorthQueryApplicationCommitReceipt;
+pub use commit_receipt::{
+    WorthQueryApplicationCommitPublicationExternalEffect,
+    WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
+};
 pub(in crate::domain_computation::primary_graph) use commit_receipt::{
     WorthQueryCommittedReceiptProjection, WorthQueryPendingApplicationCommitReceipt,
 };

@@ -87,7 +87,9 @@ impl<'run> WorthQueryProviderSessionAffinity<'run> {
         }
     }
 
-    pub(super) fn terminal_binding(&self) -> super::WorthQueryProviderSessionTerminalBinding {
+    pub(in crate::domain_computation) fn terminal_binding(
+        &self,
+    ) -> super::WorthQueryProviderSessionTerminalBinding {
         super::WorthQueryProviderSessionTerminalBinding::from_affinity(self)
     }
 }

@@ -155,6 +155,9 @@ fn snapshot_churn_reorders_dependencies_without_ghost_snapshots() {
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
+            tx.read(b, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(2, 0))))
+            })?;
             tx.evaluate_with_plan(
                 dependent,
                 &|view| {
@@ -196,20 +199,22 @@ fn snapshot_churn_reorders_dependencies_without_ghost_snapshots() {
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.mark_dirty(b, ASPECT_A)?;
+            tx.read(b, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(3, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
             tx.evaluate_with_plan(
                 dependent,
                 &|view| {
-                    let result = if view.node() == a {
-                        view.finish(version_ab(1, 0))
-                    } else if view.node() == b {
-                        view.finish(version_ab(3, 0))
-                    } else {
-                        let version = view.read_aspect_version(b, ASPECT_A)?;
-                        view.finish(NodeEvaluationResult::from_version(version))
-                    };
+                    let version = view.read_aspect_version(b, ASPECT_A)?;
+                    let result = view.finish(NodeEvaluationResult::from_version(version));
                     Ok(result)
                 },
-                EvaluationRequestMode::Default,
+                EvaluationRequestMode::ForceOnDemand,
             )?;
             Ok(())
         })
@@ -218,7 +223,10 @@ fn snapshot_churn_reorders_dependencies_without_ghost_snapshots() {
     let snapshot = runtime.graph().get_dep_snapshot(dependent).unwrap();
     assert_eq!(snapshot.entries().len(), 1);
     assert_eq!(snapshot.entries()[0].source, b);
-
-    let explanation = runtime.observe().explain(dependent).unwrap();
-    assert!(!format!("{:?}", explanation).contains(&a.to_string()));
+    assert_eq!(snapshot.entries()[0].aspect, ASPECT_A);
+    assert_eq!(snapshot.entries()[0].cached_version, 3);
+    assert!(snapshot.entries()[0].scope.is_none());
+    let operational_dependencies = runtime.graph().dependencies_of(dependent).unwrap();
+    assert_eq!(operational_dependencies.len(), 1);
+    assert_eq!(operational_dependencies[0].source(), b);
 }

@@ -1,6 +1,6 @@
 use crate::capabilities::{SchemaSource, StorageRead};
 use crate::identity::data::VersionId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     CommitConflict, ConflictClass, CreateIntent, EntityMutationIntent, MutationIntent,
 };

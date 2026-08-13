@@ -2,7 +2,7 @@ mod support;
 
 use support::compile_fail::run_compile_fail_bundle;
 use support::compile_pass::run_compile_pass_bundle;
-use support::milestone4;
+use support::transition_algebra;
 use worth_proof::{
     DeferredTransitionOutcome, DenialTransitionOutcome, FreshnessTransitionOutcome,
     PreConstructionGate, TransitionOutcome, TransitionReadiness,
@@ -10,12 +10,12 @@ use worth_proof::{
 
 #[test]
 fn transition_outcome_algebra_certification() {
-    let compile_fail_bundle = milestone4::compile_fail_bundle();
-    let compile_pass_bundle = milestone4::compile_pass_bundle();
-    let transition_digest = milestone4::transition_digest();
-    let failure_digest = milestone4::failure_digest();
-    let codegen_honesty_report = milestone4::codegen_honesty_report();
-    let residual_debt_report = milestone4::residual_debt_report();
+    let compile_fail_bundle = transition_algebra::compile_fail_bundle();
+    let compile_pass_bundle = transition_algebra::compile_pass_bundle();
+    let transition_digest = transition_algebra::transition_digest();
+    let failure_digest = transition_algebra::failure_digest();
+    let codegen_honesty_report = transition_algebra::codegen_honesty_report();
+    let residual_debt_report = transition_algebra::residual_debt_report();
 
     run_compile_fail_bundle(&compile_fail_bundle);
     run_compile_pass_bundle(&compile_pass_bundle);

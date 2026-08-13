@@ -1,9 +1,10 @@
 use super::condition_host_resolver::TestConditionResolver;
 use crate::facade::{
-    DefaultComparatorResolver, EvaluationCondition, EvaluationRequestMode, IntervalAnchor,
-    IntervalCondition, MissedTickPolicy, NodeId, NodeState, SignalGraph, TemporalCondition,
+    mark_dirty, Aspect, DefaultComparatorResolver, DependencyEdge, EvaluationCondition,
+    EvaluationRequestMode, IntervalAnchor, IntervalCondition, MissedTickPolicy, NodeId, NodeState,
+    SignalGraph, TemporalCondition,
 };
-use crate::tests::support::{evaluate, evaluate_with_resolvers, version_ab};
+use crate::tests::support::{evaluate, evaluate_on_demand, evaluate_with_resolvers, version_ab};
 
 #[test]
 fn after_without_resolver_errors_deterministically() {
@@ -50,6 +51,55 @@ fn after_with_resolver_obeys_host_decision() {
             .temporal_eligibility_lowering_count,
         1
     );
+}
+
+#[test]
+fn pending_dependency_precedes_temporal_condition_resolution() {
+    let mut graph = SignalGraph::new();
+    let source = graph
+        .node()
+        .on_demand()
+        .produces_aspects(Aspect::new(0))
+        .build();
+    let consumer = graph.node().after(10).unwrap().build();
+    graph
+        .set_dependencies(consumer, [DependencyEdge::new(source, Aspect::new(0))])
+        .unwrap();
+    let mut resolver = TestConditionResolver {
+        temporal_ready: true,
+        ..TestConditionResolver::default()
+    };
+    let mut comparator = DefaultComparatorResolver;
+    let mut baseline = |_id, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate_on_demand(&mut graph, source, &mut baseline).unwrap();
+    evaluate_with_resolvers(
+        &mut graph,
+        consumer,
+        &mut baseline,
+        &mut comparator,
+        &mut resolver,
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+    resolver.temporal_calls = 0;
+    mark_dirty(&mut graph, source, Aspect::new(0)).unwrap();
+
+    let mut consumer_calls = 0;
+    evaluate_with_resolvers(
+        &mut graph,
+        consumer,
+        &mut |_id, _graph: &SignalGraph| {
+            consumer_calls += 1;
+            Ok(version_ab(2, 0))
+        },
+        &mut comparator,
+        &mut resolver,
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+
+    assert_eq!(resolver.temporal_calls, 0);
+    assert_eq!(consumer_calls, 0);
 }
 
 #[test]

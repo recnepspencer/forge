@@ -165,8 +165,8 @@ fn application_disclosure_has_one_owner_and_publication_has_no_policy_lane() {
         publication_source
             .matches("WorthQueryAdmittedDisclosedApplicationResult")
             .count(),
-        3,
-        "publication input, storage, and function boundary must retain only the admitted shape"
+        2,
+        "publication imports and accepts only the admitted shape, then stores publication-owned rows"
     );
 }
 

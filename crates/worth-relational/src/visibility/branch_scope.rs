@@ -1,6 +1,6 @@
 use crate::history::data::BranchId;
 use crate::identity::data::VersionId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) fn authoritative_branch_for_version(
     runtime: &RelationalRuntime,

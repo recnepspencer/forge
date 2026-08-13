@@ -28,22 +28,22 @@ impl WorthQueryElevationCommitCurrentness {
     }
 
     pub(super) fn approval(binding: &WorthQueryElevationApprovalBinding) -> Self {
-        Self::new(&binding.requested)
+        Self::new(binding.requested())
     }
 
     pub(super) fn close(binding: &WorthQueryElevationCloseBinding) -> Self {
         Self::Close {
-            timeline: binding.approved.request_binding().supporting.timeline(),
-            expires_at: binding.approved.expires_at().clone(),
-            closure_kind: binding.draft.closure_kind,
+            timeline: binding.approved().request_binding().supporting().timeline(),
+            expires_at: binding.approved().expires_at().clone(),
+            closure_kind: binding.closure_kind(),
         }
     }
 
     fn new(binding: &WorthQueryElevationRequestBinding) -> Self {
         Self::Window {
-            timeline: binding.supporting.timeline(),
-            issued_at: binding.issued_at.clone(),
-            expires_at: binding.expires_at.clone(),
+            timeline: binding.supporting().timeline(),
+            issued_at: binding.issued_at().clone(),
+            expires_at: binding.expires_at().clone(),
         }
     }
 

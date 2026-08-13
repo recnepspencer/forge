@@ -1,5 +1,5 @@
 use crate::identity::data::VersionId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::{SnapshotHandle, SnapshotReadPolicy};
 use crate::visibility::cache_state::retained_state;
 

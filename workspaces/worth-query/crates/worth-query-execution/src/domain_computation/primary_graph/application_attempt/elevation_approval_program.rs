@@ -57,7 +57,7 @@ impl<Schema, Operation, Input, Scope>
             .resource_ceiling(WorthQueryResourceDimension::RetainedBytes);
         let emission_retained_bytes = append_lifecycle_emission(
             &mut effects,
-            binding.lifecycle_effect.as_ref(),
+            binding.lifecycle_effect(),
             emission_retained_bytes_ceiling,
             self.admission.operation(),
         )?;
@@ -106,7 +106,7 @@ pub(in crate::domain_computation::primary_graph) fn validate_elevation_approval_
         && lifecycle_emission_is_exact(
             &program.effects,
             2,
-            binding.lifecycle_effect.as_ref(),
+            binding.lifecycle_effect(),
             program.emission_retained_bytes,
         )
     {
@@ -127,7 +127,7 @@ fn validate_installed_contract<Schema, Operation, Input, Scope>(
     >,
 ) -> Result<(), WorthQueryApplicationAttemptDenial> {
     let expected_reads = binding
-        .required_decision_reads
+        .required_decision_reads()
         .iter()
         .collect::<BTreeSet<_>>();
     let installed_reads = read_set
@@ -137,7 +137,7 @@ fn validate_installed_contract<Schema, Operation, Input, Scope>(
         .iter()
         .collect::<BTreeSet<_>>();
     let expected_targets = binding
-        .required_program_targets
+        .required_program_targets()
         .iter()
         .collect::<BTreeSet<_>>();
     let installed_targets = read_set
@@ -146,9 +146,9 @@ fn validate_installed_contract<Schema, Operation, Input, Scope>(
         .program()
         .iter()
         .collect::<BTreeSet<_>>();
-    if expected_reads.len() == binding.required_decision_reads.len()
+    if expected_reads.len() == binding.required_decision_reads().len()
         && expected_reads == installed_reads
-        && expected_targets.len() == binding.required_program_targets.len()
+        && expected_targets.len() == binding.required_program_targets().len()
         && expected_targets == installed_targets
     {
         Ok(())
@@ -161,38 +161,41 @@ fn validate_lifecycle_facts(
     binding: &WorthQueryElevationApprovalBinding,
     facts: &[super::WorthQueryApplicationObservedFact],
 ) -> Result<(), WorthQueryApplicationAttemptDenial> {
-    let requested = &binding.requested;
+    let requested = binding.requested();
     if lifecycle_facts_are_exact(
         facts,
         WorthQueryElevationLifecycleFactExpectation {
-            elevation: binding.elevation,
-            review: binding.review,
+            elevation: binding.elevation(),
+            review: binding.review(),
             resource: requested.resource(),
             requester: requested.requester(),
             approver: WorthQueryExpectedLifecycleRelation::Absent,
             grant: requested.grant(),
             reviewer: WorthQueryExpectedLifecycleRelation::Absent,
             elevation_identity: (
-                &requested.elevation_identity_field,
-                &requested.elevation_identity,
+                requested.elevation_identity_field(),
+                requested.elevation_identity(),
             ),
-            reason: (&requested.reason_field, &requested.reason),
-            status: (&requested.status_field, &requested.requested_status),
-            not_before: (&requested.not_before_field, &requested.issued_at),
-            not_after: (&requested.not_after_field, &requested.expires_at),
-            review_identity: (&requested.review_identity_field, &requested.review_identity),
-            review_type: (&requested.review_type_field, &requested.review_type),
+            reason: (requested.reason_field(), requested.reason()),
+            status: (requested.status_field(), requested.requested_status()),
+            not_before: (requested.not_before_field(), requested.issued_at()),
+            not_after: (requested.not_after_field(), requested.expires_at()),
+            review_identity: (
+                requested.review_identity_field(),
+                requested.review_identity(),
+            ),
+            review_type: (requested.review_type_field(), requested.review_type()),
             review_status: (
-                &requested.review_status_field,
-                &requested.review_required_status,
+                requested.review_status_field(),
+                requested.review_required_status(),
             ),
-            requester_relation: requested.requester_relation,
-            approver_relation: binding.approver_relation,
-            grant_relation: requested.grant_relation,
-            resource_relation: requested.resource_relation,
-            review_relation: requested.review_relation,
-            review_scope_relation: requested.review_scope_relation,
-            reviewer_relation: binding.reviewer_relation,
+            requester_relation: requested.requester_relation(),
+            approver_relation: binding.approver_relation(),
+            grant_relation: requested.grant_relation(),
+            resource_relation: requested.resource_relation(),
+            review_relation: requested.review_relation(),
+            review_scope_relation: requested.review_scope_relation(),
+            reviewer_relation: binding.reviewer_relation(),
         },
     ) {
         Ok(())
@@ -205,24 +208,24 @@ fn approval_effects(
     binding: &WorthQueryElevationApprovalBinding,
 ) -> Result<Vec<WorthQueryApplicationRealizedEffect>, WorthQueryApplicationAttemptDenial> {
     let fields = BTreeMap::from([(
-        binding.status_field.clone(),
-        binding.approved_status.clone(),
+        binding.status_field().clone(),
+        binding.approved_status().clone(),
     )]);
     let key = canonical_key(
-        binding.requested.elevation_key.clone(),
+        binding.requested().elevation_key().to_owned(),
         "elevation approval",
     )?;
     Ok(vec![
         WorthQueryApplicationRealizedEffect::UpdateEntity {
-            entity: binding.elevation_entity.clone(),
-            entity_id: binding.elevation,
+            entity: binding.elevation_entity().to_owned(),
+            entity_id: binding.elevation(),
             fields,
         },
         WorthQueryApplicationRealizedEffect::CreateRelation {
-            kind: binding.approver_relation,
+            kind: binding.approver_relation(),
             key,
-            from: EntityReference::Existing(binding.approver),
-            to: EntityReference::Existing(binding.elevation),
+            from: EntityReference::Existing(binding.approver()),
+            to: EntityReference::Existing(binding.elevation()),
         },
     ])
 }

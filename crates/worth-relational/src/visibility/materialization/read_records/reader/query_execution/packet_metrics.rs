@@ -1,7 +1,7 @@
-use crate::logic::runtime::RelationalRuntime;
 use crate::query::data::{
     QueryParallelLegality, QueryParallelProfitability, SnapshotPinnedQueryPlan,
 };
+use crate::runtime::RelationalRuntime;
 
 use super::super::query_packetization::{
     packetized_fragment_scratch_reuse_count, packetized_query_item_count,

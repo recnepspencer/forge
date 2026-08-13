@@ -2,7 +2,8 @@ use crate::facade::*;
 use crate::tests::async_node_nightmare_support::NoopAsyncNodeObservationListener;
 use crate::tests::async_node_support::{
     admit_and_commit_async_node_completion, async_node_capability_declaration,
-    async_node_capability_with_dependents, AsyncNodeTestRuntime as TestRuntime,
+    async_node_capability_with_dependents, settle_async_dependency_baseline,
+    AsyncNodeTestRuntime as TestRuntime,
 };
 use crate::tests::support::define_keyed_computation;
 
@@ -32,6 +33,7 @@ pub(crate) fn milestone_d_restore_lineage_nightmare_workload(
     graph
         .append_dependency(grandchild, child, Aspect::new(0))
         .expect("grandchild should depend on child");
+    settle_async_dependency_baseline(&mut graph, [parent, child, grandchild]);
 
     let mut runtime = TestRuntime::build(graph);
     let parent_handle = runtime

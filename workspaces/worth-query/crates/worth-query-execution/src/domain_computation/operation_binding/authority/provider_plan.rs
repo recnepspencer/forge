@@ -5,8 +5,7 @@ use worth_query_installation::facade::{
 
 use super::WorthQueryExecutionBoundOperationAuthority;
 use crate::domain_computation::provider_session::{
-    WorthQueryProviderExecutionPlanContract, WorthQueryProviderPlanContractMaterial,
-    WorthQueryProviderPlanExecutionBinding,
+    WorthQueryProviderExecutionPlanContract, WorthQueryValidatedProviderPlan,
 };
 
 impl WorthQueryExecutionBoundOperationAuthority {
@@ -55,18 +54,17 @@ impl WorthQueryExecutionBoundOperationAuthority {
 
     pub(crate) fn provider_plan_contract(
         &self,
-        stage_identity: Option<&str>,
-        execution: WorthQueryProviderPlanExecutionBinding<'_>,
+        execution: WorthQueryValidatedProviderPlan<'_>,
     ) -> Option<WorthQueryProviderExecutionPlanContract> {
+        if !execution.belongs_to(self) {
+            return None;
+        }
+        let stage_identity = execution.stage_identity();
         let artifact_closure = self.provider_plan_artifact_closure(stage_identity)?;
         WorthQueryProviderExecutionPlanContract::bind(
-            self,
-            stage_identity,
-            &execution,
-            WorthQueryProviderPlanContractMaterial {
-                declarations: &self.provider_plan_declarations,
-                artifact_closure,
-            },
+            execution,
+            &self.provider_plan_declarations,
+            artifact_closure,
         )
     }
 

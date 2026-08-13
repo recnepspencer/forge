@@ -5,11 +5,11 @@
 //! compare-and-commit lane — never a parallel mutator and never a live re-read.
 
 use bank_domain::estate::EstateAction;
-use bank_domain::model::{AccountId, InstitutionId};
+use bank_domain::model::AccountId;
 use bank_domain::proposals::BankIdempotencyKey;
 use bank_domain::schema::{
     AccountIdentity, AccountStatus, BankSchema, EstateAccount, EstateCase,
-    FreezeEstateAccountOperation, ReversalReason, ReverseJournal, Status,
+    FreezeEstateAccountOperation, Status,
 };
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestScope;
 use worth_query_host::facade::declaration::application_schema::TypedApplicationReadableValue;
@@ -19,7 +19,7 @@ use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationOperationInvariantProjectionReader, WorthQueryInvariantEntityIdentity,
 };
 use worth_query_host::facade::provisional_aftermath::{
-    progress_admitted_undo, WorthQueryProvedUndo, WorthQueryRedoRecovery,
+    consume_unresolved_undo_progression, progress_admitted_undo, WorthQueryRedoRecovery,
     WorthQueryRetainedPreImage, WorthQueryUndoDenial, WorthQueryUndoDerivedRequest,
     WorthQueryUndoProgressionHandoff,
 };
@@ -28,12 +28,14 @@ use super::{
     BankCompensationUndoAdmission, BankEstateFreezeProjectionDenial, BankEstateProgressionDenial,
     BankRecordedInverseUndoAdmission,
 };
-use crate::operation_admission::BankOperationAdmissionError;
-use crate::operation_proposals::BankOperationProposalError;
 use crate::{
     BankAuthenticatedPrincipal, BankIdentityRuntime, BankMutationCommitOutcome,
     BankOperationProposals,
 };
+
+pub use compensation_input::compensating_reverse_journal;
+use denial::{map_admission, map_proposal};
+use retry::{compensation_retry, recorded_inverse_retry};
 
 type AdmittedFreezeOperation = WorthQueryAdmittedApplicationOperation<
     BankSchema,
@@ -48,6 +50,11 @@ type FreezeEffectProgram = WorthQueryApplicationEffectProgram<
     EstateCase,
 >;
 
+mod compensation_input;
+mod denial;
+mod reconciliation;
+mod retry;
+
 /// Ordinary undo outcome plus causal evidence when an undo actually committed.
 ///
 /// The proved value is sealed from the consumed progression handoff and the
@@ -55,7 +62,19 @@ type FreezeEffectProgram = WorthQueryApplicationEffectProgram<
 #[derive(Debug)]
 pub struct BankUndoCommitOutcome {
     mutation: BankMutationCommitOutcome,
-    redo_recovery: Option<WorthQueryRedoRecovery>,
+    redo_recovery: Option<BankRedoRecovery>,
+    retry: Option<BankUndoRetry>,
+}
+
+#[derive(Debug)]
+pub struct BankRedoRecovery {
+    pub(super) query: WorthQueryRedoRecovery,
+}
+
+#[derive(Debug)]
+pub enum BankUndoRetry {
+    Compensation(BankCompensationUndoAdmission),
+    RecordedInverse(BankRecordedInverseUndoAdmission),
 }
 
 impl BankUndoCommitOutcome {
@@ -63,15 +82,22 @@ impl BankUndoCommitOutcome {
         &self.mutation
     }
 
-    pub const fn proved_undo(&self) -> Option<&WorthQueryProvedUndo> {
-        match self.redo_recovery.as_ref() {
-            Some(recovery) => Some(recovery.proved()),
-            None => None,
-        }
+    pub const fn has_proved_undo(&self) -> bool {
+        self.redo_recovery.is_some()
     }
 
-    pub fn into_parts(self) -> (BankMutationCommitOutcome, Option<WorthQueryRedoRecovery>) {
-        (self.mutation, self.redo_recovery)
+    pub const fn retry(&self) -> Option<&BankUndoRetry> {
+        self.retry.as_ref()
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        BankMutationCommitOutcome,
+        Option<BankRedoRecovery>,
+        Option<BankUndoRetry>,
+    ) {
+        (self.mutation, self.redo_recovery, self.retry)
     }
 }
 
@@ -83,28 +109,68 @@ impl BankIdentityRuntime {
         principal: &BankAuthenticatedPrincipal,
         idempotency_key: &BankIdempotencyKey,
         request: &WorthQueryRequestScope,
-    ) -> Result<BankUndoCommitOutcome, BankEstateProgressionDenial> {
-        let handoff =
-            progress_admitted_undo(admission.query).map_err(BankEstateProgressionDenial::Undo)?;
+    ) -> Result<BankUndoCommitOutcome, super::BankEstateProgressionFailure<BankUndoRetry>> {
+        let (query, reverse_journal) = admission.into_parts();
+        let retry_journal = reverse_journal.clone();
+        let handoff = progress_admitted_undo(query)
+            .map_err(BankEstateProgressionDenial::Undo)
+            .map_err(super::BankEstateProgressionFailure::consumed)?;
         match handoff.derived_request() {
             WorthQueryUndoDerivedRequest::Compensation => {}
             // Routing RecordedInverse through the compensation journal lane is
             // visibly wrong (T4b / R8.38 divergence).
             WorthQueryUndoDerivedRequest::RecordedInverse
             | WorthQueryUndoDerivedRequest::Reconciliation => {
-                return Err(BankEstateProgressionDenial::Undo(
-                    WorthQueryUndoDenial::correction_not_admitted(),
+                return Err(super::BankEstateProgressionFailure::retained(
+                    BankEstateProgressionDenial::Undo(
+                        WorthQueryUndoDenial::correction_not_admitted(),
+                    ),
+                    compensation_retry(handoff, retry_journal),
                 ));
             }
         }
-        let compensated = self.progress_compensation_through_reverse_journal(
+        let authorized = match self.authorize_reverse_journal(
             principal,
-            admission.reverse_journal,
-            idempotency_key,
+            reverse_journal.institution,
+            Default::default(),
             request,
-            &handoff,
-        )?;
-        self.finish_undo_progression(handoff, compensated)
+        ) {
+            Ok(authorized) => authorized,
+            Err(denial) => {
+                return Err(super::BankEstateProgressionFailure::retained(
+                    map_admission(denial),
+                    compensation_retry(handoff, retry_journal),
+                ));
+            }
+        };
+        let proposal = match BankOperationProposals::prepare_reverse_journal(
+            self,
+            authorized,
+            idempotency_key,
+            &reverse_journal,
+        ) {
+            Ok(proposal) => proposal,
+            Err(denial) => {
+                return Err(super::BankEstateProgressionFailure::retained(
+                    map_proposal(denial),
+                    compensation_retry(handoff, retry_journal),
+                ));
+            }
+        };
+        let (program, idempotency) = match self.materialize_reverse_journal(proposal) {
+            Ok(materialized) => materialized,
+            Err(_) => {
+                return Err(super::BankEstateProgressionFailure::retained(
+                    BankEstateProgressionDenial::Undo(map_ordinary_commit_conflict()),
+                    compensation_retry(handoff, retry_journal),
+                ));
+            }
+        };
+        let compensated =
+            self.commit_materialized_reverse_journal_as_undo(program, idempotency, &handoff);
+        self.finish_undo_progression(handoff, compensated, |handoff| {
+            compensation_retry(handoff, retry_journal)
+        })
     }
 
     /// Progress RecordedInverse undo by restoring retained prior status (R8.2).
@@ -114,78 +180,118 @@ impl BankIdentityRuntime {
         principal: &BankAuthenticatedPrincipal,
         idempotency: WorthQueryApplicationIdempotencyBinding,
         request: &WorthQueryRequestScope,
-    ) -> Result<BankUndoCommitOutcome, BankEstateProgressionDenial> {
-        let handoff =
-            progress_admitted_undo(admission.query).map_err(BankEstateProgressionDenial::Undo)?;
+    ) -> Result<BankUndoCommitOutcome, super::BankEstateProgressionFailure<BankUndoRetry>> {
+        let handoff = progress_admitted_undo(admission.query)
+            .map_err(BankEstateProgressionDenial::Undo)
+            .map_err(super::BankEstateProgressionFailure::consumed)?;
         if handoff.derived_request() != WorthQueryUndoDerivedRequest::RecordedInverse {
-            return Err(BankEstateProgressionDenial::Undo(
-                WorthQueryUndoDenial::correction_not_admitted(),
+            return Err(super::BankEstateProgressionFailure::retained(
+                BankEstateProgressionDenial::Undo(WorthQueryUndoDenial::correction_not_admitted()),
+                recorded_inverse_retry(handoff),
             ));
         }
         let Some(preimage) = handoff.retained_preimage().cloned() else {
-            return Err(BankEstateProgressionDenial::Undo(
-                WorthQueryUndoDenial::retained_preimage_required(),
+            return Err(super::BankEstateProgressionFailure::retained(
+                BankEstateProgressionDenial::Undo(
+                    WorthQueryUndoDenial::retained_preimage_required(),
+                ),
+                recorded_inverse_retry(handoff),
             ));
         };
-        let prior = prior_status_from_preimage(&preimage)?;
-        let action = *handoff.admission().original_input::<EstateAction>().ok_or(
-            BankEstateProgressionDenial::CommandInput(
-                "retained FreezeEstateAccountOperation input",
-            ),
-        )?;
-        let account = freeze_command_account(action)?;
-        let admitted = self.admit_freeze_operation(principal, action, request)?;
-        let program = self.materialize_inverse_restore(admitted, account, prior, &preimage)?;
+        let prior = match prior_status_from_preimage(&preimage) {
+            Ok(prior) => prior,
+            Err(denial) => {
+                return Err(super::BankEstateProgressionFailure::retained(
+                    denial,
+                    recorded_inverse_retry(handoff),
+                ));
+            }
+        };
+        let action = match handoff.admission().original_input::<EstateAction>() {
+            Some(action) => *action,
+            None => {
+                return Err(super::BankEstateProgressionFailure::retained(
+                    BankEstateProgressionDenial::CommandInput(
+                        "retained FreezeEstateAccountOperation input",
+                    ),
+                    recorded_inverse_retry(handoff),
+                ));
+            }
+        };
+        let account = match freeze_command_account(action) {
+            Ok(account) => account,
+            Err(denial) => {
+                return Err(super::BankEstateProgressionFailure::retained(
+                    denial,
+                    recorded_inverse_retry(handoff),
+                ));
+            }
+        };
+        let admitted = match self.admit_freeze_operation(principal, action, request) {
+            Ok(admitted) => admitted,
+            Err(denial) => {
+                return Err(super::BankEstateProgressionFailure::retained(
+                    denial,
+                    recorded_inverse_retry(handoff),
+                ));
+            }
+        };
+        let program = match self.materialize_inverse_restore(admitted, account, prior, &preimage) {
+            Ok(program) => program,
+            Err(denial) => {
+                return Err(super::BankEstateProgressionFailure::retained(
+                    denial,
+                    recorded_inverse_retry(handoff),
+                ));
+            }
+        };
         let outcome = self
             .application_runtime()
             .compare_and_commit_undo_application(program, idempotency, &handoff)
             .into();
-        self.finish_undo_progression(handoff, outcome)
+        self.finish_undo_progression(handoff, outcome, recorded_inverse_retry)
     }
 
-    fn finish_undo_progression(
+    fn finish_undo_progression<Retry>(
         &self,
         handoff: WorthQueryUndoProgressionHandoff,
         mutation: BankMutationCommitOutcome,
-    ) -> Result<BankUndoCommitOutcome, BankEstateProgressionDenial> {
-        let redo_recovery = match &mutation {
+        retry: Retry,
+    ) -> Result<BankUndoCommitOutcome, super::BankEstateProgressionFailure<BankUndoRetry>>
+    where
+        Retry: FnOnce(WorthQueryUndoProgressionHandoff) -> BankUndoRetry,
+    {
+        let (redo_recovery, retry) = match &mutation {
             BankMutationCommitOutcome::Committed(receipt)
-            | BankMutationCommitOutcome::AlreadyCommitted(receipt) => Some(
-                receipt
-                    .recovery_evidence()
-                    .seal_redo_recovery(handoff)
-                    .map_err(
-                        |_| BankEstateProgressionDenial::Undo(WorthQueryUndoDenial::stale()),
-                    )?,
+            | BankMutationCommitOutcome::AlreadyCommitted(receipt) => (
+                Some(
+                    receipt
+                        .recovery_evidence()
+                        .seal_redo_recovery(handoff)
+                        .map_err(|_| {
+                            BankEstateProgressionDenial::Undo(WorthQueryUndoDenial::stale())
+                        })
+                        .map_err(super::BankEstateProgressionFailure::consumed)?,
+                ),
+                None,
             ),
-            _ => None,
+            BankMutationCommitOutcome::PartialEffect(_)
+            | BankMutationCommitOutcome::Indeterminate(_) => {
+                consume_unresolved_undo_progression(handoff)
+                    .map_err(BankEstateProgressionDenial::Undo)
+                    .map_err(super::BankEstateProgressionFailure::consumed)?;
+                (None, None)
+            }
+            BankMutationCommitOutcome::Stale { .. }
+            | BankMutationCommitOutcome::Cancelled
+            | BankMutationCommitOutcome::Denied { .. }
+            | BankMutationCommitOutcome::Aborted => (None, Some(retry(handoff))),
         };
         Ok(BankUndoCommitOutcome {
             mutation,
-            redo_recovery,
+            redo_recovery: redo_recovery.map(|query| BankRedoRecovery { query }),
+            retry,
         })
-    }
-
-    fn progress_compensation_through_reverse_journal(
-        &self,
-        principal: &BankAuthenticatedPrincipal,
-        input: ReverseJournal,
-        idempotency_key: &BankIdempotencyKey,
-        request: &WorthQueryRequestScope,
-        handoff: &WorthQueryUndoProgressionHandoff,
-    ) -> Result<BankMutationCommitOutcome, BankEstateProgressionDenial> {
-        let authorized = self
-            .authorize_reverse_journal(principal, input.institution, Default::default(), request)
-            .map_err(map_admission)?;
-        let proposal = BankOperationProposals::prepare_reverse_journal(
-            self,
-            authorized,
-            idempotency_key,
-            &input,
-        )
-        .map_err(map_proposal)?;
-        self.commit_reverse_journal_as_undo(proposal, handoff)
-            .map_err(|_| BankEstateProgressionDenial::Undo(map_ordinary_commit_conflict()))
     }
 
     fn materialize_inverse_restore(
@@ -287,30 +393,4 @@ fn project_inverse_restore_account(
         return Err(BankEstateFreezeProjectionDenial::AccountNotOpen);
     }
     Ok(())
-}
-
-fn map_admission(denial: BankOperationAdmissionError) -> BankEstateProgressionDenial {
-    match denial {
-        BankOperationAdmissionError::Authorization(denial) => {
-            BankEstateProgressionDenial::Authorization(denial)
-        }
-        _ => BankEstateProgressionDenial::Undo(WorthQueryUndoDenial::current_policy_denied()),
-    }
-}
-
-fn map_proposal(denial: BankOperationProposalError) -> BankEstateProgressionDenial {
-    let _ = denial;
-    BankEstateProgressionDenial::Undo(WorthQueryUndoDenial::conflicted())
-}
-
-/// Construct a compensating reverse-journal input for an original disbursement.
-pub fn compensating_reverse_journal(
-    institution: InstitutionId,
-    original: bank_domain::model::JournalEntryId,
-) -> ReverseJournal {
-    ReverseJournal {
-        institution,
-        journal: original,
-        reason: ReversalReason::OperatorCorrection,
-    }
 }

@@ -15,7 +15,7 @@ pub(crate) struct CommitDurableAppendAdmission {
 
 impl CommitDurableAppendAdmission {
     fn new(
-        runtime: &crate::logic::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
         commit_id: crate::history::data::CommitId,
         branch_id: &crate::history::data::BranchId,
     ) -> Self {
@@ -48,7 +48,7 @@ pub(super) struct PublishedCommitExecution {
     version_id: crate::identity::data::VersionId,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
     history: crate::authority::commit::phases::history::ResolvedCommitHistory,
-    canonical_commit_envelope: std::sync::Arc<crate::replay::data::CanonicalCommitEnvelope>,
+    canonical_commit_envelope: std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
     changed_records: Vec<crate::transactions::data::RecordRef>,
     publication_snapshot: crate::snapshots::data::SnapshotHandle,
     aspect_evaluation_traces: Vec<crate::transactions::data::AspectEvaluationTrace>,
@@ -66,7 +66,7 @@ impl PublishedCommitExecution {
         crate::identity::data::VersionId,
         crate::transactions::data::CommitCreatedEntityBindings,
         crate::authority::commit::phases::history::ResolvedCommitHistory,
-        std::sync::Arc<crate::replay::data::CanonicalCommitEnvelope>,
+        std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
         Vec<crate::transactions::data::RecordRef>,
         crate::snapshots::data::SnapshotHandle,
         Vec<crate::transactions::data::AspectEvaluationTrace>,
@@ -89,7 +89,7 @@ impl PublishedCommitExecution {
 }
 
 pub(super) fn append_commit_durably(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     mut assembled: AssembledCommitExecution,
 ) -> Result<DurableCommitExecution, crate::transactions::data::TransactionCommitError> {
     let (admitted, publication, commit_id, branch_id) = assembled.append_parts();
@@ -112,7 +112,7 @@ pub(super) fn append_commit_durably(
 }
 
 pub(super) fn publish_commit_execution(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    runtime: &mut crate::runtime::RelationalRuntime,
     durable: DurableCommitExecution,
 ) -> PublishedCommitExecution {
     let (

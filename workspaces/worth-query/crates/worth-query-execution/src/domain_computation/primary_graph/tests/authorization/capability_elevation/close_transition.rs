@@ -28,8 +28,8 @@ fn approved_elevation_closes_to_a_linear_review_obligation_and_cuts_active_use()
         WorthQueryElevationClosureKind::Revoked
     );
     assert_eq!(mandatory.closer(), closer.principal_entity_id());
-    assert_eq!(mandatory.close_commit_receipt().changed_record_count(), 2);
-    assert_eq!(mandatory.close_commit_receipt().emitted_effect_count(), 0);
+    assert_eq!(mandatory.publication_source().changed_record_count(), 2);
+    assert_eq!(mandatory.publication_source().emitted_effect_count(), 0);
     assert_eq!(
         super::terminal_state::elevation_status(&world),
         CapabilityElevationStatus::Revoked

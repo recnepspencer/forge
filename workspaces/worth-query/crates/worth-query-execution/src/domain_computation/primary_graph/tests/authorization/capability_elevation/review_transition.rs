@@ -15,8 +15,8 @@ fn lawful_request_approve_close_review_sequence_commits_exact_distinct_actors() 
     let mandatory = super::terminal_lifecycle_support::close_exact(&world, &request, approved);
     let reviewed = super::terminal_lifecycle_support::review_exact(&world, &request, mandatory);
 
-    assert_eq!(reviewed.review_commit_receipt().changed_record_count(), 3);
-    assert_eq!(reviewed.review_commit_receipt().emitted_effect_count(), 0);
+    assert_eq!(reviewed.publication_source().changed_record_count(), 3);
+    assert_eq!(reviewed.publication_source().emitted_effect_count(), 0);
     assert_ne!(reviewed.reviewer(), reviewed.requester());
     assert_ne!(reviewed.reviewer(), reviewed.approver());
     assert_eq!(

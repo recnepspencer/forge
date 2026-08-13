@@ -1,26 +1,7 @@
 use std::sync::Arc;
 
-use worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority;
-
 use super::declared_closure::WorthQueryProviderPlanDeclarations;
-use crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority;
-
-pub(crate) struct WorthQueryProviderPlanExecutionBinding<'a> {
-    pub(crate) managed_run_identity: &'a str,
-    pub(crate) execution_basis_identity: &'a str,
-    pub(crate) admitted_session_identity: &'a str,
-    pub(crate) resource_attempt_identity: &'a str,
-    pub(crate) graph: &'a WorthQueryInstalledGraphParticipationAuthority,
-    pub(crate) snapshot_identity: &'a str,
-    pub(crate) resource_envelope_identity: &'a str,
-    pub(crate) provider_identity: &'a str,
-    pub(crate) provider_generation: u64,
-}
-
-pub(crate) struct WorthQueryProviderPlanContractMaterial<'a> {
-    pub(crate) declarations: &'a WorthQueryProviderPlanDeclarations,
-    pub(crate) artifact_closure: Vec<String>,
-}
+use super::execution_plan::WorthQueryValidatedProviderPlan;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryProviderOperationScope {
@@ -43,6 +24,8 @@ impl WorthQueryProviderOperationScope {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryProviderExecutionPlanContract {
+    runtime_authority:
+        crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
     identity: Arc<str>,
     operation_identity: Arc<str>,
     binding_identity: Arc<str>,
@@ -70,21 +53,25 @@ pub struct WorthQueryProviderExecutionPlanContract {
     reconciliation_posture: Arc<str>,
     graph_work_session: Option<u64>,
     graph_work_managed_run: Option<u64>,
+    application_operation_attempt:
+        Option<crate::domain_computation::authorization::WorthQueryOperationAdmissionIdentity>,
+    application_operation_slot: Option<Arc<str>>,
+    application_schema_binding:
+        Option<worth_query_installation::facade::ApplicationSchemaBindingIdentity>,
+    application_snapshot: Option<worth_relational::facade::snapshots::SnapshotHandle>,
 }
 
 impl WorthQueryProviderExecutionPlanContract {
     pub(crate) fn bind(
-        operation: &WorthQueryExecutionBoundOperationAuthority,
-        stage_identity: Option<&str>,
-        execution: &WorthQueryProviderPlanExecutionBinding<'_>,
-        material: WorthQueryProviderPlanContractMaterial<'_>,
+        execution: WorthQueryValidatedProviderPlan<'_>,
+        declarations: &WorthQueryProviderPlanDeclarations,
+        artifact_closure: Vec<String>,
     ) -> Option<Self> {
-        let declared_closure = material
-            .declarations
-            .closure(stage_identity, execution.graph.role())?;
-        let invariant_requirements = material
-            .declarations
-            .invariant_requirements_for(stage_identity, execution.graph.role());
+        let operation = execution.operation();
+        let stage_identity = execution.stage_identity();
+        let declared_closure = declarations.closure(stage_identity, execution.graph().role())?;
+        let invariant_requirements =
+            declarations.invariant_requirements_for(stage_identity, execution.graph().role());
         let mut closure = declared_closure.clone();
         closure.invariant = invariant_requirements
             .iter()
@@ -94,40 +81,51 @@ impl WorthQueryProviderExecutionPlanContract {
             WorthQueryProviderOperationScope::workflow_stage(identity.to_owned())
         });
         let transaction_posture = operation.commit_posture().as_str();
-        let reconciliation_posture = material.declarations.reconciliation_posture();
+        let reconciliation_posture = declarations.reconciliation_posture();
         let graph_work = operation.graph_work_affinity();
         Some(Self {
-            identity: execution.resource_attempt_identity.into(),
+            runtime_authority: operation.runtime_authority(),
+            identity: execution.resource_attempt_identity().into(),
             operation_identity: operation.operation_identity().into(),
             binding_identity: operation.binding_identity().into(),
             scope,
-            provider_role: execution.graph.role().into(),
-            provider_identity: execution.provider_identity.into(),
-            provider_generation: execution.provider_generation,
-            graph_authority_identity: execution.graph.authority_identity().into(),
-            managed_run_identity: execution.managed_run_identity.into(),
-            execution_basis_identity: execution.execution_basis_identity.into(),
-            admitted_session_identity: execution.admitted_session_identity.into(),
-            resource_attempt_identity: execution.resource_attempt_identity.into(),
+            provider_role: execution.graph().role().into(),
+            provider_identity: execution.provider_identity().into(),
+            provider_generation: execution.provider_generation(),
+            graph_authority_identity: execution.graph().authority_identity().into(),
+            managed_run_identity: execution.managed_run_identity().into(),
+            execution_basis_identity: execution.execution_basis_identity().into(),
+            admitted_session_identity: execution.admitted_session_identity().into(),
+            resource_attempt_identity: execution.resource_attempt_identity().into(),
             basis_identity: operation.basis_identity().into(),
-            snapshot_identity: execution.snapshot_identity.into(),
-            resource_envelope_identity: execution.resource_envelope_identity.into(),
+            snapshot_identity: execution.snapshot_identity().into(),
+            resource_envelope_identity: execution.resource_envelope_identity().into(),
             read_closure: closure.read.into(),
             touch_closure: closure.touch.into(),
             effect_closure: closure.effect.into(),
             invariant_closure: closure.invariant.into(),
-            artifact_closure: material.artifact_closure.into(),
-            decision_fact_families: material.declarations.decision_fact_families().into(),
+            artifact_closure: artifact_closure.into(),
+            decision_fact_families: declarations.decision_fact_families().into(),
             invariant_requirements: invariant_requirements.into(),
             transaction_posture: transaction_posture.into(),
             reconciliation_posture: reconciliation_posture.into(),
             graph_work_session: graph_work.map(|affinity| affinity.session.as_u64()),
             graph_work_managed_run: graph_work.map(|affinity| affinity.managed_run.as_u64()),
+            application_operation_attempt: operation.application_operation_attempt(),
+            application_operation_slot: operation.application_operation_slot().cloned(),
+            application_schema_binding: operation.application_schema_binding().cloned(),
+            application_snapshot: operation.application_snapshot().cloned(),
         })
     }
 
     pub fn identity(&self) -> &str {
         &self.identity
+    }
+
+    pub(crate) const fn runtime_authority(
+        &self,
+    ) -> crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity {
+        self.runtime_authority
     }
 
     pub fn operation_identity(&self) -> &str {
@@ -180,6 +178,29 @@ impl WorthQueryProviderExecutionPlanContract {
 
     pub fn snapshot_identity(&self) -> &str {
         &self.snapshot_identity
+    }
+
+    pub(crate) const fn application_operation_attempt(
+        &self,
+    ) -> Option<crate::domain_computation::authorization::WorthQueryOperationAdmissionIdentity>
+    {
+        self.application_operation_attempt
+    }
+
+    pub(crate) const fn application_schema_binding(
+        &self,
+    ) -> Option<&worth_query_installation::facade::ApplicationSchemaBindingIdentity> {
+        self.application_schema_binding.as_ref()
+    }
+
+    pub(crate) fn application_operation_slot(&self) -> Option<&str> {
+        self.application_operation_slot.as_deref()
+    }
+
+    pub(crate) const fn application_snapshot(
+        &self,
+    ) -> Option<&worth_relational::facade::snapshots::SnapshotHandle> {
+        self.application_snapshot.as_ref()
     }
 
     pub fn resource_envelope_identity(&self) -> &str {

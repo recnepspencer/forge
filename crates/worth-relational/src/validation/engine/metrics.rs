@@ -1,4 +1,4 @@
-use crate::performance::logic::PerformanceAccess;
+use crate::performance::PerformanceAccess;
 
 pub(crate) struct InvariantMetrics<'runtime> {
     access: PerformanceAccess<'runtime>,

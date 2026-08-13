@@ -1,0 +1,73 @@
+//! Consuming execution of one prepared merge.
+
+use crate::authority::commit::pipeline::{
+    execute_authoritative_commit, AuthoritativeCommitContext,
+};
+use crate::merge::data::{MergeExecutionError, PreparedMergeExecution};
+use crate::runtime::RelationalRuntime;
+use crate::transactions::data::{MergeExecutionOutcome, TransactionOptions};
+
+pub(in crate::merge) fn execute_prepared_merge(
+    runtime: &mut RelationalRuntime,
+    prepared: PreparedMergeExecution,
+) -> Result<MergeExecutionOutcome, MergeExecutionError> {
+    let complexity_baseline = current_complexity_counters(runtime);
+    runtime.performance_access().count_merge_execution_attempt();
+    runtime
+        .merge()
+        .verify_prepared_merge_execution(&prepared)
+        .map_err(|error| emit_failure(runtime, &prepared, error))?;
+    let transaction_id = runtime.services.next_transaction_id();
+    let mutation_plan = prepared.mutation_plan().bind_transaction(transaction_id);
+    let options = TransactionOptions {
+        target_branch: Some(mutation_plan.target_branch.clone()),
+        merge_parent_branches: mutation_plan
+            .merge_parent_branches
+            .iter()
+            .cloned()
+            .collect(),
+        ..TransactionOptions::default()
+    };
+    let execution_summary = mutation_plan.merge_execution_summary.clone();
+    let structural_summary = mutation_plan.structural_summary.clone();
+    let diagnostics_plan = prepared.bound_executable_plan().diagnostics_plan.clone();
+    let context = AuthoritativeCommitContext::from_prepared_merge(
+        options,
+        mutation_plan,
+        diagnostics_plan,
+        complexity_baseline,
+    )
+    .map_err(MergeExecutionError::from)
+    .map_err(|error| emit_failure(runtime, &prepared, error))?;
+    let commit = execute_authoritative_commit(runtime, context)
+        .map_err(MergeExecutionError::from)
+        .map_err(|error| emit_failure(runtime, &prepared, error))?;
+    Ok(MergeExecutionOutcome {
+        commit,
+        execution_summary,
+        structural_summary,
+    })
+}
+
+fn current_complexity_counters(
+    runtime: &RelationalRuntime,
+) -> crate::performance::data::RuntimeComplexityCounters {
+    runtime
+        .services
+        .instrumentation
+        .complexity_counters
+        .lock()
+        .expect("complexity counter lock poisoned")
+        .clone()
+}
+
+fn emit_failure(
+    runtime: &mut RelationalRuntime,
+    prepared: &PreparedMergeExecution,
+    error: MergeExecutionError,
+) -> MergeExecutionError {
+    super::super::execution_diagnostics::emit_merge_execution_failure_artifact(
+        runtime, prepared, &error,
+    );
+    error
+}

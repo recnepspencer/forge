@@ -6,7 +6,10 @@ governed by `milestone-9.16.md`)
 **Governing finish reference:**
 [`milestone-9.16-runtime-phase-8-finish-plan.md`](./milestone-9.16-runtime-phase-8-finish-plan.md)
 
-**Status:** **OPEN; HOSTILE QA REOPENED F1-F6A ON 2026-08-08.**
+**Status:** **CLOSED (2026-08-12).** C1-C8 are proved against the final source
+candidate recorded below. The final bounded hostile review found and closed one
+missing foreign-runtime denial in commit reauthorization; no remaining current
+production authority or semantic defect met the closure threshold.
 The prior corrective audit is historical evidence and was not bound to a
 reproducible final source snapshot. This ledger also preserves the
 historical `R8.*`, `Q8.*`, gate, and correction-slice evidence. A historical
@@ -38,6 +41,144 @@ New findings and revised product decisions are governed by the finish plan.
 Historical rows remain useful evidence, but they do not freeze an implementation
 shape or relabel provisional code as accepted.
 
+## Final-source closure record (2026-08-12)
+
+The implementation/test candidate is bound to baseline
+`d8424890c6a7dbc7936c983e32d53a107e0216ee` and to a deterministic manifest of
+all 1,382 dirty non-document, non-target paths (978 current files and 404
+deletions). The manifest is the ordinally
+sorted union of `git diff --name-only --diff-filter=ACMRD HEAD` and
+`git ls-files --others --exclude-standard`, read through their NUL-delimited
+forms, after slash normalization and
+exclusion of `_docs/` and every `target/` segment. Each line is
+`<path><TAB><SHA-256-of-current-bytes>` or the literal
+`<path><TAB><deleted>` (including angle brackets); lines are joined with one
+LF, with no terminal LF, and the UTF-8 manifest is SHA-256 hashed. Its SHA-256
+is `fe88c6e7383dca1fda1f186a88c9ad5fcb5112b8690f6254a4ef15aa75a0e41c`.
+Documentation is excluded so this record and final reviewer verdicts do not
+make the source fingerprint recursively self-referential.
+
+Final standing verification from that candidate:
+
+- `cargo fmt --all` in both Query and Bank workspaces, followed by final
+  formatting checks: pass.
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings` in
+  Query and Bank: pass.
+- `cargo test --workspace --all-features` in Query: pass, including the
+  2,571-test main crate, all compiler courts, composition guard, and doctests.
+- `cargo test -p bank-server --all-features` in Bank: pass, including every
+  `bank-server` unit, integration, compiler, and doctest court. The scheduled
+  high-operation speed probe remains explicitly ignored.
+- `cargo test -p bank-server --test ordinary_mutations --all-features -- --nocapture`:
+  91/91 pass, including the complete Phase 8 recovery, undo, safe-retry,
+  cross-gate, expiry, and retained-authority matrix.
+- `cargo test -p worth-query-certification --test managed_run_compile_fail`:
+  pass for the supported lower provider-session protocol, including public
+  wrong-phase readmission attacks. The move-only cleanup case is owned by and
+  passes in `cargo test -p worth-query-certification --test compile_certification`.
+  Application-attempt
+  affinity and the private prepared/running/progressed commit phases are not
+  public facade contracts; their topology is proved by owner-private fields,
+  consuming transitions, source/visibility enforcement, and runtime affinity
+  substitution courts rather than a nonexistent consumer import.
+- `cargo test -p worth-query-certification --test application_aftermath_compile_fail`:
+  pass, including the corrected raw-provider-receipt diagnostic.
+- `cargo test --manifest-path tools/boundary-check/Cargo.toml --test authority_sealing_contracts value_gate -- --nocapture`:
+  63/63 pass, including owned trait-object producers, a legal borrowed twin,
+  standard `PhantomData` metadata, a hostile same-named owning wrapper, and
+  public-trait associated-output producers implemented for primitive self
+  types with a legal borrowed control, plus a free primitive
+  trait-associated projection with qualified-identity and borrowed controls.
+- `cargo test --manifest-path tools/boundary-check/Cargo.toml --test query_contracts internal_authority_topology -- --nocapture`:
+  19/19 pass. The AST-backed court verifies owner-private fields, semantic
+  child placement, owner-only constructors, permit-gated observations and
+  splitting, every owned producer of the protected authority set against an
+  exact owner allowlist, requires every protected name to resolve to a real
+  source declaration, and proves the absence of raw Query approved-elevation types
+  from public Bank signatures. Visibility, constructor, raw-getter,
+  mutable-axis, and producer-shape mutants prove the rule is not a raw
+  substring fence.
+- `cargo test --manifest-path crates/worth-proof/Cargo.toml`: pass.
+- `cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root .`:
+  pass.
+- `cargo run --manifest-path tools/agent-context/Cargo.toml -- check`: pass.
+- Dirty composition guard: pass; a full PowerShell scan of every Rust source
+  against the canonical allowlist found zero unallowlisted files over 400
+  lines. `git diff --check` reports no whitespace error.
+
+On Windows, the workspace test commands prepend the bundled Codex Python
+directory to `PATH`. The shared composition runner now probes `python` before
+the Microsoft Store `python3` alias on Windows, while retaining `python3` first
+on other platforms. The first full Query attempt is preserved as a failed
+environment run: 2,571 tests passed before the old probe found no executable
+interpreter. It is not counted as closure evidence; the corrected full rerun is.
+The first non-Docker Bank workspace run found a real integration defect:
+`bank-estate-certification` still accepted raw
+`WorthQueryApprovedElevation` while the Bank runtime required
+`BankApprovedEstateElevation`. Both command and emergency-query certification
+consumers were cut over to the Bank-owned move-only wrapper; the focused
+certification check and the complete non-Docker Bank workspace then passed.
+`bank-courtroom` compiles under strict all-target/all-feature Clippy but its
+Docker integration tests remain unavailable because Docker Desktop is not
+running in this environment; no dirty `bank-courtroom` source is part of this
+candidate.
+
+Mutation/fault record:
+
+- accepting a mismatched snapshot/application-attempt association is caught by
+  exact `SnapshotHandle` equality. A real owner/peer/foreign court substitutes
+  runtime, installed operation, resource binding, operation attempt, operation
+  slot, schema binding, snapshot, graph-work session, and managed run one axis
+  at a time and requires the exact singleton mismatch for every substitution;
+- stale raw-receipt trybuild output was rejected until the expected diagnostic
+  matched the current forbidden facade route;
+- returning the generic preview executor publicly made typed next-action
+  wrappers bypassable; privatizing it restored the compiler-visible route;
+- AST producer mutations through derived `Default`, free functions, direct and
+  wrapped aliases, function-pointer constants, arrays/owning wrappers,
+  `impl Trait` associated outputs, owned trait objects, public trait returns,
+  empty named/tuple enum variants, standard `PhantomData` metadata, and a
+  same-named owning `PhantomData` impostor, primitive public-trait associated
+  producers, free primitive associated-type projections with
+  qualified-identity controls, and their borrowed controls are represented in the 49-case
+  value-gate court;
+- the real registration failure is injected at
+  `register_provider_attempt -> register_application_attempt`; its test proves
+  exact victim cleanup while a distinct peer remains registered in the real
+  attempt store, observes the count remain one, and then progresses that same
+  peer to commit;
+- the internal producer court rejected a phantom revalidation observation
+  name; it now names both real revalidation observation types, allowlists the
+  one broad owner mint, and contains a declaration-completeness mutant;
+- the elevation validation reorder was caught independently by the
+  `ElevationRequired` and `ElevationTransitionRequired` twins;
+- the dirty line-cap gate forced the authorization observation, installed-plan
+  binding, delegation observation, and currentness responsibilities into named
+  owners; the final dirty scan covers 961 current Rust sources with zero
+  non-allowlisted files over 400 lines. The advisory scan inspected those same
+  961 files and all 460 greater-than-60-line or at-least-five-argument
+  candidates with zero scan errors. The supported capability-refresh finding
+  was decomposed into preparation, active-currentness observation, decision
+  replacement, and supporting-capability refresh before this record was bound.
+- public elevation phases no longer project their raw application commit
+  receipts to publication or Bank consumers. Publication derives its closed
+  receipt from `WorthQueryApplicationCommitPublicationSource`, and the
+  aftermath compiler court attacks all four former raw receipt getters.
+
+Final hostile review produced three materially distinct results: the test and
+ledger reviewer accepted the causal courts; the composition reviewer found no
+current production semantic or authority defect across the complete dirty Rust
+scope; and the independent source critic found the missing commit
+foreign-runtime denial, which was then fixed and proved by a two-runtime
+regression. A separate suggestion to expand the explicitly protected internal
+producer catalog was classified as non-blocking because every named current
+type has private fields and owner-only construction and no executable bypass
+was demonstrated. Exotic consumer re-export patterns remain unsupported and
+are not closure obligations. Closing Runtime Phase 8 did not close Milestone
+9.16. Bank Phase 5 subsequently closed on 2026-08-13; Runtime Phases 9-10,
+Bank Phase 6, and Closure Phase 1 remain declared work before moving to
+Milestone 9.17.
+
 ## Current correction ledger (2026-08-08)
 
 These rows control current closure. Every older `PROVED` or `CLOSED` result is
@@ -46,22 +187,27 @@ reproved.
 
 | ID | Exact correction claim | Required evidence | Current result |
 |---|---|---|---|
-| **C0-AUTHORITY** | Governing documents describe the hostile-QA state and preserve Relational lineage ownership plus provisional undo/redo containment. | Consistent status headers, dependency-ordered correction plan, no current document treating historical closure as authority. | **PROVED FOR THE CURRENT CORRECTION RECORD.** The specification, roadmap, finish plan, and this ledger all say Phase 8 is open; the finish plan makes every prior closure historical, locks Relational as the sole lineage/history/head authority, gives Runtime Bridge no lineage role, and keeps undo/redo provisional. The C1 dirty-set quality audit is recorded in section 0.6 rather than suppressed. Final-source rebinding remains C8. |
-| **C1-FACADE** | Accepted facades cannot reach provisional aftermath or proof-only lifecycle controls, including through compatibility aggregates. | Positive provisional import; negative primary-graph and installed-compatibility imports; execution root contains no wildcard aggregate. | **PROVED FOR THIS BATCH; C8 FINAL REBINDING OPEN.** Execution's accepted compatibility facade now enumerates semantic owners instead of glob-exporting the private root. The consolidated 37-case aftermath compiler session passes a positive provisional import and rejects both `accepted::primary_graph` and `installed::domain_computation` imports with E0432. Scoped residue finds no root wildcard or deleted assertion/always-deny APIs. Mutating the accepted facade to restore the private-root glob made the installed-compatibility case compile and the suite fail; restoration passes. |
-| **C1-WIRE** | Descriptive opaque wire identity cannot mint or readmit a live recovery handle. | Correct receipt-mint positive case; opaque-wire substitution fails with the intended type mismatch; no always-deny public surrogate API. | **PROVED FOR THIS BATCH; C8 FINAL REBINDING OPEN.** The compiler courtroom accepts minting from the execution-owned receipt and rejects foundational opaque material with E0308 (`WorthQueryApplicationCommitReceipt` expected). The public always-deny substitution API and its Bank theatre test are deleted. |
-| **C2-DECLARATION** | Static per-operation aftermath/external-effect cardinality is compiler-enforced and lifecycle evidence uses causal worlds. | Typestate authoring, duplicate compiler attacks, corrupt artifact owner denials, removal of test-only authority constructors. | **PROVED FOR THIS BATCH; C8 FINAL REBINDING OPEN.** One sealed operation definition requires explicit external-effect and aftermath choices before `finish`; flat slot insertion is no longer public authoring. The 49-case compiler court proves zero/one positives plus omission and duplicate negatives, and both ambiguity resolvers retain direct owner denials without fabricating a public reconstruction journey. Query definition authoring is staged across every required axis; principal roles and closure postures are named typed requirements. Installation now compiles executable operation contracts and capability-only graph authority through separate doors. A Bank causal twin proves unrelated executable metadata cannot select the capability graph lane; restoring the former catch-and-fallback route fails it. Capability access now consumes its capability-only graph session and transitions to a newly capacity-reserved, runtime-affine executable-operation session before authorization is rebound. The 609-test execution suite and complete Bank domain suite pass. Accepted C2 evidence uses production derivation rather than test-only authority constructors. |
-| **C3-PROTOCOL** | Portable protocol vocabulary and explicit compatibility evolution are owned below Query without granting authority. | Dependency proof, independent producer/consumer declarations, frozen bytes, v1/v2 window and downgrade posture. | **PROVED FOR THIS BATCH; C8 FINAL REBINDING OPEN.** Foundational owns validated version-free family identity, exact positive version, compatibility windows, and typed predates/exceeds/retired outcomes; custom deserialization rejects invalid raw values. Query declaration, installation, canonical identity, committed outbox, fresh restore, and transport carry family/version unchanged and own no support policy. Bank owns frozen v1 and v2 producer projections; the separate rail owns its startup compatibility profile and distinct decoders. Real-process proofs cover v1/v2 coexistence, crossed labels, same-length corrupt v2 prefix, raw invalid identity/version frames, future/predating/retired denials, exact retirement-threshold admission, and unchanged ledger state. A real Bank v1 operation against a `V2Only` rail preserves exact `PredatesWindow` causality through the adapter, Query classification, and publication. The module-move declaration/install/outbox journey proves Rust diagnostic identity cannot replace protocol meaning. Runtime Bridge has no role in the lane. |
-| **C4-OUTBOX** | Observation, dispatch, redispatch, and causal identity remain exact under later mutation and cross-runtime ordinal reuse. | Exact-commit read, complete corruption matrix, runtime-affine identity twin, real retry attempt comparison, structural counters. | **CLOSED FOR C4.** Three independent hostile reviews closed authority/spec ownership, composition/topology, and mutation-sensitive evidence. C8 still must rebind the complete Phase 8 tree to one final source fingerprint. |
-| **C5-PREIMAGE** | Installed pre-image demand preserves typed entity/aspect/field identity; retained fields and the outbox remain bound to one reusable whole-commit evidence artifact; ordinary no-demand commits perform zero footprint work; aggregate projection has typed same-level phases. | Bare-string compiler denial; cross-axis install/reinstall and canonical drift; duplicate/mixed-record denial; production footprint matrix; scale-sensitive counters and eager-construction mutation; normal/equivalent/lost-response/interleaved bundle twins; aggregate cache/overflow/budget mutations; composition audit. | **CLOSED FOR C5; C8 FINAL REBINDING OPEN.** Three independent frozen-tree reviews closed specification/authority fidelity, mutation-sensitive test evidence, and the complete dirty-set composition/topology audit. |
-| **C6-PUBLICATION** | Publication is a closed projection with exhaustive owner mapping and complete-surface noninterference. | No execution receipt/types/IDs, safe Debug, decision-relevant twins, correct privacy compiler case, boundary evidence owner. | **CLOSED FOR C6; C8 FINAL REBINDING OPEN.** Publication stores only publication-owned commit/query/authorization/omission/recovery/effect descriptions and exhaustively maps owner truth. The 50-case compiler court, complete-surface protected-value and decision-relevant twins, real fault/retry journeys, 12+4+14 publication tests, Bank `ordinary_mutations` 91/91, strict checks, and three independent hostile reviews are green. Public Bank denial/work surfaces are Bank-owned; operational C7 carriers remain private/deferred. Final composition split admission, projection, and estate denial taxonomies into dedicated owners with aggregation-only roots. |
-| **C7-PHASES** | Provider attempt identity is typed and phase progression is owner-sealed. | Typed affinity; one atomic attempt-state aggregate; private consuming phases; exact authorization contexts; association-preserving capability/effect accumulators; opaque Bank operational wrappers; cross-runtime/snapshot/plan/session/branch and wrong-phase compiler attacks; interleaved-attempt cleanup matrix; initial/equivalent-retry routing; composition audit. | **OPEN — PLAN FROZEN 2026-08-09.** Three independent audits confirmed raw string lookup authority, sibling-forgeable phase bags, four driftable provider maps, parallel lowering sinks, raw Bank Query aliases, and a generic internal execution-receipt escape. The finish plan records seven dependency-ordered implementation slices and explicit C4/undo/redo exclusions. |
-| **C8-CLOSURE** | Final evidence is honest, nonvacuous, mutation-sensitive, and tied to the exact final source. | Source fingerprint, exact commands/results, complete ledger attack, standing verification. | **OPEN.** |
+| **C0-AUTHORITY** | Governing documents describe the hostile-QA state and preserve Relational lineage ownership plus provisional undo/redo containment. | Consistent status headers, dependency-ordered correction plan, no current document treating historical closure as authority. | **PROVED.** The specification, roadmap, finish plan, and this ledger consistently close Runtime Phase 8 while leaving undo/redo provisional and Milestone 9.16 itself open. Relational remains the sole Phase 8 lineage/history/head authority and Runtime Bridge gains no lineage role. |
+| **C1-FACADE** | Accepted facades cannot reach provisional aftermath or proof-only lifecycle controls, including through compatibility aggregates. | Positive provisional import; negative primary-graph and installed-compatibility imports; execution root contains no wildcard aggregate. | **PROVED; FINAL REBINDING COMPLETE.** Execution's accepted compatibility facade enumerates semantic owners instead of glob-exporting the private root. The aftermath compiler session accepts the provisional import and rejects both accepted-facade substitutions. |
+| **C1-WIRE** | Descriptive opaque wire identity cannot mint or readmit a live recovery handle. | Correct receipt-mint positive case; opaque-wire substitution fails with the intended type mismatch; no always-deny public surrogate API. | **PROVED; FINAL REBINDING COMPLETE.** The compiler courtroom accepts minting from the execution-owned receipt, rejects foundational opaque material with the intended receipt mismatch, and contains no always-deny surrogate. |
+| **C2-DECLARATION** | Static per-operation aftermath/external-effect cardinality is compiler-enforced and lifecycle evidence uses causal worlds. | Typestate authoring, duplicate compiler attacks, corrupt artifact owner denials, removal of test-only authority constructors. | **PROVED; FINAL REBINDING COMPLETE.** One sealed operation definition requires explicit external-effect and aftermath choices before `finish`; flat slot insertion is no longer public authoring. The compiler court proves zero/one positives plus omission and duplicate negatives, and both ambiguity resolvers retain direct owner denials without fabricating a public reconstruction journey. Query definition authoring is staged across every required axis; principal roles and closure postures are named typed requirements. Installation compiles executable operation contracts and capability-only graph authority through separate doors. Accepted C2 evidence uses production derivation rather than test-only authority constructors. |
+| **C3-PROTOCOL** | Portable protocol vocabulary and explicit compatibility evolution are owned below Query without granting authority. | Dependency proof, independent producer/consumer declarations, frozen bytes, v1/v2 window and downgrade posture. | **PROVED; FINAL REBINDING COMPLETE.** Foundational owns validated version-free family identity, exact positive version, compatibility windows, and typed predates/exceeds/retired outcomes; custom deserialization rejects invalid raw values. Query declaration, installation, canonical identity, committed outbox, fresh restore, and transport carry family/version unchanged and own no support policy. Bank owns frozen v1 and v2 producer projections; the separate rail owns its startup compatibility profile and distinct decoders. Real-process proofs cover compatible versions and hostile semantic denials while leaving owner state unchanged. Runtime Bridge has no role in the lane. |
+| **C4-OUTBOX** | Observation, dispatch, redispatch, and causal identity remain exact under later mutation and cross-runtime ordinal reuse. | Exact-commit read, complete corruption matrix, runtime-affine identity twin, real retry attempt comparison, structural counters. | **CLOSED; FINAL REBINDING COMPLETE.** Exact-commit and cross-runtime/retry evidence passed again in the final Query and Bank workspaces. |
+| **C5-PREIMAGE** | Installed pre-image demand preserves typed entity/aspect/field identity; retained fields and the outbox remain bound to one reusable whole-commit evidence artifact; ordinary no-demand commits perform zero footprint work; aggregate projection has typed same-level phases. | Bare-string compiler denial; cross-axis install/reinstall and canonical drift; duplicate/mixed-record denial; production footprint matrix; scale-sensitive counters and eager-construction mutation; normal/equivalent/lost-response/interleaved bundle twins; aggregate cache/overflow/budget mutations; composition audit. | **CLOSED; FINAL REBINDING COMPLETE.** The final workspace and composition gates reran the typed demand, retained evidence, zero-work, and aggregate proofs. |
+| **C6-PUBLICATION** | Publication is a closed projection with exhaustive owner mapping and complete-surface noninterference. | No execution receipt/types/IDs, safe Debug, decision-relevant twins, correct privacy compiler case, boundary evidence owner. | **CLOSED; FINAL REBINDING COMPLETE.** Publication stores publication-owned closed descriptions, and final compiler, noninterference, Bank, strict-check, and composition courts are green. |
+| **C7-PHASES** | Provider attempt identity is typed and phase progression is owner-sealed. | Typed affinity; one atomic attempt-state aggregate; private consuming phases; exact authorization contexts; association-preserving capability/effect accumulators; opaque Bank operational wrappers; cross-runtime/snapshot/plan/session/branch and wrong-phase public compiler attacks; internal source/visibility enforcement; interleaved-attempt cleanup matrix; initial/equivalent-retry routing; composition audit. | **PROVED.** One owner-minted affinity binds runtime, operation attempt, installed binding/operation, resource, snapshot, graph-work session/run, branch, and provider terminal binding. Provider and authorization progression consume nested owner-private phases/contexts; registration and commit stores use one affinity-keyed aggregate; capability rules and provider effects retain their per-item associations; Bank recovery exposes only Bank-owned handles, results, and denials. Real interleaved attempts cover preparation, registration, read-set, invariant, pre-transaction, abort/cancel, response-loss, publication, and abandonment cleanup. Supported consumer compiler cases reject public wrong-phase and raw-authority substitutions; internal privacy is checked through AST/source visibility enforcement. The final runtime-axis attack also proves a foreign application runtime cannot reauthorize the exact commit basis. |
+| **C8-CLOSURE** | Final evidence is honest, nonvacuous, mutation-sensitive, and tied to the exact final source. | Source fingerprint, exact commands/results, complete ledger attack, standing verification. | **PROVED.** The deterministic fingerprint, command record, environment exception, mutation record, bounded hostile reviews, and final standing checks are current. No current production authority or semantic defect remains open. |
 
-The complete dirty-set composition scan sampled 634 Rust files and 174 advisory
-candidates with zero scan errors. Body inspection classified ordinary typed
-signatures, exhaustive matches, declarative inventories, and single-scenario
-tests as advisory-only. Every confirmed authority, evidence, or topology defect
-is mapped in finish-plan section 0.6 and remains open under C2, C5, C7, or C8.
+The final code-quality review scope contains 961 current dirty Rust files and
+394 deleted Rust paths. The line-cap gate has inspected every current file; the
+primary advisory scan inspected all 460 candidates, and the fresh final
+composition reviewer must independently inspect that same frozen scope before
+C8 closes. Earlier body
+inspection classified ordinary typed signatures, exhaustive matches,
+declarative inventories, and single-scenario tests as advisory-only. Every
+confirmed authority, evidence, or topology defect is mapped in finish-plan
+section 0.6 and must be closed or explicitly retained as provisional/deferred
+before current closure.
 
 ## Finish slice F6A reopening and closure ledger (2026-08-08)
 
@@ -1133,7 +1279,7 @@ by attempting a transition.
 | R8.62 / C1 | Receipt names installed operation, principal scope, idempotency binding; derived from admission; no public ctor. | **PROVED** | Unchanged; still derived via `from_admission`. |
 | R8.29-C1 | A host cannot reach the recovery registry's slot-addressed lifecycle controls, and so cannot terminate — or choose the recorded terminal of — a handle it does not own. | Hold one handle and attempt the reach a bystander would: handle → registry, registry → live slots, slot → terminal. | **PROVED under controlling F8.1-C1/C2.** `test-support` no longer exists, the registry type is absent from the facade, and the handle exposes neither registry nor slot. The compile attack produces E0432 plus E0599 for both handle routes under default and `--all-features`. |
 | R8.30-C1 | Each of the seven current-truth axes denies on its own, with a distinct cause, against a positive twin. | Drift one axis at a time from a matching baseline; assert the exact denial kind for each. | **PROVED under controlling F8.3-C1/F8.4-C1.** `binding_axis_tests` has eight cases over seven axes (`branch` carries both `BranchMismatch` and `ForeignBranchEqualOrdinal`). `application_binding_generation_drift_denies_on_its_own_axis` expects exact `ApplicationBindingGenerationMismatch`; bypassing the comparison makes that test admit. |
-| R8.66-C1 | A re-dispatch proof is affine to the handle it was performed for; a handle with no co-committed outbox admits none. | Perform a real dispatch for handle A's outbox, then present the resulting proof for handle B; exact `CorrelationMismatch`, with a positive twin on A's own handle. Repeat against a handle whose binding carries no outbox. | **PROVED** — `recovery_progression::safe_retry_tests::{redispatch_performed_for_handle_a_cannot_safe_retry_handle_b, safe_retry_denies_when_the_handle_carries_no_co_committed_outbox}`; both fail if either arm of the outbox comparison is removed. Rung 3: both sides are runtime values. |
+| R8.66-C1 | A re-dispatch proof is affine to the handle it was performed for; a handle with no co-committed outbox admits none. | Perform a real dispatch for handle A's outbox, then present the resulting proof for handle B; exact `CorrelationMismatch`, with a positive twin on A's own handle. Repeat against a handle whose binding carries no outbox. | **PROVED** — `primary_graph::application_attempt::provider_execution::external_dispatch::safe_retry_affinity_tests::{redispatch_performed_for_handle_a_cannot_safe_retry_handle_b, safe_retry_denies_when_the_handle_carries_no_co_committed_outbox}`; both fail if either arm of the outbox comparison is removed. Rung 3: both sides are runtime values. |
 | R8.28 | Handle mint derives its immutable binding, including exact installed aftermath identity and operation slot, from the committed receipt; recovery-not-admitted cannot mint; and the minting runtime must be the runtime that admitted the commit. | **PROVED** | Slice 3A C1-C4: receipt-only public signature, production `from_receipt` carriage, Bank identity/slot observation, and unchanged 0/0/0 counters. C5 adds the missing provenance comparison. Compile-fail evidence is now `recovery_mint_receipt_is_not_caller_forgeable` (private-fields struct literal, E0616, E0624) plus the positive twin `recovery_mint_uses_receipt_only`; the former arity attempt was retired. Transition currentness is separately R8.30/R8.31. |
 | R8.28-C5 | A commit receipt admitted by one application runtime cannot mint a recovery handle in another, even within one process over one relational source. | Publish two runtimes, commit in the first, and present that receipt to the second's public `mint_recovery_handle`; exact `ForeignRuntime` cause, and the committing runtime still mints from the same receipt. | **PROVED** — `phase8_exact_handle_authority::a_receipt_committed_by_another_runtime_cannot_mint_a_handle_here`. Removing the `ensure_receipt_belongs_to_runtime` call makes the bystander runtime return a **live** handle (`slot 1, registry_live: true`) for a commit it never admitted. |
 | R8.29 | Managed-run-family registry; linear consume/expire/dispose; no Clone/Copy. | **PROVED** | Slice 4 proves one-handle terminal law with `LinearResource`, atomic terminalization, typed freshness, and four leak-free terminal paths. Slice 5 adds the permanent authoritative-commit mint claim, cloned/concurrent receipt denials, move-only undo ownership, private committed-undo→redo continuation, consuming redo admission, and terminal redo progression. C1 adds what the original row conflated: the terminal law binds the *registry*, and now also binds every host — the slot-addressed lifecycle controls that could retire another holder's handle are gone from the production surface. |
@@ -1165,7 +1311,7 @@ remains the rootless origin. R8.22 is PROVED on unrepresentability; Q8.3 is
 | Q8.1 | High | Gate 8.1 exported a fixture constructor from the public production facade, minting installed contracts from fabricated digests. It existed because the specification demanded honest installed identities and named no sanctioned way for a test world to obtain one, so the implementer invented a shortcut and exported it. A production facade exporting a fixture constructor is a defect regardless of whether production code calls it. | **CLOSED** | Constructor removed at 8.1. Gate 8.6 proves named test-scope world construction through Bank production mint/admit (R8.65). |
 | Q8.2 | Medium | The specification referenced a Phase 8 closure ledger in its exit condition without requiring anything to create it. Gates 8.1 and 8.2 closed against per-gate scratch ledgers with no durable phase-level record. | **CLOSED** | **R8.63** added; this file created and backfilled from both per-gate ledgers. The backfill is honest but retroactive, which is exactly the weakness R8.63 now prevents. Every gate from 8.3 onward updates this file as part of its own closure. |
 | Q8.3 | Medium | R8.22's "no posture is derivable from an earlier one" is enforced by module visibility, not by the type system. No consumer can violate it, but internal code holding a predecessor's causal link could construct a successor. | **CLOSED** | Gap-closure corrective: all six successor postures require `ExternalEffectPostureEvidence` in the variant shape; `ProviderCommit` remains rootless. Mint owned by dispatch/classification. R8.22 now PROVED on unrepresentability. |
-| Q8.4 | High | `bank-courtroom` contains zero tests. Gates 8.3, 8.4, and 8.5 each consume the previous gate's product, so four layers stack before the first cross-cutting adversarial proof at 8.6 — the condition in which an authority leak survives every local suite. | **CLOSED** | Gate 8.6 accumulated cross-gate + publication + fan-out + residue + O2 mutation-free e2e under `ordinary_mutations` (80 green). Bank Phase 5/6 courtroom product remains downstream. |
+| Q8.4 | High | `bank-courtroom` contains zero tests. Gates 8.3, 8.4, and 8.5 each consume the previous gate's product, so four layers stack before the first cross-cutting adversarial proof at 8.6 — the condition in which an authority leak survives every local suite. | **CLOSED** | Gate 8.6 accumulated cross-gate + publication + fan-out + residue + O2 mutation-free e2e under `ordinary_mutations` (80 green). Bank Phase 5 later supplied the separate-process courtroom; Bank Phase 6 remains downstream. |
 | Q8.5 | Medium | Two of Phase 8's entry conditions named work that no phase was scheduled to produce: Gate 8.2's external boundary and Gate 8.4's C1-C4 carrier repairs. Both were papered over during execution rather than by the specification — the boundary by instructing the implementer to build it anyway, C3/C4 by an implementer who happened to need them. | **CLOSED** | §10 added. |
 
 | Q8.6 | High | **Gate 8.1's retirement of `domain_installation/operation_aftermath/` was not exact (R8.0).** It removed the monolith correctly in production terms but left two pieces of residue, both of which survived Gate 8.1's closure, Gate 8.2's closure, and two Gate 8.3 turns: (a) `query_effect_lifecycle_authority()` in `identity_authority/authority.rs:62` lost its only caller and is now dead code with an unused import, emitting two build warnings; (b) the certification fixture `tests/ui/replay/ordinary_facade_cannot_import_replay_capability.stderr` still expects rustc to suggest the retired `WorthQueryCompensationCapability` from `facade::domain`, so `cargo test -p worth-query-certification --test compile_certification` has been **red (13 passed, 1 failed)** since Gate 8.1. | **CLOSED** | Gate 8.3 turn 3: witness function retired (no successor in recovery topology); identity family type retained. Stderr re-blessed after confirming E0432 still holds for the right reason. `compile_certification` green (14 passed). Warning-clean build. |
@@ -1725,7 +1871,9 @@ PB1/PB2/PB4 and Q8.3 are **CLOSED** by the Phase 8 gap-closure corrective
 (zero deliberate carries). §11 row 11 records an evidenced session/queue
 boundary (no recovery-owned or user-node session/queue types exist to probe).
 
-**Phase 8 is CLOSED.**
+**Historical Gate 8.6 result:** Phase 8 was marked closed at this point in the
+archive. The current correction ledger at the top of this document supersedes
+that result and keeps C8 open until the final frozen-source reviews pass.
 
 ---
 

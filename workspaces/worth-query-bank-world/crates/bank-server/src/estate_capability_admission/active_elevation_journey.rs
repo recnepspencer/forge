@@ -10,15 +10,11 @@ use bank_domain::{
     },
     queries::EstateGovernanceQuery,
     reads::EstateGovernanceContext,
-    schema::{AccountStatus, EmergencyAccessStatusField},
+    schema::AccountStatus,
 };
 use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationResult;
 use worth_query_host::facade::{
-    domain::TypedApplicationValue,
-    primary_graph::{
-        WorthQueryApplicationIdempotencyBinding, WorthQueryElevationCloseOutcome,
-        WorthQueryMandatoryReview, WorthQueryMandatoryReviewOutcome,
-    },
+    primary_graph::WorthQueryApplicationIdempotencyBinding,
     publication::domain_computation::{
         WorthQueryPublishedApplicationDisclosurePosture,
         WorthQueryPublishedApplicationQueryOmissionPosture,
@@ -34,7 +30,10 @@ use super::{
         approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
     },
 };
-use crate::{queries, BankAuthenticatedPrincipal, BankReadControls};
+use crate::{
+    queries, BankAuthenticatedPrincipal, BankEstateElevationCloseOutcome,
+    BankEstateMandatoryReview, BankEstateMandatoryReviewOutcome, BankReadControls,
+};
 
 type GovernanceResult =
     WorthQueryPublishedApplicationResult<EstateGovernanceQuery, EstateGovernanceContext>;
@@ -129,56 +128,43 @@ fn retention_follows_the_declared_mechanism_on_both_lifecycle_commits() {
     );
 
     assert!(
-        approved
-            .approval_commit_receipt()
-            .retained_preimage()
-            .is_some(),
+        approved.approval_retained_preimage_present(),
         "ApproveEmergencyAccess declares RecordedInverse/ExactPriorTruth, so its \
          commit must carry the pre-image its installed contract demands"
     );
     assert!(
-        approved
-            .request_commit_receipt()
-            .retained_preimage()
-            .is_none(),
+        !approved.request_retained_preimage_present(),
         "RequestEmergencyAccess is a not_correctable create lane — it has no \
          prior truth, so its commit must retain nothing"
     );
-    let approval = approved.approval_commit_receipt();
-    assert_eq!(
-        approval
-            .retained_preimage()
-            .and_then(|preimage| preimage.field_for(EmergencyAccessStatusField::reference()))
-            .expect("approval retains the installed status locus")
-            .value(),
-        &EmergencyAccessStatus::Requested.into_foundational_value(),
+    assert!(
+        approved.approval_prior_status_is_requested(),
         "approval must retain the exact pre-commit Requested status"
     );
-    let demanded = approval
-        .mutation_work()
+    let demanded = approved
+        .approval_retention_work()
         .expect("approval commit carries retention work");
-    assert!(demanded.preimage_validated_intents_examined() > 0);
-    assert!(demanded.preimage_mutation_targets_materialized() > 0);
-    assert!(demanded.preimage_decision_facts_examined() > 0);
-    assert!(demanded.preimage_candidates_materialized() > 0);
-    assert_eq!(demanded.preimage_demanded_loci_examined(), 1);
+    assert!(demanded.validated_intents_examined() > 0);
+    assert!(demanded.mutation_targets_materialized() > 0);
+    assert!(demanded.decision_facts_examined() > 0);
+    assert!(demanded.candidates_materialized() > 0);
+    assert_eq!(demanded.demanded_loci_examined(), 1);
 
     let ordinary = approved
-        .request_commit_receipt()
-        .mutation_work()
+        .request_retention_work()
         .expect("request commit carries zero-valued work evidence");
-    assert_eq!(ordinary.preimage_validated_intents_examined(), 0);
-    assert_eq!(ordinary.preimage_mutation_targets_materialized(), 0);
-    assert_eq!(ordinary.preimage_decision_facts_examined(), 0);
-    assert_eq!(ordinary.preimage_candidates_materialized(), 0);
-    assert_eq!(ordinary.preimage_demanded_loci_examined(), 0);
+    assert_eq!(ordinary.validated_intents_examined(), 0);
+    assert_eq!(ordinary.mutation_targets_materialized(), 0);
+    assert_eq!(ordinary.decision_facts_examined(), 0);
+    assert_eq!(ordinary.candidates_materialized(), 0);
+    assert_eq!(ordinary.demanded_loci_examined(), 0);
 }
 
 fn assert_approved_account_disclosure(
     fixture: &CapabilityFixture,
     requester: &BankAuthenticatedPrincipal,
     access: EmergencyAccessId,
-    approved: &worth_query_host::facade::primary_graph::WorthQueryApprovedElevation,
+    approved: &crate::BankApprovedEstateElevation,
 ) {
     let published = fixture
         .runtime
@@ -215,9 +201,9 @@ fn assert_approved_account_disclosure(
 fn close_elevation(
     fixture: &CapabilityFixture,
     approver: &BankAuthenticatedPrincipal,
-    approved: worth_query_host::facade::primary_graph::WorthQueryApprovedElevation,
+    approved: crate::BankApprovedEstateElevation,
     access: EmergencyAccessId,
-) -> WorthQueryMandatoryReview {
+) -> BankEstateMandatoryReview {
     let close = fixture
         .runtime
         .revoke_estate_emergency_access(
@@ -231,7 +217,7 @@ fn close_elevation(
             &request_scope(),
         )
         .expect("the used elevation should remain closable through its exact command");
-    let WorthQueryElevationCloseOutcome::Closed(mandatory) = close else {
+    let BankEstateElevationCloseOutcome::Closed(mandatory) = close else {
         panic!("the close must commit before readback: {close:?}");
     };
     mandatory
@@ -265,7 +251,7 @@ fn assert_closed_readback(
 fn complete_review(
     fixture: &CapabilityFixture,
     reviewer: &BankAuthenticatedPrincipal,
-    mandatory: WorthQueryMandatoryReview,
+    mandatory: BankEstateMandatoryReview,
     identity: EmergencyJourneyIdentity,
 ) {
     let outcome = fixture
@@ -282,7 +268,7 @@ fn complete_review(
             &request_scope(),
         )
         .expect("the exact mandatory review should commit after readback");
-    let WorthQueryMandatoryReviewOutcome::Reviewed(_) = outcome else {
+    let BankEstateMandatoryReviewOutcome::Reviewed(_) = outcome else {
         panic!("the exact review must be fresh: {outcome:?}");
     };
 }

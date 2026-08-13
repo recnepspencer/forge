@@ -5,6 +5,8 @@ use bank_server::{
     BankMutationCommitOutcome, BankOperationProposals, BankPrincipalSeed, BankSendMoneyPreparation,
     BankWorldSeed,
 };
+use worth_query_host::facade::publication::application_aftermath::WorthQueryPublishedApplicationCommitKind;
+use worth_query_host::facade::publication::domain_computation::WorthQueryPublishedApplicationCommitAttemptReleasePosture;
 
 use super::fixture::{expect_send_proposal, funded_personal_world, id, key};
 use crate::support::{block_on, request_scope, runtime, CausalCredential, DynamicIdentity};
@@ -83,11 +85,37 @@ fn consumer_authenticates_authorizes_and_prepares_a_send_proposal() {
         &input,
     )
     .unwrap();
-    assert!(matches!(
-        retry,
-        BankSendMoneyPreparation::AlreadyCommitted { receipt: resolved, .. }
-            if resolved == receipt
-    ));
+    match retry {
+        BankSendMoneyPreparation::AlreadyCommitted {
+            receipt: resolved, ..
+        } => {
+            assert_eq!(
+                resolved.changed_record_count(),
+                receipt.changed_record_count()
+            );
+            assert_eq!(
+                resolved.emitted_effect_count(),
+                receipt.emitted_effect_count()
+            );
+            assert_eq!(resolved.aftermath(), receipt.aftermath());
+            assert_eq!(resolved.canonical_work(), receipt.canonical_work());
+            let publication = resolved.publication().inspect();
+            assert_eq!(
+                publication.kind(),
+                WorthQueryPublishedApplicationCommitKind::Recovered
+            );
+            assert_eq!(
+                publication.attempt_release(),
+                WorthQueryPublishedApplicationCommitAttemptReleasePosture::NotAttempted
+            );
+        }
+        BankSendMoneyPreparation::Proposal(_) => {
+            panic!("an exact retry must not prepare a second proposal")
+        }
+        BankSendMoneyPreparation::IntentDrift { .. } => {
+            panic!("an exact retry must not be classified as intent drift")
+        }
+    }
 
     let drift_admission = world
         .runtime

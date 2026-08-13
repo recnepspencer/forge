@@ -50,8 +50,10 @@ pub(super) fn subscriber_invalidation_evidence(
 
         partition_checks += 1;
         if let Some(interned_scope) = dep.interned_scope() {
-            for changed_scope_id in changed_scope_ids {
-                if scopes_overlap(&interned_scope, changed_scope_id) {
+            for (changed_scope_id, changed_scope) in changed_scope_ids.iter().zip(changed_scopes) {
+                if scopes_overlap(&interned_scope, changed_scope_id)
+                    && scopes_overlap(scope, changed_scope)
+                {
                     return Ok(Some(SubscriptionInvalidationEvidence {
                         classification: FrontierEntryClassification::DirectDirty,
                         inclusion_basis: match scope.match_mode {
@@ -66,8 +68,6 @@ pub(super) fn subscriber_invalidation_evidence(
                     }));
                 }
             }
-            fallback_unmatched = true;
-            continue;
         }
 
         for changed_scope in changed_scopes {

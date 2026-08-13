@@ -108,23 +108,22 @@ fn foreign_domain_denies_before_graph_binding_or_provider_contact() {
 #[test]
 fn read_only_operation_does_not_claim_or_contact_adapter_commit_authority() {
     let contacts = Arc::new(AtomicUsize::new(0));
-    let mut workspace =
-        configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
-            .graph_participation(atomic_definition::<RemoteA>("remote-a"))
-            .atomic_graph_participation_provider(
-                RemoteA,
-                Provider::effect_free(Arc::clone(&contacts)),
-                SharedCommit,
-            )
-            .graph_participation(atomic_definition::<RemoteB>("remote-b"))
-            .atomic_graph_participation_provider(
-                RemoteB,
-                Provider::effect_free(Arc::clone(&contacts)),
-                SharedCommit,
-            )
-            .graph_commit_provider(SharedCommit, Provider::effect_free(Arc::clone(&contacts)))
-            .workspace("operating-world-shared-commit")
-            .unwrap();
+    let mut workspace = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>())
+        .graph_participation(atomic_definition::<RemoteA>("remote-a"))
+        .atomic_graph_participation_provider(
+            RemoteA,
+            Provider::effect_free(Arc::clone(&contacts)),
+            SharedCommit,
+        )
+        .graph_participation(atomic_definition::<RemoteB>("remote-b"))
+        .atomic_graph_participation_provider(
+            RemoteB,
+            Provider::effect_free(Arc::clone(&contacts)),
+            SharedCommit,
+        )
+        .graph_commit_provider(SharedCommit, Provider::effect_free(Arc::clone(&contacts)))
+        .workspace("operating-world-shared-commit")
+        .unwrap();
     let domain = workspace.domain(GeometryDomain).unwrap();
     assert_eq!(
         workspace
@@ -178,7 +177,7 @@ fn independent_equal_role_providers_deny_before_provider_contact() {
     let workspace = configured_runtime_for_partial_effect_package(federated_touch_package::<
         RemoteA,
         RemoteB,
-    >(false, true))
+    >(true))
     .graph_participation(atomic_definition::<RemoteA>("remote-a"))
     .atomic_graph_participation_provider(
         RemoteA,
@@ -227,7 +226,7 @@ fn separately_committed_graphs_deny_without_domain_aftermath_compensation() {
     let workspace = configured_runtime_for_partial_effect_package(federated_touch_package::<
         RemoteA,
         RemoteB,
-    >(true, true))
+    >(true))
     .graph_participation(atomic_definition::<RemoteA>("remote-a"))
     .atomic_graph_participation_provider(
         RemoteA,
@@ -273,7 +272,7 @@ fn separately_committed_graphs_deny_without_domain_aftermath_compensation() {
 #[test]
 fn same_role_lookalike_cannot_replace_the_exact_attached_graph_marker() {
     let contacts = Arc::new(AtomicUsize::new(0));
-    let result = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
+    let result = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>())
         .graph_participation(atomic_definition::<RemoteALookalike>("remote-a"))
         .atomic_graph_participation_provider(
             RemoteALookalike,

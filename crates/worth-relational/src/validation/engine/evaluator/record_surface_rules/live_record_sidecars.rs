@@ -1,6 +1,6 @@
 use crate::diagnostics::data::DiagnosticCode;
 use crate::storage::data::RecordLifecycleState;
-use crate::storage::logic::state::{EntityRecordKind, RecordKind, RelationRecordKind, SlotView};
+use crate::storage::substrate::{EntityRecordKind, RecordKind, RelationRecordKind, SlotView};
 use crate::validation::data::{
     InvariantClass, InvariantViolation, InvariantViolationFields, RecordKindTag,
     StorageInconsistencyScan,
@@ -38,7 +38,7 @@ fn evaluate_live_record_sidecar<K: RecordKind>(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     touched_slots: impl Fn(
-        &dyn crate::logic::runtime::PartitionAccess,
+        &dyn crate::runtime::PartitionAccess,
         crate::identity::data::PartitionId,
     ) -> Option<Vec<usize>>,
     has_required_sidecar: impl Fn(&SlotView<'_, K>) -> bool,
@@ -107,7 +107,7 @@ fn evaluate_live_record_sidecar<K: RecordKind>(
 
 fn sidecar_violation_for_slot<K: RecordKind>(
     class: InvariantClass,
-    partition: &crate::storage::logic::state::PartitionState,
+    partition: &crate::storage::overlay::PartitionState,
     slot: usize,
     has_required_sidecar: &impl Fn(&SlotView<'_, K>) -> bool,
     missing_label: &str,

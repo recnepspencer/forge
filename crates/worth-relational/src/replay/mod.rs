@@ -1,2 +1,8 @@
+mod access;
+mod authority;
 pub mod data;
-pub mod logic;
+mod derived_index_surface;
+mod diagnostics;
+mod planning;
+
+pub use access::ReplayAccess;

@@ -34,7 +34,11 @@ fn python_command(root: &Path) -> Option<Command> {
     // `python3` is the CI spelling. On Windows it is usually a Microsoft Store
     // alias stub that prints help and exits 0 — which would silently pass this
     // test. Probe with real code so a stub cannot masquerade as an interpreter.
-    for candidate in ["python3", "python", "py"] {
+    #[cfg(windows)]
+    let candidates = ["python", "py", "python3"];
+    #[cfg(not(windows))]
+    let candidates = ["python3", "python", "py"];
+    for candidate in candidates {
         let probe = Command::new(candidate)
             .args(["-c", "import sys; sys.exit(7)"])
             .current_dir(root)

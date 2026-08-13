@@ -56,7 +56,8 @@ pub use decisions::{
 pub(crate) use execution::{
     aspect_reference, bound_parent_order, compiled_executable_plan_digest, equality_witness_digest,
     materialized_value_aspect_key, merge_execution_diagnostics_digest, schema_snapshot_digest,
-    visible_record_snapshot, ExecutionReadyLoweredMergePlan,
+    visible_record_snapshot, CompiledMergeExecution, ExecutionReadyLoweredMergePlan,
+    PreparedMergeMutationPlan,
 };
 pub use execution::{
     AdoptSourceRecordPlan, BoundExecutableMergePlan, BoundExecutableMergeRecordPlan,

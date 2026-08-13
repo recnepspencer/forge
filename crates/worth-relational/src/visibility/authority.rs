@@ -1,5 +1,5 @@
 use crate::capabilities::VisibilityPolicySource;
-use crate::logic::runtime::{RelationalRuntime, SnapshotGuard, SnapshotHandleBinding};
+use crate::runtime::{RelationalRuntime, SnapshotGuard, SnapshotHandleBinding};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 use crate::visibility::cache_state::{
     bump_active_snapshot_ref, cached_state_for_version, evict_cache_if_needed, insert_state,

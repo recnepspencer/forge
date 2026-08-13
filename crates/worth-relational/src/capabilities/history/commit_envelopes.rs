@@ -1,6 +1,6 @@
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::CommitId;
-use crate::logic::runtime::RelationalRuntime;
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) trait CommitEnvelopeSource {
     fn commit_envelope(&self, commit_id: CommitId) -> Option<&CanonicalCommitEnvelope>;

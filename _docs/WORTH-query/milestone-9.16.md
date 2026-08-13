@@ -2,8 +2,8 @@
 
 > **Current execution posture:** Runtime Hardening Phase 7 is closed through
 > Phase 7.7 Gate D. Runtime Phase 8's accepted application-aftermath,
-> external-effect, recovery, retention, and publication foundation is **OPEN**
-> after hostile QA reopened F1-F6A on **2026-08-08** under the
+> external-effect, recovery, retention, and publication foundation is
+> **closed through C8 (2026-08-12)** under the
 > [Runtime Phase 8 finish plan](./milestone-9.16-runtime-phase-8-finish-plan.md); see the
 > [Phase 8 closure ledger](./milestone-9.16-runtime-phase-8-closure-ledger.md)
 > for closure evidence and the
@@ -14,9 +14,10 @@
 > [Milestone 9.18](./milestone-9.18.md).
 > [Milestone 9.16.1](./milestone-9.16.1.md) is closed, and its canonical
 > graph-progression substrate remains inherited. Gates A-C and the executable
-> release/disbursement slices remain historical prerequisites; Phase 8
-> dependents must not rely on Phase 8 closure until the correction ledger is
-> source-bound and reclosed.
+> release/disbursement slices remain historical prerequisites. Bank World
+> Phase 5 is closed by the real Docker-backed, separate-process transport court
+> (2026-08-13). Milestone 9.16 itself remains open for Runtime Phases 9-10,
+> Bank Phase 6, and Closure Phase 1 before the roadmap may advance to 9.17.
 
 ## Goal
 
@@ -91,8 +92,10 @@ The Runtime Hardening Track owns generic Query product work:
 - Runtime Phase 8 establishes the accepted aftermath, external-effect,
   recovery, retention, and publication foundation; its existing undo and redo
   lane remains provisional for Milestone 9.18;
-  and
-- Runtime Phase 9 performs public policy cutover and workaround deletion.
+- Runtime Phase 9 establishes host-installed conditional providers, managed
+  clocks, Signal-owned temporal wakes, and reconstruction from authoritative
+  domain truth; and
+- Runtime Phase 10 performs public policy cutover and workaround deletion.
 
 Bank phases consume and pressure those runtime capabilities:
 
@@ -278,6 +281,40 @@ At minimum, the courtroom must include:
 The system must fail closed. Authentication success is not authorization,
 permission declaration is not permission evaluation, and policy evaluation is
 not commit authority.
+
+### Conditional-operation host courtroom
+
+The conditional-operation courtroom installs one exact application operation
+with one domain-specific conditional node, one temporal node, and one named
+host clock source through `worth-query-host`. Its authoritative Relational
+truth contains future, already-due, cancelled, superseded, and completed
+temporal intents. The same courtroom must survive:
+
+- a Query application-runtime reinstallation after durable intent commit but
+  before a wake is scheduled;
+- reinstallation after Signal makes a wake eligible but before Query invokes
+  the operation;
+- reinstallation after the operation commits but before derived wake
+  completion is observed;
+- duplicate, reordered, stale, and foreign-source clock observations;
+- a provider replacement, an installed-operation generation change, and a
+  conditional-node identity substitution; and
+- unrelated domain, operation, node, clock, and temporal-intent growth.
+
+Current authoritative truth, not a retained host timer or copied wake handle,
+decides what is reconstructed. Query must re-admit the exact installed
+application operation against current authentication, capability, purpose,
+disclosure, invariant, idempotency, and provider truth. Signal alone decides
+wake eligibility and suppression. A cancelled or completed intent causes no
+invocation; a commit-before-observation fault cannot duplicate application
+effects; and stale or foreign bindings fail before predicate, scheduling, or
+operation work.
+
+Any implementation is convicted if the host constructs a `SignalGraph`,
+imports `worth_runtime_bridge` or `worth_signal`, returns a Signal decision,
+runs a timer/scheduler loop, invokes an operation callback directly, treats an
+in-memory wake table as durable truth, or scans all application truth on each
+clock observation.
 
 ## Product Decision Lock
 
@@ -652,6 +689,67 @@ F14. Descriptive digests and installation authority seals are different
     because reversal derives from recorded inverse data without external
     reread.
 
+### Host-installed conditional operations and managed time
+
+69. `worth-query-host` owns the only application-host installation contract
+    for conditional execution in the primary-graph application runtime. The
+    host binds a provider to an exact installed schema generation, application
+    operation, conditional-node identity, provider family, and graph
+    participation authority. A label, digest, portable declaration, or equal
+    node ordinal cannot substitute for that installed binding.
+70. A domain condition provider receives a Query-owned, read-only observation
+    set admitted from the node's declared semantic dependencies. It may compute
+    only the application predicate result or a typed provider failure. It may
+    not return a Signal condition decision, choose eligibility, schedule work,
+    mint provenance, widen observations, invoke an operation, or retain an
+    executable snapshot or provider session.
+71. Query adapts the admitted predicate result into the existing pair-bound
+    Runtime Bridge conditional lowering. Runtime Bridge owns installed
+    Relational-to-Signal correspondence and lowering; Signal owns condition
+    resolution, wake scheduling, eligibility, coalescing, suppression, and
+    decision provenance. Query consumes that decision without restamping it.
+72. A temporal conditional node binds an exact named host clock source during
+    application-runtime installation. The host may submit observations only
+    through a Query-owned clock-observation port bound to that source and
+    runtime. Query validates source identity, timeline, monotonic progression,
+    duplication, reordering, and installation generation before forwarding an
+    admitted observation. A host observation is time evidence, never an
+    eligibility decision or operation authority. A temporal clock source is
+    not the authorization-time source and cannot satisfy authentication,
+    capability-expiry, elevation-expiry, deadline, or idempotency time checks.
+73. Signal's wake table is derived, volatile runtime state. Reconstructible
+    temporal intent -- target operation, node, application input or input
+    derivation, due basis, active/cancelled/completed posture, stable intent
+    identity, and idempotency relation -- lives in authoritative
+    Relational/domain truth under an installed, bounded reconstruction
+    contract. A host-local timer, task, cache, or serialized Signal wake is not
+    a truth source.
+74. Application-runtime installation and reinstallation reconstruct missing
+    temporal wakes from the exact current Relational projection before the
+    runtime reports conditional readiness. Reconstruction revalidates the
+    installed operation, node, provider, clock, graph, generation, and current
+    intent posture. It may create a new derived wake identity linked to the
+    stable domain intent; it may not treat an old wake identity as authority.
+75. A ready wake re-enters the same installed application-operation path used
+    by an ordinary request. Wake evidence does not authorize execution. Query
+    performs fresh principal or governed system-actor admission, capability and
+    purpose evaluation, touched-graph admission, invariant progression,
+    idempotency, and compare-and-commit. The operation must atomically consume
+    or advance the authoritative temporal-intent posture when its effect
+    commits, so reconstruction after commit cannot duplicate effects.
+76. Provider registration, clock observation, wake ownership, and reconstructed
+    intent resources are bounded and lifecycle-managed. Closing or replacing
+    an application runtime cancels its derived work and releases its leases;
+    stale tasks, providers, clocks, decisions, and wake handles open no door in
+    the successor runtime.
+77. Ordinary clock observation and wake promotion are bounded by admitted due
+    work and never scan unrelated domain rows, operations, nodes, or clocks.
+    Reinstallation reconstruction is an explicitly measured cold path bounded
+    by the installed reconstruction projection. Counters distinguish clock
+    admission, truth rows inspected, wakes reconstructed, eligibility,
+    suppression, predicate contacts, operation admissions, idempotent
+    resolutions, and committed invocations.
+
 ## Destination Topology
 
 ### Query authority packages
@@ -670,6 +768,8 @@ worth-query-installation
     query identity, basis, cursor, disclosure, and lane-eligibility contracts
     capability composition, conflict, break-glass, and review contracts
     inverse, compensation, redo, and external-effect posture contracts
+    installed conditional-provider, named-clock, temporal-intent, and
+    reconstruction contracts
     monetary operation and invariant contribution admission
 
 worth-query-admission
@@ -687,6 +787,8 @@ worth-query-execution
     canonical application-query basis and continuation progression
     provider compare-and-commit progression
     current capability and disclosure revalidation
+    host-provider binding, managed clock observations, conditional re-entry,
+    and temporal wake reconstruction
     idempotent typed outcomes and managed recovery
     linear inverse, compensation, and redo progression
 
@@ -695,7 +797,9 @@ worth-query-publication
     history, live, recovery, and aftermath contracts
 
 worth-query-host
-    ordinary host composition without raw Relational or authority exposure
+    ordinary host composition, conditional-provider installation, and named
+    clock observation without raw Relational, Runtime Bridge, Signal, or
+    authority exposure
 
 worth-query-certification
     hostile public-consumer, capability, disclosure, elevation, aftermath,
@@ -2998,9 +3102,9 @@ work.
 ### Inherited Branch-Affinity Contract After Runtime Phase 7
 
 Milestone 9.16.1 makes typed branch identity part of the canonical provider
-session and branch-qualifies every snapshot and version basis. Runtime Phase 8,
-Bank World Phases 5-6, Runtime Phase 9, and closure inherit that identity
-without creating another branch-selection surface.
+session and branch-qualifies every snapshot and version basis. Runtime Phases
+8-10, Bank World Phases 5-6, and closure inherit that identity without creating
+another branch-selection surface.
 
 From this point forward:
 
@@ -3417,8 +3521,8 @@ network boundaries.
 - one independently authenticated user-node process per fixture participant;
 - an Axum adapter that maps HTTP and SSE onto the public Query facade;
 - typed wire representations for query identity, basis, opaque continuation,
-  capability purpose, disclosure omissions, elevation progression, recovery,
-  undo, and redo without serializing runtime authority;
+  capability purpose, disclosure omissions, elevation progression, and
+  recovery without serializing runtime authority;
 - bounded request and stream queues, cancellation, deadlines, backpressure, and
   disconnect handling;
 - dynamic ports, health/readiness, deterministic teardown, and leak detection;
@@ -3433,7 +3537,222 @@ The full courtroom runs over TCP with separate process IDs and runtimes.
 Disconnects, restarts of non-authoritative user nodes, response loss, queue
 saturation, token expiry, and live revocation preserve semantic outcomes.
 
-### Runtime Hardening Track — Phase 9: Public Policy Cutover And Workaround Deletion
+### Runtime Hardening Track — Phase 9: Host-Installed Conditional Operations, Managed Time, And Reconstructible Wakes
+
+**Requirement**
+
+Complete the primary-graph application runtime's conditional-operation front
+door. An ordinary host must be able to install application predicate providers
+and named clock sources, submit clock observations, and let Query invoke the
+same installed application operation when Signal admits a wake, without
+importing Runtime Bridge or Signal or owning a scheduler.
+
+**Discovery classification**
+
+This is a generic Query API, authority, lifecycle, and reconstruction gap under
+the milestone's phase-amendment rule. The portable contract is already visible
+through `worth-query-host`, but the only implemented provider installation path
+is the legacy
+[`WorthQueryRuntimeBuilder::conditional_node(...)`](../../workspaces/worth-query/crates/worth-query/src/runtime/builder/conditional_execution.rs),
+which accepts a raw Signal graph and `BridgeConditionalProviderSet`. At the same
+time, Query's
+[`installed-operation` consumer-residue registry](../../workspaces/worth-query/crates/worth-query/src/consumer_kit/consumer_residue/registry/installed_operation_rows.rs)
+forbids direct `worth_signal` and `worth_runtime_bridge` use. The
+primary-graph application runtime creates and retains its managed Runtime Bridge
+but exposes no corresponding host installation port. A consumer therefore
+cannot satisfy both the feature contract and the dependency law. Phase 9 closes
+that contradiction; it is not a Workflow Editor adapter phase.
+
+**Consumes**
+
+- Milestone 9.14 portable conditional declarations, semantic dependencies,
+  pair-bound Bridge lowering, and Signal decision provenance;
+- Milestone 9.16 Runtime Phase 6 installed application-operation identity and
+  the primary-graph application runtime;
+- Runtime Phase 7 authorization, disclosure, purpose, governed actor, and
+  trusted-time rules;
+- Runtime Phase 8 idempotency, aftermath, recovery, and retained authoritative
+  application truth; and
+- Milestone 9.16.1 exact branch, graph, provider-session, installation, and
+  generation affinity.
+
+**Public host contract**
+
+`worth-query-host` must expose one typed conditional-operation installation
+surface under its existing runtime facade. The surface must let the host:
+
+1. resolve an installed application operation and one of its installed
+   conditional nodes without a string lookup, raw node ID, graph handle, or
+   lower-runtime identity;
+2. bind a typed domain condition provider whose input is Query's immutable,
+   dependency-indexed observation view and whose output is only satisfied,
+   unsatisfied, or a typed provider failure;
+3. bind a named host clock source to the exact temporal node and obtain a
+   runtime-bound observation port after successful publication;
+4. submit typed clock observations carrying source, timeline, sequence, and
+   observed-time evidence, while receiving typed accepted, duplicate, stale,
+   reordered, foreign, closed, or failed posture;
+5. declare the exact bounded Relational projection from which active temporal
+   intents, due basis, operation input, stable intent identity, and idempotency
+   relation are reconstructed; and
+6. inspect non-authoritative lifecycle and work evidence without receiving a
+   provider session, Signal wake, scheduling capability, or executable
+   operation authority.
+
+The intended host journey is one installation progression, not a collection of
+independently valid ingredients:
+
+```text
+installed application schema
+    -> installed application operation
+    -> installed conditional node
+    -> admitted host predicate provider
+    -> admitted named clock and temporal-intent reconstruction contract
+    -> published primary-graph application runtime
+    -> runtime-bound clock-observation port
+```
+
+Publication fails atomically if a declared conditional node has no exact
+provider, a provider has no declaration, a temporal node lacks its clock or
+reconstruction contract, or any operation/node/provider/clock/projection axis
+is foreign, stale, ambiguous, unsupported, or duplicated.
+
+**Destination topology**
+
+Implementation names may become more specific, but responsibilities must land
+in this semantic shape rather than in a facade or helper bag:
+
+```text
+worth-query-installation/src/
+    domain_operation/conditional_node/
+        host_provider_contract.rs
+        named_clock_contract.rs
+        temporal_intent_contract.rs
+
+worth-query-execution/src/domain_computation/primary_graph/
+    conditional_operation/
+        installation.rs
+        predicate_observation.rs
+        predicate_admission.rs
+        clock_observation.rs
+        temporal_intent_projection.rs
+        wake_reconstruction.rs
+        signal_decision_reentry.rs
+        application_operation_invocation.rs
+        lifecycle.rs
+        work_evidence.rs
+
+worth-query-host/src/facade.rs
+    re-export the narrow installation, provider, observation, clock, denial,
+    and inspection contracts from their semantic owners
+
+worth-query-certification/
+    host-only conditional consumer and reinstall courtroom
+```
+
+Runtime Bridge's existing conditional-execution owner remains the only
+Relational-to-Signal correspondence and lowering lane. Signal's existing
+temporal owner remains the only wake scheduler and eligibility/suppression
+authority. If those owners require a narrower upstream port, that port belongs
+to their existing conditional or temporal modules and must not expose raw
+Signal decisions through `worth-query-host`.
+
+**Must establish**
+
+- one application-runtime-owned conditional registry keyed by exact installed
+  operation, node, installation generation, graph, provider, branch, and clock
+  affinity;
+- Query-owned observation types that preserve declared dependency ordinal,
+  exact previous/current Foundational contract values, truth basis, and
+  absence posture without exposing Bridge resolver context or Signal masks;
+- a host predicate adapter that translates satisfied/unsatisfied into the
+  installed Bridge provider contract internally, with Query performing no
+  second predicate evaluation and no eligibility restamping;
+- one named clock source per declared clock binding, immutable for the
+  application-runtime lifetime, with duplicate idempotence, monotonic sequence
+  and timeline enforcement, source isolation, bounded admission, and explicit
+  close/failure posture;
+- typed separation between temporal clock observation, authorization time,
+  request deadline time, and provider commit time so no source can be
+  substituted for another;
+- clock observations delivered to the Bridge-owned Signal runtime so Signal
+  alone promotes due wakes, coalesces or suppresses work, and emits exact
+  decision provenance;
+- an installed, branch-affine Relational access plan for active temporal
+  intents; ordinary clock delivery must use the derived due index, while
+  runtime reinstallation may execute the separately budgeted reconstruction
+  plan;
+- readiness that remains closed until provider binding, clock binding, current
+  intent reconstruction, Signal wake installation, and lifecycle publication
+  all succeed atomically;
+- fresh Query application-operation admission for each eligible wake, using
+  the operation's normal governed principal/system-actor, capability, purpose,
+  touched-graph, invariant, idempotency, compare-and-commit, aftermath, and
+  publication path;
+- atomic consumption or advancement of the durable temporal intent in the
+  same application operation that commits its effects, so duplicate wakes and
+  commit-before-observation faults resolve idempotently;
+- typed provenance joining stable temporal intent, reconstructed wake, Signal
+  decision, application-operation attempt, and terminal outcome without making
+  any descriptive row reusable authority;
+- successor-installation behavior that either proves exact compatibility and
+  reconstructs current work or fails closed with a typed rebind requirement;
+- bounded queues, cancellation, deadlines, shutdown, provider failure,
+  predicate panic isolation, and lease cleanup; and
+- public documentation and migration guidance that replace the legacy raw
+  builder example for primary-graph application hosts.
+
+**Mechanically forbid**
+
+- `worth_signal`, `worth_runtime_bridge`, `SignalGraph`,
+  `BridgeConditionalProviderSet`, or lower-runtime condition-decision types in
+  host-consumer manifests or source;
+- application-local temporal scheduler, timer wheel, wake registry, scheduler
+  task, or direct operation callback;
+- a provider returning raw Signal eligibility, suppression, provenance, node,
+  aspect, or wake values;
+- caller-authored `now`, post-publication clock replacement, wall-clock sleep
+  as temporal proof, and cross-source clock substitution;
+- reconstruction from serialized wake handles, process memory, logs, or
+  copied receipts instead of current authoritative domain truth;
+- invocation that bypasses ordinary application-operation admission or treats
+  wake eligibility as authorization;
+- full-domain, full-operation, or full-node scans on ordinary clock
+  observation; and
+- parallel primary-graph conditional installation through the legacy
+  `WorthQueryRuntimeBuilder::conditional_node(...)` path.
+
+The legacy builder may remain only for its separately governed pre-primary-
+graph runtime while live consumers still require it. It is not the host
+contract, must not be re-exported by `worth-query-host`, and cannot satisfy this
+phase's acceptance evidence.
+
+**Proof before Runtime Hardening Phase 10**
+
+The conditional-operation courtroom closes every crash/reinstall boundary
+listed above with independently asserted effects and non-effects. Host-only
+compile tests install the provider, clock, reconstruction contract, and
+application operation using `worth-query-host`; compile-fail and residue tests
+prove that raw Signal/Bridge types, local scheduling, raw decision return, and
+direct callback invocation are unavailable.
+
+The proof compares the host path with the existing internal conditional oracle
+for satisfied, unsatisfied, failed, future, due, cancelled, superseded,
+completed, duplicate-clock, reordered-clock, provider-replaced, and
+generation-changed cases. Signal provenance and Query terminal outcomes must
+agree without Query or the host reproducing the lower-runtime decision.
+Reinstallation from retained authoritative Relational truth restores exactly
+the active wakes, restores none for cancelled or completed intents, invokes
+the exact installed operation, and cannot duplicate a committed effect.
+
+Work evidence holds installed operation/node/clock counts constant while
+growing unrelated rows and proves that ordinary observation cost follows only
+the admitted observation plus due wake fan-out. Reconstruction cost is reported
+separately and follows only the installed temporal-intent projection. Lifecycle
+tests close, replace, cancel, and drop runtimes with exact-zero leaked provider,
+clock, wake, task, queue, operation-attempt, and lease resources.
+
+### Runtime Hardening Track — Phase 10: Public Policy Cutover And Workaround Deletion
 
 **Requirement**
 
@@ -3446,16 +3765,21 @@ that the bank world or existing consumers no longer need.
 - public API documentation for typed schema use, authentication adaptation,
   installed application queries, capability and disclosure composition,
   break-glass progression, mutation outcomes, recovery, accepted aftermath and
-  publication, and the provisional status of undo/redo,
-  history, preview posture, and live delivery;
+  publication, host-installed conditional providers, named clocks, temporal
+  reconstruction, and the provisional status of undo/redo, history, preview
+  posture, and live delivery;
 - `AI_README.md` orientation links that lead agents from the runtime model to
   the relevant feature documents;
 - migration of relevant Worth UI or other reference-consumer workarounds where
   the new surface owns the capability;
+- migration of Workflow Editor from its local Signal graph and temporal
+  scheduler onto the Phase 9 host contract, with no `worth_signal` or
+  `worth_runtime_bridge` dependency;
 - deletion of raw aspect strings, manual permission registries, local Query
   authority builders, application-local generic cursors, lane-specific query
   copies, undo stacks, break-glass booleans, post-projection redaction, and
-  duplicate outcome assembly; and
+  duplicate outcome assembly, local temporal scheduler, and raw conditional
+  provider assembly; and
 - residue checks that prevent their return.
 
 **Proof before Bank World Phase 6**
@@ -3485,10 +3809,13 @@ application without internal imports, local authority, or fixture shortcuts.
 - permission grant, revocation, and live-stream narrowing; and
 - one installed query exercised as one-shot, paged continuation, historical,
   live, and admitted preview work wherever its support posture permits;
-- compensating undo, freshly authorized redo, divergent-redo invalidation, and
-  honest irreversible posture; and
 - typed explanations and actionable recovery for denial, conflict,
   cancellation, disclosure omission, elevation, and indeterminacy.
+
+Linear undo/redo journeys are explicitly excluded from Bank Phase 6 and
+Milestone 9.16 closure. Existing experiments may remain as non-authoritative
+regression coverage, but Milestone 9.18 owns their product semantics, public
+contract, and acceptance evidence.
 
 **Proof before Closure Track Phase 1**
 
@@ -3615,7 +3942,8 @@ let inspection = active.query(queries::estate_preservation_view(account)).await?
 let review = active.close()?.mandatory_review();
 ```
 
-Undo and redo should expose only the operation's installed aftermath:
+The following undo/redo sketch is retained only as historical input to
+Milestone 9.18. It is not a Milestone 9.16 DX target or acceptance surface:
 
 ```rust
 let committed = bank.mutate(commands::send_money(input))
@@ -3686,9 +4014,13 @@ The completed application must answer, through public typed APIs:
 - Can an employee who is also a customer keep those authorities distinct?
 - If the employee is also a beneficiary, can conflict-of-interest prevent
   self-benefiting access even though each relationship is individually valid?
+- Can my host bind this domain predicate to the exact installed operation and
+  conditional node without importing Signal or Runtime Bridge?
+- Can my host submit an observation from this named temporal clock while
+  Signal, not my application, owns wake eligibility and suppression?
+- If the application runtime is reinstalled, which active wakes reconstruct
+  from current domain truth, and why can none duplicate a committed operation?
 - If the outcome is indeterminate, what typed recovery action remains legal?
-- Can I undo this committed action without erasing history, and can redo be
-  denied when current authority or truth changed?
 - Which operations are reversible, compensatable, reconcilable, or
   irreversible?
 
@@ -3702,15 +4034,17 @@ callback, or result reinterpretation, the front door is not finished.
 - Query-agnostic schema and domain meaning;
 - Relational ownership of authoritative graph facts and transaction mechanics;
 - runtime-bridge ownership of exact installed correspondence;
-- Signal ownership of policy-node evaluation truth;
+- Signal ownership of policy-node evaluation truth, temporal wake scheduling,
+  eligibility, and suppression provenance;
+- Query ownership of exact installed conditional-provider binding and
+  application-operation re-entry through the host facade;
+- authoritative Relational/domain temporal intent distinct from volatile,
+  reconstructible Signal wake state;
 - authentication distinct from authorization;
 - roles and relationships distinct from scoped capability authority;
 - ordinary capability distinct from governed emergency elevation;
 - entity visibility distinct from field disclosure;
 - one canonical application-query identity across supported execution lanes;
-- committed history preserved by inverse or compensation rather than erased by
-  undo;
-- redo as fresh execution rather than replay or retained authority;
 - exact Foundational value, aspect-contract, mask, canonical-basis,
   boundary-evidence, diagnostic, profile, lineage, and performance meaning at
   the cross-crate boundaries where those vocabularies apply;
@@ -3732,6 +4066,8 @@ callback, or result reinterpretation, the front door is not finished.
 - browser UI polish;
 - multi-currency conversion;
 - distributed consensus or multi-bank settlement;
+- accepting the current linear undo/redo experiments as product semantics,
+  public contract, or closure evidence before Milestone 9.18;
 - branch- or tree-shaped undo/redo navigation and branch-local inversion before
   Milestone 9.18, or semantic merge, rebase, and conflict resolution before
   their cross-runtime milestones;
@@ -3739,6 +4075,10 @@ callback, or result reinterpretation, the front door is not finished.
   writers on different branches before the Milestone 9.17 handoff;
 - durable recovery handles, restart-stable cursors, or restart-stable
   undo/redo history before the Store handoff;
+- persistence or replay of Signal wake handles, a Query-owned durable timer
+  journal, or provider-process recovery before the Store handoff; Phase 9
+  reconstructs derived wakes only when the authoritative Relational/domain
+  truth source survives application-runtime reinstallation;
 - advanced domain access products, correlated paths, conflict partitions,
   decision evidence, reuse, or provider certification governed by Milestones
   9.19 through 9.22.
@@ -3771,6 +4111,14 @@ Milestone 9.16 closes only when:
   distinct from canonical encoding and allocation;
 - the Relational -> runtime-bridge -> Signal -> Query authorization chain is
   exercised and independently challenged;
+- a host-only consumer installs an exact conditional provider and named clock,
+  submits clock observations, receives Signal-owned eligibility/suppression
+  provenance, and invokes the same freshly admitted installed application
+  operation without importing Runtime Bridge or Signal;
+- active temporal wakes reconstruct exactly from current authoritative
+  Relational/domain truth after application-runtime reinstallation, while
+  cancelled, superseded, completed, stale-generation, and foreign-clock cases
+  invoke nothing and commit-before-observation cannot duplicate effects;
 - capability scope, purpose, delegation, conflict-of-interest, field
   disclosure, break-glass approval, expiry, revocation, and review are
   exercised and independently challenged;
@@ -3794,11 +4142,6 @@ Milestone 9.16 closes only when:
   rejects equal-version cross-branch substitution, and contains no hard-coded
   ordinary-branch authority;
 - revocation prevents subsequent unauthorized live delivery;
-- provisional compensating undo preserves original truth, provisional redo
-  requires fresh authority, divergent or relevant change can deny it, and
-  irreversible actions expose no fake inverse; these journeys remain
-  regression evidence rather than accepted product semantics until Milestone
-  9.18 closes;
 - every indeterminate outcome exposes an actionable governed recovery posture;
 - Query-owned execution counters lower into honest Foundational
   counter-backed performance evidence at explicit support/certification

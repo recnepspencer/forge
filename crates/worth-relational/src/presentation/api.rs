@@ -1,4 +1,4 @@
-use crate::logic::builder::RelationalRuntimeBuilder;
+use crate::runtime::builder::RelationalRuntimeBuilder;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct RelationalRuntimeApi;

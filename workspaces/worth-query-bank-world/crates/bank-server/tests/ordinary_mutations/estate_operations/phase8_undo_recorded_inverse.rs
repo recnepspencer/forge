@@ -5,7 +5,8 @@ use bank_domain::{
     schema::{AccountStatus, FreezeEstateAccountOperation, Status},
 };
 use bank_server::{
-    queries, BankCommitDenialKind, BankIdentityRuntime, BankMutationCommitOutcome, BankReadControls,
+    queries, BankCommitDenialKind, BankIdentityRuntime, BankMutationCommitOutcome,
+    BankReadControls, BankUndoRetry,
 };
 use worth_foundational::facade::{AspectValue, InternedString};
 use worth_query_host::facade::domain::{
@@ -45,11 +46,8 @@ fn commit_freeze(
 fn recorded_inverse_undo_restores_prior_status_from_retained_preimage() {
     let fixture = exact_freeze_world("undo-recorded-inverse", AccountStatus::Open);
     let specialist = fixture.authenticate_specialist();
-    let receipt = commit_freeze(
-        &fixture,
-        &specialist,
-        WorthQueryApplicationIdempotencyBinding::new([21; 32], [22; 32]),
-    );
+    let original_binding = WorthQueryApplicationIdempotencyBinding::new([21; 32], [22; 32]);
+    let receipt = commit_freeze(&fixture, &specialist, original_binding);
     assert!(
         receipt.retained_preimage(),
         "freeze must retain Status pre-image for RecordedInverse"
@@ -143,18 +141,14 @@ fn estate_account_status(fixture: &FreezeFixture) -> AccountStatus {
 fn aliasing_the_original_binding_denies_and_leaves_the_undo_still_performable() {
     let fixture = exact_freeze_world("undo-alias-binding", AccountStatus::Open);
     let specialist = fixture.authenticate_specialist();
-    let receipt = commit_freeze(
-        &fixture,
-        &specialist,
-        WorthQueryApplicationIdempotencyBinding::new([21; 32], [22; 32]),
-    );
+    let original_binding = WorthQueryApplicationIdempotencyBinding::new([21; 32], [22; 32]);
+    let receipt = commit_freeze(&fixture, &specialist, original_binding);
 
     let handle = fixture
         .world
         .runtime
         .open_commit_recovery(&receipt)
         .expect("mint");
-    let original_binding = handle.binding().idempotency();
     let admission = fixture
         .world
         .runtime
@@ -182,12 +176,15 @@ fn aliasing_the_original_binding_denies_and_leaves_the_undo_still_performable() 
         "the denied undo must not restore the prior status"
     );
     assert!(
-        aliased.proved_undo().is_none(),
+        !aliased.has_proved_undo(),
         "a denied undo mints no proved-undo evidence"
     );
 
-    // The denied attempt was a non-event: re-mint, re-admit, and finish.
-    complete_undo_after_denial(&fixture, &specialist, &receipt);
+    let (_, _, retry) = aliased.into_parts();
+    let Some(BankUndoRetry::RecordedInverse(retry)) = retry else {
+        panic!("safe idempotency drift must return the exact recorded-inverse authority");
+    };
+    complete_undo_after_denial(&fixture, &specialist, retry);
 }
 
 /// The other side of Q8.22-C5: relinquishing on drop must not hand back a
@@ -269,26 +266,16 @@ fn a_relinquished_handle_after_a_committed_undo_cannot_undo_twice() {
     );
 }
 
-/// Re-mint the commit's recovery after a denied attempt and carry it all the way
+/// Carry the exact retry authority returned after a denied attempt all the way
 /// to a committed undo.
 ///
-/// Re-minting alone would only prove a registry slot was freed. Admitting and
-/// committing is what proves the *capability* survived (Q8.22-C5).
+/// A remint would prove only that a registry slot was freed. Consuming the
+/// returned authority proves the capability itself survived (Q8.22-C5).
 fn complete_undo_after_denial(
     fixture: &FreezeFixture,
     specialist: &bank_server::BankAuthenticatedPrincipal,
-    receipt: &bank_server::BankCommitReceipt,
+    admission: bank_server::BankRecordedInverseUndoAdmission,
 ) {
-    let handle = fixture
-        .world
-        .runtime
-        .open_commit_recovery(receipt)
-        .expect("the denied attempt left the commit recoverable");
-    let admission = fixture
-        .world
-        .runtime
-        .admit_undo_freeze_recovery(handle, specialist, &request_scope())
-        .expect("the returned capability re-admits");
     let restored = fixture
         .world
         .runtime
@@ -306,7 +293,7 @@ fn complete_undo_after_denial(
     );
     assert_eq!(estate_account_status(fixture), AccountStatus::Open);
     assert!(
-        restored.proved_undo().is_some(),
+        restored.has_proved_undo(),
         "a committed undo seals proved-undo evidence"
     );
 }

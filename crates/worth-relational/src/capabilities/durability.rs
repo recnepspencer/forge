@@ -1,6 +1,6 @@
 use crate::durability::data::{DurabilityError, DurableCheckpoint, DurableStore};
-use crate::logic::runtime::RelationalRuntime;
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::history::data::CanonicalCommitEnvelope;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) trait DurabilityRead {
     fn durable_checkpoints(&self) -> &[DurableCheckpoint];

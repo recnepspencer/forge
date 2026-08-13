@@ -6,7 +6,7 @@ use super::phase8_cross_gate::world::{cross_gate_world, PATIENT};
 use crate::support::request_scope;
 
 #[test]
-fn notify_death_transitions_use_the_exact_contract_carried_by_each_handle() {
+fn notify_death_compensation_consumes_its_exact_handle_contract() {
     let compensate_world = cross_gate_world("mechanism-compensate-admit");
     compensate_world
         .transport
@@ -21,11 +21,11 @@ fn notify_death_transitions_use_the_exact_contract_carried_by_each_handle() {
         .runtime
         .compensate_commit_recovery(handle, &specialist, action, &request_scope())
         .expect("NotifyDeath carries a compensation mechanism");
-    assert_eq!(
-        admitted.binding().installed_aftermath_operation_slot(),
-        "NotifyDeathEstateOperation"
-    );
+    assert_eq!(admitted.installed_operation(), "NotifyDeathEstateOperation");
+}
 
+#[test]
+fn notify_death_reconciliation_consumes_its_exact_handle_contract() {
     let reconcile_world = cross_gate_world("mechanism-reconcile-admit");
     reconcile_world
         .transport
@@ -40,8 +40,5 @@ fn notify_death_transitions_use_the_exact_contract_carried_by_each_handle() {
         .runtime
         .reconcile_commit_recovery(handle, &specialist, action, &request_scope())
         .expect("NotifyDeath carries external-owner reconciliation authority");
-    assert_eq!(
-        admitted.binding().installed_aftermath_operation_slot(),
-        "NotifyDeathEstateOperation"
-    );
+    assert_eq!(admitted.installed_operation(), "NotifyDeathEstateOperation");
 }

@@ -21,8 +21,14 @@ use super::observation::InvariantObservation;
 use super::policy::{cost_allowed, RelationalInvariantRuntime};
 pub(crate) use scope_types::{
     PlannedRelationEdge, PreparedRelationEndpointKey, PreparedRelationIntegrityScope,
-    PreparedRelationIntegrityScopes, PreparedRelationPairKey,
+    PreparedRelationIntegrityScopes, PreparedRelationPairKey, PreparedVisibleRelationEdge,
 };
+
+#[derive(Debug, Clone, Copy, Default)]
+struct RelationScopeRequirement {
+    requires_global_evaluation: bool,
+    requires_visible_successors: bool,
+}
 
 pub(crate) struct InvariantExecutionRequest<'runtime> {
     observation: InvariantObservation<'runtime>,
@@ -133,6 +139,28 @@ pub(crate) fn relation_kind_scope(rule: &InvariantRule) -> Option<KindId> {
             Some(contract.relation_kind_id)
         }
         InvariantRule::AcyclicityContract(contract) => Some(contract.relation_kind_id),
+        InvariantRule::PartitionIsolationContract(contract) => Some(contract.relation_kind_id),
+        InvariantRule::ConnectivityMinimumContract(contract) => Some(contract.relation_kind_id),
         _ => None,
     }
+}
+
+fn relation_scope_requirement(rule: &InvariantRule) -> Option<(KindId, RelationScopeRequirement)> {
+    let relation_kind_id = relation_kind_scope(rule)?;
+    let requirement = match rule {
+        InvariantRule::CardinalityMinimumContract(_) => RelationScopeRequirement {
+            requires_global_evaluation: true,
+            requires_visible_successors: false,
+        },
+        InvariantRule::AcyclicityContract(_) => RelationScopeRequirement {
+            requires_global_evaluation: false,
+            requires_visible_successors: true,
+        },
+        InvariantRule::ConnectivityMinimumContract(_) => RelationScopeRequirement {
+            requires_global_evaluation: true,
+            requires_visible_successors: true,
+        },
+        _ => RelationScopeRequirement::default(),
+    };
+    Some((relation_kind_id, requirement))
 }

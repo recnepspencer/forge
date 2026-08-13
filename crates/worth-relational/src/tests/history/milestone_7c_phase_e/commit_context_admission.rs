@@ -24,13 +24,8 @@ fn merge_commit_context_rejects_mismatched_parent_branch_metadata() {
             merge_intent: MergeIntent::ReconcileIntoTarget,
         })
         .expect("prepared merge execution");
-    let mutation_plan = runtime
-        .merge()
-        .derive_merge_commit_mutation_plan(
-            crate::facade::transactions::TransactionId(999),
-            &prepared,
-        )
-        .expect("merge mutation plan");
+    let mutation_plan =
+        prepared.bind_mutation_plan_for_test(crate::facade::transactions::TransactionId(999));
 
     let error = crate::authority::commit::pipeline::AuthoritativeCommitContext::from_merge(
         TransactionOptions {

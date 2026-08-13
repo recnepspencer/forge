@@ -16,10 +16,7 @@ use crate::domain_computation::primary_graph::{
 use worth_relational::facade::history::CommitReference;
 
 use super::governed_input::bound_original_governed_input;
-use super::recovery_handle::{
-    RelinquishOnDenial, WorthQueryHeldRecoveryHandle, WorthQueryRecoveryHandle,
-    WorthQueryRecoveryHandleBinding,
-};
+use super::recovery_handle::{RelinquishOnDenial, WorthQueryRecoveryHandleBinding};
 use super::recovery_progression::WorthQueryRecoveryEffectAuthority;
 use super::redo_denial::{WorthQueryRedoDenial, WorthQueryRedoDenialKind};
 use super::redo_intent::{WorthQueryProvedUndo, WorthQueryRedoIntent};
@@ -76,7 +73,7 @@ pub struct WorthQueryRedoAdmission {
     /// Held, not bare: an admitted redo that never reaches
     /// `progress_admitted_redo` — because the host denied on its way there —
     /// consumed nothing (Q8.22-C5).
-    recovery_handle: WorthQueryHeldRecoveryHandle,
+    recovery: WorthQueryRedoRecovery,
     intent: WorthQueryRedoIntent,
     retained_governed_input: WorthQueryRetainedGovernedInput,
     idempotency: WorthQueryApplicationIdempotencyBinding,
@@ -117,14 +114,14 @@ impl WorthQueryRedoAdmission {
     pub(crate) fn into_progression_parts(
         self,
     ) -> (
-        WorthQueryRecoveryHandle,
+        WorthQueryRedoRecovery,
         WorthQueryRedoIntent,
         WorthQueryRetainedGovernedInput,
         WorthQueryApplicationIdempotencyBinding,
         WorthQueryCanonicalWorkEvidence,
     ) {
         (
-            self.recovery_handle.into_handle(),
+            self.recovery,
             self.intent,
             self.retained_governed_input,
             self.idempotency,
@@ -191,9 +188,8 @@ pub(super) fn admit_redo_against_relational(
     assert_eq!(redo_admission_work.basis_preparations(), 1);
     assert_eq!(redo_admission_work.digest_derivations(), 1);
     assert_eq!(redo_admission_work.digest_text_materializations(), 0);
-    let (_, handle) = recovery.into_parts();
     Ok(WorthQueryRedoAdmission {
-        recovery_handle: WorthQueryHeldRecoveryHandle::new(handle),
+        recovery,
         intent: intent.clone(),
         retained_governed_input,
         idempotency,

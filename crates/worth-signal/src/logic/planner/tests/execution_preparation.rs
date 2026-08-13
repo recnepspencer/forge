@@ -3,6 +3,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
+use crate::data::proof::invalidation::revalidation::NodeInvalidationInput;
 use crate::data::temporal::LoweredTemporalEligibility;
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
@@ -57,8 +58,29 @@ where
     let graph = snapshot.graph();
     let state = *graph.get_entry(node)?.get_state();
     let dependencies = capture_current_dependencies(graph, node)?;
+    let invalidation = graph.node_invalidation_input(node)?;
+    if matches!(invalidation, NodeInvalidationInput::Pending(_)) {
+        return Ok(TestPreparedTask {
+            prepared: PreparedEvaluation::deferred_by_invalidation()
+                .with_dependencies(dependencies),
+            telemetry,
+        });
+    }
+    if matches!(invalidation, NodeInvalidationInput::ResolvedNoChange(_))
+        && matches!(state, NodeState::MaybeStale)
+        && !matches!(request_mode, EvaluationRequestMode::ForceOnDemand)
+    {
+        return Ok(TestPreparedTask {
+            prepared: PreparedEvaluation::validated_clean().with_dependencies(dependencies),
+            telemetry,
+        });
+    }
+    let dirty_aspects = invalidation
+        .resolved_dirty_aspects()
+        .expect("pending invalidation returned after the pending branch");
+    let structural_revalidation = structural_revalidation_posture(graph, node)?;
 
-    if matches!(state, NodeState::MaybeStale) {
+    if structural_revalidation.is_none() && matches!(state, NodeState::MaybeStale) {
         let preview = preview_upstream_state(graph, node, comparator_resolver)?;
         telemetry.partition_scope_revert_clean_count = preview.partition_scope_revert_clean_count;
         if preview.unchanged {
@@ -70,7 +92,14 @@ where
     }
 
     telemetry.nodes_evaluated += 1;
-    match preview_condition_action(graph, node, request_mode, condition_resolver)? {
+    if matches!(structural_revalidation, Some(true)) {
+        let view = snapshot.read_view(node);
+        return Ok(TestPreparedTask {
+            prepared: precompute(node, &view)?.with_dependencies(dependencies),
+            telemetry,
+        });
+    }
+    match preview_condition_action(graph, node, request_mode, dirty_aspects, condition_resolver)? {
         TestConditionAction::Evaluate { temporal_ready } => {
             if temporal_ready.is_some() {
                 telemetry.temporal_eligibility_lowering_count += 1;
@@ -134,8 +163,29 @@ where
     let mut telemetry = TestPrecomputeTelemetry::default();
     let state = *graph.get_entry(node)?.get_state();
     let dependencies = capture_current_dependencies(graph, node)?;
+    let invalidation = graph.node_invalidation_input(node)?;
+    if matches!(invalidation, NodeInvalidationInput::Pending(_)) {
+        return Ok(TestPreparedTask {
+            prepared: PreparedEvaluation::deferred_by_invalidation()
+                .with_dependencies(dependencies),
+            telemetry,
+        });
+    }
+    if matches!(invalidation, NodeInvalidationInput::ResolvedNoChange(_))
+        && matches!(state, NodeState::MaybeStale)
+        && !matches!(request_mode, EvaluationRequestMode::ForceOnDemand)
+    {
+        return Ok(TestPreparedTask {
+            prepared: PreparedEvaluation::validated_clean().with_dependencies(dependencies),
+            telemetry,
+        });
+    }
+    let dirty_aspects = invalidation
+        .resolved_dirty_aspects()
+        .expect("pending invalidation returned after the pending branch");
+    let structural_revalidation = structural_revalidation_posture(graph, node)?;
 
-    if matches!(state, NodeState::MaybeStale) {
+    if structural_revalidation.is_none() && matches!(state, NodeState::MaybeStale) {
         let preview = preview_upstream_state(graph, node, comparator_resolver)?;
         telemetry.partition_scope_revert_clean_count = preview.partition_scope_revert_clean_count;
         if preview.unchanged {
@@ -147,7 +197,14 @@ where
     }
 
     telemetry.nodes_evaluated += 1;
-    match preview_condition_action(graph, node, request_mode, condition_resolver)? {
+    if matches!(structural_revalidation, Some(true)) {
+        let result = compute(node, graph)?.into_evaluation_result();
+        return Ok(TestPreparedTask {
+            prepared: PreparedEvaluation::from_result(result).with_dependencies(dependencies),
+            telemetry,
+        });
+    }
+    match preview_condition_action(graph, node, request_mode, dirty_aspects, condition_resolver)? {
         TestConditionAction::Evaluate { temporal_ready } => {
             if temporal_ready.is_some() {
                 telemetry.temporal_eligibility_lowering_count += 1;
@@ -194,6 +251,23 @@ where
             })
         }
     }
+}
+
+fn structural_revalidation_posture(
+    graph: &SignalGraph,
+    node: NodeId,
+) -> Result<Option<bool>, SignalError> {
+    let Some(pending) = graph.pending_dependency_revalidation(node)? else {
+        return Ok(None);
+    };
+    if pending.dependency_revision() != graph.dependency_revision(node)? {
+        return Err(SignalError::invalid_input(format!(
+            "pending dependency revalidation for {node} belongs to a stale dependency revision"
+        )));
+    }
+    Ok(pending
+        .requires_structural_recompute()
+        .then_some(pending.is_resolved()))
 }
 
 pub(super) fn apply_test_precompute_telemetry(

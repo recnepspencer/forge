@@ -27,8 +27,17 @@ impl NodeEntry {
                 dependencies_id: crate::data::graph::DependencySetId::EMPTY,
                 subscribers_id: crate::data::graph::SubscriberSetId::EMPTY,
                 dep_snapshot_id: crate::data::dependency::DependencySnapshotId::EMPTY,
+                pending_cause_set_id:
+                    crate::data::graph::storage::invalidation_causes::PendingCauseSetId::EMPTY,
+                dependency_revision:
+                    crate::data::proof::invalidation::binding::DependencyRevision::default(),
             },
-            warm: super::layout::NodeWarmData::default(),
+            warm: super::layout::NodeWarmData {
+                direct_invalidation_basis: Some(
+                    crate::data::proof::invalidation::source_seed::DirectInvalidationBasis::initial_compute(),
+                ),
+                ..super::layout::NodeWarmData::default()
+            },
             cold: None,
         }
     }
@@ -49,18 +58,60 @@ impl NodeEntry {
         self.set_state(NodeState::Clean);
         self.set_dirty_aspects(AspectMask::EMPTY);
         self.clear_dirty_partition_scopes();
+        self.hot.pending_cause_set_id =
+            crate::data::graph::storage::invalidation_causes::PendingCauseSetId::EMPTY;
+        self.warm.pending_dependency_revalidation = None;
+        self.warm.direct_invalidation_basis = None;
     }
 
     /// Transition to `Dirty` for one aspect and merge any scoped dirty regions.
     pub fn transition_dirty(&mut self, aspect: Aspect, scopes: &[PartitionSubscription]) {
+        let invalidates_dependency_causes = self.hot.pending_cause_set_id
+            != crate::data::graph::storage::invalidation_causes::PendingCauseSetId::EMPTY;
+        if invalidates_dependency_causes {
+            self.hot.pending_cause_set_id =
+                crate::data::graph::storage::invalidation_causes::PendingCauseSetId::EMPTY;
+            self.hot.dirty_aspects = AspectMask::EMPTY;
+            self.clear_dirty_partition_scopes();
+        }
         let was_clean = matches!(self.hot.state, NodeState::Clean);
         let already_dirty_for_aspect = self
             .hot
             .dirty_aspects
             .contains(AspectMask::from_aspect(aspect));
         self.set_state(NodeState::Dirty);
+        match self.warm.direct_invalidation_basis.as_mut() {
+            Some(basis) => basis.merge_seed(aspect, scopes.iter().cloned()),
+            None => {
+                self.warm.direct_invalidation_basis = Some(
+                    crate::data::proof::invalidation::source_seed::DirectInvalidationBasis::from_seed(
+                        aspect,
+                        scopes.iter().cloned(),
+                    ),
+                );
+            }
+        }
         self.add_dirty_aspect(aspect);
         self.merge_dirty_partition_scopes(aspect, scopes, was_clean, already_dirty_for_aspect);
+    }
+
+    pub(crate) fn advance_dependency_revision(&mut self) {
+        let invalidates_dependency_causes = self.hot.pending_cause_set_id
+            != crate::data::graph::storage::invalidation_causes::PendingCauseSetId::EMPTY;
+        self.hot.dependency_revision.0 = self
+            .hot
+            .dependency_revision
+            .0
+            .checked_add(1)
+            .expect("dependency revision overflow");
+        self.hot.pending_cause_set_id =
+            crate::data::graph::storage::invalidation_causes::PendingCauseSetId::EMPTY;
+        if invalidates_dependency_causes {
+            self.hot.state = NodeState::MaybeStale;
+            self.hot.dirty_aspects = AspectMask::EMPTY;
+            self.clear_dirty_partition_scopes();
+        }
+        self.warm.pending_dependency_revalidation = None;
     }
 
     /// Transition to `MaybeStale` for one aspect.
@@ -135,6 +186,7 @@ impl NodeEntry {
             self.warm
                 .dirty_partition_scope_payload
                 .push((aspect, scope));
+            self.warm.dirty_partition_scope_payload.sort_unstable();
             self.hot.dirty_partition_scope_aspects.insert(aspect);
         }
     }

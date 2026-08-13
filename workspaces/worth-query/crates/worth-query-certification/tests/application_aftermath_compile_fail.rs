@@ -34,6 +34,9 @@ fn publication_projection_cases(cases: &trybuild::TestCases) {
     cases.compile_fail(
         "tests/ui/application_aftermath/publication_commit_has_no_ambiguous_release_getter.rs",
     );
+    cases.compile_fail(
+        "tests/ui/application_aftermath/elevation_publication_cannot_recover_commit_receipts.rs",
+    );
 }
 
 /// Undo/redo remains compiled, but only through the honestly provisional lane.
@@ -190,7 +193,7 @@ fn recovery_authority_and_carriage_cases(cases: &trybuild::TestCases) {
     // `safe_retry_requires_performed_redispatch` and
     // `redispatch_requires_handle_and_authority`. Whether a proof performed for
     // one handle can be presented for another is a runtime comparison, proved
-    // by `recovery_progression::safe_retry_tests`.
+    // by the execution owner's `external_dispatch::safe_retry_affinity_tests`.
     cases.pass("tests/ui/application_aftermath/safe_retry_with_performed_redispatch.rs");
     cases.compile_fail(
         "tests/ui/application_aftermath/performed_external_redispatch_constructor_is_private.rs",

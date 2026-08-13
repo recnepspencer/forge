@@ -19,87 +19,85 @@ use crate::domain_computation::authorization::WorthQueryMandatoryReviewBinding;
 /// ```
 #[derive(Debug)]
 pub struct WorthQueryReviewedElevation {
-    mandatory: WorthQueryMandatoryReview,
+    binding: WorthQueryMandatoryReviewBinding,
     review_commit: WorthQueryApplicationCommitReceipt,
-    reviewer: EntityId,
-    reviewed_at: AspectValue,
 }
 
 impl WorthQueryReviewedElevation {
-    pub const fn review_commit_receipt(&self) -> &WorthQueryApplicationCommitReceipt {
-        &self.review_commit
+    pub fn publication_source(&self) -> super::WorthQueryApplicationCommitPublicationSource {
+        self.review_commit.publication_source()
     }
 
     pub const fn reviewer(&self) -> EntityId {
-        self.reviewer
+        self.binding.reviewer()
     }
 
     pub const fn reviewed_at(&self) -> &AspectValue {
-        &self.reviewed_at
+        self.binding.reviewed_at()
     }
 
     pub const fn closure_kind(&self) -> WorthQueryElevationClosureKind {
-        self.mandatory.closure_kind()
+        self.binding.mandatory().closure_kind()
     }
 
     pub const fn requester(&self) -> EntityId {
-        self.mandatory.requester()
+        self.binding.mandatory().requester()
     }
 
     pub const fn approver(&self) -> EntityId {
-        self.mandatory.approver()
+        self.binding.mandatory().approver()
     }
 
     pub const fn closer(&self) -> EntityId {
-        self.mandatory.closer()
+        self.binding.mandatory().closer()
     }
 
     pub const fn resource(&self) -> EntityId {
-        self.mandatory.resource()
+        self.binding.mandatory().resource()
     }
 
     pub const fn grant(&self) -> EntityId {
-        self.mandatory.grant()
+        self.binding.mandatory().grant()
     }
 
     pub const fn elevation(&self) -> EntityId {
-        self.mandatory.elevation()
+        self.binding.mandatory().elevation()
     }
 
     pub const fn review(&self) -> EntityId {
-        self.mandatory.review()
+        self.binding.mandatory().review()
     }
 
     pub const fn action(&self) -> &AspectValue {
-        self.mandatory.action()
+        self.binding.mandatory().action()
     }
 
     pub const fn purpose(&self) -> &AspectValue {
-        self.mandatory.purpose()
+        self.binding.mandatory().purpose()
     }
 
     pub const fn field(&self) -> Option<&AspectValue> {
-        self.mandatory.field()
+        self.binding.mandatory().field()
     }
 
     pub const fn magnitude(&self) -> Option<&AspectValue> {
-        self.mandatory.magnitude()
+        self.binding.mandatory().magnitude()
     }
 
     pub const fn cardinality(&self) -> u32 {
-        self.mandatory.cardinality()
+        self.binding.mandatory().cardinality()
     }
 
     pub const fn reason(&self) -> &AspectValue {
-        self.mandatory.reason()
+        self.binding.mandatory().reason()
     }
 
     pub const fn issued_at(&self) -> &AspectValue {
-        self.mandatory.issued_at()
+        self.binding.mandatory().issued_at()
     }
 
     pub const fn expires_at(&self) -> &AspectValue {
-        self.mandatory.expires_at()
+        self.binding.mandatory().expires_at()
     }
 }
 
@@ -152,9 +150,7 @@ fn reviewed(
     review_commit: WorthQueryApplicationCommitReceipt,
 ) -> WorthQueryReviewedElevation {
     WorthQueryReviewedElevation {
-        mandatory: binding.mandatory,
+        binding,
         review_commit,
-        reviewer: binding.draft.reviewer,
-        reviewed_at: binding.draft.reviewed_at,
     }
 }

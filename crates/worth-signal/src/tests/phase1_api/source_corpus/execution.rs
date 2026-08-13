@@ -28,7 +28,6 @@ pub(in crate::tests::phase1_api) const HOT_EFFECT_SOURCE: &str = concat!(
     include_str!("../../../data/graph/runtime/effect/application.rs"),
     include_str!("../../../data/graph/runtime/effect/batching.rs"),
     include_str!("../../../data/graph/runtime/effect/evidence.rs"),
-    include_str!("../../../data/graph/runtime/effect/suppression.rs"),
     include_str!("../../../data/graph/runtime/effect/vocabulary.rs"),
 );
 pub(in crate::tests::phase1_api) const HOT_SERIAL_BATCH_SOURCE: &str = concat!(
@@ -94,7 +93,7 @@ pub(in crate::tests::phase1_api) const HOT_RUNTIME_OBSERVATION_SOURCE: &str = co
     include_str!("../../../logic/transaction/runtime/state/runtime_observation/registry.rs"),
 );
 pub(in crate::tests::phase1_api) const PROOF_SOURCE: &str = concat!(
-    include_str!("../../../data/proof.rs"),
+    include_str!("../../../data/proof/mod.rs"),
     include_str!("../../../data/proof/snapshot_commit.rs"),
 );
 pub(in crate::tests::phase1_api) const PLANNER_MODEL_SOURCE: &str = concat!(

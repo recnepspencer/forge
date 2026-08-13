@@ -188,8 +188,8 @@ fn invalidation_routing_uses_named_node_transitions() {
         "invalidation routing should use the named dirty transition"
     );
     assert!(
-        HOT_INVALIDATION_ROUTING_SOURCE.contains("transition_node_maybe_stale("),
-        "invalidation routing should use the named maybe-stale transition"
+        HOT_INVALIDATION_ROUTING_SOURCE.contains("transition_node_pending_revalidation("),
+        "invalidation routing should use the named pending-revalidation transition"
     );
 }
 

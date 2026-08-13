@@ -4,8 +4,9 @@ use super::{
     DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest, DurableSegmentId,
     DurableStore, RecoveryAuthorityContinuityMismatch,
 };
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::{CommitId, CommitReference};
-use crate::replay::data::{CanonicalCommitEnvelope, ReplayVerificationLayer};
+use crate::replay::data::ReplayVerificationLayer;
 use crate::schema::data::DescriptorSemanticsVersion;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -83,7 +84,7 @@ pub enum RecoveryAuthorityParity {
 
 #[derive(Debug, Clone)]
 pub struct RecoveryPlan {
-    pub config: crate::logic::runtime::RelationalRuntimeConfig,
+    pub config: crate::runtime::RelationalRuntimeConfig,
     pub store: Option<DurableStore>,
     pub checkpoint_manifest: Option<DurableCheckpointManifest>,
     pub checkpoint: Option<DurableCheckpoint>,
@@ -160,7 +161,7 @@ impl RecoveryAuthorityContinuityCheck {
 impl RecoveryPlan {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        config: crate::logic::runtime::RelationalRuntimeConfig,
+        config: crate::runtime::RelationalRuntimeConfig,
         store: Option<DurableStore>,
         checkpoint_manifest: Option<DurableCheckpointManifest>,
         checkpoint: Option<DurableCheckpoint>,

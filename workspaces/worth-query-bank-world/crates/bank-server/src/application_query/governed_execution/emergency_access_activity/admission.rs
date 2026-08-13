@@ -1,7 +1,8 @@
 use bank_domain::queries::EstateEmergencyAccessActivityRequest;
-use worth_query_host::facade::primary_graph::WorthQueryApprovedElevation;
 
-use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime, BankReadControls};
+use crate::{
+    BankApprovedEstateElevation, BankAuthenticatedPrincipal, BankIdentityRuntime, BankReadControls,
+};
 
 pub(crate) struct BankEstateEmergencyAccessActivityAdmission<
     'runtime,
@@ -12,7 +13,7 @@ pub(crate) struct BankEstateEmergencyAccessActivityAdmission<
     pub(super) runtime: &'runtime BankIdentityRuntime,
     pub(super) principal: &'principal BankAuthenticatedPrincipal,
     pub(super) request: EstateEmergencyAccessActivityRequest,
-    pub(super) approved: &'approved WorthQueryApprovedElevation,
+    pub(super) approved: &'approved BankApprovedEstateElevation,
     pub(super) controls: &'controls BankReadControls,
 }
 
@@ -23,7 +24,7 @@ impl<'runtime, 'principal, 'approved, 'controls>
         runtime: &'runtime BankIdentityRuntime,
         principal: &'principal BankAuthenticatedPrincipal,
         request: EstateEmergencyAccessActivityRequest,
-        approved: &'approved WorthQueryApprovedElevation,
+        approved: &'approved BankApprovedEstateElevation,
         controls: &'controls BankReadControls,
     ) -> Self {
         Self {

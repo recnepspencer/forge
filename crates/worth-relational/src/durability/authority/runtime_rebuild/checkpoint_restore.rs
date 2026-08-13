@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::durability::data::{DurabilityError, DurabilityMode, DurableCheckpoint};
 use crate::history::data::VersionNode;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 
 use super::super::super::derived_index_artifacts::restore_checkpoint_derived_index_artifacts;
 use super::super::authority_continuity::validate_checkpoint_lineage_artifact;

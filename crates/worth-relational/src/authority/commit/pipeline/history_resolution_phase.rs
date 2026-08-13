@@ -3,12 +3,12 @@ use crate::authority::commit::phases::history::{
     resolve_commit_history, resolve_commit_history_for_merge, ResolvedCommitHistory,
 };
 use crate::identity::data::VersionId;
-use crate::logic::runtime::RelationalRuntime;
+use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     CommitLog, CommitPhase, CommitPhaseTiming, MergeCommitMutationPlan, TransactionCommitError,
     TransactionId, TransactionOptions,
 };
-use crate::transactions::logic::RelationalTransaction;
+use crate::transactions::RelationalTransaction;
 
 pub(super) fn resolve_authoritative_history_phase(
     runtime: &mut RelationalRuntime,

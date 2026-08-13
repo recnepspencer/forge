@@ -14,6 +14,7 @@ use super::branch_checkpoint::BranchCheckpoint;
 use super::evaluation::FintechEvaluationShape;
 use super::node_families::{AggregateSourceNodes, FintechRuntime, FxNodes, InstrumentNodes};
 use super::scales::FintechScale;
+use super::world::FinancialWorldDefinition;
 use super::world_handles::FintechWorldHandles;
 
 #[derive(Debug)]
@@ -39,6 +40,8 @@ pub(crate) struct FintechWorld {
     pub(super) desk_aggregates: Vec<NodeId>,
     pub(super) scenario_aggregates: Vec<NodeId>,
     pub(super) bucket_aggregates: Vec<NodeId>,
+    pub(super) financial_definition: FinancialWorldDefinition,
+    pub(super) market_revision: u64,
 }
 
 pub(super) type FintechDomainFixture = FintechWorld;
@@ -154,7 +157,8 @@ impl FintechWorld {
     }
 }
 
-pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
+pub(super) fn build_fixture(definition: FinancialWorldDefinition) -> FintechWorld {
+    let scale = definition.fixture_scale();
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .with_tiers::<super::execution_tier::FintechTier>()
@@ -207,5 +211,7 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
         desk_aggregates: portfolio.desk_aggregates,
         scenario_aggregates: risk.scenario_aggregates,
         bucket_aggregates: risk.bucket_aggregates,
+        financial_definition: definition,
+        market_revision: 0,
     }
 }

@@ -106,6 +106,10 @@ impl AuthentikOidcConfiguration {
         &self.configuration_identity
     }
 
+    pub(crate) fn issuer_text(&self) -> &str {
+        self.issuer.as_str()
+    }
+
     pub(crate) fn authentication_audience(
         &self,
     ) -> Result<WorthQueryAuthenticationAudience, AuthentikOidcConfigurationError> {

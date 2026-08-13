@@ -135,6 +135,10 @@ impl<L: BasisOperationLane> ValidatedOperationBinding<'_, L> {
                     self.runtime.retain_current_generation(),
                 ),
             graph_work_affinity: None,
+            application_operation_attempt: None,
+            application_operation_slot: None,
+            application_schema_binding: None,
+            application_snapshot: None,
         }
     }
 }

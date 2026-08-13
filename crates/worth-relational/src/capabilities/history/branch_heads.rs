@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
+use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::identity::data::VersionId;
-use crate::logic::runtime::RelationalRuntime;
-use crate::replay::data::CanonicalCommitEnvelope;
+use crate::runtime::RelationalRuntime;
 
 pub(crate) trait HistorySource: super::CommitEnvelopeSource {
     fn branch_head_ref(&self, branch_id: &BranchId) -> Option<&CommitReference>;

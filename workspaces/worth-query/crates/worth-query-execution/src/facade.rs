@@ -58,7 +58,9 @@ pub mod primary_graph {
         WorthQueryApplicationBasisObserver, WorthQueryApplicationCommitAuthorityBinding,
         WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
         WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
-        WorthQueryApplicationCommitOutcomeIdentity, WorthQueryApplicationCommitReceipt,
+        WorthQueryApplicationCommitOutcomeIdentity,
+        WorthQueryApplicationCommitPublicationExternalEffect,
+        WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
         WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationCommitTerminalEvidence,
         WorthQueryApplicationCommitTerminalKind, WorthQueryApplicationContinuationDenial,
         WorthQueryApplicationContinuationDenialKind, WorthQueryApplicationContinuationPageResult,
@@ -152,14 +154,15 @@ pub mod primary_graph {
 /// These types remain compiled but are not accepted Phase 8 product contracts.
 pub mod provisional_aftermath {
     pub use crate::domain_computation::application_aftermath::{
-        admit_undo, deny_irreversible_undo_attempt, map_ordinary_commit_conflict_to_redo,
-        progress_admitted_redo, progress_admitted_undo, WorthQueryAftermathCausalRole,
-        WorthQueryCommittedAftermathCausality, WorthQueryProvedUndo, WorthQueryRedoAdmission,
-        WorthQueryRedoDenial, WorthQueryRedoDenialKind, WorthQueryRedoIntent,
-        WorthQueryRedoIntentIdentity, WorthQueryRedoProgressionHandoff, WorthQueryRedoRecovery,
-        WorthQueryRetainedPreImage, WorthQueryUndoAdmission, WorthQueryUndoDenial,
-        WorthQueryUndoDenialKind, WorthQueryUndoDerivedRequest, WorthQueryUndoIntentIdentity,
-        WorthQueryUndoProgressionHandoff,
+        admit_undo, consume_redo_progression, consume_unresolved_undo_progression,
+        deny_irreversible_undo_attempt, map_ordinary_commit_conflict_to_redo,
+        progress_admitted_reconciliation, progress_admitted_redo, progress_admitted_undo,
+        WorthQueryAftermathCausalRole, WorthQueryCommittedAftermathCausality, WorthQueryProvedUndo,
+        WorthQueryRedoAdmission, WorthQueryRedoDenial, WorthQueryRedoDenialKind,
+        WorthQueryRedoIntent, WorthQueryRedoIntentIdentity, WorthQueryRedoProgressionHandoff,
+        WorthQueryRedoRecovery, WorthQueryRetainedPreImage, WorthQueryUndoAdmission,
+        WorthQueryUndoDenial, WorthQueryUndoDenialKind, WorthQueryUndoDerivedRequest,
+        WorthQueryUndoIntentIdentity, WorthQueryUndoProgressionHandoff,
     };
 }
 

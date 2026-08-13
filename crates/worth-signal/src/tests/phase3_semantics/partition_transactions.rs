@@ -7,7 +7,7 @@ use crate::tests::support::{
 };
 
 #[test]
-fn transaction_mark_dirty_with_regions_routes_partition_matches() {
+fn transaction_partition_seed_resolves_to_exact_matching_cause_after_commit() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
@@ -24,7 +24,59 @@ fn transaction_mark_dirty_with_regions_routes_partition_matches() {
 
     runtime
         .transaction(&mut (), |tx| {
+            tx.read(source, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            tx.read(matching, &|view| {
+                let _ = view.read_partitioned_aspect_version(
+                    source,
+                    ASPECT_A,
+                    PartitionSubscription::whole_partition("wing"),
+                )?;
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(10, 0))))
+            })?;
+            tx.read(non_matching, &|view| {
+                let _ = view.read_partitioned_aspect_version(
+                    source,
+                    ASPECT_A,
+                    PartitionSubscription::whole_partition("tail"),
+                )?;
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(20, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime
+        .transaction(&mut (), |tx| {
             tx.mark_dirty_with_regions(source, ASPECT_A, &[ChangedRegion::new("wing")])?;
+            Ok(())
+        })
+        .unwrap();
+
+    assert_eq!(runtime.graph().get_state(source).unwrap(), NodeState::Dirty);
+    assert_eq!(runtime.graph().dependencies_of(matching).unwrap().len(), 1);
+    assert_eq!(
+        runtime.graph().dependencies_of(non_matching).unwrap().len(),
+        1
+    );
+    assert_eq!(
+        runtime.graph().get_state(matching).unwrap(),
+        NodeState::MaybeStale
+    );
+    assert_eq!(
+        runtime.graph().get_state(non_matching).unwrap(),
+        NodeState::MaybeStale
+    );
+
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.read(source, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(2, 0))
+                        .with_changed_region(ChangedRegion::new("wing")),
+                ))
+            })?;
             Ok(())
         })
         .unwrap();
@@ -35,8 +87,15 @@ fn transaction_mark_dirty_with_regions_routes_partition_matches() {
     );
     assert_eq!(
         runtime.graph().get_state(non_matching).unwrap(),
-        NodeState::MaybeStale
+        NodeState::Clean
     );
+    let causes = runtime.graph().pending_causes(matching).unwrap();
+    assert_eq!(causes.len(), 1);
+    assert_eq!(causes[0].key.aspect, ASPECT_A);
+    assert!(causes[0]
+        .changed_scopes
+        .iter()
+        .any(|scope| scope.partition == PartitionToken::new("wing")));
 }
 
 #[test]
@@ -106,7 +165,7 @@ fn partition_scoped_runtime_reads_do_not_widen_captured_dependencies() {
     );
     assert_eq!(
         runtime.graph().get_state(non_matching).unwrap(),
-        NodeState::MaybeStale
+        NodeState::Clean
     );
 }
 
@@ -266,7 +325,7 @@ fn committed_partition_local_evaluation_preserves_changed_region_explanation_and
     );
     assert_eq!(
         runtime.graph().get_state(non_matching).unwrap(),
-        NodeState::MaybeStale
+        NodeState::Clean
     );
     let explanation = runtime.observe().explain(source).unwrap();
     assert!(explanation.changed_regions.iter().any(|region| {

@@ -3,13 +3,13 @@ use worth_query_installation::facade::ApplicationOperationDecisionReadTarget;
 use worth_relational::facade::identity::{EntityId, KindId, RelationId};
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationAdjacencyDirection {
+pub(in crate::domain_computation) enum WorthQueryApplicationAdjacencyDirection {
     Outgoing,
     Incoming,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub(in crate::domain_computation::primary_graph) struct WorthQueryApplicationObservedRelation {
+pub(in crate::domain_computation) struct WorthQueryApplicationObservedRelation {
     pub(in crate::domain_computation::primary_graph) relation_id: RelationId,
     pub(in crate::domain_computation::primary_graph) from: EntityId,
     pub(in crate::domain_computation::primary_graph) to: EntityId,
@@ -40,7 +40,7 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationFactK
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationObservedFact {
+pub(in crate::domain_computation) enum WorthQueryApplicationObservedFact {
     Entity {
         target: ApplicationOperationDecisionReadTarget,
         entity_id: EntityId,

@@ -1,9 +1,10 @@
-use worth_query_host::facade::installed::provider_session::WorthQueryProviderCompareAndCommitOutcome;
+use worth_query_host::facade::installed::provider_session::{
+    WorthQueryClosedProviderSessionDisposition, WorthQueryCommittedProviderSession,
+};
 
-fn cannot_author_provider_commit() {
-    let _ = WorthQueryProviderCompareAndCommitOutcome::Committed {
-        provider_receipt: String::from("caller-authored-receipt"),
+fn main() {
+    let construct = |disposition: WorthQueryClosedProviderSessionDisposition| {
+        WorthQueryCommittedProviderSession { disposition }
     };
+    let _ = construct;
 }
-
-fn main() {}

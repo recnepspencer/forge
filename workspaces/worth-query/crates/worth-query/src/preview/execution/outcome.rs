@@ -4,7 +4,6 @@ use crate::preview::binding::{
     PreviewLifecycleMetadata, PreviewSessionBasis, PreviewSessionPlanBinding,
 };
 use crate::preview::comparison::PreviewComparisonEligibilityArtifact;
-#[cfg(test)]
 use crate::preview::evaluation::PreviewEvaluationClass;
 use crate::preview::execution::PreviewExecutionCounters;
 use crate::preview::workflow_foundation::{
@@ -138,7 +137,6 @@ impl PreviewExecutionEnvelope {
         &self.counters
     }
 
-    #[cfg(test)]
     pub fn check_invariants(&self) -> Result<(), PreviewExecutionError> {
         self.execution
             .check_invariants()
@@ -270,37 +268,30 @@ pub struct ReadOnlyPreviewExecutionEnvelope {
 }
 
 impl ReadOnlyPreviewExecutionEnvelope {
-    #[cfg(test)]
     pub fn execution(&self) -> &ExecutionResultEnvelope {
         self.inner.execution()
     }
 
-    #[cfg(test)]
     pub fn basis(&self) -> &PreviewSessionBasis {
         self.inner.binding().basis()
     }
 
-    #[cfg(test)]
     pub fn lifecycle_metadata(&self) -> &PreviewLifecycleMetadata {
         self.inner.binding().lifecycle_metadata()
     }
 
-    #[cfg(test)]
     pub fn comparison_eligibility(&self) -> &PreviewComparisonEligibilityArtifact {
         self.inner.comparison_eligibility()
     }
 
-    #[cfg(test)]
     pub fn workflow_foundation(&self) -> &PreviewWorkflowFoundationArtifact {
         self.inner.workflow_foundation()
     }
 
-    #[cfg(test)]
     pub fn report(&self) -> &PreviewExecutionReport {
         self.inner.report()
     }
 
-    #[cfg(test)]
     pub fn counters(&self) -> &PreviewExecutionCounters {
         self.inner.counters()
     }
@@ -345,7 +336,6 @@ impl PromotionEligiblePreviewExecutionEnvelope {
         self.inner.counters()
     }
 
-    #[cfg(test)]
     pub(crate) fn as_preview_execution(&self) -> &PreviewExecutionEnvelope {
         &self.inner
     }

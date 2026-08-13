@@ -10,6 +10,7 @@ use super::super::node_families::{
 use super::super::partition_surface::{MarketPartition, PartitionDetail, PartitionSurfaceNodes};
 use super::super::regimes::MarketRegime;
 use super::super::scales::FintechScale;
+use super::super::world::FinancialWorldDefinition;
 
 pub(super) struct MarketWorld {
     pub(super) fx: FxNodes,
@@ -78,7 +79,11 @@ impl super::FintechWorld {
         regime: MarketRegime,
         seed: u64,
     ) -> Result<(), SignalError> {
-        super::super::market_state::seed_market_regime(self, regime, seed)
+        self.seed_financial_definition(FinancialWorldDefinition::runtime_fixture(
+            self.financial_definition.fixture_scale(),
+            regime,
+            seed,
+        ))
     }
 
     pub(in crate::tests::domains::fintech) fn seed_market(
@@ -86,6 +91,30 @@ impl super::FintechWorld {
         market_seed: MarketSeed,
     ) -> Result<(), SignalError> {
         self.seed_regime(market_seed.regime, market_seed.seed)
+    }
+
+    pub(in crate::tests::domains::fintech) fn seed_financial_definition(
+        &mut self,
+        definition: FinancialWorldDefinition,
+    ) -> Result<(), SignalError> {
+        assert_eq!(
+            definition.fixture_scale(),
+            self.financial_definition.fixture_scale(),
+            "financial runtime fixture scale is immutable after topology compilation"
+        );
+        let revision = if self.market_revision == 0 {
+            1
+        } else if self.financial_definition == definition {
+            self.market_revision
+        } else {
+            self.market_revision
+                .checked_add(1)
+                .expect("financial fixture semantic revision overflow")
+        };
+        super::super::market_state::seed_financial_definition(self, &definition, revision)?;
+        self.financial_definition = definition;
+        self.market_revision = revision;
+        Ok(())
     }
 
     pub(in crate::tests::domains::fintech) fn primary_market_source(&self) -> NodeId {
@@ -270,6 +299,19 @@ impl super::FintechWorld {
         self.apply_partition_shock(
             MarketPartition::Rates,
             Some(PartitionDetail::Bucket0),
+            price_delta,
+            executor,
+        )
+    }
+
+    pub(in crate::tests::domains::fintech) fn shock_rates_bucket_one(
+        &mut self,
+        price_delta: i64,
+        executor: StageExecutor,
+    ) -> Result<AspectVersion, SignalError> {
+        self.apply_partition_shock(
+            MarketPartition::Rates,
+            Some(PartitionDetail::Bucket1),
             price_delta,
             executor,
         )

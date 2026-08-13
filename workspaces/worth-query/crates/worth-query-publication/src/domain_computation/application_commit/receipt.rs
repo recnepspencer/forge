@@ -1,9 +1,11 @@
-use worth_query_execution::facade::primary_graph::WorthQueryApplicationCommitReceipt;
+use worth_query_execution::facade::primary_graph::{
+    WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
+};
 
 use super::WorthQueryApplicationCommitPublicationInspection;
 use crate::application_aftermath::{
-    publish_application_aftermath, WorthQueryPublishedApplicationAftermath,
-    WorthQueryPublishedApplicationCommitBoundaryEvidence,
+    publish_application_aftermath, publish_application_aftermath_source,
+    WorthQueryPublishedApplicationAftermath, WorthQueryPublishedApplicationCommitBoundaryEvidence,
 };
 
 /// Publication receipt derived from one execution-owned commit terminal.
@@ -59,6 +61,18 @@ impl WorthQueryApplicationCommitPublicationReceipt {
         Self {
             aftermath,
             boundary_evidence,
+        }
+    }
+
+    pub(super) fn from_publication_source(
+        source: &WorthQueryApplicationCommitPublicationSource,
+    ) -> Self {
+        Self {
+            aftermath: publish_application_aftermath_source(source),
+            boundary_evidence:
+                WorthQueryPublishedApplicationCommitBoundaryEvidence::from_publication_source(
+                    source,
+                ),
         }
     }
 

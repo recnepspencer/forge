@@ -1,10 +1,10 @@
 use crate::commit_strategies::data::CommitStrategyRegistration;
+use crate::config::data::CommitAuthorityContract;
 use crate::config::data::*;
+use crate::config::data::{PlanningContract, RelationalExecutionModel};
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
 use crate::durability::data::DurabilityMode;
 use crate::history::data::{BranchId, HistoryRetentionClass, VersionGraphPolicy};
-use crate::logic::commit::CommitAuthorityContract;
-use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
 use crate::schema::data::{
     runtime_descriptor_canonical_basis_policy, runtime_descriptor_semantics_policy,
     RelationalSchemaRegistry,

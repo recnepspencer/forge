@@ -1,7 +1,7 @@
-use crate::logic::runtime::RelationalRuntime;
 use crate::query::data::{
     reduce_query_fragments, QueryComplexitySummary, QueryExecutionOutcome, SnapshotPinnedQueryPlan,
 };
+use crate::runtime::RelationalRuntime;
 
 pub(in crate::visibility::materialization::read_records::reader) fn query_execution_outcome(
     runtime: &RelationalRuntime,

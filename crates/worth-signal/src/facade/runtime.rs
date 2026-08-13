@@ -34,7 +34,9 @@ pub use crate::data::output::ComputationFamily as RecipeFamily;
 pub use crate::data::output::ComputationKey as RecipeKey;
 pub use crate::data::output::KeyedComputation as KeyedRecipe;
 pub use crate::data::proof::DirtyBatch as ChangeBatch;
-pub use crate::data::proof::SemanticBatchCommit as ChangeBatchCommit;
+pub use crate::data::proof::SourceRecomputeAdmission as ChangeBatchAdmission;
+#[deprecated(note = "use ChangeBatchAdmission; this records root admission, not commit")]
+pub type ChangeBatchCommit = ChangeBatchAdmission;
 pub use crate::data::resource::{
     resource_certification_builder, resource_certification_bundle,
     resource_certification_bundle_parity_report, resource_milestone_b_certification_run,
@@ -154,7 +156,7 @@ pub use crate::logic::transaction::{
 };
 pub use crate::schema::data::SignalSchemaRegistry;
 pub type BatchChange = ChangeBatch;
-pub type BatchChangeResult = ChangeBatchCommit;
+pub type BatchChangeResult = ChangeBatchAdmission;
 #[cfg(test)]
 pub type CheckpointPolicy<D> = RuntimeCheckpointPolicy<D>;
 #[cfg(test)]
@@ -166,7 +168,8 @@ pub type KeyedComputation = KeyedRecipe;
 #[cfg(test)]
 pub type DirtyBatch = ChangeBatch;
 #[cfg(test)]
-pub type SemanticBatchCommit = ChangeBatchCommit;
+#[deprecated(note = "use ChangeBatchAdmission; this records root admission, not commit")]
+pub type SemanticBatchCommit = ChangeBatchAdmission;
 #[cfg(test)]
 pub type TierPolicy<T> = RuntimeTierPolicy<T>;
 #[cfg(test)]

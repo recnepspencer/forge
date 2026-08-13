@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::comparator::VersionComparatorPolicy;
+use crate::data::output_equivalence::OutputEquivalencePolicy;
 use crate::data::telemetry::{
     CheckpointTelemetry, EvaluationTelemetry, ExecutionTelemetry, HostComputedTelemetry,
     InvalidationTelemetry, PlannerTelemetry, ResourceTelemetry, RuntimeTelemetry, StorageTelemetry,
@@ -74,6 +75,30 @@ impl EquivalenceContract {
             suppression_basis,
             canonical_dependency_order: CanonicalDependencyOrder::SourceAspectScope,
             comparator_basis,
+        }
+    }
+
+    pub fn for_output_equivalence(policy: &OutputEquivalencePolicy) -> Self {
+        match policy {
+            OutputEquivalencePolicy::ExactAspectVersion => Self::default(),
+            OutputEquivalencePolicy::AspectVersionTolerance { .. } => Self {
+                suppression_basis: SuppressionBasis::ComparatorMatch,
+                comparator_basis: ComparatorBasis::Tolerance,
+                ..Self::default()
+            },
+            OutputEquivalencePolicy::OutputIdentity => Self {
+                identity_basis: IdentityBasis::OutputIdentity,
+                suppression_basis: SuppressionBasis::OutputIdentityAndComparator,
+                comparator_basis: ComparatorBasis::OutputIdentity,
+                ..Self::default()
+            },
+            OutputEquivalencePolicy::Custom { .. } | OutputEquivalencePolicy::Installed { .. } => {
+                Self {
+                    suppression_basis: SuppressionBasis::ComparatorMatch,
+                    comparator_basis: ComparatorBasis::Custom,
+                    ..Self::default()
+                }
+            }
         }
     }
 }

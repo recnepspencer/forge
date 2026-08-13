@@ -62,7 +62,7 @@ fn custom_comparator_uses_resolver() {
     let a = graph.node().build();
     let b = graph
         .node()
-        .comparator(VersionComparatorPolicy::Custom {
+        .dependency_comparator(VersionComparatorPolicy::Custom {
             key: "force-change".to_string(),
         })
         .build();

@@ -4,7 +4,8 @@ use crate::authority::mutation::stale_targets::{
 };
 use crate::authority::mutation::MutationWorkspace;
 use crate::authority::mutation::{apply_adjacency_deltas, AdjacencyDelta, AdjacencyDeltaKind};
-use crate::storage::logic::state::{PartitionAccess, RelationEndpoints, RelationExtra};
+use crate::storage::overlay::PartitionAccess;
+use crate::storage::substrate::{RelationEndpoints, RelationExtra};
 use crate::transactions::data::{
     CommitConflict, ConflictClass, EntityReference, RecordAspectPatchTarget,
     RelationEndpointUpdateMissingState, UpdateRelationEndpointsIntent,

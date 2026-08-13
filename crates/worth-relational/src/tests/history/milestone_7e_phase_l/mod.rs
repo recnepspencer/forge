@@ -5,7 +5,7 @@ use crate::facade::inspection::{
     RelationalMergeSupportInspectionCompatibilityPosture, RelationalMergeSupportInspectionRow,
 };
 use crate::inspection::data::RelationalMergeSupportInspectionInput;
-use crate::inspection::logic::support_inspection_witness;
+use crate::inspection::support_inspection_witness;
 use crate::tests::support::checkpoint_and_recover_with;
 
 use fixtures::{

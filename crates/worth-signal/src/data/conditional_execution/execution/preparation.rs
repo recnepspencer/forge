@@ -38,6 +38,11 @@ pub(super) fn prepare_conditional_attempt(
     counters.output_version_reads += 1;
     let output_version_before = graph.node_version_for_scope(node, output_aspect, None)?;
     let dependencies = capture_dependencies(graph, node, counters)?;
+    let invalidation = graph.node_invalidation_input(node)?;
+    let pending_invalidation = matches!(
+        invalidation,
+        crate::data::proof::invalidation::revalidation::NodeInvalidationInput::Pending(_)
+    );
     let dependency_changed =
         dependency_change_is_meaningful(graph, request.contract, comparator, counters)?;
     let has_dependencies =
@@ -59,7 +64,8 @@ pub(super) fn prepare_conditional_attempt(
         output_version_before,
         dependencies,
         dependency_changed,
-        passive_dependency_hit: !dependency_changed
+        passive_dependency_hit: !pending_invalidation
+            && !dependency_changed
             && has_dependencies
             && !external_trigger_requested,
     })

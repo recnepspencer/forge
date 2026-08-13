@@ -68,6 +68,10 @@ The following must be tracked explicitly as negative-space acceptance items:
 - whole-live candidate scope on supported merge paths
 - grouped concurrent apply that serializes semantic work under a parallel label
 - worker writes to shared runtime surfaces
+- execution beyond the configured hierarchical resource lease
+- caller-asserted parallel safety or backend-minted semantic proof
+- completion-order publication or worker-count-dependent deterministic output
+- hidden WASM main-thread fallback or remote retry without idempotency identity
 - rollback via baseline bundle semantics
 - branch restore without reconstructability proof
 - routine lifecycle access to heavy capture
@@ -79,10 +83,15 @@ The following must be tracked explicitly as negative-space acceptance items:
 | `S9.16.1` hot/cold separation | Hot operational paths run from `RuntimeArtifactState` alone | merge comparability, effect application write lanes, observer/runtime artifact access, reconstruction telemetry | `tests::merge_adoption::merge_branch_equivalent_runtime_state_ignores_retained_artifact_richness`; `tests::phase1_api::observer_exposes_runtime_and_retained_artifacts_separately`; `tests::observability::explicit_retained_and_reconstructed_artifact_apis_match_policy` | retained richness must not change merge/apply/runtime outcome |
 | `S9.16.1` cold access honesty | Cold reconstruction is explicit by API name and policy result | `materialize_explanation_artifact`, `materialize_provenance_artifact`, `reconstruct_*`, `DiagnosticsAvailability`, hot-path reconstruction counter | `tests::observability::explicit_omit_policy_surfaces_unavailable_artifacts`; `tests::observability::explicit_retained_and_reconstructed_artifact_apis_match_policy`; `tests::harness_bridge::*artifact*` | ordinary observer/operational queries must not silently reconstruct broad cold views |
 | `S9.16.2` shared snapshot storage | Snapshot sharing changes storage strategy, never semantic meaning | snapshot ids, snapshot artifact-retention metadata, explicit restore intents, canonical dependency snapshot update derivation, shared-node restore batch planning, restore breadth planning, dependency snapshot contracts, `SnapshotStorageStrategy`, `SnapshotDeltaRecord`, storage telemetry counters, restore behavior, checkpoint telemetry including restore breadth counters | `tests::phase1_api::shared_dependency_snapshot_reports_storage_sharing_without_implying_semantics`; `tests::phase1_api::snapshot_storage_telemetry_distinguishes_replacement_from_version_only_delta`; `tests::phase1_api::set_dep_snapshot_uses_version_only_delta_when_snapshot_shape_is_stable`; `tests::phase1_api::derive_dependency_snapshot_restore_batch_uses_version_only_delta_for_shared_shape`; `tests::phase5_state::snapshot_artifact_retention_policy_changes_richness_not_restore_truth`; `tests::phase5_state::branch_snapshot_records_explicit_artifact_retention_for_non_active_branches`; `tests::phase5_state::restore_snapshot_with_active_policy_prunes_cold_richness_without_changing_operational_truth`; `tests::phase5_state::restore_snapshot_rejects_seed_recomputation_intent_before_mutation`; `tests::phase5_state::snapshot_restore_plan_reports_shared_delta_and_coarse_requirements`; existing snapshot delta tests | pointer-sharing/backing reuse must not become identity or restore semantics |
-| `S9.16.3` locality-first invalidation | Invalidation breadth is bounded by canonical mutation-time delta | `FrontierPlan`, `FrontierExecutionSummary`, entry-level direct-dirty vs maybe-stale classification, frontier telemetry counters, touched-scope summaries, retained frontier trace records, flow invalidation summaries projected from frontier execution truth | `tests::invalidation_bugs::frontier_execution_summary_exposes_direct_dirty_and_maybe_stale_entries`; `tests::invalidation_bugs::frontier_runtime_counters_are_derived_from_execution_summary`; `tests::invalidation_bugs::frontier_tracing_policy_changes_retained_richness_not_invalidation_truth`; `tests::invalidation_bugs::reachable_cycle_detection_fails_before_false_frontier_commit`; `tests::invalidation_bugs::one_node_with_multiple_justifications_collapses_to_stable_canonical_entry`; `tests::invalidation_bugs::repeated_identical_inputs_produce_deterministic_frontier_summary`; `tests::invalidation_bugs::transitive_wave_contains_only_nodes_reachable_from_planned_roots`; `tests::invalidation_bugs::frontier_transitive_wave_count_stays_zero_when_no_transitive_entries_realize`; `tests::diagnostics::flow_diagnostics_report_zero_realized_transitive_waves_when_frontier_has_none`; existing invalidation/adversarial propagation tests | post hoc graph scans must not become the source of invalidation truth, and flow invalidation reporting must not depend on a second legacy semantic owner |
+| `S9.16.3` / Milestone 12 aspect-causal invalidation | Root mutations create unresolved recompute work; every resolved downstream aspect fact comes from the immediate dependency's atomically committed per-aspect/per-scope output delta | source recompute seeds, performed output-commit wrapper, producer-local dependency causes bound across every freshness axis, canonical pending cause store, shared pending/resolved condition input, named fintech semantic scenarios, `FreshFinancialRecompute`, `FinancialNecessityManifest`, `FinancialAspectCausalityCertificationRun` | implemented by the eight-scenario fintech causality courtroom and focused cause/condition/checkpoint/topology controls in [milestone-12-plan.md](./milestone-12-plan.md); transitive execution summaries are aspect-free and scope-free | root aspects, reachability, dirty masks, diagnostics, retained traces, stale dependency revisions, producer/consumer comparator conflation, consumer-global suppression, or generic graph-only certification must not mint or certify descendant aspect authority |
+| `S9.16.3` / Milestone 13 locality-first invalidation | Invalidation breadth is bounded by realized semantic reach, not reachable subscriber closure | named fintech locality scenarios, canonical work items, ready batches, realized edge/admission/queue/evaluation counters, Foundational counter-backed receipts, cost slopes, same-work-stream strategy reports, `FinancialFrontierLocalityCertificationRun` | planned by [milestone-13-plan.md](./milestone-13-plan.md); existing reachability tests remain inherited but do not close locality | disjoint descendants must be rejected before dirty mutation and enqueue; conservative legacy scope unions, predicted counters, elapsed time, or a deferred certification phase must not substitute for realized exact work |
 | `S9.16.4` reuse contracts | Reuse occurs only through explicit equivalence contract and typed strategy/origin truth | `ArtifactEquivalenceContract`, `ReuseBoundaryContext`, `ReuseBasis`, `ReuseOrigin`, typed rejection taxonomy, retained certification proof count, lineage/replay/history reuse surfaces, cross-identity correspondence evidence, partial-splice composition provenance | `tests::phase3_semantics::defined_computation_evaluate_cross_identity_reuses_cached_result_via_public_api`; `tests::phase3_semantics::defined_computation_evaluate_partial_splice_uses_public_api`; `tests::phase3_semantics::cross_identity_lineage_and_history_preserve_correspondence_family`; `tests::phase3_semantics::branch_local_cross_identity_rejection_preserves_main_correspondence_and_lineage`; `tests::phase3_semantics::branch_local_partial_splice_rejection_preserves_main_mixed_provenance`; `tests::phase5_state::snapshot_restore_preserves_advanced_reuse_history_truth`; `tests::telemetry_contract::runtime_metrics_surface_exposes_typed_advanced_reuse_counts`; `tests::observability::ordinary_summary_and_history_reads_do_not_materialize_cold_artifacts`; `tests::diagnostics::diagnostics_history_and_replay_preserve_typed_advanced_reuse_origins` | reuse must not come from ad hoc field comparison, continuity-token coincidence, observer reconstruction, or retained-richness availability |
 | `S9.16.5` diagnostics tiering | Tier changes richness, not semantics | `DiagnosticsTier`, `RetentionBudget`, `ReconstructionBudget`, `DiagnosticsAvailability`, replay/lineage boundaries, bounded reconstruction telemetry with retained/reconstructed/denied attribution | `tests::observability::artifact_access_counters_attribute_lane_api_and_denial_reason`; `tests::observability::ordinary_summary_surfaces_do_not_trigger_artifact_reconstruction`; `tests::observability::tier_matrix_public_observer_surfaces_preserve_truth_while_availability_changes`; `tests::observability::ordinary_observer_access_never_increments_cold_or_denial_counters_across_tiers`; `tests::observability::branch_and_snapshot_churn_respect_retention_budget_under_all_tiers`; `tests::observability::long_session_branch_churn_with_mixed_reads_keeps_bounds_and_cold_work_honest`; `tests::observability::ordinary_summary_and_history_rendering_respect_retained_detail_limits`; `tests::diagnostics::diagnostics_profiles_control_retention_bounds`; `tests::phase5_state::replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix`; existing branch/snapshot/history budget tests | lower tier must not trigger hidden broad reconstruction for ordinary access, exceed retained envelopes under churn, or rewrite canonical replay/lineage/reuse truth |
-| `S9.16.6` certification harness | Geometry-readiness claims come from workload-shaped certification, not anecdote | runtime counters and canonical summaries consumed by harness | future work | no log-scraping, no microbench overclaiming |
+| `S9.16.6` / Milestones 12-13 integrated invalidation certification | Invalidation correctness and locality are certified by named financial scenarios during the implementation phase that establishes each guarantee | independent financial truth and necessity oracles, reproducible scenario cases, separate equivalence/cost verdicts, sealed causality/locality runs, typed strategy decision | planned by [milestone-12-plan.md](./milestone-12-plan.md) and [milestone-13-plan.md](./milestone-13-plan.md) | no self-certifying oracle, generic-graph-only closeout, deferred certification, log scraping, elapsed-time-only claim, tree-algorithm assumption, or unmeasured default-strategy selection |
+| `S9.17.1` / Milestone 14 deterministic execution foundation | Parallel execution is resource-bounded, worker-local, cancellation-aware, and canonically published | execution capabilities, hierarchical resource lease, prepared batch, worker-local packet, canonical publication plan, typed execution outcome | planned by [milestone-14-plan.md](./milestone-14-plan.md); existing precompute/grouped-apply tests are inherited but do not prove lease enforcement | no oversubscription, per-request pools, hidden fallback, worker graph mutation, or completion-order publication |
+| `S9.17.2` / Milestone 15 graph parallelism | Only settled, control-order-safe, mutation-disjoint graph work runs concurrently | settled dependency set, control-order proof, complete graph mutation footprint, conflict partitions, rewire proposals, epoch publication | planned by [milestone-15-plan.md](./milestone-15-plan.md) | no stage-index-only safety, prior-graph rewiring assumption, lock-as-proof, unbounded ready queue, or partial epoch |
+| `S9.17.3` / Milestone 16 structured partition work | Domain-neutral map/reduce/scan/fork-join/round work executes under stable partitions and the same hierarchical lease | stable work partitions, read/write sets, disjoint batch, deterministic reduction, scan and round plans | planned by [milestone-16-plan.md](./milestone-16-plan.md) | no domain/backend vocabulary, `.parallel_safe`, inner pool, worker-index identity, inferred floating associativity, or partial round |
+| `S9.17.4` / Milestone 17 portable backends | Native, WASM-worker, and remote execution consume the same versioned prepared meaning and re-enter only through validation | capability descriptor, prepared backend batch, submission/result envelopes, readmission proof, recovery handle, conformance report | planned by [milestone-17-plan.md](./milestone-17-plan.md); existing WASM worker authority remains inherited | no closure/authority serialization, hidden fallback, stale/corrupt result publication, duplicate commit, in-memory distributed proof, or unearned device claim |
 
 ## Batch Tracking
 
@@ -95,6 +104,10 @@ The following rows bind the completion spec to acceptance ownership.
 | `S9.12` reconstructability completion | checkpoint + bounded journal + required derived rebuild is the only supported restore truth | `CheckpointBoundary`, `BoundedJournalSegment`, `RequiredDerivedRebuildSet`, `ReconstructabilityProof` | `journal_replay_span`, `journal_suffix_breadth`, `restore_authority_breadth`, `restore_required_derived_breadth`, `restore_diagnostic_richness_breadth` | no restore from snapshot bundle, no optional journal proof, no diagnostics-driven semantic rebuild |
 | `S9.15` bounded merge completion | supported merge candidate construction is purely proof-driven and bounded | `MergeBoundaryWitness`, `StructuralMergeJournalSlice`, `ProofMinimalOverlapBasis`, `ConservativeOverlapExpansion`, `LoweredMergePlan` | `boundary_witness_kind`, `source_slice_breadth`, `proof_minimal_overlap_breadth`, `conservative_overlap_expansion_breadth`, `final_candidate_breadth`, `reconciliation_breadth` | no `MergeCandidateScope`, no whole-live supported candidate scope, no ambient branch-state discovery |
 | `S9.9` true parallel apply completion | grouped concurrent apply is real on proof-safe static stages and all other full-parallel requests lower honestly to serial | `DisjointApplyProof`, `GroupLocalApplyPacket`, `ConcurrentApplyReductionPlan`, `LoweredApplyPlan` | `group_local_packet_breadth`, `reduction_packet_breadth`, `reduction_group_count`, `shared_surface_publication_breadth`, `parallel_admission_rejection_reason` | no fake `FullParallel`, no worker access to shared surfaces, no reduction-side semantic recomputation |
+| `S9.17.1` bounded deterministic executor | all parallel and nested work consumes one strict lease and publishes canonically | `ExecutionResourceLease`, `PreparedExecutionBatch`, `WorkerLocalExecutionPacket`, `CanonicalPublicationPlan` | leased/active workers, queue width, steals, nested lease breadth, cancellations, fallbacks, publication breadth | no worker-count hint masquerading as a bound, no nested oversubscription, no schedule-derived truth |
+| `S9.17.2` proof-carrying graph concurrency | graph work runs concurrently only with readiness, control-order, and complete mutation-footprint proof | `SettledDependencySet`, `ControlOrderProof`, `DisjointGraphBatch`, `OrderedConflictPartition`, `GraphEpochPublication` | work, span, critical path, conflict width, queue width, rewire proposals, epoch breadth | no topological-level-only admission, no direct shared mutation, no partial topology epoch |
+| `S9.17.3` structured partition concurrency | inner-node work is declarative, domain-neutral, deterministic where requested, and resource-compositional | `StableWorkPartition`, `PartitionReadSet`, `PartitionWriteSet`, `DeterministicReductionPlan`, `SynchronousRoundPlan` | partitions, logical items, reductions, scans, barriers, rounds, bytes, peak memory | no raw spawn, backend selection, domain-specific core type, or silent reduction-order drift |
+| `S9.17.4` portable backend boundary | execution capability is separate from semantic and disclosure authority; returned work is readmitted before commit | `BackendCapabilityDescriptor`, `BackendSubmissionEnvelope`, `BackendResultEnvelope`, `BackendResultReadmission`, `RemoteExecutionRecoveryHandle` | serialized/transferred bytes, round trips, retries, duplicates, recovery actions, backend queue and memory | no graph authority on workers, hidden WASM fallback, blind retry, duplicate commit, or fake external boundary |
 | `S9.10` rollback and lifecycle completion | rollback is effect-derived and lifecycle transfer is type-separated and cost-honest | `TransactionRollbackPacket`, `AuthorityTransferPacket`, `RestoreTransferPacket`, `ExplicitBranchForkPacket`, `HeavyCaptureWitness`, `BranchLifecycleTransfer` | `rollback_packet_breadth`, `rollback_packet_count_by_subsystem`, `move_transfer_count`, `explicit_fork_count`, `restore_transfer_count`, `heavy_capture_count` | no baseline-bundle rollback truth, no implicit duplication on branch switch, no raw branch-bundle restore, no routine witness construction |
 
 ### `S9.16.1` Current Batch
@@ -171,19 +184,72 @@ Current starting proof:
 
 ### `S9.16.3` Pre-acceptance conditions
 
-Before `S9.16.3` can close, it must prove:
+Before `S9.16.3` can close, Milestone 12 must prove:
 
-- frontier seeds come only from canonical mutation-time delta packets or batch summaries
-- localized edits remain localized in propagation breadth
-- disjoint invalidations remain disjoint under repeated churn
-- entry-level direct-dirty vs maybe-stale truth is visible in canonical frontier summaries
-- cycle preflight failure does not falsely commit frontier state
-- repeated identical inputs produce deterministic frontier summaries
-- multiple justifications collapse to one canonical entry with stable precedence
-- transitive waves stay bounded to nodes reachable from planned roots
-- tracing richness can vary by policy without changing invalidation meaning
+- the existing fintech world is expanded rather than replaced by a generic
+  graph-only closeout fixture
+- the financial world begins from an immutable authoritative market/position
+  definition with typed instruments, ownership, subscriptions, and fixed-point
+  values; financial arithmetic never treats `AspectVersion` as an amount
+- a causally complete baseline owns exact producer contracts and established
+  dependency snapshots before a scenario mutation begins
+- aspects remain producer-local across every dependency hop
+- root mutation declarations remain unresolved until the source commits
+- an `A -> B` intermediate translation admits a downstream
+  `AspectFilter(B)` node and rejects its unmatched twin
+- unresolved dependency reachability cannot masquerade as a mismatched aspect
+- unchanged producer output retains its prior dependency-visible semantic
+  version and emits no downstream semantic delta
+- one producer delta is admitted independently by consumers with different
+  dependency comparator policies
+- producer output equivalence and consumer dependency comparison are separate
+  configuration and authority lanes, with deterministic legacy
+  output-identity upgrade evidence
+- installed conditional dependency/output comparator roles remain distinct
+  through lowering and runtime resolution
+- multiple dependencies retain distinct causal identity
+- aspect and scope correlation survives multiple producer commits while a
+  consumer remains gated
+- same-shaped dependency removal and recreation invalidates the earlier
+  dependency revision's causes
+- pending causes survive rollback, branch, checkpoint, restore, replay, and
+  async composition through one canonical cause store
+- incremental committed results equal an epistemically independent full
+  recomputation oracle across conditions, partitions, rewiring, branch restore,
+  replay, and async-capability composition
+- the required quote/risk translation, heterogeneous-comparator, suppression,
+  factor-collision, curve-bucket, gate-release, dependency-rewire, and
+  branch/replay scenarios each own an independent necessity manifest and
+  mutation probe
+- Phase 1 proves the inherited named red control; every later phase passes the
+  focused or financial evidence assigned to the authority it establishes, and
+  the sealed causality run rejects missing, duplicate, stale, or mismatched
+  evidence
 
-The proof must come from frontier counters/summaries and adversarial propagation tests.
+Milestone 13 must then prove:
+
+- sparse-book, partition-universe, convergent-factor, dense-market-close,
+  dependency-churn, and branch/replay locality scenarios at their named lanes
+- frontier seeds come only from canonical mutation-time delta packets or batch
+  summaries
+- each realized transitive step comes from the previous producer's committed
+  output delta
+- aspect- and partition-disjoint subscribers are rejected before enqueue
+- localized edits remain localized in realized node visits and edge checks
+- irrelevant fanout growth does not create proportional traversal breadth
+- multiple justifications collapse to one canonical work item without losing
+  per-dependency cause
+- entry-level direct-dirty vs maybe-stale truth, cycle preflight behavior,
+  determinism, and tracing-policy independence remain preserved
+- predicted and realized counters are named and tested separately
+- correctness and locality verdicts remain distinct, same-work-stream strategy
+  comparisons are honest, and the sealed locality run rejects incomplete proof
+
+Reachability-only tests are inherited safety evidence, not locality proof. The
+closeout proof must come from the Milestone 12 financial truth and necessity
+oracles, Milestone 13 realized counters/summaries, named scenario mutation
+probes, and scale-sensitive sparse/dense financial workloads. It is produced
+during Milestones 12 and 13, not by a successor certification milestone.
 
 ## Relationship To Existing Certification Docs
 

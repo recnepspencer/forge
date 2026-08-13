@@ -19,7 +19,7 @@ struct CommitResultMaterial {
     version_id: crate::identity::data::VersionId,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
     history: crate::authority::commit::phases::history::ResolvedCommitHistory,
-    canonical_commit_envelope: std::sync::Arc<crate::replay::data::CanonicalCommitEnvelope>,
+    canonical_commit_envelope: std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
     changed_records: Vec<crate::transactions::data::RecordRef>,
     publication_snapshot: crate::snapshots::data::SnapshotHandle,
     aspect_evaluation_traces: Vec<crate::transactions::data::AspectEvaluationTrace>,
@@ -64,7 +64,7 @@ impl CommitResultSeal {
 }
 
 pub(super) fn assemble_commit_result(
-    runtime: &crate::logic::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     published: PublishedCommitExecution,
 ) -> CommitResult {
     let material = CommitResultMaterial::from_published(published);
@@ -167,7 +167,7 @@ impl CommitResultMaterial {
 }
 
 fn commit_schema_summary(
-    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
 ) -> CommitSchemaSummary {
     CommitSchemaSummary {
         transition: envelope

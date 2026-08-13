@@ -10,23 +10,18 @@ pub(crate) mod world;
 use crate::support::request_scope;
 use bank_domain::schema::{DisburseEstateOperation, NotifyDeathEstateOperation};
 use bank_external_rail::test_control::FaultScript;
-use bank_server::{BankCommitReceipt, BankEstateProgressionDenial, BankIdentityRuntime};
+use bank_server::{
+    BankCommitReceipt, BankEstateProgressionDenial, BankIdentityRuntime, BankRecoveryDenialKind,
+    BankRecoveryDurability, BankRecoveryIdempotencyResolution, BankRecoveryInspection,
+    BankRecoveryPosture, BankRecoverySupportTruth,
+};
 use worth_query_host::facade::domain::{
     PublishedAftermathPosture, WorthQueryInstalledAftermathContract,
-};
-use worth_query_host::facade::primary_graph::{
-    reconcile_recovery_handle, WorthQueryApplicationIdempotencyResolution,
-    WorthQueryRecoveryDurabilityPosture, WorthQueryRecoveryHandleDenialKind,
-    WorthQueryRecoveryInspectionView,
 };
 use worth_query_host::facade::provisional_aftermath::{
     WorthQueryUndoDenialKind, WorthQueryUndoDerivedRequest,
 };
-use worth_query_host::facade::publication::application_aftermath::{
-    publish_recovery_support, WorthQueryPublishedAftermathPosture,
-    WorthQueryPublishedExternalEffectFailure, WorthQueryPublishedRecoveryDurability,
-    WorthQueryPublishedRecoverySupportTruth,
-};
+use worth_query_host::facade::publication::application_aftermath::WorthQueryPublishedExternalEffectFailure;
 
 use self::world::cross_gate_world;
 
@@ -93,19 +88,15 @@ fn assert_unresolved_recovery(
         .resolve_commit_recovery(handle, &specialist, action, &scope)
         .expect_err("unresolved stays unresolved");
     match denied {
-        BankEstateProgressionDenial::Recovery(d) => assert_eq!(
-            d.kind(),
-            WorthQueryRecoveryHandleDenialKind::UnresolvedExternalPosture
-        ),
+        BankEstateProgressionDenial::Recovery(d) => {
+            assert_eq!(d.kind(), BankRecoveryDenialKind::UnresolvedExternalPosture)
+        }
         other => panic!("expected unresolved posture denial, got {other:?}"),
     }
     assert_eq!(world.estate_account_revision(), revision_before);
 }
 
-fn assert_recovery_publication(
-    first: &WorthQueryRecoveryInspectionView,
-    second: &WorthQueryRecoveryInspectionView,
-) {
+fn assert_recovery_publication(first: &BankRecoveryInspection, second: &BankRecoveryInspection) {
     assert_eq!(first.recovery_inspection_work().basis_preparations(), 0);
     assert_eq!(first.recovery_inspection_work().digest_derivations(), 0);
     assert_eq!(
@@ -117,56 +108,14 @@ fn assert_recovery_publication(
     assert_eq!(second.recovery_inspection_work().basis_preparations(), 0);
     assert_eq!(
         first.durability(),
-        WorthQueryRecoveryDurabilityPosture::StoreCapabilityRequired
-    );
-    let published_support = publish_recovery_support(first);
-    let repeated_publication = publish_recovery_support(second);
-    assert_eq!(published_support, repeated_publication);
-    assert_eq!(
-        format!("{published_support:?}"),
-        format!("{repeated_publication:?}")
+        BankRecoveryDurability::StoreCapabilityRequired
     );
     assert_eq!(
-        published_support.support_truth(),
-        WorthQueryPublishedRecoverySupportTruth::DegradedRecoveryReport
+        first.support_truth(),
+        BankRecoverySupportTruth::DegradedRecoveryReport
     );
-    assert_eq!(
-        published_support.durability(),
-        WorthQueryPublishedRecoveryDurability::StoreCapabilityRequired
-    );
-    assert_eq!(
-        published_support.posture(),
-        WorthQueryPublishedAftermathPosture::Reconcilable
-    );
-    assert_recovery_work_projection(first, &published_support);
-}
-
-fn assert_recovery_work_projection(
-    owner: &WorthQueryRecoveryInspectionView,
-    published: &worth_query_host::facade::publication::application_aftermath::WorthQueryPublishedRecoverySupport,
-) {
-    let owner = owner.recovery_inspection_work();
-    let published = published.inspection_work();
-    assert_eq!(published.basis_preparations(), owner.basis_preparations());
-    assert_eq!(published.digest_derivations(), owner.digest_derivations());
-    assert_eq!(published.canonical_entries(), owner.canonical_entries());
-    assert_eq!(
-        published.canonical_encoded_bytes(),
-        owner.canonical_encoded_bytes()
-    );
-    assert_eq!(
-        published.canonical_material_allocation_bytes(),
-        owner.canonical_material_allocation_bytes()
-    );
-    assert_eq!(published.sha256_input_bytes(), owner.sha256_input_bytes());
-    assert_eq!(
-        published.sha256_compression_blocks(),
-        owner.sha256_compression_blocks()
-    );
-    assert_eq!(
-        published.digest_text_materializations(),
-        owner.digest_text_materializations()
-    );
+    assert_eq!(first.posture(), BankRecoveryPosture::Reconcilable);
+    assert_eq!(first, second);
 }
 
 #[test]
@@ -183,23 +132,17 @@ fn unrelated_aftermath_lookup_cannot_substitute_the_handle_contract() {
 
     // Positive twin — matching installed aftermath admits effect authority.
     let handle = world.open_recovery(&receipt);
-    let authority = world
-        .fixture
-        .world
-        .runtime
-        .admit_commit_recovery_effect(&handle, &specialist, action, &scope)
-        .expect("matching aftermath");
-
     // The unrelated DisburseEstate contract can be inspected but cannot be
     // supplied to the transition; the handle keeps NotifyDeath authoritative.
     let substituted = installed_disburse_aftermath(&world.fixture.world.runtime);
     assert_ne!(substituted.identity(), aftermath.identity());
-    let admitted = reconcile_recovery_handle(handle, &authority)
+    let admitted = world
+        .fixture
+        .world
+        .runtime
+        .reconcile_commit_recovery(handle, &specialist, action, &scope)
         .expect("handle-carried NotifyDeath aftermath admits reconcile");
-    assert_eq!(
-        admitted.binding().installed_aftermath_identity(),
-        aftermath.identity()
-    );
+    assert_eq!(admitted.installed_operation(), aftermath.operation_slot());
 }
 
 #[test]
@@ -220,9 +163,9 @@ fn already_completed_resolve_returns_inherited_taxonomy() {
             .runtime
             .resolve_commit_recovery(handle, &specialist, action, &scope);
     match resolution {
-        Ok(WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(_)) => {}
+        Ok(BankRecoveryIdempotencyResolution::AlreadyCommitted) => {}
         Err(BankEstateProgressionDenial::Recovery(d))
-            if d.kind() == WorthQueryRecoveryHandleDenialKind::UnresolvedExternalPosture =>
+            if d.kind() == BankRecoveryDenialKind::UnresolvedExternalPosture =>
         {
             // Succeed may still leave Unresolved under some rail timings.
         }
@@ -312,10 +255,7 @@ fn undo_denies_on_current_policy_after_world_drift_with_honest_receipt() {
         .expect_err("world drift must deny fresh undo");
     match denied {
         BankEstateProgressionDenial::Recovery(d) => {
-            assert_eq!(
-                d.kind(),
-                WorthQueryRecoveryHandleDenialKind::CurrentPolicyDenied
-            );
+            assert_eq!(d.kind(), BankRecoveryDenialKind::CurrentPolicyDenied);
         }
         BankEstateProgressionDenial::Authorization(d) => {
             // Fresh capability re-admission is the current-policy fact — not an
@@ -343,14 +283,11 @@ fn redo_through_undo_handle_rail_and_aftermath() {
     // admits undo (derivation precondition) through the rail-backed recovery
     // handle, then derives a descriptive redo intent bound to the linear head.
     use super::disburse_estate::fixture::disbursement_world;
-    use super::phase8_redo_support::commit_and_prove_undo;
+    use super::phase8_proved_undo_fixture::commit_and_prove_undo;
 
     let fixture = disbursement_world("redo-cross-gate-stack", 1_000);
     let proved = commit_and_prove_undo(&fixture, 77);
-    assert_eq!(
-        proved.intent.bound_relational_head(),
-        proved.proved().undo_commit()
-    );
+    assert!(proved.intent.is_bound_to(&proved.recovery));
     let request = request_scope();
     let admission = fixture
         .world
