@@ -1,8 +1,7 @@
 use super::super::runtime_world::build_runtime;
 use super::world::NoopObservationListener;
 use crate::facade::{
-    AuthorityPolicy, EvaluationRequestMode, NodeEvaluationResult, ObservationPolicy, OutputChange,
-    StageExecutor,
+    AuthorityPolicy, EvaluationRequestMode, NodeEvaluationResult, ObservationPolicy, StageExecutor,
 };
 use crate::tests::support::{version_ab, GraphDependencyBatchExt, ASPECT_A};
 
@@ -80,9 +79,26 @@ fn observation_phase2_distinguishes_output_suppressed_from_meaningful_change() {
     let mut graph = crate::data::graph::SignalGraph::new();
     let source = graph
         .node()
+        .output_identity()
         .authority_policy(AuthorityPolicy::AuthoritativeOnly)
         .build();
     let mut runtime = build_runtime(graph);
+
+    let mut ctx = ();
+    let mut baseline = runtime.begin(&mut ctx);
+    baseline
+        .evaluate_with_plan(
+            source,
+            &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_output_identity("stable-output"),
+                ))
+            },
+            EvaluationRequestMode::Default,
+        )
+        .unwrap();
+    baseline.commit().unwrap();
 
     let handle = runtime.observe_nodes(
         ObservationPolicy::meaningful_change(),
@@ -90,14 +106,14 @@ fn observation_phase2_distinguishes_output_suppressed_from_meaningful_change() {
         Box::new(NoopObservationListener),
     );
 
-    let mut ctx = ();
     let mut tx = runtime.begin(&mut ctx);
+    tx.mark_dirty(source, ASPECT_A).unwrap();
     tx.evaluate_with_plan(
         source,
         &|view| {
             Ok(view.finish(
-                NodeEvaluationResult::from_version(version_ab(1, 0))
-                    .with_output_change(OutputChange::Unchanged),
+                NodeEvaluationResult::from_version(version_ab(2, 0))
+                    .with_output_identity("stable-output"),
             ))
         },
         EvaluationRequestMode::Default,

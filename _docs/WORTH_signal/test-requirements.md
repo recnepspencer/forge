@@ -694,6 +694,41 @@ Every adversarial test is a named scenario with:
 - scenario identity, seed, financial scale tuple, policy tuple, diagnostic
   tier, and exact failing mutation step for reproduction
 
+#### Financial world authenticity floor
+
+The current financial-shaped lifecycle fixture is inherited setup, not by
+itself Milestone 12 certification. The Milestone 12 world compiler must issue a
+sealed `CausallyCompleteFinancialBaseline` from an immutable
+`FinancialWorldDefinition` with:
+
+- deterministic fixed-point market values for quotes, FX pairs, curve buckets,
+  and volatility buckets
+- typed positions with instrument identity, quantity, currency, maturity or
+  bucket ownership, pricing/risk model assignment, factor subscriptions, and
+  book/desk ownership
+- at least one rates-sensitive, one FX-sensitive, and one volatility-sensitive
+  position whose required dependency changes follow from those economic facts
+- exact declared producer output aspects and consumer dependencies for every
+  node used by a decisive scenario
+- typed semantic handles issued by construction rather than scenario-authored
+  raw `NodeId`, aspect-slot, partition-token, or revision literals
+- initialized source truth, committed output truth, dependency snapshots, and
+  branch/checkpoint posture required by the named baseline
+
+Financial values and Signal revisions are different truth domains. Pricing,
+risk, aggregation, and oracle formulas must consume financial values, never
+perform economic arithmetic on `AspectVersion` counters. A deterministic
+projection may convert an economic result into a dependency-visible semantic
+version only after the economic result exists. The projection must retain the
+prior producer-local revision for an unchanged canonical result and advance a
+monotonic revision for a changed result; it cannot decide consumer routing,
+condition eligibility, or the necessity manifest.
+
+The reference financial formulas require focused closed-form or table-driven
+tests independent of Signal invalidation. This is an authenticity floor, not a
+request for a production quant library: day-count, calibration, exchange, or
+regulatory detail is required only when a named scenario depends on it.
+
 `FreshFinancialRecompute` must reconstruct expected outputs from authoritative
 market and portfolio inputs without consuming the incremental frontier, dirty
 masks, incremental condition classification, suppression routing, or ready
@@ -705,23 +740,72 @@ Milestone 12 must own these scenario families:
 
 - `quote_to_risk_aspect_translation`: `PRICE -> RISK` positive/negative filter
   twins expose root-aspect copying
+- `heterogeneous_consumer_comparators`: exact, tolerance, and installed
+  comparator consumers observe one producer delta and admit it independently
 - `tolerance_suppressed_repricing`: small and large quote moves distinguish
   lawful suppression from real downstream change
 - `producer_local_factor_slot_collision`: equal numeric slots on distinct FX,
   curve, or market dependencies retain producer identity
 - `partitioned_curve_bucket_bump`: a rates detail change remains separate from
-  credit and other non-overlapping regions
-- `gated_repricing_release`: blocked then admitted work cannot strand a
-  necessary risk consumer
+  unrelated regions; at least two detail changes commit while the valuation
+  and its threshold-gated risk consumer remain unevaluated, so lost or
+  cross-product scopes are visible before the settled financial gate admits
+- `gated_repricing_release`: authentic small/large financial delta-threshold
+  twins prove blocked then admitted work cannot strand a necessary risk
+  consumer; named domain-neutral production scenarios prove pending precedence
+  for on-demand, temporal, custom, installed, and async orchestration axes
 - `instrument_dependency_rewire`: committed dependency changes and cycle
-  rejection cannot reuse stale causes
+  rejection cannot reuse stale causes, including removal and recreation of an
+  identical edge under a new dependency revision
 - `branch_shock_restore_replay`: branch, checkpoint, replay, diagnostic tier,
   and async-capability composition preserve financial truth
 
-Each Milestone 12 implementation phase must name and pass its assigned
-scenarios before the phase closes. Final construction of
-`AspectCausalityCertificationRun` must reject missing, duplicate, stale, or
-mismatched scenario evidence.
+Phase 1 must demonstrate the inherited defect with the named red control before
+production invalidation repair begins. Each later Milestone 12 phase must pass the focused or
+financial evidence assigned to the authority that phase establishes; once a
+scenario's production path cuts over, it may not be left red for a successor
+phase. Final construction of
+`FinancialAspectCausalityCertificationRun` must reject missing, duplicate,
+stale, wrong-scenario, wrong-policy, wrong-revision, or mismatched-oracle
+evidence.
+
+Focused Milestone 12 transition evidence must additionally prove:
+
+- every dependency-cause binding axis has a matching positive case and a
+  one-axis-drift denial twin
+- producer output-equivalence decisions are invariant under exact, tolerance,
+  custom, and installed consumer dependency comparators; consumer admission is
+  invariant under the producer's output-equivalence policy once the same
+  committed delta exists
+- installed conditional dependency and output comparators retain distinct
+  role-bound identities and reach their respective admission/commit boundaries
+- a legacy output-identity configuration restores to the same canonical split
+  producer/consumer policies and behavior as its explicit replacement
+- a root recompute seed cannot construct a resolved descendant aspect cause
+- a prepared or compared apply packet cannot construct performed output-commit
+  evidence
+- contradictory `OutputChange::Unchanged` plus changed semantic aspect versions
+  is rejected before publication
+- failure at each pre-publication effect seam exposes no committed delta, cause,
+  observation, or replay truth
+- clearing and rebuilding dirty aspect/scope caches from canonical cause state
+  is exact
+- conservative legacy scope unions remain correctness-compatible but cannot
+  satisfy exact locality evidence
+- eligible grouped-parallel cases prove that the parallel preparation/apply
+  path actually executed, while honest serial fallback is separately reported;
+  equality between two silently serial runs is not parallel-path evidence
+
+#### Milestone 12 phase evidence map
+
+| Phase | Evidence required before the phase closes |
+|---|---|
+| Phase 1 - Authentic Financial Courtroom And Red Control | authentic financial definition and sealed baseline; independent reference-formula tests; runnable fresh-recompute and necessity-manifest cores; failing `quote_to_risk_aspect_translation` matched/unmatched red control against the inherited runtime |
+| Phase 2 - Output Contract And Owner-Specific Proof Forms | producer/consumer policy separation; installed-role preservation; legacy upgrade equivalence; contradictory-output denial; every binding-axis drift twin; prepared packets denied performed authority |
+| Phase 3 - Canonical Cause Storage And Recovery Basis | exact cause-set/cache rebuild; repeated-scope accumulation; rollback removal; checkpoint serialization and fresh-runtime readmission; same-shaped rewire rejects the prior revision |
+| Phase 4 - Atomic Output Commit And Direct Cause Admission | `quote_to_risk_aspect_translation`, `heterogeneous_consumer_comparators`, and `tolerance_suppressed_repricing`; prepublication failure seams expose no partial state; serial and exercised parallel-feature commits agree |
+| Phase 5 - Planner, Condition, Scope, And Rewire Cutover | `partitioned_curve_bucket_bump`, `gated_repricing_release`, and `instrument_dependency_rewire`; conditions consume settled immediate causes; copied-aspect, cross-product-scope, last-scope-only, and stale-revision mutations fail |
+| Phase 6 - Branch Composition, Financial Certification, And Documentation | `branch_shock_restore_replay`; unresolved causes cross branch/checkpoint/replay/diagnostic/async lanes without being drained before capture; producer-local slot collision; aspect-free/scope-free structural transitive summaries; every earlier scenario and mutation probe remains green/red as appropriate; sealed `FinancialAspectCausalityCertificationRun` rejects missing, duplicate, mixed-seed, stale, wrong-scenario, wrong-policy, wrong-revision, wrong-diagnostics-tier, mismatched-oracle/work, or incomplete-lifecycle evidence |
 
 Milestone 13 must own these scale-sensitive scenario families:
 
@@ -756,10 +840,10 @@ visits. Planned/predicted counters cannot satisfy this requirement.
 Every Milestone 13 implementation phase must name and pass its assigned
 financial scenarios before it closes. Correctness and locality are separate
 verdicts, strategy comparisons consume exactly the same admitted work stream,
-and `FrontierLocalityCertificationRun` rejects missing, duplicate, stale, or
-mismatched evidence. The ordinary gate includes a small instance of every
-scenario plus sparse/dense slopes; scheduled lanes own broad seeds and the
-largest scales, but no correctness claim may exist only there.
+and `FinancialFrontierLocalityCertificationRun` rejects missing, duplicate,
+stale, or mismatched evidence. The ordinary gate includes a small instance of
+every scenario plus sparse/dense slopes; scheduled lanes own broad seeds and
+the largest scales, but no correctness claim may exist only there.
 
 ### Milestones 14-17 binding addendum
 

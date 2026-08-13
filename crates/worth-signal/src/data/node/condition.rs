@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::AspectMask;
 use crate::data::comparator::VersionComparatorPolicy;
+use crate::data::output_equivalence::OutputEquivalencePolicy;
 use crate::data::temporal::TemporalCondition;
 use crate::logic::transaction::{
     AspectMergePolicyBinding, ConflictIsolationPolicyName, ConflictPolicyName, DeletionPolicyName,
@@ -141,6 +142,10 @@ pub struct NodeEvaluationConfig {
     /// are meaningful for this node. `None` means inherit from tier policy.
     #[serde(default)]
     pub comparator: Option<VersionComparatorPolicy>,
+    /// Producer-owned semantic equivalence policy. This never governs a
+    /// consumer dependency edge.
+    #[serde(default)]
+    pub output_equivalence: OutputEquivalencePolicy,
     /// Whether this node reports partition-aware output changes.
     #[serde(default)]
     pub partitioned_output: bool,
@@ -160,7 +165,28 @@ impl Default for NodeEvaluationConfig {
             contract: NodeContract::default(),
             condition: EvaluationCondition::Always,
             comparator: None,
+            output_equivalence: OutputEquivalencePolicy::default(),
             partitioned_output: false,
         }
+    }
+}
+
+impl NodeEvaluationConfig {
+    pub(crate) fn upgrade_legacy_output_equivalence(mut self) -> Self {
+        use crate::data::performance::{ComparatorBasis, IdentityBasis, SuppressionBasis};
+
+        let legacy = matches!(
+            self.comparator,
+            Some(VersionComparatorPolicy::OutputIdentity)
+        ) && self.output_equivalence == OutputEquivalencePolicy::ExactAspectVersion
+            && self.contract.execution.equivalence.identity_basis == IdentityBasis::OutputIdentity
+            && self.contract.execution.equivalence.suppression_basis
+                == SuppressionBasis::OutputIdentityAndComparator
+            && self.contract.execution.equivalence.comparator_basis
+                == ComparatorBasis::OutputIdentity;
+        if legacy {
+            self.output_equivalence = OutputEquivalencePolicy::OutputIdentity;
+        }
+        self
     }
 }

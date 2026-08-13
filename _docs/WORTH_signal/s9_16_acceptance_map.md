@@ -83,8 +83,8 @@ The following must be tracked explicitly as negative-space acceptance items:
 | `S9.16.1` hot/cold separation | Hot operational paths run from `RuntimeArtifactState` alone | merge comparability, effect application write lanes, observer/runtime artifact access, reconstruction telemetry | `tests::merge_adoption::merge_branch_equivalent_runtime_state_ignores_retained_artifact_richness`; `tests::phase1_api::observer_exposes_runtime_and_retained_artifacts_separately`; `tests::observability::explicit_retained_and_reconstructed_artifact_apis_match_policy` | retained richness must not change merge/apply/runtime outcome |
 | `S9.16.1` cold access honesty | Cold reconstruction is explicit by API name and policy result | `materialize_explanation_artifact`, `materialize_provenance_artifact`, `reconstruct_*`, `DiagnosticsAvailability`, hot-path reconstruction counter | `tests::observability::explicit_omit_policy_surfaces_unavailable_artifacts`; `tests::observability::explicit_retained_and_reconstructed_artifact_apis_match_policy`; `tests::harness_bridge::*artifact*` | ordinary observer/operational queries must not silently reconstruct broad cold views |
 | `S9.16.2` shared snapshot storage | Snapshot sharing changes storage strategy, never semantic meaning | snapshot ids, snapshot artifact-retention metadata, explicit restore intents, canonical dependency snapshot update derivation, shared-node restore batch planning, restore breadth planning, dependency snapshot contracts, `SnapshotStorageStrategy`, `SnapshotDeltaRecord`, storage telemetry counters, restore behavior, checkpoint telemetry including restore breadth counters | `tests::phase1_api::shared_dependency_snapshot_reports_storage_sharing_without_implying_semantics`; `tests::phase1_api::snapshot_storage_telemetry_distinguishes_replacement_from_version_only_delta`; `tests::phase1_api::set_dep_snapshot_uses_version_only_delta_when_snapshot_shape_is_stable`; `tests::phase1_api::derive_dependency_snapshot_restore_batch_uses_version_only_delta_for_shared_shape`; `tests::phase5_state::snapshot_artifact_retention_policy_changes_richness_not_restore_truth`; `tests::phase5_state::branch_snapshot_records_explicit_artifact_retention_for_non_active_branches`; `tests::phase5_state::restore_snapshot_with_active_policy_prunes_cold_richness_without_changing_operational_truth`; `tests::phase5_state::restore_snapshot_rejects_seed_recomputation_intent_before_mutation`; `tests::phase5_state::snapshot_restore_plan_reports_shared_delta_and_coarse_requirements`; existing snapshot delta tests | pointer-sharing/backing reuse must not become identity or restore semantics |
-| `S9.16.3` / Milestone 12 aspect-causal invalidation | Every downstream aspect fact comes from the immediate dependency's committed output delta | named fintech semantic scenarios, producer-local dependency causes, produced aspect deltas, pending dependency revalidation, `FreshFinancialRecompute`, `FinancialNecessityManifest`, sealed causality run | planned by [milestone-12-plan.md](./milestone-12-plan.md); current same-aspect/direct tests are insufficient | root aspects, reachability, diagnostics, retained traces, or generic graph-only certification must not mint or certify descendant aspect authority |
-| `S9.16.3` / Milestone 13 locality-first invalidation | Invalidation breadth is bounded by realized semantic reach, not reachable subscriber closure | named fintech locality scenarios, canonical work items, ready batches, realized edge/admission/queue/evaluation counters, cost slopes, same-work-stream strategy reports, sealed locality run | planned by [milestone-13-plan.md](./milestone-13-plan.md); existing reachability tests remain inherited but do not close locality | disjoint descendants must be rejected before dirty mutation and enqueue; predicted counters, elapsed time, or a deferred certification phase must not substitute for realized work |
+| `S9.16.3` / Milestone 12 aspect-causal invalidation | Root mutations create unresolved recompute work; every resolved downstream aspect fact comes from the immediate dependency's atomically committed per-aspect/per-scope output delta | source recompute seeds, performed output-commit wrapper, producer-local dependency causes bound across every freshness axis, canonical pending cause store, shared pending/resolved condition input, named fintech semantic scenarios, `FreshFinancialRecompute`, `FinancialNecessityManifest`, `FinancialAspectCausalityCertificationRun` | implemented by the eight-scenario fintech causality courtroom and focused cause/condition/checkpoint/topology controls in [milestone-12-plan.md](./milestone-12-plan.md); transitive execution summaries are aspect-free and scope-free | root aspects, reachability, dirty masks, diagnostics, retained traces, stale dependency revisions, producer/consumer comparator conflation, consumer-global suppression, or generic graph-only certification must not mint or certify descendant aspect authority |
+| `S9.16.3` / Milestone 13 locality-first invalidation | Invalidation breadth is bounded by realized semantic reach, not reachable subscriber closure | named fintech locality scenarios, canonical work items, ready batches, realized edge/admission/queue/evaluation counters, Foundational counter-backed receipts, cost slopes, same-work-stream strategy reports, `FinancialFrontierLocalityCertificationRun` | planned by [milestone-13-plan.md](./milestone-13-plan.md); existing reachability tests remain inherited but do not close locality | disjoint descendants must be rejected before dirty mutation and enqueue; conservative legacy scope unions, predicted counters, elapsed time, or a deferred certification phase must not substitute for realized exact work |
 | `S9.16.4` reuse contracts | Reuse occurs only through explicit equivalence contract and typed strategy/origin truth | `ArtifactEquivalenceContract`, `ReuseBoundaryContext`, `ReuseBasis`, `ReuseOrigin`, typed rejection taxonomy, retained certification proof count, lineage/replay/history reuse surfaces, cross-identity correspondence evidence, partial-splice composition provenance | `tests::phase3_semantics::defined_computation_evaluate_cross_identity_reuses_cached_result_via_public_api`; `tests::phase3_semantics::defined_computation_evaluate_partial_splice_uses_public_api`; `tests::phase3_semantics::cross_identity_lineage_and_history_preserve_correspondence_family`; `tests::phase3_semantics::branch_local_cross_identity_rejection_preserves_main_correspondence_and_lineage`; `tests::phase3_semantics::branch_local_partial_splice_rejection_preserves_main_mixed_provenance`; `tests::phase5_state::snapshot_restore_preserves_advanced_reuse_history_truth`; `tests::telemetry_contract::runtime_metrics_surface_exposes_typed_advanced_reuse_counts`; `tests::observability::ordinary_summary_and_history_reads_do_not_materialize_cold_artifacts`; `tests::diagnostics::diagnostics_history_and_replay_preserve_typed_advanced_reuse_origins` | reuse must not come from ad hoc field comparison, continuity-token coincidence, observer reconstruction, or retained-richness availability |
 | `S9.16.5` diagnostics tiering | Tier changes richness, not semantics | `DiagnosticsTier`, `RetentionBudget`, `ReconstructionBudget`, `DiagnosticsAvailability`, replay/lineage boundaries, bounded reconstruction telemetry with retained/reconstructed/denied attribution | `tests::observability::artifact_access_counters_attribute_lane_api_and_denial_reason`; `tests::observability::ordinary_summary_surfaces_do_not_trigger_artifact_reconstruction`; `tests::observability::tier_matrix_public_observer_surfaces_preserve_truth_while_availability_changes`; `tests::observability::ordinary_observer_access_never_increments_cold_or_denial_counters_across_tiers`; `tests::observability::branch_and_snapshot_churn_respect_retention_budget_under_all_tiers`; `tests::observability::long_session_branch_churn_with_mixed_reads_keeps_bounds_and_cold_work_honest`; `tests::observability::ordinary_summary_and_history_rendering_respect_retained_detail_limits`; `tests::diagnostics::diagnostics_profiles_control_retention_bounds`; `tests::phase5_state::replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix`; existing branch/snapshot/history budget tests | lower tier must not trigger hidden broad reconstruction for ordinary access, exceed retained envelopes under churn, or rewrite canonical replay/lineage/reuse truth |
 | `S9.16.6` / Milestones 12-13 integrated invalidation certification | Invalidation correctness and locality are certified by named financial scenarios during the implementation phase that establishes each guarantee | independent financial truth and necessity oracles, reproducible scenario cases, separate equivalence/cost verdicts, sealed causality/locality runs, typed strategy decision | planned by [milestone-12-plan.md](./milestone-12-plan.md) and [milestone-13-plan.md](./milestone-13-plan.md) | no self-certifying oracle, generic-graph-only closeout, deferred certification, log scraping, elapsed-time-only claim, tree-algorithm assumption, or unmeasured default-strategy selection |
@@ -188,20 +188,43 @@ Before `S9.16.3` can close, Milestone 12 must prove:
 
 - the existing fintech world is expanded rather than replaced by a generic
   graph-only closeout fixture
+- the financial world begins from an immutable authoritative market/position
+  definition with typed instruments, ownership, subscriptions, and fixed-point
+  values; financial arithmetic never treats `AspectVersion` as an amount
+- a causally complete baseline owns exact producer contracts and established
+  dependency snapshots before a scenario mutation begins
 - aspects remain producer-local across every dependency hop
+- root mutation declarations remain unresolved until the source commits
 - an `A -> B` intermediate translation admits a downstream
   `AspectFilter(B)` node and rejects its unmatched twin
 - unresolved dependency reachability cannot masquerade as a mismatched aspect
-- unchanged/comparator-suppressed output emits no downstream semantic delta
+- unchanged producer output retains its prior dependency-visible semantic
+  version and emits no downstream semantic delta
+- one producer delta is admitted independently by consumers with different
+  dependency comparator policies
+- producer output equivalence and consumer dependency comparison are separate
+  configuration and authority lanes, with deterministic legacy
+  output-identity upgrade evidence
+- installed conditional dependency/output comparator roles remain distinct
+  through lowering and runtime resolution
 - multiple dependencies retain distinct causal identity
+- aspect and scope correlation survives multiple producer commits while a
+  consumer remains gated
+- same-shaped dependency removal and recreation invalidates the earlier
+  dependency revision's causes
+- pending causes survive rollback, branch, checkpoint, restore, replay, and
+  async composition through one canonical cause store
 - incremental committed results equal an epistemically independent full
   recomputation oracle across conditions, partitions, rewiring, branch restore,
   replay, and async-capability composition
-- the required quote/risk translation, suppression, factor-collision,
-  curve-bucket, gate-release, dependency-rewire, and branch/replay scenarios
-  each own an independent necessity manifest and mutation probe
-- each implementation phase passes its assigned scenarios and the sealed
-  causality run rejects missing, duplicate, stale, or mismatched evidence
+- the required quote/risk translation, heterogeneous-comparator, suppression,
+  factor-collision, curve-bucket, gate-release, dependency-rewire, and
+  branch/replay scenarios each own an independent necessity manifest and
+  mutation probe
+- Phase 1 proves the inherited named red control; every later phase passes the
+  focused or financial evidence assigned to the authority it establishes, and
+  the sealed causality run rejects missing, duplicate, stale, or mismatched
+  evidence
 
 Milestone 13 must then prove:
 

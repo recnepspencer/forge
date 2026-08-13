@@ -55,6 +55,7 @@ fn many_thin_stages_remain_serial_under_parallel_threshold() {
 #[test]
 fn wide_stage_crosses_parallel_threshold() {
     let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(aggressive_parallel_runtime_policy());
     let left = graph.node().build();
     let right = graph.node().build();
     let requested = [left, right];

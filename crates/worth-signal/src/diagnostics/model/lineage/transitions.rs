@@ -40,4 +40,7 @@ pub enum InvalidationCause {
     TransitiveDependencyChanged {
         aspect_index: usize,
     },
+    PendingDependencyRevalidation {
+        upstream: Option<NodeId>,
+    },
 }

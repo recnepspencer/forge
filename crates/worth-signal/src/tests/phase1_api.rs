@@ -10,6 +10,7 @@ mod merge_api_boundaries;
 mod merge_proof_surfaces;
 mod planning_projection;
 mod runtime_configuration;
+mod runtime_policy_defaults;
 mod runtime_telemetry;
 mod source_corpus;
 mod topology_boundaries;

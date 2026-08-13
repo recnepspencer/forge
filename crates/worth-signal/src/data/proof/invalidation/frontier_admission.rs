@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
 
-use super::locality::{node_sort_key, PartitionScopeSet};
-use super::SummaryForm;
+use super::super::locality::{node_sort_key, PartitionScopeSet};
+use super::super::SummaryForm;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub enum FrontierSeedCause {

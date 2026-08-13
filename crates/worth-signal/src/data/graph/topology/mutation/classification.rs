@@ -15,18 +15,27 @@ impl SignalGraph {
         node: NodeId,
         desired: &[DependencyEdge],
     ) -> Result<DependencyReconciliationReport, SignalError> {
-        self.validate_handle(node)?;
-        for edge in desired {
-            self.validate_handle(edge.source())?;
-        }
+        let mut preflight = super::preflight::canonicalize_and_preflight(self, &[(node, desired)])?;
+        let (_, desired) = preflight
+            .pop()
+            .expect("single dependency reconciliation must produce one plan");
+        let desired = self.intern_dependency_edges(desired);
+        let desired = desired.as_slice();
         let analysis = analyze_dependency_reconciliation(self.raw_dependencies_of(node)?, desired);
         if analysis.changed() {
+            let invalidates_dependency_causes = !self.pending_causes(node)?.is_empty();
+            self.release_pending_causes(node)?;
+            self.get_entry_mut(node)?.advance_dependency_revision();
+            if invalidates_dependency_causes {
+                self.set_node_state(node, crate::data::node::NodeState::MaybeStale)?;
+            }
             self.set_dependency_edges_sorted_with_delta(node, desired, analysis.delta)?;
             self.reconcile_dependency_subscribers(
                 node,
                 &analysis.current_sources,
                 &analysis.desired_sources,
             )?;
+            self.transition_node_structural_revalidation(node)?;
         }
         self.debug_assert_bidirectional_consistency();
         Ok(analysis.report)
@@ -48,20 +57,27 @@ impl SignalGraph {
         &mut self,
         reconciliations: &[(NodeId, &[DependencyEdge])],
     ) -> Result<Vec<DependencyReconciliationReport>, SignalError> {
+        let reconciliations = super::preflight::canonicalize_and_preflight(self, reconciliations)?
+            .into_iter()
+            .map(|(node, desired)| (node, self.intern_dependency_edges(desired)))
+            .collect::<Vec<_>>();
         let mut reports = vec![DependencyReconciliationReport::default(); reconciliations.len()];
         let mut subscriber_ops = Vec::<SubscriberBatchOp>::new();
 
         for (index, reconciliation) in reconciliations.iter().enumerate() {
             let (node, desired) = reconciliation;
-            self.validate_handle(*node)?;
-            for edge in *desired {
-                self.validate_handle(edge.source())?;
-            }
+            let desired = desired.as_slice();
             let analysis =
                 analyze_dependency_reconciliation(self.raw_dependencies_of(*node)?, desired);
             reports[index] = analysis.report;
             if !analysis.changed() {
                 continue;
+            }
+            let invalidates_dependency_causes = !self.pending_causes(*node)?.is_empty();
+            self.release_pending_causes(*node)?;
+            self.get_entry_mut(*node)?.advance_dependency_revision();
+            if invalidates_dependency_causes {
+                self.set_node_state(*node, crate::data::node::NodeState::MaybeStale)?;
             }
             collect_subscriber_batch_ops(
                 &mut subscriber_ops,
@@ -70,6 +86,7 @@ impl SignalGraph {
                 &analysis.desired_sources,
             );
             self.set_dependency_edges_sorted_with_delta(*node, desired, analysis.delta)?;
+            self.transition_node_structural_revalidation(*node)?;
         }
 
         self.apply_subscriber_batch_ops(&subscriber_ops)?;
@@ -87,7 +104,14 @@ impl SignalGraph {
         if delta.added_edges.is_empty() && delta.removed_edges.is_empty() {
             return Ok(());
         }
-        self.set_dependency_edges_sorted_with_delta(node, edges, delta)
+        let invalidates_dependency_causes = !self.pending_causes(node)?.is_empty();
+        self.release_pending_causes(node)?;
+        self.get_entry_mut(node)?.advance_dependency_revision();
+        if invalidates_dependency_causes {
+            self.set_node_state(node, crate::data::node::NodeState::MaybeStale)?;
+        }
+        self.set_dependency_edges_sorted_with_delta(node, edges, delta)?;
+        self.transition_node_structural_revalidation(node)
     }
 }
 

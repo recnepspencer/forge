@@ -27,10 +27,10 @@ pub(super) fn preview_condition_action(
     graph: &SignalGraph,
     node: NodeId,
     request_mode: EvaluationRequestMode,
+    dirty_aspects: crate::data::aspect::AspectMask,
     resolver: &mut impl crate::logic::evaluation::ConditionResolver,
 ) -> Result<TestConditionAction, SignalError> {
     let entry = graph.get_entry(node)?;
-    let dirty_aspects = entry.get_dirty_aspects();
     let has_dependency_snapshot = !graph.get_dep_snapshot(node)?.entries().is_empty();
     let max_dependency_delta = max_dependency_delta(graph, node)?;
     let ctx = crate::logic::evaluation::ConditionEvaluationContext {

@@ -13,9 +13,11 @@
 Milestone 13 makes the physical cost of invalidation scale with the realized
 semantic frontier rather than the complete reachable subscriber closure.
 
-Milestone 12 establishes which dependency changes are true. Milestone 13
-establishes how those truths become bounded ready work without giving traversal
-mechanics authority to widen or reinterpret them.
+Milestone 12 establishes which dependency changes are true, retains them in
+canonical consumer cause sets, and distinguishes exact aspect-scoped output
+from conservative legacy scope unions. Milestone 13 establishes how those
+truths become bounded ready work without giving traversal mechanics authority
+to widen or reinterpret them.
 
 Together, Milestones 12 and 13 genuinely close `S9.16.3`.
 Milestone 13 certifies locality and strategy readiness while it implements the
@@ -94,8 +96,10 @@ The courtroom must convict:
 ### 4.1 Semantic Admission Precedes Scheduling
 
 The causality owner from Milestone 12 decides whether an immediate subscriber
-receives a work item. Scheduling may order, batch, and deduplicate admitted
-items; it may not discover changed aspects, widen scopes, or admit a rejected
+receives a work item. It consumes the producer delta, current direct edge,
+consumer dependency revision, consumer snapshot, and consumer comparator.
+Scheduling may order, batch, and deduplicate admitted items; it may not discover
+changed aspects, reinterpret scope precision, widen scopes, or admit a rejected
 edge.
 
 ### 4.2 Transitive Work Is Realized Incrementally
@@ -177,12 +181,13 @@ Correctness and cost remain separate verdicts. A semantically correct case can
 fail locality; a cheap case can fail equivalence. The milestone closes only
 when both verdicts are green for all required scenario/scale lanes.
 
-Canonical equivalents of these forms are required:
+The financial certification owner must establish canonical equivalents of
+these forms under the fintech test domain:
 
 ```rust
 pub struct InvalidationCostSlopeReport { /* structural work by declared scale */ }
 pub struct InvalidationStrategyReport { /* identical admitted work stream */ }
-pub struct FrontierLocalityCertificationRun { /* sealed M13 evidence */ }
+pub struct FinancialFrontierLocalityCertificationRun { /* sealed M13 evidence */ }
 
 pub enum TraversalStrategyDecision {
     CurrentStrategyCertified,
@@ -195,9 +200,18 @@ The typed decision records measured strategy readiness only. It cannot weaken
 the current strategy, prescribe a tree algorithm, or delay the parallel
 execution roadmap.
 
-The financial scenario identity and necessity manifest remain test-domain
-evidence. Production cost, strategy, decision, and sealed-run forms stay
-domain-agnostic so future domain courtrooms consume the same contract.
+Financial scenario identity, necessity manifests, cost reports, strategy
+reports, decisions, and sealed runs remain test-domain evidence. Production
+exports realized domain-neutral counter and execution summaries only. If a
+second real domain courtroom later needs the same certification harness, its
+portable descriptive vocabulary may be extracted then; Milestone 13 does not
+pre-generalize financial certification into operational authority.
+
+Milestone 13 packages its production counter claim with the existing
+`worth-foundational` performance vocabulary and counter-backed receipt surface.
+Signal owns the measured counters; Foundational describes the boundary,
+evidence strength, included work, excluded work, and exact counter rows. The
+receipt is derived evidence and cannot admit or schedule work.
 
 ## 5. Architectural Destination
 
@@ -206,8 +220,9 @@ Milestone 13 populates the destination committed by Milestone 12:
 ```text
 logic/invalidation/
   causality/
-    output_delta.rs                       [Milestone 12 authority]
-    dependency_cause.rs                   [Milestone 12 authority]
+    dependency_admission.rs               [Milestone 12 authority derivation]
+    revalidation.rs                       [Milestone 12 pending resolution]
+    cause_aggregation.rs                  [Milestone 12 canonical coalescing]
   routing/
     planning.rs                           [narrow admission orchestration]
     application.rs                        [applies admitted direct work only]
@@ -218,17 +233,17 @@ logic/invalidation/
     ready_work.rs                         [queue/batch mechanics]
     topological_order.rs                  [stage/order preservation]
 
+data/graph/
+  storage/invalidation_causes/            [Milestone 12 cause lifecycle]
+  runtime/effect/output_commit.rs         [Milestone 12 commit authority]
+
 data/proof/invalidation/
+  source_seed.rs                          [Milestone 12 unresolved root intent]
+  output_delta.rs                         [Milestone 12 committed authority]
+  dependency_cause.rs                     [Milestone 12 bound authority]
+  revalidation.rs                         [Milestone 12 pending/resolved truth]
   plan.rs                                 [semantic admitted plan]
   execution.rs                            [realized execution truth]
-  certification/
-    case.rs                               [generic Milestone 12 authority]
-    equivalence.rs                        [Milestone 12 authority]
-    causality_run.rs                      [Milestone 12 authority]
-    cost.rs                               [Milestone 13]
-    strategy.rs                           [Milestone 13]
-    decision.rs                           [Milestone 13]
-    locality_run.rs                       [Milestone 13]
 
 tests/domains/fintech/
   invalidation/
@@ -242,6 +257,8 @@ tests/domains/fintech/
     financial_scenario.rs                 [Milestone 12 authority]
     fresh_recompute.rs                    [Milestone 12 oracle]
     necessity_manifest.rs                 [Milestone 12 oracle]
+    equivalence.rs                        [Milestone 12]
+    causality_run.rs                      [Milestone 12]
     locality_run.rs
     cost_slope.rs
     strategy_decision.rs
@@ -249,7 +266,9 @@ tests/domains/fintech/
 
 `causality` owns meaning. `routing` converts valid deltas to direct admitted
 work. `scheduling` owns ready-work mechanics. `evidence` derives cold or summary
-views. Dependency direction follows that order and may not reverse.
+views. Financial certification consumes production summaries from the test
+domain and cannot mint production causes. Dependency direction follows that
+order and may not reverse.
 
 The public invalidation facade remains stable. Scheduling implementations are
 not exported as caller policy in this milestone.
@@ -304,8 +323,9 @@ not exported as caller policy in this milestone.
 - prove `branch_restore_locality_replay` plus temporal, condition, and async
   composition
 - compare mechanical strategies only with identical admitted work streams
-- seal `FrontierLocalityCertificationRun` and emit exactly one typed traversal
-  strategy decision; reject missing, duplicate, stale, or mismatched evidence
+- seal `FinancialFrontierLocalityCertificationRun` and emit exactly one typed
+  traversal strategy decision; reject missing, duplicate, stale, or mismatched
+  evidence
 - update `S9.16.3` only after Milestones 12 and 13 are both accepted
 
 ## 7. Complexity Contracts
@@ -336,6 +356,8 @@ Milestone 13 must revise:
 - fintech domain documentation: named locality scenarios, scale lanes, oracle
   ownership, and reproduction metadata
 - performance contract registries for every touched hot path
+- the Foundational counter-backed performance receipt attached to the exact
+  realized Signal counter bundle
 
 The documentation must explain which counters are predicted, realized,
 semantic, and mechanical. A single "frontier width" number is insufficient if
@@ -380,6 +402,8 @@ Milestone 13 closes only when:
 
 - the complete reachable-closure walk is removed from the ordinary lane
 - disjoint subscribers are rejected before dirty mutation and enqueue
+- `ConservativeLegacyUnion` output remains correct but is rejected as exact
+  aspect/partition locality evidence
 - irrelevant fanout growth does not create proportional visited-node growth
 - the `10^3`, `10^4`, and `10^5` scheduled financial scale sweeps report
   structural slopes for sparse, medium, and dense frontiers
@@ -391,8 +415,9 @@ Milestone 13 closes only when:
 - observed semantic work equals the independent financial necessity manifest
 - every implementation phase closes only after its assigned financial
   scenarios and mutation probes are green
-- `FrontierLocalityCertificationRun` rejects missing, duplicate, stale, or
-  mismatched reports and its strategy decision matches the measured envelope
+- `FinancialFrontierLocalityCertificationRun` rejects missing, duplicate,
+  stale, or mismatched reports and its strategy decision matches the measured
+  envelope
 - mutation probes that restore closure walking, late filtering, or counter
   laundering fail the courtroom
 - focused tests, the complete `worth-signal` suite, boundary checks, context

@@ -2,6 +2,10 @@ mod admission;
 mod application;
 mod classification;
 mod cleanup;
+mod preflight;
+
+#[cfg(test)]
+mod preflight_tests;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) struct DependencyReconciliationReport {

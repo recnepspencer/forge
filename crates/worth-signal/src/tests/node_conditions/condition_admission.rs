@@ -126,6 +126,41 @@ fn aspect_filter_recomputes_on_matched_aspect() {
 }
 
 #[test]
+fn aspect_filter_uses_the_immediate_producers_translated_aspect() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().produces_aspects(mask_a()).build();
+    let translator = graph.node().produces_aspects(mask_b()).build();
+    let consumer = graph.node().aspect_filter(mask_b()).build();
+    graph
+        .append_dependency(translator, source, ASPECT_A)
+        .unwrap();
+    graph
+        .append_dependency(consumer, translator, ASPECT_B)
+        .unwrap();
+
+    let mut consumer_calls = 0_u64;
+    evaluate(&mut graph, source, &mut |_, _| Ok(version_ab(1, 0))).unwrap();
+    evaluate(&mut graph, translator, &mut |_, _| Ok(version_ab(0, 1))).unwrap();
+    evaluate(&mut graph, consumer, &mut |_, _| {
+        consumer_calls += 1;
+        Ok(version_ab(0, consumer_calls))
+    })
+    .unwrap();
+
+    mark_dirty(&mut graph, source, ASPECT_A).unwrap();
+    evaluate(&mut graph, source, &mut |_, _| Ok(version_ab(2, 0))).unwrap();
+    evaluate(&mut graph, translator, &mut |_, _| Ok(version_ab(0, 2))).unwrap();
+    evaluate(&mut graph, consumer, &mut |_, _| {
+        consumer_calls += 1;
+        Ok(version_ab(0, consumer_calls))
+    })
+    .unwrap();
+
+    assert_eq!(consumer_calls, 2);
+    assert_eq!(graph.get_state(consumer).unwrap(), NodeState::Clean);
+}
+
+#[test]
 fn invalidation_skips_direct_subscriber_when_contract_reads_do_not_care() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
@@ -206,7 +241,11 @@ fn invalidation_respects_mixed_aspect_and_partition_contracts() {
         }],
     )
     .unwrap();
-    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Dirty);
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::MaybeStale);
+    assert!(graph
+        .pending_dependency_revalidation(dependent)
+        .unwrap()
+        .is_some());
 
     evaluate(&mut graph, source, &mut compute).unwrap();
     evaluate(&mut graph, dependent, &mut compute).unwrap();

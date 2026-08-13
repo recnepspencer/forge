@@ -36,8 +36,14 @@ pub(crate) fn preview_maybe_stale(
     let snapshot = graph.get_dep_snapshot(node)?;
     let comparator =
         resolver.policy_for_node(node, graph.node_eval_config(node)?.comparator.as_ref());
-    let mut requires_upstream_evaluation = Vec::new();
-    let mut meaningful_change_detected = false;
+    let pending = graph.pending_dependency_revalidation(node)?;
+    let mut requires_upstream_evaluation = pending
+        .as_ref()
+        .map(|pending| pending.unresolved_producers().to_vec())
+        .unwrap_or_default();
+    let mut meaningful_change_detected = pending
+        .as_ref()
+        .is_some_and(|pending| pending.requires_structural_recompute());
 
     for snapshot_entry in snapshot.entries() {
         if !graph.is_alive(snapshot_entry.source) {

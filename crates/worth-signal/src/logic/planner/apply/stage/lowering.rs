@@ -56,7 +56,7 @@ pub(super) fn build_stage_execution_form(
         .into_iter()
         .map(|patch| lower_task_patch(graph, patch, comparator_resolver))
         .collect::<Result<Vec<_>, SignalError>>()?;
-    let lowered_apply_plan = build_lowered_apply_plan(stage_index, &lowered_tasks, executor);
+    let lowered_apply_plan = build_lowered_apply_plan(graph, stage_index, &lowered_tasks, executor);
     let dirty_delta = build_lowered_dirty_delta(&lowered_tasks);
     let touched_scope = build_touched_scope_summary(&lowered_tasks);
     let authority_policy = lowered_tasks

@@ -157,9 +157,9 @@ fn inspectors_query_graph_plan_report_and_execution_history() {
     let report_inspector = inspect_report(&report);
     assert_eq!(
         report_inspector
-            .tasks_with_outcome(TaskExecutionOutcome::Recomputed)
+            .tasks_with_outcome(TaskExecutionOutcome::ValidatedClean)
             .len(),
-        2
+        1
     );
 
     let execution_inspector = inspect_execution(&graph);

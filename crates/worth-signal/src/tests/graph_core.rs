@@ -51,7 +51,7 @@ fn dirty_direct_dependent() {
     mark_dirty(&mut graph, source, ASPECT_B).unwrap();
 
     let state = graph.get_state(dependent).unwrap();
-    assert_eq!(state, NodeState::Dirty);
+    assert_eq!(state, NodeState::MaybeStale);
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn maybe_stale_transitive_dependent() {
 
     let state_b = graph.get_state(b).unwrap();
     let state_c = graph.get_state(c).unwrap();
-    assert_eq!(state_b, NodeState::Dirty);
+    assert_eq!(state_b, NodeState::MaybeStale);
     assert_eq!(state_c, NodeState::MaybeStale);
 }
 

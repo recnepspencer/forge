@@ -2,12 +2,11 @@ use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::error::SignalError;
 use crate::data::graph::{ApplyCommitPacket, SignalGraph};
 use crate::data::handle::NodeId;
-use crate::data::output::NodeEvaluationResult;
 use crate::data::reuse::{ReuseBoundaryEvidence, ReuseBoundaryFailure};
 use crate::logic::evaluation::{EffectDependencyInputs, PreviousArtifactWarmSnapshot};
 use crate::logic::prepared::{PreparedEvaluation, PreparedEvaluationOutcome};
 
-use super::super::apply::{build_evaluation_effect, verdict_for_evaluated_result};
+use super::super::apply::{build_evaluation_effect, provisional_evaluated_verdict};
 use super::super::metadata::EvaluationExecutionMetadata;
 use super::admission::{
     format_reuse_boundary_evidence, hydrate_reuse_boundary_evidence,
@@ -82,7 +81,11 @@ pub(crate) fn build_prepared_apply_commit_packet(
             None,
         );
         return graph
-            .build_apply_commit_packet(effect, comparator_policy, defer_snapshot_commit)
+            .build_apply_commit_packet(
+                effect,
+                graph.node_eval_config(node)?.output_equivalence.clone(),
+                defer_snapshot_commit,
+            )
             .map_err(ApplyCommitBuildError::Signal);
     }
 
@@ -162,17 +165,7 @@ pub(crate) fn build_prepared_apply_commit_packet(
                 reuse_origin: reuse_decision.origin,
             };
             let metadata = execution_metadata.unwrap_or(&synthesized_metadata);
-            let meaningful_output_change = node_output_change_is_meaningful_with_lowered_policy(
-                graph,
-                node,
-                &result,
-                &comparator_policy,
-            )?;
-            let verdict = verdict_for_evaluated_result(
-                previous_artifact_warm.as_ref(),
-                &result,
-                meaningful_output_change,
-            )?;
+            let verdict = provisional_evaluated_verdict();
             let effect = build_evaluation_effect(
                 node,
                 result,
@@ -188,10 +181,15 @@ pub(crate) fn build_prepared_apply_commit_packet(
                 previous_artifact_warm,
             );
             graph
-                .build_apply_commit_packet(effect, comparator_policy, defer_snapshot_commit)
+                .build_apply_commit_packet(
+                    effect,
+                    graph.node_eval_config(node)?.output_equivalence.clone(),
+                    defer_snapshot_commit,
+                )
                 .map_err(ApplyCommitBuildError::Signal)?
         }
         PreparedEvaluationOutcome::ValidatedClean
+        | PreparedEvaluationOutcome::DeferredByInvalidation
         | PreparedEvaluationOutcome::DeferredByCondition
         | PreparedEvaluationOutcome::RevertedCleanByCondition => {
             return Err(ApplyCommitBuildError::Signal(SignalError::internal(
@@ -201,42 +199,4 @@ pub(crate) fn build_prepared_apply_commit_packet(
     };
 
     Ok(packet)
-}
-
-fn node_output_change_is_meaningful_with_lowered_policy(
-    graph: &SignalGraph,
-    node: NodeId,
-    result: &NodeEvaluationResult,
-    comparator_policy: &VersionComparatorPolicy,
-) -> Result<bool, SignalError> {
-    let previous = graph.node_aspect_version(node)?;
-    for (&cached, &current) in previous
-        .slots()
-        .iter()
-        .zip(result.aspect_version.slots().iter())
-    {
-        if cached == current {
-            continue;
-        }
-        let meaningful = match comparator_policy {
-            VersionComparatorPolicy::Exact | VersionComparatorPolicy::OutputIdentity => {
-                current != cached
-            }
-            VersionComparatorPolicy::Tolerance { epsilon } => current.abs_diff(cached) > *epsilon,
-            VersionComparatorPolicy::Custom { key } => {
-                return Err(SignalError::invalid_input(format!(
-                    "custom comparator '{key}' requires serial comparator resolution"
-                )));
-            }
-            VersionComparatorPolicy::Installed { .. } => {
-                return Err(SignalError::invalid_input(
-                    "installed comparator requires serial comparator resolution",
-                ));
-            }
-        };
-        if meaningful {
-            return Ok(true);
-        }
-    }
-    Ok(false)
 }

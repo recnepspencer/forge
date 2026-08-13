@@ -72,7 +72,7 @@ fn proof_bearing_batches_and_summaries_canonicalize_their_inputs() {
         ),
         DirtyBatchEntry::without_regions(node_b, ASPECT_B),
     ]);
-    let semantic_batch_commit = SemanticBatchCommit::new(dirty_batch.clone());
+    let semantic_batch_commit = ChangeBatchAdmission::new(dirty_batch.clone());
     let locality = LocalityFootprint::new(
         vec![
             PartitionSubscription::partition_and_detail("wing", "spar"),

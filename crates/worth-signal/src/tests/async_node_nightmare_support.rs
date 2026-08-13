@@ -1,7 +1,8 @@
 use crate::facade::*;
 use crate::tests::async_node_support::{
     admit_and_commit_async_node_completion, async_node_capability_declaration,
-    async_node_capability_with_dependents, AsyncNodeTestRuntime as TestRuntime,
+    async_node_capability_with_dependents, settle_async_dependency_baseline,
+    AsyncNodeTestRuntime as TestRuntime,
 };
 use crate::tests::support::{define_keyed_computation, evaluate, version_ab};
 
@@ -54,6 +55,7 @@ pub(crate) fn milestone_d_combined_workload() -> MilestoneDCombinedWorkload {
     graph
         .append_dependency(grandchild, child, Aspect::new(0))
         .expect("grandchild should depend on child");
+    settle_async_dependency_baseline(&mut graph, [parent, child, grandchild]);
     let mut source_eval = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut gate_eval = |_id: NodeId, _graph: &SignalGraph| {
         Ok(NodeEvaluationResult::from_version(version_ab(2, 0)).with_output_identity("gate-v1"))

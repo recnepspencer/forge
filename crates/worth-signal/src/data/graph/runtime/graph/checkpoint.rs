@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::data::bitset::DenseBitset;
 use crate::data::dependency::{
-    CommittedSnapshotUpdate, DependencySnapshot, DependencySnapshotShapeStore,
-    DependencySnapshotStore,
+    CanonicalDependencies, CommittedSnapshotUpdate, DependencyEdge, DependencySnapshot,
+    DependencySnapshotShapeStore, DependencySnapshotStore,
 };
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
@@ -13,7 +13,7 @@ use crate::data::proof::{PendingSnapshotBatch, PendingSnapshotCommit, SnapshotBa
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::schema::data::SignalSchemaRegistry;
 use crate::state::{
-    SignalCheckpointArena, SignalCheckpointAuthority, SignalCheckpointSlot,
+    SignalCheckpointArena, SignalCheckpointAuthority, SignalCheckpointImage, SignalCheckpointSlot,
     SignalCheckpointTopology,
 };
 
@@ -28,6 +28,9 @@ use super::{
 impl SignalGraph {
     pub(crate) fn capture_checkpoint_authority(&self) -> SignalCheckpointAuthority {
         let mut graph = self.clone_stateful();
+        graph
+            .compact_cause_set_storage()
+            .expect("checkpoint capture must compact valid canonical cause storage");
         for index in 0..graph.arena.nodes.len() {
             if !graph.arena.nodes[index].is_occupied() {
                 continue;
@@ -73,17 +76,24 @@ impl SignalGraph {
                 dependency_edges: graph.topology.dependency_edges,
                 subscriber_edges: graph.topology.subscriber_edges,
             },
+            cause_sets: graph.cause_sets,
             diagnostics: graph.observation.diagnostics,
         }
     }
 
-    pub(crate) fn restore_from_checkpoint_authority(authority: &SignalCheckpointAuthority) -> Self {
+    pub(crate) fn restore_from_checkpoint_authority(
+        authority: &SignalCheckpointAuthority,
+    ) -> Result<Self, SignalError> {
         let mut free_slots = DenseBitset::default();
         for index in &authority.arena.free_list {
             free_slots.mark(*index as usize);
         }
-        Self {
-            instance_id: super::next_signal_graph_instance_id(),
+        let instance_id = super::next_signal_graph_instance_id();
+        let mut cause_sets = authority.cause_sets.clone();
+        cause_sets.readmit_graph_instance(instance_id);
+        let cause_readmission_required = cause_sets.has_occupied_sets();
+        let mut graph = Self {
+            instance_id,
             arena: NodeArena {
                 nodes: authority
                     .arena
@@ -148,6 +158,8 @@ impl SignalGraph {
                 dependency_edges: authority.topology.dependency_edges.clone(),
                 subscriber_edges: authority.topology.subscriber_edges.clone(),
             },
+            cause_sets,
+            cause_readmission_required,
             traversal: TraversalResources::default(),
             observation: RuntimeObservation {
                 telemetry: RuntimeTelemetry::default(),
@@ -161,7 +173,77 @@ impl SignalGraph {
             aspect_lowering_owner: None,
             conditional_dependency_versions: BTreeMap::new(),
             authorization_policy_identities: BTreeSet::new(),
+        };
+        graph.rebuild_checkpoint_topology()?;
+        Ok(graph)
+    }
+
+    pub(crate) fn restore_from_checkpoint_image(
+        image: &SignalCheckpointImage,
+    ) -> Result<Self, SignalError> {
+        let mut graph = Self::restore_from_checkpoint_authority(&image.authority)?;
+        let batch = graph.derive_dependency_snapshot_restore_batch_from_checkpoint_batch(
+            &image.authority,
+            &image.dependency_snapshot_batch,
+        )?;
+        graph.apply_classified_snapshot_batch_commit(batch.classify())?;
+        graph.readmit_checkpoint_causes()?;
+        Ok(graph)
+    }
+
+    fn rebuild_checkpoint_topology(&mut self) -> Result<(), SignalError> {
+        let dependency_sets = self
+            .live_node_ids()
+            .into_iter()
+            .map(|node| {
+                self.raw_dependencies_of(node)
+                    .map(|edges| (node, edges.to_vec()))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        self.topology.dependency_edges = Default::default();
+        self.observation.partition_interner = PartitionInterner::default();
+        let mut repaired_nodes = Vec::new();
+
+        for (node, edges) in dependency_sets {
+            let original_len = edges.len();
+            let retained = edges
+                .into_iter()
+                .filter(|edge| self.is_alive(edge.source()))
+                .collect::<Vec<_>>();
+            let rebuilt = CanonicalDependencies::new(retained.iter().map(|edge| {
+                match edge.scope_ref().cloned() {
+                    Some(scope) => {
+                        let interned = self
+                            .observation
+                            .partition_interner
+                            .intern_subscription(&scope);
+                        DependencyEdge::with_scope(edge.source(), edge.aspect(), scope, interned)
+                    }
+                    None => DependencyEdge::new(edge.source(), edge.aspect()),
+                }
+            }));
+            let id = self
+                .topology
+                .dependency_edges
+                .insert_from_slice(rebuilt.as_slice());
+            self.set_dependencies_id_direct(node, id)?;
+            if retained.len() != original_len {
+                self.release_pending_causes(node)?;
+                self.get_entry_mut(node)?.advance_dependency_revision();
+                repaired_nodes.push(node);
+            }
         }
+        self.topology.subscriber_edges = Default::default();
+        self.rebuild_subscriber_index_from_dependencies()?;
+        for node in repaired_nodes {
+            self.transition_node_structural_revalidation(node)?;
+        }
+        self.cause_readmission_required = self.cause_sets.has_occupied_sets();
+        if !self.cause_readmission_required {
+            self.cause_sets.complete_readmission();
+        }
+        self.clear_branch_mutation_nodes();
+        Ok(())
     }
 
     pub(crate) fn checkpoint_authority_arena_capacity(

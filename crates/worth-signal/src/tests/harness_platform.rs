@@ -75,7 +75,7 @@ impl SignalEvaluationDriver for ToleranceEvaluator {
 }
 
 #[test]
-fn signal_scenario_builder_drives_on_demand_behavior() {
+fn signal_scenario_builder_resolves_initial_on_demand_obligation_before_ordinary_gating() {
     let mut scenario = SignalScenario::new("signal-ondemand");
     let source = scenario.node("source");
     let dependent = scenario.build_node("dependent", |graph| graph.node().on_demand().build());
@@ -99,11 +99,11 @@ fn signal_scenario_builder_drives_on_demand_behavior() {
     SignalHarnessAssert::assert_run_target_status(
         &bundle.core.run,
         "dependent",
-        ObservationStatus::MaybeStale,
+        ObservationStatus::Clean,
     );
     assert_eq!(
         SignalHarnessAssert::execution_report(&bundle.core.run).tasks_deferred_by_condition,
-        1
+        0
     );
     assert_eq!(bundle.explanations.len(), 1);
     assert_eq!(bundle.provenance.len(), 1);

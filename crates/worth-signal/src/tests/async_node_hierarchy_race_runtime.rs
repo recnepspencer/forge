@@ -1,7 +1,8 @@
 use crate::facade::*;
 use crate::tests::async_node_support::{
     async_node_capability_declaration, async_node_capability_with_dependents,
-    raw_async_node_completion, AsyncNodeTestRuntime as TestRuntime,
+    raw_async_node_completion, settle_async_dependency_baseline,
+    AsyncNodeTestRuntime as TestRuntime,
 };
 
 #[test]
@@ -17,6 +18,7 @@ fn async_node_hierarchy_late_descendant_completion_switches_from_cancelled_to_st
     graph
         .append_dependency(grandchild, child, Aspect::new(0))
         .expect("grandchild should depend on child");
+    settle_async_dependency_baseline(&mut graph, [parent, child, grandchild]);
 
     let mut runtime = TestRuntime::build(graph);
     let parent_handle = runtime

@@ -48,6 +48,12 @@ where
                 reason: SuppressionReason::ValidatedClean,
             }
         }
+        PreparedEvaluationOutcome::DeferredByInvalidation => {
+            ensure_temporal_outcome_alignment(outcome, temporal_eligibility.as_ref())?;
+            crate::logic::evaluation::EvaluationVerdict::Deferred {
+                reason: DeferralReason::DependencyPending,
+            }
+        }
         PreparedEvaluationOutcome::DeferredByCondition => {
             ensure_temporal_outcome_alignment(outcome, temporal_eligibility.as_ref())?;
             crate::logic::evaluation::EvaluationVerdict::Deferred {
@@ -106,6 +112,7 @@ pub(super) fn ensure_temporal_outcome_alignment(
         )),
         (
             PreparedEvaluationOutcome::ValidatedClean
+            | PreparedEvaluationOutcome::DeferredByInvalidation
             | PreparedEvaluationOutcome::RevertedCleanByCondition,
             Some(_),
         ) => Err(SignalError::internal(
@@ -120,24 +127,20 @@ pub(super) fn apply_prepared_dependencies(
     node: NodeId,
     capture: &PreparedDependencyCapture,
 ) -> Result<u32, SignalError> {
-    let desired = build_prepared_dependency_edges(graph, capture);
+    let desired = build_prepared_dependency_edges(capture);
     let report = graph.reconcile_dependencies(node, &desired)?;
     Ok(report.added + report.removed)
 }
 
-fn build_prepared_dependency_edges(
-    graph: &mut SignalGraph,
-    capture: &PreparedDependencyCapture,
-) -> Vec<DependencyEdge> {
+fn build_prepared_dependency_edges(capture: &PreparedDependencyCapture) -> Vec<DependencyEdge> {
     capture
         .as_slice()
         .iter()
-        .map(|dependency| {
-            graph.build_dependency_edge(
-                dependency.source,
-                dependency.aspect,
-                dependency.scope.clone(),
-            )
+        .map(|dependency| match dependency.scope.clone() {
+            Some(scope) => {
+                DependencyEdge::with_partition_scope(dependency.source, dependency.aspect, scope)
+            }
+            None => DependencyEdge::new(dependency.source, dependency.aspect),
         })
         .collect()
 }

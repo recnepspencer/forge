@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::aspect::AspectMask;
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::output::{scopes_overlap, PartitionSubscription};
+use crate::data::output_equivalence::OutputEquivalencePolicy;
 use crate::data::performance::{
     ArtifactPolicyClass, AuthorityPolicy, CompileTimePerformanceContract, EquivalenceContract,
     MaintenanceMode, PathClass,
@@ -260,6 +261,11 @@ impl NodeContract {
         self
     }
 
+    pub fn with_output_equivalence(mut self, policy: &OutputEquivalencePolicy) -> Self {
+        self.execution.equivalence = EquivalenceContract::for_output_equivalence(policy);
+        self
+    }
+
     pub fn compile_time_performance_contract(&self) -> CompileTimePerformanceContract {
         CompileTimePerformanceContract {
             equivalence: self.execution.equivalence,
@@ -291,6 +297,45 @@ impl NodeContract {
                     .any(|changed_scope| scopes_overlap(contract_scope, changed_scope))
             }),
         }
+    }
+
+    pub(crate) fn cares_about_correlated_change(
+        &self,
+        changed_aspects: AspectMask,
+        changed_scoped_aspects: &[(crate::data::aspect::Aspect, PartitionSubscription)],
+    ) -> bool {
+        for index in 0..crate::data::aspect::MAX_ASPECTS {
+            let aspect = crate::data::aspect::Aspect::new(index as u8);
+            let aspect_mask = AspectMask::from_aspect(aspect);
+            if !changed_aspects.intersects(aspect_mask)
+                || !self.projection.consumes.intersects(aspect_mask)
+            {
+                continue;
+            }
+            let scopes = changed_scoped_aspects
+                .iter()
+                .filter(|(candidate, _)| *candidate == aspect)
+                .map(|(_, scope)| scope)
+                .collect::<Vec<_>>();
+            if scopes.is_empty() || self.projection.consumes_partitions.is_none() {
+                return true;
+            }
+            if self
+                .projection
+                .consumes_partitions
+                .as_ref()
+                .is_some_and(|contracts| {
+                    contracts.iter().any(|contract| {
+                        scopes
+                            .iter()
+                            .any(|changed| scopes_overlap(contract, *changed))
+                    })
+                })
+            {
+                return true;
+            }
+        }
+        false
     }
 }
 

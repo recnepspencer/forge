@@ -230,40 +230,57 @@ pub(super) fn build_partition_locality_nodes(
         .graph_mut()
         .node()
         .reads_aspects(pricing_mask())
+        .produces_aspects(AspectMask::from([
+            super::aspects::PRICE,
+            super::aspects::RISK,
+        ]))
         .partitioned_output()
         .build();
     let rates_partition = runtime
         .graph_mut()
         .node()
         .reads_aspects(pricing_mask())
+        .produces_aspects(super::aspects::PRICE)
         .tolerance(1)
         .build();
     let credit_partition = runtime
         .graph_mut()
         .node()
         .reads_aspects(pricing_mask())
+        .produces_aspects(super::aspects::PRICE)
         .tolerance(1)
         .build();
     let rates_bucket_zero = runtime
         .graph_mut()
         .node()
         .reads_aspects(pricing_mask())
+        .produces_aspects(super::aspects::PRICE)
         .tolerance(1)
         .build();
     let coarse_book = runtime
         .graph_mut()
         .node()
         .reads_aspects(pricing_mask())
+        .produces_aspects(super::aspects::PRICE)
         .tolerance(2)
         .build();
 
     let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
     dependencies
-        .append_partition_dependency(
+        .append_partition_detail_dependency(
             rates_partition,
             market_regions,
             super::aspects::PRICE,
             "rates",
+            "bucket-0",
+        )
+        .unwrap()
+        .append_partition_detail_dependency(
+            rates_partition,
+            market_regions,
+            super::aspects::PRICE,
+            "rates",
+            "bucket-1",
         )
         .unwrap()
         .append_partition_dependency(

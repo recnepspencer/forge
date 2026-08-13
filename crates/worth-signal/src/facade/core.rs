@@ -92,6 +92,7 @@ pub use crate::data::output::{
     CanonicalChangedRegions, ChangedRegion, NodeEvaluationResult, OutputChange, OutputIdentity,
     PartitionMatchMode, PartitionSubscription, PartitionToken,
 };
+pub use crate::data::output_equivalence::OutputEquivalencePolicy;
 pub use crate::data::resource::{
     resource_certification_builder, resource_certification_bundle,
     resource_certification_bundle_parity_report, resource_milestone_b_certification_run,

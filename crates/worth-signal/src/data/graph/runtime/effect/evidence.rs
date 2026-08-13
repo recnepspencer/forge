@@ -1,3 +1,4 @@
+use crate::data::proof::invalidation::output_commit::CommittedProducedAspectDelta;
 use crate::diagnostics::policy::ArtifactRetentionPolicy;
 use crate::logic::evaluation::{
     EffectComparison, EvaluationEffect, EvaluationVerdict, SuppressionReason,
@@ -9,10 +10,17 @@ use super::SignalGraph;
 impl SignalGraph {
     pub(super) fn record_effect_telemetry(
         &mut self,
+        performed: Option<&CommittedProducedAspectDelta>,
         effect: &EvaluationEffect,
         comparison: &EffectComparison,
         suppressed_downstream: u64,
     ) {
+        debug_assert!(
+            performed.is_none()
+                || performed
+                    .is_some_and(|commit| commit.delta().producer == effect.operational.node),
+            "performed output commit must govern producer observation"
+        );
         let retains_cold_artifacts = self.retains_runtime_cold_artifacts();
         match effect.operational.verdict {
             EvaluationVerdict::Recomputed => {

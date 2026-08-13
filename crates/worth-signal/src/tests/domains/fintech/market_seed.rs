@@ -11,10 +11,6 @@ impl MarketSeed {
         Self { regime, seed }
     }
 
-    pub(super) fn calm(seed: u64) -> Self {
-        Self::new(MarketRegime::Calm, seed)
-    }
-
     pub(super) fn high_vol(seed: u64) -> Self {
         Self::new(MarketRegime::HighVol, seed)
     }

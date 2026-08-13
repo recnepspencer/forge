@@ -5,7 +5,7 @@ pub(crate) mod observer;
 pub(crate) mod scratch;
 pub(crate) mod strategy;
 
-pub(crate) use effect::{ApplyCommitPacket, SuppressionFreeApplyCommitPacket};
+pub(crate) use effect::{ApplyCommitPacket, PreparedParallelApplyCommitPacket};
 pub use graph::SignalGraph;
 pub(crate) use graph::{BranchMutationRecord, BranchStructuralDelta};
 pub use observer::{GraphMaterializer, GraphObserver};

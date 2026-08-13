@@ -1,6 +1,7 @@
-use crate::data::error::SignalError;
 use crate::data::trace::HotArtifactWrite;
 use crate::logic::evaluation::{EffectComparison, EvaluationEffect};
+
+use super::super::graph::PreparedDirectCauseAdmission;
 
 #[derive(Debug)]
 pub(crate) struct ApplyCommitPacket {
@@ -11,19 +12,20 @@ pub(crate) struct ApplyCommitPacket {
     pub(crate) defer_snapshot_commit: bool,
 }
 
+#[derive(Debug)]
+pub(crate) struct OutputCommitPacket {
+    pub(crate) apply: ApplyCommitPacket,
+    pub(crate) produced_delta:
+        Option<crate::data::proof::invalidation::output_commit::ProducedAspectDelta>,
+    pub(crate) direct_causes: Option<PreparedDirectCauseAdmission>,
+}
+
 #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
 #[derive(Debug)]
-pub(crate) struct SuppressionFreeApplyCommitPacket(pub(super) ApplyCommitPacket);
+pub(crate) struct PreparedParallelApplyCommitPacket(pub(super) ApplyCommitPacket);
 
-impl TryFrom<ApplyCommitPacket> for SuppressionFreeApplyCommitPacket {
-    type Error = SignalError;
-
-    fn try_from(packet: ApplyCommitPacket) -> Result<Self, Self::Error> {
-        if packet.comparison.propagation_suppressed {
-            return Err(SignalError::internal(
-                "grouped concurrent commit packet unexpectedly required shared suppression",
-            ));
-        }
-        Ok(Self(packet))
+impl From<ApplyCommitPacket> for PreparedParallelApplyCommitPacket {
+    fn from(packet: ApplyCommitPacket) -> Self {
+        Self(packet)
     }
 }

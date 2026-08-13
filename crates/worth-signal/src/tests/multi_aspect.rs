@@ -55,8 +55,8 @@ fn kv60_topology_change_triggers_topo_dependents() {
     let state = graph.get_state(topo_sub).unwrap();
     assert_eq!(
         state,
-        NodeState::Dirty,
-        "Topo subscriber must be Dirty on topology change"
+        NodeState::MaybeStale,
+        "Topo subscriber must await the source's committed topology delta"
     );
 }
 

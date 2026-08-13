@@ -1,16 +1,14 @@
 use super::Tier;
 use crate::facade::{
-    mark_dirty, AspectMask, DependencyMode, DirtyPropagation, EvaluationOutput,
-    EvaluationRequestMode, EvaluationTrigger, NodeId, NodeState, SignalError, SignalGraph,
-    SignalRuntime, StageExecutor, TaskExecutionOutcome, TaskReason, TierPolicy,
-    VersionComparatorPolicy,
+    mark_dirty, DependencyMode, DirtyPropagation, EvaluationOutput, EvaluationRequestMode,
+    EvaluationTrigger, NodeId, NodeState, SignalError, SignalGraph, SignalRuntime, StageExecutor,
+    TaskExecutionOutcome, TierPolicy, VersionComparatorPolicy,
 };
-use crate::logic::planner::MaybeStaleAdmission;
 use crate::tests::support::{evaluate, version_ab, GraphDependencyBatchExt, ASPECT_A, ASPECT_B};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 #[test]
-fn runtime_plan_keeps_requested_maybe_stale_validation_task() {
+fn runtime_plan_excludes_resolved_irrelevant_aspect_change() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
@@ -45,11 +43,11 @@ fn runtime_plan_keeps_requested_maybe_stale_validation_task() {
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
 
-    assert_eq!(plan.summary.task_count, 1);
-    assert!(matches!(
-        plan.stages[0].tasks[0].reason,
-        TaskReason::RequestedTarget
-    ));
+    assert_eq!(
+        runtime.graph().get_state(dependent).unwrap(),
+        NodeState::Clean
+    );
+    assert_eq!(plan.summary.task_count, 0);
 }
 
 #[test]
@@ -127,32 +125,37 @@ fn execution_report_marks_requested_maybe_stale_validation_as_validated_clean() 
     evaluate(&mut graph, source, &mut source_compute).unwrap();
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
 
-    {
-        let mut entry = graph.get_entry_mut(dependent).unwrap();
-        entry.set_state(NodeState::MaybeStale);
-        entry.set_dirty_aspects(AspectMask::from_aspect(ASPECT_A));
-    }
+    mark_dirty(&mut graph, source, ASPECT_A).unwrap();
 
     let plan = graph
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
     let report = graph
-        .execute_prepared_plan(&plan, &(), &|_ctx| {
-            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::validated_clean())
+        .execute_prepared_plan(&plan, &(), &|ctx| {
+            let result = if ctx.node() == source {
+                version_ab(1, 0)
+            } else {
+                version_ab(10, 0)
+            };
+            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(result))
         })
         .unwrap();
 
-    assert_eq!(report.task_count, 1);
+    assert_eq!(report.task_count, 2);
     assert_eq!(report.tasks_validated_clean, 1, "{report:?}");
     assert_eq!(report.tasks_pruned, 1, "{report:?}");
-    assert!(matches!(
-        report.stages[0].task_records[0].outcome,
-        TaskExecutionOutcome::ValidatedClean
-    ));
+    assert!(report
+        .stages
+        .iter()
+        .flat_map(|stage| &stage.task_records)
+        .any(|record| {
+            record.node == dependent
+                && matches!(record.outcome, TaskExecutionOutcome::ValidatedClean)
+        }));
 }
 
 #[test]
-fn maybe_stale_requested_target_validates_clean_without_running_compute() {
+fn irrelevant_aspect_change_resolves_before_planning_without_running_compute() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
@@ -168,27 +171,12 @@ fn maybe_stale_requested_target_validates_clean_without_running_compute() {
 
     mark_dirty(&mut graph, source, ASPECT_B).unwrap();
     evaluate(&mut graph, source, &mut source_v2_same_aspect_a).unwrap();
-    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::MaybeStale);
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
 
     let plan = graph
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
-    assert_eq!(plan.summary.task_count, 1);
-    assert_eq!(
-        plan.stages[0].tasks[0].admission.node_state_at_admission,
-        Some(NodeState::MaybeStale)
-    );
-    assert!(
-        !plan.stages[0].tasks[0]
-            .admission
-            .dirty_partition_scopes_present
-    );
-    assert_eq!(
-        plan.stages[0].tasks[0].admission.maybe_stale,
-        Some(MaybeStaleAdmission {
-            unchanged_at_admission: true,
-        })
-    );
+    assert_eq!(plan.summary.task_count, 0);
 
     let calls = AtomicU32::new(0);
     let report = graph
@@ -203,6 +191,6 @@ fn maybe_stale_requested_target_validates_clean_without_running_compute() {
         0,
         "MaybeStale validation should skip user compute when cached inputs are still meaningful"
     );
-    assert_eq!(report.tasks_validated_clean, 1, "{report:?}");
+    assert_eq!(report.tasks_validated_clean, 0, "{report:?}");
     assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
 }

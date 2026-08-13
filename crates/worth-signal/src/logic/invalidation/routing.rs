@@ -6,6 +6,7 @@ mod seeds;
 
 use std::ops::DerefMut;
 
+#[cfg(any(test, doctest))]
 use crate::data::aspect::Aspect;
 use crate::data::error::SignalError;
 use crate::data::graph::{ScratchLeaseKind, SignalGraph, TraversalScratch};
@@ -15,8 +16,8 @@ use crate::data::node::NodeState;
 #[cfg(any(test, doctest))]
 use crate::data::output::ChangedRegion;
 use crate::data::proof::{
-    DirtyBatch, FrontierEntryClassification, FrontierPlan, FrontierWaveEntryPlan, InvalidationSeed,
-    InvalidationSeedBatch, InvalidationTraceRecord, SemanticBatchCommit,
+    DirtyBatch, FrontierPlan, FrontierWaveEntryPlan, InvalidationSeed, InvalidationSeedBatch,
+    InvalidationTraceRecord, SourceRecomputeAdmission,
 };
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::diagnostics::lineage::InvalidationCause;
@@ -52,9 +53,13 @@ pub fn mark_dirty_with_regions(
 pub fn mark_dirty_batch(
     mut graph: impl DerefMut<Target = SignalGraph>,
     dirty: &DirtyBatch,
-) -> Result<SemanticBatchCommit, SignalError> {
+) -> Result<SourceRecomputeAdmission, SignalError> {
     let graph = graph.deref_mut();
     graph.telemetry_mut().invalidation.batch_width += dirty.as_slice().len() as u64;
+    let admission = SourceRecomputeAdmission::new(dirty.clone());
+    for seed in &admission.seeds {
+        super::causality::source_seed::validate_source_seed(graph, seed)?;
+    }
     for entry in dirty.as_slice() {
         graph.note_change_input(
             entry.source,
@@ -90,7 +95,7 @@ pub fn mark_dirty_batch(
         ));
         return Err(err);
     }
-    Ok(SemanticBatchCommit::new(dirty.clone()))
+    Ok(admission)
 }
 
 fn plan_invalidation_frontier(
@@ -118,31 +123,21 @@ fn retained_trace_records(
 fn apply_direct_entry(
     graph: &mut SignalGraph,
     entry: &FrontierWaveEntryPlan,
-    aspect: Aspect,
     seed_batch: &InvalidationSeedBatch,
 ) -> Result<(), SignalError> {
     let previous_state = graph.get_state(entry.node)?;
-    match entry.classification {
-        FrontierEntryClassification::DirectDirty => {
-            graph.transition_node_dirty(entry.node, aspect, entry.narrowed_scopes.as_slice())?
-        }
-        FrontierEntryClassification::MaybeStale => {
-            graph.transition_node_maybe_stale(entry.node, aspect)?
-        }
-    }
+    graph.transition_node_pending_revalidation(entry.node)?;
     if matches!(previous_state, NodeState::Clean) {
         record_invalidation_lineage(
             graph,
             entry.node,
-            InvalidationCause::DirectDependencyChanged {
-                dependency: entry
+            InvalidationCause::PendingDependencyRevalidation {
+                upstream: entry
                     .source_seed_refs
                     .first()
                     .copied()
                     .and_then(|idx| seed_batch.as_slice().get(idx as usize))
-                    .map(|seed| seed.source_node)
-                    .unwrap_or(entry.node),
-                aspect_index: aspect.index(),
+                    .map(|seed| seed.source_node),
             },
         );
     }

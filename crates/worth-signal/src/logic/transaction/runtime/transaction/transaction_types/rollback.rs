@@ -20,6 +20,12 @@ pub(in crate::logic::transaction::runtime) struct GraphPatchRollbackDelta {
 }
 
 #[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct GraphCauseAuthorityRollbackDelta {
+    pub baseline: crate::data::graph::storage::invalidation_causes::CanonicalCauseSetStore,
+    pub readmission_required: bool,
+}
+
+#[derive(Debug, Clone)]
 pub(in crate::logic::transaction::runtime) struct CreatedNodeRollbackDelta {
     pub created_nodes: Vec<NodeId>,
 }
@@ -44,6 +50,7 @@ pub(in crate::logic::transaction::runtime) enum TransactionRollbackPacket<T: Cop
     Config(ConfigRollbackDelta<T>),
     DiagnosticsRequired(DiagnosticsRollbackDelta),
     GraphPatches(GraphPatchRollbackDelta),
+    GraphCauseAuthority(GraphCauseAuthorityRollbackDelta),
     CreatedNodes(CreatedNodeRollbackDelta),
     SubscriberRepair(SubscriberRepairRollbackDelta),
     Resource(ResourceRollbackDelta),
@@ -55,6 +62,7 @@ pub(in crate::logic::transaction::runtime) struct TransactionRollbackPacketSet<T
     config: Option<ConfigRollbackDelta<T>>,
     diagnostics: Option<DiagnosticsRollbackDelta>,
     graph_patches: Option<GraphPatchRollbackDelta>,
+    graph_cause_authority: Option<GraphCauseAuthorityRollbackDelta>,
     created_nodes: Option<CreatedNodeRollbackDelta>,
     subscriber_repair: Option<SubscriberRepairRollbackDelta>,
     resource: Option<ResourceRollbackDelta>,
@@ -67,6 +75,7 @@ impl<T: Copy + Ord> Default for TransactionRollbackPacketSet<T> {
             config: None,
             diagnostics: None,
             graph_patches: None,
+            graph_cause_authority: None,
             created_nodes: None,
             subscriber_repair: None,
             resource: None,
@@ -80,6 +89,7 @@ impl<T: Copy + Ord> TransactionRollbackPacketSet<T> {
         &mut self,
         config: &SignalRuntimeConfig<T>,
         diagnostics_state: &crate::diagnostics::state::DiagnosticsState,
+        graph: &crate::data::graph::SignalGraph,
     ) {
         if self.config.is_none() {
             self.config = Some(ConfigRollbackDelta {
@@ -89,6 +99,12 @@ impl<T: Copy + Ord> TransactionRollbackPacketSet<T> {
         if self.diagnostics.is_none() {
             self.diagnostics = Some(DiagnosticsRollbackDelta {
                 baseline: diagnostics_state.clone(),
+            });
+        }
+        if self.graph_cause_authority.is_none() {
+            self.graph_cause_authority = Some(GraphCauseAuthorityRollbackDelta {
+                baseline: graph.cause_sets.clone(),
+                readmission_required: graph.cause_readmission_required,
             });
         }
     }
@@ -149,12 +165,15 @@ impl<T: Copy + Ord> TransactionRollbackPacketSet<T> {
     }
 
     pub fn drain_ordered(&mut self) -> Vec<TransactionRollbackPacket<T>> {
-        let mut packets = Vec::with_capacity(7);
+        let mut packets = Vec::with_capacity(8);
         if let Some(delta) = self.graph_patches.take() {
             packets.push(TransactionRollbackPacket::GraphPatches(delta));
         }
         if let Some(delta) = self.created_nodes.take() {
             packets.push(TransactionRollbackPacket::CreatedNodes(delta));
+        }
+        if let Some(delta) = self.graph_cause_authority.take() {
+            packets.push(TransactionRollbackPacket::GraphCauseAuthority(delta));
         }
         if let Some(delta) = self.subscriber_repair.take() {
             packets.push(TransactionRollbackPacket::SubscriberRepair(delta));

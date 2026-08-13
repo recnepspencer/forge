@@ -35,8 +35,8 @@ fn partition_scoped_dependencies_on_same_source_check_all_matching_edges() {
 
     assert_eq!(
         graph.get_state(dependent).unwrap(),
-        NodeState::Dirty,
-        "later partition-scoped dependency edges on the same source/aspect must still be checked"
+        NodeState::MaybeStale,
+        "direct subscribers remain unresolved until the producer commits its scoped delta"
     );
 }
 
@@ -79,17 +79,17 @@ fn repeated_partition_invalidations_union_dirty_scopes_until_evaluation() {
     )
     .unwrap();
 
-    let entry = graph.get_entry(dependent).unwrap();
-    let scopes = entry.get_dirty_partition_scopes();
-    assert_eq!(entry.get_state(), &NodeState::Dirty);
+    let scopes = graph.node_dirty_scoped_aspects(source).unwrap();
+    assert_eq!(graph.get_state(source).unwrap(), NodeState::Dirty);
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::MaybeStale);
     assert!(
-        scopes.iter().any(|scope| {
+        scopes.iter().any(|(_, scope)| {
             scope.partition.0.as_str() == "wing" && scope.detail.as_deref() == Some("rib-12")
         }),
         "the first invalidation scope should not be erased by a later wave"
     );
     assert!(
-        scopes.iter().any(|scope| {
+        scopes.iter().any(|(_, scope)| {
             scope.partition.0.as_str() == "wing" && scope.detail.as_deref() == Some("rib-13")
         }),
         "the second invalidation scope should be merged with earlier scopes"
@@ -130,10 +130,9 @@ fn whole_aspect_invalidation_does_not_erase_other_aspects_partition_precision() 
     .unwrap();
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
 
-    let entry = graph.get_entry(dependent).unwrap();
-    let scopes = entry.get_dirty_partition_scopes();
+    let scopes = graph.node_dirty_scoped_aspects(source).unwrap();
     assert!(
-        scopes.iter().any(|scope| {
+        scopes.iter().any(|(_, scope)| {
             scope.partition.0.as_str() == "tail" && scope.detail.as_deref() == Some("panel-7")
         }),
         "whole-aspect invalidation on aspect A must not erase scoped dirtiness retained for aspect B"
@@ -228,7 +227,7 @@ fn batch_invalidation_reuses_transitive_wave_for_same_aspect_sources() {
     )
     .unwrap();
 
-    assert_eq!(batched.get_state(shared).unwrap(), NodeState::Dirty);
+    assert_eq!(batched.get_state(shared).unwrap(), NodeState::MaybeStale);
     assert_eq!(batched.get_state(leaf).unwrap(), NodeState::MaybeStale);
     assert!(
         batched.telemetry().invalidation.invalidation_nodes_visited

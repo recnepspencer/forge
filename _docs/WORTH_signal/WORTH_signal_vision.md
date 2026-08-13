@@ -165,7 +165,7 @@ Status meanings:
 | Transactional invalidation | Implemented | Runtime-backed transactions hard-rewind via sparse patching |
 | Maybe-stale states | Implemented | `Clean` / `MaybeStale` / `Dirty` are part of the core contract |
 | Lazy recomputation | Implemented | Pull-based evaluation recomputes only when requested |
-| Aspect-based invalidation | Reopened | Direct-edge support exists, but [Milestone 12](./milestone-12-plan.md) must certify producer-local transitive causality and [Milestone 13](./milestone-13-plan.md) must certify semantic-frontier locality in the expanded financial world |
+| Aspect-based invalidation | Implemented | [Milestone 12](./milestone-12-plan.md) certifies producer-local transitive causality; [Milestone 13](./milestone-13-plan.md) remains open for the separate semantic-frontier locality and scaling guarantee |
 | Dynamic dependency discovery | Implemented | `EvaluationContext` records upstream reads explicitly |
 | Conditional nodes | Implemented | `OnDemand`, `Debounce`, `AspectFilter`, `DeltaThreshold`, `Custom` |
 | Tolerance / epsilon gates | Implemented | Comparator policies include exact and tolerance-based suppression |

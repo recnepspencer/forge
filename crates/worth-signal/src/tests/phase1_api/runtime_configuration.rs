@@ -180,9 +180,7 @@ fn graph_node_builder_sets_accessible_configuration() {
     );
     assert_eq!(
         config.contract.execution.equivalence,
-        EquivalenceContract::for_comparator_override(&VersionComparatorPolicy::Tolerance {
-            epsilon: 2,
-        })
+        EquivalenceContract::default()
     );
     assert_eq!(
         config.contract.authority.policy,
@@ -192,6 +190,63 @@ fn graph_node_builder_sets_accessible_configuration() {
     assert_eq!(
         config.comparator,
         Some(VersionComparatorPolicy::Tolerance { epsilon: 2 })
+    );
+    assert_eq!(
+        config.output_equivalence,
+        crate::data::output_equivalence::OutputEquivalencePolicy::ExactAspectVersion
+    );
+}
+
+#[test]
+fn dependency_comparison_and_output_equivalence_have_separate_builder_authority() {
+    let mut graph = SignalGraph::new();
+    let dependency_only = graph
+        .node()
+        .dependency_comparator(VersionComparatorPolicy::Tolerance { epsilon: 3 })
+        .build();
+    let output_only = graph.node().output_identity().build();
+
+    let dependency = graph.node_eval_config(dependency_only).unwrap();
+    assert_eq!(
+        dependency.comparator,
+        Some(VersionComparatorPolicy::Tolerance { epsilon: 3 })
+    );
+    assert_eq!(
+        dependency.output_equivalence,
+        crate::data::output_equivalence::OutputEquivalencePolicy::ExactAspectVersion
+    );
+
+    let output = graph.node_eval_config(output_only).unwrap();
+    assert_eq!(output.comparator, None);
+    assert_eq!(
+        output.output_equivalence,
+        crate::data::output_equivalence::OutputEquivalencePolicy::OutputIdentity
+    );
+}
+
+#[test]
+fn legacy_output_identity_configuration_upgrades_to_the_canonical_split() {
+    let mut graph = SignalGraph::new();
+    let mut legacy = NodeEvaluationConfig::default();
+    legacy.comparator = Some(VersionComparatorPolicy::OutputIdentity);
+    legacy.contract.execution.equivalence =
+        EquivalenceContract::for_comparator_override(&VersionComparatorPolicy::OutputIdentity);
+    let mut encoded = serde_json::to_value(legacy).unwrap();
+    encoded
+        .as_object_mut()
+        .unwrap()
+        .remove("output_equivalence");
+    let decoded: NodeEvaluationConfig = serde_json::from_value(encoded).unwrap();
+    let node = graph.create_node_with_config(decoded);
+    let restored = graph.node_eval_config(node).unwrap();
+
+    assert_eq!(
+        restored.comparator,
+        Some(VersionComparatorPolicy::OutputIdentity)
+    );
+    assert_eq!(
+        restored.output_equivalence,
+        crate::data::output_equivalence::OutputEquivalencePolicy::OutputIdentity
     );
 }
 
@@ -305,66 +360,5 @@ fn reuse_domain_types_are_publicly_reachable() {
     assert_eq!(
         record.proofs[0].boundary,
         ArtifactSemanticBoundary::SnapshotLineage
-    );
-}
-
-#[test]
-fn runtime_policy_maps_into_s9_contract_and_strategy_defaults() {
-    let operational = SignalRuntimePolicy::operational();
-    let development = SignalRuntimePolicy::development();
-    let forensic = SignalRuntimePolicy::forensic();
-
-    assert_eq!(operational.default_path_class(), PathClass::Operational);
-    assert_eq!(
-        operational.default_artifact_policy_class(),
-        ArtifactPolicyClass::OperationalMinimal
-    );
-    assert_eq!(
-        operational.default_execution_strategy(),
-        ResolvedExecutionStrategy::SparseIncremental
-    );
-    assert_eq!(
-        operational.default_maintenance_strategy(),
-        ResolvedMaintenanceStrategy::DensityAdaptive
-    );
-    assert_eq!(
-        operational.default_authority_policy(),
-        AuthorityPolicy::SpeculativeThenReconcile
-    );
-
-    assert_eq!(development.default_path_class(), PathClass::Rich);
-    assert_eq!(
-        development.default_artifact_policy_class(),
-        ArtifactPolicyClass::DevelopmentRetained
-    );
-    assert_eq!(
-        development.default_execution_strategy(),
-        ResolvedExecutionStrategy::DenseStageBatched
-    );
-    assert_eq!(
-        development.default_maintenance_strategy(),
-        ResolvedMaintenanceStrategy::Incremental
-    );
-    assert_eq!(
-        development.default_authority_policy(),
-        AuthorityPolicy::SpeculativeThenReconcile
-    );
-
-    assert_eq!(forensic.default_path_class(), PathClass::Rich);
-    assert_eq!(
-        forensic.default_artifact_policy_class(),
-        ArtifactPolicyClass::ForensicReconstructable
-    );
-    assert_eq!(
-        forensic.default_execution_strategy(),
-        ResolvedExecutionStrategy::DenseStageBatched
-    );
-    assert_eq!(
-        forensic.default_maintenance_strategy(),
-        ResolvedMaintenanceStrategy::Rebuild
-    );
-    assert_eq!(
-        forensic.default_authority_policy(),
-        AuthorityPolicy::SpeculativeThenReconcile
     );
 }

@@ -27,5 +27,7 @@ impl SignalGraph {
         );
 
         self.topology.dependency_snapshots = compacted_dependency_snapshots;
+        self.compact_cause_set_storage()
+            .expect("live cause-set handles must compact with graph storage");
     }
 }

@@ -1,5 +1,5 @@
 use crate::data::comparator::VersionComparatorPolicy;
-use crate::data::graph::SuppressionFreeApplyCommitPacket;
+use crate::data::graph::PreparedParallelApplyCommitPacket;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::proof::ClassifiedSnapshotBatchCommit;
@@ -53,7 +53,7 @@ pub(crate) struct GroupLocalTaskCommit {
     recomputed: bool,
     partition_aware: bool,
     rewiring: Option<RewiringSummary>,
-    commit_packet: SuppressionFreeApplyCommitPacket,
+    commit_packet: PreparedParallelApplyCommitPacket,
 }
 
 #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
@@ -198,6 +198,10 @@ impl ConcurrentApplyGroupInput {
 
 #[cfg(feature = "parallel")]
 impl GroupLocalTaskCommit {
+    pub(in crate::logic::planner) fn task_index(&self) -> usize {
+        self.task_index
+    }
+
     pub(in crate::logic::planner) fn new(
         task_index: usize,
         node: NodeId,
@@ -208,7 +212,7 @@ impl GroupLocalTaskCommit {
         recomputed: bool,
         partition_aware: bool,
         rewiring: Option<RewiringSummary>,
-        commit_packet: SuppressionFreeApplyCommitPacket,
+        commit_packet: PreparedParallelApplyCommitPacket,
     ) -> Self {
         Self {
             task_index,
@@ -236,7 +240,7 @@ impl GroupLocalTaskCommit {
         bool,
         bool,
         Option<RewiringSummary>,
-        SuppressionFreeApplyCommitPacket,
+        PreparedParallelApplyCommitPacket,
     ) {
         (
             self.task_index,

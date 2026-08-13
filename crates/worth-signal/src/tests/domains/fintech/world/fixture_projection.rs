@@ -1,35 +1,36 @@
-use super::regimes::MarketRegime;
+use super::super::regimes::MarketRegime;
+use super::FinancialWorldDefinition;
 
 const PRICE_SCALE: i64 = 10_000;
 const FX_SCALE: i64 = 10_000;
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct MarketPoint {
-    pub price: u64,
-    pub vol: u64,
-    pub curve: u64,
-    pub liquidity: u64,
-    pub risk: u64,
-    pub alert: u64,
+pub(in crate::tests::domains::fintech) struct FixtureMarketPoint {
+    pub(in crate::tests::domains::fintech) price: u64,
+    pub(in crate::tests::domains::fintech) vol: u64,
+    pub(in crate::tests::domains::fintech) curve: u64,
+    pub(in crate::tests::domains::fintech) liquidity: u64,
+    pub(in crate::tests::domains::fintech) risk: u64,
+    pub(in crate::tests::domains::fintech) alert: u64,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct FxMarket {
-    pub eur_usd: u64,
-    pub usd_jpy: u64,
-    pub eur_jpy: u64,
+pub(in crate::tests::domains::fintech) struct FixtureFxMarket {
+    pub(in crate::tests::domains::fintech) eur_usd: u64,
+    pub(in crate::tests::domains::fintech) usd_jpy: u64,
+    pub(in crate::tests::domains::fintech) eur_jpy: u64,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct ScenarioShock {
-    pub risk: u64,
-    pub vol: u64,
+pub(in crate::tests::domains::fintech) struct FixtureScenarioShock {
+    pub(in crate::tests::domains::fintech) risk: u64,
+    pub(in crate::tests::domains::fintech) vol: u64,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct AggregateState {
-    pub risk: u64,
-    pub alert: u64,
+pub(in crate::tests::domains::fintech) struct FixtureAggregateState {
+    pub(in crate::tests::domains::fintech) risk: u64,
+    pub(in crate::tests::domains::fintech) alert: u64,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -50,20 +51,26 @@ struct RegimeShape {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct CorrelatedMarketModel {
+pub(in crate::tests::domains::fintech) struct FinancialFixtureProjection {
     seed: u64,
     shape: RegimeShape,
 }
 
-impl CorrelatedMarketModel {
-    pub(super) fn new(regime: MarketRegime, seed: u64) -> Self {
+impl FinancialFixtureProjection {
+    pub(in crate::tests::domains::fintech) fn from_definition(
+        definition: &FinancialWorldDefinition,
+    ) -> Self {
         Self {
-            seed,
-            shape: regime_shape(regime),
+            seed: definition.seed(),
+            shape: regime_shape(definition.fixture_regime()),
         }
     }
 
-    pub(super) fn market_point(self, instrument_index: usize, book_index: usize) -> MarketPoint {
+    pub(in crate::tests::domains::fintech) fn market_point(
+        self,
+        instrument_index: usize,
+        book_index: usize,
+    ) -> FixtureMarketPoint {
         let instrument = instrument_index as u64;
         let book = book_index as u64;
         let global_pressure = signed_jitter(self.seed, 0xA11CE, 140);
@@ -114,7 +121,7 @@ impl CorrelatedMarketModel {
             risk as i64 + self.shape.alert_bias + 3 * global_pressure + 2 * vol_shock > 4_100,
         );
 
-        MarketPoint {
+        FixtureMarketPoint {
             price,
             vol,
             curve,
@@ -124,21 +131,24 @@ impl CorrelatedMarketModel {
         }
     }
 
-    pub(super) fn fx_market(self) -> FxMarket {
+    pub(in crate::tests::domains::fintech) fn fx_market(self) -> FixtureFxMarket {
         let global_shift = sample_window(self.seed, 0x2001, &self.shape.fx_windows);
         let dislocation = signed_jitter(self.seed, 0x2002, 80);
         let eur_usd = clamp_u64(FX_SCALE + 18 * global_shift + dislocation);
         let usd_jpy = clamp_u64(14_000 - 11 * global_shift + 2 * dislocation);
         let eur_jpy = clamp_u64((eur_usd as i64 * usd_jpy as i64) / FX_SCALE);
 
-        FxMarket {
+        FixtureFxMarket {
             eur_usd,
             usd_jpy,
             eur_jpy,
         }
     }
 
-    pub(super) fn curve_bucket_series(self, buckets: usize) -> Vec<u64> {
+    pub(in crate::tests::domains::fintech) fn curve_bucket_series(
+        self,
+        buckets: usize,
+    ) -> Vec<u64> {
         bucket_series(
             self.seed,
             0x3001,
@@ -149,7 +159,7 @@ impl CorrelatedMarketModel {
         )
     }
 
-    pub(super) fn vol_surface_series(self, buckets: usize) -> Vec<u64> {
+    pub(in crate::tests::domains::fintech) fn vol_surface_series(self, buckets: usize) -> Vec<u64> {
         bucket_series(
             self.seed,
             0x4001,
@@ -166,7 +176,10 @@ impl CorrelatedMarketModel {
         (calm_point.price, calm_point.vol, fx.eur_jpy)
     }
 
-    pub(super) fn scenario_shocks(self, scenarios: usize) -> Vec<ScenarioShock> {
+    pub(in crate::tests::domains::fintech) fn scenario_shocks(
+        self,
+        scenarios: usize,
+    ) -> Vec<FixtureScenarioShock> {
         let mut shocks = Vec::with_capacity(scenarios);
         for scenario in 0..scenarios {
             let scenario_seed = self.seed ^ ((scenario as u64 + 1) * 0x9e37);
@@ -177,12 +190,15 @@ impl CorrelatedMarketModel {
             let vol = clamp_u64(
                 400 + 13 * sample_window(scenario_seed, 0x5003, &self.shape.vol_windows).abs(),
             );
-            shocks.push(ScenarioShock { risk, vol });
+            shocks.push(FixtureScenarioShock { risk, vol });
         }
         shocks
     }
 
-    pub(super) fn book_states(self, books: usize) -> Vec<AggregateState> {
+    pub(in crate::tests::domains::fintech) fn book_states(
+        self,
+        books: usize,
+    ) -> Vec<FixtureAggregateState> {
         let mut states = Vec::with_capacity(books);
         for book in 0..books {
             let seed = self.seed ^ ((book as u64 + 11) * 0x45d9);
@@ -194,12 +210,15 @@ impl CorrelatedMarketModel {
             let alert = u64::from(
                 risk as i64 + sample_window(seed, 0x6003, &self.shape.vol_windows) * 8 > 1_850,
             );
-            states.push(AggregateState { risk, alert });
+            states.push(FixtureAggregateState { risk, alert });
         }
         states
     }
 
-    pub(super) fn desk_limits(self, desks: usize) -> Vec<AggregateState> {
+    pub(in crate::tests::domains::fintech) fn desk_limits(
+        self,
+        desks: usize,
+    ) -> Vec<FixtureAggregateState> {
         let mut states = Vec::with_capacity(desks);
         for desk in 0..desks {
             let seed = self.seed ^ ((desk as u64 + 23) * 0x27d4);
@@ -211,7 +230,7 @@ impl CorrelatedMarketModel {
             let alert = u64::from(
                 risk as i64 + sample_window(seed, 0x7003, &self.shape.price_windows) * 10 > 2_450,
             );
-            states.push(AggregateState { risk, alert });
+            states.push(FixtureAggregateState { risk, alert });
         }
         states
     }
@@ -321,47 +340,4 @@ fn mix(mut value: u64) -> u64 {
     value ^= value >> 27;
     value = value.wrapping_mul(0x94d0_49bb_1331_11eb);
     value ^ (value >> 31)
-}
-
-#[test]
-fn fintech_regime_library_exposes_distinct_market_shapes() {
-    let calm = CorrelatedMarketModel::new(MarketRegime::Calm, 3).market_point(0, 0);
-    let blowout = CorrelatedMarketModel::new(MarketRegime::SpreadBlowout, 3).market_point(0, 0);
-    let curve = CorrelatedMarketModel::new(MarketRegime::CurveShock, 3).market_point(0, 0);
-    let fx = CorrelatedMarketModel::new(MarketRegime::FxDislocation, 3).market_point(0, 0);
-
-    assert!(blowout.liquidity > calm.liquidity);
-    assert!(curve.curve > calm.curve);
-    assert!(fx.risk > calm.risk);
-}
-
-#[test]
-fn fintech_market_model_preserves_cross_rate_and_bucket_shape() {
-    let model = CorrelatedMarketModel::new(MarketRegime::FxDislocation, 41);
-    let fx = model.fx_market();
-    let curves = model.curve_bucket_series(5);
-    let vols = model.vol_surface_series(5);
-    let shocks = model.scenario_shocks(4);
-    let books = model.book_states(3);
-    let desks = model.desk_limits(2);
-
-    assert_eq!(fx.eur_jpy, fx.eur_usd.saturating_mul(fx.usd_jpy) / 10_000);
-    assert_eq!(curves.len(), 5);
-    assert_eq!(vols.len(), 5);
-    assert_eq!(shocks.len(), 4);
-    assert_eq!(books.len(), 3);
-    assert_eq!(desks.len(), 2);
-    assert!(curves.windows(2).all(|w| w[0] != w[1]));
-    assert!(vols.windows(2).all(|w| w[0] != w[1]));
-    assert!(shocks.iter().all(|shock| shock.risk > shock.vol));
-}
-
-#[test]
-fn fintech_market_model_uses_deterministic_probability_windows() {
-    let calm_a = CorrelatedMarketModel::new(MarketRegime::Calm, 7).regime_window_signature();
-    let calm_b = CorrelatedMarketModel::new(MarketRegime::Calm, 7).regime_window_signature();
-    let vol = CorrelatedMarketModel::new(MarketRegime::HighVol, 7).regime_window_signature();
-
-    assert_eq!(calm_a, calm_b);
-    assert_ne!(calm_a, vol);
 }

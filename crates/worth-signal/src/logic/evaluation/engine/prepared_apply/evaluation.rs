@@ -1,4 +1,3 @@
-use crate::data::aspect::Aspect;
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
@@ -13,7 +12,7 @@ use crate::logic::evaluation::{
 };
 use crate::logic::prepared::{PreparedEvaluation, PreparedEvaluationOutcome};
 
-use super::super::apply::{apply_effect_with_policy_and_condition, verdict_for_evaluated_result};
+use super::super::apply::{apply_effect_with_policy_and_condition, provisional_evaluated_verdict};
 use super::super::metadata::EvaluationExecutionMetadata;
 use super::input::{
     apply_prepared_dependencies, ensure_temporal_outcome_alignment, lower_passive_prepared_effect,
@@ -201,8 +200,7 @@ fn build_evaluated_prepared_application(
         comparator_resolver,
     )?;
     let metadata = metadata_for_evaluated_application(&admission, execution_metadata);
-    let verdict =
-        verdict_for_evaluated_application(graph, node, &result, &admission, comparator_resolver)?;
+    let verdict = provisional_evaluated_verdict();
     Ok(EvaluatedPreparedApplication {
         result,
         metadata,
@@ -242,66 +240,4 @@ fn metadata_for_evaluated_application(
             reuse_basis: lowered_reuse_basis,
             reuse_origin: admission.decision.origin,
         })
-}
-
-fn verdict_for_evaluated_application(
-    graph: &SignalGraph,
-    node: NodeId,
-    result: &NodeEvaluationResult,
-    admission: &EvaluatedReuseAdmission,
-    comparator_resolver: &mut impl ComparatorPolicyResolver,
-) -> Result<EvaluationVerdict, SignalError> {
-    let meaningful_output_change =
-        node_output_change_is_meaningful(graph, node, result, comparator_resolver)?;
-    verdict_for_evaluated_result(
-        admission.previous_artifact_warm.as_ref(),
-        result,
-        meaningful_output_change,
-    )
-}
-
-fn node_output_change_is_meaningful(
-    graph: &SignalGraph,
-    node: NodeId,
-    result: &NodeEvaluationResult,
-    comparator_resolver: &mut impl ComparatorPolicyResolver,
-) -> Result<bool, SignalError> {
-    let comparator = comparator_resolver
-        .policy_for_node(node, graph.node_eval_config(node)?.comparator.as_ref());
-    node_output_change_is_meaningful_with_policy(
-        graph,
-        node,
-        result,
-        &comparator,
-        comparator_resolver,
-    )
-}
-
-fn node_output_change_is_meaningful_with_policy(
-    graph: &SignalGraph,
-    node: NodeId,
-    result: &NodeEvaluationResult,
-    comparator_policy: &crate::data::comparator::VersionComparatorPolicy,
-    comparator_resolver: &mut impl ComparatorPolicyResolver,
-) -> Result<bool, SignalError> {
-    let previous = graph.node_aspect_version(node)?;
-    for (index, (&cached, &current)) in previous
-        .slots()
-        .iter()
-        .zip(result.aspect_version.slots().iter())
-        .enumerate()
-    {
-        if cached == current {
-            continue;
-        }
-        if comparator_policy.has_meaningful_change(
-            Aspect::new(index as u8),
-            cached,
-            current,
-            comparator_resolver,
-        )? {
-            return Ok(true);
-        }
-    }
-    Ok(false)
 }

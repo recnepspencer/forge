@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
 
-use super::invalidation_admission::{FrontierEntryClassification, FrontierInclusionBasis};
-use super::locality::{PartitionScopeSet, TouchedScopeSummary};
-use super::SummaryForm;
+use super::super::locality::{PartitionScopeSet, TouchedScopeSummary};
+use super::super::SummaryForm;
+use super::frontier_admission::{FrontierEntryClassification, FrontierInclusionBasis};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FrontierWaveEntrySummary {
@@ -36,6 +36,41 @@ pub struct FrontierWaveSummary {
     pub wave_index: u32,
     pub aspect: Aspect,
     pub entries: Vec<FrontierWaveEntrySummary>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransitiveFrontierWaveSummary {
+    pub wave_index: u32,
+    pub entries: Vec<TransitiveFrontierEntrySummary>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransitiveFrontierEntrySummary {
+    pub node: NodeId,
+    pub classification: FrontierEntryClassification,
+    pub inclusion_basis: FrontierInclusionBasis,
+}
+
+impl TransitiveFrontierEntrySummary {
+    pub fn new(node: NodeId) -> Self {
+        Self {
+            node,
+            classification: FrontierEntryClassification::MaybeStale,
+            inclusion_basis: FrontierInclusionBasis::TransitiveReachability,
+        }
+    }
+}
+
+impl TransitiveFrontierWaveSummary {
+    pub fn new(
+        wave_index: u32,
+        entries: impl IntoIterator<Item = TransitiveFrontierEntrySummary>,
+    ) -> Self {
+        Self {
+            wave_index,
+            entries: entries.into_iter().collect(),
+        }
+    }
 }
 
 impl FrontierWaveSummary {
@@ -72,7 +107,7 @@ pub struct FrontierExecutionCounters {
 pub struct FrontierExecutionSummary {
     pub seed_count: u64,
     pub direct_waves: Vec<FrontierWaveSummary>,
-    pub transitive_waves: Vec<FrontierWaveSummary>,
+    pub transitive_waves: Vec<TransitiveFrontierWaveSummary>,
     pub touched_scope_summary: TouchedScopeSummary,
     pub counters: FrontierExecutionCounters,
 }
@@ -81,7 +116,7 @@ impl FrontierExecutionSummary {
     pub fn new(
         seed_count: u64,
         direct_waves: Vec<FrontierWaveSummary>,
-        transitive_waves: Vec<FrontierWaveSummary>,
+        transitive_waves: Vec<TransitiveFrontierWaveSummary>,
         touched_scope_summary: TouchedScopeSummary,
         counters: FrontierExecutionCounters,
     ) -> Self {

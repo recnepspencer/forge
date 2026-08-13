@@ -95,10 +95,11 @@ pub use self::history::{
 #[cfg(test)]
 pub use self::runtime::*;
 #[cfg(not(test))]
+#[allow(deprecated)]
 pub use self::runtime::{
     bridge_signal_branch_basis_trust_boundary, mark_dirty_batch, BatchChange, BatchChangeResult,
     BatchChangeSession, BranchTargetedTransactionDenial, BranchTargetedTransactionExecutionOutcome,
-    BranchTargetedTransactionRequest, ChangeBatch, ChangeBatchCommit,
+    BranchTargetedTransactionRequest, ChangeBatch, ChangeBatchAdmission, ChangeBatchCommit,
     ExecutedBranchTargetedTransactionReceipt, History, IntervalWakeRegeneration,
     LoweredBranchTargetedTransactionPlan, PlannedSignalBranchRetirement,
     PlannedSignalBranchRetirementBatch, PreviousValueRevision, ReadyTemporalWake, RecipeInstance,
@@ -116,6 +117,7 @@ pub use self::runtime::{
     ValidatedBranchTargetedTransactionRequest, WakeOrdinal,
 };
 #[cfg(test)]
+#[allow(deprecated)]
 pub use self::runtime::{
     ChangeBatch as DirtyBatch, ChangeBatchCommit as SemanticBatchCommit, History as RuntimeHistory,
     KeyedRecipe as KeyedComputation, KeyedRecipeInstance as DefinedKeyedComputation,

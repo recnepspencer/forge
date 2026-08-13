@@ -2214,6 +2214,17 @@ Normative rule:
 - transitive reachability is not changed-output authority because aspects are
   interpreted against the immediate producer whose output contract declares
   them
+- root mutation declarations are recompute intent: they may create unresolved
+  revalidation but cannot manufacture a committed descendant aspect
+- producer output equivalence and consumer dependency comparison are distinct
+  semantic decisions; the current configuration path's use of one comparator
+  for both responsibilities is part of the repair, not accepted authority
+- installed conditional contracts retain their separate dependency-comparator
+  and output-comparator roles through lowering instead of collapsing either
+  role into the other's node configuration
+- the current node-level dirty mask is consumed by ordinary, installed, and
+  async condition paths without retaining the immediate dependency, dependency
+  revision, or producer commit that justified it
 - the current reachability walk can therefore under-invalidate when an
   intermediate node translates one aspect into another, and it can over-visit
   contract-disjoint descendants
@@ -2226,10 +2237,12 @@ Normative rule:
 
 The numbered repair and certification sequence is:
 
-1. [Milestone 12 - Aspect-Causal Invalidation](./milestone-12-plan.md) makes
-   immediate-dependency committed output deltas the only transitive aspect
-   authority, expands the fintech financial world, and seals semantic
-   equivalence evidence during implementation.
+1. [Milestone 12 - Aspect-Causal Invalidation](./milestone-12-plan.md) separates
+   unresolved root recompute intent from atomically committed per-aspect/per-
+   scope producer deltas, binds resolved causes to the immediate dependency and
+   its logical revision, establishes canonical pending cause storage, expands
+   the fintech financial world, and seals semantic equivalence evidence during
+   implementation.
 2. [Milestone 13 - Locality-First Frontier Execution](./milestone-13-plan.md)
    replaces reachable-closure walking with direct-hop semantic admission and a
    replaceable ready-work scheduling boundary, then seals financial cost-slope
@@ -2361,10 +2374,14 @@ own domain evidence before geometry readiness can be claimed.
 Required certification families:
 
 - quote-to-price-to-risk aspect translation with matched/unmatched filters
+- heterogeneous exact, tolerance, and installed comparator consumers of one
+  producer delta, including policy-separation and legacy-upgrade twins
 - tolerance-suppressed and genuinely changed repricing twins
 - producer-local market-factor aspect collisions
-- rates/credit partition and detail locality
-- condition-gated repricing and dynamic instrument dependency rewiring
+- rates/credit partition and detail locality with multiple committed scopes
+  accumulated while a consumer is gated
+- condition-gated repricing and dynamic instrument dependency rewiring,
+  including same-shaped edge recreation under a new dependency revision
 - sparse, medium, and dense portfolio frontiers
 - overlapping price, FX, curve, and volatility shocks
 - branch/restore/replay histories with financial-truth equivalence checks
@@ -2384,16 +2401,39 @@ Mandatory measurement boundaries:
 Numbered implementation owners:
 
 - [Milestone 12 - Aspect-Causal Invalidation](./milestone-12-plan.md) owns the
+  authentic immutable financial-world definition, causally complete baseline,
   named semantic financial scenarios, fresh-recompute and necessity oracles,
-  equivalence reports, and sealed causality run
+  financial equivalence reports, and
+  `FinancialAspectCausalityCertificationRun`
 - [Milestone 13 - Locality-First Frontier Execution](./milestone-13-plan.md)
   owns the named scale/locality financial scenarios, structural cost slopes,
-  same-work-stream traversal comparisons, sealed locality run, and typed
-  strategy decision
-- neither milestone may close an implementation phase while its assigned
-  financial scenario evidence is red or absent
+  Foundational counter-backed receipts, same-work-stream traversal comparisons,
+  `FinancialFrontierLocalityCertificationRun`, and typed strategy decision
+- Phase 1 must first establish the authentic financial baseline, independent
+  oracle cores, and named inherited red control; after a phase
+  cuts over the authority exercised by an assigned financial scenario, neither
+  milestone may close that phase with the scenario red or absent
 - both milestones explicitly exclude tree-only order-maintenance assumptions
   and do not pre-authorize a priority queue or other traversal implementation
+
+Milestone 12 implementation state:
+
+- `ChangeBatchAdmission` is root recompute admission, not output-commit truth;
+  deprecated commit-shaped aliases lower to that same admission
+- producer output equivalence is decided once at canonical output-commit
+  preparation; consumer dependency comparison is a separate admission policy
+- committed dependency causes retain producer, consumer, aspect, correlated
+  scope, dependency revision, snapshot version, output ordinal, committed
+  version, graph instance, and edge identity through persistence/readmission
+- direct root bases and dependency cause sets are distinct persisted
+  authorities; derived dirty caches are rebuilt from them and cannot mint them
+- immediate pending causes resolve before ordinary, temporal, on-demand,
+  custom, installed, or async condition admission
+- structural transitive reachability carries pending-revalidation posture only;
+  its plan and execution summaries contain no copied root aspect or root scope
+- the eight-scenario financial courtroom seals one
+  `FinancialAspectCausalityCertificationRun`; it remains test-only and does not
+  put financial vocabulary on the domain-neutral facade
 
 Execution order:
 

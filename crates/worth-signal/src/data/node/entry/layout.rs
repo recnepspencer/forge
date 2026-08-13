@@ -4,8 +4,10 @@ use smallvec::SmallVec;
 use crate::data::aspect::{AspectMask, AspectVersionHeader, PartitionVersionOverrides};
 use crate::data::core_profile::HOT_VEC_INLINE_CAPACITY;
 use crate::data::dependency::DependencySnapshotId;
+use crate::data::graph::storage::invalidation_causes::PendingCauseSetId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
 use crate::data::node::NodeEvaluationConfig;
+use crate::data::proof::invalidation::binding::DependencyRevision;
 use crate::data::trace::{
     CausalityMetadata, ExecutionTraceStamp, RetainedDiagnosticArtifact, RuntimeArtifactState,
 };
@@ -36,6 +38,10 @@ pub(crate) struct NodeHotData {
     pub(crate) dependencies_id: DependencySetId,
     pub(crate) subscribers_id: SubscriberSetId,
     pub(crate) dep_snapshot_id: DependencySnapshotId,
+    #[serde(default)]
+    pub(crate) pending_cause_set_id: PendingCauseSetId,
+    #[serde(default)]
+    pub(crate) dependency_revision: DependencyRevision,
 }
 
 /// Warm fields preserve node-local state that is bounded but not required by
@@ -44,6 +50,12 @@ pub(crate) struct NodeHotData {
 pub(crate) struct NodeWarmData {
     #[serde(default)]
     pub(crate) tombstoned: bool,
+    #[serde(default)]
+    pub(crate) pending_dependency_revalidation:
+        Option<crate::data::proof::invalidation::binding::PendingDependencyRevalidation>,
+    #[serde(default)]
+    pub(crate) direct_invalidation_basis:
+        Option<crate::data::proof::invalidation::source_seed::DirectInvalidationBasis>,
     #[serde(default)]
     pub(crate) aspect_version_overrides: PartitionVersionOverrides,
     #[serde(default)]

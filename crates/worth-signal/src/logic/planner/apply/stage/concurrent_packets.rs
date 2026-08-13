@@ -1,10 +1,10 @@
 #![cfg(feature = "parallel")]
 
-use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::MemoizedResultOrigin;
+use crate::data::output_equivalence::OutputEquivalencePolicy;
 use crate::data::proof::SnapshotBatchCommit;
 use crate::data::reuse::ReuseBasis;
 use crate::logic::evaluation::{
@@ -58,7 +58,7 @@ pub(super) fn build_group_packet(
             None,
             dependency_updates,
             dependency_inputs,
-            true,
+            false,
         )
         .map_err(|error| grouped_apply_failure_from_build_error(node, identity.record_id, error))?;
         task_commits.push(GroupLocalTaskCommit::new(
@@ -71,14 +71,7 @@ pub(super) fn build_group_packet(
             recomputed,
             partition_aware,
             rewiring,
-            commit_packet
-                .try_into()
-                .map_err(|error| GroupedApplyFailure {
-                    node,
-                    record_id: identity.record_id,
-                    error,
-                    reuse_failure: None,
-                })?,
+            commit_packet.into(),
         ));
     }
     Ok(GroupLocalApplyPacket::new(group_index, task_commits))
@@ -91,6 +84,7 @@ pub(super) fn reduce_grouped_concurrent_packets(
     stage_index: u32,
     mut packets: Vec<GroupLocalApplyPacket>,
     reduction: ConcurrentApplyReductionPlan,
+    comparator_resolver: &mut impl crate::data::comparator::ComparatorPolicyResolver,
 ) -> Result<StageScratch, SignalError> {
     debug_assert!(
         matches!(
@@ -107,18 +101,25 @@ pub(super) fn reduce_grouped_concurrent_packets(
 
     let mut semantic_batch = StageSemanticBatch::default();
     let mut pending_snapshots = Vec::new();
-    for packet in packets {
-        for commit in packet.into_task_commits() {
-            let update =
-                match publish_group_local_task_commit(graph, commit, &mut pending_snapshots) {
-                    Ok(update) => update,
-                    Err(failure) => {
-                        record_grouped_apply_failure(graph, summary, stage_index, &failure);
-                        return Err(failure.error);
-                    }
-                };
-            semantic_batch.push_segment(segment_for_single_update(update));
-        }
+    let mut commits = packets
+        .into_iter()
+        .flat_map(GroupLocalApplyPacket::into_task_commits)
+        .collect::<Vec<_>>();
+    commits.sort_by_key(GroupLocalTaskCommit::task_index);
+    for commit in commits {
+        let update = match publish_group_local_task_commit(
+            graph,
+            commit,
+            &mut pending_snapshots,
+            comparator_resolver,
+        ) {
+            Ok(update) => update,
+            Err(failure) => {
+                record_grouped_apply_failure(graph, summary, stage_index, &failure);
+                return Err(failure.error);
+            }
+        };
+        semantic_batch.push_segment(segment_for_single_update(update));
     }
     graph
         .telemetry_mut()
@@ -137,6 +138,7 @@ fn publish_group_local_task_commit(
     graph: &mut SignalGraph,
     commit: GroupLocalTaskCommit,
     pending_snapshots: &mut Vec<crate::logic::evaluation::PendingDependencySnapshot>,
+    comparator_resolver: &mut impl crate::data::comparator::ComparatorPolicyResolver,
 ) -> Result<SemanticTaskUpdate, GroupedApplyFailure> {
     let (
         task_index,
@@ -151,7 +153,7 @@ fn publish_group_local_task_commit(
         commit_packet,
     ) = commit.into_parts();
     let (report, pending_snapshot) = graph
-        .publish_suppression_free_apply_commit_packet(commit_packet)
+        .publish_prepared_parallel_apply_commit_packet(commit_packet, comparator_resolver)
         .map_err(|error| GroupedApplyFailure {
             node,
             record_id: identity.record_id,
@@ -276,6 +278,7 @@ fn take_slot<T>(slot: &mut Option<T>, context: &'static str) -> Result<T, Signal
 
 #[cfg(feature = "parallel")]
 pub(super) fn can_lower_true_grouped_concurrent(
+    graph: &SignalGraph,
     tasks: &[LoweredTask],
     groups: &[DisjointApplyGroup],
 ) -> bool {
@@ -283,9 +286,13 @@ pub(super) fn can_lower_true_grouped_concurrent(
         && tasks.iter().all(|task| {
             task.execution().dependency_updates() == 0
                 && task.execution().rewiring().is_none()
-                && !matches!(
-                    task.comparator_policy(),
-                    VersionComparatorPolicy::OutputIdentity
+                && matches!(
+                    graph
+                        .node_eval_config(task.node())
+                        .map(|config| &config.output_equivalence),
+                    Ok(OutputEquivalencePolicy::ExactAspectVersion
+                        | OutputEquivalencePolicy::OutputIdentity
+                        | OutputEquivalencePolicy::AspectVersionTolerance { .. })
                 )
         })
 }

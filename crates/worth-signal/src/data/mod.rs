@@ -20,6 +20,7 @@ pub mod host_computed;
 pub mod node;
 pub mod node_meta;
 pub mod output;
+pub mod output_equivalence;
 pub mod performance;
 pub mod proof;
 pub mod resource;

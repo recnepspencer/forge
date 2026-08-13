@@ -20,7 +20,7 @@ use super::metadata::EvaluationExecutionMetadata;
 pub(crate) use dependency_inputs::collect_effect_dependency_inputs_iter;
 #[cfg(feature = "parallel")]
 pub(crate) use effect_lowering::build_evaluation_effect;
-pub(crate) use verdict::verdict_for_evaluated_result;
+pub(crate) use verdict::provisional_evaluated_verdict;
 
 pub(crate) fn apply_effect_with_policy_and_condition(
     graph: &mut SignalGraph,
@@ -55,11 +55,11 @@ pub(crate) fn apply_effect_with_policy_and_condition(
         dependency_inputs,
         previous_artifact_warm,
     );
-    let comparator = effect_lowering::resolve_effect_comparator(graph, node, comparator_resolver)?;
+    let output_equivalence = effect_lowering::resolve_output_equivalence(graph, node)?;
     let (report, pending_snapshot) = mutation::apply_evaluation_effect(
         graph,
         effect,
-        comparator,
+        output_equivalence,
         comparator_resolver,
         defer_snapshot_commit,
     )?;

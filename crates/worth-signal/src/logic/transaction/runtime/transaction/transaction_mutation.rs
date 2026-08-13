@@ -8,7 +8,7 @@ use crate::data::error::SignalError;
 use crate::data::evaluator::CheckpointEvaluator;
 use crate::data::handle::NodeId;
 use crate::data::output::ChangedRegion;
-use crate::data::proof::{DirtyBatch, SemanticBatchCommit};
+use crate::data::proof::{DirtyBatch, SourceRecomputeAdmission};
 use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::invalidation::mark_dirty_batch;
@@ -27,8 +27,11 @@ where
     T: Copy + Ord,
 {
     pub(in crate::logic::transaction::runtime) fn ensure_rollback_packets(&mut self) {
-        self.rollback_packets
-            .capture_runtime_baseline_if_needed(self.config, self.graph.diagnostics_state());
+        self.rollback_packets.capture_runtime_baseline_if_needed(
+            self.config,
+            self.graph.diagnostics_state(),
+            self.graph,
+        );
     }
 
     pub fn staged_graph(&self) -> &crate::data::graph::SignalGraph {
@@ -124,7 +127,7 @@ where
     pub fn mark_dirty_batch(
         &mut self,
         dirty: &DirtyBatch,
-    ) -> Result<SemanticBatchCommit, SignalError> {
+    ) -> Result<SourceRecomputeAdmission, SignalError> {
         self.ensure_rollback_packets();
         for entry in dirty.as_slice() {
             self.stage_mark_dirty_candidates(entry.source)?;
@@ -135,7 +138,7 @@ where
     pub fn apply_batch_changes(
         &mut self,
         dirty: &DirtyBatch,
-    ) -> Result<SemanticBatchCommit, SignalError> {
+    ) -> Result<SourceRecomputeAdmission, SignalError> {
         self.mark_dirty_batch(dirty)
     }
 
@@ -365,7 +368,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn apply(mut self) -> Result<SemanticBatchCommit, SignalError> {
+    pub fn apply(mut self) -> Result<SourceRecomputeAdmission, SignalError> {
         let batch = DirtyBatch::new(self.entries.drain(..));
         let result = self.tx.apply_batch_changes(&batch);
         self.applied = true;
