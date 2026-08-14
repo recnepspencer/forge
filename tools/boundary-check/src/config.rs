@@ -154,6 +154,12 @@ fn default_query_workspace() -> String {
 pub(crate) struct QueryFacadeSurfaceConfig {
     pub(crate) label: String,
     pub(crate) source: String,
+    #[serde(default)]
+    pub(crate) namespace: Option<String>,
+    #[serde(default)]
+    pub(crate) reexport: Option<String>,
+    #[serde(default)]
+    pub(crate) owner_source: Option<String>,
 }
 
 /// One audience facade row: package identity, legal bands, and repair guidance.

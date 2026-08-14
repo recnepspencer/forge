@@ -197,7 +197,9 @@ impl SignalGraph {
         ) {
             return Ok(());
         }
-        if !self.node_runtime_artifact_state_present(node)? {
+        if !self.node_runtime_artifact_state_present(node)?
+            && apply.effect.operational.aspect_version != previous
+        {
             return Ok(());
         }
         if apply.comparison.propagation_suppressed {

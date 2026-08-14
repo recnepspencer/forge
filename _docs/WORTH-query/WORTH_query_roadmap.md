@@ -4666,21 +4666,24 @@ have one governing home in Milestone 9.16 and Milestones 9.19 through 9.22.
 
 ## Milestone 9.16: Authenticated Async Bank World And The Ordinary Query Front Door
 
-**Status:** Runtime Hardening Phase 8 is closed through C8 (2026-08-12).
+**Status:** Runtime Hardening Phases 1-10 and Bank World Phases 1-5 are closed.
 The accepted aftermath, external-effect, recovery, retention, and publication
 foundation is proved through corrections C1-C8 under the
 [Runtime Phase 8 finish plan](./milestone-9.16-runtime-phase-8-finish-plan.md).
-Consumer discovery adds Runtime Phase 9 for host-installed conditional
-providers, managed clocks, Signal-owned temporal wakes, and reconstruction from
-authoritative Relational/domain truth. The former public-policy cutover is now
-Runtime Phase 10 and cannot close before that host contract does.
+Runtime Phase 9 closes host-installed conditional providers, managed clocks,
+Signal-owned temporal wakes, and reconstruction from authoritative
+Relational/domain truth. Runtime Phase 10 closes the public-policy cutover,
+developer guidance, facade contract, reference-consumer classification, and
+workaround residue under their
+[Phase 9](./milestone-9.16-runtime-phase-9-closure-ledger.md) and
+[Phase 10](./milestone-9.16-runtime-phase-10-closure-ledger.md) ledgers.
 The existing undo/redo lane is provisional and is excluded from Bank Phases 5
 and 6, Closure Phase 1, and current milestone acceptance evidence; Milestone
 9.18 owns its product contract and proof. Developer guidance is
 [Application Aftermath, External Effects, And Recovery](../../workspaces/worth-query/crates/worth-query/docs/execution/application-aftermath-and-recovery.md).
 Bank Phase 5 is closed by the real Docker-backed, separate-process transport
-court (2026-08-13). Milestone 9.16 remains open: Runtime Phases 9-10, Bank
-Phase 6, and Closure Phase 1 still precede the Milestone 9.17 handoff.
+court (2026-08-13). Milestone 9.16 remains open: Bank Phase 6 and Closure Phase
+1 still precede the Milestone 9.17 handoff.
 
 ### Goal
 

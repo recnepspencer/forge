@@ -23,9 +23,18 @@ pub(super) fn resolve_condition(
     resolver: &mut impl InstalledSignalConditionResolver,
 ) -> Result<ConditionDisposition, SignalError> {
     let node = request.contract.node();
+    let external_trigger_requested = request.force_on_demand
+        || matches!(
+            request.contract.condition(),
+            EvaluationCondition::Installed(identity)
+                if identity.role() == crate::data::node::InstalledSignalConditionRole::TemporalWake
+        );
     let dirty_aspects = match graph.node_invalidation_input(node)? {
         NodeInvalidationInput::Pending(_) => return Ok(ConditionDisposition::Deferred),
         NodeInvalidationInput::Resolved(causes) => causes.dirty_aspects(),
+        NodeInvalidationInput::ResolvedNoChange(_) if external_trigger_requested => {
+            crate::data::aspect::AspectMask::EMPTY
+        }
         NodeInvalidationInput::ResolvedNoChange(_) => return Ok(ConditionDisposition::Suppressed),
     };
     let trigger_aspects = request.contract.trigger_aspects();

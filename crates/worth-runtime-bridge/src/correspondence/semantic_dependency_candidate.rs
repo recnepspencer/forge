@@ -10,6 +10,10 @@ use super::{BridgeCorrespondenceDenial, BridgeCorrespondenceDenialKind};
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum BridgeSemanticLocality {
     SourceRecord,
+    /// One exact source record supplied by a Bridge-managed temporal intent.
+    /// The static conditional registration may widen across records, but each
+    /// managed execution is rebound to one retained record identity.
+    ManagedSourceRecord,
     SourcePartition(TruthPartitionRole),
     WholeLogicalGraph,
 }
@@ -85,6 +89,8 @@ impl BridgeSemanticDependencyCandidate {
             || parts.relevant_changes.is_empty()
             || matches!(parts.locality, BridgeSemanticLocality::SourceRecord)
                 != parts.source_record_identity.is_some()
+            || matches!(parts.locality, BridgeSemanticLocality::ManagedSourceRecord)
+                && parts.source_record_identity.is_some()
         {
             return Err(BridgeCorrespondenceDenial::without_admission(
                 BridgeCorrespondenceDenialKind::InvalidPortableDependency,
@@ -166,6 +172,7 @@ impl BridgeSemanticDependencyCandidate {
     pub(crate) fn canonical_registration_key(&self) -> String {
         let locality = match &self.locality {
             BridgeSemanticLocality::SourceRecord => "record".to_string(),
+            BridgeSemanticLocality::ManagedSourceRecord => "managed-record".to_string(),
             BridgeSemanticLocality::SourcePartition(partition) => {
                 format!("partition:{}", partition.as_str())
             }

@@ -37,6 +37,7 @@ use super::{
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationEntityIdentity, WorthQueryApplicationEntityKey,
+    WorthQueryInvariantMutationTarget,
 };
 
 impl<Schema, Operation, Input, Scope>
@@ -89,6 +90,31 @@ impl<Schema, Operation, Input, Scope>
 impl<Schema, Operation, Input, Scope>
     WorthQueryApplicationEffectProgramBuilder<Schema, Operation, Input, Scope>
 {
+    pub fn projected_entity<Entity>(
+        &self,
+        target: &WorthQueryInvariantMutationTarget<Schema, Entity>,
+    ) -> Result<WorthQueryApplicationEffectEntity<Schema, Entity>, WorthQueryApplicationAttemptDenial>
+    {
+        let observed = self
+            .read_set
+            .facts
+            .iter()
+            .any(|fact| fact.touches_entity(target.entity_id));
+        if !observed {
+            return Err(denial(
+                WorthQueryApplicationAttemptDenialKind::ForeignEffectTarget,
+                target.entity.as_ref(),
+            ));
+        }
+        Ok(WorthQueryApplicationEffectEntity {
+            reference: EntityReference::Existing(target.entity_id),
+            entity: target.entity.to_string(),
+            created_effect: None,
+            program: Arc::clone(&self.program),
+            _marker: PhantomData,
+        })
+    }
+
     pub fn existing_entity<Entity>(
         &self,
         identity: &WorthQueryApplicationEntityIdentity<Schema, Entity>,

@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use crate::facade::{
-    BridgeManagedClockInstallationParts, BridgeManagedClockObservationOutcome,
-    BridgeManagedClockObservationParts, BridgeManagedTemporalDenialKind,
+    BridgeConditionalDenialKind, BridgeManagedClockInstallationParts,
+    BridgeManagedClockObservationOutcome, BridgeManagedClockObservationParts,
+    BridgeManagedConditionalExecutionRequest, BridgeManagedTemporalDenialKind,
     BridgeManagedTemporalIntentIdentity, BridgeManagedTemporalIntentLifecycle,
     BridgeManagedTemporalIntentReconciliation, BridgeManagedTemporalIntentReconciliationParts,
 };
@@ -15,10 +16,12 @@ fn installed_clock(
 ) -> (
     crate::facade::BridgeOwnedSignalRuntime,
     crate::facade::BridgeManagedClockBinding,
+    Arc<crate::facade::BridgeInstalledConditionalLowering>,
 ) {
-    let (mut owner, _) = install(always_eligible_contract("query:one"), "managed-time");
+    let (mut owner, lowering) = install(always_eligible_contract("query:one"), "managed-time");
     let binding = owner
         .install_managed_clock(BridgeManagedClockInstallationParts {
+            lowering: &lowering,
             binding_identity: Arc::from("query:clock:billing"),
             source_identity: Arc::from("host:clock:billing"),
             timeline_identity: Arc::from("timeline:billing:v1"),
@@ -26,7 +29,7 @@ fn installed_clock(
             maximum_due_wakes_per_observation,
         })
         .expect("exact managed clock installs");
-    (owner, binding)
+    (owner, binding, lowering)
 }
 
 fn active<'a>(
@@ -41,13 +44,14 @@ fn active<'a>(
         revision,
         due_coordinate,
         idempotency_identity: Arc::from(format!("idempotency:{identity}")),
+        source_record_identity: crate::facade::RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
         lifecycle: BridgeManagedTemporalIntentLifecycle::Active,
     }
 }
 
 #[test]
 fn intent_reconciliation_is_revisioned_capacity_bounded_and_effect_safe() {
-    let (mut owner, binding) = installed_clock(2, 2);
+    let (mut owner, binding, _) = installed_clock(2, 2);
     assert_eq!(
         owner
             .reconcile_managed_temporal_intent(active(&binding, "intent:a", 1, 5))
@@ -92,7 +96,7 @@ fn intent_reconciliation_is_revisioned_capacity_bounded_and_effect_safe() {
 
 #[test]
 fn duplicate_observation_drains_only_the_remaining_bounded_due_frontier() {
-    let (mut owner, binding) = installed_clock(3, 1);
+    let (mut owner, binding, _) = installed_clock(3, 1);
     owner
         .reconcile_managed_temporal_intent(active(&binding, "intent:a", 1, 5))
         .unwrap();
@@ -132,7 +136,7 @@ fn duplicate_observation_drains_only_the_remaining_bounded_due_frontier() {
 
 #[test]
 fn observation_affinity_and_ordering_fail_without_due_progress() {
-    let (mut owner, binding) = installed_clock(1, 1);
+    let (mut owner, binding, _) = installed_clock(1, 1);
     owner
         .reconcile_managed_temporal_intent(active(&binding, "intent:a", 1, 5))
         .unwrap();
@@ -190,7 +194,7 @@ fn observation_affinity_and_ordering_fail_without_due_progress() {
 
 #[test]
 fn successor_runtime_requires_managed_clock_rebinding() {
-    let (owner, binding) = installed_clock(1, 1);
+    let (owner, binding, _) = installed_clock(1, 1);
     let mut successor = owner.successor_installation_runtime().unwrap();
     let denial = match successor.observe_managed_clock(BridgeManagedClockObservationParts {
         binding: &binding,
@@ -205,5 +209,70 @@ fn successor_runtime_requires_managed_clock_rebinding() {
     assert_eq!(
         denial.kind(),
         BridgeManagedTemporalDenialKind::ForeignClockBinding
+    );
+}
+
+#[test]
+fn managed_due_wake_executes_only_its_exact_conditional_lowering() {
+    let (mut owner, binding, lowering) = installed_clock(1, 1);
+    owner
+        .reconcile_managed_temporal_intent(active(&binding, "intent:a", 1, 5))
+        .unwrap();
+    let BridgeManagedClockObservationOutcome::Accepted(accepted) = owner
+        .observe_managed_clock(BridgeManagedClockObservationParts {
+            binding: &binding,
+            source_identity: "host:clock:billing",
+            timeline_identity: "timeline:billing:v1",
+            sequence: 1,
+            observed_coordinate: 5,
+        })
+        .unwrap()
+    else {
+        panic!("clock observation should promote one exact managed wake");
+    };
+    let mut wakes = accepted.into_due().into_wakes();
+    let due = wakes.pop().expect("one due wake");
+
+    let decision = owner
+        .execute_managed_due_wake(
+            BridgeManagedConditionalExecutionRequest {
+                due_wake: &due,
+                lowering: &lowering,
+                query_binding_identity: "query-binding:one",
+                query_capability_identity: 1,
+                snapshot_identity: "snapshot:one",
+                truth_branch_identity: Some("main"),
+                bridge_snapshot_identity: None,
+                attempt: 1,
+            },
+            &mut (),
+        )
+        .expect("exact due wake reaches its installed Signal conditional");
+    assert_eq!(
+        decision.signal().class(),
+        worth_signal::facade::SignalConditionalDecisionClass::ComputedChanged
+    );
+
+    let (_foreign_owner, foreign_lowering) =
+        install(always_eligible_contract("query:one"), "managed-time");
+    let result = owner.execute_managed_due_wake(
+        BridgeManagedConditionalExecutionRequest {
+            due_wake: &due,
+            lowering: &foreign_lowering,
+            query_binding_identity: "query-binding:one",
+            query_capability_identity: 1,
+            snapshot_identity: "snapshot:one",
+            truth_branch_identity: Some("main"),
+            bridge_snapshot_identity: None,
+            attempt: 2,
+        },
+        &mut (),
+    );
+    let Err(denial) = result else {
+        panic!("a due wake cannot cross to another conditional lowering");
+    };
+    assert_eq!(
+        denial.kind(),
+        BridgeConditionalDenialKind::ManagedWakeMismatch
     );
 }

@@ -165,6 +165,13 @@ Stable application aftermath and recovery enter through `primary_graph` and
 `publication::application_aftermath`. Do not teach
 `facade::provisional_aftermath` as stable undo/redo support.
 
+The facade route is part of the contract, not just the final list of names.
+Boundary enforcement verifies that `worth-query-host` re-exports the exact
+installed owner namespace and snapshots that namespace recursively. Retargeting
+an alias to a broader implementation namespace is a contract change even when
+some existing imports still compile. Do not preserve an obsolete path by
+re-exporting the same types from a second authority lane.
+
 ### Certification audience
 
 Use `worth-query-replay` only from certification code:
@@ -658,6 +665,80 @@ Node evaluation and effect execution are distinct:
 A Signal boolean, slot value, or diagnostic explanation cannot authorize an
 application effect by itself.
 
+Primary-graph temporal operations add one crucial ownership rule: durable
+temporal intent remains authoritative Relational/domain truth, while Signal's
+wake table is volatile derived state. The host supplies a typed predicate, a
+named clock source, a bounded reconstruction projection, and an ordinary
+application-operation invoker through `worth-query-host`. A clock reading is
+time evidence only. Signal decides eligibility, and Query then performs fresh
+principal, capability, purpose, invariant, idempotency, and compare-and-commit
+progression. The effect and the intent's completed posture commit atomically.
+
+Bridge decision evidence enters Query as one of five public postures:
+eligible, dependency-unchanged, reverted-clean, suppressed, or deferred. Only
+eligible evidence can reach fresh application-operation admission.
+Dependency-unchanged, suppressed, and deferred wakes remain non-invoking;
+reverted-clean retains the completed compute cost but creates no new
+application consequence. Query classifies the real Bridge evidence rather than
+re-running the host predicate or copying Signal's decision into a local
+boolean.
+
+Temporal identity follows the same canonical seam as the rest of Query. The
+portable binding identity covers the installed node authority, clock, source,
+timeline, reconstruction query and projector, principal source, and invoker.
+Publication derives a second runtime-qualified identity that adds the exact
+runtime, installation generation, provider, and branch. Both use Foundational
+canonical-basis preparation and typed canonical digests; Query does not own a
+private byte grammar or direct hashing lane. The binding and runtime identities
+are derived at installation and carried forward.
+
+A due wake derives its idempotency key and intent identity once during fresh
+application admission from the carried runtime binding plus the authoritative
+intent identity, revision, input, and host idempotency value. Compare-and-commit
+consumes that prepared binding. No later phase of that attempt regenerates it.
+If a later re-entry lawfully performs another fresh admission, its derivation
+is reported again as admission work, never as retry, recovery, provider,
+projection, live-delivery, or publication work.
+
+Commit publication refreshes the derived temporal-intent index before it
+returns. Cancellation, completion, or an active successor revision is therefore
+reconciled before predicate and operation contact; ordinary clock observation
+uses that derived index and never performs reconstruction. Relevant changes are
+retained on route-local exact-record journals; unrelated global commits neither
+consume the route's retention nor create false overrun. Dependency observations
+expose authoritative snapshot absence and only the declared projection fields.
+Absence is an explicit `Option` posture throughout snapshot materialization;
+there is no present-only accessor that can panic on a lawful missing record or
+aspect. Same-installation conditional-runtime reinstallation
+discards Bridge/Signal state and reconstructs active work from current
+authoritative intent records; completed or cancelled work does not return, and
+an already committed effect cannot be repeated. A successor installation must
+either be rebound through fresh typed host bindings or fails closed with a typed
+rebind requirement.
+
+Each accepted clock receipt also exposes descriptive `execution_provenance()`:
+the stable intent and revision, derived wake ordinals, Signal decision,
+application-attempt presence, and terminal posture. This is inspection
+evidence, not replay data or a reusable authority token.
+
+Clock receipts report relevant authoritative-commit work separately from due
+wake fan-out. Reinstallation receipts separately report reconstructed binding
+and intent counts together with examined candidates, projected records/fields,
+and total query work, so ordinary and reconstructive costs cannot be conflated.
+Canonical work is equally phase-exact: the clock handle exposes base binding
+work, runtime inspection exposes complete installation work, and each
+execution-provenance row exposes the fresh admission work in its admission
+slot. Later execution, retry, recovery, and publication slots remain zero.
+These counters describe where canonical work occurred; they do not reveal a
+digest basis or authorize another attempt.
+
+`conditional_runtime_lifecycle_probe()` captures weak liveness observations of
+the actual Query binding, lease, wake, intent, and attempt owners plus the
+Bridge provider, managed-clock, and owned-Signal-graph owners. Retain it outside
+the application runtime and call `live_inventory()` after ordinary Rust `Drop`;
+zero means those concrete owners were released, not that a Drop hook published
+an expected answer. The probe carries no close or execution authority.
+
 See [Conditional Installed Operations](./domain-capabilities/conditional-installed-operations.md)
 and [Signal Compatibility Orchestration](./domain-capabilities/signal-compatibility-orchestration.md).
 
@@ -953,6 +1034,7 @@ Do not:
 
 Start with the guide that owns the concept you are changing:
 
+- [Ordinary Application Front Door](./foundations/ordinary-application-front-door.md)
 - [Documentation Index](./README.md)
 - [Application Authorization And Emergency Elevation](./capabilities/application-authorization-and-emergency-elevation.md)
 - [Query Operating Modes](./foundations/query-operating-modes.md)

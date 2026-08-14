@@ -223,6 +223,7 @@ fn locality_matches(
             (source_record_identity, record),
             (Some(expected), Some(actual)) if expected == actual
         ),
+        super::BridgeSemanticLocality::ManagedSourceRecord => record.is_some(),
         super::BridgeSemanticLocality::SourcePartition(role) => source_partition == Some(role),
     }
 }

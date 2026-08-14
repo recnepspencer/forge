@@ -80,6 +80,45 @@ impl TruthSnapshotReader for MissingRecordReader {
 }
 
 #[derive(Debug)]
+struct AuthoritativeAbsenceReader;
+
+impl TruthSnapshotReader for AuthoritativeAbsenceReader {
+    fn snapshot_identity(&self) -> TruthSnapshotIdentity {
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
+    }
+
+    fn read_packet(
+        &self,
+        request: &SnapshotReadPacket,
+    ) -> Result<SnapshotReadPacketResult, crate::snapshot::BridgeSnapshotReadError> {
+        let records = request
+            .reads()
+            .iter()
+            .map(|read| {
+                if read.entity_identity() == "entity-2" && read.aspect_key().as_str() == "status" {
+                    crate::snapshot::SnapshotReadRecord::absent_for_request(read)
+                } else {
+                    let value = match (read.entity_identity(), read.aspect_key().as_str()) {
+                        ("entity-1", "identity.id") => "task-1",
+                        ("entity-1", "status") => "todo",
+                        ("entity-2", "identity.id") => "task-2",
+                        _ => "unknown",
+                    };
+                    crate::snapshot::SnapshotReadRecord::for_request(
+                        read,
+                        AspectValue::String(value.into()),
+                    )
+                }
+            })
+            .collect();
+        Ok(SnapshotReadPacketResult::new(
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            records,
+        ))
+    }
+}
+
+#[derive(Debug)]
 struct ChangedStatusReader;
 
 impl TruthSnapshotReader for ChangedStatusReader {
@@ -269,6 +308,21 @@ fn bridge_row_set_digest_is_derived_from_validated_aspect_values() {
     .expect("changed row set");
 
     assert_ne!(baseline.digest(), changed.digest());
+}
+
+#[test]
+fn bridge_row_set_omits_authoritatively_absent_fields_without_panicking() {
+    let row_set = materialize_bridge_row_set(&observation_with_reader(Box::new(
+        AuthoritativeAbsenceReader,
+    )
+        as Box<dyn TruthSnapshotReader>))
+    .expect("authoritative absence is a lawful row-set posture");
+
+    assert_eq!(row_set.rows().len(), 2);
+    assert!(row_set.rows()[1]
+        .whole_aspect_fields_for_key(&aspect_key("status"))
+        .next()
+        .is_none());
 }
 
 #[test]

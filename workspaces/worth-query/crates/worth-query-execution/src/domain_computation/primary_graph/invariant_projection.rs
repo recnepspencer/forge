@@ -84,6 +84,15 @@ pub struct WorthQueryInvariantEntityIdentity<Schema, Entity> {
     _marker: PhantomData<fn() -> (Schema, Entity)>,
 }
 
+/// An exact projected entity admitted for the later application effect phase.
+/// It is minted only by the operation-typed invariant reader after validating
+/// the entity against that reader's authority.
+pub struct WorthQueryInvariantMutationTarget<Schema, Entity> {
+    pub(in crate::domain_computation::primary_graph) entity_id: EntityId,
+    pub(in crate::domain_computation::primary_graph) entity: Arc<str>,
+    _marker: PhantomData<fn() -> (Schema, Entity)>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryInvariantRelation<Schema, Relation, From, To> {
     relation_id: RelationId,
@@ -116,6 +125,14 @@ impl<Schema> WorthQueryApplicationInvariantProjectionAuthority<Schema>
 where
     Schema: ApplicationSchema,
 {
+    pub(in crate::domain_computation::primary_graph) fn belongs_to_installation(
+        &self,
+        runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+        binding_identity: &ApplicationSchemaBindingIdentity,
+    ) -> bool {
+        self.runtime_authority == runtime_authority && &self.binding_identity == binding_identity
+    }
+
     #[cfg(test)]
     pub(in crate::domain_computation::primary_graph) fn active_snapshot_count(&self) -> usize {
         self.graph

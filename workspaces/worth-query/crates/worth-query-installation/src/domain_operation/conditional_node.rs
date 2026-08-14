@@ -43,8 +43,9 @@ pub use dependency::{
 pub use host_provider_contract::{
     WorthQueryConditionalDependencyObservation, WorthQueryConditionalObservationTruthBasis,
     WorthQueryConditionalObservationView, WorthQueryConditionalObservedValue,
-    WorthQueryHostConditionalPredicateProvider, WorthQueryHostPredicateDecision,
-    WorthQueryHostPredicateFailure, WorthQueryHostPredicateFailureKind,
+    WorthQueryConditionalProjectedValue, WorthQueryHostConditionalPredicateProvider,
+    WorthQueryHostPredicateDecision, WorthQueryHostPredicateFailure,
+    WorthQueryHostPredicateFailureKind,
 };
 pub use location::WorthQueryConditionalNodeLocation;
 pub use markers::{
@@ -71,6 +72,7 @@ pub use temporal_intent_contract::{
     WorthQueryTemporalIntentIdempotencyRelation, WorthQueryTemporalIntentIdentity,
     WorthQueryTemporalIntentLifecycle, WorthQueryTemporalIntentProjectionFailure,
     WorthQueryTemporalIntentProjectionFailureKind, WorthQueryTemporalIntentProjector,
+    WorthQueryTemporalIntentRevisionValue, WorthQueryTemporalOperationInputIdentity,
     MAX_TEMPORAL_DUE_WAKES_PER_OBSERVATION, MAX_TEMPORAL_INTENT_QUERY_WORK,
     MAX_TEMPORAL_INTENT_RECONSTRUCTION_ROWS,
 };

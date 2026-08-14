@@ -58,8 +58,9 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(super) execution_basis_source:
         worth_relational::facade::runtime::RelationalApplicationCommitBasisSource,
     pub(super) bridge: super::managed_bridge::WorthQueryInstalledApplicationBridge,
-    pub(super) conditional_operations:
+    pub(super) conditional_operations: std::sync::Mutex<
         super::conditional_operation::WorthQueryConditionalOperationRegistry<Schema>,
+    >,
     pub(super) primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     pub(super) primary_graph_authority:
         worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,

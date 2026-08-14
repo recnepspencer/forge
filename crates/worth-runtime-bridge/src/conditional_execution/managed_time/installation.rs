@@ -12,8 +12,18 @@ use crate::conditional_execution::BridgeOwnedSignalRuntime;
 impl BridgeOwnedSignalRuntime {
     pub fn install_managed_clock(
         &mut self,
-        parts: BridgeManagedClockInstallationParts,
+        parts: BridgeManagedClockInstallationParts<'_>,
     ) -> Result<BridgeManagedClockBinding, BridgeManagedTemporalDenial> {
+        if !self
+            .conditional_lowerings
+            .get(&parts.lowering.signal_node())
+            .is_some_and(|installed| Arc::ptr_eq(installed, parts.lowering))
+        {
+            return Err(BridgeManagedTemporalDenial::new(
+                BridgeManagedTemporalDenialKind::ForeignClockBinding,
+                "managed clock requires its exact live conditional lowering",
+            ));
+        }
         validate_identity(&parts.binding_identity, "managed clock binding")?;
         validate_identity(&parts.source_identity, "managed clock source")?;
         validate_identity(&parts.timeline_identity, "managed clock timeline")?;
@@ -51,6 +61,7 @@ impl BridgeOwnedSignalRuntime {
         self.managed_clock_lanes.insert(
             parts.binding_identity,
             BridgeManagedClockLane::new(
+                Arc::clone(parts.lowering),
                 parts.source_identity,
                 parts.timeline_identity,
                 lease,

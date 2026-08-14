@@ -123,22 +123,30 @@ where
     let mut graph =
         publish_application_graph(bootstrap, runtime, authority, &installed_schema, fault_port)
             .map_err(super::super::conditional_operation::publication_denial)?;
-    let conditional_operations = super::super::conditional_operation::install_pending_bindings(
+    let mut conditional_operations = super::super::conditional_operation::install_pending_bindings(
         bindings,
         &mut graph.bridge,
+        &graph.primary_graph_authority,
         graph.runtime.authority_identity().as_u64(),
         graph.runtime.installed_packages().runtime_ordinal(),
         graph.runtime.installed_packages().generation().ordinal(),
         graph.primary_graph_authority.provider_identity(),
         super::super::application_branch::PRIMARY_APPLICATION_BRANCH,
     )?;
-    Ok(assemble_application_runtime(
+    let mut application = assemble_application_runtime(
         graph,
         installed_schema,
         authorization,
         authorization_clock,
-        conditional_operations,
-    ))
+        Default::default(),
+    );
+    conditional_operations.reconstruct_all(&application)?;
+    conditional_operations.reconcile_all(application.bridge.conditional_mut())?;
+    *application
+        .conditional_operations
+        .get_mut()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = conditional_operations;
+    Ok(application)
 }
 
 struct PublishedApplicationGraph {
@@ -198,6 +206,7 @@ fn publish_application_graph<Schema>(
 where
     Schema: ApplicationSchema,
 {
+    let bridge_layout = std::sync::Arc::clone(&bootstrap.graph.layout);
     let publication = bootstrap.publish(&mut runtime, &authority)?;
     let graph = runtime
         .retain_primary_graph_integration_handle()
@@ -206,6 +215,7 @@ where
     let execution_basis_source = graph.relational_execution_basis_source();
     let bridge = super::super::managed_bridge::install_application_bridge(
         installed_schema,
+        &bridge_layout,
         relational_source.clone(),
     )?;
     let (provider_anchor, primary_provider) =
@@ -275,7 +285,7 @@ fn assemble_application_runtime<Schema>(
         relational_source: graph.relational_source,
         execution_basis_source: graph.execution_basis_source,
         bridge: graph.bridge,
-        conditional_operations,
+        conditional_operations: std::sync::Mutex::new(conditional_operations),
         primary_provider: graph.primary_provider,
         primary_graph_authority: graph.primary_graph_authority,
         result_buffers: Default::default(),

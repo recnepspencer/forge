@@ -1,4 +1,5 @@
 use super::document::{FacadeDocument, FacadeRow, SCHEMA_VERSION};
+use super::facade_reexport_validation::validate_exact_public_reexport;
 use super::facade_visibility::validate_facade_only_surface;
 use crate::manifest_types::Road1Package;
 use std::collections::{BTreeMap, BTreeSet};
@@ -8,6 +9,14 @@ use syn::{Item, UseTree, Visibility};
 
 pub(crate) struct ObservedFacadeExports {
     by_package: BTreeMap<String, BTreeSet<String>>,
+}
+
+pub(crate) struct ConfiguredFacadeSurface {
+    pub(crate) label: String,
+    pub(crate) path: PathBuf,
+    pub(crate) namespace: Option<String>,
+    pub(crate) reexport: Option<String>,
+    pub(crate) owner_path: Option<PathBuf>,
 }
 
 impl ObservedFacadeExports {
@@ -35,7 +44,7 @@ impl ObservedFacadeExports {
 
 pub(super) fn observe_facade_document(
     packages: &[Road1Package],
-    configured_surfaces: &[(String, PathBuf)],
+    configured_surfaces: &[ConfiguredFacadeSurface],
 ) -> Result<FacadeDocument, String> {
     let mut facades = packages
         .iter()
@@ -48,15 +57,20 @@ pub(super) fn observe_facade_document(
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
-    for (label, path) in configured_surfaces {
-        if facades.iter().any(|row| &row.package == label) {
+    for surface in configured_surfaces {
+        if facades.iter().any(|row| row.package == surface.label) {
             return Err(format!(
-                "configured facade surface label is duplicated: {label}"
+                "configured facade surface label is duplicated: {}",
+                surface.label
             ));
         }
+        if let Some(reexport) = &surface.reexport {
+            validate_exact_public_reexport(&surface.path, reexport)?;
+        }
+        let observed_path = surface.owner_path.as_ref().unwrap_or(&surface.path);
         facades.push(FacadeRow {
-            package: label.clone(),
-            exports: extract_namespace_exports(path)?,
+            package: surface.label.clone(),
+            exports: extract_namespace_exports(observed_path, surface.namespace.as_deref())?,
         });
     }
     facades.sort_by(|left, right| left.package.cmp(&right.package));
@@ -66,14 +80,54 @@ pub(super) fn observe_facade_document(
     })
 }
 
-fn extract_namespace_exports(path: &Path) -> Result<Vec<String>, String> {
+fn extract_namespace_exports(path: &Path, namespace: Option<&str>) -> Result<Vec<String>, String> {
     let text =
         fs::read_to_string(path).map_err(|error| format!("read {}: {error}", path.display()))?;
     let syntax =
         syn::parse_file(&text).map_err(|error| format!("parse {}: {error}", path.display()))?;
     let mut exports = BTreeSet::new();
-    collect_namespace_items(&syntax.items, "", &mut exports, path)?;
+    let items = match namespace {
+        Some(namespace) => selected_namespace_items(&syntax.items, namespace, path)?,
+        None => &syntax.items,
+    };
+    collect_namespace_items(items, "", &mut exports, path)?;
     Ok(exports.into_iter().collect())
+}
+
+fn selected_namespace_items<'a>(
+    items: &'a [Item],
+    namespace: &str,
+    path: &Path,
+) -> Result<&'a [Item], String> {
+    let module = items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Mod(module) if module.ident == namespace => Some(module),
+            _ => None,
+        })
+        .next()
+        .ok_or_else(|| {
+            format!(
+                "configured facade namespace `{namespace}` is absent from {}",
+                path.display()
+            )
+        })?;
+    if !matches!(module.vis, Visibility::Public(_)) {
+        return Err(format!(
+            "configured facade namespace `{namespace}` is not public in {}",
+            path.display()
+        ));
+    }
+    module
+        .content
+        .as_ref()
+        .map(|(_, items)| items.as_slice())
+        .ok_or_else(|| {
+            format!(
+                "configured facade namespace `{namespace}` must be inline in {}",
+                path.display()
+            )
+        })
 }
 
 fn collect_namespace_items(
@@ -242,7 +296,7 @@ mod tests {
             "namespace",
             "pub use x::Root;\npub mod nested { pub use y::{First, Second}; }\n",
         );
-        let exports = extract_namespace_exports(&path).unwrap();
+        let exports = extract_namespace_exports(&path, None).unwrap();
         fs::remove_file(&path).unwrap();
         assert_eq!(
             exports,
@@ -253,9 +307,28 @@ mod tests {
     #[test]
     fn configured_namespace_surface_rejects_behavior_items() {
         let path = temporary_facade("namespace-behavior", "pub fn bypass() {}\n");
-        let error = extract_namespace_exports(&path).unwrap_err();
+        let error = extract_namespace_exports(&path, None).unwrap_err();
         fs::remove_file(&path).unwrap();
         assert!(error.contains("only public re-exports or inline namespaces"));
+    }
+
+    #[test]
+    fn selected_namespace_snapshot_detects_nested_api_mutation() {
+        let path = temporary_facade(
+            "namespace-mutation",
+            "pub mod primary_graph { pub use x::First; }\npub mod unrelated { pub use y::Ignored; }\n",
+        );
+        let before = extract_namespace_exports(&path, Some("primary_graph")).unwrap();
+        fs::write(
+            &path,
+            "pub mod primary_graph { pub use x::{First, Second}; }\npub mod unrelated { pub use y::Ignored; }\n",
+        )
+        .unwrap();
+        let after = extract_namespace_exports(&path, Some("primary_graph")).unwrap();
+        fs::remove_file(&path).unwrap();
+        assert_eq!(before, ["First"]);
+        assert_eq!(after, ["First", "Second"]);
+        assert_ne!(before, after);
     }
 
     fn temporary_facade(label: &str, contents: &str) -> PathBuf {
