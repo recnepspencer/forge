@@ -41,27 +41,7 @@ impl CompiledFinancialWorld {
     ) -> Result<FinancialFactorSequenceEvidence, SignalError> {
         self.ledger.clear();
         for (next_definition, factor) in changes {
-            let next_snapshot = runtime_financial_snapshot(next_definition);
-            let next_projection = self.projection.advance(&next_snapshot);
-            let program = FinancialEvaluationProgram::new(
-                next_definition.clone(),
-                next_projection.clone(),
-                self.handles.clone(),
-                self.ledger.clone(),
-            );
-            let source = self.handles.factor(*factor).0;
-            let result = source_result(&program, *factor);
-            self.runtime.transaction(&mut (), |tx| {
-                tx.mark_changed(source, factor_signal_aspect(next_definition, *factor))?;
-                self.ledger.record(SemanticOutputKey::Factor(*factor));
-                tx.target(source)
-                    .on_demand()
-                    .read(&move |view| Ok(view.finish(result.clone())))?;
-                Ok(())
-            })?;
-            self.definition = next_definition.clone();
-            self.economic_snapshot = next_snapshot;
-            self.projection = next_projection;
+            self.commit_factor_source_change(next_definition, *factor)?;
         }
 
         let valuation = self.handles.position(affected_instrument).valuation;
@@ -100,6 +80,36 @@ impl CompiledFinancialWorld {
         })
     }
 
+    fn commit_factor_source_change(
+        &mut self,
+        next_definition: &FinancialWorldDefinition,
+        factor: MarketFactorKey,
+    ) -> Result<(), SignalError> {
+        let next_snapshot = runtime_financial_snapshot(next_definition);
+        let next_projection = self.projection.advance(&next_snapshot);
+        let program = FinancialEvaluationProgram::new(
+            next_definition.clone(),
+            next_projection.clone(),
+            self.handles.clone(),
+            self.ledger.clone(),
+        );
+        let source = self.handles.factor(factor).0;
+        let result = source_result(&program, factor);
+        let ledger = self.ledger.clone();
+        self.runtime.transaction(&mut (), |tx| {
+            tx.mark_changed(source, factor_signal_aspect(next_definition, factor))?;
+            ledger.record(SemanticOutputKey::Factor(factor));
+            tx.target(source)
+                .on_demand()
+                .read(&move |view| Ok(view.finish(result.clone())))?;
+            Ok(())
+        })?;
+        self.definition = next_definition.clone();
+        self.economic_snapshot = next_snapshot;
+        self.projection = next_projection;
+        Ok(())
+    }
+
     pub(in crate::tests::domains::fintech) fn apply_gated_factor_sequence(
         &mut self,
         changes: &[(FinancialWorldDefinition, MarketFactorKey)],
@@ -122,9 +132,10 @@ impl CompiledFinancialWorld {
             let source = self.handles.factor(*factor).0;
             let risk = self.handles.position(affected_instrument).risk;
             let result = source_result(&program, *factor);
+            let ledger = self.ledger.clone();
             self.runtime.transaction(&mut (), |tx| {
                 tx.mark_changed(source, factor_signal_aspect(next_definition, *factor))?;
-                self.ledger.record(SemanticOutputKey::Factor(*factor));
+                ledger.record(SemanticOutputKey::Factor(*factor));
                 tx.target(source)
                     .on_demand()
                     .read(&move |view| Ok(view.finish(result.clone())))?;

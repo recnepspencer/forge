@@ -6,6 +6,9 @@ mod plan;
 pub(crate) mod revalidation;
 pub(crate) mod source_seed;
 
+#[cfg(test)]
+mod progression_contract_tests;
+
 pub use execution::{
     FrontierExecutionCounters, FrontierExecutionSummary, FrontierWaveEntrySummary,
     FrontierWaveSummary, InvalidationTraceRecord, TransitiveFrontierEntrySummary,

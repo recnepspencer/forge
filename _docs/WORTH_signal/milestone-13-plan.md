@@ -928,7 +928,20 @@ crates/worth-signal/src/
     runtime/effect/output_commit.rs             [existing M12 atomic owner; revised]
 
   tests/domains/fintech/
+    world/
+      locality_scale.rs                         [created; frozen ordinary/scheduled tuples]
+      locality_definition.rs                    [created; immutable locality-world meaning]
+      locality_definition/generation/           [created; dominant axis = scenario family]
+        sparse.rs                               [created; depth/fanout financial generator]
+        partitioned.rs                          [created; independent R/M/I curve generator]
+      compiler/
+        compiled_authority.rs                   [created; shared portfolio/locality authority]
+        locality_topology.rs                    [created; definition-to-Signal lowering]
+        locality_evaluation.rs                  [created; scoped financial evaluators]
+        locality_execution.rs                   [created; baseline seal and scenario action]
     invalidation/
+      boundary_inventory_m13.rs                 [created; Phase 1 current-boundary record]
+      locality_red_controls.rs                  [created; inherited-breadth slope baseline]
       sparse_book_fanout.rs                     [created]
       partitioned_curve_universe.rs              [created]
       convergent_factor_batch.rs                 [created]
@@ -937,7 +950,9 @@ crates/worth-signal/src/
       branch_restore_locality_replay.rs           [created]
     certification/invalidation/
       fresh_recompute.rs                        [existing M12 oracle]
+      locality_fresh_recompute.rs               [created; locality-world financial oracle]
       necessity_manifest.rs                     [existing M12 oracle; extended]
+      locality_contract.rs                      [created; generator/mutation/identity contract]
       locality_expectation.rs                   [created independent counter oracle]
       locality_case_identity.rs                 [created Foundational identity]
       locality_receipt.rs                       [created receipt attachment]

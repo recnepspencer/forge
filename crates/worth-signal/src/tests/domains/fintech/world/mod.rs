@@ -5,6 +5,8 @@ mod fixture_compiler;
 mod fixture_projection;
 #[cfg(test)]
 mod fixture_projection_tests;
+mod locality_definition;
+mod locality_scale;
 mod market_inputs;
 mod positions;
 mod reference_finance;
@@ -15,8 +17,9 @@ pub(super) use baseline::{
     FinancialScenarioIdentity,
 };
 pub(super) use compiler::{
-    compile_financial_world, CompiledFinancialWorld, FinancialBranchLifecycleCompletion,
-    FinancialDependencyRewireEvidence, FinancialEvaluationLedger, FinancialFactorSequenceEvidence,
+    compile_financial_locality_world, compile_financial_world, CompiledFinancialWorld,
+    FinancialBranchLifecycleCompletion, FinancialDependencyRewireEvidence,
+    FinancialEvaluationLedger, FinancialFactorSequenceEvidence, FinancialLocalityRedObservation,
     FinancialQuoteTranslationEvidence, FinancialSemanticHandles,
 };
 pub(super) use definition::{
@@ -25,6 +28,14 @@ pub(super) use definition::{
 pub(super) use fixture_compiler::{compile_runtime_fixture, compile_unseeded_runtime_fixture};
 pub(super) use fixture_projection::{
     FinancialFixtureProjection, FixtureAggregateState, FixtureMarketPoint, FixtureScenarioShock,
+};
+pub(super) use locality_definition::{
+    FinancialLocalityDefinition, FinancialLocalityFormula, FinancialLocalityMutation,
+    FinancialLocalityOutput, LocalityScope, LocalitySemanticOutputId,
+};
+pub(super) use locality_scale::{
+    ordinary_locality_cases, scheduled_locality_cases, FinancialLocalityScenario,
+    LocalityCaseContract, LocalityScaleTuple, SparseFanoutAxis,
 };
 use market_inputs::{
     Currency, FinancialMarketInputs, FixedPrice, QuoteId, VolatilityBucket, FIXED_SCALE,

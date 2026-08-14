@@ -101,6 +101,12 @@ pub(super) fn merge_invalidation_telemetry(
         partition_aware_recomputations: graph.partition_aware_recomputations
             + runtime.partition_aware_recomputations,
         keyed_evaluation_count: graph.keyed_evaluation_count + runtime.keyed_evaluation_count,
+        direct_subscriber_candidates_examined: graph.direct_subscriber_candidates_examined
+            + runtime.direct_subscriber_candidates_examined,
+        direct_contract_rejections: graph.direct_contract_rejections
+            + runtime.direct_contract_rejections,
+        direct_causality_rejections: graph.direct_causality_rejections
+            + runtime.direct_causality_rejections,
         partition_scoped_invalidation_checks: graph.partition_scoped_invalidation_checks
             + runtime.partition_scoped_invalidation_checks,
         partition_match_dirty_count: graph.partition_match_dirty_count
@@ -137,5 +143,32 @@ pub(super) fn merge_invalidation_telemetry(
             + runtime.frontier_trace_retained_count,
         subscriber_repair_breadth: graph.subscriber_repair_breadth
             + runtime.subscriber_repair_breadth,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn realized_direct_candidate_and_rejection_rows_merge_without_aliasing() {
+        let graph = InvalidationTelemetry {
+            direct_subscriber_candidates_examined: 2,
+            direct_contract_rejections: 3,
+            direct_causality_rejections: 5,
+            ..InvalidationTelemetry::default()
+        };
+        let runtime = InvalidationTelemetry {
+            direct_subscriber_candidates_examined: 7,
+            direct_contract_rejections: 11,
+            direct_causality_rejections: 13,
+            ..InvalidationTelemetry::default()
+        };
+
+        let merged = merge_invalidation_telemetry(graph, runtime);
+
+        assert_eq!(merged.direct_subscriber_candidates_examined, 9);
+        assert_eq!(merged.direct_contract_rejections, 14);
+        assert_eq!(merged.direct_causality_rejections, 18);
     }
 }

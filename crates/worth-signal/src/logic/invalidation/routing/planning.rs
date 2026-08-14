@@ -6,8 +6,8 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::proof::{
     DedupedNodeBatch, DirtyBatch, FrontierEntryClassification, FrontierInclusionBasis,
-    FrontierPlan, FrontierPredictedCounters, FrontierWavePlan, PartitionScopeSet,
-    SortedSourceBatch, TouchedScopeSummary,
+    FrontierPlan, FrontierPredictedCounters, FrontierWavePlan, InvalidationSeedBatch,
+    PartitionScopeSet, SortedSourceBatch, TouchedScopeSummary,
 };
 
 use super::super::subscription::subscriber_invalidation_evidence;
@@ -19,18 +19,38 @@ pub(super) fn plan_invalidation_frontier(
     dirty: &DirtyBatch,
 ) -> Result<FrontierPlan, SignalError> {
     let (seed_batch, scoped_ids) = prepare_invalidation_seed_batch(graph, dirty);
+    let (groups, partition_scoped_checks) = collect_direct_groups(graph, &seed_batch, &scoped_ids)?;
+    let mut evidence = FrontierEvidence::from_seeds(&seed_batch);
+    for group in groups.into_values() {
+        evidence.record_group(group);
+    }
+    Ok(evidence.into_plan(seed_batch, partition_scoped_checks))
+}
+
+fn collect_direct_groups(
+    graph: &mut SignalGraph,
+    seed_batch: &InvalidationSeedBatch,
+    scoped_ids: &[Vec<crate::data::output::InternedPartitionSubscription>],
+) -> Result<(BTreeMap<u8, AspectFrontierPlanBuilder>, u64), SignalError> {
     let mut groups = BTreeMap::<u8, AspectFrontierPlanBuilder>::new();
     let mut partition_scoped_checks = 0_u64;
-
     for (seed_index, seed) in seed_batch.as_slice().iter().enumerate() {
         let changed_mask = crate::data::aspect::AspectMask::from_aspect(seed.aspect);
         let mut direct_subscribers = Vec::new();
         collect_live_subscribers_into(graph, seed.source_node, &mut direct_subscribers);
         for subscriber in direct_subscribers {
+            graph
+                .telemetry_mut()
+                .invalidation
+                .direct_subscriber_candidates_examined += 1;
             if !graph
                 .get_contract(subscriber)?
                 .cares_about_change(changed_mask, seed.changed_scopes.as_slice())
             {
+                graph
+                    .telemetry_mut()
+                    .invalidation
+                    .direct_contract_rejections += 1;
                 continue;
             }
             let Some(evidence) = subscriber_invalidation_evidence(
@@ -42,6 +62,10 @@ pub(super) fn plan_invalidation_frontier(
                 scoped_ids[seed_index].as_slice(),
             )?
             else {
+                graph
+                    .telemetry_mut()
+                    .invalidation
+                    .direct_causality_rejections += 1;
                 continue;
             };
             partition_scoped_checks += evidence.partition_scoped_checks;
@@ -56,82 +80,112 @@ pub(super) fn plan_invalidation_frontier(
                 );
         }
     }
+    Ok((groups, partition_scoped_checks))
+}
 
-    let mut direct_waves = Vec::new();
-    let mut seed_scopes = Vec::new();
-    let mut inclusion_scopes = Vec::new();
-    let mut direct_dirty_scopes = Vec::new();
-    let mut maybe_stale_scopes = Vec::new();
-    let mut touched_nodes = seed_batch
-        .as_slice()
-        .iter()
-        .map(|seed| seed.source_node)
-        .collect::<Vec<_>>();
-    let touched_sources =
-        SortedSourceBatch::new(seed_batch.as_slice().iter().map(|seed| seed.source_node));
-    let mut predicted = FrontierPredictedCounters {
-        seed_count: seed_batch.as_slice().len() as u64,
-        ..FrontierPredictedCounters::default()
-    };
+struct FrontierEvidence {
+    direct_waves: Vec<FrontierWavePlan>,
+    seed_scopes: Vec<crate::data::output::PartitionSubscription>,
+    inclusion_scopes: Vec<crate::data::output::PartitionSubscription>,
+    direct_dirty_scopes: Vec<crate::data::output::PartitionSubscription>,
+    maybe_stale_scopes: Vec<crate::data::output::PartitionSubscription>,
+    touched_nodes: Vec<NodeId>,
+    touched_sources: SortedSourceBatch,
+    predicted: FrontierPredictedCounters,
+}
 
-    for seed in seed_batch.as_slice() {
-        seed_scopes.extend_from_slice(seed.changed_scopes.as_slice());
+impl FrontierEvidence {
+    fn from_seeds(seed_batch: &InvalidationSeedBatch) -> Self {
+        let mut seed_scopes = Vec::new();
+        for seed in seed_batch.as_slice() {
+            seed_scopes.extend_from_slice(seed.changed_scopes.as_slice());
+        }
+        Self {
+            direct_waves: Vec::new(),
+            seed_scopes,
+            inclusion_scopes: Vec::new(),
+            direct_dirty_scopes: Vec::new(),
+            maybe_stale_scopes: Vec::new(),
+            touched_nodes: seed_batch
+                .as_slice()
+                .iter()
+                .map(|seed| seed.source_node)
+                .collect(),
+            touched_sources: SortedSourceBatch::new(
+                seed_batch.as_slice().iter().map(|seed| seed.source_node),
+            ),
+            predicted: FrontierPredictedCounters {
+                seed_count: seed_batch.as_slice().len() as u64,
+                ..FrontierPredictedCounters::default()
+            },
+        }
     }
 
-    for (_, group) in groups {
-        let wave_index = direct_waves.len() as u32;
+    fn record_group(&mut self, group: AspectFrontierPlanBuilder) {
+        let wave_index = self.direct_waves.len() as u32;
         let wave = group.into_wave_plan(wave_index);
         if wave.entries.is_empty() {
-            continue;
+            return;
         }
-        predicted.group_count += 1;
-        predicted.direct_wave_count += 1;
-        predicted.transitive_wave_count += 1;
+        self.predicted.group_count += 1;
+        self.predicted.direct_wave_count += 1;
+        self.predicted.transitive_wave_count += 1;
         for entry in &wave.entries {
-            touched_nodes.push(entry.node);
-            inclusion_scopes.extend_from_slice(entry.narrowed_scopes.as_slice());
+            self.touched_nodes.push(entry.node);
+            self.inclusion_scopes
+                .extend_from_slice(entry.narrowed_scopes.as_slice());
             match entry.classification {
                 FrontierEntryClassification::DirectDirty => {
-                    predicted.direct_dirty_count += 1;
-                    direct_dirty_scopes.extend_from_slice(entry.narrowed_scopes.as_slice());
+                    self.predicted.direct_dirty_count += 1;
+                    self.direct_dirty_scopes
+                        .extend_from_slice(entry.narrowed_scopes.as_slice());
                 }
                 FrontierEntryClassification::MaybeStale => {
-                    predicted.maybe_stale_count += 1;
-                    maybe_stale_scopes.extend_from_slice(entry.narrowed_scopes.as_slice());
+                    self.predicted.maybe_stale_count += 1;
+                    self.maybe_stale_scopes
+                        .extend_from_slice(entry.narrowed_scopes.as_slice());
                 }
             }
             match entry.inclusion_basis {
                 FrontierInclusionBasis::PartitionScopeOverlap => {
-                    predicted.partition_match_count += 1;
+                    self.predicted.partition_match_count += 1;
                 }
                 FrontierInclusionBasis::DetailScopeOverlap => {
-                    predicted.detail_match_count += 1;
+                    self.predicted.detail_match_count += 1;
                 }
                 FrontierInclusionBasis::DirectSubscriptionMatch
                 | FrontierInclusionBasis::TransitiveReachability => {}
             }
         }
-        direct_waves.push(wave);
+        self.direct_waves.push(wave);
     }
-    predicted.partition_scoped_checks = partition_scoped_checks;
-    predicted.cycle_check_candidate_count = direct_waves
-        .iter()
-        .map(|wave| wave.entries.len() as u64)
-        .sum();
-    let touched_scope_summary = TouchedScopeSummary::new_invalidation(
-        PartitionScopeSet::new(seed_scopes),
-        PartitionScopeSet::new(inclusion_scopes),
-        PartitionScopeSet::new(direct_dirty_scopes),
-        PartitionScopeSet::new(maybe_stale_scopes),
-        DedupedNodeBatch::new(touched_nodes),
-        touched_sources,
-    );
-    Ok(FrontierPlan::new(
-        seed_batch,
-        direct_waves,
-        touched_scope_summary,
-        predicted,
-    ))
+
+    fn into_plan(
+        mut self,
+        seed_batch: InvalidationSeedBatch,
+        partition_scoped_checks: u64,
+    ) -> FrontierPlan {
+        self.predicted.partition_scoped_checks = partition_scoped_checks;
+        self.predicted.cycle_check_candidate_count = self
+            .direct_waves
+            .iter()
+            .map(|wave| wave.entries.len() as u64)
+            .sum();
+        let touched_scope_summary = TouchedScopeSummary::new_invalidation(
+            PartitionScopeSet::new(self.seed_scopes),
+            PartitionScopeSet::new(self.inclusion_scopes),
+            PartitionScopeSet::new(self.direct_dirty_scopes),
+            PartitionScopeSet::new(self.maybe_stale_scopes),
+            DedupedNodeBatch::new(self.touched_nodes),
+            self.touched_sources,
+        );
+        FrontierPlan::new(
+            seed_batch,
+            self.direct_waves,
+            touched_scope_summary,
+            self.predicted,
+        )
+    }
 }
 
 #[derive(Debug)]

@@ -73,9 +73,10 @@ impl CompiledFinancialWorld {
         key: SemanticOutputKey,
         version: AspectVersion,
     ) -> Result<(), SignalError> {
+        let node = self.handles.node_for(key);
         self.runtime
             .graph_mut()
-            .get_entry_mut(self.handles.node_for(key))?
+            .get_entry_mut(node)?
             .set_aspect_version(version);
         Ok(())
     }
@@ -85,9 +86,10 @@ impl CompiledFinancialWorld {
         &mut self,
         key: SemanticOutputKey,
     ) -> Result<(), SignalError> {
+        let node = self.handles.node_for(key);
         self.runtime
             .graph_mut()
-            .get_entry_mut(self.handles.node_for(key))?
+            .get_entry_mut(node)?
             .advance_dependency_revision();
         Ok(())
     }
