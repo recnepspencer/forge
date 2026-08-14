@@ -27,6 +27,11 @@ Milestone 14 establishes that foundation before Milestones 15 and 16 widen the
 amount and shape of parallel work. It does not yet claim that the complete graph
 or the inside of arbitrary computations runs in parallel.
 
+Its input is Milestone 13's Signal-owned `ReadyInvalidationBatch` progression,
+not a raw node list or a Foundational report. Parallel preparation must consume
+the current-basis ready form and preserve its cause/work identity. A resource
+lease authorizes dispatch capacity; it does not replace invalidation readiness.
+
 ## 2. Current Boundary
 
 Present execution has four important limitations:
@@ -353,6 +358,10 @@ Must ship:
 Must preserve:
 
 - Milestones 12-13 invalidation correctness and locality certification
+- the Proof-enforced prepared -> committed -> lowered -> ready -> executed
+  invalidation progression and current-basis work binding
+- the rule that Foundational receipts describe performed work but authorize no
+  scheduling or execution
 - one lowered semantic plan for serial and parallel execution
 - rollback-safe, commit-bounded observation
 - branch, replay, temporal, condition, and async-capability truth

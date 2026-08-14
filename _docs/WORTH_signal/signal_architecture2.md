@@ -2182,58 +2182,91 @@ locality-first multi-source frontier engine.
 Required target forms:
 
 ```rust
-pub struct InvalidationFrontier { ... }
-pub struct FrontierWave { ... }
-pub struct NarrowedPropagationSet { ... }
+pub(crate) struct AdmittedSourceRecompute { ... }
+pub(crate) struct PreparedDirectInvalidation { ... }
+pub(crate) struct CommittedDirectInvalidation { ... }
+pub(crate) struct AdmittedStructuralRecompute { ... }
+pub(crate) struct ResolvedInvalidationWork { ... }
+pub(crate) struct LoweredInvalidationBatch { ... }
+pub(crate) struct ReadyInvalidationBatch { ... }
+pub(crate) struct ExecutedInvalidationBatch { ... }
+pub struct InvalidationPlanningEstimate { ... }
+pub struct SignalInvalidationExecutionReceipt { ... }
 ```
 
 Semantic role:
 
-- `InvalidationFrontier` is the canonical operational frontier packet for
-  bounded propagation work
-- `FrontierWave` is a proof-bearing frontier summary for one propagation step
-- `NarrowedPropagationSet` is the canonical narrowed invalidation target set
-  derived from mutation truth
+- `AdmittedSourceRecompute` is current persisted/readmitted root work and does
+  not claim a producer output commit
+- `PreparedDirectInvalidation` is unperformed immediate-edge admission and
+  cannot authorize scheduling or execution
+- `CommittedDirectInvalidation` exists only after the exact output/cause packet
+  is atomically performed
+- `AdmittedStructuralRecompute` exists only after performed topology mutation
+  establishes a current structural obligation
+- `ResolvedInvalidationWork` is the sealed convergence point that retains the
+  exact source, dependency, or structural origin
+- `LoweredInvalidationBatch` binds committed work to current topology and
+  canonical stage/order
+- `ReadyInvalidationBatch` is the only executor input
+- `ExecutedInvalidationBatch` retains performed execution truth
+- `InvalidationPlanningEstimate` is caller-visible predicted evidence only
+- `SignalInvalidationExecutionReceipt` is derived realized evidence and cannot
+  reenter operational authority
 
 Normative rule:
 
-- frontier seeds must be derived from canonical mutation-time delta packets or
-  batch summaries, never from post hoc scans of current graph state
-- invalidation must union overlapping sources before broad downstream
-  propagation whenever the semantic delta allows it
-- propagation cost must scale with narrowed locality frontier, not with caller
-  mutation count or broad graph size
-- partition-aware and aspect-aware frontier narrowing must be measurable at the
-  invalidation boundary
+- the owner-specific progression must use `worth-proof` phase carriers,
+  private authority/capability witnesses, binding axes, freshness outcomes,
+  typed transition outcomes, and `Performed` at actual effects
+- only the performed output-commit owner may promote prepared immediate-edge
+  admission into committed direct invalidation truth
+- source-recompute and structural-recompute work use separate current-basis
+  owner admissions and cannot masquerade as dependency-commit truth
+- each committed producer delta may query only a rebuildable producer-local
+  aspect/scope reverse-subscription index, then validate the authoritative
+  direct edges it returns; further work exists only after another performed
+  producer commit
+- propagation cost must scale with the realized semantic frontier plus the
+  smallest declared indexed candidate/order granule, never the reachable
+  descendant closure or total graph size
+- the reverse index is derived from dependency topology, updated with topology
+  mutation, rebuildable after restore, and incapable of minting causes
+- aspect and partition rejection occurs before dirty mutation and ready enqueue
+- ready work is process-local derived state, is not checkpoint authority, and
+  must be rebuilt/readmitted from M12 authority after restore or rebind
+- Signal owns operational causes, work, effects, and observed counters;
+  `worth-foundational` owns canonical case/report identity and counter-backed
+  descriptive evidence only
+- predicted and realized counters are different artifacts; only performed
+  realized rows can satisfy a counter-backed execution receipt
+- reachability-shaped `FrontierPlan`/wave constructors are removed from public
+  integration facades; compatibility views, if required, are descriptive-only
+  and cannot satisfy operational or performed-evidence bounds
 
 `S9.16.3` reopened status:
 
-- direct-edge aspect and partition admission is present, but the transitive
-  application path copies the original seed aspect through every reachable
-  descendant
-- transitive reachability is not changed-output authority because aspects are
-  interpreted against the immediate producer whose output contract declares
-  them
-- root mutation declarations are recompute intent: they may create unresolved
-  revalidation but cannot manufacture a committed descendant aspect
-- producer output equivalence and consumer dependency comparison are distinct
-  semantic decisions; the current configuration path's use of one comparator
-  for both responsibilities is part of the repair, not accepted authority
-- installed conditional contracts retain their separate dependency-comparator
-  and output-comparator roles through lowering instead of collapsing either
-  role into the other's node configuration
-- the current node-level dirty mask is consumed by ordinary, installed, and
-  async condition paths without retaining the immediate dependency, dependency
-  revision, or producer commit that justified it
-- the current reachability walk can therefore under-invalidate when an
-  intermediate node translates one aspect into another, and it can over-visit
-  contract-disjoint descendants
-- `FrontierPlan` and `FrontierExecutionSummary` remain the intended canonical
-  operational surfaces, but their current transitive aspect and locality claims
-  are not accepted closeout evidence
-- cycle preflight, direct/maybe-stale classification, trace policy separation,
-  and flow-summary derivation remain inherited guarantees that the repair must
-  preserve
+- Milestone 12 is complete: root intent, performed per-aspect/per-scope output
+  deltas, consumer-specific causes, exact binding axes, pending precedence,
+  comparator separation, persistence/readmission, and the financial semantic
+  courtroom are accepted
+- structural transitive summaries are aspect-free and scope-free, so
+  reachability can no longer mint descendant meaning
+- the ordinary root invalidation application path still walks the complete
+  reachable subscriber closure and pre-marks descendants pending revalidation
+- producer subscriber membership is not yet indexed by producer-local aspect
+  and partition/detail scope, so direct exact changes still pay for disjoint
+  direct candidates
+- `FrontierPlan`, public summary constructors, predicted counters, and
+  reachability-oriented execution counters do not form compiler-enforced
+  prepared/committed/lowered/ready/executed authority
+- the remaining defect is cost and progression honesty: irrelevant reachable
+  descendants are visited, derived ready work has no current-basis phase
+  family, and realized counter evidence is not yet sealed through the existing
+  Foundational performance receipt surface
+- cycle preflight, M12 direct-cause atomicity, deterministic stage order,
+  condition/async pending precedence, trace policy separation, and branch/
+  restore/replay truth remain inherited guarantees that Milestone 13 preserves
 
 The numbered repair and certification sequence is:
 
