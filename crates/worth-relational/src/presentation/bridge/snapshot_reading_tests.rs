@@ -155,6 +155,30 @@ fn snapshot_reader_rejects_untyped_bridge_record_identity() {
     );
 }
 
+#[test]
+fn snapshot_reader_reports_missing_record_as_authoritative_absence() {
+    let mut runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "visible");
+    let published_snapshot = created.snapshot.clone();
+    let snapshot_identity = bridge_snapshot_identity_for_handle(&published_snapshot);
+    let reader = RuntimePublicationSnapshotReader::new(
+        Arc::new(runtime),
+        snapshot_identity,
+        published_snapshot.version_id,
+    );
+    let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_relational_record(
+        RelationalBridgeRecordIdentityParts::entity(1, 999, 1),
+        scalar_string_contract("name"),
+    )]);
+
+    let result = reader
+        .read_packet(&packet)
+        .expect("absence is authoritative");
+
+    assert_eq!(result.records().len(), 1);
+    assert!(result.records()[0].is_absent());
+}
+
 fn runtime_with_test_schema() -> crate::facade::runtime::RelationalRuntime {
     runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations)
 }

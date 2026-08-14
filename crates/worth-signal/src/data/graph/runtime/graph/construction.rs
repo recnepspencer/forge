@@ -12,6 +12,7 @@ impl Clone for SignalGraph {
         let mut cause_sets = self.cause_sets.clone();
         cause_sets.readmit_graph_instance(instance_id);
         Self {
+            lifecycle_token: Default::default(),
             instance_id,
             arena: self.arena.clone(),
             topology: self.topology.clone(),
@@ -39,6 +40,7 @@ impl SignalGraph {
 
     pub fn new() -> Self {
         Self {
+            lifecycle_token: Default::default(),
             instance_id: super::next_signal_graph_instance_id(),
             arena: NodeArena {
                 nodes: Vec::new(),

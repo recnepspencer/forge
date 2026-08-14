@@ -29,7 +29,7 @@ pub struct WorthQueryInstalledHostConditionalProvider<
         F,
         N,
     >,
-    provider: Provider,
+    provider: std::sync::Arc<Provider>,
 }
 
 impl<Schema, ApplicationOperation, Input, D, O, F, N>
@@ -57,7 +57,7 @@ impl<Schema, ApplicationOperation, Input, D, O, F, N>
         validate_provider_identity::<Provider, N>()?;
         Ok(WorthQueryInstalledHostConditionalProvider {
             node: self,
-            provider,
+            provider: std::sync::Arc::new(provider),
         })
     }
 }
@@ -100,6 +100,11 @@ where
         observation: WorthQueryConditionalObservationView<'_>,
     ) -> Result<WorthQueryHostPredicateDecision, WorthQueryHostPredicateFailure> {
         self.provider.evaluate(observation)
+    }
+
+    #[doc(hidden)]
+    pub fn retain_provider_for_runtime(&self) -> std::sync::Arc<Provider> {
+        std::sync::Arc::clone(&self.provider)
     }
 }
 

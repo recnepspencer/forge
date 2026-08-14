@@ -62,6 +62,8 @@ pub(crate) struct NodeArena {
 /// and snapshot storage.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignalGraph {
+    #[serde(skip, default)]
+    pub(in crate::data::graph) lifecycle_token: std::sync::Arc<()>,
     #[serde(skip, default = "next_signal_graph_instance_id")]
     pub(in crate::data::graph) instance_id: u64,
     pub(in crate::data::graph) arena: NodeArena,
@@ -83,6 +85,21 @@ pub struct SignalGraph {
     pub(crate) conditional_dependency_versions: BTreeMap<NodeId, Vec<u64>>,
     #[serde(skip, default)]
     pub(crate) authorization_policy_identities: BTreeSet<[u8; 32]>,
+}
+
+/// Weak liveness observation of one concrete Signal graph owner.
+pub struct SignalGraphLifecycleProbe(std::sync::Weak<()>);
+
+impl SignalGraphLifecycleProbe {
+    pub fn is_live(&self) -> bool {
+        self.0.strong_count() != 0
+    }
+}
+
+impl SignalGraph {
+    pub fn lifecycle_probe(&self) -> SignalGraphLifecycleProbe {
+        SignalGraphLifecycleProbe(std::sync::Arc::downgrade(&self.lifecycle_token))
+    }
 }
 
 static NEXT_SIGNAL_GRAPH_INSTANCE_ID: AtomicU64 = AtomicU64::new(1);

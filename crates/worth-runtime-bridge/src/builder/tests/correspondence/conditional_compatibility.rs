@@ -17,6 +17,7 @@ use crate::facade::{
 
 mod certification;
 mod managed_time;
+mod owned_installation;
 mod provider_semantics;
 mod retained_decision;
 

@@ -140,16 +140,17 @@ impl BridgeMaterializedFieldValue {
     fn from_validated_record(
         projection: BridgeMaterializedFieldProjection,
         record: &crate::snapshot::ValidatedSnapshotReadRecord,
-    ) -> Self {
+    ) -> Option<Self> {
+        let validated_value = record.validated_value_posture()?.clone();
         let validated_value_canonical_basis =
             crate::snapshot::validated_value_basis::validated_snapshot_read_value_canonical_basis(
-                record.validated_value(),
+                &validated_value,
             );
-        Self {
+        Some(Self {
             projection,
-            validated_value: record.validated_value().clone(),
+            validated_value,
             validated_value_canonical_basis: validated_value_canonical_basis.into(),
-        }
+        })
     }
 }
 
@@ -248,13 +249,15 @@ pub fn materialize_bridge_row_set(
         let row_identity = Arc::from(row_identity_for_read(read));
         let field_projection =
             BridgeMaterializedFieldProjection::from_snapshot_target(read.target());
-        let field_identity = field_projection.field_identity().clone();
+        let Some(field_value) =
+            BridgeMaterializedFieldValue::from_validated_record(field_projection, record)
+        else {
+            continue;
+        };
+        let field_identity = field_value.projection().field_identity().clone();
         let row_fields = rows.entry(Arc::clone(&row_identity)).or_default();
         if row_fields
-            .insert(
-                field_identity.clone(),
-                BridgeMaterializedFieldValue::from_validated_record(field_projection, record),
-            )
+            .insert(field_identity.clone(), field_value)
             .is_some()
         {
             return Err(

@@ -128,7 +128,9 @@ pub fn materialize_relational_authoritative_row_set(
     let mut rows: BTreeMap<RelationalRowIdentity, BTreeMap<AspectKey, SnapshotReadValue>> =
         BTreeMap::new();
     for (read, record) in packet.reads().iter().zip(result.records().iter()) {
-        let aspect_read = decode_snapshot_aspect_read_value(record)?;
+        let Some(aspect_read) = decode_snapshot_aspect_read_value(record)? else {
+            continue;
+        };
         let row_identity = read.relational_record_identity_parts().ok_or_else(|| {
             RelationalGroupedTruthError::UntypedRelationalRowIdentity {
                 request_key: read.correlation_id().as_str().to_string(),
@@ -263,6 +265,34 @@ mod tests {
                 .get(&AspectKey::new("identity.id").unwrap()),
             Some(worth_runtime_bridge::facade::SnapshotReadValue::Struct(_))
         ));
+    }
+
+    #[test]
+    fn relational_row_set_omits_authoritatively_absent_aspects_without_panicking() {
+        let packet = SnapshotReadPacket::new(vec![
+            string_read(
+                RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
+                "identity.id",
+            ),
+            string_read(
+                RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
+                "status.lane",
+            ),
+        ]);
+        let result = SnapshotReadPacketResult::new(
+            test_snapshot_identity(),
+            vec![
+                read_record(&packet, 0, AspectValue::String("task-1".into())),
+                SnapshotReadRecord::absent_for_request(&packet.reads()[1]),
+            ],
+        );
+
+        let row_set = materialize_relational_authoritative_row_set(&packet, &result).unwrap();
+        assert_eq!(row_set.rows().len(), 1);
+        assert_eq!(row_set.rows()[0].projected_aspect_values().len(), 1);
+        assert!(!row_set.rows()[0]
+            .projected_aspect_values()
+            .contains_key(&AspectKey::new("status.lane").unwrap()));
     }
 
     #[test]

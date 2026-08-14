@@ -39,7 +39,11 @@ pub struct BridgeOwnedSignalRuntime {
     pub(super) conditional_lowerings:
         BTreeMap<worth_signal::facade::NodeId, Arc<BridgeInstalledConditionalLowering>>,
     pub(super) conditional_observations: std::collections::BTreeMap<
-        (worth_signal::facade::NodeId, usize),
+        (
+            worth_signal::facade::NodeId,
+            usize,
+            Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
+        ),
         worth_foundational::facade::ContractValidatedAspectArtifact,
     >,
     pub(super) managed_clock_lanes: BTreeMap<Arc<str>, super::managed_time::BridgeManagedClockLane>,

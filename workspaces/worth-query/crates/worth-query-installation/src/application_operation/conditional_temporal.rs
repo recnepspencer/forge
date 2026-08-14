@@ -185,6 +185,16 @@ where
     }
 
     #[doc(hidden)]
+    pub fn observe_clock_for_runtime(
+        &mut self,
+    ) -> Result<
+        crate::domain_operation::WorthQueryNamedClockObservation<Clock>,
+        crate::domain_operation::WorthQueryNamedClockFailure,
+    > {
+        self.clocked_node.observe_for_runtime()
+    }
+
+    #[doc(hidden)]
     pub fn project_for_runtime(
         &self,
         row: &QueryResult,

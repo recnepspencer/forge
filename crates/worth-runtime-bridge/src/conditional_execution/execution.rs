@@ -133,6 +133,17 @@ impl BridgeOwnedSignalRuntime {
         request: BridgeConditionalExecutionRequest<'_>,
         compute_context: &mut dyn std::any::Any,
     ) -> Result<BridgeConditionalDecisionEvidence, BridgeConditionalDenial> {
+        self.execute_with_managed_source_record(request, None, compute_context)
+    }
+
+    pub(super) fn execute_with_managed_source_record(
+        &mut self,
+        request: BridgeConditionalExecutionRequest<'_>,
+        managed_source_record: Option<
+            crate::relational_identity::RelationalBridgeRecordIdentityParts,
+        >,
+        compute_context: &mut dyn std::any::Any,
+    ) -> Result<BridgeConditionalDecisionEvidence, BridgeConditionalDenial> {
         let mut counters = BridgeConditionalExecutionCounters {
             signal_graph_checks: 1,
             ..BridgeConditionalExecutionCounters::default()
@@ -150,12 +161,17 @@ impl BridgeOwnedSignalRuntime {
         let execution = self.execute_installed_signal_conditional(
             &request,
             admitted_snapshot.as_ref(),
+            managed_source_record,
             compute_context,
             &mut counters,
         );
         let (signal, observations) =
             execution.map_err(|denial| denial.with_bridge_execution_counters(counters))?;
-        self.retain_successful_observation_baseline(request.lowering, &observations);
+        self.retain_successful_observation_baseline(
+            request.lowering,
+            managed_source_record,
+            &observations,
+        );
         counters.observation_baseline_writes = observations.len();
         counters.decisions_retained = 1;
         Ok(retain_bridge_decision(
@@ -178,6 +194,9 @@ impl BridgeOwnedSignalRuntime {
                 Box<dyn crate::snapshot::TruthSnapshotReader>,
             >,
         >,
+        managed_source_record: Option<
+            crate::relational_identity::RelationalBridgeRecordIdentityParts,
+        >,
         compute_context: &mut dyn std::any::Any,
         counters: &mut BridgeConditionalExecutionCounters,
     ) -> Result<
@@ -199,6 +218,7 @@ impl BridgeOwnedSignalRuntime {
             request.lowering,
             admitted_snapshot,
             &self.conditional_observations,
+            managed_source_record,
             request.truth_branch_identity,
             request.snapshot_identity,
         );
@@ -257,15 +277,32 @@ impl BridgeOwnedSignalRuntime {
     fn retain_successful_observation_baseline(
         &mut self,
         lowering: &BridgeInstalledConditionalLowering,
+        managed_source_record: Option<
+            crate::relational_identity::RelationalBridgeRecordIdentityParts,
+        >,
         observations: &[super::BridgeConditionalSemanticObservation],
     ) {
         // Successful semantic reads advance the baseline even when compute is
         // suppressed, so a later domain delta can become observable.
         for observation in observations {
-            self.conditional_observations.insert(
-                (lowering.signal_node(), observation.dependency_ordinal()),
-                observation.current().clone(),
+            let key = (
+                lowering.signal_node(),
+                observation.dependency_ordinal(),
+                lowering
+                    .semantic_observation_plan
+                    .as_ref()
+                    .and_then(|plan| {
+                        plan.baseline_record(
+                            observation.dependency_ordinal(),
+                            managed_source_record,
+                        )
+                    }),
             );
+            if let Some(current) = observation.current() {
+                self.conditional_observations.insert(key, current.clone());
+            } else {
+                self.conditional_observations.remove(&key);
+            }
         }
     }
 }

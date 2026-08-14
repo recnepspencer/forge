@@ -42,7 +42,7 @@ impl From<StructAspectValue> for SnapshotReadValue {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SnapshotReadRecord {
     correlation_id: SnapshotReadCorrelationId,
-    read_value: SnapshotReadValue,
+    read_value: Option<SnapshotReadValue>,
 }
 
 impl SnapshotReadRecord {
@@ -52,7 +52,16 @@ impl SnapshotReadRecord {
     ) -> Self {
         Self {
             correlation_id: request.correlation_id().clone(),
-            read_value: read_value.into(),
+            read_value: Some(read_value.into()),
+        }
+    }
+
+    /// Retains an authoritative statement that the requested aspect is absent
+    /// at the bound snapshot. Absence is a value posture, not an omitted row.
+    pub fn absent_for_request(request: &super::SnapshotReadRequest) -> Self {
+        Self {
+            correlation_id: request.correlation_id().clone(),
+            read_value: None,
         }
     }
 
@@ -60,12 +69,18 @@ impl SnapshotReadRecord {
         &self.correlation_id
     }
 
-    pub fn read_value(&self) -> &SnapshotReadValue {
-        &self.read_value
+    pub fn read_value_posture(&self) -> Option<&SnapshotReadValue> {
+        self.read_value.as_ref()
     }
 
     pub fn scalar_aspect_value(&self) -> Option<&AspectValue> {
-        self.read_value.scalar_value()
+        self.read_value
+            .as_ref()
+            .and_then(SnapshotReadValue::scalar_value)
+    }
+
+    pub fn is_absent(&self) -> bool {
+        self.read_value.is_none()
     }
 }
 
@@ -128,7 +143,7 @@ impl ValidatedSnapshotReadPacketResult {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidatedSnapshotReadRecord {
     correlation_id: SnapshotReadCorrelationId,
-    validated_value: ContractValidatedAspectArtifact,
+    validated_value: Option<ContractValidatedAspectArtifact>,
 }
 
 impl ValidatedSnapshotReadRecord {
@@ -138,7 +153,14 @@ impl ValidatedSnapshotReadRecord {
     ) -> Self {
         Self {
             correlation_id,
-            validated_value,
+            validated_value: Some(validated_value),
+        }
+    }
+
+    pub(crate) fn absent(correlation_id: SnapshotReadCorrelationId) -> Self {
+        Self {
+            correlation_id,
+            validated_value: None,
         }
     }
 
@@ -146,12 +168,18 @@ impl ValidatedSnapshotReadRecord {
         &self.correlation_id
     }
 
-    pub fn validated_value(&self) -> &ContractValidatedAspectArtifact {
-        &self.validated_value
+    pub fn validated_value_posture(&self) -> Option<&ContractValidatedAspectArtifact> {
+        self.validated_value.as_ref()
     }
 
     pub fn scalar_aspect_value(&self) -> Option<&AspectValue> {
-        contract_validated_scalar_aspect_value(&self.validated_value)
+        self.validated_value
+            .as_ref()
+            .and_then(contract_validated_scalar_aspect_value)
+    }
+
+    pub fn is_absent(&self) -> bool {
+        self.validated_value.is_none()
     }
 }
 

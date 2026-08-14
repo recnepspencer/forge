@@ -40,17 +40,19 @@ Portable authoring:
 
 Runtime installation:
 
-- `runtime::WorthQueryRuntimeBuilder::conditional_signal_graph(...)`
-- `runtime::WorthQueryRuntimeBuilder::conditional_node(...)`
-- `domain::WorthQueryConditionalDependencyInstallation`
-- `domain::WorthQueryConditionalNodeComputeProvider`
-- `worth_runtime_bridge::facade::BridgeConditionalProviderSet`
+- `primary_graph::WorthQueryConditionalApplicationRuntimeInstallation`
+- `primary_graph::WorthQueryTemporalOperationExecution`
+- `primary_graph::WorthQueryTemporalReconstructionAccess`
+- `primary_graph::WorthQueryConditionalClockHandle`
+- `primary_graph::WorthQueryPrimaryGraphApplicationRuntime::reinstall_conditional_runtime(...)`
+- `primary_graph::WorthQueryPrimaryGraphApplicationRuntime::reinstall_conditional_runtime_for_installation(...)`
 
 Runtime evidence:
 
-- `domain::WorthQueryConditionalProvenance`
-- `domain::WorthQueryConditionalOutcomeClass`
-- `domain::WorthQueryConditionalExecutionIndexRebuildReport`
+- `primary_graph::WorthQueryConditionalClockObservationOutcome`
+- `primary_graph::WorthQueryConditionalClockObservationReceipt`
+- `primary_graph::WorthQueryConditionalRuntimeReinstallationReceipt`
+- `primary_graph::WorthQueryConditionalRuntimeInspection`
 
 ## Core Mental Model
 
@@ -101,7 +103,7 @@ let dependency = domain::WorthQuerySemanticTruthDependency::new(
     projection_mask,
     aspect_binding,
     domain::WorthQuerySemanticLocality::SourceRecord,
-    [worth_relational::facade::schema::RelationalAspectChangeKind::FieldSet],
+    [domain::AuthoritativeAspectChangeKind::FieldSet],
 )?;
 ```
 
@@ -190,8 +192,47 @@ the typed threshold; Signal resolves the decision.
 ### Temporal
 
 Use `WorthQueryConditionalEvaluationCondition::temporal(...)` with a matching
-`WorthQueryConditionalTrigger::Temporal(...)`. Temporal wake authority is
-registered during runtime construction.
+`WorthQueryConditionalTrigger::Temporal(...)`. The host binds a named clock,
+an authoritative intent-reconstruction query, a typed intent projector, and
+the ordinary installed application operation before publication. Clock input
+is only time evidence. Signal owns wake eligibility; Query still performs a
+fresh application-operation admission and compare-and-commit.
+
+The durable source is the domain temporal-intent record, not the Signal wake.
+An active intent carries stable identity, revision, due coordinate, operation
+input, lifecycle, and idempotency relation. The same application commit that
+performs the effect advances the intent revision and lifecycle. Cancellation,
+completion, or a successor revision is reconciled before predicate or
+operation contact.
+
+Host predicates receive dependency-indexed previous/current observations.
+Absence is explicit, and a present value exposes only the declared projection
+mask through `scalar()` or `field(...)`; the complete source aspect is not a
+host-visible escape hatch.
+
+#### Temporal identity and canonical work
+
+The host does not invent a binding identifier or idempotency hash. Query first
+prepares a canonical binding identity from the installed node authority,
+clock, source, timeline, reconstruction query and projector, principal source,
+and operation invoker. Publication then prepares the runtime-qualified identity
+for the exact runtime, installation generation, provider, and branch. Both use
+the Foundational canonical-basis and typed-digest contract.
+
+That work occurs once at the cold boundary and is carried by the installed
+runtime. `WorthQueryConditionalClockHandle::binding_canonical_work()` reports
+the base binding work. `WorthQueryConditionalRuntimeInspection::installation_canonical_work()`
+reports the combined binding and runtime-qualification work.
+
+When an eligible wake reaches fresh application admission, Query prepares the
+idempotency key and intent identity from the runtime binding plus the current
+authoritative intent identity, revision, input, and host idempotency value.
+`WorthQueryConditionalExecutionProvenance::canonical_work()` reports that work
+in the admission phase. Compare-and-commit consumes the prepared binding;
+no later phase of that attempt hashes the same meaning again. A subsequent
+lawful fresh admission reports its own derivation in the admission phase, not
+in provider execution, projection, live delivery, retry, recovery, or
+publication.
 
 ### On-demand
 
@@ -220,31 +261,32 @@ let condition = domain::WorthQueryConditionalEvaluationCondition::domain_specifi
 
 The family marker is portable identity. A string-dispatch callback is not.
 
-## Register Runtime Correspondence And Providers
+## Publish A Primary-Graph Conditional Runtime
 
 Portable declarations must be paired with exact runtime installations:
 
+Application hosts enter only through `worth-query-host`. They bind the
+installed conditional operation, typed node, host predicate, named clock,
+reconstruction projection, ordinary operation invoker, and fresh admission
+source before `publish()` makes the application runtime visible. Runtime
+Bridge and Signal types never appear in the host manifest or source.
+
 ```rust
-let builder = runtime::WorthQueryRuntime::builder()
-    .domain_package(package)?
-    .runtime_bridge(bridge)
-    .conditional_signal_graph(signal_graph)
-    .conditional_node(
-        GeometryDomain,
-        RebuildFaceMesh,
-        GeometryFamily,
-        ModelGraph,
-        domain::WorthQueryConditionalNodeLocation::operation(
-            "rebuild-face-mesh",
-        )?,
-        dependency_installations,
-        bridge_providers,
-        RebuildFaceMeshCompute,
-    );
+let mut publication = graph
+    .conditional_application_runtime_installation(runtime, authority, schema)?;
+let clock = publication.bind_temporal_operation(
+    installed_temporal_binding,
+    operation_execution,
+    reconstruction_access,
+)?;
+let mut application = publication.publish()?;
+
+let outcome = application.conditional_clock(&clock)?.observe();
 ```
 
-`conditional_node(...)` binds the exact domain, operation, family, graph,
-declaration location, dependency targets, provider set, and compute provider.
+Publication reconstructs current authoritative intents and reconciles the
+derived wake index before returning. The observation port verifies the exact
+runtime, binding, clock source, timeline, sequence, and installation affinity.
 
 Runtime construction rejects:
 
@@ -253,10 +295,10 @@ Runtime construction rejects:
 - a foreign graph or Signal node
 - dependency contract, mask, binding, locality, or change-kind drift
 - unsupported or ambiguous correspondence
-- mixed Signal graphs in one target set
+- mixed or foreign lower-runtime ownership
 - missing condition, trigger, wake, or comparator provider
 - provider identity that does not match the portable declaration
-- Signal aspect capacity exhaustion
+- managed clock or wake capacity exhaustion
 
 The registration is volatile. It does not participate in portable package
 serialization; its admitted identity is retained by the installed runtime.
@@ -337,6 +379,24 @@ Inspect:
 - `conditional_compute_contacts`
 - `conditional_semantic_changes`
 - graph-provider and executor contacts
+- installed binding and managed-clock counts
+- retained due wakes and reconstructed active intents
+- committed, already-committed, failed, and indeterminate re-entry counts
+- relevant authoritative-commit count/work-remaining separately from due-wake
+  count/work-remaining
+- clock-receipt `execution_provenance()` joining intent revision, wake
+  ordinals, Signal decision, application-attempt presence, and terminal posture
+- clock-handle `binding_canonical_work()`, runtime-inspection
+  `installation_canonical_work()`, and provenance `canonical_work()` when
+  auditing the cold-binding, runtime-binding, and fresh-admission seams
+- `inspect_conditional_runtime()` before and after lifecycle transitions
+- `reinstall_conditional_runtime()` receipts with separate reconstructed
+  binding/intent counts and structural query work: examined candidates,
+  projected records, projected fields, and total work units
+- `conditional_runtime_lifecycle_probe()` retained outside the application
+  runtime when abandonment/`Drop` release needs exact-zero proof; its
+  `live_inventory()` reads weak liveness for the concrete Query, Bridge, and
+  Signal resource owners and is never written by a Drop callback
 - `workspace.rebuild_conditional_execution_index()`
 - `bridge.rebuild_correspondence_allocation_index()`
 
@@ -365,15 +425,41 @@ not operational authority.
 - Creating a second Signal graph for conditional Query work.
 - Registering a provider without a matching portable declaration.
 - Treating conditional nodes as permission to widen graph reads or effects.
+- Defining a host-local hash grammar for temporal binding or idempotency
+  identity, or regenerating canonical identity during commit.
 
 ## Current Limits
 
-- The current public path installs conditional nodes before runtime
-  publication.
-- One Query runtime owns one conditional Signal graph through its selected
-  Runtime Bridge.
-- Portable declarations describe temporal and on-demand meaning, but the host
-  must supply the exact runtime wake or trigger provider.
+- The production primary-graph host path installs every conditional binding
+  before runtime publication; post-publication provider or clock replacement
+  is not an ordinary mutation.
+- One application runtime owns one Bridge-owned Signal runtime. Compatible
+  reinstallation rebuilds that volatile owner from current authoritative
+  Relational truth and the retained exact binding inventory. A successor
+  installation requires fresh typed rebinding and otherwise returns
+  `RebindRequired` without mutating the incumbent runtime.
+- Application commit publication synchronously refreshes the derived
+  temporal-intent index. Ordinary clock observation then routes a bounded
+  route-local journal for each exact reconstructed source record, plus a
+  separate whole-graph route only for a dependency explicitly declared
+  `WholeLogicalGraph`. Unrelated commits consume neither exact-route retention
+  nor scan work. Ordinary observation does not execute the reconstruction
+  query; cold reconstruction remains separately bounded and reported by the
+  installed temporal projection.
+- `SourcePartition` dependencies are rejected at installation until the
+  primary-graph host path has a typed installed source-partition role binding;
+  they are never silently widened to whole-graph observation.
+- Missing records and aspects are carried as authoritative snapshot absence.
+  Field clears remain field-precise within a present aspect and are not treated
+  as absence of the entire dependency. Consumers must match the explicit
+  present/absent posture; the former present-only snapshot accessors were
+  removed instead of preserving a panic-prone compatibility path.
+- `close_conditional_runtime()` revokes clock handles and releases the
+  installed provider, binding, managed-clock, wake, operation-attempt, lease,
+  reconstructed-intent, scheduler-task, and scheduler-queue inventory.
+- Provider replacement is a fresh runtime publication with a fresh typed
+  provider identity. The predecessor clock/provider affinity is foreign to the
+  replacement runtime; there is no mutable in-place provider swap.
 - Installed-operation certification replay compares the exact realized
   conditional observations, Signal evidence, and decision path. Ordinary
   shared-owner delivery retains the current admitted Signal decision in each
@@ -383,6 +469,7 @@ not operational authority.
 
 ## Related Docs
 
+- [Ordinary Application Front Door](../foundations/ordinary-application-front-door.md)
 - [Runtime-Installed Domains And Operations](./runtime-installed-domains.md)
 - [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
 - [Downstream Runtime Integration](../foundations/downstream-runtime-integration.md)

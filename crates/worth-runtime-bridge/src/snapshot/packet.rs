@@ -264,9 +264,14 @@ fn validate_snapshot_read_record(
             )
         })?;
 
+    let Some(read_value) = record.read_value_posture() else {
+        return Ok(ValidatedSnapshotReadRecord::absent(
+            record.correlation_id().clone(),
+        ));
+    };
     let validation = validate_aspect_value(
         read.target().contract().aspect_contract(),
-        record.read_value().clone().into_validation_input(),
+        read_value.clone().into_validation_input(),
     );
     match validation {
         TransitionOutcome::Success(validated) => Ok(ValidatedSnapshotReadRecord::new(

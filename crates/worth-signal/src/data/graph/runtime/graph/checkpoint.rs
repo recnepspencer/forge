@@ -93,6 +93,7 @@ impl SignalGraph {
         cause_sets.readmit_graph_instance(instance_id);
         let cause_readmission_required = cause_sets.has_occupied_sets();
         let mut graph = Self {
+            lifecycle_token: Default::default(),
             instance_id,
             arena: NodeArena {
                 nodes: authority

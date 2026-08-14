@@ -28,6 +28,16 @@ Host code may:
 - execute managed provider sessions and consume typed terminal outcomes;
 - consume fresh, recovered, partial-effect, and indeterminate commit outcomes;
 - publish governed results and closed application-aftermath posture;
+- bind an exact host predicate provider, named clock, and authoritative
+  temporal-intent reconstruction contract before application-runtime
+  publication;
+- submit typed observations through a runtime-bound clock port while Signal
+  owns wake eligibility and Query freshly admits the installed operation;
+- reinstall derived temporal wakes from current authoritative domain truth and
+  inspect non-authoritative lifecycle, work, and provenance evidence;
+- inspect base-binding, complete runtime-installation, and fresh-admission
+  canonical work through the carried clock, runtime-inspection, and provenance
+  surfaces;
 - dispatch declared external effects only from co-committed outbox facts;
 - inspect, resolve, safely retry, dispose, or expire an exact receipt-bound
   runtime recovery handle;
@@ -51,9 +61,14 @@ Host code must not:
 - serialize a recovery handle or treat its opaque wire identity as live
   authority;
 - teach `facade::provisional_aftermath` as accepted undo/redo support.
+- schedule temporal work locally, return raw Signal decisions, or invoke a
+  conditional operation directly.
+- invent a host-local temporal binding or idempotency hash, or derive either
+  again during commit.
 
 ## Related Docs
 
+- [Ordinary Application Front Door](../worth-query/docs/foundations/ordinary-application-front-door.md)
 - [WORTH Query Orientation](../worth-query/docs/AI_README.md)
 - [Application Authorization And Emergency Elevation](../worth-query/docs/capabilities/application-authorization-and-emergency-elevation.md)
 - [Runtime-Installed Domains And Operations](../worth-query/docs/domain-capabilities/runtime-installed-domains.md)

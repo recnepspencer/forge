@@ -19,8 +19,9 @@ use super::{
     WorthQueryApplicationInvariantProjectionReader,
     WorthQueryApplicationInvariantProjectionSnapshot, WorthQueryCompletedInvariantProjection,
     WorthQueryInvariantAggregateDenial, WorthQueryInvariantEntityIdentity,
-    WorthQueryInvariantProjectionTraversalDenial, WorthQueryInvariantProjectionWork,
-    WorthQueryInvariantRelation, WorthQueryOperationProjectionDenial,
+    WorthQueryInvariantMutationTarget, WorthQueryInvariantProjectionTraversalDenial,
+    WorthQueryInvariantProjectionWork, WorthQueryInvariantRelation,
+    WorthQueryOperationProjectionDenial,
 };
 use crate::domain_computation::authorization::WorthQueryOperationAdmissionIdentity;
 use crate::domain_computation::primary_graph::{
@@ -278,6 +279,20 @@ where
         Unit: ApplicationFieldUnit,
     {
         self.reader.field(identity, field)
+    }
+
+    pub fn mutation_target<Entity>(
+        &self,
+        identity: &WorthQueryInvariantEntityIdentity<Schema, Entity>,
+    ) -> Result<WorthQueryInvariantMutationTarget<Schema, Entity>, &'static str> {
+        if identity.authority_identity != self.reader.authority_identity {
+            return Err("foreign-invariant-mutation-target");
+        }
+        Ok(WorthQueryInvariantMutationTarget {
+            entity_id: identity.entity_id,
+            entity: Arc::clone(&identity.entity),
+            _marker: PhantomData,
+        })
     }
 
     pub fn relations_from<Relation, From, To>(

@@ -10,7 +10,9 @@ use super::SubscriberId;
 /// - `on_begin` is infallible
 /// - all fallible work happens in `on_checkpoint`
 /// - `requires`/`provides` define DAG dependencies
-pub trait EventSubscriber {
+/// - subscribers move only with their exclusively owned runtime; lifecycle
+///   hooks are still invoked serially
+pub trait EventSubscriber: Send {
     /// Event payload type routed through this bus.
     type Event;
     /// Typed data keys exchanged through `SubscriberContext`.

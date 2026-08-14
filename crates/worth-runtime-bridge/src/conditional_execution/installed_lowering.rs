@@ -67,6 +67,16 @@ impl BridgeInstalledConditionalLowering {
         self.correspondences.len()
     }
 
+    pub fn dependency_locality(
+        &self,
+        ordinal: usize,
+    ) -> Option<&crate::correspondence::BridgeSemanticLocality> {
+        self.correspondences
+            .iter()
+            .find(|correspondence| correspondence.dependency().dependency_ordinal() == ordinal)
+            .map(|correspondence| correspondence.dependency().locality())
+    }
+
     pub fn validate_signal_decision_contract(
         &self,
         evidence: &worth_signal::facade::SignalConditionalDecisionEvidence,

@@ -126,13 +126,17 @@ pub(crate) fn correspondence_bridge(
                 role.clone(),
             )
         }
-        BridgeSemanticLocality::SourceRecord | BridgeSemanticLocality::WholeLogicalGraph => {
+        BridgeSemanticLocality::SourceRecord
+        | BridgeSemanticLocality::ManagedSourceRecord
+        | BridgeSemanticLocality::WholeLogicalGraph => {
             RuntimeBridgeRelationalSource::for_graph_role(Arc::new(relational), "model")
         }
     }
     .expect("model is a valid graph role");
     let locality = match dependency.locality() {
-        BridgeSemanticLocality::SourceRecord => FixtureLocality::Record,
+        BridgeSemanticLocality::SourceRecord | BridgeSemanticLocality::ManagedSourceRecord => {
+            FixtureLocality::Record
+        }
         BridgeSemanticLocality::SourcePartition(_) => FixtureLocality::Partition,
         BridgeSemanticLocality::WholeLogicalGraph => FixtureLocality::Graph,
     };

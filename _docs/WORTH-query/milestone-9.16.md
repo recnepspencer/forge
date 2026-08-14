@@ -16,8 +16,12 @@
 > graph-progression substrate remains inherited. Gates A-C and the executable
 > release/disbursement slices remain historical prerequisites. Bank World
 > Phase 5 is closed by the real Docker-backed, separate-process transport court
-> (2026-08-13). Milestone 9.16 itself remains open for Runtime Phases 9-10,
-> Bank Phase 6, and Closure Phase 1 before the roadmap may advance to 9.17.
+> (2026-08-13). Runtime Phase 9's host-installed conditional-operation path and
+> Runtime Phase 10's public cutover are closed by their
+> [Phase 9](./milestone-9.16-runtime-phase-9-closure-ledger.md) and
+> [Phase 10](./milestone-9.16-runtime-phase-10-closure-ledger.md) ledgers.
+> Milestone 9.16 itself remains open for Bank Phase 6 and Closure Phase 1
+> before the roadmap may advance to 9.17.
 
 ## Goal
 
@@ -3561,7 +3565,7 @@ forbids direct `worth_signal` and `worth_runtime_bridge` use. The
 primary-graph application runtime creates and retains its managed Runtime Bridge
 but exposes no corresponding host installation port. A consumer therefore
 cannot satisfy both the feature contract and the dependency law. Phase 9 closes
-that contradiction; it is not a Workflow Editor adapter phase.
+that contradiction.
 
 **Consumes**
 
@@ -3772,9 +3776,6 @@ that the bank world or existing consumers no longer need.
   the relevant feature documents;
 - migration of relevant Worth UI or other reference-consumer workarounds where
   the new surface owns the capability;
-- migration of Workflow Editor from its local Signal graph and temporal
-  scheduler onto the Phase 9 host contract, with no `worth_signal` or
-  `worth_runtime_bridge` dependency;
 - deletion of raw aspect strings, manual permission registries, local Query
   authority builders, application-local generic cursors, lane-specific query
   copies, undo stacks, break-glass booleans, post-projection redaction, and

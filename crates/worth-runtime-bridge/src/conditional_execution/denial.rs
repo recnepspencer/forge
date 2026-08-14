@@ -32,6 +32,7 @@ pub enum BridgeConditionalDenialKind {
     SnapshotMismatch,
     SnapshotAdmission,
     AttemptMismatch,
+    ManagedWakeMismatch,
     SignalExecution,
 }
 

@@ -23,6 +23,7 @@ mod target_mapping;
 pub(crate) use batch_admission::{
     isolate_allocation_state, prepare_registered_correspondence_batch,
 };
+pub(crate) use mapping_admission::unique_mapping_id_for_dependency;
 pub(crate) use semantic_dependency_registry::{
     AdmittedSemanticDependencyExtension, AdmittedSemanticDependencyRegistry,
 };

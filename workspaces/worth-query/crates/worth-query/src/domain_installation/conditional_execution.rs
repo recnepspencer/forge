@@ -26,7 +26,7 @@ pub use installation::{
     WorthQueryConditionalNodeComputeProvider, WorthQueryConditionalNodeInstallationDenial,
 };
 pub(crate) use reentry::{
-    admit_conditional_authority, admit_conditional_decision,
+    admit_conditional_authority, admit_conditional_decision, classify_signal_decision,
     WorthQueryConditionalAuthorityAdmission,
 };
 pub use reentry::{

@@ -127,7 +127,7 @@ impl SemanticAspectDependencyCompilation {
                     previous: observation
                         .as_ref()
                         .and_then(|item| item.previous().cloned()),
-                    current: observation.map(|item| item.current().clone()),
+                    current: observation.and_then(|item| item.current().cloned()),
                 }
             })
             .collect::<Vec<_>>();

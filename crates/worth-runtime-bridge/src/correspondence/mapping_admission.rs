@@ -64,6 +64,24 @@ pub(super) fn admit_mapping(
         .ok_or(BridgeCorrespondenceDenialKind::MappingSemanticMismatch)
 }
 
+pub(crate) fn unique_mapping_id_for_dependency(
+    runtime: &RuntimeBridge,
+    dependency: &BridgeSemanticDependencyCandidate,
+) -> Result<crate::mapping::BridgeAspectRegistrationId, BridgeCorrespondenceDenialKind> {
+    let mut matches = runtime
+        .aspect_registry
+        .registrations()
+        .iter()
+        .filter(|mapping| admit_mapping(mapping, dependency).is_ok());
+    let first = matches
+        .next()
+        .ok_or(BridgeCorrespondenceDenialKind::MissingMapping)?;
+    if matches.next().is_some() {
+        return Err(BridgeCorrespondenceDenialKind::AmbiguousMapping);
+    }
+    Ok(first.registration_id().clone())
+}
+
 fn widening_class_for(
     scope: &crate::mapping::TruthPatchScope,
     dependency: &BridgeSemanticDependencyCandidate,
@@ -76,6 +94,7 @@ fn widening_class_for(
         && matches!(
             dependency.locality,
             super::BridgeSemanticLocality::SourceRecord
+                | super::BridgeSemanticLocality::ManagedSourceRecord
         );
     let aspect = matches!(scope.aspect_selector(), AspectKeySelector::Any);
     let surface = matches!(scope.target_selector(), TruthPatchTargetSelector::Any);
@@ -101,7 +120,8 @@ fn target_matches(
             dependency.projection_mask.is_whole_aspect()
         }
         TruthPatchTargetSelector::EntityField(path) => {
-            dependency.projection_mask.paths() == std::slice::from_ref(path)
+            (dependency.projection_mask.paths() == std::slice::from_ref(path)
+                || scalar_field_binding_matches(path, dependency))
                 && matches!(
                     dependency.binding,
                     AspectBinding::EntityField { .. } | AspectBinding::RelationField { .. }
@@ -126,17 +146,41 @@ fn target_matches(
     }
 }
 
+fn scalar_field_binding_matches(
+    path: &worth_foundational::facade::CanonicalFieldPath,
+    dependency: &BridgeSemanticDependencyCandidate,
+) -> bool {
+    dependency.projection_mask.is_whole_aspect()
+        && matches!(
+            dependency.contract.shape(),
+            worth_foundational::facade::AspectShape::Scalar(_)
+        )
+        && matches!(
+            &dependency.binding,
+            AspectBinding::EntityField { field } | AspectBinding::RelationField { field }
+                if path.fields() == std::slice::from_ref(field)
+        )
+}
+
 fn dependency_surface(
     dependency: &BridgeSemanticDependencyCandidate,
 ) -> Option<TruthDeltaSurfaceKind> {
     match dependency.binding {
-        AspectBinding::EntityField { .. } | AspectBinding::RelationField { .. } => {
-            Some(if dependency.projection_mask.is_whole_aspect() {
+        AspectBinding::EntityField { .. } | AspectBinding::RelationField { .. } => Some(
+            if dependency.projection_mask.is_whole_aspect()
+                && (!matches!(
+                    dependency.contract.shape(),
+                    worth_foundational::facade::AspectShape::Scalar(_)
+                ) || !matches!(
+                    dependency.locality,
+                    super::BridgeSemanticLocality::ManagedSourceRecord
+                ))
+            {
                 TruthDeltaSurfaceKind::AuthoritativeAspect
             } else {
                 TruthDeltaSurfaceKind::EntityField
-            })
-        }
+            },
+        ),
         AspectBinding::RelationSourceEndpoint | AspectBinding::RelationTargetEndpoint => {
             Some(TruthDeltaSurfaceKind::EntityRelationEndpoint)
         }

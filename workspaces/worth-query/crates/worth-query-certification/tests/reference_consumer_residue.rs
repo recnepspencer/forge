@@ -170,6 +170,105 @@ fn application_disclosure_has_one_owner_and_publication_has_no_policy_lane() {
     );
 }
 
+#[test]
+fn conditional_host_surface_has_no_lower_runtime_or_replacement_lane() {
+    let root = workspace_root();
+    let host = root.join("workspaces/worth-query/crates/worth-query-host");
+    let manifest =
+        fs::read_to_string(host.join("Cargo.toml")).expect("host manifest should remain readable");
+    let source = rust_source_under(host.join("src"));
+
+    for forbidden_dependency in ["worth-signal", "worth-runtime-bridge", "worth-relational"] {
+        assert!(
+            !manifest.contains(forbidden_dependency),
+            "host manifest exposes forbidden lower runtime `{forbidden_dependency}`"
+        );
+    }
+    for forbidden_surface in [
+        "SignalGraph",
+        "BridgeConditionalProviderSet",
+        "replace_conditional_provider",
+        "replace_named_clock",
+        "schedule_temporal_wake",
+        "invoke_conditional_operation",
+    ] {
+        assert!(
+            !source.contains(forbidden_surface),
+            "host facade exposes forbidden conditional surface `{forbidden_surface}`"
+        );
+    }
+}
+
+#[test]
+fn phase_ten_contracts_the_audience_facades_and_documentation_route() {
+    let root = workspace_root();
+    let snapshots = fs::read_to_string(root.join("tools/boundary-check/snapshots/facades.toml"))
+        .expect("facade snapshot should remain readable");
+    for required in [
+        "package = \"worth-query-decl\"",
+        "package = \"worth-query-host\"",
+        "package = \"worth-query-host::primary_graph\"",
+        "package = \"worth-query-host::provisional_aftermath\"",
+        "\"worth_query_conditional_node\"",
+        "\"WorthQueryConditionalClockObservationReceipt\"",
+    ] {
+        assert!(
+            snapshots.contains(required),
+            "contracted facade snapshot omitted `{required}`"
+        );
+    }
+
+    let bank_certification = fs::read_to_string(
+        root.join("workspaces/worth-query-bank-world/crates/bank-estate-certification/src/lib.rs"),
+    )
+    .expect("Bank certification crate root should remain readable");
+    assert!(
+        bank_certification.contains("include_str!(")
+            && bank_certification.contains("ordinary-application-front-door.md"),
+        "Bank certification must doctest the canonical Markdown itself"
+    );
+
+    let query_docs = root.join("workspaces/worth-query/crates/worth-query/docs");
+    let front_door =
+        fs::read_to_string(query_docs.join("foundations/ordinary-application-front-door.md"))
+            .expect("ordinary front-door guide should remain readable");
+    for required in [
+        "worth_query_decl::facade",
+        "worth_query_host::facade",
+        "worth_query_replay::facade",
+        "Conditional providers and managed clocks are stable",
+        "Linear undo and redo remain provisional experiments",
+        "BankReadControls::current(request_scope, 32, 20_000)",
+    ] {
+        assert!(
+            front_door.contains(required),
+            "ordinary front-door guide omitted `{required}`"
+        );
+    }
+
+    let index = fs::read_to_string(query_docs.join("README.md"))
+        .expect("documentation index should remain readable");
+    let orientation = fs::read_to_string(query_docs.join("AI_README.md"))
+        .expect("AI orientation should remain readable");
+    let host =
+        fs::read_to_string(root.join("workspaces/worth-query/crates/worth-query-host/README.md"))
+            .expect("host README should remain readable");
+    let declaration =
+        fs::read_to_string(root.join("workspaces/worth-query/crates/worth-query-decl/README.md"))
+            .expect("declaration README should remain readable");
+    for (name, document) in [
+        ("documentation index", index),
+        ("AI orientation", orientation),
+        ("host README", host),
+        ("declaration README", declaration),
+    ] {
+        assert!(
+            document.contains("Ordinary Application Front Door"),
+            "{name} must route readers to the ordinary front door"
+        );
+    }
+}
+
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
