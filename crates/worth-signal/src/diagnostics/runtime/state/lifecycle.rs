@@ -36,6 +36,7 @@ impl DiagnosticsState {
             next_lineage_sequence: self.next_lineage_sequence,
             pending_input: None,
             latest_frontier_execution: None,
+            latest_invalidation_planning_estimate: None,
             latest_invalidation_trace_records: Vec::new(),
         };
         state.bootstrap_defaults();
@@ -75,6 +76,7 @@ impl Default for DiagnosticsState {
             next_lineage_sequence: 0,
             pending_input: None,
             latest_frontier_execution: None,
+            latest_invalidation_planning_estimate: None,
             latest_invalidation_trace_records: Vec::new(),
         };
         state.bootstrap_defaults();

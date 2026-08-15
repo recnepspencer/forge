@@ -92,3 +92,50 @@ specific causal reason.
 The older `FintechWorld` stress fixtures remain useful for scale, audit-cache,
 artifact, and executor pressure. They are supplemental and cannot replace the
 definition/compiler/oracle courtroom for Milestone 12 certification.
+
+## Locality And Scale Courtroom
+
+Milestone 13 extends the same financial authority with six locality families:
+
+- `sparse_book_fanout` holds one depth-16 price/risk chain constant while
+  varying index-disjoint, queried-rejecting, and rejected-descendant fanout.
+- `partitioned_curve_universe` varies owned curve regions, matching bucket
+  memberships, and instruments per matching region independently.
+- `convergent_factor_batch` runs every quote/FX/curve/volatility commit
+  permutation and explicit duplicate admissions.
+- `dense_market_close` varies the economically necessary frontier density at a
+  fixed compiled graph size.
+- `portfolio_dependency_churn` performs current publications, owner moves,
+  remove/recreate mutations, stale-ready denial, and atomic cycle rejection.
+- `branch_restore_locality_replay` preserves authoritative source/cause state
+  across checkpoint readmission while rejecting pre-restore ready work.
+
+`FinancialLocalityExpectationManifest` derives `Q/C/K/U/E/S/P` and all 24
+counter rows only from the immutable financial definition and action trace.
+The runtime supplies committed financial artifacts, executed work bindings,
+and performed counters. `FreshFinancialLocalityRecompute` supplies independent
+economic truth. Foundational canonicalization binds the case axes and the
+performed receipt into bounded case/report identities without acquiring
+Signal authority.
+
+The courtroom keeps three cost claims separate: index-disjoint growth must add
+zero hot work; queried-candidate growth must add the exact examination and
+rejection delta without semantic work; real semantic-frontier growth must add
+the exact independent cause/work/evaluation delta. Serial and parallel
+strategy evidence is accepted only when both execute the same normalized
+runtime work-binding multiset and commit the same financial truth.
+
+Ordinary cases are the change gate. The declared `10^3`, `10^4`, and `10^5`
+cases, longer seed families, and the retained 100,000-output restore artifact
+belong to the explicit scheduled certification lane; a resource-denied or
+incomplete scheduled case is not silently omitted.
+
+Run the complete scale courtroom with the optimized test profile:
+
+```text
+cargo test --release -p worth-signal scheduled_run_seals_all_declared_scale_contracts --lib -- --ignored
+```
+
+The courtroom certifies structural counters, financial truth, and canonical
+work rather than debug-build wall time. Focused ordinary and family tests are
+the iteration lane; the full scheduled matrix is the final scale gate.

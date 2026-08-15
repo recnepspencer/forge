@@ -51,21 +51,21 @@ pub(crate) fn milestone_d_restore_lineage_nightmare_workload(
         [parent],
         Box::new(NoopAsyncNodeObservationListener),
     );
-    let parent_request = runtime
-        .admit_async_node_request(parent_handle.request_intent())
-        .expect("parent request should admit")
-        .resource_admission()
-        .expect("parent request should lower into resource admission")
-        .admitted_request();
+    runtime
+        .admit_async_node_request(grandchild_handle.request_intent())
+        .expect("grandchild request should admit");
     let child_request = runtime
         .admit_async_node_request(child_handle.request_intent())
         .expect("child request should admit")
         .resource_admission()
         .expect("child request should lower into resource admission")
         .admitted_request();
-    runtime
-        .admit_async_node_request(grandchild_handle.request_intent())
-        .expect("grandchild request should admit");
+    let parent_request = runtime
+        .admit_async_node_request(parent_handle.request_intent())
+        .expect("parent request should admit")
+        .resource_admission()
+        .expect("parent request should lower into resource admission")
+        .admitted_request();
     admit_and_commit_async_node_completion(
         &mut runtime,
         parent_request.handle(),

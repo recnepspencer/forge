@@ -17,37 +17,21 @@ use super::super::types::EligibleTask;
 use super::super::validation::capture_current_dependencies_without_refresh;
 use super::temporal::TemporalLoweringContext;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(super) enum PrevalidatedTask {
     Prepared(PreparedEvaluation),
     NeedsCompute {
         temporal_ready: Option<ReadyTemporalEligibility>,
+        ready_invalidation:
+            Option<crate::data::proof::invalidation::progression::ReadyInvalidationBatch>,
     },
-}
-
-impl PrevalidatedTask {
-    #[cfg(feature = "parallel")]
-    pub(super) fn temporal_ready(&self) -> Option<ReadyTemporalEligibility> {
-        match self {
-            Self::Prepared(_) => None,
-            Self::NeedsCompute { temporal_ready } => temporal_ready.clone(),
-        }
-    }
-
-    #[cfg(feature = "parallel")]
-    pub(super) fn into_prepared(self) -> PreparedEvaluation {
-        match self {
-            Self::Prepared(prepared) => prepared,
-            Self::NeedsCompute { .. } => {
-                panic!("compute-needed task was converted into prepared output too early")
-            }
-        }
-    }
 }
 
 pub(super) fn prevalidate_stage_tasks(
     graph: &mut SignalGraph,
     tasks: &[EligibleTask],
+    stage_index: u32,
+    readiness_epoch: crate::data::proof::invalidation::progression::InvalidationReadinessEpoch,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     temporal_lowering: &TemporalLoweringContext,
 ) -> Result<Vec<PrevalidatedTask>, SignalError> {
@@ -63,11 +47,19 @@ pub(super) fn prevalidate_stage_tasks(
             prepare_validated_clean_if_unchanged(graph, task, comparator_resolver)?.unwrap_or(
                 PrevalidatedTask::NeedsCompute {
                     temporal_ready: None,
+                    ready_invalidation: None,
                 },
             )
         };
         prevalidated.push(prepared);
     }
+    super::readiness::attach_ready_invalidation(
+        graph,
+        tasks,
+        stage_index,
+        readiness_epoch,
+        &mut prevalidated,
+    )?;
     Ok(prevalidated)
 }
 
@@ -88,12 +80,15 @@ fn prepare_invalidation_outcome(
                 .is_some_and(|pending| pending.requires_structural_recompute());
             Ok(structural.then_some(PrevalidatedTask::NeedsCompute {
                 temporal_ready: None,
+                ready_invalidation: None,
             }))
         }
         NodeInvalidationInput::ResolvedNoChange(_) => {
             let validates_clean = matches!(
                 task.admission.node_state_at_admission,
-                Some(crate::data::node::NodeState::MaybeStale)
+                Some(
+                    crate::data::node::NodeState::MaybeStale | crate::data::node::NodeState::Clean
+                )
             ) && !matches!(
                 task.request_mode,
                 crate::logic::evaluation::EvaluationRequestMode::ForceOnDemand
@@ -225,6 +220,7 @@ fn lower_temporal_condition(
                     ready.ready_ordinal(),
                     ready.ready_tick(),
                 )),
+                ready_invalidation: None,
             }));
         }
         return Err(SignalError::internal(format!(
@@ -263,6 +259,7 @@ fn lower_temporal_condition_from_runtime_clock(
                         condition,
                         authority_tick,
                     )),
+                    ready_invalidation: None,
                 })
             } else {
                 Some(PrevalidatedTask::Prepared(

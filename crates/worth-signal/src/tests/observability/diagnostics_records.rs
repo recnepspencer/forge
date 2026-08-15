@@ -4,7 +4,7 @@ use crate::facade::{
 use crate::tests::support::{GraphDependencyBatchExt, ASPECT_A};
 
 #[test]
-fn diagnostics_access_exposes_frontier_execution_and_trace_records() {
+fn diagnostics_access_exposes_source_only_planning_estimate() {
     let mut graph = SignalGraph::new();
     graph.set_runtime_policy(SignalRuntimePolicy::development());
     let source = graph.node().partitioned_output().build();
@@ -21,18 +21,12 @@ fn diagnostics_access_exposes_frontier_execution_and_trace_records() {
     )
     .unwrap();
 
-    let diagnostics = graph.observe().diagnostics();
-    let frontier = diagnostics
-        .latest_frontier_execution()
-        .expect("frontier execution should be available");
-    assert_eq!(frontier.seed_count, 1);
-    assert_eq!(frontier.direct_waves.len(), 1);
-    assert!(frontier
-        .direct_waves
-        .iter()
-        .flat_map(|wave| wave.entries.iter())
-        .any(|entry| entry.node == dependent));
-    assert!(!diagnostics.latest_invalidation_trace_records().is_empty());
+    let observation = graph.observe();
+    let estimate = observation
+        .latest_invalidation_planning_estimate()
+        .expect("source-only invalidation estimate should be available");
+    assert_eq!(estimate.seed_count(), 1);
+    assert_eq!(estimate.direct_candidate_count(), 0);
 }
 
 #[test]

@@ -134,6 +134,10 @@ impl NodeEntry {
         self.warm.direct_invalidation_basis.as_ref()
     }
 
+    pub(crate) const fn direct_invalidation_generation(&self) -> u64 {
+        self.warm.direct_invalidation_generation
+    }
+
     pub(crate) fn dirty_partition_scope_payload(&self) -> &[(Aspect, PartitionSubscription)] {
         self.warm.dirty_partition_scope_payload.as_slice()
     }

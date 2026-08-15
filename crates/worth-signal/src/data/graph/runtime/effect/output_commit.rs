@@ -5,12 +5,16 @@ use crate::data::output_equivalence::OutputEquivalencePolicy;
 use crate::data::proof::invalidation::output_commit::{
     CommittedProducedAspectDelta, ProducedAspectDelta,
 };
+use crate::data::proof::invalidation::progression::{
+    CommittedDirectInvalidation, PreparedDirectInvalidation,
+};
 use crate::logic::evaluation::{
     AppliedEffectReport, EvaluationEffect, EvaluationVerdict, SuppressionReason,
 };
 
 use super::{
-    ApplyCommitPacket, OutputCommitPacket, PreparedParallelApplyCommitPacket, SignalGraph,
+    ApplyCommitPacket, DirectInvalidationPreparationReceipt, OutputCommitPacket,
+    OutputCommitPublicationReceipt, PreparedParallelApplyCommitPacket, SignalGraph,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -22,14 +26,14 @@ pub(super) enum OutputCommitPreparationSeam {
 }
 
 enum PerformedOutputPublication {
-    Changed(CommittedProducedAspectDelta),
+    Changed(CommittedDirectInvalidation),
     Stable,
 }
 
 impl PerformedOutputPublication {
     fn committed(&self) -> Option<&CommittedProducedAspectDelta> {
         match self {
-            Self::Changed(commit) => Some(commit),
+            Self::Changed(commit) => Some(commit.publication()),
             Self::Stable => None,
         }
     }
@@ -103,9 +107,15 @@ impl SignalGraph {
             }
         };
         probe(OutputCommitPreparationSeam::DirectCauseAdmission)?;
+        let prepared_direct = produced_delta.map(|delta| {
+            PreparedDirectInvalidation::from_semantic_decision(
+                delta,
+                DirectInvalidationPreparationReceipt::after_preparation(),
+            )
+        });
         let packet = OutputCommitPacket {
             apply,
-            produced_delta,
+            prepared_direct,
             direct_causes,
         };
         self.prevalidate_output_commit_packet(&packet)?;
@@ -253,7 +263,11 @@ impl SignalGraph {
             }
             self.validate_handle(snapshot.node)?;
         }
-        if let Some(delta) = packet.produced_delta.as_ref() {
+        if let Some(delta) = packet
+            .prepared_direct
+            .as_ref()
+            .map(PreparedDirectInvalidation::delta)
+        {
             if delta.producer != producer {
                 return Err(SignalError::internal(
                     "prepared output delta belongs to another producer",
@@ -261,7 +275,13 @@ impl SignalGraph {
             }
         }
         if let Some(causes) = packet.direct_causes.as_ref() {
-            causes.validate_packet(producer, packet.produced_delta.as_ref())?;
+            causes.validate_packet(
+                producer,
+                packet
+                    .prepared_direct
+                    .as_ref()
+                    .map(PreparedDirectInvalidation::delta),
+            )?;
         }
         Ok(())
     }
@@ -275,7 +295,7 @@ impl SignalGraph {
     ) {
         let OutputCommitPacket {
             apply,
-            produced_delta,
+            prepared_direct,
             direct_causes,
         } = packet;
         let ApplyCommitPacket {
@@ -298,12 +318,22 @@ impl SignalGraph {
             self.publish_direct_output_causes(direct_causes)
                 .expect("prevalidated direct cause publication must be non-fallible");
         }
-        if let Some(delta) = produced_delta.as_ref() {
+        if let Some(delta) = prepared_direct
+            .as_ref()
+            .map(PreparedDirectInvalidation::delta)
+        {
             self.cause_sets.publish_output_commit(delta.clone());
         }
-        let performed = produced_delta.map_or(PerformedOutputPublication::Stable, |delta| {
-            PerformedOutputPublication::Changed(CommittedProducedAspectDelta::after_publication(
-                delta,
+        let publication_receipt = OutputCommitPublicationReceipt::after_atomic_publication();
+        let performed = prepared_direct.map_or(PerformedOutputPublication::Stable, |prepared| {
+            let publication = CommittedProducedAspectDelta::after_publication(
+                prepared.delta().clone(),
+                &publication_receipt,
+            );
+            PerformedOutputPublication::Changed(CommittedDirectInvalidation::after_publication(
+                prepared,
+                publication,
+                &publication_receipt,
             ))
         });
         self.record_effect_telemetry(

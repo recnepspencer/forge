@@ -285,6 +285,20 @@ impl PartitionInterner {
         }
     }
 
+    pub(crate) fn resolve_subscription(
+        &self,
+        subscription: &PartitionSubscription,
+    ) -> Option<InternedPartitionSubscription> {
+        Some(InternedPartitionSubscription {
+            partition: *self.partition_lookup.get(&subscription.partition.0)?,
+            detail: subscription
+                .detail
+                .as_deref()
+                .and_then(|detail| self.detail_lookup.get(detail).copied()),
+            match_mode: subscription.match_mode,
+        })
+    }
+
     pub fn partition_count(&self) -> usize {
         self.partitions.len()
     }

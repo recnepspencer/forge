@@ -38,7 +38,7 @@ fn compaction_reduces_segment_growth_after_repeated_snapshot_churn() {
 }
 
 #[test]
-fn overlapping_mark_dirty_calls_do_not_revisit_already_staged_subgraphs() {
+fn overlapping_mark_dirty_calls_stage_only_the_changed_sources() {
     let mut graph = SignalGraph::new();
     let a = graph.create_node();
     let b = graph.create_node();
@@ -54,10 +54,10 @@ fn overlapping_mark_dirty_calls_do_not_revisit_already_staged_subgraphs() {
     tx.commit().unwrap();
 
     let metrics = runtime.observe().metrics();
-    assert_eq!(metrics.transaction.max_touched_nodes_in_txn, 3);
+    assert_eq!(metrics.transaction.max_touched_nodes_in_txn, 2);
     assert_eq!(
         metrics.transaction.transaction_mark_dirty_candidate_visits,
-        3
+        2
     );
 }
 

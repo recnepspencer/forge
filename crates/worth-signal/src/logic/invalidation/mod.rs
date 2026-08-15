@@ -1,7 +1,6 @@
 pub(crate) mod causality;
-mod cycles;
 mod routing;
-mod subscription;
+pub(crate) mod scheduling;
 
 #[cfg(any(test, doctest))]
 pub use routing::mark_dirty;

@@ -99,9 +99,12 @@ fn run_precompute_dispatch_pass(
     #[cfg(feature = "parallel")] parallel_admission: StageParallelAdmission,
 ) -> Result<PrecomputeDispatchPass, SignalError> {
     let precompute_start = crate::clock::RuntimeInstant::now();
+    let readiness_epoch = graph.begin_invalidation_readiness_epoch();
     let execution = dispatch_stage_precompute(
         graph,
         tasks,
+        stage_index,
+        readiness_epoch,
         precompute,
         comparator_resolver,
         temporal_lowering,

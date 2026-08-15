@@ -110,11 +110,17 @@ impl SignalGraph {
         }
         {
             let warm = self.warm_mut(node)?;
+            warm.direct_invalidation_generation = warm
+                .direct_invalidation_generation
+                .checked_add(1)
+                .expect("direct invalidation generation overflow");
+            let generation = warm.direct_invalidation_generation;
             match warm.direct_invalidation_basis.as_mut() {
-                Some(basis) => basis.merge_seed(aspect, scopes.iter().cloned()),
+                Some(basis) => basis.merge_seed(generation, aspect, scopes.iter().cloned()),
                 None => {
                     warm.direct_invalidation_basis = Some(
                         crate::data::proof::invalidation::source_seed::DirectInvalidationBasis::from_seed(
+                            generation,
                             aspect,
                             scopes.iter().cloned(),
                         ),
@@ -180,6 +186,10 @@ impl SignalGraph {
         node: NodeId,
         requires_structural_recompute: bool,
     ) -> Result<(), SignalError> {
+        let previous = self
+            .pending_dependency_revalidation(node)?
+            .map(|pending| pending.unresolved_producers().to_vec())
+            .unwrap_or_default();
         let producers = self
             .current_runtime_dependencies_of(node)?
             .iter()
@@ -197,6 +207,12 @@ impl SignalGraph {
         } else {
             entry.mark_pending_dependency_revalidation(producers);
         }
+        drop(entry);
+        let current = self
+            .pending_dependency_revalidation(node)?
+            .map(|pending| pending.unresolved_producers().to_vec())
+            .unwrap_or_default();
+        self.replace_pending_revalidation_waiters(node, &previous, &current);
         Ok(())
     }
 
@@ -207,10 +223,19 @@ impl SignalGraph {
     ) -> Result<(), SignalError> {
         let mut resolutions = vec![(node, producer)];
         while let Some((consumer, resolved_producer)) = resolutions.pop() {
+            self.replace_pending_revalidation_waiters(
+                consumer,
+                std::slice::from_ref(&resolved_producer),
+                &[],
+            );
             let resolved = self
                 .get_entry_mut(consumer)?
                 .resolve_pending_dependency_producer(resolved_producer);
+            let requires_structural_recompute = self
+                .pending_dependency_revalidation(consumer)?
+                .is_some_and(|pending| pending.requires_structural_recompute());
             let became_stable = resolved
+                && !requires_structural_recompute
                 && matches!(self.get_state(consumer)?, NodeState::MaybeStale)
                 && self.pending_causes(consumer)?.is_empty()
                 && self.node_dirty_aspects(consumer)?.is_empty();
@@ -218,7 +243,7 @@ impl SignalGraph {
                 continue;
             }
             self.set_node_state(consumer, NodeState::Clean)?;
-            let subscribers = self.runtime_subscribers_of(consumer)?.to_vec();
+            let subscribers = self.pending_revalidation_waiters(consumer)?;
             resolutions.extend(
                 subscribers
                     .into_iter()

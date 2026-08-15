@@ -1,4 +1,5 @@
 use crate::data::proof::invalidation::output_commit::CommittedProducedAspectDelta;
+use crate::data::telemetry::InvalidationPerformedCounter;
 use crate::diagnostics::policy::ArtifactRetentionPolicy;
 use crate::logic::evaluation::{
     EffectComparison, EvaluationEffect, EvaluationVerdict, SuppressionReason,
@@ -21,6 +22,15 @@ impl SignalGraph {
                     .is_some_and(|commit| commit.delta().producer == effect.operational.node),
             "performed output commit must govern producer observation"
         );
+        let performed_counters = self.invalidation_performed_counter_state();
+        if performed.is_some() {
+            performed_counters.add(InvalidationPerformedCounter::ProducedDeltasEmitted, 1);
+        } else if !matches!(
+            effect.operational.verdict,
+            EvaluationVerdict::Deferred { .. }
+        ) {
+            performed_counters.add(InvalidationPerformedCounter::PropagationStops, 1);
+        }
         let retains_cold_artifacts = self.retains_runtime_cold_artifacts();
         match effect.operational.verdict {
             EvaluationVerdict::Recomputed => {

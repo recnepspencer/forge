@@ -48,17 +48,23 @@ impl<'de> Deserialize<'de> for CanonicalCauseSetStore {
             .map(|(key, delta)| (*key).max(delta.output_commit_ordinal.0))
             .max()
             .unwrap_or_default();
-        Ok(Self {
+        let mut store = Self {
             generation: wire.generation,
             sets: wire.sets,
             slot_generations,
             free_indices,
             next_output_commit_ordinal: wire.next_output_commit_ordinal.max(max_published_ordinal),
             published_output_commits: wire.published_output_commits,
+            occupied_set_count: 0,
+            output_commit_reference_counts: BTreeMap::new(),
             deserialized_quarantine,
             #[cfg(test)]
             published_order_probe: Vec::new(),
-        })
+            #[cfg(test)]
+            last_compaction_slot_visits: 0,
+        };
+        store.rebuild_derived_metadata();
+        Ok(store)
     }
 }
 

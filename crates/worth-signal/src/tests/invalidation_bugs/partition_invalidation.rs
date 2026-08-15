@@ -35,9 +35,16 @@ fn partition_scoped_dependencies_on_same_source_check_all_matching_edges() {
 
     assert_eq!(
         graph.get_state(dependent).unwrap(),
-        NodeState::MaybeStale,
-        "direct subscribers remain unresolved until the producer commits its scoped delta"
+        NodeState::Clean,
+        "source dirtiness must not become subscriber authority before output commit"
     );
+
+    evaluate(&mut graph, source, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+            .with_changed_region(ChangedRegion::new("wing").with_detail("rib-13")))
+    })
+    .unwrap();
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Dirty);
 }
 
 #[test]
@@ -81,7 +88,7 @@ fn repeated_partition_invalidations_union_dirty_scopes_until_evaluation() {
 
     let scopes = graph.node_dirty_scoped_aspects(source).unwrap();
     assert_eq!(graph.get_state(source).unwrap(), NodeState::Dirty);
-    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::MaybeStale);
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
     assert!(
         scopes.iter().any(|(_, scope)| {
             scope.partition.0.as_str() == "wing" && scope.detail.as_deref() == Some("rib-12")
@@ -140,7 +147,7 @@ fn whole_aspect_invalidation_does_not_erase_other_aspects_partition_precision() 
 }
 
 #[test]
-fn reconverging_frontier_does_not_revisit_already_visited_nodes() {
+fn root_invalidation_does_not_walk_a_reconverging_frontier() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let b = graph.node().build();
@@ -169,11 +176,10 @@ fn reconverging_frontier_does_not_revisit_already_visited_nodes() {
     graph.reset_telemetry();
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
 
-    assert_eq!(
-        graph.telemetry().invalidation.invalidation_nodes_visited,
-        4,
-        "reconverging downstream nodes should only count once during transitive invalidation"
-    );
+    assert_eq!(graph.telemetry().invalidation.invalidation_nodes_visited, 0);
+    for node in [b, c, d, e] {
+        assert_eq!(graph.get_state(node).unwrap(), NodeState::Clean);
+    }
 }
 
 #[test]
@@ -196,7 +202,7 @@ fn deep_invalidation_chain_completes_without_recursive_cycle_detection() {
 }
 
 #[test]
-fn batch_invalidation_reuses_transitive_wave_for_same_aspect_sources() {
+fn batch_invalidation_does_not_open_a_transitive_wave() {
     let mut graph = SignalGraph::new();
     let source_a = graph.node().build();
     let source_b = graph.node().build();
@@ -227,11 +233,15 @@ fn batch_invalidation_reuses_transitive_wave_for_same_aspect_sources() {
     )
     .unwrap();
 
-    assert_eq!(batched.get_state(shared).unwrap(), NodeState::MaybeStale);
-    assert_eq!(batched.get_state(leaf).unwrap(), NodeState::MaybeStale);
-    assert!(
-        batched.telemetry().invalidation.invalidation_nodes_visited
-            < scalar.telemetry().invalidation.invalidation_nodes_visited,
-        "batched invalidation should reuse the downstream transitive wave for same-aspect sources"
+    assert_eq!(batched.get_state(shared).unwrap(), NodeState::Clean);
+    assert_eq!(batched.get_state(leaf).unwrap(), NodeState::Clean);
+    assert_eq!(
+        batched.telemetry().invalidation.invalidation_nodes_visited,
+        0
     );
+    assert_eq!(
+        scalar.telemetry().invalidation.invalidation_nodes_visited,
+        0
+    );
+    assert_eq!(batched.telemetry().invalidation.frontier_seed_count, 2);
 }

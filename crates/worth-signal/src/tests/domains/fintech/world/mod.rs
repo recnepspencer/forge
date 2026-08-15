@@ -5,6 +5,8 @@ mod fixture_compiler;
 mod fixture_projection;
 #[cfg(test)]
 mod fixture_projection_tests;
+mod locality_definition;
+mod locality_scale;
 mod market_inputs;
 mod positions;
 mod reference_finance;
@@ -15,9 +17,12 @@ pub(super) use baseline::{
     FinancialScenarioIdentity,
 };
 pub(super) use compiler::{
-    compile_financial_world, CompiledFinancialWorld, FinancialBranchLifecycleCompletion,
-    FinancialDependencyRewireEvidence, FinancialEvaluationLedger, FinancialFactorSequenceEvidence,
-    FinancialQuoteTranslationEvidence, FinancialSemanticHandles,
+    compile_financial_locality_world, compile_financial_locality_world_at_tier,
+    compile_financial_world, strategy_work_projection, CompiledFinancialWorld,
+    FinancialBranchLifecycleCompletion, FinancialDependencyRewireEvidence,
+    FinancialEvaluationLedger, FinancialFactorSequenceEvidence, FinancialLocalityRedObservation,
+    FinancialPerformedCanonicalWork, FinancialPerformedWorkOrigin,
+    FinancialQuoteTranslationEvidence, FinancialRestoreLifecycleEvidence, FinancialSemanticHandles,
 };
 pub(super) use definition::{
     FinancialConditionPolicy, FinancialConsumerRole, FinancialWorldDefinition,
@@ -25,6 +30,20 @@ pub(super) use definition::{
 pub(super) use fixture_compiler::{compile_runtime_fixture, compile_unseeded_runtime_fixture};
 pub(super) use fixture_projection::{
     FinancialFixtureProjection, FixtureAggregateState, FixtureMarketPoint, FixtureScenarioShock,
+};
+pub(super) use locality_definition::{
+    FinancialLocalityAction, FinancialLocalityActionTrace, FinancialLocalityAdmissionPolicy,
+    FinancialLocalityComparisonPolicy, FinancialLocalityDefinition,
+    FinancialLocalityExecutionPolicy, FinancialLocalityFormula, FinancialLocalityMutation,
+    FinancialLocalityOutput, FinancialLocalityOutputPolicy, FinancialLocalitySourceObligation,
+    FinancialLocalityStagedWork, FinancialLocalitySubscription, FinancialLocalityTopologyChange,
+    FinancialLocalityTraceIdentity, FinancialStructuralMutation, LocalityEconomicOwner,
+    LocalityScope, LocalitySemanticOutputId,
+};
+pub(super) use locality_scale::{
+    ordinary_locality_cases, retained_locality_benchmark_cases, scheduled_locality_cases,
+    DensityRatio, FinancialLocalityScenario, LocalityCaseContract, LocalityLane,
+    LocalityScaleTuple, RestorePosture, SparseFanoutAxis,
 };
 use market_inputs::{
     Currency, FinancialMarketInputs, FixedPrice, QuoteId, VolatilityBucket, FIXED_SCALE,

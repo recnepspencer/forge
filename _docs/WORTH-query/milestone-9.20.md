@@ -10,9 +10,9 @@ rather than a host loop over scalar operations.
 ## Roadmap Placement
 
 Milestone 9.19 supplies admitted access products, complete membership, exact
-refinement, and verified footprints. This milestone contains the execution
-language and bulk-strategy work formerly described by Milestone 9.17 Phases 4
-and 5.
+refinement, and verified footprints. This milestone then owns the independent
+typed execution-language and bulk-strategy boundary; it is not a continuation
+of the Milestone 9.17 composite-branch implementation phases.
 
 ## Adversarial Constraint
 

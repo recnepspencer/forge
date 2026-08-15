@@ -93,6 +93,28 @@ counterpart is
 `aspect_filter_uses_the_immediate_producers_translated_aspect` in the node
 condition test suite.
 
+## Locality And Execution Evidence
+
+Exact producer changes use a graph-owned reverse-subscription index keyed by
+the immediate producer and its local aspect, with partition/detail membership
+kept in separate buckets. The index is derived from authoritative dependency
+topology: it narrows candidates, but every returned candidate still passes the
+live edge, snapshot, revision, contract, and cause checks before Signal admits
+work. A downstream hop begins only after that downstream node performs its own
+output commit; Signal does not pre-mark or walk a transitive subscriber
+closure.
+
+Invalidation work progresses through distinct source, dependency-commit, or
+structural origins and then through resolved, lowered, ready, and executed
+forms. Ready work is process-local and is rebuilt after restore. Callers that
+need measured execution evidence can bracket real work with
+`begin_invalidation_execution_observation` and
+`finish_invalidation_execution_observation`, or use
+`observe_invalidation_execution`. The resulting
+`SignalInvalidationExecutionReceipt` contains realized counters from performed
+execution; planning estimates and diagnostic summaries cannot substitute for
+it.
+
 ## Where It Fits
 
 - web backends and reactive views

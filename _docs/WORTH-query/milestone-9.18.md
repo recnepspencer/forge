@@ -4,7 +4,8 @@
 
 Replace Milestone 9.16's provisional linear current-head undo/redo experiment
 with an accepted tree-based correction product over the composite runtime-world
-history established by [Milestone 9.17](./milestone-9.17.md). Undo and redo
+history governed by [Milestone 9.17](./milestone-9.17.md) and completed through
+[Milestone 9.17.3](./milestone-9.17.3.md). Undo and redo
 select exact committed occurrences and publish newly admitted composite commits
 on an exact product branch. They never erase history, move a hidden stack
 cursor, replay old authority, reinterpret a receipt as permission, or assume
@@ -24,9 +25,10 @@ replacing it.
 Milestone 9.16 accepted aftermath classification, retained pre-images,
 retained governed input, external-effect causality, recovery handles, and
 publication while explicitly withholding product acceptance from its existing
-undo/redo lane. Milestone 9.17 supplies the missing product branch, exact
-Relational-plus-Signal basis, composite single-parent history, branch-local
-MVCC, and coordinated target-head authority.
+undo/redo lane. Milestone 9.17.1 supplies exact component bases and Relational
+branch-local MVCC; 9.17.2 supplies the product branch, composite single-parent
+history, and coordinated target-head authority; 9.17.3 supplies complete Query
+carriage and the public branch/history facade this milestone extends.
 
 ```text
 exact committed source occurrence
@@ -51,7 +53,8 @@ exact committed source occurrence
 - Signal owns Signal definition and derived-execution branch semantics; its
   branch state is not inferred from Relational history.
 - Runtime Bridge owns the exact composite branch correspondence and publication
-  progression completed by Milestone 9.17.
+  progression completed by Milestone 9.17.2 and carried through Query by
+  Milestone 9.17.3.
 
 The missing product law is not merely “apply the inverse.” It is:
 
@@ -143,7 +146,8 @@ publication, or Signal `latest` lookup must fail this courtroom.
 16. External-effect reversal is admitted only by the external owner. Otherwise
     Query exposes compensation, reconciliation, or irreversibility honestly.
 17. Owner-local preparations become product current only through Milestone
-    9.17's composite publication progression. A failed or losing correction
+    9.17.2's composite publication progression as carried by 9.17.3. A failed
+    or losing correction
     leaves no product-visible half correction.
 18. The provisional Milestone 9.16 lane is evidence, not authority. It is
     accepted, revised, or deleted only through this milestone's cutover.
@@ -330,8 +334,9 @@ authority.
 
 - the accepted Milestone 9.16 aftermath, recovery, external-effect, retention,
   and publication foundation;
-- Milestone 9.17 component authority, composite branch/history ownership, exact
-  correspondence, and independent-branch progress;
+- the completed Milestone 9.17 umbrella: 9.17.1 component authority and
+  independent-branch progress, 9.17.2 composite branch/history/currentness,
+  and 9.17.3 Query carriage and public-facade authority;
 - original component and composite commits plus complete causal history;
 - fresh authorization, current definitions, and invariant execution for every
   correction;

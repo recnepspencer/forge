@@ -67,13 +67,14 @@ impl SignalGraph {
             }
             let resolved = CanonicalDependencyCauseSet::from_source_recompute(
                 revision,
+                direct.generation(),
                 direct.dirty_aspects(),
                 direct.scoped_aspects().to_vec(),
             );
             return Ok(NodeInvalidationInput::Resolved(resolved));
         }
         if causes.is_empty() && dirty_aspects.is_empty() {
-            let basis = ResolvedDependencyBasis::new(revision);
+            let basis = ResolvedDependencyBasis::new(revision, revision.0);
             debug_assert!(basis.is_bound_to_revision(revision));
             return Ok(NodeInvalidationInput::ResolvedNoChange(basis));
         }
@@ -188,6 +189,7 @@ impl SignalGraph {
                 if let crate::data::proof::invalidation::source_seed::DirectInvalidationBasis::SourceRecompute {
                     dirty_aspects: basis_aspects,
                     scoped_aspects,
+                    ..
                 } = basis
                 {
                     if basis_aspects.is_empty()
@@ -202,6 +204,13 @@ impl SignalGraph {
                             "source recompute basis is empty or non-canonical",
                         ));
                     }
+                }
+                if basis.generation() == 0
+                    || basis.generation() != entry.direct_invalidation_generation()
+                {
+                    return Err(SignalError::invalid_input(
+                        "direct invalidation generation drifted from node authority",
+                    ));
                 }
                 if dirty_aspects != basis.dirty_aspects()
                     || dirty_scoped_aspects != basis.scoped_aspects()

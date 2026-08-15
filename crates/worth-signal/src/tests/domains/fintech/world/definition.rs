@@ -1,8 +1,11 @@
+use std::collections::BTreeMap;
+
 use super::super::{regimes::MarketRegime, scales::FintechScale};
+use super::locality_scale::{LocalityScaleTuple, SparseFanoutAxis};
 use super::{
-    CurveBucket, FinancialAspect, FinancialComparatorPolicy, FinancialMarketInputs,
-    FinancialOutputEquivalencePolicy, FinancialPosition, InstrumentId, MarketFactorKey,
-    PositionKind,
+    CurveBucket, FinancialAspect, FinancialComparatorPolicy, FinancialLocalityDefinition,
+    FinancialMarketInputs, FinancialOutputEquivalencePolicy, FinancialPosition, InstrumentId,
+    MarketFactorKey, PositionKind,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -30,16 +33,26 @@ pub(in crate::tests::domains::fintech) struct FinancialConsumerDeclaration {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(in crate::tests::domains::fintech) struct FinancialWorldDefinition {
+struct PortfolioFinancialWorldDefinition {
     seed: u64,
     fixture_scale: FintechScale,
     fixture_regime: MarketRegime,
     market: FinancialMarketInputs,
     positions: Vec<FinancialPosition>,
     consumers: Vec<FinancialConsumerDeclaration>,
-    factor_output_equivalence:
-        std::collections::BTreeMap<MarketFactorKey, FinancialOutputEquivalencePolicy>,
+    factor_output_equivalence: BTreeMap<MarketFactorKey, FinancialOutputEquivalencePolicy>,
     producer_local_factor_slots: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum FinancialWorldDefinitionKind {
+    Portfolio(PortfolioFinancialWorldDefinition),
+    Locality(FinancialLocalityDefinition),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(in crate::tests::domains::fintech) struct FinancialWorldDefinition {
+    kind: FinancialWorldDefinitionKind,
 }
 
 impl FinancialWorldDefinition {
@@ -51,29 +64,110 @@ impl FinancialWorldDefinition {
         ];
         let fx_position = positions[1].instrument;
         Self {
-            seed,
-            fixture_scale: FintechScale::smoke(),
-            fixture_regime: MarketRegime::Calm,
-            market: FinancialMarketInputs::deterministic(seed),
-            positions,
-            consumers: vec![
-                FinancialConsumerDeclaration {
-                    role: FinancialConsumerRole::RiskMatched,
-                    position: fx_position,
-                    dependency_aspect: FinancialAspect::Risk,
-                    condition: FinancialConditionPolicy::AspectFilter(FinancialAspect::Risk),
-                    comparator: FinancialComparatorPolicy::Exact,
+            kind: FinancialWorldDefinitionKind::Portfolio(PortfolioFinancialWorldDefinition {
+                seed,
+                fixture_scale: FintechScale::smoke(),
+                fixture_regime: MarketRegime::Calm,
+                market: FinancialMarketInputs::deterministic(seed),
+                positions,
+                consumers: vec![
+                    FinancialConsumerDeclaration {
+                        role: FinancialConsumerRole::RiskMatched,
+                        position: fx_position,
+                        dependency_aspect: FinancialAspect::Risk,
+                        condition: FinancialConditionPolicy::AspectFilter(FinancialAspect::Risk),
+                        comparator: FinancialComparatorPolicy::Exact,
+                    },
+                    FinancialConsumerDeclaration {
+                        role: FinancialConsumerRole::RiskUnmatched,
+                        position: fx_position,
+                        dependency_aspect: FinancialAspect::Risk,
+                        condition: FinancialConditionPolicy::AspectFilter(
+                            FinancialAspect::Volatility,
+                        ),
+                        comparator: FinancialComparatorPolicy::Tolerance { epsilon: 0 },
+                    },
+                ],
+                factor_output_equivalence: BTreeMap::new(),
+                producer_local_factor_slots: false,
+            }),
+        }
+    }
+
+    pub(in crate::tests::domains::fintech) fn sparse_book_fanout(
+        seed: u64,
+        total_outputs: u32,
+        axis: SparseFanoutAxis,
+    ) -> Self {
+        Self {
+            kind: FinancialWorldDefinitionKind::Locality(FinancialLocalityDefinition::generate(
+                seed,
+                LocalityScaleTuple::SparseBookFanout {
+                    total_outputs,
+                    axis,
                 },
-                FinancialConsumerDeclaration {
-                    role: FinancialConsumerRole::RiskUnmatched,
-                    position: fx_position,
-                    dependency_aspect: FinancialAspect::Risk,
-                    condition: FinancialConditionPolicy::AspectFilter(FinancialAspect::Volatility),
-                    comparator: FinancialComparatorPolicy::Tolerance { epsilon: 0 },
+            )),
+        }
+    }
+
+    pub(in crate::tests::domains::fintech) fn partitioned_curve_universe(
+        seed: u64,
+        regions: u16,
+        matching_memberships: u16,
+        instruments_per_matching_region: u16,
+    ) -> Self {
+        Self {
+            kind: FinancialWorldDefinitionKind::Locality(FinancialLocalityDefinition::generate(
+                seed,
+                LocalityScaleTuple::PartitionedCurveUniverse {
+                    regions,
+                    matching_memberships,
+                    instruments_per_matching_region,
                 },
-            ],
-            factor_output_equivalence: std::collections::BTreeMap::new(),
-            producer_local_factor_slots: false,
+            )),
+        }
+    }
+
+    pub(in crate::tests::domains::fintech) fn locality_case(
+        seed: u64,
+        case: super::LocalityCaseContract,
+    ) -> Self {
+        Self {
+            kind: FinancialWorldDefinitionKind::Locality(
+                FinancialLocalityDefinition::generate_case(seed, case),
+            ),
+        }
+    }
+
+    pub(in crate::tests::domains::fintech) fn convergent_factor_batch(
+        seed: u64,
+        duplicate_admissions: u8,
+    ) -> Self {
+        Self {
+            kind: FinancialWorldDefinitionKind::Locality(FinancialLocalityDefinition::generate(
+                seed,
+                LocalityScaleTuple::ConvergentFactorBatch {
+                    producer_permutations: 24,
+                    duplicate_admissions,
+                    canonical_seeds: 1,
+                },
+            )),
+        }
+    }
+
+    pub(in crate::tests::domains::fintech) fn dense_market_close(
+        seed: u64,
+        total_outputs: u32,
+        affected_ratio: super::DensityRatio,
+    ) -> Self {
+        Self {
+            kind: FinancialWorldDefinitionKind::Locality(FinancialLocalityDefinition::generate(
+                seed,
+                LocalityScaleTuple::DenseMarketClose {
+                    total_outputs,
+                    affected_ratio,
+                },
+            )),
         }
     }
 
@@ -83,15 +177,17 @@ impl FinancialWorldDefinition {
         seed: u64,
     ) -> Self {
         let mut definition = Self::deterministic(seed);
-        definition.fixture_scale = scale;
-        definition.fixture_regime = regime;
+        let portfolio = definition.portfolio_mut();
+        portfolio.fixture_scale = scale;
+        portfolio.fixture_regime = regime;
         definition
     }
 
     pub(in crate::tests::domains::fintech) fn comparator_courtroom(seed: u64) -> Self {
         let mut definition = Self::deterministic(seed);
-        let position = definition.positions[1].instrument;
-        definition.consumers.extend([
+        let portfolio = definition.portfolio_mut();
+        let position = portfolio.positions[1].instrument;
+        portfolio.consumers.extend([
             FinancialConsumerDeclaration {
                 role: FinancialConsumerRole::RiskTolerance,
                 position,
@@ -112,8 +208,9 @@ impl FinancialWorldDefinition {
 
     pub(in crate::tests::domains::fintech) fn gated_courtroom(seed: u64) -> Self {
         let mut definition = Self::deterministic(seed);
-        let position = definition.positions[1].instrument;
-        definition.consumers = vec![FinancialConsumerDeclaration {
+        let portfolio = definition.portfolio_mut();
+        let position = portfolio.positions[1].instrument;
+        portfolio.consumers = vec![FinancialConsumerDeclaration {
             role: FinancialConsumerRole::RiskThreshold,
             position,
             dependency_aspect: FinancialAspect::Risk,
@@ -125,8 +222,9 @@ impl FinancialWorldDefinition {
 
     pub(in crate::tests::domains::fintech) fn partition_courtroom(seed: u64) -> Self {
         let mut definition = Self::deterministic(seed);
-        let position = definition.positions[1].instrument;
-        definition.consumers = vec![FinancialConsumerDeclaration {
+        let portfolio = definition.portfolio_mut();
+        let position = portfolio.positions[1].instrument;
+        portfolio.consumers = vec![FinancialConsumerDeclaration {
             role: FinancialConsumerRole::RiskThreshold,
             position,
             dependency_aspect: FinancialAspect::Risk,
@@ -138,39 +236,52 @@ impl FinancialWorldDefinition {
 
     pub(in crate::tests::domains::fintech) fn producer_local_slot_courtroom(seed: u64) -> Self {
         let mut definition = Self::deterministic(seed);
-        definition.producer_local_factor_slots = true;
+        definition.portfolio_mut().producer_local_factor_slots = true;
         definition
     }
 
     pub(in crate::tests::domains::fintech) const fn seed(&self) -> u64 {
-        self.seed
+        match &self.kind {
+            FinancialWorldDefinitionKind::Portfolio(portfolio) => portfolio.seed,
+            FinancialWorldDefinitionKind::Locality(locality) => locality.seed(),
+        }
     }
 
-    pub(in crate::tests::domains::fintech) const fn fixture_scale(&self) -> FintechScale {
-        self.fixture_scale
+    pub(in crate::tests::domains::fintech) fn fixture_scale(&self) -> FintechScale {
+        self.portfolio().fixture_scale
     }
 
-    pub(in crate::tests::domains::fintech) const fn fixture_regime(&self) -> MarketRegime {
-        self.fixture_regime
+    pub(in crate::tests::domains::fintech) fn fixture_regime(&self) -> MarketRegime {
+        self.portfolio().fixture_regime
     }
 
     pub(in crate::tests::domains::fintech) fn market(&self) -> &FinancialMarketInputs {
-        &self.market
+        &self.portfolio().market
     }
 
     pub(in crate::tests::domains::fintech) fn positions(&self) -> &[FinancialPosition] {
-        &self.positions
+        &self.portfolio().positions
     }
 
     pub(in crate::tests::domains::fintech) fn consumers(&self) -> &[FinancialConsumerDeclaration] {
-        &self.consumers
+        &self.portfolio().consumers
+    }
+
+    pub(in crate::tests::domains::fintech) fn locality(
+        &self,
+    ) -> Option<&FinancialLocalityDefinition> {
+        match &self.kind {
+            FinancialWorldDefinitionKind::Portfolio(_) => None,
+            FinancialWorldDefinitionKind::Locality(locality) => Some(locality),
+        }
     }
 
     pub(in crate::tests::domains::fintech) fn factor_output_equivalence(
         &self,
         factor: MarketFactorKey,
     ) -> FinancialOutputEquivalencePolicy {
-        self.factor_output_equivalence
+        self.portfolio()
+            .factor_output_equivalence
             .get(&factor)
             .copied()
             .unwrap_or(FinancialOutputEquivalencePolicy::Exact)
@@ -179,20 +290,20 @@ impl FinancialWorldDefinition {
     pub(in crate::tests::domains::fintech) fn factor_output_equivalence_policies(
         &self,
     ) -> impl Iterator<Item = FinancialOutputEquivalencePolicy> + '_ {
-        self.market
+        self.market()
             .factors()
             .map(|factor| self.factor_output_equivalence(factor))
     }
 
-    pub(super) const fn uses_producer_local_factor_slots(&self) -> bool {
-        self.producer_local_factor_slots
+    pub(super) fn uses_producer_local_factor_slots(&self) -> bool {
+        self.portfolio().producer_local_factor_slots
     }
 
     pub(in crate::tests::domains::fintech) fn position(
         &self,
         instrument: InstrumentId,
     ) -> &FinancialPosition {
-        self.positions
+        self.positions()
             .iter()
             .find(|position| position.instrument == instrument)
             .expect("financial definition must own the requested position")
@@ -204,7 +315,8 @@ impl FinancialWorldDefinition {
         delta: i64,
     ) -> Self {
         let mut changed = self.clone();
-        changed.market = self.market.with_factor_delta(factor, delta);
+        let portfolio = changed.portfolio_mut();
+        portfolio.market = portfolio.market.with_factor_delta(factor, delta);
         changed
     }
 
@@ -213,7 +325,7 @@ impl FinancialWorldDefinition {
         factor: MarketFactorKey,
         epsilon: u64,
     ) -> Self {
-        self.factor_output_equivalence.insert(
+        self.portfolio_mut().factor_output_equivalence.insert(
             factor,
             FinancialOutputEquivalencePolicy::Tolerance { epsilon },
         );
@@ -226,7 +338,8 @@ impl FinancialWorldDefinition {
         next_curve: CurveBucket,
     ) -> Self {
         let mut changed = self.clone();
-        let position = changed
+        let portfolio = changed.portfolio_mut();
+        let position = portfolio
             .positions
             .iter_mut()
             .find(|position| position.instrument == instrument)
@@ -246,5 +359,23 @@ impl FinancialWorldDefinition {
         subscription.partition = partition;
         subscription.detail = detail;
         changed
+    }
+
+    fn portfolio(&self) -> &PortfolioFinancialWorldDefinition {
+        match &self.kind {
+            FinancialWorldDefinitionKind::Portfolio(portfolio) => portfolio,
+            FinancialWorldDefinitionKind::Locality(_) => {
+                panic!("portfolio operation used with a locality courtroom")
+            }
+        }
+    }
+
+    fn portfolio_mut(&mut self) -> &mut PortfolioFinancialWorldDefinition {
+        match &mut self.kind {
+            FinancialWorldDefinitionKind::Portfolio(portfolio) => portfolio,
+            FinancialWorldDefinitionKind::Locality(_) => {
+                panic!("portfolio mutation used with a locality courtroom")
+            }
+        }
     }
 }

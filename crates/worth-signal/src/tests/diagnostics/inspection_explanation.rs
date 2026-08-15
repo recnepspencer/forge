@@ -60,13 +60,14 @@ fn diagnostics_plan_summary_reports_contract_pruning() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().reads_aspects(mask_a()).build();
+    let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, source, &mut source_compute).unwrap();
     graph
         .append_dependency(dependent, source, ASPECT_B)
         .unwrap();
 
-    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
-    evaluate(&mut graph, source, &mut compute).unwrap();
-    evaluate(&mut graph, dependent, &mut compute).unwrap();
+    let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
     mark_dirty(&mut graph, source, ASPECT_B).unwrap();
 
     let plan = graph

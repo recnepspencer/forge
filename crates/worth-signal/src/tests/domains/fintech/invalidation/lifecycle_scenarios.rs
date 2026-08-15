@@ -168,7 +168,7 @@ fn branch_shock_restore_replay() {
         )
         .unwrap();
 
-    assert!(evidence.verifies_lifecycle());
+    assert!(evidence.verifies_lifecycle(), "{evidence:#?}");
     assert!(!evidence.analysis_causes_before_capture.is_empty());
     assert_eq!(
         evidence.analysis_causes_after_restore,

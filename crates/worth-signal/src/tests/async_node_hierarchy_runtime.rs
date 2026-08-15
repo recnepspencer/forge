@@ -29,11 +29,11 @@ fn async_node_hierarchy_cancellation_propagates_and_replay_summary_restores_iden
         .declare_async_node_capability(async_node_capability_declaration(grandchild))
         .expect("grandchild capability should lower");
 
-    let parent_handle = runtime
-        .admit_async_node_request(AsyncNodeRequestIntent::new(parent))
-        .expect("parent should admit")
+    let grandchild_handle = runtime
+        .admit_async_node_request(AsyncNodeRequestIntent::new(grandchild))
+        .expect("grandchild should admit")
         .resource_admission()
-        .expect("parent should expose resource admission")
+        .expect("grandchild should expose resource admission")
         .admitted_request()
         .handle();
     let child_handle = runtime
@@ -43,11 +43,11 @@ fn async_node_hierarchy_cancellation_propagates_and_replay_summary_restores_iden
         .expect("child should expose resource admission")
         .admitted_request()
         .handle();
-    let grandchild_handle = runtime
-        .admit_async_node_request(AsyncNodeRequestIntent::new(grandchild))
-        .expect("grandchild should admit")
+    let parent_handle = runtime
+        .admit_async_node_request(AsyncNodeRequestIntent::new(parent))
+        .expect("parent should admit")
         .resource_admission()
-        .expect("grandchild should expose resource admission")
+        .expect("parent should expose resource admission")
         .admitted_request()
         .handle();
 

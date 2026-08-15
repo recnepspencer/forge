@@ -5,6 +5,7 @@ use crate::data::proof::PartitionScopeSet;
 use std::collections::BTreeMap;
 
 use super::binding::OutputCommitOrdinal;
+use crate::data::graph::OutputCommitPublicationReceipt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) enum ScopePrecision {
@@ -102,7 +103,7 @@ pub(crate) struct CommittedProducedAspectDelta {
     _performed: PerformedOutputCommit,
 }
 
-worth_proof::authority_marker!(pub(crate) OutputCommitAuthority);
+worth_proof::authority_marker!(OutputCommitAuthority);
 
 struct PublishOutputCommit;
 impl worth_proof::ActionMarker for PublishOutputCommit {}
@@ -110,7 +111,10 @@ impl worth_proof::ActionMarker for PublishOutputCommit {}
 type PerformedOutputCommit = worth_proof::Performed<PublishOutputCommit, OutputCommitAuthority>;
 
 impl CommittedProducedAspectDelta {
-    pub(crate) fn after_publication(delta: ProducedAspectDelta) -> Self {
+    pub(crate) fn after_publication(
+        delta: ProducedAspectDelta,
+        _receipt: &OutputCommitPublicationReceipt,
+    ) -> Self {
         Self {
             delta,
             _performed: worth_proof::Performed::record(&OutputCommitAuthority::witness(), ()),

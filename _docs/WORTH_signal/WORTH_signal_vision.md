@@ -165,7 +165,7 @@ Status meanings:
 | Transactional invalidation | Implemented | Runtime-backed transactions hard-rewind via sparse patching |
 | Maybe-stale states | Implemented | `Clean` / `MaybeStale` / `Dirty` are part of the core contract |
 | Lazy recomputation | Implemented | Pull-based evaluation recomputes only when requested |
-| Aspect-based invalidation | Implemented | [Milestone 12](./milestone-12-plan.md) certifies producer-local transitive causality; [Milestone 13](./milestone-13-plan.md) remains open for the separate semantic-frontier locality and scaling guarantee |
+| Aspect-based invalidation | Implemented | [Milestone 12](./milestone-12-plan.md) certifies producer-local transitive causality; [Milestone 13](./milestone-13-plan.md) certifies direct-hop semantic-frontier locality, typed work progression, and realized structural cost slopes |
 | Dynamic dependency discovery | Implemented | `EvaluationContext` records upstream reads explicitly |
 | Conditional nodes | Implemented | `OnDemand`, `Debounce`, `AspectFilter`, `DeltaThreshold`, `Custom` |
 | Tolerance / epsilon gates | Implemented | Comparator policies include exact and tolerance-based suppression |
@@ -206,10 +206,10 @@ Status meanings:
 | Builder-based runtime ergonomics | Implemented | Runtime builder, transaction helpers, and node builders are now first-class |
 | Explicit execution planner | Implemented | Reusable staged planning now exists, but hot-path hardening and cached topology remain future work |
 | Parallel prepared execution | Partially implemented | Same-stage precompute and proof-safe grouped apply packet construction can run concurrently; canonical publication remains ordered and unsupported mutable stages fall back explicitly |
-| Deterministic parallel foundation | Planned | [Milestone 14](./milestone-14-plan.md) establishes one bounded resource authority, determinism contracts, cancellation, and canonical publication |
-| Proof-carrying graph parallelism | Planned | [Milestone 15](./milestone-15-plan.md) extends concurrency only where dependency readiness, control order, and mutation footprints prove safety |
-| Structured partitioned parallelism | Planned | [Milestone 16](./milestone-16-plan.md) adds domain-agnostic map/reduce/scan/fork-join/round infrastructure for work inside a node |
-| Portable execution backends | Planned | [Milestone 17](./milestone-17-plan.md) adds versioned native, WASM-worker, remote, and accelerator-conformance boundaries without changing signal meaning |
+| Deterministic parallel foundation | Planned | [Milestone 14](./milestone-14-plan.md) establishes one bounded resource authority, determinism contracts, hierarchical semantic locality, non-authoritative execution placement, cancellation, and canonical publication |
+| Proof-carrying graph parallelism | Planned | [Milestone 15](./milestone-15-plan.md) extends concurrency across hierarchical candidate batches and graph shards only where dependency readiness, control order, cross-shard boundaries, and mutation footprints prove safety |
+| Structured partitioned parallelism | Planned | [Milestone 16](./milestone-16-plan.md) adds domain-agnostic map/reduce/scan/fork-join/round infrastructure with explicit locality binding and boundary reads for work inside a node |
+| Portable execution backends | Planned | [Milestone 17](./milestone-17-plan.md) carries semantic locality and replaceable physical placement separately across versioned native, WASM-worker, remote, and accelerator-conformance boundaries |
 | Cost-aware scheduling | Later | Requires per-node cost metadata and planner integration |
 | Priority propagation | Later | Requires explicit scheduling model and prioritization semantics |
 

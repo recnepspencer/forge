@@ -27,6 +27,18 @@ Milestone 14 establishes that foundation before Milestones 15 and 16 widen the
 amount and shape of parallel work. It does not yet claim that the complete graph
 or the inside of arbitrary computations runs in parallel.
 
+It also establishes the locality substrate those wider forms need at massive
+scale: M13's exact partition/detail subscription is generalized into a bounded,
+domain-agnostic hierarchy, and the execution planner may derive a separate
+physical shard placement from that hierarchy. Semantic locality says which work
+may matter. Physical sharding says where admitted work may run. A shard key is
+never dependency, invalidation, readiness, or commit authority.
+
+Its input is Milestone 13's Signal-owned `ReadyInvalidationBatch` progression,
+not a raw node list or a Foundational report. Parallel preparation must consume
+the current-basis ready form and preserve its cause/work identity. A resource
+lease authorizes dispatch capacity; it does not replace invalidation readiness.
+
 ## 2. Current Boundary
 
 Present execution has four important limitations:
@@ -41,6 +53,9 @@ Present execution has four important limitations:
 - the native parallel implementation is mechanically close to the planner,
   while serial, native-threaded, WASM-worker, accelerator, and remote execution
   need one semantic contract without becoming one mechanism
+- M13's certified locality index has exact unscoped, partition, and detail
+  lanes, but does not yet represent a deeper host-defined hierarchy or a
+  deterministic physical placement plan over admitted work
 
 The existing grouped-concurrent apply restriction remains honest: dependency
 updates, rewiring, output-identity comparison, or overlapping mutation
@@ -63,6 +78,10 @@ under all of these conditions:
 - graph stages containing disjoint work, overlapping apply footprints,
   dependency rewiring, output-identity comparison, async-capable nodes, and
   comparator suppression
+- scope paths at depths `1`, `2`, `4`, and `8`, including exact-leaf,
+  ancestor-subtree, sibling-disjoint, and unscoped subscriptions
+- a heavily skewed hot subtree whose physical shard assignment is split and
+  rebalanced between execution epochs
 - branch capture, rollback, restore, replay, and deterministic rerun
 - a target configuration with no parallel execution capability
 
@@ -77,6 +96,10 @@ Required outcome:
 - an unsupported or unprofitable parallel request resolves before dispatch to
   an explicit serial plan or typed denial according to declared policy
 - lack of parallel capability changes throughput, never meaning
+- the M13 partition/detail courtroom remains an exact two-segment
+  specialization of the hierarchical contract
+- changing worker count or physical shard placement changes no admitted cause,
+  canonical artifact, replay identity, or explanation
 
 The courtroom must convict:
 
@@ -87,6 +110,9 @@ The courtroom must convict:
 - completion-order publication
 - cancellation that drops a handle while untracked work continues
 - bitwise-deterministic claims backed only by semantic equality
+- treating a scope path, `ProducerAspectKey`, or physical shard key as proof
+  that an edge, snapshot, cause, or work item is current
+- copying one producer's aspect or scope path transitively onto a descendant
 
 ## 4. Product Decision Lock
 
@@ -176,6 +202,41 @@ The migration is fixed:
 
 A permanent compatibility executor path or second pool registry is forbidden.
 
+### 4.8 Hierarchical Locality Is Domain-Agnostic Semantic Narrowing
+
+M13's partition/detail form becomes the two-segment base case of a bounded
+canonical `ScopePath`. Path segments are opaque host-defined identity. The
+runtime understands only exact, ancestor, descendant-subtree, and disjoint
+relationships; it does not understand assembly, component, body, region,
+element, geometry, spatial distance, or topology.
+
+The reverse-subscription owner constructs a private `ProducerAspectKey` only
+from authoritative dependency edges or committed producer output identity. It
+indexes unscoped subscribers and hierarchical scope buckets. The key and index
+are non-authoritative candidate-selection structures: causal admission must
+still validate the immediate edge, snapshot, dependency revision, comparator,
+and exact scope relationship. Producer-local aspect identity is never copied
+across a transitive hop.
+
+`ProducerAspectKey`, `ScopePath`, and the subscription hierarchy are
+`worth-signal` graph-runtime vocabulary. They do not move to `worth-proof` or
+`worth-foundational`. Proof owns operation legality; Foundational may
+canonicalize cross-boundary evidence identity but does not acquire graph
+topology or locality authority.
+
+### 4.9 Physical Sharding Is Derived Placement, Not Semantic Authority
+
+After semantic work is admitted, the planner may derive an opaque
+`ExecutionShardKey` and deterministic `ShardAssignmentPlan` from current work,
+scope hierarchy, cost evidence, memory constraints, and the active resource
+lease. A shard selects co-location and dispatch; it cannot admit work, suppress
+work, change dependencies, establish currentness, or publish graph truth.
+
+Rebalancing occurs only between named execution epochs. The planner records the
+old and new assignment, affected resident bytes, migrations, and cross-shard
+boundaries. Rebalancing the same admitted batch must preserve semantic work
+identity and canonical publication.
+
 ## 5. Required Proof-Bearing Forms And Caller DX
 
 The implementation must establish canonical equivalents of:
@@ -194,6 +255,16 @@ pub struct PreparedExecutionBatch { /* immutable work and ordering proof */ }
 pub struct WorkerLocalExecutionPacket { /* non-authoritative result */ }
 pub struct CanonicalPublicationPlan { /* validation and order */ }
 pub struct ExecutionOutcomeEnvelope { /* typed progress and cost */ }
+```
+
+The runtime-locality and placement owners separately establish these
+non-authoritative forms:
+
+```rust
+pub struct ScopePath { /* bounded canonical host-defined segments */ }
+pub(super) struct ProducerAspectKey { /* private reverse-index lookup */ }
+pub(super) struct ExecutionShardKey { /* private physical placement */ }
+pub struct ShardAssignmentPlan { /* deterministic non-authoritative layout */ }
 ```
 
 Ordinary caller intent should read like:
@@ -223,6 +294,7 @@ crates/worth-signal/src/
     determinism.rs                              [Milestone 14]
     batch.rs                                    [Milestones 14-15]
     publication.rs                              [Milestones 14-15]
+    placement.rs                                [Milestone 14; non-authoritative layout]
     graph.rs                                    [committed Milestone 15]
     partition.rs                                [committed Milestone 16]
     reduction.rs                                [committed Milestone 16]
@@ -241,6 +313,10 @@ crates/worth-signal/src/
       cancellation.rs                           [created Milestone 14]
       dispatch.rs                               [created/replaced]
       publication.rs                            [created from current reduction]
+      placement/                                [created Milestone 14 child]
+        mod.rs                                  [stable internal placement facade]
+        assignment.rs                           [deterministic shard assignment]
+        rebalancing.rs                          [epoch-bounded placement changes]
       graph/                                    [committed Milestone 15 child]
         mod.rs
         antichain.rs
@@ -256,6 +332,10 @@ crates/worth-signal/src/
         mod.rs                                  [stable backend port]
         serial.rs
         native.rs
+  data/graph/topology/subscriber_index/         [extended Milestone 14]
+    producer_aspect_key.rs                      [private immediate-producer key]
+    scope_path.rs                               [bounded canonical hierarchy]
+    hierarchy.rs                                [derived subscriber candidate index]
   tests/parallel_execution/                     [created responsibility family]
     mod.rs
     resource_authority.rs                       [Milestone 14]
@@ -289,12 +369,18 @@ execution authority.
 - freeze execution posture, determinism, budget, cancellation, and capability
   distinctions
 - add failing proof for the current worker-count non-enforcement
+- freeze `ScopePath` depth/canonicalization and the exact M13 two-segment
+  compatibility law
+- freeze the authority separation between semantic locality and physical shard
+  placement
 
 ### M14.1 - Runtime Resource Authority
 
 - establish sealed resource leases and hierarchical subdivision
 - replace per-call worker interpretation with bounded shared scheduling
 - account active tasks, queue width, memory, steals, and nested lease use
+- make shard occupancy, resident bytes, and placement fairness consume that
+  same bounded authority
 
 ### M14.2 - Public Policy Migration
 
@@ -308,6 +394,8 @@ execution authority.
 - make every worker consume immutable prepared work
 - consolidate worker-local packet and canonical publication forms
 - preserve serial and grouped-concurrent apply through the same lowered form
+- attach deterministic non-authoritative shard assignments only after semantic
+  work admission and exclude placement from canonical result identity
 
 ### M14.4 - Managed Cancellation And Failure Atomicity
 
@@ -320,14 +408,16 @@ execution authority.
 - compare serial and varied physical schedules through an independent serial
   oracle
 - certify no-capability target behavior
+- certify hierarchical exact/subtree/disjoint lookup and placement/rebalance
+  invariance across worker budgets
 - seal the Milestone 14 certification run
 
 ## 8. Documentation Deliverables
 
 Milestone 14 must revise:
 
-- `signal_architecture2.md`: execution resource authority, determinism, and
-  publication boundary
+- `signal_architecture2.md`: execution resource authority, determinism,
+  publication boundary, hierarchical locality, and non-authoritative placement
 - `WORTH_signal_vision.md`: replace stale precompute-only status
 - `test-requirements.md`: schedule perturbation, budget, cancellation, and
   publication atomicity requirements
@@ -349,10 +439,17 @@ Must ship:
 - managed cancellation/deadline lifecycle
 - immutable prepared batches and canonical publication
 - serial/parallel/capability certification with structural counters
+- bounded hierarchical locality plus deterministic shard placement and
+  epoch-bounded rebalancing
 
 Must preserve:
 
 - Milestones 12-13 invalidation correctness and locality certification
+- M13 partition/detail behavior as an exact two-segment hierarchy
+- the Proof-enforced prepared -> committed -> lowered -> ready -> executed
+  invalidation progression and current-basis work binding
+- the rule that Foundational receipts describe performed work but authorize no
+  scheduling or execution
 - one lowered semantic plan for serial and parallel execution
 - rollback-safe, commit-bounded observation
 - branch, replay, temporal, condition, and async-capability truth
@@ -365,6 +462,8 @@ Milestone 14 does not:
 - parallelize every graph phase
 - add public partitioned computation APIs
 - introduce geometry, image, simulation, or other domain vocabulary
+- interpret hierarchy segments as spatial/topological meaning or build a
+  geometry search index
 - implement GPU or remote execution
 - weaken deterministic publication for throughput
 - treat serial resolution on a nonparallel platform as an error when policy
@@ -383,8 +482,13 @@ Milestone 14 closes only when:
 - unsupported and unprofitable parallel requests resolve explicitly before
   dispatch
 - worker-local code has no authoritative graph mutation capability
+- exact-leaf and ancestor-subtree changes query only the lawful hierarchy
+  buckets, while sibling-disjoint changes contribute zero candidates and work
+- path depth, worker count, shard assignment, and epoch-bounded rebalancing do
+  not change admitted work or canonical outputs
 - counters expose active workers, queue breadth, steals, nested lease breadth,
-  local packets, publication breadth, cancellation points, and fallback reason
+  local packets, publication breadth, cancellation points, fallback reason,
+  hierarchy probes, shard occupancy, migrations, resident bytes, and imbalance
 - mutation probes against lease enforcement, canonical ordering, and
   worker-local isolation turn evidence red
 - focused tests, complete affected suites, boundary checks, context checks,

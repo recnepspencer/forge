@@ -1,7 +1,9 @@
 use crate::data::aspect::Aspect;
 use crate::data::graph::signal_graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
+use crate::data::proof::{
+    FrontierDiagnosticsSidecar, InvalidationPlanningEstimate, InvalidationTraceRecord,
+};
 use crate::diagnostics::policy::OrdinaryAccessLane;
 use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsTier;
@@ -107,7 +109,8 @@ impl SignalGraph {
 
     pub(crate) fn record_frontier_execution_diagnostics(
         &mut self,
-        summary: FrontierExecutionSummary,
+        planning_estimate: InvalidationPlanningEstimate,
+        summary: FrontierDiagnosticsSidecar,
         trace_records: Vec<InvalidationTraceRecord>,
     ) {
         if let Some(summary) = self.diagnostics_state().latest_graph_summary().cloned() {
@@ -125,8 +128,10 @@ impl SignalGraph {
                     OrdinaryAccessLane,
                 ));
         }
-        self.observation
-            .diagnostics
-            .record_frontier_execution(summary, trace_records);
+        self.observation.diagnostics.record_frontier_execution(
+            planning_estimate,
+            summary,
+            trace_records,
+        );
     }
 }

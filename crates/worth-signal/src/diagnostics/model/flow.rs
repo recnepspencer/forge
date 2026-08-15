@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
-use crate::data::proof::{DedupedNodeBatch, FrontierExecutionSummary};
+use crate::data::proof::{DedupedNodeBatch, FrontierDiagnosticsSidecar};
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::RollbackDiagnostic;
 use crate::diagnostics::profile::DiagnosticsTier;
@@ -135,7 +135,7 @@ impl ChangeInputSummary {
 
 impl InvalidationSummary {
     pub fn empty_frontier() -> Self {
-        Self::from_frontier_execution(&FrontierExecutionSummary::new(
+        Self::from_frontier_execution(&FrontierDiagnosticsSidecar::new(
             0,
             Vec::new(),
             Vec::new(),
@@ -144,7 +144,7 @@ impl InvalidationSummary {
         ))
     }
 
-    pub fn from_frontier_execution(summary: &FrontierExecutionSummary) -> Self {
+    pub(crate) fn from_frontier_execution(summary: &FrontierDiagnosticsSidecar) -> Self {
         let invalidated_direct_subscribers = summary
             .direct_waves
             .iter()

@@ -41,6 +41,11 @@ pub struct InvalidationTelemetry {
     pub dirty_delta_breadth: u64,
     pub partition_aware_recomputations: u64,
     pub keyed_evaluation_count: u64,
+    pub direct_subscriber_candidates_examined: u64,
+    pub reverse_subscription_bucket_probes: u64,
+    pub reverse_subscription_candidates_returned: u64,
+    pub direct_contract_rejections: u64,
+    pub direct_causality_rejections: u64,
     pub partition_scoped_invalidation_checks: u64,
     pub partition_match_dirty_count: u64,
     pub detail_match_dirty_count: u64,
@@ -61,6 +66,13 @@ pub struct InvalidationTelemetry {
     pub frontier_cycle_check_visited_count: u64,
     pub frontier_trace_retained_count: u64,
     pub subscriber_repair_breadth: u64,
+    pub ready_items_enqueued: u64,
+    pub ready_items_popped: u64,
+    pub work_items_admitted: u64,
+    pub work_items_merged: u64,
+    pub ready_work_deduplicated: u64,
+    pub maximum_ready_frontier_width: u64,
+    pub retained_ready_frontier_width: u64,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]

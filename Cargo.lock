@@ -2289,12 +2289,14 @@ name = "worth-signal"
 version = "0.1.0"
 dependencies = [
  "js-sys",
+ "quote",
  "rayon",
  "serde",
  "serde_json",
  "sha2",
  "smallvec",
  "stats_alloc",
+ "syn 2.0.116",
  "tracing",
  "trybuild",
  "wasm-bindgen",

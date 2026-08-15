@@ -28,6 +28,7 @@ pub(crate) struct CheckpointNodeImageParts {
     pub(crate) pending_dependency_revalidation: Option<PendingDependencyRevalidation>,
     pub(crate) direct_invalidation_basis:
         Option<crate::data::proof::invalidation::source_seed::DirectInvalidationBasis>,
+    pub(crate) direct_invalidation_generation: u64,
     pub(crate) tombstoned: bool,
     pub(crate) runtime_artifact_state: Option<RuntimeArtifactState>,
     pub(crate) retained_artifact: Option<RetainedDiagnosticArtifact>,
@@ -55,6 +56,8 @@ pub struct CheckpointNodeImage {
     #[serde(default)]
     direct_invalidation_basis:
         Option<crate::data::proof::invalidation::source_seed::DirectInvalidationBasis>,
+    #[serde(default)]
+    direct_invalidation_generation: u64,
     tombstoned: bool,
     #[serde(default)]
     runtime_artifact_state: Option<RuntimeArtifactState>,
@@ -82,6 +85,7 @@ impl CheckpointNodeImage {
             dependency_revision: parts.dependency_revision,
             pending_dependency_revalidation: parts.pending_dependency_revalidation,
             direct_invalidation_basis: parts.direct_invalidation_basis,
+            direct_invalidation_generation: parts.direct_invalidation_generation,
             tombstoned: parts.tombstoned,
             runtime_artifact_state: parts.runtime_artifact_state,
             retained_artifact: parts.retained_artifact,
@@ -104,6 +108,7 @@ impl CheckpointNodeImage {
             dependency_revision: self.dependency_revision,
             pending_dependency_revalidation: self.pending_dependency_revalidation,
             direct_invalidation_basis: self.direct_invalidation_basis,
+            direct_invalidation_generation: self.direct_invalidation_generation,
             tombstoned: self.tombstoned,
             runtime_artifact_state: self.runtime_artifact_state,
             retained_artifact: self.retained_artifact,

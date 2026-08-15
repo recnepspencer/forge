@@ -13,15 +13,15 @@ pub(super) fn graph_with_edge() -> (SignalGraph, NodeId, NodeId, Aspect) {
     let producer = graph.create_node();
     let consumer = graph.create_node();
     let aspect = Aspect::new(2);
+    let mut baseline = |_id, _graph: &SignalGraph| Ok(AspectVersion::zero());
+    evaluate(&mut graph, producer, &mut baseline).unwrap();
+    evaluate(&mut graph, consumer, &mut baseline).unwrap();
     graph
         .set_dependencies(consumer, [DependencyEdge::new(producer, aspect)])
         .unwrap();
     let mut snapshot = DependencySnapshot::empty();
     snapshot.record(producer, aspect, 0, None);
     graph.set_dep_snapshot(consumer, snapshot).unwrap();
-    let mut baseline = |_id, _graph: &SignalGraph| Ok(AspectVersion::zero());
-    evaluate(&mut graph, producer, &mut baseline).unwrap();
-    evaluate(&mut graph, consumer, &mut baseline).unwrap();
     (graph, producer, consumer, aspect)
 }
 
@@ -347,22 +347,42 @@ fn transient_wide_fanout_reclaims_cause_slots_back_to_current_live_size() {
     let mut consumers = Vec::new();
     for _ in 0..64 {
         let consumer = graph.create_node();
-        graph
-            .set_dependencies(consumer, [DependencyEdge::new(producer, aspect)])
-            .unwrap();
         consumers.push(consumer);
     }
     let mut baseline = |_id, _graph: &SignalGraph| Ok(AspectVersion::zero());
     evaluate(&mut graph, producer, &mut baseline).unwrap();
     for &consumer in &consumers {
         evaluate(&mut graph, consumer, &mut baseline).unwrap();
+        graph
+            .set_dependencies(consumer, [DependencyEdge::new(producer, aspect)])
+            .unwrap();
+        let mut snapshot = DependencySnapshot::empty();
+        snapshot.record(producer, aspect, 0, None);
+        graph.set_dep_snapshot(consumer, snapshot).unwrap();
     }
     publish_delta(&mut graph, producer, aspect, 0, 1, 1);
     assert_eq!(graph.cause_sets.occupied_slot_count(), consumers.len());
+    let ordinal = graph.cause_sets.output_commit_ordinal_for_test();
+    assert_eq!(
+        graph
+            .cause_sets
+            .output_commit_reference_count_for_test(ordinal),
+        consumers.len()
+    );
 
-    for consumer in consumers {
+    for (released, consumer) in consumers.into_iter().enumerate() {
         graph.release_pending_causes(consumer).unwrap();
+        assert_eq!(
+            graph
+                .cause_sets
+                .output_commit_reference_count_for_test(ordinal),
+            63 - released
+        );
     }
     assert_eq!(graph.cause_sets.occupied_slot_count(), 0);
     assert_eq!(graph.cause_sets.allocated_slot_count(), 0);
+    assert!(graph
+        .cause_sets
+        .published_output_commit(OutputCommitOrdinal(ordinal))
+        .is_none());
 }

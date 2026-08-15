@@ -33,8 +33,9 @@ impl NodeEntry {
                     crate::data::proof::invalidation::binding::DependencyRevision::default(),
             },
             warm: super::layout::NodeWarmData {
+                direct_invalidation_generation: 1,
                 direct_invalidation_basis: Some(
-                    crate::data::proof::invalidation::source_seed::DirectInvalidationBasis::initial_compute(),
+                    crate::data::proof::invalidation::source_seed::DirectInvalidationBasis::initial_compute(1),
                 ),
                 ..super::layout::NodeWarmData::default()
             },
@@ -80,11 +81,18 @@ impl NodeEntry {
             .dirty_aspects
             .contains(AspectMask::from_aspect(aspect));
         self.set_state(NodeState::Dirty);
+        self.warm.direct_invalidation_generation = self
+            .warm
+            .direct_invalidation_generation
+            .checked_add(1)
+            .expect("direct invalidation generation overflow");
+        let generation = self.warm.direct_invalidation_generation;
         match self.warm.direct_invalidation_basis.as_mut() {
-            Some(basis) => basis.merge_seed(aspect, scopes.iter().cloned()),
+            Some(basis) => basis.merge_seed(generation, aspect, scopes.iter().cloned()),
             None => {
                 self.warm.direct_invalidation_basis = Some(
                     crate::data::proof::invalidation::source_seed::DirectInvalidationBasis::from_seed(
+                        generation,
                         aspect,
                         scopes.iter().cloned(),
                     ),

@@ -214,21 +214,21 @@ fn async_node_hierarchy_historical_parity_report_preserves_restore_honesty() {
         [parent],
         Box::new(NoopAsyncNodeObservationListener),
     );
-    let parent_request = runtime
-        .admit_async_node_request(parent_handle.request_intent())
-        .expect("parent request should admit")
-        .resource_admission()
-        .expect("parent request should lower into resource admission")
-        .admitted_request();
+    runtime
+        .admit_async_node_request(grandchild_handle.request_intent())
+        .expect("grandchild request should admit");
     let child_request = runtime
         .admit_async_node_request(child_handle.request_intent())
         .expect("child request should admit")
         .resource_admission()
         .expect("child request should lower into resource admission")
         .admitted_request();
-    runtime
-        .admit_async_node_request(grandchild_handle.request_intent())
-        .expect("grandchild request should admit");
+    let parent_request = runtime
+        .admit_async_node_request(parent_handle.request_intent())
+        .expect("parent request should admit")
+        .resource_admission()
+        .expect("parent request should lower into resource admission")
+        .admitted_request();
     let admitted_completion = runtime
         .admit_resource_completion(RawCompletionEnvelope::new(
             parent_request.handle().request_id(),
