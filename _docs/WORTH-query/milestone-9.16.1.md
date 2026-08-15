@@ -1048,8 +1048,9 @@ Runtime Phase 7.3 and every later 9.16 phase inherit the session's typed branch
 unchanged. They may not default to `"main"`, treat version identity as global,
 or introduce a disclosure-, recovery-, aftermath-, transport-, or
 publication-local branch choice. Actual multiple-head and concurrent-writer
-mechanics, exact Relational/Signal component selection, and composite product-
-branch publication remain the Milestone 9.17 handoff.
+mechanics plus exact owner Relational/Signal component bases remain the
+Milestone 9.17.1 handoff. Composite product-branch history/publication follows
+in 9.17.2, and complete Query carriage/public-facade cutover follows in 9.17.3.
 
 The 9.16 Runtime Phase 7 ledger retains its existing historical rows. The
 9.16.1 closure ledger is the additional prerequisite for Phase 7.3 and all

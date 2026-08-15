@@ -19,6 +19,8 @@ use super::super::storage::Slot;
 mod branch_mutations;
 mod capabilities;
 #[cfg(test)]
+mod cause_set_compaction_tests;
+#[cfg(test)]
 mod cause_sets_tests;
 mod checkpoint;
 mod construction;
@@ -26,7 +28,9 @@ mod counter_access;
 #[cfg(test)]
 mod direct_invalidation_basis_tests;
 mod observation_state;
+mod performed_counter_state;
 mod reconstruction_counters;
+mod scheduling_state;
 mod scratch_lease;
 mod topology_state;
 mod traversal_state;
@@ -38,6 +42,7 @@ pub use branch_mutations::{
     RuntimeArtifactStructuralDelta,
 };
 pub(crate) use observation_state::RuntimeObservation;
+pub(crate) use performed_counter_state::InvalidationPerformedCounterState;
 pub(crate) use reconstruction_counters::ReconstructionCounters;
 pub(crate) use topology_state::EdgeTopology;
 pub(crate) use traversal_state::TraversalResources;
@@ -85,6 +90,12 @@ pub struct SignalGraph {
     pub(crate) conditional_dependency_versions: BTreeMap<NodeId, Vec<u64>>,
     #[serde(skip, default)]
     pub(crate) authorization_policy_identities: BTreeSet<[u8; 32]>,
+    #[serde(skip, default)]
+    pub(crate) invalidation_readiness_epoch: u64,
+    #[serde(skip, default)]
+    pub(crate) invalidation_performed_counters: InvalidationPerformedCounterState,
+    #[serde(skip, default)]
+    pub(crate) pending_repeated_invalidation_admissions: BTreeMap<NodeId, u64>,
 }
 
 /// Weak liveness observation of one concrete Signal graph owner.

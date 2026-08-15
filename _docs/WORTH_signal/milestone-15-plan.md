@@ -15,9 +15,10 @@ dependency, control-order, and mutation-disjointness proof, while preserving a
 canonical serial meaning for the graph.
 
 Milestone 14 supplies bounded execution resources, immutable worker inputs,
-managed cancellation, and deterministic publication. Milestone 15 uses those
-foundations across invalidation admission, ready-work scheduling, planning,
-eligibility, evaluation, apply preparation, and proof-safe commit.
+managed cancellation, deterministic publication, hierarchical locality, and
+non-authoritative shard placement. Milestone 15 uses those foundations across
+invalidation admission, ready-work scheduling, planning, eligibility,
+evaluation, apply preparation, and proof-safe commit.
 
 The central claim is not that every graph is parallel. It is:
 
@@ -48,6 +49,8 @@ Construct one graph world containing:
 
 - at least 100,000 nodes with wide antichains and a long critical chain
 - aspect-translating and partition-narrowing edges from Milestones 12-13
+- deep hierarchical scope paths with exact-leaf, ancestor-subtree,
+  sibling-disjoint, and unscoped subscriptions
 - reconvergent diamonds and nodes with multiple causal justifications
 - independent disjoint subgraphs and intentionally overlapping mutation sets
 - dynamic dependency rewiring that reveals an edge absent from the prior
@@ -57,6 +60,8 @@ Construct one graph world containing:
 - a cycle attempt that must fail before graph mutation
 - cancellation and failure at every graph phase
 - branch capture, rollback, restore, replay, and repeated schedule perturbation
+- hot-subtree skew, cross-shard diamonds, shard-boundary rewiring, and
+  epoch-bounded shard rebalancing
 
 Compare serial execution with graph-parallel execution across worker budgets
 `1`, `2`, `P/2`, and `P`, and across forced stealing/interleaving schedules.
@@ -67,6 +72,7 @@ Required result:
 - no task reads a predecessor version that can still change in its epoch
 - disjoint invalidation edges and planning classifications can be sharded and
   merged canonically
+- cross-shard dependencies remain explicit, readiness-ordered boundaries
 - rewiring is evaluated from worker-local proposals and reconciled before any
   later task that could depend on the new edge is admitted
 - overlapping mutation footprints are split into ordered conflict groups
@@ -83,6 +89,8 @@ The courtroom must convict:
 - a conflict detector that ignores source, partition, snapshot, subscription,
   or diagnostic publication surfaces that participate synchronously
 - a scheduler whose queues are unbounded under a wide frontier
+- shard-local candidate discovery that skips an ancestor, loses an unscoped
+  subscriber, or promotes physical placement into semantic authority
 
 ## 4. Product Decision Lock
 
@@ -143,6 +151,30 @@ bounded by the Milestone 14 lease. Exhaustion either reduces admitted
 concurrency or rejects before new work is spawned. It never creates an
 unbounded background lane.
 
+### 4.7 Hierarchical Candidate Lookup May Be Sharded, Not Causality
+
+The reverse-subscription hierarchy may partition candidate lookup by
+`ProducerAspectKey` and the scope carried by a committed producer change. Each
+worker returns non-authoritative candidates. The existing causal owner then
+validates every immediate edge and mints work; deterministic merge is by
+semantic cause/work identity, never by shard or completion order.
+
+An exact-leaf change queries its exact and ancestor-covering subscribers. A
+subtree change queries lawful descendants and covering ancestors. An unscoped
+subscriber is always included. Sibling-disjoint subtrees contribute no
+candidate or ready work.
+
+### 4.8 Cross-Shard Boundaries And Rebalancing Are Explicit
+
+Graph shard assignment carries explicit incoming/outgoing dependency
+boundaries. A cross-shard edge has the same readiness and control-order law as
+an in-shard edge; message or queue arrival cannot establish readiness.
+
+Hot-subtree splitting or shard rebalancing may occur only between graph epochs,
+after current publication settles. A `ShardRebalanceProposal` is mechanical
+planner input, not topology mutation. Rebalancing cannot change semantic work
+identity, dependency revision, cause identity, or canonical publication.
+
 ## 5. Required Proof-Bearing Forms
 
 The implementation must establish canonical equivalents of:
@@ -156,7 +188,14 @@ pub struct OrderedConflictPartition { /* one parallel partition */ }
 pub struct DependencyRewriteProposal { /* worker-local, non-authoritative */ }
 pub struct GraphEpochPublication { /* canonical atomic visibility */ }
 pub struct GraphParallelExecutionReport { /* work, span, conflicts, fallback */ }
+pub struct GraphShardAssignment { /* non-authoritative admitted-work layout */ }
+pub struct CrossShardDependencyBoundary { /* explicit readiness boundary */ }
+pub struct ShardRebalanceProposal { /* epoch-bounded physical change */ }
 ```
+
+The final three forms are planner outputs, not safety authority. Only the
+settled-dependency, control-order, and mutation-disjointness progression may
+authorize concurrent graph execution.
 
 Authority direction is fixed:
 
@@ -194,6 +233,10 @@ logic/planner/execution/
     conflict_partition.rs          [ordered disjoint grouping]
     rewiring.rs                    [proposal and reconciliation]
     epoch.rs                       [publication boundary]
+    locality.rs                    [hierarchical candidate batch formation]
+    shard.rs                       [graph shard assignment]
+    cross_shard.rs                 [dependency boundary readiness]
+    rebalancing.rs                 [epoch-bounded physical placement]
 
 tests/parallel_execution/
   graph_parallelism.rs
@@ -227,12 +270,16 @@ that expose internal stage indices.
 - parallelize pure plan validation, condition preview, and eligibility where
   immutable inputs make them independent
 - merge all results by canonical semantic identity
+- shard hierarchical candidate lookup without moving causal admission into the
+  index or worker
 
 ### M15.2 - Antichain And Control-Order Proof
 
 - form ready antichains from settled dependency versions
 - establish the dynamic-rewiring control-order boundary
 - deny or split batches whose safety depends on unresolved proposals
+- make every cross-shard dependency boundary participate in the same readiness
+  proof
 
 ### M15.3 - Conflict Partitions And Worker-Local Effects
 
@@ -246,6 +293,8 @@ that expose internal stage indices.
 - validate proposed dependencies and cycle safety
 - re-admit affected later work after the topology epoch changes
 - publish one canonical epoch or no epoch on precommit failure
+- apply shard rebalancing only after publication settles and prove the next
+  assignment is semantically invisible
 
 ### M15.5 - Graph-Parallel Certification
 
@@ -259,7 +308,8 @@ that expose internal stage indices.
 Milestone 15 must revise:
 
 - `signal_architecture2.md`: graph readiness, control order, conflict
-  partitions, and epoch publication
+  partitions, hierarchical graph sharding, cross-shard boundaries, and epoch
+  publication
 - `test-requirements.md`: hostile rewiring, overlap, antichain, and queue-bound
   requirements
 - public execution documentation: how graph parallelism is selected and how
@@ -278,6 +328,8 @@ Must ship:
 - worker-local dependency/snapshot/apply proposals
 - rewiring reconciliation and atomic epoch publication
 - serial/parallel differential certification under hostile schedules
+- hierarchical candidate sharding, explicit cross-shard readiness, and
+  epoch-bounded hot-subtree rebalancing
 
 Must preserve:
 
@@ -293,6 +345,7 @@ Milestone 15 does not:
 
 - expose partitioned computation inside one node
 - introduce domain-specific kernels or partition types
+- infer geometry adjacency, spatial distance, or host topology from scope paths
 - implement accelerator or distributed execution
 - allow arbitrary cyclic asynchronous computation
 - promise speedup for a graph whose work is dominated by its critical path,
@@ -308,15 +361,20 @@ Milestone 15 closes only when:
 - forced schedule permutations preserve canonical output, graph, snapshot,
   replay, and explanation artifacts
 - no task observes an unsettled predecessor version
+- exact/subtree/unscoped hierarchical candidate batches equal the independent
+  serial candidate oracle, with zero sibling-disjoint work
 - dynamic rewiring cannot reveal a dependency behind already-executed later
   work
 - every synchronous mutation surface participates in conflict proof
 - overlapping tasks are ordered and disjoint tasks can execute concurrently
 - cancellation/failure before epoch publication leaves no partial epoch
+- graph placement changes preserve admitted work, dependency revisions, cause
+  identities, and canonical history
 - ready queues and unpublished packets stay within named bounds under wide
   frontier pressure
 - reports expose total work, span, critical path, conflict width, active
-  concurrency, queue width, fallbacks, and publication breadth
+  concurrency, queue width, fallbacks, publication breadth, per-shard work,
+  cross-shard boundaries/messages, migrations, and imbalance
 - removing control-order proof, one footprint axis, or canonical epoch
   publication turns evidence red
 - focused tests, complete affected suites, boundary checks, context checks,

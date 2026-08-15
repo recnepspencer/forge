@@ -1,5 +1,6 @@
 use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
+use crate::facade::NodeState;
 
 use super::super::{FinancialWorldDefinition, InstrumentId, MarketFactorKey, SemanticOutputKey};
 use super::evaluation::FinancialEvaluationProgram;
@@ -176,7 +177,17 @@ impl CompiledFinancialWorld {
             self.ledger.clone(),
         );
         let evaluator = program.evaluator();
-        let consumers = self
+        let valuation_wave = final_definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).valuation)
+            .collect::<Vec<_>>();
+        let risk_wave = final_definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).risk)
+            .collect::<Vec<_>>();
+        let consumer_wave = self
             .handles
             .consumers
             .values()
@@ -184,12 +195,23 @@ impl CompiledFinancialWorld {
             .collect::<Vec<_>>();
         let staged_work = self.ledger.observed_work();
         self.ledger.clear();
-        self.runtime.transaction(&mut (), |tx| {
-            for consumer in &consumers {
-                tx.read(*consumer, &evaluator)?;
-            }
-            Ok(())
-        })?;
+        for wave in [valuation_wave, risk_wave, consumer_wave] {
+            let dirty = wave
+                .into_iter()
+                .filter(|node| {
+                    self.runtime
+                        .graph()
+                        .get_state(*node)
+                        .is_ok_and(|state| !matches!(state, NodeState::Clean))
+                })
+                .collect::<Vec<_>>();
+            self.runtime.transaction(&mut (), |tx| {
+                for node in &dirty {
+                    tx.read(*node, &evaluator)?;
+                }
+                Ok(())
+            })?;
+        }
         for key in staged_work {
             self.ledger.record(key);
         }

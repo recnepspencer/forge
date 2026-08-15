@@ -1,7 +1,9 @@
 use super::GraphObserver;
 use crate::data::graph::EvaluationStrategy;
 use crate::data::node::{node_hot_inline_size_bytes, node_warm_inline_size_bytes};
-use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
+use crate::data::proof::{
+    FrontierDiagnosticsSidecar, InvalidationPlanningEstimate, InvalidationTraceRecord,
+};
 use crate::data::trace::{ColdArtifactRecord, RuntimeArtifactHot, RuntimeArtifactWarm};
 use crate::diagnostics::access::GraphDiagnostics;
 use crate::diagnostics::history::ExecutionInspector;
@@ -121,11 +123,22 @@ impl<'a> GraphObserver<'a> {
         self.graph.observation.diagnostics.latest_observation()
     }
 
-    pub fn latest_frontier_execution_summary(&self) -> Option<&'a FrontierExecutionSummary> {
+    pub(crate) fn latest_frontier_execution_summary(
+        &self,
+    ) -> Option<&'a FrontierDiagnosticsSidecar> {
         self.graph
             .observation
             .diagnostics
             .latest_frontier_execution()
+    }
+
+    pub fn latest_invalidation_planning_estimate(
+        &self,
+    ) -> Option<&'a InvalidationPlanningEstimate> {
+        self.graph
+            .observation
+            .diagnostics
+            .latest_invalidation_planning_estimate()
     }
 
     pub fn latest_invalidation_trace_records(&self) -> &'a [InvalidationTraceRecord] {

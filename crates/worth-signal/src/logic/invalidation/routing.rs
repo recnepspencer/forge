@@ -9,15 +9,14 @@ use std::ops::DerefMut;
 #[cfg(any(test, doctest))]
 use crate::data::aspect::Aspect;
 use crate::data::error::SignalError;
-use crate::data::graph::{ScratchLeaseKind, SignalGraph, TraversalScratch};
+use crate::data::graph::SignalGraph;
 #[cfg(any(test, doctest))]
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 #[cfg(any(test, doctest))]
 use crate::data::output::ChangedRegion;
 use crate::data::proof::{
-    DirtyBatch, FrontierPlan, FrontierWaveEntryPlan, InvalidationSeed, InvalidationSeedBatch,
-    InvalidationTraceRecord, SourceRecomputeAdmission,
+    DirtyBatch, FrontierPlan, InvalidationSeed, InvalidationTraceRecord, SourceRecomputeAdmission,
 };
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::diagnostics::lineage::InvalidationCause;
@@ -68,10 +67,9 @@ pub fn mark_dirty_batch(
         );
     }
 
-    let result = graph.with_scratch(ScratchLeaseKind::Invalidation, |graph, scratch| {
-        let scratch = scratch.traversal_mut();
+    let result = (|| {
         let plan = plan_invalidation_frontier(graph, dirty)?;
-        let mut summary = execute_invalidation_frontier(graph, scratch, &plan)?;
+        let mut summary = execute_invalidation_frontier(graph, &plan)?;
         let trace_records = retained_trace_records(graph, &plan)?;
         summary.counters.frontier_trace_retained_count = trace_records.len() as u64;
         graph
@@ -82,9 +80,9 @@ pub fn mark_dirty_batch(
             .telemetry_mut()
             .invalidation
             .frontier_trace_retained_count += summary.counters.frontier_trace_retained_count;
-        graph.record_frontier_execution_diagnostics(summary, trace_records);
+        graph.record_frontier_execution_diagnostics(plan.predicted.clone(), summary, trace_records);
         Ok(())
-    });
+    })();
 
     if let Err(err) = result {
         graph.clear_pending_diagnostics_input();
@@ -107,10 +105,9 @@ fn plan_invalidation_frontier(
 
 fn execute_invalidation_frontier(
     graph: &mut SignalGraph,
-    scratch: &mut TraversalScratch,
     plan: &FrontierPlan,
-) -> Result<crate::data::proof::FrontierExecutionSummary, SignalError> {
-    application::execute_invalidation_frontier(graph, scratch, plan)
+) -> Result<crate::data::proof::FrontierDiagnosticsSidecar, SignalError> {
+    application::execute_invalidation_frontier(graph, plan)
 }
 
 fn retained_trace_records(
@@ -118,30 +115,6 @@ fn retained_trace_records(
     plan: &FrontierPlan,
 ) -> Result<Vec<InvalidationTraceRecord>, SignalError> {
     evidence::retained_trace_records(graph, plan)
-}
-
-fn apply_direct_entry(
-    graph: &mut SignalGraph,
-    entry: &FrontierWaveEntryPlan,
-    seed_batch: &InvalidationSeedBatch,
-) -> Result<(), SignalError> {
-    let previous_state = graph.get_state(entry.node)?;
-    graph.transition_node_pending_revalidation(entry.node)?;
-    if matches!(previous_state, NodeState::Clean) {
-        record_invalidation_lineage(
-            graph,
-            entry.node,
-            InvalidationCause::PendingDependencyRevalidation {
-                upstream: entry
-                    .source_seed_refs
-                    .first()
-                    .copied()
-                    .and_then(|idx| seed_batch.as_slice().get(idx as usize))
-                    .map(|seed| seed.source_node),
-            },
-        );
-    }
-    Ok(())
 }
 
 fn mark_source_seed(graph: &mut SignalGraph, seed: &InvalidationSeed) -> Result<(), SignalError> {

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::data::dependency::{CanonicalDependencies, DependencyEdge};
 use crate::data::error::SignalError;
@@ -23,52 +23,62 @@ pub(super) fn canonicalize_and_preflight(
         desired_by_node.insert(node, CanonicalDependencies::new(desired.iter().cloned()));
     }
 
-    for &node in desired_by_node.keys() {
-        if graph.raw_dependencies_of(node)? == desired_by_node[&node].as_slice() {
-            continue;
+    let mut changed = Vec::new();
+    for (&node, desired) in &desired_by_node {
+        if graph.raw_dependencies_of(node)? != desired.as_slice() {
+            changed.push(node);
         }
-        reject_reachable_cycle(graph, node, &desired_by_node)?;
     }
+    reject_batch_cycles(graph, &changed, &desired_by_node)?;
     Ok(desired_by_node.into_iter().collect())
 }
 
-fn reject_reachable_cycle(
+fn reject_batch_cycles(
     graph: &SignalGraph,
-    root: NodeId,
+    roots: &[NodeId],
     desired_by_node: &BTreeMap<NodeId, CanonicalDependencies>,
 ) -> Result<(), SignalError> {
-    let mut active_positions = BTreeMap::<NodeId, usize>::new();
-    let mut finished = BTreeSet::<NodeId>::new();
-    let mut stack = vec![DependencyFrame::new(
-        root,
-        dependency_sources(graph, root, desired_by_node)?,
-    )];
-    active_positions.insert(root, 0);
-
-    while let Some(frame) = stack.last_mut() {
-        let Some(next) = frame.next_source() else {
-            let completed = stack.pop().expect("active dependency frame must exist");
-            active_positions.remove(&completed.node);
-            finished.insert(completed.node);
-            continue;
-        };
-        if let Some(&cycle_start) = active_positions.get(&next) {
-            let mut path = stack[cycle_start..]
-                .iter()
-                .map(|frame| frame.node)
-                .collect::<Vec<_>>();
-            path.push(next);
-            return Err(SignalError::cycle_detected(path));
-        }
-        if finished.contains(&next) {
+    let capacity = graph.arena_capacity();
+    let mut visit_state = vec![0_u8; capacity];
+    let mut active_positions = vec![None::<usize>; capacity];
+    for &root in roots {
+        if visit_state[root.index() as usize] == 2 {
             continue;
         }
-        let next_position = stack.len();
-        stack.push(DependencyFrame::new(
-            next,
-            dependency_sources(graph, next, desired_by_node)?,
-        ));
-        active_positions.insert(next, next_position);
+        let mut stack = vec![DependencyFrame::new(
+            root,
+            dependency_sources(graph, root, desired_by_node)?,
+        )];
+        visit_state[root.index() as usize] = 1;
+        active_positions[root.index() as usize] = Some(0);
+        while let Some(frame) = stack.last_mut() {
+            let Some(next) = frame.next_source() else {
+                let completed = stack.pop().expect("active dependency frame must exist");
+                let index = completed.node.index() as usize;
+                active_positions[index] = None;
+                visit_state[index] = 2;
+                continue;
+            };
+            let next_index = next.index() as usize;
+            if let Some(cycle_start) = active_positions[next_index] {
+                let mut path = stack[cycle_start..]
+                    .iter()
+                    .map(|frame| frame.node)
+                    .collect::<Vec<_>>();
+                path.push(next);
+                return Err(SignalError::cycle_detected(path));
+            }
+            if visit_state[next_index] == 2 {
+                continue;
+            }
+            let next_position = stack.len();
+            stack.push(DependencyFrame::new(
+                next,
+                dependency_sources(graph, next, desired_by_node)?,
+            ));
+            visit_state[next_index] = 1;
+            active_positions[next_index] = Some(next_position);
+        }
     }
     Ok(())
 }

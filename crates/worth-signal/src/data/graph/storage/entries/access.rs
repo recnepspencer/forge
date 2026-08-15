@@ -173,6 +173,7 @@ impl SignalGraph {
             dependency_revision: hot.dependency_revision,
             pending_dependency_revalidation: warm.pending_dependency_revalidation.clone(),
             direct_invalidation_basis: warm.direct_invalidation_basis.clone(),
+            direct_invalidation_generation: warm.direct_invalidation_generation,
             tombstoned: warm.tombstoned,
             runtime_artifact_state: warm.runtime_artifact_state.clone(),
             retained_artifact: cold.and_then(|cold| cold.retained_artifact.clone()),

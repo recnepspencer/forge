@@ -10,6 +10,7 @@ pub(crate) struct ReconstructionCounters {
     cold_provenance_reconstruction_count: Arc<AtomicU64>,
     retained_artifact_read_count: Arc<AtomicU64>,
     reconstructed_artifact_read_count: Arc<AtomicU64>,
+    checkpoint_reconstruction_count: Arc<AtomicU64>,
     denied_reconstruction_by_budget_count: Arc<AtomicU64>,
     denied_reconstruction_by_tier_count: Arc<AtomicU64>,
     denied_reconstruction_explanation_api_count: Arc<AtomicU64>,
@@ -73,6 +74,15 @@ impl ReconstructionCounters {
     pub(crate) fn reconstructed_artifact_read_count(&self) -> u64 {
         self.reconstructed_artifact_read_count
             .load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn record_checkpoint_reconstruction(&self) {
+        self.checkpoint_reconstruction_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn checkpoint_reconstruction_count(&self) -> u64 {
+        self.checkpoint_reconstruction_count.load(Ordering::Relaxed)
     }
 
     pub(crate) fn record_retained_artifact_read(&self) {
@@ -152,6 +162,9 @@ impl Clone for ReconstructionCounters {
             )),
             reconstructed_artifact_read_count: Arc::new(AtomicU64::new(
                 self.reconstructed_artifact_read_count(),
+            )),
+            checkpoint_reconstruction_count: Arc::new(AtomicU64::new(
+                self.checkpoint_reconstruction_count(),
             )),
             denied_reconstruction_by_budget_count: Arc::new(AtomicU64::new(
                 self.denied_reconstruction_by_budget_count(),

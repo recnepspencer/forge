@@ -24,6 +24,9 @@ impl Clone for SignalGraph {
             aspect_lowering_owner: None,
             conditional_dependency_versions: self.conditional_dependency_versions.clone(),
             authorization_policy_identities: self.authorization_policy_identities.clone(),
+            invalidation_readiness_epoch: 0,
+            invalidation_performed_counters: Default::default(),
+            pending_repeated_invalidation_admissions: BTreeMap::new(),
         }
     }
 }
@@ -61,6 +64,9 @@ impl SignalGraph {
             aspect_lowering_owner: None,
             conditional_dependency_versions: BTreeMap::new(),
             authorization_policy_identities: BTreeSet::new(),
+            invalidation_readiness_epoch: 0,
+            invalidation_performed_counters: Default::default(),
+            pending_repeated_invalidation_admissions: BTreeMap::new(),
         }
     }
 

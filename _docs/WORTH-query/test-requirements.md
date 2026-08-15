@@ -712,6 +712,167 @@ evidence; all portable, Relational, durable, Query, and consumer boundaries
 agree; and the certification bundle reports zero competing authority, semantic
 projection, proof-forging, replay-readmission, or consumer-residue findings.
 
+## Milestone 9.17.1 Required Suite
+
+`Owner Component Basis And Relational Branch-Local MVCC Certification` is
+required for Milestone 9.17.1. It must use real Relational transaction/history
+facades and the real Signal branch-basis facade rather than directly writing
+heads, versions, snapshots, generations, or retention state.
+
+The suite must build one causally complete component world and run these named
+scenarios:
+
+- `blocked_branch_a_does_not_stop_branch_b`: branch A blocks immediately before
+  its lawful publication boundary while branch B commits; branch-B wait and
+  unrelated-state-touch counters remain exactly zero
+- `same_relational_head_has_one_winner`: two branch-A transactions share one
+  expected head; exactly one publishes and the other receives the precise
+  stale/conflict outcome without head movement
+- `equal_ordinals_do_not_substitute_authority`: equal local versions on
+  different branches and runtimes are swapped one axis at a time and deny
+  before owner effects
+- `boundary_crossing_requires_owner_readmission`: serialized, restored, and
+  checkpoint-derived component descriptors cannot regain operational authority
+  without current owner validation
+- `signal_basis_reuse_is_exact_and_immutable`: several consumers retain one
+  exact Signal basis with zero graph copy/evaluation/cache duplication, while a
+  mutation requires an owner-issued fork or advance
+- `retention_follows_live_obligations`: branch, snapshot, transaction,
+  candidate, and external composition pins independently prevent reclamation
+  and release exactly
+- `cancellation_cleans_every_owner_phase`: cancellation before reservation,
+  after reservation, after validation, after candidate creation, and before
+  publication leaves no unauthorized head movement or unbounded residue
+- `branch_local_work_has_branch_local_slopes`: unrelated branch count, history,
+  writers, and diagnostics do not increase selected-branch validation or
+  publication counters
+
+The suite must also include consolidated public compile-pass/compile-fail
+evidence for raw basis minting, cross-branch transaction/head pairing, phase
+skipping, prepared-candidate publication, generic authority substitution, and
+consumed-witness reuse. Compiler evidence is limited to those current public
+authority guarantees; it is not a general Rust API census.
+
+Milestone 9.17.1 may report closed only when the current ordinary Relational
+path contains no global commit coordinator or broad mutable entry that
+serializes independent branches, every owner basis is private-minted and
+readmission-bound, and no composite product authority is claimed.
+
+## Milestone 9.17.2 Required Suite
+
+`Composite Runtime-World History And Coordinated Publication Certification` is
+required for Milestone 9.17.2. It must invoke the frozen 9.17.1 owner ports and
+the real Runtime Bridge runtime-world facade. Expected history must be produced
+by an independent action interpreter, not by Bridge classifiers or branch-head
+queries.
+
+The suite must run these named scenarios:
+
+- `shared_signal_basis_divergent_relational_worlds`: two product branches reuse
+  one exact immutable Signal basis while their Relational branches diverge
+- `component_specific_advancement_is_exact`: Relational-only, Signal-only, and
+  combined operations advance exactly the named components and retain every
+  unchanged basis byte-for-byte/canonically
+- `foreign_or_equal_component_basis_is_rejected`: each runtime, branch,
+  version, generation, definition/schema, correspondence, product-head,
+  operation, and attempt axis drifts independently and denies before
+  publication
+- `same_product_head_has_one_winner`: two compatible prepared programs race one
+  expected product head; one CAS wins and one receives stale-head posture
+- `partial_preparation_never_becomes_current`: every owner success/rejection
+  ordering, timeout, and cancellation point leaves the product head unchanged
+  unless the final Bridge CAS succeeds
+- `response_loss_recovers_performed_publication`: loss after CAS but before
+  response returns a recovery handle that observes the performed commit without
+  duplicating it
+- `single_parent_history_and_retention_are_exact`: arbitrary retained-commit
+  branch creation, parentage, archive, pins, reclamation, and derived-index
+  destruction/rebuild agree with the independent oracle
+- `independent_product_branches_progress`: a blocked publication on one product
+  branch contributes exactly zero waits to another branch
+- `ordinary_publication_has_bounded_structural_cost`: component, branch,
+  history, and diagnostic population slopes match the fixed-component contract
+
+The suite must include targeted compile-fail evidence for raw component tuple
+admission, candidate-to-current promotion, publication phase skipping, weaker
+Proof substitution, direct product-head mutation, and reused performed
+evidence. Mutation controls must remove or bypass component correspondence,
+unchanged-basis retention, compatibility, final CAS, performed minting, and
+half-publication isolation and turn the named scenario red.
+
+Milestone 9.17.2 may report closed only when one canonical Bridge artifact owns
+each composite commit/head transition, owner failures cannot expose a half
+world, exact lifecycle/recovery evidence is bounded, and no final Query facade
+completion is claimed.
+
+## Milestone 9.17.3 And Umbrella Required Suite
+
+`Query Composite Product-Branch End-To-End Certification` is required for
+Milestone 9.17.3 and final Milestone 9.17 closure. It must begin at the real
+public Query composition root in a causally complete installed application
+world and observe real owner and Bridge outcomes. Query-only fixtures or direct
+lower-runtime assembly are supplemental and cannot close the suite.
+
+The suite must run these named scenarios:
+
+- `public_shared_signal_basis_workflow`: public branch creation expresses an
+  explicit Relational fork and exact Signal-basis reuse, then reads, mutates,
+  publishes, inspects, and observes the correct composite world
+- `public_component_divergence_matrix`: Relational-only, Signal-only, and
+  combined public operations preserve exact component posture through plans,
+  sessions, read sets, proposals, invariants, effects, terminals, receipts,
+  history, live delivery, inspection, recovery, and aftermath
+- `stale_between_every_query_phase`: the product head advances between each
+  adjacent public/private Query transition; stale/rebind posture appears before
+  the next effect and no phase silently retargets
+- `one_axis_query_binding_drift_denies`: product branch, composite head,
+  component bases, correspondence, provider session, operation, attempt, and
+  freshness axes drift one at a time and open no door
+- `partial_preparation_is_unobservable`: one-shot, live, history, preview,
+  inspection, and aftermath observers never see component candidates or a half
+  product world
+- `query_boundary_round_trip_readmits`: serialized/restored Query artifacts
+  lose currentness and regain it only through Query and Bridge owner readmission
+- `diagnostics_tiers_preserve_operational_truth`: operational, development, and
+  forensic executions produce identical product truth and operational receipts
+  while only lawful sidecars differ
+- `default_and_parallel_lanes_converge`: admitted serial and parallel lanes
+  produce identical component history, composite history, outcomes, receipts,
+  and global publication order
+- `response_loss_and_cancellation_preserve_exact_lifecycle`: every Query-to-
+  Bridge/owner transfer has typed cancellation/recovery and bounded cleanup
+- `legacy_product_branch_authority_is_absent`: facade, dependency, constructor,
+  source, and consumer inventories find exact-zero Relational-only product
+  identity, derived branch identity, ambient Signal selection, raw pairing,
+  compatibility authority, and test-only bypass
+- `product_branch_cost_is_population_independent`: unrelated product/component
+  branches, history, consumers, subscriptions, and diagnostics do not change
+  fixed basis-carriage and publication counters
+
+The suite must include executable public examples and consolidated compiler
+evidence proving intended branch journeys compile while raw minting, phase
+skipping, cross-basis pairing, stale proof reuse, owner-candidate publication,
+internal lower-runtime entry, and non-terminal consequence construction do not.
+The compiler evidence protects the named public progression only; it must not
+grow into a general compiler, macro expander, or complete Rust name-resolution
+engine.
+
+The final canonical certification bundle must bind:
+
+- the frozen 9.17.1 owner-component evidence;
+- the frozen 9.17.2 Bridge composition evidence;
+- every 9.17.3 scenario and mutation-sensitive control;
+- exact Foundational canonical case/report identity;
+- exact Proof phase/basis/performed progression evidence under owner wrappers;
+- default/parallel, diagnostics-tier, lifecycle, performance, facade,
+  dependency, docs, and residue results; and
+- the exact source revision and support posture certified.
+
+Milestone 9.17 closes only when all three named suites are green and the final
+end-to-end suite proves the lower guarantees remain true through Query. A green
+component test, Bridge publication test, facade compile test, or self-reported
+manifest alone is not umbrella closure.
+
 ## Section Index
 
 - [Milestones 1-4](./test-requirements-milestones-1-4.md)

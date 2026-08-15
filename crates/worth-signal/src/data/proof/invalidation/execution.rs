@@ -8,15 +8,15 @@ use super::super::SummaryForm;
 use super::frontier_admission::{FrontierEntryClassification, FrontierInclusionBasis};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct FrontierWaveEntrySummary {
-    pub node: NodeId,
-    pub classification: FrontierEntryClassification,
-    pub inclusion_basis: FrontierInclusionBasis,
-    pub narrowed_scopes: PartitionScopeSet,
+pub(crate) struct FrontierWaveEntrySummary {
+    pub(crate) node: NodeId,
+    pub(crate) classification: FrontierEntryClassification,
+    pub(crate) inclusion_basis: FrontierInclusionBasis,
+    pub(crate) narrowed_scopes: PartitionScopeSet,
 }
 
 impl FrontierWaveEntrySummary {
-    pub fn new(
+    pub(crate) fn new(
         node: NodeId,
         classification: FrontierEntryClassification,
         inclusion_basis: FrontierInclusionBasis,
@@ -32,27 +32,27 @@ impl FrontierWaveEntrySummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct FrontierWaveSummary {
-    pub wave_index: u32,
-    pub aspect: Aspect,
-    pub entries: Vec<FrontierWaveEntrySummary>,
+pub(crate) struct FrontierWaveSummary {
+    pub(crate) wave_index: u32,
+    pub(crate) aspect: Aspect,
+    pub(crate) entries: Vec<FrontierWaveEntrySummary>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TransitiveFrontierWaveSummary {
-    pub wave_index: u32,
-    pub entries: Vec<TransitiveFrontierEntrySummary>,
+pub(crate) struct TransitiveFrontierWaveSummary {
+    pub(crate) wave_index: u32,
+    pub(crate) entries: Vec<TransitiveFrontierEntrySummary>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TransitiveFrontierEntrySummary {
-    pub node: NodeId,
-    pub classification: FrontierEntryClassification,
-    pub inclusion_basis: FrontierInclusionBasis,
+pub(crate) struct TransitiveFrontierEntrySummary {
+    pub(crate) node: NodeId,
+    pub(crate) classification: FrontierEntryClassification,
+    pub(crate) inclusion_basis: FrontierInclusionBasis,
 }
 
 impl TransitiveFrontierEntrySummary {
-    pub fn new(node: NodeId) -> Self {
+    pub(crate) fn new(node: NodeId) -> Self {
         Self {
             node,
             classification: FrontierEntryClassification::MaybeStale,
@@ -62,7 +62,7 @@ impl TransitiveFrontierEntrySummary {
 }
 
 impl TransitiveFrontierWaveSummary {
-    pub fn new(
+    pub(crate) fn new(
         wave_index: u32,
         entries: impl IntoIterator<Item = TransitiveFrontierEntrySummary>,
     ) -> Self {
@@ -74,7 +74,7 @@ impl TransitiveFrontierWaveSummary {
 }
 
 impl FrontierWaveSummary {
-    pub fn new(
+    pub(crate) fn new(
         wave_index: u32,
         aspect: Aspect,
         entries: impl IntoIterator<Item = FrontierWaveEntrySummary>,
@@ -88,37 +88,37 @@ impl FrontierWaveSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct FrontierExecutionCounters {
-    pub frontier_seed_count: u64,
-    pub frontier_group_count: u64,
-    pub frontier_direct_wave_count: u64,
-    pub frontier_transitive_wave_count: u64,
-    pub frontier_partition_scoped_check_count: u64,
-    pub frontier_direct_dirty_count: u64,
-    pub frontier_maybe_stale_count: u64,
-    pub frontier_partition_match_count: u64,
-    pub frontier_detail_match_count: u64,
-    pub frontier_cycle_check_candidate_count: u64,
-    pub frontier_cycle_check_visited_count: u64,
-    pub frontier_trace_retained_count: u64,
+pub(crate) struct FrontierDiagnosticsProjection {
+    pub(crate) frontier_seed_count: u64,
+    pub(crate) frontier_group_count: u64,
+    pub(crate) frontier_direct_wave_count: u64,
+    pub(crate) frontier_transitive_wave_count: u64,
+    pub(crate) frontier_partition_scoped_check_count: u64,
+    pub(crate) frontier_direct_dirty_count: u64,
+    pub(crate) frontier_maybe_stale_count: u64,
+    pub(crate) frontier_partition_match_count: u64,
+    pub(crate) frontier_detail_match_count: u64,
+    pub(crate) frontier_cycle_check_candidate_count: u64,
+    pub(crate) frontier_cycle_check_visited_count: u64,
+    pub(crate) frontier_trace_retained_count: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct FrontierExecutionSummary {
-    pub seed_count: u64,
-    pub direct_waves: Vec<FrontierWaveSummary>,
-    pub transitive_waves: Vec<TransitiveFrontierWaveSummary>,
-    pub touched_scope_summary: TouchedScopeSummary,
-    pub counters: FrontierExecutionCounters,
+pub(crate) struct FrontierDiagnosticsSidecar {
+    pub(crate) seed_count: u64,
+    pub(crate) direct_waves: Vec<FrontierWaveSummary>,
+    pub(crate) transitive_waves: Vec<TransitiveFrontierWaveSummary>,
+    pub(crate) touched_scope_summary: TouchedScopeSummary,
+    pub(crate) counters: FrontierDiagnosticsProjection,
 }
 
-impl FrontierExecutionSummary {
-    pub fn new(
+impl FrontierDiagnosticsSidecar {
+    pub(crate) fn new(
         seed_count: u64,
         direct_waves: Vec<FrontierWaveSummary>,
         transitive_waves: Vec<TransitiveFrontierWaveSummary>,
         touched_scope_summary: TouchedScopeSummary,
-        counters: FrontierExecutionCounters,
+        counters: FrontierDiagnosticsProjection,
     ) -> Self {
         Self {
             seed_count,
@@ -157,4 +157,4 @@ impl InvalidationTraceRecord {
     }
 }
 
-impl SummaryForm for FrontierExecutionSummary {}
+impl SummaryForm for FrontierDiagnosticsSidecar {}

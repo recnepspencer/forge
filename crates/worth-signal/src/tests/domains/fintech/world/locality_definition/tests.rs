@@ -1,5 +1,7 @@
-use super::super::locality_scale::{LocalityScaleTuple, SparseFanoutAxis};
-use super::{FinancialLocalityDefinition, FinancialLocalityScenario, LocalityScope};
+use super::super::locality_scale::{LocalityScaleTuple, RestorePosture, SparseFanoutAxis};
+use super::{
+    FinancialLocalityAction, FinancialLocalityDefinition, FinancialLocalityScenario, LocalityScope,
+};
 
 #[test]
 fn sparse_generator_owns_every_exact_output_and_preserves_depth_sixteen_chain() {
@@ -18,7 +20,7 @@ fn sparse_generator_owns_every_exact_output_and_preserves_depth_sixteen_chain() 
         definition.validate_generator_invariants();
         assert_eq!(definition.seed(), 41);
         assert_eq!(
-            definition.outputs()[15].dependencies[0].producer.ordinal(),
+            definition.outputs()[15].subscriptions[0].upstream.ordinal(),
             14
         );
     }
@@ -39,15 +41,11 @@ fn partition_generator_varies_regions_memberships_and_instruments_without_paddin
         definition.scenario(),
         FinancialLocalityScenario::PartitionedCurveUniverse
     );
-    assert_eq!(definition.outputs().len(), 1 + (1 + 8) + 3 + 2 * 15);
+    assert_eq!(definition.outputs().len(), 1 + (1 + 8) + 3 + 2 * 15 + 4);
     assert_eq!(definition.mutation().scope.unwrap().region, 0);
     assert_eq!(
-        definition
-            .outputs()
-            .iter()
-            .filter(|output| output.expected_for_mutation)
-            .count(),
-        1 + 1 + 8
+        definition.workload().observation_targets().len(),
+        8 + 3 + 15 + 3
     );
 }
 
@@ -63,14 +61,10 @@ fn scheduled_partition_tuple_preserves_independent_r_m_and_i_axes() {
     );
 
     definition.validate_generator_invariants();
-    assert_eq!(definition.outputs().len(), 2 * 1_024 + 256 + 32 - 1);
+    assert_eq!(definition.outputs().len(), 2 * 1_024 + 256 + 32 + 3);
     assert_eq!(
-        definition
-            .outputs()
-            .iter()
-            .filter(|output| output.expected_for_mutation)
-            .count(),
-        34
+        definition.workload().observation_targets().len(),
+        32 + 255 + 1_023 + 3
     );
 }
 
@@ -87,7 +81,67 @@ fn scheduled_sparse_rejection_contracts_never_wrap_into_the_queried_detail() {
 
     definition.validate_generator_invariants();
     assert!(definition.outputs()[16..].iter().all(|output| {
-        output.dependencies[0].edge_scope == queried
-            && output.dependencies[0].contract_scope != queried
+        output.subscriptions[0].edge_scope == queried
+            && output.subscriptions[0].eligibility_scope != queried
     }));
+}
+
+#[test]
+fn churn_and_restore_cases_freeze_every_lifecycle_action_in_order() {
+    let churn = FinancialLocalityDefinition::generate(
+        41,
+        LocalityScaleTuple::PortfolioDependencyChurn {
+            rounds: 8,
+            canonical_seeds: 1,
+        },
+    );
+    churn.validate_generator_invariants();
+    let churn_actions = churn.action_traces()[0].actions();
+    assert_eq!(churn_actions.len(), 64);
+    for (round, actions) in churn_actions.chunks_exact(8).enumerate() {
+        assert!(matches!(
+            actions,
+            [
+                FinancialLocalityAction::CommitFactor(_),
+                FinancialLocalityAction::StagePreRewireWork { round: staged_round, .. },
+                FinancialLocalityAction::AcceptedOwnerMove { round: owner_round, .. },
+                FinancialLocalityAction::RejectStaleWork { round: stale_round, .. },
+                FinancialLocalityAction::AcceptedDependencyRemoval { round: removal_round, .. },
+                FinancialLocalityAction::AcceptedDependencyRecreation { round: recreation_round, .. },
+                FinancialLocalityAction::RejectedCycle { round: cycle_round, .. },
+                FinancialLocalityAction::CommitFactor(_),
+            ] if usize::from(*staged_round) == round
+                && usize::from(*owner_round) == round
+                && usize::from(*stale_round) == round
+                && usize::from(*removal_round) == round
+                && usize::from(*recreation_round) == round
+                && usize::from(*cycle_round) == round
+        ));
+    }
+
+    let restore = FinancialLocalityDefinition::generate(
+        41,
+        LocalityScaleTuple::BranchRestoreLocalityReplay {
+            posture: RestorePosture::Narrow,
+            total_outputs: 0,
+            canonical_seeds: 1,
+        },
+    );
+    restore.validate_generator_invariants();
+    assert!(matches!(
+        &restore.action_traces()[0].actions()[1..],
+        [
+            FinancialLocalityAction::StageSourceRecompute { .. },
+            FinancialLocalityAction::CaptureBranch { branch_ordinal: 1 },
+            FinancialLocalityAction::CaptureCheckpoint {
+                checkpoint_ordinal: 1
+            },
+            FinancialLocalityAction::DestroyDerivedState {
+                destruction_ordinal: 1
+            },
+            FinancialLocalityAction::ReadmitFreshRuntime { runtime_epoch: 2 },
+            FinancialLocalityAction::ReplayCanonicalTrace { replay_ordinal: 1 },
+            FinancialLocalityAction::DeterministicRerun { rerun_ordinal: 1 },
+        ]
+    ));
 }

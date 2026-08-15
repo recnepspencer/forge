@@ -1,19 +1,27 @@
-use std::collections::BTreeSet;
-
-use super::super::super::locality_scale::{LocalityScaleTuple, SparseFanoutAxis};
+use super::super::super::locality_scale::{LocalityLane, LocalityScaleTuple, SparseFanoutAxis};
 use super::super::{
-    FinancialAspect, FinancialLocalityDefinition, FinancialLocalityDependency,
-    FinancialLocalityFormula, FinancialLocalityMutation, FinancialLocalityOutput,
-    LocalityEconomicOwner, LocalityOutputRole, LocalityScope, LocalitySemanticOutputId,
+    FinancialAspect, FinancialLocalityDefinition, FinancialLocalityFormula,
+    FinancialLocalityMutation, FinancialLocalityOutput, FinancialLocalitySubscription,
+    LocalityEconomicOwner, LocalityFactorPublication, LocalityGenerationContract,
+    LocalityMarketFactor, LocalityOutputRole, LocalityScope, LocalitySemanticOutputId,
     RELEVANT_CHAIN_OUTPUTS,
 };
+
+pub(super) struct SparseScale {
+    pub(super) total_outputs: u32,
+    pub(super) axis: SparseFanoutAxis,
+}
 
 pub(super) fn generate(
     seed: u64,
     scale: LocalityScaleTuple,
-    total_outputs: u32,
-    axis: SparseFanoutAxis,
+    dimensions: SparseScale,
+    lane: LocalityLane,
 ) -> FinancialLocalityDefinition {
+    let SparseScale {
+        total_outputs,
+        axis,
+    } = dimensions;
     assert!(total_outputs >= RELEVANT_CHAIN_OUTPUTS);
     let source = LocalitySemanticOutputId::new(0);
     let mut outputs = vec![source_output(seed, source)];
@@ -32,16 +40,21 @@ pub(super) fn generate(
             None
         }
     };
-    FinancialLocalityDefinition {
+    FinancialLocalityDefinition::generated(
         seed,
         scale,
         outputs,
-        mutation: FinancialLocalityMutation {
-            producer: source,
-            aspect: FinancialAspect::Price,
-            scope: mutation_scope,
-        },
-    }
+        LocalityGenerationContract::direct(
+            FinancialLocalityMutation {
+                producer: source,
+                aspect: FinancialAspect::Price,
+                scope: mutation_scope,
+                admission_generation: 2,
+                publication_order: 0,
+            },
+            lane,
+        ),
+    )
 }
 
 fn source_output(seed: u64, source: LocalitySemanticOutputId) -> FinancialLocalityOutput {
@@ -50,13 +63,14 @@ fn source_output(seed: u64, source: LocalitySemanticOutputId) -> FinancialLocali
         owner: LocalityEconomicOwner::MarketDataFeed(0),
         role: LocalityOutputRole::MarketQuote,
         formula: FinancialLocalityFormula::MarketSource {
+            publication: LocalityFactorPublication::two(
+                LocalityMarketFactor::Quote,
+                LocalityMarketFactor::Curve,
+            ),
             baseline_value: 1_000_000 + seed as i64,
             mutation_delta: 25_000,
         },
-        produced_aspects: BTreeSet::from([FinancialAspect::Price, FinancialAspect::Curve]),
-        dependencies: Vec::new(),
-        expected_for_mutation: true,
-        unchanged_output_stop: false,
+        subscriptions: Vec::new(),
     }
 }
 
@@ -70,13 +84,10 @@ fn append_relevant_chain(outputs: &mut Vec<FinancialLocalityOutput>) {
                 multiplier_micros: 1_000_000,
                 basis_value: i64::from(ordinal) * 100,
             },
-            produced_aspects: BTreeSet::from([FinancialAspect::Price]),
-            dependencies: vec![FinancialLocalityDependency::unscoped(
+            subscriptions: vec![FinancialLocalitySubscription::unscoped(
                 LocalitySemanticOutputId::new(ordinal - 1),
-                FinancialAspect::Price,
+                chain_published_aspect(ordinal - 1),
             )],
-            expected_for_mutation: true,
-            unchanged_output_stop: false,
         });
     }
 }
@@ -94,13 +105,10 @@ fn append_index_disjoint(
             formula: FinancialLocalityFormula::StableControl {
                 retained_value: 10_000 + i64::from(ordinal),
             },
-            produced_aspects: BTreeSet::from([FinancialAspect::Alert]),
-            dependencies: vec![FinancialLocalityDependency::unscoped(
+            subscriptions: vec![FinancialLocalitySubscription::unscoped(
                 source,
                 FinancialAspect::Curve,
             )],
-            expected_for_mutation: false,
-            unchanged_output_stop: false,
         });
     }
 }
@@ -121,15 +129,12 @@ fn append_queried_rejecting(
             formula: FinancialLocalityFormula::StableControl {
                 retained_value: 20_000 + i64::from(ordinal),
             },
-            produced_aspects: BTreeSet::from([FinancialAspect::Alert]),
-            dependencies: vec![FinancialLocalityDependency::scoped(
+            subscriptions: vec![FinancialLocalitySubscription::scoped(
                 source,
                 FinancialAspect::Price,
                 queried_scope,
                 rejected_contract_scope,
             )],
-            expected_for_mutation: false,
-            unchanged_output_stop: false,
         });
     }
 }
@@ -150,13 +155,10 @@ fn append_rejected_descendants(
         formula: FinancialLocalityFormula::StableControl {
             retained_value: 30_000,
         },
-        produced_aspects: BTreeSet::from([FinancialAspect::Alert]),
-        dependencies: vec![FinancialLocalityDependency::unscoped(
+        subscriptions: vec![FinancialLocalitySubscription::unscoped(
             source,
             FinancialAspect::Price,
         )],
-        expected_for_mutation: true,
-        unchanged_output_stop: true,
     });
     append_descendant_reports(outputs, stop, total_outputs);
 }
@@ -175,13 +177,10 @@ fn append_descendant_reports(
                 multiplier_micros: 1_000_000,
                 basis_value: i64::from(ordinal),
             },
-            produced_aspects: BTreeSet::from([FinancialAspect::Alert]),
-            dependencies: vec![FinancialLocalityDependency::unscoped(
+            subscriptions: vec![FinancialLocalitySubscription::unscoped(
                 stop,
                 FinancialAspect::Alert,
             )],
-            expected_for_mutation: false,
-            unchanged_output_stop: false,
         });
     }
 }
@@ -203,5 +202,22 @@ fn chain_role(ordinal: u32) -> LocalityOutputRole {
         2 => LocalityOutputRole::DeskAggregate,
         3 => LocalityOutputRole::AuditCheck,
         _ => LocalityOutputRole::RegulatoryReport,
+    }
+}
+
+fn chain_published_aspect(ordinal: u32) -> FinancialAspect {
+    if ordinal == 0 {
+        return FinancialAspect::Price;
+    }
+    match chain_role(ordinal) {
+        LocalityOutputRole::PositionValuation | LocalityOutputRole::MarketQuote => {
+            FinancialAspect::Price
+        }
+        LocalityOutputRole::PositionRisk
+        | LocalityOutputRole::BookAggregate
+        | LocalityOutputRole::DeskAggregate => FinancialAspect::Risk,
+        LocalityOutputRole::AuditCheck | LocalityOutputRole::RegulatoryReport => {
+            FinancialAspect::Alert
+        }
     }
 }

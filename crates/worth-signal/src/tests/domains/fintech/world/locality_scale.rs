@@ -152,7 +152,10 @@ fn append_sparse_cases(cases: &mut Vec<LocalityCaseContract>, lane: LocalityLane
 
 fn append_ordinary_partition_cases(cases: &mut Vec<LocalityCaseContract>) {
     for regions in [16_u16, 256] {
-        for matching_memberships in [1, regions / 16, regions / 4] {
+        for matching_memberships in [1, regions / 16, regions / 4]
+            .into_iter()
+            .collect::<std::collections::BTreeSet<_>>()
+        {
             for instruments_per_matching_region in [1, 8] {
                 cases.push(LocalityCaseContract::new(
                     LocalityLane::OrdinaryChangeGate,
@@ -280,7 +283,6 @@ fn append_scheduled_restore_cases(cases: &mut Vec<LocalityCaseContract>, lane: L
         (RestorePosture::Narrow, 0),
         (RestorePosture::Convergent, 0),
         (RestorePosture::DenseFourInFive, 10_000),
-        (RestorePosture::DenseFourInFive, 100_000),
     ] {
         cases.push(LocalityCaseContract::new(
             lane,
@@ -291,6 +293,18 @@ fn append_scheduled_restore_cases(cases: &mut Vec<LocalityCaseContract>, lane: L
             },
         ));
     }
+}
+
+pub(in crate::tests::domains::fintech) fn retained_locality_benchmark_cases(
+) -> Vec<LocalityCaseContract> {
+    vec![LocalityCaseContract::new(
+        LocalityLane::Scheduled,
+        LocalityScaleTuple::BranchRestoreLocalityReplay {
+            posture: RestorePosture::DenseFourInFive,
+            total_outputs: 100_000,
+            canonical_seeds: 8,
+        },
+    )]
 }
 
 #[cfg(test)]
@@ -311,6 +325,22 @@ mod tests {
         assert!(scheduled
             .iter()
             .all(|case| case.lane == LocalityLane::Scheduled));
+        assert_eq!(
+            ordinary
+                .iter()
+                .map(|case| case.scale)
+                .collect::<std::collections::BTreeSet<_>>()
+                .len(),
+            ordinary.len()
+        );
+        assert_eq!(
+            scheduled
+                .iter()
+                .map(|case| case.scale)
+                .collect::<std::collections::BTreeSet<_>>()
+                .len(),
+            scheduled.len()
+        );
     }
 
     #[test]
@@ -332,5 +362,22 @@ mod tests {
             .collect::<std::collections::BTreeSet<_>>();
         assert_eq!(sparse_totals, [64, 512, 4_096].into());
         assert_eq!(partition_regions, [16, 256].into());
+    }
+
+    #[test]
+    fn retained_restore_benchmark_is_not_an_ordinary_merge_gate() {
+        let retained = retained_locality_benchmark_cases();
+        assert_eq!(retained.len(), 1);
+        assert!(!scheduled_locality_cases()
+            .iter()
+            .any(|case| case.scale == retained[0].scale));
+        assert_eq!(
+            retained[0].scale,
+            LocalityScaleTuple::BranchRestoreLocalityReplay {
+                posture: RestorePosture::DenseFourInFive,
+                total_outputs: 100_000,
+                canonical_seeds: 8,
+            }
+        );
     }
 }

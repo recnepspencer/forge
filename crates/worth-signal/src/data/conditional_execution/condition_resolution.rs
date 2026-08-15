@@ -29,6 +29,9 @@ pub(super) fn resolve_condition(
             EvaluationCondition::Installed(identity)
                 if identity.role() == crate::data::node::InstalledSignalConditionRole::TemporalWake
         );
+    if graph.has_current_unsettled_upstream(node)? {
+        return Ok(ConditionDisposition::Deferred);
+    }
     let dirty_aspects = match graph.node_invalidation_input(node)? {
         NodeInvalidationInput::Pending(_) => return Ok(ConditionDisposition::Deferred),
         NodeInvalidationInput::Resolved(causes) => causes.dirty_aspects(),

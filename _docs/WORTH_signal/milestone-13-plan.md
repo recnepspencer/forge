@@ -1,6 +1,8 @@
 # Milestone 13 Engineering Spec: Locality-First Frontier Execution
 
-> **Status:** Planned
+> **Status:** Completed
+>
+> **Closeout:** [milestone-13-closeout.md](./milestone-13-closeout.md)
 >
 > **Prerequisite:** [milestone-12-plan.md](./milestone-12-plan.md) and its
 > [closeout](./milestone-12-closeout.md)
@@ -879,6 +881,8 @@ crates/worth-signal/src/
     source_seed.rs                              [existing M12 root obligation]
     output_commit.rs                            [existing M12 performed delta]
     revalidation.rs                             [existing M12 cause/input truth]
+    progression_contract_tests.rs               [Phase 1 internal lawful progression prototype]
+    progression_contract_mutation.txt           [Phase 1 actual-source E0308 mutation record]
     progression/                                [created; dominant axis = phase truth]
       mod.rs                                    [stable owner-specific proof facade]
       source.rs                                 [created; admitted source origin]
@@ -931,16 +935,34 @@ crates/worth-signal/src/
     world/
       locality_scale.rs                         [created; frozen ordinary/scheduled tuples]
       locality_definition.rs                    [created; immutable locality-world meaning]
+      locality_definition/actions.rs            [created; ordered economic/lifecycle traces]
+      locality_definition/policy.rs             [created; economic admission/comparison/output policy]
+      locality_definition/validation.rs         [created; generator invariant enforcement]
       locality_definition/generation/           [created; dominant axis = scenario family]
         sparse.rs                               [created; depth/fanout financial generator]
         partitioned.rs                          [created; independent R/M/I curve generator]
+        convergent.rs                           [created; four-producer convergence contract]
+        dense.rs                                [created; exact affected-density contract]
+        churn.rs                                [created; topology receipt/revision contract]
+        restore.rs                              [created; narrow/convergent/dense lifecycle contract]
       compiler/
         compiled_authority.rs                   [created; shared portfolio/locality authority]
-        locality_topology.rs                    [created; definition-to-Signal lowering]
+        locality_topology.rs                    [created; economic subscription and policy-to-Signal lowering]
         locality_evaluation.rs                  [created; scoped financial evaluators]
-        locality_execution.rs                   [created; baseline seal and scenario action]
+        locality_execution.rs                   [created; scenario compile, action, and settlement]
+        locality_execution/
+          baseline.rs                           [created; baseline topology and artifact seal]
     invalidation/
       boundary_inventory_m13.rs                 [created; Phase 1 current-boundary record]
+      boundary_inventory_m13/counters.rs        [created; exact counter/topology/export census]
+      boundary_inventory_m13/constructors.rs    [created; exact public constructor signature census]
+      boundary_inventory_m13/owners.rs          [created; complete owner-function census]
+      boundary_inventory_m13/planner.rs         [created; planner/readiness/executor census]
+      boundary_inventory_m13/source_edges.rs    [created; parsed owner-census mutation proofs]
+      boundary_inventory_m13/source_edges/
+        owner_bodies.rs                         [created; 50 routing/planner/writer/publication owners]
+        parsed_owner.rs                         [created; AST-scoped owner-body identity enforcement]
+        source_files.rs                         [created; 33 critical runtime/planner file AST census]
       locality_red_controls.rs                  [created; inherited-breadth slope baseline]
       sparse_book_fanout.rs                     [created]
       partitioned_curve_universe.rs              [created]
@@ -953,7 +975,22 @@ crates/worth-signal/src/
       locality_fresh_recompute.rs               [created; locality-world financial oracle]
       necessity_manifest.rs                     [existing M12 oracle; extended]
       locality_contract.rs                      [created; generator/mutation/identity contract]
+      locality_contract/mutations.rs            [created; exhaustive scenario mutation sets]
       locality_expectation.rs                   [created independent counter oracle]
+      locality_expectation/counter_contract.rs  [created exact scenario counter rows]
+      locality_expectation/
+        independence.rs                         [created; complete oracle dependency-graph enforcement]
+        independence/module_graph.rs            [created; fail-closed module/reexport provenance]
+        independence/module_graph/syntax.rs     [created; crate/self/super/glob/macro path resolution]
+        trace.rs                                [created; complete economic delta/work trace]
+        trace/actions.rs                        [created; ordered economic/lifecycle interpreter]
+        trace/actions/topology.rs               [created; accepted/rejected topology receipt interpreter]
+        trace/checkpoints.rs                    [created; durable cause/source-basis reconstruction checkpoints]
+        trace/derivation.rs                     [created; semantic delta and work derivation]
+        candidates.rs                           [created; ordered Q/C and fully bound K]
+        recovery_assertions.rs                  [created; exact restore provenance courtroom]
+        tests.rs                                [created; fault-sensitive manifest proofs]
+        scenario_tests.rs                       [created; scenario courtroom contracts]
       locality_case_identity.rs                 [created Foundational identity]
       locality_receipt.rs                       [created receipt attachment]
       cost_slope.rs                             [created cross-scale verdict]
@@ -961,8 +998,8 @@ crates/worth-signal/src/
       locality_run.rs                           [created sealed run]
 
 crates/worth-signal/tests/
-  milestone_13_compile_time.rs                  [committed only if a genuine public impossibility exists]
-  ui/milestone_13/                              [committed only with positive caller twin]
+  milestone_13_compile_time.rs                  [legacy caller-visible reachability inventory]
+  ui/milestone_13/                              [positive caller compatibility twin]
 ```
 
 Structural ownership:
@@ -1348,6 +1385,8 @@ inherits:
 - exact current-basis work bindings
 - cause-preserving work identity
 - direct-hop locality and sparse/dense measured envelopes
+- exact unscoped/partition/detail locality as the certified two-segment base
+  case for a future bounded `ScopePath`
 - performed Signal execution receipts
 - Foundational counter-backed locality evidence
 - one typed mechanical strategy conclusion
@@ -1357,6 +1396,14 @@ leases. It may not weaken direct-hop admission, current-basis binding,
 cause-preserving deduplication, deterministic order, either independent
 financial oracle, the Foundational work-disclosure boundary, or the distinction
 between admission authority and performed execution.
+
+Milestone 14 may generalize the physical shape of the derived subscriber index
+from partition/detail to a bounded opaque hierarchy and may derive physical
+execution shards from already-admitted work. It must preserve M13's exact
+two-segment behavior, immediate-producer-local aspect meaning, and causal
+revalidation. Neither `ScopePath`, `ProducerAspectKey`, nor an execution shard
+may become edge, cause, readiness, or commit authority. Geometry and other
+domains assign path-segment meaning outside `worth-signal`.
 
 If and only if the final decision is `OrderedReadyWorkCandidate`, a separate
 WORTH-native traversal optimization specification may consume that evidence.

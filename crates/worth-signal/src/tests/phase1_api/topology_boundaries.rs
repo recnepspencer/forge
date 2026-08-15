@@ -63,8 +63,8 @@ fn proof_bearing_form_families_exist_as_real_types() {
     assert_delta::<PatchPlan>();
     assert_summary::<LocalityFootprint>();
     assert_summary::<InvalidationSeedBatch>();
-    assert_summary::<FrontierPlan>();
-    assert_summary::<FrontierExecutionSummary>();
+    assert_summary::<InvalidationPlanningEstimate>();
+    assert_summary::<InvalidationExecutionSummary>();
     assert_summary::<ChangeBatchAdmission>();
     assert_summary::<TouchedScopeSummary>();
     assert_summary::<PendingSnapshotBatch>();

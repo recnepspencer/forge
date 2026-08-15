@@ -15,8 +15,8 @@ pub(crate) struct ApplyCommitPacket {
 #[derive(Debug)]
 pub(crate) struct OutputCommitPacket {
     pub(crate) apply: ApplyCommitPacket,
-    pub(crate) produced_delta:
-        Option<crate::data::proof::invalidation::output_commit::ProducedAspectDelta>,
+    pub(crate) prepared_direct:
+        Option<crate::data::proof::invalidation::progression::PreparedDirectInvalidation>,
     pub(crate) direct_causes: Option<PreparedDirectCauseAdmission>,
 }
 

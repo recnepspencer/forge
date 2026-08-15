@@ -23,6 +23,11 @@ The milestone is infrastructure. Geometry is one future consumer and one
 hostile certification workload; it is not part of the crate's ontology, API
 names, proof vocabulary, or module topology.
 
+Structured partitions may align with Milestone 14's hierarchical semantic
+locality and Milestone 15's physical graph shards, but those are independent
+axes. A scope path narrows meaning, a work partition defines lawful inner
+computation, and a shard assignment selects physical placement.
+
 ## 2. Current Boundary
 
 Node evaluators currently receive a read view and return one prepared
@@ -47,6 +52,8 @@ patterns:
 
 - a map over at least `10^7` elements with highly skewed per-partition cost
 - a two- and three-dimensional tiled computation with boundary reads
+- a depth-eight opaque scope hierarchy with partitions both aligned and
+  deliberately misaligned to physical shards
 - fork/join recursion with unbalanced branches
 - deterministic integer, exact-value, and floating-point reductions
 - prefix scan with partition boundaries at hostile positions
@@ -71,6 +78,8 @@ Required result:
 - round `n + 1` cannot observe a partially published round `n`
 - cancellation reports the exact partition/round progress boundary
 - no concrete thread, worker, device, or transport type enters the declaration
+- explicit boundary/halo reads remain lawful across shard placement and are
+  accounted rather than hidden as local access
 
 The courtroom must convict:
 
@@ -157,6 +166,18 @@ data layout, numerical capabilities, and allowed determinism. It does not name
 CPU, Rayon, Web Worker, GPU, or remote transport. Milestone 17 maps lowered
 requirements to certified backend capabilities.
 
+### 4.8 Scope Hierarchy, Work Partition, And Shard Are Separate Axes
+
+A computation may bind a stable work partition to one or more admitted
+`ScopePath` subtrees to improve data locality. That binding does not make the
+partition an invalidation cause and does not make the scope path a write-set
+proof. Read/write validation remains authoritative for structured execution.
+
+Boundary or halo reads crossing a partition or shard are declared explicitly
+in the read set and included in memory/coordination estimates. The planner may
+co-locate related partitions or split a hot subtree, but it cannot change
+stable partition identity, access legality, reduction order, or semantic work.
+
 ## 5. Required Proof-Bearing Forms And Caller DX
 
 The implementation must establish canonical equivalents of:
@@ -171,6 +192,8 @@ pub struct DeterministicReductionPlan { /* identity, tree, join order */ }
 pub struct ScanPlan { /* ordered partition and carry contract */ }
 pub struct SynchronousRoundPlan { /* state, convergence, exhaustion */ }
 pub struct PartitionExecutionReport { /* work, span, memory, reductions */ }
+pub struct PartitionLocalityBinding { /* admitted scope-to-work association */ }
+pub struct PartitionBoundaryReadSet { /* explicit cross-partition inputs */ }
 ```
 
 Illustrative authoring shape:
@@ -192,6 +215,7 @@ Milestone 16 populates the committed partition topology:
 ```text
 data/proof/execution/
   partition.rs                    [stable partition and access proof]
+  partition_locality.rs           [scope binding without invalidation authority]
   reduction.rs                    [reduction/scan/round proof]
 
 logic/planner/execution/
@@ -199,6 +223,8 @@ logic/planner/execution/
     mod.rs                        [stable structured-parallel facade]
     declaration.rs                [pattern and semantic contract]
     access.rs                     [read/write-set validation]
+    boundary.rs                   [halo and cross-shard read declaration]
+    placement.rs                  [partition-to-shard lowering]
     lowering.rs                   [proof-bearing execution form]
     map.rs                        [independent application]
     reduction.rs                  [canonical reduction planning]
@@ -228,6 +254,8 @@ generic `parallel_helpers`, or one catch-all kernel module.
 - freeze map, reduce, scan, fork/join, and synchronous-round semantics
 - define stable partition identity and read/write sets
 - add compile-fail proof that declarations cannot forge execution authority
+- freeze the distinction among hierarchical scope, stable work partition, and
+  physical shard placement
 
 ### M16.1 - Partition Validation And Lowering
 
@@ -235,6 +263,8 @@ generic `parallel_helpers`, or one catch-all kernel module.
   fit before dispatch
 - mint disjoint partition batches and explicit serial fallback plans
 - expose inspectable work/span and memory estimates
+- validate locality bindings and make every boundary/halo read explicit before
+  shard-aware lowering
 
 ### M16.2 - Map And Fork/Join Execution
 
@@ -242,6 +272,8 @@ generic `parallel_helpers`, or one catch-all kernel module.
 - preserve cancellation, deadline, worker-local result, and canonical
   publication contracts
 - certify skewed-work load balancing without worker-index semantics
+- compare hierarchy-aligned, deliberately misaligned, and rebalanced placement
+  without changing stable work identity
 
 ### M16.3 - Deterministic Reduce And Scan
 
@@ -272,6 +304,7 @@ computation authors covering:
 - nested resource budgeting and cancellation
 - serial-only platform behavior
 - inspecting resolved plans and execution reports
+- binding work to opaque hierarchical locality and declaring boundary reads
 
 Examples must be domain-neutral and executable. Domain-specific crates may add
 their own guides later without becoming authority over this contract.
@@ -287,6 +320,7 @@ Must ship:
 - hierarchical lease composition
 - serial and parallel execution parity
 - structural work, span, memory, and coordination reports
+- shard-aware placement with explicit boundary/halo traffic
 
 Must preserve:
 
@@ -301,6 +335,7 @@ Must preserve:
 Milestone 16 does not:
 
 - implement or name a geometry kernel
+- treat scope paths as a spatial index or infer domain adjacency
 - expose GPU, Web Worker, Rayon, SIMD, or network APIs
 - provide arbitrary shared-memory mutation between partitions
 - infer floating-point associativity
@@ -317,13 +352,16 @@ Milestone 16 closes only when:
 - nested graph and partition work never exceed one hierarchical lease
 - overlapping write sets are rejected or serialized before dispatch
 - stable partition identity is independent of worker count and schedule
+- aligned, misaligned, and rebalanced shard placements preserve partition,
+  access, and result identity
 - canonical reductions remain bitwise stable where claimed
 - scan preserves exact declared order
 - iterative rounds expose convergence, exhaustion, cancellation, and round
   publication truth
 - serial-only capability executes the same declaration without semantic drift
 - reports expose partitions, logical items, work, span, steals, reductions,
-  barriers, bytes, peak memory, and fallback reasons
+  barriers, boundary reads, cross-shard bytes, residency, peak memory, and
+  fallback reasons
 - mutation probes against access validation, fixed reduction order, and lease
   subdivision turn evidence red
 - focused tests, complete affected suites, boundary checks, context checks,
@@ -334,4 +372,5 @@ Milestone 16 closes only when:
 Milestone 17 may execute prepared graph and partition batches on additional
 platforms. It may not reinterpret partition meaning, weaken determinism,
 reconstruct safety, or make transport/device placement part of computation
-semantics.
+semantics. Semantic scope paths and physical shard assignments must remain
+separate fields across every backend boundary.

@@ -51,6 +51,74 @@ fn checkpoint_readmission_preserves_unrelated_direct_recompute_basis() {
 }
 
 #[test]
+fn direct_recompute_generation_advances_across_distinct_admissions() {
+    let mut graph = SignalGraph::new();
+    let aspect = Aspect::new(5);
+    let node = graph.node().produces_aspects(aspect).build();
+    let mut compute = |_id, _graph: &SignalGraph| Ok(AspectVersion::zero());
+    evaluate(&mut graph, node, &mut compute).unwrap();
+
+    mark_dirty(&mut graph, node, aspect).unwrap();
+    let first = graph
+        .get_entry(node)
+        .unwrap()
+        .direct_invalidation_basis()
+        .unwrap()
+        .generation();
+    evaluate(&mut graph, node, &mut compute).unwrap();
+    mark_dirty(&mut graph, node, aspect).unwrap();
+    let second = graph
+        .get_entry(node)
+        .unwrap()
+        .direct_invalidation_basis()
+        .unwrap()
+        .generation();
+
+    assert!(second > first);
+}
+
+#[test]
+fn checkpoint_preserves_generation_and_rejects_basis_counter_drift() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut compute = |_id, _graph: &SignalGraph| Ok(AspectVersion::zero());
+    evaluate(&mut graph, node, &mut compute).unwrap();
+    mark_dirty(&mut graph, node, Aspect::new(1)).unwrap();
+    let image = checkpoint_image(&graph);
+    let expected = graph
+        .get_entry(node)
+        .unwrap()
+        .direct_invalidation_basis()
+        .unwrap()
+        .generation();
+    let restored = SignalGraph::restore_from_checkpoint_image(&image).unwrap();
+    assert_eq!(
+        restored
+            .get_entry(node)
+            .unwrap()
+            .direct_invalidation_basis()
+            .unwrap()
+            .generation(),
+        expected
+    );
+
+    let mut forged = image;
+    let slot = &mut forged.authority.arena.slots[node.index() as usize];
+    let mut parts = slot.node.take().unwrap().into_parts();
+    let DirectInvalidationBasis::SourceRecompute { generation, .. } = parts
+        .direct_invalidation_basis
+        .as_mut()
+        .expect("dirty node retains direct basis")
+    else {
+        panic!("expected source recompute basis")
+    };
+    *generation = generation.saturating_sub(1);
+    slot.node = Some(crate::data::node::CheckpointNodeImage::from_parts(parts));
+
+    assert!(SignalGraph::restore_from_checkpoint_image(&forged).is_err());
+}
+
+#[test]
 fn cause_free_dirty_cache_cannot_mint_direct_recompute_authority() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
@@ -92,6 +160,7 @@ fn checkpoint_rejects_aspect_scope_pair_forgery() {
     parts.dirty_aspects = AspectMask::from_aspect(aspect_a);
     parts.dirty_partition_scopes = vec![(aspect_b, scope_y.clone())];
     parts.direct_invalidation_basis = Some(DirectInvalidationBasis::SourceRecompute {
+        generation: parts.direct_invalidation_generation,
         dirty_aspects: AspectMask::from_aspect(aspect_a),
         scoped_aspects: vec![(aspect_b, scope_y)],
     });
@@ -129,6 +198,7 @@ fn checkpoint_rejects_empty_source_recompute_basis() {
     parts.dirty_aspects = AspectMask::EMPTY;
     parts.dirty_partition_scopes.clear();
     parts.direct_invalidation_basis = Some(DirectInvalidationBasis::SourceRecompute {
+        generation: parts.direct_invalidation_generation,
         dirty_aspects: AspectMask::EMPTY,
         scoped_aspects: Vec::new(),
     });

@@ -1,7 +1,6 @@
 use super::failure_subscribers::FailingSubscriber;
 use super::runtime_world::{build_runtime, Ev, Tier};
 use crate::data::checkpoint::CheckpointBarrier;
-use crate::data::proof::invalidation::revalidation::NodeInvalidationInput;
 use crate::facade::{EvaluationRequestMode, NodeEvaluationResult, NodeState};
 use crate::logic::transaction::TransactionOutcome;
 use crate::tests::support::{
@@ -156,7 +155,7 @@ fn repeated_created_node_rollbacks_do_not_accumulate_storage_debris() {
 }
 
 #[test]
-fn mark_dirty_after_evaluate_staging_still_stages_downstream_rollback_coverage() {
+fn committed_source_delta_stages_downstream_cause_and_rollback_restores_baseline() {
     let mut graph = crate::data::graph::SignalGraph::new();
     let source = graph.node().build();
     let downstream = graph.node().build();
@@ -173,26 +172,21 @@ fn mark_dirty_after_evaluate_staging_still_stages_downstream_rollback_coverage()
     evaluate(runtime.graph_mut(), downstream, &mut seed).unwrap();
 
     let mut tx = runtime.begin(&mut ctx);
+    tx.mark_dirty(source, ASPECT_A).unwrap();
     tx.evaluate_with_plan(
         source,
         &|view| Ok(view.finish(version_ab(2, 0))),
         EvaluationRequestMode::Default,
     )
     .unwrap();
-    tx.mark_dirty(source, ASPECT_A).unwrap();
 
     assert_eq!(
         tx.staged_graph().get_state(downstream).unwrap(),
-        NodeState::MaybeStale
+        NodeState::Dirty
     );
-    let NodeInvalidationInput::Pending(pending) = tx
-        .staged_graph()
-        .node_invalidation_input(downstream)
-        .unwrap()
-    else {
-        panic!("downstream rollback coverage must retain unresolved producer authority");
-    };
-    assert_eq!(pending.unresolved_producers(), &[source]);
+    let causes = tx.staged_graph().pending_causes(downstream).unwrap();
+    assert_eq!(causes.len(), 1);
+    assert_eq!(causes[0].key.producer, source);
     assert_eq!(
         tx.rollback().unwrap().outcome,
         TransactionOutcome::RolledBack

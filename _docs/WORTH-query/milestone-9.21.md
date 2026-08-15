@@ -10,10 +10,10 @@ authority.
 ## Roadmap Placement
 
 Milestones 9.19 and 9.20 produce exact access, footprint, path, partition, and
-execution evidence. This milestone governs the derived decision-evidence
-surface formerly described by Milestone 9.17 Phase 6. It is separate because
-classification, disclosure, retention, deletion, and summary invalidation have
-different authority and lifecycle from execution.
+execution evidence. This milestone independently governs the derived decision-
+evidence surface because classification, disclosure, retention, deletion, and
+summary invalidation have different authority and lifecycle from execution; it
+is not part of the Milestone 9.17 composite-branch phase sequence.
 
 ## Adversarial Constraint
 

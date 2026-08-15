@@ -5,6 +5,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::signal_graph::DependencyTopologyDelta;
 use crate::data::handle::NodeId;
 use crate::data::proof::OrderedStreamItem;
+use crate::data::telemetry::InvalidationPerformedCounter;
 
 use super::DependencyReconciliationReport;
 use crate::data::graph::signal_graph::SignalGraph;
@@ -15,7 +16,15 @@ impl SignalGraph {
         node: NodeId,
         desired: &[DependencyEdge],
     ) -> Result<DependencyReconciliationReport, SignalError> {
-        let mut preflight = super::preflight::canonicalize_and_preflight(self, &[(node, desired)])?;
+        let mut preflight =
+            match super::preflight::canonicalize_and_preflight(self, &[(node, desired)]) {
+                Ok(preflight) => preflight,
+                Err(error) => {
+                    self.invalidation_performed_counter_state()
+                        .add(InvalidationPerformedCounter::RejectedTopologyMutations, 1);
+                    return Err(error);
+                }
+            };
         let (_, desired) = preflight
             .pop()
             .expect("single dependency reconciliation must produce one plan");
@@ -36,6 +45,11 @@ impl SignalGraph {
                 &analysis.desired_sources,
             )?;
             self.transition_node_structural_revalidation(node)?;
+            let performed = self.invalidation_performed_counter_state();
+            performed.add(
+                InvalidationPerformedCounter::TopologyRevisionRevalidations,
+                1,
+            );
         }
         self.debug_assert_bidirectional_consistency();
         Ok(analysis.report)
@@ -57,7 +71,15 @@ impl SignalGraph {
         &mut self,
         reconciliations: &[(NodeId, &[DependencyEdge])],
     ) -> Result<Vec<DependencyReconciliationReport>, SignalError> {
-        let reconciliations = super::preflight::canonicalize_and_preflight(self, reconciliations)?
+        let reconciliations =
+            match super::preflight::canonicalize_and_preflight(self, reconciliations) {
+                Ok(reconciliations) => reconciliations,
+                Err(error) => {
+                    self.invalidation_performed_counter_state()
+                        .add(InvalidationPerformedCounter::RejectedTopologyMutations, 1);
+                    return Err(error);
+                }
+            }
             .into_iter()
             .map(|(node, desired)| (node, self.intern_dependency_edges(desired)))
             .collect::<Vec<_>>();
@@ -87,6 +109,11 @@ impl SignalGraph {
             );
             self.set_dependency_edges_sorted_with_delta(*node, desired, analysis.delta)?;
             self.transition_node_structural_revalidation(*node)?;
+            let performed = self.invalidation_performed_counter_state();
+            performed.add(
+                InvalidationPerformedCounter::TopologyRevisionRevalidations,
+                1,
+            );
         }
 
         self.apply_subscriber_batch_ops(&subscriber_ops)?;

@@ -8,6 +8,9 @@ mod topology;
 
 pub(crate) use construction::node_builder;
 pub use construction::NodeBuilder;
+pub(crate) use runtime::effect::{
+    DirectInvalidationPreparationReceipt, OutputCommitPublicationReceipt,
+};
 pub(crate) use runtime::graph as signal_graph;
 pub(crate) use runtime::scratch;
 pub use runtime::ScratchLeaseKind;
@@ -26,3 +29,4 @@ pub(crate) use storage::checked_segment_component_for_test;
 pub(crate) use storage::{
     DependencyEdgeStore, DependencySetId, SubscriberEdgeStore, SubscriberSetId,
 };
+pub(crate) use topology::ReverseSubscriptionIndex;

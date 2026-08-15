@@ -27,11 +27,8 @@ where
     T: Copy + Ord,
 {
     pub(in crate::logic::transaction::runtime) fn ensure_rollback_packets(&mut self) {
-        self.rollback_packets.capture_runtime_baseline_if_needed(
-            self.config,
-            self.graph.diagnostics_state(),
-            self.graph,
-        );
+        self.rollback_packets
+            .capture_runtime_baseline_if_needed(self.graph.diagnostics_state(), self.graph);
     }
 
     pub fn staged_graph(&self) -> &crate::data::graph::SignalGraph {
@@ -56,6 +53,8 @@ where
         key: impl Into<crate::data::output::ComputationKey>,
     ) -> NodeId {
         self.ensure_rollback_packets();
+        self.rollback_packets
+            .capture_config_baseline_if_needed(self.config);
         let (node, created) = self
             .config
             .resolve_defined_node_with_created(self.graph, family, key);
@@ -63,6 +62,11 @@ where
             self.scratch.created_nodes.push(node);
         }
         node
+    }
+
+    #[cfg(test)]
+    pub(crate) fn has_config_rollback_baseline_for_test(&self) -> bool {
+        self.rollback_packets.has_config_baseline()
     }
 
     pub fn emit_event(&mut self, event: E) {
@@ -230,40 +234,47 @@ where
             return Ok(());
         }
 
-        let mut stack = vec![source];
-        self.scratch.mark_dirty_seen.clear_all();
+        self.stage_node_candidate(source)?;
+        Ok(())
+    }
+
+    fn stage_node_candidate(&mut self, node: NodeId) -> Result<(), SignalError> {
+        if !self.graph.is_alive(node)
+            || self
+                .scratch
+                .mark_dirty_staged
+                .contains(node.index() as usize)
+        {
+            return Ok(());
+        }
+        self.telemetry
+            .transaction
+            .transaction_mark_dirty_candidate_visits += 1;
+        self.scratch.mark_dirty_staged.mark(node.index() as usize);
+        self.scratch.dirty_targets.mark(node.index() as usize);
         self.scratch
-            .mark_dirty_seen
-            .ensure_len(self.graph.arena_capacity());
-        while let Some(node) = stack.pop() {
-            if !self.scratch.mark_dirty_seen.mark(node.index() as usize) {
-                continue;
-            }
-            self.telemetry
-                .transaction
-                .transaction_mark_dirty_candidate_visits += 1;
-            if !self.graph.is_alive(node) {
-                continue;
-            }
-            self.scratch.mark_dirty_staged.mark(node.index() as usize);
-            self.scratch.dirty_targets.mark(node.index() as usize);
-            self.scratch
-                .graph_patches
-                .stage_original(self.graph, node)?;
-            self.stage_observation_candidates_for_node(node);
-            for &subscriber in self.graph.runtime_subscribers_of(node)? {
-                stack.push(subscriber);
-            }
+            .graph_patches
+            .stage_original(self.graph, node)?;
+        self.stage_observation_candidates_for_node(node);
+        Ok(())
+    }
+
+    fn stage_output_candidates(&mut self, producer: NodeId) -> Result<(), SignalError> {
+        for consumer in self
+            .graph
+            .indexed_consumers_for_declared_outputs(producer)?
+        {
+            self.stage_node_candidate(consumer)?;
         }
         Ok(())
     }
 
-    pub(in crate::logic::transaction::runtime) fn stage_evaluate_candidates(
+    pub(in crate::logic::transaction::runtime) fn stage_evaluate_candidate_batch(
         &mut self,
-        node: NodeId,
+        nodes: &[NodeId],
     ) -> Result<(), SignalError> {
         self.ensure_rollback_packets();
-        let mut stack = vec![node];
+        let mut stack = nodes.to_vec();
         self.scratch.evaluate_seen.clear_all();
         self.scratch
             .evaluate_seen
@@ -278,11 +289,8 @@ where
             if !self.graph.is_alive(current) {
                 continue;
             }
-            self.scratch.dirty_targets.mark(current.index() as usize);
-            self.scratch
-                .graph_patches
-                .stage_original(self.graph, current)?;
-            self.stage_observation_candidates_for_node(current);
+            self.stage_node_candidate(current)?;
+            self.stage_output_candidates(current)?;
             for dependency in self.graph.runtime_dependencies_of(current)? {
                 stack.push(dependency.source());
             }
@@ -295,7 +303,8 @@ where
         tasks: &[crate::logic::planner::EligibleTask],
     ) -> Result<(), SignalError> {
         for task in tasks {
-            self.stage_evaluate_candidates(task.node)?;
+            self.stage_node_candidate(task.node)?;
+            self.stage_output_candidates(task.node)?;
         }
         Ok(())
     }

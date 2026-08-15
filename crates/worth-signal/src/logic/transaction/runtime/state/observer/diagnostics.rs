@@ -1,7 +1,7 @@
 use crate::data::comparator::TierPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
-use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
+use crate::data::proof::{FrontierDiagnosticsSidecar, InvalidationTraceRecord};
 use crate::diagnostics::access::RuntimeDiagnostics;
 use crate::diagnostics::history::ExecutionInspector;
 use crate::diagnostics::lineage::{LineageArtifactId, SynthesizedLineageChain};
@@ -182,7 +182,9 @@ where
         self.runtime.graph.diagnostics_state().latest_observation()
     }
 
-    pub fn latest_frontier_execution_summary(&self) -> Option<&'a FrontierExecutionSummary> {
+    pub(crate) fn latest_frontier_execution_summary(
+        &self,
+    ) -> Option<&'a FrontierDiagnosticsSidecar> {
         self.graph().latest_frontier_execution_summary()
     }
 

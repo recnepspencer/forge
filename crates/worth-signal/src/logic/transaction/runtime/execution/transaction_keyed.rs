@@ -121,7 +121,9 @@ where
         let strategy = self.graph.derive_evaluation_strategy();
         let executor = executor_for_strategy(strategy);
         self.telemetry.invalidation.keyed_evaluation_count += 1;
-        self.stage_evaluate_candidates(node)?;
+        self.stage_evaluate_candidate_batch(std::slice::from_ref(&node))?;
+        self.rollback_packets
+            .capture_config_baseline_if_needed(self.config);
         self.admit_temporal_wakes_for_nodes(&[node])?;
         self.promote_due_temporal_wakes_ready()?;
         let temporal_lowering = self.temporal_lowering_context_for_nodes(&[node]);

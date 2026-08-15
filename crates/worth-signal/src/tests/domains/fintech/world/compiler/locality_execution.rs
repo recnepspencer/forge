@@ -1,35 +1,69 @@
 use std::collections::BTreeMap;
 
+mod actions;
+mod baseline;
+mod compilation;
+#[cfg(test)]
+mod lifecycle_tests;
+mod performed_work;
+#[cfg(test)]
+mod receipt_tests;
+
+pub(in crate::tests::domains::fintech) use actions::FinancialRestoreLifecycleEvidence;
+pub(in crate::tests::domains::fintech) use compilation::{
+    compile_financial_locality_world, compile_financial_locality_world_at_tier,
+};
+pub(in crate::tests::domains::fintech) use performed_work::{
+    strategy_work_projection, FinancialPerformedCanonicalWork, FinancialPerformedWorkOrigin,
+};
+
 use crate::data::error::SignalError;
-use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::output::ChangedRegion;
-use crate::facade::{mark_dirty, mark_dirty_with_regions, NodeState, SignalRuntime};
+use crate::facade::SignalRuntime;
 use crate::logic::context::EvaluationContext;
 use crate::tests::domains::fintech::execution_tier::FintechTier;
 
 use super::super::{
     FinancialLocalityDefinition, FinancialWorldDefinition, LocalitySemanticOutputId,
 };
-use super::locality_evaluation::{
-    runtime_baseline_values, runtime_shocked_values, LocalityEvaluationProgram,
-};
-use super::locality_topology::{build_locality_topology, partition_subscription};
+use super::locality_evaluation::LocalityEvaluationProgram;
 use super::topology::signal_aspect;
 
 type LocalityRuntime = SignalRuntime<(), (), (), (), FintechTier>;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(in crate::tests::domains::fintech) struct FinancialLocalityRedObservation {
+    pub(in crate::tests::domains::fintech) performed_counters:
+        crate::data::telemetry::SignalInvalidationRealizedCounters,
     pub(in crate::tests::domains::fintech) direct_candidates_examined: u64,
+    pub(in crate::tests::domains::fintech) reverse_candidates_returned: u64,
+    pub(in crate::tests::domains::fintech) reverse_bucket_probes: u64,
     pub(in crate::tests::domains::fintech) contract_rejections: u64,
     pub(in crate::tests::domains::fintech) causality_rejections: u64,
     pub(in crate::tests::domains::fintech) nodes_visited: u64,
     pub(in crate::tests::domains::fintech) transitive_frontier_width: u64,
-    pub(in crate::tests::domains::fintech) independent_necessary_evaluations: u64,
-    pub(in crate::tests::domains::fintech) unchanged_output_stops: u64,
+    pub(in crate::tests::domains::fintech) comparator_suppressed_count: u64,
+    pub(in crate::tests::domains::fintech) work_items_admitted: u64,
+    pub(in crate::tests::domains::fintech) work_items_merged: u64,
+    pub(in crate::tests::domains::fintech) ready_items_enqueued: u64,
+    pub(in crate::tests::domains::fintech) ready_items_popped: u64,
+    pub(in crate::tests::domains::fintech) peak_ready_width: u64,
+    pub(in crate::tests::domains::fintech) retained_ready_width: u64,
     pub(in crate::tests::domains::fintech) evaluated_outputs:
         std::collections::BTreeSet<LocalitySemanticOutputId>,
+    pub(in crate::tests::domains::fintech) baseline_retained_outputs:
+        std::collections::BTreeSet<LocalitySemanticOutputId>,
+    pub(in crate::tests::domains::fintech) performed_work: FinancialPerformedCanonicalWork,
+}
+
+struct RedObservationInput {
+    before: crate::data::telemetry::InvalidationTelemetry,
+    after: crate::data::telemetry::InvalidationTelemetry,
+    evaluation_before: crate::data::telemetry::EvaluationTelemetry,
+    evaluation_after: crate::data::telemetry::EvaluationTelemetry,
+    evaluated_outputs: std::collections::BTreeSet<LocalitySemanticOutputId>,
+    baseline_retained_outputs: std::collections::BTreeSet<LocalitySemanticOutputId>,
+    performed: crate::data::telemetry::SignalInvalidationRealizedCounters,
 }
 
 pub(super) struct CompiledFinancialLocalityWorld {
@@ -39,37 +73,16 @@ pub(super) struct CompiledFinancialLocalityWorld {
     baseline_values: BTreeMap<LocalitySemanticOutputId, i64>,
 }
 
-pub(in crate::tests::domains::fintech) fn compile_financial_locality_world(
-    definition: FinancialWorldDefinition,
-) -> Result<super::CompiledFinancialWorld, SignalError> {
-    let locality = definition.locality().cloned().ok_or_else(|| {
-        SignalError::invalid_input("financial locality compiler requires a locality courtroom")
-    })?;
-    locality.validate_generator_invariants();
-    let mut runtime = SignalRuntime::builder(SignalGraph::new())
-        .with_kernel_defaults()
-        .with_tiers::<FintechTier>()
-        .build();
-    let handles = build_locality_topology(&mut runtime.graph_mut(), &locality)?;
-    let baseline_values = runtime_baseline_values(&locality)?;
-    let mut compiled = CompiledFinancialLocalityWorld {
-        runtime,
-        definition,
-        handles,
-        baseline_values,
-    };
-    compiled.establish_causally_complete_baseline()?;
-    compiled.seal_baseline()?;
-    Ok(super::CompiledFinancialWorld::from_locality(compiled))
-}
-
 impl CompiledFinancialLocalityWorld {
+    fn graph_instance(&self) -> u64 {
+        self.runtime.graph().runtime_instance_id()
+    }
+
     fn establish_causally_complete_baseline(&mut self) -> Result<(), SignalError> {
-        let program = LocalityEvaluationProgram::new(
+        let program = LocalityEvaluationProgram::baseline(
             self.locality_definition(),
             &self.handles,
             &self.baseline_values,
-            1,
         );
         let evaluator = |view: &mut EvaluationContext<'_, ()>| program.evaluate(view);
         let nodes = self
@@ -78,193 +91,66 @@ impl CompiledFinancialLocalityWorld {
             .iter()
             .map(|output| self.handles[&output.id])
             .collect::<Vec<_>>();
-        self.runtime
-            .transaction(&mut (), |tx| {
-                for node in &nodes {
-                    tx.read(*node, &evaluator)?;
-                }
-                Ok(())
-            })
-            .map(|_| ())
-    }
-
-    fn seal_baseline(&self) -> Result<(), SignalError> {
-        self.verify_topology_and_state()?;
-        if self.committed_financial_values()? != self.baseline_values {
-            return Err(SignalError::internal(
-                "locality baseline committed artifacts disagree with compiled financial values",
-            ));
-        }
-        Ok(())
-    }
-
-    fn verify_topology_and_state(&self) -> Result<(), SignalError> {
-        if self.handles.len() != self.locality_definition().outputs().len() {
-            return Err(SignalError::internal(
-                "locality compiler lost a semantic output handle",
-            ));
-        }
-        for output in self.locality_definition().outputs() {
-            let node = self.handles[&output.id];
-            self.verify_output_baseline(output, node)?;
-        }
-        Ok(())
-    }
-
-    fn verify_output_baseline(
-        &self,
-        output: &super::super::FinancialLocalityOutput,
-        node: NodeId,
-    ) -> Result<(), SignalError> {
-        if self.runtime.graph().get_state(node)? != NodeState::Clean {
-            return Err(SignalError::internal(format!(
-                "locality baseline output {:?} is not clean",
-                output.id
-            )));
-        }
-        let actual_edges = self.runtime.graph().dependencies_of(node)?;
-        let actual_snapshot = self.runtime.graph().get_dep_snapshot(node)?;
-        if actual_edges.len() != output.dependencies.len()
-            || actual_snapshot.entries().len() != output.dependencies.len()
-        {
-            return Err(self.baseline_authority_error(output.id));
-        }
-        for ((edge, snapshot), declared) in actual_edges
-            .iter()
-            .zip(actual_snapshot.entries())
-            .zip(&output.dependencies)
-        {
-            let source = self.handles[&declared.producer];
-            let aspect = signal_aspect(declared.aspect);
-            let expected_scope = declared.edge_scope.map(partition_subscription);
-            let current_version = self.runtime.graph().node_version_for_scope(
-                source,
-                aspect,
-                expected_scope.as_ref(),
-            )?;
-            if edge.source() != source
-                || edge.aspect() != aspect
-                || edge.scope_ref() != expected_scope.as_ref()
-                || snapshot.source != source
-                || snapshot.aspect != aspect
-                || snapshot.scope != expected_scope
-                || snapshot.cached_version != current_version
-            {
-                return Err(self.baseline_authority_error(output.id));
-            }
-        }
-        let expected_contract_scope = output
-            .dependencies
-            .iter()
-            .find_map(|dependency| dependency.contract_scope)
-            .map(|scope| vec![partition_subscription(scope)]);
-        if self
-            .runtime
-            .graph()
-            .node_eval_config(node)?
-            .contract
-            .semantics
-            .partition_scope
-            != expected_contract_scope
-        {
-            return Err(self.baseline_authority_error(output.id));
-        }
-        Ok(())
-    }
-
-    fn baseline_authority_error(&self, output: LocalitySemanticOutputId) -> SignalError {
-        SignalError::internal(format!(
-            "locality baseline output {output:?} changed edge, contract, or snapshot authority"
-        ))
+        self.runtime.read_many(&nodes, &(), &evaluator).map(|_| ())
     }
 
     pub(in crate::tests::domains::fintech) fn run_inherited_breadth_red_control(
         &mut self,
     ) -> Result<FinancialLocalityRedObservation, SignalError> {
+        self.runtime
+            .graph_mut()
+            .reset_invalidation_performed_counters();
         let before = self.runtime.graph().telemetry().invalidation;
+        let evaluation_before = self.runtime.graph().telemetry().evaluation;
         self.apply_declared_mutation()?;
-        let after = self.runtime.graph().telemetry().invalidation;
         let evaluated_outputs = self.settle_declared_mutation()?;
-        Ok(self.red_observation(before, after, evaluated_outputs))
+        let after = self.runtime.graph().telemetry().invalidation;
+        let evaluation_after = self.runtime.graph().telemetry().evaluation;
+        let baseline_retained_outputs = self.baseline_retained_outputs(&evaluated_outputs)?;
+        Ok(self.red_observation(RedObservationInput {
+            before,
+            after,
+            evaluation_before,
+            evaluation_after,
+            evaluated_outputs,
+            baseline_retained_outputs,
+            performed: self.runtime.graph().invalidation_performed_counters(),
+        }))
     }
 
     fn settle_declared_mutation(
         &mut self,
     ) -> Result<std::collections::BTreeSet<LocalitySemanticOutputId>, SignalError> {
-        let shocked_values =
-            runtime_shocked_values(self.locality_definition(), &self.baseline_values)?;
-        let program = LocalityEvaluationProgram::new(
-            self.locality_definition(),
-            &self.handles,
-            &shocked_values,
-            2,
-        );
-        let evaluator = |view: &mut EvaluationContext<'_, ()>| program.evaluate(view);
-        let source = self.handles[&self.locality_definition().mutation().producer];
-        let nodes = self.settlement_targets();
-        self.runtime
-            .transaction(&mut (), |tx| tx.read(source, &evaluator).map(|_| ()))?;
-        self.runtime.transaction(&mut (), |tx| {
-            for node in &nodes {
-                tx.read(*node, &evaluator)?;
-            }
-            Ok(())
-        })?;
-        Ok(program.evaluated_outputs())
-    }
-
-    fn settlement_targets(&self) -> Vec<NodeId> {
-        self.locality_definition()
-            .outputs()
-            .iter()
-            .filter(|candidate| {
-                candidate.expected_for_mutation
-                    && !self.locality_definition().outputs().iter().any(|consumer| {
-                        consumer.expected_for_mutation
-                            && consumer
-                                .dependencies
-                                .iter()
-                                .any(|dependency| dependency.producer == candidate.id)
-                    })
-            })
-            .map(|output| self.handles[&output.id])
-            .collect()
+        self.settle_mutations(&[self.locality_definition().mutation()])
     }
 
     fn apply_declared_mutation(&mut self) -> Result<(), SignalError> {
-        let mutation = self.locality_definition().mutation();
-        let source = self.handles[&mutation.producer];
-        match mutation.scope {
-            None => mark_dirty(
-                self.runtime.graph_mut(),
-                source,
-                signal_aspect(mutation.aspect),
-            ),
-            Some(scope) => {
-                let mut region = ChangedRegion::new(scope.partition_label());
-                if let Some(detail) = scope.detail_label() {
-                    region = region.with_detail(detail);
-                }
-                mark_dirty_with_regions(
-                    self.runtime.graph_mut(),
-                    source,
-                    signal_aspect(mutation.aspect),
-                    &[region],
-                )
-            }
-        }
+        self.apply_mutations(&[self.locality_definition().mutation()])
     }
 
-    fn red_observation(
-        &self,
-        before: crate::data::telemetry::InvalidationTelemetry,
-        after: crate::data::telemetry::InvalidationTelemetry,
-        evaluated_outputs: std::collections::BTreeSet<LocalitySemanticOutputId>,
-    ) -> FinancialLocalityRedObservation {
+    fn red_observation(&self, input: RedObservationInput) -> FinancialLocalityRedObservation {
+        let RedObservationInput {
+            before,
+            after,
+            evaluation_before,
+            evaluation_after,
+            evaluated_outputs,
+            baseline_retained_outputs,
+            performed,
+        } = input;
         FinancialLocalityRedObservation {
+            performed_counters: performed,
             direct_candidates_examined: delta(
                 before.direct_subscriber_candidates_examined,
                 after.direct_subscriber_candidates_examined,
+            ),
+            reverse_candidates_returned: delta(
+                before.reverse_subscription_candidates_returned,
+                after.reverse_subscription_candidates_returned,
+            ),
+            reverse_bucket_probes: delta(
+                before.reverse_subscription_bucket_probes,
+                after.reverse_subscription_bucket_probes,
             ),
             contract_rejections: delta(
                 before.direct_contract_rejections,
@@ -282,20 +168,46 @@ impl CompiledFinancialLocalityWorld {
                 before.transitive_frontier_width,
                 after.transitive_frontier_width,
             ),
-            independent_necessary_evaluations: self
-                .locality_definition()
-                .outputs()
-                .iter()
-                .filter(|output| output.expected_for_mutation)
-                .count() as u64,
-            unchanged_output_stops: self
-                .locality_definition()
-                .outputs()
-                .iter()
-                .filter(|output| output.unchanged_output_stop)
-                .count() as u64,
+            comparator_suppressed_count: delta(
+                evaluation_before.skipped_by_comparator,
+                evaluation_after.skipped_by_comparator,
+            ),
+            work_items_admitted: performed.work_items_admitted(),
+            work_items_merged: performed.work_items_merged(),
+            ready_items_enqueued: performed.ready_items_enqueued(),
+            ready_items_popped: performed.ready_items_popped(),
+            peak_ready_width: performed.maximum_ready_frontier_width(),
+            retained_ready_width: performed.retained_ready_frontier_width(),
             evaluated_outputs,
+            baseline_retained_outputs,
+            performed_work: self.performed_canonical_work(),
         }
+    }
+
+    fn baseline_retained_outputs(
+        &self,
+        evaluated: &std::collections::BTreeSet<LocalitySemanticOutputId>,
+    ) -> Result<std::collections::BTreeSet<LocalitySemanticOutputId>, SignalError> {
+        evaluated
+            .iter()
+            .filter_map(|output| {
+                let declaration = &self.locality_definition().outputs()[output.ordinal() as usize];
+                let node = self.handles[output];
+                let retained = declaration.produced_aspects().iter().all(|aspect| {
+                    self.runtime
+                        .graph()
+                        .node_version_for_scope(node, signal_aspect(*aspect), None)
+                        .is_ok_and(|version| {
+                            version
+                                == self
+                                    .locality_definition()
+                                    .workload()
+                                    .baseline_aspect_version()
+                        })
+                });
+                retained.then_some(Ok(*output))
+            })
+            .collect()
     }
 
     pub(super) fn definition(&self) -> &FinancialWorldDefinition {
@@ -377,10 +289,84 @@ impl super::CompiledFinancialWorld {
         self.locality().locality_definition()
     }
 
+    pub(in crate::tests::domains::fintech) fn locality_graph_instance(&self) -> u64 {
+        self.locality().graph_instance()
+    }
+
     pub(in crate::tests::domains::fintech) fn run_inherited_breadth_red_control(
         &mut self,
     ) -> Result<FinancialLocalityRedObservation, SignalError> {
         self.locality_mut().run_inherited_breadth_red_control()
+    }
+
+    pub(in crate::tests::domains::fintech) fn run_locality_action_trace(
+        &mut self,
+        trace_index: usize,
+    ) -> Result<FinancialLocalityRedObservation, SignalError> {
+        self.locality_mut().run_action_trace(trace_index)
+    }
+
+    pub(in crate::tests::domains::fintech) fn run_locality_action_trace_with_executor(
+        &mut self,
+        trace_index: usize,
+        executor: crate::logic::planner::StageExecutor,
+    ) -> Result<FinancialLocalityRedObservation, SignalError> {
+        self.locality_mut()
+            .run_action_trace_with_executor(trace_index, executor)
+    }
+
+    pub(in crate::tests::domains::fintech) fn observe_locality_action_trace_with_executor(
+        &mut self,
+        trace_index: usize,
+        executor: crate::logic::planner::StageExecutor,
+    ) -> Result<
+        (
+            FinancialLocalityRedObservation,
+            crate::data::proof::SignalInvalidationExecutionReceipt,
+        ),
+        SignalError,
+    > {
+        let token = self
+            .locality_mut()
+            .runtime
+            .begin_invalidation_execution_observation();
+        let observation = self.run_locality_action_trace_with_executor(trace_index, executor)?;
+        let receipt = self
+            .locality()
+            .runtime
+            .finish_invalidation_execution_observation(token)?;
+        Ok((observation, receipt))
+    }
+
+    pub(in crate::tests::domains::fintech) fn set_locality_diagnostics_tier(
+        &mut self,
+        tier: crate::facade::DiagnosticsTier,
+    ) {
+        self.locality_mut()
+            .runtime
+            .graph_mut()
+            .reset_runtime_policy_to_tier(tier);
+    }
+
+    pub(in crate::tests::domains::fintech) fn locality_retained_fact_counts(
+        &self,
+    ) -> (usize, usize) {
+        let observer = self.locality().runtime.graph().observe();
+        self.locality()
+            .handles
+            .values()
+            .fold((0, 0), |(explanations, provenance), node| {
+                (
+                    explanations + usize::from(observer.explanation_fact(*node).is_some()),
+                    provenance + usize::from(observer.provenance_fact(*node).is_some()),
+                )
+            })
+    }
+
+    pub(in crate::tests::domains::fintech) fn certify_restore_locality_lifecycle(
+        &mut self,
+    ) -> Result<FinancialRestoreLifecycleEvidence, SignalError> {
+        self.locality_mut().certify_restore_lifecycle()
     }
 
     pub(in crate::tests::domains::fintech) fn committed_locality_financial_values(

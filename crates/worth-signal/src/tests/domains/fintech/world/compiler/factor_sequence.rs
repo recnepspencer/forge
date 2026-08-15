@@ -1,5 +1,6 @@
 use crate::data::error::SignalError;
 use crate::data::output::PartitionSubscription;
+use crate::facade::NodeState;
 
 use super::super::{FinancialWorldDefinition, InstrumentId, MarketFactorKey, SemanticOutputKey};
 use super::evaluation::FinancialEvaluationProgram;
@@ -54,22 +55,56 @@ impl CompiledFinancialWorld {
             .collect::<Vec<_>>();
         let program = self.program();
         let evaluator = program.evaluator();
-        let consumers = self
+        let valuation_wave = self
+            .definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).valuation)
+            .collect::<Vec<_>>();
+        let risk_wave = self
+            .definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).risk)
+            .collect::<Vec<_>>();
+        let consumer_wave = self
             .handles
             .consumers
             .values()
             .map(|handle| handle.0)
             .collect::<Vec<_>>();
-        let gated_consumer_was_pending = consumers.iter().any(|consumer| {
+        for wave in [valuation_wave, risk_wave] {
+            let dirty = wave
+                .into_iter()
+                .filter(|node| {
+                    self.runtime
+                        .graph()
+                        .get_state(*node)
+                        .is_ok_and(|state| !matches!(state, NodeState::Clean))
+                })
+                .collect::<Vec<_>>();
+            self.runtime.transaction(&mut (), |tx| {
+                for node in &dirty {
+                    tx.read(*node, &evaluator)?;
+                }
+                Ok(())
+            })?;
+        }
+        let gated_consumer_was_pending = consumer_wave.iter().any(|consumer| {
             self.runtime
                 .graph()
-                .pending_dependency_revalidation(*consumer)
-                .ok()
-                .flatten()
-                .is_some_and(|pending| !pending.is_resolved())
+                .pending_causes(*consumer)
+                .is_ok_and(|causes| !causes.is_empty())
+                || self
+                    .runtime
+                    .graph()
+                    .pending_dependency_revalidation(*consumer)
+                    .ok()
+                    .flatten()
+                    .is_some_and(|pending| !pending.is_resolved())
         });
         self.runtime.transaction(&mut (), |tx| {
-            for consumer in &consumers {
+            for consumer in &consumer_wave {
                 tx.read(*consumer, &evaluator)?;
             }
             Ok(())
@@ -130,7 +165,6 @@ impl CompiledFinancialWorld {
             );
             let evaluator = program.evaluator();
             let source = self.handles.factor(*factor).0;
-            let risk = self.handles.position(affected_instrument).risk;
             let result = source_result(&program, *factor);
             let ledger = self.ledger.clone();
             self.runtime.transaction(&mut (), |tx| {
@@ -139,9 +173,35 @@ impl CompiledFinancialWorld {
                 tx.target(source)
                     .on_demand()
                     .read(&move |view| Ok(view.finish(result.clone())))?;
-                tx.read(risk, &evaluator)?;
                 Ok(())
             })?;
+            let valuation_wave = next_definition
+                .positions()
+                .iter()
+                .map(|position| self.handles.position(position.instrument).valuation)
+                .collect::<Vec<_>>();
+            let risk_wave = next_definition
+                .positions()
+                .iter()
+                .map(|position| self.handles.position(position.instrument).risk)
+                .collect::<Vec<_>>();
+            for wave in [valuation_wave, risk_wave] {
+                let dirty = wave
+                    .into_iter()
+                    .filter(|node| {
+                        self.runtime
+                            .graph()
+                            .get_state(*node)
+                            .is_ok_and(|state| !matches!(state, NodeState::Clean))
+                    })
+                    .collect::<Vec<_>>();
+                self.runtime.transaction(&mut (), |tx| {
+                    for node in &dirty {
+                        tx.read(*node, &evaluator)?;
+                    }
+                    Ok(())
+                })?;
+            }
             self.definition = next_definition.clone();
             self.economic_snapshot = next_snapshot;
             self.projection = next_projection;

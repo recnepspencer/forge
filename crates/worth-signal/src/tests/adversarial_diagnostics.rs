@@ -118,22 +118,8 @@ fn mixed_partition_heavy_invalidation_keeps_frontier_counters_and_flow_in_sync()
         .expect("frontier execution summary should be available");
 
     assert_eq!(frontier.seed_count, 1);
-    assert_eq!(frontier.direct_waves.len(), 1);
-    assert_eq!(
-        frontier.direct_waves[0].entries.len(),
-        3,
-        "all directly subscribed nodes should appear in the direct wave"
-    );
-    assert_eq!(
-        frontier
-            .direct_waves[0]
-            .entries
-            .iter()
-            .filter(|entry| matches!(entry.classification, FrontierEntryClassification::DirectDirty))
-            .count(),
-        3,
-        "mixed whole-partition and detail subscribers should stay within the direct wave without broadening beyond actual subscribers"
-    );
+    assert!(frontier.direct_waves.is_empty());
+    assert!(frontier.transitive_waves.is_empty());
     assert_eq!(
         flow.invalidation.frontier_seed_count as u64,
         frontier.counters.frontier_seed_count
@@ -150,11 +136,8 @@ fn mixed_partition_heavy_invalidation_keeps_frontier_counters_and_flow_in_sync()
         flow.invalidation.frontier_detail_match_count as u64,
         frontier.counters.frontier_detail_match_count
     );
-    assert_eq!(
-        flow.invalidation.invalidated_direct_subscribers
-            + flow.invalidation.maybe_stale_direct_subscribers,
-        frontier.direct_waves[0].entries.len() as u32
-    );
+    assert_eq!(flow.invalidation.invalidated_direct_subscribers, 0);
+    assert_eq!(flow.invalidation.maybe_stale_direct_subscribers, 0);
 }
 
 #[test]
@@ -250,32 +233,11 @@ fn repeated_mixed_aspect_churn_keeps_frontier_grouping_bounded() {
             .cloned()
             .expect("frontier execution summary should be retained");
         assert_eq!(frontier.seed_count, 2);
-        assert_eq!(frontier.direct_waves.len(), 2);
-        assert_eq!(frontier.counters.frontier_group_count, 2);
-        assert_eq!(frontier.counters.frontier_direct_wave_count, 2);
-        assert_eq!(
-            frontier.counters.frontier_transitive_wave_count,
-            frontier
-                .transitive_waves
-                .iter()
-                .filter(|wave| !wave.entries.is_empty())
-                .count() as u64
-        );
-
-        let wave_a = frontier
-            .direct_waves
-            .iter()
-            .find(|entry| entry.aspect == ASPECT_A)
-            .expect("aspect A wave should exist");
-        let wave_b = frontier
-            .direct_waves
-            .iter()
-            .find(|entry| entry.aspect == ASPECT_B)
-            .expect("aspect B wave should exist");
-        assert!(wave_a.entries.iter().any(|entry| entry.node == dep_a));
-        assert!(wave_a.entries.iter().any(|entry| entry.node == dep_both));
-        assert!(wave_b.entries.iter().any(|entry| entry.node == dep_b));
-        assert!(wave_b.entries.iter().any(|entry| entry.node == dep_both));
+        assert!(frontier.direct_waves.is_empty());
+        assert!(frontier.transitive_waves.is_empty());
+        assert_eq!(frontier.counters.frontier_group_count, 0);
+        assert_eq!(frontier.counters.frontier_direct_wave_count, 0);
+        assert_eq!(frontier.counters.frontier_transitive_wave_count, 0);
 
         evaluate(&mut graph, source, &mut |_id, _graph| {
             Ok(version_ab(wave as u64 + 1, wave as u64 + 1))

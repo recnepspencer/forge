@@ -11,7 +11,9 @@ impl SignalGraph {
             graph.collect_retired_node_adjacency(id, scratch)?;
             graph.sever_retired_upstream_links(id, &scratch.node_buffer_a)?;
             graph.repair_retired_downstream_topology(id, &scratch.node_buffer_b)?;
-            graph.retire_node_slot(id);
+            graph.replace_reverse_subscriptions_for_consumer(id, &[])?;
+            graph.release_pending_causes(id)?;
+            graph.retire_node_slot(id)?;
             Ok(())
         })
     }
@@ -61,7 +63,14 @@ impl SignalGraph {
         Ok(())
     }
 
-    fn retire_node_slot(&mut self, id: NodeId) {
+    fn retire_node_slot(&mut self, id: NodeId) -> Result<(), SignalError> {
+        if self.get_entry(id)?.pending_cause_set_id()
+            != crate::data::graph::storage::invalidation_causes::PendingCauseSetId::EMPTY
+        {
+            return Err(SignalError::invalid_input(
+                "node retirement requires pending cause authority to be released",
+            ));
+        }
         debug_assert!(
             !self.arena.free_slots.contains(id.index() as usize),
             "free list already contained slot {} before unregister",
@@ -75,6 +84,7 @@ impl SignalGraph {
             self.arena.free_list.push(id.index());
             self.arena.free_slots.mark(id.index() as usize);
         }
+        Ok(())
     }
 
     #[cfg(test)]

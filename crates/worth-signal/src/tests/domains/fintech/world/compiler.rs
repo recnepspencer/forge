@@ -40,7 +40,9 @@ pub(in crate::tests::domains::fintech) use dependency_rewire::FinancialDependenc
 pub(in crate::tests::domains::fintech) use factor_sequence::FinancialFactorSequenceEvidence;
 pub(in crate::tests::domains::fintech) use lifecycle_composition::FinancialBranchLifecycleCompletion;
 pub(in crate::tests::domains::fintech) use locality_execution::{
-    compile_financial_locality_world, FinancialLocalityRedObservation,
+    compile_financial_locality_world, compile_financial_locality_world_at_tier,
+    strategy_work_projection, FinancialLocalityRedObservation, FinancialPerformedCanonicalWork,
+    FinancialPerformedWorkOrigin, FinancialRestoreLifecycleEvidence,
 };
 pub(in crate::tests::domains::fintech) use quote_translation::FinancialQuoteTranslationEvidence;
 
@@ -263,11 +265,24 @@ impl CompiledFinancialWorld {
         );
         let evaluator = program.evaluator();
         let source = self.handles.factor(factor).0;
-        let matched = self.handles.consumer(FinancialConsumerRole::RiskMatched).0;
-        let unmatched = self
-            .handles
-            .consumer(FinancialConsumerRole::RiskUnmatched)
-            .0;
+        let valuation_wave = self
+            .definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).valuation)
+            .collect::<Vec<_>>();
+        let risk_wave = self
+            .definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).risk)
+            .collect::<Vec<_>>();
+        let consumer_wave = self
+            .definition
+            .consumers()
+            .iter()
+            .map(|consumer| self.handles.consumer(consumer.role).0)
+            .collect::<Vec<_>>();
         let source_result = source_result(&program, factor);
         let ledger = self.ledger.clone();
         self.ledger.clear();
@@ -277,10 +292,25 @@ impl CompiledFinancialWorld {
             tx.target(source)
                 .on_demand()
                 .read(&move |view| Ok(view.finish(source_result.clone())))?;
-            tx.read(matched, &evaluator)?;
-            tx.read(unmatched, &evaluator)?;
             Ok(())
         })?;
+        for wave in [valuation_wave, risk_wave, consumer_wave] {
+            let dirty = wave
+                .into_iter()
+                .filter(|node| {
+                    self.runtime
+                        .graph()
+                        .get_state(*node)
+                        .is_ok_and(|state| !matches!(state, NodeState::Clean))
+                })
+                .collect::<Vec<_>>();
+            self.runtime.transaction(&mut (), |tx| {
+                for node in &dirty {
+                    tx.read(*node, &evaluator)?;
+                }
+                Ok(())
+            })?;
+        }
         self.definition = next_definition;
         self.economic_snapshot = next_snapshot;
         self.projection = next_projection;

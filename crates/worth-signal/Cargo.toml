@@ -30,6 +30,8 @@ sha2 = "0.10"
 worth-harness.workspace = true
 stats_alloc = "0.1"
 trybuild = "1"
+quote = "1"
+syn = { version = "2", features = ["full", "visit"] }
 
 [target.'cfg(all(target_family = "wasm", target_os = "unknown"))'.dependencies]
 js-sys = "0.3"

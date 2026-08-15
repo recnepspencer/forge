@@ -1007,6 +1007,17 @@ Milestone 14 must prove:
 - cancellation, deadline, and failure at each precompute/apply/publication
   boundary expose exact typed progress and preserve precommit atomicity
 - a serial-only target consumes the same lowered plan without semantic drift
+- M13 partition/detail behavior is preserved exactly as the two-segment case of
+  a bounded opaque scope hierarchy
+- exact-leaf, ancestor-subtree, unscoped, and sibling-disjoint mutations produce
+  the exact independent candidate/work sets at path depths `1`, `2`, `4`, and
+  `8`
+- `ProducerAspectKey`, scope paths, subscriber buckets, and physical shard keys
+  cannot substitute for current edge, snapshot, cause, readiness, or commit
+  authority
+- worker-count and epoch-bounded shard-placement changes preserve admitted
+  semantic work and canonical outputs while exposing occupancy, imbalance,
+  migration, and resident-byte evidence
 
 Milestone 15 must combine wide antichains, long critical chains, reconvergence,
 dynamic rewiring, overlapping mutation footprints, and bounded ready queues.
@@ -1015,12 +1026,25 @@ mutation-footprint axis, or atomic epoch publication is removed. Serial and
 graph-parallel mutation histories must agree step by step, not only at one
 final output.
 
+The same graph courtroom must include deep hierarchical subscriptions,
+cross-shard diamonds, hot-subtree skew, shard-boundary rewiring, and
+epoch-bounded rebalancing. A sibling-disjoint subtree must contribute zero
+candidates and work. Every cross-shard dependency must remain readiness-ordered,
+and placement changes must leave causes, dependency revisions, work identity,
+history, replay, and explanation unchanged.
+
 Milestone 16 must certify map, reduce, scan, fork/join, and synchronous rounds
 using stable partition identity and explicit read/write sets. The test matrix
 must vary worker count, partition count, skew, grain size, numerical reducer,
 nesting depth, cancellation point, and serial-only capability. Floating-point
 bitwise claims require fixed partition and join order; approximate equality
 cannot certify a bitwise contract.
+
+The partition matrix must distinguish semantic scope path, stable work
+partition, and physical shard. It must cover hierarchy-aligned and deliberately
+misaligned placements, explicit boundary/halo reads, hot-subtree splitting, and
+rebalancing. Each placement must preserve partition/access/result identity and
+must report boundary reads, cross-shard bytes, residency, and migrations.
 
 Milestone 17 must cross real external boundaries:
 
@@ -1035,6 +1059,12 @@ Milestone 17 must cross real external boundaries:
 - stable idempotency identity, typed indeterminate outcomes, and recovery
   handles
 - explicit worker-unavailable and product-declared WASM fallback behavior
+- separate wire identities for admitted semantic locality and replaceable
+  physical shard placement
+- backend-specific shard layouts and reordered physical arrival that preserve
+  semantic work and canonical publication
+- missing, stale, or mismatched locality/partition/shard-plan/boundary-read/epoch
+  result packets rejected before publication
 
 An accelerator backend may be claimed only from a real adapter on named
 hardware running the common conformance suite. A trait, mock device, or CPU

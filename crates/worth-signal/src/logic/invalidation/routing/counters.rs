@@ -1,9 +1,9 @@
 use crate::data::graph::SignalGraph;
-use crate::data::proof::FrontierExecutionCounters;
+use crate::data::proof::FrontierDiagnosticsProjection;
 
-pub(super) fn record_execution_counters(
+pub(super) fn record_diagnostic_projection(
     graph: &mut SignalGraph,
-    counters: &FrontierExecutionCounters,
+    counters: &FrontierDiagnosticsProjection,
 ) {
     graph.telemetry_mut().invalidation.frontier_seed_count += counters.frontier_seed_count;
     graph.telemetry_mut().invalidation.frontier_group_count += counters.frontier_group_count;

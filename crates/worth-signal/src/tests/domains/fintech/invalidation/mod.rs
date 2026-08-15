@@ -1,6 +1,8 @@
 mod boundary_inventory;
 mod boundary_inventory_m13;
 mod comparator_world;
+mod convergent_factor_batch;
+mod dense_market_close;
 mod heterogeneous_consumer_comparators;
 mod lifecycle_scenarios;
 mod locality_red_controls;

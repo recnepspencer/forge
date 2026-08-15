@@ -17,10 +17,12 @@ pub(super) use baseline::{
     FinancialScenarioIdentity,
 };
 pub(super) use compiler::{
-    compile_financial_locality_world, compile_financial_world, CompiledFinancialWorld,
+    compile_financial_locality_world, compile_financial_locality_world_at_tier,
+    compile_financial_world, strategy_work_projection, CompiledFinancialWorld,
     FinancialBranchLifecycleCompletion, FinancialDependencyRewireEvidence,
     FinancialEvaluationLedger, FinancialFactorSequenceEvidence, FinancialLocalityRedObservation,
-    FinancialQuoteTranslationEvidence, FinancialSemanticHandles,
+    FinancialPerformedCanonicalWork, FinancialPerformedWorkOrigin,
+    FinancialQuoteTranslationEvidence, FinancialRestoreLifecycleEvidence, FinancialSemanticHandles,
 };
 pub(super) use definition::{
     FinancialConditionPolicy, FinancialConsumerRole, FinancialWorldDefinition,
@@ -30,12 +32,18 @@ pub(super) use fixture_projection::{
     FinancialFixtureProjection, FixtureAggregateState, FixtureMarketPoint, FixtureScenarioShock,
 };
 pub(super) use locality_definition::{
-    FinancialLocalityDefinition, FinancialLocalityFormula, FinancialLocalityMutation,
-    FinancialLocalityOutput, LocalityScope, LocalitySemanticOutputId,
+    FinancialLocalityAction, FinancialLocalityActionTrace, FinancialLocalityAdmissionPolicy,
+    FinancialLocalityComparisonPolicy, FinancialLocalityDefinition,
+    FinancialLocalityExecutionPolicy, FinancialLocalityFormula, FinancialLocalityMutation,
+    FinancialLocalityOutput, FinancialLocalityOutputPolicy, FinancialLocalitySourceObligation,
+    FinancialLocalityStagedWork, FinancialLocalitySubscription, FinancialLocalityTopologyChange,
+    FinancialLocalityTraceIdentity, FinancialStructuralMutation, LocalityEconomicOwner,
+    LocalityScope, LocalitySemanticOutputId,
 };
 pub(super) use locality_scale::{
-    ordinary_locality_cases, scheduled_locality_cases, FinancialLocalityScenario,
-    LocalityCaseContract, LocalityScaleTuple, SparseFanoutAxis,
+    ordinary_locality_cases, retained_locality_benchmark_cases, scheduled_locality_cases,
+    DensityRatio, FinancialLocalityScenario, LocalityCaseContract, LocalityLane,
+    LocalityScaleTuple, RestorePosture, SparseFanoutAxis,
 };
 use market_inputs::{
     Currency, FinancialMarketInputs, FixedPrice, QuoteId, VolatilityBucket, FIXED_SCALE,

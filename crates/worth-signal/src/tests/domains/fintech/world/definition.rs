@@ -128,6 +128,49 @@ impl FinancialWorldDefinition {
         }
     }
 
+    pub(in crate::tests::domains::fintech) fn locality_case(
+        seed: u64,
+        case: super::LocalityCaseContract,
+    ) -> Self {
+        Self {
+            kind: FinancialWorldDefinitionKind::Locality(
+                FinancialLocalityDefinition::generate_case(seed, case),
+            ),
+        }
+    }
+
+    pub(in crate::tests::domains::fintech) fn convergent_factor_batch(
+        seed: u64,
+        duplicate_admissions: u8,
+    ) -> Self {
+        Self {
+            kind: FinancialWorldDefinitionKind::Locality(FinancialLocalityDefinition::generate(
+                seed,
+                LocalityScaleTuple::ConvergentFactorBatch {
+                    producer_permutations: 24,
+                    duplicate_admissions,
+                    canonical_seeds: 1,
+                },
+            )),
+        }
+    }
+
+    pub(in crate::tests::domains::fintech) fn dense_market_close(
+        seed: u64,
+        total_outputs: u32,
+        affected_ratio: super::DensityRatio,
+    ) -> Self {
+        Self {
+            kind: FinancialWorldDefinitionKind::Locality(FinancialLocalityDefinition::generate(
+                seed,
+                LocalityScaleTuple::DenseMarketClose {
+                    total_outputs,
+                    affected_ratio,
+                },
+            )),
+        }
+    }
+
     pub(in crate::tests::domains::fintech) fn runtime_fixture(
         scale: FintechScale,
         regime: MarketRegime,

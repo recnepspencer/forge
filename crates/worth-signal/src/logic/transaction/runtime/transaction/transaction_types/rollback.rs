@@ -87,15 +87,9 @@ impl<T: Copy + Ord> Default for TransactionRollbackPacketSet<T> {
 impl<T: Copy + Ord> TransactionRollbackPacketSet<T> {
     pub fn capture_runtime_baseline_if_needed(
         &mut self,
-        config: &SignalRuntimeConfig<T>,
         diagnostics_state: &crate::diagnostics::state::DiagnosticsState,
         graph: &crate::data::graph::SignalGraph,
     ) {
-        if self.config.is_none() {
-            self.config = Some(ConfigRollbackDelta {
-                baseline: config.clone(),
-            });
-        }
         if self.diagnostics.is_none() {
             self.diagnostics = Some(DiagnosticsRollbackDelta {
                 baseline: diagnostics_state.clone(),
@@ -107,6 +101,19 @@ impl<T: Copy + Ord> TransactionRollbackPacketSet<T> {
                 readmission_required: graph.cause_readmission_required,
             });
         }
+    }
+
+    pub fn capture_config_baseline_if_needed(&mut self, config: &SignalRuntimeConfig<T>) {
+        if self.config.is_none() {
+            self.config = Some(ConfigRollbackDelta {
+                baseline: config.clone(),
+            });
+        }
+    }
+
+    #[cfg(test)]
+    pub fn has_config_baseline(&self) -> bool {
+        self.config.is_some()
     }
 
     pub fn stage_graph_patches(

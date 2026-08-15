@@ -1,6 +1,6 @@
 use crate::data::aspect::{Aspect, AspectMask, AspectVersion};
 use crate::data::comparator::DefaultComparatorPolicyResolver;
-use crate::data::dependency::DependencyEdge;
+use crate::data::dependency::{DependencyEdge, DependencySnapshot};
 use crate::data::graph::SignalGraph;
 use crate::data::output::{ChangedRegion, PartitionSubscription};
 use crate::data::proof::invalidation::output_commit::ProducedAspectDelta;
@@ -12,7 +12,7 @@ fn publish_scoped_delta(
     producer: crate::data::handle::NodeId,
     aspect: Aspect,
     region: ChangedRegion,
-) {
+) -> crate::data::proof::invalidation::binding::OutputCommitOrdinal {
     let ordinal = graph.cause_sets.reserve_output_commit_ordinal();
     let committed = AspectVersion::from_updates([(aspect, 1)]);
     graph
@@ -33,6 +33,7 @@ fn publish_scoped_delta(
         .unwrap();
     graph.publish_direct_output_causes(prepared).unwrap();
     graph.cause_sets.publish_output_commit(delta);
+    ordinal
 }
 
 fn evaluated_graph_with_edge(
@@ -47,12 +48,14 @@ fn evaluated_graph_with_edge(
     let producer = graph.create_node();
     let consumer = graph.create_node();
     let aspect = Aspect::new(3);
-    graph
-        .set_dependencies(consumer, [edge(producer, aspect)])
-        .unwrap();
+    let edge = edge(producer, aspect);
     let mut baseline = |_id, _graph: &SignalGraph| Ok(AspectVersion::zero());
     evaluate(&mut graph, producer, &mut baseline).unwrap();
     evaluate(&mut graph, consumer, &mut baseline).unwrap();
+    graph.set_dependencies(consumer, [edge.clone()]).unwrap();
+    let mut snapshot = DependencySnapshot::empty();
+    snapshot.record(producer, aspect, 0, edge.scope_ref().cloned());
+    graph.set_dep_snapshot(consumer, snapshot).unwrap();
     (graph, producer, consumer, aspect)
 }
 
@@ -97,18 +100,35 @@ fn detail_edge_normalizes_change_to_that_exact_edge_scope() {
 }
 
 #[test]
+fn uninterned_changed_partition_still_publishes_to_unscoped_consumer() {
+    let (mut graph, producer, consumer, aspect) = evaluated_graph_with_edge(DependencyEdge::new);
+    let ordinal = publish_scoped_delta(
+        &mut graph,
+        producer,
+        aspect,
+        ChangedRegion::new("previously-unseen-partition").with_detail("previously-unseen-detail"),
+    );
+
+    let causes = graph.pending_causes(consumer).unwrap();
+    assert_eq!(causes.len(), 1);
+    assert_eq!(causes[0].key.producer, producer);
+    assert_eq!(causes[0].key.aspect, aspect);
+    assert_eq!(causes[0].binding_axes.output_commit_ordinal, ordinal);
+}
+
+#[test]
 fn restore_rejects_commit_scope_that_no_longer_supports_the_bound_edge() {
     let (mut graph, producer, _consumer, aspect) = evaluated_graph_with_edge(|producer, aspect| {
         DependencyEdge::partition_detail(producer, aspect, "rates", "5y")
     });
-    publish_scoped_delta(
+    let ordinal = publish_scoped_delta(
         &mut graph,
         producer,
         aspect,
         ChangedRegion::new("rates").with_detail("5y"),
     );
     graph.cause_sets.replace_published_change_scopes_for_test(
-        crate::data::proof::invalidation::binding::OutputCommitOrdinal(1),
+        ordinal,
         PartitionScopeSet::new([PartitionSubscription::partition_and_detail("rates", "10y")]),
     );
     let image = crate::state::SignalCheckpointImage {
@@ -122,13 +142,19 @@ fn restore_rejects_commit_scope_that_no_longer_supports_the_bound_edge() {
 
 #[test]
 fn restore_rejects_delta_whose_internal_ordinal_contradicts_its_ledger_key() {
-    let (mut graph, producer, _consumer, aspect) =
-        evaluated_graph_with_edge(|producer, aspect| DependencyEdge::new(producer, aspect));
-    publish_scoped_delta(&mut graph, producer, aspect, ChangedRegion::new("rates"));
+    let (mut graph, producer, _consumer, aspect) = evaluated_graph_with_edge(|producer, aspect| {
+        DependencyEdge::partition_detail(producer, aspect, "rates", "5y")
+    });
+    let ordinal = publish_scoped_delta(
+        &mut graph,
+        producer,
+        aspect,
+        ChangedRegion::new("rates").with_detail("5y"),
+    );
     graph
         .cause_sets
         .replace_published_internal_ordinal_for_test(
-            crate::data::proof::invalidation::binding::OutputCommitOrdinal(1),
+            ordinal,
             crate::data::proof::invalidation::binding::OutputCommitOrdinal(2),
         );
     let image = crate::state::SignalCheckpointImage {

@@ -204,6 +204,70 @@ fn easy_mode_computed_chains_observe_staged_upstream_values_in_the_same_pass() {
 }
 
 #[test]
+fn easy_mode_dynamic_dependency_capture_settles_newly_selected_dirty_upstream() {
+    let mut graph = ReactiveGraph::new();
+    let source = graph.input(1_i32);
+    let enabled = graph.input(true);
+    let fallback = graph.computed(move |context| context.get(source) * 10);
+    let label = graph.computed(move |context| {
+        if context.get(enabled) {
+            5
+        } else {
+            context.get(fallback)
+        }
+    });
+
+    assert_eq!(graph.get(label), 5);
+    graph.set(source, 2);
+    graph.set(enabled, false);
+
+    assert_eq!(
+        graph.get(label),
+        20,
+        "the first sink read must settle a newly captured dirty dependency"
+    );
+}
+
+#[test]
+fn runtime_sink_read_converges_new_direct_causes_across_a_clean_chain() {
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let doubled = graph.node().build();
+    let sink = graph.node().build();
+    graph.append_dependency(doubled, source, ASPECT_A).unwrap();
+    graph.append_dependency(sink, doubled, ASPECT_A).unwrap();
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let source_value = AtomicU64::new(2);
+    let evaluator = |view: &mut EvaluationContext<'_, ()>| {
+        let value = if view.node() == source {
+            source_value.load(Ordering::Relaxed)
+        } else if view.node() == doubled {
+            view.read_aspect_version(source, ASPECT_A)?.get(ASPECT_A) * 2
+        } else {
+            view.read_aspect_version(doubled, ASPECT_A)?.get(ASPECT_A) + 1
+        };
+        Ok::<EvaluationOutput, SignalError>(
+            view.finish(AspectVersion::from_updates([(ASPECT_A, value)])),
+        )
+    };
+
+    assert_eq!(
+        runtime.read(sink, &(), &evaluator).unwrap().get(ASPECT_A),
+        5
+    );
+    source_value.store(7, Ordering::Relaxed);
+    mark_dirty(runtime.graph_mut(), source, ASPECT_A).unwrap();
+
+    assert_eq!(
+        runtime.read(sink, &(), &evaluator).unwrap().get(ASPECT_A),
+        15,
+        "one sink read must settle each newly committed direct-hop cause"
+    );
+}
+
+#[test]
 fn easy_mode_failed_batch_restores_input_values() {
     let mut graph = ReactiveGraph::new();
     let price = graph.input(100_i32);
@@ -218,4 +282,52 @@ fn easy_mode_failed_batch_restores_input_values() {
 
     assert_eq!(graph.get(price), 100);
     assert_eq!(graph.get(tax), 5);
+}
+
+#[test]
+fn failed_multi_target_read_restores_every_evaluated_target() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let first = runtime.graph_mut().node().build();
+    let second = runtime.graph_mut().node().build();
+    let baseline = |view: &mut EvaluationContext<'_, ()>| {
+        Ok::<EvaluationOutput, SignalError>(
+            view.finish(AspectVersion::from_updates([(ASPECT_A, 1)])),
+        )
+    };
+    runtime.read(first, &(), &baseline).unwrap();
+    runtime.read(second, &(), &baseline).unwrap();
+    mark_dirty(runtime.graph_mut(), first, ASPECT_A).unwrap();
+    mark_dirty(runtime.graph_mut(), second, ASPECT_A).unwrap();
+
+    let error = runtime.transaction(&mut (), |tx| {
+        tx.read_many(&[first, second], &|view| {
+            if view.node() == second {
+                return Err(SignalError::invalid_input("fail second batch target"));
+            }
+            Ok(view.finish(AspectVersion::from_updates([(ASPECT_A, 2)])))
+        })?;
+        Ok(())
+    });
+
+    assert!(error.is_err());
+    assert_eq!(
+        runtime
+            .graph()
+            .node_aspect_version(first)
+            .unwrap()
+            .get(ASPECT_A),
+        1
+    );
+    assert_eq!(
+        runtime
+            .graph()
+            .node_aspect_version(second)
+            .unwrap()
+            .get(ASPECT_A),
+        1
+    );
+    assert_eq!(runtime.graph().get_state(first).unwrap(), NodeState::Dirty);
+    assert_eq!(runtime.graph().get_state(second).unwrap(), NodeState::Dirty);
 }

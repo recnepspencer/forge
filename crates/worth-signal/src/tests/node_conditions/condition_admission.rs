@@ -172,10 +172,13 @@ fn invalidation_skips_direct_subscriber_when_contract_reads_do_not_care() {
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
     evaluate(&mut graph, dependent, &mut compute).unwrap();
+    let dependent_before = graph.get_state(dependent).unwrap();
+    let causes_before = graph.pending_causes(dependent).unwrap().to_vec();
 
     mark_dirty(&mut graph, source, ASPECT_B).unwrap();
 
-    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
+    assert_eq!(graph.get_state(dependent).unwrap(), dependent_before);
+    assert_eq!(graph.pending_causes(dependent).unwrap(), causes_before);
 }
 
 #[test]
@@ -196,6 +199,8 @@ fn invalidation_skips_direct_subscriber_when_contract_partition_scope_does_not_c
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
     evaluate(&mut graph, dependent, &mut compute).unwrap();
+    let dependent_before = graph.get_state(dependent).unwrap();
+    let causes_before = graph.pending_causes(dependent).unwrap().to_vec();
 
     mark_dirty_with_regions(
         &mut graph,
@@ -208,7 +213,8 @@ fn invalidation_skips_direct_subscriber_when_contract_partition_scope_does_not_c
     )
     .unwrap();
 
-    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
+    assert_eq!(graph.get_state(dependent).unwrap(), dependent_before);
+    assert_eq!(graph.pending_causes(dependent).unwrap(), causes_before);
 }
 
 #[test]
@@ -230,6 +236,8 @@ fn invalidation_respects_mixed_aspect_and_partition_contracts() {
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
     evaluate(&mut graph, dependent, &mut compute).unwrap();
+    let dependent_before = graph.get_state(dependent).unwrap();
+    let causes_before = graph.pending_causes(dependent).unwrap().to_vec();
 
     mark_dirty_with_regions(
         &mut graph,
@@ -241,11 +249,8 @@ fn invalidation_respects_mixed_aspect_and_partition_contracts() {
         }],
     )
     .unwrap();
-    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::MaybeStale);
-    assert!(graph
-        .pending_dependency_revalidation(dependent)
-        .unwrap()
-        .is_some());
+    assert_eq!(graph.get_state(dependent).unwrap(), dependent_before);
+    assert_eq!(graph.pending_causes(dependent).unwrap(), causes_before);
 
     evaluate(&mut graph, source, &mut compute).unwrap();
     evaluate(&mut graph, dependent, &mut compute).unwrap();

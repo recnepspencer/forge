@@ -31,11 +31,11 @@ fn async_node_hierarchy_late_descendant_completion_switches_from_cancelled_to_st
         .attach_async_capability(async_node_capability_declaration(grandchild))
         .expect("grandchild capability should attach");
 
-    let parent_request = runtime
-        .admit_async_node_request(parent_handle.request_intent())
-        .expect("parent request should admit")
+    let grandchild_request = runtime
+        .admit_async_node_request(grandchild_handle.request_intent())
+        .expect("grandchild request should admit")
         .resource_admission()
-        .expect("parent request should expose resource admission")
+        .expect("grandchild request should expose resource admission")
         .admitted_request();
     let child_request = runtime
         .admit_async_node_request(child_handle.request_intent())
@@ -43,11 +43,11 @@ fn async_node_hierarchy_late_descendant_completion_switches_from_cancelled_to_st
         .resource_admission()
         .expect("child request should expose resource admission")
         .admitted_request();
-    let grandchild_request = runtime
-        .admit_async_node_request(grandchild_handle.request_intent())
-        .expect("grandchild request should admit")
+    let parent_request = runtime
+        .admit_async_node_request(parent_handle.request_intent())
+        .expect("parent request should admit")
         .resource_admission()
-        .expect("grandchild request should expose resource admission")
+        .expect("parent request should expose resource admission")
         .admitted_request();
     let late_grandchild_completion = raw_async_node_completion(
         grandchild_request.handle(),

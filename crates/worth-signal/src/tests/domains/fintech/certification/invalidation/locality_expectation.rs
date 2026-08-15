@@ -1,9 +1,32 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::tests::domains::fintech::world::{
-    FinancialAspect, FinancialLocalityDefinition, FinancialLocalityScenario, LocalityScope,
-    LocalitySemanticOutputId,
+    FinancialAspect, FinancialLocalityActionTrace, FinancialLocalityDefinition,
+    FinancialLocalityScenario, FinancialLocalityStagedWork, FinancialLocalityTraceIdentity,
+    FinancialStructuralMutation, LocalityScaleTuple, LocalityScope, LocalitySemanticOutputId,
 };
+
+mod candidates;
+mod counter_contract;
+#[cfg(test)]
+mod independence;
+#[cfg(test)]
+mod recovery_assertions;
+#[cfg(test)]
+mod scenario_tests;
+#[cfg(test)]
+mod tests;
+mod trace;
+pub(in crate::tests::domains::fintech) use counter_contract::{
+    ExpectedLocalityCounterManifest, ExpectedLocalityCounterRow,
+};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(in crate::tests::domains::fintech) struct ExpectedGraphBinding {
+    pub(in crate::tests::domains::fintech) graph_instance: u64,
+    pub(in crate::tests::domains::fintech) seed: u64,
+    pub(in crate::tests::domains::fintech) scale: LocalityScaleTuple,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(in crate::tests::domains::fintech) struct ExpectedBucketKey {
@@ -17,13 +40,31 @@ pub(in crate::tests::domains::fintech) struct ExpectedDependencyDeclaration {
     pub(in crate::tests::domains::fintech) producer: LocalitySemanticOutputId,
     pub(in crate::tests::domains::fintech) consumer: LocalitySemanticOutputId,
     pub(in crate::tests::domains::fintech) aspect: FinancialAspect,
-    pub(in crate::tests::domains::fintech) scope: Option<LocalityScope>,
+    pub(in crate::tests::domains::fintech) edge_scope: Option<LocalityScope>,
+    pub(in crate::tests::domains::fintech) contract_scope: Option<LocalityScope>,
+    pub(in crate::tests::domains::fintech) dependency_revision: u64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::tests::domains::fintech) struct ExpectedDependencyCause {
+pub(in crate::tests::domains::fintech) struct ExpectedCandidateOccurrence {
+    pub(in crate::tests::domains::fintech) query_ordinal: u32,
+    pub(in crate::tests::domains::fintech) bucket: ExpectedBucketKey,
     pub(in crate::tests::domains::fintech) dependency: ExpectedDependencyDeclaration,
-    pub(in crate::tests::domains::fintech) producer_commit_ordinal: u64,
+    pub(in crate::tests::domains::fintech) output_commit_ordinal: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(in crate::tests::domains::fintech) struct ExpectedDependencyCause {
+    pub(in crate::tests::domains::fintech) graph: ExpectedGraphBinding,
+    pub(in crate::tests::domains::fintech) consumer: LocalitySemanticOutputId,
+    pub(in crate::tests::domains::fintech) dependency_revision: u64,
+    pub(in crate::tests::domains::fintech) producer: LocalitySemanticOutputId,
+    pub(in crate::tests::domains::fintech) aspect: FinancialAspect,
+    pub(in crate::tests::domains::fintech) edge_scope: Option<LocalityScope>,
+    pub(in crate::tests::domains::fintech) cached_version: u64,
+    pub(in crate::tests::domains::fintech) output_commit_ordinal: u64,
+    pub(in crate::tests::domains::fintech) committed_version: u64,
+    pub(in crate::tests::domains::fintech) changed_scopes: Vec<LocalityScope>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -33,84 +74,174 @@ pub(in crate::tests::domains::fintech) enum ExpectedWorkOrigin {
     StructuralRecompute,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(in crate::tests::domains::fintech) enum ExpectedSealedOriginBinding {
+    SourceRecompute {
+        admission_generation: u64,
+    },
+    DependencyCommit {
+        cause_set_generation: u64,
+        producer_commit_ordinals: Vec<u64>,
+    },
+    StructuralRecompute {
+        structural_generation: u64,
+    },
+}
+
 impl ExpectedWorkOrigin {
-    const ALL: [Self; 3] = [
+    pub(super) const ALL: [Self; 3] = [
         Self::SourceRecompute,
         Self::DependencyCommit,
         Self::StructuralRecompute,
     ];
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(in crate::tests::domains::fintech) struct ExpectedWorkIdentity {
+    pub(in crate::tests::domains::fintech) graph: ExpectedGraphBinding,
     pub(in crate::tests::domains::fintech) target: LocalitySemanticOutputId,
     pub(in crate::tests::domains::fintech) dependency_revision: u64,
     pub(in crate::tests::domains::fintech) readiness_epoch: u64,
     pub(in crate::tests::domains::fintech) stage_order: u32,
-    pub(in crate::tests::domains::fintech) origin: ExpectedWorkOrigin,
+}
+
+pub(in crate::tests::domains::fintech) type ExpectedCanonicalWork =
+    BTreeMap<ExpectedWorkIdentity, BTreeSet<ExpectedSealedOriginBinding>>;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::tests::domains::fintech) enum ExpectedActionCheckpointKind {
+    PreRewireStaged(FinancialLocalityStagedWork),
+    TopologyAccepted(FinancialStructuralMutation),
+    StaleWorkDenied {
+        stale: FinancialLocalityStagedWork,
+        current_dependency_revision: u64,
+    },
+    CycleRejected {
+        target: LocalitySemanticOutputId,
+        attempted_topology_ordinal: u64,
+        retained_dependency_revision: u64,
+    },
+    BranchCaptured,
+    CheckpointCaptured,
+    DerivedStateDestroyed,
+    CausesReadmitted,
+    ReadyWorkReconstructed,
+    DeterministicRerun,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(in crate::tests::domains::fintech) struct ExpectedDirectSourceBasis {
+    pub(in crate::tests::domains::fintech) graph: ExpectedGraphBinding,
+    pub(in crate::tests::domains::fintech) source: LocalitySemanticOutputId,
+    pub(in crate::tests::domains::fintech) aspect: FinancialAspect,
+    pub(in crate::tests::domains::fintech) scope: Option<LocalityScope>,
+    pub(in crate::tests::domains::fintech) admission_generation: u64,
+    pub(in crate::tests::domains::fintech) dependency_revision: u64,
+    pub(in crate::tests::domains::fintech) runtime_epoch: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(in crate::tests::domains::fintech) struct ExpectedActionCheckpoint {
+    pub(in crate::tests::domains::fintech) action_ordinal: u32,
+    pub(in crate::tests::domains::fintech) kind: ExpectedActionCheckpointKind,
+    pub(in crate::tests::domains::fintech) canonical_causes: BTreeSet<ExpectedDependencyCause>,
+    pub(in crate::tests::domains::fintech) persisted_causes: BTreeSet<ExpectedDependencyCause>,
+    pub(in crate::tests::domains::fintech) canonical_work: ExpectedCanonicalWork,
+    pub(in crate::tests::domains::fintech) current_source_bases:
+        BTreeSet<ExpectedDirectSourceBasis>,
+    pub(in crate::tests::domains::fintech) persisted_source_bases:
+        BTreeSet<ExpectedDirectSourceBasis>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::tests::domains::fintech) struct FinancialLocalityExpectationManifest {
     scenario: FinancialLocalityScenario,
+    action_trace: FinancialLocalityTraceIdentity,
     queried_bucket_keys: BTreeSet<ExpectedBucketKey>,
-    candidate_dependencies: BTreeSet<ExpectedDependencyDeclaration>,
+    candidate_dependencies: Vec<ExpectedCandidateOccurrence>,
     canonical_causes: BTreeSet<ExpectedDependencyCause>,
-    canonical_work: BTreeSet<ExpectedWorkIdentity>,
+    source_bases: BTreeSet<ExpectedDirectSourceBasis>,
+    canonical_work: ExpectedCanonicalWork,
+    executed_work: ExpectedCanonicalWork,
     necessary_evaluations: BTreeSet<LocalitySemanticOutputId>,
     unchanged_output_stops: BTreeSet<LocalitySemanticOutputId>,
     peak_ready_width: u64,
-}
-
-struct FinancialLocalityExpectationParts {
-    scenario: FinancialLocalityScenario,
-    queried_bucket_keys: BTreeSet<ExpectedBucketKey>,
-    candidate_dependencies: BTreeSet<ExpectedDependencyDeclaration>,
-    canonical_causes: BTreeSet<ExpectedDependencyCause>,
-    canonical_work: BTreeSet<ExpectedWorkIdentity>,
-    necessary_evaluations: BTreeSet<LocalitySemanticOutputId>,
-    unchanged_output_stops: BTreeSet<LocalitySemanticOutputId>,
-    peak_ready_width: u64,
+    duplicate_admission_attempts: u64,
+    causality_rejections: u64,
+    committed_output_ordinals: Vec<u64>,
+    counter_manifest: ExpectedLocalityCounterManifest,
+    action_checkpoints: Vec<ExpectedActionCheckpoint>,
 }
 
 impl FinancialLocalityExpectationManifest {
     pub(in crate::tests::domains::fintech) fn derive(
         definition: &FinancialLocalityDefinition,
+        graph_instance: u64,
     ) -> Self {
-        let candidate_dependencies = expected_candidate_dependencies(definition);
-        let canonical_causes = expected_canonical_causes(definition, &candidate_dependencies);
-        let necessary_evaluations = expected_evaluations(definition);
-        let unchanged_output_stops = expected_stops(definition);
-        let canonical_work = expected_work(definition, &necessary_evaluations);
-        let peak_ready_width = expected_peak_width(definition, &necessary_evaluations);
-
-        Self::from_parts(FinancialLocalityExpectationParts {
-            scenario: definition.scenario(),
-            queried_bucket_keys: expected_bucket_keys(definition),
-            candidate_dependencies,
-            canonical_causes,
-            canonical_work,
-            necessary_evaluations,
-            unchanged_output_stops,
-            peak_ready_width,
-        })
+        Self::derive_for_trace(definition, &definition.action_traces()[0], graph_instance)
     }
 
-    fn from_parts(parts: FinancialLocalityExpectationParts) -> Self {
+    pub(in crate::tests::domains::fintech) fn derive_for_trace(
+        definition: &FinancialLocalityDefinition,
+        action_trace: &FinancialLocalityActionTrace,
+        graph_instance: u64,
+    ) -> Self {
+        let trace = trace::derive_expected_trace_for(definition, action_trace);
+        let candidates = candidates::derive_candidate_manifest(definition, graph_instance, &trace);
+        let executed_work = trace.canonical_work(definition, graph_instance);
+        let canonical_work = if trace.requires_reconstruction() {
+            trace.reconstructed_work(
+                definition,
+                graph_instance,
+                trace.final_readiness_epoch,
+                &candidates.canonical_causes,
+            )
+        } else {
+            trace.canonical_work(definition, graph_instance)
+        };
+        let peak_ready_width = trace.peak_ready_width(definition);
+        let counter_manifest =
+            ExpectedLocalityCounterManifest::derive(&trace, &candidates, peak_ready_width);
+        let source_bases = trace.current_source_bases(definition, graph_instance);
+        let action_checkpoints = trace.action_checkpoints(
+            definition,
+            graph_instance,
+            &candidates.canonical_causes,
+            &canonical_work,
+        );
+        let committed_output_ordinals = trace
+            .deltas
+            .iter()
+            .map(|delta| delta.output_commit_ordinal)
+            .collect();
         Self {
-            scenario: parts.scenario,
-            queried_bucket_keys: parts.queried_bucket_keys,
-            candidate_dependencies: parts.candidate_dependencies,
-            canonical_causes: parts.canonical_causes,
-            canonical_work: parts.canonical_work,
-            necessary_evaluations: parts.necessary_evaluations,
-            unchanged_output_stops: parts.unchanged_output_stops,
-            peak_ready_width: parts.peak_ready_width,
+            scenario: definition.scenario(),
+            action_trace: action_trace.identity(),
+            queried_bucket_keys: candidates.queried_bucket_keys,
+            candidate_dependencies: candidates.candidate_dependencies,
+            canonical_causes: candidates.canonical_causes,
+            source_bases,
+            canonical_work,
+            executed_work,
+            necessary_evaluations: trace.evaluations,
+            unchanged_output_stops: trace.stops,
+            peak_ready_width,
+            duplicate_admission_attempts: action_trace.retry_count() as u64,
+            causality_rejections: candidates.causality_rejections,
+            committed_output_ordinals,
+            counter_manifest,
+            action_checkpoints,
         }
     }
 
     pub(in crate::tests::domains::fintech) const fn scenario(&self) -> FinancialLocalityScenario {
         self.scenario
+    }
+
+    pub(in crate::tests::domains::fintech) const fn action_trace(
+        &self,
+    ) -> FinancialLocalityTraceIdentity {
+        self.action_trace
     }
 
     pub(in crate::tests::domains::fintech) fn queried_bucket_keys(
@@ -121,7 +252,7 @@ impl FinancialLocalityExpectationManifest {
 
     pub(in crate::tests::domains::fintech) fn candidate_dependencies(
         &self,
-    ) -> &BTreeSet<ExpectedDependencyDeclaration> {
+    ) -> &[ExpectedCandidateOccurrence] {
         &self.candidate_dependencies
     }
 
@@ -131,10 +262,18 @@ impl FinancialLocalityExpectationManifest {
         &self.canonical_causes
     }
 
-    pub(in crate::tests::domains::fintech) fn canonical_work(
-        &self,
-    ) -> &BTreeSet<ExpectedWorkIdentity> {
+    pub(in crate::tests::domains::fintech) fn canonical_work(&self) -> &ExpectedCanonicalWork {
         &self.canonical_work
+    }
+
+    pub(in crate::tests::domains::fintech) fn executed_work(&self) -> &ExpectedCanonicalWork {
+        &self.executed_work
+    }
+
+    pub(in crate::tests::domains::fintech) fn source_bases(
+        &self,
+    ) -> &BTreeSet<ExpectedDirectSourceBasis> {
+        &self.source_bases
     }
 
     pub(in crate::tests::domains::fintech) fn necessary_evaluations(
@@ -152,232 +291,28 @@ impl FinancialLocalityExpectationManifest {
     pub(in crate::tests::domains::fintech) const fn peak_ready_width(&self) -> u64 {
         self.peak_ready_width
     }
-}
 
-fn expected_bucket_keys(definition: &FinancialLocalityDefinition) -> BTreeSet<ExpectedBucketKey> {
-    let mutation = definition.mutation();
-    let mut keys = BTreeSet::from([ExpectedBucketKey {
-        producer: mutation.producer,
-        aspect: mutation.aspect,
-        scope: None,
-    }]);
-    if let Some(scope) = mutation.scope {
-        keys.insert(ExpectedBucketKey {
-            producer: mutation.producer,
-            aspect: mutation.aspect,
-            scope: Some(LocalityScope::partition(scope.region)),
-        });
-        if scope.detail.is_some() {
-            keys.insert(ExpectedBucketKey {
-                producer: mutation.producer,
-                aspect: mutation.aspect,
-                scope: Some(scope),
-            });
-        }
-    }
-    keys
-}
-
-fn expected_candidate_dependencies(
-    definition: &FinancialLocalityDefinition,
-) -> BTreeSet<ExpectedDependencyDeclaration> {
-    let mutation = definition.mutation();
-    definition
-        .outputs()
-        .iter()
-        .flat_map(|output| {
-            output.dependencies.iter().filter_map(move |dependency| {
-                (dependency.producer == mutation.producer
-                    && dependency.aspect == mutation.aspect
-                    && scopes_overlap(dependency.edge_scope, mutation.scope))
-                .then_some(ExpectedDependencyDeclaration {
-                    producer: dependency.producer,
-                    consumer: output.id,
-                    aspect: dependency.aspect,
-                    scope: dependency.edge_scope,
-                })
-            })
-        })
-        .collect()
-}
-
-fn expected_evaluations(
-    definition: &FinancialLocalityDefinition,
-) -> BTreeSet<LocalitySemanticOutputId> {
-    definition
-        .outputs()
-        .iter()
-        .filter(|output| output.expected_for_mutation)
-        .map(|output| output.id)
-        .collect()
-}
-
-fn expected_canonical_causes(
-    definition: &FinancialLocalityDefinition,
-    candidates: &BTreeSet<ExpectedDependencyDeclaration>,
-) -> BTreeSet<ExpectedDependencyCause> {
-    let mutation = definition.mutation();
-    candidates
-        .iter()
-        .filter(|candidate| {
-            definition
-                .outputs()
-                .iter()
-                .find(|output| output.id == candidate.consumer)
-                .and_then(|output| {
-                    output.dependencies.iter().find(|dependency| {
-                        dependency.producer == candidate.producer
-                            && dependency.aspect == candidate.aspect
-                            && dependency.edge_scope == candidate.scope
-                    })
-                })
-                .is_some_and(|dependency| scopes_overlap(dependency.contract_scope, mutation.scope))
-        })
-        .copied()
-        .map(|dependency| ExpectedDependencyCause {
-            dependency,
-            producer_commit_ordinal: 1,
-        })
-        .collect()
-}
-
-fn expected_stops(definition: &FinancialLocalityDefinition) -> BTreeSet<LocalitySemanticOutputId> {
-    definition
-        .outputs()
-        .iter()
-        .filter(|output| output.unchanged_output_stop)
-        .map(|output| output.id)
-        .collect()
-}
-
-fn expected_work(
-    definition: &FinancialLocalityDefinition,
-    necessary: &BTreeSet<LocalitySemanticOutputId>,
-) -> BTreeSet<ExpectedWorkIdentity> {
-    let mutation = definition.mutation();
-    definition
-        .outputs()
-        .iter()
-        .filter(|output| necessary.contains(&output.id))
-        .map(|output| ExpectedWorkIdentity {
-            target: output.id,
-            dependency_revision: u64::from(!output.dependencies.is_empty()),
-            readiness_epoch: 1,
-            stage_order: output.id.ordinal(),
-            origin: if output.id == mutation.producer {
-                ExpectedWorkOrigin::SourceRecompute
-            } else {
-                ExpectedWorkOrigin::DependencyCommit
-            },
-        })
-        .collect()
-}
-
-fn scopes_overlap(left: Option<LocalityScope>, right: Option<LocalityScope>) -> bool {
-    match (left, right) {
-        (None, _) | (_, None) => true,
-        (Some(left), Some(right)) if left.region != right.region => false,
-        (Some(left), Some(right)) => {
-            left.detail.is_none() || right.detail.is_none() || left.detail == right.detail
-        }
-    }
-}
-
-fn expected_peak_width(
-    definition: &FinancialLocalityDefinition,
-    necessary: &BTreeSet<LocalitySemanticOutputId>,
-) -> u64 {
-    let mut depths = std::collections::BTreeMap::new();
-    let mut widths = std::collections::BTreeMap::<u32, u64>::new();
-    for output in definition
-        .outputs()
-        .iter()
-        .filter(|output| necessary.contains(&output.id))
-    {
-        let depth = output
-            .dependencies
-            .iter()
-            .filter_map(|dependency| depths.get(&dependency.producer).copied())
-            .max()
-            .map_or(0, |depth| depth + 1);
-        depths.insert(output.id, depth);
-        *widths.entry(depth).or_default() += 1;
-    }
-    widths.into_values().max().unwrap_or(0)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn manifest_retains_all_seven_independent_expectation_dimensions() {
-        let source = LocalitySemanticOutputId::new(1);
-        let target = LocalitySemanticOutputId::new(2);
-        let dependency = ExpectedDependencyDeclaration {
-            producer: source,
-            consumer: target,
-            aspect: FinancialAspect::Price,
-            scope: None,
-        };
-        let work = ExpectedWorkIdentity {
-            target,
-            dependency_revision: 3,
-            readiness_epoch: 5,
-            stage_order: 7,
-            origin: ExpectedWorkOrigin::DependencyCommit,
-        };
-        let manifest =
-            FinancialLocalityExpectationManifest::from_parts(FinancialLocalityExpectationParts {
-                scenario: FinancialLocalityScenario::SparseBookFanout,
-                queried_bucket_keys: [ExpectedBucketKey {
-                    producer: source,
-                    aspect: FinancialAspect::Price,
-                    scope: None,
-                }]
-                .into_iter()
-                .collect(),
-                candidate_dependencies: [dependency].into_iter().collect(),
-                canonical_causes: [ExpectedDependencyCause {
-                    dependency,
-                    producer_commit_ordinal: 11,
-                }]
-                .into_iter()
-                .collect(),
-                canonical_work: [work].into_iter().collect(),
-                necessary_evaluations: [target].into_iter().collect(),
-                unchanged_output_stops: [source].into_iter().collect(),
-                peak_ready_width: 1,
-            });
-
-        assert_eq!(
-            manifest.scenario(),
-            FinancialLocalityScenario::SparseBookFanout
-        );
-        assert_eq!(manifest.queried_bucket_keys().len(), 1);
-        assert_eq!(manifest.candidate_dependencies().len(), 1);
-        assert_eq!(manifest.canonical_causes().len(), 1);
-        assert_eq!(manifest.canonical_work(), &BTreeSet::from([work]));
-        assert_eq!(manifest.necessary_evaluations(), &BTreeSet::from([target]));
-        assert_eq!(manifest.unchanged_output_stops(), &BTreeSet::from([source]));
-        assert_eq!(manifest.peak_ready_width(), 1);
-        assert_eq!(ExpectedWorkOrigin::ALL.len(), 3);
+    pub(in crate::tests::domains::fintech) const fn duplicate_admission_attempts(&self) -> u64 {
+        self.duplicate_admission_attempts
     }
 
-    #[test]
-    fn independent_manifest_owner_does_not_import_runtime_routing_or_scheduling() {
-        let source = include_str!("locality_expectation.rs");
-        let forbidden = [
-            ["logic", "invalidation", "routing"].join("::"),
-            ["logic", "invalidation", "scheduling"].join("::"),
-            ["Frontier", "Plan"].concat(),
-            ["Invalidation", "ReadyQueue"].concat(),
-        ];
-        for symbol in forbidden {
-            assert!(
-                !source.contains(&symbol),
-                "oracle imports production symbol {symbol}"
-            );
-        }
+    pub(in crate::tests::domains::fintech) const fn counter_manifest(
+        &self,
+    ) -> &ExpectedLocalityCounterManifest {
+        &self.counter_manifest
+    }
+
+    pub(in crate::tests::domains::fintech) const fn causality_rejections(&self) -> u64 {
+        self.causality_rejections
+    }
+
+    pub(in crate::tests::domains::fintech) fn action_checkpoints(
+        &self,
+    ) -> &[ExpectedActionCheckpoint] {
+        &self.action_checkpoints
+    }
+
+    pub(in crate::tests::domains::fintech) fn committed_output_ordinals(&self) -> &[u64] {
+        &self.committed_output_ordinals
     }
 }

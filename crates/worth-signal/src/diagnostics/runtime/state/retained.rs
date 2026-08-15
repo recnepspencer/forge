@@ -1,7 +1,9 @@
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
 use crate::data::output::ChangedRegion;
-use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
+use crate::data::proof::{
+    FrontierDiagnosticsSidecar, InvalidationPlanningEstimate, InvalidationTraceRecord,
+};
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
@@ -72,8 +74,12 @@ impl DiagnosticsState {
         self.pending_graph_summary.as_ref()
     }
 
-    pub fn latest_frontier_execution(&self) -> Option<&FrontierExecutionSummary> {
+    pub fn latest_frontier_execution(&self) -> Option<&FrontierDiagnosticsSidecar> {
         self.latest_frontier_execution.as_ref()
+    }
+
+    pub fn latest_invalidation_planning_estimate(&self) -> Option<&InvalidationPlanningEstimate> {
+        self.latest_invalidation_planning_estimate.as_ref()
     }
 
     pub fn latest_invalidation_trace_records(&self) -> &[InvalidationTraceRecord] {
@@ -115,9 +121,11 @@ impl DiagnosticsState {
 
     pub fn record_frontier_execution(
         &mut self,
-        summary: FrontierExecutionSummary,
+        planning_estimate: InvalidationPlanningEstimate,
+        summary: FrontierDiagnosticsSidecar,
         trace_records: Vec<InvalidationTraceRecord>,
     ) {
+        self.latest_invalidation_planning_estimate = Some(planning_estimate);
         self.latest_frontier_execution = Some(summary);
         self.latest_invalidation_trace_records = trace_records;
     }
@@ -169,6 +177,7 @@ impl DiagnosticsState {
         self.pending_input = None;
         self.pending_graph_summary = None;
         self.latest_frontier_execution = None;
+        self.latest_invalidation_planning_estimate = None;
         self.latest_invalidation_trace_records.clear();
     }
 

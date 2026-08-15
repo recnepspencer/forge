@@ -2244,26 +2244,34 @@ Normative rule:
   integration facades; compatibility views, if required, are descriptive-only
   and cannot satisfy operational or performed-evidence bounds
 
-`S9.16.3` reopened status:
+`S9.16.3` implementation status after Milestone 13:
 
 - Milestone 12 is complete: root intent, performed per-aspect/per-scope output
   deltas, consumer-specific causes, exact binding axes, pending precedence,
   comparator separation, persistence/readmission, and the financial semantic
   courtroom are accepted
 - structural transitive summaries are aspect-free and scope-free, so
-  reachability can no longer mint descendant meaning
-- the ordinary root invalidation application path still walks the complete
-  reachable subscriber closure and pre-marks descendants pending revalidation
-- producer subscriber membership is not yet indexed by producer-local aspect
-  and partition/detail scope, so direct exact changes still pay for disjoint
-  direct candidates
-- `FrontierPlan`, public summary constructors, predicted counters, and
-  reachability-oriented execution counters do not form compiler-enforced
-  prepared/committed/lowered/ready/executed authority
-- the remaining defect is cost and progression honesty: irrelevant reachable
-  descendants are visited, derived ready work has no current-basis phase
-  family, and realized counter evidence is not yet sealed through the existing
-  Foundational performance receipt surface
+  reachability cannot mint descendant meaning
+- ordinary routing queries the rebuildable `ProducerAspectKey` reverse index
+  and its unscoped/partition/detail buckets, validates every candidate against
+  current edge and snapshot authority, and creates further work only after the
+  immediate producer performs another output commit
+- source, dependency-commit, and structural origins retain distinct current
+  bases before converging through resolved, lowered, ready, and executed Proof
+  phases; graph/revision/origin/epoch/stage drift is denied before effects
+- ready queues and work bindings remain derived process-local state and are
+  rebuilt from readmitted M12 source/cause authority after restore
+- public integration exposes predicted `InvalidationPlanningEstimate` and
+  performed `SignalInvalidationExecutionReceipt` rather than operational
+  reachability-plan/wave constructors
+- Signal records the realized 24-row counter contract and successful executed
+  work bindings; Foundational attaches counter-backed descriptive evidence and
+  canonicalizes bounded financial case/report identity without acquiring
+  operational authority
+- the six-family financial locality courtroom seals independent
+  `Q/C/K/U/E/S/P`, exact structural slopes, lifecycle evidence, and same-work-
+  stream serial/parallel strategy evidence at the declared ordinary and
+  scheduled scale contracts
 - cycle preflight, M12 direct-cause atomicity, deterministic stage order,
   condition/async pending precedence, trace policy separation, and branch/
   restore/replay truth remain inherited guarantees that Milestone 13 preserves
@@ -2281,9 +2289,11 @@ The numbered repair and certification sequence is:
    replaceable ready-work scheduling boundary, then seals financial cost-slope
    and strategy-readiness evidence during implementation.
 
-`S9.16.3` is not closeable until Milestones 12 and 13 are accepted. Existing
-later work may remain implemented, but it may not use the former `S9.16.3`
-closeout claim as evidence.
+Milestones 12 and 13 jointly close the invalidation portion of `S9.16.3`:
+Milestone 12 owns semantic causality and Milestone 13 owns locality, phase
+progression, and realized cost evidence. Later parallel work may consume only
+the sealed canonical work stream and measured envelopes; it may not reinterpret
+aspect, scope, cause, or readiness authority.
 
 ### S9.16.4 Ã¢â‚¬â€ Geometry-Scale Equivalence and Reuse Contracts
 

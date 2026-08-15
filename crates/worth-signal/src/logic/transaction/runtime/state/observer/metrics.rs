@@ -103,6 +103,10 @@ pub(super) fn merge_invalidation_telemetry(
         keyed_evaluation_count: graph.keyed_evaluation_count + runtime.keyed_evaluation_count,
         direct_subscriber_candidates_examined: graph.direct_subscriber_candidates_examined
             + runtime.direct_subscriber_candidates_examined,
+        reverse_subscription_bucket_probes: graph.reverse_subscription_bucket_probes
+            + runtime.reverse_subscription_bucket_probes,
+        reverse_subscription_candidates_returned: graph.reverse_subscription_candidates_returned
+            + runtime.reverse_subscription_candidates_returned,
         direct_contract_rejections: graph.direct_contract_rejections
             + runtime.direct_contract_rejections,
         direct_causality_rejections: graph.direct_causality_rejections
@@ -143,6 +147,16 @@ pub(super) fn merge_invalidation_telemetry(
             + runtime.frontier_trace_retained_count,
         subscriber_repair_breadth: graph.subscriber_repair_breadth
             + runtime.subscriber_repair_breadth,
+        ready_items_enqueued: graph.ready_items_enqueued + runtime.ready_items_enqueued,
+        ready_items_popped: graph.ready_items_popped + runtime.ready_items_popped,
+        work_items_admitted: graph.work_items_admitted + runtime.work_items_admitted,
+        work_items_merged: graph.work_items_merged + runtime.work_items_merged,
+        ready_work_deduplicated: graph.ready_work_deduplicated + runtime.ready_work_deduplicated,
+        maximum_ready_frontier_width: graph
+            .maximum_ready_frontier_width
+            .max(runtime.maximum_ready_frontier_width),
+        retained_ready_frontier_width: graph.retained_ready_frontier_width
+            + runtime.retained_ready_frontier_width,
     }
 }
 

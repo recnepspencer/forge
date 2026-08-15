@@ -45,6 +45,7 @@ fn transaction_partition_invalidations_union_dirty_scopes_until_runtime_evaluati
             Ok(())
         })
         .unwrap();
+    let dependent_before = runtime.graph().get_state(dependent).unwrap();
 
     runtime
         .transaction(&mut (), |tx| {
@@ -66,7 +67,7 @@ fn transaction_partition_invalidations_union_dirty_scopes_until_runtime_evaluati
     assert_eq!(runtime.graph().get_state(source).unwrap(), NodeState::Dirty);
     assert_eq!(
         runtime.graph().get_state(dependent).unwrap(),
-        NodeState::MaybeStale
+        dependent_before
     );
     assert!(scopes
         .iter()
@@ -80,6 +81,12 @@ fn transaction_partition_invalidations_union_dirty_scopes_until_runtime_evaluati
 fn sparse_partition_fanout_keeps_most_subscribers_out_of_dirty_state() {
     let mut graph = SignalGraph::new();
     let source = graph.node().partitioned_output().build();
+    let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_changed_region(ChangedRegion::new("partition-7")))
+    };
+    evaluate(&mut graph, source, &mut source_v1).unwrap();
+
     let mut subscribers = Vec::new();
     for index in 0..128 {
         let subscriber = graph.node().build();
@@ -89,15 +96,14 @@ fn sparse_partition_fanout_keeps_most_subscribers_out_of_dirty_state() {
         subscribers.push(subscriber);
     }
 
-    let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+    let mut source_v2 = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
             .with_changed_region(ChangedRegion::new("partition-7")))
     };
     let mut subscriber_compute = |_id: NodeId, _graph: &SignalGraph| {
         Ok(NodeEvaluationResult::from_version(version_ab(10, 0)))
     };
 
-    evaluate(&mut graph, source, &mut source_v1).unwrap();
     for &subscriber in &subscribers {
         evaluate(&mut graph, subscriber, &mut subscriber_compute).unwrap();
     }
@@ -110,31 +116,21 @@ fn sparse_partition_fanout_keeps_most_subscribers_out_of_dirty_state() {
     )
     .unwrap();
 
+    assert!(subscribers
+        .iter()
+        .all(|&subscriber| graph.get_state(subscriber).unwrap() == NodeState::Clean));
+
+    evaluate(&mut graph, source, &mut source_v2).unwrap();
+
     let dirty_count = subscribers
         .iter()
         .filter(|&&subscriber| graph.get_state(subscriber).unwrap() == NodeState::Dirty)
         .count();
-    let maybe_stale_count = subscribers
+    let clean_count = subscribers
         .iter()
-        .filter(|&&subscriber| graph.get_state(subscriber).unwrap() == NodeState::MaybeStale)
+        .filter(|&&subscriber| graph.get_state(subscriber).unwrap() == NodeState::Clean)
         .count();
-
-    assert_eq!(dirty_count, 0);
-    assert_eq!(maybe_stale_count, 128);
-    assert_eq!(
-        graph
-            .observe()
-            .metrics()
-            .invalidation
-            .partition_scoped_invalidation_checks,
-        128
-    );
-    assert_eq!(
-        graph
-            .observe()
-            .metrics()
-            .invalidation
-            .partition_match_dirty_count,
-        1
-    );
+    assert_eq!(dirty_count, 1);
+    assert_eq!(clean_count, 127);
+    assert_eq!(graph.pending_causes(subscribers[7]).unwrap().len(), 1);
 }

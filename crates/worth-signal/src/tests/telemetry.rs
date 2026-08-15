@@ -93,7 +93,8 @@ fn invalidation_and_gc_telemetry_record_activity() {
     graph.run_gc_epoch();
 
     let t = graph.telemetry();
-    assert!(t.invalidation.invalidation_nodes_visited >= 1);
+    assert_eq!(t.invalidation.invalidation_nodes_visited, 0);
+    assert_eq!(t.invalidation.frontier_seed_count, 1);
     assert_eq!(t.storage.gc_epoch_count, 1);
     assert!(t.storage.gc_epoch_nanos > 0);
 }

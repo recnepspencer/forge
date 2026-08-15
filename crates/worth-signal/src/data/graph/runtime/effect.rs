@@ -25,6 +25,32 @@ pub(crate) use batching::{
     ApplyCommitPacket, OutputCommitPacket, PreparedParallelApplyCommitPacket,
 };
 
+/// Effect-owner capability proving that direct invalidation preparation was
+/// reached through the output-commit packet builder.
+#[derive(Debug)]
+pub(crate) struct DirectInvalidationPreparationReceipt {
+    _private: (),
+}
+
+impl DirectInvalidationPreparationReceipt {
+    pub(in crate::data::graph::runtime::effect) const fn after_preparation() -> Self {
+        Self { _private: () }
+    }
+}
+
+/// Effect-owner capability minted only after every atomic publication write
+/// has completed.
+#[derive(Debug)]
+pub(crate) struct OutputCommitPublicationReceipt {
+    _private: (),
+}
+
+impl OutputCommitPublicationReceipt {
+    pub(in crate::data::graph::runtime::effect) const fn after_atomic_publication() -> Self {
+        Self { _private: () }
+    }
+}
+
 impl SignalGraph {
     fn transition_effect_state(
         &mut self,

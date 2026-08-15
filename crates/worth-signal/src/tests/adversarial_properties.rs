@@ -44,59 +44,35 @@ fn whole_partition_changes_match_partition_and_detail_subscribers_under_permutat
     graph
         .append_partition_detail_dependency(downstream, upstream, ASPECT_A, "wing", "left")
         .unwrap();
-    graph
-        .get_entry_mut(upstream)
-        .unwrap()
-        .set_state(NodeState::Clean);
-    graph
-        .get_entry_mut(upstream)
-        .unwrap()
-        .set_dirty_aspects(AspectMask::EMPTY);
-    graph
-        .get_entry_mut(downstream)
-        .unwrap()
-        .set_state(NodeState::Clean);
-    graph
-        .get_entry_mut(downstream)
-        .unwrap()
-        .set_dirty_aspects(AspectMask::EMPTY);
+    let mut baseline = |_id, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, upstream, &mut baseline).unwrap();
+    evaluate(&mut graph, downstream, &mut baseline).unwrap();
 
-    for changed in [
+    for (offset, changed) in [
         vec![region("wing", None)],
         vec![region("wing", Some("left"))],
         vec![region("wing", Some("right")), region("wing", None)],
-    ] {
-        let before = graph.get_state(downstream).unwrap();
+    ]
+    .into_iter()
+    .enumerate()
+    {
         mark_dirty_with_regions(&mut graph, upstream, ASPECT_A, &changed).unwrap();
-        let after = graph.get_state(downstream).unwrap();
-        assert_ne!(
-            before, after,
-            "whole-partition or matching detail changes must invalidate detail subscribers"
+        assert_eq!(graph.get_state(downstream).unwrap(), NodeState::Clean);
+        let changed_for_commit = changed.clone();
+        let mut commit = move |_id, _graph: &SignalGraph| {
+            let mut result = NodeEvaluationResult::from_version(version_ab(offset as u64 + 2, 0));
+            for region in &changed_for_commit {
+                result = result.with_changed_region(region.clone());
+            }
+            Ok(result)
+        };
+        evaluate(&mut graph, upstream, &mut commit).unwrap();
+        assert_eq!(
+            graph.get_state(downstream).unwrap(),
+            NodeState::Dirty,
+            "whole-partition or matching detail commits must invalidate detail subscribers"
         );
-        graph
-            .get_entry_mut(downstream)
-            .unwrap()
-            .set_state(NodeState::Clean);
-        graph
-            .get_entry_mut(downstream)
-            .unwrap()
-            .set_dirty_aspects(AspectMask::EMPTY);
-        graph
-            .get_entry_mut(downstream)
-            .unwrap()
-            .clear_dirty_partition_scopes();
-        graph
-            .get_entry_mut(upstream)
-            .unwrap()
-            .set_state(NodeState::Clean);
-        graph
-            .get_entry_mut(upstream)
-            .unwrap()
-            .set_dirty_aspects(AspectMask::EMPTY);
-        graph
-            .get_entry_mut(upstream)
-            .unwrap()
-            .clear_dirty_partition_scopes();
+        evaluate(&mut graph, downstream, &mut baseline).unwrap();
     }
 }
 

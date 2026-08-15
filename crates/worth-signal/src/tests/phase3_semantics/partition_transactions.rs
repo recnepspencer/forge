@@ -14,6 +14,15 @@ fn transaction_partition_seed_resolves_to_exact_matching_cause_after_commit() {
     let source = runtime.graph_mut().node().partitioned_output().build();
     let matching = runtime.graph_mut().node().build();
     let non_matching = runtime.graph_mut().node().build();
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.read(source, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
     let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
     dependencies
         .append_partition_dependency(matching, source, ASPECT_A, "wing")
@@ -24,9 +33,6 @@ fn transaction_partition_seed_resolves_to_exact_matching_cause_after_commit() {
 
     runtime
         .transaction(&mut (), |tx| {
-            tx.read(source, &|view| {
-                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
-            })?;
             tx.read(matching, &|view| {
                 let _ = view.read_partitioned_aspect_version(
                     source,
@@ -62,11 +68,11 @@ fn transaction_partition_seed_resolves_to_exact_matching_cause_after_commit() {
     );
     assert_eq!(
         runtime.graph().get_state(matching).unwrap(),
-        NodeState::MaybeStale
+        NodeState::Clean
     );
     assert_eq!(
         runtime.graph().get_state(non_matching).unwrap(),
-        NodeState::MaybeStale
+        NodeState::Clean
     );
 
     runtime
@@ -106,6 +112,18 @@ fn partition_scoped_runtime_reads_do_not_widen_captured_dependencies() {
     let source = runtime.graph_mut().node().partitioned_output().build();
     let matching = runtime.graph_mut().node().build();
     let non_matching = runtime.graph_mut().node().build();
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.read(source, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
     let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
     dependencies
         .append_partition_dependency(matching, source, ASPECT_A, "wing")
@@ -116,12 +134,6 @@ fn partition_scoped_runtime_reads_do_not_widen_captured_dependencies() {
 
     runtime
         .transaction(&mut (), |tx| {
-            tx.read(source, &|view| {
-                Ok(view.finish(
-                    NodeEvaluationResult::from_version(version_ab(1, 0))
-                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
-                ))
-            })?;
             tx.read(matching, &|view| {
                 let _ = view.read_partitioned_aspect_version(
                     source,
@@ -178,6 +190,18 @@ fn transaction_rollback_after_partition_local_evaluation_restores_clean_states()
     let matching = runtime.graph_mut().node().build();
     let non_matching = runtime.graph_mut().node().build();
     runtime
+        .transaction(&mut (), |tx| {
+            tx.read(source, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime
         .graph_mut()
         .append_partition_detail_dependency(matching, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
@@ -188,12 +212,6 @@ fn transaction_rollback_after_partition_local_evaluation_restores_clean_states()
 
     runtime
         .transaction(&mut (), |tx| {
-            tx.read(source, &|view| {
-                Ok(view.finish(
-                    NodeEvaluationResult::from_version(version_ab(1, 0))
-                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
-                ))
-            })?;
             tx.read(matching, &|view| {
                 let _ = view.read_partitioned_aspect_version(
                     source,
@@ -258,6 +276,18 @@ fn committed_partition_local_evaluation_preserves_changed_region_explanation_and
     let matching = runtime.graph_mut().node().build();
     let non_matching = runtime.graph_mut().node().build();
     runtime
+        .transaction(&mut (), |tx| {
+            tx.read(source, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime
         .graph_mut()
         .append_partition_detail_dependency(matching, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
@@ -268,12 +298,6 @@ fn committed_partition_local_evaluation_preserves_changed_region_explanation_and
 
     runtime
         .transaction(&mut (), |tx| {
-            tx.read(source, &|view| {
-                Ok(view.finish(
-                    NodeEvaluationResult::from_version(version_ab(1, 0))
-                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
-                ))
-            })?;
             tx.read(matching, &|view| {
                 let _ = view.read_partitioned_aspect_version(
                     source,

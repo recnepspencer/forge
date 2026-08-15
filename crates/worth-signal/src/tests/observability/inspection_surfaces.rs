@@ -76,13 +76,11 @@ fn metrics_snapshots_reflect_runtime_activity() {
             >= 1
     );
     assert!(runtime.observe().metrics().checkpoint.event_flushes >= 1);
-    assert!(
-        runtime
-            .graph()
-            .observe()
-            .metrics()
-            .invalidation
-            .invalidation_nodes_visited
-            >= 1
-    );
+    let estimate = runtime
+        .graph()
+        .observe()
+        .latest_invalidation_planning_estimate()
+        .expect("committed source seed should retain a planning estimate");
+    assert_eq!(estimate.seed_count(), 1);
+    assert_eq!(estimate.direct_candidate_count(), 0);
 }

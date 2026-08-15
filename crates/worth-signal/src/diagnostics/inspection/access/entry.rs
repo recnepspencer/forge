@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::data::handle::NodeId;
-use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
+use crate::data::proof::{FrontierDiagnosticsSidecar, InvalidationTraceRecord};
 use crate::diagnostics::compare::{
     explanations_semantically_equivalent, graphs_semantically_equivalent,
     plans_semantically_equivalent, repeat_run_summaries_equal, reports_semantically_equivalent,
@@ -97,7 +97,7 @@ impl<'a> GraphDiagnostics<'a> {
         self.graph.observe().latest_observation_summary()
     }
 
-    pub fn latest_frontier_execution(&self) -> Option<&'a FrontierExecutionSummary> {
+    pub(crate) fn latest_frontier_execution(&self) -> Option<&'a FrontierDiagnosticsSidecar> {
         self.graph.observe().latest_frontier_execution_summary()
     }
 
