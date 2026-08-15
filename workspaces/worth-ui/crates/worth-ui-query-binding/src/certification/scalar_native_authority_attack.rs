@@ -84,7 +84,7 @@ fn settled_world(value: &str) -> WorthUiSettledScalarTextProjection {
     let prepared = operation
         .enter_attempt(&workspace)
         .expect("exact scalar operating world")
-        .prepare_consumer("status")
+        .prepare_consumer(&crate::UiProjectionFieldRequirement::query_text_status())
         .unwrap_or_else(|_| panic!("exact scalar consumer must prepare"));
     let executed = match prepared.execute(&mut workspace) {
         WorthUiScalarTextExecutionOutcome::Executed(executed) => *executed,

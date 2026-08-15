@@ -6,12 +6,14 @@ mod prepared_host;
 mod text_profile;
 
 pub use native::{
+    UiAlphaAtlasLifecycle, UiAtlasEntryIdentity, UiAtlasEntryKey, UiAtlasPin,
     UiNativeClientPresentationAttribution, UiNativeEffectPosture, UiNativeEventLoopCleanup,
     UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
     UiNativeEventLoopDirective, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
     UiNativeEventLoopStopReport, UiNativeGraphicsObservation, UiNativePresentationObservation,
     UiNativePresentationWorkKind, UiNativeReadinessGrant, UiNativeResourceCensus,
-    UiNativeRetainedFrameObservation, WorthUiNativeEventLoop, WorthUiNativeMechanicsAdapter,
+    UiNativeRetainedFrameObservation, UiRgbaAtlasLifecycle, UiTextAtlasCapacity,
+    UiTextAtlasContractDenial, WorthUiNativeEventLoop, WorthUiNativeMechanicsAdapter,
 };
 pub use native_profile::{
     UiNativeMechanicsCapacities, UiNativePlatformProfileIdentity, WORTH_UI_NATIVE_PROFILE_MANIFEST,

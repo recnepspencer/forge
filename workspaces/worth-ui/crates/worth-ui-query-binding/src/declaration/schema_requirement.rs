@@ -97,7 +97,7 @@ impl UiCollectionSchemaRequirement {
         let mut distinct_fields = HashSet::with_capacity(selected_fields.len());
         if selected_fields
             .iter()
-            .any(|field| !distinct_fields.insert(field.declared_name()))
+            .any(|field| !distinct_fields.insert(field))
         {
             return Err(UiCollectionSchemaRequirementError::DuplicateSelectedField);
         }

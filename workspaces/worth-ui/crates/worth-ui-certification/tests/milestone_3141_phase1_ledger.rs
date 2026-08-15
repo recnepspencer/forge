@@ -4,6 +4,8 @@ use super::{repository_document, workspace_source_inventory};
 
 #[path = "milestone_3141_phase1_ledger/claim_contract.rs"]
 mod claim_contract;
+#[path = "milestone_3141_phase1_ledger/claim_contract_phase5.rs"]
+mod claim_contract_phase5;
 #[path = "milestone_3141_phase1_ledger/claim_digest.rs"]
 mod claim_digest;
 #[path = "milestone_3141_phase1_ledger/command_binding.rs"]
@@ -16,6 +18,8 @@ mod dependency_row;
 mod evidence_fields;
 #[path = "milestone_3141_phase1_ledger/execution_contract.rs"]
 mod execution_contract;
+#[path = "milestone_3141_phase1_ledger/execution_contract_phase5.rs"]
+mod execution_contract_phase5;
 #[path = "milestone_3141_phase1_ledger/future_requirement_contract.rs"]
 mod future_requirement_contract;
 #[cfg(test)]
@@ -31,6 +35,8 @@ mod predecessor_artifact;
 mod predecessor_current_mapping;
 #[path = "milestone_3141_phase1_ledger/predecessor_handoff.rs"]
 mod predecessor_handoff;
+#[path = "milestone_3141_phase1_ledger/predecessor_inventory.rs"]
+mod predecessor_inventory;
 #[path = "milestone_3141_phase1_ledger/requirement_contract.rs"]
 mod requirement_contract;
 #[path = "milestone_3141_phase1_ledger/result_artifact.rs"]
@@ -199,6 +205,19 @@ fn phase_four_closure_requires_every_predecessor_and_phase_four_row() {
     println!("WORTH_UI_LEDGER_COUNTERS={{\"P4-CLOSE-01\":21}}");
 }
 
+#[test]
+#[ignore = "milestone closure gate: run only after every Phase 5 row has final evidence"]
+fn phase_five_closure_requires_every_predecessor_and_phase_five_row() {
+    let rows = parse(&ledger_document()).expect("the milestone ledger should parse");
+    for (requirement, row) in &rows {
+        if row["phase"].parse::<u8>().unwrap() <= 5 && requirement != "P5-CLOSE-01" {
+            assert_eq!(row["result"], "PROVED", "{requirement} remains open");
+            assert_eq!(row["final_source"], "true", "{requirement} is not final");
+        }
+    }
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-CLOSE-01\":11}}");
+}
+
 fn validate_row(row: &Row) -> Result<(), String> {
     validate_requirement_contract(row)
         .map_err(|error| format!("{}: {error}", row["requirement"]))?;
@@ -239,13 +258,14 @@ fn validate_closed_identity(
     contract: &requirement_contract::RequirementContract,
 ) -> Result<(), String> {
     let expected_phase = requirement_phase(&row["requirement"])?;
-    let expected_font_identity = if expected_phase == "4" {
+    let text_phase = matches!(expected_phase, "4" | "5");
+    let expected_font_identity = if text_phase {
         "worth-ui-global-text-v2"
     } else {
         "worth-ui-body-default-v1"
     };
     let expected_font_digest = requirement_contract::FONT_PROFILE_DIGEST;
-    let phase_four = expected_phase == "4";
+    let phase_four = text_phase;
     if row["phase"] != expected_phase
         || row["owner"] != contract.owner
         || row["production_boundary"] != contract.boundary
@@ -275,6 +295,7 @@ fn requirement_phase(requirement: &str) -> Result<&'static str, String> {
         Some("P2-") => Ok("2"),
         Some("P3-") => Ok("3"),
         Some("P4-") => Ok("4"),
+        Some("P5-") => Ok("5"),
         _ => Err("unknown requirement phase".to_owned()),
     }
 }
@@ -337,7 +358,7 @@ fn validate_profile_digests(row: &Row) -> Result<(), String> {
         "workspaces/worth-ui/crates/worth-ui-host-native/profiles/worth-ui-body-default-v1.toml";
     let native =
         "workspaces/worth-ui/crates/worth-ui-host-native/profiles/worth-ui-windows-dx12-v1.toml";
-    let font_matches = if row["phase"] == "4" {
+    let font_matches = if matches!(row["phase"].as_str(), "4" | "5") {
         text_profile_gate::validate(text_profile_gate::ProfileClaim {
             result: &row["result"],
             identity: &row["font_profile_identity"],

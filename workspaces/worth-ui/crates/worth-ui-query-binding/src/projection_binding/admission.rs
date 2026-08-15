@@ -45,7 +45,7 @@ pub(crate) fn admit_scalar_registration(
             ));
         }
     };
-    match gateway.prepare_consumer(requirement.selected_field().declared_name()) {
+    match gateway.prepare_consumer(requirement.selected_field()) {
         Ok(prepared) => {
             UiScalarProjectionBindingAdmission::Ready(UiScalarProjectionBinding::admitted(
                 requirement,

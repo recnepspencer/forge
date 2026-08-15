@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -19,6 +20,7 @@ from worth_ui_ledger_retained_portfolio import (
     validate,
 )
 from worth_ui_ledger_runner_authentication import authentication_tag
+from worth_ui_ledger_runner_authentication import RunnerProvenanceUnavailable
 
 
 CANONICAL = Path("_docs/worth-ui/milestone-3.14.1-proof-ledger.csv")
@@ -46,6 +48,61 @@ class RetainedPortfolioTests(unittest.TestCase):
             payload["unique_execution_count"] = 999
             identity.write_text(json.dumps(payload), encoding="utf-8")
             with self.assertRaisesRegex(RuntimeError, "differs"):
+                validate(root, ledger, 4, "a" * 40, "b" * 64)
+
+    def test_validation_survives_execution_cache_deletion(self) -> None:
+        with self.fixture() as (root, ledger):
+            published = publish(root, ledger, 4, "a" * 40, "b" * 64)
+            cache = (
+                root
+                / "workspaces/worth-ui/target/milestone-3141-execution-cache"
+            )
+            self.assertTrue(any(cache.rglob("*.json")))
+            for identity in cache.rglob("*"):
+                if identity.is_file():
+                    identity.unlink()
+            retained = validate(root, ledger, 4, "a" * 40, "b" * 64)
+            self.assertEqual(retained, published)
+
+    def test_different_machine_key_requires_operational_revalidation(self) -> None:
+        with self.fixture() as (root, ledger), tempfile.TemporaryDirectory() as state:
+            publish(root, ledger, 4, "a" * 40, "b" * 64)
+            with patch.dict("os.environ", {"LOCALAPPDATA": state}):
+                with self.assertRaises(RunnerProvenanceUnavailable):
+                    validate(root, ledger, 4, "a" * 40, "b" * 64)
+
+    def test_forged_or_mismatched_durable_envelope_is_rejected(self) -> None:
+        with self.fixture() as (root, ledger):
+            publish(root, ledger, 4, "a" * 40, "b" * 64)
+            envelope_path = next(
+                (root / "_docs/worth-ui/milestone-3.14.1-evidence/executions").rglob(
+                    "*.json"
+                )
+            )
+            envelope = json.loads(envelope_path.read_text(encoding="utf-8"))
+            envelope["record"]["stdout"] = "forged durable envelope"
+            envelope["receipt_sha256"] = digest_json(envelope["record"])
+            envelope_path.write_text(json.dumps(envelope), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "differs"):
+                validate(root, ledger, 4, "a" * 40, "b" * 64)
+        with self.fixture() as (root, ledger):
+            publish(root, ledger, 4, "a" * 40, "b" * 64)
+            first = next(
+                (root / "_docs/worth-ui/milestone-3.14.1-evidence/executions").rglob(
+                    "*.json"
+                )
+            )
+            second = next(
+                path
+                for path in (root / "_docs/worth-ui/milestone-3.14.1-evidence/executions").rglob(
+                    "*.json"
+                )
+                if path != first
+            )
+            first.write_text(second.read_text(encoding="utf-8"), encoding="utf-8")
+            with self.assertRaisesRegex(
+                RuntimeError, "absent|differs|wrong row command"
+            ):
                 validate(root, ledger, 4, "a" * 40, "b" * 64)
 
     def test_missing_or_forged_execution_receipts_are_rejected(self) -> None:

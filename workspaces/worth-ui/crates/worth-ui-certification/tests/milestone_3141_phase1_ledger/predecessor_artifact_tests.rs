@@ -14,14 +14,11 @@ fn phase_three_predecessor_rows_use_the_future_requirement_contract_owner() {
 
 #[test]
 fn phase_three_predecessor_inventory_selects_by_phase_not_append_position() {
-    let expected = super::schema::EXPECTED_REQUIREMENTS
-        .iter()
-        .filter(|requirement| !requirement.starts_with("P4-"))
-        .copied()
-        .collect::<std::collections::BTreeSet<_>>();
+    let expected = super::super::predecessor_inventory::predecessor_requirements(47);
     assert_eq!(expected.len(), 47);
     assert!(expected.contains("P3-CLIPPED-DELTA-01"));
     assert!(!expected.contains("P4-BIDI-01"));
+    assert!(!expected.contains("P5-PREDECESSOR-01"));
 }
 
 #[test]
@@ -153,6 +150,29 @@ fn phase_four_stale_source_or_missing_row_is_rejected() {
     );
     println!(
         "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P4-PREDECESSOR-01\":\"stale-phase-three-source\"}}"
+    );
+}
+
+#[test]
+fn phase_five_stale_source_or_missing_row_is_rejected() {
+    let revision = result_artifact_binding::current_revision().unwrap();
+    let source_state = source_digest::calculate_source_state(&revision).unwrap();
+    let mut artifact = fixture(&revision, &source_state);
+    artifact["through_phase"] = Value::from(4);
+    artifact["verified_requirement_count"] = Value::from(68);
+    artifact["mapping_digest"] = Value::from("0".repeat(64));
+    let mut stale = artifact.clone();
+    stale["source_state_digest"] = Value::from("0".repeat(64));
+    assert_eq!(
+        validate_value(&stale, &revision, &source_state),
+        Err("predecessor artifact has wrong source_state_digest".to_owned())
+    );
+    assert_eq!(
+        validate_value(&artifact, &revision, &source_state),
+        Err("predecessor artifact has wrong mapping_digest".to_owned())
+    );
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-PREDECESSOR-01\":\"stale-phase-four-source\"}}"
     );
 }
 

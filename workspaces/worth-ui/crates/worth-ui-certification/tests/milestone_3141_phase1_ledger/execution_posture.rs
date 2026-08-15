@@ -52,6 +52,17 @@ pub(crate) fn counter_amount(requirement: &str) -> Option<u64> {
         "P4-TEXT-CONTENT-LOCALITY-01" => 13,
         "P4-UNCHANGED-01" | "P4-TEXT-COST-01" => 0,
         "P4-CLOSE-01" => 21,
+        "P5-PREDECESSOR-01" => 68,
+        "P5-GLYPH-RASTER-01" => 2,
+        "P5-COLOR-EMOJI-01" => 3953,
+        "P5-ATLAS-01" => 2,
+        "P5-ATLAS-PINNING-01" => 1,
+        "P5-TEXT-DPI-01" => 1,
+        "P5-TEXT-SPAN-PAINT-01" => 2,
+        "P5-TEXT-PIXELS-01" => 2,
+        "P5-TEXT-RECONSTRUCTION-01" => 1,
+        "P5-TEXT-COST-01" => 0,
+        "P5-CLOSE-01" => 11,
         _ if main_for(requirement).is_some() => 1,
         _ => return None,
     })
@@ -81,6 +92,13 @@ pub(crate) fn fault_boundary(requirement: &str) -> Option<&'static str> {
         | "P4-COLOR-FONT-ADMISSION-01"
         | "P4-CAPACITY-01" => "before-effects",
         requirement if requirement.starts_with("P4-") => "not-applicable",
+        "P5-GLYPH-RASTER-01"
+        | "P5-COLOR-EMOJI-01"
+        | "P5-ATLAS-01"
+        | "P5-ATLAS-PINNING-01"
+        | "P5-TEXT-DPI-01"
+        | "P5-TEXT-SPAN-PAINT-01" => "before-effects",
+        requirement if requirement.starts_with("P5-") => "not-applicable",
         _ => return None,
     })
 }
@@ -136,6 +154,7 @@ pub(crate) fn expected_declared_ignored(requirement: &str) -> bool {
                 | "P4-FALLBACK-01"
                 | "P4-CLOSE-01"
         )
+        || matches!(requirement, "P5-PREDECESSOR-01" | "P5-CLOSE-01")
 }
 
 pub(crate) fn is_shared_main(requirement: &str) -> bool {

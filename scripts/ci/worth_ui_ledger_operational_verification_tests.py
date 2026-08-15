@@ -11,6 +11,7 @@ import verify_worth_ui_3141_ledger as verifier
 import worth_ui_ledger_command as ledger_command
 import worth_ui_ledger_operational_successors as portfolio
 import worth_ui_ledger_portfolio_snapshot as snapshot
+from worth_ui_ledger_runner_authentication import RunnerProvenanceUnavailable
 
 
 LEDGER = Path("_docs/worth-ui/milestone-3.14.1-proof-ledger.csv")
@@ -37,6 +38,23 @@ class OperationalVerificationTests(unittest.TestCase):
             self.assertEqual(verifier.main(), 0)
         retained.assert_called_once()
         closure.assert_called_once()
+
+    def test_foreign_runner_provenance_triggers_operational_revalidation(self) -> None:
+        arguments = argparse.Namespace(through_phase=4, artifact=None)
+        with (
+            patch.object(verifier, "parse_args", return_value=arguments),
+            patch.object(verifier, "source_revision", return_value="a" * 40),
+            patch.object(verifier, "source_state_digest", return_value="b" * 64),
+            patch.object(verifier, "retained_source_binding", return_value=("a" * 40, "b" * 64)),
+            patch.object(verifier, "persist_referenced_receipts"),
+            patch.object(
+                verifier, "validate_retained_portfolio",
+                side_effect=RunnerProvenanceUnavailable("foreign key"),
+            ),
+            patch.object(verifier, "execute_portfolio", return_value=([], 2)) as execute,
+        ):
+            self.assertEqual(verifier.main(), 0)
+        execute.assert_called_once_with(arguments)
 
     def test_verifier_executes_rows_inside_one_revision_bound_source_snapshot(self) -> None:
         revision = "a" * 40

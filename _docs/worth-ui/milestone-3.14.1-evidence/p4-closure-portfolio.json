@@ -1,8 +1,9 @@
 {
-  "schema": "worth-ui-ledger-retained-portfolio-v1",
+  "schema": "worth-ui-ledger-retained-portfolio-v2",
   "through_phase": 4,
   "source_revision": "eb3c101f1887989d5a569d4f70f5238f0d6645c8",
   "source_state_digest": "b19e6bef872a3699b0aee099d260cf7956d419e3b614a729daf8a3925b8f5585",
+  "runner_key_fingerprint": "e50f7c72921fa4c1427483c3b18dfd6ec9e1a0bed9a0c89cf55dd5da7a71711c",
   "ledger_sha256": "5603d9e900a567eb1fe637ebc729eeed450d8d5b459b5275044b568e124be320",
   "rows": [
     {
@@ -1664,5 +1665,5 @@
   ],
   "unique_execution_count": 103,
   "execution_reference_count": 282,
-  "portfolio_sha256": "cec13b9d8cd7581ae8bac8017f10d53560cff3ae94766d98a4ac09a85fde27e3"
+  "portfolio_sha256": "e753d430c7869853ee3f349897472089e9187c7cb795e599d9b38397ff94f5f1"
 }

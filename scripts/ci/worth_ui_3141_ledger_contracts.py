@@ -1,3 +1,11 @@
+from worth_ui_3141_fault_boundaries import fault_boundaries
+from worth_ui_3141_p5_contracts import (
+    P5_COUNTERS,
+    P5_MUTATIONS,
+    p5_construction_cost,
+    p5_execution_cost,
+)
+
 MUTATIONS = {
     "P1-AFFINITY-01": ("affinity", "stale-predecessor"),
     "P1-AUTHORITY-01": ("construction", "public-construction"),
@@ -71,6 +79,7 @@ MUTATIONS = {
     "P4-TEXT-COST-01": ("paragraph-rescan", "complete-document-rescan"),
     "P4-CLOSE-01": ("ledger", "open-requirement"),
 }
+MUTATIONS.update(P5_MUTATIONS)
 
 COUNTERS = {
     "P1-AFFINITY-01": ("work", 3),
@@ -142,6 +151,7 @@ COUNTERS = {
     "P4-TEXT-COST-01": ("retained-scans", 0),
     "P4-CLOSE-01": ("requirements", 21),
 }
+COUNTERS.update(P5_COUNTERS)
 
 EXPECTED_IGNORED = {
     requirement: (
@@ -166,6 +176,10 @@ for _requirement in COUNTERS:
             "P4-COLOR-FONT-ADMISSION-01", "P4-UNICODE-SEGMENTATION-01",
             "P4-EMOJI-SEQUENCE-01", "P4-BIDI-01", "P4-FALLBACK-01",
             "P4-CLOSE-01",
+        }
+    if _requirement.startswith("P5-"):
+        EXPECTED_IGNORED[_requirement] = _requirement in {
+            "P5-PREDECESSOR-01", "P5-CLOSE-01",
         }
 
 BASIC_PLATFORM_VERSIONS = "protocol=4"
@@ -273,6 +287,8 @@ def construction_cost(requirement: str) -> str:
             f"main-tests=1;hostile-controls=1;product-processes={int(native)};"
             f"compile-sessions=0;courtroom-worlds={int(native or mixed)}"
         )
+    if requirement.startswith("P5-"):
+        return p5_construction_cost(requirement)
     if requirement.startswith("P4-"):
         if requirement == "P4-PREDECESSOR-01":
             return (
@@ -336,6 +352,8 @@ def execution_cost(requirement: str) -> str:
             } else 0
         )
         return f"executed-tests=2;presentations={presentations}"
+    if requirement.startswith("P5-"):
+        return p5_execution_cost(requirement)
     if requirement == "P4-PREDECESSOR-01":
         return "executed-tests=55;presentations=28"
     if requirement.startswith("P4-"):
@@ -354,7 +372,7 @@ def execution_cost(requirement: str) -> str:
 
 
 def platform_versions(requirement: str) -> str:
-    if requirement.startswith("P4-"):
+    if requirement.startswith(("P4-", "P5-")):
         return TEXT_PLATFORM_VERSIONS
     if requirement.startswith("P2-") or requirement in P3_NATIVE_REQUIREMENTS:
         return NATIVE_PLATFORM_VERSIONS
@@ -362,39 +380,4 @@ def platform_versions(requirement: str) -> str:
         return PROFILE_PLATFORM_VERSIONS
     return BASIC_PLATFORM_VERSIONS
 
-FAULT_BOUNDARIES = {
-    requirement: "not-applicable"
-    for requirement in COUNTERS
-    if requirement.startswith("P1-")
-}
-FAULT_BOUNDARIES.update({
-    "P2-APPLICATION-01": "before-effects",
-    "P2-EVENT-LOOP-01": "before-effects",
-    "P2-GRAPHICS-01": "before-effects",
-    "P2-READINESS-01": "before-effects",
-    "P2-WINDOW-01": "before-effects",
-})
-FAULT_BOUNDARIES["P3-PREDECESSOR-01"] = "not-applicable"
-for _requirement in COUNTERS:
-    if _requirement.startswith("P3-") and _requirement not in FAULT_BOUNDARIES:
-        FAULT_BOUNDARIES[_requirement] = (
-            "after-effects-may-have-begun"
-            if _requirement in {
-                "P3-BASELINE-REPLAY-01", "P3-DAMAGE-REPLAY-01",
-                "P3-HP02-WORLD-01", "P3-PHYSICAL-AMPLIFICATION-01", "P3-TRANSACTION-01",
-            }
-            else "not-applicable"
-        )
-for _requirement in COUNTERS:
-    if _requirement.startswith("P2-") and _requirement not in FAULT_BOUNDARIES:
-        FAULT_BOUNDARIES[_requirement] = "after-effects-may-have-begun"
-for _requirement in COUNTERS:
-    if _requirement.startswith("P4-"):
-        FAULT_BOUNDARIES[_requirement] = (
-            "before-effects"
-            if _requirement in {
-                "P4-TEXT-PROFILE-01", "P4-FONT-COLLECTION-01",
-                "P4-COLOR-FONT-ADMISSION-01", "P4-CAPACITY-01",
-            }
-            else "not-applicable"
-        )
+FAULT_BOUNDARIES = fault_boundaries(COUNTERS)

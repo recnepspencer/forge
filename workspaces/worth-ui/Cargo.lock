@@ -5227,6 +5227,7 @@ dependencies = [
  "worth-ui-query-binding",
  "worth-ui-runtime",
  "worth-ui-test-support",
+ "worth-ui-text",
 ]
 
 [[package]]

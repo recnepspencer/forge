@@ -147,6 +147,8 @@ def governed_main(arguments: argparse.Namespace) -> int:
         close_phase_three(rows, fields, selected)
     elif through_phase == 4:
         close_phase_four(rows, fields, selected)
+    elif through_phase == 5:
+        close_phase_five(rows, fields, selected)
     else:
         raise RuntimeError("unsupported Worth UI milestone phase")
     return 0
@@ -317,27 +319,41 @@ def close_phase_two(rows: list[dict[str, str]], fields: list[str]) -> None:
 def close_phase_three(
     rows: list[dict[str, str]], fields: list[str], selected: list[dict[str, str]]
 ) -> None:
-    by_requirement = {row["requirement"]: row for row in selected}
-    priority = ["P3-PREDECESSOR-01", "P3-DELTA-SOURCE-01", "P3-HP02-WORLD-01"]
-    ordered = [by_requirement.pop(identity) for identity in priority if identity in by_requirement]
-    close = by_requirement.pop("P3-CLOSE-01", None)
-    ordered.extend(by_requirement.values())
-    if close is not None:
-        ordered.append(close)
-    close_selected_atomically(rows, fields, ordered, verify_phase=3)
+    close_phase_with_priority(
+        rows, fields, selected, ["P3-PREDECESSOR-01", "P3-DELTA-SOURCE-01", "P3-HP02-WORLD-01"],
+        "P3-CLOSE-01", 3,
+    )
 
 
 def close_phase_four(
     rows: list[dict[str, str]], fields: list[str], selected: list[dict[str, str]]
 ) -> None:
+    close_phase_with_priority(
+        rows, fields, selected, ["P4-PREDECESSOR-01", "P4-TEXT-PROFILE-01"], "P4-CLOSE-01", 4
+    )
+
+
+def close_phase_five(
+    rows: list[dict[str, str]], fields: list[str], selected: list[dict[str, str]]
+) -> None:
+    close_phase_with_priority(rows, fields, selected, ["P5-PREDECESSOR-01"], "P5-CLOSE-01", 5)
+
+
+def close_phase_with_priority(
+    rows: list[dict[str, str]],
+    fields: list[str],
+    selected: list[dict[str, str]],
+    priority: list[str],
+    close_requirement: str,
+    verify_phase: int,
+) -> None:
     by_requirement = {row["requirement"]: row for row in selected}
-    priority = ["P4-PREDECESSOR-01", "P4-TEXT-PROFILE-01"]
     ordered = [by_requirement.pop(identity) for identity in priority if identity in by_requirement]
-    close = by_requirement.pop("P4-CLOSE-01", None)
+    close = by_requirement.pop(close_requirement, None)
     ordered.extend(by_requirement.values())
     if close is not None:
         ordered.append(close)
-    close_selected_atomically(rows, fields, ordered, verify_phase=4)
+    close_selected_atomically(rows, fields, ordered, verify_phase=verify_phase)
 
 
 def validate_ledger_posture(candidate: Path | None = None) -> None:
@@ -374,7 +390,7 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Atomically close Worth UI milestone 3.14.1 ledger evidence"
     )
-    parser.add_argument("--through-phase", type=int, choices=(2, 3, 4), default=2)
+    parser.add_argument("--through-phase", type=int, choices=(2, 3, 4, 5), default=2)
     parser.add_argument("--requirement")
     parser.add_argument("--prepare-only", action="store_true")
     return parser.parse_args()

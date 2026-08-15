@@ -125,7 +125,7 @@ pub(super) fn scenario_delta(requirement: &str) -> Option<&'static str> {
         "P4-UNCHANGED-01" => "unchanged-paragraph-rescan",
         "P4-TEXT-COST-01" => "complete-document-rescan",
         "P4-CLOSE-01" => "open-requirement",
-        _ => return None,
+        _ => return super::claim_contract_phase5::scenario_delta(requirement),
     })
 }
 
@@ -165,6 +165,9 @@ pub(super) fn construction_cost(requirement: &str) -> &'static str {
             (_, true) => "main-tests=1;hostile-controls=1;product-processes=0;compile-sessions=0;courtroom-worlds=1",
             _ => "main-tests=1;hostile-controls=1;product-processes=0;compile-sessions=0;courtroom-worlds=0",
         };
+    }
+    if let Some(cost) = super::claim_contract_phase5::construction_cost(requirement) {
+        return cost;
     }
     if requirement.starts_with("P4-") {
         if requirement == "P4-PREDECESSOR-01" {
@@ -245,7 +248,9 @@ pub(super) fn execution_cost(requirement: &str) -> &'static str {
     } else if requirement.starts_with("P2-") || is_p3_native(requirement) {
         "executed-tests=1;presentations=0;shared-presentations=1"
     } else {
-        if requirement == "P4-PREDECESSOR-01" {
+        if let Some(cost) = super::claim_contract_phase5::execution_cost(requirement) {
+            cost
+        } else if requirement == "P4-PREDECESSOR-01" {
             "executed-tests=55;presentations=28"
         } else if requirement.starts_with("P4-") {
             "executed-tests=2;presentations=0"
@@ -256,7 +261,7 @@ pub(super) fn execution_cost(requirement: &str) -> &'static str {
 }
 
 pub(super) fn platform_versions(requirement: &str) -> &'static str {
-    if requirement.starts_with("P4-") {
+    if requirement.starts_with("P4-") || requirement.starts_with("P5-") {
         TEXT_PLATFORM_VERSIONS
     } else if requirement.starts_with("P2-") || is_p3_native(requirement) {
         NATIVE_PLATFORM_VERSIONS
@@ -268,7 +273,7 @@ pub(super) fn platform_versions(requirement: &str) -> &'static str {
 }
 
 pub(super) fn validate_platform_dependencies(requirement: &str) -> Result<(), String> {
-    if requirement.starts_with("P4-") {
+    if requirement.starts_with("P4-") || requirement.starts_with("P5-") {
         return validate_text_dependencies();
     }
     if requirement != "P1-PROFILE-01"

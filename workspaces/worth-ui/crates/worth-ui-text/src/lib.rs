@@ -12,6 +12,11 @@ mod layout_artifact;
 mod line_break;
 mod profile;
 mod qualification;
+#[allow(
+    dead_code,
+    reason = "Phase 5 raster authority is frozen before production implementation"
+)]
+mod raster;
 mod reconstruction;
 mod request;
 #[cfg(test)]
@@ -50,6 +55,12 @@ pub(crate) use layout_artifact::{
 };
 pub use profile::UiGlobalTextProfile;
 pub use qualification::{qualify_text_layout, UiTextQualificationDenial};
+pub use raster::{
+    UiAlphaRasterBatch, UiAlphaRasterKind, UiColorRasterBatch, UiColorRasterKind,
+    UiGlyphRasterAdmissionDenial, UiGlyphRasterBatch, UiGlyphRasterCost, UiGlyphRasterExtent,
+    UiGlyphRasterFormat, UiGlyphRasterLane, UiGlyphRasterLaneCost, UiGlyphRasterRecord,
+    UiGlyphRasterScale,
+};
 pub use reconstruction::{UiQualifiedTextReconstructionSource, UiTextReconstructionDenial};
 pub use request::{UiQualifiedTextLayoutRequest, UiQualifiedTextLayoutRequestIdentity};
 pub(crate) use shaping::UiShapedTextParagraph;

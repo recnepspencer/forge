@@ -1,4 +1,4 @@
-pub(super) const EXPECTED_REQUIREMENTS: [&str; 68] = [
+pub(super) const EXPECTED_REQUIREMENTS: [&str; 79] = [
     "P1-AFFINITY-01",
     "P1-AUTHORITY-01",
     "P1-BACKEND-FEATURES-01",
@@ -67,6 +67,17 @@ pub(super) const EXPECTED_REQUIREMENTS: [&str; 68] = [
     "P4-ACCESSIBILITY-GEOMETRY-01",
     "P4-COLOR-FONT-ADMISSION-01",
     "P4-CLOSE-01",
+    "P5-PREDECESSOR-01",
+    "P5-GLYPH-RASTER-01",
+    "P5-COLOR-EMOJI-01",
+    "P5-ATLAS-01",
+    "P5-ATLAS-PINNING-01",
+    "P5-TEXT-DPI-01",
+    "P5-TEXT-SPAN-PAINT-01",
+    "P5-TEXT-PIXELS-01",
+    "P5-TEXT-RECONSTRUCTION-01",
+    "P5-TEXT-COST-01",
+    "P5-CLOSE-01",
 ];
 
 pub(super) const HEADER: [&str; 41] = [

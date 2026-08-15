@@ -1,3 +1,4 @@
+mod application_schema;
 mod collection_registration;
 mod definition;
 mod identity;
@@ -10,6 +11,12 @@ mod projection_shape;
 mod scalar_registration;
 mod schema_requirement;
 
+pub use application_schema::{
+    IdentityAspect, IdentityIdField, MeasurementAspect, MeasurementValueField, QueryRevisionAspect,
+    QueryRevisionValueField, QueryTextAspect, QueryTextStatusField, SizeAspect, SizeValueField,
+    UiMeasurementValue, UiSizeValue, WorthUiApplicationSchema, WorthUiNativeField,
+    WorthUiProjectionField, WorthUiRecord,
+};
 pub use collection_registration::UiCollectionProjectionRegistration;
 pub use definition::{
     WorthUiQueryViewDefinition, WorthUiQueryViewDefinitionDigest, WorthUiQueryViewLifecycle,

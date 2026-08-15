@@ -7,7 +7,7 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Operationally verify the Worth UI ledger")
-    parser.add_argument("--through-phase", type=int, choices=(2, 3, 4), default=2)
+    parser.add_argument("--through-phase", type=int, choices=(2, 3, 4, 5), default=2)
     parser.add_argument("--artifact")
     return parser.parse_args()
 

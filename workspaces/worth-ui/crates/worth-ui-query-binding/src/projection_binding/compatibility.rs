@@ -11,7 +11,7 @@ use worth_query::facade::{
 use super::{
     UiProjectionBindingStopKind, UiProjectionBindingStopReceipt, UiScalarProjectionBinding,
 };
-use crate::WorthUiQueryWorkspaceExt;
+use crate::WorthUiQueryHost;
 
 #[must_use = "a compatibility proof carries Query's pair-bound replacement witness"]
 pub struct UiProjectionBindingCompatibilityProof {
@@ -203,7 +203,7 @@ fn prepare_for_replacement(
             }
         })?;
     gateway
-        .prepare_consumer(binding.requirement().selected_field().declared_name())
+        .prepare_consumer(binding.requirement().selected_field())
         .map_err(preparation_stop)
 }
 
@@ -212,7 +212,7 @@ pub(super) fn installation_authority_stop(
     workspace: &WorthQueryWorkspace,
     shape: &str,
 ) -> (UiProjectionBindingStopKind, String) {
-    match workspace.worth_ui() {
+    match WorthUiQueryHost::from_workspace(workspace).installed_domain() {
         Ok(current) if current.runtime_provenance() == expected_runtime => (
             UiProjectionBindingStopKind::RebindRequired,
             format!("the {shape} replacement belongs to a stale Query installation generation"),

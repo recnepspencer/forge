@@ -84,7 +84,7 @@ fn validate_named_entry_for_row(row: &Row, value: &str) -> Result<(), String> {
             result_artifact::SourceValidationPosture::HistoricalArtifactOnly
         )
     {
-        if row["phase"] == "3" {
+        if matches!(row["phase"].as_str(), "3" | "4") {
             return validate_unreconstructible_historical_entry(row, value);
         }
         return validate_historical_named_entry(value, &row["source_revision"]);
@@ -121,7 +121,7 @@ fn validate_historical_named_entry(value: &str, revision: &str) -> Result<(), St
 }
 
 pub(super) fn source_validation_posture(phase: &str) -> result_artifact::SourceValidationPosture {
-    if matches!(phase, "1" | "2" | "3") {
+    if matches!(phase, "1" | "2" | "3" | "4") {
         result_artifact::SourceValidationPosture::HistoricalArtifactOnly
     } else {
         result_artifact::SourceValidationPosture::CurrentSource

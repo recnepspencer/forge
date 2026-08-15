@@ -63,6 +63,29 @@ fn field_requirements_reject_ambiguous_source_names() {
 }
 
 #[test]
+fn typed_measurement_and_size_fields_cannot_alias_through_the_native_value_key() {
+    let measurement = UiProjectionFieldRequirement::measurement_value();
+    let size = UiProjectionFieldRequirement::size_value();
+
+    assert_eq!(measurement.declared_name(), "value");
+    assert_eq!(size.declared_name(), "value");
+    assert_eq!(
+        measurement.typed_field(),
+        Some(WorthUiProjectionField::MeasurementValue)
+    );
+    assert_eq!(size.typed_field(), Some(WorthUiProjectionField::SizeValue));
+    assert_ne!(measurement, size);
+    assert!(UiCollectionSchemaRequirement::text(
+        UiProjectionFieldRequirement::identity_id(),
+        [measurement, size],
+        UiProjectionLifecycleRequirement::Snapshot,
+        true,
+        false,
+    )
+    .is_ok());
+}
+
+#[test]
 fn platform_pulse_budget_is_exact_and_independently_dimensioned() {
     let budget = UiProjectionConsumptionBudget::platform_pulse();
 

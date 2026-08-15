@@ -17,6 +17,7 @@ from worth_ui_3141_p1_proofs import build_p1_proofs
 from worth_ui_3141_p2_proofs import build_p2_proofs
 from worth_ui_3141_p3_proofs import build_p3_proofs
 from worth_ui_3141_p4_proofs import build_p4_proofs
+from worth_ui_3141_p5_proofs import build_p5_proofs
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -28,6 +29,7 @@ P3_WORLD_ARTIFACT = f"{EVIDENCE}/p3-hp02-world-01.json"
 P3_MIXED_WORLD_ARTIFACT = f"{EVIDENCE}/p3-delta-source-01.json"
 P3_PREDECESSOR_HANDOFF = f"{EVIDENCE}/p3-predecessor-handoff.json"
 P4_PREDECESSOR_HANDOFF = f"{EVIDENCE}/p4-predecessor-handoff.json"
+P5_PREDECESSOR_HANDOFF = f"{EVIDENCE}/p5-predecessor-handoff.json"
 COMPILE_TEST_SOURCE = (
     "workspaces/worth-ui/crates/worth-ui-certification/tests/"
     "milestone_3141_phase1_topology/compile_contract_artifact.rs"
@@ -88,6 +90,7 @@ def proofs() -> dict[str, Proof]:
     result.update(shared_phase_two_proofs())
     result.update(shared_phase_three_proofs())
     result.update(build_p4_proofs(Proof, Control, P4_PREDECESSOR_HANDOFF))
+    result.update(build_p5_proofs(Proof, Control, P5_PREDECESSOR_HANDOFF))
     return result
 
 
@@ -280,7 +283,7 @@ def prepare_claim(row: dict[str, str], proof: Proof) -> None:
         "client_area_observation": client_area_posture(requirement),
         "reopen_lineage": "none",
     })
-    if requirement.startswith("P4-"):
+    if requirement.startswith(("P4-", "P5-")):
         text_profile = (
             ROOT / "workspaces/worth-ui/profiles/worth-ui-global-text-v2/manifest.toml"
         )

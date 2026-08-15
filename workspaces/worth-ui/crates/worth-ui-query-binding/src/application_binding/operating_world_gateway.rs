@@ -2,8 +2,8 @@ use worth_query::facade::{foundation::ObservationLaneWitness, installed, runtime
 
 use crate::{
     application_binding::WorthUiInstalledSnapshotOperationReference,
-    WorthUiInstalledQueryBindingReference, WorthUiQueryInstallationDenial,
-    WorthUiQueryWorkspaceExt, WorthUiSnapshotMeasurement, WorthUiSnapshotMeasurementFamily,
+    WorthUiInstalledQueryBindingReference, WorthUiQueryHost, WorthUiQueryInstallationDenial,
+    WorthUiSnapshotMeasurement, WorthUiSnapshotMeasurementFamily,
 };
 
 pub type WorthUiBoundSnapshotMeasurement<L> = installed::WorthQueryBoundDomainOperation<
@@ -39,8 +39,8 @@ impl WorthUiInstalledQueryBindingReference {
     ) -> Result<WorthUiQueryOperatingWorldGateway<'runtime>, WorthUiQueryOperationAttemptDenial>
     {
         let operation = self.snapshot_operation();
-        let current = workspace
-            .worth_ui()
+        let current = WorthUiQueryHost::from_workspace(workspace)
+            .installed_domain()
             .map_err(WorthUiQueryOperationAttemptDenial::Installation)?;
         if !current.shares_authority_with(self.installed_domain()) {
             return Err(WorthUiQueryOperationAttemptDenial::InstalledDomainAuthorityMismatch);

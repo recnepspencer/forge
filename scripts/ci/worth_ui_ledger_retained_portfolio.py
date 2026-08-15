@@ -9,10 +9,18 @@ from pathlib import Path
 from typing import Any
 
 from worth_ui_ledger_command import CLAIM_FIELDS
-from worth_ui_ledger_runner_authentication import authenticates
+from worth_ui_ledger_durable_receipts import (
+    harvest_referenced_receipts,
+    read_durable_envelope,
+)
+from worth_ui_ledger_runner_authentication import (
+    RunnerProvenanceUnavailable,
+    authenticates,
+    runner_key_fingerprint,
+)
 
 
-SCHEMA = "worth-ui-ledger-retained-portfolio-v1"
+SCHEMA = "worth-ui-ledger-retained-portfolio-v2"
 EVIDENCE_ROOT = "_docs/worth-ui/milestone-3.14.1-evidence"
 
 
@@ -27,6 +35,7 @@ def publish(
     revision: str,
     state_digest: str,
 ) -> dict[str, Any]:
+    persist_referenced_receipts(root, ledger, phase, state_digest)
     portfolio = build(root, ledger, phase, revision, state_digest)
     destination = root / portfolio_identity(phase)
     replace_json(destination, portfolio)
@@ -42,6 +51,11 @@ def validate(
 ) -> dict[str, Any]:
     identity = root / portfolio_identity(phase)
     retained = json.loads(identity.read_text(encoding="utf-8"))
+    retained_fingerprint = retained.get("runner_key_fingerprint")
+    if retained_fingerprint != runner_key_fingerprint(root):
+        raise RunnerProvenanceUnavailable(
+            "retained closure portfolio belongs to a different runner key"
+        )
     expected = build(root, ledger, phase, revision, state_digest)
     if retained != expected:
         raise RuntimeError("retained closure portfolio differs from its exact evidence")
@@ -57,7 +71,7 @@ def build(
 ) -> dict[str, Any]:
     with ledger.open(encoding="utf-8", newline="") as stream:
         rows = [row for row in csv.DictReader(stream) if int(row["phase"]) <= phase]
-    expected = {2: 30, 3: 47, 4: 68}[phase]
+    expected = {2: 30, 3: 47, 4: 68, 5: 79}[phase]
     if len(rows) != expected or any(
         row["result"] != "PROVED" or row["final_source"] != "true" for row in rows
     ):
@@ -77,7 +91,8 @@ def build(
         "through_phase": phase,
         "source_revision": revision,
         "source_state_digest": state_digest,
-        "ledger_sha256": digest(ledger.read_bytes()),
+        "runner_key_fingerprint": runner_key_fingerprint(root),
+        "ledger_sha256": digest(ledger_prefix_bytes(ledger, phase)),
         "rows": retained_rows,
         "predecessor_handoff": predecessor_identity(root, phase),
         "executions": executions,
@@ -97,9 +112,10 @@ def retained_row(root: Path, row: dict[str, str], current_phase: int) -> dict[st
         raise RuntimeError(f"retained portfolio artifact drifted for {row['requirement']}")
     payload = json.loads(artifact.read_text(encoding="utf-8"))
     expected_claim = row_claim_digest(row)
+    if int(row["phase"]) == current_phase and not authenticated_row_payload(root, payload):
+        raise RuntimeError(f"retained portfolio row drifted for {row['requirement']}")
     if (
-        (int(row["phase"]) == current_phase and not authenticated_row_payload(root, payload))
-        or payload.get("requirement") != row["requirement"]
+        payload.get("requirement") != row["requirement"]
         or payload.get("exit_posture") != "passed"
         or payload.get("claim_digest") != expected_claim
         or payload.get("run_nonce") != row["run_nonce"]
@@ -127,6 +143,37 @@ def predecessor_handoff(root: Path, phase: int) -> dict[str, Any] | None:
     if payload.get("through_phase") != phase - 1 or not isinstance(payload.get("rows"), list):
         raise RuntimeError("retained portfolio has an invalid predecessor handoff")
     return payload
+
+
+def ledger_prefix_bytes(ledger: Path, phase: int) -> bytes:
+    text = ledger.read_text(encoding="utf-8")
+    lines = text.splitlines(keepends=True)
+    if not lines:
+        raise RuntimeError("retained portfolio ledger is empty")
+    selected = [lines[0]]
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        record = next(csv.reader([line]))
+        if int(record[0]) <= phase:
+            selected.append(line)
+    return "".join(selected).encode("utf-8")
+
+
+def persist_referenced_receipts(
+    root: Path, ledger: Path, phase: int, state_digest: str
+) -> None:
+    with ledger.open(encoding="utf-8", newline="") as stream:
+        rows = [row for row in csv.DictReader(stream) if int(row["phase"]) <= phase]
+    payloads = [artifact_payload(root, row) for row in rows if int(row["phase"]) == phase]
+    predecessor = predecessor_handoff(root, phase)
+    if predecessor is not None:
+        payloads.extend(predecessor.get("rows", []))
+    for payload in payloads:
+        receipts = payload.get("execution_receipts", [])
+        if not isinstance(receipts, list):
+            raise RuntimeError("retained row omits its execution receipt inventory")
+        harvest_referenced_receipts(root, state_digest, receipts)
 
 
 def predecessor_identity(root: Path, phase: int) -> dict[str, str] | None:
@@ -230,18 +277,10 @@ def validate_execution_receipt(
     receipt: dict[str, Any],
 ) -> str:
     key = receipt["key"]
-    identity = (
-        root
-        / "workspaces/worth-ui/target/milestone-3141-execution-cache"
-        / state_digest
-        / "executions"
-        / key[:2]
-        / f"{key}.json"
-    )
     try:
-        envelope = json.loads(identity.read_text(encoding="utf-8"))
+        envelope = read_durable_envelope(root, key)
         record = envelope["record"]
-    except (KeyError, OSError, json.JSONDecodeError) as error:
+    except (KeyError, RuntimeError, TypeError) as error:
         raise RuntimeError("retained execution receipt is absent") from error
     receipt_sha256 = digest_json(record)
     binding = {
@@ -254,12 +293,12 @@ def validate_execution_receipt(
     command_sha256 = digest(
         json.dumps(record.get("command"), separators=(",", ":")).encode("utf-8")
     )
+    if envelope.get("receipt_sha256") != receipt_sha256:
+        raise RuntimeError("retained execution receipt differs from its exact execution")
+    if not authenticates(record, envelope.get("runner_authentication"), root):
+        raise RuntimeError("retained execution receipt differs from its exact execution")
     if (
-        envelope.get("receipt_sha256") != receipt_sha256
-        or not authenticates(
-            record, envelope.get("runner_authentication"), root
-        )
-        or record.get("key") != key
+        record.get("key") != key
         or digest_json(binding) != key
         or record.get("source_revision") != revision
         or record.get("source_state_digest") != state_digest

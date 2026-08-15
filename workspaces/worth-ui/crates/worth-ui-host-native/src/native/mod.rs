@@ -8,6 +8,11 @@ mod readiness;
 mod resource_census;
 mod resource_ownership;
 mod resource_registry;
+#[allow(
+    dead_code,
+    reason = "Phase 5 atlas authority is frozen before production implementation"
+)]
+mod text_atlas;
 
 pub use event_loop::{
     UiNativeClientPresentationAttribution, UiNativeEventLoopCleanup, UiNativeEventLoopClient,
@@ -22,6 +27,10 @@ pub use observation::{
     UiNativeRetainedFrameObservation,
 };
 pub use resource_census::UiNativeResourceCensus;
+pub use text_atlas::{
+    UiAlphaAtlasLifecycle, UiAtlasEntryIdentity, UiAtlasEntryKey, UiAtlasPin, UiRgbaAtlasLifecycle,
+    UiTextAtlasCapacity, UiTextAtlasContractDenial,
+};
 
 #[cfg(test)]
 pub(crate) use graphics::QUALIFIED_DX12_PRESENTATION_SYSTEM;

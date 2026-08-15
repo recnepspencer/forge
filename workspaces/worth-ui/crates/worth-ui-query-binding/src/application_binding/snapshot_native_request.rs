@@ -43,7 +43,9 @@ impl WorthUiSnapshotNativeRequest {
     ) -> Result<Self, WorthUiSnapshotNativeRequestDenial> {
         let mut builder = consumer.into_query_contract().projection_request();
         let selection = builder
-            .select_display_native_field_name("value")
+            .select_display_native_field_name(
+                crate::UiProjectionFieldRequirement::measurement_value().native_key(),
+            )
             .map_err(WorthUiSnapshotNativeRequestDenial::ProjectionRequest)?;
         let request = builder
             .build()

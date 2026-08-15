@@ -22,6 +22,7 @@ COMPILE_ARTIFACT = "_docs/worth-ui/milestone-3.14.1-evidence/compile-contracts.j
 LEDGER = "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv"
 P3_PREDECESSOR = "_docs/worth-ui/milestone-3.14.1-evidence/p3-predecessor-handoff.json"
 P4_PREDECESSOR = "_docs/worth-ui/milestone-3.14.1-evidence/p4-predecessor-handoff.json"
+P5_PREDECESSOR = "_docs/worth-ui/milestone-3.14.1-evidence/p5-predecessor-handoff.json"
 
 
 def timed_execution(
@@ -120,7 +121,10 @@ def default_artifact(name: str, command: list[str]) -> str:
     if name == CANDIDATE_LEDGER_ENV:
         return LEDGER
     if name == PREDECESSOR_ARTIFACT_ENV:
-        return P4_PREDECESSOR if "phase_four" in " ".join(command) else P3_PREDECESSOR
+        joined = " ".join(command)
+        if "phase_five" in joined:
+            return P5_PREDECESSOR
+        return P4_PREDECESSOR if "phase_four" in joined else P3_PREDECESSOR
     raise ValueError(f"unknown ledger execution artifact dependency: {name}")
 
 

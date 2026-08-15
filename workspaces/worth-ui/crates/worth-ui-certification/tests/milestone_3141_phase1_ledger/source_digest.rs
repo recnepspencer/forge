@@ -1,6 +1,7 @@
+use std::collections::BTreeMap;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 use sha2::{Digest, Sha256};
 
@@ -69,17 +70,18 @@ pub(crate) fn calculate_source_state(revision: &str) -> Result<String, String> {
     if let Some(snapshot) = portfolio_source_state(revision)? {
         return Ok(snapshot);
     }
-    static SOURCE_STATE: OnceLock<(String, Result<String, String>)> = OnceLock::new();
-    let (cached_revision, cached_result) = SOURCE_STATE.get_or_init(|| {
-        (
-            revision.to_owned(),
-            calculate_source_state_uncached(revision),
-        )
-    });
-    if cached_revision != revision {
-        return Err("source revision changed during ledger validation".to_owned());
+    static SOURCE_STATE: OnceLock<Mutex<BTreeMap<String, Result<String, String>>>> =
+        OnceLock::new();
+    let cache = SOURCE_STATE.get_or_init(|| Mutex::new(BTreeMap::new()));
+    let mut locked = cache
+        .lock()
+        .map_err(|_| "source-state cache is poisoned".to_owned())?;
+    if let Some(cached) = locked.get(revision) {
+        return cached.clone();
     }
-    cached_result.clone()
+    let computed = calculate_source_state_uncached(revision);
+    locked.insert(revision.to_owned(), computed.clone());
+    computed
 }
 
 fn portfolio_source_state(revision: &str) -> Result<Option<String>, String> {

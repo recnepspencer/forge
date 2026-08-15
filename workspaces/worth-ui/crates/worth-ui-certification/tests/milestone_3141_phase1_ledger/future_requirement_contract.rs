@@ -2,6 +2,8 @@ use super::requirement_contract::RequirementContract;
 
 #[path = "future_requirement_additions.rs"]
 mod additions;
+#[path = "future_requirement_phase5.rs"]
+mod phase5;
 #[path = "future_requirement_validation.rs"]
 mod validation;
 
@@ -10,6 +12,7 @@ pub(super) fn for_requirement(requirement: &str) -> Option<&'static RequirementC
     CONTRACTS
         .iter()
         .chain(additions::CONTRACTS)
+        .chain(phase5::CONTRACTS)
         .find(|contract| contract.requirement == requirement)
 }
 macro_rules! contract {

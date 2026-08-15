@@ -153,11 +153,7 @@ fn prepared_for_current(
     if let Some(prepared) = binding.take_prepared() {
         return Ok(prepared);
     }
-    let selected_field = binding
-        .requirement()
-        .selected_field()
-        .declared_name()
-        .to_owned();
+    let selected_field = binding.requirement().selected_field().clone();
     let gateway = binding
         .reference()
         .enter_attempt(workspace)

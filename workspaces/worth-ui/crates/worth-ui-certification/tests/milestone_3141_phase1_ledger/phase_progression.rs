@@ -3,14 +3,18 @@ use std::collections::BTreeMap;
 use super::Row;
 
 pub(super) fn validate(rows: &BTreeMap<String, Row>) -> Result<(), String> {
-    for phase in 2_u8..=4 {
+    for phase in 2_u8..=5 {
         reject_predecessor_bypass(rows, phase)?;
     }
     require_phase_gate(rows, "3", "P3-PREDECESSOR-01", &[])?;
     require_phase_gate(rows, "4", "P4-PREDECESSOR-01", &[])?;
     require_phase_gate(rows, "4", "P4-TEXT-PROFILE-01", &["P4-PREDECESSOR-01"])?;
+    if rows.contains_key("P5-PREDECESSOR-01") {
+        require_phase_gate(rows, "5", "P5-PREDECESSOR-01", &[])?;
+    }
     require_close_last(rows, "3", "P3-CLOSE-01")?;
-    require_close_last(rows, "4", "P4-CLOSE-01")
+    require_close_last(rows, "4", "P4-CLOSE-01")?;
+    require_close_last(rows, "5", "P5-CLOSE-01")
 }
 
 pub(super) fn validate_closure(
@@ -78,7 +82,10 @@ fn require_close_last(
     phase: &str,
     close: &str,
 ) -> Result<(), String> {
-    if rows[close]["result"] != "PROVED" {
+    let Some(close_row) = rows.get(close) else {
+        return Ok(());
+    };
+    if close_row["result"] != "PROVED" {
         return Ok(());
     }
     let sibling_open = rows.iter().any(|(requirement, row)| {

@@ -51,6 +51,14 @@ const fn library(package: &'static str, test_name: &'static str) -> TestIdentity
     }
 }
 
+fn phase_five_topology_main(requirement: &str) -> Option<TestIdentity> {
+    Some(integration(
+        "worth-ui-certification",
+        "topology_contracts",
+        super::execution_contract_phase5::main_test(requirement)?,
+    ))
+}
+
 const fn integration(
     package: &'static str,
     target_name: &'static str,
@@ -157,6 +165,19 @@ pub(super) fn main_for(requirement: &str) -> Option<TestIdentity> {
             "topology_contracts",
             "milestone_3141_phase1_ledger::phase_four_closure_requires_every_predecessor_and_phase_four_row",
         ),
+        "P5-PREDECESSOR-01" => integration(
+            "worth-ui-certification",
+            "topology_contracts",
+            "milestone_3141_phase1_ledger::predecessor_handoff::phase_five_predecessor_handoff_is_current",
+        ),
+        "P5-CLOSE-01" => integration(
+            "worth-ui-certification",
+            "topology_contracts",
+            "milestone_3141_phase1_ledger::phase_five_closure_requires_every_predecessor_and_phase_five_row",
+        ),
+        requirement if requirement.starts_with("P5-") => {
+            phase_five_topology_main(requirement)?
+        }
         _ => return None,
     };
     Some(test)
@@ -246,6 +267,21 @@ pub(super) fn control_for(requirement: &str) -> Option<TestIdentity> {
             "mounting::projection::frame_storage::mechanic_source_tests::phase4_locality::retained_document_scan_and_global_width_substitution_are_rejected",
         ),
         "P4-CLOSE-01" => integration("worth-ui-certification", "topology_contracts", "milestone_3141_phase1_ledger::mutation_tests::phase_closure_mode_rejects_open_rows_at_or_before_its_gate"),
+        "P5-PREDECESSOR-01" => integration(
+            "worth-ui-certification",
+            "topology_contracts",
+            "milestone_3141_phase1_ledger::predecessor_artifact::tests::phase_five_stale_source_or_missing_row_is_rejected",
+        ),
+        "P5-CLOSE-01" => integration(
+            "worth-ui-certification",
+            "topology_contracts",
+            "milestone_3141_phase1_ledger::mutation_tests::phase_closure_mode_rejects_open_rows_at_or_before_its_gate",
+        ),
+        requirement if requirement.starts_with("P5-") => integration(
+            "worth-ui-certification",
+            "topology_contracts",
+            "milestone_3141_phase1_topology::phase_five_destination::consumers_cannot_reshape_refallback_or_consult_system_fonts",
+        ),
         _ => return None,
     })
 }

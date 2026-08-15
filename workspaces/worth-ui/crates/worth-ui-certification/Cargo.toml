@@ -27,6 +27,7 @@ worth-ui-host-native = { path = "../worth-ui-host-native" }
 worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }
 worth-ui-runtime = { path = "../worth-ui-runtime", features = ["certification-support", "legacy-egui-migration"] }
 worth-ui-test-support = { path = "../worth-ui-test-support" }
+worth-ui-text = { path = "../worth-ui-text" }
 
 [dev-dependencies]
 allocation-counter = "0.8.1"

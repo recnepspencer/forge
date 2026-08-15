@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import os
 import subprocess
 import sys
@@ -16,10 +17,16 @@ from worth_ui_ledger_operational_successors import (
 from worth_ui_predecessor_handoff import predecessor_artifact, write_artifact
 from worth_ui_ledger_verifier_invocation import parse_args, source_revision
 from worth_ui_ledger_execution_cache import CACHE_ENV
-from worth_ui_ledger_retained_portfolio import validate as validate_retained_portfolio
+from worth_ui_ledger_runner_authentication import RunnerProvenanceUnavailable
+from worth_ui_ledger_retained_portfolio import (
+    persist_referenced_receipts,
+    portfolio_identity,
+    validate as validate_retained_portfolio,
+)
 from worth_ui_ledger_phase_two_portfolio import PhaseTwoPortfolioExecution
 from worth_ui_ledger_phase_three_portfolio import PhaseThreePortfolioExecution
 from worth_ui_ledger_phase_four_portfolio import PhaseFourPortfolioExecution
+from worth_ui_ledger_phase_five_portfolio import PhaseFivePortfolioExecution
 from worth_ui_ledger_portfolio_row import PortfolioRowExecutor
 from worth_ui_ledger_verifier_rebinding import (
     COMPILE_ARTIFACT,
@@ -40,6 +47,16 @@ LEDGER = ROOT / "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv"
 TARGET = ROOT / "workspaces/worth-ui/target"
 
 
+def retained_source_binding(through_phase: int) -> tuple[str, str]:
+    identity = ROOT / portfolio_identity(through_phase)
+    retained = json.loads(identity.read_text(encoding="utf-8"))
+    revision = retained.get("source_revision")
+    state_digest = retained.get("source_state_digest")
+    if not isinstance(revision, str) or not isinstance(state_digest, str):
+        raise RuntimeError("retained closure portfolio omits its source binding")
+    return revision, state_digest
+
+
 def ledger_identity() -> Path:
     configured = os.environ.get("WORTH_UI_MILESTONE_3141_LEDGER")
     return Path(configured).resolve() if configured else LEDGER
@@ -49,7 +66,7 @@ def rows(through_phase: int) -> list[dict[str, str]]:
     with ledger_identity().open(encoding="utf-8", newline="") as stream:
         complete = list(csv.DictReader(stream))
     result = [row for row in complete if int(row["phase"]) <= through_phase]
-    expected = {2: 30, 3: 47, 4: 68}[through_phase]
+    expected = {2: 30, 3: 47, 4: 68, 5: 79}[through_phase]
     if len(result) != expected or any(
         row["result"] != "PROVED" or row["final_source"] != "true" for row in result
     ):
@@ -108,6 +125,7 @@ def closure_tests(through_phase: int, candidate_ledger: Path) -> int:
         2: "phase_two_closure_requires_every_phase_one_and_two_row",
         3: "phase_three_closure_requires_every_predecessor_and_phase_three_row",
         4: "phase_four_closure_requires_every_predecessor_and_phase_four_row",
+        5: "phase_five_closure_requires_every_predecessor_and_phase_five_row",
     }[through_phase]
     run(prefix + [
         f"milestone_3141_phase1_ledger::{closure}",
@@ -121,9 +139,33 @@ def main() -> int:
     revision = source_revision(ROOT)
     state_digest = source_state_digest(revision)
     if arguments.artifact is None:
-        validate_retained_portfolio(
-            ROOT, ledger_identity(), arguments.through_phase, revision, state_digest
+        recorded_revision, recorded_digest = retained_source_binding(
+            arguments.through_phase
         )
+        persist_referenced_receipts(
+            ROOT, ledger_identity(), arguments.through_phase, recorded_digest
+        )
+        try:
+            validate_retained_portfolio(
+                ROOT,
+                ledger_identity(),
+                arguments.through_phase,
+                recorded_revision,
+                recorded_digest,
+            )
+        except RunnerProvenanceUnavailable as error:
+            print(
+                f"[portfolio:revalidate] {error}; executing current-source portfolio",
+                file=sys.stderr,
+                flush=True,
+            )
+            execute_current_portfolio(arguments, revision, state_digest)
+            print(
+                f"Worth UI milestone 3.14.1 operationally revalidated through "
+                f"Phase {arguments.through_phase}",
+                flush=True,
+            )
+            return 0
         closure_tests(arguments.through_phase, ledger_identity())
         print(
             f"Worth UI milestone 3.14.1 retained portfolio validated through "
@@ -131,20 +173,9 @@ def main() -> int:
             flush=True,
         )
         return 0
-    previous_cache = os.environ.get(CACHE_ENV)
-    os.environ[CACHE_ENV] = str(
-        TARGET / "milestone-3141-execution-cache" / state_digest
+    observations, closure_count = execute_current_portfolio(
+        arguments, revision, state_digest
     )
-    try:
-        with operational_source_snapshot(revision, state_digest):
-            observations, closure_count = execute_portfolio(arguments)
-    finally:
-        if previous_cache is None:
-            os.environ.pop(CACHE_ENV, None)
-        else:
-            os.environ[CACHE_ENV] = previous_cache
-    if source_revision(ROOT) != revision or source_state_digest(revision) != state_digest:
-        raise RuntimeError("governed source changed during operational verification")
     if arguments.artifact is not None:
         write_artifact(
             arguments.artifact,
@@ -161,6 +192,26 @@ def main() -> int:
         f"{arguments.through_phase}: {len(observations)} fresh rows"
     )
     return 0
+
+
+def execute_current_portfolio(
+    arguments: object, revision: str, state_digest: str
+) -> tuple[list[dict[str, object]], int]:
+    previous_cache = os.environ.get(CACHE_ENV)
+    os.environ[CACHE_ENV] = str(
+        TARGET / "milestone-3141-execution-cache" / state_digest
+    )
+    try:
+        with operational_source_snapshot(revision, state_digest):
+            observations, closure_count = execute_portfolio(arguments)
+    finally:
+        if previous_cache is None:
+            os.environ.pop(CACHE_ENV, None)
+        else:
+            os.environ[CACHE_ENV] = previous_cache
+    if source_revision(ROOT) != revision or source_state_digest(revision) != state_digest:
+        raise RuntimeError("governed source changed during operational verification")
+    return observations, closure_count
 
 
 class OperationalPortfolio:
@@ -202,7 +253,15 @@ class OperationalPortfolio:
             [row for row in governed if int(row["phase"]) == 4],
             replacements, rerun_row, phase_two.fresh_compile, self.observations,
         ).execute()
-        return self.observations, closure_tests(4, candidate)
+        if self.arguments.through_phase == 4:
+            return self.observations, closure_tests(4, candidate)
+        self.write_handoff(4, temporary, candidate, "p5-predecessor-handoff.json")
+        PhaseFivePortfolioExecution(
+            ROOT, ledger_identity(), temporary, candidate,
+            [row for row in governed if int(row["phase"]) == 5],
+            replacements, rerun_row, phase_two.fresh_compile, self.observations,
+        ).execute()
+        return self.observations, closure_tests(5, candidate)
 
     def execute_phase_three(
         self, governed: list[dict[str, str]], temporary: Path, candidate: Path,

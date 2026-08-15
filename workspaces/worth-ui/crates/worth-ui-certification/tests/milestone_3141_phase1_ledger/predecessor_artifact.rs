@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 
 use super::{
     execution_contract, future_requirement_contract, predecessor_current_mapping,
-    requirement_contract, result_artifact_binding, schema, source_digest,
+    requirement_contract, result_artifact_binding, source_digest,
 };
 
 const EXPECTED_MAPPING_DIGEST: &str =
@@ -52,9 +52,14 @@ fn validate_value_with_mapping(
     require_str(artifact, "schema", "worth-ui-phase-predecessor-handoff-v1")?;
     let through_phase = artifact["through_phase"]
         .as_u64()
-        .filter(|phase| matches!(phase, 2 | 3))
+        .filter(|phase| matches!(phase, 2 | 3 | 4))
         .ok_or_else(|| "predecessor artifact has wrong through_phase".to_owned())?;
-    let requirement_count = if through_phase == 2 { 30 } else { 47 };
+    let requirement_count = match through_phase {
+        2 => 30,
+        3 => 47,
+        4 => 68,
+        _ => return Err("predecessor artifact has wrong through_phase".to_owned()),
+    };
     require_str(artifact, "source_revision", revision)?;
     require_str(artifact, "source_state_digest", source_state)?;
     require_u64(artifact, "verified_requirement_count", requirement_count)?;
@@ -139,13 +144,7 @@ fn validate_rows(
         .as_array()
         .filter(|rows| rows.len() == count)
         .ok_or_else(|| "predecessor artifact has the wrong row count".to_owned())?;
-    let expected = schema::EXPECTED_REQUIREMENTS
-        .iter()
-        .filter(|requirement| {
-            !requirement.starts_with("P4-") && (count == 47 || !requirement.starts_with("P3-"))
-        })
-        .copied()
-        .collect::<BTreeSet<_>>();
+    let expected = super::predecessor_inventory::predecessor_requirements(count);
     let mut requirements = BTreeSet::new();
     let mut nonces = BTreeSet::new();
     let mut artifacts = BTreeSet::new();

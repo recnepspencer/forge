@@ -12,6 +12,10 @@ KEY_BYTES = 32
 KEY_FILE = "ledger-runner-hmac-v1.key"
 
 
+class RunnerProvenanceUnavailable(RuntimeError):
+    """The retained proof was produced by a different private runner key."""
+
+
 def authentication_tag(value: object, repository_root: Path) -> str:
     return hmac.new(
         machine_key(repository_root), canonical_json(value), hashlib.sha256
@@ -22,6 +26,10 @@ def authenticates(value: object, tag: object, repository_root: Path) -> bool:
     return isinstance(tag, str) and hmac.compare_digest(
         authentication_tag(value, repository_root), tag
     )
+
+
+def runner_key_fingerprint(repository_root: Path) -> str:
+    return hashlib.sha256(machine_key(repository_root)).hexdigest()
 
 
 def machine_key(repository_root: Path) -> bytes:

@@ -1965,10 +1965,14 @@ saturation, and hostile mutation evidence and produce the glyph rebaseline
 candidate without yet changing the cumulative Pulse expectation. Measurement,
 hit testing, rasterization, and rendering must report one layout identity.
 
-Phase 5 closes only when the ledger proves `P5-GLYPH-RASTER-01`,
+Phase 5 contains exactly eleven append-only rows. It begins with
+`P5-PREDECESSOR-01`, then proves `P5-GLYPH-RASTER-01`,
 `P5-COLOR-EMOJI-01`, `P5-ATLAS-01`, `P5-ATLAS-PINNING-01`,
 `P5-TEXT-DPI-01`, `P5-TEXT-SPAN-PAINT-01`, `P5-TEXT-PIXELS-01`,
-`P5-TEXT-RECONSTRUCTION-01`, and `P5-TEXT-COST-01`, including an external
+`P5-TEXT-RECONSTRUCTION-01`, and `P5-TEXT-COST-01`, and ends with
+`P5-CLOSE-01`. The predecessor row must reexecute the immutable Phase 1-4
+prefix against current source before any Phase 5 feature row may close. The
+close row must reject any open predecessor or Phase 5 row. Feature rows include an external
 mixed-font/mixed-size/bidi/mixed-foreground observation, an external
 color-emoji observation, and separate alpha/color atlas/resource census.
 `P5-TEXT-SPAN-PAINT-01` must reject single-color substitution, visual-order
@@ -1977,6 +1981,11 @@ color assignment, emoji tinting, and layout regeneration on a color-only edit.
 RGI sequence mapping internally; native pixel evidence supplies representative
 observations for every admitted color source and sequence class and cannot
 replace the exhaustive internal corpus proof.
+
+Destination-topology tests may freeze ownership, type separation, and forbidden
+consumer dependencies before implementation. They are readiness evidence only:
+they emit no ledger counter or mutation receipt and cannot be mapped as the main
+or hostile control for any Phase 5 feature row.
 
 Phase 6 may trust deterministic framework-grade text layout and attributable
 multilingual/color-emoji pixels without system fallback, environment-selected

@@ -1,7 +1,7 @@
 use super::super::{execution_contract, requirement_contract::RequirementContract, Row};
 
 pub(crate) fn validate_open_claim(row: &Row, contract: &RequirementContract) -> Result<(), String> {
-    if !matches!(row["phase"].as_str(), "3" | "4") {
+    if !matches!(row["phase"].as_str(), "3" | "4" | "5") {
         return Ok(());
     }
     let scenario = scenario_delta(&row["requirement"])
@@ -78,6 +78,17 @@ fn scenario_delta(requirement: &str) -> Option<&'static str> {
         "P4-ACCESSIBILITY-GEOMETRY-01" => "accessibility-reshape",
         "P4-COLOR-FONT-ADMISSION-01" => "unsupported-svg-or-layer-drop",
         "P4-CLOSE-01" => "open-requirement",
+        "P5-PREDECESSOR-01" => "stale-phase-four-source",
+        "P5-GLYPH-RASTER-01" => "consumer-reshape-or-system-font",
+        "P5-COLOR-EMOJI-01" => "emoji-tint-or-split",
+        "P5-ATLAS-01" => "host-atlas-escape",
+        "P5-ATLAS-PINNING-01" => "live-layout-unpin",
+        "P5-TEXT-DPI-01" => "stale-dpi-raster",
+        "P5-TEXT-SPAN-PAINT-01" => "single-color-or-visual-order-or-layout-regen",
+        "P5-TEXT-PIXELS-01" => "transcript-pixel-mismatch",
+        "P5-TEXT-RECONSTRUCTION-01" => "stale-raster-reuse",
+        "P5-TEXT-COST-01" => "complete-document-rescan",
+        "P5-CLOSE-01" => "open-requirement",
         _ => return None,
     })
 }
