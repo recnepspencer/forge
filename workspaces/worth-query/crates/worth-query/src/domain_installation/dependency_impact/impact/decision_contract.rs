@@ -43,6 +43,8 @@ pub enum WorthQueryImpactAdmissionDenialKind {
     ConditionalDeliveryMismatch,
     CausalDeliveryMismatch,
     OwnerDeliveryOutOfOrder,
+    PerformedSignalRequired,
+    ConflictingDuplicateDelivery,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

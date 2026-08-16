@@ -22,7 +22,7 @@ struct WorthQueryApplicationBridgeSource {
     source: RuntimeBridgeRelationalSource,
 }
 
-struct WorthQueryApplicationInvalidationSink;
+struct WorthQueryApplicationGranularOnlySink;
 
 struct WorthQueryApplicationFieldMappings {
     routing: BridgeMappingRegistration,
@@ -103,7 +103,7 @@ where
         .with_relational_source(source.clone())
         .with_truth_branch_head_source(source.clone())
         .with_source_adapter(WorthQueryApplicationBridgeSource { source })
-        .with_signal_sink(WorthQueryApplicationInvalidationSink)
+        .with_signal_sink(WorthQueryApplicationGranularOnlySink)
         .register_source(SourceDeclaration::new(
             SourceDeclarationIdentity::from_stable_name("primary-application-source"),
             BridgeTruthViewSelector::branch_head(
@@ -198,8 +198,8 @@ where
                 ),
                 snapshot,
                 TruthDeltaSurfaceKind::EntityField,
-                SubscriptionSliceKind::RegisteredCoarseWidening,
-                SliceWideningPolicy::RegisteredEntityCoarseWidening,
+                SubscriptionSliceKind::SignalField,
+                SliceWideningPolicy::Disallow,
             );
             Ok(WorthQueryApplicationFieldMappings { routing, aspect })
         })
@@ -226,14 +226,13 @@ impl BridgeSourceAdapter for WorthQueryApplicationBridgeSource {
     }
 }
 
-impl InvalidationSink for WorthQueryApplicationInvalidationSink {
+impl InvalidationSink for WorthQueryApplicationGranularOnlySink {
     fn deliver_invalidation(
         &self,
-        delivery: worth_runtime_bridge::facade::BridgeSignalInvalidationDelivery,
+        _delivery: worth_runtime_bridge::facade::BridgeSignalInvalidationDelivery,
     ) -> Result<BridgeDeliveryReceipt, SignalBridgeSinkError> {
-        Ok(BridgeDeliveryReceipt::new(
-            delivery.invalidation_targets().len(),
-            delivery.source_snapshot().clone(),
+        Err(SignalBridgeSinkError::new(
+            "the primary Query runtime accepts only installed granular correspondence delivery",
         ))
     }
 }

@@ -19,6 +19,7 @@ impl<Binding, Reconstruction, Execution, Clock, Input>
         accepted: worth_runtime_bridge::facade::BridgeManagedClockAcceptedObservation,
         bridge: &mut BridgeOwnedSignalRuntime,
         truth: &WorthQueryConditionalTruthBasis,
+        authoritative_deliveries: &[worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery],
     ) -> ErasedClockObservationReceipt {
         let sequence = accepted.sequence();
         let observed_coordinate = accepted.observed_coordinate();
@@ -26,6 +27,14 @@ impl<Binding, Reconstruction, Execution, Clock, Input>
         let due_wake_count = due.wakes().len();
         let due_work_remaining = due.due_work_remaining();
         let evaluated = due.into_wakes().into_iter().map(|wake| {
+            let triggering_correspondence = authoritative_deliveries
+                .iter()
+                .map(|delivery| delivery.correspondence_receipt())
+                .find(|receipt| {
+                    receipt.change_set().changes().iter().any(|change| {
+                        change.relational_record_identity() == Some(wake.source_record_identity())
+                    })
+                });
             evaluate_due_wake(
                 bridge,
                 wake,
@@ -33,6 +42,7 @@ impl<Binding, Reconstruction, Execution, Clock, Input>
                 &self.runtime_binding_identity,
                 self.runtime_capability_identity,
                 truth,
+                triggering_correspondence,
             )
         });
         self.retained_wakes.extend(evaluated);
@@ -54,6 +64,7 @@ impl<Binding, Reconstruction, Execution, Clock, Input>
             failed_operation_count: 0,
             indeterminate_operation_count: 0,
             execution_provenance: Vec::new(),
+            granular_invalidations: Vec::new(),
         }
     }
 
@@ -66,6 +77,7 @@ impl<Binding, Reconstruction, Execution, Clock, Input>
         receipt.due_work_remaining |= authoritative.work_remaining;
         receipt.authoritative_commit_count = authoritative.commit_count;
         receipt.authoritative_work_remaining = authoritative.work_remaining;
+        receipt.granular_invalidations = authoritative.granular_invalidations;
         self.committed_operation_count = self
             .committed_operation_count
             .saturating_add(counts.committed);
@@ -81,8 +93,8 @@ impl<Binding, Reconstruction, Execution, Clock, Input>
         self.retained_wakes.retain(|wake| {
             !matches!(
                 wake.decision,
-                WorthQueryRetainedConditionalDecision::OperationCommitted
-                    | WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted
+                WorthQueryRetainedConditionalDecision::OperationCommitted(_)
+                    | WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(_)
             )
         });
         let decisions = retained_decision_counts(&self.retained_wakes);

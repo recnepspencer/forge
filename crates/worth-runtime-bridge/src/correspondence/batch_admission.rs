@@ -17,14 +17,15 @@ use super::{
 
 pub(crate) fn isolate_allocation_state(
     runtime: &mut RuntimeBridge,
-) -> Result<(), BridgeCorrespondenceAdmissionFailure> {
+) -> Result<CorrespondenceAllocationRegistry, BridgeCorrespondenceAdmissionFailure> {
     let retained = runtime
         .correspondence_allocations
         .read()
         .map_err(|_| BridgeCorrespondenceAdmissionFailure::LockPoisoned)?
         .clone();
-    runtime.correspondence_allocations = std::sync::Arc::new(std::sync::RwLock::new(retained));
-    Ok(())
+    runtime.correspondence_allocations =
+        std::sync::Arc::new(std::sync::RwLock::new(retained.clone()));
+    Ok(retained)
 }
 
 /// A mutation-free correspondence batch whose allocation lock is retained
@@ -70,12 +71,7 @@ impl PreparedCorrespondenceBatch<'_> {
             planned.resolved.counters.authoritative_records_committed =
                 planned.pending_records.len();
             for record in planned.pending_records {
-                self.registry
-                    .owners
-                    .entry(record.key.clone())
-                    .or_default()
-                    .insert(record.owner.clone());
-                self.registry.authoritative_records.insert(record);
+                self.registry.commit(record);
             }
             installed.push(BridgeInstalledSemanticCorrespondence::admit_ready(
                 planned.resolved.recipe,

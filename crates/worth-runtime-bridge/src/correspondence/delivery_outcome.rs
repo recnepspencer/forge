@@ -8,7 +8,7 @@ use crate::facade::{
 use super::{
     BridgeAdmittedTruthCommitIdentity, BridgeAdmittedTruthRecordIdentity,
     BridgeAdmittedTruthSnapshotIdentity, BridgeCorrespondenceBasis, BridgeCorrespondenceDenialKind,
-    BridgeSemanticDependencyCandidate,
+    BridgeSemanticDependencyCandidate, CorrespondenceDeliveryCounters,
 };
 
 /// One authoritative lower-runtime change actually admitted by an installed
@@ -61,6 +61,26 @@ impl BridgeDeliveredCorrespondenceChange {
         match &self.inner {
             BridgeDeliveredCorrespondenceChangeInner::SemanticAspect { .. } => None,
             BridgeDeliveredCorrespondenceChangeInner::StructuralRecord(change) => Some(change),
+        }
+    }
+
+    /// Returns the binding-aware semantic kind Bridge admitted for this exact
+    /// delivered change. Downstream indexes may use it to select candidates,
+    /// but the returned kind is not independent authority.
+    pub fn effective_change_kind_for(
+        &self,
+        dependency: &BridgeSemanticDependencyCandidate,
+    ) -> Option<worth_foundational::facade::AuthoritativeAspectChangeKind> {
+        match &self.inner {
+            BridgeDeliveredCorrespondenceChangeInner::SemanticAspect { change, .. } => {
+                Some(change.kind())
+            }
+            BridgeDeliveredCorrespondenceChangeInner::StructuralRecord(change) => {
+                super::semantic_delivery_match::structural_change_kind(
+                    dependency.binding(),
+                    change.kind(),
+                )
+            }
         }
     }
 
@@ -171,22 +191,35 @@ impl BridgeDeliveredCorrespondenceChangeSet {
     pub fn changes(&self) -> &[BridgeDeliveredCorrespondenceChange] {
         &self.changes
     }
+
+    pub(crate) fn retains_same_delivery_as(&self, other: &Self) -> bool {
+        self.basis == other.basis
+            && self.dependency == other.dependency
+            && self.commit_identity.projection() == other.commit_identity.projection()
+            && self.patch_identity == other.patch_identity
+            && self.snapshot_identity.projection() == other.snapshot_identity.projection()
+            && self.branch_identity == other.branch_identity
+            && self.changes == other.changes
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct BridgeCorrespondenceDeliveryReceipt {
     counters: CorrespondenceDeliveryCounters,
-    change_set: BridgeDeliveredCorrespondenceChangeSet,
+    truth_change: super::BridgeDeliveredTruthChange,
+    prepared_signal: Option<super::BridgePreparedScopedSignalInvalidation>,
 }
 
 impl BridgeCorrespondenceDeliveryReceipt {
     pub(crate) const fn new(
         counters: CorrespondenceDeliveryCounters,
         change_set: BridgeDeliveredCorrespondenceChangeSet,
+        prepared_signal: Option<super::BridgePreparedScopedSignalInvalidation>,
     ) -> Self {
         Self {
             counters,
-            change_set,
+            truth_change: super::BridgeDeliveredTruthChange::new(change_set),
+            prepared_signal,
         }
     }
 
@@ -195,7 +228,17 @@ impl BridgeCorrespondenceDeliveryReceipt {
     }
 
     pub const fn change_set(&self) -> &BridgeDeliveredCorrespondenceChangeSet {
-        &self.change_set
+        self.truth_change.change_set()
+    }
+
+    pub const fn truth_change(&self) -> &super::BridgeDeliveredTruthChange {
+        &self.truth_change
+    }
+
+    pub const fn prepared_signal_invalidation(
+        &self,
+    ) -> Option<&super::BridgePreparedScopedSignalInvalidation> {
+        self.prepared_signal.as_ref()
     }
 
     pub const fn truth_targets_admitted(&self) -> usize {
@@ -236,113 +279,6 @@ impl BridgeCorrespondenceDeliveryReceipt {
 
     pub const fn slots_touched(&self) -> usize {
         self.counters.slots_touched()
-    }
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct CorrespondenceDeliveryCounters {
-    pub(crate) source_load_attempts: usize,
-    pub(crate) source_envelopes_loaded: usize,
-    pub(crate) allocation_registry_lock_attempts: usize,
-    pub(crate) allocation_source_set_checks: usize,
-    pub(crate) signal_basis_target_checks: usize,
-    pub(crate) signal_capability_admissions: usize,
-    pub(crate) failed_deliveries: usize,
-    pub(crate) truth_targets_admitted: usize,
-    pub(crate) correspondence_lookups: usize,
-    pub(crate) semantic_match_checks: usize,
-    pub(crate) relevant_change_checks: usize,
-    pub(crate) projection_paths_inspected: usize,
-    pub(crate) source_widening_target_checks: usize,
-    pub(crate) signal_seeds_emitted: usize,
-    pub(crate) node_fan_out: usize,
-    pub(crate) slots_touched: usize,
-}
-
-impl CorrespondenceDeliveryCounters {
-    pub const fn zero() -> Self {
-        Self {
-            source_load_attempts: 0,
-            source_envelopes_loaded: 0,
-            allocation_registry_lock_attempts: 0,
-            allocation_source_set_checks: 0,
-            signal_basis_target_checks: 0,
-            signal_capability_admissions: 0,
-            failed_deliveries: 0,
-            truth_targets_admitted: 0,
-            correspondence_lookups: 0,
-            semantic_match_checks: 0,
-            relevant_change_checks: 0,
-            projection_paths_inspected: 0,
-            source_widening_target_checks: 0,
-            signal_seeds_emitted: 0,
-            node_fan_out: 0,
-            slots_touched: 0,
-        }
-    }
-
-    pub const fn truth_targets_admitted(self) -> usize {
-        self.truth_targets_admitted
-    }
-
-    pub const fn source_load_attempts(self) -> usize {
-        self.source_load_attempts
-    }
-
-    pub const fn source_envelopes_loaded(self) -> usize {
-        self.source_envelopes_loaded
-    }
-
-    pub const fn allocation_registry_lock_attempts(self) -> usize {
-        self.allocation_registry_lock_attempts
-    }
-
-    pub const fn allocation_source_set_checks(self) -> usize {
-        self.allocation_source_set_checks
-    }
-
-    pub const fn signal_basis_target_checks(self) -> usize {
-        self.signal_basis_target_checks
-    }
-
-    pub const fn signal_capability_admissions(self) -> usize {
-        self.signal_capability_admissions
-    }
-
-    pub const fn failed_deliveries(self) -> usize {
-        self.failed_deliveries
-    }
-
-    pub const fn correspondence_lookups(self) -> usize {
-        self.correspondence_lookups
-    }
-
-    pub const fn semantic_match_checks(self) -> usize {
-        self.semantic_match_checks
-    }
-
-    pub const fn relevant_change_checks(self) -> usize {
-        self.relevant_change_checks
-    }
-
-    pub const fn projection_paths_inspected(self) -> usize {
-        self.projection_paths_inspected
-    }
-
-    pub const fn source_widening_target_checks(self) -> usize {
-        self.source_widening_target_checks
-    }
-
-    pub const fn signal_seeds_emitted(self) -> usize {
-        self.signal_seeds_emitted
-    }
-
-    pub const fn node_fan_out(self) -> usize {
-        self.node_fan_out
-    }
-
-    pub const fn slots_touched(self) -> usize {
-        self.slots_touched
     }
 }
 

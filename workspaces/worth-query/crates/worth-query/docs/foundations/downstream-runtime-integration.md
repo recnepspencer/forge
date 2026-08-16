@@ -376,6 +376,34 @@ Good to know:
 - durable replay/restart resume is still deferred debt and stays typed as debt
 - remasked or denied live meaning stays explicit on the projected delivery
 
+## Granular Live Invalidation
+
+Use granular live invalidation when a committed lower-runtime change should
+update only the affected part of an already-live Query result. Bind the live or
+shared owner to the current primary runtime's
+`granular_invalidation_installation()`, then pass the runtime-owned observation
+or delivery batch to the matching `maintain_*` entry point.
+
+The downstream runtime does not translate raw CDC into a Query patch. Runtime
+Bridge matches the committed change to installed semantic dependencies, Signal
+may attach evidence for derived work it actually performed, and Query decides
+the required projection, membership, ordering, grouping, or window maintenance
+before publishing to current consumers.
+
+Keep these facts distinct:
+
+- direct Bridge truth can support a Query patch without a Signal receipt when
+  no Signal work was required
+- a Signal receipt proves performed Signal work only; it does not authorize
+  Query maintenance or consumer disclosure
+- the binding, delivery batch, source snapshot, and consumer lease must all
+  belong to the current runtime generation
+- restore, reinstallation, or source rebind requires fresh admission; stale or
+  foreign inputs fail before maintenance effects
+
+See [Granular Live Invalidation](../runtime-surfaces/granular-live-invalidation.md)
+for public entry points, examples, outcomes, counters, and collection behavior.
+
 ## Recommended Reading Order
 
 If you are onboarding a downstream runtime to Query, read in this order:
@@ -385,15 +413,16 @@ If you are onboarding a downstream runtime to Query, read in this order:
 3. [Runtime-Installed Domains And Operations](../domain-capabilities/runtime-installed-domains.md)
 4. [Conditional Installed Operations](../domain-capabilities/conditional-installed-operations.md)
 5. [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
-6. [Branches and Previews](branches-and-previews.md)
-7. [Writes and Intent Boundaries](../execution/writes-and-intents.md)
-8. [Graph Composition Authoring](../authoring/graph-composition-authoring.md)
-9. [Existing Truth](../capabilities/existing-truth.md)
-10. [Reads, Observation, and Materialization](../runtime-surfaces/reads-observe-materialize.md)
-11. [Inspection](../capabilities/inspection.md)
-12. [Projection Consumption](../capabilities/projection-consumption.md)
-13. [Historical Basis, Diff, And Comparison Queries](../capabilities/historical-diff-and-basis.md)
-14. [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
+6. [Granular Live Invalidation](../runtime-surfaces/granular-live-invalidation.md)
+7. [Branches and Previews](branches-and-previews.md)
+8. [Writes and Intent Boundaries](../execution/writes-and-intents.md)
+9. [Graph Composition Authoring](../authoring/graph-composition-authoring.md)
+10. [Existing Truth](../capabilities/existing-truth.md)
+11. [Reads, Observation, and Materialization](../runtime-surfaces/reads-observe-materialize.md)
+12. [Inspection](../capabilities/inspection.md)
+13. [Projection Consumption](../capabilities/projection-consumption.md)
+14. [Historical Basis, Diff, And Comparison Queries](../capabilities/historical-diff-and-basis.md)
+15. [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)
 
 ## Anti-Patterns
 
@@ -417,4 +446,5 @@ If you are onboarding a downstream runtime to Query, read in this order:
 - [Existing Truth](../capabilities/existing-truth.md)
 - [Inspection](../capabilities/inspection.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
+- [Granular Live Invalidation](../runtime-surfaces/granular-live-invalidation.md)
 - [Application Aftermath, External Effects, And Recovery](../execution/application-aftermath-and-recovery.md)

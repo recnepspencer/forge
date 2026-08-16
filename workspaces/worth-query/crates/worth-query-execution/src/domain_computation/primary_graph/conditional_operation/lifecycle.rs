@@ -258,7 +258,7 @@ where
         let sequence = observation.sequence();
         let coordinate = observation.observed_time().nanoseconds();
         let (watched_records, include_whole_graph) = self.authoritative_commit_routes();
-        let authoritative = match authoritative_clock_progression::reconsider_authoritative_clock_work(
+        let mut authoritative = match authoritative_clock_progression::reconsider_authoritative_clock_work(
             authoritative_clock_progression::AuthoritativeClockWork {
                 runtime,
                 bridge,
@@ -284,7 +284,12 @@ where
             observed_coordinate: coordinate,
         });
         let retain_and_reenter = |accepted| {
-            let receipt = self.retain_due(accepted, bridge, truth);
+            let receipt = self.retain_due(
+                accepted,
+                bridge,
+                truth,
+                &authoritative.granular_invalidations,
+            );
             let operation = self
                 .binding
                 .clocked_node()
@@ -303,6 +308,11 @@ where
                 &mut self.retained_wakes,
                 &self.runtime_canonical_identity,
             );
+            authoritative.granular_invalidations =
+                super::authoritative_reconsideration::promote_performed_signal_deliveries(
+                    std::mem::take(&mut authoritative.granular_invalidations),
+                    &mut self.retained_wakes,
+                );
             self.complete_clock_receipt(receipt, counts, authoritative)
         };
         bridge_clock_outcome::map_bridge_clock_outcome(outcome, retain_and_reenter)

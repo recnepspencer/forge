@@ -60,7 +60,7 @@ export function emptyRootDiagnosticsSnapshot() {
     performanceSummary: emptyWebPerformanceSummary(),
     latestFailure: null,
     latestRollback: null,
-    latestFrontierExecution: null,
+    latestInvalidationPlanningEstimate: null,
     latestInvalidationTraceRecords: Object.freeze([]),
     recentHistory: Object.freeze([]),
   });

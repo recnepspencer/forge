@@ -1,4 +1,6 @@
-pub use super::workspace::WorthQueryWorkspace;
+pub use super::workspace::{
+    WorthQueryPrimaryGraphSourceRebindReceipt, WorthQueryWorkspace,
+};
 
 pub use super::workspace_declaration::{
     WorthQueryComputedBuilder, WorthQueryEffectBuilder, WorthQueryLiveViewBuilder,

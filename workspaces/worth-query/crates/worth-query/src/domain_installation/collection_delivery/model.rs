@@ -100,6 +100,11 @@ pub enum WorthQueryCollectionPatchOperation {
         from: usize,
         to: usize,
     },
+    Regroup {
+        entity: WorthQueryEntityIdentity,
+        from: Option<Vec<String>>,
+        to: Option<Vec<String>>,
+    },
     Update {
         row: WorthQueryCollectionRowHandle,
     },
@@ -205,6 +210,19 @@ pub struct WorthQueryCollectionPatchApplicationReceipt {
     maintenance_ordinal: u64,
     counters: WorthQueryCollectionDeliveryCounters,
     reset_required: bool,
+}
+
+pub(crate) struct WorthQueryPerformedCollectionStateMutation {
+    pub(crate) operations: Vec<WorthQueryCollectionPatchOperation>,
+    pub(crate) facts: Vec<WorthQueryCollectionPatchFact>,
+    pub(crate) counters: WorthQueryCollectionDeliveryCounters,
+    pub(crate) rows: Vec<WorthQueryCollectionRowHandle>,
+}
+
+pub(crate) struct WorthQueryPendingCollectionStateMutation {
+    pub(super) delta: super::index::WorthQueryCollectionIndexDelta,
+    pub(super) next: WorthQueryBoundCollectionWindow,
+    pub(super) next_maintenance_ordinal: u64,
 }
 
 pub(super) struct WorthQueryCollectionPatchApplicationParts {

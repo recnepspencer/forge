@@ -128,7 +128,6 @@ impl LocalityBreadthBudget {
     pub fn limit(&self) -> usize {
         self.limit
     }
-    #[cfg(test)]
     pub(in crate::live) fn single_surface() -> Self {
         Self { limit: 1 }
     }
@@ -143,7 +142,6 @@ impl LocalityWideningBudget {
     pub fn limit(&self) -> usize {
         self.limit
     }
-    #[cfg(test)]
     pub(in crate::live) fn deny_all() -> Self {
         Self { limit: 0 }
     }
@@ -190,11 +188,9 @@ impl StreamMemberWidthBudget {
     pub fn limit(&self) -> usize {
         self.limit
     }
-    #[cfg(test)]
     pub(in crate::live) fn single_member() -> Self {
         Self { limit: 1 }
     }
-    #[cfg(test)]
     pub(in crate::live) fn cdc_projected_patch() -> Self {
         Self { limit: 2 }
     }
@@ -209,7 +205,6 @@ impl StreamWindowWidthBudget {
     pub fn limit(&self) -> usize {
         self.limit
     }
-    #[cfg(test)]
     pub(in crate::live) fn single_window() -> Self {
         Self { limit: 1 }
     }

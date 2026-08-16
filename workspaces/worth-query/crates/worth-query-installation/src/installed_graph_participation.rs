@@ -27,6 +27,7 @@ struct InstalledGraphParticipationCandidate {
     provider_identity: String,
     commit_authority_required: bool,
     commit_group_identity: Option<String>,
+    truth_partition_role: Option<worth_foundational::facade::TruthPartitionRole>,
     authority_identity: String,
 }
 
@@ -66,6 +67,26 @@ impl WorthQueryInstalledGraphParticipationAuthority {
         commit_group_identity: Option<impl Into<String>>,
         provider_anchor: Arc<P>,
     ) -> Result<Self, &'static str> {
+        Self::install_with_truth_partition(
+            runtime,
+            role,
+            provider_identity,
+            commit_authority_required,
+            commit_group_identity,
+            None,
+            provider_anchor,
+        )
+    }
+
+    pub fn install_with_truth_partition<P: Any + Send + Sync>(
+        runtime: &WorthQueryInstallationRuntimeIdentity,
+        role: impl Into<String>,
+        provider_identity: impl Into<String>,
+        commit_authority_required: bool,
+        commit_group_identity: Option<impl Into<String>>,
+        truth_partition_role: Option<worth_foundational::facade::TruthPartitionRole>,
+        provider_anchor: Arc<P>,
+    ) -> Result<Self, &'static str> {
         let role = role.into();
         let provider_identity = provider_identity.into();
         let commit_group_identity = commit_group_identity.map(Into::into);
@@ -88,6 +109,10 @@ impl WorthQueryInstalledGraphParticipationAuthority {
             hash.update(identity.len().to_le_bytes());
             hash.update(identity.as_bytes());
         }
+        if let Some(partition) = &truth_partition_role {
+            hash.update(partition.as_str().len().to_le_bytes());
+            hash.update(partition.as_str().as_bytes());
+        }
         hash.update(pointer.to_le_bytes());
         let candidate = InstalledGraphParticipationCandidate {
             runtime_ordinal: runtime.ordinal(),
@@ -95,6 +120,7 @@ impl WorthQueryInstalledGraphParticipationAuthority {
             provider_identity,
             commit_authority_required,
             commit_group_identity,
+            truth_partition_role,
             authority_identity: format!("{:x}", hash.finalize()),
         };
         let resolved = Recipe::<Unresolved, _>::new(candidate).resolve_with_authority(
@@ -142,6 +168,10 @@ impl WorthQueryInstalledGraphParticipationAuthority {
         &self.recipe.payload().authority_identity
     }
 
+    pub fn truth_partition_role(&self) -> Option<&worth_foundational::facade::TruthPartitionRole> {
+        self.recipe.payload().truth_partition_role.as_ref()
+    }
+
     #[doc(hidden)]
     pub fn retain_provider_anchor<P: Any + Send + Sync>(&self) -> Option<Arc<P>> {
         Arc::clone(&self.provider_anchor).downcast::<P>().ok()
@@ -161,6 +191,7 @@ impl std::fmt::Debug for WorthQueryInstalledGraphParticipationAuthority {
             )
             .field("commit_group_identity", &self.commit_group_identity())
             .field("authority_identity", &self.authority_identity())
+            .field("truth_partition_role", &self.truth_partition_role())
             .finish_non_exhaustive()
     }
 }

@@ -15,6 +15,9 @@ use super::installed_operation_fixture::{
 };
 use crate::support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
+#[path = "operation_invalidation_conditional_granular.rs"]
+mod granular_publication;
+
 #[test]
 fn exact_current_conditional_decision_and_owner_receipt_mint_one_classified_delta() {
     let node = node(

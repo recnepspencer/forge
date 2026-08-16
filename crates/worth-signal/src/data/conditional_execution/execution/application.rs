@@ -32,6 +32,8 @@ pub(super) struct ConditionalResolutionAttempt<
         Compute,
     >,
     pub(super) dependencies: PreparedDependencyCapture,
+    pub(super) ready_invalidation:
+        Option<crate::data::proof::invalidation::progression::ReadyInvalidationBatch>,
     pub(super) counters: &'counter mut SignalConditionalDecisionCounters,
 }
 
@@ -73,8 +75,13 @@ where
         let compute = self.providers.compute.take().ok_or_else(|| {
             SignalError::internal("conditional compute provider was already consumed")
         })?;
-        let prepared =
-            PreparedEvaluation::from_result(compute()?).with_dependencies(self.dependencies);
+        let result = match self.ready_invalidation {
+            Some(ready) => {
+                crate::logic::invalidation::scheduling::execute_ready(&*self.graph, ready, compute)?
+            }
+            None => compute()?,
+        };
+        let prepared = PreparedEvaluation::from_result(result).with_dependencies(self.dependencies);
         self.counters.application_contacts += 1;
         let applied = crate::logic::evaluation::apply_prepared_evaluation_with_policy(
             self.graph,

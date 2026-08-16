@@ -3,10 +3,27 @@ use crate::runtime::{WorthQueryIntentExecutionProvenance, WorthQueryLiveGraphRea
 use super::super::WorthQueryIntentDecisionTraceEnvelope;
 use super::WorthQueryLiveReadReceipt;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone)]
 pub struct WorthQueryLiveReadResult {
     rows: Vec<crate::memory_workspace::WorthQueryEntity>,
+    maintenance_source_rows: Option<Vec<crate::memory_workspace::WorthQueryEntity>>,
     receipt: WorthQueryLiveReadReceipt,
+}
+
+impl std::fmt::Debug for WorthQueryLiveReadResult {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("WorthQueryLiveReadResult")
+            .field("rows", &self.rows)
+            .field("receipt", &self.receipt)
+            .finish()
+    }
+}
+
+impl PartialEq for WorthQueryLiveReadResult {
+    fn eq(&self, other: &Self) -> bool {
+        self.rows == other.rows && self.receipt == other.receipt
+    }
 }
 
 impl WorthQueryLiveReadResult {
@@ -18,6 +35,12 @@ impl WorthQueryLiveReadResult {
         &self.receipt
     }
 
+    pub(crate) fn maintenance_source_rows(&self) -> &[crate::memory_workspace::WorthQueryEntity] {
+        self.maintenance_source_rows
+            .as_deref()
+            .unwrap_or(&self.rows)
+    }
+
     pub fn live_graph_read_access(&self) -> Option<&WorthQueryLiveGraphReadAccessReceipt> {
         self.receipt.live_graph_read_access()
     }
@@ -26,7 +49,23 @@ impl WorthQueryLiveReadResult {
         rows: Vec<crate::memory_workspace::WorthQueryEntity>,
         receipt: WorthQueryLiveReadReceipt,
     ) -> Self {
-        Self { rows, receipt }
+        Self {
+            rows,
+            maintenance_source_rows: None,
+            receipt,
+        }
+    }
+
+    pub(in crate::runtime) fn new_with_source_rows(
+        rows: Vec<crate::memory_workspace::WorthQueryEntity>,
+        maintenance_source_rows: Vec<crate::memory_workspace::WorthQueryEntity>,
+        receipt: WorthQueryLiveReadReceipt,
+    ) -> Self {
+        Self {
+            rows,
+            maintenance_source_rows: Some(maintenance_source_rows),
+            receipt,
+        }
     }
 
     pub(in crate::runtime) fn attach_intent_admission_evidence(
@@ -50,6 +89,10 @@ impl WorthQueryLiveReadResult {
         rows: Vec<crate::memory_workspace::WorthQueryEntity>,
         receipt: WorthQueryLiveReadReceipt,
     ) -> Self {
-        Self { rows, receipt }
+        Self {
+            rows,
+            maintenance_source_rows: None,
+            receipt,
+        }
     }
 }

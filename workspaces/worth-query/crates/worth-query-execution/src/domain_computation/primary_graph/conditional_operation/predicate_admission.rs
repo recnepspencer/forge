@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use worth_query_installation::facade::{
     WorthQueryArtifactReuseEquivalence, WorthQueryComparatorRequirement,
-    WorthQueryConditionalConditionClass, WorthQueryHostConditionalPredicateProvider,
+    WorthQueryConditionalConditionClass, WorthQueryHostConditionalOutputComparatorProvider,
+    WorthQueryHostConditionalOutputVersionProvider, WorthQueryHostConditionalPredicateProvider,
     WorthQueryInstalledApplicationConditionalNode, WorthQueryInstalledGraphParticipationAuthority,
     WorthQueryInstalledTemporalConditionalOperation, WorthQueryNamedClock,
     WorthQueryNamedClockSource, WorthQueryOutputEquivalenceRequirement,
@@ -32,11 +33,12 @@ pub(in crate::domain_computation::primary_graph) struct QueryConditionalComputeC
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct QueryConditionalComputeSemanticContract(Arc<str>);
 
-struct QueryConditionalComputeProvider {
+struct QueryConditionalComputeProvider<Node> {
     semantics: QueryConditionalComputeSemanticContract,
+    output_version: Option<Arc<dyn WorthQueryHostConditionalOutputVersionProvider<Node>>>,
 }
 
-impl BridgeConditionalProviderSemantics for QueryConditionalComputeProvider {
+impl<Node: 'static> BridgeConditionalProviderSemantics for QueryConditionalComputeProvider<Node> {
     type SemanticContract = QueryConditionalComputeSemanticContract;
 
     fn semantic_contract(&self) -> Self::SemanticContract {
@@ -44,7 +46,7 @@ impl BridgeConditionalProviderSemantics for QueryConditionalComputeProvider {
     }
 }
 
-impl BridgeConditionalComputeProvider for QueryConditionalComputeProvider {
+impl<Node: 'static> BridgeConditionalComputeProvider for QueryConditionalComputeProvider<Node> {
     fn compute(
         &self,
         context: &mut dyn std::any::Any,
@@ -54,12 +56,47 @@ impl BridgeConditionalComputeProvider for QueryConditionalComputeProvider {
             .ok_or_else(|| {
                 "conditional execution lacked Query's governed re-entry context".to_string()
             })?;
+        let output_version = self
+            .output_version
+            .as_ref()
+            .map(|provider| provider.output_version(context.output_version))
+            .transpose()
+            .map_err(|failure| failure.detail().to_owned())?
+            .unwrap_or(context.output_version);
         Ok(worth_signal::facade::NodeEvaluationResult::from_version(
             worth_signal::facade::AspectVersion::from_updates([(
                 worth_signal::facade::Aspect::new(0),
-                context.output_version,
+                output_version,
             )]),
         ))
+    }
+}
+
+struct QueryHostOutputComparator<Node> {
+    identity: Arc<str>,
+    provider: Arc<dyn WorthQueryHostConditionalOutputComparatorProvider<Node>>,
+}
+
+impl<Node: 'static> BridgeConditionalProviderSemantics for QueryHostOutputComparator<Node> {
+    type SemanticContract = Arc<str>;
+
+    fn semantic_contract(&self) -> Self::SemanticContract {
+        Arc::clone(&self.identity)
+    }
+}
+
+impl<Node: 'static> worth_runtime_bridge::facade::BridgeConditionalComparatorProvider
+    for QueryHostOutputComparator<Node>
+{
+    fn has_meaningful_change(
+        &self,
+        _aspect: worth_signal::facade::Aspect,
+        cached: u64,
+        current: u64,
+    ) -> Result<bool, String> {
+        self.provider
+            .has_meaningful_change(cached, current)
+            .map_err(|failure| failure.detail().to_owned())
     }
 }
 
@@ -114,14 +151,35 @@ where
     let location = lower_location(node.location());
     let dependencies = dependency_candidates(node, graph)?;
     let node_authority: Arc<str> = Arc::from(node.authority_identity());
+    let output_version = installed_provider.retain_output_version_for_runtime();
+    let compute_identity: Arc<str> = Arc::from(format!(
+        "{}|output-version={}",
+        node_authority,
+        output_version
+            .as_ref()
+            .map(|(identity, _)| *identity)
+            .unwrap_or("query-attempt"),
+    ));
+    let output_comparator = installed_provider.retain_output_comparator_for_runtime();
+    validate_output_comparator_identity(node.declaration(), output_comparator.as_ref())?;
     let providers = BridgeConditionalProviderSet::new()
         .wake(QueryTemporalPredicateProvider::<Node, Provider>::new(
             installed_provider.retain_provider_for_runtime(),
             Arc::clone(&node_authority),
         ))
-        .compute(QueryConditionalComputeProvider {
-            semantics: QueryConditionalComputeSemanticContract(node_authority),
+        .compute(QueryConditionalComputeProvider::<Node> {
+            semantics: QueryConditionalComputeSemanticContract(compute_identity),
+            output_version: output_version.map(|(_, provider)| provider),
         });
+    let providers = match output_comparator {
+        Some((identity, provider)) => {
+            providers.output_comparator(QueryHostOutputComparator::<Node> {
+                identity: Arc::from(identity),
+                provider,
+            })
+        }
+        None => providers,
+    };
     bridge
         .install_owned_conditional(BridgeOwnedConditionalInstallationRequest {
             contract,
@@ -130,6 +188,33 @@ where
             providers,
         })
         .map_err(|denial| bridge_denial(format!("{:?}: {}", denial.kind(), denial.detail())))
+}
+
+fn validate_output_comparator_identity<Node>(
+    declaration: &WorthQueryPortableConditionalNodeDeclaration,
+    installed: Option<&(
+        &'static str,
+        Arc<dyn WorthQueryHostConditionalOutputComparatorProvider<Node>>,
+    )>,
+) -> Result<(), WorthQueryConditionalRuntimeInstallationDenial> {
+    let WorthQueryOutputEquivalenceRequirement::Registered(required) =
+        declaration.output_equivalence()
+    else {
+        return Ok(());
+    };
+    let Some((installed_identity, _)) = installed else {
+        return Err(bridge_denial(format!(
+            "registered output comparator `{}` has no bound host provider",
+            required.as_str()
+        )));
+    };
+    if *installed_identity != required.as_str() {
+        return Err(bridge_denial(format!(
+            "registered output comparator `{}` was bound to provider `{installed_identity}`",
+            required.as_str()
+        )));
+    }
+    Ok(())
 }
 
 fn dependency_candidates<Schema, ApplicationOperation, Input, D, O, F, Node>(
@@ -174,9 +259,14 @@ fn candidate_from_authority(
     }
     let locality = match dependency.locality() {
         WorthQuerySemanticLocality::SourceRecord => BridgeSemanticLocality::ManagedSourceRecord,
+        WorthQuerySemanticLocality::SourcePartition(role)
+            if graph.truth_partition_role() == Some(role) =>
+        {
+            BridgeSemanticLocality::SourcePartition(role.clone())
+        }
         WorthQuerySemanticLocality::SourcePartition(role) => {
             return Err(bridge_denial(format!(
-                "primary application conditional runtime has no installed source-partition binding for `{}`",
+                "primary application conditional runtime has no matching source-partition binding for `{}`",
                 role.as_str()
             )))
         }
@@ -202,6 +292,7 @@ fn candidate_from_authority(
         graph_participation_identity: Arc::from(graph.authority_identity()),
         graph_adapter_identity: Arc::from(graph.provider_identity()),
         source_record_identity: None,
+        observation_record_identity: None,
         contract: dependency.contract().clone(),
         projection_mask: dependency.projection_mask().clone(),
         binding: dependency.binding().clone(),

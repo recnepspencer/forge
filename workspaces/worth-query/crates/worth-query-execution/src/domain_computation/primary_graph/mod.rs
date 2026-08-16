@@ -14,6 +14,7 @@ mod entity_key;
 mod entity_resolution;
 mod entity_resolution_denial;
 mod freshness;
+mod granular_invalidation;
 mod index_refresh;
 mod invariant_projection;
 mod live_delivery;
@@ -168,6 +169,12 @@ pub use entity_resolution_denial::{
 };
 pub(in crate::domain_computation) use freshness::{
     validate_freshness_at_snapshot, WorthQueryPrincipalFreshnessEvidence,
+};
+pub use granular_invalidation::{
+    WorthQueryGranularInvalidationDeliveryBatch, WorthQueryGranularSourceReadBasis,
+    WorthQueryGranularTransportMergeDenial,
+    WorthQueryGranularInvalidationInstallation,
+    WorthQueryBridgeGranularDeliveryCounters, WorthQueryGranularInvalidationObservation,
 };
 pub use index_refresh::{
     WorthQueryPrimaryGraphIndexRefreshDenial, WorthQueryPrimaryGraphIndexRefreshDenialKind,

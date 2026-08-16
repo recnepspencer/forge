@@ -20,6 +20,7 @@ pub struct WorthQueryPrimaryGraph {
     pub(super) layout: Arc<WorthQueryPrimaryGraphLayout>,
     runtime: Arc<Mutex<RelationalRuntime>>,
     aggregate_projections: Arc<Mutex<super::aggregate_projection::WorthQueryAggregateProjections>>,
+    truth_partition_role: Option<worth_foundational::facade::TruthPartitionRole>,
 }
 
 impl WorthQueryPrimaryGraph {
@@ -98,7 +99,15 @@ impl WorthQueryPrimaryGraph {
             aggregate_projections: Arc::new(Mutex::new(
                 super::aggregate_projection::WorthQueryAggregateProjections::default(),
             )),
+            truth_partition_role: None,
         }
+    }
+
+    pub(super) fn bind_truth_partition(
+        &mut self,
+        role: worth_foundational::facade::TruthPartitionRole,
+    ) {
+        self.truth_partition_role = Some(role);
     }
 
     pub fn binding_identity(&self) -> &ApplicationSchemaBindingIdentity {
@@ -150,6 +159,7 @@ impl WorthQueryPrimaryGraph {
             layout: Arc::clone(&self.layout),
             primary_index_ids,
             aggregate_projections: Arc::clone(&self.aggregate_projections),
+            truth_partition_role: self.truth_partition_role.clone(),
         }
     }
 
@@ -182,6 +192,7 @@ pub struct WorthQueryPrimaryGraphIntegrationHandle {
     pub(super) primary_index_ids: Arc<[worth_relational::facade::indexes::DerivedIndexId]>,
     pub(super) aggregate_projections:
         Arc<Mutex<super::aggregate_projection::WorthQueryAggregateProjections>>,
+    pub(super) truth_partition_role: Option<worth_foundational::facade::TruthPartitionRole>,
 }
 
 impl WorthQueryPrimaryGraphIntegrationHandle {
@@ -216,14 +227,67 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
         read(&mut runtime, &self.layout)
     }
 
-    pub(crate) fn relational_bridge_source(
+    /// Retains the shared relational source for a host-owned runtime Bridge
+    /// that must observe this exact primary graph.
+    ///
+    /// The source carries graph access, not invalidation admission authority.
+    #[doc(hidden)]
+    pub fn relational_bridge_source(
         &self,
     ) -> worth_relational::facade::bridge::RuntimeBridgeRelationalSource {
-        worth_relational::facade::bridge::RuntimeBridgeRelationalSource::for_shared_graph_role(
-            Arc::clone(&self.runtime),
-            "primary",
-        )
+        match self.truth_partition_role.clone() {
+            Some(role) => worth_relational::facade::bridge::RuntimeBridgeRelationalSource::for_shared_graph_partition(
+                Arc::clone(&self.runtime),
+                "primary",
+                worth_relational::facade::identity::PartitionId::main(),
+                role,
+            ),
+            None => worth_relational::facade::bridge::RuntimeBridgeRelationalSource::for_shared_graph_role(
+                Arc::clone(&self.runtime),
+                "primary",
+            ),
+        }
         .expect("the installed primary graph role is canonical")
+    }
+
+    /// Checks whether this graph's current branch head is the exact Bridge
+    /// truth basis carried by an admitted downstream read.
+    #[doc(hidden)]
+    pub fn retains_current_truth_basis(
+        &self,
+        snapshot: &worth_runtime_bridge::facade::TruthSnapshotIdentity,
+        branch: &worth_runtime_bridge::facade::TruthBranchIdentity,
+    ) -> bool {
+        self.current_truth_snapshot(branch).as_ref() == Some(snapshot)
+    }
+
+    #[doc(hidden)]
+    pub fn current_truth_snapshot(
+        &self,
+        branch: &worth_runtime_bridge::facade::TruthBranchIdentity,
+    ) -> Option<worth_runtime_bridge::facade::TruthSnapshotIdentity> {
+        let Some(branch) = branch.relational_branch_id() else {
+            return None;
+        };
+        self.with_runtime(|runtime| {
+            runtime
+                .history()
+                .branch_head(&worth_relational::facade::history::BranchId(
+                    branch.to_owned(),
+                ))
+                .map(|head| {
+                    worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
+                        head.commit_id,
+                        head.version_id,
+                    )
+                })
+        })
+    }
+
+    pub(crate) const fn truth_partition_role(
+        &self,
+    ) -> Option<&worth_foundational::facade::TruthPartitionRole> {
+        self.truth_partition_role.as_ref()
     }
 
     pub(crate) fn relational_execution_basis_source(

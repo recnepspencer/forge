@@ -77,12 +77,14 @@ pub(crate) fn prepare_collection_binding<D, O, F, L: BasisOperationLane>(
         .ok_or(WorthQueryCollectionCapabilityDenialKind::NativeAccessNotBound)?;
     let capability_identity = projection.bound_operation().capability_identity();
     let capability_generation = WorthQueryBoundCapabilityGeneration::mint();
-    let rows = collection_rows(
+    let fact_rows = collection_rows(
         projection.authority(),
         capability_identity,
         capability_generation,
         counters,
     )?;
+    let entities = collection_index_entities(projection);
+    let rows = rows_in_execution_order(&entities, &fact_rows)?;
     let canonical = projection.consumer_contract().canonical_projection();
     let ordering_parts = canonical
         .query()
@@ -98,9 +100,10 @@ pub(crate) fn prepare_collection_binding<D, O, F, L: BasisOperationLane>(
                 window_policy,
                 continuation_posture,
                 delivery_supported: collection_delivery_supported(projection),
-                entities: projection.collection_execution_rows().to_vec(),
+                entities,
                 handles: &rows,
                 native_keys: native_layout.selected_keys(),
+                grouping_fields: grouping_fields(projection),
             },
             counters,
         );
@@ -119,6 +122,71 @@ pub(crate) fn prepare_collection_binding<D, O, F, L: BasisOperationLane>(
     })
 }
 
+fn collection_index_entities<D, O, F, L: BasisOperationLane>(
+    projection: &WorthQuerySettledDomainProjection<D, O, F, L>,
+) -> Vec<crate::memory_workspace::WorthQueryEntity> {
+    let native_fields = projection
+        .authority()
+        .facts()
+        .display_fields()
+        .iter()
+        .chain(projection.authority().facts().derived_fields())
+        .filter_map(|fact| {
+            let path = fact
+                .field_path()
+                .canonical_field_path()
+                .or_else(|| fact.field_path().canonical_source_path())?
+                .clone();
+            let value = fact.native_value().scalar()?.clone();
+            Some((fact.source_row_identity().to_owned(), path, value))
+        })
+        .fold(
+            std::collections::BTreeMap::<_, Vec<_>>::new(),
+            |mut fields, (source, path, value)| {
+                fields.entry(source).or_default().push((path, value));
+                fields
+            },
+        );
+    projection
+        .collection_execution_rows()
+        .iter()
+        .cloned()
+        .map(|entity| {
+            let source = entity.identity().terminal_projection_for_reporting();
+            entity
+                .with_native_field_values(native_fields.get(&source).into_iter().flatten().cloned())
+        })
+        .collect()
+}
+
+fn rows_in_execution_order(
+    entities: &[crate::memory_workspace::WorthQueryEntity],
+    fact_rows: &[crate::domain_installation::WorthQueryCollectionRowHandle],
+) -> Result<
+    Vec<crate::domain_installation::WorthQueryCollectionRowHandle>,
+    WorthQueryCollectionCapabilityDenialKind,
+> {
+    let rows_by_source = fact_rows
+        .iter()
+        .map(|row| (row.source_row_identity.as_str(), row))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    entities
+        .iter()
+        .map(|entity| {
+            rows_by_source
+                .get(
+                    entity
+                        .identity()
+                        .terminal_projection_for_reporting()
+                        .as_str(),
+                )
+                .cloned()
+                .cloned()
+                .ok_or(WorthQueryCollectionCapabilityDenialKind::IdentityFactRelationshipMismatch)
+        })
+        .collect()
+}
+
 fn collection_posture<D, O, F, L: BasisOperationLane>(
     projection: &WorthQuerySettledDomainProjection<D, O, F, L>,
     counters: &mut WorthQueryCollectionCapabilityCounters,
@@ -135,14 +203,22 @@ fn collection_posture<D, O, F, L: BasisOperationLane>(
             Err(WorthQueryCollectionCapabilityDenialKind::NotCollection)
         }
         WorthQueryOperationCollectionContract::Collection {
-            grouping: WorthQueryOperationGroupingContract::Grouped { .. },
-            ..
-        } => Err(WorthQueryCollectionCapabilityDenialKind::UnsupportedGrouping),
-        WorthQueryOperationCollectionContract::Collection {
             window,
             continuation,
             ..
         } => Ok((*window, *continuation)),
+    }
+}
+
+fn grouping_fields<D, O, F, L: BasisOperationLane>(
+    projection: &WorthQuerySettledDomainProjection<D, O, F, L>,
+) -> Vec<worth_query_installation::facade::WorthQueryOperationCollectionField> {
+    match projection.consumer_contract().collection() {
+        WorthQueryOperationCollectionContract::Collection {
+            grouping: WorthQueryOperationGroupingContract::Grouped { grouping_fields },
+            ..
+        } => grouping_fields.clone(),
+        _ => Vec::new(),
     }
 }
 

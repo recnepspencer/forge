@@ -98,6 +98,9 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
   [authoring/graph-read-access-planning.md](./authoring/graph-read-access-planning.md)
 - if you need lower-runtime routing (not direct crate imports):
   [domain-capabilities/lower-runtime-capability-routing.md](./domain-capabilities/lower-runtime-capability-routing.md)
+- if a committed truth change should update only the affected live projection,
+  collection role, or consumer:
+  [Granular Live Invalidation](./runtime-surfaces/granular-live-invalidation.md)
 - if you need contribution lane map:
   [domain-capabilities/contributions/README.md](./domain-capabilities/contributions/README.md)
 - if you need aspect and authority semantics first:
@@ -133,6 +136,7 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
 
 ## Runtime surfaces (feature docs)
 
+- [Granular live invalidation](./runtime-surfaces/granular-live-invalidation.md)
 - [Region-scoped live invalidation and stream contracts](./runtime-surfaces/region-scoped-live-invalidation-and-stream-contracts.md)
 
 ## Capabilities (feature docs)

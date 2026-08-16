@@ -211,7 +211,7 @@ pub fn suppressed_wake_is_reconsidered_after_truth_change() {
         primary_graph::WorthQueryConditionalExecutionTerminal::SuppressedRetained
     );
     world.amend_intent(1, "active", "ready");
-    let reconsidered = observe(&mut world);
+    let mut reconsidered = observe(&mut world);
     assert_eq!(
         reconsidered.committed_operation_count(),
         1,
@@ -224,6 +224,27 @@ pub fn suppressed_wake_is_reconsidered_after_truth_change() {
         "{}",
         wake_evidence(&reconsidered)
     );
+    let batch = reconsidered.take_granular_invalidation_batch();
+    let installation = world.application.granular_invalidation_installation();
+    assert!(installation.admits_batch(&batch));
+    let foreign = CourtroomWorld::publish("blocked")
+        .application
+        .granular_invalidation_installation();
+    assert!(!foreign.admits_batch(&batch));
+    assert_eq!(batch.observation().direct_truth_delivery_count(), 1);
+    assert_eq!(batch.observation().signal_performed_delivery_count(), 1);
+    let [granular] = batch.into_bridge_deliveries().try_into().unwrap_or_else(
+        |deliveries: Vec<_>| {
+            panic!(
+                "one exact authoritative dependency should surface one granular Bridge delivery, found {}",
+                deliveries.len()
+            )
+        },
+    );
+    assert_eq!(granular.truth().change_set().changes().len(), 1);
+    granular
+        .performed_signal()
+        .expect("the recomputed Signal node must carry its bounded performed receipt");
     assert_authoritative_value(
         &world,
         IntentEffectField::reference(),

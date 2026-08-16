@@ -60,5 +60,10 @@ harness = false
 name = "temporal_conditional_oracle_parity"
 path = "tests/temporal_conditional_oracle_parity.rs"
 
+[[test]]
+name = "granular_invalidation"
+path = "tests/granular_invalidation.rs"
+
+
 [lints]
 workspace = true

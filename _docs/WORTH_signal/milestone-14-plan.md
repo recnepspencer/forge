@@ -5,6 +5,7 @@
 > **Prerequisites:**
 > - [milestone-12-plan.md](./milestone-12-plan.md)
 > - [milestone-13-plan.md](./milestone-13-plan.md)
+> - [milestone-13.1-plan.md](./milestone-13.1-plan.md)
 >
 > **Architecture parent:** [signal_architecture2.md](./signal_architecture2.md), `S9.17`
 >
@@ -35,9 +36,11 @@ may matter. Physical sharding says where admitted work may run. A shard key is
 never dependency, invalidation, readiness, or commit authority.
 
 Its input is Milestone 13's Signal-owned `ReadyInvalidationBatch` progression,
-not a raw node list or a Foundational report. Parallel preparation must consume
-the current-basis ready form and preserve its cause/work identity. A resource
-lease authorizes dispatch capacity; it does not replace invalidation readiness.
+as carried into real Runtime Bridge and Query platform composition by Milestone
+13.1, not a raw node list or a Foundational report. Parallel preparation must
+consume the current-basis ready form and preserve its cause/work identity. A
+resource lease authorizes dispatch capacity; it does not replace invalidation
+readiness, Bridge correspondence, or Query impact admission.
 
 ## 2. Current Boundary
 

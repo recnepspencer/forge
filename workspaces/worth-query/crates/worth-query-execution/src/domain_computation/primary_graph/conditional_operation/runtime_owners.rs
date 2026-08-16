@@ -67,7 +67,10 @@ impl<'runtime, Schema> ConditionalRuntimeOwners<'runtime, Schema> {
         worth_runtime_bridge::facade::BridgeOwnedSignalRuntime,
         worth_runtime_bridge::facade::BridgeConditionalDenial,
     > {
-        self.runtime.bridge.fresh_conditional_runtime()
+        self.bridge
+            .as_ref()
+            .expect("Bridge owner is retained")
+            .successor_installation_runtime()
     }
 
     pub(super) fn prepare_reinstallation(
@@ -123,6 +126,18 @@ impl<'runtime, Schema> ConditionalRuntimeOwners<'runtime, Schema> {
         self.runtime
             .primary_provider
             .clear_conditional_maintenance_failure();
+    }
+
+    pub(super) fn advance_granular_invalidation_generation(&self) {
+        self.runtime
+            .granular_invalidation
+            .advance_runtime_generation();
+    }
+
+    pub(super) fn granular_invalidation_installation(
+        &self,
+    ) -> super::super::WorthQueryGranularInvalidationInstallation {
+        self.runtime.granular_invalidation.current()
     }
 
     pub(super) fn observe_clock(

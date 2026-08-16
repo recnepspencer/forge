@@ -327,7 +327,6 @@ impl LivePolicyCounters {
     pub(crate) fn add_replay_change_count(&mut self, replay_change_count: usize) {
         self.live_replay_change_count += replay_change_count;
     }
-    #[cfg(test)]
     pub(crate) fn add_locality_replay_change_count(&mut self, replay_change_count: usize) {
         self.locality_replay_change_count += replay_change_count;
     }

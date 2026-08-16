@@ -40,6 +40,9 @@ impl WorthQuerySharedProjectionOwner {
 pub(super) struct WorthQuerySharedProjectionLeaseRecord {
     pub(super) source_identity: String,
     pub(super) affinity: crate::domain_installation::WorthQueryOperationAuthorityBasis,
+    pub(super) consumer_delivery_policy:
+        Option<crate::live::WorthQuerySharedConsumerDeliveryPolicy>,
+    pub(super) consumer_delivery_policy_generation: u64,
 }
 
 #[derive(Default)]
@@ -132,6 +135,8 @@ impl WorthQuerySharedProjectionOwnerRegistry {
             WorthQuerySharedProjectionLeaseRecord {
                 source_identity: admission.subject_source_identity().to_string(),
                 affinity: admission.subject_affinity().clone(),
+                consumer_delivery_policy: None,
+                consumer_delivery_policy_generation: 0,
             },
         );
         if let (Some(token), Some((source_identity, affinity))) =
@@ -142,6 +147,8 @@ impl WorthQuerySharedProjectionOwnerRegistry {
                 WorthQuerySharedProjectionLeaseRecord {
                     source_identity: source_identity.to_string(),
                     affinity: affinity.clone(),
+                    consumer_delivery_policy: None,
+                    consumer_delivery_policy_generation: 0,
                 },
             );
         }

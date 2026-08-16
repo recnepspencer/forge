@@ -29,6 +29,9 @@ mod counter_access;
 mod direct_invalidation_basis_tests;
 mod observation_state;
 mod performed_counter_state;
+mod reconstitution;
+#[cfg(test)]
+mod reconstitution_tests;
 mod reconstruction_counters;
 mod scheduling_state;
 mod scratch_lease;
@@ -43,6 +46,7 @@ pub use branch_mutations::{
 };
 pub(crate) use observation_state::RuntimeObservation;
 pub(crate) use performed_counter_state::InvalidationPerformedCounterState;
+pub use reconstitution::{SignalGraphReconstitution, SignalGraphReconstitutionReport};
 pub(crate) use reconstruction_counters::ReconstructionCounters;
 pub(crate) use topology_state::EdgeTopology;
 pub(crate) use traversal_state::TraversalResources;

@@ -47,9 +47,9 @@ export function createRootDiagnosticsFacade(rootSession) {
       rootSession.requireActiveDiagnostics("diagnostics.latestRollback");
       return diagnosticsContextOrLive(rootSession).latestRollback;
     },
-    latestFrontierExecution() {
-      rootSession.requireActiveDiagnostics("diagnostics.latestFrontierExecution");
-      return diagnosticsContextOrLive(rootSession).latestFrontierExecution;
+    latestInvalidationPlanningEstimate() {
+      rootSession.requireActiveDiagnostics("diagnostics.latestInvalidationPlanningEstimate");
+      return diagnosticsContextOrLive(rootSession).latestInvalidationPlanningEstimate;
     },
     latestInvalidationTraceRecords() {
       rootSession.requireActiveDiagnostics("diagnostics.latestInvalidationTraceRecords");

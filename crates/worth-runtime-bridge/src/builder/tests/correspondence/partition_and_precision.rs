@@ -47,6 +47,42 @@ fn one_dependency_can_fan_out_across_declared_signal_partitions() {
 }
 
 #[test]
+fn inherited_detail_loss_red_control_scales_seed_work_with_sibling_targets() {
+    for width in [1, 4, 16] {
+        let mut graph = SignalGraph::new();
+        let targets = (0..width)
+            .map(|_| {
+                let node = graph.node().build();
+                target(&graph, node)
+            })
+            .collect::<Vec<_>>();
+        let runtime = runtime(
+            exact_mapping(),
+            vec![registration(dependency("query:one"), targets)],
+        );
+        let TransitionOutcome::Success(correspondence) =
+            runtime.install_semantic_correspondence(dependency("query:one"), &graph)
+        else {
+            panic!("the inherited correspondence must install")
+        };
+        let TransitionOutcome::Success(receipt) = runtime
+            .deliver_installed_correspondence_envelope(
+                &correspondence,
+                &mut graph,
+                &field_change_envelope(),
+            )
+        else {
+            panic!("the inherited coarse correspondence must deliver")
+        };
+
+        assert_eq!(receipt.truth_targets_admitted(), 1);
+        assert_eq!(receipt.signal_seeds_emitted(), width);
+        assert_eq!(receipt.node_fan_out(), width);
+        assert_eq!(receipt.slots_touched(), width);
+    }
+}
+
+#[test]
 fn declared_source_widening_requires_the_exact_registered_cause() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
@@ -105,13 +141,35 @@ fn declared_source_widening_requires_the_exact_registered_cause() {
 }
 
 #[test]
-fn every_mapping_widening_class_has_one_exact_admission_counter() {
+fn declared_field_to_whole_widening_reaches_a_sibling_field_dependency() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let sibling =
+        super::semantic_dependencies::dependency_with_projection_field("query:one", "status");
+    let runtime = runtime_with_source_widening(
+        sibling_field_mapping(),
+        BridgeAspectChangeWideningCause::FieldToWholeAspect,
+        vec![registration(sibling.clone(), vec![target(&graph, node)])],
+    );
+    let TransitionOutcome::Success(correspondence) =
+        runtime.install_semantic_correspondence(sibling, &graph)
+    else {
+        panic!("declared whole-aspect breadth must install for a sibling field")
+    };
+    let TransitionOutcome::Success(receipt) = runtime.deliver_installed_correspondence_envelope(
+        &correspondence,
+        &mut graph,
+        &field_change_envelope_with_precision(BridgeAspectChangePrecision::DeclaredWidening),
+    ) else {
+        panic!("declared whole-aspect breadth must reach the sibling dependency")
+    };
+    assert_eq!(receipt.truth_targets_admitted(), 1);
+    assert_eq!(receipt.signal_seeds_emitted(), 1);
+}
+
+#[test]
+fn retained_mapping_widening_classes_have_one_exact_admission_counter() {
     for (mapping, slice, policy) in [
-        (
-            widened_mapping(),
-            SubscriptionSliceKind::RegisteredCoarseWidening,
-            SliceWideningPolicy::RegisteredEntityCoarseWidening,
-        ),
         (
             exact_mapping(),
             SubscriptionSliceKind::SignalAspect,

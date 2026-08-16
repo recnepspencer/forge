@@ -172,11 +172,13 @@ where
         };
         let identity = wake.due.intent_identity().as_str();
         let Some(candidate) = candidates.get(identity) else {
-            wake.decision = WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted;
+            wake.decision =
+                WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(evidence);
             continue;
         };
         if !wake_matches_candidate(wake, candidate.candidate()) {
-            wake.decision = WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted;
+            wake.decision =
+                WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(evidence);
             continue;
         }
         wake.application_attempted = true;
@@ -261,10 +263,10 @@ fn complete_wake<Clock, Input>(
     }
     candidates.remove(&identity);
     if committed {
-        wake.decision = WorthQueryRetainedConditionalDecision::OperationCommitted;
+        wake.decision = WorthQueryRetainedConditionalDecision::OperationCommitted(evidence);
         counts.committed += 1;
     } else {
-        wake.decision = WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted;
+        wake.decision = WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(evidence);
         counts.already_committed += 1;
     }
 }
@@ -285,7 +287,8 @@ fn retire_obsolete<Clock, Input>(
     match retire_obsolete_wake(bridge, clock, wake) {
         Ok(()) => {
             candidates.remove(&identity);
-            wake.decision = WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted;
+            wake.decision =
+                WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(evidence);
         }
         Err(detail) => {
             wake.decision =

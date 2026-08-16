@@ -16,6 +16,12 @@ pub(super) struct WorthQueryRelevantAuthoritativeCommits {
     work_remaining: bool,
 }
 
+pub(super) struct WorthQueryDeliveredAuthoritativeCommits {
+    pub(super) work_remaining: bool,
+    pub(super) granular_invalidations:
+        Vec<worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery>,
+}
+
 impl WorthQueryRelevantAuthoritativeCommits {
     pub(super) fn commit_count(&self) -> usize {
         self.commits.len()
@@ -63,34 +69,105 @@ pub(super) fn deliver_authoritative_commits(
     query_binding_identity: &str,
     query_capability_identity: u64,
     truth: &WorthQueryConditionalTruthBasis,
-) -> Result<bool, String> {
+) -> Result<WorthQueryDeliveredAuthoritativeCommits, String> {
+    let mut granular_invalidations = Vec::new();
     for (sequence, commit) in &commits.commits {
-        let changed_records = deliver_commit_dependencies(bridge, lowering, *commit)?;
-        for wake in wakes
-            .iter_mut()
-            .filter(|wake| changed_records.contains(&wake.due.source_record_identity()))
-        {
-            reconsider_retained_wake(
-                bridge,
-                wake,
-                lowering,
-                query_binding_identity,
-                query_capability_identity,
-                truth,
-            );
+        let delivered = deliver_commit_dependencies(bridge, lowering, *commit)?;
+        for wake in wakes.iter_mut().filter(|wake| {
+            delivered
+                .changed_records
+                .contains(&wake.due.source_record_identity())
+        }) {
+            if let Some(triggering_correspondence) = delivered
+                .granular_invalidations
+                .iter()
+                .map(|delivery| delivery.correspondence_receipt())
+                .find(|receipt| {
+                    receipt.change_set().changes().iter().any(|change| {
+                        change.relational_record_identity()
+                            == Some(wake.due.source_record_identity())
+                    })
+                })
+            {
+                reconsider_retained_wake(
+                    bridge,
+                    wake,
+                    lowering,
+                    query_binding_identity,
+                    query_capability_identity,
+                    truth,
+                    triggering_correspondence,
+                );
+            }
         }
+        granular_invalidations.extend(promote_performed_signal_deliveries(
+            delivered.granular_invalidations,
+            wakes,
+        ));
         *cursor = Some(*sequence);
     }
     *cursor = Some(commits.next_cursor);
-    Ok(commits.work_remaining())
+    Ok(WorthQueryDeliveredAuthoritativeCommits {
+        work_remaining: commits.work_remaining(),
+        granular_invalidations,
+    })
+}
+
+pub(super) fn promote_performed_signal_deliveries(
+    deliveries: Vec<worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery>,
+    wakes: &mut [WorthQueryRetainedConditionalWake],
+) -> Vec<worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery> {
+    deliveries
+        .into_iter()
+        .map(|delivery| {
+            if delivery.performed_signal().is_some() {
+                return delivery;
+            }
+            for wake in wakes.iter_mut() {
+                let Some(evidence) = retained_decision_evidence_mut(&mut wake.decision) else {
+                    continue;
+                };
+                match worth_runtime_bridge::facade::assemble_granular_invalidation_delivery(
+                    delivery.correspondence_receipt(),
+                    Some(evidence),
+                ) {
+                    Ok(performed) => return performed,
+                    Err(_) => continue,
+                }
+            }
+            delivery
+        })
+        .collect()
+}
+
+fn retained_decision_evidence_mut(
+    decision: &mut super::signal_decision_reentry::WorthQueryRetainedConditionalDecision,
+) -> Option<&mut worth_runtime_bridge::facade::BridgeConditionalDecisionEvidence> {
+    use super::signal_decision_reentry::WorthQueryRetainedConditionalDecision as Decision;
+    match decision {
+        Decision::Eligible(evidence)
+        | Decision::Suppressed(evidence)
+        | Decision::Deferred(evidence)
+        | Decision::OperationRetryable(evidence, _)
+        | Decision::OperationIndeterminate(evidence, _)
+        | Decision::OperationCommitted(evidence)
+        | Decision::OperationAlreadyCommitted(evidence) => Some(evidence),
+        Decision::Failed(_) => None,
+    }
+}
+
+struct WorthQueryDeliveredCommitDependencies {
+    changed_records: BTreeSet<RelationalBridgeRecordIdentityParts>,
+    granular_invalidations: Vec<worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery>,
 }
 
 fn deliver_commit_dependencies(
     bridge: &mut BridgeOwnedSignalRuntime,
     lowering: &BridgeInstalledConditionalLowering,
     commit: worth_relational::facade::history::CommitId,
-) -> Result<BTreeSet<RelationalBridgeRecordIdentityParts>, String> {
+) -> Result<WorthQueryDeliveredCommitDependencies, String> {
     let mut changed_records = BTreeSet::new();
+    let mut granular_invalidations = Vec::new();
     for dependency_ordinal in 0..lowering.contract().dependency_count() {
         let outcome = bridge
             .deliver_authoritative_change(
@@ -126,6 +203,14 @@ fn deliver_commit_dependencies(
                 .iter()
                 .filter_map(|change| change.relational_record_identity()),
         );
+        if !receipt.change_set().changes().is_empty() {
+            granular_invalidations.push(
+                worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery::direct(&receipt),
+            );
+        }
     }
-    Ok(changed_records)
+    Ok(WorthQueryDeliveredCommitDependencies {
+        changed_records,
+        granular_invalidations,
+    })
 }

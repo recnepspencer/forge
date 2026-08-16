@@ -147,11 +147,13 @@ pub(in crate::runtime) fn execute_runtime_basis_context_read_graph(
             &query_context_basis_digest_identity(context.basis_digest()),
         ));
     let receipt_snapshot_identity = runtime.current_snapshot_identity();
-    let rows = if context_allows_runtime_materialization(&receipt_snapshot_identity, context) {
-        materialize_read_rows(runtime, read_graph)?.into_rows()
-    } else {
-        materialize_query_context_rows(&context_execution)
-    };
+    let (rows, maintenance_source_rows) =
+        if context_allows_runtime_materialization(&receipt_snapshot_identity, context) {
+            let (rows, support_rows, _) = materialize_read_rows(runtime, read_graph)?.into_parts();
+            (rows, Some(support_rows))
+        } else {
+            (materialize_query_context_rows(&context_execution), None)
+        };
     let graph_read_access_execution_counters =
         WorthQueryGraphReadAccessExecutionCounters::observed_admitted_execution(rows.len());
     let receipt = crate::runtime::WorthQueryReadReceipt::from_query_context_execution(
@@ -160,9 +162,13 @@ pub(in crate::runtime) fn execute_runtime_basis_context_read_graph(
         &context_execution,
         &rows,
     );
+    let product = match maintenance_source_rows {
+        Some(source_rows) => WorthQueryReadResult::new_with_source_rows(rows, source_rows, receipt),
+        None => WorthQueryReadResult::new(rows, receipt),
+    };
     Ok(WorthQueryExecutedReadProduct {
         graph_read_access_execution_counters,
-        product: WorthQueryReadResult::new(rows, receipt),
+        product,
     })
 }
 

@@ -19,6 +19,14 @@ pub enum BridgeAspectChangeWideningCause {
     OpaquePayloadToWholeAspect,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum BridgeSemanticAspectChangeBreadth {
+    ExactField,
+    WholeAspect,
+    Entity,
+    Surface,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeSemanticAspectChange {
     aspect_key: AspectKey,
@@ -97,6 +105,57 @@ impl BridgeSemanticAspectChange {
     }
     pub const fn widening_cause(&self) -> Option<BridgeAspectChangeWideningCause> {
         self.widening_cause
+    }
+
+    pub const fn effective_breadth(&self) -> BridgeSemanticAspectChangeBreadth {
+        match (
+            self.precision,
+            self.widening_cause,
+            self.field_path.is_some(),
+        ) {
+            (
+                BridgeAspectChangePrecision::DeclaredWidening,
+                Some(
+                    BridgeAspectChangeWideningCause::FieldToWholeAspect
+                    | BridgeAspectChangeWideningCause::OpaquePayloadToWholeAspect,
+                ),
+                _,
+            ) => BridgeSemanticAspectChangeBreadth::WholeAspect,
+            (
+                BridgeAspectChangePrecision::DeclaredWidening,
+                Some(BridgeAspectChangeWideningCause::AspectToEntity),
+                _,
+            ) => BridgeSemanticAspectChangeBreadth::Entity,
+            (
+                BridgeAspectChangePrecision::DeclaredWidening,
+                Some(BridgeAspectChangeWideningCause::SurfaceBroadening),
+                _,
+            ) => BridgeSemanticAspectChangeBreadth::Surface,
+            (_, _, true) => BridgeSemanticAspectChangeBreadth::ExactField,
+            (_, _, false) => BridgeSemanticAspectChangeBreadth::WholeAspect,
+        }
+    }
+
+    pub fn effective_field_path(&self) -> Option<&CanonicalFieldPath> {
+        (self.effective_breadth() == BridgeSemanticAspectChangeBreadth::ExactField)
+            .then_some(self.field_path.as_ref())
+            .flatten()
+    }
+
+    /// Returns whether one dependency-declared change kind intersects this
+    /// authoritative change. Bridge owns this correspondence law so downstream
+    /// consumers cannot reinterpret a delivered whole-aspect change more
+    /// narrowly than the correspondence that admitted it.
+    pub fn intersects_relevant_change(&self, admitted: AuthoritativeAspectChangeKind) -> bool {
+        self.kind == admitted
+            || matches!(
+                self.kind,
+                AuthoritativeAspectChangeKind::WholeAspectSet
+                    | AuthoritativeAspectChangeKind::WholeAspectClear
+            ) && matches!(
+                admitted,
+                AuthoritativeAspectChangeKind::FieldSet | AuthoritativeAspectChangeKind::FieldClear
+            )
     }
 
     pub(crate) fn canonical_basis(&self) -> String {

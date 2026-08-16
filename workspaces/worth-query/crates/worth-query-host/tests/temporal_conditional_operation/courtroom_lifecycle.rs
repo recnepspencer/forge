@@ -7,6 +7,18 @@ use super::world::CourtroomWorld;
 pub fn reinstallation_reconstructs_active_authoritative_work() {
     let mut world = CourtroomWorld::publish("ready");
     let receipt = world.application.reinstall_conditional_runtime().unwrap();
+    let lower = receipt.lower_runtime_reconstitution();
+    assert_ne!(
+        lower.signal().previous_graph_instance_id(),
+        lower.signal().restored_graph_instance_id()
+    );
+    assert!(lower.signal().reconstructed_node_count() > 0);
+    assert_eq!(lower.signal().checkpoint_reconstruction_count(), 1);
+    assert!(lower
+        .correspondence()
+        .exact_semantic_dependency_index_parity());
+    assert!(lower.correspondence().exact_mapping_index_parity());
+    assert!(lower.correspondence().exact_index_parity());
     assert_eq!(receipt.reconstructed_binding_count(), 1);
     assert_eq!(receipt.reconstructed_intent_count(), 1);
     let observed = observe(&mut world);
@@ -108,6 +120,20 @@ pub fn reinstallation_after_commit_cannot_duplicate_effect() {
         IntentEffectField::reference(),
         "payload".to_string(),
     );
+}
+
+pub fn reinstallation_revokes_captured_granular_batches() {
+    let mut world = CourtroomWorld::publish("blocked");
+    let before = world.application.granular_invalidation_installation();
+    world.amend_intent(1, "active", "ready");
+    let mut observed = observe(&mut world);
+    let batch = observed.take_granular_invalidation_batch();
+    assert!(before.admits_batch(&batch));
+
+    world.application.reinstall_conditional_runtime().unwrap();
+    let current = world.application.granular_invalidation_installation();
+    assert!(!before.admits_batch(&batch));
+    assert!(!current.admits_batch(&batch));
 }
 
 pub fn closing_runtime_releases_inventory_and_revokes_handles() {

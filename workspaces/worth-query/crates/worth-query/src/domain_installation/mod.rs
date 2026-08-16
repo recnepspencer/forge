@@ -39,7 +39,8 @@ pub use operating_world::*;
 pub(crate) use operation_authority_chain::WorthQueryOperationAuthorityBasis;
 pub use operation_execution::*;
 pub(crate) use operation_execution::{
-    WorthQueryArtifactProductionAuthority, WorthQueryWorkflowArtifactRegistry,
+    refresh_granular_source, WorthQueryArtifactProductionAuthority,
+    WorthQueryWorkflowArtifactRegistry,
 };
 pub use operation_lineage::*;
 pub use package_authority::*;
@@ -58,3 +59,10 @@ pub use consumer_invalidation::*;
 pub use consumer_support::*;
 pub use consumption_cost::*;
 pub use dependency_impact::*;
+pub(crate) use dependency_impact::{
+    admit_granular_invalidation_deliveries, WorthQueryAdmittedLocality,
+};
+pub(crate) use operation_authority_chain::{
+    mint_operation_phase_proof, operation_phase_basis, WorthQueryInvalidationMaintenancePhase,
+    WorthQueryInvalidationPublishedPhase, WorthQueryOperationPhaseProof,
+};

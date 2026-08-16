@@ -146,7 +146,7 @@ export function createGraphOperationalRuntime() {
         latestRollback() {
           return null;
         },
-        latestFrontierExecution() {
+        latestInvalidationPlanningEstimate() {
           return null;
         },
         latestInvalidationTraceRecords() {

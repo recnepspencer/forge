@@ -18,6 +18,8 @@ pub(super) struct BridgeRetainedConditionalDecisionCore {
     pub(super) signal: SignalConditionalDecisionEvidence,
     pub(super) semantic_observations: Arc<[BridgeConditionalSemanticObservation]>,
     pub(super) bridge_execution_counters: super::BridgeConditionalExecutionCounters,
+    pub(super) triggering_change_set:
+        Option<crate::correspondence::BridgeDeliveredCorrespondenceChangeSet>,
 }
 
 /// Bridge-owned handle to one exact Signal evaluation. It is intentionally
@@ -60,6 +62,7 @@ impl BridgeOwnedSignalRuntime {
             query_binding_identity: request.query_binding_identity.into(),
             query_capability_identity: request.query_capability_identity,
             reentry_counters: counters,
+            performed_signal_invalidation: None,
         })
     }
 

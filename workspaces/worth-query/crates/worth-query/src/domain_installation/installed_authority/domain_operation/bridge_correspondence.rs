@@ -21,12 +21,30 @@ impl<D, O, F> WorthQueryInstalledDomainOperation<D, O, F> {
         graph: &WorthQueryInstalledGraphParticipation<G>,
         source_record_identity: Option<RelationalBridgeRecordIdentityParts>,
     ) -> Result<BridgeSemanticDependencyCandidate, BridgeCorrespondenceDenial> {
+        self.semantic_correspondence_candidate_with_observation(
+            location,
+            dependency_ordinal,
+            graph,
+            source_record_identity,
+            source_record_identity,
+        )
+    }
+
+    fn semantic_correspondence_candidate_with_observation<G: 'static>(
+        &self,
+        location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
+        dependency_ordinal: usize,
+        graph: &WorthQueryInstalledGraphParticipation<G>,
+        source_record_identity: Option<RelationalBridgeRecordIdentityParts>,
+        observation_record_identity: Option<RelationalBridgeRecordIdentityParts>,
+    ) -> Result<BridgeSemanticDependencyCandidate, BridgeCorrespondenceDenial> {
         let dependency = self.installed_conditional_dependency(location, dependency_ordinal)?;
         self.admit_dependency_graph(dependency.dependency().graph_read_role().as_str(), graph)?;
         BridgeSemanticDependencyCandidate::admit(bridge_candidate_parts(
             &dependency,
             graph,
             source_record_identity,
+            observation_record_identity,
         ))
     }
 
@@ -43,6 +61,25 @@ impl<D, O, F> WorthQueryInstalledDomainOperation<D, O, F> {
             dependency_ordinal,
             graph,
             source_record_identity,
+        )?;
+        BridgeSemanticCorrespondenceRegistration::new(dependency, targets)
+    }
+
+    pub(crate) fn semantic_correspondence_registration_with_observation<G: 'static>(
+        &self,
+        location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
+        dependency_ordinal: usize,
+        graph: &WorthQueryInstalledGraphParticipation<G>,
+        source_record_identity: Option<RelationalBridgeRecordIdentityParts>,
+        observation_record_identity: Option<RelationalBridgeRecordIdentityParts>,
+        targets: Vec<BridgeSignalAspectTargetDeclaration>,
+    ) -> Result<BridgeSemanticCorrespondenceRegistration, BridgeCorrespondenceDenial> {
+        let dependency = self.semantic_correspondence_candidate_with_observation(
+            location,
+            dependency_ordinal,
+            graph,
+            source_record_identity,
+            observation_record_identity,
         )?;
         BridgeSemanticCorrespondenceRegistration::new(dependency, targets)
     }
@@ -89,6 +126,7 @@ fn bridge_candidate_parts<G>(
     authority: &WorthQueryInstalledConditionalDependencyAuthority,
     graph: &WorthQueryInstalledGraphParticipation<G>,
     source_record_identity: Option<RelationalBridgeRecordIdentityParts>,
+    observation_record_identity: Option<RelationalBridgeRecordIdentityParts>,
 ) -> BridgeSemanticDependencyCandidateParts {
     let dependency = authority.dependency();
     BridgeSemanticDependencyCandidateParts {
@@ -106,6 +144,7 @@ fn bridge_candidate_parts<G>(
         ),
         graph_adapter_identity: Arc::from(graph.record.installation_authority.provider_identity()),
         source_record_identity,
+        observation_record_identity,
         contract: dependency.contract().clone(),
         projection_mask: dependency.projection_mask().clone(),
         binding: dependency.binding().clone(),

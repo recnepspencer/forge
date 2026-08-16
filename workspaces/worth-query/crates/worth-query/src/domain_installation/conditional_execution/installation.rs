@@ -114,6 +114,7 @@ pub trait WorthQueryConditionalNodeComputeProvider<D, O, F>: Send + Sync + 'stat
 #[derive(Clone)]
 pub struct WorthQueryConditionalDependencyInstallation {
     source_record_identity: Option<RelationalBridgeRecordIdentityParts>,
+    observation_record_identity: Option<RelationalBridgeRecordIdentityParts>,
     targets: Vec<BridgeSignalAspectTargetDeclaration>,
 }
 
@@ -124,8 +125,24 @@ impl WorthQueryConditionalDependencyInstallation {
     ) -> Self {
         Self {
             source_record_identity,
+            observation_record_identity: source_record_identity,
             targets,
         }
+    }
+
+    pub fn with_observation_record(
+        mut self,
+        observation_record_identity: RelationalBridgeRecordIdentityParts,
+    ) -> Self {
+        self.observation_record_identity = Some(observation_record_identity);
+        self
+    }
+
+    /// Read-only Signal targets retained by this dependency installation.
+    /// These declarations carry no installed correspondence authority.
+    #[doc(hidden)]
+    pub fn signal_targets(&self) -> &[BridgeSignalAspectTargetDeclaration] {
+        &self.targets
     }
 
     fn rebound_for(
@@ -145,6 +162,7 @@ impl WorthQueryConditionalDependencyInstallation {
             )?;
         Ok(Self {
             source_record_identity: self.source_record_identity,
+            observation_record_identity: self.observation_record_identity,
             targets,
         })
     }
@@ -188,11 +206,12 @@ pub(crate) fn build_correspondence_registrations<D: 'static, O: 'static, F: 'sta
         .enumerate()
         .map(|(ordinal, dependency)| {
             operation
-                .semantic_correspondence_registration(
+                .semantic_correspondence_registration_with_observation(
                     location.clone(),
                     ordinal,
                     graph,
                     dependency.source_record_identity,
+                    dependency.observation_record_identity,
                     dependency.targets,
                 )
                 .map_err(|denial| {

@@ -253,7 +253,7 @@ export function createGraphExportImportRuntime() {
         latestRollback() {
           return null;
         },
-        latestFrontierExecution() {
+        latestInvalidationPlanningEstimate() {
           return null;
         },
         latestInvalidationTraceRecords() {

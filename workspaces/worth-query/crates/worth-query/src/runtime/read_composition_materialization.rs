@@ -21,16 +21,19 @@ use super::read_composition_row_selection::{
 
 pub(in crate::runtime) struct WorthQueryMaterializedReadRows {
     rows: Vec<WorthQueryEntity>,
+    maintenance_source_rows: Vec<WorthQueryEntity>,
     records_examined_count: usize,
 }
 
 impl WorthQueryMaterializedReadRows {
-    pub(in crate::runtime) fn into_rows(self) -> Vec<WorthQueryEntity> {
-        self.rows
-    }
-
-    pub(in crate::runtime) fn into_parts(self) -> (Vec<WorthQueryEntity>, usize) {
-        (self.rows, self.records_examined_count)
+    pub(in crate::runtime) fn into_parts(
+        self,
+    ) -> (Vec<WorthQueryEntity>, Vec<WorthQueryEntity>, usize) {
+        (
+            self.rows,
+            self.maintenance_source_rows,
+            self.records_examined_count,
+        )
     }
 }
 
@@ -44,9 +47,12 @@ pub(in crate::runtime) fn materialize_read_rows(
     ensure_materialized_read_view(runtime, &target, &view_name, read_graph)?;
     let source_rows = runtime.backend.live_entities_for_target(&target);
     let records_examined_count = source_rows.len();
-    let rows = materialize_source_rows_for_read_graph(read_graph, &request, &source_rows);
+    let maintenance_source_rows =
+        select_source_rows_for_read_graph(read_graph, &request, &source_rows);
+    let rows = project_rows_to_request(maintenance_source_rows.clone(), &request);
     Ok(WorthQueryMaterializedReadRows {
         rows,
+        maintenance_source_rows,
         records_examined_count,
     })
 }
@@ -56,7 +62,16 @@ pub(in crate::runtime) fn materialize_source_rows_for_read_graph(
     request: &DeclarativeLiveQueryRequest,
     source_rows: &[WorthQueryEntity],
 ) -> Vec<WorthQueryEntity> {
-    let rows = match read_graph.family() {
+    let rows = select_source_rows_for_read_graph(read_graph, request, source_rows);
+    project_rows_to_request(rows, request)
+}
+
+fn select_source_rows_for_read_graph(
+    read_graph: &WorthQueryReadGraph,
+    request: &DeclarativeLiveQueryRequest,
+    source_rows: &[WorthQueryEntity],
+) -> Vec<WorthQueryEntity> {
+    match read_graph.family() {
         WorthQueryReadGraphFamily::Detail => {
             materialize_detail_rows_from_request(read_graph, request, source_rows)
                 .unwrap_or_else(|| synthetic_detail_rows_for_request(request))
@@ -64,8 +79,7 @@ pub(in crate::runtime) fn materialize_source_rows_for_read_graph(
         WorthQueryReadGraphFamily::Collection => {
             materialize_collection_rows_from_request(read_graph, request, source_rows)
         }
-    };
-    project_rows_to_request(rows, request)
+    }
 }
 
 pub(in crate::runtime) fn materialize_query_context_rows(

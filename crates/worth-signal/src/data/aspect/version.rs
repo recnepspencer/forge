@@ -270,6 +270,62 @@ impl PartitionVersionMap {
         }
     }
 
+    /// Apply one producer-local aspect change without projecting that aspect's
+    /// locality onto sibling aspects. Empty regions mean the aspect changed
+    /// globally; otherwise only the named partition/detail scopes advance.
+    pub(crate) fn apply_scoped_aspect_bump(
+        &mut self,
+        aspect: Aspect,
+        changed_regions: &[ChangedRegion],
+        baseline: &Self,
+    ) {
+        let previous_global = self.global;
+        let next_value = previous_global.get(aspect) + 1;
+        self.global = previous_global.with(aspect, next_value);
+
+        if changed_regions.is_empty() {
+            for version in self.partitions.values_mut() {
+                *version = version.with(aspect, next_value);
+            }
+            for version in self.details.values_mut() {
+                *version = version.with(aspect, next_value);
+            }
+            return;
+        }
+
+        for region in changed_regions {
+            let previous_partition = self
+                .partitions
+                .get(&region.partition)
+                .copied()
+                .or_else(|| baseline.partitions.get(&region.partition).copied())
+                .unwrap_or(baseline.global);
+            self.partitions.insert(
+                region.partition.clone(),
+                previous_partition.with(aspect, next_value),
+            );
+            if let Some(detail) = region.detail.as_ref() {
+                let scope = PartitionSubscription::partition_and_detail(
+                    region.partition.clone(),
+                    detail.clone(),
+                );
+                let previous_detail = self
+                    .details
+                    .get(&scope)
+                    .copied()
+                    .unwrap_or(previous_partition);
+                self.details
+                    .insert(scope, previous_detail.with(aspect, next_value));
+            } else {
+                for (scope, version) in &mut self.details {
+                    if scope.partition == region.partition {
+                        *version = version.with(aspect, next_value);
+                    }
+                }
+            }
+        }
+    }
+
     pub fn into_storage_parts(self) -> (AspectVersionHeader, PartitionVersionOverrides) {
         let overrides = PartitionVersionOverrides {
             partitions: self.partitions,

@@ -3,6 +3,8 @@ use std::sync::{Arc, RwLock};
 
 use worth_signal::facade::{Aspect, PartitionToken, MAX_ASPECTS};
 
+use crate::mapping::BridgeAspectRegistrationId;
+
 use super::{
     BridgeSignalAspectTargetDeclaration, BridgeSignalSlotRequest, InstalledCorrespondenceTarget,
 };
@@ -19,12 +21,48 @@ pub(super) struct AllocationKey {
 pub(super) struct AuthoritativeAllocationRecord {
     pub(super) key: AllocationKey,
     pub(super) owner: String,
+    pub(super) target_identity: AllocationTargetIdentity,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) struct AllocationTargetIdentity {
+    aspect_registration_id: BridgeAspectRegistrationId,
+    slot: AllocationSlotIdentity,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum AllocationSlotIdentity {
+    Allocate,
+    Exact(Aspect),
+}
+
+pub(super) fn allocation_target_identity(
+    declaration: &BridgeSignalAspectTargetDeclaration,
+) -> AllocationTargetIdentity {
+    let slot = match &declaration.slot {
+        BridgeSignalSlotRequest::Allocate => AllocationSlotIdentity::Allocate,
+        BridgeSignalSlotRequest::Exact(aspect) => AllocationSlotIdentity::Exact(aspect.aspect()),
+    };
+    AllocationTargetIdentity {
+        aspect_registration_id: declaration.aspect_registration_id.clone(),
+        slot,
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct AllocationTargetKey {
+    signal_graph_instance_id: u64,
+    partition: PartitionToken,
+    node: worth_signal::facade::NodeId,
+    owner: String,
+    target_identity: AllocationTargetIdentity,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct CorrespondenceAllocationRegistry {
     pub(super) authoritative_records: BTreeSet<AuthoritativeAllocationRecord>,
     pub(super) owners: BTreeMap<AllocationKey, BTreeSet<String>>,
+    retained_aspect_by_target: BTreeMap<AllocationTargetKey, Aspect>,
 }
 
 impl CorrespondenceAllocationRegistry {
@@ -40,9 +78,67 @@ impl CorrespondenceAllocationRegistry {
             .is_some_and(|owners| owners.iter().eq(target.allocation_sources.iter()))
     }
 
+    pub(crate) fn rebind_to_graph(&self, signal_graph_instance_id: u64) -> Self {
+        let authoritative_records = self
+            .authoritative_records
+            .iter()
+            .map(|record| AuthoritativeAllocationRecord {
+                key: AllocationKey {
+                    signal_graph_instance_id,
+                    partition: record.key.partition.clone(),
+                    node: record.key.node,
+                    aspect: record.key.aspect,
+                },
+                owner: record.owner.clone(),
+                target_identity: record.target_identity.clone(),
+            })
+            .collect();
+        Self::from_authoritative_records(authoritative_records)
+    }
+
+    pub(super) fn commit(&mut self, record: AuthoritativeAllocationRecord) {
+        self.owners
+            .entry(record.key.clone())
+            .or_default()
+            .insert(record.owner.clone());
+        self.retained_aspect_by_target.insert(
+            AllocationTargetKey {
+                signal_graph_instance_id: record.key.signal_graph_instance_id,
+                partition: record.key.partition.clone(),
+                node: record.key.node,
+                owner: record.owner.clone(),
+                target_identity: record.target_identity.clone(),
+            },
+            record.key.aspect,
+        );
+        self.authoritative_records.insert(record);
+    }
+
+    fn from_authoritative_records(
+        authoritative_records: BTreeSet<AuthoritativeAllocationRecord>,
+    ) -> Self {
+        let mut rebuilt = Self::default();
+        for record in authoritative_records {
+            rebuilt.commit(record);
+        }
+        rebuilt
+    }
+
+    pub(crate) fn reconstruct_derived_indexes(&self) -> Self {
+        Self::from_authoritative_records(self.authoritative_records.clone())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn destroy_derived_indexes(&mut self) {
+        self.owners.clear();
+        self.retained_aspect_by_target.clear();
+    }
+
     #[cfg(test)]
     pub(crate) fn is_empty(&self) -> bool {
-        self.authoritative_records.is_empty() && self.owners.is_empty()
+        self.authoritative_records.is_empty()
+            && self.owners.is_empty()
+            && self.retained_aspect_by_target.is_empty()
     }
 }
 
@@ -55,24 +151,13 @@ pub(super) enum SlotAllocation {
     NodeContractMismatch,
 }
 
-pub(super) fn rebuild_owners(
-    records: &BTreeSet<AuthoritativeAllocationRecord>,
-) -> BTreeMap<AllocationKey, BTreeSet<String>> {
-    let mut owners = BTreeMap::<AllocationKey, BTreeSet<String>>::new();
-    for record in records {
-        owners
-            .entry(record.key.clone())
-            .or_default()
-            .insert(record.owner.clone());
-    }
-    owners
-}
-
 pub(super) fn allocate_slot(
     registry: &CorrespondenceAllocationRegistry,
     pending: &BTreeMap<AllocationKey, BTreeSet<String>>,
     signal_graph_instance_id: u64,
     declaration: &BridgeSignalAspectTargetDeclaration,
+    owner: &str,
+    target_identity: &AllocationTargetIdentity,
 ) -> (SlotAllocation, usize) {
     match &declaration.slot {
         BridgeSignalSlotRequest::Exact(aspect) => (
@@ -84,25 +169,37 @@ pub(super) fn allocate_slot(
             1,
         ),
         BridgeSignalSlotRequest::Allocate => {
+            let retained_key = AllocationTargetKey {
+                signal_graph_instance_id,
+                partition: declaration.partition.clone(),
+                node: declaration.node,
+                owner: owner.to_string(),
+                target_identity: target_identity.clone(),
+            };
+            if let Some(aspect) = registry.retained_aspect_by_target.get(&retained_key) {
+                let key = AllocationKey {
+                    signal_graph_instance_id,
+                    partition: declaration.partition.clone(),
+                    node: declaration.node,
+                    aspect: *aspect,
+                };
+                if signal_node_admits(declaration, *aspect) && !pending.contains_key(&key) {
+                    return (SlotAllocation::Allocated(*aspect), 1);
+                }
+            }
             let mut examined = 0;
             let mut admitted_slot_exists = false;
             let aspect = (0..MAX_ASPECTS as u8).map(Aspect::new).find(|aspect| {
                 examined += 1;
                 let admitted = signal_node_admits(declaration, *aspect);
                 admitted_slot_exists |= admitted;
-                admitted
-                    && !registry.owners.contains_key(&AllocationKey {
-                        signal_graph_instance_id,
-                        partition: declaration.partition.clone(),
-                        node: declaration.node,
-                        aspect: *aspect,
-                    })
-                    && !pending.contains_key(&AllocationKey {
-                        signal_graph_instance_id,
-                        partition: declaration.partition.clone(),
-                        node: declaration.node,
-                        aspect: *aspect,
-                    })
+                let key = AllocationKey {
+                    signal_graph_instance_id,
+                    partition: declaration.partition.clone(),
+                    node: declaration.node,
+                    aspect: *aspect,
+                };
+                admitted && !registry.owners.contains_key(&key) && !pending.contains_key(&key)
             });
             (
                 aspect.map_or_else(

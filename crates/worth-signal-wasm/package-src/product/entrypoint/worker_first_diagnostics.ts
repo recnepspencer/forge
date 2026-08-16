@@ -49,8 +49,8 @@ export function createWorkerFirstDiagnosticsFacade(workerFirstSession) {
     latestRollback() {
       return workerFirstSession.bridge.latestRollback();
     },
-    latestFrontierExecution() {
-      return workerFirstSession.bridge.latestFrontierExecution();
+    latestInvalidationPlanningEstimate() {
+      return workerFirstSession.bridge.latestInvalidationPlanningEstimate();
     },
     latestInvalidationTraceRecords() {
       return workerFirstSession.bridge.latestInvalidationTraceRecords();

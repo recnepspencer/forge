@@ -29,6 +29,7 @@ mod dependency_impact_scale;
 mod dependency_impact_semantic_convergence;
 mod domain_evidence;
 mod execution_resource_admission;
+mod granular_invalidation_phase_one;
 mod graph_participation;
 mod graph_provider_execution;
 mod graph_provider_step;

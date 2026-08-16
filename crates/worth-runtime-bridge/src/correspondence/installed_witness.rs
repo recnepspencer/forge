@@ -108,6 +108,14 @@ impl BridgeCorrespondenceBasis {
     ) -> Option<&crate::input::envelope::BridgeAuthoritativeSourceProfile> {
         self.authoritative_source_profile.as_ref()
     }
+
+    /// Read-only installed Signal partition identities retained by this
+    /// correspondence. These describe the performed binding; they grant no
+    /// Signal mutation or Query admission authority.
+    #[doc(hidden)]
+    pub fn signal_partitions(&self) -> &[PartitionToken] {
+        &self.signal_partitions
+    }
 }
 
 struct BridgeCorrespondenceResolutionAuthority {

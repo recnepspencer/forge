@@ -108,7 +108,7 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
     source_file!(
         "data/graph/storage/entries/transitions.rs",
         "../../../../../../data/graph/storage/entries/transitions.rs",
-        "f181ea479c511b4f5ce943664cd43408bb0736f648bb4579b418e5b6f3077927"
+        "0ad4d89bdbfb9808f7687e4b69961808203817c24e67e3ef7d6c980330301ac9"
     ),
     source_file!(
         "data/graph/storage/entries/access.rs",

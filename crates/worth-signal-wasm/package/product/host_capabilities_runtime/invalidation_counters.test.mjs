@@ -17,7 +17,7 @@ test("host capability invalidation batches push churn and exposes counters hones
       latestFlow() { return null; },
       latestFailure() { return null; },
       latestRollback() { return null; },
-      latestFrontierExecution() { return null; },
+      latestInvalidationPlanningEstimate() { return null; },
       latestInvalidationTraceRecords() { return []; },
       recentHistory() { return []; },
       historyNow() { return { history: {}, callbackNodes: [] }; },

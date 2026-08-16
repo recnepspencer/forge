@@ -1,6 +1,7 @@
 mod frozen;
 mod ids;
 mod registration;
+mod semantic_index;
 mod types;
 mod validation;
 

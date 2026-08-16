@@ -16,13 +16,8 @@ use crate::runtime::{
 };
 use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 use worth_signal::facade::adapters::{
-    DedupedNodeBatch, FrontierEntryClassification, FrontierExecutionCounters,
-    FrontierExecutionSummary, FrontierInclusionBasis, FrontierPlan, FrontierPredictedCounters,
-    FrontierSeedCause, FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan,
-    FrontierWaveSummary, InvalidationSeed, InvalidationSeedBatch, PartitionScopeSet,
-    SortedSourceBatch, TouchedScopeSummary,
+    InvalidationPerformedCounter, InvalidationPlanningEstimate, SignalInvalidationRealizedCounters,
 };
-use worth_signal::facade::{Aspect, NodeId, PartitionSubscription};
 
 use super::super::{
     title_value_touch, RepresentativeArtifacts, WorthQueryLowerRuntimeRepresentativeEvidenceSource,
@@ -65,71 +60,16 @@ pub(crate) fn representative_causal_bridge_materialization_row() -> Representati
 }
 
 pub(crate) fn representative_frontier_evidence_row() -> RepresentativeArtifacts {
-    let plan = FrontierPlan::new(
-        InvalidationSeedBatch::new([InvalidationSeed::new(
-            NodeId::new(1, 0),
-            Aspect::new(0),
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            FrontierSeedCause::DirtySource,
-        )]),
-        vec![FrontierWavePlan::new(
-            0,
-            Aspect::new(0),
-            [FrontierWaveEntryPlan::new(
-                NodeId::new(2, 0),
-                FrontierEntryClassification::DirectDirty,
-                FrontierInclusionBasis::DirectSubscriptionMatch,
-                PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-                [0],
-            )],
-        )],
-        TouchedScopeSummary::new_invalidation(
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::default(),
-            DedupedNodeBatch::new([NodeId::new(1, 0), NodeId::new(2, 0)]),
-            SortedSourceBatch::default(),
-        ),
-        FrontierPredictedCounters {
-            seed_count: 1,
-            direct_wave_count: 1,
-            direct_dirty_count: 1,
-            partition_match_count: 1,
-            ..FrontierPredictedCounters::default()
-        },
+    let planned = SignalFrontierSurfaceEvidence::from_planning_estimate(
+        &InvalidationPlanningEstimate::default(),
     );
-    let summary = FrontierExecutionSummary::new(
-        1,
-        vec![FrontierWaveSummary::new(
-            0,
-            Aspect::new(0),
-            [FrontierWaveEntrySummary::new(
-                NodeId::new(2, 0),
-                FrontierEntryClassification::DirectDirty,
-                FrontierInclusionBasis::DirectSubscriptionMatch,
-                PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            )],
-        )],
-        Vec::new(),
-        TouchedScopeSummary::new_invalidation(
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::default(),
-            DedupedNodeBatch::new([NodeId::new(1, 0), NodeId::new(2, 0)]),
-            SortedSourceBatch::default(),
-        ),
-        FrontierExecutionCounters {
-            frontier_seed_count: 1,
-            frontier_direct_wave_count: 1,
-            frontier_direct_dirty_count: 1,
-            frontier_partition_match_count: 1,
-            ..FrontierExecutionCounters::default()
-        },
+    let mut values = [0_u64; 24];
+    values[InvalidationPerformedCounter::ReverseIndexCandidatesReturned as usize] = 1;
+    values[InvalidationPerformedCounter::WorkItemsAdmitted as usize] = 1;
+    values[InvalidationPerformedCounter::NodesEvaluated as usize] = 1;
+    let executed = SignalFrontierSurfaceEvidence::from_realized_counters(
+        &SignalInvalidationRealizedCounters::from_values(values),
     );
-    let planned = SignalFrontierSurfaceEvidence::from_frontier_plan(&plan);
-    let executed = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(&summary);
     let evidence =
         WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
             .field_value(

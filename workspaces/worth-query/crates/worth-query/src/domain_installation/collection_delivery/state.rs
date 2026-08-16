@@ -8,6 +8,13 @@ use crate::domain_installation::{
     WorthQueryConsumerInvalidationAuthority, WorthQueryOperationResultState,
 };
 
+#[path = "state/evidence.rs"]
+mod evidence;
+pub(super) use evidence::denial;
+use evidence::{carry_planning_counters, collection_evidence, maintenance_ordinal};
+#[path = "state/granular_maintenance.rs"]
+mod granular_maintenance;
+
 pub struct WorthQueryCollectionConsumerWindow {
     pub(super) window: WorthQueryBoundCollectionWindow,
     pub(super) index: super::index::WorthQueryCollectionMaintenanceIndex,
@@ -141,6 +148,19 @@ impl WorthQueryCollectionConsumerWindow {
         let mut counters = WorthQueryCollectionDeliveryCounters::default();
         self.validate_patch(&patch, &mut counters)?;
         Ok(self.commit_patch(patch, counters))
+    }
+
+    pub(crate) fn apply_granular_maintenance(
+        &mut self,
+        pending: super::WorthQueryPendingCollectionStateMutation,
+    ) {
+        self.index.apply(pending.delta);
+        self.window = pending.next;
+        self.last_maintenance_ordinal = Some(pending.next_maintenance_ordinal);
+    }
+
+    pub fn current_rows(&self) -> &[WorthQueryCollectionRowHandle] {
+        self.window.rows()
     }
 
     fn validate_patch(
@@ -340,47 +360,4 @@ impl WorthQueryCollectionConsumerWindow {
             )
             .seal()
     }
-}
-
-fn collection_evidence(
-    shape: &'static str,
-) -> crate::evidence_identity::WorthQueryEvidenceIdentityEncoder {
-    crate::WorthQueryEvidenceIdentity::compose(
-        crate::WorthQueryEvidenceScope::ProjectionConsumptionIdentity,
-    )
-    .field_shape(crate::WorthQueryEvidenceTag::new("collection"), shape)
-}
-
-fn maintenance_ordinal(value: Option<u64>) -> String {
-    value
-        .map(|ordinal| ordinal.to_string())
-        .unwrap_or_else(|| "initial".to_owned())
-}
-
-fn carry_planning_counters(
-    applied: &mut WorthQueryCollectionDeliveryCounters,
-    planned: WorthQueryCollectionDeliveryCounters,
-) {
-    applied.invalidation_authority_checks += planned.invalidation_authority_checks;
-    applied.lease_checks += planned.lease_checks;
-    applied.generation_checks += planned.generation_checks;
-    applied.cursor_checks += planned.cursor_checks;
-    applied.semantic_contract_checks += planned.semantic_contract_checks;
-    applied.pending_patch_checks += planned.pending_patch_checks;
-    applied.prior_window_rows_visited += planned.prior_window_rows_visited;
-    applied.fresh_window_rows_visited += planned.fresh_window_rows_visited;
-    applied.affected_identity_lookups += planned.affected_identity_lookups;
-    applied.entity_point_lookups += planned.entity_point_lookups;
-    applied.ordering_index_updates += planned.ordering_index_updates;
-    applied.operations_materialized += planned.operations_materialized;
-    applied.native_facts_materialized += planned.native_facts_materialized;
-    applied.full_collection_scans += planned.full_collection_scans;
-    applied.unrelated_consumer_scans += planned.unrelated_consumer_scans;
-}
-
-pub(super) fn denial(
-    kind: WorthQueryCollectionDeliveryDenialKind,
-    counters: WorthQueryCollectionDeliveryCounters,
-) -> WorthQueryCollectionDeliveryDenial {
-    WorthQueryCollectionDeliveryDenial::new(kind, counters)
 }

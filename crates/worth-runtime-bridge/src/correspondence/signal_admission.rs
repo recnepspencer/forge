@@ -28,13 +28,7 @@ pub(super) fn admit_signal_targets(
     planned.resolved.counters.targets_admitted = planned.targets.as_slice().len();
     planned.resolved.counters.authoritative_records_committed = planned.pending_records.len();
     for record in std::mem::take(&mut planned.pending_records) {
-        allocated
-            .registry
-            .owners
-            .entry(record.key.clone())
-            .or_default()
-            .insert(record.owner.clone());
-        allocated.registry.authoritative_records.insert(record);
+        allocated.registry.commit(record);
     }
     TransitionOutcome::Success(BridgeInstalledSemanticCorrespondence::admit_ready(
         allocated.planned.resolved.recipe,

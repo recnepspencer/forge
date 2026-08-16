@@ -36,6 +36,20 @@ impl WorthQueryManagedLiveHandle {
         workspace.read_managed_live_view(self.view(), &self.workspace_capability)
     }
 
+    pub(crate) fn read_granular_scope(
+        &self,
+        workspace: &mut WorthQueryWorkspace,
+        scope: &crate::live::WorthQueryMaintenanceScope,
+        basis: &crate::runtime::WorthQueryGranularSourceReadBasis,
+    ) -> Result<WorthQueryLiveReadResult, WorthQueryRuntimeError> {
+        workspace.read_managed_live_view_for_granular_scope(
+            self.view(),
+            &self.workspace_capability,
+            scope,
+            basis,
+        )
+    }
+
     pub fn project(
         &self,
         read: &WorthQueryLiveReadResult,

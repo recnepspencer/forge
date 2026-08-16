@@ -216,7 +216,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQuerySharedLiveProjectionLease<D, O, F
         }
     }
 
-    pub(super) fn workspace_capability(&self) -> &Arc<WorthQueryManagedLiveWorkspaceCapability> {
+    pub(crate) fn workspace_capability(&self) -> &Arc<WorthQueryManagedLiveWorkspaceCapability> {
         &self.workspace_capability
     }
 

@@ -62,6 +62,20 @@ impl RuntimeBridgeRelationalSource {
         })
     }
 
+    pub fn for_shared_graph_partition(
+        runtime: Arc<Mutex<RelationalRuntime>>,
+        graph_role: impl Into<Arc<str>>,
+        relational_partition: crate::identity::data::PartitionId,
+        truth_partition: worth_foundational::facade::TruthPartitionRole,
+    ) -> Result<Self, RelationalBridgeSourceConfigurationError> {
+        let mut source = Self::for_shared_graph_role(runtime, graph_role)?;
+        source.partition = Some(RelationalBridgePartitionBinding {
+            relational: relational_partition,
+            truth: truth_partition,
+        });
+        Ok(source)
+    }
+
     pub fn for_graph_partition(
         runtime: Arc<RelationalRuntime>,
         graph_role: impl Into<Arc<str>>,

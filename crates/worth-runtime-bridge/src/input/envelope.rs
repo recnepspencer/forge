@@ -17,6 +17,9 @@ mod canonical;
 mod construction;
 mod core;
 mod semantic;
+#[cfg(test)]
+#[path = "envelope/semantic_tests.rs"]
+mod semantic_tests;
 mod target;
 
 pub use canonical::*;

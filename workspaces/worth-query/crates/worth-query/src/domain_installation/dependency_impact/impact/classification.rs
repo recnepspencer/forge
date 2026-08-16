@@ -154,12 +154,49 @@ pub(crate) fn preflight_owner_delivered_impact(
     preflight_owner_delivery(closure, delivery, &mut counters)
 }
 
+pub(crate) fn preflight_owner_delivered_truth(
+    closure: &WorthQueryCompiledSemanticAspectDependencyClosure,
+    truth: &worth_runtime_bridge::facade::BridgeDeliveredTruthChange,
+) -> Result<(), WorthQueryImpactAdmissionDenial> {
+    let mut counters = WorthQueryImpactCounters::default();
+    preflight_owner_change_set(closure, truth.change_set(), &mut counters)
+}
+
+/// Revalidates semantic ownership after an explicit Query-owned binding has
+/// already proved the exact primary runtime that carried the delivery.
+pub(crate) fn preflight_bound_primary_truth(
+    _closure: &WorthQueryCompiledSemanticAspectDependencyClosure,
+    truth: &worth_runtime_bridge::facade::BridgeDeliveredTruthChange,
+) -> Result<(), WorthQueryImpactAdmissionDenial> {
+    let mut counters = WorthQueryImpactCounters::default();
+    let change_set = truth.change_set();
+    counters.delivery_identity_checks += 1;
+    if change_set
+        .snapshot_identity()
+        .relational_snapshot_parts()
+        .is_none()
+    {
+        return Err(impact_denial(
+            WorthQueryImpactAdmissionDenialKind::ConditionalDeliveryMismatch,
+            counters,
+        ));
+    }
+    Ok(())
+}
+
 fn preflight_owner_delivery(
     closure: &WorthQueryCompiledSemanticAspectDependencyClosure,
     delivery: &BridgeCorrespondenceDeliveryReceipt,
     counters: &mut WorthQueryImpactCounters,
 ) -> Result<(), WorthQueryImpactAdmissionDenial> {
-    let change_set = delivery.change_set();
+    preflight_owner_change_set(closure, delivery.change_set(), counters)
+}
+
+fn preflight_owner_change_set(
+    closure: &WorthQueryCompiledSemanticAspectDependencyClosure,
+    change_set: &worth_runtime_bridge::facade::BridgeDeliveredCorrespondenceChangeSet,
+    counters: &mut WorthQueryImpactCounters,
+) -> Result<(), WorthQueryImpactAdmissionDenial> {
     counters.runtime_authority_checks += 1;
     if closure.affinity.installation_runtime_authority
         != change_set.basis().source_runtime_authority()

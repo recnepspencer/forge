@@ -65,6 +65,31 @@ impl SignalGraph {
         Ok(())
     }
 
+    pub(crate) fn node_partition_version_map(
+        &self,
+        node: NodeId,
+    ) -> Result<crate::data::aspect::PartitionVersionMap, SignalError> {
+        let hot = self.hot_ref(node)?;
+        let warm = self.warm_ref(node)?;
+        Ok(
+            crate::data::aspect::PartitionVersionMap::from_storage_parts(
+                hot.aspect_version_header,
+                warm.aspect_version_overrides.clone(),
+            ),
+        )
+    }
+
+    pub(crate) fn replace_node_partition_version_map(
+        &mut self,
+        node: NodeId,
+        versions: crate::data::aspect::PartitionVersionMap,
+    ) -> Result<(), SignalError> {
+        let (header, overrides) = versions.into_storage_parts();
+        self.hot_mut(node)?.aspect_version_header = header;
+        self.warm_mut(node)?.aspect_version_overrides = overrides;
+        Ok(())
+    }
+
     pub(crate) fn apply_node_artifact_write_delta(
         &mut self,
         node: NodeId,

@@ -10,7 +10,7 @@
 > **Architecture parent:** [signal_architecture2.md](./signal_architecture2.md),
 > `S9.16.3` and `S9.16.6`
 >
-> **Successor:** [milestone-14-plan.md](./milestone-14-plan.md)
+> **Successor:** [milestone-13.1-plan.md](./milestone-13.1-plan.md)
 
 ## 1. Goal And Roadmap Placement
 
@@ -1203,8 +1203,9 @@ Required evidence:
 - historical red mutations remain red
 - all documentation and successor contracts match final source
 
-Milestone 14 may trust only the sealed canonical work stream and measured
-envelopes, not an implementation-specific queue.
+Milestone 13.1 may trust only the sealed canonical work stream and measured
+envelopes, not an implementation-specific queue. Milestone 14 inherits that
+same restriction after the platform carriage cutover.
 
 ## 8. Complexity And Resource Contracts
 
@@ -1378,7 +1379,7 @@ Milestone 13 closes only when:
 
 ## 13. Successor Handoff
 
-[Milestone 14 - Deterministic Parallel Execution Foundation](./milestone-14-plan.md)
+[Milestone 13.1 - Cross-Runtime Granular Invalidation](./milestone-13.1-plan.md)
 inherits:
 
 - a Signal-owned, Proof-progressed canonical ready-work stream
@@ -1390,6 +1391,11 @@ inherits:
 - performed Signal execution receipts
 - Foundational counter-backed locality evidence
 - one typed mechanical strategy conclusion
+
+Milestone 13.1 must carry this sealed Signal-local contract through Runtime
+Bridge installed correspondence and Query-owned impact, maintenance, and
+publication. It may not turn any Signal index key, cause, readiness product,
+or performed receipt into Bridge correspondence or Query permission.
 
 Milestone 14 may prepare and execute independent ready batches under resource
 leases. It may not weaken direct-hop admission, current-basis binding,
@@ -1407,5 +1413,5 @@ domains assign path-segment meaning outside `worth-signal`.
 
 If and only if the final decision is `OrderedReadyWorkCandidate`, a separate
 WORTH-native traversal optimization specification may consume that evidence.
-It does not delay Milestone 14 and cannot enter as an unmeasured compatibility
-lane.
+It cannot replace the Milestone 13.1 platform cutover or enter Milestone 14 as
+an unmeasured compatibility lane.

@@ -99,7 +99,7 @@ test("The Controller Composition And Flat Runtime Equivalence Test", async () =>
             latestRollback() {
               return null;
             },
-            latestFrontierExecution() {
+            latestInvalidationPlanningEstimate() {
               return null;
             },
             latestInvalidationTraceRecords() {

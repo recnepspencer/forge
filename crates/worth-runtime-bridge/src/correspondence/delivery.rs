@@ -123,7 +123,7 @@ impl RuntimeBridge {
         );
         if counters.truth_targets_admitted == 0 {
             return TransitionOutcome::Success(BridgeCorrespondenceDeliveryReceipt::new(
-                counters, change_set,
+                counters, change_set, None,
             ));
         }
 
@@ -132,13 +132,20 @@ impl RuntimeBridge {
                 Ok(capabilities) => capabilities,
                 Err(outcome) => return outcome,
             };
-        if worth_signal::facade::apply_installed_aspect_changes(graph, signal_capabilities).is_err()
-        {
+        let (scoped_changes, prepared_signal) =
+            super::signal_execution::prepare_scoped_signal_invalidation(
+                correspondence,
+                &change_set,
+                signal_capabilities,
+            );
+        let worth_proof::TransitionOutcome::Success(admitted) =
+            worth_signal::facade::apply_installed_scoped_changes(graph, scoped_changes)
+        else {
             return TransitionOutcome::Failed(
                 BridgeCorrespondenceAdmissionFailure::SignalMutationFailed,
             );
-        }
-        counters.signal_seeds_emitted = targets.len();
+        };
+        counters.signal_seeds_emitted = admitted.len();
         counters.node_fan_out = targets
             .iter()
             .map(|target| target.node)
@@ -146,7 +153,9 @@ impl RuntimeBridge {
             .len();
         counters.slots_touched = targets.len();
         TransitionOutcome::Success(BridgeCorrespondenceDeliveryReceipt::new(
-            counters, change_set,
+            counters,
+            change_set,
+            Some(prepared_signal),
         ))
     }
 

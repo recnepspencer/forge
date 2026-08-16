@@ -44,7 +44,7 @@ export function wrapDiagnostics(rawDiagnostics, hostCapabilities) {
     },
     latestFailure: requireDiagnosticsMethod(rawDiagnostics, "latestFailure"),
     latestRollback: requireDiagnosticsMethod(rawDiagnostics, "latestRollback"),
-    latestFrontierExecution: requireDiagnosticsMethod(rawDiagnostics, "latestFrontierExecution"),
+    latestInvalidationPlanningEstimate: requireDiagnosticsMethod(rawDiagnostics, "latestInvalidationPlanningEstimate"),
     latestInvalidationTraceRecords: requireDiagnosticsMethod(rawDiagnostics, "latestInvalidationTraceRecords"),
     recentHistory: requireDiagnosticsMethod(rawDiagnostics, "recentHistory"),
     free,

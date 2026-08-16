@@ -109,9 +109,9 @@ pub mod primary_graph {
         WorthQueryApplicationResultBufferObservation, WorthQueryApplicationResultBufferObserver,
         WorthQueryApplicationStaleAttempt, WorthQueryApplicationUnresolvedCommitEvidence,
         WorthQueryApprovedElevation, WorthQueryAuthenticatedPrincipal, WorthQueryBoundedLaneDenial,
-        WorthQueryBoundedLaneDenialKind, WorthQueryCapabilityRevocationProgram,
-        WorthQueryCompleteApplicationReadSet, WorthQueryCompletedInvariantProjection,
-        WorthQueryCompletedOperationInvariantProjection,
+        WorthQueryBoundedLaneDenialKind, WorthQueryBridgeGranularDeliveryCounters,
+        WorthQueryCapabilityRevocationProgram, WorthQueryCompleteApplicationReadSet,
+        WorthQueryCompletedInvariantProjection, WorthQueryCompletedOperationInvariantProjection,
         WorthQueryConditionalApplicationRuntimeInstallation, WorthQueryConditionalClockHandle,
         WorthQueryConditionalClockObservationDenial,
         WorthQueryConditionalClockObservationDenialKind,
@@ -133,7 +133,9 @@ pub mod primary_graph {
         WorthQueryExternalDispatchPreparationDenial, WorthQueryExternalRedispatchDenial,
         WorthQueryExternalTransportInstallationDenial,
         WorthQueryGovernedTemporalOperationAuthorization,
-        WorthQueryGovernedTemporalQueryAuthorization,
+        WorthQueryGovernedTemporalQueryAuthorization, WorthQueryGranularInvalidationDeliveryBatch,
+        WorthQueryGranularInvalidationInstallation, WorthQueryGranularInvalidationObservation,
+        WorthQueryGranularSourceReadBasis, WorthQueryGranularTransportMergeDenial,
         WorthQueryInspectedOperationInvariantProjection, WorthQueryInvariantAggregate,
         WorthQueryInvariantAggregateDenial, WorthQueryInvariantAggregateDenialKind,
         WorthQueryInvariantDecisionPlanDenial, WorthQueryInvariantDecisionPlanDenialKind,
@@ -170,6 +172,7 @@ pub mod primary_graph {
         WorthQueryCommittedDispatchOutboxReadWork,
     };
     pub use crate::domain_computation::runtime_time::WorthQueryRuntimeTimeSample;
+    pub use worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 }
 
 /// Compatibility surface for the current undo/redo experiment.

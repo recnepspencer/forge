@@ -102,6 +102,11 @@ fn reinstallation_after_commit_cannot_duplicate_the_effect() {
 }
 
 #[test]
+fn reinstallation_revokes_captured_granular_batches() {
+    courtroom_lifecycle::reinstallation_revokes_captured_granular_batches();
+}
+
+#[test]
 fn closing_the_runtime_releases_conditional_inventory_and_revokes_handles() {
     courtroom_lifecycle::closing_runtime_releases_inventory_and_revokes_handles();
 }

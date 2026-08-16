@@ -54,4 +54,16 @@ impl BridgeSemanticCorrespondenceRegistration {
     pub(crate) fn signal_graph_instance_id(&self) -> u64 {
         self.targets[0].graph_instance_id()
     }
+
+    pub(crate) fn rebind_to_graph(
+        &self,
+        graph: &worth_signal::facade::SignalGraph,
+    ) -> Option<Self> {
+        let targets = self
+            .targets
+            .iter()
+            .map(|target| target.rebind_to_graph(graph))
+            .collect::<Option<Vec<_>>>()?;
+        Self::new(self.dependency.clone(), targets).ok()
+    }
 }

@@ -60,8 +60,8 @@ pub(super) enum WorthQueryRetainedConditionalDecision {
     Deferred(BridgeConditionalDecisionEvidence),
     OperationRetryable(BridgeConditionalDecisionEvidence, String),
     OperationIndeterminate(BridgeConditionalDecisionEvidence, String),
-    OperationCommitted,
-    OperationAlreadyCommitted,
+    OperationCommitted(BridgeConditionalDecisionEvidence),
+    OperationAlreadyCommitted(BridgeConditionalDecisionEvidence),
     Failed(String),
 }
 
@@ -109,8 +109,8 @@ pub(super) fn retained_decision_counts(
                 let _failure_detail = detail.as_str();
                 counts.failed += 1;
             }
-            WorthQueryRetainedConditionalDecision::OperationCommitted
-            | WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted => {}
+            WorthQueryRetainedConditionalDecision::OperationCommitted(_)
+            | WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(_) => {}
             WorthQueryRetainedConditionalDecision::Failed(detail) => {
                 let _failure_detail = detail.as_str();
                 counts.failed += 1;
@@ -127,6 +127,9 @@ pub(super) fn evaluate_due_wake(
     query_binding_identity: &str,
     query_capability_identity: u64,
     truth: &WorthQueryConditionalTruthBasis,
+    triggering_correspondence: Option<
+        &worth_runtime_bridge::facade::BridgeCorrespondenceDeliveryReceipt,
+    >,
 ) -> WorthQueryRetainedConditionalWake {
     let attempt = due.signal_ready_ordinal();
     let mut compute = QueryConditionalComputeContext {
@@ -141,6 +144,7 @@ pub(super) fn evaluate_due_wake(
             snapshot_identity: truth.snapshot_projection(),
             truth_branch_identity: Some(truth.branch_projection()),
             bridge_snapshot_identity: Some(truth.snapshot()),
+            triggering_correspondence,
             attempt,
         },
         &mut compute,
@@ -176,6 +180,7 @@ pub(super) fn reconsider_retained_wake(
     query_binding_identity: &str,
     query_capability_identity: u64,
     truth: &WorthQueryConditionalTruthBasis,
+    triggering_correspondence: &worth_runtime_bridge::facade::BridgeCorrespondenceDeliveryReceipt,
 ) {
     if !matches!(
         wake.decision,
@@ -197,6 +202,7 @@ pub(super) fn reconsider_retained_wake(
             snapshot_identity: truth.snapshot_projection(),
             truth_branch_identity: Some(truth.branch_projection()),
             bridge_snapshot_identity: Some(truth.snapshot()),
+            triggering_correspondence: Some(triggering_correspondence),
             attempt: wake.attempt,
         },
         &mut compute,

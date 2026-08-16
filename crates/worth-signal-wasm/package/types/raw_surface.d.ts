@@ -18,7 +18,7 @@ import type {
   ExecutionHistorySurfaceSummary,
   FailureSummary,
   FlowSurfaceSummary,
-  FrontierExecutionSummary,
+  InvalidationPlanningEstimate,
   GraphSummary,
   HealthSummary,
   HostCapabilityDiagnosticsEvent,
@@ -167,7 +167,7 @@ export class SignalDiagnostics {
   performanceSummary(): WebPerformanceSummary;
   latestFailure(): FailureSummary | null;
   latestRollback(): RollbackDiagnostic | null;
-  latestFrontierExecution(): FrontierExecutionSummary | null;
+  latestInvalidationPlanningEstimate(): InvalidationPlanningEstimate | null;
   latestInvalidationTraceRecords(): ReadonlyArray<InvalidationTraceRecord>;
   recentHistory(): ReadonlyArray<ExecutionHistorySummary>;
 }
@@ -263,7 +263,7 @@ export class SignalWorkerRuntime {
   performanceSummary(): WebPerformanceSummary;
   latestFailure(): FailureSummary | null;
   latestRollback(): RollbackDiagnostic | null;
-  latestFrontierExecution(): FrontierExecutionSummary | null;
+  latestInvalidationPlanningEstimate(): InvalidationPlanningEstimate | null;
   latestInvalidationTraceRecords(): ReadonlyArray<InvalidationTraceRecord>;
   recentHistory(): ReadonlyArray<ExecutionHistorySummary>;
   currentBranch(): RuntimeBranchHandle;

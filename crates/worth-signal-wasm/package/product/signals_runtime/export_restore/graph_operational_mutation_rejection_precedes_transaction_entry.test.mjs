@@ -100,7 +100,7 @@ test("The Graph Operational Mutation Rejection Precedes Transaction Entry Test",
           latestRollback() {
             return null;
           },
-          latestFrontierExecution() {
+          latestInvalidationPlanningEstimate() {
             return null;
           },
           latestInvalidationTraceRecords() {
