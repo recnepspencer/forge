@@ -11,7 +11,9 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use serde::{Deserialize, Serialize};
 
 use crate::data::handle::NodeId;
-use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
+use crate::data::proof::{
+    FrontierDiagnosticsSidecar, InvalidationPlanningEstimate, InvalidationTraceRecord,
+};
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
 use crate::diagnostics::flow::FlowSummary;
@@ -81,7 +83,9 @@ pub(crate) struct DiagnosticsState {
     #[serde(default)]
     pending_input: Option<PendingFlowInput>,
     #[serde(default)]
-    latest_frontier_execution: Option<FrontierExecutionSummary>,
+    latest_frontier_execution: Option<FrontierDiagnosticsSidecar>,
+    #[serde(default)]
+    latest_invalidation_planning_estimate: Option<InvalidationPlanningEstimate>,
     #[serde(default)]
     latest_invalidation_trace_records: Vec<InvalidationTraceRecord>,
 }

@@ -8,6 +8,7 @@ use super::identities::record_ref_from_identity_parts;
 use super::snapshot_values::{
     export_entity_aspect_snapshot_value, export_relation_aspect_snapshot_value,
 };
+use crate::capabilities::AspectPlanSource;
 
 #[derive(Debug, Clone)]
 pub(crate) struct RuntimePublicationSnapshotReader {
@@ -99,49 +100,50 @@ fn read_packet(
             .map_err(|error| BridgeSnapshotReadError::new(error.to_string()))?;
         let aspect_value = match record_ref {
             crate::transactions::data::RecordRef::Entity(entity_id) => {
-                let record_label = format!(
-                    "entity:{}:{}:{}",
-                    entity_id.partition_id.0, entity_id.local_slot.0, entity_id.generation.0
-                );
-                let record = read_truth
-                        .authoritative_entity_record_at_version(entity_id, version_id)
-                        .ok_or_else(|| {
-                        BridgeSnapshotReadError::new(format!(
-                            "relational bridge snapshot reader could not find entity `{}` in authoritative snapshot",
-                            record_label
-                        ))
-                    })?;
-                export_entity_aspect_snapshot_value(&record, read.aspect_key()).ok_or_else(|| {
-                        BridgeSnapshotReadError::new(format!(
-                            "relational bridge snapshot reader could not resolve aspect `{}` on entity `{}` in authoritative snapshot",
-                            read.aspect_key().as_str(),
-                            record_label
-                        ))
-                    })?
+                match read_truth.authoritative_entity_record_at_version(entity_id, version_id) {
+                    Some(record) => {
+                        require_declared_aspect(
+                            runtime.entity_aspect_plan(record.kind.kind_id),
+                            read.aspect_key(),
+                        )?;
+                        export_entity_aspect_snapshot_value(&record, read.aspect_key())
+                    }
+                    None => None,
+                }
             }
             crate::transactions::data::RecordRef::Relation(relation_id) => {
-                let record_label = format!(
-                    "relation:{}:{}:{}",
-                    relation_id.partition_id.0, relation_id.local_slot.0, relation_id.generation.0
-                );
-                let record = read_truth
-                        .authoritative_relation_record_at_version(relation_id, version_id)
-                        .ok_or_else(|| {
-                        BridgeSnapshotReadError::new(format!(
-                            "relational bridge snapshot reader could not find relation `{}` in authoritative snapshot",
-                            record_label
-                        ))
-                    })?;
-                export_relation_aspect_snapshot_value(&record, read.aspect_key()).ok_or_else(|| {
-                        BridgeSnapshotReadError::new(format!(
-                            "relational bridge snapshot reader could not resolve aspect `{}` on relation `{}` in authoritative snapshot",
-                            read.aspect_key().as_str(),
-                            record_label
-                        ))
-                    })?
+                match read_truth.authoritative_relation_record_at_version(relation_id, version_id) {
+                    Some(record) => {
+                        require_declared_aspect(
+                            runtime.relation_aspect_plan(record.kind.kind_id),
+                            read.aspect_key(),
+                        )?;
+                        export_relation_aspect_snapshot_value(&record, read.aspect_key())
+                    }
+                    None => None,
+                }
             }
         };
-        records.push(SnapshotReadRecord::for_request(read, aspect_value));
+        records.push(match aspect_value {
+            Some(value) => SnapshotReadRecord::for_request(read, value),
+            None => SnapshotReadRecord::absent_for_request(read),
+        });
     }
     Ok(records)
+}
+
+fn require_declared_aspect(
+    plan: Option<&crate::schema::data::LoweredAspectContractPlan>,
+    aspect: &worth_foundational::facade::AspectKey,
+) -> Result<(), BridgeSnapshotReadError> {
+    if plan.and_then(|plan| plan.contract_for(aspect)).is_some()
+        || matches!(aspect.as_str(), "source" | "target" | "lifecycle")
+    {
+        Ok(())
+    } else {
+        Err(BridgeSnapshotReadError::new(format!(
+            "relational bridge snapshot reader could not resolve aspect `{}` in authoritative schema",
+            aspect.as_str()
+        )))
+    }
 }

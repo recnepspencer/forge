@@ -4,6 +4,7 @@ mod commit;
 mod committed_facade_snapshot;
 mod crate_dag;
 pub(crate) mod document;
+mod facade_reexport_validation;
 mod facade_surface_observation;
 mod facade_visibility;
 mod session;

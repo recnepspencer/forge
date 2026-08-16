@@ -1,9 +1,13 @@
 mod comparator_execution;
+mod compiled_authority;
 mod dependency_rewire;
 mod evaluation;
 mod factor_sequence;
 mod inspection;
 mod lifecycle_composition;
+mod locality_evaluation;
+mod locality_execution;
+mod locality_topology;
 mod quote_translation;
 mod runtime_finance;
 pub(super) mod topology;
@@ -30,9 +34,16 @@ use self::topology::{build_semantic_topology, factor_signal_aspect};
 
 type FinancialRuntime = SignalRuntime<(), (), (), (), FintechTier>;
 
+pub(in crate::tests::domains::fintech) use compiled_authority::CompiledFinancialWorld;
+use compiled_authority::{CompiledFinancialWorldKind, CompiledPortfolioFinancialWorld};
 pub(in crate::tests::domains::fintech) use dependency_rewire::FinancialDependencyRewireEvidence;
 pub(in crate::tests::domains::fintech) use factor_sequence::FinancialFactorSequenceEvidence;
 pub(in crate::tests::domains::fintech) use lifecycle_composition::FinancialBranchLifecycleCompletion;
+pub(in crate::tests::domains::fintech) use locality_execution::{
+    compile_financial_locality_world, compile_financial_locality_world_at_tier,
+    strategy_work_projection, FinancialLocalityRedObservation, FinancialPerformedCanonicalWork,
+    FinancialPerformedWorkOrigin, FinancialRestoreLifecycleEvidence,
+};
 pub(in crate::tests::domains::fintech) use quote_translation::FinancialQuoteTranslationEvidence;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -134,20 +145,14 @@ impl FinancialEvaluationLedger {
     }
 }
 
-pub(in crate::tests::domains::fintech) struct CompiledFinancialWorld {
-    runtime: FinancialRuntime,
-    definition: FinancialWorldDefinition,
-    economic_snapshot: FinancialEconomicSnapshot,
-    projection: FinancialSemanticProjection,
-    handles: FinancialSemanticHandles,
-    ledger: FinancialEvaluationLedger,
-    baseline_dependency_revisions: BTreeMap<SemanticOutputKey, u64>,
-    baseline_aspect_versions: BTreeMap<SemanticOutputKey, AspectVersion>,
-}
-
 pub(in crate::tests::domains::fintech) fn compile_financial_world(
     definition: FinancialWorldDefinition,
 ) -> Result<CausallyCompleteFinancialBaseline, SignalError> {
+    if definition.locality().is_some() {
+        return Err(SignalError::invalid_input(
+            "locality courtrooms require compile_financial_locality_world",
+        ));
+    }
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .with_tiers::<FintechTier>()
@@ -173,7 +178,7 @@ pub(in crate::tests::domains::fintech) fn compile_financial_world(
             ))
         })
         .collect::<Result<BTreeMap<_, _>, SignalError>>()?;
-    let mut compiled = CompiledFinancialWorld {
+    let portfolio = CompiledPortfolioFinancialWorld {
         runtime,
         definition,
         economic_snapshot,
@@ -182,6 +187,9 @@ pub(in crate::tests::domains::fintech) fn compile_financial_world(
         ledger,
         baseline_dependency_revisions,
         baseline_aspect_versions: BTreeMap::new(),
+    };
+    let mut compiled = CompiledFinancialWorld {
+        kind: CompiledFinancialWorldKind::Portfolio(portfolio),
     };
     compiled.establish_initial_truth()?;
     compiled.baseline_aspect_versions = compiled
@@ -205,7 +213,12 @@ impl CompiledFinancialWorld {
     fn establish_initial_truth(&mut self) -> Result<(), SignalError> {
         let program = self.program();
         let evaluator = program.evaluator();
-        let factor_keys = self.handles.factors.keys().copied().collect::<Vec<_>>();
+        let factor_nodes = self
+            .handles
+            .factors
+            .iter()
+            .map(|(factor, handle)| (*factor, handle.0))
+            .collect::<Vec<_>>();
         let risk_nodes = self
             .definition
             .positions()
@@ -219,10 +232,9 @@ impl CompiledFinancialWorld {
             .map(|consumer| self.handles.consumer(consumer.role).0)
             .collect::<Vec<_>>();
         self.runtime.transaction(&mut (), |tx| {
-            for factor in &factor_keys {
-                let node = self.handles.factor(*factor).0;
+            for (factor, node) in &factor_nodes {
                 let result = source_result(&program, *factor);
-                tx.target(node)
+                tx.target(*node)
                     .on_demand()
                     .read(&move |view| Ok(view.finish(result.clone())))?;
             }
@@ -253,23 +265,52 @@ impl CompiledFinancialWorld {
         );
         let evaluator = program.evaluator();
         let source = self.handles.factor(factor).0;
-        let matched = self.handles.consumer(FinancialConsumerRole::RiskMatched).0;
-        let unmatched = self
-            .handles
-            .consumer(FinancialConsumerRole::RiskUnmatched)
-            .0;
+        let valuation_wave = self
+            .definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).valuation)
+            .collect::<Vec<_>>();
+        let risk_wave = self
+            .definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).risk)
+            .collect::<Vec<_>>();
+        let consumer_wave = self
+            .definition
+            .consumers()
+            .iter()
+            .map(|consumer| self.handles.consumer(consumer.role).0)
+            .collect::<Vec<_>>();
         let source_result = source_result(&program, factor);
+        let ledger = self.ledger.clone();
         self.ledger.clear();
         self.runtime.transaction(&mut (), |tx| {
             tx.mark_changed(source, factor_signal_aspect(&next_definition, factor))?;
-            self.ledger.record(SemanticOutputKey::Factor(factor));
+            ledger.record(SemanticOutputKey::Factor(factor));
             tx.target(source)
                 .on_demand()
                 .read(&move |view| Ok(view.finish(source_result.clone())))?;
-            tx.read(matched, &evaluator)?;
-            tx.read(unmatched, &evaluator)?;
             Ok(())
         })?;
+        for wave in [valuation_wave, risk_wave, consumer_wave] {
+            let dirty = wave
+                .into_iter()
+                .filter(|node| {
+                    self.runtime
+                        .graph()
+                        .get_state(*node)
+                        .is_ok_and(|state| !matches!(state, NodeState::Clean))
+                })
+                .collect::<Vec<_>>();
+            self.runtime.transaction(&mut (), |tx| {
+                for node in &dirty {
+                    tx.read(*node, &evaluator)?;
+                }
+                Ok(())
+            })?;
+        }
         self.definition = next_definition;
         self.economic_snapshot = next_snapshot;
         self.projection = next_projection;
@@ -277,7 +318,10 @@ impl CompiledFinancialWorld {
     }
 
     pub(in crate::tests::domains::fintech) fn definition(&self) -> &FinancialWorldDefinition {
-        &self.definition
+        match &self.kind {
+            CompiledFinancialWorldKind::Portfolio(portfolio) => &portfolio.definition,
+            CompiledFinancialWorldKind::Locality(locality) => locality.definition(),
+        }
     }
 
     pub(in crate::tests::domains::fintech) fn economic_snapshot(

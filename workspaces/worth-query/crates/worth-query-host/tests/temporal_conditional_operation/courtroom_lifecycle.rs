@@ -1,0 +1,166 @@
+use worth_query_host::facade::primary_graph;
+
+use super::courtroom_support::{assert_authoritative_value, observe, wake_evidence};
+use super::schema::IntentEffectField;
+use super::world::CourtroomWorld;
+
+pub fn reinstallation_reconstructs_active_authoritative_work() {
+    let mut world = CourtroomWorld::publish("ready");
+    let receipt = world.application.reinstall_conditional_runtime().unwrap();
+    assert_eq!(receipt.reconstructed_binding_count(), 1);
+    assert_eq!(receipt.reconstructed_intent_count(), 1);
+    let observed = observe(&mut world);
+    assert_eq!(
+        observed.committed_operation_count(),
+        1,
+        "{}",
+        wake_evidence(&observed)
+    );
+    assert_authoritative_value(
+        &world,
+        IntentEffectField::reference(),
+        "payload".to_string(),
+    );
+}
+
+pub fn reconstruction_work_ignores_unrelated_rows() {
+    let mut baseline = CourtroomWorld::publish("ready");
+    let baseline = baseline
+        .application
+        .reinstall_conditional_runtime()
+        .unwrap();
+    let mut expanded = CourtroomWorld::publish_with_unrelated_rows("ready", 2_048);
+    let expanded = expanded
+        .application
+        .reinstall_conditional_runtime()
+        .unwrap();
+    assert!(baseline.total_work_units() > 0);
+    assert_eq!(
+        baseline.examined_candidate_count(),
+        expanded.examined_candidate_count()
+    );
+    assert_eq!(
+        baseline.projected_record_count(),
+        expanded.projected_record_count()
+    );
+    assert_eq!(
+        baseline.projected_field_count(),
+        expanded.projected_field_count()
+    );
+    assert_eq!(baseline.total_work_units(), expanded.total_work_units());
+}
+
+pub fn reinstallation_restores_no_terminal_work() {
+    let mut cancelled = CourtroomWorld::publish("ready");
+    cancelled.amend_intent(2, "cancelled", "ready");
+    cancelled
+        .application
+        .reinstall_conditional_runtime()
+        .unwrap();
+    let receipt = observe(&mut cancelled);
+    assert_eq!(receipt.committed_operation_count(), 0);
+    assert_eq!(cancelled.contacts.snapshot(), (0, 0, 0, 0));
+
+    let mut completed = CourtroomWorld::publish("ready");
+    let _ = observe(&mut completed);
+    let contacts = completed.contacts.snapshot();
+    completed
+        .application
+        .reinstall_conditional_runtime()
+        .unwrap();
+    let receipt = observe(&mut completed);
+    assert_eq!(receipt.committed_operation_count(), 1);
+    assert_eq!(completed.contacts.snapshot(), contacts);
+}
+
+pub fn reinstallation_after_eligibility_retries_freshly() {
+    let mut world = CourtroomWorld::publish("ready");
+    world.preconditions_panic.set(true);
+    let failed = observe(&mut world);
+    assert_eq!(
+        failed.failed_operation_count(),
+        1,
+        "{}",
+        wake_evidence(&failed)
+    );
+    world.preconditions_panic.set(false);
+    world.application.reinstall_conditional_runtime().unwrap();
+    let retried = observe(&mut world);
+    assert_eq!(
+        retried.committed_operation_count(),
+        1,
+        "{}",
+        wake_evidence(&retried)
+    );
+}
+
+pub fn reinstallation_after_commit_cannot_duplicate_effect() {
+    let mut world = CourtroomWorld::publish("ready");
+    assert_eq!(observe(&mut world).committed_operation_count(), 1);
+    let contacts = world.contacts.snapshot();
+    world.application.reinstall_conditional_runtime().unwrap();
+    let second = observe(&mut world);
+    assert_eq!(second.committed_operation_count(), 1);
+    assert_eq!(second.already_committed_operation_count(), 0);
+    assert_eq!(world.contacts.snapshot(), contacts);
+    assert_authoritative_value(
+        &world,
+        IntentEffectField::reference(),
+        "payload".to_string(),
+    );
+}
+
+pub fn closing_runtime_releases_inventory_and_revokes_handles() {
+    let mut world = CourtroomWorld::publish("ready");
+    let installed = world.application.inspect_conditional_runtime();
+    assert_eq!(installed.installed_binding_count(), 1);
+    assert_eq!(installed.managed_clock_count(), 1);
+    assert_eq!(installed.reconstructed_intent_count(), 1);
+    assert_eq!(
+        world.application.close_conditional_runtime().unwrap(),
+        installed
+    );
+    let empty = world.application.inspect_conditional_runtime();
+    assert_empty(empty);
+    let denial = world
+        .application
+        .conditional_clock(&world.clock)
+        .err()
+        .expect("closed clock must be rejected");
+    assert_eq!(
+        denial.kind(),
+        primary_graph::WorthQueryConditionalClockObservationDenialKind::ForeignRuntime
+    );
+}
+
+pub fn dropping_runtime_releases_exact_inventory() {
+    let mut world = CourtroomWorld::publish("ready");
+    world.preconditions_panic.set(true);
+    let failed = observe(&mut world);
+    assert_eq!(failed.failed_operation_count(), 1);
+    let probe = world.application.conditional_runtime_lifecycle_probe();
+    let live = probe.live_inventory();
+    assert_eq!(live.installed_binding_count(), 1);
+    assert_eq!(live.provider_count(), 1);
+    assert_eq!(live.managed_clock_count(), 1);
+    assert_eq!(live.retained_wake_count(), 1);
+    assert_eq!(live.reconstructed_intent_count(), 1);
+    assert_eq!(live.retained_attempt_count(), 1);
+    assert_eq!(live.lease_count(), 1);
+    assert_eq!(live.signal_graph_count(), 1);
+    drop(world);
+    assert_empty(probe.live_inventory());
+}
+
+fn assert_empty(empty: primary_graph::WorthQueryConditionalRuntimeInspection) {
+    assert!(empty.is_empty());
+    assert_eq!(empty.provider_count(), 0);
+    assert_eq!(empty.managed_clock_count(), 0);
+    assert_eq!(empty.retained_wake_count(), 0);
+    assert_eq!(empty.reconstructed_intent_count(), 0);
+    assert_eq!(empty.scheduler_task_count(), 0);
+    assert_eq!(empty.scheduler_queue_count(), 0);
+    assert_eq!(empty.retained_attempt_count(), 0);
+    assert_eq!(empty.lease_count(), 0);
+    assert_eq!(empty.signal_graph_count(), 0);
+}

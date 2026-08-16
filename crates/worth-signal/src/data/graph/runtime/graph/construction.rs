@@ -12,6 +12,7 @@ impl Clone for SignalGraph {
         let mut cause_sets = self.cause_sets.clone();
         cause_sets.readmit_graph_instance(instance_id);
         Self {
+            lifecycle_token: Default::default(),
             instance_id,
             arena: self.arena.clone(),
             topology: self.topology.clone(),
@@ -23,6 +24,9 @@ impl Clone for SignalGraph {
             aspect_lowering_owner: None,
             conditional_dependency_versions: self.conditional_dependency_versions.clone(),
             authorization_policy_identities: self.authorization_policy_identities.clone(),
+            invalidation_readiness_epoch: 0,
+            invalidation_performed_counters: Default::default(),
+            pending_repeated_invalidation_admissions: BTreeMap::new(),
         }
     }
 }
@@ -39,6 +43,7 @@ impl SignalGraph {
 
     pub fn new() -> Self {
         Self {
+            lifecycle_token: Default::default(),
             instance_id: super::next_signal_graph_instance_id(),
             arena: NodeArena {
                 nodes: Vec::new(),
@@ -59,6 +64,9 @@ impl SignalGraph {
             aspect_lowering_owner: None,
             conditional_dependency_versions: BTreeMap::new(),
             authorization_policy_identities: BTreeSet::new(),
+            invalidation_readiness_epoch: 0,
+            invalidation_performed_counters: Default::default(),
+            pending_repeated_invalidation_admissions: BTreeMap::new(),
         }
     }
 

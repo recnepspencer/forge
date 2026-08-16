@@ -1,7 +1,7 @@
 use super::baseline::validate_committed_dag_baseline;
 use super::candidate::ConstitutionSnapshots;
 use super::committed_facade_snapshot::{load_committed_facade_exports, CommittedFacadeExports};
-use super::facade_surface_observation::ObservedFacadeExports;
+use super::facade_surface_observation::{ConfiguredFacadeSurface, ObservedFacadeExports};
 use crate::cargo_graph::discover_query_audience_packages;
 use crate::config::QueryAudienceContract;
 use crate::diagnostics::{Diagnostic, DiagnosticCode};
@@ -130,7 +130,13 @@ fn observe_candidate(
     let configured_surfaces = query_audience
         .facade_surfaces
         .iter()
-        .map(|surface| (surface.label.clone(), root.join(&surface.source)))
+        .map(|surface| ConfiguredFacadeSurface {
+            label: surface.label.clone(),
+            path: root.join(&surface.source),
+            namespace: surface.namespace.clone(),
+            reexport: surface.reexport.clone(),
+            owner_path: surface.owner_source.as_ref().map(|path| root.join(path)),
+        })
         .collect::<Vec<_>>();
     ConstitutionSnapshots::observe(&governed_packages, &configured_surfaces)
 }

@@ -674,8 +674,11 @@ The current numbered core-runtime continuation is:
 - [Milestone 17 - Portable Execution Backends And Distributed Coordination](./milestone-17-plan.md)
 
 Milestones 12 and 13 expand the existing fintech financial world and certify
-aspect correctness, locality, cost slopes, and strategy readiness during their
-implementation phases. Milestones 14-17 build the independent parallel-
+aspect correctness, compiler-enforced Proof progression, locality, exact
+index-disjoint/queried-candidate/semantic-frontier slopes, Foundational
+counter-backed evidence, and strategy readiness during their implementation
+phases. Signal retains operational authority; Proof supplies progression law
+and Foundational supplies portable descriptive evidence. Milestones 14-17 build the independent parallel-
 execution sequence:
 one deterministic resource authority, graph-wide proof-carrying concurrency,
 domain-agnostic partitioned computation, and portable native, WASM-worker,

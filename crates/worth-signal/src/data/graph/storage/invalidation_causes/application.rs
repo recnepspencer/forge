@@ -29,6 +29,14 @@ impl SignalGraph {
         self.cause_sets.get(id)
     }
 
+    pub(crate) fn pending_cause_set_id(
+        &self,
+        node: NodeId,
+    ) -> Result<PendingCauseSetId, SignalError> {
+        self.ensure_cause_readmission_complete()?;
+        Ok(self.get_entry(node)?.pending_cause_set_id())
+    }
+
     pub(crate) fn replace_pending_causes(
         &mut self,
         node: NodeId,
@@ -151,18 +159,15 @@ impl SignalGraph {
     }
 
     pub(crate) fn compact_cause_set_storage(&mut self) -> Result<(), SignalError> {
-        let mut nodes = Vec::new();
-        let mut sets = Vec::new();
-        for index in 0..self.arena.nodes.len() {
-            let Some(node) = self.live_node_id_at(index) else {
-                continue;
-            };
-            nodes.push(node);
-            sets.push(self.pending_causes(node)?.to_vec());
-        }
-        let ids = self.cause_sets.rebuild_generation(sets);
-        for (node, id) in nodes.into_iter().zip(ids) {
-            self.get_entry_mut(node)?.set_pending_cause_set_id(id);
+        let remaps = self.cause_sets.rebuild_occupied_generation()?;
+        for remap in remaps {
+            let mut entry = self.get_entry_mut(remap.consumer)?;
+            if entry.pending_cause_set_id() != remap.previous {
+                return Err(SignalError::invalid_input(
+                    "canonical cause-set handle does not match its consumer",
+                ));
+            }
+            entry.set_pending_cause_set_id(remap.current);
         }
         Ok(())
     }

@@ -7,10 +7,12 @@ use super::error::SubscriberContextError;
 ///
 /// Subscribers write staged values during `on_checkpoint`.
 /// At successful flush end, staged values are promoted to committed values.
+/// Values move with their exclusively owned runtime rather than becoming
+/// concurrently shared state.
 #[derive(Default)]
 pub struct SubscriberContext<D: Copy + Ord + std::fmt::Debug + 'static> {
-    staged: BTreeMap<D, Box<dyn Any>>,
-    committed: BTreeMap<D, Box<dyn Any>>,
+    staged: BTreeMap<D, Box<dyn Any + Send>>,
+    committed: BTreeMap<D, Box<dyn Any + Send>>,
 }
 
 impl<D: Copy + Ord + std::fmt::Debug + 'static> SubscriberContext<D> {
@@ -26,7 +28,11 @@ impl<D: Copy + Ord + std::fmt::Debug + 'static> SubscriberContext<D> {
     ///
     /// Returns an error if the same `data_id` is staged more than once
     /// in one checkpoint cycle.
-    pub fn stage<T: Any>(&mut self, id: D, value: T) -> Result<(), SubscriberContextError<D>> {
+    pub fn stage<T: Any + Send>(
+        &mut self,
+        id: D,
+        value: T,
+    ) -> Result<(), SubscriberContextError<D>> {
         if self.staged.contains_key(&id) {
             return Err(SubscriberContextError::DuplicateStagedDataId { data_id: id });
         }

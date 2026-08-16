@@ -58,6 +58,13 @@ where
     let graph = snapshot.graph();
     let state = *graph.get_entry(node)?.get_state();
     let dependencies = capture_current_dependencies(graph, node)?;
+    if graph.has_current_unsettled_upstream(node)? {
+        return Ok(TestPreparedTask {
+            prepared: PreparedEvaluation::deferred_by_invalidation()
+                .with_dependencies(dependencies),
+            telemetry,
+        });
+    }
     let invalidation = graph.node_invalidation_input(node)?;
     if matches!(invalidation, NodeInvalidationInput::Pending(_)) {
         return Ok(TestPreparedTask {
@@ -163,6 +170,13 @@ where
     let mut telemetry = TestPrecomputeTelemetry::default();
     let state = *graph.get_entry(node)?.get_state();
     let dependencies = capture_current_dependencies(graph, node)?;
+    if graph.has_current_unsettled_upstream(node)? {
+        return Ok(TestPreparedTask {
+            prepared: PreparedEvaluation::deferred_by_invalidation()
+                .with_dependencies(dependencies),
+            telemetry,
+        });
+    }
     let invalidation = graph.node_invalidation_input(node)?;
     if matches!(invalidation, NodeInvalidationInput::Pending(_)) {
         return Ok(TestPreparedTask {

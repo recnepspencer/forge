@@ -21,13 +21,13 @@ const REPORT_DOMAIN: CanonicalBasisDomain =
 const RULE_VERSION: &str = "WORTH.signal.financial-certification.v1";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) struct FinancialCanonicalCaseIdentity {
+pub(in crate::tests::domains::fintech) struct FinancialCanonicalCaseIdentity {
     basis: CanonicalBasisSequence,
     digest: CanonicalDerivedDigest,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(super) struct FinancialCanonicalReportIdentity {
+pub(in crate::tests::domains::fintech) struct FinancialCanonicalReportIdentity {
     basis: CanonicalBasisSequence,
     digest: CanonicalDerivedDigest,
 }
@@ -86,29 +86,53 @@ impl FinancialCanonicalCaseIdentity {
         Ok(Self { basis, digest })
     }
 
-    fn digest_id(&self) -> CanonicalDigestId {
+    pub(super) fn from_extended_entries(
+        entries: impl IntoIterator<Item = CanonicalBasisEntry>,
+    ) -> Result<Self, SignalError> {
+        let (basis, digest) = canonical_identity(CASE_DOMAIN, entries)?;
+        Ok(Self { basis, digest })
+    }
+
+    pub(super) fn digest_id(&self) -> CanonicalDigestId {
         CanonicalDigestId::new(*self.digest.value().bytes())
     }
 
-    #[cfg(test)]
-    pub(super) fn digest_bytes(&self) -> &[u8; 32] {
+    pub(in crate::tests::domains::fintech) fn digest_bytes(&self) -> &[u8; 32] {
         self.digest.value().bytes()
     }
 }
 
 impl FinancialCanonicalReportIdentity {
-    pub(super) fn from_cases<'a>(
+    pub(in crate::tests::domains::fintech) fn from_cases<'a>(
         cases: impl IntoIterator<Item = &'a FinancialCanonicalCaseIdentity>,
     ) -> Result<Self, SignalError> {
-        let entries = cases
+        let mut digests = cases
+            .into_iter()
+            .map(FinancialCanonicalCaseIdentity::digest_id)
+            .collect::<Vec<_>>();
+        if digests.is_empty() {
+            return Err(SignalError::invalid_input(
+                "financial certification report contains no case identity",
+            ));
+        }
+        digests.sort_by_key(|digest| *digest.bytes());
+        if digests
+            .windows(2)
+            .any(|pair| pair[0].bytes() == pair[1].bytes())
+        {
+            return Err(SignalError::invalid_input(
+                "financial certification report contains duplicate case identity",
+            ));
+        }
+        let entries = digests
             .into_iter()
             .enumerate()
-            .map(|(index, case)| {
+            .map(|(index, digest)| {
                 CanonicalBasisEntry::new(
                     REPORT_DOMAIN,
                     CanonicalBasisLocus::Named(format!("case.{index:04}").into()),
                     CanonicalBasisEntryKind::Identity,
-                    CanonicalBasisValue::BytesDigest(case.digest_id()),
+                    CanonicalBasisValue::BytesDigest(digest),
                 )
             })
             .collect::<Vec<_>>();
@@ -116,7 +140,7 @@ impl FinancialCanonicalReportIdentity {
         Ok(Self { basis, digest })
     }
 
-    pub(super) fn digest_bytes(&self) -> &[u8; 32] {
+    pub(in crate::tests::domains::fintech) fn digest_bytes(&self) -> &[u8; 32] {
         self.digest.value().bytes()
     }
 }

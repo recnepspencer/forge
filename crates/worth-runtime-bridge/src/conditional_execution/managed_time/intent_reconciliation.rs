@@ -18,6 +18,7 @@ impl BridgeOwnedSignalRuntime {
                 parts.revision,
                 parts.due_coordinate,
                 parts.idempotency_identity,
+                parts.source_record_identity,
             ),
             lifecycle @ (BridgeManagedTemporalIntentLifecycle::Cancelled
             | BridgeManagedTemporalIntentLifecycle::Completed) => {

@@ -3,11 +3,13 @@ use worth_query_installation::facade::{
 };
 use worth_relational::facade::bridge::RuntimeBridgeRelationalSource;
 use worth_runtime_bridge::facade::{
-    BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration, BridgeOwnedSignalRuntime,
-    BridgeRuntimePolicy, BridgeSourceAdapter, BridgeSourceCapability, BridgeSourceCapabilitySet,
+    AspectKeySelector, BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeDeliveryReceipt,
+    BridgeMappingId, BridgeMappingRegistration, BridgeOwnedSignalRuntime, BridgeRuntimePolicy,
+    BridgeSourceAdapter, BridgeSourceCapability, BridgeSourceCapabilitySet,
     BridgeTruthViewSelector, CoarseRoutingMode, InvalidationSink, MappingSelector, RuntimeBridge,
-    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
-    SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity, TruthPatchScope,
+    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SliceWideningPolicy,
+    SnapshotReadContract, SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity,
+    SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthPatchScope, TruthPatchTargetSelector,
     TruthSnapshotIdentity, TruthSnapshotReader,
 };
 
@@ -22,9 +24,14 @@ struct WorthQueryApplicationBridgeSource {
 
 struct WorthQueryApplicationInvalidationSink;
 
+struct WorthQueryApplicationFieldMappings {
+    routing: BridgeMappingRegistration,
+    aspect: BridgeAspectRegistration,
+}
+
 pub(super) struct WorthQueryInstalledApplicationBridge {
     ordinary: RuntimeBridge,
-    conditional: BridgeOwnedSignalRuntime,
+    conditional: std::sync::Mutex<Option<BridgeOwnedSignalRuntime>>,
 }
 
 impl WorthQueryInstalledApplicationBridge {
@@ -32,23 +39,62 @@ impl WorthQueryInstalledApplicationBridge {
         &self.ordinary
     }
 
-    pub(super) fn conditional(&self) -> &BridgeOwnedSignalRuntime {
-        &self.conditional
+    pub(super) fn conditional_mut(&mut self) -> &mut BridgeOwnedSignalRuntime {
+        self.conditional
+            .get_mut()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .as_mut()
+            .expect("exclusive conditional runtime access cannot overlap")
     }
 
-    pub(super) fn conditional_mut(&mut self) -> &mut BridgeOwnedSignalRuntime {
-        &mut self.conditional
+    pub(super) fn take_conditional(&mut self) -> BridgeOwnedSignalRuntime {
+        self.conditional
+            .get_mut()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take()
+            .expect("exclusive conditional runtime access cannot overlap")
+    }
+
+    pub(super) fn take_conditional_if_present(&self) -> Option<BridgeOwnedSignalRuntime> {
+        self.conditional
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take()
+    }
+
+    pub(super) fn restore_conditional(&mut self, conditional: BridgeOwnedSignalRuntime) {
+        let slot = self
+            .conditional
+            .get_mut()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert!(slot.replace(conditional).is_none());
+    }
+
+    pub(super) fn restore_conditional_shared(&self, conditional: BridgeOwnedSignalRuntime) {
+        let mut slot = self
+            .conditional
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert!(slot.replace(conditional).is_none());
+    }
+
+    pub(super) fn fresh_conditional_runtime(
+        &self,
+    ) -> Result<BridgeOwnedSignalRuntime, worth_runtime_bridge::facade::BridgeConditionalDenial>
+    {
+        BridgeOwnedSignalRuntime::with_owned_signal_graph(self.ordinary.clone())
     }
 }
 
 pub(super) fn install_application_bridge<Schema>(
     schema: &WorthQueryInstalledApplicationSchema<Schema>,
+    layout: &super::schema_layout::WorthQueryPrimaryGraphLayout,
     source: RuntimeBridgeRelationalSource,
 ) -> Result<WorthQueryInstalledApplicationBridge, WorthQueryPrimaryGraphInstallationDenial>
 where
     Schema: ApplicationSchema,
 {
-    let mut mappings = application_mappings(schema)?;
+    let mut mappings = application_mappings(schema, layout)?;
     let first = mappings.next().ok_or_else(|| {
         bridge_denial("installed application schema has no bridge-readable fields")
     })?;
@@ -68,10 +114,13 @@ where
                 BridgeSourceCapability::BranchRead,
             ]),
         ))
-        .register_mapping(first);
+        .register_aspect_mapping(first.aspect)
+        .register_mapping(first.routing);
     let ordinary = mappings
         .fold(builder, |builder, mapping| {
-            builder.register_mapping(mapping)
+            builder
+                .register_aspect_mapping(mapping.aspect)
+                .register_mapping(mapping.routing)
         })
         .build()
         .map_err(|error| bridge_denial(format!("{error:?}")))?;
@@ -79,13 +128,17 @@ where
         .map_err(|error| bridge_denial(format!("{error:?}")))?;
     Ok(WorthQueryInstalledApplicationBridge {
         ordinary,
-        conditional,
+        conditional: std::sync::Mutex::new(Some(conditional)),
     })
 }
 
 fn application_mappings<Schema>(
     schema: &WorthQueryInstalledApplicationSchema<Schema>,
-) -> Result<impl Iterator<Item = BridgeMappingRegistration>, WorthQueryPrimaryGraphInstallationDenial>
+    layout: &super::schema_layout::WorthQueryPrimaryGraphLayout,
+) -> Result<
+    impl Iterator<Item = WorthQueryApplicationFieldMappings>,
+    WorthQueryPrimaryGraphInstallationDenial,
+>
 where
     Schema: ApplicationSchema,
 {
@@ -103,8 +156,12 @@ where
             } => Some((entity, aspect, field, scalar_family)),
             _ => None,
         })
-        .map(|(entity, aspect, field, scalar_family)| {
+        .map(|(entity, aspect, field, _scalar_family)| {
             let aspect_key = worth_foundational::facade::AspectKey::new(aspect)
+                .ok_or_else(|| bridge_denial(aspect))?;
+            let contract = layout
+                .aspect_contract(entity, &aspect_key)
+                .cloned()
                 .ok_or_else(|| bridge_denial(aspect))?;
             let field_key = worth_foundational::facade::FieldKey::new(field)
                 .ok_or_else(|| bridge_denial(field))?;
@@ -113,19 +170,38 @@ where
                 schema.owner(),
                 schema.schema_name(),
             );
-            Ok(BridgeMappingRegistration::new(
+            let snapshot = SnapshotReadContract::new(contract);
+            let routing = BridgeMappingRegistration::new(
                 BridgeMappingId::from_stable_name(identity),
                 TruthPatchScope::for_entity_field(
                     MappingSelector::exact(entity.as_str()),
                     aspect_key.clone(),
                     field_key,
                 ),
-                SnapshotReadContract::scalar(aspect_key, *scalar_family),
+                snapshot.clone(),
                 SignalInvalidationScope::from_stable_name(format!(
                     "application-field-signal:{entity}:{aspect}:{field}"
                 )),
                 CoarseRoutingMode::Direct,
-            ))
+            );
+            let aspect = BridgeAspectRegistration::new(
+                BridgeAspectRegistrationId::from_stable_name(format!(
+                    "application-field:{entity}:{aspect}:{field}"
+                )),
+                TruthPatchScope::new(
+                    MappingSelector::any(),
+                    AspectKeySelector::exact(aspect_key),
+                    TruthPatchTargetSelector::entity_field(
+                        worth_foundational::facade::FieldKey::new(field)
+                            .expect("installed schema field keys are validated"),
+                    ),
+                ),
+                snapshot,
+                TruthDeltaSurfaceKind::EntityField,
+                SubscriptionSliceKind::RegisteredCoarseWidening,
+                SliceWideningPolicy::RegisteredEntityCoarseWidening,
+            );
+            Ok(WorthQueryApplicationFieldMappings { routing, aspect })
         })
         .collect::<Result<Vec<_>, _>>()
         .map(Vec::into_iter)

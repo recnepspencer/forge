@@ -76,7 +76,7 @@ pub use crate::data::conditional_execution::{
 pub use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
 pub use crate::data::dependency::DependencyEdge;
 pub use crate::data::error::SignalError;
-pub use crate::data::graph::{NodeBuilder, SignalGraph};
+pub use crate::data::graph::{NodeBuilder, SignalGraph, SignalGraphLifecycleProbe};
 pub use crate::data::handle::NodeId;
 pub use crate::data::host_computed::{
     AdmittedHostComputedReadSet, CommittedHostComputedArtifact, DeniedHostComputedEvaluation,

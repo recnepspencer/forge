@@ -1,6 +1,52 @@
-use super::SignalGraph;
+use super::{InvalidationPerformedCounterState, SignalGraph};
 
 impl SignalGraph {
+    pub(crate) fn begin_invalidation_performed_observation(&mut self) -> u64 {
+        let generation = self.invalidation_performed_counters.begin_observation();
+        self.pending_repeated_invalidation_admissions.clear();
+        generation
+    }
+
+    pub(crate) fn reset_invalidation_performed_counters(&mut self) {
+        self.invalidation_performed_counters.reset();
+        self.pending_repeated_invalidation_admissions.clear();
+    }
+
+    pub(crate) fn invalidation_performed_counters(
+        &self,
+    ) -> crate::data::telemetry::SignalInvalidationRealizedCounters {
+        self.invalidation_performed_counters.snapshot()
+    }
+
+    pub(crate) fn invalidation_performed_work(
+        &self,
+    ) -> Vec<crate::data::proof::invalidation::progression::InvalidationWorkBindingAxes> {
+        self.invalidation_performed_counters.executed_work()
+    }
+
+    pub(crate) const fn invalidation_performed_counter_state(
+        &self,
+    ) -> &InvalidationPerformedCounterState {
+        &self.invalidation_performed_counters
+    }
+
+    pub(crate) fn begin_invalidation_readiness_epoch(
+        &mut self,
+    ) -> crate::data::proof::invalidation::progression::InvalidationReadinessEpoch {
+        self.invalidation_readiness_epoch = self.invalidation_readiness_epoch.saturating_add(1);
+        crate::data::proof::invalidation::progression::InvalidationReadinessEpoch(
+            self.invalidation_readiness_epoch,
+        )
+    }
+
+    pub(crate) const fn current_invalidation_readiness_epoch(
+        &self,
+    ) -> crate::data::proof::invalidation::progression::InvalidationReadinessEpoch {
+        crate::data::proof::invalidation::progression::InvalidationReadinessEpoch(
+            self.invalidation_readiness_epoch,
+        )
+    }
+
     pub(crate) fn record_hot_path_artifact_reconstruction(&self) {
         self.observation
             .reconstruction_counters
@@ -77,6 +123,12 @@ impl SignalGraph {
         self.observation
             .reconstruction_counters
             .reconstructed_artifact_read_count()
+    }
+
+    pub(crate) fn checkpoint_reconstruction_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .checkpoint_reconstruction_count()
     }
 
     pub(crate) fn record_denied_reconstruction_by_budget(&self, explanation_api: bool) {

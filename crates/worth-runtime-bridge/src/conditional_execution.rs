@@ -5,11 +5,14 @@ mod denial;
 mod execution;
 mod installation_admission;
 mod installed_lowering;
+mod lifecycle_probe;
 mod liveness;
 mod lowering;
 mod lowering_authority;
 mod lowering_identity;
 mod managed_time;
+mod managed_wake_execution;
+mod owned_installation;
 mod provider_admission;
 mod provider_semantics;
 mod providers;
@@ -37,6 +40,7 @@ pub use execution::{
 pub use installed_lowering::{
     BridgeInstalledConditionalLowering, BridgeInstalledConditionalLoweringCounters,
 };
+pub use lifecycle_probe::BridgeConditionalRuntimeLifecycleProbe;
 pub use lowering_authority::{
     BridgeConditionalLoweringIdentityKind, BridgeConditionalLoweringProjectionIdentity,
 };
@@ -48,6 +52,8 @@ pub use managed_time::{
     BridgeManagedTemporalIntentIdentity, BridgeManagedTemporalIntentLifecycle,
     BridgeManagedTemporalIntentReconciliation, BridgeManagedTemporalIntentReconciliationParts,
 };
+pub use managed_wake_execution::BridgeManagedConditionalExecutionRequest;
+pub use owned_installation::BridgeOwnedConditionalInstallationRequest;
 pub use provider_semantics::BridgeConditionalProviderSemantics;
 pub use providers::{
     BridgeConditionalComparatorProvider, BridgeConditionalComputeProvider,

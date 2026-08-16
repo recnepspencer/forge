@@ -34,11 +34,16 @@ fn duplicate_dirty_entries_canonicalize_into_one_frontier_seed() {
         .expect("frontier execution summary should be retained");
     assert_eq!(summary.seed_count, 1);
     assert_eq!(summary.counters.frontier_seed_count, 1);
-    assert_eq!(summary.direct_waves.len(), 1);
+    assert!(summary.direct_waves.is_empty());
+    assert!(summary.transitive_waves.is_empty());
+    assert_eq!(
+        summary.touched_scope_summary.touched_nodes.as_slice(),
+        &[source]
+    );
 }
 
 #[test]
-fn disjoint_aspect_batches_produce_disjoint_frontier_waves() {
+fn disjoint_aspect_batches_remain_distinct_source_seeds_without_subscriber_waves() {
     let mut graph = SignalGraph::new();
     graph.set_runtime_policy(SignalRuntimePolicy::development());
     let source = graph.node().partitioned_output().build();
@@ -46,6 +51,8 @@ fn disjoint_aspect_batches_produce_disjoint_frontier_waves() {
     let dep_b = graph.node().build();
     graph.append_dependency(dep_a, source, ASPECT_A).unwrap();
     graph.append_dependency(dep_b, source, ASPECT_B).unwrap();
+    let dep_a_before = graph.get_state(dep_a).unwrap();
+    let dep_b_before = graph.get_state(dep_b).unwrap();
 
     mark_dirty_batch(
         &mut graph,
@@ -57,33 +64,16 @@ fn disjoint_aspect_batches_produce_disjoint_frontier_waves() {
         .observe()
         .latest_frontier_execution_summary()
         .expect("frontier execution summary should be retained");
-    assert_eq!(summary.direct_waves.len(), 2);
-    let wave_a = summary
-        .direct_waves
-        .iter()
-        .find(|wave| wave.aspect == ASPECT_A)
-        .expect("aspect A wave should exist");
-    let wave_b = summary
-        .direct_waves
-        .iter()
-        .find(|wave| wave.aspect == ASPECT_B)
-        .expect("aspect B wave should exist");
+    assert_eq!(summary.seed_count, 2);
+    assert_eq!(summary.counters.frontier_seed_count, 2);
+    assert!(summary.direct_waves.is_empty());
+    assert!(summary.transitive_waves.is_empty());
     assert_eq!(
-        wave_a
-            .entries
-            .iter()
-            .map(|entry| entry.node)
-            .collect::<Vec<_>>(),
-        vec![dep_a]
+        summary.touched_scope_summary.touched_nodes.as_slice(),
+        &[source]
     );
-    assert_eq!(
-        wave_b
-            .entries
-            .iter()
-            .map(|entry| entry.node)
-            .collect::<Vec<_>>(),
-        vec![dep_b]
-    );
+    assert_eq!(graph.get_state(dep_a).unwrap(), dep_a_before);
+    assert_eq!(graph.get_state(dep_b).unwrap(), dep_b_before);
 }
 
 #[test]
@@ -121,7 +111,7 @@ fn cycle_admission_fails_before_false_frontier_commit() {
 }
 
 #[test]
-fn one_node_with_multiple_justifications_collapses_to_stable_canonical_entry() {
+fn source_seed_does_not_mint_subscriber_justifications() {
     let mut graph = SignalGraph::new();
     graph.set_runtime_policy(SignalRuntimePolicy::development());
     let source = graph.node().partitioned_output().build();
@@ -133,6 +123,7 @@ fn one_node_with_multiple_justifications_collapses_to_stable_canonical_entry() {
     graph
         .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
+    let dependent_before = graph.get_state(dependent).unwrap();
 
     mark_dirty_with_regions(
         &mut graph,
@@ -147,23 +138,13 @@ fn one_node_with_multiple_justifications_collapses_to_stable_canonical_entry() {
         .latest_frontier_execution_summary()
         .cloned()
         .expect("frontier execution summary should be retained");
-    let wave = summary
-        .direct_waves
-        .iter()
-        .find(|wave| wave.aspect == ASPECT_A)
-        .expect("expected aspect wave");
-
-    assert_eq!(wave.entries.len(), 1);
-    let entry = &wave.entries[0];
-    assert_eq!(entry.node, dependent);
-    assert!(matches!(
-        entry.classification,
-        FrontierEntryClassification::DirectDirty
-    ));
-    assert!(matches!(
-        entry.inclusion_basis,
-        FrontierInclusionBasis::DirectSubscriptionMatch
-    ));
+    assert!(summary.direct_waves.is_empty());
+    assert!(summary.transitive_waves.is_empty());
+    assert_eq!(
+        summary.touched_scope_summary.touched_nodes.as_slice(),
+        &[source]
+    );
+    assert_eq!(graph.get_state(dependent).unwrap(), dependent_before);
 }
 
 #[test]
@@ -215,7 +196,7 @@ fn repeated_identical_inputs_produce_deterministic_frontier_summary() {
 }
 
 #[test]
-fn transitive_wave_contains_only_nodes_reachable_from_planned_roots() {
+fn source_seed_does_not_walk_reachable_subscribers() {
     let mut graph = SignalGraph::new();
     graph.set_runtime_policy(SignalRuntimePolicy::development());
     let source = graph.node().partitioned_output().build();
@@ -241,6 +222,15 @@ fn transitive_wave_contains_only_nodes_reachable_from_planned_roots() {
     graph
         .append_dependency(unrelated_leaf, unrelated_root, ASPECT_A)
         .unwrap();
+    let untouched_before = [
+        direct_dirty,
+        maybe_stale,
+        transitive_from_dirty,
+        transitive_from_stale,
+        unrelated_root,
+        unrelated_leaf,
+    ]
+    .map(|node| (node, graph.get_state(node).unwrap()));
 
     mark_dirty_with_regions(
         &mut graph,
@@ -255,33 +245,13 @@ fn transitive_wave_contains_only_nodes_reachable_from_planned_roots() {
         .latest_frontier_execution_summary()
         .cloned()
         .expect("frontier execution summary should be retained");
-    let direct_wave_index = summary
-        .direct_waves
-        .iter()
-        .find(|wave| wave.aspect == ASPECT_A)
-        .expect("expected direct aspect wave")
-        .wave_index;
-    let transitive_wave = summary
-        .transitive_waves
-        .iter()
-        .find(|wave| wave.wave_index == direct_wave_index)
-        .expect("expected structural transitive wave");
-    let transitive_nodes = transitive_wave
-        .entries
-        .iter()
-        .map(|entry| entry.node)
-        .collect::<Vec<_>>();
-
-    assert!(transitive_nodes.contains(&transitive_from_dirty));
-    assert!(transitive_nodes.contains(&transitive_from_stale));
-    assert!(!transitive_nodes.contains(&unrelated_root));
-    assert!(!transitive_nodes.contains(&unrelated_leaf));
-    assert!(transitive_wave.entries.iter().all(|entry| matches!(
-        entry.classification,
-        FrontierEntryClassification::MaybeStale
-    )));
-    assert!(transitive_wave.entries.iter().all(|entry| matches!(
-        entry.inclusion_basis,
-        FrontierInclusionBasis::TransitiveReachability
-    )));
+    assert!(summary.direct_waves.is_empty());
+    assert!(summary.transitive_waves.is_empty());
+    assert_eq!(
+        summary.touched_scope_summary.touched_nodes.as_slice(),
+        &[source]
+    );
+    for (untouched, state_before) in untouched_before {
+        assert_eq!(graph.get_state(untouched).unwrap(), state_before);
+    }
 }

@@ -10,16 +10,16 @@ use super::frontier_admission::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct FrontierWaveEntryPlan {
-    pub node: NodeId,
-    pub classification: FrontierEntryClassification,
-    pub inclusion_basis: FrontierInclusionBasis,
-    pub narrowed_scopes: PartitionScopeSet,
-    pub source_seed_refs: Vec<u32>,
+pub(crate) struct FrontierWaveEntryPlan {
+    pub(crate) node: NodeId,
+    pub(crate) classification: FrontierEntryClassification,
+    pub(crate) inclusion_basis: FrontierInclusionBasis,
+    pub(crate) narrowed_scopes: PartitionScopeSet,
+    pub(crate) source_seed_refs: Vec<u32>,
 }
 
 impl FrontierWaveEntryPlan {
-    pub fn new(
+    pub(crate) fn new(
         node: NodeId,
         classification: FrontierEntryClassification,
         inclusion_basis: FrontierInclusionBasis,
@@ -42,14 +42,14 @@ impl FrontierWaveEntryPlan {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct FrontierWavePlan {
-    pub wave_index: u32,
-    pub aspect: Aspect,
-    pub entries: Vec<FrontierWaveEntryPlan>,
+pub(crate) struct FrontierWavePlan {
+    pub(crate) wave_index: u32,
+    pub(crate) aspect: Aspect,
+    pub(crate) entries: Vec<FrontierWaveEntryPlan>,
 }
 
 impl FrontierWavePlan {
-    pub fn new(
+    pub(crate) fn new(
         wave_index: u32,
         aspect: Aspect,
         entries: impl IntoIterator<Item = FrontierWaveEntryPlan>,
@@ -73,33 +73,49 @@ impl FrontierWavePlan {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct FrontierPredictedCounters {
-    pub seed_count: u64,
-    pub group_count: u64,
-    pub direct_wave_count: u64,
-    pub transitive_wave_count: u64,
-    pub direct_dirty_count: u64,
-    pub maybe_stale_count: u64,
-    pub partition_scoped_checks: u64,
-    pub partition_match_count: u64,
-    pub detail_match_count: u64,
-    pub cycle_check_candidate_count: u64,
+pub struct InvalidationPlanningEstimate {
+    pub(crate) seed_count: u64,
+    pub(crate) group_count: u64,
+    pub(crate) direct_wave_count: u64,
+    pub(crate) transitive_wave_count: u64,
+    pub(crate) direct_dirty_count: u64,
+    pub(crate) maybe_stale_count: u64,
+    pub(crate) partition_scoped_checks: u64,
+    pub(crate) partition_match_count: u64,
+    pub(crate) detail_match_count: u64,
+    pub(crate) cycle_check_candidate_count: u64,
 }
 
+impl InvalidationPlanningEstimate {
+    pub const fn seed_count(&self) -> u64 {
+        self.seed_count
+    }
+
+    pub const fn direct_candidate_count(&self) -> u64 {
+        self.direct_dirty_count + self.maybe_stale_count
+    }
+
+    pub const fn partition_scoped_check_count(&self) -> u64 {
+        self.partition_scoped_checks
+    }
+}
+
+impl SummaryForm for InvalidationPlanningEstimate {}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct FrontierPlan {
-    pub seed_batch: InvalidationSeedBatch,
-    pub direct_waves: Vec<FrontierWavePlan>,
-    pub touched_scope_summary: TouchedScopeSummary,
-    pub predicted: FrontierPredictedCounters,
+pub(crate) struct FrontierPlan {
+    pub(crate) seed_batch: InvalidationSeedBatch,
+    pub(crate) direct_waves: Vec<FrontierWavePlan>,
+    pub(crate) touched_scope_summary: TouchedScopeSummary,
+    pub(crate) predicted: InvalidationPlanningEstimate,
 }
 
 impl FrontierPlan {
-    pub fn new(
+    pub(crate) fn new(
         seed_batch: InvalidationSeedBatch,
         direct_waves: Vec<FrontierWavePlan>,
         touched_scope_summary: TouchedScopeSummary,
-        predicted: FrontierPredictedCounters,
+        predicted: InvalidationPlanningEstimate,
     ) -> Self {
         Self {
             seed_batch,

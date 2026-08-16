@@ -1,4 +1,49 @@
-use worth_foundational::ContractValidatedAspectArtifact;
+use worth_foundational::facade::{
+    AspectMask, AspectValue, ContractValidatedAspectArtifact, ContractValidatedAspectValueView,
+    FieldKey, ProjectionMask,
+};
+
+#[derive(Clone, Copy, Debug)]
+pub struct WorthQueryConditionalProjectedValue<'a> {
+    artifact: &'a ContractValidatedAspectArtifact,
+    mask: &'a AspectMask<ProjectionMask>,
+}
+
+impl<'a> WorthQueryConditionalProjectedValue<'a> {
+    #[doc(hidden)]
+    pub fn from_runtime_projection(
+        artifact: &'a ContractValidatedAspectArtifact,
+        mask: &'a AspectMask<ProjectionMask>,
+    ) -> Self {
+        Self { artifact, mask }
+    }
+
+    pub fn scalar(self) -> Option<&'a AspectValue> {
+        if !self.mask.is_whole_aspect() {
+            return None;
+        }
+        match self.artifact.payload().view() {
+            ContractValidatedAspectValueView::Scalar(value) => Some(value),
+            ContractValidatedAspectValueView::Struct(_) => None,
+        }
+    }
+
+    pub fn field(self, field: &FieldKey) -> Option<&'a AspectValue> {
+        let admitted = self.mask.is_whole_aspect()
+            || self
+                .mask
+                .paths()
+                .iter()
+                .any(|path| path.fields().len() == 1 && path.fields().first() == Some(field));
+        if !admitted {
+            return None;
+        }
+        match self.artifact.payload().view() {
+            ContractValidatedAspectValueView::Struct(value) => value.get(field),
+            ContractValidatedAspectValueView::Scalar(_) => None,
+        }
+    }
+}
 
 /// One declared dependency value visible to a host conditional provider.
 ///
@@ -6,7 +51,7 @@ use worth_foundational::ContractValidatedAspectArtifact;
 /// with a present value whose payload happens to be empty.
 #[derive(Clone, Copy, Debug)]
 pub enum WorthQueryConditionalObservedValue<'a> {
-    Present(&'a ContractValidatedAspectArtifact),
+    Present(WorthQueryConditionalProjectedValue<'a>),
     Absent,
 }
 

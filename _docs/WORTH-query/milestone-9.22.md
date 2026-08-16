@@ -11,9 +11,9 @@ dependencies, provider posture, governance, and resource ownership.
 
 Milestone 9.15 established artifact and occurrence identity and declared
 reproducibility. Milestones 9.19 through 9.21 add advanced access, execution,
-footprint, and decision evidence. This milestone owns the reuse lifecycle
-formerly described by Milestone 9.17 Phase 7. Reuse closes last because it may
-substitute only artifacts whose complete meaning is already settled.
+footprint, and decision evidence. This milestone independently owns their reuse
+lifecycle. Reuse closes last because it may substitute only artifacts whose
+complete meaning is already settled; it is not a Milestone 9.17 branch phase.
 
 ## Adversarial Constraint
 

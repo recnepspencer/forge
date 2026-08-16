@@ -4,7 +4,7 @@ use crate::data::comparator::{
 };
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
-use crate::facade::{mark_dirty, DefaultConditionResolver, EvaluationRequestMode};
+use crate::facade::{mark_dirty, DefaultConditionResolver, EvaluationRequestMode, NodeState};
 use crate::tests::support::evaluate_with_policy_and_condition_resolvers;
 
 use super::super::{
@@ -107,6 +107,16 @@ impl CompiledFinancialWorld {
             self.ledger.clone(),
         );
         let source = self.handles.factor(factor).0;
+        let valuations = next_definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).valuation)
+            .collect::<Vec<_>>();
+        let risks = next_definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).risk)
+            .collect::<Vec<_>>();
         let consumers = next_definition
             .consumers()
             .iter()
@@ -130,15 +140,20 @@ impl CompiledFinancialWorld {
             &mut condition,
             EvaluationRequestMode::Default,
         )?;
-        for target in consumers {
-            evaluate_with_policy_and_condition_resolvers(
-                self.runtime.graph_mut(),
-                target,
-                &mut |node, _graph| program.result_for_node(node),
-                &mut resolver,
-                &mut condition,
-                EvaluationRequestMode::Default,
-            )?;
+        for wave in [valuations, risks, consumers] {
+            for target in wave {
+                if matches!(self.runtime.graph().get_state(target)?, NodeState::Clean) {
+                    continue;
+                }
+                evaluate_with_policy_and_condition_resolvers(
+                    self.runtime.graph_mut(),
+                    target,
+                    &mut |node, _graph| program.result_for_node(node),
+                    &mut resolver,
+                    &mut condition,
+                    EvaluationRequestMode::Default,
+                )?;
+            }
         }
         self.definition = next_definition;
         self.economic_snapshot = next_snapshot;

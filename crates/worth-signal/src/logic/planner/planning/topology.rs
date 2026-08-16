@@ -11,6 +11,7 @@ use crate::logic::evaluation::EvaluationRequestMode;
 
 use super::super::types::{CandidateTask, MaybeStaleAdmission, TaskReason};
 use super::admission::verify_required_context;
+use super::unsettled_paths::{discover_unsettled_dependency_paths, UnsettledDependencyPaths};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub(super) struct PlannedNode {
@@ -44,6 +45,7 @@ pub(super) fn discover_plan_topology(
     let mut stats = PlanningStats::default();
     visiting.ensure_len(arena_capacity);
     let targets = DedupedNodeBatch::canonicalize_unordered(targets.iter().copied()).into_vec();
+    let unsettled_paths = discover_unsettled_dependency_paths(graph, &targets)?;
 
     for &target in &targets {
         graph.get_state(target)?;
@@ -56,6 +58,7 @@ pub(super) fn discover_plan_topology(
                 trigger_reason: TaskReason::RequestedTarget,
             },
             resolver,
+            &unsettled_paths,
             &mut visiting,
             &mut planned,
             &mut planned_nodes,
@@ -75,6 +78,7 @@ fn visit_node(
     graph: &mut SignalGraph,
     candidate: CandidateTask,
     resolver: &mut impl ComparatorPolicyResolver,
+    unsettled_paths: &UnsettledDependencyPaths,
     visiting: &mut DenseBitset,
     planned: &mut [Option<PlannedNode>],
     planned_nodes: &mut Vec<NodeId>,
@@ -107,7 +111,7 @@ fn visit_node(
                     graph.get_contract(node)?.semantics.required_context,
                 )?;
                 let state = graph.get_state(node)?;
-                let should_include = matches!(state, NodeState::Dirty | NodeState::MaybeStale)
+                let should_include = unsettled_paths.contains(node)
                     || (candidate.direct_request
                         && matches!(candidate.request_mode, EvaluationRequestMode::ForceOnDemand));
                 if !should_include {
@@ -178,7 +182,19 @@ fn visit_node(
                             }
                         }
                     }
-                    NodeState::Clean => {}
+                    NodeState::Clean => {
+                        let dependencies = graph.runtime_dependencies_of(node)?.to_vec();
+                        for dependency in dependencies.into_iter().rev() {
+                            if unsettled_paths.contains(dependency.source()) {
+                                stack.push(VisitFrame::Enter(CandidateTask {
+                                    node: dependency.source(),
+                                    request_mode: candidate.request_mode,
+                                    direct_request: false,
+                                    trigger_reason: TaskReason::DependencyRequired,
+                                }));
+                            }
+                        }
+                    }
                 }
             }
             VisitFrame::Exit(node) => {

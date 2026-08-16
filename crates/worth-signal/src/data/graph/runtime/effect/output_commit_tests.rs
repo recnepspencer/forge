@@ -1,5 +1,6 @@
 use super::*;
 use crate::data::comparator::{DefaultComparatorPolicyResolver, VersionComparatorResolver};
+use crate::data::node::NodeState;
 use crate::data::output::OutputChange;
 use crate::facade::mark_dirty;
 use crate::tests::support::{
@@ -35,6 +36,66 @@ fn every_prepublication_seam_leaves_semantic_state_untouched() {
     for seam in seams {
         assert_prepublication_failure_is_atomic(seam);
     }
+}
+
+#[test]
+fn changed_output_publication_commits_the_whole_authority_packet() {
+    let mut graph = SignalGraph::new();
+    let producer = graph.node().produces_aspects(ASPECT_A).build();
+    let consumer = graph.node().build();
+    graph
+        .append_dependency(consumer, producer, ASPECT_A)
+        .unwrap();
+    evaluate(&mut graph, producer, &mut |_node, _graph| {
+        Ok(version_ab(1, 0))
+    })
+    .unwrap();
+    evaluate(&mut graph, consumer, &mut |_node, _graph| {
+        Ok(version_ab(10, 0))
+    })
+    .unwrap();
+    mark_dirty(&mut graph, producer, ASPECT_A).unwrap();
+
+    let ordinal_before = graph.cause_sets.output_commit_ordinal_for_test();
+    let recomputed_before = graph.telemetry().evaluation.nodes_recomputed;
+    evaluate(&mut graph, producer, &mut |_node, _graph| {
+        Ok(version_ab(2, 0))
+    })
+    .unwrap();
+
+    assert_eq!(
+        graph.node_aspect_version(producer).unwrap(),
+        version_ab(2, 0)
+    );
+    assert_eq!(graph.get_state(producer).unwrap(), NodeState::Clean);
+    assert!(graph.node_dirty_aspects(producer).unwrap().is_empty());
+    assert_eq!(graph.get_state(consumer).unwrap(), NodeState::Dirty);
+    assert!(graph
+        .node_dirty_aspects(consumer)
+        .unwrap()
+        .contains(ASPECT_A.into()));
+    assert!(graph
+        .node_dirty_scoped_aspects(consumer)
+        .unwrap()
+        .is_empty());
+    let causes = graph.pending_causes(consumer).unwrap();
+    assert_eq!(causes.len(), 1);
+    assert_eq!(causes[0].binding_axes.producer, producer);
+    assert_eq!(causes[0].binding_axes.aspect, ASPECT_A);
+    assert_eq!(causes[0].binding_axes.cached_version, 1);
+    assert_eq!(causes[0].binding_axes.committed_version, 2);
+    assert_eq!(
+        graph.cause_sets.output_commit_ordinal_for_test(),
+        ordinal_before + 1
+    );
+    assert_eq!(
+        graph.telemetry().evaluation.nodes_recomputed,
+        recomputed_before + 1
+    );
+    assert_eq!(
+        graph.observe().explain(producer).unwrap().output_change,
+        Some(OutputChange::Replaced)
+    );
 }
 
 #[test]

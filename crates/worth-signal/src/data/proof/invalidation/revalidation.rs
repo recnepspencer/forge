@@ -17,6 +17,13 @@ enum CanonicalInvalidationBasis {
     StructuralRecompute(ResolvedDependencyBasis),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CanonicalInvalidationOrigin {
+    DependencyCommit,
+    SourceRecompute,
+    StructuralRecompute,
+}
+
 impl CanonicalDependencyCauseSet {
     pub(crate) fn from_dependency_causes(causes: Vec<ResolvedDependencyCause>) -> Self {
         let mut dirty_aspects = AspectMask::EMPTY;
@@ -43,6 +50,7 @@ impl CanonicalDependencyCauseSet {
 
     pub(crate) fn from_source_recompute(
         revision: DependencyRevision,
+        origin_generation: u64,
         dirty_aspects: AspectMask,
         mut dirty_scoped_aspects: Vec<(Aspect, PartitionSubscription)>,
     ) -> Self {
@@ -51,6 +59,7 @@ impl CanonicalDependencyCauseSet {
         Self {
             basis: CanonicalInvalidationBasis::SourceRecompute(ResolvedDependencyBasis::new(
                 revision,
+                origin_generation,
             )),
             dirty_aspects,
             dirty_scoped_aspects,
@@ -60,7 +69,7 @@ impl CanonicalDependencyCauseSet {
     pub(crate) fn structural(revision: DependencyRevision) -> Self {
         Self {
             basis: CanonicalInvalidationBasis::StructuralRecompute(ResolvedDependencyBasis::new(
-                revision,
+                revision, revision.0,
             )),
             dirty_aspects: AspectMask::EMPTY,
             dirty_scoped_aspects: Vec::new(),
@@ -90,22 +99,63 @@ impl CanonicalDependencyCauseSet {
     pub(crate) const fn is_source_recompute(&self) -> bool {
         matches!(self.basis, CanonicalInvalidationBasis::SourceRecompute(_))
     }
+
+    pub(crate) const fn origin(&self) -> CanonicalInvalidationOrigin {
+        match self.basis {
+            CanonicalInvalidationBasis::DependencyCauses(_) => {
+                CanonicalInvalidationOrigin::DependencyCommit
+            }
+            CanonicalInvalidationBasis::SourceRecompute(_) => {
+                CanonicalInvalidationOrigin::SourceRecompute
+            }
+            CanonicalInvalidationBasis::StructuralRecompute(_) => {
+                CanonicalInvalidationOrigin::StructuralRecompute
+            }
+        }
+    }
+
+    pub(crate) fn dependency_causes(&self) -> Option<&[ResolvedDependencyCause]> {
+        match &self.basis {
+            CanonicalInvalidationBasis::DependencyCauses(causes) => Some(causes),
+            CanonicalInvalidationBasis::SourceRecompute(_)
+            | CanonicalInvalidationBasis::StructuralRecompute(_) => None,
+        }
+    }
+
+    pub(crate) const fn origin_generation(&self) -> Option<u64> {
+        match &self.basis {
+            CanonicalInvalidationBasis::SourceRecompute(basis)
+            | CanonicalInvalidationBasis::StructuralRecompute(basis) => {
+                Some(basis.origin_generation())
+            }
+            CanonicalInvalidationBasis::DependencyCauses(_) => None,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct ResolvedDependencyBasis {
     dependency_revision: DependencyRevision,
+    origin_generation: u64,
 }
 
 impl ResolvedDependencyBasis {
-    pub(crate) const fn new(dependency_revision: DependencyRevision) -> Self {
+    pub(crate) const fn new(
+        dependency_revision: DependencyRevision,
+        origin_generation: u64,
+    ) -> Self {
         Self {
             dependency_revision,
+            origin_generation,
         }
     }
 
     pub(crate) const fn is_bound_to_revision(self, revision: DependencyRevision) -> bool {
         self.dependency_revision.0 == revision.0
+    }
+
+    pub(crate) const fn origin_generation(self) -> u64 {
+        self.origin_generation
     }
 }
 

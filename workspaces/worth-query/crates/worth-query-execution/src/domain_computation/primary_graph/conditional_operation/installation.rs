@@ -3,54 +3,44 @@ use std::{collections::BTreeSet, marker::PhantomData, sync::Arc};
 use crate::domain_computation::primary_graph::application_runtime::installation::ApplicationRuntimePublication;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 use worth_query_installation::facade::{
-    ApplicationSchema, WorthQueryHostConditionalPredicateProvider,
-    WorthQueryInstalledTemporalConditionalOperation, WorthQueryNamedClock,
-    WorthQueryNamedClockSource, WorthQueryTemporalIntentProjector,
+    ApplicationFieldUnit, ApplicationSchema, OperationReads, OperationWrites,
+    TypedApplicationIdentityValue, TypedApplicationReadableValue, TypedApplicationValue,
+    WorthQueryHostConditionalPredicateProvider, WorthQueryInstalledTemporalConditionalOperation,
+    WorthQueryNamedClock, WorthQueryNamedClockSource, WorthQueryTemporalIntentProjector,
+    WorthQueryTemporalIntentRevisionValue, WritableCapability, WritePosture,
 };
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthQueryConditionalRuntimeInstallationDenialKind {
-    PrimaryGraphPublication,
-    ForeignBinding,
-    DuplicateBinding,
-    IncompleteBindingInventory,
-    BridgeRejected,
-}
+use super::operation_invocation::{
+    WorthQueryTemporalOperationExecution, WorthQueryTemporalOperationInvoker,
+};
+use super::reconstruction_authority::{
+    WorthQueryTemporalPrincipalSource, WorthQueryTemporalReconstructionAccess,
+};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryConditionalRuntimeInstallationDenial {
-    kind: WorthQueryConditionalRuntimeInstallationDenialKind,
-    subject: String,
-}
-
-impl WorthQueryConditionalRuntimeInstallationDenial {
-    pub(super) fn new(
-        kind: WorthQueryConditionalRuntimeInstallationDenialKind,
-        subject: impl Into<String>,
-    ) -> Self {
-        Self {
-            kind,
-            subject: subject.into(),
-        }
-    }
-
-    pub fn kind(&self) -> WorthQueryConditionalRuntimeInstallationDenialKind {
-        self.kind
-    }
-
-    pub fn subject(&self) -> &str {
-        &self.subject
-    }
-}
+mod denial;
+pub use denial::{
+    WorthQueryConditionalRuntimeInstallationDenial,
+    WorthQueryConditionalRuntimeInstallationDenialKind,
+};
 
 pub struct WorthQueryConditionalClockHandle<Schema, Node, Clock> {
     binding_identity: Arc<str>,
+    binding_canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkEvidence,
+    pub(super) lease: Arc<ConditionalClockLease>,
     marker: PhantomData<fn() -> (Schema, Node, Clock)>,
 }
+
+pub(in crate::domain_computation::primary_graph) struct ConditionalClockLease;
 
 impl<Schema, Node, Clock> WorthQueryConditionalClockHandle<Schema, Node, Clock> {
     pub fn binding_identity(&self) -> &str {
         &self.binding_identity
+    }
+
+    pub const fn binding_canonical_work(
+        &self,
+    ) -> worth_query_installation::facade::WorthQueryCanonicalWorkEvidence {
+        self.binding_canonical_work
     }
 }
 
@@ -99,6 +89,37 @@ where
         QueryResult,
         Scope,
         Projector,
+        PrincipalBinding,
+        PrincipalMapping,
+        Principal,
+        PrincipalIdentity,
+        ScopeAspect,
+        ScopeField,
+        ScopeValue,
+        ScopeWrite,
+        ScopeUnit,
+        PrincipalSource,
+        QueryAuthorization,
+        Invoker,
+        IntentEntity,
+        IdentityAspect,
+        IdentityField,
+        IdentityValue,
+        IdentityWrite,
+        IdentityUnit,
+        RevisionAspect,
+        RevisionField,
+        RevisionValue,
+        RevisionWrite,
+        RevisionEquality,
+        RevisionUnit,
+        LifecycleAspect,
+        LifecycleField,
+        LifecycleValue,
+        LifecycleWrite,
+        LifecycleEquality,
+        LifecycleUnit,
+        Authorization,
     >(
         &mut self,
         binding: WorthQueryInstalledTemporalConditionalOperation<
@@ -118,20 +139,112 @@ where
             Scope,
             Projector,
         >,
+        execution: WorthQueryTemporalOperationExecution<
+            Schema,
+            ApplicationOperation,
+            Input,
+            Scope,
+            Invoker,
+            IntentEntity,
+            IdentityAspect,
+            IdentityField,
+            IdentityValue,
+            IdentityWrite,
+            IdentityUnit,
+            RevisionAspect,
+            RevisionField,
+            RevisionValue,
+            RevisionWrite,
+            RevisionEquality,
+            RevisionUnit,
+            LifecycleAspect,
+            LifecycleField,
+            LifecycleValue,
+            LifecycleWrite,
+            LifecycleEquality,
+            LifecycleUnit,
+            Authorization,
+        >,
+        reconstruction: WorthQueryTemporalReconstructionAccess<
+            Schema,
+            PrincipalBinding,
+            PrincipalMapping,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+            ScopeAspect,
+            ScopeField,
+            ScopeValue,
+            ScopeWrite,
+            ScopeUnit,
+            PrincipalSource,
+            QueryAuthorization,
+        >,
     ) -> Result<
         WorthQueryConditionalClockHandle<Schema, Node, Clock>,
         WorthQueryConditionalRuntimeInstallationDenial,
     >
     where
-        Input: 'static,
+        Input: Clone + Send + Sync + 'static,
         Provider: WorthQueryHostConditionalPredicateProvider<Node>,
         Clock: WorthQueryNamedClock,
         Source: WorthQueryNamedClockSource<Clock>,
         Query: 'static,
         Parameters: 'static,
-        QueryResult: 'static,
+        QueryResult: crate::domain_computation::primary_graph::WorthQueryApplicationProjection<Schema, Query>
+            + 'static,
         Scope: 'static,
         Projector: WorthQueryTemporalIntentProjector<Node, Clock, QueryResult, Input>,
+        PrincipalIdentity: TypedApplicationIdentityValue + 'static,
+        ScopeValue: TypedApplicationValue + Clone + Send + 'static,
+        ScopeWrite: WritePosture + 'static,
+        ScopeUnit: ApplicationFieldUnit + 'static,
+        PrincipalBinding: 'static,
+        PrincipalMapping: 'static,
+        Principal: 'static,
+        ScopeAspect: 'static,
+        ScopeField: 'static,
+        PrincipalSource: WorthQueryTemporalPrincipalSource<Schema>,
+        QueryAuthorization: super::WorthQueryTemporalQueryAuthorization<
+                Schema,
+                Query,
+                Parameters,
+                QueryResult,
+                Principal,
+                PrincipalIdentity,
+                Scope,
+            > + 'static,
+        Invoker: WorthQueryTemporalOperationInvoker<Schema, ApplicationOperation, Input, Scope>,
+        IntentEntity: 'static,
+        IdentityAspect: 'static,
+        IdentityField: OperationReads<ApplicationOperation> + 'static,
+        IdentityValue: TypedApplicationReadableValue + Clone + Send + 'static,
+        IdentityWrite: WritePosture + 'static,
+        IdentityUnit: ApplicationFieldUnit + 'static,
+        RevisionAspect: 'static,
+        RevisionField:
+            OperationReads<ApplicationOperation> + OperationWrites<ApplicationOperation> + 'static,
+        RevisionValue: WorthQueryTemporalIntentRevisionValue
+            + TypedApplicationReadableValue
+            + Clone
+            + Send
+            + 'static,
+        RevisionWrite: WritableCapability + 'static,
+        RevisionEquality: 'static,
+        RevisionUnit: ApplicationFieldUnit + 'static,
+        LifecycleAspect: 'static,
+        LifecycleField:
+            OperationReads<ApplicationOperation> + OperationWrites<ApplicationOperation> + 'static,
+        LifecycleValue: TypedApplicationReadableValue + Clone + Send + 'static,
+        LifecycleWrite: WritableCapability + 'static,
+        LifecycleEquality: 'static,
+        LifecycleUnit: ApplicationFieldUnit + 'static,
+        Authorization: super::WorthQueryTemporalOperationAuthorization<
+                Schema,
+                ApplicationOperation,
+                Input,
+                Scope,
+            > + 'static,
         ApplicationOperation: 'static,
         D: 'static,
         O: 'static,
@@ -139,18 +252,49 @@ where
         Node: 'static,
     {
         self.validate_temporal_binding(&binding)?;
-        let identity = super::pending_binding::temporal_binding_identity(&binding);
-        if !self.binding_identities.insert(Arc::clone(&identity)) {
+        super::access_validation::validate_reconstruction_access(
+            &self.publication,
+            &reconstruction,
+        )?;
+        execution
+            .validate_publication(&self.publication)
+            .map_err(foreign_binding_denial)?;
+        let identity = super::pending_binding::temporal_binding_identity(
+            &binding,
+            reconstruction.principal_source_identity(),
+            execution.invoker_identity(),
+        )
+        .map_err(|denial| {
+            WorthQueryConditionalRuntimeInstallationDenial::new(
+                WorthQueryConditionalRuntimeInstallationDenialKind::ForeignBinding,
+                format!("conditional binding identity was denied: {denial:?}"),
+            )
+        })?;
+        let support_identity: Arc<str> = Arc::from(identity.support_identity());
+        if !self
+            .binding_identities
+            .insert(Arc::clone(&support_identity))
+        {
             return Err(WorthQueryConditionalRuntimeInstallationDenial::new(
                 WorthQueryConditionalRuntimeInstallationDenialKind::DuplicateBinding,
-                identity.as_ref(),
+                support_identity.as_ref(),
             ));
         }
+        let binding_canonical_work = identity.canonical_work();
+        let lease = Arc::new(ConditionalClockLease);
         self.bindings.push(Box::new(
-            super::pending_binding::PendingTemporalOperation::new(Arc::clone(&identity), binding),
+            super::pending_binding::PendingTemporalOperation::new(
+                Arc::clone(&identity),
+                Arc::clone(&lease),
+                binding,
+                reconstruction,
+                execution,
+            ),
         ));
         Ok(WorthQueryConditionalClockHandle {
-            binding_identity: identity,
+            binding_identity: support_identity,
+            binding_canonical_work,
+            lease,
             marker: PhantomData,
         })
     }
@@ -226,9 +370,10 @@ pub(in crate::domain_computation::primary_graph) trait WorthQueryPendingConditio
     fn install(
         self: Box<Self>,
         bridge: &mut worth_runtime_bridge::facade::BridgeOwnedSignalRuntime,
-        affinity: &super::publication::ConditionalRuntimeAffinity<'_>,
+        graph: &worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
+        affinity: &super::publication::ConditionalRuntimeAffinity,
     ) -> Result<
-        Box<dyn super::lifecycle::WorthQueryInstalledConditionalOperation>,
+        Box<dyn super::lifecycle::WorthQueryInstalledConditionalOperation<Schema>>,
         WorthQueryConditionalRuntimeInstallationDenial,
     >;
 }

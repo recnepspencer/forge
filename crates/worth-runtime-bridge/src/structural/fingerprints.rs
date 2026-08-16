@@ -78,7 +78,10 @@ pub struct StructuralFingerprintRecordValueEvidence {
 
 impl StructuralFingerprintRecordValueEvidence {
     fn from_validated_record(record: &ValidatedSnapshotReadRecord) -> Self {
-        let value_basis = validated_snapshot_read_value_canonical_basis(record.validated_value());
+        let value_basis = record
+            .validated_value_posture()
+            .map(validated_snapshot_read_value_canonical_basis)
+            .unwrap_or_else(|| "validated-snapshot-read-value|posture=absent".to_string());
         let aspect_value_digest = Sha256::digest(value_basis.as_bytes());
         let aspect_value_digest = Arc::<str>::from(format!(
             "structural-record-aspect-value:sha256:{aspect_value_digest:x}"

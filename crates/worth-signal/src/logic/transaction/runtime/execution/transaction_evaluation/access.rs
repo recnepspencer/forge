@@ -7,6 +7,7 @@ use crate::logic::evaluation::{EvaluationRequestMode, IntoEvaluationOutput};
 use crate::logic::planner::{ExecutionReport, StageExecutor};
 
 use super::super::super::transaction::SignalTransaction;
+use super::super::request_order::requested_dependency_order;
 use super::super::shared::executor_for_strategy;
 
 use super::request::TransactionExecutionIntent;
@@ -48,19 +49,27 @@ where
         F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
         O: IntoEvaluationOutput,
     {
-        if matches!(
-            self.graph.get_state(node)?,
-            crate::data::node::NodeState::Clean
-        ) {
-            return self.graph.node_aspect_version(node);
+        let max_passes = self.graph.active_node_count().saturating_add(1);
+        for _ in 0..max_passes {
+            let mut scheduled = 0_u32;
+            let mut executed = 0_u32;
+            for target in requested_dependency_order(&self.graph, node)? {
+                let report = self.evaluate_with_plan_and_executor(
+                    target,
+                    evaluator,
+                    EvaluationRequestMode::Default,
+                    executor,
+                )?;
+                scheduled = scheduled.saturating_add(report.task_count);
+                executed = executed.saturating_add(report.tasks_executed);
+            }
+            if scheduled == 0 || executed == 0 {
+                return self.graph.node_aspect_version(node);
+            }
         }
-        self.evaluate_with_plan_and_executor(
-            node,
-            evaluator,
-            EvaluationRequestMode::Default,
-            executor,
-        )?;
-        self.graph.node_aspect_version(node)
+        Err(SignalError::internal(
+            "transaction dependency settlement did not converge",
+        ))
     }
 
     pub fn read_many<F, O>(

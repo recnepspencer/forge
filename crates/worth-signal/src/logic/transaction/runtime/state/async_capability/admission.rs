@@ -93,7 +93,7 @@ where
             })?;
         let node_state = self.graph.get_state(node)?;
         let invalidation = self.graph.node_invalidation_input(node)?;
-        let (dirty_aspects, dirty_scoped_aspects, pending_dependency) = match invalidation {
+        let (dirty_aspects, dirty_scoped_aspects, pending_node) = match invalidation {
             NodeInvalidationInput::Pending(_) => (AspectMask::EMPTY, Vec::new(), true),
             NodeInvalidationInput::Resolved(causes) => (
                 causes.dirty_aspects(),
@@ -102,6 +102,7 @@ where
             ),
             NodeInvalidationInput::ResolvedNoChange(_) => (AspectMask::EMPTY, Vec::new(), false),
         };
+        let pending_dependency = pending_node || self.graph.has_current_unsettled_upstream(node)?;
         let contract = self.graph.get_contract(node)?.clone();
         let lifecycle_class = self
             .resource

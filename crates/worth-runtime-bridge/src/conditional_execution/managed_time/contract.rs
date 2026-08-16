@@ -53,7 +53,8 @@ impl BridgeManagedClockBinding {
     }
 }
 
-pub struct BridgeManagedClockInstallationParts {
+pub struct BridgeManagedClockInstallationParts<'a> {
+    pub lowering: &'a std::sync::Arc<super::super::BridgeInstalledConditionalLowering>,
     pub binding_identity: Arc<str>,
     pub source_identity: Arc<str>,
     pub timeline_identity: Arc<str>,
@@ -89,6 +90,7 @@ pub struct BridgeManagedTemporalIntentReconciliationParts<'a> {
     pub revision: u64,
     pub due_coordinate: u64,
     pub idempotency_identity: Arc<str>,
+    pub source_record_identity: crate::relational_identity::RelationalBridgeRecordIdentityParts,
     pub lifecycle: BridgeManagedTemporalIntentLifecycle,
 }
 
@@ -117,9 +119,11 @@ pub struct BridgeManagedDueWake {
     pub(super) intent_identity: BridgeManagedTemporalIntentIdentity,
     pub(super) revision: u64,
     pub(super) idempotency_identity: Arc<str>,
+    pub(super) source_record_identity:
+        crate::relational_identity::RelationalBridgeRecordIdentityParts,
     pub(super) due_coordinate: u64,
     pub(super) ready_coordinate: u64,
-    pub(super) signal_wake_id: TemporalWakeId,
+    pub(in crate::conditional_execution) signal_wake_id: TemporalWakeId,
     pub(super) scheduled_ordinal: WakeOrdinal,
     pub(super) ready_ordinal: WakeOrdinal,
 }
@@ -139,6 +143,12 @@ impl BridgeManagedDueWake {
 
     pub fn idempotency_identity(&self) -> &str {
         &self.idempotency_identity
+    }
+
+    pub fn source_record_identity(
+        &self,
+    ) -> crate::relational_identity::RelationalBridgeRecordIdentityParts {
+        self.source_record_identity
     }
 
     pub fn due_coordinate(&self) -> u64 {

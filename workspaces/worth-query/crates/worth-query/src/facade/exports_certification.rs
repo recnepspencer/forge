@@ -246,3 +246,24 @@ pub fn write_authority_execution_receipt_for_certification(
 ) -> crate::lower_runtime_routing::WriteAuthorityExecutionReceipt {
     crate::lower_runtime_routing::WriteAuthorityExecutionReceipt::from_command(command, receipt)
 }
+
+/// Runs the pre-primary-graph conditional classifier used by the installed
+/// monolith. Phase 9 certification compares this real internal oracle with the
+/// host path; ordinary consumers cannot reach it through an audience facade.
+pub fn internal_conditional_outcome_for_certification(
+    class: worth_signal::facade::SignalConditionalDecisionClass,
+) -> crate::domain_installation::WorthQueryConditionalOutcomeClass {
+    crate::domain_installation::classify_signal_decision(class)
+}
+
+/// Runs the Phase 9 host classifier against real Bridge evidence retained by
+/// the pre-primary-graph oracle. This comparison is certification-only.
+pub fn host_conditional_signal_for_certification(
+    provenance: &crate::domain_installation::WorthQueryConditionalProvenance,
+) -> worth_query_execution::facade::primary_graph::WorthQueryConditionalSignalDecision {
+    worth_query_execution::facade::integration::classify_conditional_signal_for_certification(
+        provenance.bridge_evidence(),
+    )
+}
+
+pub use worth_query_execution::facade::primary_graph::WorthQueryConditionalSignalDecision as WorthQueryHostConditionalSignalDecisionForCertification;

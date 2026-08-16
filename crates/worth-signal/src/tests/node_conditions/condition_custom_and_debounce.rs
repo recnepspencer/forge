@@ -81,6 +81,8 @@ fn pending_dependency_precedes_custom_condition_resolution() {
     .unwrap();
     resolver.custom_calls = 0;
     mark_dirty(&mut graph, source, Aspect::new(0)).unwrap();
+    assert_eq!(graph.get_state(source).unwrap(), NodeState::Dirty);
+    assert!(graph.has_current_unsettled_upstream(consumer).unwrap());
 
     let mut consumer_calls = 0;
     evaluate_with_resolvers(
@@ -96,16 +98,14 @@ fn pending_dependency_precedes_custom_condition_resolution() {
     )
     .unwrap();
 
+    assert_eq!(graph.get_state(source).unwrap(), NodeState::MaybeStale);
+    assert_eq!(graph.get_state(consumer).unwrap(), NodeState::MaybeStale);
     assert_eq!(resolver.custom_calls, 0);
     assert_eq!(consumer_calls, 0);
-    assert_eq!(
-        graph
-            .pending_dependency_revalidation(consumer)
-            .unwrap()
-            .unwrap()
-            .unresolved_producers(),
-        &[source]
-    );
+    assert!(graph
+        .pending_dependency_revalidation(consumer)
+        .unwrap()
+        .is_none());
 }
 
 #[test]

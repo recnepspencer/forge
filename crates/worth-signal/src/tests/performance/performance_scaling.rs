@@ -10,7 +10,7 @@ use crate::tests::support::{evaluate, version_ab, GraphDependencyBatchExt, ASPEC
 use std::time::Instant;
 
 #[test]
-fn chain_1000_minimal_recomputation() {
+fn chain_1000_source_seed_does_not_walk_the_subscriber_closure() {
     let mut graph = SignalGraph::new();
     let mut chain: Vec<NodeId> = Vec::with_capacity(1000);
 
@@ -36,10 +36,44 @@ fn chain_1000_minimal_recomputation() {
     assert_eq!(state_first, NodeState::Dirty);
 
     let state_second = graph.get_state(chain[1]).unwrap();
-    assert_eq!(state_second, NodeState::MaybeStale);
+    assert_eq!(state_second, NodeState::Clean);
 
     let state_last = graph.get_state(chain[999]).unwrap();
-    assert_eq!(state_last, NodeState::MaybeStale);
+    assert_eq!(state_last, NodeState::Clean);
+}
+
+#[test]
+fn transaction_chain_1000_source_seed_stages_only_the_source() {
+    let (mut graph, chain) = with_perf_topology_asserts_disabled(|| build_chain_graph(1_000));
+    evaluate_chain_bulk(&mut graph, &chain);
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+
+    runtime
+        .transaction(&mut (), |tx| {
+            assert!(!tx.has_config_rollback_baseline_for_test());
+            tx.mark_changed(chain[0], ASPECT_B)?;
+            assert!(!tx.has_config_rollback_baseline_for_test());
+            Ok(())
+        })
+        .unwrap();
+
+    let metrics = runtime.observe().metrics();
+    assert_eq!(
+        metrics.transaction.transaction_mark_dirty_candidate_visits,
+        1
+    );
+    assert_eq!(
+        runtime.graph().get_state(chain[0]).unwrap(),
+        NodeState::Dirty
+    );
+    assert_eq!(
+        runtime.graph().get_state(chain[1]).unwrap(),
+        NodeState::Clean
+    );
+    assert_eq!(
+        runtime.graph().get_state(chain[999]).unwrap(),
+        NodeState::Clean
+    );
 }
 
 #[test]

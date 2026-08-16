@@ -60,8 +60,8 @@ where
                         })
                         .collect::<Result<Vec<_>, SignalError>>()?;
                     self.stage_task_candidates(&stage_targets)?;
-                } else if let [node] = targets {
-                    self.stage_evaluate_candidates(*node)?;
+                } else {
+                    self.stage_evaluate_candidate_batch(targets)?;
                 }
                 (targets, request_mode)
             }

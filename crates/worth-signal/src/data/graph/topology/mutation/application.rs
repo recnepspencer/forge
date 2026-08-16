@@ -78,6 +78,7 @@ impl SignalGraph {
     ) -> Result<(), SignalError> {
         let dependencies_id = self.topology.dependency_edges.insert_from_slice(edges);
         self.set_dependencies_id_direct(node, dependencies_id)?;
+        self.replace_reverse_subscriptions_for_consumer(node, edges)?;
         if !delta.added_edges.is_empty() || !delta.removed_edges.is_empty() {
             self.record_branch_mutation_dependencies(node, delta);
         }

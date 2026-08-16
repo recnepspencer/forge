@@ -68,12 +68,12 @@ pub use self::core::{
     SignalConditionalExecutionRequest, SignalConditionalSemanticComparisonMismatch,
     SignalConditionalSemanticContinuity, SignalConditionalSemanticMismatch,
     SignalConditionalVersionComparator, SignalDeltaThresholdContract, SignalError, SignalGraph,
-    SignalThresholdBoundary, SignalThresholdComparisonDomain, SignalThresholdValueFamily,
-    StagedHostComputedArtifact, StaleAfterCondition, TemporalClockAdvanceSummary,
-    TemporalCondition, TemporalDuration, TemporalEligibilityAuthority, TemporalExecutionSummary,
-    TemporalReadyPromotionSummary, TemporalWakeAdmissionSummary, TemporalWakeOwner,
-    TemporalWakeRetirementBatch, ThrottleCondition, ValidatedClockAdvance, VersionComparatorPolicy,
-    VersionComparatorResolver, CORE_STORAGE_PROFILE_ID, MAX_ASPECTS,
+    SignalGraphLifecycleProbe, SignalThresholdBoundary, SignalThresholdComparisonDomain,
+    SignalThresholdValueFamily, StagedHostComputedArtifact, StaleAfterCondition,
+    TemporalClockAdvanceSummary, TemporalCondition, TemporalDuration, TemporalEligibilityAuthority,
+    TemporalExecutionSummary, TemporalReadyPromotionSummary, TemporalWakeAdmissionSummary,
+    TemporalWakeOwner, TemporalWakeRetirementBatch, ThrottleCondition, ValidatedClockAdvance,
+    VersionComparatorPolicy, VersionComparatorResolver, CORE_STORAGE_PROFILE_ID, MAX_ASPECTS,
 };
 
 #[cfg(test)]

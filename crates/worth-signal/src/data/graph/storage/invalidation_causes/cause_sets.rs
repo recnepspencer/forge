@@ -21,16 +21,31 @@ pub(crate) struct CanonicalCauseSetStore {
     #[serde(default)]
     pub(super) published_output_commits: BTreeMap<u64, ProducedAspectDelta>,
     #[serde(skip)]
+    pub(super) occupied_set_count: usize,
+    #[serde(skip)]
+    pub(super) output_commit_reference_counts: BTreeMap<u64, usize>,
+    #[serde(skip)]
     pub(super) deserialized_quarantine: bool,
     #[cfg(test)]
     #[serde(skip)]
     pub(super) published_order_probe: Vec<(u64, crate::data::handle::NodeId)>,
+    #[cfg(test)]
+    #[serde(skip)]
+    pub(super) last_compaction_slot_visits: usize,
 }
 
 impl CanonicalCauseSetStore {
     #[cfg(test)]
     pub(crate) const fn output_commit_ordinal_for_test(&self) -> u64 {
         self.next_output_commit_ordinal
+    }
+
+    #[cfg(test)]
+    pub(crate) fn output_commit_reference_count_for_test(&self, ordinal: u64) -> usize {
+        self.output_commit_reference_counts
+            .get(&ordinal)
+            .copied()
+            .unwrap_or_default()
     }
 
     pub(crate) fn reserve(&mut self, additional_sets: usize) {
@@ -60,9 +75,13 @@ impl CanonicalCauseSetStore {
         #[cfg(test)]
         self.published_order_probe
             .push((delta.output_commit_ordinal.0, delta.producer));
-        self.published_output_commits
-            .insert(delta.output_commit_ordinal.0, delta);
-        self.prune_unreferenced_output_commits();
+        if self
+            .output_commit_reference_counts
+            .contains_key(&delta.output_commit_ordinal.0)
+        {
+            self.published_output_commits
+                .insert(delta.output_commit_ordinal.0, delta);
+        }
     }
 
     pub(crate) fn published_output_commit(
@@ -91,6 +110,8 @@ impl CanonicalCauseSetStore {
             self.slot_generations.push(self.generation);
             self.sets.len() - 1
         };
+        self.occupied_set_count += 1;
+        self.add_output_commit_references(index);
         PendingCauseSetId {
             index: NonZeroU32::new(index as u32 + 1),
             generation: self.slot_generations[index],
@@ -160,8 +181,10 @@ impl CanonicalCauseSetStore {
             return Ok(self.insert(causes));
         };
         self.get(current)?;
-        self.sets[index.get() as usize - 1] = causes;
-        self.prune_unreferenced_output_commits();
+        let index = index.get() as usize - 1;
+        self.add_output_commit_references_from(&causes);
+        let previous = std::mem::replace(&mut self.sets[index], causes);
+        self.remove_output_commit_references_from(&previous);
         Ok(current)
     }
 
@@ -172,17 +195,16 @@ impl CanonicalCauseSetStore {
         self.get(current)?;
         self.normalize_slot_metadata();
         let index = index.get() as usize - 1;
-        self.sets[index].clear();
+        let released = std::mem::take(&mut self.sets[index]);
+        self.remove_output_commit_references_from(&released);
+        self.occupied_set_count = self.occupied_set_count.saturating_sub(1);
         self.slot_generations[index] = self.slot_generations[index].wrapping_add(1);
-        if !self.free_indices.contains(&(index as u32)) {
-            self.free_indices.push(index as u32);
-        }
-        self.prune_unreferenced_output_commits();
+        self.free_indices.push(index as u32);
         Ok(())
     }
 
     pub(crate) fn has_occupied_sets(&self) -> bool {
-        self.sets.iter().any(|set| !set.is_empty())
+        self.occupied_set_count != 0
     }
 
     #[cfg(test)]

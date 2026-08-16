@@ -12,6 +12,8 @@ fn runtime_plan_excludes_resolved_irrelevant_aspect_change() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
+    let mut source_v10 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
+    evaluate(&mut graph, source, &mut source_v10).unwrap();
     graph
         .append_dependency(dependent, source, ASPECT_A)
         .unwrap();
@@ -31,10 +33,8 @@ fn runtime_plan_excludes_resolved_irrelevant_aspect_change() {
         .with_default_comparator(VersionComparatorPolicy::Tolerance { epsilon: 2 }),
     );
 
-    let mut source_v10 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
     let mut source_v12 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 12));
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 100));
-    evaluate(runtime.graph_mut(), source, &mut source_v10).unwrap();
     evaluate(runtime.graph_mut(), dependent, &mut dependent_compute).unwrap();
     mark_dirty(runtime.graph_mut(), source, ASPECT_B).unwrap();
     evaluate(runtime.graph_mut(), source, &mut source_v12).unwrap();

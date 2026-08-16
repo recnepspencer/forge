@@ -16,8 +16,12 @@
 > graph-progression substrate remains inherited. Gates A-C and the executable
 > release/disbursement slices remain historical prerequisites. Bank World
 > Phase 5 is closed by the real Docker-backed, separate-process transport court
-> (2026-08-13). Milestone 9.16 itself remains open for Runtime Phases 9-10,
-> Bank Phase 6, and Closure Phase 1 before the roadmap may advance to 9.17.
+> (2026-08-13). Runtime Phase 9's host-installed conditional-operation path and
+> Runtime Phase 10's public cutover are closed by their
+> [Phase 9](./milestone-9.16-runtime-phase-9-closure-ledger.md) and
+> [Phase 10](./milestone-9.16-runtime-phase-10-closure-ledger.md) ledgers.
+> Milestone 9.16 itself remains open for Bank Phase 6 and Closure Phase 1
+> before the roadmap may advance to 9.17.
 
 ## Goal
 
@@ -60,9 +64,11 @@ schema-bound typed intent
     -> provisional undo / redo experimentation (not accepted product closure)
 ```
 
-Milestone 9.17 follows with composite Runtime Bridge product branches over
-exact Relational and Signal bases plus Relational branch-local MVCC. Milestone
-9.18 accepts tree-based semantic undo/redo over that composite history.
+The Milestone 9.17 sequence follows: 9.17.1 establishes exact owner component
+bases and Relational branch-local MVCC, 9.17.2 establishes Runtime Bridge
+composite history/publication, and 9.17.3 carries the result through Query and
+the public facade. Milestone 9.18 accepts tree-based semantic undo/redo over
+that completed composite history.
 Advanced access and computation begin in Milestone 9.19 and must use the same
 public front door.
 
@@ -659,8 +665,10 @@ F14. Descriptive digests and installation authority seals are different
     Relational remains the sole owner of its current commit identity, parents,
     branch head, ancestry, and publication. Query owns typed `undo-of` /
     `redo-of` operation meaning but owns no parallel history chain or head.
-    Milestone 9.17 adds Runtime Bridge-owned composite product branches over
-    exact Relational and Signal bases while preserving each component owner;
+    Milestone 9.17.1 first adds exact owner component bases and Relational
+    branch-local MVCC, 9.17.2 adds Runtime Bridge-owned composite product
+    branches while preserving each component owner, and 9.17.3 completes Query
+    carriage and public-facade cutover;
     Milestone 9.18 owns exact composite source/target selection, tree-based
     reversal/reapplication, and fresh Query admission as new composite history.
     Runtime Bridge coordinates component correspondence and publication but
@@ -3129,8 +3137,9 @@ From this point forward:
 Milestone 9.16 still has one ordinary installed branch and does not implement
 multiple branch heads, branch-local version allocation, concurrent writers on
 different branches, branch creation, merge, rebase, or branch-local inversion.
-Composite product-branch creation, exact Relational/Signal basis selection, and
-Relational branch-local MVCC begin in Milestone 9.17; tree-based semantic
+Exact Relational/Signal component bases and Relational branch-local MVCC begin
+in Milestone 9.17.1, composite product-branch creation begins in 9.17.2, and
+the ordinary Query lane closes in 9.17.3; tree-based semantic
 reversal and reapplication begin in Milestone 9.18. Semantic merge, rebase,
 multi-parent publication, offline synchronization, and distributed recovery
 remain in the cross-runtime merging-and-branching roadmap. The prohibition on
@@ -3561,7 +3570,7 @@ forbids direct `worth_signal` and `worth_runtime_bridge` use. The
 primary-graph application runtime creates and retains its managed Runtime Bridge
 but exposes no corresponding host installation port. A consumer therefore
 cannot satisfy both the feature contract and the dependency law. Phase 9 closes
-that contradiction; it is not a Workflow Editor adapter phase.
+that contradiction.
 
 **Consumes**
 
@@ -3772,9 +3781,6 @@ that the bank world or existing consumers no longer need.
   the relevant feature documents;
 - migration of relevant Worth UI or other reference-consumer workarounds where
   the new surface owns the capability;
-- migration of Workflow Editor from its local Signal graph and temporal
-  scheduler onto the Phase 9 host contract, with no `worth_signal` or
-  `worth_runtime_bridge` dependency;
 - deletion of raw aspect strings, manual permission registries, local Query
   authority builders, application-local generic cursors, lane-specific query
   copies, undo stacks, break-glass booleans, post-projection redaction, and
@@ -4072,7 +4078,7 @@ callback, or result reinterpretation, the front door is not finished.
   Milestone 9.18, or semantic merge, rebase, and conflict resolution before
   their cross-runtime milestones;
 - multiple branch heads, branch-local version allocation, and concurrent
-  writers on different branches before the Milestone 9.17 handoff;
+  writers on different branches before the Milestone 9.17.1 handoff;
 - durable recovery handles, restart-stable cursors, or restart-stable
   undo/redo history before the Store handoff;
 - persistence or replay of Signal wake handles, a Query-owned durable timer
@@ -4152,14 +4158,16 @@ Milestone 9.16 closes only when:
 
 ## Handoff To Milestones 9.17 Through 9.22
 
-Milestone 9.17 replaces the conservative single-product-branch and global-
-coordinator limits with Runtime Bridge-owned composite product branches over
-exact owner-issued Relational and Signal bases plus Relational branch-local
-MVCC. Query continues to carry the branch-affine authority established here;
-it does not become the owner of component truth, composite correspondence,
-version allocation, or conflict mechanics. Product branches may share one
-immutable Signal basis while their Relational branches diverge, and unrelated
-branches must progress concurrently.
+The Milestone 9.17 sequence replaces the conservative single-product-branch
+and global-coordinator limits. Milestone 9.17.1 establishes exact owner-issued
+Relational and Signal component bases plus Relational branch-local MVCC;
+9.17.2 establishes Runtime Bridge-owned composite product branches and
+coordinated publication; 9.17.3 carries the completed authority through Query
+and cuts over the public facade. Query continues to carry the branch-affine
+authority established here; it does not become the owner of component truth,
+composite correspondence, version allocation, or conflict mechanics. Product
+branches may share one immutable Signal basis while their Relational branches
+diverge, and unrelated branches must progress concurrently.
 
 Milestone 9.18 then accepts tree-based semantic undo and redo over exact source
 composite commits and target product-branch heads. Corrections coordinate

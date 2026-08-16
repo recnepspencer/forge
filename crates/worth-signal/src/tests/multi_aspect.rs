@@ -18,8 +18,8 @@ fn kv60_geometry_change_skips_topo_dependents() {
     let state = graph.get_state(topo_sub).unwrap();
     assert_eq!(
         state,
-        NodeState::MaybeStale,
-        "Topo-only subscriber should be MaybeStale (not Dirty) on geometry change"
+        NodeState::Clean,
+        "a source seed must not copy geometry authority into a topology subscriber"
     );
 
     let mut same_version_compute = |_id, _g: &SignalGraph| Ok(version_ab(1, 2));
@@ -51,13 +51,11 @@ fn kv60_topology_change_triggers_topo_dependents() {
     evaluate(&mut graph, topo_sub, &mut compute).unwrap();
 
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
+    assert_eq!(graph.get_state(topo_sub).unwrap(), NodeState::Clean);
 
-    let state = graph.get_state(topo_sub).unwrap();
-    assert_eq!(
-        state,
-        NodeState::MaybeStale,
-        "Topo subscriber must await the source's committed topology delta"
-    );
+    let mut changed_topology = |_id, _g: &SignalGraph| Ok(version_ab(2, 1));
+    evaluate(&mut graph, source, &mut changed_topology).unwrap();
+    assert_eq!(graph.get_state(topo_sub).unwrap(), NodeState::Dirty);
 }
 
 #[test]

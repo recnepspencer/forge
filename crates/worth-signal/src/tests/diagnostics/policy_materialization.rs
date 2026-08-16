@@ -193,7 +193,7 @@ fn repeated_partition_heavy_invalidation_retains_bounded_diagnostics() {
     assert_eq!(
         flow.invalidation.invalidated_direct_subscribers
             + flow.invalidation.maybe_stale_direct_subscribers,
-        2
+        0
     );
     assert_eq!(
         flow.invalidation.frontier_seed_count as u64,

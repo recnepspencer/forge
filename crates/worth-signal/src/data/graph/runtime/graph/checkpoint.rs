@@ -93,6 +93,7 @@ impl SignalGraph {
         cause_sets.readmit_graph_instance(instance_id);
         let cause_readmission_required = cause_sets.has_occupied_sets();
         let mut graph = Self {
+            lifecycle_token: Default::default(),
             instance_id,
             arena: NodeArena {
                 nodes: authority
@@ -157,6 +158,8 @@ impl SignalGraph {
                 dependency_snapshot_shapes: DependencySnapshotShapeStore::default(),
                 dependency_edges: authority.topology.dependency_edges.clone(),
                 subscriber_edges: authority.topology.subscriber_edges.clone(),
+                reverse_subscriptions: Default::default(),
+                pending_revalidation_waiters: Default::default(),
             },
             cause_sets,
             cause_readmission_required,
@@ -173,6 +176,9 @@ impl SignalGraph {
             aspect_lowering_owner: None,
             conditional_dependency_versions: BTreeMap::new(),
             authorization_policy_identities: BTreeSet::new(),
+            invalidation_readiness_epoch: 0,
+            invalidation_performed_counters: Default::default(),
+            pending_repeated_invalidation_admissions: BTreeMap::new(),
         };
         graph.rebuild_checkpoint_topology()?;
         Ok(graph)
@@ -188,6 +194,10 @@ impl SignalGraph {
         )?;
         graph.apply_classified_snapshot_batch_commit(batch.classify())?;
         graph.readmit_checkpoint_causes()?;
+        graph
+            .observation
+            .reconstruction_counters
+            .record_checkpoint_reconstruction();
         Ok(graph)
     }
 
@@ -235,6 +245,8 @@ impl SignalGraph {
         }
         self.topology.subscriber_edges = Default::default();
         self.rebuild_subscriber_index_from_dependencies()?;
+        self.rebuild_reverse_subscription_index_from_dependencies()?;
+        self.rebuild_pending_revalidation_waiters()?;
         for node in repaired_nodes {
             self.transition_node_structural_revalidation(node)?;
         }

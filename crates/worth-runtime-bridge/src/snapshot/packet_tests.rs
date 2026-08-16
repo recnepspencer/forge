@@ -120,6 +120,23 @@ fn packet_request_keeps_non_field_slice_mask_whole_aspect() {
 }
 
 #[test]
+fn validation_preserves_authoritative_absence_as_a_typed_posture() {
+    let read = SnapshotReadRequest::for_coarse(
+        "user-missing",
+        SnapshotReadContract::scalar(aspect_key("profile"), ScalarAspectType::String),
+    );
+    let packet = SnapshotReadPacket::new(vec![read]);
+    let result = SnapshotReadPacketResult::new(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        vec![SnapshotReadRecord::absent_for_request(&packet.reads()[0])],
+    );
+
+    let validated = validate_snapshot_read_result_contract(&packet, result).unwrap();
+    assert!(validated.records()[0].is_absent());
+    assert!(validated.records()[0].validated_value_posture().is_none());
+}
+
+#[test]
 fn validation_rejects_unknown_struct_field_projection_mask() {
     let read = native_subscription_read(
         "user-2",

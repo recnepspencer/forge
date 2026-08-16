@@ -57,7 +57,7 @@ impl WorthQueryConditionalTraceMeaning {
 pub struct WorthQueryConditionalObservationMeaning {
     pub(super) dependency_ordinal: usize,
     pub(super) previous: Option<worth_foundational::facade::ContractValidatedAspectArtifact>,
-    pub(super) current: worth_foundational::facade::ContractValidatedAspectArtifact,
+    pub(super) current: Option<worth_foundational::facade::ContractValidatedAspectArtifact>,
 }
 
 impl WorthQueryConditionalObservationMeaning {
@@ -71,8 +71,10 @@ impl WorthQueryConditionalObservationMeaning {
         self.previous.as_ref()
     }
 
-    pub const fn current(&self) -> &worth_foundational::facade::ContractValidatedAspectArtifact {
-        &self.current
+    pub const fn current(
+        &self,
+    ) -> Option<&worth_foundational::facade::ContractValidatedAspectArtifact> {
+        self.current.as_ref()
     }
 }
 
@@ -90,7 +92,7 @@ pub(crate) fn conditional_trace_meaning(
             .map(|observation| WorthQueryConditionalObservationMeaning {
                 dependency_ordinal: observation.dependency_ordinal(),
                 previous: observation.previous().cloned(),
-                current: observation.current().clone(),
+                current: observation.current().cloned(),
             })
             .collect(),
     }
@@ -190,7 +192,11 @@ fn observation_semantic_material(observation: &WorthQueryConditionalObservationM
         ),
         (
             "observation.current",
-            validated_artifact_semantic_material(&observation.current),
+            observation
+                .current
+                .as_ref()
+                .map(validated_artifact_semantic_material)
+                .unwrap_or_else(|| "explicitly-absent".into()),
         ),
     ])
 }
