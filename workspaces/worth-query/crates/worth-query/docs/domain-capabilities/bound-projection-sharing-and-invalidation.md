@@ -346,9 +346,12 @@ Also inspect:
   explicit unsupported narrowing posture; Query does not silently broaden it.
 - The public dependency closure is inspectable evidence. Query compiles and
   applies it; consumers cannot author closure edges or impact decisions.
-- The current delta names declared native keys and collection continuation
-  posture. Bound collection/window identity and query-shaped patch payloads
-  remain separate later capabilities.
+- A consumer invalidation delta names declared native keys and collection
+  continuation posture; it does not by itself grant collection/window
+  maintenance or query-shaped publication authority. Those capabilities are
+  available through the granular live invalidation entry points, which
+  revalidate the current owner, source basis, retained collection state, and
+  consumer policy before Query publishes a patch.
 - Operational identities remain Query-owned. Reporting and Foundational
   projections are observable but have no admission power.
 
@@ -359,3 +362,4 @@ Also inspect:
 - [Projection Consumption](../capabilities/projection-consumption.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
 - [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
+- [Granular Live Invalidation](../runtime-surfaces/granular-live-invalidation.md)

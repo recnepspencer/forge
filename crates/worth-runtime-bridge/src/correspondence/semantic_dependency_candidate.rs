@@ -33,6 +33,8 @@ pub struct BridgeSemanticDependencyCandidateParts {
     pub graph_adapter_identity: Arc<str>,
     pub source_record_identity:
         Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
+    pub observation_record_identity:
+        Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
     pub contract: AspectContract,
     pub projection_mask: AspectMask<ProjectionMask>,
     pub binding: AspectBinding,
@@ -54,6 +56,8 @@ pub struct BridgeSemanticDependencyCandidate {
     pub(crate) graph_participation_identity: Arc<str>,
     pub(crate) graph_adapter_identity: Arc<str>,
     pub(crate) source_record_identity:
+        Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
+    pub(crate) observation_record_identity:
         Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
     pub(crate) contract: AspectContract,
     pub(crate) projection_mask: AspectMask<ProjectionMask>,
@@ -89,8 +93,12 @@ impl BridgeSemanticDependencyCandidate {
             || parts.relevant_changes.is_empty()
             || matches!(parts.locality, BridgeSemanticLocality::SourceRecord)
                 != parts.source_record_identity.is_some()
+            || matches!(parts.locality, BridgeSemanticLocality::SourceRecord)
+                && parts.observation_record_identity.is_some()
+                && parts.observation_record_identity != parts.source_record_identity
             || matches!(parts.locality, BridgeSemanticLocality::ManagedSourceRecord)
-                && parts.source_record_identity.is_some()
+                && (parts.source_record_identity.is_some()
+                    || parts.observation_record_identity.is_some())
         {
             return Err(BridgeCorrespondenceDenial::without_admission(
                 BridgeCorrespondenceDenialKind::InvalidPortableDependency,
@@ -109,6 +117,7 @@ impl BridgeSemanticDependencyCandidate {
             graph_participation_identity: parts.graph_participation_identity,
             graph_adapter_identity: parts.graph_adapter_identity,
             source_record_identity: parts.source_record_identity,
+            observation_record_identity: parts.observation_record_identity,
             contract: parts.contract,
             projection_mask: parts.projection_mask,
             binding: parts.binding,
@@ -157,8 +166,20 @@ impl BridgeSemanticDependencyCandidate {
         self.source_stage_identity.as_deref()
     }
 
+    pub const fn source_record_identity(
+        &self,
+    ) -> Option<crate::relational_identity::RelationalBridgeRecordIdentityParts> {
+        self.source_record_identity
+    }
+
     pub const fn dependency_ordinal(&self) -> usize {
         self.dependency_ordinal
+    }
+
+    pub const fn observation_record_identity(
+        &self,
+    ) -> Option<crate::relational_identity::RelationalBridgeRecordIdentityParts> {
+        self.observation_record_identity
     }
 
     pub fn retains_same_source_authority_as(&self, other: &Self) -> bool {
@@ -216,6 +237,7 @@ impl BridgeSemanticDependencyCandidate {
             self.graph_participation_identity.to_string(),
             self.graph_adapter_identity.to_string(),
             source_record_identity_token(self.source_record_identity),
+            source_record_identity_token(self.observation_record_identity),
             self.contract.key().as_str().to_string(),
             self.contract.identity().0.to_string(),
             self.contract.revision().0.to_string(),
@@ -237,6 +259,7 @@ impl BridgeSemanticDependencyCandidate {
             self.graph_participation_identity.to_string(),
             self.graph_adapter_identity.to_string(),
             source_record_identity_token(self.source_record_identity),
+            source_record_identity_token(self.observation_record_identity),
         ]
         .into_iter()
         .map(|field| format!("{}:{field}", field.len()))
@@ -258,6 +281,7 @@ impl PartialEq for BridgeSemanticDependencyCandidate {
             && self.graph_participation_identity == other.graph_participation_identity
             && self.graph_adapter_identity == other.graph_adapter_identity
             && self.source_record_identity == other.source_record_identity
+            && self.observation_record_identity == other.observation_record_identity
             && self.contract == other.contract
             && self.projection_mask == other.projection_mask
             && self.binding == other.binding

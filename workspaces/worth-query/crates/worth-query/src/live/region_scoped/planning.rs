@@ -9,8 +9,7 @@ use crate::live::{
     StreamLoweringCostPosture, StreamMemberWidthBudget, StreamWindowWidthBudget,
 };
 
-#[cfg(test)]
-pub(crate) fn admit_region_scoped_live_plan(
+pub fn admit_region_scoped_live_plan(
     live: &LiveQueryPlan,
     locality: LocalityPredicateContract,
 ) -> Result<RegionScopedLivePlan, RegionScopedLiveError> {
@@ -141,7 +140,6 @@ pub(crate) fn admit_region_scoped_live_plan(
     })
 }
 
-#[cfg(test)]
 fn derive_locality_semantic_basis(
     relevance_contract: &QueryRelevanceContract,
 ) -> LocalitySemanticBasis {
@@ -156,7 +154,6 @@ fn derive_locality_semantic_basis(
     }
 }
 
-#[cfg(test)]
 fn derive_locality_scope_admission(
     relevance_contract: &QueryRelevanceContract,
 ) -> LocalityScopeAdmission {
@@ -171,7 +168,6 @@ fn derive_locality_scope_admission(
     }
 }
 
-#[cfg(test)]
 fn derive_locality_admission_class(
     semantic_basis: &LocalitySemanticBasis,
     scope_admission: &LocalityScopeAdmission,
@@ -202,7 +198,6 @@ fn derive_locality_admission_class(
     }
 }
 
-#[cfg(test)]
 fn derive_stream_lowering_admission_class(
     semantic_basis: &LocalitySemanticBasis,
     admission_class: &LocalityAdmissionClass,

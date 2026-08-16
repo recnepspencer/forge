@@ -82,8 +82,8 @@ test("createWorkerRuntimeBridge exposes the remaining diagnostics read surface f
       compatibilitySignals.diagnostics().latestRollback(),
     );
     assert.deepEqual(
-      await bridge.latestFrontierExecution(),
-      compatibilitySignals.diagnostics().latestFrontierExecution(),
+      await bridge.latestInvalidationPlanningEstimate(),
+      compatibilitySignals.diagnostics().latestInvalidationPlanningEstimate(),
     );
     assert.deepEqual(
       await bridge.latestInvalidationTraceRecords(),

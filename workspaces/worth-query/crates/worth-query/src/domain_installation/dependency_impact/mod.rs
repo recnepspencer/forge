@@ -13,18 +13,22 @@ pub use compilation::{
 pub use compiled::{
     WorthQueryCompiledSemanticAspectDependency, WorthQueryCompiledSemanticAspectDependencyClosure,
     WorthQueryConditionalObservationEvidence, WorthQueryDependencyClosureSemanticComparison,
-    WorthQuerySemanticAspectDependencyCompilationCounters, WorthQuerySemanticAspectDependencyView,
-    WorthQuerySemanticDependencyClosureEvidence, WorthQuerySemanticDependencyEdge,
-    WorthQuerySemanticDependencyRole,
+    WorthQueryInstalledInvalidationManifest, WorthQuerySemanticAspectDependencyCompilationCounters,
+    WorthQuerySemanticAspectDependencyView, WorthQuerySemanticDependencyClosureEvidence,
+    WorthQuerySemanticDependencyEdge, WorthQuerySemanticDependencyRole,
 };
-pub(crate) use impact::preflight_owner_delivered_impact;
 pub use impact::{
-    classify_owner_delivered_impact, WorthQueryImpactAdmissionDenial,
+    admit_current_invalidation_impact, admit_primary_runtime_granular_batch,
+    admit_primary_runtime_granular_invalidations, classify_owner_delivered_impact,
+    select_invalidation_candidates, WorthQueryAdmittedInvalidationBatch,
+    WorthQueryAdmittedInvalidationImpact, WorthQueryAdmittedInvalidationObservation,
+    WorthQueryGranularAdmissionCounters, WorthQueryImpactAdmissionDenial,
     WorthQueryImpactAdmissionDenialKind, WorthQueryImpactClass, WorthQueryImpactCounters,
-    WorthQueryImpactDecision,
+    WorthQueryImpactDecision, WorthQueryInvalidationCandidateSet,
 };
+pub(crate) use impact::{admit_granular_invalidation_deliveries, preflight_owner_delivered_impact};
 pub(crate) use impact::{
-    WorthQueryInstalledLiveImpactClassifier, WorthQueryInstalledLiveRoutingSelector,
-    WorthQueryPreclassifiedInstalledLiveImpact,
+    WorthQueryAdmittedLocality, WorthQueryInstalledLiveImpactClassifier,
+    WorthQueryInstalledLiveRoutingSelector, WorthQueryPreclassifiedInstalledLiveImpact,
 };
 pub use reuse::{WorthQueryDependencyClosureReuseDenial, WorthQueryDependencyClosureReuseWitness};

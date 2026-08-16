@@ -110,6 +110,25 @@ impl AdmittedSemanticDependencyRegistry {
         self.signal_graph_instance_id
     }
 
+    pub(crate) fn rebind_to_graph(
+        &self,
+        graph: &worth_signal::facade::SignalGraph,
+    ) -> Option<Self> {
+        let registrations = self
+            .authoritative
+            .iter()
+            .map(|registration| registration.rebind_to_graph(graph))
+            .collect::<Option<Vec<_>>>()?;
+        Self::freeze(registrations).ok()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn destroy_derived_indexes(&mut self) {
+        self.index.clear();
+        self.by_authority.clear();
+        self.signal_graph_instance_id = None;
+    }
+
     pub(crate) fn admit_extension(
         &self,
         registrations: &[BridgeSemanticCorrespondenceRegistration],

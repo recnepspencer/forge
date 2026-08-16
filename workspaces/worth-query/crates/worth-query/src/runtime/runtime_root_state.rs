@@ -31,6 +31,9 @@ pub struct WorthQueryRuntime {
         worth_query_execution::facade::runtime::WorthQueryExecutionInstallationAuthority,
     pub(super) primary_graph_publication:
         Option<worth_query_execution::facade::primary_graph::WorthQueryPrimaryGraphPublication>,
+    pub(super) primary_runtime_invalidation_installation: Option<
+        worth_query_execution::facade::primary_graph::WorthQueryGranularInvalidationInstallation,
+    >,
     pub(super) domain_installation_registry:
         crate::domain_installation::WorthQueryDomainInstallationRegistry,
     pub(super) domain_operation_executor_registry:
@@ -57,6 +60,8 @@ pub struct WorthQueryRuntime {
     pub(super) active_subscriptions: ActiveSubscriptionRuntime,
     pub(super) live_subscriptions:
         BTreeMap<WorthQueryLiveArtifactTarget, WorthQueryRuntimeLiveSubscriptionState>,
+    pub(super) granular_projection_states:
+        BTreeMap<String, crate::live::WorthQueryProjectionMaintenanceState>,
     pub(super) materialized_read_views:
         BTreeMap<WorthQueryLiveArtifactTarget, DeclarativeLiveQueryRequest>,
     pub(super) live_subscription_index:

@@ -20,7 +20,10 @@ use crate::program::WorthQueryDerivedView;
 use crate::session_label::WorthQuerySessionLabel;
 
 mod conditional_execution;
-
+mod invalidation_attachment;
+mod invalidation_maintenance;
+mod primary_source_rebind;
+pub use primary_source_rebind::WorthQueryPrimaryGraphSourceRebindReceipt;
 pub struct WorthQueryWorkspace {
     pub(super) name: String,
     pub(super) runtime: WorthQueryRuntime,

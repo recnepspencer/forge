@@ -56,7 +56,7 @@ identifiers, or equivalent-looking reports.
 | Foundational | Exact canonical values, keys, paths, portable bases, provenance, receipts, and shared boundary vocabulary | Proof progression, application permission, or relational truth |
 | Relational | Entities, relations, aspects, versions, snapshots, transactions, graph observations, and commit mechanics | Product authorization or application operation meaning |
 | Runtime Bridge | Installed correspondence and lawful lowering between Query and lower runtimes | Relational facts, Signal decisions, or application policy |
-| Signal | Policy evaluation, decision evidence, local evaluation slots, and condition outcomes | Application capability admission or relational mutation |
+| Signal | Policy evaluation, producer-local scoped invalidation, readiness and scheduling, performed execution receipts, local evaluation slots, and condition outcomes | Application capability admission, Query maintenance authority, or relational mutation |
 | Query | Installed application meaning, authority composition, admission, typed progression, execution products, idempotency/outbox meaning, runtime-local recovery, and publication | Authentication truth, graph truth, policy truth, external completion, or durable reconstruction |
 | Store | Durable persistence, journals, restart checkpoints, and reconstructive state | Ordinary Query admission, live recovery authority, or external completion |
 | External effect owner | Whether an escaping consequence was accepted or completed | Query commit, application authorization, or recovery authority |
@@ -790,6 +790,7 @@ Async result state describes pending, completed, stopped, or denied managed
 work. It does not prove that an unrelated command is safe to execute.
 
 See [Live Views](./runtime-surfaces/live-views.md),
+[Granular Live Invalidation](./runtime-surfaces/granular-live-invalidation.md),
 [Region-Scoped Live Invalidation And Stream Contracts](./runtime-surfaces/region-scoped-live-invalidation-and-stream-contracts.md),
 [Subscription Selection And Diagnostics](./capabilities/subscription-selection-and-diagnostics.md),
 and [Async Resources And Result State](./capabilities/async-resources-and-result-state.md).
@@ -961,6 +962,21 @@ published query result
 
 A notification never bypasses revalidation or result-shape semantics.
 
+### Granular live invalidation
+
+The supported production path is committed Relational truth, installed Runtime
+Bridge correspondence, optional performed Signal work, Query impact admission,
+Query-owned maintenance, and current consumer publication. Direct truth and
+performed Signal evidence are deliberately separate. Bind a live owner through
+`bind_primary_runtime_granular_invalidations` (or the shared equivalent), then
+consume the runtime-owned observation or batch through the matching `maintain_*`
+entry point. Never reconstruct this authority from raw CDC, copied aspect/scope
+fields, or a prior installation identity.
+
+See [Granular Live Invalidation](./runtime-surfaces/granular-live-invalidation.md)
+for the entry points, examples, stale/rebind behavior, owner counters, and the
+future semantic-hierarchy and physical-placement boundary.
+
 ## Lower-Runtime Routing
 
 Use this table when deciding where a change belongs.
@@ -970,6 +986,9 @@ Use this table when deciding where a change belongs.
 | What entities, relations, fields, or versions exist? | Relational |
 | What transaction committed and at which version? | Relational |
 | How does installed Query meaning correspond to lower-runtime structures? | Runtime Bridge |
+| Which installed semantic dependencies match one committed change? | Runtime Bridge candidate selection followed by Query admission |
+| Which scoped recomputation did the lower runtime actually perform? | Signal performed execution receipt |
+| Which projection, membership, ordering, group, or window consequence is required? | Query impact admission and maintenance |
 | What did an installed policy condition evaluate to? | Signal |
 | What generic proof progression or readmission law applies? | `worth-proof` |
 | What exact canonical value, provenance, receipt, or portable basis represents this meaning? | Foundational |
@@ -1011,6 +1030,15 @@ Do not:
 - import replay into ordinary code;
 - read Relational directly to bypass graph obligations or access planning;
 - accept a Signal decision as effect authority;
+- treat direct Bridge truth as proof that Signal executed, or require a Signal
+  receipt for a direct Query consequence that performs no Signal work;
+- copy a producer-local aspect or semantic scope through transitive Signal
+  descendants instead of deriving each immediate dependency cause;
+- treat a reverse-index lookup key such as `ProducerAspectKey`, a semantic
+  scope path, or a shard, region, or worker identifier as authority;
+- reuse a granular invalidation binding, delivery batch, source-read basis, or
+  consumer lease after runtime restore, reinstallation, or rebind;
+- construct Query patches directly from raw CDC or copied Bridge/Signal fields;
 - dispatch an external effect without its co-committed local outbox and
   idempotency fact;
 - treat acknowledgement, silence, timeout, disconnect, or lost response as
@@ -1048,6 +1076,7 @@ Start with the guide that owns the concept you are changing:
 - [Application Aftermath, External Effects, And Recovery](./execution/application-aftermath-and-recovery.md)
 - [Lower-Runtime Capability Routing](./domain-capabilities/lower-runtime-capability-routing.md)
 - [Projection Consumption](./capabilities/projection-consumption.md)
+- [Granular Live Invalidation](./runtime-surfaces/granular-live-invalidation.md)
 - [Inspection](./capabilities/inspection.md)
 - [Hard Prohibitions](./foundations/hard-prohibitions.md)
 - [Operational Identity Authority](./foundations/operational-identity-authority.md)

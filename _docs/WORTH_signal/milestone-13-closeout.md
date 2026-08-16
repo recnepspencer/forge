@@ -8,7 +8,7 @@
 >
 > **Acceptance map:** [s9_16_acceptance_map.md](./s9_16_acceptance_map.md)
 >
-> **Successor:** [milestone-14-plan.md](./milestone-14-plan.md)
+> **Successor:** [milestone-13.1-plan.md](./milestone-13.1-plan.md)
 
 ## Outcome
 
@@ -28,9 +28,10 @@ planning estimates remain separate from performed execution receipts and
 realized counters.
 
 This closes the locality portion of `S9.16.3` and the invalidation portion of
-`S9.16.6`. Milestone 14 inherits a sealed canonical work stream and measured
-resource envelopes; it does not inherit authority to replace semantic work
-identity with an implementation-specific queue or shard.
+`S9.16.6`. Milestone 13.1 carries the sealed canonical work stream and measured
+resource envelopes through Runtime Bridge and Query before Milestone 14 changes
+execution placement. Neither successor inherits authority to replace semantic
+work identity with an implementation-specific queue or shard.
 
 ## Phase Closure Ledger
 
@@ -92,9 +93,10 @@ after each has independently matched its exact graph-bound canonical work. Its
 cross-run comparison normalizes runtime-local graph identity while preserving
 semantic target, revision, readiness, stage, and causal-origin content.
 
-Milestone 14 may schedule or parallelize the sealed current ready-work stream.
-It must preserve canonical work identity, deterministic publication, direct-
-hop admission, and the performed counter contract.
+Milestone 13.1 may carry the sealed current ready-work stream across installed
+Runtime Bridge and Query boundaries. Milestone 14 may then schedule or
+parallelize it. Both must preserve canonical work identity, deterministic
+publication, direct-hop admission, and the performed counter contract.
 
 ## Final Verification
 

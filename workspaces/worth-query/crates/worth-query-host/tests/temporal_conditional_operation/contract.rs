@@ -18,8 +18,11 @@ use worth_query_host::facade::{domain, worth_query_conditional_node};
 
 use super::schema::{ExecuteTemporal, TemporalHostSchema, TemporalInput};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TemporalDomain;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TemporalDomainOperation;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TemporalDomainFamily;
 
 worth_query_conditional_node!(
@@ -260,20 +263,21 @@ fn resource_contract() -> domain::WorthQueryExecutionResourceContract {
 
 fn support_contract() -> domain::WorthQueryOperationSupportRequirements {
     let no = domain::WorthQuerySupportRequirement::NotRequired;
+    let required = domain::WorthQuerySupportRequirement::Required;
     domain::WorthQueryOperationSupportRequirements {
-        live: no,
+        live: required,
         continuation: no,
         async_result_state: no,
         recovery: no,
         inspection: no,
         projection_consumption: domain::WorthQuerySupportRequirement::Required,
-        dependency_impact: no,
-        sharing: no,
-        invalidation: no,
+        dependency_impact: required,
+        sharing: required,
+        invalidation: required,
         collection_delivery: no,
-        conditional_evaluation: no,
-        conditional_comparator: no,
-        conditional_trigger: no,
-        conditional_temporal_or_on_demand: no,
+        conditional_evaluation: required,
+        conditional_comparator: required,
+        conditional_trigger: required,
+        conditional_temporal_or_on_demand: required,
     }
 }

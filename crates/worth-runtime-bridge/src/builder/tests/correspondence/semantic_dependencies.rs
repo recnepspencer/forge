@@ -2,10 +2,10 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, OnceLock};
 
-use worth_foundational::facade::{AspectMask, ProjectionMask};
+use worth_foundational::facade::{AspectMask, CanonicalFieldPath, ProjectionMask};
 use worth_signal::facade::{SignalConditionalArtifactReuse, SignalConditionalVersionComparator};
 
-use super::semantic_fixture::{contract, field_path};
+use super::semantic_fixture::{contract, contract_with_extra_field, field_path};
 use super::{
     AspectBinding, AuthoritativeAspectChangeKind, BridgeSemanticDependencyCandidate,
     BridgeSemanticLocality, MAX_ASPECTS,
@@ -30,6 +30,28 @@ pub(super) fn freshly_installed_dependency(label: &str) -> BridgeSemanticDepende
     build_dependency(label, NEXT_INSTALLATION.fetch_add(1, Ordering::Relaxed))
 }
 
+pub(super) fn managed_record_dependency(label: &str) -> BridgeSemanticDependencyCandidate {
+    let mut parts = dependency_parts(label, 1);
+    parts.source_record_identity = None;
+    parts.observation_record_identity = None;
+    parts.locality = BridgeSemanticLocality::ManagedSourceRecord;
+    BridgeSemanticDependencyCandidate::admit(parts)
+        .expect("managed-record semantic dependency fixture is valid")
+}
+
+pub(super) fn dependency_with_projection_field(
+    label: &str,
+    field: &str,
+) -> BridgeSemanticDependencyCandidate {
+    let mut parts = dependency_parts(label, 1);
+    parts.contract = contract_with_extra_field();
+    parts.projection_mask = AspectMask::<ProjectionMask>::new([CanonicalFieldPath::single(
+        worth_foundational::facade::FieldKey::new(field).unwrap(),
+    )]);
+    BridgeSemanticDependencyCandidate::admit(parts)
+        .expect("field-specific semantic dependency fixture is valid")
+}
+
 fn installed_dependencies() -> &'static BTreeMap<String, BridgeSemanticDependencyCandidate> {
     DEPENDENCIES.get_or_init(|| {
         let mut labels = [
@@ -52,6 +74,11 @@ fn installed_dependencies() -> &'static BTreeMap<String, BridgeSemanticDependenc
 }
 
 fn build_dependency(label: &str, installation: u64) -> BridgeSemanticDependencyCandidate {
+    BridgeSemanticDependencyCandidate::admit(dependency_parts(label, installation))
+        .expect("neutral semantic dependency fixture is valid")
+}
+
+fn dependency_parts(label: &str, installation: u64) -> BridgeSemanticDependencyCandidateParts {
     let locality = if label == "query:partition" {
         BridgeSemanticLocality::SourcePartition(
             worth_foundational::facade::TruthPartitionRole::new("model-main").unwrap(),
@@ -59,7 +86,7 @@ fn build_dependency(label: &str, installation: u64) -> BridgeSemanticDependencyC
     } else {
         BridgeSemanticLocality::SourceRecord
     };
-    BridgeSemanticDependencyCandidate::admit(BridgeSemanticDependencyCandidateParts {
+    BridgeSemanticDependencyCandidateParts {
         source_installation_identity: Arc::from(format!("bridge-test-installation:{installation}")),
         source_basis: Arc::from("bridge-correspondence:1"),
         source_runtime_authority: installation,
@@ -78,6 +105,9 @@ fn build_dependency(label: &str, installation: u64) -> BridgeSemanticDependencyC
         source_record_identity: (label != "query:partition").then(|| {
             crate::relational_identity::RelationalBridgeRecordIdentityParts::entity(0, 1, 1)
         }),
+        observation_record_identity: (label != "query:partition").then(|| {
+            crate::relational_identity::RelationalBridgeRecordIdentityParts::entity(0, 1, 1)
+        }),
         contract: contract(),
         projection_mask: AspectMask::<ProjectionMask>::new([field_path()]),
         binding: AspectBinding::EntityField {
@@ -85,8 +115,21 @@ fn build_dependency(label: &str, installation: u64) -> BridgeSemanticDependencyC
         },
         locality,
         relevant_changes: vec![AuthoritativeAspectChangeKind::FieldSet],
-    })
-    .expect("neutral semantic dependency fixture is valid")
+    }
+}
+
+#[test]
+fn record_local_observation_anchor_cannot_drift_from_invalidation_identity() {
+    let mut parts = dependency_parts("query:one", 1);
+    parts.observation_record_identity =
+        Some(crate::relational_identity::RelationalBridgeRecordIdentityParts::entity(0, 2, 1));
+
+    let denial = BridgeSemanticDependencyCandidate::admit(parts).unwrap_err();
+
+    assert_eq!(
+        denial.kind(),
+        crate::correspondence::BridgeCorrespondenceDenialKind::InvalidPortableDependency
+    );
 }
 
 pub(super) fn conditional_contract(label: &str) -> BridgeConditionalContract {

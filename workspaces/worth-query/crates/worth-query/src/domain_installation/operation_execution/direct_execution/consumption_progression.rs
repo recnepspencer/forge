@@ -275,7 +275,12 @@ impl<D, O, F, L: BasisOperationLane> WorthQuerySettledDomainProjection<D, O, F, 
     }
 
     pub(crate) fn collection_execution_rows(&self) -> &[crate::memory_workspace::WorthQueryEntity] {
-        self.consumed.published.executed.output.result().rows()
+        self.consumed
+            .published
+            .executed
+            .output
+            .result()
+            .maintenance_source_rows()
     }
 
     pub(crate) fn collection_declarative_request(

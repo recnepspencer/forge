@@ -16,7 +16,7 @@ test("host capability stale invalidations are ignored after runtime disposal", a
       latestFlow() { return null; },
       latestFailure() { return null; },
       latestRollback() { return null; },
-      latestFrontierExecution() { return null; },
+      latestInvalidationPlanningEstimate() { return null; },
       latestInvalidationTraceRecords() { return []; },
       recentHistory() { return []; },
       historyNow() { return { history: {}, callbackNodes: [] }; },

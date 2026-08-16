@@ -208,7 +208,7 @@ test("wrapSignals history wrapper accepts numeric branch ids and normalizes prev
           latestRollback() {
             return null;
           },
-          latestFrontierExecution() {
+          latestInvalidationPlanningEstimate() {
             return null;
           },
           latestInvalidationTraceRecords() {

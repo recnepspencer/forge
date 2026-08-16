@@ -224,10 +224,17 @@ fn build_bridge(
     } else {
         TruthDeltaSurfaceKind::EntityField
     };
+    let entity_selector = match locality {
+        FixtureLocality::Record => MappingSelector::exact(
+            worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(0, 0, 1)
+                .terminal_projection_for_reporting(),
+        ),
+        FixtureLocality::Partition | FixtureLocality::Graph => MappingSelector::any(),
+    };
     let mapping = BridgeMappingRegistration::new(
         BridgeMappingId::from_stable_name("conditional-identity"),
         TruthPatchScope::new(
-            MappingSelector::any(),
+            entity_selector,
             AspectKeySelector::exact(contract.key().clone()),
             target,
         ),
@@ -241,8 +248,8 @@ fn build_bridge(
             SliceWideningPolicy::RegisteredPartitionWidening,
         ),
         FixtureLocality::Record => (
-            SubscriptionSliceKind::RegisteredCoarseWidening,
-            SliceWideningPolicy::RegisteredEntityCoarseWidening,
+            SubscriptionSliceKind::SignalField,
+            SliceWideningPolicy::Disallow,
         ),
         FixtureLocality::Graph => (
             SubscriptionSliceKind::SignalField,

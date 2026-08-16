@@ -1,13 +1,11 @@
 use std::collections::BTreeSet;
 
 use crate::domain_installation::{
-    WorthQueryAdmittedConsumerInvalidation, WorthQueryBoundCollectionWindow,
-    WorthQueryCollectionContinuation, WorthQueryCollectionDeliveryCounters,
+    WorthQueryAdmittedConsumerInvalidation, WorthQueryCollectionDeliveryCounters,
     WorthQueryCollectionDeliveryDenialKind, WorthQueryCollectionDeliveryOutcome,
     WorthQueryCollectionPatch, WorthQueryCollectionPatchOperation, WorthQueryCollectionResetCost,
-    WorthQueryCollectionResetReason, WorthQueryCollectionWindowParts,
-    WorthQueryConsumerInvalidationDelta, WorthQueryImpactClass,
-    WorthQueryOperationContinuationPosture, WorthQueryOperationWindowPolicy,
+    WorthQueryCollectionResetReason, WorthQueryConsumerInvalidationDelta, WorthQueryImpactClass,
+    WorthQueryOperationWindowPolicy,
 };
 use crate::memory_workspace::WorthQueryEntityIdentity;
 
@@ -16,6 +14,88 @@ use super::state::{denial, WorthQueryCollectionConsumerWindow};
 #[path = "planning/operations.rs"]
 mod operations;
 use operations::{operations_for, OperationDiff};
+#[path = "planning/window_projection.rs"]
+mod window_projection;
+use window_projection::{next_window, reset_for};
+
+pub(super) fn prepare_granular<D, O, F, L: crate::basis_lifecycle::BasisOperationLane>(
+    state: &WorthQueryCollectionConsumerWindow,
+    current: &crate::domain_installation::WorthQuerySettledDomainProjection<D, O, F, L>,
+    fresh_rows: &[crate::memory_workspace::WorthQueryEntity],
+    affected: &BTreeSet<WorthQueryEntityIdentity>,
+    keys: &[crate::domain_installation::WorthQueryNativeAccessKey],
+    replacement_targets: &[super::index::WorthQueryCollectionMaintenanceTarget],
+    impact: WorthQueryImpactClass,
+) -> Result<
+    (
+        super::WorthQueryPerformedCollectionStateMutation,
+        super::WorthQueryPendingCollectionStateMutation,
+    ),
+    WorthQueryCollectionDeliveryDenialKind,
+> {
+    if state.reset_pending || state.pending_maintenance_ordinal.is_some() {
+        return Err(WorthQueryCollectionDeliveryDenialKind::ResetPending);
+    }
+    if state.window.source_identity != current.identity()
+        || state.window.binding_identity != current.bound_operation().binding_identity()
+        || state.window.result_shape_identity
+            != current
+                .consumer_contract()
+                .canonical_projection()
+                .result_shape()
+                .digest()
+                .as_str()
+    {
+        return Err(WorthQueryCollectionDeliveryDenialKind::SourceMismatch);
+    }
+    let mut counters = WorthQueryCollectionDeliveryCounters {
+        semantic_contract_checks: 3,
+        ..WorthQueryCollectionDeliveryCounters::default()
+    };
+    let preview = state.index.preview_fresh_rows(
+        &state.window,
+        affected,
+        keys,
+        replacement_targets,
+        fresh_rows,
+        &mut counters,
+    );
+    let next = next_window(state, preview.rows, preview.has_more, counters);
+    let mut operations = operations_for(
+        OperationDiff {
+            prior: &state.window,
+            next: &next,
+            impact,
+            affected: &preview.consumer_affected,
+        },
+        &mut counters,
+    );
+    operations.extend(preview.delta.group_transitions().iter().map(|transition| {
+        WorthQueryCollectionPatchOperation::Regroup {
+            entity: transition.entity.clone(),
+            from: transition.from.clone(),
+            to: transition.to.clone(),
+        }
+    }));
+    counters.operations_materialized = operations.len();
+    let facts = preview.facts;
+    let next_maintenance_ordinal = state
+        .last_maintenance_ordinal
+        .unwrap_or_default()
+        .saturating_add(1);
+    let performed = super::WorthQueryPerformedCollectionStateMutation {
+        operations,
+        facts,
+        counters,
+        rows: next.rows().to_vec(),
+    };
+    let pending = super::WorthQueryPendingCollectionStateMutation {
+        delta: preview.delta,
+        next,
+        next_maintenance_ordinal,
+    };
+    Ok((performed, pending))
+}
 
 pub(super) fn plan(
     state: &mut WorthQueryCollectionConsumerWindow,
@@ -116,6 +196,13 @@ fn plan_incremental(
         },
         &mut counters,
     );
+    operations.extend(preview.delta.group_transitions().iter().map(|transition| {
+        WorthQueryCollectionPatchOperation::Regroup {
+            entity: transition.entity.clone(),
+            from: transition.from.clone(),
+            to: transition.to.clone(),
+        }
+    }));
     if operations.is_empty() {
         state.index.apply(preview.delta);
         state.last_maintenance_ordinal = Some(delta.maintenance_ordinal());
@@ -262,89 +349,6 @@ fn reset_patch(
         foundational_invalidation: delta.foundational_projection(),
         counters: spec.counters,
         index_delta: None,
-    })
-}
-
-fn next_window(
-    state: &WorthQueryCollectionConsumerWindow,
-    rows: Vec<crate::domain_installation::WorthQueryCollectionRowHandle>,
-    has_more: bool,
-    counters: WorthQueryCollectionDeliveryCounters,
-) -> WorthQueryBoundCollectionWindow {
-    let continuation = if has_more {
-        let cursor = crate::domain_installation::WorthQueryCollectionCursor::mint(
-            crate::domain_installation::WorthQueryCollectionCursorParts {
-                capability_identity: state.window.capability_identity,
-                capability_generation: state.window.capability_generation,
-                basis_identity: state.window.basis_identity.clone(),
-                ordering_identity: state.window.ordering_identity.clone(),
-                next_row_ordinal: state.window.cursor().next_row_ordinal + rows.len(),
-            },
-        );
-        match state.index.continuation_posture() {
-            WorthQueryOperationContinuationPosture::SnapshotCursor => {
-                WorthQueryCollectionContinuation::SnapshotMore(cursor)
-            }
-            WorthQueryOperationContinuationPosture::LiveCursor => {
-                WorthQueryCollectionContinuation::LiveMore(cursor)
-            }
-            WorthQueryOperationContinuationPosture::NotRequired => {
-                WorthQueryCollectionContinuation::Complete
-            }
-        }
-    } else {
-        WorthQueryCollectionContinuation::Complete
-    };
-    WorthQueryBoundCollectionWindow::from_parts(WorthQueryCollectionWindowParts {
-        capability_identity: state.window.capability_identity,
-        capability_generation: state.window.capability_generation,
-        source_identity: state.window.source_identity.clone(),
-        binding_identity: state.window.binding_identity.clone(),
-        result_shape_identity: state.window.result_shape_identity.clone(),
-        collection_delivery_contract_identity: state
-            .window
-            .collection_delivery_contract_identity
-            .clone(),
-        window_contract_identity: state.window.window_contract_identity.clone(),
-        basis_identity: state.window.basis_identity.clone(),
-        ordering_identity: state.window.ordering_identity.clone(),
-        admitted_width: state.window.admitted_width(),
-        cursor: state.window.cursor().clone(),
-        rows,
-        continuation,
-        result_state: state.window.result_state(),
-        warnings: state.window.warnings().to_vec(),
-        counters: crate::domain_installation::WorthQueryCollectionWindowCounters {
-            ordered_index_probes: 1,
-            rows_visited: counters.fresh_window_rows_visited,
-            window_rows_materialized: counters.fresh_window_rows_visited,
-            ..Default::default()
-        },
-    })
-}
-
-fn reset_for(
-    impact: WorthQueryImpactClass,
-    width: usize,
-) -> Option<WorthQueryCollectionPatchOperation> {
-    let reason = match impact {
-        WorthQueryImpactClass::Reexecute => WorthQueryCollectionResetReason::ReexecutionRequired,
-        WorthQueryImpactClass::ExplicitRebind => {
-            WorthQueryCollectionResetReason::CapabilityRebindRequired
-        }
-        WorthQueryImpactClass::Replacement => WorthQueryCollectionResetReason::ReplacementRequired,
-        WorthQueryImpactClass::Retirement => WorthQueryCollectionResetReason::RetirementRequired,
-        WorthQueryImpactClass::UnsupportedEscalation => {
-            WorthQueryCollectionResetReason::UnsupportedIncrementalMeaning
-        }
-        _ => return None,
-    };
-    Some(WorthQueryCollectionPatchOperation::ResetRequired {
-        reason,
-        cost: WorthQueryCollectionResetCost {
-            fresh_execution_required: true,
-            maximum_replacement_rows: width,
-        },
     })
 }
 

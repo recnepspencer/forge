@@ -989,6 +989,139 @@ Milestone 13 phase/progression evidence must additionally prove:
 | Phase 6 - Realized Counters And Foundational Evidence Cutover | predicted/realized type and public-facade separation; reachability-plan/wave constructor removal; performed Signal rows; Foundational canonical identity and counter-backed receipt; wrong/missing/duplicate/unexpected row denials; diagnostic-tier equality with cold-work separation |
 | Phase 7 - Scale Courtroom, Strategy Decision, And Closeout | all six scenario families at ordinary/scheduled lanes; sparse/dense slopes; identical admitted work for strategy comparisons; complete sealed locality run; historical mutations red; M14 handoff frozen |
 
+### Milestone 13.1 cross-runtime granular invalidation binding addendum
+
+Milestone 13.1 must prove that the locality and performed-work contract sealed
+by Milestone 13 survives the real Relational -> Runtime Bridge -> Signal ->
+Runtime Bridge -> Query -> Query Host path. A direct `SignalGraph` test, a
+Query-local `BridgeChangeSummary`, a count-only invalidation sink, or a test-only
+region executor cannot close this milestone.
+
+The real cross-runtime courtroom must own these scenario families:
+
+- `curve_detail_to_live_risk`: one exact curve partition/detail reaches the
+  matching detail, whole-partition, and unscoped consumers while sibling detail,
+  unrelated aspect, audit, and unrelated Query consumers perform zero work
+- `suppressed_quote_no_query_patch`: below- and above-tolerance quote twins
+  separate admitted direct truth from performed Signal-derived consequence and
+  prove comparator suppression emits no false derived Query patch
+- `ordered_portfolio_membership`: projection-only, predicate-membership,
+  ordering, and window-boundary changes select distinct Query maintenance
+  consequences without whole-query re-execution
+- `shared_lease_disclosure_noninterference`: equivalent maintenance is shared,
+  consumer delivery remains separately authorized, and revocation after impact
+  selection prevents protected publication without leaking scope or timing
+- `correspondence_rebind_restore`: destroyed derived indexes, fresh runtime
+  identities, delayed old delivery, duplicate/reordered delivery, and current
+  delivery prove owner-specific readmission and convergence
+- `opaque_region_platform_twin`: non-financial opaque partition/detail tokens
+  and a WASM-supported lane prove that domain meaning and host-only assumptions
+  did not enter Signal, Proof, or Foundational authority
+
+Every scenario is compiled through production-valid Relational, Bridge, Signal,
+Query installation, managed-live, and Query-host composition. The world issues
+semantic handles and authority-bearing products. Scenarios may not author raw
+Signal nodes/aspects/dirty state, Bridge receipt bindings, Query admitted
+impacts, ready queues, performed counters, or publication authority.
+
+Before the committed mutation enters production routing, an independent
+`CrossRuntimeInvalidationNecessityManifest` must freeze:
+
+- `R`: exact authoritative Relational changes and locality
+- `B`: exact installed Bridge correspondence and widening outcomes
+- `S`: exact installed Signal scoped seeds and performed work
+- `I`: exact Query dependency impacts by semantic role
+- `M`: exact distinct Query maintenance operations after lawful sharing
+- `D`: exact per-consumer query-shaped deliveries after current disclosure
+- `X`: exact suppressions, denials, stale/rebind outcomes, and terminations
+
+The manifest consumes only immutable world declarations, installed semantic
+contracts, and the named mutation. It may not consume Bridge matching, Signal
+routing, Query impact indexes, queues, receipts, diagnostics, or observed
+counters. Ordinary cases compare full identities. Scheduled cases may compare
+canonical digests and cardinalities only when an ordinary-size twin proves the
+same generator and expectation rules with full identities.
+
+Direct truth and Signal-derived consequence are separate proof obligations:
+
+- a Bridge-admitted authoritative truth change may drive a Query dependency
+  that directly consumes that truth without fabricating Signal execution
+- a Query dependency that declares a Signal-derived or conditional consequence
+  requires a performed `SignalInvalidationExecutionReceipt`
+- a Signal receipt proves performed Signal work only; it cannot authorize Query
+  impact, maintenance, disclosure, or publication
+- zero-work and count-only Signal receipts are forbidden
+- comparator suppression must remain distinguishable from no Signal
+  participation and from a performed meaningful output change
+
+Focused transition evidence must prove:
+
+- installed Signal scoped change admission preserves exact aspect-correlated
+  partition/detail pairs; a bare detail, aspect/scope swap, foreign capability,
+  duplicate capability, or stale graph is denied
+- unknown or newly introduced partitions still reach an explicitly unscoped
+  consumer while scoped siblings remain disjoint
+- Runtime Bridge exact whole-aspect, record, whole-partition, and
+  partition/detail lowering, declared widening, suppression, stale, defer,
+  denial, failure, and rebind outcomes are typed
+- source runtime, source installation generation, source authority binding,
+  commit, snapshot/branch, aspect contract revision, correspondence revision,
+  Signal graph instance, and target generation each have one-axis drift denials
+- Query candidate selection and current admission are separate; index hits do
+  not bypass purpose, tenant, disclosure, branch, basis, installation, lease,
+  or lifecycle revalidation
+- projection, membership, ordering, grouping, window, relation, conditional or
+  workflow, authorization/disclosure, and structural dependency roles choose
+  their declared maintenance consequence
+- publication consumes Query-performed maintenance or a typed lawful
+  suppression/terminal outcome, never Bridge or Signal evidence directly
+- Query public callers can use the granular path without importing lower-runtime
+  internals; predicted Signal estimates, descriptive bridge summaries, raw
+  Signal receipts, Foundational reports, and stale/foreign owner products cannot
+  substitute for the required next phase
+- destroyed Bridge, Signal, and Query indexes rebuild from authority; ready and
+  candidate queues do not survive as checkpoint authority
+- duplicate, delayed, and reordered delivery converges without duplicate
+  maintenance or publication
+- ordinary receipts exclude replay, reconstruction, diagnostic, support, and
+  forensic work
+
+The structural scale verdicts are independent:
+
+- increasing Bridge correspondences outside queried semantic keys changes no
+  downstream candidate, seed, impact, maintenance, or publication row
+- increasing returned-but-rejected Bridge candidates changes only Bridge
+  candidate, examination, and rejection rows
+- increasing unrelated Signal subscribers changes no Signal or Query work row
+- increasing unrelated installed queries changes no admitted impact,
+  maintenance, or publication row
+- increasing equivalent shared consumers changes authorized delivery count but
+  not maintenance count
+- increasing result rows outside the affected region changes no maintenance row
+- increasing the actual semantic frontier expands every owner row by the exact
+  independent `B/S/I/M/D` delta; dense necessary work is never dropped
+
+Each owner reports its own performed counters. A Bridge target count cannot
+stand in for Signal work, and an end-to-end total cannot hide a broad scan in
+one runtime. Wall-clock evidence is supplemental to exact structural counters.
+
+#### Milestone 13.1 phase evidence map
+
+| Phase | Evidence required before the phase closes |
+|---|---|
+| Phase 1 - Boundary Freeze And End-To-End Red Courtroom | real composed financial and opaque-region worlds; current coarse/count-only and test-only boundary inventory; independent `R/B/S/I/M/D/X` core; inherited 5y/10y locality-loss and direct-vs-derived red controls |
+| Phase 2 - Signal Installed Scoped Invalidation Contract | installed capability plus exact region admission; partition+detail correlation; unknown-partition unscoped twin; performed receipt from actual execution; predicted/performed and foreign/stale denials; default/parallel/WASM parity |
+| Phase 3 - Runtime Bridge Exact Lowering And Performed Delivery | every exact/widened/suppressed locality outcome; direct truth versus performed Signal product; every Bridge binding drift twin; failure seams expose no false performed delivery |
+| Phase 4 - Query Installed Invalidation Manifest And Admission | complete dependency-role manifest; exact indexed selection; current Query admission; index destruction/rebuild; authority drift denials; public phase-skip compile evidence |
+| Phase 5 - Production Maintenance, Sharing, And Facade Cutover | curve, suppression, ordered membership, and shared-disclosure scenarios through real host observation; production region execution; query-shaped outcomes; coarse/count-only path and descriptive authority lane removed |
+| Phase 6 - Rebind, Restore, Branch, And Lifecycle Closure | destroyed derived state, fresh-runtime rebind, stale/delayed/duplicate/reordered delivery, revocation before publication, no serialized ready/candidate authority, cert-only replay separation |
+| Phase 7 - Structural Slopes, Certification, Documentation, And Handoff | all six scenarios, seven independent slopes, sealed cross-runtime run, owner-separated performed rows, default/parallel/WASM/constitutional gates, executable documentation, frozen M14 handoff |
+
+The sealed cross-runtime run rejects missing, duplicate, stale, wrong-scenario,
+wrong-seed, wrong-policy, wrong-diagnostics-tier, mixed-runtime,
+wrong-direct-versus-derived, and mismatched-manifest evidence. Coordinated
+caller-supplied expected/actual values cannot construct completion evidence.
+
 ### Milestones 14-17 binding addendum
 
 Parallel execution evidence must use an independent serial oracle and hostile

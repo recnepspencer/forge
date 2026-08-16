@@ -43,7 +43,8 @@ pub use dependency::{
 pub use host_provider_contract::{
     WorthQueryConditionalDependencyObservation, WorthQueryConditionalObservationTruthBasis,
     WorthQueryConditionalObservationView, WorthQueryConditionalObservedValue,
-    WorthQueryConditionalProjectedValue, WorthQueryHostConditionalPredicateProvider,
+    WorthQueryConditionalProjectedValue, WorthQueryHostConditionalOutputComparatorProvider,
+    WorthQueryHostConditionalOutputVersionProvider, WorthQueryHostConditionalPredicateProvider,
     WorthQueryHostPredicateDecision, WorthQueryHostPredicateFailure,
     WorthQueryHostPredicateFailureKind,
 };

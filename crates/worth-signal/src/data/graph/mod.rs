@@ -23,7 +23,10 @@ pub use runtime::{
     EvaluationStrategy, GcPressure, GraphMaterializer, GraphObserver, ObservationLevel,
     ParallelismHint,
 };
-pub use runtime::{SignalGraph, SignalGraphLifecycleProbe};
+pub use runtime::{
+    SignalGraph, SignalGraphLifecycleProbe, SignalGraphReconstitution,
+    SignalGraphReconstitutionReport,
+};
 #[cfg(test)]
 pub(crate) use storage::checked_segment_component_for_test;
 pub(crate) use storage::{

@@ -119,6 +119,20 @@ against the performed Signal rows.
 - Use replay and checkpoint reconstruction evidence on their dedicated lanes,
   not as part of the hot invalidation receipt.
 
+### Cross-runtime granular invalidation
+
+Runtime Bridge may carry a Signal execution receipt alongside an installed
+granular delivery when derived Signal work actually ran. That receipt proves
+only the performed Signal work and its realized counters. It does not authorize
+Query maintenance, consumer disclosure, or publication.
+
+A committed direct-truth change can lawfully reach Query without a Signal
+receipt when no Signal recomputation is required. Conversely, a Query
+consequence declared as Signal-derived requires current performed evidence; a
+Bridge delivery, planning estimate, private reverse-index key, or copied
+aspect/scope value cannot substitute for it. Query remains responsible for
+impact admission and query-shaped maintenance against its current live owner.
+
 ## Inspection And Debugging
 
 Inspect `SignalInvalidationRealizedCounters` for the fixed performed counter
@@ -161,3 +175,5 @@ changing the receipt.
 - [Signal Performance Architecture](./signal_performance_architecture.md)
 - [Signal Architecture](./signal_architecture2.md)
 - [Milestone 13 Plan](./milestone-13-plan.md)
+- [Cross-Runtime Granular Invalidation](./milestone-13.1-plan.md)
+- [Granular Live Invalidation](../../workspaces/worth-query/crates/worth-query/docs/runtime-surfaces/granular-live-invalidation.md)

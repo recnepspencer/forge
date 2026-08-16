@@ -1,6 +1,7 @@
 mod authoritative_delivery;
 mod compatibility;
 mod contract;
+mod decision_evidence;
 mod denial;
 mod execution;
 mod installation_admission;
@@ -16,11 +17,13 @@ mod owned_installation;
 mod provider_admission;
 mod provider_semantics;
 mod providers;
+mod reconstitution;
 mod resolver_adapters;
 mod retained_decision;
 mod semantic_contract;
 mod semantic_observation_plan;
 mod semantic_observations;
+mod successor_reconstitution;
 
 pub use compatibility::{
     BridgeConditionalComparisonWork, BridgeConditionalContinuityDenial,
@@ -31,11 +34,11 @@ pub use compatibility::{
     BridgeLiveConditionalLowering,
 };
 pub use contract::{BridgeConditionalInstallationRequest, BridgeOwnedSignalRuntime};
+pub use decision_evidence::BridgeConditionalDecisionEvidence;
 pub use denial::{BridgeConditionalDenial, BridgeConditionalDenialKind};
 pub use execution::{
-    BridgeConditionalDecisionEvidence, BridgeConditionalExecutionCounters,
-    BridgeConditionalExecutionRequest, BridgeConditionalQueryContinuationAdmission,
-    BridgeConditionalReentryCounters,
+    BridgeConditionalExecutionCounters, BridgeConditionalExecutionRequest,
+    BridgeConditionalQueryContinuationAdmission, BridgeConditionalReentryCounters,
 };
 pub use installed_lowering::{
     BridgeInstalledConditionalLowering, BridgeInstalledConditionalLoweringCounters,
@@ -61,6 +64,7 @@ pub use providers::{
     BridgeConditionalResolverContext, BridgeConditionalSemanticObservation,
     BridgeConditionalTriggerProvider, BridgeConditionalWakeProvider,
 };
+pub use reconstitution::BridgeConditionalRuntimeReconstitutionReport;
 pub use retained_decision::{
     BridgeConditionalDecisionReentryRequest, BridgeRetainedConditionalDecisionSeed,
 };

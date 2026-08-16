@@ -151,6 +151,22 @@ impl<Schema, Entity> WorthQueryApplicationEntityIdentity<Schema, Entity> {
         matches!(record, RecordRef::Entity(entity) if *entity == self.entity_id)
     }
 
+    /// Describes the exact relational record selected by this resolved
+    /// application identity for an audience integration adapter.
+    ///
+    /// The returned coordinates carry no resolution, read, mutation, or
+    /// invalidation authority; the primary graph remains the authority owner.
+    #[doc(hidden)]
+    pub fn relational_record_identity_parts(
+        &self,
+    ) -> worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts {
+        worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(
+            self.entity_id.partition_value(),
+            self.entity_id.local_slot_value(),
+            self.entity_id.generation_value(),
+        )
+    }
+
     pub(crate) const fn entity_id(&self) -> EntityId {
         self.entity_id
     }

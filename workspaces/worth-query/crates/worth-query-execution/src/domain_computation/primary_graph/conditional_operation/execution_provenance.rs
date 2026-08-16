@@ -115,10 +115,10 @@ fn terminal(
         WorthQueryRetainedConditionalDecision::OperationIndeterminate(_, _) => {
             WorthQueryConditionalExecutionTerminal::Indeterminate
         }
-        WorthQueryRetainedConditionalDecision::OperationCommitted => {
+        WorthQueryRetainedConditionalDecision::OperationCommitted(_) => {
             WorthQueryConditionalExecutionTerminal::Committed
         }
-        WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted => {
+        WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(_) => {
             WorthQueryConditionalExecutionTerminal::AlreadyCommitted
         }
         WorthQueryRetainedConditionalDecision::Failed(_) => {

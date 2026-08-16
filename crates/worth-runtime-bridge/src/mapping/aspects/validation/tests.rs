@@ -43,6 +43,50 @@ fn freeze_accepts_empty_aspect_registry_for_incremental_rollout() {
 }
 
 #[test]
+fn semantic_candidate_index_excludes_unrelated_mapping_families() {
+    let profile = worth_foundational::facade::AspectKey::new("profile").unwrap();
+    let name = worth_foundational::facade::FieldKey::new("name").unwrap();
+    let mut registrations = vec![registration(
+        "relevant",
+        TruthPatchScope::for_entity_field(
+            MappingSelector::exact("user"),
+            profile.clone(),
+            name.clone(),
+        ),
+        TruthDeltaSurfaceKind::EntityField,
+        SubscriptionSliceKind::SignalField,
+        SliceWideningPolicy::Disallow,
+    )];
+    registrations.extend((0..128).map(|ordinal| {
+        let aspect =
+            worth_foundational::facade::AspectKey::new(format!("unrelated-{ordinal}")).unwrap();
+        registration(
+            &format!("unrelated-{ordinal}"),
+            TruthPatchScope::for_entity_field(
+                MappingSelector::exact(format!("entity-{ordinal}")),
+                aspect,
+                name.clone(),
+            ),
+            TruthDeltaSurfaceKind::EntityField,
+            SubscriptionSliceKind::SignalField,
+            SliceWideningPolicy::Disallow,
+        )
+    }));
+    let registry = crate::mapping::aspects::FrozenAspectMappingRegistry::freeze(registrations)
+        .expect("disjoint mapping families must freeze");
+
+    let candidates = registry.semantic_candidates(
+        Some("user"),
+        &profile,
+        &[crate::mapping::TruthPatchTargetSelector::entity_field(name)],
+    );
+
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].registration_id().as_str(), "relevant");
+    assert!(registry.rebuilt_semantic_index_has_exact_parity());
+}
+
+#[test]
 fn freeze_rejects_duplicate_registration_ids() {
     let truth_scope = TruthPatchScope::for_entity_field(
         MappingSelector::exact("user"),

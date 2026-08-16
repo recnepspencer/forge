@@ -83,6 +83,32 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
         self.support_profile.clone()
     }
 
+    fn readmits_primary_graph_source(
+        &self,
+        installation: &worth_query_execution::facade::primary_graph::WorthQueryGranularInvalidationInstallation,
+    ) -> bool {
+        self.source_adapter
+            .primary_graph_invalidation_installation()
+            .is_some_and(|source| source.is_same_current_runtime_as(installation))
+    }
+
+    fn rebind_primary_graph_source(
+        &mut self,
+        installation: &worth_query_execution::facade::primary_graph::WorthQueryGranularInvalidationInstallation,
+        source_adapter: Box<dyn super::WorthQueryRuntimeSourceAdapter>,
+    ) -> Result<(), WorthQueryWorkspaceError> {
+        let replacement_matches = source_adapter
+            .primary_graph_invalidation_installation()
+            .is_some_and(|source| source.is_same_current_runtime_as(installation));
+        if !replacement_matches {
+            return Err(WorthQueryWorkspaceError::new(
+                "the replacement primary graph source does not retain the successor installation",
+            ));
+        }
+        self.source_adapter = source_adapter;
+        Ok(())
+    }
+
     fn surrender_unpublished_primary_graph_runtime(
         &mut self,
     ) -> Result<super::WorthQueryUnpublishedPrimaryGraphRuntime, WorthQueryWorkspaceError> {
@@ -269,6 +295,16 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
         target: &WorthQueryLiveArtifactTarget,
     ) -> Vec<WorthQueryEntity> {
         self.source_adapter.live_entities_for_target(target)
+    }
+
+    fn live_entities_for_granular_scope(
+        &self,
+        target: &WorthQueryLiveArtifactTarget,
+        scope: &crate::live::WorthQueryMaintenanceScope,
+        basis: &crate::runtime::WorthQueryGranularSourceReadBasis,
+    ) -> Result<Vec<WorthQueryEntity>, WorthQueryWorkspaceError> {
+        self.source_adapter
+            .live_entities_for_granular_scope(target, scope, basis)
     }
 
     fn drain_live_patches_for_target(

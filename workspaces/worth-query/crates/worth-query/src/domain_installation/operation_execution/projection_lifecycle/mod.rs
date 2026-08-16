@@ -32,6 +32,7 @@ pub(crate) use owner_refresh::WorthQueryClassifiedOwnerDeliveryCompletion;
 pub(in crate::domain_installation::operation_execution) use promotion_preflight::{
     admit_projection_promotion_core, WorthQueryProjectionCoreStop,
 };
+pub(crate) use refresh::refresh_granular_source;
 pub(in crate::domain_installation::operation_execution) use refresh::WorthQueryPendingOwnerImpact;
 pub(crate) use source::validate_live_source_authority;
 pub(in crate::domain_installation::operation_execution) use source::WorthQueryProjectionLifecycleSource;

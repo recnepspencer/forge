@@ -165,7 +165,7 @@ Status meanings:
 | Transactional invalidation | Implemented | Runtime-backed transactions hard-rewind via sparse patching |
 | Maybe-stale states | Implemented | `Clean` / `MaybeStale` / `Dirty` are part of the core contract |
 | Lazy recomputation | Implemented | Pull-based evaluation recomputes only when requested |
-| Aspect-based invalidation | Implemented | [Milestone 12](./milestone-12-plan.md) certifies producer-local transitive causality; [Milestone 13](./milestone-13-plan.md) certifies direct-hop semantic-frontier locality, typed work progression, and realized structural cost slopes |
+| Aspect-based invalidation | Implemented | [Milestone 12](./milestone-12-plan.md) certifies producer-local transitive causality; [Milestone 13](./milestone-13-plan.md) certifies direct-hop semantic-frontier locality, typed work progression, and realized structural cost slopes; [Milestone 13.1](./milestone-13.1-plan.md) carries that precision through Runtime Bridge into Query-owned maintenance |
 | Dynamic dependency discovery | Implemented | `EvaluationContext` records upstream reads explicitly |
 | Conditional nodes | Implemented | `OnDemand`, `Debounce`, `AspectFilter`, `DeltaThreshold`, `Custom` |
 | Tolerance / epsilon gates | Implemented | Comparator policies include exact and tolerance-based suppression |
@@ -244,10 +244,10 @@ Status meanings:
 | Capability | Status | Notes |
 | --- | --- | --- |
 | Dual-graph architecture | Next | Architectural direction is clear, but dedicated bridge surface is not yet formalized |
-| Patch-to-invalidation bridge | Next | Relational diffs should drive signal invalidation directly |
-| Aspect mapping layer | Next | Needed to map relational aspects onto signal aspects cleanly |
-| Snapshot evaluation | Next | Signals should evaluate against immutable relational snapshots |
-| Bulk change propagation | Next | Large patchsets should invalidate efficiently without per-change overhead |
+| Patch-to-invalidation bridge | Implemented | [Milestone 13.1](./milestone-13.1-plan.md) carries authoritative Relational aspect/locality changes through installed Bridge correspondence into scoped Signal invalidation and Query maintenance |
+| Aspect mapping layer | Implemented | Runtime Bridge owns exact installed correspondence and declared widening under [Milestone 13.1](./milestone-13.1-plan.md); Signal slots remain runtime-local |
+| Snapshot evaluation | Implemented | Granular Query source reads are bound to the admitted immutable snapshot basis and fail closed when that basis drifts |
+| Bulk change propagation | Implemented | [Milestone 13.1](./milestone-13.1-plan.md) carries semantic batches with owner-separated performed counters; physical parallel dispatch remains Milestone 14 work |
 | Change stream protocol | Later | Generic protocol should exist before tighter integration scales up |
 | Reactive source protocol | Later | Generic read contract for signal consumers without fusion |
 | Relational-key to signal-node mapping | Later | Needed to keep truth IDs and signal IDs decoupled |

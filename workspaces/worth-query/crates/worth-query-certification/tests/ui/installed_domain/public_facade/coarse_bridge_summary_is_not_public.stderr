@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_query::facade::domain::BridgeChangeSummary`
+ --> tests/ui/installed_domain/public_facade/coarse_bridge_summary_is_not_public.rs:1:5
+  |
+1 | use worth_query::facade::domain::BridgeChangeSummary;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `BridgeChangeSummary` in `facade::domain`

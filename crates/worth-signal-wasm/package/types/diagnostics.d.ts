@@ -1064,12 +1064,17 @@ export interface FrontierWaveSummary {
   entries: ReadonlyArray<FrontierWaveEntrySummary>;
 }
 
-export interface FrontierExecutionSummary {
+export interface InvalidationPlanningEstimate {
   seed_count: number;
-  direct_waves: ReadonlyArray<FrontierWaveSummary>;
-  transitive_waves: ReadonlyArray<FrontierWaveSummary>;
-  touched_scope_summary: TouchedScopeSummary;
-  counters: FrontierExecutionCounters;
+  group_count: number;
+  direct_wave_count: number;
+  transitive_wave_count: number;
+  direct_dirty_count: number;
+  maybe_stale_count: number;
+  partition_scoped_checks: number;
+  partition_match_count: number;
+  detail_match_count: number;
+  cycle_check_candidate_count: number;
 }
 
 export interface InvalidationTraceRecord {

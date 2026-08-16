@@ -67,6 +67,20 @@ impl BridgeInstalledConditionalLowering {
         self.correspondences.len()
     }
 
+    /// Installed semantic dependencies retained by this lowering.
+    ///
+    /// Consumers may use these declarations to narrow their own candidate
+    /// selection. The declarations remain non-authoritative without this
+    /// current installed lowering.
+    pub fn semantic_dependencies(
+        &self,
+    ) -> impl ExactSizeIterator<Item = &crate::correspondence::BridgeSemanticDependencyCandidate>
+    {
+        self.correspondences
+            .iter()
+            .map(|correspondence| correspondence.dependency())
+    }
+
     pub fn dependency_locality(
         &self,
         ordinal: usize,

@@ -139,4 +139,8 @@ impl WorthQueryAdmittedConsumerInvalidation<'_> {
             self.delta.conditional_decision.as_ref(),
         )
     }
+
+    pub(crate) fn into_delta(self) -> WorthQueryConsumerInvalidationDelta {
+        self.delta
+    }
 }

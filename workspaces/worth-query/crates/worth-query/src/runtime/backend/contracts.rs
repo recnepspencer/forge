@@ -49,7 +49,23 @@ pub fn runtime_subscription_support_evidence_identity(
 
 pub trait WorthQueryRuntimeBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile;
-
+    #[doc(hidden)]
+    fn readmits_primary_graph_source(
+        &self,
+        _installation: &worth_query_execution::facade::primary_graph::WorthQueryGranularInvalidationInstallation,
+    ) -> bool {
+        false
+    }
+    #[doc(hidden)]
+    fn rebind_primary_graph_source(
+        &mut self,
+        _installation: &worth_query_execution::facade::primary_graph::WorthQueryGranularInvalidationInstallation,
+        _source_adapter: Box<dyn super::WorthQueryRuntimeSourceAdapter>,
+    ) -> Result<(), WorthQueryWorkspaceError> {
+        Err(WorthQueryWorkspaceError::new(
+            "primary source rebind unsupported",
+        ))
+    }
     /// Transfers an unpublished Relational runtime into execution-owned
     /// primary-graph installation.
     ///
@@ -213,6 +229,17 @@ pub trait WorthQueryRuntimeBackend {
         target: &WorthQueryLiveArtifactTarget,
     ) -> Vec<WorthQueryEntity>;
 
+    fn live_entities_for_granular_scope(
+        &self,
+        _target: &WorthQueryLiveArtifactTarget,
+        _scope: &crate::live::WorthQueryMaintenanceScope,
+        _basis: &crate::runtime::WorthQueryGranularSourceReadBasis,
+    ) -> Result<Vec<WorthQueryEntity>, WorthQueryWorkspaceError> {
+        Err(WorthQueryWorkspaceError::new(
+            "this runtime backend has no exact granular live-source reader",
+        ))
+    }
+
     fn collection_entity(
         &self,
         _collection: &str,
@@ -303,32 +330,6 @@ pub trait WorthQueryRuntimeSchemaAdapter {
         request: &DeclarativeLiveQueryRequest,
         schema_view: &QuerySchemaView,
     ) -> Result<LiveViewDeclarationAdmissionBoundaryReceipt, WorthQueryWorkspaceError>;
-}
-
-pub trait WorthQueryRuntimeSourceAdapter {
-    fn declare_live_view(
-        &mut self,
-        name: String,
-        request: DeclarativeLiveQueryRequest,
-        schema_view: QuerySchemaView,
-    ) -> Result<WorthQueryLiveViewHandle, WorthQueryWorkspaceError>;
-
-    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError>;
-
-    fn live_entities_for_target(
-        &self,
-        target: &WorthQueryLiveArtifactTarget,
-    ) -> Vec<WorthQueryEntity>;
-
-    fn drain_live_patches_for_target(
-        &mut self,
-        target: &WorthQueryLiveArtifactTarget,
-    ) -> Vec<WorthQueryLivePatch>;
-
-    fn affected_live_view_targets(
-        &self,
-        receipt: &WorthQueryMutationReceipt,
-    ) -> Vec<WorthQueryLiveArtifactTarget>;
 }
 
 pub trait WorthQueryRuntimeSnapshotIdentityAdapter {

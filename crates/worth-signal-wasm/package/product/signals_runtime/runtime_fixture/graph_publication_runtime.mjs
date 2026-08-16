@@ -92,7 +92,7 @@ export function createGraphPublicationRuntime() {
         latestRollback() {
           return null;
         },
-        latestFrontierExecution() {
+        latestInvalidationPlanningEstimate() {
           return null;
         },
         latestInvalidationTraceRecords() {

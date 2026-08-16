@@ -35,8 +35,10 @@ pub(super) fn materialize_detail_rows_from_request(
     request: &DeclarativeLiveQueryRequest,
     rows: &[WorthQueryEntity],
 ) -> Option<Vec<WorthQueryEntity>> {
-    let anchor_identity =
-        identity_anchor(request).map(WorthQueryReadMaterializedRowIdentity::from_label)?;
+    let Some(anchor) = identity_anchor(request) else {
+        return (rows.len() == 1).then(|| order_rows(vec![rows[0].clone()], request));
+    };
+    let anchor_identity = WorthQueryReadMaterializedRowIdentity::from_label(anchor);
     let row_index = row_index(rows);
     let anchor_row = row_index.get(&anchor_identity)?.clone();
     let selected = if uses_shared_neighborhood(read_graph) {

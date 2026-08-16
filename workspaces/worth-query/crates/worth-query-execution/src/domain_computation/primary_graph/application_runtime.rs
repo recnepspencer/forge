@@ -58,6 +58,7 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(super) execution_basis_source:
         worth_relational::facade::runtime::RelationalApplicationCommitBasisSource,
     pub(super) bridge: super::managed_bridge::WorthQueryInstalledApplicationBridge,
+    pub(super) granular_invalidation: super::WorthQueryGranularInvalidationInstallation,
     pub(super) conditional_operations: std::sync::Mutex<
         super::conditional_operation::WorthQueryConditionalOperationRegistry<Schema>,
     >,
@@ -199,6 +200,14 @@ where
 
     pub fn publication(&self) -> &WorthQueryPrimaryGraphPublication {
         &self.publication
+    }
+
+    /// Retains the opaque installation needed to bind Query maintenance to
+    /// this exact primary application runtime.
+    pub fn granular_invalidation_installation(
+        &self,
+    ) -> super::WorthQueryGranularInvalidationInstallation {
+        self.granular_invalidation.current()
     }
 
     pub fn result_buffer_observer(

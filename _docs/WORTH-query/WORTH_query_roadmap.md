@@ -936,6 +936,13 @@ This milestone is complete only when `worth-query` can prove:
 
 ## Milestone 5.1: Region-Scoped Live Invalidation And Delivery Contracts
 
+Platform integration companion:
+[WORTH Signal Milestone 13.1](../WORTH_signal/milestone-13.1-plan.md) governs
+the completed production Runtime Bridge-to-Signal-to-Query cutover. The
+cross-runtime closeout is recorded in
+[Milestone 13.1 closeout](../WORTH_signal/milestone-13.1-closeout.md); local
+region-scoped artifacts remain only one owner inside that composed path.
+
 ### Goal
 
 Make live query narrowing and delivery contracts region-aware, stream-honest,
@@ -4305,6 +4312,13 @@ The governing milestone spec is
   one way into the sole destination authority
 
 ## Milestone 9.14: Installed Operation Semantics, Semantic Aspect Correspondence, Conditional Signal Authority, And Bound Downstream Authority
+
+Cross-runtime carriage companion:
+[WORTH Signal Milestone 13.1](../WORTH_signal/milestone-13.1-plan.md) consumes
+the installed operation, correspondence, conditional Signal, impact, and
+downstream-authority contracts established here. Its completed platform
+carriage preserves those owners and creates no second Query authority lane;
+see the [cross-runtime closeout](../WORTH_signal/milestone-13.1-closeout.md).
 
 ### Goal
 

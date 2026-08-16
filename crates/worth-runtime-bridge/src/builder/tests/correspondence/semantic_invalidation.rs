@@ -35,6 +35,16 @@ fn whole_aspect_set_and_clear_invalidate_a_field_dependency() {
         };
         assert_eq!(counters.truth_targets_admitted(), 1);
         assert_eq!(counters.signal_seeds_emitted(), 1);
+        let prepared = counters
+            .prepared_signal_invalidation()
+            .expect("matched record-local truth prepares one scoped Signal seed");
+        let regions = prepared.changed_regions().next().unwrap().as_slice();
+        assert_eq!(regions.len(), 1);
+        assert_eq!(regions[0].partition.0, "bridge-main");
+        assert_eq!(
+            regions[0].detail.as_deref(),
+            Some("relational-record:entity:0:1:1")
+        );
         assert_eq!(
             graph.node_aspect_version(node).unwrap().get(aspect),
             before + 1

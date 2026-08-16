@@ -62,15 +62,16 @@ pub mod operation {
 
 pub mod observation {
     pub use crate::domain_installation::{
-        WorthQueryAdmittedConsumerInvalidation, WorthQueryConsumerInvalidationAdmissionStop,
-        WorthQueryConsumerInvalidationCause, WorthQueryConsumerInvalidationContinuation,
-        WorthQueryConsumerInvalidationCounters, WorthQueryConsumerInvalidationDelta,
-        WorthQueryConsumerInvalidationDeltaStop, WorthQueryConsumerInvalidationDeltaStopKind,
-        WorthQueryConsumerInvalidationDisposition, WorthQueryConsumerInvalidationLocality,
-        WorthQueryLiveBoundDomainProjection, WorthQueryProjectionLeaseAdmissionDenialKind,
-        WorthQueryProjectionLeaseAdmissionOutcome, WorthQueryProjectionLeaseAdmissionStop,
-        WorthQueryProjectionPromotionDenialKind, WorthQueryProjectionPromotionOutcome,
-        WorthQueryProjectionPromotionStop, WorthQuerySharedLiveProjectionLease,
+        WorthQueryAdmittedConsumerInvalidation, WorthQueryConsumerGranularMaintenanceStop,
+        WorthQueryConsumerInvalidationAdmissionStop, WorthQueryConsumerInvalidationCause,
+        WorthQueryConsumerInvalidationContinuation, WorthQueryConsumerInvalidationCounters,
+        WorthQueryConsumerInvalidationDelta, WorthQueryConsumerInvalidationDeltaStop,
+        WorthQueryConsumerInvalidationDeltaStopKind, WorthQueryConsumerInvalidationDisposition,
+        WorthQueryConsumerInvalidationLocality, WorthQueryLiveBoundDomainProjection,
+        WorthQueryProjectionLeaseAdmissionDenialKind, WorthQueryProjectionLeaseAdmissionOutcome,
+        WorthQueryProjectionLeaseAdmissionStop, WorthQueryProjectionPromotionDenialKind,
+        WorthQueryProjectionPromotionOutcome, WorthQueryProjectionPromotionStop,
+        WorthQueryPublishedConsumerInvalidation, WorthQuerySharedLiveProjectionLease,
         WorthQuerySharedProjectionDelivery, WorthQuerySharedProjectionDisposalOutcome,
         WorthQuerySharedProjectionDisposalStop, WorthQuerySharedProjectionDrainStop,
     };
@@ -117,17 +118,54 @@ pub mod support {
 
 pub mod impact {
     pub use crate::domain_installation::{
+        admit_current_invalidation_impact, admit_primary_runtime_granular_batch,
+        admit_primary_runtime_granular_invalidations, select_invalidation_candidates,
+        WorthQueryAdmittedInvalidationBatch, WorthQueryAdmittedInvalidationImpact,
         WorthQueryCompiledSemanticAspectDependency,
         WorthQueryCompiledSemanticAspectDependencyClosure,
         WorthQueryConditionalObservationEvidence, WorthQueryDependencyClosureReuseDenial,
         WorthQueryDependencyClosureReuseWitness, WorthQueryDependencyClosureSemanticComparison,
-        WorthQueryImpactAdmissionDenial, WorthQueryImpactAdmissionDenialKind,
-        WorthQueryImpactClass, WorthQueryImpactCounters, WorthQueryImpactDecision,
-        WorthQuerySemanticAspectDependencyCompilationCounters,
+        WorthQueryGranularAdmissionCounters, WorthQueryImpactAdmissionDenial,
+        WorthQueryImpactAdmissionDenialKind, WorthQueryImpactClass, WorthQueryImpactCounters,
+        WorthQueryImpactDecision, WorthQueryInstalledInvalidationManifest,
+        WorthQueryInvalidationCandidateSet, WorthQuerySemanticAspectDependencyCompilationCounters,
         WorthQuerySemanticAspectDependencyCompilationDenial,
         WorthQuerySemanticAspectDependencyCompilationDenialKind,
         WorthQuerySemanticAspectDependencyView, WorthQuerySemanticDependencyClosureEvidence,
         WorthQuerySemanticDependencyEdge, WorthQuerySemanticDependencyRole,
+    };
+}
+
+pub mod invalidation {
+    pub use crate::domain_installation::{
+        admit_current_invalidation_impact, admit_primary_runtime_granular_batch,
+        admit_primary_runtime_granular_invalidations, select_invalidation_candidates,
+        WorthQueryAdmittedInvalidationBatch, WorthQueryAdmittedInvalidationImpact,
+        WorthQueryInstalledInvalidationManifest, WorthQueryInvalidationCandidateSet,
+    };
+    pub use crate::live::{
+        bind_primary_runtime_granular_invalidations,
+        bind_shared_primary_runtime_granular_invalidations,
+        maintain_granular_invalidation_deliveries, maintain_primary_runtime_granular_batch,
+        maintain_primary_runtime_granular_collection_batch,
+        maintain_primary_runtime_granular_invalidations,
+        maintain_shared_primary_runtime_granular_batch,
+        perform_prepared_shared_primary_runtime_granular_maintenance,
+        prepare_shared_primary_runtime_granular_batch, WorthQueryCoalescedMaintenancePlan,
+        WorthQueryGranularMaintenanceCounters, WorthQueryLivePublicationDenial,
+        WorthQueryMaintenanceDenial, WorthQueryMaintenanceScope, WorthQueryMaintenanceStrategy,
+        WorthQueryPerformedIndexedLivePatch, WorthQueryPerformedLiveMaintenanceWork,
+        WorthQueryPerformedMaintenance, WorthQueryPerformedMaintenanceEffect,
+        WorthQueryPerformedProjectionPatch, WorthQueryPreparedSharedPrimaryGranularMaintenance,
+        WorthQueryPrimaryGranularMaintenanceDenial, WorthQueryPrimaryGranularMaintenanceOutcome,
+        WorthQueryPrimaryGranularMaintenancePerformed, WorthQueryPrimaryRuntimeInvalidationBinding,
+        WorthQueryPublishedLiveDelivery, WorthQueryPublishedSharedPrimaryInvalidation,
+        WorthQuerySharedConsumerDeliveryAuthority, WorthQuerySharedConsumerDeliveryPolicy,
+        WorthQuerySharedConsumerDeliveryPolicyAdmission,
+        WorthQuerySharedPrimaryGranularMaintenanceDenial,
+        WorthQuerySharedPrimaryGranularMaintenanceOutcome,
+        WorthQuerySharedPrimaryGranularMaintenancePerformed,
+        WorthQuerySharedPrimaryGranularSelectionOutcome,
     };
 }
 

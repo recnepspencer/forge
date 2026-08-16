@@ -103,12 +103,9 @@ impl BridgeConditionalSemanticObservationRead {
                 ),
                 None,
                 self.projection_mask.clone(),
-                if self.managed_record {
-                    crate::mapping::SubscriptionSliceKind::RegisteredCoarseWidening
-                } else {
-                    crate::mapping::SubscriptionSliceKind::SignalField
-                },
-            ),
+                crate::mapping::SubscriptionSliceKind::SignalField,
+            )
+            .with_correlation_discriminator(format!("semantic-dependency:{}", self.ordinal)),
         )
     }
 }
@@ -155,7 +152,7 @@ fn compile_read(
             dependency.locality(),
             crate::correspondence::BridgeSemanticLocality::ManagedSourceRecord
         );
-    if dependency.source_record_identity.is_none() && !managed_record {
+    if dependency.observation_record_identity().is_none() && !managed_record {
         return Err(BridgeConditionalDenial::new(
             BridgeConditionalDenialKind::SnapshotAdmission,
             "semantic condition observations require an exact source-record dependency",
@@ -163,7 +160,7 @@ fn compile_read(
     }
     Ok(BridgeConditionalSemanticObservationRead {
         ordinal: dependency.dependency_ordinal(),
-        record: dependency.source_record_identity,
+        record: dependency.observation_record_identity(),
         managed_record,
         contract: dependency.contract().clone(),
         projection_mask: dependency.projection_mask().clone(),
@@ -218,5 +215,39 @@ mod tests {
         let packet = managed_plan().packet(Some(record)).unwrap();
 
         assert_eq!(packet.reads().len(), 1);
+    }
+
+    #[test]
+    fn semantic_dependency_ordinals_disambiguate_shared_record_observations() {
+        let contract = crate::snapshot::SnapshotReadContract::scalar(
+            worth_foundational::facade::AspectKey::new("balance").unwrap(),
+            worth_foundational::facade::ScalarAspectType::UInt64,
+        );
+        let projection_mask = worth_foundational::facade::AspectMask::new([
+            worth_foundational::facade::CanonicalFieldPath::single(
+                worth_foundational::facade::FieldKey::new("available").unwrap(),
+            ),
+        ]);
+        let plan = BridgeConditionalSemanticObservationPlan {
+            reads: [0, 1]
+                .map(|ordinal| BridgeConditionalSemanticObservationRead {
+                    ordinal,
+                    record: None,
+                    managed_record: true,
+                    contract: contract.aspect_contract().clone(),
+                    projection_mask: projection_mask.clone(),
+                })
+                .to_vec(),
+        };
+        let record =
+            crate::relational_identity::RelationalBridgeRecordIdentityParts::entity(1, 7, 2);
+
+        let packet = plan.packet(Some(record)).unwrap();
+
+        assert_eq!(packet.reads().len(), 2);
+        assert_ne!(
+            packet.reads()[0].correlation_id(),
+            packet.reads()[1].correlation_id()
+        );
     }
 }

@@ -45,7 +45,7 @@ export async function createMultiCapabilitySignalsCase() {
     latestRollback() {
       return null;
     },
-    latestFrontierExecution() {
+    latestInvalidationPlanningEstimate() {
       return null;
     },
     latestInvalidationTraceRecords() {

@@ -5,8 +5,11 @@ mod planning;
 mod state;
 
 pub(crate) use index::{
-    WorthQueryCollectionMaintenanceIndex, WorthQueryCollectionMaintenanceInputs,
+    WorthQueryCollectionChangedNativeTarget, WorthQueryCollectionMaintenanceIndex,
+    WorthQueryCollectionMaintenanceInputs,
 };
+pub(crate) use model::WorthQueryPendingCollectionStateMutation;
+pub(crate) use model::WorthQueryPerformedCollectionStateMutation;
 pub use model::{
     WorthQueryCollectionDeliveryCounters, WorthQueryCollectionDeliveryDenial,
     WorthQueryCollectionDeliveryDenialKind, WorthQueryCollectionDeliveryOutcome,

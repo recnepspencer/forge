@@ -1,11 +1,13 @@
 mod invalidation;
 
 pub use crate::data::aspect::{
-    apply_installed_aspect_changes, Aspect, AspectMask, AspectVersion,
+    apply_installed_scoped_changes, Aspect, AspectMask, AspectVersion,
     InstalledSignalAspectCapability, InstalledSignalAspectLoweringAuthority,
     InstalledSignalAspectSetCapability, InstalledSignalGraphCapability,
-    InstalledSignalNodeCapability, SignalAspectCapabilityDenial, SignalAspectLoweringOwner,
-    SignalAspectLoweringOwnershipDenial, MAX_ASPECTS,
+    InstalledSignalNodeCapability, InstalledSignalScopedChange, InstalledSignalScopedChangeSet,
+    InstalledSignalScopedChangeView, SignalAspectCapabilityDenial, SignalAspectLoweringOwner,
+    SignalAspectLoweringOwnershipDenial, SignalInstalledScopedChangeDenial,
+    SignalInstalledScopedChangeOutcome, MAX_ASPECTS,
 };
 pub use crate::data::async_node::{
     async_node_compile_time_boundary_proof, async_node_milestone_d_certification_run,

@@ -202,3 +202,25 @@ pub trait WorthQueryHostConditionalPredicateProvider<Node>: Send + Sync + 'stati
         observation: WorthQueryConditionalObservationView<'_>,
     ) -> Result<WorthQueryHostPredicateDecision, WorthQueryHostPredicateFailure>;
 }
+
+/// Host-owned semantic output comparison for an installed conditional node.
+/// The values are node-local semantic output versions, never raw dependency
+/// versions or cross-runtime authority.
+pub trait WorthQueryHostConditionalOutputComparatorProvider<Node>: Send + Sync + 'static {
+    fn semantic_identity(&self) -> &'static str;
+
+    fn has_meaningful_change(
+        &self,
+        cached: u64,
+        current: u64,
+    ) -> Result<bool, WorthQueryHostPredicateFailure>;
+}
+
+/// Host-owned computation of one conditional node's semantic output version.
+/// Query supplies the monotonic attempt only as a fallback; domain providers
+/// may project a stronger semantic version from their installed live state.
+pub trait WorthQueryHostConditionalOutputVersionProvider<Node>: Send + Sync + 'static {
+    fn semantic_identity(&self) -> &'static str;
+
+    fn output_version(&self, fallback_attempt: u64) -> Result<u64, WorthQueryHostPredicateFailure>;
+}

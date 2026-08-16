@@ -51,7 +51,7 @@ fn conditional_execution_cost_ignores_unrelated_signal_nodes_and_dependencies() 
             baseline,
         );
         let lowering = owner.install(request).unwrap();
-        owner
+        let decision = owner
             .execute(
                 crate::facade::BridgeConditionalExecutionRequest {
                     lowering: &lowering,
@@ -65,9 +65,17 @@ fn conditional_execution_cost_ignores_unrelated_signal_nodes_and_dependencies() 
                 },
                 &mut (),
             )
-            .unwrap()
-            .signal()
-            .counters()
+            .unwrap();
+        let performed = decision
+            .performed_signal_invalidation()
+            .expect("initial conditional computation performs canonical Signal invalidation work");
+        assert_eq!(
+            performed.realized_counters().value(
+                worth_signal::facade::adapters::InvalidationPerformedCounter::NodesEvaluated,
+            ),
+            1
+        );
+        decision.signal().counters()
     };
     let narrow = execute(&["query:first"]);
     let wide = execute(&["query:first", "query:second", "query:partition", "query:0"]);
@@ -287,15 +295,48 @@ fn successor_preserves_builder_authority_without_carrying_conditional_registrati
             node,
         )
     };
-    let baseline = registration(
-        freshly_installed_dependency("query:first"),
-        vec![declared_target(baseline_capability)],
-    );
+    let worth_proof::TransitionOutcome::Success(baseline_exact_capability) =
+        graph.admit_installed_aspect(baseline_node, Aspect::new(0))
+    else {
+        panic!("baseline exact aspect admits");
+    };
+    let baseline_exact_target = BridgeSignalAspectTargetDeclaration::exact(
+        BridgeAspectRegistrationId::admit_bridge_owned("profile-name"),
+        PartitionToken::new("bridge-main"),
+        baseline_capability,
+        baseline_exact_capability,
+    )
+    .expect("baseline exact target shares graph authority");
+    let worth_proof::TransitionOutcome::Success(baseline_allocate_capability) =
+        graph.admit_installed_node(baseline_node)
+    else {
+        panic!("baseline allocation node admits");
+    };
+    let baseline_allocate_target = declared_target(baseline_allocate_capability);
+    let baseline_targets = vec![baseline_exact_target, baseline_allocate_target];
+    let baseline_dependency = freshly_installed_dependency("query:first");
+    let baseline = registration(baseline_dependency.clone(), baseline_targets.clone());
     let conditional = registration(
         freshly_installed_dependency("query:one"),
         vec![declared_target(conditional_capability)],
     );
-    let mut owner = BridgeOwnedSignalRuntime::new(runtime(exact_mapping(), vec![baseline]), graph)
+    let runtime = runtime(exact_mapping(), vec![baseline]);
+    let baseline_aspects = {
+        let mut binding = runtime
+            .bind_signal_graph(&mut graph)
+            .expect("the baseline Bridge runtime must bind its Signal graph");
+        let worth_proof::TransitionOutcome::Success(installed) =
+            binding.install_semantic_correspondence(baseline_dependency.clone())
+        else {
+            panic!("the baseline semantic correspondence must install")
+        };
+        installed
+            .targets()
+            .map(|target| target.aspect())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(baseline_aspects, vec![Aspect::new(0), Aspect::new(1)]);
+    let mut owner = BridgeOwnedSignalRuntime::new(runtime, graph)
         .expect("Bridge owns the runtime with builder authority");
     owner
         .install(BridgeConditionalInstallationRequest {
@@ -307,10 +348,42 @@ fn successor_preserves_builder_authority_without_carrying_conditional_registrati
         .expect("conditional authority extends the baseline registry");
     assert_eq!(owner.baseline_semantic_dependency_count(), 1);
     assert_eq!(owner.active_semantic_dependency_count(), 2);
+    owner.destroy_reconstitutable_indexes_for_test();
 
-    let successor = owner
+    let mut successor = owner
         .successor_installation_runtime()
         .expect("successor stages from the exact builder baseline");
     assert_eq!(successor.baseline_semantic_dependency_count(), 1);
     assert_eq!(successor.active_semantic_dependency_count(), 1);
+    let rebuilt = successor
+        .reconstitution_report()
+        .expect("successor must retain its completed reconstruction report")
+        .correspondence();
+    assert!(rebuilt.exact_semantic_dependency_index_parity());
+    assert!(rebuilt.exact_mapping_index_parity());
+    assert!(rebuilt.exact_index_parity());
+    let rebound_baseline = baseline_targets
+        .iter()
+        .map(|target| {
+            successor
+                .rebind_signal_target(target)
+                .expect("baseline target must bind to the reconstructed Signal graph")
+        })
+        .collect();
+    let reinstalled = successor
+        .install(BridgeConditionalInstallationRequest {
+            contract: conditional_contract("query:first"),
+            location: BridgeConditionalLocation::operation("query:first"),
+            registrations: vec![registration(baseline_dependency, rebound_baseline)],
+            providers: BridgeConditionalProviderSet::new().compute(Compute(1)),
+        })
+        .expect("the reconstructed nonempty baseline must admit ordinary installation");
+    assert_eq!(
+        reinstalled.correspondences[0]
+            .targets()
+            .map(|target| target.aspect())
+            .collect::<Vec<_>>(),
+        baseline_aspects,
+        "restored allocation authority must retain each target's exact baseline aspect slot",
+    );
 }

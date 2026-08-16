@@ -1,6 +1,6 @@
 use crate::boundary::errors::WorthSignalJsError;
 use crate::runtime::summaries::{HealthSummary, WebPerformanceSummary};
-use worth_signal::facade::adapters::{FrontierExecutionSummary, InvalidationTraceRecord};
+use worth_signal::facade::adapters::{InvalidationPlanningEstimate, InvalidationTraceRecord};
 use worth_signal::facade::diagnostics::{FailureSummary, RollbackDiagnostic};
 
 use super::WorkerRuntimeShell;
@@ -22,10 +22,10 @@ impl WorkerRuntimeShell {
         self.core.latest_rollback()
     }
 
-    pub fn latest_frontier_execution(
+    pub fn latest_invalidation_planning_estimate(
         &self,
-    ) -> Result<Option<FrontierExecutionSummary>, WorthSignalJsError> {
-        self.core.latest_frontier_execution()
+    ) -> Result<Option<InvalidationPlanningEstimate>, WorthSignalJsError> {
+        self.core.latest_invalidation_planning_estimate()
     }
 
     pub fn latest_invalidation_trace_records(

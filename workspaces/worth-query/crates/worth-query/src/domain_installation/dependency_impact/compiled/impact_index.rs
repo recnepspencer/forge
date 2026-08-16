@@ -4,7 +4,7 @@ use worth_foundational::facade::{
     AspectContractRevision, AspectIdentity, AspectKey, AuthoritativeAspectChangeKind,
     CanonicalFieldPath,
 };
-use worth_runtime_bridge::facade::BridgeSemanticAspectChange;
+use worth_runtime_bridge::facade::{BridgeSemanticAspectChange, BridgeSemanticAspectChangeBreadth};
 
 use super::dependency_source::WorthQuerySemanticAspectDependencySource as Source;
 use super::workflow_consequence_index::{
@@ -75,11 +75,13 @@ impl WorthQuerySemanticImpactIndex {
             change.aspect_identity(),
             change.contract_revision(),
         );
-        let whole_change = matches!(
-            change.kind(),
-            AuthoritativeAspectChangeKind::WholeAspectSet
-                | AuthoritativeAspectChangeKind::WholeAspectClear
-        );
+        let whole_change = change.effective_breadth()
+            != BridgeSemanticAspectChangeBreadth::ExactField
+            || matches!(
+                change.kind(),
+                AuthoritativeAspectChangeKind::WholeAspectSet
+                    | AuthoritativeAspectChangeKind::WholeAspectClear
+            );
         let mut roles = Vec::new();
         let mut lookups = 0;
         if whole_change {
@@ -93,7 +95,7 @@ impl WorthQuerySemanticImpactIndex {
                 self.collection_aspect.get(change.aspect_key()),
                 &mut lookups,
             );
-        } else if let Some(path) = change.field_path() {
+        } else if let Some(path) = change.effective_field_path() {
             extend(
                 &mut roles,
                 self.native_whole.get(&contract_key),

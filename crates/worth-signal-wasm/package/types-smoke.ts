@@ -1776,7 +1776,7 @@ const hostCapabilityBreadthDigest = hostCapabilityReport.breadthDigest;
 const hostCapabilityLineageEntry = hostCapabilityReport.lineage[0] ?? null;
 const hostCapabilityBreadthFamily = hostCapabilityReport.breadth.families[0] ?? null;
 const latestFailure = diagnostics.latestFailure();
-const latestFrontierExecution = diagnostics.latestFrontierExecution();
+const latestInvalidationPlanningEstimate = diagnostics.latestInvalidationPlanningEstimate();
 const recentHistory = diagnostics.recentHistory();
 const latestHostCapabilityRead =
   latestFlow?.callbackNodes[0]?.hostCapabilityReads[0]?.compatibility ??
@@ -1795,7 +1795,7 @@ const graphProfile = graphSummary.profile;
 const specialistGraphProfile = specialistGraphSummary.profile;
 const specialistTouchedNodes = specialistEvaluateDirty.touchedNodes;
 const latestFailureMessage = latestFailure?.message ?? null;
-const latestFrontierSeedCount = latestFrontierExecution?.seed_count ?? 0;
+const latestInvalidationPlanningSeedCount = latestInvalidationPlanningEstimate?.seed_count ?? 0;
 const latestHostCapabilityEventKind = latestHostCapabilityEvent?.kind ?? null;
 const latestHostCapabilityEventQueuedCount = latestHostCapabilityEvent?.queuedInvalidationCount ?? 0;
 const latestHostCapabilityDeniedIds = latestHostCapabilityEvent?.deniedCallbackIds ?? [];
@@ -2189,7 +2189,7 @@ void specialistTouchedNodes;
 void callbackNodeIds;
 void latestHistoryNode;
 void latestFailureMessage;
-void latestFrontierSeedCount;
+void latestInvalidationPlanningSeedCount;
 void latestHostCapabilityEventKind;
 void latestHostCapabilityEventQueuedCount;
 void latestHostCapabilityDeniedIds;

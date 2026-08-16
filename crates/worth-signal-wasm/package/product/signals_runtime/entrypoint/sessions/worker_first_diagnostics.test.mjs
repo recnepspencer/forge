@@ -113,8 +113,8 @@ test("worker-first diagnostics facade preserves supported diagnostics parity and
       compatibilitySignals.diagnostics().latestRollback(),
     );
     assert.deepEqual(
-      await diagnostics.latestFrontierExecution(),
-      compatibilitySignals.diagnostics().latestFrontierExecution(),
+      await diagnostics.latestInvalidationPlanningEstimate(),
+      compatibilitySignals.diagnostics().latestInvalidationPlanningEstimate(),
     );
     assert.deepEqual(
       await diagnostics.latestInvalidationTraceRecords(),

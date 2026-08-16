@@ -6,8 +6,8 @@ use crate::mapping::SliceWideningPolicy;
 
 use super::admission::CorrespondenceAdmissionOutcome;
 use super::slot_allocation::{
-    allocate_slot, signal_node_admits, AllocationKey, AuthoritativeAllocationRecord,
-    CorrespondenceAllocationRegistry, SlotAllocation,
+    allocate_slot, allocation_target_identity, signal_node_admits, AllocationKey,
+    AuthoritativeAllocationRecord, CorrespondenceAllocationRegistry, SlotAllocation,
 };
 use super::{
     BridgeCorrespondenceAdmissionFailure, BridgeCorrespondenceDeferred,
@@ -65,11 +65,14 @@ pub(super) fn plan_with_registry(
     let mut pending_records = Vec::with_capacity(mapped.targets.len());
     for mapped_target in mapped.targets {
         let declaration = mapped_target.declaration;
+        let target_identity = allocation_target_identity(&declaration);
         let (allocated, keys_examined) = allocate_slot(
             registry,
             pending_owners,
             mapped.resolved.signal_graph.graph_instance_id(),
             &declaration,
+            &mapped.resolved.owner,
+            &target_identity,
         );
         mapped.resolved.counters.allocation_keys_examined += keys_examined;
         let aspect = match allocated {
@@ -127,6 +130,7 @@ pub(super) fn plan_with_registry(
         pending_records.push(AuthoritativeAllocationRecord {
             key: key.clone(),
             owner: mapped.resolved.owner.clone(),
+            target_identity,
         });
         let mut allocation_sources = registry
             .owners

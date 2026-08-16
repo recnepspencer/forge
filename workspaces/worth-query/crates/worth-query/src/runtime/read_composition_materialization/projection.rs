@@ -80,5 +80,28 @@ fn retain_delivered_field(
 }
 
 fn delivered_field_path(aspect: &AspectKey, field: &FieldKey) -> Option<CanonicalFieldPath> {
-    CanonicalFieldPath::new([FieldKey::new(aspect.as_str().to_string())?, field.clone()])
+    let relative = CanonicalFieldPath::new([field.clone()])?;
+    crate::memory_workspace::normalized_native_storage_path(aspect, &relative)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dotted_aspect_projection_retains_its_canonical_scalar_path() {
+        let path = delivered_field_path(
+            &AspectKey::new("Portfolio.Facts").unwrap(),
+            &FieldKey::new("desk").unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            path.fields()
+                .iter()
+                .map(FieldKey::as_str)
+                .collect::<Vec<_>>(),
+            vec!["Portfolio", "Facts", "desk"]
+        );
+    }
 }

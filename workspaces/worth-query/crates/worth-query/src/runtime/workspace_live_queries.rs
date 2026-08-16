@@ -76,6 +76,26 @@ impl WorthQueryWorkspace {
         self.read_live_result(view)
     }
 
+    pub(crate) fn read_managed_live_view_for_granular_scope<T>(
+        &mut self,
+        view: &super::WorthQueryLiveView<T>,
+        capability: &std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability>,
+        scope: &crate::live::WorthQueryMaintenanceScope,
+        basis: &crate::runtime::WorthQueryGranularSourceReadBasis,
+    ) -> Result<WorthQueryLiveReadResult, WorthQueryRuntimeError> {
+        self.admit_managed_live_capability(capability, view.name())?;
+        self.runtime.reap_abandoned_managed_live_resources()?;
+        let review = self
+            .runtime
+            .review_runtime_live_read_execution(view.subscription_installation().clone())?;
+        let handoff = self
+            .runtime
+            .resolve_reviewed_admitted_live_read_execution_handoff(review)?;
+        let binding = self.runtime.prepare_live_read_execution_binding(handoff)?;
+        self.runtime
+            .execute_granular_live_read_execution_binding(binding, scope, basis)
+    }
+
     pub(crate) fn drain_managed_live_view<T>(
         &mut self,
         view: &super::WorthQueryLiveView<T>,

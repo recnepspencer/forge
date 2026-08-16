@@ -1,8 +1,6 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use worth_proof::{CapabilityMarker, CapabilityWitness, TransitionOutcome};
 
-use crate::data::error::SignalError;
-use crate::data::proof::DirtyBatch;
 use crate::data::{graph::SignalGraph, handle::NodeId, node::NodeContract};
 
 use super::Aspect;
@@ -169,44 +167,4 @@ impl SignalGraph {
             aspects: capabilities,
         })
     }
-}
-
-pub fn apply_installed_aspect_changes(
-    graph: &mut SignalGraph,
-    capabilities: impl IntoIterator<Item = InstalledSignalAspectCapability>,
-) -> Result<usize, SignalError> {
-    let capabilities = capabilities.into_iter().collect::<Vec<_>>();
-    let mut unique = BTreeSet::new();
-    let mut original = BTreeMap::new();
-    let mut updated = BTreeMap::new();
-
-    for capability in &capabilities {
-        if capability.graph_instance_id != graph.runtime_instance_id()
-            || !unique.insert((capability.node, capability.aspect))
-        {
-            return Err(SignalError::internal(
-                "installed Signal aspect change used foreign or duplicate capability",
-            ));
-        }
-        let current = graph.node_aspect_version(capability.node)?;
-        original.entry(capability.node).or_insert(current);
-        let next = updated.entry(capability.node).or_insert(current);
-        *next = next.bump(capability.aspect);
-    }
-
-    for (node, version) in &updated {
-        graph.apply_node_aspect_version(*node, *version, &[])?;
-    }
-    let dirty = DirtyBatch::from_sources(
-        capabilities
-            .iter()
-            .map(|capability| (capability.node, capability.aspect)),
-    );
-    if let Err(error) = crate::logic::invalidation::mark_dirty_batch(&mut *graph, &dirty) {
-        for (node, version) in original {
-            graph.apply_node_aspect_version(node, version, &[])?;
-        }
-        return Err(error);
-    }
-    Ok(capabilities.len())
 }

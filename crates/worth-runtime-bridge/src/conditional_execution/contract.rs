@@ -33,8 +33,10 @@ struct AdmittedConditionalInstallationRequest {
 /// graph; Query never receives a raw graph or a detached node capability.
 pub struct BridgeOwnedSignalRuntime {
     pub(super) bridge: RuntimeBridge,
-    baseline_semantic_dependency_registry:
+    pub(super) baseline_semantic_dependency_registry:
         crate::correspondence::AdmittedSemanticDependencyRegistry,
+    pub(super) baseline_correspondence_allocations:
+        crate::correspondence::CorrespondenceAllocationRegistry,
     pub(super) graph: SignalGraph,
     pub(super) conditional_lowerings:
         BTreeMap<worth_signal::facade::NodeId, Arc<BridgeInstalledConditionalLowering>>,
@@ -47,6 +49,7 @@ pub struct BridgeOwnedSignalRuntime {
         worth_foundational::facade::ContractValidatedAspectArtifact,
     >,
     pub(super) managed_clock_lanes: BTreeMap<Arc<str>, super::managed_time::BridgeManagedClockLane>,
+    pub(super) reconstitution_report: Option<super::BridgeConditionalRuntimeReconstitutionReport>,
 }
 
 impl BridgeOwnedSignalRuntime {
@@ -63,12 +66,13 @@ impl BridgeOwnedSignalRuntime {
         mut graph: SignalGraph,
     ) -> Result<Self, BridgeConditionalDenial> {
         let baseline_semantic_dependency_registry = bridge.semantic_dependency_registry.clone();
-        crate::correspondence::isolate_allocation_state(&mut bridge).map_err(|_| {
-            BridgeConditionalDenial::new(
-                BridgeConditionalDenialKind::CorrespondenceAdmission,
-                "conditional runtime could not isolate its authoritative allocation state",
-            )
-        })?;
+        let baseline_correspondence_allocations =
+            crate::correspondence::isolate_allocation_state(&mut bridge).map_err(|_| {
+                BridgeConditionalDenial::new(
+                    BridgeConditionalDenialKind::CorrespondenceAdmission,
+                    "conditional runtime could not isolate its authoritative allocation state",
+                )
+            })?;
         graph
             .claim_aspect_lowering_owner(&bridge.signal_aspect_lowering_owner)
             .map_err(|_| {
@@ -80,10 +84,12 @@ impl BridgeOwnedSignalRuntime {
         Ok(Self {
             bridge,
             baseline_semantic_dependency_registry,
+            baseline_correspondence_allocations,
             graph,
             conditional_lowerings: BTreeMap::new(),
             conditional_observations: std::collections::BTreeMap::new(),
             managed_clock_lanes: BTreeMap::new(),
+            reconstitution_report: None,
         })
     }
 
@@ -282,12 +288,6 @@ impl BridgeOwnedSignalRuntime {
         self.conditional_lowerings
             .insert(admitted.node, Arc::clone(&lowering));
         Ok(lowering)
-    }
-
-    pub fn successor_installation_runtime(&self) -> Result<Self, BridgeConditionalDenial> {
-        let mut bridge = self.bridge.clone();
-        bridge.semantic_dependency_registry = self.baseline_semantic_dependency_registry.clone();
-        Self::new(bridge, self.graph.clone())
     }
 
     pub fn baseline_semantic_dependency_count(&self) -> usize {

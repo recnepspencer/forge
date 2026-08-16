@@ -23,10 +23,11 @@ pub(super) struct AuthoritativeClockWork<'a, Schema> {
     pub(super) truth: &'a WorthQueryConditionalTruthBasis,
 }
 
-#[derive(Clone, Copy)]
 pub(super) struct AuthoritativeClockProgress {
     pub(super) commit_count: usize,
     pub(super) work_remaining: bool,
+    pub(super) granular_invalidations:
+        Vec<worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery>,
 }
 
 pub(super) fn reconsider_authoritative_clock_work<Schema>(
@@ -41,21 +42,21 @@ pub(super) fn reconsider_authoritative_clock_work<Schema>(
     )
     .map_err(runtime_rejection)?;
     let commit_count = commits.commit_count();
-    let work_remaining =
-        super::super::authoritative_reconsideration::deliver_authoritative_commits(
-            work.bridge,
-            work.lowering,
-            work.cursor,
-            commits,
-            work.retained_wakes,
-            work.runtime_binding_identity,
-            work.runtime_capability_identity,
-            work.truth,
-        )
-        .map_err(runtime_rejection)?;
+    let delivered = super::super::authoritative_reconsideration::deliver_authoritative_commits(
+        work.bridge,
+        work.lowering,
+        work.cursor,
+        commits,
+        work.retained_wakes,
+        work.runtime_binding_identity,
+        work.runtime_capability_identity,
+        work.truth,
+    )
+    .map_err(runtime_rejection)?;
     Ok(AuthoritativeClockProgress {
         commit_count,
-        work_remaining,
+        work_remaining: delivered.work_remaining,
+        granular_invalidations: delivered.granular_invalidations,
     })
 }
 

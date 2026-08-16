@@ -60,6 +60,21 @@ impl BridgeSignalAspectTargetDeclaration {
         })
     }
 
+    /// Stable text projection of the registration identity retained by this
+    /// target declaration. It grants no correspondence or Signal authority.
+    #[doc(hidden)]
+    pub fn aspect_registration_identity(&self) -> &str {
+        self.aspect_registration_id.as_str()
+    }
+
+    /// Read-only Signal partition retained by this target declaration.
+    /// This is descriptive installation evidence and grants no correspondence
+    /// or Signal mutation authority.
+    #[doc(hidden)]
+    pub fn partition(&self) -> &PartitionToken {
+        &self.partition
+    }
+
     pub(crate) fn graph_instance_id(&self) -> u64 {
         self.node_capability.graph_instance_id()
     }

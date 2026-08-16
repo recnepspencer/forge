@@ -111,6 +111,14 @@ This milestone is complete only when the bridge harness can prove:
 
 ## Milestone 2: Aspect Mapping and Fine-Grained Subscriptions
 
+Platform integration companion:
+[WORTH Signal Milestone 13.1](../WORTH_signal/milestone-13.1-plan.md) consumes
+this Bridge-owned correspondence contract and governs the production cutover
+through scoped Signal execution into Query-owned maintenance. That composed
+path is now implemented and certified in the
+[Milestone 13.1 closeout](../WORTH_signal/milestone-13.1-closeout.md); Milestone
+2's local closeout remains only the Bridge-owned prerequisite.
+
 Engineering spec: [milestone-2.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-runtime-bridge/milestone-2.md)
 Shipped closeout: [milestone-2-closeout.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-runtime-bridge/milestone-2-closeout.md)
 Envelope/planning hardening companion: [milestone-2-envelope-and-planning-hardening.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-runtime-bridge/milestone-2-envelope-and-planning-hardening.md)

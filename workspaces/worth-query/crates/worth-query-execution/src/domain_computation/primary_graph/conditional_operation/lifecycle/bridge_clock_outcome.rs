@@ -9,7 +9,7 @@ pub(super) fn map_bridge_clock_outcome(
         BridgeManagedClockObservationOutcome,
         worth_runtime_bridge::facade::BridgeManagedTemporalDenial,
     >,
-    mut retain: impl FnMut(
+    retain: impl FnOnce(
         worth_runtime_bridge::facade::BridgeManagedClockAcceptedObservation,
     ) -> ErasedClockObservationReceipt,
 ) -> ErasedClockObservationOutcome {

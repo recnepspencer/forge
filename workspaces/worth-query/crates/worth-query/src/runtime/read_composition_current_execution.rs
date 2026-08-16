@@ -32,7 +32,11 @@ pub(in crate::runtime) fn execute_runtime_current_read_graph(
     .with_materialized_fact_posture(materialized.fact_posture);
     Ok(WorthQueryExecutedReadProduct {
         graph_read_access_execution_counters: materialized.graph_read_access_counters,
-        product: WorthQueryReadResult::new(materialized.rows, receipt),
+        product: WorthQueryReadResult::new_with_source_rows(
+            materialized.rows,
+            materialized.maintenance_source_rows,
+            receipt,
+        ),
     })
 }
 
@@ -67,6 +71,7 @@ struct WorthQueryCurrentReadMaterialization {
     snapshot_identity: WorthQuerySnapshotIdentity,
     execution: crate::execution::ExecutionResultEnvelope,
     rows: Vec<crate::memory_workspace::WorthQueryEntity>,
+    maintenance_source_rows: Vec<crate::memory_workspace::WorthQueryEntity>,
     records_examined_count: usize,
     graph_read_access_counters: crate::runtime::WorthQueryGraphReadAccessExecutionCounters,
     fact_posture: Option<ProjectionMaterializedFactPosture>,
@@ -80,7 +85,8 @@ fn materialize_current_read_input(
     let snapshot_evidence_identity = admitted.snapshot_identity.evidence_identity();
     let mut graph_read_access_recorder =
         WorthQueryGraphReadAccessExecutionRecorder::entered_executor();
-    let (rows, records_examined_count) = materialize_read_rows(runtime, read_graph)?.into_parts();
+    let (rows, maintenance_source_rows, records_examined_count) =
+        materialize_read_rows(runtime, read_graph)?.into_parts();
     graph_read_access_recorder.record_materialized_rows(rows.len());
     let fact_posture =
         materialized_fact_posture_for_read_graph(runtime, read_graph, &snapshot_evidence_identity);
@@ -88,6 +94,7 @@ fn materialize_current_read_input(
         snapshot_identity: admitted.snapshot_identity,
         execution: admitted.execution,
         rows,
+        maintenance_source_rows,
         records_examined_count,
         graph_read_access_counters: graph_read_access_recorder.finish(),
         fact_posture,

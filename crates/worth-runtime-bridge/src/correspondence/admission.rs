@@ -48,15 +48,18 @@ impl RuntimeBridge {
             .correspondence_allocations
             .write()
             .map_err(|_| BridgeCorrespondenceAdmissionFailure::LockPoisoned)?;
-        let rebuilt = super::slot_allocation::rebuild_owners(&registry.authoritative_records);
-        let exact_index_parity = rebuilt == registry.owners;
-        registry.owners = rebuilt;
+        let rebuilt = registry.reconstruct_derived_indexes();
+        *registry = rebuilt;
+        let exact_index_parity = registry.reconstruct_derived_indexes() == *registry;
         Ok(super::BridgeCorrespondenceRebuildReport::new(
             self.semantic_dependency_registry.authoritative_count(),
             registry.authoritative_records.len(),
             registry.owners.len(),
             self.semantic_dependency_registry.rebuild_has_exact_parity(),
-            self.aspect_registry.rebuilt_id_index_has_exact_parity(),
+            self.aspect_registry.rebuilt_id_index_has_exact_parity()
+                && self
+                    .aspect_registry
+                    .rebuilt_semantic_index_has_exact_parity(),
             exact_index_parity,
         ))
     }

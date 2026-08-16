@@ -84,6 +84,9 @@ pub struct WorthQueryRuntimeBuilder {
         Vec<Box<dyn crate::domain_installation::PendingConditionalInstallation>>,
     pending_primary_graph_installation:
         Option<Box<dyn primary_graph::PendingPrimaryGraphInstallation>>,
+    primary_runtime_invalidation_installation: Option<
+        worth_query_execution::facade::primary_graph::WorthQueryGranularInvalidationInstallation,
+    >,
     host_execution_installation:
         Option<worth_query_execution::facade::runtime::WorthQueryExecutionRuntimeInstallation>,
 }
@@ -97,6 +100,16 @@ pub use host_installation::{
 impl WorthQueryRuntimeBuilder {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Shares the execution-owned primary graph that produces granular
+    /// invalidation batches with this Query runtime backend.
+    pub fn primary_runtime_granular_invalidations(
+        mut self,
+        installation: worth_query_execution::facade::primary_graph::WorthQueryGranularInvalidationInstallation,
+    ) -> Self {
+        self.primary_runtime_invalidation_installation = Some(installation);
+        self
     }
 
     pub fn backend(mut self, backend: impl WorthQueryRuntimeBackend + 'static) -> Self {

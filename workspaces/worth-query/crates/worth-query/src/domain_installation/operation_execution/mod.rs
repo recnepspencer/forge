@@ -125,7 +125,8 @@ pub use operation_output::*;
 pub use progression::*;
 pub use progression_evidence::*;
 pub(crate) use projection_lifecycle::{
-    validate_live_source_authority, WorthQueryClassifiedOwnerDeliveryCompletion,
+    refresh_granular_source, validate_live_source_authority,
+    WorthQueryClassifiedOwnerDeliveryCompletion,
 };
 pub use projection_lifecycle::{
     WorthQueryAuthorityRevalidationDomainProjection,

@@ -139,6 +139,7 @@ fn source_precision_name(policy: super::BridgeAuthoritativeSourcePrecisionPolicy
 pub struct FrozenAspectMappingRegistry {
     registrations: Vec<FrozenAspectRegistration>,
     by_id: BTreeMap<BridgeAspectRegistrationId, usize>,
+    semantic_candidates: super::semantic_index::BridgeAspectSemanticCandidateIndex,
 }
 
 impl FrozenAspectMappingRegistry {
@@ -158,9 +159,12 @@ impl FrozenAspectMappingRegistry {
             .enumerate()
             .map(|(index, registration)| (registration.registration_id().clone(), index))
             .collect();
+        let semantic_candidates =
+            super::semantic_index::BridgeAspectSemanticCandidateIndex::build(&registrations);
         Ok(Self {
             registrations,
             by_id,
+            semantic_candidates,
         })
     }
 
@@ -175,6 +179,19 @@ impl FrozenAspectMappingRegistry {
         self.by_id.get(id).map(|index| &self.registrations[*index])
     }
 
+    pub(crate) fn semantic_candidates(
+        &self,
+        entity: Option<&str>,
+        aspect: &worth_foundational::facade::AspectKey,
+        targets: &[crate::mapping::TruthPatchTargetSelector],
+    ) -> Vec<&FrozenAspectRegistration> {
+        self.semantic_candidates
+            .candidates(entity, aspect, targets)
+            .into_iter()
+            .map(|index| &self.registrations[index])
+            .collect()
+    }
+
     pub(crate) fn rebuilt_id_index_has_exact_parity(&self) -> bool {
         self.registrations
             .iter()
@@ -182,5 +199,25 @@ impl FrozenAspectMappingRegistry {
             .map(|(index, registration)| (registration.registration_id().clone(), index))
             .collect::<BTreeMap<_, _>>()
             == self.by_id
+    }
+
+    pub(crate) fn rebuilt_semantic_index_has_exact_parity(&self) -> bool {
+        self.semantic_candidates
+            == super::semantic_index::BridgeAspectSemanticCandidateIndex::build(&self.registrations)
+    }
+
+    pub(crate) fn reconstruct_derived_indexes(&self) -> Result<Self, BridgeBuildError> {
+        Self::freeze(
+            self.registrations
+                .iter()
+                .map(|registration| registration.registration.clone())
+                .collect(),
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn destroy_derived_indexes(&mut self) {
+        self.by_id.clear();
+        self.semantic_candidates = Default::default();
     }
 }

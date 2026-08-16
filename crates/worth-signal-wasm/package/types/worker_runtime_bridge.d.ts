@@ -4,7 +4,7 @@ import type {
   LineageSummary,
   FailureSummary,
   FlowSurfaceSummary,
-  FrontierExecutionSummary,
+  InvalidationPlanningEstimate,
   ExecutionHistorySurfaceSummary,
   GraphSummary,
   HealthSummary,
@@ -212,7 +212,7 @@ export interface WorkerRuntimeBridge {
   performanceSummary(): Promise<WebPerformanceSummary>;
   latestFailure(): Promise<FailureSummary | null>;
   latestRollback(): Promise<RollbackDiagnostic | null>;
-  latestFrontierExecution(): Promise<FrontierExecutionSummary | null>;
+  latestInvalidationPlanningEstimate(): Promise<InvalidationPlanningEstimate | null>;
   latestInvalidationTraceRecords(): Promise<ReadonlyArray<InvalidationTraceRecord>>;
   recentHistory(): Promise<ReadonlyArray<ExecutionHistorySummary>>;
   currentBranch(): Promise<RuntimeBranchHandle>;
@@ -322,7 +322,7 @@ export interface WorkerFirstDiagnosticsFacade {
   hostCapabilityReport(): Promise<WorkerFirstHostCapabilityDiagnosticsReport>;
   latestFailure(): Promise<FailureSummary | null>;
   latestRollback(): Promise<RollbackDiagnostic | null>;
-  latestFrontierExecution(): Promise<FrontierExecutionSummary | null>;
+  latestInvalidationPlanningEstimate(): Promise<InvalidationPlanningEstimate | null>;
   latestInvalidationTraceRecords(): Promise<ReadonlyArray<InvalidationTraceRecord>>;
   recentHistory(): Promise<ReadonlyArray<ExecutionHistorySummary>>;
 }

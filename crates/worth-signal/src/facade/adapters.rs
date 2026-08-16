@@ -2,6 +2,7 @@ pub use crate::data::dirty_set::{BatchedDirtySet, DomainImpact};
 pub use crate::data::effect_mapping::EffectMapping;
 pub use crate::data::evaluator::CheckpointEvaluator;
 pub use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
+pub use crate::data::graph::{SignalGraphReconstitution, SignalGraphReconstitutionReport};
 pub use crate::data::node::{
     ArtifactPolicyClass, AuthorityPolicy, CanonicalDependencyOrder, ComparatorBasis,
     CompileTimePerformanceContract, ContextRequirement, EquivalenceContract, IdentityBasis,

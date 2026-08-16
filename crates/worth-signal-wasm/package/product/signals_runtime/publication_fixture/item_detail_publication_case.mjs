@@ -131,7 +131,7 @@ export async function createItemDetailPublicationCase() {
         latestRollback() {
           return null;
         },
-        latestFrontierExecution() {
+        latestInvalidationPlanningEstimate() {
           return null;
         },
         latestInvalidationTraceRecords() {

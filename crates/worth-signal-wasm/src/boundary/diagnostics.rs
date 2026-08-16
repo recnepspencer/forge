@@ -207,14 +207,14 @@ impl SignalDiagnostics {
         to_nullable_js(rollback)
     }
 
-    #[wasm_bindgen(js_name = latestFrontierExecution)]
-    pub fn latest_frontier_execution(&self) -> Result<JsValue, JsValue> {
-        let frontier = self
+    #[wasm_bindgen(js_name = latestInvalidationPlanningEstimate)]
+    pub fn latest_invalidation_planning_estimate(&self) -> Result<JsValue, JsValue> {
+        let estimate = self
             .core
             .borrow()
-            .latest_frontier_execution()
+            .latest_invalidation_planning_estimate()
             .map_err(JsValue::from)?;
-        to_nullable_js(frontier)
+        to_nullable_js(estimate)
     }
 
     #[wasm_bindgen(js_name = latestInvalidationTraceRecords)]

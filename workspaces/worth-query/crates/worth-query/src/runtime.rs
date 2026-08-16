@@ -62,6 +62,7 @@ mod conditional_owner_delivery_continuation;
 mod facade_contract;
 mod installed_live_routing;
 mod live_subscription_target_index;
+mod primary_graph_source;
 mod runtime_root_state;
 mod shared_projection_owners;
 pub(crate) use conditional_owner_delivery_admission::{
@@ -71,8 +72,12 @@ pub(crate) use conditional_owner_delivery_continuation::WorthQueryRetainedOwnerD
 pub(crate) use installed_live_routing::{
     WorthQueryAdmittedStagedOwnerDelivery, WorthQueryClassifiedOwnerDeliveryEmissionError,
 };
+pub use primary_graph_source::{
+    WorthQueryPrimaryGraphSourceAdapter, WorthQueryPrimaryGraphSourceProjection,
+};
 pub(crate) use shared_projection_owners::{
-    WorthQuerySharedConditionalDeliveryCompletion, WorthQuerySharedProjectionLeaseToken,
+    WorthQuerySharedConditionalDeliveryCompletion, WorthQuerySharedPrimaryOwnerRefreshStop,
+    WorthQuerySharedProjectionLeaseToken,
 };
 mod conditional_owner_delivery_lowering;
 mod delivery;
@@ -88,7 +93,10 @@ pub(crate) use evidence_identities::{
 };
 #[cfg(test)]
 mod fallback_seam_counters;
+mod granular_source_read_basis;
 mod graph_read_access;
+#[doc(hidden)]
+pub use granular_source_read_basis::WorthQueryGranularSourceReadBasis;
 pub(crate) use graph_read_access::WorthQueryGraphReadOperationLookup;
 mod handle_contract;
 mod inspection;

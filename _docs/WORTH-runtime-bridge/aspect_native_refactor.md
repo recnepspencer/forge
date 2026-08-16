@@ -8,6 +8,10 @@
 >
 > Bridge certification companion: [test-requirements.md](test-requirements.md)
 >
+> Platform carriage successor:
+> [WORTH Signal Milestone 13.1](../WORTH_signal/milestone-13.1-plan.md)
+> ([implemented cross-runtime closeout](../WORTH_signal/milestone-13.1-closeout.md))
+>
 > Foundational authority companion: [aspect-contracts-values-and-authoritative-state](../../crates/worth-foundational/docs/aspect-contracts-values-and-authoritative-state/README.md)
 >
 > Primary architectural driver: hard-break `worth-runtime-bridge` onto
@@ -33,6 +37,32 @@ contracts from the beginning. Historical engineering documents may describe
 the migration. Production code, public facades, retained diagnostics,
 certification fixtures, and harness helpers must not preserve signs of a
 prior JSON/raw-byte/string-label/digest-only authority model.
+
+## Cross-Runtime Granular Invalidation Boundary
+
+Runtime Bridge is the installed correspondence owner between committed
+Relational change meaning and lower-runtime consumers. In the completed
+granular invalidation path it owns:
+
+- matching one committed semantic change to installed dependencies while
+  keeping aspect, change kind, field path, and record locality correlated
+- preserving exact locality or reporting an explicitly admitted widening
+- delivering authoritative direct truth separately from optional evidence of
+  Signal work that actually ran
+- rejecting stale graph, runtime-generation, snapshot, mapping, or allocation
+  bindings during restore and reinstallation
+- reporting candidate probes, matched dependencies, widening, rejection,
+  direct delivery, and performed-delivery cost rows at the Bridge boundary
+
+The Bridge does not mint Query maintenance, consumer disclosure, or Signal
+execution authority. Signal remains the owner of performed recomputation.
+Query consumes the installed delivery, admits application consequences, and
+publishes the current query-shaped result. A semantic scope or private lookup
+key can narrow candidate selection, but neither is authority and neither may be
+replaced by a physical shard, region, or worker identity.
+
+The application-facing contract is documented in
+[Granular Live Invalidation](../../workspaces/worth-query/crates/worth-query/docs/runtime-surfaces/granular-live-invalidation.md).
 
 Hard-break rules:
 

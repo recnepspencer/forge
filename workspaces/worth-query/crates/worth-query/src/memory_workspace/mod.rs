@@ -5,10 +5,14 @@ use worth_relational::facade::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::BridgeMutationAuthorityBundle;
 
 mod atomic_batch;
+mod entity_native_replacement;
+#[cfg(test)]
+mod entity_native_replacement_tests;
 mod entity_row;
 mod identities;
 mod mutation_authority_admission;
 mod native_patch;
+mod native_value_access;
 mod runtime_identity;
 mod seed_rows;
 #[cfg(test)]
@@ -18,10 +22,14 @@ mod workspace;
 mod workspace_schema;
 
 pub(crate) use atomic_batch::WorthQueryMemoryBatchMutation;
+pub(crate) use entity_native_replacement::{
+    WorthQueryEntityNativeReplacement, WorthQueryEntityNativeReplacementValue,
+};
 pub use entity_row::WorthQueryEntity;
 pub use identities::{
     WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQuerySnapshotIdentity,
 };
+pub(crate) use native_value_access::{aspect_relative_scalar, normalized_native_storage_path};
 #[cfg(test)]
 pub(crate) use truth_identity_admission::admit_external_commit_label;
 pub(crate) use truth_identity_admission::{

@@ -63,6 +63,8 @@ impl WorthQueryConditionalClockObservationFailure {
 }
 
 pub struct WorthQueryConditionalClockObservationReceipt<Clock> {
+    granular_invalidation_installation:
+        crate::domain_computation::primary_graph::WorthQueryGranularInvalidationInstallation,
     sequence: u64,
     observed_time: WorthQueryClockCoordinate<Clock>,
     due_wake_count: usize,
@@ -79,6 +81,7 @@ pub struct WorthQueryConditionalClockObservationReceipt<Clock> {
     failed_operation_count: usize,
     indeterminate_operation_count: usize,
     execution_provenance: Vec<super::WorthQueryConditionalExecutionProvenance>,
+    granular_invalidations: Vec<worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery>,
 }
 
 impl<Clock> WorthQueryConditionalClockObservationReceipt<Clock> {
@@ -147,6 +150,19 @@ impl<Clock> WorthQueryConditionalClockObservationReceipt<Clock> {
     pub fn execution_provenance(&self) -> &[super::WorthQueryConditionalExecutionProvenance] {
         &self.execution_provenance
     }
+
+    /// Consume the exact lower-runtime deliveries observed while this clock
+    /// observation reconsidered authoritative commits. The returned carrier
+    /// is transport evidence only; Query still performs candidate selection
+    /// and current admission.
+    pub fn take_granular_invalidation_batch(
+        &mut self,
+    ) -> crate::domain_computation::primary_graph::WorthQueryGranularInvalidationDeliveryBatch {
+        crate::domain_computation::primary_graph::granular_invalidation::collect_granular_invalidations(
+            self.granular_invalidation_installation.clone(),
+            std::mem::take(&mut self.granular_invalidations),
+        )
+    }
 }
 
 pub enum WorthQueryConditionalClockObservationOutcome<Clock> {
@@ -184,10 +200,11 @@ where
                 );
             }
         };
+        let granular_invalidation_installation = self.runtime.granular_invalidation_installation();
         let mut owners = super::runtime_owners::ConditionalRuntimeOwners::take(self.runtime);
         let outcome = owners.observe_clock(identity, &self.handle.lease, &truth);
         match outcome {
-            Some(outcome) => outcome.typed(),
+            Some(outcome) => outcome.typed(granular_invalidation_installation),
             None => WorthQueryConditionalClockObservationOutcome::Failed(
                 WorthQueryConditionalClockObservationFailure {
                     kind: WorthQueryConditionalClockObservationFailureKind::RuntimeRejected,
@@ -253,6 +270,8 @@ pub(in crate::domain_computation::primary_graph) struct ErasedClockObservationRe
     pub(super) failed_operation_count: usize,
     pub(super) indeterminate_operation_count: usize,
     pub(super) execution_provenance: Vec<super::WorthQueryConditionalExecutionProvenance>,
+    pub(super) granular_invalidations:
+        Vec<worth_runtime_bridge::facade::BridgeGranularInvalidationDelivery>,
 }
 
 pub(in crate::domain_computation::primary_graph) enum ErasedClockObservationOutcome {
@@ -268,13 +287,16 @@ pub(in crate::domain_computation::primary_graph) enum ErasedClockObservationOutc
 }
 
 impl ErasedClockObservationOutcome {
-    fn typed<Clock>(self) -> WorthQueryConditionalClockObservationOutcome<Clock> {
+    fn typed<Clock>(
+        self,
+        installation: crate::domain_computation::primary_graph::WorthQueryGranularInvalidationInstallation,
+    ) -> WorthQueryConditionalClockObservationOutcome<Clock> {
         match self {
             Self::Accepted(receipt) => {
-                WorthQueryConditionalClockObservationOutcome::Accepted(receipt.typed())
+                WorthQueryConditionalClockObservationOutcome::Accepted(receipt.typed(installation))
             }
             Self::Duplicate(receipt) => {
-                WorthQueryConditionalClockObservationOutcome::Duplicate(receipt.typed())
+                WorthQueryConditionalClockObservationOutcome::Duplicate(receipt.typed(installation))
             }
             Self::Stale => WorthQueryConditionalClockObservationOutcome::Stale,
             Self::Reordered => WorthQueryConditionalClockObservationOutcome::Reordered,
@@ -287,8 +309,12 @@ impl ErasedClockObservationOutcome {
 }
 
 impl ErasedClockObservationReceipt {
-    fn typed<Clock>(self) -> WorthQueryConditionalClockObservationReceipt<Clock> {
+    fn typed<Clock>(
+        self,
+        granular_invalidation_installation: crate::domain_computation::primary_graph::WorthQueryGranularInvalidationInstallation,
+    ) -> WorthQueryConditionalClockObservationReceipt<Clock> {
         WorthQueryConditionalClockObservationReceipt {
+            granular_invalidation_installation,
             sequence: self.sequence,
             observed_time: WorthQueryClockCoordinate::from_nanoseconds(self.observed_coordinate),
             due_wake_count: self.due_wake_count,
@@ -305,6 +331,7 @@ impl ErasedClockObservationReceipt {
             failed_operation_count: self.failed_operation_count,
             indeterminate_operation_count: self.indeterminate_operation_count,
             execution_provenance: self.execution_provenance,
+            granular_invalidations: self.granular_invalidations,
         }
     }
 }

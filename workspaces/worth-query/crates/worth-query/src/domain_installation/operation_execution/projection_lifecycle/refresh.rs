@@ -16,8 +16,12 @@ use super::{
     WorthQueryProjectionPromotionDenialKind,
 };
 
+#[path = "refresh/projection.rs"]
+mod projection;
+
 pub struct WorthQueryLiveProjectionRefresh {
     authority: Box<WorthQueryConsumedProjectionAuthority>,
+    source_rows: Vec<crate::memory_workspace::WorthQueryEntity>,
     warnings: Option<ProjectionConsumptionWarnings>,
     native_access: Option<WorthQueryNativeAccessLayout>,
     delivery: crate::ordinary::live::WorthQueryManagedLiveDelivery,
@@ -28,6 +32,10 @@ pub struct WorthQueryLiveProjectionRefresh {
 impl WorthQueryLiveProjectionRefresh {
     pub fn authority(&self) -> &WorthQueryConsumedProjectionAuthority {
         &self.authority
+    }
+
+    pub(crate) fn source_rows(&self) -> &[crate::memory_workspace::WorthQueryEntity] {
+        &self.source_rows
     }
 
     pub fn warnings(&self) -> Option<&ProjectionConsumptionWarnings> {
@@ -83,10 +91,12 @@ pub enum WorthQueryLiveProjectionRefreshError {
     Projection {
         outcome: Box<WorthQueryProjectionOutcome>,
         work: WorthQueryLiveProjectionRefreshWork,
+        owner_delivery_retained: bool,
     },
     NativeAccess {
         denial: WorthQueryNativeAccessDenial,
         work: WorthQueryLiveProjectionRefreshWork,
+        owner_delivery_retained: bool,
     },
 }
 
@@ -117,8 +127,16 @@ impl WorthQueryLiveProjectionRefreshError {
             | Self::Conditional {
                 owner_delivery_retained,
                 ..
+            }
+            | Self::Projection {
+                owner_delivery_retained,
+                ..
+            }
+            | Self::NativeAccess {
+                owner_delivery_retained,
+                ..
             } => *owner_delivery_retained,
-            _ => false,
+            Self::Authority(_) => false,
         }
     }
 }
@@ -159,6 +177,21 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane>
             self.managed_handle(),
             workspace,
             Some(delivery),
+        )
+    }
+
+    pub(crate) fn refresh_granular_scope(
+        &self,
+        scope: &crate::live::WorthQueryMaintenanceScope,
+        basis: &crate::runtime::WorthQueryGranularSourceReadBasis,
+        workspace: &mut WorthQueryWorkspace,
+    ) -> Result<WorthQueryLiveProjectionRefresh, WorthQueryLiveProjectionRefreshError> {
+        refresh_granular_source(
+            self.snapshot(),
+            self.managed_handle(),
+            scope,
+            basis,
+            workspace,
         )
     }
 }
@@ -263,37 +296,104 @@ where
             (delivery, impact)
         }
     };
-    work.begin_read();
-    let read =
+    finish_refresh(source, handle, workspace, delivery, impact, work, None)
+}
+
+pub(crate) fn refresh_granular_source<
+    D: 'static,
+    O: 'static,
+    F: 'static,
+    L: BasisOperationLane,
+    S,
+>(
+    source: &S,
+    handle: &crate::ordinary::live::WorthQueryManagedLiveHandle,
+    scope: &crate::live::WorthQueryMaintenanceScope,
+    basis: &crate::runtime::WorthQueryGranularSourceReadBasis,
+    workspace: &mut WorthQueryWorkspace,
+) -> Result<WorthQueryLiveProjectionRefresh, WorthQueryLiveProjectionRefreshError>
+where
+    S: WorthQueryProjectionLifecycleSource<D, O, F, L>,
+{
+    let mut work = WorthQueryLiveProjectionRefreshWork::authority_checked();
+    super::source::validate_live_source_authority(source, workspace).map_err(|denial| {
+        WorthQueryLiveProjectionRefreshError::Authority(
+            WorthQueryLiveProjectionRefreshAuthorityStop {
+                kind: denial.kind(),
+                work,
+            },
+        )
+    })?;
+    let closure = source.semantic_dependency_closure().ok_or_else(|| {
+        crate::domain_installation::WorthQueryImpactAdmissionDenial::new(
+            crate::domain_installation::WorthQueryImpactAdmissionDenialKind::DependencyClosureUnavailable,
+            crate::domain_installation::WorthQueryImpactCounters::default(),
+        )
+    }).map_err(|denial| WorthQueryLiveProjectionRefreshError::Impact {
+        denial,
+        work,
+        owner_delivery_retained: true,
+    })?;
+    let prepared = projection::prepare_projection(
+        source,
+        handle,
+        workspace,
+        Some((scope, basis)),
+        work,
+        true,
+    )?;
+    work = prepared.work;
+    work.begin_drain();
+    let delivery =
         handle
-            .read(workspace)
+            .drain(workspace)
             .map_err(|error| WorthQueryLiveProjectionRefreshError::Runtime {
                 error,
                 work,
-                owner_delivery_retained: false,
+                owner_delivery_retained: true,
             })?;
-    let outcome = handle.project_contract(&read, source.projection_authority_contract());
-    work.retain_projection();
-    let (authority, warnings) = outcome.into_admitted().map_err(|outcome| {
-        WorthQueryLiveProjectionRefreshError::Projection {
-            outcome: Box::new(outcome),
-            work,
-        }
-    })?;
-    let native_layout = source.native_access_layout();
-    if native_layout.is_some() {
-        work.begin_native_rebind();
-    }
-    let native_access = native_layout
-        .map(|layout| layout.rebind(source.consumer_contract(), &authority))
-        .transpose()
-        .map_err(|denial| WorthQueryLiveProjectionRefreshError::NativeAccess { denial, work })?;
+    work.retain_delivery(&delivery);
+    let impact = std::sync::Arc::new(
+        crate::domain_installation::WorthQueryImpactDecision::from_managed_live_delivery(
+            closure, &delivery,
+        ),
+    );
+    work.retain_impact(&impact);
     Ok(WorthQueryLiveProjectionRefresh {
-        authority,
-        warnings,
-        native_access,
+        authority: prepared.authority,
+        source_rows: prepared.source_rows,
+        warnings: prepared.warnings,
+        native_access: prepared.native_access,
         delivery,
         work,
+        impact,
+    })
+}
+
+fn finish_refresh<D: 'static, O: 'static, F: 'static, L: BasisOperationLane, S>(
+    source: &S,
+    handle: &crate::ordinary::live::WorthQueryManagedLiveHandle,
+    workspace: &mut WorthQueryWorkspace,
+    delivery: crate::ordinary::live::WorthQueryManagedLiveDelivery,
+    impact: std::sync::Arc<crate::domain_installation::WorthQueryImpactDecision>,
+    mut work: WorthQueryLiveProjectionRefreshWork,
+    granular_read: Option<(
+        &crate::live::WorthQueryMaintenanceScope,
+        &crate::runtime::WorthQueryGranularSourceReadBasis,
+    )>,
+) -> Result<WorthQueryLiveProjectionRefresh, WorthQueryLiveProjectionRefreshError>
+where
+    S: WorthQueryProjectionLifecycleSource<D, O, F, L>,
+{
+    let prepared =
+        projection::prepare_projection(source, handle, workspace, granular_read, work, false)?;
+    Ok(WorthQueryLiveProjectionRefresh {
+        authority: prepared.authority,
+        source_rows: prepared.source_rows,
+        warnings: prepared.warnings,
+        native_access: prepared.native_access,
+        delivery,
+        work: prepared.work,
         impact,
     })
 }
