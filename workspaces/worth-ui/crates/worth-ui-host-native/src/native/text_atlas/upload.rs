@@ -212,14 +212,7 @@ impl UiNativeTextAtlasGpuPages {
         transaction: u64,
         uploads: &[UiNativeTextAtlasGpuBatchUpload<'_>],
     ) -> Result<UiNativeGpuUploadReceipt, UiNativeTextAtlasDenial> {
-        batch::upload_batch_for_transaction(
-            self,
-            device,
-            queue,
-            resources,
-            transaction,
-            uploads,
-        )
+        batch::upload_batch_for_transaction(self, device, queue, resources, transaction, uploads)
     }
 
     fn page_target(

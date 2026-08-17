@@ -4,11 +4,11 @@ use super::{
     PendingAtlasUpload, UiNativeGpuUploadReceipt, UiNativeTextAtlasGpuBatchUpload,
     UiNativeTextAtlasGpuPages,
 };
-use crate::native::{UiNativeOwnedResource, UiNativeResourceClass, UiNativeResourceRegistry};
-use crate::native::text_atlas::UiNativeTextAtlasDenial;
 use crate::native::text_atlas::upload_staging::{
     copy_rows, submit_copies, validate_upload_target, AtlasCopyCommand, CopyLayout,
 };
+use crate::native::text_atlas::UiNativeTextAtlasDenial;
+use crate::native::{UiNativeOwnedResource, UiNativeResourceClass, UiNativeResourceRegistry};
 
 pub(super) fn upload_batch_for_transaction(
     pages: &mut UiNativeTextAtlasGpuPages,

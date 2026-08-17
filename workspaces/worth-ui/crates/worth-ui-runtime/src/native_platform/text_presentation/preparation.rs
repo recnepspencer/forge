@@ -92,12 +92,12 @@ pub(crate) fn prepare_mounted_semantic_text<'work>(
     ) -> Option<&'work worth_ui_text::UiQualifiedTextLayout>,
 ) -> Option<UiNativeTextPresentationPreparation> {
     let pin_work = mounted_semantic_text(work);
-    // Gate D may carry command identities that a future retained pin owner
-    // will use to release text pins, but an identity-only removal does not
-    // establish that this work contains semantic text.  In particular, every
-    // ordinary non-text replacement has such an identity.  Do not turn those
-    // presentations into the Gate-E text deferral lane.
-    if pin_work.mechanics.is_empty() {
+    // A delta removal carries only its command identity.  Preserve it here so
+    // the runtime's committed command-to-pin owner can decide whether it is a
+    // text release.  Arbitrary non-text removals remain insufficient because
+    // the mounted text coordinator rejects zero-demand candidates that do not
+    // change committed text ownership.
+    if pin_work.mechanics.is_empty() && pin_work.removals.is_empty() {
         return None;
     }
     let lane = lane_for(work);

@@ -30,6 +30,9 @@ impl UiNativeMountedTextCoordinator {
         ) -> worth_ui_host_contract::UiHostSurfacePresentationOutcome,
     ) -> Option<UiNativeMountedSurfaceTextObservation> {
         let candidate = self.pins.candidate(binding, prepared);
+        if prepared.demand_batches().is_empty() && !candidate.changes_binding() {
+            return None;
+        }
         let transition = UiMountedTextPinState::transition_view(&candidate);
         let mut transaction = UiNativeTextAtlasTransaction::prepare(prepared, resolve)?;
         let outcome = transaction.with_mounted_work(

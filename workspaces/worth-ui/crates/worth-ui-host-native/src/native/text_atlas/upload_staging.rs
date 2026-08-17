@@ -97,17 +97,15 @@ pub(super) fn submit_copies(
     copies: &[AtlasCopyCommand<'_>],
 ) -> wgpu::SubmissionIndex {
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("worth-ui-text-atlas-upload"),
-        });
+        label: Some("worth-ui-text-atlas-upload"),
+    });
     for copy in copies {
         encoder.copy_buffer_to_texture(
             wgpu::TexelCopyBufferInfo {
                 buffer: staging,
                 layout: wgpu::TexelCopyBufferLayout {
                     offset: copy.staging_offset,
-                    bytes_per_row: Some(
-                        u32::try_from(copy.layout.padded_row).unwrap_or(u32::MAX),
-                    ),
+                    bytes_per_row: Some(u32::try_from(copy.layout.padded_row).unwrap_or(u32::MAX)),
                     rows_per_image: Some(copy.upload.height()),
                 },
             },

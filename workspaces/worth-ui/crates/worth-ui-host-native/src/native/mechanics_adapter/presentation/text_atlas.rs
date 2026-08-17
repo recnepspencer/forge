@@ -82,6 +82,30 @@ pub(super) fn retain_pending(
     );
 }
 
+pub(super) fn settle_pin_only(
+    state: &mut UiNativeHostState,
+    view: &UiMountedFrameConsumptionView<'_>,
+    pending: Option<(
+        worth_ui_host_contract::UiGlyphRasterTransactionPending,
+        Box<[worth_ui_host_contract::UiGlyphRasterPinRequest]>,
+    )>,
+) -> UiHostSurfacePresentationOutcome {
+    let Some(pending) = pending else {
+        return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
+            worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred,
+        );
+    };
+    let token = view.issue_completion_token();
+    retain_pending(
+        state,
+        view,
+        &token,
+        pending,
+        UiNativePendingTextContinuation::AtlasReady,
+    );
+    UiHostSurfacePresentationOutcome::InFlight(token)
+}
+
 pub(super) fn complete(
     state: &mut UiNativeHostState,
     token: UiHostPresentationCompletionToken,

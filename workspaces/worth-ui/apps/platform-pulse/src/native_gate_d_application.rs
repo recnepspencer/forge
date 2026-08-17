@@ -1,8 +1,9 @@
 use worth_ui::facade::declaration::{
     ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
-    ComponentPropSchema, ComponentSemanticTextContract, ComponentStateOwnership, SurfaceDescriptor,
-    SurfaceId, SurfaceKind, SurfacePlacementClass, SurfaceStateClass, ThemeColorValue,
-    ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
+    ComponentPropSchema, ComponentSemanticTextContract, ComponentStateOwnership,
+    ComponentStaticPaintContract, ComponentStaticPaintOrder, SurfaceDescriptor, SurfaceId,
+    SurfaceKind, SurfacePlacementClass, SurfaceStateClass, ThemeColorValue, ThemeTokenDescriptor,
+    ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
 };
 use worth_ui_native_platform::{
@@ -13,9 +14,11 @@ use worth_ui_native_platform::{
 
 const FIRST: &str = "gate.d.text.first";
 const SECOND: &str = "gate.d.text.second";
+const BASELINE: &str = "gate.d.baseline";
 const FIRST_AUTHORED: &str = "gate-d-first";
 const SECOND_AUTHORED: &str = "gate-d-second";
 const SURFACE: &str = "gate.d.surface";
+const BASELINE_TOKEN: &str = "theme.gate_d.baseline";
 const TEXT_TOKEN: &str = "theme.gate_d.text";
 const SHARED_TEXT: &str =
     "Gate D shares one qualified layout and releases its atlas pins at the last owner.";
@@ -32,18 +35,22 @@ impl UiNativeApplicationDefinition for PlatformPulseNativeGateDApplication {
             let mut builder = preparation.builder();
             builder
                 .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())?;
+            builder.register_theme_token(baseline_token())?;
             builder.register_theme_token(text_token())?;
+            builder.register_component(baseline_component())?;
             builder.register_component(text_component(FIRST, 0))?;
             builder.register_component(text_component(SECOND, 1))?;
             builder.register_surface(SurfaceDescriptor::new(
                 SurfaceId::new(SURFACE).expect("Gate D surface identity"),
                 SurfaceKind::primary_content(),
-                ComponentId::new(FIRST).expect("Gate D root component"),
+                ComponentId::new(BASELINE).expect("Gate D root component"),
                 SurfacePlacementClass::primary_region(),
                 SurfaceStateClass::ephemeral(),
             ))?;
             let module = WorthUiRustAuthoredArtifactInputModule::new("app/gate_d_text.wui")
+                .with_token(BASELINE_TOKEN, "#1f2328")
                 .with_token(TEXT_TOKEN, "#ffffff")
+                .with_component_authored_identity(BASELINE, "gate-d-baseline")
                 .with_component_authored_identity(FIRST, FIRST_AUTHORED)
                 .with_component_authored_identity(SECOND, SECOND_AUTHORED)
                 .with_surface_authored_identity(SURFACE, "gate-d-surface");
@@ -59,6 +66,7 @@ impl UiNativeApplicationDefinition for PlatformPulseNativeGateDApplication {
 
 fn gate_d_program() -> UiNativeApplicationProgram {
     UiNativeApplicationProgram::new([
+        UiNativeApplicationFrame::present_current(),
         UiNativeApplicationFrame::with_semantic_text([text_change(FIRST), text_change(SECOND)])
             .expect("Gate D initial text frame"),
         UiNativeApplicationFrame::with_component_presence([presence_change(FIRST, false)])
@@ -67,6 +75,22 @@ fn gate_d_program() -> UiNativeApplicationProgram {
             .expect("Gate D last-owner release frame"),
     ])
     .expect("Gate D frame program is bounded")
+}
+
+fn baseline_component() -> ComponentDescriptor {
+    ComponentDescriptor::new(
+        ComponentId::new(BASELINE).expect("Gate D baseline identity"),
+        ComponentPropSchema::named("gate.d.baseline.props"),
+        ComponentChildPolicy::no_children(),
+        ComponentStateOwnership::runtime_owned(),
+    )
+    .with_static_paint(
+        ComponentStaticPaintContract::opaque_fill(
+            ThemeTokenId::new(BASELINE_TOKEN).expect("Gate D baseline token"),
+            ComponentStaticPaintOrder::back_to_front(0),
+        ),
+        ComponentAllocationMeasurementContract::fill_viewport(),
+    )
 }
 
 fn text_component(identity: &str, paint_order: u32) -> ComponentDescriptor {
@@ -89,6 +113,15 @@ fn text_token() -> ThemeTokenDescriptor {
         ThemeTokenFamily::surface(),
         ThemeTokenSource::application(),
         ThemeTokenValue::color(ThemeColorValue::hex("#ffffff").expect("Gate D text color")),
+    )
+}
+
+fn baseline_token() -> ThemeTokenDescriptor {
+    ThemeTokenDescriptor::define(
+        ThemeTokenId::new(BASELINE_TOKEN).expect("Gate D baseline token identity"),
+        ThemeTokenFamily::surface(),
+        ThemeTokenSource::application(),
+        ThemeTokenValue::color(ThemeColorValue::hex("#1f2328").expect("Gate D baseline color")),
     )
 }
 

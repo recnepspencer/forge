@@ -8,7 +8,7 @@ use worth_ui_host_contract::{
 
 use crate::native_platform::text_presentation::UiNativeTextPresentationPrepared;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Eq, PartialEq)]
 struct UiMountedBindingPins {
     by_command: HashMap<UiMountedPaintCommandIdentity, Box<[UiGlyphRasterPinRequest]>>,
     pin_owners: HashMap<UiGlyphRasterPinRequest, u32>,
@@ -28,6 +28,7 @@ struct UiMountedTextPinEdit {
 pub(crate) struct UiMountedTextPinCandidate {
     binding: UiSurfaceBindingGeneration,
     next_binding: UiMountedBindingPins,
+    binding_changed: bool,
     binding_additions: Box<[UiGlyphRasterPinRequest]>,
     binding_releases: Box<[UiGlyphRasterPinRequest]>,
     additions: Box<[UiGlyphRasterPinRequest]>,
@@ -61,6 +62,7 @@ impl UiMountedTextPinState {
         previous: UiMountedBindingPins,
         next_binding: UiMountedBindingPins,
     ) -> UiMountedTextPinCandidate {
+        let binding_changed = previous.by_command != next_binding.by_command;
         let (binding_additions, binding_releases) = transition_difference(
             &all_pins(&previous).collect::<Vec<_>>(),
             &all_pins(&next_binding).collect::<Vec<_>>(),
@@ -83,6 +85,7 @@ impl UiMountedTextPinState {
         UiMountedTextPinCandidate {
             binding,
             next_binding,
+            binding_changed,
             binding_additions,
             binding_releases,
             additions,
@@ -124,6 +127,12 @@ impl UiMountedTextPinState {
             .into_iter()
             .flat_map(all_pins)
             .collect()
+    }
+}
+
+impl UiMountedTextPinCandidate {
+    pub(crate) const fn changes_binding(&self) -> bool {
+        self.binding_changed
     }
 }
 
@@ -234,12 +243,13 @@ fn remove_pin_owners(
     }
 }
 
-#[cfg(test)]
 impl UiMountedTextPinCandidate {
+    #[cfg(test)]
     fn additions(&self) -> &[UiGlyphRasterPinRequest] {
         &self.additions
     }
 
+    #[cfg(test)]
     fn releases(&self) -> &[UiGlyphRasterPinRequest] {
         &self.releases
     }

@@ -125,6 +125,74 @@ fn shared_pins_release_only_after_the_last_binding_is_deregistered() {
 }
 
 #[test]
+fn command_owner_removal_is_visible_even_when_shared_keys_stay_pinned() {
+    let first_projection = semantic_text_projection_for_certification(
+        UiSemanticTextProjectionCertificationMutation::Exact,
+    );
+    let second_projection = semantic_text_projection_for_certification(
+        UiSemanticTextProjectionCertificationMutation::Exact,
+    );
+    let first_requirement = UiMountedSurfaceBindingRequirement::new(
+        first_projection.surface(),
+        UiHostSurfaceIdentity::mint_unbound().unwrap(),
+        first_projection.binding(),
+        WorthUiHostCapabilityObservationGeneration::new(7),
+        11,
+        UiHostSurfacePresentationMode::NativeDisplay,
+    );
+    let second_requirement = UiMountedSurfaceBindingRequirement::new(
+        second_projection.surface(),
+        UiHostSurfaceIdentity::mint_unbound().unwrap(),
+        second_projection.binding(),
+        WorthUiHostCapabilityObservationGeneration::new(7),
+        11,
+        UiHostSurfacePresentationMode::NativeDisplay,
+    );
+    let (first_initial, prepared) = prepared_initial(&first_projection, first_requirement);
+    let (second_initial, _) = prepared_initial(&second_projection, second_requirement);
+    let first_command = first_initial.commands()[0].identity();
+    let second_command = second_initial.commands()[0].identity();
+    assert_ne!(first_command, second_command);
+    let pins = prepared
+        .demand_batches()
+        .iter()
+        .flat_map(|demand| {
+            demand.records().iter().map(|record| {
+                UiGlyphRasterPinRequest::from_text_mechanics(demand.layout_identity(), record.key())
+            })
+        })
+        .collect::<Vec<_>>();
+    let mut previous = UiMountedBindingPins::default();
+    previous
+        .by_command
+        .insert(first_command, pins.clone().into_boxed_slice());
+    previous
+        .by_command
+        .insert(second_command, pins.clone().into_boxed_slice());
+    add_pin_owners(&mut previous.pin_owners, &pins);
+    add_pin_owners(&mut previous.pin_owners, &pins);
+    let binding = first_requirement.binding();
+    let mut owner = UiMountedTextPinState::default();
+    owner.committed.insert(binding, previous.clone());
+    add_pin_owners(&mut owner.global_pin_owners, &pins);
+
+    let mut retained = previous.clone();
+    let removed = retained.by_command.remove(&first_command).unwrap();
+    remove_pin_owners(&mut retained.pin_owners, &removed);
+    let first_release = owner.candidate_from_next(binding, previous, retained);
+    assert!(first_release.changes_binding());
+    assert!(first_release.additions().is_empty());
+    assert!(first_release.releases().is_empty());
+    owner.commit_presented(first_release);
+
+    let previous = owner.committed.get(&binding).cloned().unwrap();
+    let last_release =
+        owner.candidate_from_next(binding, previous, UiMountedBindingPins::default());
+    assert!(last_release.changes_binding());
+    assert_eq!(last_release.releases().len(), pins.len());
+}
+
+#[test]
 fn partial_delta_replaces_only_its_command_and_preserves_unchanged_shared_pins() {
     let first_projection = semantic_text_projection_for_certification(
         UiSemanticTextProjectionCertificationMutation::Exact,

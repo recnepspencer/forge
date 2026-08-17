@@ -8,8 +8,10 @@ use crate::certification_support::{
 };
 use crate::mounting::qualified_text_test_support::inert_qualified_layout;
 use worth_ui_host_contract::{
-    UiHostSurfaceIdentity, UiHostSurfacePresentationMode, UiMountedPresentationWorkView,
-    UiMountedSurfaceBindingRequirement, WorthUiHostCapabilityObservationGeneration,
+    UiHostSurfaceIdentity, UiHostSurfacePresentationMode, UiMountedPaintCommandChange,
+    UiMountedPaintOrderIntegrity, UiMountedPresentationDelta, UiMountedPresentationDeltaInput,
+    UiMountedPresentationWorkView, UiMountedSurfaceBindingRequirement,
+    WorthUiHostCapabilityObservationGeneration,
 };
 
 fn requirement(
@@ -80,4 +82,46 @@ fn consumer_layout_substitution_is_rejected_before_layout_admission() {
         denial.readiness(),
         UiNativeTextPresentationReadiness::SemanticTextLayoutMismatch
     );
+}
+
+#[test]
+fn removal_only_delta_preserves_explicit_command_identity_without_raster_demand() {
+    let projection = semantic_text_projection_for_certification(
+        UiSemanticTextProjectionCertificationMutation::Exact,
+    );
+    let requirement = requirement(&projection);
+    let initial = initial_presentation_mechanics_for_certification(&projection, requirement);
+    let removed = initial.commands()[0].identity();
+    let affinity = initial.affinity();
+    let delta = UiMountedPresentationDelta::from_inert_mechanics(UiMountedPresentationDeltaInput {
+        predecessor: affinity.successor(),
+        successor: worth_ui_host_contract::UiMountedFrameIdentity::mint_unbound().unwrap(),
+        surface: affinity.surface(),
+        binding: affinity.binding(),
+        content: affinity.content(),
+        baseline: affinity.baseline(),
+        changes: vec![UiMountedPaintCommandChange::Remove(removed)],
+        nodes: Vec::new(),
+        order: Vec::new(),
+        order_integrity: UiMountedPaintOrderIntegrity::for_order(&[]),
+        damage: vec![
+            worth_ui_host_contract::UiMountedLogicalDamage::from_runtime_mounting(
+                initial.commands()[0].bounds(),
+            ),
+        ],
+        auxiliary: None,
+        production_cost: initial.production_cost(),
+    });
+    let preparation = prepare_mounted_semantic_text(
+        UiMountedPresentationWorkView::Delta(&delta),
+        UiMountedEventTimeDpiAuthority::from_requirement(requirement).unwrap(),
+        |_| None,
+    )
+    .expect("an explicit removal must reach the committed text-pin owner");
+    let UiNativeTextPresentationPreparation::Prepared(prepared) = preparation else {
+        panic!("removal-only work cannot require layout or raster admission");
+    };
+    assert!(prepared.demand_batches().is_empty());
+    assert!(prepared.pin_commands().is_empty());
+    assert_eq!(prepared.pin_removals(), &[removed]);
 }

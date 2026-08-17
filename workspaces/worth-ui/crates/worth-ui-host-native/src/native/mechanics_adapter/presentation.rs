@@ -19,11 +19,17 @@ pub(super) fn perform_native_presentation(
     state: &mut UiNativeHostState,
     view: &UiMountedFrameConsumptionView<'_>,
 ) -> UiHostSurfacePresentationOutcome {
+    let pin_only = view
+        .text_raster_work()
+        .is_some_and(|work| work.demands().is_empty());
     let text = match text_atlas::begin(state, view) {
         text_atlas::UiMountedTextWorkOutcome::Ready => None,
         text_atlas::UiMountedTextWorkOutcome::Pending(pending) => Some(pending),
         text_atlas::UiMountedTextWorkOutcome::Terminal(outcome) => return outcome,
     };
+    if pin_only {
+        return text_atlas::settle_pin_only(state, view, text);
+    }
     let presentation = perform_surface_work(state, view);
     let Some((pending, binding_pins)) = text else {
         return presentation;
