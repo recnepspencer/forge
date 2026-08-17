@@ -170,14 +170,13 @@ pub(super) fn main_for(requirement: &str) -> Option<TestIdentity> {
             "topology_contracts",
             "milestone_3141_phase1_ledger::predecessor_handoff::phase_five_predecessor_handoff_is_current",
         ),
-        "P5-GLYPH-RASTER-01" => integration(
-            "worth-ui-certification",
-            "topology_contracts",
-            "milestone_3141_phase1_topology::phase_five_raster_authority::consumer_raster_authority_mutants_are_rejected",
+        "P5-GLYPH-RASTER-01" => library(
+            "worth-ui-text",
+            "phase5_ledger_evidence::qualified_alpha_and_color_raster_cross_exact_production_authority",
         ),
         "P5-COLOR-EMOJI-01" => library(
             "worth-ui-text",
-            "phase5_ledger_evidence::emoji_tint_split_and_unqualified_color_sources_are_rejected",
+            "phase5_ledger_evidence::every_qualified_color_source_and_rgi_sequence_crosses_production_raster",
         ),
         "P5-ATLAS-01" => library(
             "worth-ui-host-native",
@@ -291,6 +290,15 @@ pub(super) fn control_for(requirement: &str) -> Option<TestIdentity> {
             "worth-ui-certification",
             "topology_contracts",
             "milestone_3141_phase1_ledger::predecessor_artifact::tests::phase_five_stale_source_or_missing_row_is_rejected",
+        ),
+        "P5-GLYPH-RASTER-01" => integration(
+            "worth-ui-certification",
+            "topology_contracts",
+            "milestone_3141_phase1_topology::phase_five_raster_authority::consumer_raster_authority_mutants_are_rejected",
+        ),
+        "P5-COLOR-EMOJI-01" => library(
+            "worth-ui-text",
+            "phase5_ledger_evidence::emoji_tint_split_and_unqualified_color_sources_are_rejected",
         ),
         "P5-ATLAS-01" => library(
             "worth-ui-host-native",

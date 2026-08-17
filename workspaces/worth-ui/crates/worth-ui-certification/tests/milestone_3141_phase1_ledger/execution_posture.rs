@@ -119,6 +119,8 @@ pub(crate) fn main_budget_ms(requirement: &str) -> u64 {
         } else {
             120_000
         }
+    } else if requirement == "P5-COLOR-EMOJI-01" {
+        180_000
     } else {
         60_000
     }
@@ -202,6 +204,9 @@ pub(crate) fn control_budget_ms(requirement: &str) -> u64 {
     ) {
         return 30_000;
     }
+    if requirement == "P5-COLOR-EMOJI-01" {
+        return 60_000;
+    }
     if matches!(
         requirement,
         "P3-PREDECESSOR-01"
@@ -230,4 +235,11 @@ fn every_shared_phase_three_main_retains_its_declared_ignore_posture() {
             assert!(expected_declared_ignored(requirement), "{requirement}");
         }
     }
+}
+
+#[test]
+fn phase_five_raster_budgets_match_the_governed_worlds() {
+    assert_eq!(main_budget_ms("P5-GLYPH-RASTER-01"), 60_000);
+    assert_eq!(main_budget_ms("P5-COLOR-EMOJI-01"), 180_000);
+    assert_eq!(control_budget_ms("P5-COLOR-EMOJI-01"), 60_000);
 }
