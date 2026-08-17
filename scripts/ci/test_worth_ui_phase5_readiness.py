@@ -115,6 +115,31 @@ class PhaseFiveReadinessTests(unittest.TestCase):
             "coordinator/gate_d_pin_evidence" in source for source in pin_sources
         ))
 
+    def test_raster_sources_close_over_each_executed_production_owner(self) -> None:
+        configured = ledger_closer.phase_proofs(5)
+        glyph_sources = configured["P5-GLYPH-RASTER-01"].sources
+        color_sources = configured["P5-COLOR-EMOJI-01"].sources
+        for source in [
+            "workspaces/worth-ui/crates/worth-ui-text/src/raster/color/bitmap.rs",
+            "workspaces/worth-ui/crates/worth-ui-text/src/raster/color/completion.rs",
+            "workspaces/worth-ui/crates/worth-ui-text/src/raster/color/pixels.rs",
+        ]:
+            self.assertIn(source, glyph_sources)
+        for source in [
+            "workspaces/worth-ui/crates/worth-ui-text/src/font_collection/"
+            "application_color_graph_controls.rs",
+            "workspaces/worth-ui/profiles/worth-ui-global-text-v2/unicode/emoji/"
+            "emoji-test.txt",
+        ]:
+            self.assertIn(source, color_sources)
+        for sources in (glyph_sources, color_sources):
+            self.assertEqual(len(sources), len(set(sources)))
+            for source in sources:
+                self.assertTrue(
+                    (ROOT / source).is_file(),
+                    f"mapped raster source does not exist: {source}",
+                )
+
     def test_gate_batches_close_atomically_without_claiming_phase_closure(self) -> None:
         selected = [{"requirement": "P5-ATLAS-01"}]
         with mock.patch.object(ledger_closer, "close_selected_atomically") as close:
