@@ -1,8 +1,8 @@
 use worth_ui::facade::declaration::{
-    ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
-    ComponentSemanticTextContract, ComponentStateOwnership, SurfaceDescriptor, SurfaceId,
-    SurfaceKind, SurfacePlacementClass, SurfaceStateClass, ThemeColorValue, ThemeTokenDescriptor,
-    ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
+    ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
+    ComponentPropSchema, ComponentSemanticTextContract, ComponentStateOwnership, SurfaceDescriptor,
+    SurfaceId, SurfaceKind, SurfacePlacementClass, SurfaceStateClass, ThemeColorValue,
+    ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
 };
 use worth_ui_native_platform::{
@@ -59,18 +59,12 @@ impl UiNativeApplicationDefinition for PlatformPulseNativeGateDApplication {
 
 fn gate_d_program() -> UiNativeApplicationProgram {
     UiNativeApplicationProgram::new([
-        UiNativeApplicationFrame::with_semantic_text([
-            text_change(FIRST_AUTHORED),
-            text_change(SECOND_AUTHORED),
-        ])
-        .expect("Gate D initial text frame"),
-        UiNativeApplicationFrame::with_component_presence([presence_change(FIRST_AUTHORED, false)])
+        UiNativeApplicationFrame::with_semantic_text([text_change(FIRST), text_change(SECOND)])
+            .expect("Gate D initial text frame"),
+        UiNativeApplicationFrame::with_component_presence([presence_change(FIRST, false)])
             .expect("Gate D first-owner release frame"),
-        UiNativeApplicationFrame::with_component_presence([presence_change(
-            SECOND_AUTHORED,
-            false,
-        )])
-        .expect("Gate D last-owner release frame"),
+        UiNativeApplicationFrame::with_component_presence([presence_change(SECOND, false)])
+            .expect("Gate D last-owner release frame"),
     ])
     .expect("Gate D frame program is bounded")
 }
@@ -82,6 +76,7 @@ fn text_component(identity: &str, paint_order: u32) -> ComponentDescriptor {
         ComponentChildPolicy::text_children(),
         ComponentStateOwnership::runtime_owned(),
     )
+    .with_allocation_measurement_contract(ComponentAllocationMeasurementContract::fill_viewport())
     .with_semantic_text(ComponentSemanticTextContract::body_default(
         ThemeTokenId::new(TEXT_TOKEN).expect("Gate D text token"),
         paint_order,
