@@ -196,6 +196,11 @@ fn assert_counter_and_graphics_mutants(lawful: &Value) {
                 "extent",
             ),
             (&["peak", "queues"], json!(0), "queues"),
+            (
+                &["peak", "physical_signal_runtimes"],
+                json!(0),
+                "physical_signal_runtimes",
+            ),
         ],
     );
 }
@@ -343,6 +348,8 @@ fn resource_census_fixture(count: u64, retained_targets: u64) -> Value {
             "pending_submissions",
             "event_wake_registrations",
             "application_drivers",
+            "physical_signal_runtimes",
+            "physical_signal_workers",
         ]
         .contains(&class)
         {

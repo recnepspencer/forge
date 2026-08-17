@@ -211,6 +211,8 @@ fn validate_native_resources(observation: &Value) -> Result<(), String> {
                 2
             } else if PHASE_TWO_RESOURCE_CLASSES.contains(class) {
                 1
+            } else if PHASE_FIVE_STANDING_RESOURCE_CLASSES.contains(class) {
+                1
             } else {
                 0
             };
@@ -249,6 +251,9 @@ const PHASE_TWO_RESOURCE_CLASSES: &[&str] = &[
     "event_wake_registrations",
     "application_drivers",
 ];
+
+const PHASE_FIVE_STANDING_RESOURCE_CLASSES: &[&str] =
+    &["physical_signal_runtimes", "physical_signal_workers"];
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum ResourceSchema {
