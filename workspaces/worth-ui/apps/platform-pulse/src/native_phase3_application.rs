@@ -58,7 +58,9 @@ fn phase3_program() -> UiNativeApplicationProgram {
         frames.push(presence_frame((start..RECTANGLE_COUNT).rev(), false));
         frames.push(presence_frame(start..RECTANGLE_COUNT, true));
     }
-    UiNativeApplicationProgram::new(frames).expect("the fixed Phase 3 program is bounded")
+    UiNativeApplicationProgram::new(frames)
+        .expect("the fixed Phase 3 program is bounded")
+        .remain_open_until_external_close()
 }
 
 fn presence_frame(
