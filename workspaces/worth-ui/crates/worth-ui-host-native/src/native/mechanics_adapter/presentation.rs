@@ -15,6 +15,10 @@ use crate::native::{
 
 use super::presentation_text_atlas as text_atlas;
 
+#[cfg(test)]
+#[path = "presentation/text_atlas_tests.rs"]
+pub(crate) mod text_atlas_tests;
+
 pub(super) fn perform_native_presentation(
     state: &mut UiNativeHostState,
     view: &UiMountedFrameConsumptionView<'_>,

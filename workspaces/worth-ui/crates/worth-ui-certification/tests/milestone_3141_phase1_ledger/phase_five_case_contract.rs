@@ -38,7 +38,6 @@ const ATLAS_POSITIVE: &[&str] = &[
     "temporal-recovery",
     "retry-correlation",
     "retained-content-extent",
-    "event-loop-progression",
     "production-supersession",
     "terminal-census",
 ];
@@ -54,6 +53,7 @@ const PIN_POSITIVE: &[&str] = &[
     "shared-layout-pins",
     "runtime-transaction-owner",
     "native-signal-settlement",
+    "alpha-color-event-loop-progression",
     "last-owner-release",
     "preclose-pin-transition",
     "terminal-census",

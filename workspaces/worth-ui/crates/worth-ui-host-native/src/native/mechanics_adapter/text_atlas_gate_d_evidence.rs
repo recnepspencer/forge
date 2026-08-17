@@ -68,6 +68,7 @@ impl UiGlyphRasterMissRasterizer for MixedSubmittingRasterizer {
 }
 
 #[test]
+#[ignore = "requires the serialized interactive Windows 11 DX12 desktop"]
 fn real_dx12_signal_transaction_matches_the_independent_atlas_model_and_closes_exactly() {
     super::adapter_scoped_transaction_rejects_callback_and_releases_reservation();
     super::full_physical_signal_capacity_rejects_before_atlas_planning_or_rasterization();
@@ -75,11 +76,11 @@ fn real_dx12_signal_transaction_matches_the_independent_atlas_model_and_closes_e
     super::pending_physical_staging_denies_before_raster_and_cannot_be_closed_early();
     signal_failure_tests::named_upload_port_faults_are_causal_and_preserve_atlas_rollback();
     signal_failure_tests::cancellation_and_supersession_atomically_quarantine_retained_native_uploads();
+    crate::native::mechanics_adapter::presentation::text_atlas_tests::production_presentation_stop_routes_supersession_into_signal_recovery();
     signal_failure_tests::replayed_external_completion_cannot_settle_a_new_atlas_request();
     crate::native::text_atlas::assert_gate_d_model_boundaries();
-    crate::native::text_atlas::physical_transaction_correlation_rebinds_to_the_current_signal_attempt();
+    retry_correlation_tests::production_retry_rebinds_the_retained_gpu_correlation();
     crate::native::text_atlas::retained_content_extent_is_the_uploaded_shape_not_the_padded_allocation();
-    crate::native::event_loop::production_event_loop_progresses_ready_atlas_work();
     let mut state = crate::native::UiNativeHostState::new();
     let mut rasterizer = MixedSubmittingRasterizer;
     exercise_real_dx12_commit(&mut state, &mut rasterizer);
@@ -89,7 +90,7 @@ fn real_dx12_signal_transaction_matches_the_independent_atlas_model_and_closes_e
     assert!(signal.runtime_owned);
     assert!(signal.signal_performed_transitions > 0);
     assert!(state.close().is_zero());
-    println!("WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-01\":[\"exact-signal-basis\",\"independent-model\",\"real-dx12-alpha-color\",\"bounded-capacity\",\"temporal-recovery\",\"retry-correlation\",\"retained-content-extent\",\"event-loop-progression\",\"production-supersession\",\"terminal-census\"]}}");
+    println!("WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-01\":[\"exact-signal-basis\",\"independent-model\",\"real-dx12-alpha-color\",\"bounded-capacity\",\"temporal-recovery\",\"retry-correlation\",\"retained-content-extent\",\"production-supersession\",\"terminal-census\"]}}");
     println!(
         "WORTH_UI_LEDGER_COUNTERS={{\"P5-ATLAS-01\":1,\"physical-signal-runtimes\":{}}}",
         u8::from(signal.runtime_owned)

@@ -20,7 +20,7 @@ const SECOND_AUTHORED: &str = "gate-d-second";
 const SURFACE: &str = "gate.d.surface";
 const BASELINE_TOKEN: &str = "theme.gate_d.baseline";
 const TEXT_TOKEN: &str = "theme.gate_d.text";
-const SHARED_TEXT: &str = "CURRENT";
+const SHARED_TEXT: &str = "CURRENT\u{2764}\u{FE0F}";
 
 pub(crate) struct PlatformPulseNativeGateDApplication;
 

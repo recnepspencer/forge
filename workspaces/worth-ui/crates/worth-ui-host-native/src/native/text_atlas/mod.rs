@@ -64,8 +64,6 @@ pub(crate) use census::UiNativeTextAtlasPhysicalPosture;
 pub use census::{UiNativeTextAtlasCensus, UiNativeTextAtlasResourceClass};
 #[cfg(test)]
 pub(crate) use content_extent_tests::retained_content_extent_is_the_uploaded_shape_not_the_padded_allocation;
-#[cfg(test)]
-pub(crate) use correlation_tests::physical_transaction_correlation_rebinds_to_the_current_signal_attempt;
 pub(crate) use demand::UiNativeTextAtlasDemand;
 #[cfg(test)]
 pub(crate) use gate_d_model_evidence::{

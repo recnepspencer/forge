@@ -389,5 +389,8 @@ pub(crate) fn seed_pending_atlas_for_event_loop(
 #[path = "text_atlas_signal_failure_tests.rs"]
 mod signal_failure_tests;
 
+#[path = "text_atlas_retry_correlation_tests.rs"]
+mod retry_correlation_tests;
+
 #[path = "text_atlas_gate_d_evidence.rs"]
 mod gate_d_evidence;
