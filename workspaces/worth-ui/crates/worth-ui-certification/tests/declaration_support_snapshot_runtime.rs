@@ -27,6 +27,9 @@ fn public_freeze_derives_support_snapshot_from_admitted_declaration_authority() 
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let artifact = artifact_from_compiler_provenance(&app, &provenance);
     let snapshot = artifact
@@ -55,6 +58,9 @@ fn public_freeze_localizes_future_semantics_to_exact_support_rows() {
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let artifact = artifact_from_compiler_provenance(&app, &provenance);
     let snapshot = artifact
@@ -106,6 +112,9 @@ fn public_freeze_preserves_representative_support_shapes_across_family_classes()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
 
     let page = artifact_from_compiler_provenance(&app, &page_provenance);
@@ -170,6 +179,9 @@ fn public_app_inspection_surfaces_use_declaration_support_projection() {
             .with_semantic_artifact_spec(page_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let mounting_report = app.inspection_support_report(UiInspectionScope::Mounting);
     assert_eq!(
@@ -230,6 +242,9 @@ fn public_app_inspection_receipts_keep_diagnostic_only_support_visible() {
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let query = UiInspectionQuery::new(
         UiInspectionTarget::declared_surface(
@@ -274,6 +289,9 @@ fn public_declaration_support_projection_keeps_diagnostic_only_rows_visible() {
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let artifact = artifact_from_compiler_provenance(&app, &provenance);
     let rows = artifact

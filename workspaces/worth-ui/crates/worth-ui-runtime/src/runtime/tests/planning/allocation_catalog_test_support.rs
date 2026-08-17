@@ -275,6 +275,7 @@ fn admitted_planning_admissions_with_operators(
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(package)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let first_identity = app
         .declaration_artifacts()

@@ -35,6 +35,9 @@ fn only_sealed_graph_handoffs_instantiate_graph_truth_through_public_plan() {
             .with_semantic_artifact_spec(control_graph_input_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
         .graph_handoff()
@@ -166,6 +169,9 @@ fn basis_free_duplicate_handoffs_deny_before_snapshot_mutation() {
             .with_semantic_artifact_spec(control_graph_input_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
         .graph_handoff()
@@ -198,6 +204,9 @@ fn freeze_path_returns_the_exact_graph_handoff_denial() {
             .with_semantic_artifact_spec(invalid_graph_input_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
     {
         Ok(_) => panic!("denied graph handoff must deny application preparation"),
         Err(denial) => denial,
@@ -232,6 +241,9 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
             .with_semantic_artifact_spec(graph_input_without_non_graph_obligations()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let enriched = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -242,6 +254,9 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
             .with_semantic_artifact_spec(graph_input_with_non_graph_obligations()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
 
     let baseline_handoff =

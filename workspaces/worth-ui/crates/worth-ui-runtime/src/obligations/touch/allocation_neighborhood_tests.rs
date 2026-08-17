@@ -99,6 +99,7 @@ fn touch_neighborhood_app(world_profile: UiGraphWorldProfile) -> crate::facade::
             )),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

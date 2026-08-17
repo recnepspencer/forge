@@ -55,6 +55,19 @@ impl WorthUiHostEgui {
         }
     }
 
+    #[cfg(test)]
+    pub(super) fn record_completed_input_basis_for_test(
+        &self,
+        view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+        epoch: worth_ui_host_contract::UiHostPresentationEpoch,
+    ) {
+        super::input_observation::record_completed_presentation(
+            &self.input_observation,
+            view,
+            epoch,
+        );
+    }
+
     pub fn registered_surface_count(&self) -> usize {
         self.registrations.lock().unwrap().len()
     }

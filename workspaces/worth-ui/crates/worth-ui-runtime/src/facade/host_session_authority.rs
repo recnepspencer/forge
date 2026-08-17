@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use worth_ui_host_contract::{
-    UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity,
+    UiHostSessionReleaseReceipt, UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity,
     WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
@@ -41,9 +41,14 @@ pub(crate) struct WorthUiHostSessionAuthority {
     identity: WorthUiHostSessionIdentity,
     protocol: worth_ui_host_contract::UiHostProtocolAgreement,
     measurement_capability: WorthUiHostMeasurementCapability,
-    mounted_presentation_lease: worth_ui_host_contract::UiMountedPresentationLease,
+    mounted_presentation_lease: crate::mounting::presentation::UiMountedPresentationLease,
     adapter_authority: UiHostAdapterSessionAuthority,
     adapter_session_released: bool,
+}
+
+/// Move-only authority retained when terminal host release cannot yet be proved.
+pub struct WorthUiHostSessionReleaseRecovery {
+    authority: WorthUiHostSessionAuthority,
 }
 
 #[derive(Clone, Copy)]
@@ -66,7 +71,7 @@ pub(crate) struct WorthUiHostPlanBinding {
 pub(crate) enum WorthUiHostSessionActivationDenial {
     IdentityExhausted,
     Protocol(worth_ui_host_contract::UiHostProtocolDenial),
-    MountedPresentationLease(worth_ui_host_contract::UiMountedPresentationLeaseDenial),
+    MountedPresentationLease(crate::mounting::presentation::UiMountedPresentationLeaseDenial),
 }
 
 impl WorthUiHostSessionAuthority {
@@ -143,11 +148,10 @@ impl WorthUiHostSessionAuthority {
                 crate::host::adapter::UiHostSessionReleaseReceipt::released(self.identity.value, 0),
             );
         }
-        self.adapter_session_released = true;
         let outcome = self
             .output_adapter()
             .release_host_session(&self.adapter_authority);
-        match outcome {
+        let validated = match outcome {
             UiHostSessionReleaseOutcome::Released(receipt)
                 if receipt.host_session_identity() == self.identity.value =>
             {
@@ -163,7 +167,10 @@ impl WorthUiHostSessionAuthority {
                     self.identity.value,
                 ),
             ),
-        }
+        };
+        self.adapter_session_released =
+            matches!(validated, UiHostSessionReleaseOutcome::Released(_));
+        validated
     }
 
     pub(crate) fn capability_report(&self) -> &WorthUiHostCapabilityReport {
@@ -176,7 +183,7 @@ impl WorthUiHostSessionAuthority {
 
     pub(crate) fn mounted_presentation_lease(
         &self,
-    ) -> &worth_ui_host_contract::UiMountedPresentationLease {
+    ) -> &crate::mounting::presentation::UiMountedPresentationLease {
         &self.mounted_presentation_lease
     }
 
@@ -184,6 +191,40 @@ impl WorthUiHostSessionAuthority {
         WorthUiHostPlanBinding::from_session(self)
     }
 }
+
+impl WorthUiHostSessionReleaseRecovery {
+    pub(crate) fn retain(authority: WorthUiHostSessionAuthority) -> Self {
+        Self { authority }
+    }
+
+    pub fn retry(mut self) -> Result<UiHostSessionReleaseReceipt, Self> {
+        match self.authority.release_adapter_session() {
+            UiHostSessionReleaseOutcome::Released(receipt) => Ok(receipt),
+            UiHostSessionReleaseOutcome::ReleaseIndeterminate(_) => Err(self),
+        }
+    }
+
+    pub fn host_session_identity(&self) -> WorthUiHostSessionIdentity {
+        self.authority.identity()
+    }
+}
+
+impl std::fmt::Debug for WorthUiHostSessionReleaseRecovery {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("WorthUiHostSessionReleaseRecovery")
+            .field("host_session_identity", &self.host_session_identity())
+            .finish_non_exhaustive()
+    }
+}
+
+impl PartialEq for WorthUiHostSessionReleaseRecovery {
+    fn eq(&self, other: &Self) -> bool {
+        self.host_session_identity() == other.host_session_identity()
+    }
+}
+
+impl Eq for WorthUiHostSessionReleaseRecovery {}
 
 impl<'session> UiHostEffectPort<'session> {
     pub(crate) fn adapter(self) -> &'session dyn WorthUiOperationalHostAdapter {

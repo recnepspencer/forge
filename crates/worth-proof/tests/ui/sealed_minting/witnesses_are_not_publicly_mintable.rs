@@ -1,7 +1,4 @@
-
-use worth_proof::{
-    AuthorityMarker, AuthorityWitness, CapabilityMarker, CapabilityWitness,
-};
+use worth_proof::{AuthorityMarker, AuthorityWitness, CapabilityMarker, CapabilityWitness};
 
 struct DeploymentAuthority;
 impl AuthorityMarker for DeploymentAuthority {}
@@ -14,4 +11,3 @@ fn main() {
     let _capability = CapabilityWitness::<CanonicalizationCapability>::mint();
 }
 // sealed-minting-case
-

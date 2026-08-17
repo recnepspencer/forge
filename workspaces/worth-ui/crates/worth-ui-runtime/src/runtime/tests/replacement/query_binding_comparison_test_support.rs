@@ -74,6 +74,7 @@ pub(super) fn wide_query_app(binding_count: usize) -> WorthUiApp {
         ))
         .expect("replacement Query view should register")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("wide application preparation should succeed")
 }
 
@@ -163,6 +164,7 @@ fn app_from_installed_query_domain(
         .register_query_view(detail)
         .expect("installed detail view should register")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 
@@ -195,6 +197,7 @@ fn app_with_mixed_change_views(
         ))
         .expect("installed replacement view should register")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("mixed-change application preparation should succeed")
 }
 

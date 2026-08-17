@@ -8,5 +8,11 @@ fn main() {
         WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
             .with_component("workspace.component.dashboard"),
     ]);
-    let _prepared = WorthUi::app().with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse()).with_rust_authored_input(input).freeze();
+    let _prepared = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
+        .with_rust_authored_input(input)
+        .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        );
 }

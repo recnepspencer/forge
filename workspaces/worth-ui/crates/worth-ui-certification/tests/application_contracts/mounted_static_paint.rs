@@ -3,14 +3,17 @@ use worth_ui::facade::measurement_exchange::{
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_host_headless::{
+    UiHeadlessNodePaintMechanic, UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect,
+    WorthUiHeadlessRecorder,
+};
 use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseLifecycleObservation, PlatformPulseLifecycleObservationStream,
 };
 use worth_ui_runtime::facade::entry::UiMountedAllocationMeasurementRequest;
 use worth_ui_runtime::facade::host::{
-    UiHeadlessNodePaintMechanic, UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect,
     UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
-    UiHostMeasurementNormalizationContext, WorthUiHeadlessRecorder,
+    UiHostMeasurementNormalizationContext,
 };
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedFrameRequest,
@@ -145,7 +148,7 @@ fn assert_exact_reuse(
 }
 
 fn assert_pulse_transcript(
-    transcript: &worth_ui_runtime::facade::host::UiHeadlessMountedFrameTranscript,
+    transcript: &worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
     expected: ExpectedPulseTranscript<'_>,
 ) {
     assert_eq!(transcript.frame(), expected.frame);
@@ -190,7 +193,7 @@ fn assert_pulse_transcript(
     );
 }
 
-fn launch_and_mount_pulse(
+pub(super) fn launch_and_mount_pulse(
     recorder: WorthUiHeadlessRecorder,
 ) -> (
     worth_ui::facade::app::WorthUiActiveApplicationSession,
@@ -245,7 +248,7 @@ fn launch_and_mount_pulse(
     )
 }
 
-fn establish_allocation(
+pub(super) fn establish_allocation(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
 ) -> Vec<worth_ui::facade::graph::UiGraphNodeIdentity> {
     let capability = session.host_measurement_capability();

@@ -138,6 +138,7 @@ fn multi_child_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUi
             .with_semantic_artifact_spec(control_spec("workflow_editor.control.right", 2)),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

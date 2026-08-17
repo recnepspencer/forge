@@ -9,5 +9,8 @@ autotests = false
 name = "worth_ui_host_contract"
 path = "src/lib.rs"
 
+[features]
+default = []
+
 [lints]
 workspace = true

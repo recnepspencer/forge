@@ -6,7 +6,10 @@ use crate::{
     WorthUiHostCapabilityObservationGeneration,
 };
 
+mod foreground;
 mod validation;
+
+pub use foreground::{UiMountedTextForegroundSpan, UiMountedTextPaintSpanIdentity};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiMountedTextSchemaVersion(u16);
@@ -33,7 +36,7 @@ pub enum UiSemanticTextSlot {
     Posture,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct UiMountedCollectionRowCorrelation([u8; 32]);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -48,12 +51,33 @@ pub enum UiMountedSemanticTextCompletionDenial {
     NodeReceiptInstanceMismatch,
     CollectionIdentityMismatch,
     ContentCapacityExceeded,
+    QualifiedLayoutSourceMismatch,
+    QualifiedLayoutGenerationMismatch,
+    ForegroundSpanMismatch,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiMountedSemanticTextTableDenial {
     CapacityExceeded,
     ByteCapacityExceeded,
+}
+
+#[doc(hidden)]
+pub trait UiMountedQualifiedTextResolver {
+    fn resolve(
+        &self,
+        identity: crate::UiQualifiedTextLayoutIdentity,
+    ) -> Option<crate::UiQualifiedTextLayoutView<'_>>;
+}
+
+#[doc(hidden)]
+impl UiMountedQualifiedTextResolver for () {
+    fn resolve(
+        &self,
+        _identity: crate::UiQualifiedTextLayoutIdentity,
+    ) -> Option<crate::UiQualifiedTextLayoutView<'_>> {
+        None
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -71,9 +95,14 @@ pub struct UiMountedSemanticTextMechanic {
     origin_x: f32,
     origin_y: f32,
     text: Arc<str>,
+    layout_identity: crate::UiQualifiedTextLayoutIdentity,
+    layout_request: crate::UiQualifiedTextLayoutRequestIdentity,
+    layout_profile: crate::UiTextProfileGeneration,
+    layout_fonts: crate::UiFontCollectionGeneration,
+    layout_scale: crate::UiTextScaleGeneration,
     slot: UiSemanticTextSlot,
     collection_row: Option<UiMountedCollectionRowCorrelation>,
-    color: super::UiMountedRgba8,
+    foregrounds: Arc<[UiMountedTextForegroundSpan]>,
     profile: UiSemanticTextProfile,
     layer_semantic_order: u32,
     capability_generation: WorthUiHostCapabilityObservationGeneration,
@@ -83,7 +112,7 @@ pub struct UiMountedSemanticTextMechanic {
 
 #[doc(hidden)]
 #[derive(Clone)]
-pub struct UiMountedSemanticTextCompletionInput {
+pub struct UiMountedSemanticTextCompletionInput<'layout> {
     pub content_generation: UiMountedContentGeneration,
     pub frame: UiMountedFrameIdentity,
     pub surface: UiSemanticSurfaceIdentity,
@@ -96,9 +125,10 @@ pub struct UiMountedSemanticTextCompletionInput {
     pub origin_x: f32,
     pub origin_y: f32,
     pub text: Arc<str>,
+    pub layout: crate::UiQualifiedTextLayoutView<'layout>,
     pub slot: UiSemanticTextSlot,
     pub collection_row: Option<UiMountedCollectionRowCorrelation>,
-    pub color: super::UiMountedRgba8,
+    pub foregrounds: Arc<[UiMountedTextForegroundSpan]>,
     pub profile: UiSemanticTextProfile,
     pub layer_semantic_order: u32,
     pub capability_generation: WorthUiHostCapabilityObservationGeneration,
@@ -108,14 +138,14 @@ pub struct UiMountedSemanticTextCompletionInput {
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiMountedSemanticTextTable {
     schema: UiMountedTextSchemaVersion,
-    rows: Box<[UiMountedSemanticTextMechanic]>,
+    rows: std::sync::Arc<[UiMountedSemanticTextMechanic]>,
 }
 
 impl UiMountedTextSchemaVersion {
-    pub const REQUIRED_MOUNTED_FRAME_REVISION: u16 = 3;
+    pub const REQUIRED_MOUNTED_FRAME_REVISION: u16 = 5;
 
     pub const fn current() -> Self {
-        Self(1)
+        Self(3)
     }
 
     pub const fn revision(self) -> u16 {
@@ -172,7 +202,7 @@ impl UiMountedCollectionRowCorrelation {
 }
 
 impl UiMountedSemanticTextMechanic {
-    pub const MAX_CONTENT_BYTES: usize = 4_096;
+    pub const MAX_CONTENT_BYTES: usize = 65_536;
 
     #[doc(hidden)]
     pub fn complete_from_runtime_mounting(
@@ -194,9 +224,14 @@ impl UiMountedSemanticTextMechanic {
             origin_x: input.origin_x,
             origin_y: input.origin_y,
             text: input.text,
+            layout_identity: input.layout.identity(),
+            layout_request: input.layout.request_identity(),
+            layout_profile: input.layout.profile_generation(),
+            layout_fonts: input.layout.font_collection_generation(),
+            layout_scale: input.layout.text_scale_generation(),
             slot: input.slot,
             collection_row: input.collection_row,
-            color: input.color,
+            foregrounds: input.foregrounds,
             profile: input.profile,
             layer_semantic_order: input.layer_semantic_order,
             capability_generation: input.capability_generation,
@@ -244,14 +279,29 @@ impl UiMountedSemanticTextMechanic {
     pub fn text(&self) -> &str {
         &self.text
     }
+    pub const fn qualified_layout_identity(&self) -> crate::UiQualifiedTextLayoutIdentity {
+        self.layout_identity
+    }
+    pub const fn qualified_layout_request(&self) -> crate::UiQualifiedTextLayoutRequestIdentity {
+        self.layout_request
+    }
+    pub const fn qualified_layout_profile(&self) -> crate::UiTextProfileGeneration {
+        self.layout_profile
+    }
+    pub const fn qualified_layout_fonts(&self) -> crate::UiFontCollectionGeneration {
+        self.layout_fonts
+    }
+    pub const fn qualified_layout_scale(&self) -> crate::UiTextScaleGeneration {
+        self.layout_scale
+    }
     pub const fn slot(&self) -> UiSemanticTextSlot {
         self.slot
     }
     pub fn collection_row(&self) -> Option<&UiMountedCollectionRowCorrelation> {
         self.collection_row.as_ref()
     }
-    pub const fn color(&self) -> super::UiMountedRgba8 {
-        self.color
+    pub fn foregrounds(&self) -> &[UiMountedTextForegroundSpan] {
+        &self.foregrounds
     }
     pub const fn profile(&self) -> UiSemanticTextProfile {
         self.profile
@@ -271,13 +321,13 @@ impl UiMountedSemanticTextMechanic {
 }
 
 impl UiMountedSemanticTextTable {
-    pub const MAX_ROWS: usize = 2_048;
-    pub const MAX_BYTES: usize = 1_048_576;
+    pub const MAX_ROWS: usize = 4_096;
+    pub const MAX_BYTES: usize = 8 * 1_024 * 1_024;
 
     pub fn empty() -> Self {
         Self {
             schema: UiMountedTextSchemaVersion::current(),
-            rows: Box::new([]),
+            rows: std::sync::Arc::from([]),
         }
     }
 
@@ -288,21 +338,15 @@ impl UiMountedSemanticTextTable {
         if rows.len() > Self::MAX_ROWS {
             return Err(UiMountedSemanticTextTableDenial::CapacityExceeded);
         }
-        let bytes = rows.iter().try_fold(0usize, |total, row| {
-            total.checked_add(row.text.len()).and_then(|total| {
-                total.checked_add(
-                    row.collection_row
-                        .as_ref()
-                        .map_or(0, |_| std::mem::size_of::<[u8; 32]>()),
-                )
-            })
-        });
+        let bytes = rows
+            .iter()
+            .try_fold(0usize, |total, row| total.checked_add(row.text.len()));
         if bytes.is_none_or(|bytes| bytes > Self::MAX_BYTES) {
             return Err(UiMountedSemanticTextTableDenial::ByteCapacityExceeded);
         }
         Ok(Self {
             schema: UiMountedTextSchemaVersion::current(),
-            rows: rows.into_boxed_slice(),
+            rows: rows.into(),
         })
     }
 

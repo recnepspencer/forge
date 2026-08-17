@@ -3,7 +3,7 @@ use worth_ui::facade::app::{
     UiMountedFrameRetentionRejection, UiMountedIndeterminateFrame,
     UiMountedPresentationAdmissionRejection, UiMountedPresentationCompletionDenial,
     UiMountedPresentationInFlight, UiMountedRejectedFrame, UiPresentationDeadline, WorthUi,
-    WorthUiMountedFrameExecutionStop,
+    WorthUiLegacyEguiApplicationTransition, WorthUiMountedFrameExecutionStop,
 };
 
 fn main() {
@@ -14,6 +14,12 @@ pub fn run() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(|application| {
+            WorthUiLegacyEguiApplicationTransition::activate(
+                application,
+                worth_ui_host_egui::WorthUiHostEgui::new(egui::Context::default()),
+            )
+        })
         .expect("empty application preparation should succeed");
     let mut session = app.launch().expect("empty application should launch");
     let outcome = match session.execute_mounted_frame(

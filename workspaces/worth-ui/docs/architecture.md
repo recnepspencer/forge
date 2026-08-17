@@ -1,7 +1,8 @@
 # Worth UI Architecture
 
 Worth UI turns authored application meaning into a host-neutral mounted frame.
-Application code chooses declarations, capabilities, Query views, and a host.
+Application code chooses declarations, capabilities, and Query views. The
+framework chooses and binds the host exactly once.
 The platform keeps parsing, semantic observation, consequence planning,
 runtime state, publication, and native mechanics in their owning layers.
 
@@ -18,6 +19,7 @@ file source or typed Rust authoring
 -> active application session
 -> Query-issued projection observation through ordinary rebind
 -> mounted frame assembly
+-> runtime-issued initial, delta, or unchanged presentation work
 -> host-contract presentation
 -> publication or a typed non-success outcome
 ```
@@ -86,9 +88,12 @@ interaction and admission contracts.
   shape-specific Worth UI registrations, observations, and affine facts.
   Runtime consumes those UI facts and does not recreate Query.
 - `worth-ui-host-contract` defines inert host capabilities, mounted input, and
-  mechanical outcomes.
+  mechanical outcomes, including exact affinity, total order, logical damage,
+  transparent surface baseline, and structural/physical cost vocabulary.
 - Host adapters perform native mechanics. They never receive source, Query,
   graph, semantic-classification, or publication authority.
+- `worth-ui-native-platform` owns the move-only native platform binding and
+  effect-free application preparation. Phase 1 opens no native resources.
 - `worth-ui-certification` proves boundaries; it is not an application API.
 
 An identity or digest can explain what happened. It cannot launch an
@@ -108,6 +113,18 @@ The arrows do not permit every lower layer to import every peer. Authored
 meaning flows from DSL to runtime. Query crosses only through the binding
 crate. Runtime sends sealed mounted mechanics to the host contract. Adapters
 depend on the host contract and never on runtime internals.
+
+The ordinary host lane is receipt-keyed work, not a complete projection:
+
+```text
+runtime retained presentation state
+-> Initial(commands + total order + damage + baseline)
+-> Delta(changes + order edits + damage + optional auxiliary successor)
+-> Unchanged(exact predecessor/successor affinity, zero work)
+```
+
+Candidates become retained host truth only after every required surface
+settles successfully. Partial or uncertain effects cannot promote them.
 
 Within runtime, graph does not depend on mounting; observation cannot publish;
 rebind planning cannot mutate mounted truth; inspection cannot mutate or
@@ -173,6 +190,7 @@ event bag, a second executor, or a host-adapter semantic lane.
 See [Runtime subsystems](./runtime-subsystems.md),
 [Authored composition](./authored-composition.md),
 [Interaction and intents](./interaction-and-intents.md),
+[Native host platform](./native-host-platform.md),
 [Application lifecycle](./application-lifecycle.md),
 [Hot rebind](./hot-rebind.md), and
 [Application inspection](./inspection.md).

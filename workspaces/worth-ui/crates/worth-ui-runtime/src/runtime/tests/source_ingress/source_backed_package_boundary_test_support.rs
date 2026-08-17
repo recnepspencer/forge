@@ -43,6 +43,7 @@ pub(super) fn support_app_with_sizing(
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(sizing)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 
@@ -57,11 +58,12 @@ pub(super) fn prepare_source_backed_submission(
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(sizing)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("complete source-backed composition should prepare")
 }
 
 pub(super) fn two_component_source_backed_builder(
-) -> crate::facade::entry::WorthUiApplicationBuilder {
+) -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(source_backed_boundary_component())

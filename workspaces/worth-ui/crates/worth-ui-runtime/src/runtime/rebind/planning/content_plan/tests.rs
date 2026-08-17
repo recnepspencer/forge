@@ -183,6 +183,7 @@ fn projection_app(registration: UiCollectionProjectionRegistration) -> crate::fa
         .expect("product projection registration")
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("projection content application")
 }
 

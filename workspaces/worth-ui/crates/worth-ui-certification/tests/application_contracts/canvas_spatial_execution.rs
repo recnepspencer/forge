@@ -1,21 +1,16 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiApplicationBuilder};
+
+type BoundBuilder = worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder;
 use worth_ui::facade::declaration::{
     ComponentCanvasSpatialContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
     ComponentPropSchema, ComponentStateOwnership,
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
-use worth_ui_host_contract::{
-    UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostCapability,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
-};
+use worth_ui_host_headless::{WorthUiHeadlessCapabilityProfileHost, WorthUiHeadlessHost};
 use worth_ui_runtime::facade::execution::{
     WorthUiCanvasSpatialFrameTarget, WorthUiCanvasSpatialLane,
     WorthUiCanvasSpatialPlanAvailability, WorthUiCanvasViewportRequest,
     WorthUiHandleResolutionOutcome, WorthUiSpatialHitTestRequest, WorthUiSpatialViewportPoint,
-};
-use worth_ui_runtime::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiHeadlessHost, WorthUiOperationalHostAdapter,
 };
 use worth_ui_runtime::facade::runtime_handoff::WorthUiRuntimeLaunchDenial;
 use worth_ui_test_support::{
@@ -239,11 +234,11 @@ fn lawful_source_reordering_preserves_spatial_plan_behavior() {
     right_workspace.close();
 }
 
-fn canvas_builder() -> WorthUiApplicationBuilder {
-    canvas_descriptor_builder().with_host(WorthUiHeadlessHost)
+fn canvas_builder() -> BoundBuilder {
+    BoundBuilder::new(canvas_descriptor_builder(), WorthUiHeadlessHost)
 }
 
-fn canvas_builder_with_ordinary(count: usize) -> WorthUiApplicationBuilder {
+fn canvas_builder_with_ordinary(count: usize) -> BoundBuilder {
     let mut builder = canvas_builder();
     for index in 0..count {
         builder = builder.register_component(ordinary_component(format!(
@@ -253,8 +248,11 @@ fn canvas_builder_with_ordinary(count: usize) -> WorthUiApplicationBuilder {
     builder
 }
 
-fn unsupported_canvas_builder() -> WorthUiApplicationBuilder {
-    canvas_descriptor_builder().with_host(MissingHitTestHost)
+fn unsupported_canvas_builder() -> BoundBuilder {
+    BoundBuilder::new(
+        canvas_descriptor_builder(),
+        WorthUiHeadlessCapabilityProfileHost::missing_canvas_hit_test(),
+    )
 }
 
 fn canvas_descriptor_builder() -> WorthUiApplicationBuilder {
@@ -282,7 +280,7 @@ fn ordinary_component(id: impl Into<String>) -> ComponentDescriptor {
 fn file_app(
     workspace: &FilesystemContractWorkspace,
     source: &str,
-    builder: impl Fn() -> WorthUiApplicationBuilder,
+    builder: impl Fn() -> BoundBuilder,
 ) -> WorthUiApp {
     workspace.write("app/main.wui", source);
     let capability_app = builder().freeze().expect("capabilities should freeze");
@@ -296,41 +294,4 @@ fn file_app(
         .with_candidate_submission(submission)
         .freeze()
         .expect("file-authored application should prepare")
-}
-
-#[derive(Clone, Copy, Default)]
-struct MissingHitTestHost;
-
-impl WorthUiMeasurementHostAdapter for MissingHitTestHost {
-    fn observe_measurement(
-        &self,
-        _request: &UiHostMeasurementRequest,
-    ) -> UiHostMeasurementObservationValue {
-        unreachable!("missing host capabilities deny before observation")
-    }
-}
-
-impl WorthUiOperationalHostAdapter for MissingHitTestHost {
-    fn operational_host_contract(&self) -> WorthUiHostContract {
-        WorthUiHostContract::headless()
-    }
-
-    fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::available(vec![
-            WorthUiHostCapability::CanvasSpatialDraw,
-            WorthUiHostCapability::CanvasSpatialOverlay,
-            WorthUiHostCapability::CanvasSpatialToolState,
-            WorthUiHostCapability::CanvasSpatialRenderResource,
-        ])
-    }
-
-    fn release_host_session(
-        &self,
-        authority: &UiHostAdapterSessionAuthority,
-    ) -> UiHostSessionReleaseOutcome {
-        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
-            authority.host_session_identity(),
-            0,
-        ))
-    }
 }

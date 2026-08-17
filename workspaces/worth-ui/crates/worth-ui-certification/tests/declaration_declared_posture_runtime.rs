@@ -22,6 +22,11 @@ use worth_ui_dsl::{
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiRustAuthoredArtifactInput,
     WorthUiRustAuthoredArtifactInputModule,
 };
+
+#[path = "declaration_declared_posture_runtime/support.rs"]
+mod support;
+
+use support::{artifact_from_compiler_provenance, freeze_denial};
 use worth_ui_host_contract::WorthUiHostCapability;
 use worth_ui_test_support::UiDeclaredMeasurementMode;
 
@@ -49,6 +54,9 @@ fn public_freeze_projects_declared_posture_contracts_from_declaration_authority(
                 .with_semantic_artifact_spec(control_posture_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/declared_posture.wui", 0);
     let posture = artifact
@@ -93,6 +101,9 @@ fn public_freeze_preserves_representative_family_applicability_shapes() {
     let page_app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let page = artifact_from_file_provenance(&page_app, "worth-ui.runtime.bootstrap", 0);
 
@@ -106,6 +117,9 @@ fn public_freeze_preserves_representative_family_applicability_shapes() {
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(control_fixture)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let control = artifact_from_compiler_provenance(&control_app, &control_provenance);
 
@@ -140,6 +154,9 @@ fn public_freeze_preserves_representative_family_applicability_shapes() {
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(query_binding_fixture)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("standalone Query posture survives non-structural handoff");
     let query_binding =
         artifact_from_compiler_provenance(&query_binding_app, &query_binding_provenance);
@@ -214,6 +231,9 @@ fn host_capability_requirements_appear_as_declared_posture_before_host_inference
             ),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/declared_posture_host.wui", 0);
 
@@ -363,33 +383,8 @@ fn representative_intent_app() -> worth_ui::facade::app::WorthUiApp {
         .expect("representative intent definition registers")
         .with_rust_authored_input(input)
         .freeze()
-        .expect("typed standalone intent posture survives non-structural handoff")
-}
-
-fn artifact_from_compiler_provenance<'a>(
-    app: &'a worth_ui::facade::app::WorthUiApp,
-    provenance: &UiDslSourceProvenance,
-) -> &'a UiDeclarationArtifact {
-    artifact_from_file_provenance(
-        app,
-        provenance.module_path(),
-        provenance.declaration_index(),
-    )
-}
-
-fn freeze_denial(
-    package_name: &'static str,
-    spec: UiDslSemanticArtifactSpec,
-) -> WorthUiApplicationPreparationDenial {
-    match WorthUi::app()
-        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .with_rust_authored_declaration_fixture(
-            WorthUiRustAuthoredDeclarationFixture::named(package_name)
-                .with_semantic_artifact_spec(spec),
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
         )
-        .freeze()
-    {
-        Ok(_) => panic!("invalid declaration authority must deny application preparation"),
-        Err(denial) => denial,
-    }
+        .expect("typed standalone intent posture survives non-structural handoff")
 }

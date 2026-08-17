@@ -18,6 +18,9 @@ pub(super) fn file_authored_query_app(
         .register_query_view(view.clone())
         .expect("the public builder registers installed authority")
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("capability snapshot preparation should succeed");
     WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -25,6 +28,9 @@ pub(super) fn file_authored_query_app(
         .expect("the public builder registers installed authority")
         .with_candidate_submission(query_bound_submission(capability_app.capabilities()))
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
 }
 
@@ -39,6 +45,9 @@ pub(super) fn file_authored_two_query_view_app(
         .register_query_view(second.clone())
         .expect("the second installed view registers")
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("two-view capability snapshot preparation should succeed");
     WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -48,6 +57,9 @@ pub(super) fn file_authored_two_query_view_app(
         .expect("the second application view registers")
         .with_candidate_submission(two_query_binding_submission(capability_app.capabilities()))
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("two-view application preparation should succeed")
 }
 
@@ -70,6 +82,9 @@ pub(super) fn query_free_app() -> worth_ui::facade::app::WorthUiApp {
     let capability_app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("Query-free capability snapshot preparation should succeed");
     WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -79,6 +94,9 @@ pub(super) fn query_free_app() -> worth_ui::facade::app::WorthUiApp {
             capability_app.capabilities(),
         ))
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("Query-free application preparation should succeed")
 }
 

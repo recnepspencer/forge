@@ -37,9 +37,10 @@ pub struct WorthUi {
 
 impl WorthUi {
     /// Start a Worth UI application definition.
-    pub fn app(
-    ) -> crate::facade::entry::WorthUiApplicationBuilder<crate::facade::entry::UiChangeProfileMissing>
-    {
+    pub fn app() -> crate::facade::entry::WorthUiApplicationBuilder<
+        crate::facade::entry::UiChangeProfileMissing,
+        crate::facade::entry::UiIntentWiringSatisfied,
+    > {
         crate::facade::entry::WorthUiApplicationBuilder::new()
     }
 }
@@ -47,16 +48,24 @@ impl WorthUi {
 /// Worth UI application after capability registration has frozen.
 pub struct WorthUiApp {
     prepared: WorthUiPreparedApplicationAuthority,
+    host_session_plan: crate::facade::prepared_application_authority::WorthUiHostSessionPlan,
     retained_obligations: WorthUiRetainedObligationRegistry,
     retained_allocation_planning_evidence: Rc<WorthUiRetainedAllocationPlanningEvidenceRegistry>,
+    font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
 }
 
 impl WorthUiApp {
-    pub(crate) fn from_prepared_authority(prepared: WorthUiPreparedApplicationAuthority) -> Self {
+    pub(crate) fn from_prepared_authority(
+        prepared: WorthUiPreparedApplicationAuthority,
+        host_session_plan: crate::facade::prepared_application_authority::WorthUiHostSessionPlan,
+        font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
+    ) -> Self {
         Self {
             prepared,
+            host_session_plan,
             retained_obligations: WorthUiRetainedObligationRegistry::default(),
             retained_allocation_planning_evidence: Rc::default(),
+            font_collection,
         }
     }
 
@@ -65,20 +74,20 @@ impl WorthUiApp {
         self.prepared.generation_identity()
     }
 
+    pub fn font_collection(&self) -> &std::sync::Arc<worth_ui_text::UiGlobalFontCollection> {
+        &self.font_collection
+    }
+
     pub(super) fn mounted_frame_retention_budget(
         &self,
     ) -> crate::mounting::UiMountedFrameRetentionBudget {
-        self.prepared
-            .host_session_plan()
-            .mounted_frame_retention_budget()
+        self.host_session_plan.mounted_frame_retention_budget()
     }
 
     pub(super) fn host_observation_capacity(
         &self,
     ) -> crate::host_exchange::observation_report_validation::UiHostObservationCapacity {
-        self.prepared
-            .host_session_plan()
-            .host_observation_capacity()
+        self.host_session_plan.host_observation_capacity()
     }
 
     pub(super) const fn visual_inspection_policy(
@@ -91,6 +100,12 @@ impl WorthUiApp {
     /// independently launchable constituent.
     pub(crate) fn prepared_authority(&self) -> &WorthUiPreparedApplicationAuthority {
         &self.prepared
+    }
+
+    pub(crate) fn host_session_plan(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiHostSessionPlan {
+        &self.host_session_plan
     }
 
     pub(crate) fn visual_trace_source(
@@ -269,7 +284,9 @@ impl WorthUiApp {
         diagnostic_policy: crate::runtime::WorthUiRuntimeDiagnosticPolicy,
     ) -> Result<crate::facade::entry::WorthUiActiveApplicationSession, WorthUiRuntimeLaunchDenial>
     {
-        let admission = self.prepared.admit_launch(diagnostic_policy)?;
+        let admission = self
+            .prepared
+            .admit_launch(self.host_session_plan.clone(), diagnostic_policy)?;
         let (runtime, host_session) = WorthUiRuntime::launch_prepared(
             admission,
             Rc::clone(&self.retained_allocation_planning_evidence),
@@ -295,19 +312,20 @@ impl WorthUiApp {
             .lowering_authority()
             .synthetic_launch_for_certification(Rc::clone(&launch.artifact), artifact_digest);
         let initial_allocation_commit = self.prepared.initial_allocation_commit(artifact_digest)?;
-        let host_session =
-            crate::facade::WorthUiHostSessionAuthority::activate(self.prepared.host_session_plan())
-                .map_err(|denial| match denial {
-                    crate::facade::WorthUiHostSessionActivationDenial::IdentityExhausted => {
-                        WorthUiRuntimeLaunchDenial::HostSessionIdentityExhausted
-                    }
-                    crate::facade::WorthUiHostSessionActivationDenial::Protocol(denial) => {
-                        WorthUiRuntimeLaunchDenial::HostProtocol(denial)
-                    }
-                    crate::facade::WorthUiHostSessionActivationDenial::MountedPresentationLease(
-                        denial,
-                    ) => WorthUiRuntimeLaunchDenial::HostMountedPresentationLease(denial),
-                })?;
+        let host_session = crate::facade::WorthUiHostSessionAuthority::activate(
+            &self.host_session_plan,
+        )
+        .map_err(|denial| match denial {
+            crate::facade::WorthUiHostSessionActivationDenial::IdentityExhausted => {
+                WorthUiRuntimeLaunchDenial::HostSessionIdentityExhausted
+            }
+            crate::facade::WorthUiHostSessionActivationDenial::Protocol(denial) => {
+                WorthUiRuntimeLaunchDenial::HostProtocol(denial)
+            }
+            crate::facade::WorthUiHostSessionActivationDenial::MountedPresentationLease(_) => {
+                WorthUiRuntimeLaunchDenial::HostMountedPresentationLease
+            }
+        })?;
         let runtime = WorthUiRuntime::launch(
             launch,
             crate::runtime::WorthUiRuntimeLaunchAuthority {

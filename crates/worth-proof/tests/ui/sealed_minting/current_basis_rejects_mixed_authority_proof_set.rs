@@ -1,4 +1,3 @@
-
 use worth_proof::{
     Artifact, AuthorityMarker, AuthorityProves, AuthorityWitness, CanonicalOrder, Disjointness,
     PhaseMarker, Proof, ProofSetCons,
@@ -28,4 +27,3 @@ fn main() {
     );
 }
 // sealed-minting-case
-

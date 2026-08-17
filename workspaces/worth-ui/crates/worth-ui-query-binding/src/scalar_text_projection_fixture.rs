@@ -67,6 +67,7 @@ pub(crate) fn seeded_collection_projection_workspace(
     rows: Vec<(String, String)>,
     partial: bool,
     entity_lookup: bool,
+    supports_async_lifecycle: bool,
 ) -> (
     worth_query::facade::runtime::WorthQueryWorkspace,
     worth_query::facade::consumer_kit::WorthQueryTestSeedReceipt,
@@ -97,9 +98,16 @@ pub(crate) fn seeded_collection_projection_workspace(
             .expect("projection seed row")
         })
         .collect();
-    let builder = collection_projection_support(projection_runtime_base_builder(), true);
+    let builder = if supports_async_lifecycle {
+        projection_runtime_builder(true)
+    } else {
+        projection_runtime_base_builder()
+    };
+    let builder = collection_projection_support(builder, true);
     let builder = if partial {
         crate::install_worth_ui_partial_collection_test_operation_executors(builder)
+    } else if supports_async_lifecycle {
+        builder
     } else {
         install_worth_ui_test_operation_executors(builder)
     };

@@ -23,6 +23,9 @@ fn public_freeze_exposes_bootstrap_page_structural_intent_and_handoff() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let artifact = &app.declaration_artifacts()[0];
     let structural = artifact
@@ -63,6 +66,9 @@ fn caller_authored_freeze_projects_structural_slot_participation_intent() {
                 .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/structural_semantics.wui", 0);
     let structural = artifact
@@ -112,6 +118,9 @@ fn non_structural_noise_does_not_change_structural_semantics_or_handoff() {
             .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let changed = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -122,6 +131,9 @@ fn non_structural_noise_does_not_change_structural_semantics_or_handoff() {
             .with_semantic_artifact_spec(slotted_control_with_noise_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let baseline_artifact =
         artifact_from_file_provenance(&baseline, "app/structural_semantics.wui", 0);
@@ -174,6 +186,9 @@ fn every_admitted_structural_family_projects_declared_structural_intent() {
             .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
 
     assert_structural_projection(
@@ -274,6 +289,9 @@ fn non_structural_families_cannot_smuggle_graph_handoff_authority() {
             .with_semantic_artifact_spec(standalone_query_binding_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("non-structural declarations coexist without graph authority");
     let artifact = artifact_from_file_provenance(&app, "app/structural_non_structural.wui", 0);
     assert_eq!(
@@ -302,6 +320,9 @@ fn freeze_denial(
                 .with_semantic_artifact_spec(spec),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
     {
         Ok(_) => panic!("invalid structural authority must deny application preparation"),
         Err(denial) => denial,

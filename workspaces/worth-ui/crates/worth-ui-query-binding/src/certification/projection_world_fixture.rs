@@ -64,6 +64,7 @@ pub fn seeded_collection_projection_workspace(
             rows.clone(),
             posture == WorthUiCollectionProjectionSeedPosture::Partial,
             posture != WorthUiCollectionProjectionSeedPosture::ResetOnly,
+            false,
         );
     let entities = rows
         .iter()
@@ -76,12 +77,45 @@ pub fn seeded_collection_projection_workspace(
     (workspace, entities)
 }
 
+pub fn seeded_mixed_projection_workspace(
+    rows: Vec<(String, String)>,
+) -> (
+    worth_query::facade::runtime::WorthQueryWorkspace,
+    Vec<worth_query::facade::foundation::WorthQueryEntityIdentity>,
+) {
+    let (workspace, seed) =
+        crate::scalar_text_projection_fixture::seeded_collection_projection_workspace(
+            rows.clone(),
+            false,
+            true,
+            true,
+        );
+    let entities = rows
+        .iter()
+        .map(|(identity, _)| {
+            seed.entity(identity)
+                .expect("every mixed projection seed has a Query entity")
+                .clone()
+        })
+        .collect();
+    (workspace, entities)
+}
+
 pub fn insert_projection_status(
     workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
     identity: &str,
     status: &str,
 ) -> worth_query::facade::foundation::WorthQueryEntityIdentity {
     crate::scalar_text_projection_fixture::insert_collection_status(workspace, identity, status)
+}
+
+pub fn remove_projection_entity(
+    workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
+    entity: worth_query::facade::foundation::WorthQueryEntityIdentity,
+) {
+    workspace
+        .delete(entity)
+        .expect("certification projection entity deletion");
 }
 
 pub fn update_projection_status(

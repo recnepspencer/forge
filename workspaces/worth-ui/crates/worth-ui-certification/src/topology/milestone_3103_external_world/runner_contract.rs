@@ -27,14 +27,22 @@ pub(super) fn audit(inventory: &WorkspaceSourceInventory) -> Result<(), String> 
             "apps/platform-pulse/tests/executable_world/failure_teardown/resource_cleanup.rs",
         ),
     )?;
-    audit_native_boundary(
+    let native_owner = [
         inventory.text("apps/platform-pulse/tests/executable_world/native_platform/windows.rs"),
+        inventory.text(
+            "apps/platform-pulse/tests/executable_world/native_platform/windows/capture_region.rs",
+        ),
+    ]
+    .join("\n");
+    audit_native_boundary(
+        &native_owner,
         inventory.text(
             "apps/platform-pulse/tests/executable_world/native_platform/windows/client_capture.rs",
         ),
     )?;
     let courtroom = inventory
         .rust_files_under("apps/platform-pulse/tests/executable_world/courtroom")
+        .filter(|source| !source.absolute_path().ends_with("native_phase2.rs"))
         .map(|source| source.text())
         .collect::<Vec<_>>()
         .join("\n");
@@ -214,11 +222,13 @@ pub(super) fn audit_native_boundary(owner: &str, capture: &str) -> Result<(), St
         "client_capture::exact_window(process_id, candidate.window.ptr() as u32)?",
         "capture_window: Window",
         "struct WindowsCaptureExposure<'bound>",
-        "HwndPlace::Place(co::HWND_PLACE::TOP)",
+        "HwndPlace::Place(co::HWND_PLACE::TOPMOST)",
         "win::DwmFlush()",
         "let exposure = self.expose_bound_client_area(bound)?",
         "Self::capture_exposed_client_area(exposure)",
-        "client_capture::capture_client(&bound.capture_window, client)?",
+        "client_capture::capture_client_area(",
+        "gdi_capture::capture_client_area(",
+        "require_matching_capture_sources(",
         "NativeClientPixelCapture::new(",
         "get_pattern::<UIWindowPattern>()",
         ".and_then(|pattern| pattern.close())",
@@ -228,8 +238,6 @@ pub(super) fn audit_native_boundary(owner: &str, capture: &str) -> Result<(), St
     for forbidden in [
         "Screenshot",
         "Window::all()",
-        "window.pid()",
-        ".capture_image()",
         ".capture_region(",
         "capture_as_image",
         "get_name()",
@@ -259,16 +267,13 @@ fn audit_wgc_capture(source: &str) -> Result<(), String> {
         "Window::all()",
         "window.pid().ok() == Some(process_id)",
         "window.id().ok() == Some(window_id)",
-        "window.capture_image()",
-        "crop_client(screenshot, window_left, window_top, client)",
-        "right > screenshot.width() || bottom > screenshot.height()",
-        "let raw = screenshot.into_raw()",
-        "cropped.extend_from_slice(",
+        ".capture_image()",
+        "crop_monitor_client(image, region)?",
     ] {
         require(source, required, "exact-HWND WGC capture")?;
     }
     if source.matches("Window::all()").count() != 1
-        || source.matches("window.capture_image()").count() != 1
+        || source.matches(".capture_image()").count() != 1
     {
         return Err("exact-HWND WGC capture must enumerate and capture exactly once".to_owned());
     }

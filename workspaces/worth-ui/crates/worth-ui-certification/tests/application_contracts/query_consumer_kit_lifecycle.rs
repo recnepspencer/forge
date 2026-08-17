@@ -47,6 +47,9 @@ fn public_framework_turn_atomically_admits_and_releases_a_real_query_live_resour
         .register_query_view(view.clone())
         .expect("the public builder registers live installed authority")
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("capability snapshot preparation");
     let submission = query_bound_submission(snapshot.capabilities());
     let app = WorthUi::app()
@@ -55,6 +58,9 @@ fn public_framework_turn_atomically_admits_and_releases_a_real_query_live_resour
         .expect("the application registers live installed authority")
         .with_candidate_submission(submission)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation");
     let mut session = app.launch().expect("Query-bound application launch");
     let resource =
@@ -114,6 +120,9 @@ fn public_builder_rejects_semantically_equal_views_from_foreign_query_installati
         .register_query_view(first_view.clone())
         .expect("first installation registers")
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("first installation prepares");
     let reference = app
         .resolve_query_view(&first_identity, WorthUiQueryViewShape::Collection)
@@ -151,6 +160,9 @@ fn file_and_rust_authored_bindings_converge_before_the_same_query_gateway() {
         .register_query_view(view.clone())
         .unwrap()
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .unwrap();
     let file_app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -158,6 +170,9 @@ fn file_and_rust_authored_bindings_converge_before_the_same_query_gateway() {
         .unwrap()
         .with_candidate_submission(query_bound_submission(capability_app.capabilities()))
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .unwrap();
     let rust_app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -165,6 +180,9 @@ fn file_and_rust_authored_bindings_converge_before_the_same_query_gateway() {
         .unwrap()
         .with_candidate_submission(query_bound_rust_submission(capability_app.capabilities()))
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .unwrap();
     let file_reference = file_app
         .resolve_query_view(&identity, WorthUiQueryViewShape::Collection)

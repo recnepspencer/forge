@@ -29,7 +29,9 @@ pub(in crate::mounting) struct UiMountedSemanticProjection {
         worth_ui_host_contract::UiMountedInstanceIdentity,
         UiMountedProjectionNodeRecord,
     >,
-    pub(super) order: std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
+    pub(super) order: crate::runtime::persistent_index::UiPersistentOrder<
+        worth_ui_host_contract::UiMountedInstanceIdentity,
+    >,
     membership: crate::runtime::persistent_index::UiPersistentOrdSet<
         worth_ui_host_contract::UiMountedInstanceIdentity,
     >,
@@ -54,10 +56,12 @@ impl UiMountedSemanticProjection {
         nodes: Vec<UiMountedProjectionNodeRecord>,
         surfaces: Vec<UiMountedProjectionSurface>,
     ) -> Self {
-        let order = nodes
-            .iter()
-            .map(|record| record.receipt.mounted_instance())
-            .collect::<Vec<_>>();
+        let mut order = crate::runtime::persistent_index::UiPersistentOrder::default();
+        for node in &nodes {
+            order
+                .append(node.receipt.mounted_instance())
+                .expect("initial semantic projection identities are unique");
+        }
         let mut node_index = crate::runtime::persistent_index::UiPersistentOrdMap::default();
         let mut membership = crate::runtime::persistent_index::UiPersistentOrdSet::default();
         for node in nodes {
@@ -76,7 +80,7 @@ impl UiMountedSemanticProjection {
         }
         Self {
             nodes: node_index,
-            order: order.into(),
+            order,
             membership,
             semantic_surfaces,
             binding_by_surface,
@@ -139,7 +143,18 @@ impl UiMountedSemanticProjection {
         &mut self,
         order: Vec<worth_ui_host_contract::UiMountedInstanceIdentity>,
     ) {
-        self.order = order.into();
+        self.order
+            .replace_all(&order)
+            .expect("validated semantic order contains unique identities");
+    }
+
+    pub(in crate::mounting::projection) fn replace_order_snapshot(
+        &mut self,
+        order: crate::runtime::persistent_index::UiPersistentOrder<
+            worth_ui_host_contract::UiMountedInstanceIdentity,
+        >,
+    ) {
+        self.order = order;
     }
 
     pub(in crate::mounting::projection) fn replace_surface(
@@ -171,6 +186,7 @@ impl UiMountedSemanticProjection {
         self.nodes.len()
     }
 
+    #[cfg(test)]
     pub(in crate::mounting::projection) fn nodes_in_order(
         &self,
     ) -> impl Iterator<Item = &UiMountedProjectionNodeRecord> {
@@ -192,9 +208,7 @@ impl UiMountedSemanticProjection {
     pub(in crate::mounting) fn retained_structural_bytes(&self) -> Option<usize> {
         std::mem::size_of::<Self>()
             .checked_add(self.nodes.retained_structural_bytes()?)?
-            .checked_add(self.order.len().checked_mul(std::mem::size_of::<
-                worth_ui_host_contract::UiMountedInstanceIdentity,
-            >())?)?
+            .checked_add(self.order.retained_structural_bytes()?)?
             .checked_add(self.membership.retained_structural_bytes()?)?
             .checked_add(self.semantic_surfaces.retained_structural_bytes()?)?
             .checked_add(self.binding_by_surface.retained_structural_bytes()?)?

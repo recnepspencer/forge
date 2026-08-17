@@ -153,6 +153,9 @@ fn authored_source_generation_tracks_source_artifact_generation_not_declaration_
             ),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let baseline_artifact = authored_artifact(&baseline);
     let changed_artifact = authored_artifact(&changed);
@@ -244,6 +247,9 @@ fn declaration_lookup_app(semantic_key: &str, structural_token: &str) -> WorthUi
             ),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
 }
 

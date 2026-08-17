@@ -28,6 +28,9 @@ fn public_freeze_materializes_parent_child_slot_topology_as_graph_truth() {
             .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let graph = app.graph();
     let root_page = root_page_artifact(&app);
@@ -119,6 +122,9 @@ fn public_freeze_exposes_explicit_region_and_mosaic_membership_indexes() {
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let graph = app.graph();
     let root_page = root_page_artifact(&app);
@@ -201,6 +207,9 @@ fn topology_indexes_locate_nodes_while_attachment_posture_stays_on_node_truth() 
             .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let graph = app.graph();
     let root_page = root_page_artifact(&app);
@@ -235,6 +244,9 @@ fn graph_topology_keeps_root_contained_claims_explicit_without_generic_membershi
             .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let graph = app.graph();
     let root_page = root_page_artifact(&app);
@@ -310,6 +322,9 @@ fn freeze_returns_typed_denial_when_topology_has_multiple_root_pages() {
             .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
     {
         Ok(_) => panic!("ambiguous root topology must deny application preparation"),
         Err(denial) => denial,

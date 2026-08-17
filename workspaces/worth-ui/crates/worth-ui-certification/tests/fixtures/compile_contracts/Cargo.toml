@@ -7,19 +7,61 @@ autobins = false
 
 [workspace]
 
+[workspace.dependencies]
+winit = { version = "=0.30.13", default-features = false, features = ["rwh_06"] }
+wgpu = { version = "=29.0.4", default-features = false, features = ["std", "parking_lot", "dx12", "wgsl"] }
+pollster = "=0.4.0"
+harfrust = { version = "=0.12.0", default-features = false, features = ["std"] }
+icu_segmenter = { version = "=2.2.0", default-features = false, features = ["compiled_data", "auto"] }
+kurbo = { version = "=0.13.1", default-features = false, features = ["std"] }
+linesweeper = { version = "=0.4.0", default-features = false }
+png = { version = "=0.18.1", default-features = false }
+read-fonts = { version = "=0.41.0", default-features = false, features = ["std", "experimental_traverse"] }
+rustybuzz = "=0.20.1"
+sha2 = "=0.10.9"
+swash = "=0.2.10"
+unicode-bidi = { version = "=0.3.18", default-features = false, features = ["std"] }
+unicode-segmentation = { version = "=1.13.3", default-features = false }
+egui = "=0.35.0"
+serde = "=1.0.229"
+
 [dependencies]
 worth-foundational = { path = "../../../../../../../crates/worth-foundational" }
-worth-ui = { path = "../../../../worth-ui" }
+worth-ui = { path = "../../../../worth-ui", features = ["legacy-egui-migration"] }
 worth-ui-dsl = { path = "../../../../worth-ui-dsl" }
 worth-ui-host-contract = { path = "../../../../worth-ui-host-contract" }
+worth-ui-host-native = { path = "../../../../worth-ui-host-native" }
+worth-ui-host-headless = { path = "../../../../worth-ui-host-headless" }
+worth-ui-host-egui = { path = "../../../../worth-ui-host-egui" }
+worth-ui-native-platform = { path = "../../../../worth-ui-native-platform" }
 worth-ui-inspection = { path = "../../../../worth-ui-inspection" }
 worth-ui-query-binding = { path = "../../../../worth-ui-query-binding", features = ["certification-construction"] }
-worth-ui-runtime = { path = "../../../../worth-ui-runtime" }
+worth-ui-runtime = { path = "../../../../worth-ui-runtime", features = ["certification-support", "legacy-egui-migration"] }
 worth-ui-test-support = { path = "../../../../worth-ui-test-support" }
+egui.workspace = true
+serde.workspace = true
 
 [[bin]]
 name = "product-runtime-authority"
 path = "../../../../worth-ui/tests/ui/runtime_authority/fail/prepared_application_authority_has_no_canonical_extraction.rs"
+[[bin]]
+name = "host-presentation-work-authority"
+path = "../../../../worth-ui-host-contract/tests/ui/presentation_work_issuance_requires_runtime_authority.rs"
+[[bin]]
+name = "host-presentation-mechanics-consumer"
+path = "../../../../worth-ui-host-contract/tests/ui/presentation_mechanics_consumer_is_lawful.rs"
+[[bin]]
+name = "product-paint-identities-non-orderable"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/paint_identities_are_not_orderable.rs"
+[[bin]]
+name = "product-paint-identities-lawful-correlation"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/paint_identities_support_lawful_correlation.rs"
+[[bin]]
+name = "product-raw-protocol-consumer-substitution"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/raw_protocol_contract_cannot_enter_consumers.rs"
+[[bin]]
+name = "product-native-event-loop-client-substitution"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/product_cannot_substitute_native_event_loop_client.rs"
 
 [[bin]]
 name = "product-host-measurement-authority"
@@ -190,12 +232,24 @@ name = "product-collection-change-publication-token-affine"
 path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/collection_change_publication_token_is_affine.rs"
 
 [[bin]]
-name = "certification-second-host-adapter"
-path = "../../ui/host/second_adapter_implements_contract.rs"
+name = "certification-caller-defined-host-rejected"
+path = "../../ui/host/caller_defined_certification_host_is_rejected.rs"
+
+[[bin]]
+name = "certification-fixed-headless-host"
+path = "../../ui/host/fixed_certification_headless_host_is_lawful.rs"
+
+[[bin]]
+name = "certification-alternate-legacy-egui-host-rejected"
+path = "../../ui/host/alternate_host_cannot_enter_legacy_egui_transition.rs"
+
+[[bin]]
+name = "certification-fixed-legacy-egui-host"
+path = "../../ui/host/fixed_legacy_egui_host_is_lawful.rs"
 
 [[bin]]
 name = "certification-mounted-consumption-authority"
-path = "../../ui/host/external_callers_cannot_forge_mounted_consumption.rs"
+path = "../../ui/host/external_callers_cannot_forge_mounted_runtime_authority.rs"
 
 [[bin]]
 name = "certification-shared-inspection-contract"
@@ -316,3 +370,59 @@ path = "../../../../worth-ui/tests/ui/facade/intent/fail/confirmation_challenge_
 [[bin]]
 name = "product-intent-confirmation-route-distinct"
 path = "../../../../worth-ui/tests/ui/facade/intent/fail/confirmation_and_product_routes_cannot_cross.rs"
+
+[[bin]]
+name = "product-host-neutral-builder-freezes"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/host_neutral_builder_freezes.rs"
+
+[[bin]]
+name = "product-bound-builder-cannot-replace-host"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/bound_builder_cannot_replace_host.rs"
+
+[[bin]]
+name = "product-surface-baseline-affine"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/surface_baseline_receipt_is_private.rs"
+
+[[bin]]
+name = "product-surface-baseline-private"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/surface_baseline_receipt_cannot_be_reconstructed.rs"
+
+[[bin]]
+name = "product-cannot-bind-native-host"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/product_cannot_bind_native_host.rs"
+
+[[bin]]
+name = "product-native-preparation-no-builder-extraction"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/native_preparation_cannot_extract_builder.rs"
+
+[[bin]]
+name = "product-native-preparation-valid"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/native_preparation_progression_is_lawful.rs"
+
+[[bin]]
+name = "product-surface-baseline-consumption"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/known_empty_baseline_observation_is_lawful.rs"
+
+[[bin]]
+name = "host-phase5-native-plan-unforgeable"
+path = "../../../../worth-ui-host-contract/tests/ui/phase_five/native_plan_pin_recovery_are_unforgeable.rs"
+
+[[bin]]
+name = "host-phase5-raster-lifetime"
+path = "../../../../worth-ui-host-contract/tests/ui/phase_five/raster_view_cannot_escape_owner.rs"
+
+[[bin]]
+name = "host-phase5-alpha-color-substitution"
+path = "../../../../worth-ui-host-contract/tests/ui/phase_five/alpha_color_views_cannot_substitute.rs"
+
+[[bin]]
+name = "host-phase5-lawful-raster-views"
+path = "../../../../worth-ui-host-contract/tests/ui/phase_five/lawful_raster_views_are_constructible.rs"
+
+[[bin]]
+name = "host-phase5-raw-text-effect-bypass"
+path = "../../../../worth-ui-host-contract/tests/ui/phase_five/raw_text_effects_require_runtime_authority.rs"
+
+[[bin]]
+name = "host-phase5-lawful-native-effect-authority"
+path = "../../../../worth-ui-host-contract/tests/ui/phase_five/lawful_native_effect_authority_is_issued_with_host.rs"

@@ -1,0 +1,35 @@
+[package]
+name = "worth-ui-host-native"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+worth-proof.workspace = true
+worth-ui-host-contract = { path = "../worth-ui-host-contract" }
+worth-ui-retained-order = { path = "../worth-ui-retained-order" }
+worth-signal.workspace = true
+sha2 = "=0.10.9"
+winit = { version = "=0.30.13", default-features = false, features = ["rwh_06"] }
+wgpu = { version = "=29.0.4", default-features = false, features = ["std", "parking_lot", "dx12", "wgsl"] }
+pollster = "=0.4.0"
+rustybuzz = "=0.20.1"
+swash = "=0.2.10"
+
+[dev-dependencies]
+sha2 = "=0.10.9"
+toml = "=0.8.23"
+
+[package.metadata.worth-ui-qualified-dependencies]
+winit = "0.30.13"
+wgpu = "29.0.4"
+pollster = "0.4.0"
+rustybuzz = "0.20.1"
+swash = "0.2.10"
+winit-features = "rwh_06"
+wgpu-features = "std,parking_lot,dx12,wgsl"
+wgpu-device-features = "empty"
+wgpu-limits = "wgpu-29.0.4-Limits::downlevel_defaults().using_resolution(adapter.limits())"

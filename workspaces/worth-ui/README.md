@@ -11,10 +11,11 @@ adapters, and certification surfaces.
 3. [Authored composition](./docs/authored-composition.md)
 4. [Interaction and intents](./docs/interaction-and-intents.md)
 5. [Application lifecycle](./docs/application-lifecycle.md)
-6. [Application inspection](./docs/inspection.md)
-7. [Runtime subsystems](./docs/runtime-subsystems.md)
-8. [Query-backed UI views](./docs/query-binding.md)
-9. [Milestone 3.10.1 migration](./docs/migration-3.10.1.md)
+6. [Native host platform](./docs/native-host-platform.md)
+7. [Application inspection](./docs/inspection.md)
+8. [Runtime subsystems](./docs/runtime-subsystems.md)
+9. [Query-backed UI views](./docs/query-binding.md)
+10. [Milestone 3.10.1 migration](./docs/migration-3.10.1.md)
 
 The longer contributor orientation is
 [docs/worth-ui-readme.md](./docs/worth-ui-readme.md). Roadmap and milestone
@@ -33,6 +34,11 @@ specifications remain under `_docs/worth-ui` at the repository root.
 - `worth-ui-runtime` owns UI admission, graph/allocation behavior, framework
   turns, typed intent admission and execution, and mounted runtime truth; it
   consumes binding-owned UI artifacts and does not import Query directly.
+- `worth-ui-host-contract` owns the sealed revision-4 initial/delta/unchanged
+  presentation protocol. `worth-ui-host-headless` and
+  `worth-ui-host-native` consume only that contract; neither imports runtime.
+- `worth-ui-native-platform` owns effect-free native application preparation
+  and the one-shot platform binding. Phase 1 opens no native resources.
 - `worth-ui-certification` proves the public lifecycle and structural
   anti-bypass boundaries through production facades.
 - The root Worth workspace should not treat these crates as ordinary

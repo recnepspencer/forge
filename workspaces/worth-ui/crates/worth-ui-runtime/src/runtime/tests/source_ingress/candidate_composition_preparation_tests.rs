@@ -23,6 +23,7 @@ fn file_watcher_uses_one_composition_pipeline_for_file_and_rust_inputs() {
     let snapshot = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let file_submission = lower_file_submission(
         file_import_provider(),
@@ -154,6 +155,7 @@ fn import_drift_changes_exact_semantic_handoff_and_prepared_identity() {
     let snapshot = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("source snapshot should prepare");
     let left_submission = lower_file_submission(
         file_import_provider_for("app/panels/inspector.wui"),
@@ -193,11 +195,13 @@ fn import_drift_changes_exact_semantic_handoff_and_prepared_identity() {
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_candidate_submission(left_submission)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("left composition should prepare");
     let right = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_candidate_submission(right_submission)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("right composition should prepare");
 
     assert_eq!(left.capabilities().digest(), right.capabilities().digest());
@@ -214,6 +218,7 @@ fn candidate_snapshot_drift_returns_deterministic_preparation_denial_without_mut
     let baseline = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("baseline application should prepare");
     let baseline_generation = baseline.generation_identity().clone();
     let baseline_graph_generation = baseline.graph().generation();
@@ -233,6 +238,7 @@ fn candidate_snapshot_drift_returns_deterministic_preparation_denial_without_mut
     };
     let drifted_snapshot = make_drifted_builder()
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("drifted capability posture should prepare");
 
     let first = match make_drifted_builder()

@@ -19,6 +19,7 @@ pub(crate) struct UiMountedProjectionInput<'input, 'graph> {
     pub(crate) preview: Option<UiMountedPreviewProjectionInput>,
     pub(crate) visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
     pub(crate) semantic_content: &'input super::super::UiMountedSemanticContentInput,
+    pub(crate) font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     pub(in crate::mounting) semantic_predecessor: Option<&'input UiMountedSemanticProjection>,
     pub(crate) capability_generation:
         worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
@@ -71,6 +72,8 @@ struct UiMountedProjectionBuild {
     semantic: UiMountedSemanticProjection,
     cost: super::cost_accounting::UiMountedProjectionCostInput,
     replaced_order_rows: usize,
+    presentation_changed_instances:
+        std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
 }
 
 pub(crate) fn prepare_projection(
@@ -129,9 +132,11 @@ pub(crate) fn prepare_projection(
             preview: input.preview,
             visual_overlay: input.visual_overlay,
             projection_changes,
+            presentation_changed_instances: build.presentation_changed_instances,
             counters,
             capability_generation: input.capability_generation,
             capability_profile_digest: input.capability_profile_digest,
+            font_collection: input.font_collection,
         },
     ))
 }
@@ -192,6 +197,11 @@ fn build_full_projection(
             overflowed: input.changes.overflowed(),
         },
         replaced_order_rows: node_count,
+        presentation_changed_instances: instances
+            .iter()
+            .map(|instance| instance.identity())
+            .collect::<Vec<_>>()
+            .into(),
     })
 }
 
@@ -235,8 +245,8 @@ impl UiMountedNodeLoweringContext<'_, '_> {
                 .projection(instance.graph_node_identity()),
         )?;
         let static_paint = super::static_paint::lower_static_paint_seed(self.plan, plan_index)?;
-        let semantic_text_style =
-            super::semantic_text::lower_semantic_text_style(self.plan, plan_index)?;
+        let semantic_text_formatting =
+            super::semantic_text::lower_semantic_text_formatting(self.plan, plan_index)?;
         let predecessor = self
             .predecessor
             .and_then(|semantic| semantic.node(instance.identity()))
@@ -244,7 +254,7 @@ impl UiMountedNodeLoweringContext<'_, '_> {
         let semantic_text = super::semantic_text::lower_semantic_text_seed(
             self.semantic_content.get(instance.graph_node_identity()),
             predecessor,
-            semantic_text_style,
+            semantic_text_formatting,
         )?;
         let hit_test = super::hit_test::lower_hit_test_seed(self.plan, plan_index)?;
         let participation = lower_participation(

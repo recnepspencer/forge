@@ -1,6 +1,6 @@
 use super::application_artifact::WorthUiPreparedApplicationArtifactIdentity;
 use super::query_binding_plan_identity::WorthUiPreparedQueryBindingPlanIdentity;
-use super::{WorthUiHostSessionPlan, WorthUiPreparedDeclarationSourceIdentity};
+use super::WorthUiPreparedDeclarationSourceIdentity;
 use crate::capability::CapabilitySnapshotDigest;
 use std::rc::Rc;
 
@@ -22,7 +22,6 @@ struct WorthUiPreparedApplicationGenerationIdentityInner {
     query_binding: WorthUiPreparedQueryBindingPlanIdentity,
     intent_application_fact_digest: u64,
     intent_execution_binding_digest: u64,
-    host_session_plan: WorthUiHostSessionPlan,
     visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     change_profile: crate::runtime::rebind::UiChangeProfile,
 }
@@ -55,7 +54,6 @@ pub(super) struct WorthUiPreparedGenerationIdentityInput<'plan> {
     pub(super) query_binding_plan: &'plan worth_ui_query_binding::WorthUiQueryBindingPlan,
     pub(super) intent_application_fact_digest: u64,
     pub(super) intent_execution_binding_digest: u64,
-    pub(super) host_session_plan: &'plan WorthUiHostSessionPlan,
     pub(super) visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     pub(super) change_profile: crate::runtime::rebind::UiChangeProfile,
 }
@@ -75,7 +73,6 @@ impl WorthUiPreparedApplicationGenerationIdentity {
                 ),
                 intent_application_fact_digest: input.intent_application_fact_digest,
                 intent_execution_binding_digest: input.intent_execution_binding_digest,
-                host_session_plan: input.host_session_plan.clone(),
                 visual_inspection_policy: input.visual_inspection_policy,
                 change_profile: input.change_profile,
             }),

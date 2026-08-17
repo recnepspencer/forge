@@ -111,6 +111,9 @@ fn project_change(
             from: *from,
             to: *to,
         },
+        Change::Regroup { row, .. } => UiMountedCollectionTextChange::Regroup {
+            identity: UiMountedCollectionRowIdentity::from_query(row),
+        },
         Change::Update { row } => UiMountedCollectionTextChange::Update(take_row(rows, row)?),
         Change::WindowShift => UiMountedCollectionTextChange::WindowShift,
         Change::ResetRequired { .. } => {

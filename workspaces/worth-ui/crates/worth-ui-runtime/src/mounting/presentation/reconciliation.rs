@@ -52,14 +52,14 @@ impl UiHostPresentationReconciliation {
                 affected_binding,
                 replacement,
             } => {
-                let registration = replacement.baseline().registration();
+                let baseline = replacement.baseline();
                 current_frame.is_none()
                     && replacement.binding_generation() != *affected_binding
                     && replacement.semantic_surface_identity() == requirement.semantic_surface()
-                    && registration.semantic_surface_identity()
+                    && baseline.semantic_surface_identity()
                         == replacement.semantic_surface_identity()
-                    && registration.host_surface_identity() == replacement.host_surface_identity()
-                    && registration.presentation_mode() == replacement.presentation_mode()
+                    && baseline.host_surface_identity() == replacement.host_surface_identity()
+                    && baseline.presentation_mode() == replacement.presentation_mode()
             }
         }
     }

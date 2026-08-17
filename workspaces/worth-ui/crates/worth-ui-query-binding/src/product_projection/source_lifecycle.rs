@@ -105,8 +105,9 @@ impl WorthUiScalarProjectionInstallation {
         bridge: RuntimeBridge,
         source: SharedSourceState,
     ) -> Result<Self, super::WorthUiScalarProjectionInstallationError> {
-        let installed_domain =
-            crate::WorthUiQueryWorkspaceExt::worth_ui(&workspace).map_err(|error| {
+        let installed_domain = crate::WorthUiQueryHost::from_workspace(&workspace)
+            .installed_domain()
+            .map_err(|error| {
                 super::WorthUiScalarProjectionInstallationError::SourceLifecycle(format!(
                     "Worth UI domain discovery failed: {error:?}"
                 ))

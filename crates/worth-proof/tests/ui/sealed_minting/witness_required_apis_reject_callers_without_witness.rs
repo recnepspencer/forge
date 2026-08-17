@@ -1,5 +1,4 @@
-
-use worth_proof::{AuthorityMarker, CapabilityMarker, CapabilityWitness, Recipe, AuthorityWitness};
+use worth_proof::{AuthorityMarker, AuthorityWitness, CapabilityMarker, CapabilityWitness, Recipe};
 
 struct ResolutionAuthority;
 impl AuthorityMarker for ResolutionAuthority {}
@@ -22,4 +21,3 @@ fn invalid_calls(
 
 fn main() {}
 // sealed-minting-case
-

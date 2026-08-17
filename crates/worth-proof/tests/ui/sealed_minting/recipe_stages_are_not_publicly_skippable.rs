@@ -1,4 +1,3 @@
-
 use worth_proof::{
     Admitted, AssumptionBasis, AuthorityMarker, AuthorityWitness, CapabilityMarker,
     CapabilityWitness, Lowered, Recipe, Resolved,
@@ -25,11 +24,13 @@ fn invalid_stage_skips(
     let _skipped = unresolved.admit_with_authority(admission_authority);
     let _also_skipped = resolved.admit_with_authority(second_admission_authority);
 
-    let _direct_resolved = Recipe::<Resolved, _, _>::with_stage("payload", AssumptionBasis::new(1_u8));
-    let _direct_lowered = Recipe::<Lowered, _, _>::with_stage("payload", AssumptionBasis::new(1_u8));
-    let _direct_admitted = Recipe::<Admitted, _, _>::with_stage("payload", AssumptionBasis::new(1_u8));
+    let _direct_resolved =
+        Recipe::<Resolved, _, _>::with_stage("payload", AssumptionBasis::new(1_u8));
+    let _direct_lowered =
+        Recipe::<Lowered, _, _>::with_stage("payload", AssumptionBasis::new(1_u8));
+    let _direct_admitted =
+        Recipe::<Admitted, _, _>::with_stage("payload", AssumptionBasis::new(1_u8));
 }
 
 fn main() {}
 // sealed-minting-case
-

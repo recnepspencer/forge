@@ -48,7 +48,10 @@ fn phase5_manifest_rejects_unmanifested_public_growth() {
     let removed = symbols.pop().expect("app has a public symbol");
     let error = audit(&inventory, &document).expect_err("missing symbol should fail exactness");
     assert!(error.contains("differs from its exact manifest"));
-    assert!(error.contains(removed.as_str().expect("symbol text")));
+    assert!(
+        error.contains(removed.as_str().expect("symbol text")),
+        "removed={removed:?}; {error}"
+    );
 }
 
 #[test]
@@ -60,7 +63,10 @@ fn phase5_manifest_requires_overlay_observation_exports() {
     let removed = symbols.pop().expect("overlay group has a public symbol");
     let error = audit(&inventory, &document).expect_err("missing overlay export must fail");
     assert!(error.contains("differs from its exact manifest"));
-    assert!(error.contains(removed.as_str().expect("symbol text")));
+    assert!(
+        error.contains(removed.as_str().expect("symbol text")),
+        "removed={removed:?}; {error}"
+    );
 }
 
 #[test]

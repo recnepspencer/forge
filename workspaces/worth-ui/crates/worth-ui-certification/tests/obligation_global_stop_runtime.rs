@@ -19,6 +19,9 @@ fn distinct_global_stop_reports_keep_distinct_public_refs_for_the_same_stop_post
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let foreign = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -30,6 +33,9 @@ fn distinct_global_stop_reports_keep_distinct_public_refs_for_the_same_stop_post
             .with_semantic_artifact_spec(foreign_spec("foreign/two.wui", "foreign.two")),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
 
     let left_touch =

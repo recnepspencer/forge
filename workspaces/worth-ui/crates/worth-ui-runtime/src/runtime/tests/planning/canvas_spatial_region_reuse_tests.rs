@@ -75,6 +75,7 @@ fn ordinary_to_canvas_transition_is_non_equivalent_and_leaves_no_ordinary_residu
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(ordinary_descriptor(ID))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("ordinary predecessor freezes");
     let canvas_app = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
@@ -82,6 +83,7 @@ fn ordinary_to_canvas_transition_is_non_equivalent_and_leaves_no_ordinary_residu
             ComponentCanvasSpatialContract::new(64, 2, 1).expect("canvas successor is bounded"),
         ))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("canvas successor freezes");
     let artifact = |app: &WorthUiApp| {
         artifact_from_modules(
@@ -147,7 +149,10 @@ fn canvas_app(changed_primitive_limit: u32) -> WorthUiApp {
         };
         builder = builder.register_component(canvas_descriptor(index, primitive_limit));
     }
-    builder.freeze().expect("large canvas capabilities freeze")
+    builder
+        .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
+        .expect("large canvas capabilities freeze")
 }
 
 fn canvas_artifact(app: &WorthUiApp) -> crate::source::WorthUiArtifact {

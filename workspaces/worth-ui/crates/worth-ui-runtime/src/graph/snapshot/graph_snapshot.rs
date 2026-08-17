@@ -294,6 +294,9 @@ mod tests {
                     .with_semantic_artifact_spec(child),
             )
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed")
     }
 

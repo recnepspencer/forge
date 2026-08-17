@@ -2,8 +2,13 @@ mod assembly;
 mod identity;
 mod presentation;
 mod presentation_cost;
+mod presentation_work;
 mod protocol;
 mod surface_registration;
+mod surface_stop;
+
+#[cfg(test)]
+mod presentation_work_tests;
 
 pub use assembly::{
     UiMountedFrameCanonicalCore, UiMountedFrameIntegrity, UiMountedFrameManifest,
@@ -20,12 +25,26 @@ pub use presentation::{
     UiHostPresentationCompletionToken, UiHostSurfaceCancellationOutcome,
     UiHostSurfaceInFlightCompletion, UiHostSurfacePresentationDenial,
     UiHostSurfacePresentationOutcome, UiMountedCompletedEffects, UiMountedEffectFamily,
-    UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView, UiMountedPresentationLease,
-    UiMountedPresentationLeaseDenial, UiMountedPresentationLeaseGate,
-    UiMountedSurfacePresentationCompletion, UiPresentationDeadline,
+    UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView,
+    UiMountedSurfacePresentationCompletion, UiMountedTextRasterCallback, UiMountedTextRasterWork,
+    UiPresentationDeadline,
 };
 pub use presentation_cost::{
     UiHostPresentationCostInput, UiHostPresentationCostOverflow, UiHostPresentationCostReport,
+    UiMountedPresentationProductionCost, UiMountedPresentationProductionCostInput,
+};
+pub use presentation_work::{
+    UiMountedLogicalDamage, UiMountedPaintCommand, UiMountedPaintCommandChange,
+    UiMountedPaintCommandIdentity, UiMountedPaintOrderEdit, UiMountedPaintOrderIdentity,
+    UiMountedPaintOrderIntegrity, UiMountedPresentationAffinity,
+    UiMountedPresentationAuxiliaryState, UiMountedPresentationDelta,
+    UiMountedPresentationDeltaInput, UiMountedPresentationInitial,
+    UiMountedPresentationInitialInput, UiMountedPresentationNodeChange,
+    UiMountedPresentationNodePaint, UiMountedPresentationNodeState,
+    UiMountedPresentationNodeStateInput, UiMountedPresentationReconstruction,
+    UiMountedPresentationReconstructionDenial, UiMountedPresentationReconstructionInput,
+    UiMountedPresentationUnchanged, UiMountedPresentationUnchangedInput,
+    UiMountedPresentationWorkView,
 };
 pub use protocol::{
     UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolAgreement,
@@ -34,9 +53,10 @@ pub use protocol::{
     UiMountedFrameSchemaVersion, UiMountedPresentationSchemaVersion,
 };
 pub use surface_registration::{
-    UiHostSurfaceBaselineReceipt, UiHostSurfaceDeregistrationIndeterminate,
+    UiHostSurfaceBaselineIdentity, UiHostSurfaceDeregistrationIndeterminate,
     UiHostSurfaceDeregistrationOutcome, UiHostSurfaceDeregistrationReceipt,
     UiHostSurfaceRegistrationDenial, UiHostSurfaceRegistrationIndeterminate,
     UiHostSurfaceRegistrationInput, UiHostSurfaceRegistrationOutcome,
     UiHostSurfaceRegistrationRequest,
 };
+pub use surface_stop::UiHostSurfaceStopReason;

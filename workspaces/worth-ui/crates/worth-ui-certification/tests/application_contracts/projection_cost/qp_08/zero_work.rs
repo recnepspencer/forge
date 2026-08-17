@@ -8,6 +8,9 @@ fn query_free_turn_has_zero_query_and_content_work() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("Query-free application prepares");
     let mut session = app.launch().expect("Query-free application launches");
     let outcome = session

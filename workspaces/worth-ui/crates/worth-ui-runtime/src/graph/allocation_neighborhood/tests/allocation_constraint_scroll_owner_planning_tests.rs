@@ -257,6 +257,7 @@ fn scroll_owner_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthU
             .with_semantic_artifact_spec(scroll_owner_spec()),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

@@ -151,6 +151,9 @@ fn main() {
         .register_intent_provider(Provider)
         .expect("the exact typed provider should register")
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("typed definition should prepare");
     assert!(app
         .capabilities()

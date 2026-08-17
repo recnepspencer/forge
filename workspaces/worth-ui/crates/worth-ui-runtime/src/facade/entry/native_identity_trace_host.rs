@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
@@ -23,6 +23,7 @@ type NativeSurfaceRegistrations =
 #[derive(Clone, Default)]
 pub(super) struct NativeIdentityTraceHost {
     registrations: Rc<RefCell<NativeSurfaceRegistrations>>,
+    presentation_calls: Rc<Cell<usize>>,
 }
 
 impl WorthUiMeasurementHostAdapter for NativeIdentityTraceHost {
@@ -77,9 +78,7 @@ impl WorthUiOperationalHostAdapter for NativeIdentityTraceHost {
                 UiHostSurfaceRegistrationDenial::ForeignRegistration,
             );
         }
-        worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::Registered(
-            request.confirm_known_empty(),
-        )
+        worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RegisteredKnownEmpty
     }
 
     fn deregister_surface(
@@ -120,6 +119,8 @@ impl WorthUiOperationalHostAdapter for NativeIdentityTraceHost {
                 UiHostSurfacePresentationDenial::SurfaceBindingChanged,
             );
         }
+        self.presentation_calls
+            .set(self.presentation_calls.get() + 1);
         UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::NativeDisplay,
             UiHostPresentationEpoch::issued_by_host(view.attempt().diagnostic_value()),
@@ -131,6 +132,7 @@ impl WorthUiOperationalHostAdapter for NativeIdentityTraceHost {
                 native_resource_cache_hits: 0,
                 native_resource_cache_misses: 0,
                 asynchronous_handoffs: 0,
+                ..Default::default()
             }),
         ))
     }
@@ -152,15 +154,24 @@ impl WorthUiOperationalHostAdapter for NativeIdentityTraceHost {
 }
 
 fn performed_effects(view: &UiMountedFrameConsumptionView<'_>) -> Vec<UiMountedEffectFamily> {
-    let painted = view.projection().nodes().iter().any(|node| {
-        matches!(
-            node.paint(),
-            worth_ui_host_contract::UiMountedPaintProjection::FilledRect(_)
-        ) || matches!(
-            node.preview(),
-            worth_ui_host_contract::UiMountedPreviewProjection::Resize { .. }
-        )
-    });
+    let painted = match view.presentation_work() {
+        worth_ui_host_contract::UiMountedPresentationWorkView::Initial(initial) => {
+            !initial.commands().is_empty()
+                || initial.projection().nodes().iter().any(|node| {
+                    matches!(
+                        node.preview(),
+                        worth_ui_host_contract::UiMountedPreviewProjection::Resize { .. }
+                    )
+                })
+        }
+        worth_ui_host_contract::UiMountedPresentationWorkView::Delta(delta) => {
+            !delta.changes().is_empty() || !delta.order().is_empty() || !delta.damage().is_empty()
+        }
+        worth_ui_host_contract::UiMountedPresentationWorkView::Reconstruction(work) => {
+            !work.commands().is_empty()
+        }
+        worth_ui_host_contract::UiMountedPresentationWorkView::Unchanged(_) => false,
+    };
     painted
         .then_some(UiMountedEffectFamily::NativePaint)
         .into_iter()
@@ -168,6 +179,10 @@ fn performed_effects(view: &UiMountedFrameConsumptionView<'_>) -> Vec<UiMountedE
 }
 
 impl NativeIdentityTraceHost {
+    pub(super) fn presentation_calls(&self) -> usize {
+        self.presentation_calls.get()
+    }
+
     fn registration_matches(&self, view: &UiMountedFrameConsumptionView<'_>) -> bool {
         let requirement = view.requirement();
         self.registrations

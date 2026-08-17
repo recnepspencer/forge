@@ -40,6 +40,8 @@ mod host_observation_overflow;
 mod host_observation_pressure;
 #[path = "../application_contracts/host_observation_reporting.rs"]
 mod host_observation_reporting;
+#[path = "../application_contracts/host_platform/mod.rs"]
+mod host_platform;
 #[path = "../application_contracts/intent/mod.rs"]
 mod intent;
 #[path = "../application_contracts/milestone_312_affected_scope.rs"]

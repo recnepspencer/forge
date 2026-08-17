@@ -28,16 +28,18 @@ name = "executable_world"
 path = "tests/executable_world.rs"
 required-features = ["executable-world"]
 [dependencies]
-eframe = { workspace = true, features = ["wgpu"] }
+eframe = { workspace = true, features = ["wgpu_no_default_features"] }
 notify = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 worth-query-decl = { workspace = true }
 worth-query-host = { workspace = true }
-worth-ui = { workspace = true }
+worth-ui = { workspace = true, features = ["legacy-egui-migration"] }
 worth-ui-host-egui = { workspace = true }
+worth-ui-native-platform = { workspace = true }
 [target.'cfg(windows)'.dev-dependencies]
 uiautomation = { workspace = true }
+win32job = { workspace = true }
 winsafe = { workspace = true }
 xcap = { workspace = true, features = ["wgc"] }
 "#;
@@ -73,7 +75,7 @@ fn manifest_rejects_an_extra_workflow_feature() {
 #[test]
 fn manifest_rejects_renderer_and_capture_feature_drift() {
     let missing_renderer = MANIFEST.replace(
-        r#"eframe = { workspace = true, features = ["wgpu"] }"#,
+        r#"eframe = { workspace = true, features = ["wgpu_no_default_features"] }"#,
         "eframe = { workspace = true }",
     );
     let error = manifest_contract::audit(WORKSPACE, &missing_renderer)
@@ -95,7 +97,7 @@ fn library_rejects_exporting_application_implementation() {
         "pub mod observation_contract;\npub mod application;",
     )
     .expect_err("application implementation cannot leave the binary");
-    assert!(error.contains("only"));
+    assert!(error.contains("escaped the adjudicated"), "{error}");
 }
 
 #[test]
@@ -110,12 +112,6 @@ fn product_source_rejects_an_executable_world_feature_branch() {
 
 #[test]
 fn protocol_rejects_a_missing_lifecycle_outcome() {
-    let envelope = r#"
-const SCHEMA_VERSION: u16 = 5;
-const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
-const ID: &str = "worth-ui.platform-pulse.lifecycle-observation";
-const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
-"#;
     let lifecycle = r#"
 pub enum PlatformPulseLifecycleObservation {
     ProcessStarted(PlatformPulseProcessStarted),
@@ -148,19 +144,13 @@ pub struct PlatformPulseVisualComparison { value: u64 }
 pub struct PlatformPulseShutdownCompleted { value: u64 }
 pub struct PlatformPulseTerminalFailure { value: u64 }
 "#;
-    let error = source_contract::audit_protocol(envelope, lifecycle)
+    let error = source_contract::audit_protocol(canonical_protocol_envelope(), lifecycle)
         .expect_err("preservation outcome cannot disappear");
-    assert!(error.contains("variants"));
+    assert!(error.contains("variant"), "{error}");
 }
 
 #[test]
 fn protocol_rejects_public_raw_payload_fields() {
-    let envelope = r#"
-const SCHEMA_VERSION: u16 = 5;
-const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
-const ID: &str = "worth-ui.platform-pulse.lifecycle-observation";
-const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
-"#;
     let lifecycle = r#"
 pub enum PlatformPulseLifecycleObservation {
     ProcessStarted(PlatformPulseProcessStarted),
@@ -195,9 +185,9 @@ pub struct PlatformPulseVisualComparison { value: u64 }
 pub struct PlatformPulseShutdownCompleted { value: u64 }
 pub struct PlatformPulseTerminalFailure { value: u64 }
 "#;
-    let error = source_contract::audit_protocol(envelope, lifecycle)
+    let error = source_contract::audit_protocol(canonical_protocol_envelope(), lifecycle)
         .expect_err("caller-mintable payload must fail");
-    assert!(error.contains("private"));
+    assert!(error.contains("private"), "{error}");
 }
 
 #[test]
@@ -342,6 +332,20 @@ pub fn project_shutdown(
     query: super::query::PlatformPulseQueryShutdownEvidence,
     application: WorthUiNativeApplicationShutdownReceipt,
 ) {}
+"#
+}
+
+fn canonical_protocol_envelope() -> &'static str {
+    r#"
+const LIFECYCLE_OBSERVATION_PROTOCOL_ID: &str =
+    "worth-ui.platform-pulse.lifecycle-observation";
+const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 9;
+const LIFECYCLE_OBSERVATION_PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
+const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
+enum DecodeOutcome { CompleteV9 }
+fn supports(schema_version: u16) -> bool {
+    match schema_version { schema_version @ 2..=8 => true, _ => false }
+}
 "#
 }
 

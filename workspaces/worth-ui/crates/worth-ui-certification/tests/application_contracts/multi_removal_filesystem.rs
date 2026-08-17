@@ -1,4 +1,6 @@
-use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
+use worth_ui::facade::app::WorthUi;
+
+type BoundBuilder = worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder;
 use worth_ui::facade::declaration::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentStateOwnership, MeasurementConstraint, MeasurementValue, MosaicChildRule,
@@ -14,16 +16,9 @@ use worth_ui_certification::scenario::application_authority_closure::candidate_c
     admit_candidate_catalog, admit_candidate_catalog_with_removed_roots,
 };
 use worth_ui_certification::scenario::installed_query_world;
-use worth_ui_host_contract::{
-    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiMeasurementRequestFamily,
-    UiPortalAnchorRectObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
-    WorthUiHostContract, WorthUiMeasurementHostAdapter,
-};
+use worth_ui_host_contract::UiPortalAnchorRectObservation;
+use worth_ui_host_headless::WorthUiHeadlessPortalAnchorHost;
 use worth_ui_runtime::facade::application::UiAllocationCatalogRowDisposition;
-use worth_ui_runtime::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiOperationalHostAdapter,
-};
 use worth_ui_test_support::{
     WorthUiApplicationBuilderCertificationExt, WorthUiFrameworkTurnCertificationExt,
 };
@@ -167,10 +162,9 @@ fn file_application(workspace: &FilesystemContractWorkspace) -> worth_ui::facade
         .expect("real-file application should prepare")
 }
 
-fn builder() -> WorthUiApplicationBuilder {
-    WorthUi::app()
+fn builder() -> BoundBuilder {
+    let builder = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .with_host(MultiRemovalHost)
         .with_graph_world_profile(installed_query_world::settled_query_world_profile(
             worth_ui::facade::declaration::ViewBindingId::new("multi.removal.filesystem").unwrap(),
             "worth-ui.phase14.filesystem.multi-removal",
@@ -192,53 +186,20 @@ fn builder() -> WorthUiApplicationBuilder {
         .register_mosaic_sizing_contract(fixed_sizing(
             SECOND_SIZING,
             "workspace.measurement.removal_second",
-        ))
+        ));
+    BoundBuilder::new(
+        builder,
+        WorthUiHeadlessPortalAnchorHost::new(UiPortalAnchorRectObservation {
+            x: 24.0,
+            y: 48.0,
+            width: 640.0,
+            height: 360.0,
+        }),
+    )
 }
 
 fn base_source() -> String {
     format!("component {BASE} {{ region {BASE_REGION} {{ sizing {BASE_SIZING}; }} }}\n")
-}
-
-#[derive(Clone, Copy, Default)]
-struct MultiRemovalHost;
-
-impl WorthUiMeasurementHostAdapter for MultiRemovalHost {
-    fn observe_measurement(
-        &self,
-        request: &UiHostMeasurementRequest,
-    ) -> UiHostMeasurementObservationValue {
-        match request.family() {
-            UiMeasurementRequestFamily::PortalAnchorRect => {
-                UiHostMeasurementObservationValue::PortalAnchorRect(UiPortalAnchorRectObservation {
-                    x: 24.0,
-                    y: 48.0,
-                    width: 640.0,
-                    height: 360.0,
-                })
-            }
-            family => panic!("unexpected multi-removal measurement request: {family:?}"),
-        }
-    }
-}
-
-impl WorthUiOperationalHostAdapter for MultiRemovalHost {
-    fn operational_host_contract(&self) -> WorthUiHostContract {
-        WorthUiHostContract::headless()
-    }
-
-    fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::available(vec![WorthUiHostCapability::PortalAnchorObservation])
-    }
-
-    fn release_host_session(
-        &self,
-        authority: &UiHostAdapterSessionAuthority,
-    ) -> UiHostSessionReleaseOutcome {
-        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
-            authority.host_session_identity(),
-            0,
-        ))
-    }
 }
 
 fn component(identity: &str) -> ComponentDescriptor {

@@ -170,12 +170,16 @@ fn audit_native_capture(owner: &str, capture: &str) -> Result<(), String> {
         "client_capture::exact_window(process_id, candidate.window.ptr() as u32)?",
         "self.observe_bound_client_area(bound)?",
         "struct WindowsCaptureExposure<'bound>",
-        "HwndPlace::Place(co::HWND_PLACE::TOP)",
+        "HwndPlace::Place(co::HWND_PLACE::TOPMOST)",
         "win::DwmFlush()",
         "let exposure = self.expose_bound_client_area(bound)?",
         "Self::capture_exposed_client_area(exposure)",
-        "client_capture::capture_client(&bound.capture_window, client)?",
+        "client_capture::capture_client_area(",
+        "gdi_capture::capture_client_area(",
+        "require_matching_capture_sources(",
         "ClientOutsideCaptureMonitor",
+        "right > screenshot.width() || bottom > screenshot.height()",
+        "cropped.extend_from_slice(",
     ] {
         require(owner, edge, "process-bound HWND capture owner")?;
     }
@@ -183,15 +187,13 @@ fn audit_native_capture(owner: &str, capture: &str) -> Result<(), String> {
         "Window::all()",
         "window.pid().ok() == Some(process_id)",
         "window.id().ok() == Some(window_id)",
-        "window.capture_image()",
-        "crop_client(screenshot, window_left, window_top, client)",
-        "right > screenshot.width() || bottom > screenshot.height()",
-        "cropped.extend_from_slice(",
+        ".capture_image()",
+        "crop_monitor_client(image, region)?",
     ] {
         require(capture, edge, "exact-HWND WGC capture")?;
     }
     if capture.matches("Window::all()").count() != 1
-        || capture.matches("window.capture_image()").count() != 1
+        || capture.matches(".capture_image()").count() != 1
     {
         return Err("exact-HWND WGC capture must enumerate and capture exactly once".to_owned());
     }
@@ -232,10 +234,12 @@ fn audit_native_desktop_lease(launch: &str, lease: &str) -> Result<(), String> {
         return Err("native desktop lease must be acquired before child spawn".to_owned());
     }
     for edge in [
-        "OnceLock<Mutex<()>>",
-        "desktop.try_lock()",
+        "OpenOptionsExt",
+        ".share_mode(0)",
+        ".create(true)",
         "Instant::now() < deadline",
-        "Err(TryLockError::WouldBlock) => return Err(NativeDesktopLeaseDeadline)",
+        "Err(_) => return Err(NativeDesktopLeaseDeadline)",
+        "drop(self.file.take())",
     ] {
         require(lease, edge, "bounded native desktop lease")?;
     }
@@ -279,9 +283,11 @@ impl VisualIdentityRunnerSources {
                 .map(|source| source.text())
                 .collect::<Vec<_>>()
                 .join("\n"),
-            windows_capture: text(
-                "apps/platform-pulse/tests/executable_world/native_platform/windows.rs",
-            ),
+            windows_capture: [
+                text("apps/platform-pulse/tests/executable_world/native_platform/windows.rs"),
+                text("apps/platform-pulse/tests/executable_world/native_platform/windows/capture_region.rs"),
+            ]
+            .join("\n"),
             wgc_capture: text(
                 "apps/platform-pulse/tests/executable_world/native_platform/windows/client_capture.rs",
             ),

@@ -250,9 +250,8 @@ fn audit_source_witnesses(
         .map(|source| source.text())
         .collect::<String>();
     for required in [
-        "adapter_cost.translated_rows(), 8",
-        "std::mem::size_of::<UiMountedNodeProjectionView>()",
-        "std::mem::size_of::<UiMountedFilledRectMechanic>()",
+        "adapter_cost.translated_rows(), 6",
+        "std::mem::size_of::<UiMountedPaintCommand>()",
         "adapter_cost.native_resource_cache_hits(), 0",
     ] {
         if !courtroom.contains(required) {

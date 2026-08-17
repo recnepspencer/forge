@@ -101,6 +101,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
                     preview: None,
                     visual_overlay,
                     semantic_content,
+                    font_collection: std::sync::Arc::clone(&self.font_collection),
                     reuse_contract,
                 })?;
         Ok(WorthUiActiveMountedProjectionFrame {

@@ -1,4 +1,3 @@
-
 use worth_proof::{
     Artifact, AssumptionBasis, CanonicalOrder, CanonicalVec, DisjointPair, Disjointness,
     PhaseMarker, Proof, StructuralProofAuthority, UniqueVec, Uniqueness,
@@ -31,4 +30,3 @@ fn main() {
     );
 }
 // sealed-minting-case
-

@@ -21,6 +21,7 @@ pub fn structural_touch_app() -> WorthUiApp {
             .with_semantic_artifact_spec(service_control_spec()),
         )
         .freeze()
+        .map(worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless)
         .expect("application preparation should succeed")
 }
 
@@ -38,6 +39,7 @@ pub fn query_touch_app() -> WorthUiApp {
             .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .map(worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless)
         .expect("application preparation should succeed")
 }
 
@@ -51,6 +53,7 @@ pub fn service_touch_app() -> WorthUiApp {
             .with_semantic_artifact_spec(service_control_spec()),
         )
         .freeze()
+        .map(worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless)
         .expect("application preparation should succeed")
 }
 
@@ -64,6 +67,7 @@ pub fn focus_touch_app() -> WorthUiApp {
             .with_semantic_artifact_spec(focus_control_spec()),
         )
         .freeze()
+        .map(worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless)
         .expect("application preparation should succeed")
 }
 
@@ -77,6 +81,7 @@ pub fn motion_touch_app() -> WorthUiApp {
             .with_semantic_artifact_spec(motion_control_spec()),
         )
         .freeze()
+        .map(worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless)
         .expect("application preparation should succeed")
 }
 

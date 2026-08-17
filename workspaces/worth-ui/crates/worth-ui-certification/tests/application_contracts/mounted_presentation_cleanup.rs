@@ -142,6 +142,7 @@ fn adapter_cost(
             native_resource_cache_hits: u64::from(cache_hit),
             native_resource_cache_misses: u64::from(!cache_hit),
             asynchronous_handoffs: 0,
+            ..Default::default()
         },
     )
 }

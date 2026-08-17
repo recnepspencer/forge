@@ -1,0 +1,265 @@
+use std::collections::{BTreeMap, VecDeque};
+use std::sync::{Arc, Mutex};
+
+use crate::facade::mounted::{
+    UiHostSurfaceCancellationOutcome, UiHostSurfaceInFlightCompletion,
+    UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome, UiMountedCompletedEffects,
+    UiMountedEffectFamily,
+};
+use worth_ui_host_contract::WorthUiHostCapabilityReport;
+
+mod adapter;
+mod measurement_adapter;
+mod visual_capture_script;
+
+use visual_capture_script::ScriptedVisualCapture;
+
+#[derive(Clone, Default)]
+pub struct ScriptedPresentationHost {
+    state: Arc<Mutex<ScriptedPresentationState>>,
+    observation_retention: Arc<worth_ui_host_contract::UiHostObservationRetention>,
+}
+
+enum ScriptedPresentationStart {
+    Outcome(UiHostSurfacePresentationOutcome),
+    InFlight {
+        completions: VecDeque<ScriptedSurfaceCompletion>,
+        cancellation: UiHostSurfaceCancellationOutcome,
+    },
+}
+
+pub enum ScriptedSurfaceCompletion {
+    Pending,
+    RejectedBeforeEffects(worth_ui_host_contract::UiHostSurfacePresentationDenial),
+    Presented(worth_ui_host_contract::UiMountedSurfacePresentationCompletion),
+    PresentationIndeterminate,
+}
+
+struct ScriptedPresentationState {
+    contract: worth_ui_host_contract::WorthUiHostContract,
+    protocol: worth_ui_host_contract::UiHostProtocolContract,
+    capabilities: WorthUiHostCapabilityReport,
+    presentations: VecDeque<ScriptedPresentationStart>,
+    completions: BTreeMap<u64, VecDeque<ScriptedSurfaceCompletion>>,
+    cancellations: BTreeMap<u64, UiHostSurfaceCancellationOutcome>,
+    token_sessions: BTreeMap<u64, u64>,
+    registrations: BTreeMap<
+        worth_ui_host_contract::UiHostSurfaceIdentity,
+        worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
+    >,
+    indeterminate_next_registration: bool,
+    wrong_next_deregistration_receipt: bool,
+    cancellation_calls: Vec<u64>,
+    presentation_calls: usize,
+    viewport_environment_generation: u64,
+    font_environment_generation: u64,
+    adapter_environment_generation: u64,
+    queued_observation: Option<crate::facade::observation_report::UiHostObservationBatch>,
+    queued_measurement: Option<(
+        crate::facade::measurement_exchange::WorthUiHostMeasurementIngress,
+        crate::facade::measurement_exchange::UiHostMeasurementCompletion,
+    )>,
+    observation_events: Vec<&'static str>,
+    visual_capture_capability: worth_ui_host_contract::UiHostCaptureCapability,
+    visual_captures: VecDeque<ScriptedVisualCapture>,
+    visual_capture_calls: Vec<worth_ui_host_contract::UiHostVisualCaptureRequest>,
+    visual_cancellation_outcome: worth_ui_host_contract::UiHostCaptureCancellationOutcome,
+    visual_cancellation_calls: Vec<worth_ui_host_contract::UiHostVisualCaptureRequest>,
+}
+
+impl Default for ScriptedPresentationState {
+    fn default() -> Self {
+        Self {
+            contract: worth_ui_host_contract::WorthUiHostContract::headless(),
+            protocol: worth_ui_host_contract::UiHostProtocolContract::current(),
+            capabilities: recording_capabilities(),
+            presentations: VecDeque::new(),
+            completions: BTreeMap::new(),
+            cancellations: BTreeMap::new(),
+            token_sessions: BTreeMap::new(),
+            registrations: BTreeMap::new(),
+            indeterminate_next_registration: false,
+            wrong_next_deregistration_receipt: false,
+            cancellation_calls: Vec::new(),
+            presentation_calls: 0,
+            viewport_environment_generation: 1,
+            font_environment_generation: 1,
+            adapter_environment_generation: 1,
+            queued_observation: None,
+            queued_measurement: None,
+            observation_events: Vec::new(),
+            visual_capture_capability: worth_ui_host_contract::UiHostCaptureCapability::Unsupported,
+            visual_captures: VecDeque::new(),
+            visual_capture_calls: Vec::new(),
+            visual_cancellation_outcome:
+                worth_ui_host_contract::UiHostCaptureCancellationOutcome::CancelledBeforeReadback,
+            visual_cancellation_calls: Vec::new(),
+        }
+    }
+}
+
+pub fn recorded_effects() -> UiMountedCompletedEffects {
+    UiMountedCompletedEffects::new(vec![UiMountedEffectFamily::RecordedProjection])
+}
+
+pub const fn scripted_presentation_epoch() -> worth_ui_host_contract::UiHostPresentationEpoch {
+    worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(1)
+}
+
+fn scripted_presentation_cost() -> worth_ui_host_contract::UiHostPresentationCostReport {
+    worth_ui_host_contract::UiHostPresentationCostReport::from_adapter(
+        worth_ui_host_contract::UiHostPresentationCostInput {
+            presented_surfaces: 1,
+            translated_rows: 0,
+            translated_bytes: 0,
+            native_resource_cache_hits: 0,
+            native_resource_cache_misses: 0,
+            asynchronous_handoffs: 0,
+            ..Default::default()
+        },
+    )
+}
+
+pub fn presented_completion() -> ScriptedSurfaceCompletion {
+    ScriptedSurfaceCompletion::Presented(
+        worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
+            UiHostSurfacePresentationMode::RecordOnly,
+            scripted_presentation_epoch(),
+            recorded_effects(),
+            scripted_presentation_cost(),
+        ),
+    )
+}
+
+impl ScriptedPresentationHost {
+    pub fn native_display() -> Self {
+        let host = Self::default();
+        {
+            let mut state = host.state.lock().unwrap();
+            state.contract = worth_ui_host_contract::WorthUiHostContract::native();
+            state.capabilities = WorthUiHostCapabilityReport::available(vec![
+                worth_ui_host_contract::WorthUiHostCapability::NativePaint,
+                worth_ui_host_contract::WorthUiHostCapability::ViewportObservation,
+                worth_ui_host_contract::WorthUiHostCapability::DpiObservation,
+            ]);
+        }
+        host
+    }
+
+    pub fn set_protocol(&self, protocol: worth_ui_host_contract::UiHostProtocolContract) {
+        self.state.lock().unwrap().protocol = protocol;
+    }
+
+    pub fn set_capabilities(&self, capabilities: WorthUiHostCapabilityReport) {
+        self.state.lock().unwrap().capabilities = capabilities;
+    }
+
+    pub fn push_presented(&self) {
+        self.push_presentation(UiHostSurfacePresentationOutcome::Presented(
+            worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
+                UiHostSurfacePresentationMode::RecordOnly,
+                scripted_presentation_epoch(),
+                recorded_effects(),
+                scripted_presentation_cost(),
+            ),
+        ));
+    }
+
+    pub fn push_rejected(&self) {
+        self.push_presentation(UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
+            worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined,
+        ));
+    }
+
+    pub fn push_presentation(&self, outcome: UiHostSurfacePresentationOutcome) {
+        self.state
+            .lock()
+            .unwrap()
+            .presentations
+            .push_back(ScriptedPresentationStart::Outcome(outcome));
+    }
+
+    pub fn push_in_flight(
+        &self,
+        completions: Vec<ScriptedSurfaceCompletion>,
+        cancellation: UiHostSurfaceCancellationOutcome,
+    ) {
+        self.state
+            .lock()
+            .unwrap()
+            .presentations
+            .push_back(ScriptedPresentationStart::InFlight {
+                completions: completions.into_iter().collect(),
+                cancellation,
+            });
+    }
+
+    pub fn presentation_calls(&self) -> usize {
+        self.state.lock().unwrap().presentation_calls
+    }
+
+    pub fn return_indeterminate_next_registration(&self) {
+        self.state.lock().unwrap().indeterminate_next_registration = true;
+    }
+
+    pub fn return_wrong_next_deregistration_receipt(&self) {
+        self.state.lock().unwrap().wrong_next_deregistration_receipt = true;
+    }
+
+    pub fn native_registration_count(&self) -> usize {
+        self.state.lock().unwrap().registrations.len()
+    }
+
+    pub fn native_in_flight_count(&self) -> usize {
+        self.state.lock().unwrap().token_sessions.len()
+    }
+
+    pub fn advance_viewport_environment(&self) {
+        let mut state = self.state.lock().unwrap();
+        state.viewport_environment_generation = state
+            .viewport_environment_generation
+            .checked_add(1)
+            .expect("scripted viewport generation capacity");
+    }
+
+    pub fn advance_font_environment(&self) {
+        let mut state = self.state.lock().unwrap();
+        state.font_environment_generation = state
+            .font_environment_generation
+            .checked_add(1)
+            .expect("scripted font generation capacity");
+    }
+
+    pub fn cancellation_calls(&self) -> Vec<u64> {
+        self.state.lock().unwrap().cancellation_calls.clone()
+    }
+
+    pub fn enqueue_observation_during_next_presentation(
+        &self,
+        batch: crate::facade::observation_report::UiHostObservationBatch,
+    ) {
+        self.state.lock().unwrap().queued_observation = Some(batch);
+    }
+
+    pub fn pending_observation_batch_count(&self) -> usize {
+        self.observation_retention.pending_batch_count()
+    }
+
+    pub fn enqueue_measurement_during_next_presentation(
+        &self,
+        ingress: crate::facade::measurement_exchange::WorthUiHostMeasurementIngress,
+        completion: crate::facade::measurement_exchange::UiHostMeasurementCompletion,
+    ) {
+        self.state.lock().unwrap().queued_measurement = Some((ingress, completion));
+    }
+
+    pub fn observation_events(&self) -> Vec<&'static str> {
+        self.state.lock().unwrap().observation_events.clone()
+    }
+}
+
+fn recording_capabilities() -> WorthUiHostCapabilityReport {
+    WorthUiHostCapabilityReport::available(vec![
+        worth_ui_host_contract::WorthUiHostCapability::MountedFrameRecording,
+    ])
+}

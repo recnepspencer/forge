@@ -73,7 +73,8 @@ impl<ChangeProfileState, IntentWiringState>
         WorthUiApplicationBuilder {
             inner: self.inner,
             preparation_source: self.preparation_source,
-            host_session_plan: self.host_session_plan,
+            mounted_frame_retention_budget: self.mounted_frame_retention_budget,
+            host_observation_capacity: self.host_observation_capacity,
             visual_inspection_policy: self.visual_inspection_policy,
             graph_world_profile: self.graph_world_profile,
             runtime_instance_basis_admissions: self.runtime_instance_basis_admissions,
@@ -81,6 +82,7 @@ impl<ChangeProfileState, IntentWiringState>
             query_binding_plan: self.query_binding_plan,
             intent_application_facts: self.intent_application_facts,
             intent_execution_bindings: self.intent_execution_bindings,
+            font_collection: self.font_collection,
             change_profile: self.change_profile,
             intent_wiring,
         }

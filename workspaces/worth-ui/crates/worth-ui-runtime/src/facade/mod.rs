@@ -36,6 +36,7 @@ pub mod registry;
 mod retained_obligation_registry;
 pub mod runtime_handoff;
 pub mod source_ingress;
+pub mod text;
 
 #[cfg(test)]
 pub(crate) use crate::declaration::WorthUiRustAuthoredDeclarationFixture;
@@ -53,7 +54,8 @@ pub use entry::{
     WorthUiApplicationReplacementLoweringDenial, WorthUiApplicationReplacementOutcome,
     WorthUiApplicationReplacementPreparationDenial, WorthUiApplicationReplacementStagingDenial,
     WorthUiApplicationSemanticNoOpReceipt, WorthUiCandidateInspectionReceipt,
-    WorthUiLoweredApplicationReplacement, WorthUiMountedApplicationReplacementInFlight,
+    WorthUiHostNeutralApp, WorthUiLoweredApplicationReplacement,
+    WorthUiMountedApplicationReplacementInFlight,
     WorthUiMountedApplicationReplacementIndeterminate, WorthUiMountedApplicationReplacementOutcome,
     WorthUiMountedFrameExecutionStop, WorthUiMountedFrameFrameworkTransitionStop,
     WorthUiMountedLaneProjectionDenial, WorthUiMountedPreviewAdmissionRejection,
@@ -62,10 +64,11 @@ pub use entry::{
     WorthUiMountedPreviewPreparationDenial, WorthUiMountedPreviewPreparationRejection,
     WorthUiMountedPreviewRetentionRejection, WorthUiMountedReplacementAdmissionDenial,
     WorthUiMountedReplacementCompletionDenial, WorthUiMountedReplacementPreparationOutcome,
-    WorthUiMountedReplacementRetentionDenial, WorthUiNativeApplicationShell,
-    WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
-    WorthUiNativeIntentAttemptPrepared, WorthUiNativeIntentConfirmationRequired,
-    WorthUiNativeIntentIngress, WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind,
+    WorthUiMountedReplacementRetentionDenial, WorthUiNativeApplicationCleanup,
+    WorthUiNativeApplicationShell, WorthUiNativeApplicationShellLaunchDenial,
+    WorthUiNativeApplicationShutdownReceipt, WorthUiNativeIntentAttemptPrepared,
+    WorthUiNativeIntentConfirmationRequired, WorthUiNativeIntentIngress,
+    WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind,
     WorthUiNativeIntentPosturePublicationCompletion, WorthUiNativeIntentPosturePublicationOutcome,
     WorthUiNativeIntentPosturePublicationRecovery, WorthUiNativeIntentPosturePublicationStop,
     WorthUiNativeIntentStop, WorthUiNativeIntentStopped, WorthUiNativeIntentTerminalPostureOutcome,
@@ -81,6 +84,6 @@ pub(crate) use host_session_authority::WorthUiHostSessionAuthority;
 pub(crate) use host_session_authority::{UiHostEffectPort, WorthUiHostPlanBinding};
 pub use host_session_authority::{
     WorthUiHostMeasurementCapability, WorthUiHostMeasurementSessionInput,
-    WorthUiHostSessionIdentity,
+    WorthUiHostSessionIdentity, WorthUiHostSessionReleaseRecovery,
 };
 pub use lifecycle::{WorthUiRuntimeSupportInventory, RUNTIME_SUPPORT_INVENTORY};

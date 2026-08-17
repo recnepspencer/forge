@@ -81,6 +81,9 @@ pub(crate) enum UiMountedCollectionTextChange {
         from: usize,
         to: usize,
     },
+    Regroup {
+        identity: UiMountedCollectionRowIdentity,
+    },
     Update(UiMountedCollectionTextRow),
     WindowShift,
 }

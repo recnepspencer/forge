@@ -3,7 +3,7 @@ use worth_ui::facade::intent::{
 };
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 use worth_ui_dsl::WorthUiRustAuthoredArtifactInput;
-use worth_ui_runtime::facade::host::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
+use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 use worth_ui_runtime::facade::measurement_exchange::UiViewportExtentObservation;
 
 use super::super::facts::OperabilityFacts;

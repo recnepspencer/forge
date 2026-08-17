@@ -1,0 +1,15 @@
+[package]
+name = "worth-ui-native-platform"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+name = "worth_ui_native_platform"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+worth-ui-runtime = { path = "../worth-ui-runtime" }

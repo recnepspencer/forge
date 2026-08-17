@@ -1,5 +1,5 @@
 use worth_ui::facade::app::{UiMountedFrameOutcome, UiMountedFrameRequest, UiPresentationDeadline};
-use worth_ui_runtime::facade::host::WorthUiHeadlessRecorder;
+use worth_ui_host_headless::WorthUiHeadlessRecorder;
 use worth_ui_runtime::facade::mounted::{UiHostSurfacePresentationMode, UiMountedFrameReuse};
 use worth_ui_test_support::{
     WorthUiFrameworkTurnCertificationExt, WorthUiMountedFrameExecutionCertificationExt,
@@ -10,7 +10,10 @@ use super::mounted_application_lifecycle::known_empty_surface_world::{
     first_node, mounted_application_with_host, profile,
 };
 
-const MAX_CHANGED_PUBLIC_ALLOCATIONS: u64 = 96;
+// Revision 4 retains predecessor protocol state plus the Phase 3 receipt, order,
+// damage, and structural-sharing indexes. This local ceiling complements the
+// retained-scale slope proofs; it is not itself an O(k) claim.
+const MAX_CHANGED_PUBLIC_ALLOCATIONS: u64 = 144;
 const MAX_CHANGED_PUBLIC_BYTES: u64 = 64 * 1_024;
 
 #[test]

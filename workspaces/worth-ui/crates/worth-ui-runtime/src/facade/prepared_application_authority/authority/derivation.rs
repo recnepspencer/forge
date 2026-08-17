@@ -22,7 +22,6 @@ pub(super) fn derive_prepared_application_authorities(
             query_binding_plan: &input.query_binding_plan,
             intent_application_fact_digest: input.intent_application_facts.digest_basis(),
             intent_execution_binding_digest: input.intent_execution_bindings.digest_basis(),
-            host_session_plan: &input.host_session_plan,
             visual_inspection_policy: input.visual_inspection_policy,
             change_profile: input.change_profile,
         },
@@ -35,7 +34,6 @@ pub(super) fn derive_prepared_application_authorities(
             graph_authority_identity: input.graph_snapshot.authority_identity(),
             capability_snapshot: Rc::clone(&input.capability_snapshot),
             query_binding_plan: input.query_binding_plan.clone(),
-            host_session_plan: input.host_session_plan.clone(),
         },
     );
     WorthUiPreparedApplicationAuthorities {

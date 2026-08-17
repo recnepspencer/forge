@@ -23,6 +23,9 @@ fn public_app_freeze_exposes_committed_graph_authority_with_typed_identity_basis
                 .with_semantic_artifact_spec(primary_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
 
     let artifact = artifact_from_file_provenance(&app, "app/graph_authority_primary.wui", 0);
@@ -61,6 +64,9 @@ fn unrelated_sibling_churn_does_not_rewrite_primary_runtime_graph_identity() {
             .with_semantic_artifact_spec(secondary_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let churned = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -73,6 +79,9 @@ fn unrelated_sibling_churn_does_not_rewrite_primary_runtime_graph_identity() {
             .with_semantic_artifact_spec(secondary_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
 
     let baseline_artifact =
@@ -120,6 +129,9 @@ fn graph_world_profile_compare_distinguishes_preview_session_identity_worlds() {
             .with_semantic_artifact_spec(primary_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let alpha_again = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -131,6 +143,9 @@ fn graph_world_profile_compare_distinguishes_preview_session_identity_worlds() {
             .with_semantic_artifact_spec(primary_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let beta = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -142,6 +157,9 @@ fn graph_world_profile_compare_distinguishes_preview_session_identity_worlds() {
             .with_semantic_artifact_spec(primary_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
 
     assert_eq!(
@@ -169,6 +187,9 @@ fn graph_world_profile_compare_distinguishes_settled_query_bindings() {
             .with_semantic_artifact_spec(primary_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let alpha_again = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -180,6 +201,9 @@ fn graph_world_profile_compare_distinguishes_settled_query_bindings() {
             .with_semantic_artifact_spec(primary_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let beta = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -191,6 +215,9 @@ fn graph_world_profile_compare_distinguishes_settled_query_bindings() {
             .with_semantic_artifact_spec(primary_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
 
     assert_eq!(
@@ -214,6 +241,9 @@ fn graph_instantiation_plan_denies_basis_free_runtime_multiplicity_before_snapsh
             .with_semantic_artifact_spec(primary_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
 
     let handoff = artifact_from_file_provenance(&app, "app/graph_authority_primary.wui", 0)

@@ -24,6 +24,9 @@ fn public_freeze_derives_exact_graph_handoff_from_canonical_declaration_authorit
                 .with_semantic_artifact_spec(control_graph_input_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/graph_handoff.wui", 0);
     let handoff = artifact
@@ -76,6 +79,9 @@ fn support_noise_is_out_of_graph_but_aspect_contract_is_graph_relevant() {
             .with_semantic_artifact_spec(control_graph_input_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let noisy = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -86,6 +92,9 @@ fn support_noise_is_out_of_graph_but_aspect_contract_is_graph_relevant() {
             .with_semantic_artifact_spec(control_graph_input_with_noise_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let baseline_artifact = artifact_from_file_provenance(&baseline, "app/graph_handoff.wui", 0);
     let noisy_artifact = artifact_from_file_provenance(&noisy, "app/graph_handoff.wui", 0);
@@ -129,6 +138,9 @@ fn invalid_declared_posture_denies_before_graph_handoff_promotion() {
             .with_semantic_artifact_spec(invalid_graph_input_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
     {
         Ok(_) => panic!("invalid declared posture must deny application preparation"),
         Err(denial) => denial,

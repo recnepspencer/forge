@@ -1,7 +1,10 @@
+use crate::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui::facade::app::WorthUiApp;
 use worth_ui::facade::intent::{UiIntent, UiIntentDefinition};
 use worth_ui::facade::source::WorthUiWatchedCandidateSubmission;
-use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
+
+type BoundApplicationBuilder =
+    crate::scenario::application_authority_closure::FixedCertificationApplicationBuilder;
 
 use super::FilesystemApplicationLifecycleScenario;
 use crate::scenario::application_authority_closure::visual_identity_application::{
@@ -18,12 +21,9 @@ use crate::scenario::application_authority_closure::visual_identity_application:
 impl FilesystemApplicationLifecycleScenario {
     /// Start the canonical visual-identity world compiler while allowing a
     /// scenario to add the exact capability owners its claim requires.
-    pub fn visual_identity_application_builder<Host>(
-        &self,
-        host: Host,
-    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    pub fn visual_identity_application_builder<Host>(&self, host: Host) -> BoundApplicationBuilder
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         visual_identity_application_builder_with_host(host)
     }
@@ -33,9 +33,9 @@ impl FilesystemApplicationLifecycleScenario {
     pub fn clipped_visual_identity_application_builder<Host>(
         &self,
         host: Host,
-    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    ) -> BoundApplicationBuilder
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         clipped_visual_identity_application_builder_with_host(host)
     }
@@ -45,9 +45,9 @@ impl FilesystemApplicationLifecycleScenario {
     pub fn semantic_text_action_application_builder<Host>(
         &self,
         host: Host,
-    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    ) -> BoundApplicationBuilder
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         clipped_semantic_text_action_application_builder_with_host(host)
     }
@@ -56,9 +56,9 @@ impl FilesystemApplicationLifecycleScenario {
         &self,
         host: Host,
         profile: worth_ui::facade::rebind::UiChangeProfile,
-    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    ) -> BoundApplicationBuilder
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         clipped_semantic_text_action_application_builder_with_host_and_profile(host, profile)
     }
@@ -77,7 +77,7 @@ impl FilesystemApplicationLifecycleScenario {
 
     pub fn visual_identity_capability_application<Host>(&self, host: Host) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         visual_identity_application_builder_with_host(host)
             .freeze()
@@ -90,7 +90,7 @@ impl FilesystemApplicationLifecycleScenario {
         definition: UiIntentDefinition<I>,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
         I: UiIntent,
     {
         visual_identity_application_builder_with_host(host)
@@ -109,7 +109,7 @@ impl FilesystemApplicationLifecycleScenario {
         second: UiIntentDefinition<J>,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
         I: UiIntent,
         J: UiIntent,
     {
@@ -128,7 +128,7 @@ impl FilesystemApplicationLifecycleScenario {
 
     pub fn duplicate_hit_order_capability_application<Host>(&self, host: Host) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         duplicate_hit_order_application_builder_with_host(host)
             .freeze()
@@ -137,7 +137,7 @@ impl FilesystemApplicationLifecycleScenario {
 
     pub fn region_identity_capability_application<Host>(&self, host: Host) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         region_identity_application_builder_with_host(host)
             .freeze()
@@ -146,7 +146,7 @@ impl FilesystemApplicationLifecycleScenario {
 
     pub fn clipped_visual_identity_capability_application<Host>(&self, host: Host) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         clipped_visual_identity_application_builder_with_host(host)
             .freeze()
@@ -159,7 +159,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         visual_identity_application_builder_with_host(host)
             .with_candidate_submission(submission)
@@ -174,7 +174,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
         I: UiIntent,
     {
         visual_identity_application_builder_with_host(host)
@@ -195,7 +195,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
         I: UiIntent,
         J: UiIntent,
     {
@@ -220,7 +220,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
         I: UiIntent,
     {
         visual_identity_application_builder_with_host(host)
@@ -241,7 +241,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
         I: UiIntent,
         J: UiIntent,
     {
@@ -266,7 +266,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         visual_identity_application_builder_with_host(host)
             .with_visual_inspection_policy(policy)
@@ -281,7 +281,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         region_identity_application_builder_with_host(host)
             .with_candidate_submission(submission)
@@ -295,7 +295,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         clipped_visual_identity_application_builder_with_host(host)
             .with_candidate_submission(submission)
@@ -310,7 +310,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         region_identity_application_builder_with_host(host)
             .with_visual_inspection_policy(policy)
@@ -325,7 +325,7 @@ impl FilesystemApplicationLifecycleScenario {
         host: Host,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         duplicate_hit_order_application_builder_with_host(host)
             .with_candidate_submission(submission)

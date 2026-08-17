@@ -14,7 +14,7 @@ impl UiEguiPresentedInputBasis {
             protocol: view.protocol(),
             host_session: view.host_session_identity(),
             presentation: worth_ui_host_contract::UiHostObservationPresentationBasis::new(
-                view.projection().frame(),
+                view.frame(),
                 view.requirement().binding(),
                 epoch,
             ),

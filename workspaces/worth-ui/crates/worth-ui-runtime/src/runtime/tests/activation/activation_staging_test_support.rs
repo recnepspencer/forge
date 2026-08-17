@@ -29,6 +29,7 @@ pub(crate) fn activation_staging_inputs_with_installed_query_view(
         .register_query_view(view)
         .expect("installed Query view registers for activation")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("Query-bound activation application prepares");
     activation_staging_inputs_for_bindings(app, &binding_id, &binding_id)
 }

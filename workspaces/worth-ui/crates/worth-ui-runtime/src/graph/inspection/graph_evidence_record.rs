@@ -69,6 +69,9 @@ mod tests {
                     ),
             )
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed");
         let snapshot = app.graph_snapshot();
         let graph_node_digest = snapshot.nodes()[0].graph_node_identity().digest();

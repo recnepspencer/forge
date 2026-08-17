@@ -7,6 +7,9 @@ fn query_free_headless_app_executes_without_optional_subsystem_ceremony() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("an empty Query-free application prepares");
     let mut session = app
         .launch()

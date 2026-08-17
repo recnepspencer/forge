@@ -1,4 +1,6 @@
-use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
+use super::fixed_application_builder::FixedCertificationApplicationBuilder;
+use super::fixed_host::FixedCertificationHostBinding;
+use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
     ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor,
     ComponentHitTestContract, ComponentHitTestInset, ComponentHitTestOrder, ComponentId,
@@ -8,7 +10,8 @@ use worth_ui::facade::declaration::{
     ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
     ThemeTokenSource, ThemeTokenValue,
 };
-use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
+
+type WorthUiApplicationBuilder = FixedCertificationApplicationBuilder;
 
 pub(crate) const VISUAL_PAINT_ONLY_COMPONENT: &str = "visual.identity.component.paint_only";
 pub(crate) const VISUAL_HIT_ONLY_COMPONENT: &str = "visual.identity.component.hit_only";
@@ -25,7 +28,7 @@ pub(crate) fn visual_identity_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder(
         host,
@@ -40,7 +43,7 @@ pub(crate) fn duplicate_hit_order_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder(
         host,
@@ -55,7 +58,7 @@ pub(crate) fn region_identity_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder(
         host,
@@ -70,7 +73,7 @@ pub(crate) fn clipped_visual_identity_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder(
         host,
@@ -85,7 +88,7 @@ pub(crate) fn clipped_semantic_text_action_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder(
         host,
@@ -101,7 +104,7 @@ pub(crate) fn clipped_semantic_text_action_application_builder_with_host_and_pro
     profile: worth_ui::facade::rebind::UiChangeProfile,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder_with_profile(
         host,
@@ -121,7 +124,7 @@ fn visual_identity_builder<Host>(
     paint_and_hit_semantic_text: bool,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder_with_profile(
         host,
@@ -142,7 +145,7 @@ fn visual_identity_builder_with_profile<Host>(
     profile: worth_ui::facade::rebind::UiChangeProfile,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     let hit_only_allocation = inset_allocation(8, 8);
     let paint_and_hit_allocation = inset_allocation(16, 12);
@@ -177,9 +180,8 @@ where
     } else {
         paint_and_hit
     };
-    WorthUi::app()
+    let builder = WorthUi::app()
         .with_change_profile(profile)
-        .with_host(host)
         .register_component(component(VISUAL_PAINT_ONLY_COMPONENT).with_static_paint(
             ComponentStaticPaintContract::opaque_fill(
                 token_id(VISUAL_PAINT_ONLY_TOKEN),
@@ -201,7 +203,8 @@ where
         .register_theme_token(color_token(VISUAL_RED_TOKEN, "#cf222e"))
         .register_theme_token(color_token(VISUAL_PURPLE_TOKEN, "#8250df"))
         .register_theme_token(alias_token(VISUAL_PAINT_ONLY_TOKEN, VISUAL_RED_TOKEN))
-        .register_theme_token(alias_token(VISUAL_PAINT_AND_HIT_TOKEN, VISUAL_PURPLE_TOKEN))
+        .register_theme_token(alias_token(VISUAL_PAINT_AND_HIT_TOKEN, VISUAL_PURPLE_TOKEN));
+    FixedCertificationApplicationBuilder::new(builder, host)
 }
 
 fn component(id: &str) -> ComponentDescriptor {

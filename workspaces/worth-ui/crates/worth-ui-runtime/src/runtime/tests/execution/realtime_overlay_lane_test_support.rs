@@ -67,6 +67,7 @@ fn realtime_app(row_limit: u16, declared_cost: u16, budget: u32) -> crate::facad
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(descriptor())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("fixture capability application freezes");
     let submission = lower_file_submission(
         WorthUiSourceProvider::in_memory("realtime-overlay.fixture")
@@ -81,6 +82,7 @@ fn realtime_app(row_limit: u16, declared_cost: u16, budget: u32) -> crate::facad
         .register_component(descriptor())
         .with_candidate_submission(submission)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("fixture source application freezes")
 }
 

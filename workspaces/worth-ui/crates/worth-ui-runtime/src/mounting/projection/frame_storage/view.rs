@@ -20,6 +20,9 @@ type UiMountedHitTestReferenceIndex =
     std::collections::BTreeMap<UiMountedInstanceIdentity, UiMountedHitTestReference>;
 type UiMountedSemanticTextReferenceIndex =
     std::collections::BTreeMap<UiMountedInstanceIdentity, Vec<UiMountedSemanticTextReference>>;
+use super::drawable_order::{
+    drawable_reference_index, validate_drawable_coverage, UiMountedDrawableReferenceIndex,
+};
 
 struct UiMountedFilledRectViewRows {
     rows: Vec<UiMountedFilledRectMechanic>,
@@ -41,6 +44,7 @@ struct UiMountedNodeViewContext<'a> {
     filled_rect_by_instance: &'a UiMountedFilledRectReferenceIndex,
     hit_test_by_instance: &'a UiMountedHitTestReferenceIndex,
     semantic_text_by_instance: &'a UiMountedSemanticTextReferenceIndex,
+    drawables_by_instance: &'a UiMountedDrawableReferenceIndex,
 }
 
 #[derive(Clone)]
@@ -69,11 +73,13 @@ impl UiMountedProjectionFrame {
         let filled_rects = self.filled_rect_view_rows(surface)?;
         let hit_tests = self.hit_test_view_rows(surface)?;
         let semantic_text = self.semantic_text_view_rows(surface)?;
+        let drawables = drawable_reference_index(&filled_rects.rows, &semantic_text.rows)?;
         let node_view_context = UiMountedNodeViewContext {
             surface,
             filled_rect_by_instance: &filled_rects.references,
             hit_test_by_instance: &hit_tests.references,
             semantic_text_by_instance: &semantic_text.references,
+            drawables_by_instance: &drawables,
         };
         let nodes = self
             .semantic
@@ -82,14 +88,36 @@ impl UiMountedProjectionFrame {
             .filter_map(|instance| self.semantic.nodes.get(instance))
             .filter(|node| node.receipt.semantic_surface() == surface.surface)
             .map(|node| self.audience_node_view(node, &node_view_context))
-            .collect();
+            .collect::<Vec<_>>();
+        validate_drawable_coverage(
+            &drawables,
+            &nodes,
+            filled_rects.rows.len() + semantic_text.rows.len(),
+        )?;
+        let materialized_rows = [
+            nodes.len(),
+            filled_rects.rows.len(),
+            semantic_text.rows.len(),
+            hit_tests.rows.len(),
+            self.layers.len(),
+            self.paint_batches.len(),
+            self.spatial_batches.len(),
+            self.realtime_batches.len(),
+            self.resources.len(),
+        ]
+        .into_iter()
+        .try_fold(0usize, usize::checked_add)
+        .and_then(|rows| u64::try_from(rows).ok())
+        .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
+        let (authored_paint_commands, authored_paint_order) =
+            super::presentation_sources::compile(&nodes, &filled_rects.rows, &semantic_text.rows);
         let filled_rects = UiMountedFilledRectTable::from_runtime_mounting(filled_rects.rows)
             .map_err(|_| UiMountedProjectionDenial::StaticPaintCapacityExceeded)?;
         let hit_tests = UiMountedHitTestTable::from_runtime_mounting(hit_tests.rows)
             .ok_or(UiMountedProjectionDenial::HitTestCapacityExceeded)?;
         let semantic_text = UiMountedSemanticTextTable::from_runtime_mounting(semantic_text.rows)
             .map_err(|_| UiMountedProjectionDenial::SemanticTextCapacityExceeded)?;
-        Ok(UiMountedProjectionView::new(UiMountedProjectionViewInput {
+        let projection = UiMountedProjectionView::new(UiMountedProjectionViewInput {
             frame: self.frame,
             surface: surface.surface,
             binding,
@@ -104,19 +132,25 @@ impl UiMountedProjectionFrame {
             spatial_batches: UiMountedSpatialBatchTable::new(self.spatial_batches.clone()),
             realtime_batches: UiMountedRealtimeBatchTable::new(self.realtime_batches.clone()),
             resources: UiMountedResourceTable::new(self.resources.clone()),
-        }))
+            authored_paint_commands,
+            authored_paint_order,
+        });
+        self.materialized_projection_rows.set(
+            self.materialized_projection_rows
+                .get()
+                .checked_add(materialized_rows)
+                .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?,
+        );
+        Ok(projection)
     }
 
     fn semantic_text_view_rows(
         &self,
         surface: UiMountedProjectionSurface,
     ) -> Result<UiMountedSemanticTextViewRows, UiMountedProjectionDenial> {
-        let rows = self
-            .semantic_text
-            .iter()
-            .filter(|row| row.surface() == surface.surface && row.binding() == surface.binding)
-            .cloned()
-            .collect::<Vec<_>>();
+        let rows =
+            self.mechanics
+                .semantic_text_for(&self.semantic, surface.surface, surface.binding);
         let mut references = UiMountedSemanticTextReferenceIndex::new();
         for (index, row) in rows.iter().enumerate() {
             let reference = u16::try_from(index)
@@ -134,12 +168,9 @@ impl UiMountedProjectionFrame {
         &self,
         surface: UiMountedProjectionSurface,
     ) -> Result<UiMountedFilledRectViewRows, UiMountedProjectionDenial> {
-        let rows = self
-            .filled_rects
-            .iter()
-            .copied()
-            .filter(|row| row.surface() == surface.surface && row.binding() == surface.binding)
-            .collect::<Vec<_>>();
+        let rows =
+            self.mechanics
+                .filled_rects_for(&self.semantic, surface.surface, surface.binding);
         let references = rows
             .iter()
             .enumerate()
@@ -162,11 +193,8 @@ impl UiMountedProjectionFrame {
         surface: UiMountedProjectionSurface,
     ) -> Result<UiMountedHitTestViewRows, UiMountedProjectionDenial> {
         let rows = self
-            .hit_tests
-            .iter()
-            .copied()
-            .filter(|row| row.surface() == surface.surface && row.binding() == surface.binding)
-            .collect::<Vec<_>>();
+            .mechanics
+            .hit_tests_for(&self.semantic, surface.surface, surface.binding);
         let references = rows
             .iter()
             .enumerate()
@@ -225,6 +253,11 @@ impl UiMountedProjectionFrame {
             accessibility,
             motion: receipt.motion(),
             diagnostic,
+            drawables: context
+                .drawables_by_instance
+                .get(&receipt.mounted_instance())
+                .map(|drawables| drawables.to_vec())
+                .unwrap_or_default(),
             semantic_text: context
                 .semantic_text_by_instance
                 .get(&receipt.mounted_instance())

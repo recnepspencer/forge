@@ -14,9 +14,9 @@ use worth_ui_host_contract::{
     UiMountedProjectionView, UiMountedProjectionViewInput, UiMountedRealtimeBatchTable,
     UiMountedResourceTable, UiMountedRgba8, UiMountedSemanticTextCompletionInput,
     UiMountedSemanticTextMechanic, UiMountedSemanticTextReference, UiMountedSemanticTextTable,
-    UiMountedSpatialBatchTable, UiMountedTransformProjection, UiSemanticSurfaceIdentity,
-    UiSemanticTextProfile, UiSemanticTextSlot, UiSurfaceBindingGeneration,
-    WorthUiHostCapabilityObservationGeneration,
+    UiMountedSpatialBatchTable, UiMountedTextForegroundSpan, UiMountedTextPaintSpanIdentity,
+    UiMountedTransformProjection, UiSemanticSurfaceIdentity, UiSemanticTextProfile,
+    UiSemanticTextSlot, UiSurfaceBindingGeneration, WorthUiHostCapabilityObservationGeneration,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -49,6 +49,7 @@ struct SemanticTextRowBasis {
     capability_generation: WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
     mutation: UiSemanticTextProjectionCertificationMutation,
+    text: Arc<str>,
 }
 
 pub fn semantic_text_projection_for_certification(
@@ -58,6 +59,16 @@ pub fn semantic_text_projection_for_certification(
         mutation,
         WorthUiHostCapabilityObservationGeneration::new(7),
         11,
+        Arc::from("ONLINE"),
+    )
+}
+
+pub fn semantic_text_projection_for_certification_with_text(text: &str) -> UiMountedProjectionView {
+    semantic_text_projection(
+        UiSemanticTextProjectionCertificationMutation::Exact,
+        WorthUiHostCapabilityObservationGeneration::new(7),
+        11,
+        Arc::from(text),
     )
 }
 
@@ -69,13 +80,36 @@ pub fn semantic_text_projection_for_certification_with_capability(
         UiSemanticTextProjectionCertificationMutation::Exact,
         capability_generation,
         capability_profile_digest,
+        Arc::from("ONLINE"),
     )
+}
+
+pub fn empty_projection_for_certification() -> UiMountedProjectionView {
+    UiMountedProjectionView::new(UiMountedProjectionViewInput {
+        frame: UiMountedFrameIdentity::mint_unbound().expect("frame identity"),
+        surface: UiSemanticSurfaceIdentity::mint_unbound().expect("surface identity"),
+        binding: UiSurfaceBindingGeneration::mint_unbound().expect("binding generation"),
+        content_generation: UiMountedContentGeneration::mint_unbound().expect("content generation"),
+        nodes: Vec::new(),
+        clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
+        layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
+        filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
+        semantic_text: UiMountedSemanticTextTable::empty(),
+        hit_tests: worth_ui_host_contract::UiMountedHitTestTable::empty(),
+        paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
+        spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
+        realtime_batches: UiMountedRealtimeBatchTable::new(Vec::new()),
+        resources: UiMountedResourceTable::new(Vec::new()),
+        authored_paint_commands: Vec::new(),
+        authored_paint_order: Vec::new(),
+    })
 }
 
 fn semantic_text_projection(
     mutation: UiSemanticTextProjectionCertificationMutation,
     capability_generation: WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
+    text: Arc<str>,
 ) -> UiMountedProjectionView {
     let frame = UiMountedFrameIdentity::mint_unbound().expect("frame identity");
     let surface = UiSemanticSurfaceIdentity::mint_unbound().expect("surface identity");
@@ -120,6 +154,7 @@ fn semantic_text_projection(
         capability_generation,
         capability_profile_digest,
         mutation,
+        text,
     });
     let node_receipt = if matches!(
         mutation,
@@ -176,26 +211,33 @@ struct SemanticTextProjectionBasis {
 }
 
 fn projection(basis: SemanticTextProjectionBasis) -> UiMountedProjectionView {
+    let nodes = vec![node(&basis)];
+    let rows = vec![basis.row];
+    let (authored_paint_commands, authored_paint_order) =
+        crate::mounting::compile_presentation_sources(&nodes, &[], &rows);
     UiMountedProjectionView::new(UiMountedProjectionViewInput {
         frame: basis.frame,
         surface: basis.surface,
         binding: basis.binding,
         content_generation: basis.content_generation,
-        nodes: vec![node(&basis)],
+        nodes,
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
-        semantic_text: UiMountedSemanticTextTable::from_runtime_mounting(vec![basis.row])
+        semantic_text: UiMountedSemanticTextTable::from_runtime_mounting(rows)
             .expect("one semantic row fits the mounted table"),
         hit_tests: worth_ui_host_contract::UiMountedHitTestTable::empty(),
         paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
         spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
         realtime_batches: UiMountedRealtimeBatchTable::new(Vec::new()),
         resources: UiMountedResourceTable::new(Vec::new()),
+        authored_paint_commands,
+        authored_paint_order,
     })
 }
 
 fn semantic_row(input: SemanticTextRowBasis) -> UiMountedSemanticTextMechanic {
+    let text_len = u32::try_from(input.text.len()).expect("certification text fits u32");
     UiMountedSemanticTextMechanic::complete_from_runtime_mounting(
         UiMountedSemanticTextCompletionInput {
             content_generation: input.content_generation,
@@ -209,10 +251,19 @@ fn semantic_row(input: SemanticTextRowBasis) -> UiMountedSemanticTextMechanic {
             clip_bounds: input.bounds,
             origin_x: 8.0,
             origin_y: 12.0,
-            text: Arc::from("ONLINE"),
+            text: Arc::clone(&input.text),
+            layout: crate::mounting::qualified_text_test_support::inert_qualified_layout(
+                &input.text,
+            )
+            .view(),
             slot: UiSemanticTextSlot::Value,
             collection_row: None,
-            color: UiMountedRgba8::new(255, 255, 255, 255),
+            foregrounds: Arc::from([UiMountedTextForegroundSpan::from_runtime_mounting(
+                worth_ui_host_contract::UiTextOriginalRange::from_text_mechanics(0, text_len)
+                    .unwrap(),
+                UiMountedRgba8::new(255, 255, 255, 255),
+                UiMountedTextPaintSpanIdentity::from_runtime_mounting([1; 32]),
+            )]),
             profile: UiSemanticTextProfile::BodyDefault,
             layer_semantic_order: 1,
             capability_generation: if input.mutation
@@ -268,6 +319,12 @@ fn node(basis: &SemanticTextProjectionBasis) -> UiMountedNodeProjectionView {
         accessibility: UiMountedAccessibilityProjection::Omitted(omitted),
         motion: UiMountedMotionProjection::Omitted(omitted),
         diagnostic: UiMountedDiagnosticProjection::Omitted(omitted),
+        drawables: basis
+            .references
+            .iter()
+            .copied()
+            .map(worth_ui_host_contract::UiMountedDrawableReference::SemanticText)
+            .collect(),
         semantic_text: basis.references.clone(),
     })
 }

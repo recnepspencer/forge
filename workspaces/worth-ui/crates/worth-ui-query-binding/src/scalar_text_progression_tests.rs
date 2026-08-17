@@ -141,7 +141,7 @@ fn scalar_text_progression_carries_exact_authority_into_indexed_native_access() 
     let prepared = match operation
         .enter_attempt(&workspace)
         .expect("exact installed authority enters its operating world")
-        .prepare_consumer("status")
+        .prepare_consumer(&crate::UiProjectionFieldRequirement::query_text_status())
     {
         Ok(prepared) => prepared,
         Err(_) => panic!("the supported scalar consumer must prepare"),

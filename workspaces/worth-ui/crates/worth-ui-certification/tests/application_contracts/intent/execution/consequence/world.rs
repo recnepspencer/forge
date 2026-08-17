@@ -3,7 +3,7 @@ use worth_ui::facade::intent::{
     UiIntentExecutionDispatchOutcome, UiIntentExecutionTransition,
     UiIntentExecutionTransitionPosture,
 };
-use worth_ui_runtime::facade::host::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
+use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 use worth_ui_runtime::facade::measurement_exchange::UiViewportExtentObservation;
 use worth_ui_runtime::facade::mounted::{
     UiMountedFrameOutcome, UiMountedFrameRequest, UiPresentationDeadline,
@@ -267,13 +267,13 @@ impl ConsequenceWorld {
 
     pub(in crate::intent) fn transcripts(
         &self,
-    ) -> Box<[worth_ui_runtime::facade::host::UiHeadlessMountedFrameTranscript]> {
+    ) -> Box<[worth_ui_host_headless::UiHeadlessMountedFrameTranscript]> {
         self.recorder.observed_transcripts()
     }
 
     pub(in crate::intent) fn drain_transcripts(
         &self,
-    ) -> Box<[worth_ui_runtime::facade::host::UiHeadlessMountedFrameTranscript]> {
+    ) -> Box<[worth_ui_host_headless::UiHeadlessMountedFrameTranscript]> {
         self.recorder.drain_transcripts()
     }
 

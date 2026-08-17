@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    app::{WorthUi, WorthUiApp},
+    app::{WorthUi, WorthUiHostNeutralApp},
     declaration::{
         CommandCategory, CommandDescriptor, CommandId, ComponentChildPolicy, ComponentDescriptor,
         ComponentId, ComponentPropSchema, ComponentStateOwnership, SettingDefaultPosture,
@@ -13,14 +13,14 @@ use worth_ui::facade::{
     diagnostics::CapabilityRegistrationReport,
 };
 
-pub(crate) fn empty_app() -> WorthUiApp {
+pub(crate) fn empty_app() -> WorthUiHostNeutralApp {
     WorthUi::app()
         .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed")
 }
 
-pub(crate) fn single_command_app() -> WorthUiApp {
+pub(crate) fn single_command_app() -> WorthUiHostNeutralApp {
     WorthUi::app()
         .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(command_descriptor())

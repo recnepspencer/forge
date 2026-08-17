@@ -1,0 +1,2 @@
+workspaces/worth-ui/crates/worth-ui-host-native/assets/fonts/OFL.txt -whitespace
+workspaces/worth-ui/profiles/worth-ui-global-text-v2/** -whitespace

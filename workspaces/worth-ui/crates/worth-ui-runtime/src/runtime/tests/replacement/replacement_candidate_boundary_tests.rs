@@ -196,6 +196,7 @@ fn default_snapshot_digest() -> crate::capability::CapabilitySnapshotDigest {
     WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
         .capabilities()
         .digest()
@@ -273,6 +274,7 @@ fn canonical_artifact_from_input(
     let app = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let snapshot = app.capabilities();
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)

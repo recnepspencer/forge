@@ -140,6 +140,7 @@ fn phase10_test_app(variant: Phase10AppVariant) -> WorthUiApp {
     }
 
     app.freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

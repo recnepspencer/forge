@@ -267,7 +267,8 @@ fn assert_overlay_and_shutdown_accounting(inventory: &WorkspaceSourceInventory) 
 
 fn assert_native_capture_backend(inventory: &WorkspaceSourceInventory) {
     let pulse_manifest = repository_document("workspaces/worth-ui/apps/platform-pulse/Cargo.toml");
-    assert!(pulse_manifest.contains(r#"eframe = { workspace = true, features = ["wgpu"] }"#));
+    assert!(pulse_manifest
+        .contains(r#"eframe = { workspace = true, features = ["wgpu_no_default_features"] }"#));
     assert!(pulse_manifest.contains(r#"xcap = { workspace = true, features = ["wgc"] }"#));
     let pulse_main = inventory.text("apps/platform-pulse/src/main.rs");
     assert!(pulse_main.contains("renderer: eframe::Renderer::Wgpu"));
@@ -280,7 +281,7 @@ fn assert_native_capture_backend(inventory: &WorkspaceSourceInventory) {
     );
     assert!(client_capture.contains("window.pid().ok() == Some(process_id)"));
     assert!(client_capture.contains("window.id().ok() == Some(window_id)"));
-    assert!(client_capture.contains("window.capture_image()"));
+    assert!(client_capture.contains(".capture_image()"));
 }
 
 fn assert_ordinary_and_spatial_costs(inventory: &WorkspaceSourceInventory) {

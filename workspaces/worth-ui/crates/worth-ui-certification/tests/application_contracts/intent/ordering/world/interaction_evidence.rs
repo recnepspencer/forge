@@ -85,7 +85,27 @@ impl OrderingInteractionWorld {
             0,
         ) {
             UiMountedFrameOutcome::Published(publication) => publication,
-            _ => panic!("the IA-09 mounted frame publishes"),
+            UiMountedFrameOutcome::Unchanged(_) => panic!("the IA-09 frame was unchanged"),
+            UiMountedFrameOutcome::Reconciled(_) => panic!("the IA-09 frame reconciled"),
+            UiMountedFrameOutcome::RejectedBeforeEffects(rejected) => {
+                panic!(
+                    "the IA-09 frame was rejected before effects: {:?}",
+                    rejected.rejections()
+                )
+            }
+            UiMountedFrameOutcome::InFlight(_) => panic!("the IA-09 frame remained in flight"),
+            UiMountedFrameOutcome::PresentationIndeterminate(_) => {
+                panic!("the IA-09 frame became indeterminate")
+            }
+            UiMountedFrameOutcome::RetentionDenied(_) => {
+                panic!("the IA-09 frame retention was denied")
+            }
+            UiMountedFrameOutcome::AdmissionDenied(_) => {
+                panic!("the IA-09 frame admission was denied")
+            }
+            UiMountedFrameOutcome::CompletionDenied(_) => {
+                panic!("the IA-09 frame completion was denied")
+            }
         };
         let presentation =
             worth_ui::facade::observation_report::UiHostObservationPresentationBasis::new(

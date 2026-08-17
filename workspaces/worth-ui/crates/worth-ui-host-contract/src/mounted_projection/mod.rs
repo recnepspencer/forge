@@ -44,9 +44,10 @@ pub use resource::{
     UiMountedResourceTable,
 };
 pub use semantic_text::{
-    UiMountedCollectionRowCorrelation, UiMountedSemanticTextCompletionDenial,
-    UiMountedSemanticTextCompletionInput, UiMountedSemanticTextMechanic,
-    UiMountedSemanticTextReference, UiMountedSemanticTextTable, UiMountedSemanticTextTableDenial,
+    UiMountedCollectionRowCorrelation, UiMountedQualifiedTextResolver,
+    UiMountedSemanticTextCompletionDenial, UiMountedSemanticTextCompletionInput,
+    UiMountedSemanticTextMechanic, UiMountedSemanticTextReference, UiMountedSemanticTextTable,
+    UiMountedSemanticTextTableDenial, UiMountedTextForegroundSpan, UiMountedTextPaintSpanIdentity,
     UiMountedTextSchemaVersion, UiSemanticTextBaselinePosture, UiSemanticTextProfile,
     UiSemanticTextSlot, UiSemanticTextWrapPosture,
 };
@@ -64,6 +65,6 @@ pub use tables::{
     UiMountedSpatialBatchTable, UiMountedTableProjectionStatus,
 };
 pub use view::{
-    UiMountedNodeProjectionView, UiMountedNodeProjectionViewInput, UiMountedProjectionView,
-    UiMountedProjectionViewInput,
+    UiMountedDrawableReference, UiMountedNodeProjectionView, UiMountedNodeProjectionViewInput,
+    UiMountedProjectionView, UiMountedProjectionViewInput,
 };

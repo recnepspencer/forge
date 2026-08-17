@@ -175,6 +175,9 @@ fn graph_identity_app() -> WorthUiApp {
             )),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
 }
 

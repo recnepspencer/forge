@@ -3,14 +3,15 @@ use worth_ui_host_contract::{
     UiHostKeyboardModifiers, UiHostObservationPayload, UiHostObservationRetentionDenial,
     UiHostPointerButton, UiHostPointerButtonTransition, UiHostPresentationEpoch,
     UiHostProtocolContract, UiHostProtocolNegotiation, UiHostSurfaceIdentity,
-    UiHostSurfacePositionBasis, UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome,
-    UiHostSurfaceRegistrationInput, UiHostSurfaceRegistrationOutcome,
-    UiHostSurfaceRegistrationRequest, UiMountedFrameConsumptionInput,
-    UiMountedPresentationAttemptIdentity, UiMountedPresentationLeaseGate,
-    UiMountedSurfaceBindingRequirement, WorthUiHostMechanicsAdapter,
+    UiHostSurfacePositionBasis, UiHostSurfacePresentationMode, UiHostSurfaceRegistrationInput,
+    UiHostSurfaceRegistrationOutcome, UiHostSurfaceRegistrationRequest,
+    UiMountedFrameConsumptionInput, UiMountedPresentationAttemptIdentity,
+    UiMountedPresentationWorkView, UiMountedSurfaceBindingRequirement, WorthUiHostMechanicsAdapter,
     UI_HOST_OBSERVATION_BATCH_REPORT_LIMIT,
 };
-use worth_ui_test_support::semantic_text_projection_for_certification_with_capability;
+use worth_ui_test_support::{
+    empty_projection_for_certification, initial_presentation_mechanics_for_certification,
+};
 
 use super::{UiEguiRawInputIngressOutcome, UiEguiRawInputIngressStopReason};
 use crate::adapter::WorthUiHostEgui;
@@ -161,10 +162,7 @@ fn initialized_host() -> WorthUiHostEgui {
 
 fn present_one(host: &WorthUiHostEgui, host_session: u64) -> PresentedInputWorld {
     let capabilities = host.mechanical_capability_report();
-    let projection = semantic_text_projection_for_certification_with_capability(
-        capabilities.observation_generation(),
-        capabilities.profile_identity_digest(),
-    );
+    let projection = empty_projection_for_certification();
     let protocol = match UiHostProtocolContract::current().negotiate() {
         UiHostProtocolNegotiation::Compatible(agreement) => agreement,
         UiHostProtocolNegotiation::Incompatible(denial) => panic!("{denial:?}"),
@@ -191,24 +189,28 @@ fn present_one(host: &WorthUiHostEgui, host_session: u64) -> PresentedInputWorld
         });
     assert!(matches!(
         host.perform_surface_registration(registration),
-        UiHostSurfaceRegistrationOutcome::Registered(_)
+        UiHostSurfaceRegistrationOutcome::RegisteredKnownEmpty
     ));
     let attempt = UiMountedPresentationAttemptIdentity::mint_unbound().unwrap();
-    let lease = UiMountedPresentationLeaseGate::default().claim().unwrap();
-    let view = lease.open(UiMountedFrameConsumptionInput {
-        host_session_identity: host_session,
-        protocol,
-        capability_generation: capabilities.observation_generation(),
-        capability_profile_digest: capabilities.profile_identity_digest(),
-        attempt,
-        deadline: worth_ui_host_contract::UiPresentationDeadline::at_tick(100),
-        requirement,
-        projection: &projection,
-    });
-    let epoch = match host.perform_mounted_surface_presentation(&view) {
-        UiHostSurfacePresentationOutcome::Presented(completion) => completion.epoch(),
-        other => panic!("production egui presentation must complete, got {other:?}"),
-    };
+    let presentation_work =
+        initial_presentation_mechanics_for_certification(&projection, requirement);
+    let view = worth_ui_host_contract::UiMountedFrameConsumptionView::from_inert_mechanics(
+        UiMountedFrameConsumptionInput {
+            qualified_text: &(),
+            text_raster_work: None,
+            authority: std::rc::Rc::new(()),
+            host_session_identity: host_session,
+            protocol,
+            capability_generation: capabilities.observation_generation(),
+            capability_profile_digest: capabilities.profile_identity_digest(),
+            attempt,
+            deadline: worth_ui_host_contract::UiPresentationDeadline::at_tick(100),
+            requirement,
+            presentation_work: UiMountedPresentationWorkView::Initial(&presentation_work),
+        },
+    );
+    let epoch = UiHostPresentationEpoch::issued_by_host(attempt.diagnostic_value());
+    host.record_completed_input_basis_for_test(&view, epoch);
     assert_eq!(
         epoch,
         UiHostPresentationEpoch::issued_by_host(attempt.diagnostic_value())

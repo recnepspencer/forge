@@ -2,15 +2,7 @@ use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportOutcome,
 };
-use worth_ui_host_contract::{
-    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiHostSurfaceRegistrationDenial,
-    UiHostSurfaceRegistrationRequest, WorthUiHostCapabilityReport, WorthUiHostContract,
-    WorthUiMeasurementHostAdapter,
-};
-use worth_ui_runtime::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiOperationalHostAdapter,
-};
+use worth_ui_host_headless::WorthUiHeadlessBaselineUnavailableHost;
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedIdentityDenial,
     UiMountedPresentationAdmissionDenial, UiPresentationDeadline,
@@ -88,7 +80,10 @@ fn surface_recreation_preserves_semantic_instance_but_retires_frame_affinity() {
 
 #[test]
 fn registration_without_known_empty_truth_is_denied_before_binding() {
-    let app = mounted_application_with_host("mounted-no-baseline", NoBaselineHost);
+    let app = mounted_application_with_host(
+        "mounted-no-baseline",
+        WorthUiHeadlessBaselineUnavailableHost,
+    );
     let mut session = app.launch().expect("runtime should launch");
     let surface = session.create_semantic_surface().unwrap();
     assert_eq!(
@@ -106,12 +101,12 @@ fn registration_without_known_empty_truth_is_denied_before_binding() {
 }
 
 #[test]
-fn wrong_registration_receipt_blocks_semantic_truth_until_exact_native_removal() {
+fn indeterminate_registration_blocks_semantic_truth_until_exact_native_removal() {
     let host = ScriptedPresentationHost::default();
     let app = mounted_application_with_host("mounted-wrong-registration", host.clone());
     let mut session = app.launch().expect("runtime should launch");
     let surface = session.create_semantic_surface().unwrap();
-    host.return_wrong_next_registration_receipt();
+    host.return_indeterminate_next_registration();
 
     assert_eq!(
         session.register_host_surface(
@@ -307,63 +302,14 @@ fn assert_binding_truth(
         binding.capability_profile_digest(),
         capability.capability_report().profile_identity_digest()
     );
-    let registration = binding.baseline().registration();
+    let baseline = binding.baseline();
     assert_eq!(
-        registration.host_session_identity(),
-        session.host_session_identity().as_u64()
-    );
-    assert_eq!(
-        registration.semantic_surface_identity(),
+        baseline.semantic_surface_identity(),
         binding.semantic_surface_identity()
     );
     assert_eq!(
-        registration.host_surface_identity(),
+        baseline.host_surface_identity(),
         binding.host_surface_identity()
     );
-    assert_eq!(
-        registration.presentation_mode(),
-        binding.presentation_mode()
-    );
-}
-
-#[derive(Clone, Copy, Default)]
-struct NoBaselineHost;
-
-impl WorthUiMeasurementHostAdapter for NoBaselineHost {
-    fn observe_measurement(
-        &self,
-        _request: &UiHostMeasurementRequest,
-    ) -> UiHostMeasurementObservationValue {
-        unreachable!("no measurement capability")
-    }
-}
-
-impl WorthUiOperationalHostAdapter for NoBaselineHost {
-    fn operational_host_contract(&self) -> WorthUiHostContract {
-        WorthUiHostContract::headless()
-    }
-
-    fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::available(Vec::new())
-    }
-
-    fn register_surface(
-        &self,
-        _authority: &UiHostAdapterSessionAuthority,
-        _request: UiHostSurfaceRegistrationRequest,
-    ) -> worth_ui_host_contract::UiHostSurfaceRegistrationOutcome {
-        worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RejectedBeforeEffects(
-            UiHostSurfaceRegistrationDenial::KnownEmptyBaselineUnavailable,
-        )
-    }
-
-    fn release_host_session(
-        &self,
-        authority: &UiHostAdapterSessionAuthority,
-    ) -> UiHostSessionReleaseOutcome {
-        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
-            authority.host_session_identity(),
-            0,
-        ))
-    }
+    assert_eq!(baseline.presentation_mode(), binding.presentation_mode());
 }

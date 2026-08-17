@@ -5,7 +5,7 @@ use worth_ui::facade::{
     },
     rebind::{UiRebindExecutionPolicy, UiRebindExecutionRequest},
 };
-use worth_ui_runtime::facade::host::UiHeadlessRecorderCapacity;
+use worth_ui_host_headless::UiHeadlessRecorderCapacity;
 
 use super::world::ConsequenceWorld;
 

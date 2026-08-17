@@ -100,14 +100,68 @@ pub(super) fn frame_rejections(
 
 pub(super) fn completion_satisfies(
     surface: &super::super::UiMountedSurfaceReceipt,
+    expected_effects: &[worth_ui_host_contract::UiMountedEffectFamily],
     completion: &UiMountedSurfacePresentationCompletion,
 ) -> bool {
     if completion.mode() != surface.requirement().presentation_mode() {
         return false;
     }
-    let required = super::effect_requirements::required_effects(
-        surface.requirement().presentation_mode(),
-        surface.projection(),
-    );
-    completion.effects().families() == required
+    completion_effects_satisfy(
+        expected_effects,
+        completion.effects().families(),
+        completion.cost(),
+    )
+}
+
+fn completion_effects_satisfy(
+    expected: &[worth_ui_host_contract::UiMountedEffectFamily],
+    observed: &[worth_ui_host_contract::UiMountedEffectFamily],
+    cost: worth_ui_host_contract::UiHostPresentationCostReport,
+) -> bool {
+    if observed == expected {
+        return true;
+    }
+    let expected_without_paint = expected
+        .iter()
+        .copied()
+        .filter(|effect| *effect != worth_ui_host_contract::UiMountedEffectFamily::NativePaint)
+        .collect::<Vec<_>>();
+    observed == expected_without_paint
+        && expected.len() == observed.len() + 1
+        && cost.presented_surfaces() == 0
+        && cost.presented_pixels() == 0
+        && cost.gpu_writes() == 0
+        && cost.render_passes() == 0
+        && cost.surface_copies() == 0
+        && cost.surface_acquisitions() == 0
+        && cost.queue_submissions() == 0
+        && cost.presents() == 0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::completion_effects_satisfy;
+    use worth_ui_host_contract::{
+        UiHostPresentationCostInput, UiHostPresentationCostReport, UiMountedEffectFamily,
+    };
+
+    #[test]
+    fn offscreen_delta_may_advance_without_counterfeit_native_paint() {
+        let expected = [UiMountedEffectFamily::NativePaint];
+        assert!(completion_effects_satisfy(
+            &expected,
+            &[],
+            UiHostPresentationCostReport::default(),
+        ));
+        let copied = UiHostPresentationCostReport::from_adapter(UiHostPresentationCostInput {
+            surface_copies: 1,
+            ..Default::default()
+        });
+        assert!(!completion_effects_satisfy(&expected, &[], copied));
+        assert!(!completion_effects_satisfy(
+            &[UiMountedEffectFamily::IdentityOverlay],
+            &[],
+            UiHostPresentationCostReport::default(),
+        ));
+    }
 }

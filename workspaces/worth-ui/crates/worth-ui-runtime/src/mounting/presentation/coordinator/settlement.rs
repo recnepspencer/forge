@@ -47,9 +47,10 @@ impl UiMountedPresentationCoordinator {
         let affected = aggregate_affected(&completed, &pending, &rejected);
         let timeout_rejections = pending
             .iter()
-            .map(|pending| {
+            .map(|pending| pending.binding)
+            .map(|binding| {
                 UiMountedSurfacePresentationRejection::new(
-                    pending.binding,
+                    binding,
                     worth_ui_host_contract::UiHostSurfacePresentationDenial::DeadlineExpired,
                 )
             })
@@ -81,6 +82,7 @@ impl UiMountedPresentationCoordinator {
             pending,
             rejected,
             completed,
+            candidates,
         } = state;
         let mut progress = super::UiMountedPresentationProgress {
             pending: Vec::new(),
@@ -90,9 +92,13 @@ impl UiMountedPresentationCoordinator {
         let mut remaining = Vec::new();
         let mut pending_iter = pending.into_iter();
         while let Some(pending_surface) = pending_iter.next() {
-            if let Some((binding, additional_cost)) =
-                observe_pending_surface(&frame, host, pending_surface, &mut progress)
-            {
+            if let Some((binding, additional_cost)) = observe_pending_surface(
+                &frame,
+                host,
+                pending_surface,
+                &mut progress,
+                &mut self.text,
+            ) {
                 remaining.extend(pending_iter);
                 progress.pending.extend(remaining);
                 let evidence =
@@ -109,6 +115,7 @@ impl UiMountedPresentationCoordinator {
             pending: progress.pending,
             rejected: progress.rejected,
             completed: progress.completed,
+            candidates,
             host,
         })
     }
@@ -121,7 +128,26 @@ impl UiMountedPresentationCoordinator {
         let Some(state) = self.in_flight.remove(&in_flight.attempt()) else {
             return Err(UiMountedPresentationCompletionDenial::UnknownAttempt);
         };
-        Ok(self.cancel_state(state, host))
+        Ok(self.stop_state(
+            state,
+            host,
+            worth_ui_host_contract::UiHostSurfaceStopReason::Cancelled,
+        ))
+    }
+
+    pub(crate) fn supersede(
+        &mut self,
+        in_flight: UiMountedPresentationInFlight,
+        host: UiHostEffectPort<'_>,
+    ) -> Result<UiMountedPresentationOutcome, UiMountedPresentationCompletionDenial> {
+        let Some(state) = self.in_flight.remove(&in_flight.attempt()) else {
+            return Err(UiMountedPresentationCompletionDenial::UnknownAttempt);
+        };
+        Ok(self.stop_state(
+            state,
+            host,
+            worth_ui_host_contract::UiHostSurfaceStopReason::Superseded,
+        ))
     }
 
     pub(crate) fn shutdown(
@@ -140,7 +166,11 @@ impl UiMountedPresentationCoordinator {
                 .in_flight
                 .remove(&attempt)
                 .expect("shutdown attempt was retained by the coordinator");
-            let outcome = self.cancel_state(state, host);
+            let outcome = self.stop_state(
+                state,
+                host,
+                worth_ui_host_contract::UiHostSurfaceStopReason::Cancelled,
+            );
             let (disposition, affected) = match &outcome {
                 UiMountedPresentationOutcome::RejectedBeforeEffects(_) => (
                     super::super::UiMountedPresentationShutdownDisposition::CancelledBeforeEffects,
@@ -168,10 +198,11 @@ impl UiMountedPresentationCoordinator {
         )
     }
 
-    fn cancel_state(
+    fn stop_state(
         &mut self,
         state: UiMountedPresentationInFlightState,
         host: UiHostEffectPort<'_>,
+        reason: worth_ui_host_contract::UiHostSurfaceStopReason,
     ) -> UiMountedPresentationOutcome {
         let UiMountedPresentationInFlightState {
             frame,
@@ -185,14 +216,15 @@ impl UiMountedPresentationCoordinator {
         let affected = aggregate_affected(&completed, &pending, &rejected);
         let cancellation_rejections = pending
             .iter()
-            .map(|pending| {
+            .map(|pending| pending.binding)
+            .map(|binding| {
                 UiMountedSurfacePresentationRejection::new(
-                    pending.binding,
+                    binding,
                     worth_ui_host_contract::UiHostSurfacePresentationDenial::CancelledBeforeEffects,
                 )
             })
             .collect::<Vec<_>>();
-        let effects_may_have_begun = cancel_all(pending, host);
+        let effects_may_have_begun = stop_all(pending, host, reason);
         if effects_may_have_begun || !completed.is_empty() {
             return self.indeterminate(
                 frame,
@@ -213,22 +245,38 @@ fn observe_pending_surface(
     host: UiHostEffectPort<'_>,
     pending: UiPendingMountedSurface,
     progress: &mut super::UiMountedPresentationProgress,
+    text: &mut crate::native_platform::text_presentation::UiNativeMountedTextCoordinator,
 ) -> Option<(
     worth_ui_host_contract::UiSurfaceBindingGeneration,
     Option<worth_ui_host_contract::UiHostPresentationCostReport>,
 )> {
-    let UiPendingMountedSurface { binding, token } = pending;
+    let UiPendingMountedSurface {
+        binding,
+        token,
+        expected_effects,
+        text_candidate,
+    } = pending;
     match host
         .adapter()
         .complete_mounted_surface(host.authority(), token)
     {
         UiHostSurfaceInFlightCompletion::Pending(token) => {
-            progress
-                .pending
-                .push(UiPendingMountedSurface { binding, token });
+            progress.pending.push(UiPendingMountedSurface {
+                binding,
+                token,
+                expected_effects,
+                text_candidate,
+            });
             None
         }
         UiHostSurfaceInFlightCompletion::RejectedBeforeEffects(denial) => {
+            if denial
+                == worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred
+            {
+                if let Some(candidate) = text_candidate {
+                    text.commit_surface_candidate(candidate);
+                }
+            }
             progress
                 .rejected
                 .push(UiMountedSurfacePresentationRejection::new(binding, denial));
@@ -241,7 +289,7 @@ fn observe_pending_surface(
                 .iter()
                 .find(|surface| surface.requirement().binding() == binding)
                 .expect("pending binding belongs to retained prepared frame");
-            if !completion_satisfies(surface, &completion) {
+            if !completion_satisfies(surface, &expected_effects, &completion) {
                 return Some((binding, Some(completion.cost())));
             }
             let (epoch, effects, adapter_cost) = completion.into_parts();
@@ -253,6 +301,9 @@ fn observe_pending_surface(
                     effects,
                     adapter_cost,
                 ));
+            if let Some(candidate) = text_candidate {
+                text.commit_surface_candidate(candidate);
+            }
             None
         }
     }
@@ -280,12 +331,24 @@ pub(super) fn cancel_all(
     pending: Vec<UiPendingMountedSurface>,
     host: UiHostEffectPort<'_>,
 ) -> bool {
+    stop_all(
+        pending,
+        host,
+        worth_ui_host_contract::UiHostSurfaceStopReason::Cancelled,
+    )
+}
+
+fn stop_all(
+    pending: Vec<UiPendingMountedSurface>,
+    host: UiHostEffectPort<'_>,
+    reason: worth_ui_host_contract::UiHostSurfaceStopReason,
+) -> bool {
     let mut effects_may_have_begun = false;
     for pending_surface in pending {
-        effects_may_have_begun |= host
-            .adapter()
-            .cancel_mounted_surface(host.authority(), pending_surface.token)
-            == UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun;
+        effects_may_have_begun |=
+            host.adapter()
+                .cancel_mounted_surface(host.authority(), pending_surface.token, reason)
+                == UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun;
     }
     effects_may_have_begun
 }

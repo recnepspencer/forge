@@ -8,10 +8,10 @@ use worth_ui::facade::source::{
     WorthUiSourceEventIngress, WorthUiSourceProvider, WorthUiWatcherEvent,
 };
 use worth_ui_dsl::WorthUiRustAuthoredArtifactInput;
-use worth_ui_query_binding::UiProjectionObservation;
-use worth_ui_runtime::facade::host::{
+use worth_ui_host_headless::{
     UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect, WorthUiHeadlessRecorder,
 };
+use worth_ui_query_binding::UiProjectionObservation;
 use worth_ui_runtime::facade::mounted::UiMountedRgba8;
 use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
@@ -128,10 +128,10 @@ fn real_source_and_query_turn_publishes_one_semantic_application_successor() {
             .collect::<Vec<_>>(),
         ["Ready", "CURRENT"]
     );
-    assert!(transcript
-        .semantic_text()
-        .iter()
-        .all(|row| row.color() == UiMountedRgba8::new(255, 255, 255, 255)));
+    assert!(transcript.semantic_text().iter().all(|row| {
+        row.foregrounds().len() == 1
+            && row.foregrounds()[0].color() == UiMountedRgba8::new(255, 255, 255, 255)
+    }));
     let mounted_identity = transcript.semantic_text()[0].mounted_instance();
     assert!(predecessor_mounted_instances.contains(&mounted_identity));
     assert!(transcript

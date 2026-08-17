@@ -3,6 +3,7 @@ use super::{UiHostMeasurementObservationValue, UiHostMeasurementRequest};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiHostKind {
     Headless,
+    Native,
     Egui,
     CapabilityProbeInconclusive,
     DiagnosticsOnly,
@@ -30,6 +31,12 @@ impl WorthUiHostContract {
     pub fn egui() -> Self {
         Self {
             kind: WorthUiHostKind::Egui,
+        }
+    }
+
+    pub fn native() -> Self {
+        Self {
+            kind: WorthUiHostKind::Native,
         }
     }
 

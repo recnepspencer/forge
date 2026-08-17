@@ -15,7 +15,7 @@ name = "worth-ui-platform-pulse"
 path = "src/main.rs"
 
 [features]
-executable-world = []
+executable-world = ["worth-ui/certification-support"]
 
 [[test]]
 name = "executable_world"
@@ -26,16 +26,18 @@ required-features = ["executable-world"]
 workspace = true
 
 [dependencies]
-eframe = { workspace = true, features = ["wgpu"] }
+eframe = { workspace = true, features = ["wgpu_no_default_features"] }
 notify = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 worth-query-decl = { workspace = true }
 worth-query-host = { workspace = true }
-worth-ui = { workspace = true }
+worth-ui = { workspace = true, features = ["legacy-egui-migration"] }
 worth-ui-host-egui = { workspace = true }
+worth-ui-native-platform = { workspace = true }
 
 [target.'cfg(windows)'.dev-dependencies]
 uiautomation = { workspace = true }
 winsafe = { workspace = true }
 xcap = { workspace = true, features = ["wgc"] }
+win32job = { workspace = true }

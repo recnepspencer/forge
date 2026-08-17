@@ -12,10 +12,7 @@ mod resource_bounds;
 use worth_ui::facade::inspection::{
     UiGeometryOnly, UiVisualCapturePoll, UiVisualSnapshotOutcome, UiVisualSnapshotRequest,
 };
-use worth_ui_host_contract::{
-    UiMountedFilledRectMechanic, UiMountedHitTestMechanic, UiMountedLayerRow,
-    UiMountedNodeProjectionView, UiMountedPaintBatchRow,
-};
+use worth_ui_host_contract::UiMountedPaintCommand;
 use worth_ui_host_egui::WorthUiHostEgui;
 use worth_ui_runtime::facade::mounted::{
     UiMountedFrameOutcome, UiMountedFramePreparationDenial, UiMountedInspectionReceipt,
@@ -91,17 +88,10 @@ fn egui_cost_counts_runtime_mounted_hit_mechanics() {
         None => panic!("egui callback must produce a presentation outcome"),
     };
     let adapter_cost = publication.cost_report().adapter();
-    assert_eq!(adapter_cost.translated_rows(), 10);
+    assert_eq!(adapter_cost.translated_rows(), 6);
     assert_eq!(
         adapter_cost.translated_bytes(),
-        u64::try_from(
-            4 * std::mem::size_of::<UiMountedNodeProjectionView>()
-                + std::mem::size_of::<UiMountedLayerRow>()
-                + std::mem::size_of::<UiMountedPaintBatchRow>()
-                + 2 * std::mem::size_of::<UiMountedFilledRectMechanic>()
-                + 2 * std::mem::size_of::<UiMountedHitTestMechanic>()
-        )
-        .unwrap()
+        u64::try_from(2 * std::mem::size_of::<UiMountedPaintCommand>()).unwrap()
     );
     assert_eq!(native.shapes.len(), 2);
     let _ = session.shutdown();

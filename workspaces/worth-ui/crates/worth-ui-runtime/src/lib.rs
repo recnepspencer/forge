@@ -10,6 +10,7 @@ mod host_exchange;
 mod inspection;
 mod lifecycle;
 mod mounting;
+pub mod native_platform;
 mod obligations;
 mod runtime;
 mod source;

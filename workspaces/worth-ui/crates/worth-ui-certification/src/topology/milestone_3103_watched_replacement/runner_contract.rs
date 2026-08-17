@@ -309,6 +309,7 @@ impl Phase4RunnerSources {
             ),
             courtroom: inventory
                 .rust_files_under("apps/platform-pulse/tests/executable_world/courtroom")
+                .filter(|source| !source.absolute_path().ends_with("native_phase2.rs"))
                 .map(|source| source.text())
                 .collect::<Vec<_>>()
                 .join("\n"),

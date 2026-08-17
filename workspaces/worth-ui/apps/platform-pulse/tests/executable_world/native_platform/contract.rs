@@ -18,6 +18,7 @@ pub(crate) enum NativePlatformPosture {
 #[derive(Debug)]
 pub(crate) enum NativePlatformFailure {
     DpiAwareness(String),
+    EnvironmentQualification(String),
     WindowEnumeration(String),
     WindowLookupDeadline,
     AmbiguousProcessWindows(usize),
@@ -44,6 +45,9 @@ impl fmt::Display for NativePlatformFailure {
         match self {
             Self::DpiAwareness(error) => {
                 write!(formatter, "establish process DPI awareness: {error}")
+            }
+            Self::EnvironmentQualification(error) => {
+                write!(formatter, "qualify native environment: {error}")
             }
             Self::WindowEnumeration(error) => {
                 write!(formatter, "enumerate process windows: {error}")

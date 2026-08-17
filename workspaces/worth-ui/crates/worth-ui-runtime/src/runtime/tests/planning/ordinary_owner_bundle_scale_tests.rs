@@ -162,6 +162,7 @@ fn command_app(changed_label: &str) -> WorthUiApp {
     builder
         .register_surface(surface)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("owner-bundle command capabilities should prepare")
 }
 

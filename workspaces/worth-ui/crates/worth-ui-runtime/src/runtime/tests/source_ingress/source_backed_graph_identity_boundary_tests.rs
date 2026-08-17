@@ -64,6 +64,7 @@ fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> Worth
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(source_backed_boundary_sizing())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let submission = runtime_from_artifact(empty_artifact())
         .source_event_ingress(
@@ -83,6 +84,7 @@ fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> Worth
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(source_backed_boundary_sizing())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

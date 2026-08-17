@@ -1,7 +1,9 @@
-use std::collections::BTreeSet;
-
 use worth_ui_host_contract::{UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity};
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
+
+mod partition;
+
+use partition::{disjoint_partition, required_host_families};
 
 use super::{
     mounted_allocation_denial::map_initial_activation_denial, WorthUiActiveApplicationSession,
@@ -315,75 +317,4 @@ impl WorthUiMountedAllocationCertificationExt for WorthUiActiveApplicationSessio
             requests,
         )
     }
-}
-
-fn required_host_families(
-    policy: &crate::declaration::UiDeclaredMeasurementPolicyPosture,
-) -> BTreeSet<UiMeasurementEvidenceFamily> {
-    let mut families = BTreeSet::new();
-    if policy.requires_viewport_extent_observation() {
-        families.insert(UiMeasurementEvidenceFamily::ViewportExtent);
-    }
-    if policy.requires_portal_anchor_observation() {
-        families.insert(UiMeasurementEvidenceFamily::PortalAnchorRect);
-    }
-    for requirement in policy.evidence_requirements() {
-        match requirement {
-            crate::declaration::UiDeclaredMeasurementEvidenceRequirement::HostFontMetrics => {
-                families.insert(UiMeasurementEvidenceFamily::FontMetrics);
-            }
-            crate::declaration::UiDeclaredMeasurementEvidenceRequirement::ScrollContentExtent => {
-                families.insert(UiMeasurementEvidenceFamily::ScrollContainerViewport);
-            }
-            crate::declaration::UiDeclaredMeasurementEvidenceRequirement::PortalAnchorMetrics => {
-                families.insert(UiMeasurementEvidenceFamily::PortalAnchorRect);
-            }
-        }
-    }
-    families
-}
-
-fn disjoint_partition(
-    graph: &crate::graph::UiGraphSnapshot,
-    mut remaining: Vec<(
-        crate::evidence::UiMeasurementBasis,
-        crate::obligations::selection::UiSelectedObligationSet,
-    )>,
-) -> Result<
-    Vec<(
-        crate::evidence::UiMeasurementBasis,
-        crate::obligations::selection::UiSelectedObligationSet,
-    )>,
-    WorthUiMountedAllocationEstablishmentDenial,
-> {
-    let mut uncovered = graph
-        .allocation_planning_node_identities()
-        .collect::<BTreeSet<_>>();
-    let mut partition = Vec::new();
-    while !uncovered.is_empty() {
-        let chosen = remaining
-            .iter()
-            .enumerate()
-            .filter_map(|(index, (basis, selected))| {
-                let neighborhood = basis.admit_allocation_neighborhood(graph, selected).ok()?;
-                let covered = neighborhood
-                    .members()
-                    .iter()
-                    .map(|member| member.graph_node_identity())
-                    .collect::<BTreeSet<_>>();
-                covered
-                    .iter()
-                    .all(|identity| uncovered.contains(identity))
-                    .then_some((index, covered))
-            })
-            .max_by_key(|(_, covered)| covered.len())
-            .ok_or(WorthUiMountedAllocationEstablishmentDenial::Runtime(
-                WorthUiMountedAllocationRuntimeStage::CatalogPreparation,
-            ))?;
-        for identity in chosen.1 {
-            uncovered.remove(&identity);
-        }
-        partition.push(remaining.swap_remove(chosen.0));
-    }
-    Ok(partition)
 }

@@ -21,14 +21,17 @@ use worth_ui_dsl::{
     WorthUiRustAuthoredArtifactInputModule,
 };
 use worth_ui_host_contract::UiSemanticTextSlot;
+use worth_ui_host_headless::{
+    UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect, WorthUiHeadlessRecorder,
+};
 use worth_ui_query_binding::{
     UiProjectionFieldRequirement, UiProjectionObservation, UiScalarProjectionRegistration,
     WorthUiQueryWorkspaceExt,
 };
 use worth_ui_runtime::facade::entry::UiMountedAllocationMeasurementRequest;
 use worth_ui_runtime::facade::host::{
-    UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect, UiHostMeasurementAssumptionProfile,
-    UiHostMeasurementNeed, UiHostMeasurementNormalizationContext, WorthUiHeadlessRecorder,
+    UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
+    UiHostMeasurementNormalizationContext,
 };
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedRgba8, UiSurfaceBindingCoordinatePosture,
@@ -132,8 +135,16 @@ fn real_query_scalar_publishes_same_generation_semantic_text_to_headless_host() 
         .expect("the Query posture has a semantic row");
     assert_eq!(value.text(), "Ready");
     assert_eq!(posture.text(), "CURRENT");
-    assert_eq!(value.color(), UiMountedRgba8::new(255, 255, 255, 255));
-    assert_eq!(posture.color(), value.color());
+    assert_eq!(value.foregrounds().len(), 1);
+    assert_eq!(posture.foregrounds().len(), 1);
+    assert_eq!(
+        value.foregrounds()[0].color(),
+        UiMountedRgba8::new(255, 255, 255, 255)
+    );
+    assert_eq!(
+        posture.foregrounds()[0].color(),
+        value.foregrounds()[0].color()
+    );
     assert_eq!(value.mounted_instance(), posture.mounted_instance());
     assert!(mounted_instances.contains(&value.mounted_instance()));
     assert_eq!(value.content_generation(), posture.content_generation());
@@ -154,7 +165,7 @@ fn real_query_scalar_publishes_same_generation_semantic_text_to_headless_host() 
     assert!(shutdown.mounted_presentation().is_empty());
 }
 
-pub(super) fn scalar_registration(world: &ScalarLifecycleWorld) -> UiScalarProjectionRegistration {
+pub(crate) fn scalar_registration(world: &ScalarLifecycleWorld) -> UiScalarProjectionRegistration {
     let domain = world
         .workspace
         .worth_ui()
@@ -181,8 +192,13 @@ pub(super) fn projection_app(
         .register_scalar_projection(registration)
         .expect("product scalar projection registers")
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
-        .with_host(recorder)
         .freeze()
+        .map(|application| {
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_recorder(
+                application,
+                recorder,
+            )
+        })
         .expect("projection application freezes")
 }
 
@@ -195,6 +211,14 @@ pub(super) fn projection_module(component: &str) -> WorthUiRustAuthoredArtifactI
             WorthUiArtifactInputBodyAtom::Identifier(PROJECTION.to_owned()),
         ],
     )
+}
+
+pub(super) fn projection_module_with_additional_token(
+    component: &str,
+    token: &str,
+    value: &str,
+) -> WorthUiRustAuthoredArtifactInputModule {
+    projection_module(component).with_token(token, value)
 }
 
 pub(super) fn projection_module_with_region(

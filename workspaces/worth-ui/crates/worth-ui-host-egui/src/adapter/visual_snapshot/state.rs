@@ -124,7 +124,7 @@ impl UiEguiPresentedSurface {
         regions: Vec<worth_ui_host_contract::UiHostRealizedRegion>,
     ) -> Self {
         Self {
-            frame: view.projection().frame(),
+            frame: view.frame(),
             attempt: view.attempt(),
             host_surface: view.requirement().host_surface(),
             binding: view.requirement().binding(),

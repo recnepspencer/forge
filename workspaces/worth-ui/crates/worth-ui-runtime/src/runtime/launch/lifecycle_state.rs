@@ -133,6 +133,7 @@ pub struct WorthUiRuntimeShutdownReceipt {
     intent_resource_census: crate::runtime::session::UiIntentResourceCensus,
     rebind: crate::runtime::rebind::UiRebindShutdownReport,
     host_session_release: Option<crate::host::adapter::UiHostSessionReleaseOutcome>,
+    host_session_recovery: Option<crate::facade::WorthUiHostSessionReleaseRecovery>,
 }
 
 impl WorthUiRuntimeShutdownReceipt {
@@ -156,6 +157,7 @@ impl WorthUiRuntimeShutdownReceipt {
             intent_resource_census: crate::runtime::session::UiIntentResourceCensus::EMPTY,
             rebind: Default::default(),
             host_session_release: None,
+            host_session_recovery: None,
         }
     }
 
@@ -229,6 +231,12 @@ impl WorthUiRuntimeShutdownReceipt {
         self.host_session_release
     }
 
+    pub(crate) fn take_host_session_recovery(
+        &mut self,
+    ) -> Option<crate::facade::WorthUiHostSessionReleaseRecovery> {
+        self.host_session_recovery.take()
+    }
+
     pub(crate) fn bind_mounted_presentation(
         mut self,
         report: crate::mounting::UiMountedPresentationShutdownReport,
@@ -258,6 +266,14 @@ impl WorthUiRuntimeShutdownReceipt {
         outcome: crate::host::adapter::UiHostSessionReleaseOutcome,
     ) -> Self {
         self.host_session_release = Some(outcome);
+        self
+    }
+
+    pub(crate) fn bind_host_session_recovery(
+        mut self,
+        recovery: Option<crate::facade::WorthUiHostSessionReleaseRecovery>,
+    ) -> Self {
+        self.host_session_recovery = recovery;
         self
     }
 

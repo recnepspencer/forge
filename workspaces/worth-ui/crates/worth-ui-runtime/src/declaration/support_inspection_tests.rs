@@ -81,6 +81,7 @@ fn assert_app_freeze_measurement_posture(
             .with_semantic_artifact_spec(spec),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
 
     let query = UiInspectionQuery::new(

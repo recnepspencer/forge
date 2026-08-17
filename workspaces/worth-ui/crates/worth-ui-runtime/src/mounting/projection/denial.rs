@@ -37,6 +37,12 @@ pub enum UiMountedProjectionDenial {
     SemanticTextNodeReceiptMismatch,
     SemanticTextCapacityExceeded,
     SemanticTextCompletion(worth_ui_host_contract::UiMountedSemanticTextCompletionDenial),
+    SemanticTextQualification(worth_ui_text::UiTextQualificationDenial),
+    AmbiguousDrawableOrder {
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+        layer: u32,
+    },
+    DrawableSourceCoverageMismatch,
     MissingHitTestOrder(crate::graph::UiGraphNodeIdentity),
     DuplicateHitTestOrder {
         surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,

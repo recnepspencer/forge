@@ -9,6 +9,11 @@ members = [
     "crates/worth-ui-inspection",
     "crates/worth-ui-query-binding",
     "crates/worth-ui-host-contract",
+    "crates/worth-ui-text",
+    "crates/worth-ui-host-native",
+    "crates/worth-ui-host-headless",
+    "crates/worth-ui-retained-order",
+    "crates/worth-ui-native-platform",
     "crates/worth-ui-host-egui",
     "crates/worth-ui-certification",
     "crates/worth-ui-test-support",
@@ -37,6 +42,11 @@ worth-ui-runtime = { path = "crates/worth-ui-runtime" }
 worth-ui-inspection = { path = "crates/worth-ui-inspection" }
 worth-ui-query-binding = { path = "crates/worth-ui-query-binding" }
 worth-ui-host-contract = { path = "crates/worth-ui-host-contract" }
+worth-ui-text = { path = "crates/worth-ui-text" }
+worth-ui-host-native = { path = "crates/worth-ui-host-native" }
+worth-ui-host-headless = { path = "crates/worth-ui-host-headless" }
+worth-ui-retained-order = { path = "crates/worth-ui-retained-order" }
+worth-ui-native-platform = { path = "crates/worth-ui-native-platform" }
 worth-ui-host-egui = { path = "crates/worth-ui-host-egui" }
 worth-ui-certification = { path = "crates/worth-ui-certification" }
 worth-ui-test-support = { path = "crates/worth-ui-test-support" }
@@ -45,12 +55,28 @@ worth-ui = { path = "crates/worth-ui" }
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1.0"
 egui = "=0.35.0"
-eframe = { version = "=0.35.0", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+eframe = { version = "=0.35.0", default-features = false, features = ["default_fonts"] }
 egui_extras = { version = "=0.35.0", features = ["svg", "image"] }
 notify = "8.2.0"
-uiautomation = { version = "=0.25.0", default-features = false, features = ["control", "input"] }
-winsafe = { version = "=0.0.28", features = ["dwm", "kernel", "user"] }
+uiautomation = { version = "=0.25.0", default-features = false, features = ["control", "input", "screenshot"] }
+winsafe = { version = "=0.0.28", default-features = false, features = ["dwm", "kernel", "user"] }
 xcap = { version = "=0.9.7", default-features = false }
+winit = { version = "=0.30.13", default-features = false, features = ["rwh_06"] }
+wgpu = { version = "=29.0.4", default-features = false, features = ["std", "parking_lot", "dx12", "wgsl"] }
+pollster = "=0.4.0"
+harfrust = { version = "=0.12.0", default-features = false, features = ["std"] }
+read-fonts = { version = "=0.41.0", default-features = false, features = ["std", "experimental_traverse"] }
+skrifa = { version = "=0.44.0", default-features = false, features = ["std"] }
+kurbo = { version = "=0.13.1", default-features = false, features = ["std"] }
+linesweeper = { version = "=0.4.0", default-features = false }
+png = { version = "=0.18.1", default-features = false }
+icu_segmenter = { version = "=2.2.0", default-features = false, features = ["compiled_data", "auto"] }
+rustybuzz = "=0.20.1"
+swash = { version = "=0.2.10", default-features = false, features = ["std", "scale", "render"] }
+unicode-bidi = { version = "=0.3.18", default-features = false, features = ["std"] }
+unicode-segmentation = { version = "=1.13.3", default-features = false }
+sha2 = "=0.10.9"
+win32job = "=2.0.3"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

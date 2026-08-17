@@ -10,10 +10,12 @@ mod identity_overlay;
 mod identity_state;
 mod identity_trace_basis;
 mod identity_view;
-mod presentation;
+pub(crate) mod presentation;
 mod projection;
 mod projection_changes;
 mod publication;
+#[cfg(any(test, feature = "certification-support"))]
+pub(crate) mod qualified_text_test_support;
 mod receipt_basis;
 mod retention;
 mod reuse;
@@ -59,9 +61,12 @@ pub use presentation::{
 pub(crate) use presentation::{
     UiMountedHostPresentationAuthority, UiMountedPresentationCoordinator,
 };
+#[allow(unused_imports)]
+pub(crate) use projection::compile_presentation_sources;
 pub(crate) use projection::{
     prepare_projection, UiIntentPostureCommit, UiIntentPostureObservation, UiIntentPostureTable,
-    UiMountedPreviewProjectionInput, UiMountedProjectionInput, UiPreparedMountedProjection,
+    UiMountedPresentationDeltaSource, UiMountedPreviewProjectionInput, UiMountedProjectionInput,
+    UiPreparedMountedProjection,
 };
 pub use projection::{
     UiMountedNodeReceipt, UiMountedProjectionDenial, UiMountedProjectionFrame,
@@ -120,7 +125,7 @@ pub use assembly::{
     UiMountedSurfaceReceipt, UiPreparedMountedFrame,
 };
 pub use worth_ui_host_contract::{
-    UiHostSurfaceBaselineReceipt, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
+    UiHostSurfaceBaselineIdentity, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
     UiMountIncarnation, UiMountedFrameIdentity, UiMountedInstanceIdentity,
     UiMountedNodeReceiptIdentity, UiMountedProjectionAudience, UiSemanticSurfaceIdentity,
     UiSurfaceBindingGeneration,

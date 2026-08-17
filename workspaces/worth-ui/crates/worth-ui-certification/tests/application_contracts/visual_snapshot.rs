@@ -139,6 +139,9 @@ fn phase_2_launch_seals_the_application_declared_visual_policy() {
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_visual_inspection_policy(policy)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("the application prepares")
         .launch()
         .expect("the application launches");

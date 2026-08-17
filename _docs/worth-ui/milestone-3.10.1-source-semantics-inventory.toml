@@ -59,7 +59,7 @@ path_set_fingerprint = "c5b45bb3db29679a"
 # in one typed authored-source basis under the existing runtime-candidate owner.
 # Milestones 3.13-3.14 carry projection and authored-intent material through the
 # sealed handoff while declaration interpretation remains in declaration owners.
-content_fingerprint = "b6aa45f53a11154b"
+content_fingerprint = "cc0e11330672f1c2"
 
 [[scope]]
 id = "runtime-replacement"

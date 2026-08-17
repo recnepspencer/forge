@@ -1,6 +1,6 @@
+use crate::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui::facade::app::WorthUiApp;
 use worth_ui::facade::source::WorthUiWatchedCandidateSubmission;
-use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 
 use super::FilesystemApplicationLifecycleScenario;
 use crate::scenario::application_authority_closure::application_definition::{
@@ -23,7 +23,7 @@ impl FilesystemApplicationLifecycleScenario {
         unrelated_width: usize,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         platform_pulse_application_builder_with_host_and_unrelated_width(host, unrelated_width)
             .freeze()
@@ -37,7 +37,7 @@ impl FilesystemApplicationLifecycleScenario {
         unrelated_width: usize,
     ) -> WorthUiApp
     where
-        Host: WorthUiOperationalHostAdapter + 'static,
+        Host: FixedCertificationHostBinding,
     {
         platform_pulse_application_builder_with_host_and_unrelated_width(host, unrelated_width)
             .with_candidate_submission(submission)

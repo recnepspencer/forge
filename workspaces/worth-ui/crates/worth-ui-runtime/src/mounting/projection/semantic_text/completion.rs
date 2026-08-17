@@ -1,23 +1,20 @@
 use std::sync::Arc;
 
 use worth_ui_host_contract::{
-    UiMountedAllocationProjection, UiMountedCollectionRowCorrelation,
-    UiMountedSemanticTextCompletionInput, UiMountedSemanticTextMechanic, UiSemanticTextProfile,
-    UiSemanticTextSlot,
+    UiMountedCollectionRowCorrelation, UiMountedSemanticTextCompletionInput,
+    UiMountedSemanticTextMechanic, UiSemanticTextProfile, UiSemanticTextSlot,
 };
 
 use super::super::frame_storage::{UiMountedProjectionNodeRecord, UiMountedSemanticProjection};
 use super::super::UiMountedProjectionDenial;
 
-pub(in crate::mounting::projection) fn complete_semantic_text(
-    input: UiMountedSemanticTextCompletionContext<'_>,
-) -> Result<Vec<UiMountedSemanticTextMechanic>, UiMountedProjectionDenial> {
+pub(in crate::mounting::projection) fn complete_node_semantic_text(
+    context: &UiMountedSemanticTextCompletionContext<'_>,
+    node: &UiMountedProjectionNodeRecord,
+) -> Result<Vec<super::UiMountedQualifiedSemanticText>, UiMountedProjectionDenial> {
     let mut rows = Vec::new();
-    for node in input.semantic.nodes_in_order() {
-        let Some(seed) = node.semantic_text.as_ref() else {
-            continue;
-        };
-        push_node_rows(&input, node, seed, &mut rows)?;
+    if let Some(seed) = node.semantic_text.as_ref() {
+        push_node_rows(context, node, seed, &mut rows)?;
     }
     Ok(rows)
 }
@@ -29,15 +26,16 @@ pub(in crate::mounting::projection) struct UiMountedSemanticTextCompletionContex
     pub semantic: &'a UiMountedSemanticProjection,
     pub capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     pub capability_profile_digest: u64,
+    pub font_collection: &'a Arc<worth_ui_text::UiGlobalFontCollection>,
 }
 
 fn push_node_rows(
     context: &UiMountedSemanticTextCompletionContext<'_>,
     node: &UiMountedProjectionNodeRecord,
     seed: &super::UiMountedSemanticTextSeed,
-    rows: &mut Vec<UiMountedSemanticTextMechanic>,
+    rows: &mut Vec<super::UiMountedQualifiedSemanticText>,
 ) -> Result<(), UiMountedProjectionDenial> {
-    let (bounds, allocation_basis) = require_allocation(node)?;
+    let (bounds, allocation_basis) = super::geometry::require_allocation(node)?;
     let surface = context
         .semantic
         .surface_for(node.receipt.semantic_surface())
@@ -69,7 +67,7 @@ fn push_node_rows(
             allocation_basis,
             bounds,
             origin_x: bounds.x(),
-            origin_y: row_origin(bounds, value_row_count, value_row_count + 1),
+            origin_y: super::geometry::row_origin(bounds, value_row_count, value_row_count + 1),
             text: Arc::clone(seed.posture()),
             slot: UiSemanticTextSlot::Posture,
             collection_row: None,
@@ -80,55 +78,58 @@ fn push_node_rows(
                         .map_err(|_| UiMountedProjectionDenial::SemanticTextLayerOrderExceeded)?,
                 )
                 .ok_or(UiMountedProjectionDenial::SemanticTextLayerOrderExceeded)?,
-            color: seed.color(),
+            formatting: seed.formatting().default_row(),
         },
         rows,
     )
 }
 
-pub(in crate::mounting::projection) fn rebind_semantic_text(
-    rows: &mut [UiMountedSemanticTextMechanic],
-    replacements: &[(
-        worth_ui_host_contract::UiSurfaceBindingGeneration,
-        super::super::super::UiSurfaceBindingIdentityView,
-    )],
-) -> Result<(), UiMountedProjectionDenial> {
-    for row in rows {
-        let Some((_, replacement)) = replacements
-            .iter()
-            .find(|(affected, _)| *affected == row.binding())
-        else {
-            continue;
-        };
-        if replacement.semantic_surface_identity() != row.surface() {
-            return Err(UiMountedProjectionDenial::MissingSurfaceBinding);
-        }
-        *row = UiMountedSemanticTextMechanic::complete_from_runtime_mounting(
-            UiMountedSemanticTextCompletionInput {
-                content_generation: row.content_generation(),
-                frame: row.frame(),
-                surface: row.surface(),
-                binding: replacement.binding_generation(),
-                mounted_instance: row.mounted_instance(),
-                node_receipt: row.node_receipt(),
-                allocation_basis: row.allocation_basis(),
-                bounds: row.bounds(),
-                clip_bounds: row.clip_bounds(),
-                origin_x: row.origin_x(),
-                origin_y: row.origin_y(),
-                text: Arc::from(row.text()),
-                slot: row.slot(),
-                collection_row: row.collection_row().cloned(),
-                color: row.color(),
-                profile: row.profile(),
-                layer_semantic_order: row.layer_semantic_order(),
-                capability_generation: row.capability_generation(),
-                capability_profile_digest: row.capability_profile_digest(),
-            },
-        )
-        .map_err(UiMountedProjectionDenial::SemanticTextCompletion)?;
-    }
-    Ok(())
+pub(in crate::mounting::projection) fn complete_semantic_text_replacement(
+    context: &UiMountedSemanticTextCompletionContext<'_>,
+    node: &UiMountedProjectionNodeRecord,
+    predecessor: &UiMountedSemanticTextMechanic,
+    text: &Arc<str>,
+    formatting: super::formatting::UiMountedSemanticTextRowFormatting<'_>,
+) -> Result<super::UiMountedQualifiedSemanticText, UiMountedProjectionDenial> {
+    let surface = context
+        .semantic
+        .surface_for(node.receipt.semantic_surface())
+        .ok_or(UiMountedProjectionDenial::MissingSurfaceBinding)?;
+    let receipt = context
+        .receipt_basis
+        .receipt_for(node.receipt.mounted_instance())
+        .ok_or(UiMountedProjectionDenial::SemanticTextNodeReceiptMismatch)?;
+    let qualified =
+        super::qualification::qualify_layout(context, text, predecessor.bounds(), formatting)?;
+    let mechanic = UiMountedSemanticTextMechanic::complete_from_runtime_mounting(
+        UiMountedSemanticTextCompletionInput {
+            content_generation: context.content_generation,
+            frame: context.frame,
+            surface: surface.surface,
+            binding: surface.binding,
+            mounted_instance: node.receipt.mounted_instance(),
+            node_receipt: receipt,
+            allocation_basis: predecessor.allocation_basis(),
+            bounds: predecessor.bounds(),
+            clip_bounds: predecessor.clip_bounds(),
+            origin_x: predecessor.origin_x(),
+            origin_y: predecessor.origin_y(),
+            text: Arc::clone(text),
+            layout: qualified.layout().view(),
+            slot: predecessor.slot(),
+            collection_row: predecessor.collection_row().cloned(),
+            foregrounds: Arc::clone(qualified.foregrounds()),
+            profile: predecessor.profile(),
+            layer_semantic_order: predecessor.layer_semantic_order(),
+            capability_generation: context.capability_generation,
+            capability_profile_digest: context.capability_profile_digest,
+        },
+    )
+    .map_err(UiMountedProjectionDenial::SemanticTextCompletion)?;
+    Ok(super::UiMountedQualifiedSemanticText::new(
+        mechanic,
+        Arc::clone(qualified.layout()),
+    ))
 }
 
 #[derive(Clone, Copy)]
@@ -140,7 +141,7 @@ struct UiMountedNodeTextBasis {
     bounds: worth_ui_host_contract::UiMountedCanonicalBox,
 }
 
-struct UiMountedSemanticTextRowBasis {
+struct UiMountedSemanticTextRowBasis<'formatting> {
     surface: super::super::frame_storage::UiMountedProjectionSurface,
     mounted_instance: worth_ui_host_contract::UiMountedInstanceIdentity,
     node_receipt: worth_ui_host_contract::UiMountedNodeReceiptIdentity,
@@ -152,7 +153,7 @@ struct UiMountedSemanticTextRowBasis {
     slot: UiSemanticTextSlot,
     collection_row: Option<UiMountedCollectionRowCorrelation>,
     layer_semantic_order: u32,
-    color: worth_ui_host_contract::UiMountedRgba8,
+    formatting: super::formatting::UiMountedSemanticTextRowFormatting<'formatting>,
 }
 
 enum UiMountedSemanticTextValueMeaning {
@@ -173,12 +174,14 @@ struct UiMountedSemanticTextValueRowInput {
 
 fn push_row(
     context: &UiMountedSemanticTextCompletionContext<'_>,
-    row: UiMountedSemanticTextRowBasis,
-    rows: &mut Vec<UiMountedSemanticTextMechanic>,
+    row: UiMountedSemanticTextRowBasis<'_>,
+    rows: &mut Vec<super::UiMountedQualifiedSemanticText>,
 ) -> Result<(), UiMountedProjectionDenial> {
     if rows.len() >= worth_ui_host_contract::UiMountedSemanticTextTable::MAX_ROWS {
         return Err(UiMountedProjectionDenial::SemanticTextCapacityExceeded);
     }
+    let qualified =
+        super::qualification::qualify_layout(context, &row.text, row.bounds, row.formatting)?;
     let mechanic = UiMountedSemanticTextMechanic::complete_from_runtime_mounting(
         UiMountedSemanticTextCompletionInput {
             content_generation: context.content_generation,
@@ -193,9 +196,10 @@ fn push_row(
             origin_x: row.origin_x,
             origin_y: row.origin_y,
             text: row.text,
+            layout: qualified.layout().view(),
             slot: row.slot,
             collection_row: row.collection_row,
-            color: row.color,
+            foregrounds: Arc::clone(qualified.foregrounds()),
             profile: UiSemanticTextProfile::BodyDefault,
             layer_semantic_order: row.layer_semantic_order,
             capability_generation: context.capability_generation,
@@ -203,7 +207,10 @@ fn push_row(
         },
     )
     .map_err(UiMountedProjectionDenial::SemanticTextCompletion)?;
-    rows.push(mechanic);
+    rows.push(super::UiMountedQualifiedSemanticText::new(
+        mechanic,
+        Arc::clone(qualified.layout()),
+    ));
     Ok(())
 }
 
@@ -212,12 +219,9 @@ fn value_row_count(
 ) -> Result<usize, UiMountedProjectionDenial> {
     match seed.content() {
         super::UiMountedSemanticTextSeedContent::Scalar(value) => Ok(usize::from(value.is_some())),
-        super::UiMountedSemanticTextSeedContent::Collection(rows) => rows
-            .iter()
-            .try_fold(0usize, |count, row| {
-                count.checked_add(row.selected_values().len())
-            })
-            .ok_or(UiMountedProjectionDenial::SemanticTextCapacityExceeded),
+        super::UiMountedSemanticTextSeedContent::Collection(rows) => {
+            Ok(rows.selected_value_count())
+        }
     }
 }
 
@@ -225,7 +229,7 @@ fn push_value_rows(
     context: &UiMountedSemanticTextCompletionContext<'_>,
     seed: &super::UiMountedSemanticTextSeed,
     basis: UiMountedNodeTextBasis,
-    rows: &mut Vec<UiMountedSemanticTextMechanic>,
+    rows: &mut Vec<super::UiMountedQualifiedSemanticText>,
 ) -> Result<(), UiMountedProjectionDenial> {
     match seed.content() {
         super::UiMountedSemanticTextSeedContent::Scalar(Some(value)) => push_value_row(
@@ -243,7 +247,7 @@ fn push_value_rows(
         super::UiMountedSemanticTextSeedContent::Collection(collection) => {
             let total = value_row_count(seed)? + 1;
             let mut index = 0usize;
-            for row in collection {
+            for row in collection.rows() {
                 for (field_ordinal, value) in row.selected_values().iter().enumerate() {
                     push_value_row(
                         context,
@@ -280,7 +284,7 @@ fn push_value_row(
     context: &UiMountedSemanticTextCompletionContext<'_>,
     seed: &super::UiMountedSemanticTextSeed,
     input: UiMountedSemanticTextValueRowInput,
-    rows: &mut Vec<UiMountedSemanticTextMechanic>,
+    rows: &mut Vec<super::UiMountedQualifiedSemanticText>,
 ) -> Result<(), UiMountedProjectionDenial> {
     let (text, slot, collection_row) = match input.meaning {
         UiMountedSemanticTextValueMeaning::Scalar(text) => (text, UiSemanticTextSlot::Value, None),
@@ -305,7 +309,7 @@ fn push_value_row(
             allocation_basis: input.basis.allocation_basis,
             bounds: input.basis.bounds,
             origin_x: input.basis.bounds.x(),
-            origin_y: row_origin(input.basis.bounds, input.index, input.total),
+            origin_y: super::geometry::row_origin(input.basis.bounds, input.index, input.total),
             text,
             slot,
             collection_row,
@@ -316,36 +320,13 @@ fn push_value_row(
                         .map_err(|_| UiMountedProjectionDenial::SemanticTextLayerOrderExceeded)?,
                 )
                 .ok_or(UiMountedProjectionDenial::SemanticTextLayerOrderExceeded)?,
-            color: seed.color(),
+            formatting: match slot {
+                UiSemanticTextSlot::Value => seed.formatting().scalar_value_row(),
+                UiSemanticTextSlot::CollectionValue { .. } | UiSemanticTextSlot::Posture => {
+                    seed.formatting().default_row()
+                }
+            },
         },
         rows,
     )
-}
-
-fn row_origin(
-    bounds: worth_ui_host_contract::UiMountedCanonicalBox,
-    index: usize,
-    total: usize,
-) -> f32 {
-    bounds.y() + bounds.height() * (index as f32 / total as f32)
-}
-
-fn require_allocation(
-    node: &UiMountedProjectionNodeRecord,
-) -> Result<
-    (
-        worth_ui_host_contract::UiMountedCanonicalBox,
-        worth_ui_host_contract::UiMountedAllocationBasis,
-    ),
-    UiMountedProjectionDenial,
-> {
-    match node.receipt.allocation() {
-        UiMountedAllocationProjection::Known { bounds, basis } => Ok((bounds, basis)),
-        UiMountedAllocationProjection::PortalAnchorObservation { .. } => Err(
-            UiMountedProjectionDenial::UnsupportedSemanticTextAllocation(node.receipt.graph_node()),
-        ),
-        UiMountedAllocationProjection::Omitted(_) => Err(
-            UiMountedProjectionDenial::MissingSemanticTextAllocation(node.receipt.graph_node()),
-        ),
-    }
 }

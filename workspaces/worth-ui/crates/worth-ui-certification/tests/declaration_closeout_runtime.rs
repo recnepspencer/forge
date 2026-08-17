@@ -16,6 +16,9 @@ fn bootstrap_app_exposes_milestone32_closeout_report() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let report = app.declaration_closeout_report();
 
@@ -45,6 +48,9 @@ fn caller_authored_app_exposes_same_closeout_contract() {
                 .with_semantic_artifact_spec(control_closeout_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let _artifact = artifact_from_file_provenance(&app, "app/closeout.wui", 0);
     let report = app.declaration_closeout_report();
