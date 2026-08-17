@@ -1951,7 +1951,25 @@ sequences. Phase 5 owns exhaustive exact-sequence color-glyph raster, atlas,
 and representative native pixel evidence for COLRv0/CPAL, COLRv1/CPAL,
 CBDT/CBLC, and sbix `png`/one-hop-`dupe`; sbix `jpg`/`tiff` and OpenType SVG are
 explicitly rejected by this profile.
-it may not compensate for a Phase 4 sequence split.
+It may not compensate for a Phase 4 sequence split.
+
+Phase 5 remains an ordered gate inside Milestone 3.14.1 and uses the same
+append-only proof ledger. Its detailed raster/atlas authority graph, staged
+native transaction, `HP-03` courtroom, exact cost/resource contract,
+implementation gates, documentation, and Phase 6 handoff are governed by
+[`milestone-3.14.1-phase-5.md`](milestone-3.14.1-phase-5.md). The subordinate
+specification exists to keep this roadmap outcome-readable; it does not create
+a second milestone, ledger, or independently closable product surface.
+
+Phase 5 also closes one narrow downstream Query integration: each semantic
+mounted text-presentation attempt is installed and retained as Query-owned
+async result state through `worth-ui-query-binding`. Runtime owns attempt
+lineage, host-native owns physical completion and live recovery, Signal supplies
+eligibility/invalidation evidence only, and Foundational supplies canonical
+boundary/reporting meaning only after those owners decide. Glyphs, atlas
+entries, pages, uploads, WGPU indexes, readiness wakes, terminal projections,
+JSON, strings, digests, and numeric generations are never presentation
+authority. The broad Query audience migration remains separate roadmap work.
 
 Phase 3 keeps protocol revision 4, advances the mounted-presentation schema to
 revision 5 for the distinct cold reconstruction envelope, and keeps the

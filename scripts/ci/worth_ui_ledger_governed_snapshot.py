@@ -34,7 +34,11 @@ def governed_snapshot(test: GovernedTest) -> GovernedSnapshot:
 
 
 def refresh_handoff_when_required(test: GovernedTest) -> None:
-    if test.requirement in {"P3-PREDECESSOR-01", "P4-PREDECESSOR-01"}:
+    if test.requirement in {
+        "P3-PREDECESSOR-01",
+        "P4-PREDECESSOR-01",
+        "P5-PREDECESSOR-01",
+    }:
         supplied = os.environ.get("WORTH_UI_PREDECESSOR_ARTIFACT")
         if supplied is not None:
             if supplied not in test.sources or not (ROOT / supplied).is_file():

@@ -23,6 +23,14 @@ pub struct UiTextProfileGeneration(u64);
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UiFontCollectionGeneration(u64);
 
+/// Opaque content identity for the exact qualified font collection lineage.
+///
+/// The numeric generation is useful for lifecycle ordering, but it is not a
+/// raster-equivalence identity. Text mechanics mints this digest from the
+/// admitted collection and consumers may only carry it.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct UiFontCollectionLineageIdentity([u8; 32]);
+
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UiTextScaleGeneration(u64);
 
@@ -96,6 +104,17 @@ impl UiQualifiedFontFamilyIdentity {
 }
 
 impl UiQualifiedFontPackIdentity {
+    #[doc(hidden)]
+    pub const fn from_text_mechanics(digest: [u8; 32]) -> Self {
+        Self(digest)
+    }
+
+    pub const fn digest(self) -> [u8; 32] {
+        self.0
+    }
+}
+
+impl UiFontCollectionLineageIdentity {
     #[doc(hidden)]
     pub const fn from_text_mechanics(digest: [u8; 32]) -> Self {
         Self(digest)

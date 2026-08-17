@@ -1,4 +1,4 @@
-mod adapter_selection;
+pub(crate) mod adapter_selection;
 mod ownership;
 mod port;
 

@@ -6,19 +6,20 @@ mod prepared_host;
 mod text_profile;
 
 pub use native::{
-    UiAlphaAtlasLifecycle, UiAtlasEntryIdentity, UiAtlasEntryKey, UiAtlasPin,
     UiNativeClientPresentationAttribution, UiNativeEffectPosture, UiNativeEventLoopCleanup,
     UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
     UiNativeEventLoopDirective, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
-    UiNativeEventLoopStopReport, UiNativeGraphicsObservation, UiNativePresentationObservation,
-    UiNativePresentationWorkKind, UiNativeReadinessGrant, UiNativeResourceCensus,
-    UiNativeRetainedFrameObservation, UiRgbaAtlasLifecycle, UiTextAtlasCapacity,
-    UiTextAtlasContractDenial, WorthUiNativeEventLoop, WorthUiNativeMechanicsAdapter,
+    UiNativeEventLoopStopReport, UiNativeGraphicsObservation, UiNativePhysicalProgressGrant,
+    UiNativePresentationObservation, UiNativePresentationWorkKind, UiNativeReadinessGrant,
+    UiNativeResourceCensus, UiNativeRetainedFrameObservation, UiNativeTextPinObservation,
+    WorthUiNativeEventLoop,
 };
 pub use native_profile::{
     UiNativeMechanicsCapacities, UiNativePlatformProfileIdentity, WORTH_UI_NATIVE_PROFILE_MANIFEST,
 };
-pub use prepared_host::{UiNativeWindowConfiguration, WorthUiPreparedNativeHost};
+pub use prepared_host::{
+    UiNativeWindowConfiguration, WorthUiPreparedNativeHost, WorthUiPreparedNativeMechanics,
+};
 pub use text_profile::{
     UiBodyDefaultAtlasCapacities, UiBodyDefaultTextProfileIdentity,
     UiUnsupportedBodyDefaultCodePoint, WORTH_UI_BODY_DEFAULT_FONT, WORTH_UI_BODY_DEFAULT_LICENSE,

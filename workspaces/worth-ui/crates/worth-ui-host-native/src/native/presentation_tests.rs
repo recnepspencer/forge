@@ -9,8 +9,16 @@ struct PendingProbe {
 }
 
 impl UiNativePendingExternalObligation for PendingProbe {
-    fn try_settle(&mut self, _device: Option<&wgpu::Device>) -> bool {
-        self.settles.get()
+    fn poll_observation(
+        &mut self,
+        basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
+        _device: Option<&wgpu::Device>,
+    ) -> crate::native::physical_work_signal::UiNativePhysicalSignalExternalObservation {
+        basis.observe(if self.settles.get() {
+            crate::native::physical_work_signal::UiNativePhysicalSignalStatus::Completed
+        } else {
+            crate::native::physical_work_signal::UiNativePhysicalSignalStatus::Pending
+        })
     }
 }
 
@@ -23,10 +31,17 @@ impl Drop for PendingProbe {
 #[test]
 fn external_port_failures_cross_the_real_framework_settlement_transition() {
     let mut resources = crate::native::UiNativeResourceRegistry::new();
-    let owners = reserve_presentation_owners(&mut resources)
-        .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
+    let mut physical_signal =
+        crate::native::physical_work_signal::UiNativePhysicalSignalOwner::new();
+    let owners = reserve_presentation_owners(
+        &mut resources,
+        &mut physical_signal,
+        crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::test(),
+    )
+    .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
     let denied = settle_port_result(
         &mut resources,
+        &mut physical_signal,
         owners,
         Err(UiNativePresentationPortFailure::SurfaceUnavailable),
     );
@@ -39,14 +54,19 @@ fn external_port_failures_cross_the_real_framework_settlement_transition() {
     assert!(resources.current().is_zero());
 
     let dropped = std::rc::Rc::new(std::cell::Cell::new(false));
-    let owners = reserve_presentation_owners(&mut resources)
-        .unwrap_or_else(|_| panic!("released registry must reserve presentation owners"));
+    let owners = reserve_presentation_owners(
+        &mut resources,
+        &mut physical_signal,
+        crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::test(),
+    )
+    .unwrap_or_else(|_| panic!("released registry must reserve presentation owners"));
     let pending = Box::new(PendingProbe {
         dropped: std::rc::Rc::clone(&dropped),
         settles: std::rc::Rc::new(std::cell::Cell::new(false)),
     });
     let unsettled = settle_port_result(
         &mut resources,
+        &mut physical_signal,
         owners,
         Err(UiNativePresentationPortFailure::ReadbackUnsettled(pending)),
     );
@@ -56,6 +76,23 @@ fn external_port_failures_cross_the_real_framework_settlement_transition() {
     assert_eq!(resources.current().readback_buffers, 1);
     assert_eq!(resources.current().pending_submissions, 1);
     assert!(!dropped.get());
+    let due = physical_signal
+        .next_due_tick()
+        .expect("pending presentation must retain one Signal-owned poll wake");
+    physical_signal
+        .advance_clock_to(due)
+        .expect("the exact pending poll wake must become ready");
+    let token = physical_signal
+        .take_ready_presentation(pending.physical_work())
+        .unwrap();
+    assert!(matches!(
+        physical_signal.reconcile(
+            token.observe(
+                crate::native::physical_work_signal::UiNativePhysicalSignalStatus::Completed,
+            )
+        ),
+        crate::native::physical_work_signal::UiNativePhysicalSignalSettlement::Completed
+    ));
     pending.release(&mut resources);
     assert!(dropped.get());
     assert!(resources.current().is_zero());

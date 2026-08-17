@@ -1,34 +1,63 @@
 use std::io::Cursor;
 
-use read_fonts::TableProvider;
-use skrifa::{
-    bitmap::{BitmapData, BitmapStrikes, Origin},
-    instance::Size,
-    GlyphId,
+use read_fonts::{
+    tables::{
+        bitmap::{BitmapContent, BitmapData, BitmapMetrics, BitmapSize},
+        cbdt::Cbdt,
+        cblc::Cblc,
+    },
+    types::GlyphId,
+    TableProvider,
 };
+use skrifa::bitmap::{BitmapData as SkrifaBitmapData, Origin};
 
+use crate::font_collection::color_glyph::bitmap_selection::{
+    selections, UiBitmapSelection, UiCbdtCompositeSelection,
+};
 use crate::font_collection::UiFontGlyphInkBounds;
 
 pub(super) fn bounds(
     font: &harfrust::FontRef<'_>,
     glyph_id: GlyphId,
 ) -> Option<Option<UiFontGlyphInkBounds>> {
-    let glyph = BitmapStrikes::new(font).glyph_for_size(Size::unscaled(), glyph_id)?;
-    let pixels = alpha_bounds(&glyph.data, glyph.width, glyph.height)?;
+    let selections = selections(font, glyph_id).ok()?;
+    if selections.is_empty() {
+        return None;
+    }
+    let mut bounds = None;
+    for selection in selections {
+        if let Some(selection_bounds) = selection_bounds(font, &selection)? {
+            bounds = Some(union_font_bounds(bounds, selection_bounds));
+        }
+    }
+    Some(bounds)
+}
+
+fn selection_bounds(
+    font: &harfrust::FontRef<'_>,
+    selection: &UiBitmapSelection<'_>,
+) -> Option<Option<UiFontGlyphInkBounds>> {
+    let placement = BitmapPlacement::from_selection(&selection)?;
+    let pixels = match selection {
+        UiBitmapSelection::Direct(glyph) => alpha_bounds(&glyph.data, glyph.width, glyph.height)?,
+        UiBitmapSelection::CbdtComposite(composite) => composite_alpha_bounds(&composite)?,
+    };
     let Some(pixels) = pixels else {
         return Some(None);
     };
     let units_per_em = f32::from(font.head().ok()?.units_per_em());
-    let scale_x = units_per_em / glyph.ppem_x;
-    let scale_y = units_per_em / glyph.ppem_y;
+    let scale_x = units_per_em / placement.ppem_x;
+    let scale_y = units_per_em / placement.ppem_y;
     if !scale_x.is_finite() || !scale_y.is_finite() {
         return Some(None);
     }
-    let image_left = glyph.bearing_x + glyph.inner_bearing_x * scale_x;
-    let image_top = match glyph.placement_origin {
-        Origin::TopLeft => glyph.bearing_y + glyph.inner_bearing_y * scale_y,
+    let image_left = placement.bearing_x + placement.inner_bearing_x * scale_x;
+    let image_top = match placement.placement_origin {
+        Origin::TopLeft => placement.bearing_y + placement.inner_bearing_y * scale_y,
         Origin::BottomLeft => {
-            glyph.bearing_y + glyph.inner_bearing_y * scale_y + glyph.height as f32 * scale_y
+            placement.bearing_y
+                + placement.inner_bearing_y * scale_y
+                + placement.height as f32 * scale_y
         }
     };
     Some(Some(UiFontGlyphInkBounds {
@@ -39,19 +68,205 @@ pub(super) fn bounds(
     }))
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct PixelBounds {
-    left: u32,
-    top: u32,
-    right: u32,
-    bottom: u32,
+fn union_font_bounds(
+    current: Option<UiFontGlyphInkBounds>,
+    candidate: UiFontGlyphInkBounds,
+) -> UiFontGlyphInkBounds {
+    current.map_or(candidate, |current| UiFontGlyphInkBounds {
+        x_min: current.x_min.min(candidate.x_min),
+        y_min: current.y_min.min(candidate.y_min),
+        x_max: current.x_max.max(candidate.x_max),
+        y_max: current.y_max.max(candidate.y_max),
+    })
 }
 
-fn alpha_bounds(data: &BitmapData<'_>, width: u32, height: u32) -> Option<Option<PixelBounds>> {
+struct BitmapPlacement {
+    height: u32,
+    ppem_x: f32,
+    ppem_y: f32,
+    bearing_x: f32,
+    bearing_y: f32,
+    inner_bearing_x: f32,
+    inner_bearing_y: f32,
+    placement_origin: Origin,
+}
+
+impl BitmapPlacement {
+    fn from_selection(selection: &UiBitmapSelection<'_>) -> Option<Self> {
+        match selection {
+            UiBitmapSelection::Direct(glyph) => Some(Self {
+                height: glyph.height,
+                ppem_x: glyph.ppem_x,
+                ppem_y: glyph.ppem_y,
+                bearing_x: glyph.bearing_x,
+                bearing_y: glyph.bearing_y,
+                inner_bearing_x: glyph.inner_bearing_x,
+                inner_bearing_y: glyph.inner_bearing_y,
+                placement_origin: glyph.placement_origin,
+            }),
+            UiBitmapSelection::CbdtComposite(composite) => {
+                let (_, height, bearing_x, bearing_y) = raw_metrics(&composite.data)?;
+                Some(Self {
+                    height,
+                    ppem_x: f32::from(composite.size.ppem_x()),
+                    ppem_y: f32::from(composite.size.ppem_y()),
+                    bearing_x: 0.0,
+                    bearing_y: 0.0,
+                    inner_bearing_x: bearing_x,
+                    inner_bearing_y: bearing_y,
+                    placement_origin: Origin::TopLeft,
+                })
+            }
+        }
+    }
+}
+
+fn raw_metrics(data: &BitmapData<'_>) -> Option<(u32, u32, f32, f32)> {
+    match data.metrics {
+        BitmapMetrics::Small(metrics) => Some((
+            u32::from(metrics.width()),
+            u32::from(metrics.height()),
+            f32::from(metrics.bearing_x()),
+            f32::from(metrics.bearing_y()),
+        )),
+        BitmapMetrics::Big(metrics) => Some((
+            u32::from(metrics.width()),
+            u32::from(metrics.height()),
+            f32::from(metrics.hori_bearing_x()),
+            f32::from(metrics.hori_bearing_y()),
+        )),
+    }
+}
+
+struct CompositeAlphaContext<'font, 'borrow> {
+    cblc: &'borrow Cblc<'font>,
+    cbdt: &'borrow Cbdt<'font>,
+    size: &'borrow BitmapSize,
+}
+
+fn composite_alpha_bounds(selection: &UiCbdtCompositeSelection<'_>) -> Option<Option<PixelBounds>> {
+    let context = CompositeAlphaContext {
+        cblc: &selection.cblc,
+        cbdt: &selection.cbdt,
+        size: &selection.size,
+    };
+    composite_data_alpha(&context, selection.glyph, &selection.data, &mut Vec::new())
+}
+
+fn composite_data_alpha<'font, 'borrow>(
+    context: &CompositeAlphaContext<'font, 'borrow>,
+    glyph: GlyphId,
+    data: &BitmapData<'font>,
+    stack: &mut Vec<u32>,
+) -> Option<Option<PixelBounds>> {
+    let (width, height, _, _) = raw_metrics(data)?;
+    match &data.content {
+        BitmapContent::Data(format, bytes) => {
+            let alpha = match format {
+                read_fonts::tables::bitmap::BitmapDataFormat::Png => {
+                    png_alpha(bytes, width, height)?
+                }
+                read_fonts::tables::bitmap::BitmapDataFormat::ByteAligned
+                    if context.size.bit_depth() == 32 =>
+                {
+                    bgra_alpha(bytes, width, height)?
+                }
+                _ => return None,
+            };
+            Some(nonzero_bounds(&alpha, width, height))
+        }
+        BitmapContent::Composite(components) => {
+            if components.is_empty() || stack.len() >= 64 || stack.contains(&glyph.to_u32()) {
+                return None;
+            }
+            stack.push(glyph.to_u32());
+            let mut bounds = None;
+            for component in *components {
+                let child_id = GlyphId::from(component.glyph_id());
+                let location = context
+                    .size
+                    .location(context.cblc.offset_data(), child_id)
+                    .ok()?;
+                if location.is_empty() {
+                    return None;
+                }
+                let child = context.cbdt.data(&location).ok()?;
+                let child_bounds = composite_data_alpha(context, child_id, &child, stack)?;
+                if let Some(child_bounds) = child_bounds {
+                    bounds = union_placed_bounds(
+                        bounds,
+                        child_bounds,
+                        CompositePlacement {
+                            offset_x: i32::from(component.x_offset()),
+                            offset_y: i32::from(component.y_offset()),
+                            width,
+                            height,
+                        },
+                    );
+                }
+            }
+            stack.pop();
+            Some(bounds)
+        }
+    }
+}
+
+pub(super) fn union_placed_bounds(
+    current: Option<PixelBounds>,
+    child: PixelBounds,
+    placement: CompositePlacement,
+) -> Option<PixelBounds> {
+    let left = (i64::from(placement.offset_x) + i64::from(child.left)).max(0);
+    let top = (i64::from(placement.offset_y) + i64::from(child.top)).max(0);
+    let right =
+        (i64::from(placement.offset_x) + i64::from(child.right)).min(i64::from(placement.width));
+    let bottom =
+        (i64::from(placement.offset_y) + i64::from(child.bottom)).min(i64::from(placement.height));
+    if left >= right || top >= bottom {
+        return current;
+    }
+    let placed = PixelBounds {
+        left: u32::try_from(left).ok()?,
+        top: u32::try_from(top).ok()?,
+        right: u32::try_from(right).ok()?,
+        bottom: u32::try_from(bottom).ok()?,
+    };
+    Some(match current {
+        Some(current) => PixelBounds {
+            left: current.left.min(placed.left),
+            top: current.top.min(placed.top),
+            right: current.right.max(placed.right),
+            bottom: current.bottom.max(placed.bottom),
+        },
+        None => placed,
+    })
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct CompositePlacement {
+    pub(super) width: u32,
+    pub(super) height: u32,
+    pub(super) offset_x: i32,
+    pub(super) offset_y: i32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct PixelBounds {
+    pub(super) left: u32,
+    pub(super) top: u32,
+    pub(super) right: u32,
+    pub(super) bottom: u32,
+}
+
+pub(super) fn alpha_bounds(
+    data: &SkrifaBitmapData<'_>,
+    width: u32,
+    height: u32,
+) -> Option<Option<PixelBounds>> {
     let alpha = match data {
-        BitmapData::Bgra(bytes) => bgra_alpha(bytes, width, height)?,
-        BitmapData::Mask(mask) => mask.decode(width, height).ok()?,
-        BitmapData::Png(bytes) => png_alpha(bytes, width, height)?,
+        SkrifaBitmapData::Bgra(bytes) => bgra_alpha(bytes, width, height)?,
+        SkrifaBitmapData::Mask(mask) => mask.decode(width, height).ok()?,
+        SkrifaBitmapData::Png(bytes) => png_alpha(bytes, width, height)?,
     };
     Some(nonzero_bounds(&alpha, width, height))
 }
@@ -134,51 +349,4 @@ fn nonzero_bounds(alpha: &[u8], width: u32, height: u32) -> Option<PixelBounds> 
         });
     }
     bounds
-}
-
-#[cfg(test)]
-pub(crate) fn transparent_and_bordered_bitmap_alpha_has_exact_support() {
-    let mut alpha = [0; 16];
-    alpha[5] = 1;
-    alpha[6] = 255;
-    alpha[9] = 127;
-    alpha[10] = 1;
-    let expected = Some(PixelBounds {
-        left: 1,
-        top: 1,
-        right: 3,
-        bottom: 3,
-    });
-    let transparent = rgba_png(&[0; 16]);
-    assert_eq!(
-        alpha_bounds(&BitmapData::Png(&transparent), 4, 4),
-        Some(None)
-    );
-    let bordered = rgba_png(&alpha);
-    assert_eq!(
-        alpha_bounds(&BitmapData::Png(&bordered), 4, 4),
-        Some(expected)
-    );
-    let bgra = alpha
-        .iter()
-        .flat_map(|alpha| [0, 0, 0, *alpha])
-        .collect::<Vec<_>>();
-    assert_eq!(alpha_bounds(&BitmapData::Bgra(&bgra), 4, 4), Some(expected));
-}
-
-#[cfg(test)]
-fn rgba_png(alpha: &[u8; 16]) -> Vec<u8> {
-    let mut output = Vec::new();
-    {
-        let mut encoder = png::Encoder::new(&mut output, 4, 4);
-        encoder.set_color(png::ColorType::Rgba);
-        encoder.set_depth(png::BitDepth::Eight);
-        let mut writer = encoder.write_header().unwrap();
-        let pixels = alpha
-            .iter()
-            .flat_map(|alpha| [255, 255, 255, *alpha])
-            .collect::<Vec<_>>();
-        writer.write_image_data(&pixels).unwrap();
-    }
-    output
 }

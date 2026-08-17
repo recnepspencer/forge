@@ -50,12 +50,12 @@ pub(super) const CONTRACTS: &[RequirementContract] = &[
     contract!(
         "P5-ATLAS-01",
         "worth-ui-host-native",
-        "separate bounded alpha and RGBA atlas lifecycle",
+        "bounded alpha/color atlas and physical Signal lifecycle",
         "qualified-text-world",
         "atlas-lifecycle",
-        "worth_ui_host_native::atlas",
+        "worth_ui_host_native::native::physical_work_signal",
         "atlas-lifecycle",
-        "atlas-kinds"
+        "physical-signal-runtimes"
     ),
     contract!(
         "P5-ATLAS-PINNING-01",
@@ -109,13 +109,23 @@ pub(super) const CONTRACTS: &[RequirementContract] = &[
     ),
     contract!(
         "P5-TEXT-COST-01",
-        "worth-ui-text",
-        "ordinary versus reconstructive text raster cost",
+        "worth-ui-certification",
+        "realized semantic and physical Signal UI frontier cost",
         "qualified-text-world",
         "slope-model",
-        "worth_ui_text::raster::cost",
+        "worth_ui_certification::phase_five::text_frontier_cost",
         "retained-scan",
-        "retained-scans"
+        "ui-locality-worlds"
+    ),
+    contract!(
+        "P5-TEXT-ASYNC-PRESENTATION-01",
+        "worth-ui-query-binding",
+        "Query-owned native text presentation async result",
+        "qualified-text-world",
+        "async-presentation-lifecycle",
+        "worth_ui_query_binding::presentation_async",
+        "query-presentation-authority",
+        "presentation-transitions"
     ),
     contract!(
         "P5-CLOSE-01",

@@ -2,7 +2,10 @@ use harfrust::FontRef;
 use skrifa::color::{Brush, ColorPainter, CompositeMode};
 
 use super::{color::InkPainter, color::Rect};
-use crate::font_collection::UiFontGlyphInkBounds;
+use crate::font_collection::{
+    application_color_fixtures::{cpal_colors, with_tables},
+    UiFontGlyphInkBounds,
+};
 
 pub(crate) fn transparent_and_porter_duff_layers_have_exact_nonzero_bounds() {
     let source = crate::font_collection::profile_inputs_from_repository()
@@ -10,17 +13,22 @@ pub(crate) fn transparent_and_porter_duff_layers_have_exact_nonzero_bounds() {
         .into_iter()
         .next()
         .expect("qualified profile has a font");
-    let font = FontRef::from_index(&source.bytes, 0).unwrap();
+    let bytes = with_tables(
+        &source.bytes,
+        &[(b"CPAL", cpal_colors(&[[255, 0, 0, 255]]))],
+    );
+    let font = FontRef::from_index(&bytes, 0).unwrap();
+    let palette_index = 0;
     let rect = Rect::new(0.0, 0.0, 20.0, 20.0);
-    let current_color = Brush::Solid {
-        palette_index: 0xFFFF,
+    let palette_color = Brush::Solid {
+        palette_index,
         alpha: 1.0,
     };
 
     let mut transparent = InkPainter::new(&font, &[]);
     transparent.push_clip_rect(rect);
     transparent.fill(Brush::Solid {
-        palette_index: 0xFFFF,
+        palette_index,
         alpha: 0.0,
     });
     assert!(transparent.finish().is_none());
@@ -32,9 +40,9 @@ pub(crate) fn transparent_and_porter_duff_layers_have_exact_nonzero_bounds() {
     ] {
         let mut painter = InkPainter::new(&font, &[]);
         painter.push_clip_rect(rect);
-        painter.fill(current_color.clone());
+        painter.fill(palette_color.clone());
         painter.push_layer(mode);
-        painter.fill(current_color.clone());
+        painter.fill(palette_color.clone());
         painter.pop_layer();
         assert!(
             painter.finish().is_none(),
@@ -46,12 +54,12 @@ pub(crate) fn transparent_and_porter_duff_layers_have_exact_nonzero_bounds() {
         let mut painter = InkPainter::new(&font, &[]);
         painter.push_clip_rect(rect);
         painter.fill(Brush::Solid {
-            palette_index: 0xFFFF,
+            palette_index,
             alpha: 0.5,
         });
         painter.push_layer(mode);
         painter.fill(Brush::Solid {
-            palette_index: 0xFFFF,
+            palette_index,
             alpha: 0.5,
         });
         painter.pop_layer();
@@ -67,20 +75,20 @@ pub(crate) fn transparent_and_porter_duff_layers_have_exact_nonzero_bounds() {
         );
     }
 
-    let alternating = super::color_path::rectangles([
+    let alternating = crate::font_collection::color_glyph::path::rectangles([
         Rect::new(0.0, 0.0, 8.0, 8.0),
         Rect::new(12.0, 12.0, 20.0, 20.0),
     ]);
-    let opposite = super::color_path::rectangles([
+    let opposite = crate::font_collection::color_glyph::path::rectangles([
         Rect::new(12.0, 0.0, 20.0, 8.0),
         Rect::new(0.0, 12.0, 8.0, 20.0),
     ]);
     let mut same_bounds_distinct_contours = InkPainter::new(&font, &[]);
     same_bounds_distinct_contours.push_clip_path(alternating.clone());
-    same_bounds_distinct_contours.fill(current_color.clone());
+    same_bounds_distinct_contours.fill(palette_color.clone());
     same_bounds_distinct_contours.push_layer(CompositeMode::Xor);
     same_bounds_distinct_contours.push_clip_path(opposite.clone());
-    same_bounds_distinct_contours.fill(current_color.clone());
+    same_bounds_distinct_contours.fill(palette_color.clone());
     same_bounds_distinct_contours.pop_layer();
     assert_eq!(
         same_bounds_distinct_contours.finish(),
@@ -96,10 +104,10 @@ pub(crate) fn transparent_and_porter_duff_layers_have_exact_nonzero_bounds() {
     for mode in [CompositeMode::SrcIn, CompositeMode::DestIn] {
         let mut painter = InkPainter::new(&font, &[]);
         painter.push_clip_path(alternating.clone());
-        painter.fill(current_color.clone());
+        painter.fill(palette_color.clone());
         painter.push_layer(mode);
         painter.push_clip_path(opposite.clone());
-        painter.fill(current_color.clone());
+        painter.fill(palette_color.clone());
         painter.pop_layer();
         assert!(
             painter.finish().is_none(),
@@ -109,10 +117,10 @@ pub(crate) fn transparent_and_porter_duff_layers_have_exact_nonzero_bounds() {
 
     let mut source_replaces_destination = InkPainter::new(&font, &[]);
     source_replaces_destination.push_clip_rect(rect);
-    source_replaces_destination.fill(current_color.clone());
+    source_replaces_destination.fill(palette_color.clone());
     source_replaces_destination.push_layer(CompositeMode::Src);
     source_replaces_destination.push_clip_rect(Rect::new(5.0, 6.0, 9.0, 12.0));
-    source_replaces_destination.fill(current_color);
+    source_replaces_destination.fill(palette_color);
     source_replaces_destination.pop_layer();
     assert_eq!(
         source_replaces_destination.finish(),

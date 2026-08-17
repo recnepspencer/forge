@@ -179,7 +179,7 @@ for _requirement in COUNTERS:
         }
     if _requirement.startswith("P5-"):
         EXPECTED_IGNORED[_requirement] = _requirement in {
-            "P5-PREDECESSOR-01", "P5-CLOSE-01",
+            "P5-PREDECESSOR-01", "P5-ATLAS-PINNING-01", "P5-CLOSE-01",
         }
 
 BASIC_PLATFORM_VERSIONS = "protocol=4"

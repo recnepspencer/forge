@@ -37,16 +37,56 @@ const FONT_COLLECTION_HOSTILE: &[&str] = &[
     "pack-family-boundary-alias",
 ];
 
+const ATLAS_POSITIVE: &[&str] = &[
+    "exact-signal-basis",
+    "independent-model",
+    "real-dx12-alpha-color",
+    "bounded-capacity",
+    "temporal-recovery",
+    "terminal-census",
+];
+
+const ATLAS_HOSTILE: &[&str] = &[
+    "callback-before-effects",
+    "partial-upload-indeterminate",
+    "replayed-completion",
+    "capacity-before-raster",
+    "cancellation-recovery",
+    "equal-epoch-registration-order",
+];
+
+const PINNING_POSITIVE: &[&str] = &[
+    "shared-layout-pins",
+    "runtime-transaction-owner",
+    "native-signal-settlement",
+    "pressure-saturation",
+    "deterministic-unpinned-replacement",
+    "last-owner-release",
+    "atlas-capacity-dependency",
+    "terminal-census",
+];
+
+const PINNING_HOSTILE: &[&str] = &["shared-owner-preservation", "last-owner-release"];
+
 pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String> {
-    if requirement != "P4-FONT-COLLECTION-01" {
+    let Some((positive, hostile)) = required_cases(requirement) else {
         return Ok(());
-    }
-    require_array(artifact, "governed_cases", &owned(FONT_COLLECTION_POSITIVE))?;
+    };
+    require_array(artifact, "governed_cases", &owned(positive))?;
     let control = artifact
         .get("hostile_control")
         .filter(|value| value.is_object())
-        .ok_or_else(|| "font-collection evidence omits hostile control".to_owned())?;
-    require_array(control, "mutation_cases", &owned(FONT_COLLECTION_HOSTILE))
+        .ok_or_else(|| format!("{requirement} evidence omits hostile control"))?;
+    require_array(control, "mutation_cases", &owned(hostile))
+}
+
+fn required_cases(requirement: &str) -> Option<(&'static [&'static str], &'static [&'static str])> {
+    match requirement {
+        "P4-FONT-COLLECTION-01" => Some((FONT_COLLECTION_POSITIVE, FONT_COLLECTION_HOSTILE)),
+        "P5-ATLAS-01" => Some((ATLAS_POSITIVE, ATLAS_HOSTILE)),
+        "P5-ATLAS-PINNING-01" => Some((PINNING_POSITIVE, PINNING_HOSTILE)),
+        _ => None,
+    }
 }
 
 fn owned(cases: &[&str]) -> Vec<String> {
@@ -57,40 +97,45 @@ fn owned(cases: &[&str]) -> Vec<String> {
 mod tests {
     use serde_json::json;
 
-    use super::{owned, validate, FONT_COLLECTION_HOSTILE, FONT_COLLECTION_POSITIVE};
+    use super::{owned, required_cases, validate};
 
-    fn artifact() -> serde_json::Value {
+    fn artifact(requirement: &str) -> serde_json::Value {
+        let (positive, hostile) = required_cases(requirement).unwrap();
         json!({
-            "governed_cases": owned(FONT_COLLECTION_POSITIVE),
-            "hostile_control": {"mutation_cases": owned(FONT_COLLECTION_HOSTILE)},
+            "governed_cases": owned(positive),
+            "hostile_control": {"mutation_cases": owned(hostile)},
         })
     }
 
     #[test]
-    fn font_collection_requires_every_exact_positive_and_hostile_case() {
-        validate("P4-FONT-COLLECTION-01", &artifact()).unwrap();
-        for (field, hostile) in [("governed_cases", false), ("mutation_cases", true)] {
-            let mut missing = artifact();
-            let target = if hostile {
-                missing["hostile_control"].get_mut(field).unwrap()
-            } else {
-                missing.get_mut(field).unwrap()
-            };
-            target.as_array_mut().unwrap().pop();
-            assert!(validate("P4-FONT-COLLECTION-01", &missing)
-                .unwrap_err()
-                .contains(field));
-
-            let mut substituted = artifact();
-            let target = if hostile {
-                substituted["hostile_control"].get_mut(field).unwrap()
-            } else {
-                substituted.get_mut(field).unwrap()
-            };
-            target.as_array_mut().unwrap()[0] = json!("cooperative-substitute");
-            assert!(validate("P4-FONT-COLLECTION-01", &substituted)
-                .unwrap_err()
-                .contains(field));
+    fn registered_case_sets_reject_missing_reordered_and_substituted_cases() {
+        for requirement in [
+            "P4-FONT-COLLECTION-01",
+            "P5-ATLAS-01",
+            "P5-ATLAS-PINNING-01",
+        ] {
+            validate(requirement, &artifact(requirement)).unwrap();
+            for (field, hostile) in [("governed_cases", false), ("mutation_cases", true)] {
+                for mutation in ["missing", "reordered", "substituted"] {
+                    let mut evidence = artifact(requirement);
+                    let target = if hostile {
+                        evidence["hostile_control"].get_mut(field).unwrap()
+                    } else {
+                        evidence.get_mut(field).unwrap()
+                    };
+                    let cases = target.as_array_mut().unwrap();
+                    match mutation {
+                        "missing" => {
+                            cases.pop();
+                        }
+                        "reordered" => cases.reverse(),
+                        _ => cases[0] = json!("cooperative-substitute"),
+                    }
+                    assert!(validate(requirement, &evidence)
+                        .unwrap_err()
+                        .contains(field));
+                }
+            }
         }
     }
 }

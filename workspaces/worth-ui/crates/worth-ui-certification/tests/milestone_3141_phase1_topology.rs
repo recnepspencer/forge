@@ -14,6 +14,12 @@ mod font_authority;
 mod host_activation;
 #[path = "milestone_3141_phase1_topology/phase_five_destination.rs"]
 mod phase_five_destination;
+#[path = "milestone_3141_phase1_topology/phase_five_physical_signal.rs"]
+mod phase_five_physical_signal;
+#[path = "milestone_3141_phase1_topology/phase_five_query_async.rs"]
+mod phase_five_query_async;
+#[path = "milestone_3141_phase1_topology/phase_five_raster_order.rs"]
+mod phase_five_raster_order;
 #[path = "milestone_3141_phase1_topology/phase_three_application.rs"]
 mod phase_three_application;
 #[path = "milestone_3141_phase1_topology/preparation_call_graph.rs"]

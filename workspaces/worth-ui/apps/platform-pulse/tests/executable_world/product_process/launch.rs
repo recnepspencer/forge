@@ -176,6 +176,12 @@ impl CargoBuiltPlatformPulse {
         self.launch_native("--worth-ui-native-phase3-world")
     }
 
+    pub(crate) fn launch_native_gate_d_pin_world(
+        self,
+    ) -> Result<NativePhase2ProcessLaunch, PlatformPulseProcessLaunchFailure> {
+        self.launch_native("--worth-ui-native-gate-d-pin-world")
+    }
+
     fn launch_native(
         self,
         argument: &str,

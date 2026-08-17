@@ -11,6 +11,8 @@ const TEXT_DEPENDENCIES: &[&str] = &[
     "png",
     "read-fonts",
     "sha2",
+    "skrifa",
+    "swash",
     "unicode-bidi",
     "unicode-segmentation",
     "worth-ui-host-contract",
@@ -74,6 +76,43 @@ fn qualified_text_has_no_ambient_system_font_authority() {
             .is_err()
     );
     assert!(validate_runtime_source("extern \"system\" { fn system_font(); }").is_err());
+}
+
+#[test]
+fn qualified_color_sources_have_one_shared_font_collection_owner() {
+    let text = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("workspace crates directory")
+        .join("worth-ui-text/src/font_collection");
+    assert!(text.join("color_glyph.rs").is_file());
+    assert!(text.join("color_glyph/bitmap_selection.rs").is_file());
+    assert!(text.join("color_glyph/path.rs").is_file());
+    for displaced in [
+        "application_pack/color_tables.rs",
+        "application_pack/color_tables",
+        "ink_bounds/bitmap_selection.rs",
+        "ink_bounds/color_path.rs",
+    ] {
+        assert!(
+            !text.join(displaced).exists(),
+            "shared color source remains under consumer {displaced}"
+        );
+    }
+    for consumer in [
+        "face.rs",
+        "application_pack/metadata.rs",
+        "ink_bounds/bitmap.rs",
+        "ink_bounds/color.rs",
+        "../raster/color/bitmap.rs",
+        "../raster/color/colr.rs",
+    ] {
+        let source = std::fs::read_to_string(text.join(consumer))
+            .unwrap_or_else(|error| panic!("{consumer}: {error}"));
+        assert!(
+            source.contains("color_glyph"),
+            "{consumer} bypasses the shared qualified color source owner"
+        );
+    }
 }
 
 #[test]
@@ -313,7 +352,12 @@ fn rust_sources(root: &Path) -> Vec<PathBuf> {
             let path = entry.expect("text source entry is readable").path();
             if path.is_dir() {
                 pending.push(path);
-            } else if path.extension().is_some_and(|extension| extension == "rs") {
+            } else if path.extension().is_some_and(|extension| extension == "rs")
+                && !path.file_stem().is_some_and(|stem| {
+                    let stem = stem.to_string_lossy();
+                    stem == "tests" || stem.ends_with("_tests")
+                })
+            {
                 sources.push(path);
             }
         }

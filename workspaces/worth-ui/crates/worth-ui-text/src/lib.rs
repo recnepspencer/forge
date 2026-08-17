@@ -12,10 +12,6 @@ mod layout_artifact;
 mod line_break;
 mod profile;
 mod qualification;
-#[allow(
-    dead_code,
-    reason = "Phase 5 raster authority is frozen before production implementation"
-)]
 mod raster;
 mod reconstruction;
 mod request;
@@ -56,10 +52,22 @@ pub(crate) use layout_artifact::{
 pub use profile::UiGlobalTextProfile;
 pub use qualification::{qualify_text_layout, UiTextQualificationDenial};
 pub use raster::{
-    UiAlphaRasterBatch, UiAlphaRasterKind, UiColorRasterBatch, UiColorRasterKind,
-    UiGlyphRasterAdmissionDenial, UiGlyphRasterBatch, UiGlyphRasterCost, UiGlyphRasterExtent,
-    UiGlyphRasterFormat, UiGlyphRasterLane, UiGlyphRasterLaneCost, UiGlyphRasterRecord,
-    UiGlyphRasterScale,
+    admit_alpha_outline, admit_alpha_outline_transaction, admit_intrinsic_color,
+    admit_intrinsic_color_transaction, admit_raster_key, derive_glyph_raster_demand,
+    rasterize_alpha_outline, rasterize_alpha_outline_selection,
+    rasterize_alpha_outline_transaction, rasterize_intrinsic_color,
+    rasterize_intrinsic_color_selection, rasterize_intrinsic_color_transaction,
+    UiAlphaRasterAdmission, UiAlphaRasterBatch, UiAlphaRasterBatchCompletion, UiAlphaRasterKind,
+    UiAlphaRasterTransaction, UiAlphaRasterTransactionAdmission,
+    UiAlphaRasterTransactionCompletion, UiAlphaRasterization, UiColorRasterAdmission,
+    UiColorRasterBatch, UiColorRasterBatchCompletion, UiColorRasterKind, UiColorRasterTransaction,
+    UiColorRasterTransactionAdmission, UiColorRasterTransactionCompletion, UiColorRasterization,
+    UiGlyphRasterAdmissionDenial, UiGlyphRasterAttribution, UiGlyphRasterBatch,
+    UiGlyphRasterBearing, UiGlyphRasterContentDigest, UiGlyphRasterCost, UiGlyphRasterDemandBatch,
+    UiGlyphRasterDemandDenial, UiGlyphRasterDemandRequest, UiGlyphRasterExtent,
+    UiGlyphRasterFormat, UiGlyphRasterKey, UiGlyphRasterLane, UiGlyphRasterLaneCost,
+    UiGlyphRasterPlacement, UiGlyphRasterRecord, UiGlyphRasterScale, UiGlyphRasterSource,
+    UiGlyphRasterizationDenial,
 };
 pub use reconstruction::{UiQualifiedTextReconstructionSource, UiTextReconstructionDenial};
 pub use request::{UiQualifiedTextLayoutRequest, UiQualifiedTextLayoutRequestIdentity};
@@ -69,7 +77,8 @@ pub use style::{
     UiFontVariationCoordinate, UiOpenTypeFeature, UiTextStyle, UiTextStyleInput, UiTextStyleSpan,
 };
 pub use worth_ui_host_contract::{
-    UiFontCollectionGeneration, UiQualifiedFontFaceIdentity, UiQualifiedFontFamilyIdentity,
-    UiQualifiedFontPackIdentity, UiQualifiedTextGlyphRecord, UiQualifiedTextGraphemeRecord,
-    UiQualifiedTextRunRecord, UiTextProfileGeneration, UiTextScaleGeneration,
+    UiFontCollectionGeneration, UiFontCollectionLineageIdentity, UiQualifiedFontFaceIdentity,
+    UiQualifiedFontFamilyIdentity, UiQualifiedFontPackIdentity, UiQualifiedTextGlyphRecord,
+    UiQualifiedTextGraphemeRecord, UiQualifiedTextRunRecord, UiTextProfileGeneration,
+    UiTextScaleGeneration,
 };

@@ -12,6 +12,7 @@ P3_PREDECESSOR_HANDOFF = (
 P4_PREDECESSOR_HANDOFF = (
     "_docs/worth-ui/milestone-3.14.1-evidence/p4-predecessor-handoff.json"
 )
+P5_ATLAS_ARTIFACT = "_docs/worth-ui/milestone-3.14.1-evidence/p5-atlas-01.json"
 REBINDABLE_SOURCE_IDENTITIES = {
     COMPILE_ARTIFACT,
     NATIVE_WORLD_ARTIFACT,
@@ -20,6 +21,7 @@ REBINDABLE_SOURCE_IDENTITIES = {
     P3_DELTA_ARTIFACT,
     P3_PREDECESSOR_HANDOFF,
     P4_PREDECESSOR_HANDOFF,
+    P5_ATLAS_ARTIFACT,
 }
 
 
@@ -36,7 +38,7 @@ def bind_fresh_shared_world(command: list[str], artifact: str) -> list[str]:
 
 
 def bind_fresh_supporting_world(command: list[str], artifact: str) -> list[str]:
-    return rebind_sources(command, {P3_DELTA_ARTIFACT}, artifact)
+    return rebind_sources(command, {P3_DELTA_ARTIFACT, P5_ATLAS_ARTIFACT}, artifact)
 
 
 def bind_fresh_predecessor_handoff(

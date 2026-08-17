@@ -23,6 +23,14 @@ fn main() -> ExitCode {
     if std::env::args_os().any(|argument| argument == "--worth-ui-native-phase3-world") {
         return run_native_phase3_world();
     }
+    #[cfg(feature = "executable-world")]
+    if std::env::args_os().any(|argument| argument == "--worth-ui-native-gate-d-pin-world") {
+        return run_native_gate_d_pin_world();
+    }
+    run_application()
+}
+
+fn run_application() -> ExitCode {
     let publisher = match PlatformPulseObservationPublisher::start() {
         Ok(publisher) => publisher,
         Err(denial) => {
@@ -72,6 +80,37 @@ fn main() -> ExitCode {
             eprintln!("WORTH UI platform pulse native event loop failed: {error}");
             ExitCode::FAILURE
         }
+    }
+}
+
+#[cfg(feature = "executable-world")]
+fn run_native_gate_d_pin_world() -> ExitCode {
+    let evidence = worth_ui::facade::certification::run_native_gate_d_pin_world();
+    println!(
+        "{}",
+        serde_json::json!({
+            "schema": "worth-ui-native-gate-d-pin-world-v1",
+            "mounted_bindings": evidence.mounted_bindings(),
+            "pinned_layouts": evidence.pinned_layouts(),
+            "expected_pin_count": evidence.expected_pin_count(),
+            "native_committed_pin_count": evidence.native_committed_pin_count(),
+            "native_peak_pin_count": evidence.native_peak_pin_count(),
+            "physical_signal_runtimes": evidence.physical_signal_runtimes(),
+            "pressure_transactions": evidence.pressure_transactions(),
+            "pressure_releases": evidence.pressure_releases(),
+            "evictions": evidence.evictions(),
+            "atlas_transactions": evidence.atlas_transactions(),
+            "rasterized_glyphs": evidence.rasterized_glyphs(),
+            "presentations": 0,
+            "local_owner_releases": evidence.local_owner_releases(),
+            "native_final_releases": evidence.native_final_releases(),
+            "terminal_zero": evidence.terminal_zero(),
+        })
+    );
+    if evidence.terminal_zero() {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(3)
     }
 }
 

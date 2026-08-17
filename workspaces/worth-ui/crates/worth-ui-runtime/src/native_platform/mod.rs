@@ -2,10 +2,12 @@
 
 mod application;
 mod application_driver;
+pub(crate) mod authorized_native_host;
 mod native_platform_binding;
 mod outcome;
 mod platform;
 mod profile;
+pub(crate) mod text_presentation;
 
 pub use crate::facade::entry::{
     UiNativeApplicationFrame, UiNativeApplicationProgram, UiNativeApplicationProgramDenial,

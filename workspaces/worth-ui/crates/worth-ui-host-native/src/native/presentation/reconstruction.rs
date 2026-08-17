@@ -26,6 +26,7 @@ impl UiNativeColdReconstruction {
 pub(crate) fn present_cold_reconstruction<Port: UiNativePresentationPort>(
     graphics: &mut UiNativeGraphics,
     resources: &mut UiNativeResourceRegistry,
+    physical_signal: &mut crate::native::physical_work_signal::UiNativePhysicalSignalOwner,
     view: &UiMountedFrameConsumptionView<'_>,
 ) -> Result<UiNativeColdReconstruction, UiNativePresentationFailure> {
     let UiMountedPresentationWorkView::Reconstruction(work) = view.presentation_work() else {
@@ -33,8 +34,17 @@ pub(crate) fn present_cold_reconstruction<Port: UiNativePresentationPort>(
     };
     let retained = UiNativeRetainedDrawList::reconstruction(work).map_err(|_| malformed())?;
     let plan = build_plan(graphics, &retained)?;
-    let owners = reserve_presentation_owners(resources)?;
-    let observation = settle_port_result(resources, owners, Port::present(graphics, plan))?;
+    let owners = reserve_presentation_owners(
+        resources,
+        physical_signal,
+        crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::from_view(view),
+    )?;
+    let observation = settle_port_result(
+        resources,
+        physical_signal,
+        owners,
+        Port::present(graphics, plan),
+    )?;
     let (pixels, cost, port_crossings) = observation.into_parts();
     Ok(UiNativeColdReconstruction {
         cost,

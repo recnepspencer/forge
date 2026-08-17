@@ -12,6 +12,7 @@ struct ReadinessSlot {
     next_work_generation: u64,
     work: Option<UiNativeReadyWork>,
     pending: bool,
+    level_only: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -30,6 +31,7 @@ pub(crate) struct UiNativeReadinessRegistry {
 pub(crate) enum UiNativeReadinessSignalDisposition {
     RedrawRequested,
     Coalesced,
+    NoWork,
 }
 
 pub(crate) fn signal_committed(
@@ -38,6 +40,23 @@ pub(crate) fn signal_committed(
     mut request_redraw: impl FnMut(),
 ) -> Result<UiNativeReadinessSignalDisposition, ()> {
     if registry.signal(owner)? {
+        request_redraw();
+        Ok(UiNativeReadinessSignalDisposition::RedrawRequested)
+    } else {
+        Ok(UiNativeReadinessSignalDisposition::Coalesced)
+    }
+}
+
+pub(crate) fn signal_level_ready(
+    registry: &mut UiNativeReadinessRegistry,
+    owner: UiNativeReadyOwner,
+    has_ready_work: bool,
+    mut request_redraw: impl FnMut(),
+) -> Result<UiNativeReadinessSignalDisposition, ()> {
+    if !has_ready_work {
+        return Ok(UiNativeReadinessSignalDisposition::NoWork);
+    }
+    if registry.signal_level(owner)? {
         request_redraw();
         Ok(UiNativeReadinessSignalDisposition::RedrawRequested)
     } else {
@@ -54,6 +73,14 @@ impl UiNativeReadinessRegistry {
     }
 
     pub(crate) fn register(&mut self) -> Result<UiNativeReadyOwner, ()> {
+        self.register_slot(false)
+    }
+
+    pub(crate) fn register_level(&mut self) -> Result<UiNativeReadyOwner, ()> {
+        self.register_slot(true)
+    }
+
+    fn register_slot(&mut self, level_only: bool) -> Result<UiNativeReadyOwner, ()> {
         let slot = self.slots.iter().position(Option::is_none).ok_or(())?;
         let generation = self.next_generation;
         self.next_generation = self.next_generation.checked_add(1).ok_or(())?;
@@ -62,6 +89,7 @@ impl UiNativeReadinessRegistry {
             next_work_generation: 1,
             work: None,
             pending: false,
+            level_only,
         });
         Ok(UiNativeReadyOwner { slot, generation })
     }
@@ -73,6 +101,9 @@ impl UiNativeReadinessRegistry {
         client_physical_size: [u32; 2],
     ) -> Result<u64, ()> {
         let slot = self.slot_mut(owner)?;
+        if slot.level_only {
+            return Err(());
+        }
         let generation = slot.next_work_generation;
         slot.next_work_generation = generation.checked_add(1).ok_or(())?;
         slot.work = Some(UiNativeReadyWork {
@@ -85,7 +116,17 @@ impl UiNativeReadinessRegistry {
 
     pub(crate) fn signal(&mut self, owner: UiNativeReadyOwner) -> Result<bool, ()> {
         let slot = self.slot_mut(owner)?;
-        if slot.work.is_none() {
+        if slot.level_only || slot.work.is_none() {
+            return Err(());
+        }
+        let queued = !slot.pending;
+        slot.pending = true;
+        Ok(queued)
+    }
+
+    pub(crate) fn signal_level(&mut self, owner: UiNativeReadyOwner) -> Result<bool, ()> {
+        let slot = self.slot_mut(owner)?;
+        if !slot.level_only {
             return Err(());
         }
         let queued = !slot.pending;
@@ -95,11 +136,20 @@ impl UiNativeReadinessRegistry {
 
     pub(crate) fn take(&mut self, owner: UiNativeReadyOwner) -> Result<UiNativeReadyWork, ()> {
         let slot = self.slot_mut(owner)?;
-        if !slot.pending {
+        if slot.level_only || !slot.pending {
             return Err(());
         }
         slot.pending = false;
         slot.work.take().ok_or(())
+    }
+
+    pub(crate) fn take_level(&mut self, owner: UiNativeReadyOwner) -> Result<(), ()> {
+        let slot = self.slot_mut(owner)?;
+        if !slot.level_only || !slot.pending {
+            return Err(());
+        }
+        slot.pending = false;
+        Ok(())
     }
 
     pub(crate) fn close(&mut self) -> usize {
@@ -120,8 +170,8 @@ impl UiNativeReadinessRegistry {
 #[cfg(test)]
 mod tests {
     use super::{
-        signal_committed, UiNativeReadinessRegistry, UiNativeReadinessSignalDisposition,
-        READINESS_CAPACITY,
+        signal_committed, signal_level_ready, UiNativeReadinessRegistry,
+        UiNativeReadinessSignalDisposition, READINESS_CAPACITY,
     };
 
     #[test]
@@ -162,5 +212,33 @@ mod tests {
         assert_eq!(third.client_physical_size, [320, 192]);
         assert_eq!(registry.close(), READINESS_CAPACITY);
         assert!(registry.signal(first).is_err());
+    }
+
+    #[test]
+    fn physical_level_wake_coalesces_until_the_event_thread_consumes_it() {
+        let mut registry = UiNativeReadinessRegistry::new();
+        let physical = registry.register_level().unwrap();
+        let mut redraws = 0;
+        assert_eq!(
+            signal_level_ready(&mut registry, physical, false, || redraws += 1),
+            Ok(UiNativeReadinessSignalDisposition::NoWork)
+        );
+        assert_eq!(
+            signal_level_ready(&mut registry, physical, true, || redraws += 1),
+            Ok(UiNativeReadinessSignalDisposition::RedrawRequested)
+        );
+        assert_eq!(
+            signal_level_ready(&mut registry, physical, true, || redraws += 1),
+            Ok(UiNativeReadinessSignalDisposition::Coalesced)
+        );
+        assert_eq!(redraws, 1);
+        assert!(registry.take(physical).is_err());
+        assert_eq!(registry.take_level(physical), Ok(()));
+        assert!(registry.take_level(physical).is_err());
+        assert_eq!(
+            signal_level_ready(&mut registry, physical, true, || redraws += 1),
+            Ok(UiNativeReadinessSignalDisposition::RedrawRequested)
+        );
+        assert_eq!(redraws, 2);
     }
 }

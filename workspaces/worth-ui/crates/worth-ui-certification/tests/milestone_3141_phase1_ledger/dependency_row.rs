@@ -25,6 +25,9 @@ pub(super) fn require_proved_artifact(
     digest: &str,
     artifact: &Value,
 ) -> Result<(), String> {
+    if requirement == "P5-ATLAS-01" {
+        super::runner_artifact_authentication::validate(artifact)?;
+    }
     let ledger = ACTIVE_LEDGER
         .with(|active| active.borrow().last().cloned())
         .unwrap_or_else(super::ledger_document);

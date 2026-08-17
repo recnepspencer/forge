@@ -13,7 +13,7 @@ pub struct UiQualifiedTextFeatureRecord {
     value: u32,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UiQualifiedTextVariationRecord {
     axis: [u8; 4],
     value_milli: i32,

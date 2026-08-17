@@ -120,7 +120,7 @@ impl MountedPresentationWorld {
         &self,
         frame: UiMountedFrameIdentity,
         instances: &[UiMountedInstanceIdentity],
-        changed_first: bool,
+        changed_index: Option<usize>,
     ) -> UiMountedProjectionView {
         let split = instances.len() / 2;
         let text_layout =
@@ -130,7 +130,7 @@ impl MountedPresentationWorld {
             .enumerate()
             .map(|(index, instance)| {
                 let mut spec = rect_spec(*instance, index as f32 * 40.0);
-                if changed_first && index == 0 {
+                if changed_index == Some(index) {
                     spec.color = UiMountedRgba8::new(242, 204, 96, 255);
                 }
                 self.rect(frame, spec)
@@ -139,7 +139,15 @@ impl MountedPresentationWorld {
         let texts = instances[split..]
             .iter()
             .enumerate()
-            .map(|(index, instance)| self.text(frame, *instance, index, text_layout.view()))
+            .map(|(index, instance)| {
+                self.text(
+                    frame,
+                    *instance,
+                    index,
+                    text_layout.view(),
+                    changed_index == Some(index + split),
+                )
+            })
             .collect::<Vec<_>>();
         let nodes = rects
             .iter()
@@ -163,6 +171,53 @@ impl MountedPresentationWorld {
             clips: UiMountedClipTable::produced(Vec::new()),
             layers: UiMountedLayerTable::produced(Vec::new()),
             filled_rects: UiMountedFilledRectTable::from_runtime_mounting(rects).unwrap(),
+            semantic_text: UiMountedSemanticTextTable::from_runtime_mounting(texts).unwrap(),
+            hit_tests: UiMountedHitTestTable::empty(),
+            paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
+            spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
+            realtime_batches: worth_ui_host_contract::UiMountedRealtimeBatchTable::new(Vec::new()),
+            resources: UiMountedResourceTable::new(Vec::new()),
+            authored_paint_commands,
+            authored_paint_order,
+        })
+    }
+
+    pub(super) fn text_projection(
+        &self,
+        frame: UiMountedFrameIdentity,
+        instances: &[UiMountedInstanceIdentity],
+        changed_index: Option<usize>,
+        layout: worth_ui_host_contract::UiQualifiedTextLayoutView<'_>,
+    ) -> UiMountedProjectionView {
+        let texts = instances
+            .iter()
+            .enumerate()
+            .map(|(index, instance)| {
+                self.text(
+                    frame,
+                    *instance,
+                    index,
+                    layout,
+                    changed_index == Some(index),
+                )
+            })
+            .collect::<Vec<_>>();
+        let nodes = texts
+            .iter()
+            .enumerate()
+            .map(|(index, row)| text_node(index, row))
+            .collect::<Vec<_>>();
+        let (authored_paint_commands, authored_paint_order) =
+            crate::mounting::compile_presentation_sources(&nodes, &[], &texts);
+        UiMountedProjectionView::new(UiMountedProjectionViewInput {
+            frame,
+            surface: self.surface,
+            binding: self.binding,
+            content_generation: self.content,
+            nodes,
+            clips: UiMountedClipTable::produced(Vec::new()),
+            layers: UiMountedLayerTable::produced(Vec::new()),
+            filled_rects: UiMountedFilledRectTable::empty(),
             semantic_text: UiMountedSemanticTextTable::from_runtime_mounting(texts).unwrap(),
             hit_tests: UiMountedHitTestTable::empty(),
             paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
@@ -206,6 +261,7 @@ impl MountedPresentationWorld {
         instance: UiMountedInstanceIdentity,
         index: usize,
         layout: worth_ui_host_contract::UiQualifiedTextLayoutView<'_>,
+        changed: bool,
     ) -> worth_ui_host_contract::UiMountedSemanticTextMechanic {
         use std::sync::Arc;
         let bounds = canonical_box(index as f32 * 40.0, 32.0, 32.0, 24.0);
@@ -237,7 +293,11 @@ impl MountedPresentationWorld {
                     worth_ui_host_contract::UiMountedTextForegroundSpan::from_runtime_mounting(
                         worth_ui_host_contract::UiTextOriginalRange::from_text_mechanics(0, 5)
                             .unwrap(),
-                        UiMountedRgba8::new(255, 255, 255, 255),
+                        if changed {
+                            UiMountedRgba8::new(242, 204, 96, 255)
+                        } else {
+                            UiMountedRgba8::new(255, 255, 255, 255)
+                        },
                         worth_ui_host_contract::UiMountedTextPaintSpanIdentity::from_runtime_mounting(
                             [1; 32],
                         ),

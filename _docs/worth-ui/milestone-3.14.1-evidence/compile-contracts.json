@@ -1,12 +1,12 @@
 {
   "schema": "worth-ui-compile-contract-result-v1",
   "exit_posture": "passed",
-  "run_nonce": "81240b5251873ea8aff908041975bb57",
-  "source_revision": "eb3c101f1887989d5a569d4f70f5238f0d6645c8",
-  "source_state_digest": "68c92f07db0f7814cda36c9fe91d2d5776cb3771fb8f70cb9ca1d5f47ed922ff",
+  "run_nonce": "8916e8a185ff5b1a912e5a3cbc68aadd",
+  "source_revision": "763e51cb44de6551c6090d1ad6e89432efb69ab6",
+  "source_state_digest": "17ae39d2e52d99387f3bf3a0a0db655368e07210f20e9427bcf726acfcb6cff6",
   "cargo_sessions": 2,
-  "fail_targets": 70,
-  "pass_targets": 22,
+  "fail_targets": 74,
+  "pass_targets": 24,
   "cases": [
     {
       "owner": "certification",
@@ -137,6 +137,42 @@
     {
       "owner": "host",
       "kind": "fail",
+      "target": "host-phase5-alpha-color-substitution",
+      "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/alpha_color_views_cannot_substitute.rs",
+      "source_sha256": "4370fc831f87e70744973e4deb1f5c898ad94029823b2cfddb73ddc74c32565a",
+      "snapshot": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/alpha_color_views_cannot_substitute.stderr",
+      "snapshot_sha256": "e78fa24f0321ed6749483c3472b971c11664ce818b1d7a3bee775d40cf295e41"
+    },
+    {
+      "owner": "host",
+      "kind": "fail",
+      "target": "host-phase5-native-plan-unforgeable",
+      "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/native_plan_pin_recovery_are_unforgeable.rs",
+      "source_sha256": "1e191b8af065de75734cb3aeeabdbaca8396bbccc8ce7a0fcf701e33f50c1230",
+      "snapshot": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/native_plan_pin_recovery_are_unforgeable.stderr",
+      "snapshot_sha256": "9122debf661786ad7c037b5970fbcce4776fe960e19ece9c73dfb6a339a776bd"
+    },
+    {
+      "owner": "host",
+      "kind": "fail",
+      "target": "host-phase5-raster-lifetime",
+      "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/raster_view_cannot_escape_owner.rs",
+      "source_sha256": "6ce9c29997a4761603f7015891cf16fc7f2e7dd5e38b3762df1bea293e0595a8",
+      "snapshot": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/raster_view_cannot_escape_owner.stderr",
+      "snapshot_sha256": "5d347e26588060563edf873fad1b047e7adf0548f54132a1b6da6d169841e0a0"
+    },
+    {
+      "owner": "host",
+      "kind": "fail",
+      "target": "host-phase5-raw-text-effect-bypass",
+      "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/raw_text_effects_require_runtime_authority.rs",
+      "source_sha256": "b3c7c2ebe1f847906faf2429ec90aae3f82f256615a945b08fad53b6bd8706a0",
+      "snapshot": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/raw_text_effects_require_runtime_authority.stderr",
+      "snapshot_sha256": "b99ccbefd765ade65c9c1a502451018a6a88f73dd4ea616599597903d26cafe8"
+    },
+    {
+      "owner": "host",
+      "kind": "fail",
       "target": "host-presentation-work-authority",
       "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/presentation_work_issuance_requires_runtime_authority.rs",
       "source_sha256": "488bfbb2ffc83e61b18d76b60ba26c638f0f53e47481dfb60e861134b1985d54",
@@ -151,6 +187,24 @@
       "source_sha256": "26e532b8d4a8f7e09856579c68d2bd18f8d4315ad35ea90017797f41aa2e135c",
       "snapshot": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/request_constructor_private.stderr",
       "snapshot_sha256": "25be25935da03bf7d27ae92b9c7afafddd4b0f51e31cc2bc453e6b88f29bfab4"
+    },
+    {
+      "owner": "host",
+      "kind": "pass",
+      "target": "host-phase5-lawful-native-effect-authority",
+      "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/lawful_native_effect_authority_is_issued_with_host.rs",
+      "source_sha256": "fe08fd372849ab98ad4cca9a67774edb93163fd2b916416cec5d0cbacf1d58ac",
+      "snapshot": null,
+      "snapshot_sha256": null
+    },
+    {
+      "owner": "host",
+      "kind": "pass",
+      "target": "host-phase5-lawful-raster-views",
+      "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/lawful_raster_views_are_constructible.rs",
+      "source_sha256": "46325f5d4197b81149614ef9bec052ed9fda8305524e87273b0bbd4309800088",
+      "snapshot": null,
+      "snapshot_sha256": null
     },
     {
       "owner": "host",

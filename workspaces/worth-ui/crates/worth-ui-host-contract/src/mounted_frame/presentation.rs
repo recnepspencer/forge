@@ -27,6 +27,7 @@ pub struct UiMountedSurfacePresentationCompletion {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiHostSurfacePresentationDenial {
     AdapterDeclined,
+    TextAtlasPresentationDeferred,
     CancelledBeforeEffects,
     UnsupportedPresentationMode(crate::UiHostSurfacePresentationMode),
     UnsupportedEffect(UiMountedEffectFamily),
@@ -58,6 +59,27 @@ pub struct UiMountedFrameConsumptionView<'frame> {
     requirement: crate::UiMountedSurfaceBindingRequirement,
     presentation_work: super::presentation_work::UiMountedPresentationWorkView<'frame>,
     qualified_text: &'frame dyn crate::UiMountedQualifiedTextResolver,
+    text_raster_work: Option<&'frame UiMountedTextRasterWork<'frame>>,
+}
+
+/// Borrowed pure-text input attached to an ordinary mounted presentation.
+///
+/// This value carries no atlas, Signal, device, or settlement authority. The
+/// native host may invoke the raster callback only while executing the
+/// authority-checked mounted-surface operation that borrowed it.
+pub struct UiMountedTextRasterWork<'work> {
+    demands: &'work [crate::UiGlyphRasterDemandBatchView<'work>],
+    pins: crate::UiGlyphRasterPinTransitionView<'work>,
+    binding_pins: &'work [crate::UiGlyphRasterPinRequest],
+    rasterizer: &'work dyn UiMountedTextRasterCallback,
+}
+
+pub trait UiMountedTextRasterCallback {
+    fn rasterize(
+        &self,
+        misses: crate::UiGlyphRasterMissSelectionView<'_>,
+        sink: &mut dyn crate::UiGlyphRasterBatchSink,
+    ) -> Result<(), crate::UiGlyphRasterCallbackDenial>;
 }
 
 #[doc(hidden)]
@@ -72,6 +94,7 @@ pub struct UiMountedFrameConsumptionInput<'frame> {
     pub requirement: crate::UiMountedSurfaceBindingRequirement,
     pub presentation_work: super::presentation_work::UiMountedPresentationWorkView<'frame>,
     pub qualified_text: &'frame dyn crate::UiMountedQualifiedTextResolver,
+    pub text_raster_work: Option<&'frame UiMountedTextRasterWork<'frame>>,
 }
 
 pub struct UiHostPresentationCompletionToken {
@@ -128,6 +151,7 @@ impl<'frame> UiMountedFrameConsumptionView<'frame> {
             requirement: input.requirement,
             presentation_work: input.presentation_work,
             qualified_text: input.qualified_text,
+            text_raster_work: input.text_raster_work,
         }
     }
 
@@ -187,6 +211,11 @@ impl<'frame> UiMountedFrameConsumptionView<'frame> {
         .then_some(view)
     }
 
+    #[doc(hidden)]
+    pub fn text_raster_work(&self) -> Option<&UiMountedTextRasterWork<'frame>> {
+        self.text_raster_work
+    }
+
     pub fn frame(&self) -> crate::UiMountedFrameIdentity {
         self.presentation_work.affinity().successor()
     }
@@ -214,6 +243,43 @@ impl<'frame> UiMountedFrameConsumptionView<'frame> {
             identity,
             authority: Rc::clone(&self.authority),
         }
+    }
+}
+
+#[doc(hidden)]
+impl<'work> UiMountedTextRasterWork<'work> {
+    pub fn from_text_mechanics(
+        demands: &'work [crate::UiGlyphRasterDemandBatchView<'work>],
+        pins: crate::UiGlyphRasterPinTransitionView<'work>,
+        binding_pins: &'work [crate::UiGlyphRasterPinRequest],
+        rasterizer: &'work dyn UiMountedTextRasterCallback,
+    ) -> Self {
+        Self {
+            demands,
+            pins,
+            binding_pins,
+            rasterizer,
+        }
+    }
+
+    pub fn demands(&self) -> &[crate::UiGlyphRasterDemandBatchView<'work>] {
+        self.demands
+    }
+
+    pub const fn pins(&self) -> crate::UiGlyphRasterPinTransitionView<'work> {
+        self.pins
+    }
+
+    pub const fn binding_pins(&self) -> &'work [crate::UiGlyphRasterPinRequest] {
+        self.binding_pins
+    }
+
+    pub fn rasterize(
+        &self,
+        misses: crate::UiGlyphRasterMissSelectionView<'_>,
+        sink: &mut dyn crate::UiGlyphRasterBatchSink,
+    ) -> Result<(), crate::UiGlyphRasterCallbackDenial> {
+        self.rasterizer.rasterize(misses, sink)
     }
 }
 

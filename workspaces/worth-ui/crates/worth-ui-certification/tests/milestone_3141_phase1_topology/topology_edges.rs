@@ -41,6 +41,7 @@ fn workspace_dependencies(path: &str) -> Option<&'static [&'static str]> {
             "worth-ui-query-binding",
             "worth-ui-runtime",
             "worth-ui-test-support",
+            "worth-ui-text",
         ],
         _ => return None,
     })

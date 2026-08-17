@@ -49,6 +49,7 @@ struct SemanticTextRowBasis {
     capability_generation: WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
     mutation: UiSemanticTextProjectionCertificationMutation,
+    text: Arc<str>,
 }
 
 pub fn semantic_text_projection_for_certification(
@@ -58,6 +59,16 @@ pub fn semantic_text_projection_for_certification(
         mutation,
         WorthUiHostCapabilityObservationGeneration::new(7),
         11,
+        Arc::from("ONLINE"),
+    )
+}
+
+pub fn semantic_text_projection_for_certification_with_text(text: &str) -> UiMountedProjectionView {
+    semantic_text_projection(
+        UiSemanticTextProjectionCertificationMutation::Exact,
+        WorthUiHostCapabilityObservationGeneration::new(7),
+        11,
+        Arc::from(text),
     )
 }
 
@@ -69,6 +80,7 @@ pub fn semantic_text_projection_for_certification_with_capability(
         UiSemanticTextProjectionCertificationMutation::Exact,
         capability_generation,
         capability_profile_digest,
+        Arc::from("ONLINE"),
     )
 }
 
@@ -97,6 +109,7 @@ fn semantic_text_projection(
     mutation: UiSemanticTextProjectionCertificationMutation,
     capability_generation: WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
+    text: Arc<str>,
 ) -> UiMountedProjectionView {
     let frame = UiMountedFrameIdentity::mint_unbound().expect("frame identity");
     let surface = UiSemanticSurfaceIdentity::mint_unbound().expect("surface identity");
@@ -141,6 +154,7 @@ fn semantic_text_projection(
         capability_generation,
         capability_profile_digest,
         mutation,
+        text,
     });
     let node_receipt = if matches!(
         mutation,
@@ -223,6 +237,7 @@ fn projection(basis: SemanticTextProjectionBasis) -> UiMountedProjectionView {
 }
 
 fn semantic_row(input: SemanticTextRowBasis) -> UiMountedSemanticTextMechanic {
+    let text_len = u32::try_from(input.text.len()).expect("certification text fits u32");
     UiMountedSemanticTextMechanic::complete_from_runtime_mounting(
         UiMountedSemanticTextCompletionInput {
             content_generation: input.content_generation,
@@ -236,13 +251,16 @@ fn semantic_row(input: SemanticTextRowBasis) -> UiMountedSemanticTextMechanic {
             clip_bounds: input.bounds,
             origin_x: 8.0,
             origin_y: 12.0,
-            text: Arc::from("ONLINE"),
-            layout: crate::mounting::qualified_text_test_support::inert_qualified_layout("ONLINE")
-                .view(),
+            text: Arc::clone(&input.text),
+            layout: crate::mounting::qualified_text_test_support::inert_qualified_layout(
+                &input.text,
+            )
+            .view(),
             slot: UiSemanticTextSlot::Value,
             collection_row: None,
             foregrounds: Arc::from([UiMountedTextForegroundSpan::from_runtime_mounting(
-                worth_ui_host_contract::UiTextOriginalRange::from_text_mechanics(0, 6).unwrap(),
+                worth_ui_host_contract::UiTextOriginalRange::from_text_mechanics(0, text_len)
+                    .unwrap(),
                 UiMountedRgba8::new(255, 255, 255, 255),
                 UiMountedTextPaintSpanIdentity::from_runtime_mounting([1; 32]),
             )]),
@@ -372,23 +390,3 @@ mint_identity!(
     UiMountedContentGeneration,
     UiMountedInstanceIdentity,
 );
-pub struct UiCertificationQualifiedTextResolver {
-    layout: std::sync::Arc<worth_ui_text::UiQualifiedTextLayout>,
-}
-
-pub fn semantic_text_layout_resolver_for_certification() -> UiCertificationQualifiedTextResolver {
-    UiCertificationQualifiedTextResolver {
-        layout: crate::mounting::qualified_text_test_support::inert_qualified_layout("ONLINE"),
-    }
-}
-
-impl worth_ui_host_contract::UiMountedQualifiedTextResolver
-    for UiCertificationQualifiedTextResolver
-{
-    fn resolve(
-        &self,
-        identity: worth_ui_host_contract::UiQualifiedTextLayoutIdentity,
-    ) -> Option<worth_ui_host_contract::UiQualifiedTextLayoutView<'_>> {
-        (self.layout.identity() == identity).then(|| self.layout.view())
-    }
-}

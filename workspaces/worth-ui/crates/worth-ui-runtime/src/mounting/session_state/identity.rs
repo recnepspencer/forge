@@ -69,6 +69,8 @@ impl WorthUiMountedSessionState {
             .identity
             .prepare_surface_deregistration(binding, preserve_published_frame)?;
         self.presentation
+            .release_text_pins_for_deregistration(host.effect_port(), candidate.request())?;
+        self.presentation
             .host_truth_mut()
             .deregister_surface(host.effect_port(), candidate.request())?;
         let semantic_surface = self.identity.commit_surface_deregistration(candidate);

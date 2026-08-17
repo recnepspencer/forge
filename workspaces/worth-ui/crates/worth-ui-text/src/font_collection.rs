@@ -1,5 +1,6 @@
 mod admission;
 mod application_pack;
+pub(crate) mod color_glyph;
 mod coverage;
 mod face;
 mod ink_bounds;
@@ -21,8 +22,9 @@ use std::sync::{
 use face::UiQualifiedFontFace;
 use harfrust::{Direction, Language, Script};
 use worth_ui_host_contract::{
-    UiFontCollectionGeneration, UiFontSlant, UiQualifiedFontFaceIdentity,
-    UiQualifiedFontFamilyIdentity, UiQualifiedFontPackIdentity,
+    UiFontCollectionGeneration, UiFontSlant, UiGlyphVariationCoordinates,
+    UiQualifiedFontFaceIdentity, UiQualifiedFontFamilyIdentity, UiQualifiedFontPackIdentity,
+    UiQualifiedTextStyleRecord,
 };
 
 use profile_data::PROFILE_FACES;
@@ -238,6 +240,17 @@ impl UiGlobalFontCollection {
         self.faces[slot].shape_run(text, original_start, direction, language, script_tag, style)
     }
 
+    pub(crate) fn raster_variations(
+        &self,
+        face: UiQualifiedFontFaceIdentity,
+        style: &UiQualifiedTextStyleRecord,
+    ) -> Option<UiGlyphVariationCoordinates> {
+        self.faces
+            .iter()
+            .find(|candidate| candidate.identity() == face)?
+            .raster_variations(style)
+    }
+
     pub(super) fn selected_face_resources(
         &self,
         runs: &[worth_ui_host_contract::UiQualifiedTextRunRecord],
@@ -331,9 +344,19 @@ pub(super) fn profile_inputs_from_repository() -> Box<[UiProfileFontFaceInput]> 
 }
 
 #[cfg(test)]
+mod application_alpha_raster_controls;
+#[cfg(test)]
 mod application_byte_capacity_tests;
 #[cfg(test)]
 pub(crate) mod application_capacity_tests;
+#[cfg(test)]
+mod application_color_fixtures;
+#[cfg(test)]
+mod application_color_graph_controls;
+#[cfg(test)]
+mod application_color_graph_fixtures;
+#[cfg(test)]
+mod application_color_raster_controls;
 #[cfg(test)]
 mod application_color_tests;
 #[cfg(test)]

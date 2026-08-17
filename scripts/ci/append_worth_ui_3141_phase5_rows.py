@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
+import os
+import tempfile
 from pathlib import Path
 
 from worth_ui_3141_ledger_contracts import TEXT_PLATFORM_VERSIONS
@@ -42,10 +45,10 @@ CONTRACTS = {
     ),
     "P5-ATLAS-01": (
         "worth-ui-host-native",
-        "separate bounded alpha and RGBA atlas lifecycle",
+        "bounded alpha/color atlas and physical Signal lifecycle",
         "qualified-text-world",
         "atlas-lifecycle",
-        "worth_ui_host_native::atlas",
+        "worth_ui_host_native::native::physical_work_signal",
     ),
     "P5-ATLAS-PINNING-01": (
         "worth-ui-host-native",
@@ -83,11 +86,18 @@ CONTRACTS = {
         "worth_ui_runtime::mounting::text",
     ),
     "P5-TEXT-COST-01": (
-        "worth-ui-text",
-        "ordinary versus reconstructive text raster cost",
+        "worth-ui-certification",
+        "realized semantic and physical Signal UI frontier cost",
         "qualified-text-world",
         "slope-model",
-        "worth_ui_text::raster::cost",
+        "worth_ui_certification::phase_five::text_frontier_cost",
+    ),
+    "P5-TEXT-ASYNC-PRESENTATION-01": (
+        "worth-ui-query-binding",
+        "Query-owned native text presentation async result",
+        "qualified-text-world",
+        "async-presentation-lifecycle",
+        "worth_ui_query_binding::presentation_async",
     ),
     "P5-CLOSE-01": (
         "worth-ui-certification",
@@ -97,6 +107,38 @@ CONTRACTS = {
         "worth_ui_certification::phase_five_ledger",
     ),
 }
+
+CONTRACT_FIELDS = (
+    "owner",
+    "production_boundary",
+    "world_identity",
+    "world_version",
+    "proof_kind",
+    "evidence_schema",
+    "scenario_delta",
+    "generated_seed",
+    "authority_provenance",
+    "mutation_control",
+    "fault_injection_boundary",
+    "construction_cost",
+    "execution_cost",
+    "structural_counters",
+)
+
+INVALIDATED_PROOF_ROWS = {"P5-ATLAS-01", "P5-ATLAS-PINNING-01"}
+EXECUTION_BINDING_FIELDS = (
+    "production_entry",
+    "independent_oracle",
+    "exact_command",
+    "matched_test_count",
+    "command_result",
+    "source_revision",
+    "source_digest",
+    "source_state_digest",
+    "run_nonce",
+    "source_identity",
+    "result_artifact_digest",
+)
 
 
 def open_row(requirement: str) -> dict[str, str]:
@@ -151,23 +193,159 @@ def open_row(requirement: str) -> dict[str, str]:
     }
 
 
+def serialized_open_rows(fields: list[str], requirements: list[str]) -> bytes:
+    stream = io.StringIO(newline="")
+    writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
+    writer.writerows(open_row(requirement) for requirement in requirements)
+    return stream.getvalue().encode("utf-8")
+
+
+def close_insertion_point(original: bytes) -> int:
+    close_line = next(
+        line for line in original.splitlines(keepends=True) if b",P5-CLOSE-01," in line
+    )
+    return original.index(close_line)
+
+
+def candidate_bytes(
+    original: bytes,
+    fields: list[str],
+    missing: list[str],
+    close_present: bool,
+) -> bytes:
+    ordered = [item for item in missing if item != "P5-CLOSE-01"]
+    if not close_present and "P5-CLOSE-01" in missing:
+        ordered.append("P5-CLOSE-01")
+    inserted = serialized_open_rows(fields, ordered)
+    if not close_present:
+        separator = b"" if original.endswith((b"\n", b"\r")) else b"\n"
+        return original + separator + inserted
+    offset = close_insertion_point(original)
+    return original[:offset] + inserted + original[offset:]
+
+
+def refresh_open_phase_five_contracts(
+    candidate: bytes, fields: list[str]
+) -> bytes:
+    lines = candidate.splitlines(keepends=True)
+    requirement_index = fields.index("requirement")
+    phase_index = fields.index("phase")
+    result_index = fields.index("result")
+    for index, line in enumerate(lines[1:], 1):
+        record = next(csv.reader([line.decode("utf-8")]))
+        requirement = record[requirement_index]
+        if (
+            record[phase_index] != "5"
+            or record[result_index] != "OPEN"
+            or requirement not in CONTRACTS
+        ):
+            continue
+        current = dict(zip(fields, record, strict=True))
+        expected = open_row(requirement)
+        if (
+            current["exact_command"] != "not-bound"
+            and requirement not in INVALIDATED_PROOF_ROWS
+        ):
+            counter, amount = P5_COUNTERS[requirement]
+            expected["structural_counters"] = f"{counter}={amount}"
+        for field in CONTRACT_FIELDS:
+            current[field] = expected[field]
+        if requirement in INVALIDATED_PROOF_ROWS:
+            for field in EXECUTION_BINDING_FIELDS:
+                current[field] = expected[field]
+            current["structural_counters"] = expected["structural_counters"]
+        stream = io.StringIO(newline="")
+        csv.DictWriter(stream, fieldnames=fields, lineterminator="\n").writerow(current)
+        lines[index] = stream.getvalue().encode("utf-8")
+    return b"".join(lines)
+
+
+def validate_candidate(
+    original: bytes,
+    candidate: bytes,
+    close_present: bool,
+) -> None:
+    first_phase_five = next(
+        (original.index(line) for line in original.splitlines(keepends=True) if b"5,P5-" in line),
+        len(original),
+    )
+    preserved = original[:first_phase_five]
+    if not candidate.startswith(preserved):
+        raise RuntimeError("append candidate rewrote historical ledger bytes")
+    reader = csv.DictReader(io.StringIO(candidate.decode("utf-8"), newline=""))
+    requirements = [row["requirement"] for row in reader]
+    if len(requirements) != len(set(requirements)):
+        raise RuntimeError("append candidate contains duplicate requirements")
+    if requirements[-1] != "P5-CLOSE-01":
+        raise RuntimeError("Phase 5 close sentinel is not the final candidate row")
+    missing = set(P5_REQUIREMENTS).difference(requirements)
+    if missing:
+        raise RuntimeError(f"append candidate omits Phase 5 rows: {sorted(missing)}")
+    rows = {
+        row["requirement"]: row
+        for row in csv.DictReader(io.StringIO(candidate.decode("utf-8"), newline=""))
+    }
+    for requirement in P5_REQUIREMENTS:
+        row = rows[requirement]
+        if row["result"] != "OPEN":
+            continue
+        expected = open_row(requirement)
+        if (
+            row["exact_command"] != "not-bound"
+            and requirement not in INVALIDATED_PROOF_ROWS
+        ):
+            counter, amount = P5_COUNTERS[requirement]
+            expected["structural_counters"] = f"{counter}={amount}"
+        for field in CONTRACT_FIELDS:
+            if row[field] != expected[field]:
+                raise RuntimeError(
+                    f"append candidate has stale {requirement} contract field {field}"
+                )
+        if requirement in INVALIDATED_PROOF_ROWS:
+            for field in EXECUTION_BINDING_FIELDS:
+                if row[field] != expected[field]:
+                    raise RuntimeError(
+                        f"append candidate retains stale {requirement} execution field {field}"
+                    )
+
+
+def atomic_replace(candidate: bytes) -> None:
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{LEDGER.name}.", suffix=".tmp", dir=LEDGER.parent
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(candidate)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, LEDGER)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def main() -> int:
     original = LEDGER.read_bytes()
     with LEDGER.open(encoding="utf-8", newline="") as stream:
         reader = csv.DictReader(stream)
         fields = list(reader.fieldnames or ())
-        existing = {row["requirement"] for row in reader}
+        rows = list(reader)
+    existing = {row["requirement"] for row in rows}
     missing = [requirement for requirement in P5_REQUIREMENTS if requirement not in existing]
-    if not missing:
-        print("Phase 5 rows already present")
+    close = next((row for row in rows if row["requirement"] == "P5-CLOSE-01"), None)
+    if close is not None:
+        if close["result"] != "OPEN" or close["final_source"] != "false":
+            raise RuntimeError("cannot insert a Phase 5 row before a closed close sentinel")
+        if rows[-1]["requirement"] != "P5-CLOSE-01":
+            raise RuntimeError("Phase 5 close sentinel is not the final ledger row")
+    candidate = candidate_bytes(original, fields, missing, close is not None)
+    candidate = refresh_open_phase_five_contracts(candidate, fields)
+    validate_candidate(original, candidate, close is not None)
+    if candidate == original:
+        print("Phase 5 rows and OPEN contracts already current")
         return 0
-    with LEDGER.open("a", encoding="utf-8", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
-        writer.writerows(open_row(requirement) for requirement in missing)
-    updated = LEDGER.read_bytes()
-    if not updated.startswith(original):
-        raise RuntimeError("append rewrote historical ledger bytes")
-    print(f"appended {len(missing)} Phase 5 OPEN rows")
+    atomic_replace(candidate)
+    print(f"appended {len(missing)} Phase 5 OPEN rows and refreshed OPEN contracts")
     return 0
 
 

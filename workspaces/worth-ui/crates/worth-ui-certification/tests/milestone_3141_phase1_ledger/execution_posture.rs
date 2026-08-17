@@ -55,14 +55,15 @@ pub(crate) fn counter_amount(requirement: &str) -> Option<u64> {
         "P5-PREDECESSOR-01" => 68,
         "P5-GLYPH-RASTER-01" => 2,
         "P5-COLOR-EMOJI-01" => 3953,
-        "P5-ATLAS-01" => 2,
+        "P5-ATLAS-01" => 1,
         "P5-ATLAS-PINNING-01" => 1,
         "P5-TEXT-DPI-01" => 1,
         "P5-TEXT-SPAN-PAINT-01" => 2,
         "P5-TEXT-PIXELS-01" => 2,
         "P5-TEXT-RECONSTRUCTION-01" => 1,
-        "P5-TEXT-COST-01" => 0,
-        "P5-CLOSE-01" => 11,
+        "P5-TEXT-COST-01" => 32,
+        "P5-TEXT-ASYNC-PRESENTATION-01" => 10,
+        "P5-CLOSE-01" => 12,
         _ if main_for(requirement).is_some() => 1,
         _ => return None,
     })
@@ -98,6 +99,7 @@ pub(crate) fn fault_boundary(requirement: &str) -> Option<&'static str> {
         | "P5-ATLAS-PINNING-01"
         | "P5-TEXT-DPI-01"
         | "P5-TEXT-SPAN-PAINT-01" => "before-effects",
+        "P5-TEXT-ASYNC-PRESENTATION-01" => "after-effects-may-have-begun",
         requirement if requirement.starts_with("P5-") => "not-applicable",
         _ => return None,
     })
@@ -154,7 +156,10 @@ pub(crate) fn expected_declared_ignored(requirement: &str) -> bool {
                 | "P4-FALLBACK-01"
                 | "P4-CLOSE-01"
         )
-        || matches!(requirement, "P5-PREDECESSOR-01" | "P5-CLOSE-01")
+        || matches!(
+            requirement,
+            "P5-PREDECESSOR-01" | "P5-ATLAS-PINNING-01" | "P5-CLOSE-01"
+        )
 }
 
 pub(crate) fn is_shared_main(requirement: &str) -> bool {
@@ -174,6 +179,12 @@ pub(crate) fn is_shared_main(requirement: &str) -> bool {
 }
 
 pub(crate) fn control_budget_ms(requirement: &str) -> u64 {
+    if matches!(
+        requirement,
+        "P3-DELTA-SOURCE-01" | "P3-HEADLESS-COST-01" | "P3-PRODUCER-SLOPE-01"
+    ) {
+        return 90_000;
+    }
     if matches!(requirement, "P4-BIDI-01" | "P4-LINE-LAYOUT-01") {
         return if requirement == "P4-BIDI-01" {
             60_000
@@ -187,6 +198,7 @@ pub(crate) fn control_budget_ms(requirement: &str) -> u64 {
             | "P4-TEXT-COST-01"
             | "P4-TEXT-CONTENT-LOCALITY-01"
             | "P4-TEXT-WIDTH-LOCALITY-01"
+            | "P5-ATLAS-PINNING-01"
     ) {
         return 30_000;
     }

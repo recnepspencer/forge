@@ -1,13 +1,28 @@
 use std::sync::Arc;
 
-use worth_ui_host_contract::UiFontSlant;
+use read_fonts::TableProvider;
+use worth_ui_host_contract::{
+    UiFontSlant, UiMountedCanonicalBox, UiMountedCanonicalBoxInput, UiMountedCoordinateSpace,
+    UiMountedLogicalDamage, UiMountedRgba8, UiMountedTextForegroundSpan,
+    UiMountedTextPaintSpanIdentity, UiTextOriginalRange, UiTextScaleGeneration,
+};
 
 use super::{
+    application_color_fixtures::{
+        colr_v0, colr_v0_for_glyph, colr_v1, colr_v1_composite, colr_v1_for_glyph,
+        colr_v1_gradient, corrupt_cbdt_png, corrupt_cblc_location, cpal, maxp_glyph_count,
+        rename_tables, sbix, sbix_for_glyphs, with_tables,
+    },
     application_selection_tests::selected_faces,
-    application_test_world::{assert_pack_denial, face, profile_collection_and_sources},
+    application_test_world::{assert_pack_denial, face, layout, profile_collection_and_sources},
     UiApplicationFontPackDefinition, UiFontCollectionAdmissionDenial,
 };
-use crate::{UiFontFamilyStack, UiTextFaceRequest};
+use crate::{
+    derive_glyph_raster_demand, rasterize_intrinsic_color, UiFontFamilyStack,
+    UiGlyphRasterDemandBatch, UiGlyphRasterDemandRequest, UiGlyphRasterLane,
+    UiGlyphRasterPlacement, UiGlyphRasterScale, UiGlyphRasterSource, UiQualifiedTextLayout,
+    UiTextFaceRequest,
+};
 
 #[test]
 pub(super) fn owned_color_emoji_bytes_are_selected_as_one_complete_application_cluster() {
@@ -88,6 +103,86 @@ pub(super) fn every_qualified_color_table_format_crosses_public_pack_admission()
 }
 
 #[test]
+pub(super) fn qualified_color_source_twins_keep_outline_precedence_and_bitmap_identity() {
+    let (_, sources) = profile_collection_and_sources();
+    let outline = &sources["noto-sans-roman"];
+    let bytes = with_tables(
+        outline,
+        &[
+            (b"COLR", colr_v0()),
+            (b"CPAL", cpal()),
+            (b"sbix", sbix(maxp_glyph_count(outline))),
+        ],
+    );
+    let font = harfrust::FontRef::from_index(&bytes, 0).unwrap();
+    let coverage = super::color_glyph::validate(&font).unwrap();
+    let source_for = |glyph| {
+        coverage
+            .iter()
+            .find(|candidate| candidate.glyph_id() == glyph)
+            .map(|candidate| candidate.source())
+    };
+    assert_eq!(
+        source_for(1),
+        Some(crate::layout_artifact::UiQualifiedTextColorSource::Outline)
+    );
+    assert_eq!(
+        source_for(2),
+        Some(crate::layout_artifact::UiQualifiedTextColorSource::Bitmap)
+    );
+}
+
+#[test]
+pub(super) fn qualified_sbix_png_and_one_hop_dupe_rasterize_as_intrinsic_color() {
+    let (profile, sources) = profile_collection_and_sources();
+    let outline = &sources["noto-sans-roman"];
+    let glyph_id = read_fonts::FontRef::from_index(outline, 0)
+        .unwrap()
+        .cmap()
+        .unwrap()
+        .map_codepoint('A')
+        .unwrap()
+        .to_u32();
+    let glyph_count = maxp_glyph_count(outline);
+    let direct_glyph = if glyph_id == 1 { 2 } else { 1 };
+    let bytes = with_tables(
+        outline,
+        &[(
+            b"sbix",
+            sbix_for_glyphs(
+                glyph_count,
+                direct_glyph,
+                Some(u16::try_from(glyph_id).unwrap()),
+            ),
+        )],
+    );
+    let (collection, receipt, _) = profile
+        .register_application_pack(
+            worth_ui_host_contract::UiFontCollectionGeneration::new(2).unwrap(),
+            UiApplicationFontPackDefinition {
+                name: Arc::from("sbix raster owner"),
+                faces: Box::new([face("sbix raster face", bytes, 0, UiFontSlant::Upright)]),
+            },
+        )
+        .unwrap();
+    let layout = layout(
+        Arc::new(collection),
+        receipt.family("sbix raster face").unwrap(),
+        "A",
+    );
+    let demand = color_demand(&layout);
+    assert!(demand
+        .records()
+        .iter()
+        .any(|record| record.key().source() == UiGlyphRasterSource::ColorBitmap));
+    let raster = rasterize_intrinsic_color(&layout, &demand).unwrap();
+    assert!(raster.batch().records().iter().any(|record| {
+        record.key().source() == UiGlyphRasterSource::ColorBitmap
+            && record.pixels().chunks_exact(4).any(|pixel| pixel[3] != 0)
+    }));
+}
+
+#[test]
 pub(super) fn qualified_colrv1_composite_and_gradient_enums_cross_public_admission() {
     let (mut collection, sources) = profile_collection_and_sources();
     let outline = &sources["noto-sans-roman"];
@@ -110,10 +205,91 @@ pub(super) fn qualified_colrv1_composite_and_gradient_enums_cross_public_admissi
                     )]),
                 },
             )
-            .unwrap();
+            .unwrap_or_else(|denial| panic!("qualified COLRv1 enum {index}: {denial:?}"));
         assert!(receipt.faces()[0].has_intrinsic_color());
         collection = successor;
     }
+}
+
+#[test]
+pub(super) fn qualified_colr_owner_produces_intrinsic_color_pixels() {
+    for name in ["COLRv0", "COLRv1"] {
+        let (_, sources) = profile_collection_and_sources();
+        let outline = &sources["noto-sans-roman"];
+        let glyph_id = read_fonts::FontRef::from_index(outline, 0)
+            .unwrap()
+            .cmap()
+            .unwrap()
+            .map_codepoint('A')
+            .unwrap()
+            .to_u32();
+        let table = if name == "COLRv0" {
+            colr_v0_for_glyph(u16::try_from(glyph_id).unwrap())
+        } else {
+            colr_v1_for_glyph(u16::try_from(glyph_id).unwrap())
+        };
+        assert_colr_owner_produces_pixels(name, outline, glyph_id, table);
+    }
+}
+
+fn assert_colr_owner_produces_pixels(
+    name: &str,
+    outline: &Arc<[u8]>,
+    glyph_id: u32,
+    table: Vec<u8>,
+) {
+    if name == "COLRv1" {
+        let bytes = with_tables(outline, &[(b"COLR", table.clone()), (b"CPAL", cpal())]);
+        let font = harfrust::FontRef::from_index(&bytes, 0).unwrap();
+        let coverage = super::color_glyph::validate(&font).unwrap();
+        assert!(
+            coverage
+                .iter()
+                .any(|candidate| u32::from(candidate.glyph_id()) == glyph_id),
+            "gid {glyph_id}: {:?}",
+            coverage.iter().collect::<Vec<_>>()
+        );
+    }
+    let (profile, sources) = profile_collection_and_sources();
+    let outline = &sources["noto-sans-roman"];
+    let (collection, receipt, _) = profile
+        .register_application_pack(
+            worth_ui_host_contract::UiFontCollectionGeneration::new(2).unwrap(),
+            UiApplicationFontPackDefinition {
+                name: Arc::from(format!("{name} raster owner")),
+                faces: Box::new([face(
+                    &format!("{name} raster face"),
+                    with_tables(outline, &[(b"COLR", table), (b"CPAL", cpal())]),
+                    0,
+                    UiFontSlant::Upright,
+                )]),
+            },
+        )
+        .unwrap_or_else(|denial| panic!("{name}: {denial:?}"));
+    let layout = layout(
+        Arc::new(collection),
+        receipt.family(&format!("{name} raster face")).unwrap(),
+        "A",
+    );
+    let demand = color_demand(&layout);
+    assert!(
+        demand
+            .records()
+            .iter()
+            .any(|record| record.key().source() == UiGlyphRasterSource::ColorOutline),
+        "{name}: {:?}",
+        demand
+            .records()
+            .iter()
+            .map(|record| (record.key().glyph_id(), record.key().source()))
+            .collect::<Vec<_>>()
+    );
+    let raster = rasterize_intrinsic_color(&layout, &demand).unwrap();
+    assert!(!raster.batch().records().is_empty(), "{name}");
+    assert!(raster.batch().records().iter().all(|record| {
+        record.key().source() == UiGlyphRasterSource::ColorOutline
+            && record.pixels().chunks_exact(4).any(|pixel| pixel[3] != 0)
+    }));
 }
 
 #[test]
@@ -179,216 +355,41 @@ pub(super) fn malformed_colr_and_sbix_tables_cannot_hide_behind_a_parseable_outl
     }
 }
 
-fn corrupt_cblc_location(bytes: &[u8]) -> Arc<[u8]> {
-    let mut mutated = bytes.to_vec();
-    let table = table_range(&mutated, *b"CBLC");
-    assert!(table.len() >= 12, "fixture owns one BitmapSize record");
-    mutated[table.start + 8..table.start + 12].copy_from_slice(&u32::MAX.to_be_bytes());
-    refresh_named_table_checksum(&mut mutated, *b"CBLC");
-    Arc::from(mutated)
+pub(super) fn color_demand(layout: &UiQualifiedTextLayout) -> UiGlyphRasterDemandBatch {
+    color_demand_at_dpi(layout, 1_000)
 }
 
-fn corrupt_cbdt_png(bytes: &[u8]) -> Arc<[u8]> {
-    let mut mutated = bytes.to_vec();
-    let table = table_range(&mutated, *b"CBDT");
-    let signature = mutated[table.clone()]
-        .windows(8)
-        .position(|window| window == b"\x89PNG\r\n\x1a\n")
-        .expect("fixture owns PNG-backed CBDT data");
-    let ihdr_payload = table.start + signature + 16;
-    mutated[ihdr_payload] ^= 1;
-    refresh_named_table_checksum(&mut mutated, *b"CBDT");
-    Arc::from(mutated)
+pub(super) fn color_demand_at_dpi(
+    layout: &UiQualifiedTextLayout,
+    dpi_milli: u32,
+) -> UiGlyphRasterDemandBatch {
+    derive_glyph_raster_demand(
+        layout,
+        UiGlyphRasterDemandRequest {
+            paint_spans: &[UiMountedTextForegroundSpan::from_runtime_mounting(
+                UiTextOriginalRange::new(0, 1).unwrap(),
+                UiMountedRgba8::new(255, 255, 255, 255),
+                UiMountedTextPaintSpanIdentity::from_runtime_mounting([9; 32]),
+            )],
+            logical_damage: &[full_damage()],
+            scale: UiGlyphRasterScale::new(dpi_milli, UiTextScaleGeneration::new(1).unwrap())
+                .unwrap(),
+            placement: UiGlyphRasterPlacement::default(),
+            lane: UiGlyphRasterLane::Ordinary,
+        },
+    )
+    .unwrap()
 }
 
-fn rename_tables(bytes: &[u8], replacements: &[([u8; 4], [u8; 4])]) -> Arc<[u8]> {
-    let mut mutated = bytes.to_vec();
-    let count = usize::from(be_u16(&mutated, 4));
-    for (from, to) in replacements {
-        let record = (0..count)
-            .map(|index| 12 + index * 16)
-            .find(|start| mutated[*start..*start + 4] == *from)
-            .expect("fixture owns substituted table");
-        mutated[record..record + 4].copy_from_slice(to);
-    }
-    let mut records = (0..count)
-        .map(|index| mutated[12 + index * 16..28 + index * 16].to_vec())
-        .collect::<Vec<_>>();
-    records.sort_unstable_by(|left, right| left[..4].cmp(&right[..4]));
-    for (index, record) in records.into_iter().enumerate() {
-        mutated[12 + index * 16..28 + index * 16].copy_from_slice(&record);
-    }
-    Arc::from(mutated)
-}
-
-fn refresh_named_table_checksum(bytes: &mut [u8], tag: [u8; 4]) {
-    let record = table_record(bytes, tag);
-    let range = table_range(bytes, tag);
-    let checksum = table_checksum(&bytes[range]);
-    bytes[record + 4..record + 8].copy_from_slice(&checksum.to_be_bytes());
-}
-
-fn table_record(bytes: &[u8], tag: [u8; 4]) -> usize {
-    let count = usize::from(be_u16(bytes, 4));
-    (0..count)
-        .map(|index| 12 + index * 16)
-        .find(|start| bytes[*start..*start + 4] == tag)
-        .expect("fixture owns required table")
-}
-
-fn table_range(bytes: &[u8], tag: [u8; 4]) -> std::ops::Range<usize> {
-    let record = table_record(bytes, tag);
-    let start = usize::try_from(be_u32(bytes, record + 8)).unwrap();
-    let length = usize::try_from(be_u32(bytes, record + 12)).unwrap();
-    start..start + length
-}
-
-fn table_checksum(bytes: &[u8]) -> u32 {
-    bytes.chunks(4).fold(0u32, |sum, chunk| {
-        let mut word = [0; 4];
-        word[..chunk.len()].copy_from_slice(chunk);
-        sum.wrapping_add(u32::from_be_bytes(word))
-    })
-}
-
-fn be_u16(bytes: &[u8], start: usize) -> u16 {
-    u16::from_be_bytes(bytes[start..start + 2].try_into().unwrap())
-}
-
-fn be_u32(bytes: &[u8], start: usize) -> u32 {
-    u32::from_be_bytes(bytes[start..start + 4].try_into().unwrap())
-}
-
-fn maxp_glyph_count(bytes: &[u8]) -> u16 {
-    let range = table_range(bytes, *b"maxp");
-    be_u16(bytes, range.start + 4)
-}
-
-fn colr_v0() -> Vec<u8> {
-    vec![
-        0, 0, 0, 1, 0, 0, 0, 14, 0, 0, 0, 20, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0,
-    ]
-}
-
-fn colr_v1() -> Vec<u8> {
-    colr_v1_with_paint(vec![2, 0, 0, 0x40, 0])
-}
-
-fn colr_v1_composite(mode: u8) -> Vec<u8> {
-    let mut paint = vec![32, 0, 0, 8, mode, 0, 0, 13];
-    paint.extend_from_slice(&[2, 0, 0, 0x40, 0]);
-    paint.extend_from_slice(&[2, 0, 0, 0x40, 0]);
-    colr_v1_with_paint(paint)
-}
-
-fn colr_v1_gradient(extend: u8) -> Vec<u8> {
-    let mut paint = vec![4, 0, 0, 16];
-    paint.extend_from_slice(&[0; 12]);
-    paint.extend_from_slice(&[extend, 0, 1, 0, 0, 0, 0, 0x40, 0]);
-    colr_v1_with_paint(paint)
-}
-
-fn colr_v1_with_paint(paint: Vec<u8>) -> Vec<u8> {
-    let mut table = Vec::new();
-    table.extend_from_slice(&1_u16.to_be_bytes());
-    table.extend_from_slice(&0_u16.to_be_bytes());
-    table.extend_from_slice(&0_u32.to_be_bytes());
-    table.extend_from_slice(&0_u32.to_be_bytes());
-    table.extend_from_slice(&0_u16.to_be_bytes());
-    table.extend_from_slice(&34_u32.to_be_bytes());
-    table.extend_from_slice(&[0; 16]);
-    table.extend_from_slice(&1_u32.to_be_bytes());
-    table.extend_from_slice(&1_u16.to_be_bytes());
-    table.extend_from_slice(&10_u32.to_be_bytes());
-    table.extend_from_slice(&paint);
-    table
-}
-
-fn cpal() -> Vec<u8> {
-    vec![0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 14, 0, 0, 0, 0, 0, 255]
-}
-
-fn sbix(glyph_count: u16) -> Vec<u8> {
-    let png = transparent_png();
-    let header = 4 + (usize::from(glyph_count) + 1) * 4;
-    let mut strike = vec![0, 16, 0, 72];
-    let mut data = Vec::new();
-    for glyph in 0..glyph_count {
-        strike.extend_from_slice(&u32::try_from(header + data.len()).unwrap().to_be_bytes());
-        if glyph == 1 {
-            data.extend_from_slice(&[0, 0, 0, 0]);
-            data.extend_from_slice(b"png ");
-            data.extend_from_slice(&png);
-        } else if glyph == 2 {
-            data.extend_from_slice(&[0, 0, 0, 0]);
-            data.extend_from_slice(b"dupe");
-            data.extend_from_slice(&1_u16.to_be_bytes());
-        }
-    }
-    strike.extend_from_slice(&u32::try_from(header + data.len()).unwrap().to_be_bytes());
-    strike.extend_from_slice(&data);
-    let mut table = Vec::from([0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 12]);
-    table.extend_from_slice(&strike);
-    table
-}
-
-fn transparent_png() -> Vec<u8> {
-    let mut bytes = Vec::new();
-    {
-        let mut encoder = png::Encoder::new(&mut bytes, 1, 1);
-        encoder.set_color(png::ColorType::Rgba);
-        encoder.set_depth(png::BitDepth::Eight);
-        let mut writer = encoder.write_header().unwrap();
-        writer.write_image_data(&[0, 0, 0, 0]).unwrap();
-    }
-    bytes
-}
-
-fn with_tables(bytes: &[u8], replacements: &[(&[u8; 4], Vec<u8>)]) -> Arc<[u8]> {
-    let count = usize::from(be_u16(bytes, 4));
-    let mut tables = (0..count)
-        .map(|index| {
-            let record = 12 + index * 16;
-            let tag: [u8; 4] = bytes[record..record + 4].try_into().unwrap();
-            (tag, bytes[table_range(bytes, tag)].to_vec())
+fn full_damage() -> UiMountedLogicalDamage {
+    UiMountedLogicalDamage::from_runtime_mounting(
+        UiMountedCanonicalBox::canonicalize(UiMountedCanonicalBoxInput {
+            x: -4.0,
+            y: -24.0,
+            width: 220.0,
+            height: 80.0,
+            coordinate_space: UiMountedCoordinateSpace::HostSurface,
         })
-        .collect::<std::collections::BTreeMap<_, _>>();
-    for (tag, data) in replacements {
-        tables.insert(**tag, data.clone());
-    }
-    let count = u16::try_from(tables.len()).unwrap();
-    let power = 1_u16 << (15 - count.leading_zeros() as u16);
-    let mut output = Vec::new();
-    output.extend_from_slice(&bytes[..4]);
-    output.extend_from_slice(&count.to_be_bytes());
-    output.extend_from_slice(&(power * 16).to_be_bytes());
-    output.extend_from_slice(&(power.trailing_zeros() as u16).to_be_bytes());
-    output.extend_from_slice(&(count * 16 - power * 16).to_be_bytes());
-    let directory = output.len();
-    output.resize(directory + tables.len() * 16, 0);
-    for (index, (tag, data)) in tables.into_iter().enumerate() {
-        while output.len() % 4 != 0 {
-            output.push(0);
-        }
-        let offset = output.len();
-        output.extend_from_slice(&data);
-        let record = directory + index * 16;
-        output[record..record + 4].copy_from_slice(&tag);
-        output[record + 4..record + 8]
-            .copy_from_slice(&sfnt_table_checksum(tag, &data).to_be_bytes());
-        output[record + 8..record + 12]
-            .copy_from_slice(&u32::try_from(offset).unwrap().to_be_bytes());
-        output[record + 12..record + 16]
-            .copy_from_slice(&u32::try_from(data.len()).unwrap().to_be_bytes());
-    }
-    Arc::from(output)
-}
-
-fn sfnt_table_checksum(tag: [u8; 4], data: &[u8]) -> u32 {
-    if tag != *b"head" {
-        return table_checksum(data);
-    }
-    let mut head = data.to_vec();
-    head[8..12].fill(0);
-    table_checksum(&head)
+        .unwrap(),
+    )
 }

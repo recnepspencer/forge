@@ -1,6 +1,6 @@
 mod authority;
 mod consumption_view;
-mod coordinator;
+pub(crate) mod coordinator;
 mod effect_requirements;
 mod outcome;
 mod preflight;

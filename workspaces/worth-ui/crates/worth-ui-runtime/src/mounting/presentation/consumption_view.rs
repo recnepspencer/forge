@@ -19,6 +19,7 @@ pub(super) struct UiRuntimeMountedFrameConsumptionInput<'frame> {
     pub deadline: UiPresentationDeadline,
     pub requirement: UiMountedSurfaceBindingRequirement,
     pub presentation_work: &'frame UiMountedPresentationWork,
+    pub text_raster_work: Option<&'frame worth_ui_host_contract::UiMountedTextRasterWork<'frame>>,
 }
 
 impl<'authority> UiMountedHostPresentationAuthority<'authority> {
@@ -67,6 +68,7 @@ impl<'authority> UiMountedHostPresentationAuthority<'authority> {
             requirement: input.requirement,
             presentation_work: input.presentation_work.view(),
             qualified_text: input.presentation_work,
+            text_raster_work: input.text_raster_work,
         })
     }
 }

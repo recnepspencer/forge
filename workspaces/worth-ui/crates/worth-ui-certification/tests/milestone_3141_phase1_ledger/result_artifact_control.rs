@@ -31,12 +31,25 @@ pub(super) fn validate(
     require_str(control, "exit_posture", "passed")?;
     require_i64(control, "list_exit_code", 0)?;
     require_i64(control, "test_exit_code", 0)?;
-    require_u64(control, "test_budget_ms", budget)?;
+    let observed_budget = validate_budget(control, requirement, budget)?;
     require_duration(control, "list_duration_ms", 300_000)?;
-    require_duration(control, "test_duration_ms", budget)?;
+    require_duration(control, "test_duration_ms", observed_budget)?;
     require_array(control, "list_command", &cargo_command(expected, true))?;
     require_array(control, "test_command", &cargo_command(expected, false))?;
     validate_mutation_control(control, requirement)
+}
+
+fn validate_budget(control: &Value, requirement: &str, current: u64) -> Result<u64, String> {
+    let observed = control["test_budget_ms"]
+        .as_u64()
+        .ok_or_else(|| "result artifact omits test_budget_ms".to_owned())?;
+    let legacy_phase_three = matches!(
+        requirement,
+        "P3-DELTA-SOURCE-01" | "P3-HEADLESS-COST-01" | "P3-PRODUCER-SLOPE-01"
+    ) && observed == 10_000;
+    (observed == current || legacy_phase_three)
+        .then_some(observed)
+        .ok_or_else(|| "result artifact has wrong test_budget_ms".to_owned())
 }
 
 fn validate_mutation_control(control: &Value, requirement: &str) -> Result<(), String> {

@@ -1,91 +1,57 @@
+use crate::frontier_signal_adapter::SignalFrontierSurfaceEvidence;
 use worth_signal::facade::adapters::{
-    FrontierEntryClassification, FrontierExecutionCounters, FrontierExecutionSummary,
-    FrontierInclusionBasis, FrontierPlan, FrontierPredictedCounters, FrontierRouteEvidenceReason,
-    FrontierRouteEvidenceReceipt, FrontierSeedCause, FrontierWaveEntryPlan,
-    FrontierWaveEntrySummary, FrontierWavePlan, FrontierWaveSummary, InvalidationSeed,
-    InvalidationSeedBatch, PartitionScopeSet, TouchedScopeSummary,
+    FrontierRouteEvidenceReason, FrontierRouteEvidenceReceipt, InvalidationPlanningEstimate,
+    SignalInvalidationExecutionReceipt,
 };
 use worth_signal::facade::specialist::{EvaluationOutput, RunMode};
 use worth_signal::facade::{
-    Aspect, AspectVersion, NodeId, PartitionSubscription, SignalError, SignalGraph,
+    mark_dirty, Aspect, AspectVersion, DependencyEdge, SignalError, SignalGraph, SignalRuntime,
 };
 
-pub(super) fn sample_signal_frontier_plan() -> FrontierPlan {
-    let seed = InvalidationSeed::new(
-        NodeId::new(7, 0),
-        Aspect::new(0),
-        vec![PartitionSubscription::whole_partition("wing")],
-        FrontierSeedCause::DirtySource,
-    );
-    let wave = FrontierWavePlan::new(
-        0,
-        Aspect::new(0),
-        [FrontierWaveEntryPlan::new(
-            NodeId::new(8, 0),
-            FrontierEntryClassification::DirectDirty,
-            FrontierInclusionBasis::PartitionScopeOverlap,
-            vec![PartitionSubscription::whole_partition("wing")],
-            [0],
-        )],
-    );
-
-    FrontierPlan::new(
-        InvalidationSeedBatch::new([seed]),
-        vec![wave],
-        TouchedScopeSummary::new(
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("wing")]),
-            vec![NodeId::new(7, 0), NodeId::new(8, 0)],
-            vec![NodeId::new(7, 0)],
-        ),
-        FrontierPredictedCounters {
-            seed_count: 1,
-            group_count: 1,
-            direct_wave_count: 1,
-            transitive_wave_count: 0,
-            direct_dirty_count: 1,
-            maybe_stale_count: 0,
-            partition_scoped_checks: 1,
-            partition_match_count: 1,
-            detail_match_count: 0,
-            cycle_check_candidate_count: 0,
-        },
-    )
+pub(super) fn sample_signal_planning_surface() -> SignalFrontierSurfaceEvidence {
+    let (estimate, _) = performed_signal_frontier_evidence();
+    SignalFrontierSurfaceEvidence::from_invalidation_planning_estimate(&estimate)
 }
 
-pub(super) fn sample_signal_frontier_summary() -> FrontierExecutionSummary {
-    FrontierExecutionSummary::new(
-        1,
-        vec![FrontierWaveSummary::new(
-            0,
-            Aspect::new(0),
-            [FrontierWaveEntrySummary::new(
-                NodeId::new(8, 0),
-                FrontierEntryClassification::DirectDirty,
-                FrontierInclusionBasis::PartitionScopeOverlap,
-                vec![PartitionSubscription::whole_partition("wing")],
-            )],
-        )],
-        Vec::new(),
-        TouchedScopeSummary::new(
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("wing")]),
-            vec![NodeId::new(7, 0), NodeId::new(8, 0)],
-            vec![NodeId::new(7, 0)],
-        ),
-        FrontierExecutionCounters {
-            frontier_seed_count: 1,
-            frontier_group_count: 1,
-            frontier_direct_wave_count: 1,
-            frontier_transitive_wave_count: 0,
-            frontier_partition_scoped_check_count: 1,
-            frontier_direct_dirty_count: 1,
-            frontier_maybe_stale_count: 0,
-            frontier_partition_match_count: 1,
-            frontier_detail_match_count: 0,
-            frontier_cycle_check_candidate_count: 0,
-            frontier_cycle_check_visited_count: 0,
-            frontier_trace_retained_count: 0,
-        },
-    )
+pub(super) fn sample_signal_execution_surface() -> SignalFrontierSurfaceEvidence {
+    let (_, receipt) = performed_signal_frontier_evidence();
+    SignalFrontierSurfaceEvidence::from_invalidation_execution_receipt(&receipt)
+}
+
+fn performed_signal_frontier_evidence() -> (
+    InvalidationPlanningEstimate,
+    SignalInvalidationExecutionReceipt,
+) {
+    let aspect = Aspect::new(0);
+    let mut graph = SignalGraph::new();
+    let source = graph.node().produces_aspects([aspect]).build();
+    let dependent = graph.node().reads_aspects([aspect]).build();
+    graph
+        .set_dependencies(dependent, [DependencyEdge::new(source, aspect)])
+        .expect("sample Signal dependency should install");
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    runtime
+        .evaluate_dirty(&(), &|_| {
+            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(signal_version(1)))
+        })
+        .expect("sample Signal graph should initialize");
+    let (_, receipt) = runtime
+        .observe_invalidation_execution(|runtime| {
+            mark_dirty(runtime.graph_mut(), source, aspect)?;
+            runtime.evaluate_dirty(&(), &|_| {
+                Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(signal_version(
+                    2,
+                )))
+            })
+        })
+        .expect("sample Signal invalidation should execute");
+    let estimate = runtime
+        .graph()
+        .observe()
+        .latest_invalidation_planning_estimate()
+        .cloned()
+        .expect("sample invalidation should retain its public planning estimate");
+    (estimate, receipt)
 }
 
 pub(super) fn sample_stage_execution_record(

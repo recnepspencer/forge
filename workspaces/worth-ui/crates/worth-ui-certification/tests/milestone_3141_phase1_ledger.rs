@@ -25,6 +25,8 @@ mod future_requirement_contract;
 #[cfg(test)]
 #[path = "milestone_3141_phase1_ledger/mutation_tests.rs"]
 mod mutation_tests;
+#[path = "milestone_3141_phase1_ledger/open_gate_posture.rs"]
+mod open_gate_posture;
 #[path = "milestone_3141_phase1_ledger/phase_four_case_contract.rs"]
 mod phase_four_case_contract;
 #[path = "milestone_3141_phase1_ledger/phase_progression.rs"]
@@ -53,6 +55,8 @@ mod result_artifact_counter;
 mod result_artifact_environment;
 #[path = "milestone_3141_phase1_ledger/row_evidence.rs"]
 mod row_evidence;
+#[path = "milestone_3141_phase1_ledger/runner_artifact_authentication.rs"]
+mod runner_artifact_authentication;
 #[path = "milestone_3141_phase1_ledger/schema.rs"]
 mod schema;
 #[path = "milestone_3141_phase1_ledger/shared_world_artifact.rs"]
@@ -215,7 +219,7 @@ fn phase_five_closure_requires_every_predecessor_and_phase_five_row() {
             assert_eq!(row["final_source"], "true", "{requirement} is not final");
         }
     }
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-CLOSE-01\":11}}");
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-CLOSE-01\":12}}");
 }
 
 fn validate_row(row: &Row) -> Result<(), String> {

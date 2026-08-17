@@ -2894,11 +2894,13 @@ version = "0.1.0"
 dependencies = [
  "sha2",
  "worth-foundational",
+ "worth-proof",
  "worth-query-admission",
  "worth-query-declaration",
  "worth-query-installation",
  "worth-relational",
  "worth-runtime-bridge",
+ "worth-signal",
 ]
 
 [[package]]
@@ -2986,6 +2988,7 @@ name = "worth-ui-compile-contract-fixture"
 version = "0.0.0"
 dependencies = [
  "egui",
+ "serde",
  "worth-foundational",
  "worth-ui",
  "worth-ui-dsl",
@@ -3030,9 +3033,12 @@ version = "0.1.0"
 dependencies = [
  "pollster",
  "rustybuzz",
+ "sha2",
  "swash",
  "wgpu",
  "winit",
+ "worth-proof",
+ "worth-signal",
  "worth-ui-host-contract",
  "worth-ui-retained-order",
 ]
@@ -3101,6 +3107,7 @@ dependencies = [
  "read-fonts 0.41.0",
  "sha2",
  "skrifa 0.44.0",
+ "swash",
  "unicode-bidi",
  "unicode-segmentation",
  "worth-ui-host-contract",

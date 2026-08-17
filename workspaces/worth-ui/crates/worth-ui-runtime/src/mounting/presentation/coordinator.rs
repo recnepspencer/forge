@@ -21,12 +21,16 @@ use crate::facade::UiHostEffectPort;
 mod admission;
 mod presentation_attempt;
 mod presented;
+mod semantic_text_raster;
 mod settlement;
+mod text_pins;
+mod text_raster_settlement;
 mod work_preparation;
 
 use presentation_attempt::{
     present_one_surface, UiMountedPresentationProgress, UiMountedPresentationStart,
 };
+pub(crate) use text_pins::{UiMountedTextPinCandidate, UiMountedTextPinState};
 
 const DEFAULT_IN_FLIGHT_LIMIT: usize = 1;
 
@@ -39,6 +43,7 @@ pub struct UiMountedPresentationCoordinator {
         super::state::UiMountedPresentationInFlightState,
     >,
     presentation_states: super::work_producer::UiMountedPresentationCandidates,
+    text: crate::native_platform::text_presentation::UiNativeMountedTextCoordinator,
     host_truth: crate::mounting::UiMountedHostTruthCoordinator,
 }
 
@@ -48,6 +53,7 @@ struct UiMountedPresentationSettlement<'host> {
     attempt: UiMountedPresentationAttemptIdentity,
     deadline: UiPresentationDeadline,
     pending: Vec<super::state::UiPendingMountedSurface>,
+    pending_text: Vec<super::state::UiPendingMountedTextRaster>,
     rejected: Vec<UiMountedSurfacePresentationRejection>,
     completed: Vec<UiMountedSurfacePresentationReceipt>,
     candidates: super::work_producer::UiMountedPresentationCandidates,
@@ -62,12 +68,21 @@ impl Default for UiMountedPresentationCoordinator {
             active: Rc::new(RefCell::new(BTreeSet::new())),
             in_flight: BTreeMap::new(),
             presentation_states: BTreeMap::new(),
+            text: Default::default(),
             host_truth: Default::default(),
         }
     }
 }
 
 impl UiMountedPresentationCoordinator {
+    pub(crate) fn release_text_pins_for_deregistration(
+        &mut self,
+        _host: UiHostEffectPort<'_>,
+        _surface: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
+    ) -> Result<(), crate::mounting::UiMountedIdentityDenial> {
+        Ok(())
+    }
+
     pub(crate) fn present(
         &mut self,
         attempt: UiMountedPresentationAttempt,
@@ -164,6 +179,7 @@ impl UiMountedPresentationCoordinator {
                 &prepared_surface.work,
                 &prepared_surface.expected_effects,
                 &mut progress,
+                &mut self.text,
             ) {
                 return self.indeterminate(start.frame, start.retention, start.attempt, evidence);
             }
@@ -174,6 +190,7 @@ impl UiMountedPresentationCoordinator {
             attempt: start.attempt,
             deadline: start.deadline,
             pending: progress.pending,
+            pending_text: progress.pending_text,
             rejected: progress.rejected,
             completed: progress.completed,
             candidates: prepared.candidates,
@@ -185,7 +202,7 @@ impl UiMountedPresentationCoordinator {
         &mut self,
         settlement: UiMountedPresentationSettlement<'_>,
     ) -> UiMountedPresentationOutcome {
-        if !settlement.pending.is_empty() {
+        if !settlement.pending.is_empty() || !settlement.pending_text.is_empty() {
             return self.retain_in_flight(settlement);
         }
         if settlement.completed.is_empty() {
@@ -213,6 +230,7 @@ impl UiMountedPresentationCoordinator {
                     &settlement.rejected,
                 );
                 settlement::cancel_all(settlement.pending, settlement.host);
+                text_raster_settlement::cancel_all_text(settlement.pending_text, settlement.host);
                 return self.indeterminate(
                     settlement.frame,
                     settlement.retention,
@@ -227,6 +245,7 @@ impl UiMountedPresentationCoordinator {
             attempt: settlement.attempt,
             deadline: settlement.deadline,
             pending: settlement.pending,
+            pending_text: settlement.pending_text,
             rejected: settlement.rejected,
             completed: settlement.completed,
             candidates: settlement.candidates,

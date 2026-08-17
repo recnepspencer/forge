@@ -15,14 +15,11 @@ use crate::runtime::{
     WorthQueryReadFamily, WorthQueryReadResult, WorthQueryWorkspace,
 };
 use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
-use worth_signal::facade::adapters::{
-    DedupedNodeBatch, FrontierEntryClassification, FrontierExecutionCounters,
-    FrontierExecutionSummary, FrontierInclusionBasis, FrontierPlan, FrontierPredictedCounters,
-    FrontierSeedCause, FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan,
-    FrontierWaveSummary, InvalidationSeed, InvalidationSeedBatch, PartitionScopeSet,
-    SortedSourceBatch, TouchedScopeSummary,
+use worth_signal::facade::adapters::SignalInvalidationExecutionReceipt;
+use worth_signal::facade::specialist::EvaluationOutput;
+use worth_signal::facade::{
+    mark_dirty, Aspect, AspectVersion, DependencyEdge, SignalError, SignalGraph, SignalRuntime,
 };
-use worth_signal::facade::{Aspect, NodeId, PartitionSubscription};
 
 use super::super::{
     title_value_touch, RepresentativeArtifacts, WorthQueryLowerRuntimeRepresentativeEvidenceSource,
@@ -65,71 +62,10 @@ pub(crate) fn representative_causal_bridge_materialization_row() -> Representati
 }
 
 pub(crate) fn representative_frontier_evidence_row() -> RepresentativeArtifacts {
-    let plan = FrontierPlan::new(
-        InvalidationSeedBatch::new([InvalidationSeed::new(
-            NodeId::new(1, 0),
-            Aspect::new(0),
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            FrontierSeedCause::DirtySource,
-        )]),
-        vec![FrontierWavePlan::new(
-            0,
-            Aspect::new(0),
-            [FrontierWaveEntryPlan::new(
-                NodeId::new(2, 0),
-                FrontierEntryClassification::DirectDirty,
-                FrontierInclusionBasis::DirectSubscriptionMatch,
-                PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-                [0],
-            )],
-        )],
-        TouchedScopeSummary::new_invalidation(
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::default(),
-            DedupedNodeBatch::new([NodeId::new(1, 0), NodeId::new(2, 0)]),
-            SortedSourceBatch::default(),
-        ),
-        FrontierPredictedCounters {
-            seed_count: 1,
-            direct_wave_count: 1,
-            direct_dirty_count: 1,
-            partition_match_count: 1,
-            ..FrontierPredictedCounters::default()
-        },
-    );
-    let summary = FrontierExecutionSummary::new(
-        1,
-        vec![FrontierWaveSummary::new(
-            0,
-            Aspect::new(0),
-            [FrontierWaveEntrySummary::new(
-                NodeId::new(2, 0),
-                FrontierEntryClassification::DirectDirty,
-                FrontierInclusionBasis::DirectSubscriptionMatch,
-                PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            )],
-        )],
-        Vec::new(),
-        TouchedScopeSummary::new_invalidation(
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::new([PartitionSubscription::whole_partition("tasks")]),
-            PartitionScopeSet::default(),
-            DedupedNodeBatch::new([NodeId::new(1, 0), NodeId::new(2, 0)]),
-            SortedSourceBatch::default(),
-        ),
-        FrontierExecutionCounters {
-            frontier_seed_count: 1,
-            frontier_direct_wave_count: 1,
-            frontier_direct_dirty_count: 1,
-            frontier_partition_match_count: 1,
-            ..FrontierExecutionCounters::default()
-        },
-    );
-    let planned = SignalFrontierSurfaceEvidence::from_frontier_plan(&plan);
-    let executed = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(&summary);
+    let (planned, execution_receipt) = performed_signal_frontier_evidence();
+    let planned = SignalFrontierSurfaceEvidence::from_invalidation_planning_estimate(&planned);
+    let executed =
+        SignalFrontierSurfaceEvidence::from_invalidation_execution_receipt(&execution_receipt);
     let evidence =
         WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
             .field_value(
@@ -155,6 +91,44 @@ pub(crate) fn representative_frontier_evidence_row() -> RepresentativeArtifacts 
         "Frontier evidence intake",
         evidence,
     )
+}
+
+fn performed_signal_frontier_evidence() -> (
+    worth_signal::facade::adapters::InvalidationPlanningEstimate,
+    SignalInvalidationExecutionReceipt,
+) {
+    let aspect = Aspect::new(0);
+    let mut graph = SignalGraph::new();
+    let source = graph.node().produces_aspects([aspect]).build();
+    let dependent = graph.node().reads_aspects([aspect]).build();
+    graph
+        .set_dependencies(dependent, [DependencyEdge::new(source, aspect)])
+        .expect("representative Signal dependency should install");
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    runtime
+        .evaluate_dirty(&(), &|_| {
+            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(
+                AspectVersion::from_updates([(aspect, 1)]),
+            ))
+        })
+        .expect("representative Signal graph should initialize");
+    let (_, receipt) = runtime
+        .observe_invalidation_execution(|runtime| {
+            mark_dirty(runtime.graph_mut(), source, aspect)?;
+            runtime.evaluate_dirty(&(), &|_| {
+                Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(
+                    AspectVersion::from_updates([(aspect, 2)]),
+                ))
+            })
+        })
+        .expect("representative Signal invalidation should execute");
+    let estimate = runtime
+        .graph()
+        .observe()
+        .latest_invalidation_planning_estimate()
+        .cloned()
+        .expect("performed invalidation should retain its public planning estimate");
+    (estimate, receipt)
 }
 
 fn route_planned_row(

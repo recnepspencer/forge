@@ -5,8 +5,8 @@ use harfrust::{
     ShaperInstance, Tag, UnicodeBuffer,
 };
 use worth_ui_host_contract::{
-    UiFontSlant, UiQualifiedFontFaceIdentity, UiQualifiedFontFamilyIdentity,
-    UiQualifiedFontPackIdentity,
+    UiFontSlant, UiGlyphVariationCoordinates, UiQualifiedFontFaceIdentity,
+    UiQualifiedFontFamilyIdentity, UiQualifiedFontPackIdentity, UiQualifiedTextStyleRecord,
 };
 
 use super::{coverage::UiFontCoverageIndex, UiFontShapeProbe, UiFontShapedGlyph, UiFontShapedRun};
@@ -16,7 +16,8 @@ mod variation;
 
 pub(in crate::font_collection) use variation::axis_range;
 use variation::{
-    features, variable_face_axes, variations, variations_are_qualified, UiVariableFaceAxes,
+    features, qualified_variation_records, variable_face_axes, variations,
+    variations_are_qualified, UiVariableFaceAxes,
 };
 
 pub(super) struct UiQualifiedFontFace {
@@ -30,7 +31,7 @@ pub(super) struct UiQualifiedFontFace {
     slant: UiFontSlant,
     variable_axes: UiVariableFaceAxes,
     emoji: bool,
-    color_glyphs: super::application_pack::color_tables::UiColorGlyphCoverage,
+    color_glyphs: super::color_glyph::UiColorGlyphCoverage,
     last_resort: bool,
     shaper_data: ShaperData,
     horizontal_metrics: UiFontHorizontalMetrics,
@@ -58,7 +59,7 @@ impl UiQualifiedFontFace {
         let coverage =
             UiFontCoverageIndex::from_font(&font).ok_or(Denial::MissingUnicodeCoverage)?;
         let feature_tags = feature_inventory::derive(&font)?;
-        let color_glyphs = super::application_pack::color_tables::validate(&font)?;
+        let color_glyphs = super::color_glyph::validate(&font)?;
         if input.intrinsic_color != !color_glyphs.is_empty() {
             return Err(Denial::MalformedColorFontTables);
         }
@@ -165,7 +166,24 @@ impl UiQualifiedFontFace {
             self.pack,
             Arc::clone(&self.bytes),
             self.has_intrinsic_color(),
+            self.color_glyphs
+                .iter()
+                .map(|glyph| {
+                    crate::layout_artifact::UiQualifiedTextColorGlyph::new(
+                        glyph.glyph_id(),
+                        glyph.source(),
+                    )
+                })
+                .collect(),
         )
+    }
+
+    pub(super) fn raster_variations(
+        &self,
+        style: &UiQualifiedTextStyleRecord,
+    ) -> Option<UiGlyphVariationCoordinates> {
+        let font = FontRef::from_index(&self.bytes, self.face_index).ok()?;
+        UiGlyphVariationCoordinates::from_records(&qualified_variation_records(&font, style))
     }
 
     pub(super) fn probe(

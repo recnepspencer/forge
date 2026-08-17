@@ -1,5 +1,7 @@
 use harfrust::{Feature, FontRef, Tag, Variation};
-use worth_ui_host_contract::UiFontSlant;
+use worth_ui_host_contract::{
+    UiFontSlant, UiQualifiedTextStyleRecord, UiQualifiedTextVariationRecord,
+};
 
 #[derive(Clone, Copy, Default)]
 pub(super) struct UiVariableFaceAxes {
@@ -75,6 +77,25 @@ pub(super) fn variations(font: &FontRef<'_>, style: &crate::UiTextStyle) -> Vec<
         }
     }
     variations
+}
+
+pub(super) fn qualified_variation_records(
+    font: &FontRef<'_>,
+    style: &UiQualifiedTextStyleRecord,
+) -> Vec<UiQualifiedTextVariationRecord> {
+    let mut records = style.variations().to_vec();
+    for (axis, requested) in qualified_derived_variations(style) {
+        if records.iter().any(|variation| variation.axis() == axis) {
+            continue;
+        }
+        if let Some((minimum, maximum)) = axis_range_milli(font, axis) {
+            records.push(UiQualifiedTextVariationRecord::from_text_mechanics(
+                axis,
+                requested.clamp(minimum, maximum),
+            ));
+        }
+    }
+    records
 }
 
 pub(super) fn variations_are_qualified(font: &FontRef<'_>, style: &crate::UiTextStyle) -> bool {
@@ -167,6 +188,28 @@ fn derived_variations(style: &crate::UiTextStyle) -> [([u8; 4], f32); 4] {
                 -12.0
             } else {
                 0.0
+            },
+        ),
+    ]
+}
+
+fn qualified_derived_variations(style: &UiQualifiedTextStyleRecord) -> [([u8; 4], i32); 4] {
+    [
+        (*b"wght", i32::from(style.weight()) * 1_000),
+        (
+            *b"wdth",
+            i32::try_from(style.width_milli_percent()).unwrap_or(i32::MAX),
+        ),
+        (
+            *b"ital",
+            i32::from(style.slant() == UiFontSlant::Italic) * 1_000,
+        ),
+        (
+            *b"slnt",
+            if style.slant() == UiFontSlant::Oblique {
+                -12_000
+            } else {
+                0
             },
         ),
     ]

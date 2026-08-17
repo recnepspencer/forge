@@ -14,8 +14,10 @@ use super::UiNativeHostState;
 
 #[path = "mechanics_adapter/presentation.rs"]
 mod presentation;
+#[path = "mechanics_adapter/text_atlas.rs"]
+mod text_atlas;
 
-pub struct WorthUiNativeMechanicsAdapter {
+pub(crate) struct WorthUiNativeMechanicsAdapter {
     state: Rc<RefCell<UiNativeHostState>>,
     profile: crate::UiNativePlatformProfileIdentity,
 }
@@ -27,6 +29,7 @@ impl WorthUiNativeMechanicsAdapter {
     ) -> Self {
         Self { state, profile }
     }
+
 }
 
 impl WorthUiMeasurementHostAdapter for WorthUiNativeMechanicsAdapter {
@@ -127,11 +130,48 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
     ) -> worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome {
         let key = request.binding_generation().diagnostic_value();
         let mut state = self.state.borrow_mut();
-        if state.registrations.remove(&key) != Some(request) {
+        if state.registrations.get(&key) != Some(&request) {
             return worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::RejectedBeforeEffects(
                 UiHostSurfaceRegistrationDenial::ForeignRegistration,
             );
         }
+        let binding_pins = state.text_pins_by_binding.remove(&key).unwrap_or_default();
+        let releases = binding_pins
+            .iter()
+            .copied()
+            .filter(|pin| {
+                !state
+                    .text_pins_by_binding
+                    .values()
+                    .any(|retained| retained.contains(pin))
+            })
+            .collect::<Vec<_>>();
+        if !releases.is_empty() {
+            let Ok(attempt) = worth_ui_host_contract::UiMountedPresentationAttemptIdentity::mint_unbound() else {
+                state.text_pins_by_binding.insert(key, binding_pins);
+                return worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::DeregistrationIndeterminate(
+                    worth_ui_host_contract::UiHostSurfaceDeregistrationIndeterminate::after_effects_may_have_begun(request),
+                );
+            };
+            let empty = [];
+            let outcome = text_atlas::release_pins(
+                &mut state,
+                worth_ui_host_contract::UiMountedTextPinReleaseRequest::from_runtime(
+                    request, attempt,
+                ),
+                worth_ui_host_contract::UiGlyphRasterPinTransitionView::from_text_mechanics(
+                    &empty,
+                    &releases,
+                ),
+            );
+            if !matches!(outcome, worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Committed(_)) {
+                state.text_pins_by_binding.insert(key, binding_pins);
+                return worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::DeregistrationIndeterminate(
+                    worth_ui_host_contract::UiHostSurfaceDeregistrationIndeterminate::after_effects_may_have_begun(request),
+                );
+            }
+        }
+        state.registrations.remove(&key);
         state.retained_draw_lists.remove(&key);
         state.reconstruction_required.remove(&key);
         let Some(owner) = state.registration_resources.remove(&key) else {

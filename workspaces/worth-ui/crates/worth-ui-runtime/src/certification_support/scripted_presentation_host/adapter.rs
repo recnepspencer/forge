@@ -155,6 +155,15 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
         )
     }
 
+    fn release_mounted_text_pins(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        request: worth_ui_host_contract::UiMountedTextPinReleaseRequest,
+        pins: worth_ui_host_contract::UiGlyphRasterPinTransitionView<'_>,
+    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
+        super::text_raster_adapter::release(self, authority, request, pins)
+    }
+
     fn present_mounted_surface(
         &self,
         authority: &UiHostAdapterSessionAuthority,
@@ -202,6 +211,17 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
             .observation_events
             .push("presentation-exit");
         outcome
+    }
+
+    fn prepare_mounted_text_raster(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+        demands: &[worth_ui_host_contract::UiGlyphRasterDemandBatchView<'_>],
+        pins: worth_ui_host_contract::UiGlyphRasterPinTransitionView<'_>,
+        rasterizer: &mut dyn worth_ui_host_contract::UiGlyphRasterMissRasterizer,
+    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
+        super::text_raster_adapter::prepare(self, authority, view, demands, pins, rasterizer)
     }
 
     fn complete_mounted_surface(

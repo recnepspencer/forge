@@ -170,6 +170,17 @@ pub(super) fn main_for(requirement: &str) -> Option<TestIdentity> {
             "topology_contracts",
             "milestone_3141_phase1_ledger::predecessor_handoff::phase_five_predecessor_handoff_is_current",
         ),
+        "P5-ATLAS-01" => library(
+            "worth-ui-host-native",
+            "native::mechanics_adapter::text_atlas::tests::gate_d_evidence::real_dx12_signal_transaction_matches_the_independent_atlas_model_and_closes_exactly",
+        ),
+        "P5-ATLAS-PINNING-01" => TestIdentity {
+            package: "worth-ui-platform-pulse",
+            target_kind: "test",
+            target_name: "executable_world",
+            features: EXECUTABLE_WORLD,
+            test_name: "courtroom::native_gate_d_pin::live_layout_pins_cross_runtime_native_signal_and_release_at_last_owner",
+        },
         "P5-CLOSE-01" => integration(
             "worth-ui-certification",
             "topology_contracts",
@@ -271,6 +282,14 @@ pub(super) fn control_for(requirement: &str) -> Option<TestIdentity> {
             "worth-ui-certification",
             "topology_contracts",
             "milestone_3141_phase1_ledger::predecessor_artifact::tests::phase_five_stale_source_or_missing_row_is_rejected",
+        ),
+        "P5-ATLAS-01" => library(
+            "worth-ui-host-native",
+            "native::mechanics_adapter::text_atlas::tests::gate_d_evidence::host_atlas_escape_and_lifecycle_faults_are_causally_rejected",
+        ),
+        "P5-ATLAS-PINNING-01" => library(
+            "worth-ui-runtime",
+            "mounting::presentation::coordinator::text_pins::tests::shared_pins_release_only_after_the_last_binding_is_deregistered",
         ),
         "P5-CLOSE-01" => integration(
             "worth-ui-certification",

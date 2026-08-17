@@ -1,4 +1,3 @@
-pub(in crate::font_collection) mod color_tables;
 mod container;
 mod glyph_expansion;
 mod metadata;

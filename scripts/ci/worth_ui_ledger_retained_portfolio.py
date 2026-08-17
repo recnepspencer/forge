@@ -71,7 +71,7 @@ def build(
 ) -> dict[str, Any]:
     with ledger.open(encoding="utf-8", newline="") as stream:
         rows = [row for row in csv.DictReader(stream) if int(row["phase"]) <= phase]
-    expected = {2: 30, 3: 47, 4: 68, 5: 79}[phase]
+    expected = {2: 30, 3: 47, 4: 68, 5: 80}[phase]
     if len(rows) != expected or any(
         row["result"] != "PROVED" or row["final_source"] != "true" for row in rows
     ):

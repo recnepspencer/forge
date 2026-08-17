@@ -20,6 +20,9 @@ mod text_node;
 #[path = "work_producer_tests/producer_slope.rs"]
 mod producer_slope;
 
+#[path = "work_producer_tests/batch_b_preplan_slope.rs"]
+mod batch_b_preplan_slope;
+
 #[path = "work_producer_tests/precise_damage.rs"]
 mod precise_damage;
 

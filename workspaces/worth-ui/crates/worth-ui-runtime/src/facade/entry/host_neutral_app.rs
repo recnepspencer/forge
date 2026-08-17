@@ -50,9 +50,13 @@ impl WorthUiHostNeutralApp {
     /// platform gate. No public application surface can call this transition.
     pub(crate) fn bind_qualified_native(
         self,
-        host: worth_ui_host_native::WorthUiNativeMechanicsAdapter,
+        host: worth_ui_host_native::WorthUiPreparedNativeMechanics,
     ) -> crate::facade::WorthUiApp {
-        self.bind_exact_host(host)
+        self.bind_exact_host(
+            crate::native_platform::authorized_native_host::UiAuthorizedNativeHostAdapter::bind(
+                host,
+            ),
+        )
     }
 
     pub(in crate::facade::entry) fn bind_exact_host<Host>(

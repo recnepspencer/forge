@@ -8,8 +8,11 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+worth-proof.workspace = true
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
 worth-ui-retained-order = { path = "../worth-ui-retained-order" }
+worth-signal.workspace = true
+sha2 = "=0.10.9"
 winit = { version = "=0.30.13", default-features = false, features = ["rwh_06"] }
 wgpu = { version = "=29.0.4", default-features = false, features = ["std", "parking_lot", "dx12", "wgsl"] }
 pollster = "=0.4.0"

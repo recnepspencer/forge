@@ -1,15 +1,15 @@
 #[derive(Clone, Debug)]
-pub(super) struct AdapterCandidate {
-    pub(super) surface_supported: bool,
-    pub(super) device_type: wgpu::DeviceType,
-    pub(super) limits: wgpu::Limits,
-    pub(super) vendor: u32,
-    pub(super) device: u32,
-    pub(super) name: String,
-    pub(super) driver_info: String,
+pub(crate) struct AdapterCandidate {
+    pub(crate) surface_supported: bool,
+    pub(crate) device_type: wgpu::DeviceType,
+    pub(crate) limits: wgpu::Limits,
+    pub(crate) vendor: u32,
+    pub(crate) device: u32,
+    pub(crate) name: String,
+    pub(crate) driver_info: String,
 }
 
-pub(super) fn select_eligible_adapter<T>(
+pub(crate) fn select_eligible_adapter<T>(
     mut candidates: Vec<(AdapterCandidate, T)>,
 ) -> Option<(AdapterCandidate, T)> {
     let index = candidates

@@ -61,6 +61,17 @@ fn phase_two_close_surface_is_affine_and_bound_to_the_real_native_report() {
             "pending_submissions",
             "event_wake_registrations",
             "application_drivers",
+            "alpha_atlas_pages",
+            "color_atlas_pages",
+            "atlas_staging_buffers",
+            "text_atlas_alpha_entries",
+            "text_atlas_color_entries",
+            "text_atlas_pins",
+            "text_atlas_plans",
+            "text_atlas_reservations",
+            "text_atlas_upload_submissions",
+            "text_atlas_recoveries",
+            "text_atlas_recovery_authorities",
         ])
     );
 }

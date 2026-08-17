@@ -13,6 +13,9 @@ pub(super) fn validate(requirement: &str, artifact: &Value, expected: u64) -> Re
     if requirement.starts_with("P4-") {
         return validate_stdout_counter(requirement, artifact, expected, "Phase 4");
     }
+    if requirement.starts_with("P5-") {
+        return validate_stdout_counter(requirement, artifact, expected, "Phase 5");
+    }
     let observation = &artifact["boundary_observation"];
     let observed = match requirement {
         "P2-APPLICATION-01" => value(observation, &["peak", "application_drivers"]),
@@ -121,4 +124,14 @@ fn phase_four_counter_must_come_from_the_exact_main_execution() {
     validate("P4-BIDI-01", &artifact, 582_553).unwrap();
     artifact["test_stdout"] = Value::from("WORTH_UI_LEDGER_COUNTERS={\"P4-BIDI-01\":582552}\n");
     assert!(validate("P4-BIDI-01", &artifact, 582_553).is_err());
+}
+
+#[test]
+fn phase_five_counter_must_come_from_the_exact_main_execution() {
+    let mut artifact = serde_json::json!({
+        "test_stdout": "WORTH_UI_LEDGER_COUNTERS={\"P5-PREDECESSOR-01\":68}\n"
+    });
+    validate("P5-PREDECESSOR-01", &artifact, 68).unwrap();
+    artifact["test_stdout"] = Value::from("WORTH_UI_LEDGER_COUNTERS={\"P5-PREDECESSOR-01\":67}\n");
+    assert!(validate("P5-PREDECESSOR-01", &artifact, 68).is_err());
 }

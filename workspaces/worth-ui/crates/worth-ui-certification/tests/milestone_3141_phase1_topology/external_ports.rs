@@ -51,6 +51,10 @@ fn phase_two_external_effect_ports_are_concrete_and_vendor_scoped() {
         path.starts_with("crates/worth-ui-host-native/src/native/graphics")
             || path.starts_with("crates/worth-ui-host-native/src/native/presentation")
             || path.starts_with("crates/worth-ui-host-native/src/native/event_loop")
+            || path.starts_with("crates/worth-ui-host-native/src/native/text_atlas/upload")
+            || path.starts_with(
+                "crates/worth-ui-host-native/src/native/mechanics_adapter/text_atlas_upload",
+            )
             || path == "crates/worth-ui-host-native/src/qualification_tests.rs"
     }));
 
@@ -142,7 +146,7 @@ fn assert_orchestration_crosses_each_port_once(
         "crates/worth-ui-host-native/src/native/presentation/port.rs",
     );
     for call in [
-        "draw_rectangle",
+        "draw_raster_operations",
         "retained_transfer",
         "draw_retained_to_surface",
         "copy_evidence_pixels",

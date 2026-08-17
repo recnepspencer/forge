@@ -244,7 +244,7 @@ impl UiNativeApplicationBuilder<'_> {
 impl UiPreparedNativeApplication {
     pub(crate) fn bind_qualified_native(
         self,
-        host: worth_ui_host_native::WorthUiNativeMechanicsAdapter,
+        host: worth_ui_host_native::WorthUiPreparedNativeMechanics,
     ) -> (crate::facade::WorthUiApp, super::UiNativeApplicationProgram) {
         debug_assert_eq!(
             self.binding.profile(),

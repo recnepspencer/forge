@@ -6,11 +6,17 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
     let control_tests = artifact["hostile_control"]["executed_test_count"]
         .as_u64()
         .unwrap_or(0);
-    if matches!(requirement, "P3-PREDECESSOR-01" | "P4-PREDECESSOR-01") {
+    if matches!(
+        requirement,
+        "P3-PREDECESSOR-01" | "P4-PREDECESSOR-01" | "P5-PREDECESSOR-01"
+    ) {
         return validate_predecessor(requirement, artifact, control_tests);
     }
     if requirement == "P3-HP02-WORLD-01" {
         return validate_phase_three_world(artifact, control_tests);
+    }
+    if requirement == "P5-ATLAS-PINNING-01" {
+        return validate_gate_d_pin_world(artifact, control_tests);
     }
     let p2 = requirement.starts_with("P2-");
     if artifact.get("shared_main_artifact").is_some() {
@@ -44,6 +50,31 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
         || artifact["execution_cost"].as_str() != Some(&execution)
     {
         return Err("result artifact cost is not derived from execution observations".to_owned());
+    }
+    Ok(())
+}
+
+fn validate_gate_d_pin_world(artifact: &Value, control_tests: u64) -> Result<(), String> {
+    let observation = &artifact["boundary_observation"];
+    let transactions = observation["atlas_transactions"]
+        .as_u64()
+        .ok_or_else(|| "Gate D pin world omits atlas transaction count".to_owned())?;
+    let presentations = observation["presentations"]
+        .as_u64()
+        .ok_or_else(|| "Gate D pin world omits presentation count".to_owned())?;
+    let construction = format!(
+        "main-tests=1;hostile-controls={control_tests};product-processes=1;compile-sessions=0;courtroom-worlds=1"
+    );
+    let execution = format!(
+        "executed-tests={};presentations={presentations};atlas-transactions={transactions}",
+        1 + control_tests
+    );
+    if control_tests != 1
+        || observation["terminal_zero"].as_bool() != Some(true)
+        || artifact["construction_cost"].as_str() != Some(&construction)
+        || artifact["execution_cost"].as_str() != Some(&execution)
+    {
+        return Err("Gate D pin cost is not derived from the product observation".to_owned());
     }
     Ok(())
 }
@@ -119,7 +150,7 @@ fn validate_predecessor(
             "operational predecessor cost is not derived from its governed rerun".to_owned(),
         );
     }
-    if requirement == "P4-PREDECESSOR-01"
+    if matches!(requirement, "P4-PREDECESSOR-01" | "P5-PREDECESSOR-01")
         && (!records_operational_cost
             || artifact["construction_cost"].as_str() != Some(&construction)
             || artifact["execution_cost"].as_str() != Some(&execution))

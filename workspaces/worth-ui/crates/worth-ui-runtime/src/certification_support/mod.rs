@@ -27,6 +27,7 @@ mod rebind_identity_lifecycle;
 mod runtime_launch;
 mod scripted_presentation_host;
 mod semantic_text_projection;
+mod semantic_text_resolver;
 mod touch_origin;
 mod touch_origin_source;
 
@@ -45,6 +46,7 @@ pub use crate::graph::{
     UiGraphFactConsumerIdentity, UiGraphFactIndexBasis, UiGraphFactIndexEntry,
     UiGraphFactLookupCost, UiGraphFactLookupDenial, UiGraphFactLookupReceipt,
 };
+pub use crate::native_platform::text_presentation::UiGateDPinWorldEvidence;
 pub(crate) use activation_interruption::interrupt_if_armed;
 pub use activation_interruption::{
     with_activation_precommit_interruption, WorthUiActivationPrecommitStage,
@@ -87,6 +89,10 @@ pub use mounted_frame_execution::{
 };
 pub use planning::planning_pair_for_certification_suite;
 pub use presentation_mechanics::initial_presentation_mechanics_for_certification;
+
+pub fn run_gate_d_pin_world() -> UiGateDPinWorldEvidence {
+    crate::native_platform::text_presentation::run_gate_d_pin_world()
+}
 pub use rebind_identity_lifecycle::{
     identity_lifecycle_decision_for_certification, UiIdentityLifecyclePresence,
     UiRebindPlanningBasisMutation, UiResolvedIdentityLifecycleCertificationExt,
@@ -98,10 +104,13 @@ pub use scripted_presentation_host::{
     ScriptedSurfaceCompletion,
 };
 pub use semantic_text_projection::{
-    empty_projection_for_certification, semantic_text_layout_resolver_for_certification,
-    semantic_text_projection_for_certification,
+    empty_projection_for_certification, semantic_text_projection_for_certification,
     semantic_text_projection_for_certification_with_capability,
-    UiCertificationQualifiedTextResolver, UiSemanticTextProjectionCertificationMutation,
+    semantic_text_projection_for_certification_with_text,
+    UiSemanticTextProjectionCertificationMutation,
+};
+pub use semantic_text_resolver::{
+    semantic_text_layout_resolver_for_certification, UiCertificationQualifiedTextResolver,
 };
 pub use touch_origin::{
     runtime_origin_fixture, WorthUiTouchOriginCertificationFixture,

@@ -13,7 +13,8 @@ from worth_ui_3141_ledger_contracts import (
     construction_cost,
     execution_cost,
 )
-from worth_ui_3141_supporting_world import validate_phase3_hp02_support
+from worth_ui_3141_phase4_case_contracts import positive_cases
+from worth_ui_3141_supporting_world import validate_supporting_dependency
 from worth_ui_ledger_command import (
     ROOT,
     GovernedTest,
@@ -116,7 +117,7 @@ def result_payload(test: GovernedTest) -> tuple[dict[str, Any], int]:
     refresh_handoff_when_required(test)
     snapshot = governed_snapshot(test)
     recorder = ExecutionRecorder(snapshot)
-    supporting_world = validate_phase3_hp02_support(
+    supporting_world = validate_supporting_dependency(
         test, snapshot.revision, snapshot.source_state_digest, ROOT
     )
     main = execute_main(test, recorder.execute)
@@ -185,7 +186,11 @@ def evaluate_row(evaluation: RowEvaluationInput) -> RowObservations:
     ):
         posture = "source-changed"
     boundary, cases = observe_main(test, main.execution)
-    if posture == "passed" and test.requirement == "P4-FONT-COLLECTION-01" and cases is None:
+    if (
+        posture == "passed"
+        and positive_cases(test.requirement) is not None
+        and cases is None
+    ):
         posture = "governed-case-mismatch"
     counter = observed_counter(test, main, control, boundary)
     if posture == "passed" and counter != "{}={}".format(*COUNTERS[test.requirement]):
@@ -208,7 +213,8 @@ def evaluate_row(evaluation: RowEvaluationInput) -> RowObservations:
         posture = "control-failed"
     predecessor = (
         predecessor_costs(test, control)
-        if test.requirement in {"P3-PREDECESSOR-01", "P4-PREDECESSOR-01"}
+        if test.requirement
+        in {"P3-PREDECESSOR-01", "P4-PREDECESSOR-01", "P5-PREDECESSOR-01"}
         else None
     )
     return RowObservations(posture, boundary, cases, counter, costs, predecessor)

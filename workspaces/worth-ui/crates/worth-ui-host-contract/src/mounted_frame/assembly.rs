@@ -35,6 +35,7 @@ pub struct UiMountedSurfaceBindingRequirement {
     capability_profile_digest: u64,
     presentation_mode: UiHostSurfacePresentationMode,
     baseline: UiHostSurfaceBaselineIdentity,
+    device_scale_milli: u32,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -107,6 +108,30 @@ impl UiMountedSurfaceBindingRequirement {
         presentation_mode: UiHostSurfacePresentationMode,
         baseline: UiHostSurfaceBaselineIdentity,
     ) -> Self {
+        Self::with_baseline_and_device_scale(
+            semantic_surface,
+            host_surface,
+            binding,
+            capability_generation,
+            capability_profile_digest,
+            presentation_mode,
+            baseline,
+            1_000,
+        )
+    }
+
+    #[doc(hidden)]
+    pub fn with_baseline_and_device_scale(
+        semantic_surface: UiSemanticSurfaceIdentity,
+        host_surface: UiHostSurfaceIdentity,
+        binding: UiSurfaceBindingGeneration,
+        capability_generation: WorthUiHostCapabilityObservationGeneration,
+        capability_profile_digest: u64,
+        presentation_mode: UiHostSurfacePresentationMode,
+        baseline: UiHostSurfaceBaselineIdentity,
+        device_scale_milli: u32,
+    ) -> Self {
+        assert!(device_scale_milli != 0, "mounted device scale is nonzero");
         Self {
             semantic_surface,
             host_surface,
@@ -115,6 +140,7 @@ impl UiMountedSurfaceBindingRequirement {
             capability_profile_digest,
             presentation_mode,
             baseline,
+            device_scale_milli,
         }
     }
 
@@ -144,6 +170,10 @@ impl UiMountedSurfaceBindingRequirement {
 
     pub fn baseline(self) -> UiHostSurfaceBaselineIdentity {
         self.baseline
+    }
+
+    pub fn device_scale_milli(self) -> u32 {
+        self.device_scale_milli
     }
 }
 
@@ -235,7 +265,8 @@ impl UiMountedFrameIntegrity {
                 ^ surface.binding.diagnostic_value().rotate_left(23)
                 ^ surface.capability_generation.as_u64().rotate_left(37)
                 ^ surface.capability_profile_digest
-                ^ presentation_mode_tag(surface.presentation_mode).rotate_left(47);
+                ^ presentation_mode_tag(surface.presentation_mode).rotate_left(47)
+                ^ u64::from(surface.device_scale_milli).rotate_left(59);
         }
         for cell in manifest.lane_contributions() {
             value = value.rotate_left(3)

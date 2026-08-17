@@ -20,6 +20,24 @@ POSITIVE_CASES = {
         "generation-replace-remove-pins-predecessor-bytes",
         "exact-generation-reconstruction",
     ),
+    "P5-ATLAS-01": (
+        "exact-signal-basis",
+        "independent-model",
+        "real-dx12-alpha-color",
+        "bounded-capacity",
+        "temporal-recovery",
+        "terminal-census",
+    ),
+    "P5-ATLAS-PINNING-01": (
+        "shared-layout-pins",
+        "runtime-transaction-owner",
+        "native-signal-settlement",
+        "pressure-saturation",
+        "deterministic-unpinned-replacement",
+        "last-owner-release",
+        "atlas-capacity-dependency",
+        "terminal-census",
+    ),
 }
 
 
@@ -38,6 +56,18 @@ HOSTILE_CASES = {
         "variable-axis-range-substitution",
         "missing-unicode-coverage",
         "pack-family-boundary-alias",
+    ),
+    "P5-ATLAS-01": (
+        "callback-before-effects",
+        "partial-upload-indeterminate",
+        "replayed-completion",
+        "capacity-before-raster",
+        "cancellation-recovery",
+        "equal-epoch-registration-order",
+    ),
+    "P5-ATLAS-PINNING-01": (
+        "shared-owner-preservation",
+        "last-owner-release",
     ),
 }
 

@@ -204,17 +204,29 @@ fn validate_native_resources(observation: &Value) -> Result<(), String> {
         .get("peak")
         .ok_or_else(|| "native boundary omits peak resource census".to_owned())?;
     let classes = worth_ui_host_native::UiNativeResourceCensus::field_names().collect::<Vec<_>>();
-    require_exact_resource_schema(peak, &classes)?;
+    let schema = resource_schema(peak, &classes)?;
     for class in &classes {
-        let expected = if *class == "retained_targets" { 2 } else { 1 };
-        require_u64(peak, class, expected)?;
+        if schema == ResourceSchema::Current || PHASE_TWO_RESOURCE_CLASSES.contains(class) {
+            let expected = if *class == "retained_targets" {
+                2
+            } else if PHASE_TWO_RESOURCE_CLASSES.contains(class) {
+                1
+            } else {
+                0
+            };
+            require_u64(peak, class, expected)?;
+        }
     }
     let terminal = observation
         .get("terminal_census")
         .ok_or_else(|| "native boundary omits terminal resource census".to_owned())?;
-    require_exact_resource_schema(terminal, &classes)?;
+    if resource_schema(terminal, &classes)? != schema {
+        return Err("native resource census schemas disagree".to_owned());
+    }
     for class in &classes {
-        require_u64(terminal, class, 0)?;
+        if schema == ResourceSchema::Current || PHASE_TWO_RESOURCE_CLASSES.contains(class) {
+            require_u64(terminal, class, 0)?;
+        }
     }
     let [width, height] = client_physical_size(observation)?;
     if width > 0 && height > 0 {
@@ -224,12 +236,38 @@ fn validate_native_resources(observation: &Value) -> Result<(), String> {
     }
 }
 
-fn require_exact_resource_schema(value: &Value, classes: &[&str]) -> Result<(), String> {
+const PHASE_TWO_RESOURCE_CLASSES: &[&str] = &[
+    "windows",
+    "surfaces",
+    "adapters",
+    "devices",
+    "queues",
+    "retained_targets",
+    "registrations",
+    "readback_buffers",
+    "pending_submissions",
+    "event_wake_registrations",
+    "application_drivers",
+];
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum ResourceSchema {
+    PhaseTwo,
+    Current,
+}
+
+fn resource_schema(value: &Value, classes: &[&str]) -> Result<ResourceSchema, String> {
     let object = value
         .as_object()
         .ok_or_else(|| "native resource census is not an object".to_owned())?;
     if object.len() == classes.len() && classes.iter().all(|class| object.contains_key(*class)) {
-        Ok(())
+        Ok(ResourceSchema::Current)
+    } else if object.len() == PHASE_TWO_RESOURCE_CLASSES.len()
+        && PHASE_TWO_RESOURCE_CLASSES
+            .iter()
+            .all(|class| object.contains_key(*class))
+    {
+        Ok(ResourceSchema::PhaseTwo)
     } else {
         Err("native resource census schema drifted".to_owned())
     }

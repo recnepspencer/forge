@@ -12,6 +12,8 @@ const EXPECTED_MAPPING_DIGEST: &str =
     "e8e8507f746b51bd8019af3382420716d6e7a8266d8107fe689defce1063d136";
 const EXPECTED_PHASE_THREE_MAPPING_DIGEST: &str =
     "b7d3f182c3bcd19baee831dc1097ec01c7cd1ef704554b61c5edf7cd47145c91";
+const EXPECTED_PHASE_FOUR_MAPPING_DIGEST: &str =
+    "18072c0ef0bbb717051d527027a8166f54eaf744789814ed4326b87ba332175e";
 
 #[cfg(test)]
 #[path = "predecessor_artifact_tests.rs"]
@@ -72,10 +74,11 @@ fn validate_value_with_mapping(
         "mapping_digest",
         &calculate_mapping_digest(&artifact["rows"]),
     )?;
-    let phase_mapping = if through_phase == 2 {
-        expected_mapping
-    } else {
-        EXPECTED_PHASE_THREE_MAPPING_DIGEST
+    let phase_mapping = match through_phase {
+        2 => expected_mapping,
+        3 => EXPECTED_PHASE_THREE_MAPPING_DIGEST,
+        4 => EXPECTED_PHASE_FOUR_MAPPING_DIGEST,
+        _ => unreachable!("through_phase was validated above"),
     };
     require_str(artifact, "mapping_digest", phase_mapping)?;
     validate_rows(artifact, revision, source_state, requirement_count as usize)?;

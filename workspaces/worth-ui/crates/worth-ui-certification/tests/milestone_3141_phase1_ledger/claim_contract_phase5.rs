@@ -10,6 +10,7 @@ pub(super) fn scenario_delta(requirement: &str) -> Option<&'static str> {
         "P5-TEXT-PIXELS-01" => "transcript-pixel-mismatch",
         "P5-TEXT-RECONSTRUCTION-01" => "stale-raster-reuse",
         "P5-TEXT-COST-01" => "complete-document-rescan",
+        "P5-TEXT-ASYNC-PRESENTATION-01" => "bypass-query-or-stale-presentation-completion",
         "P5-CLOSE-01" => "open-requirement",
         _ => return None,
     })
@@ -20,7 +21,7 @@ pub(super) fn construction_cost(requirement: &str) -> Option<&'static str> {
         return None;
     }
     Some(if requirement == "P5-PREDECESSOR-01" {
-        "main-tests=47;hostile-controls=48;product-processes=3;compile-sessions=2;courtroom-worlds=6"
+        "main-tests=44;hostile-controls=45;product-processes=6;compile-sessions=2;courtroom-worlds=12"
     } else {
         "main-tests=1;hostile-controls=1;product-processes=0;compile-sessions=0;courtroom-worlds=0"
     })
@@ -31,7 +32,7 @@ pub(super) fn execution_cost(requirement: &str) -> Option<&'static str> {
         return None;
     }
     Some(if requirement == "P5-PREDECESSOR-01" {
-        "executed-tests=97;presentations=28"
+        "executed-tests=91;presentations=56"
     } else {
         "executed-tests=2;presentations=0"
     })

@@ -24,7 +24,8 @@ pub use presentation::{
     UiHostPresentationCompletionToken, UiHostSurfaceCancellationOutcome,
     UiHostSurfaceInFlightCompletion, UiHostSurfacePresentationDenial,
     UiHostSurfacePresentationOutcome, UiMountedCompletedEffects, UiMountedEffectFamily,
-    UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView,
+    UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView, UiMountedTextRasterCallback,
+    UiMountedTextRasterWork,
     UiMountedSurfacePresentationCompletion, UiPresentationDeadline,
 };
 pub use presentation_cost::{

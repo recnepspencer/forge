@@ -19,6 +19,7 @@ mod reconstruction;
 mod retained_draw_list;
 mod retained_evidence_copy;
 mod retained_order;
+mod text;
 mod transaction_state;
 
 use pipeline::{
@@ -75,6 +76,7 @@ impl UiNativePresentedFrame {
 pub(crate) fn present_initial<Port: UiNativePresentationPort>(
     graphics: &mut UiNativeGraphics,
     resources: &mut UiNativeResourceRegistry,
+    physical_signal: &mut crate::native::physical_work_signal::UiNativePhysicalSignalOwner,
     view: &UiMountedFrameConsumptionView<'_>,
 ) -> Result<UiNativePresentedFrame, UiNativePresentationFailure> {
     let UiMountedPresentationWorkView::Initial(initial_work) = view.presentation_work() else {
@@ -102,7 +104,11 @@ pub(crate) fn present_initial<Port: UiNativePresentationPort>(
             )
         })?;
     let cost = initial_presentation_cost(graphics.extent(), &rects);
-    let owners = reserve_presentation_owners(resources)?;
+    let owners = reserve_presentation_owners(
+        resources,
+        physical_signal,
+        crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::from_view(view),
+    )?;
     let result = Port::present(
         graphics,
         UiNativePresentationPortPlan {
@@ -117,7 +123,7 @@ pub(crate) fn present_initial<Port: UiNativePresentationPort>(
             cost,
         },
     );
-    let external = settle_port_result(resources, owners, result)?;
+    let external = settle_port_result(resources, physical_signal, owners, result)?;
     Ok(build_presented_frame(
         view, graphics, initial, external, retained,
     ))
@@ -242,13 +248,8 @@ fn validate_initial(
     let UiMountedPresentationWorkView::Initial(initial) = view.presentation_work() else {
         return Err(UiHostSurfacePresentationDenial::AdapterDeclined);
     };
-    if !initial.projection().semantic_text().rows().is_empty()
-        || initial
-            .commands()
-            .iter()
-            .any(|command| matches!(command, UiMountedPaintCommand::SemanticText { .. }))
-    {
-        return Err(UiHostSurfacePresentationDenial::AdapterDeclined);
+    if let Some(denial) = text::semantic_text_before_effects_denial(view.presentation_work()) {
+        return Err(denial);
     }
     if initial.commands().is_empty()
         || initial.commands().len() != initial.projection().filled_rects().rows().len()

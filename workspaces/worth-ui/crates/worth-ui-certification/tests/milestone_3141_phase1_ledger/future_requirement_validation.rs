@@ -88,6 +88,7 @@ fn scenario_delta(requirement: &str) -> Option<&'static str> {
         "P5-TEXT-PIXELS-01" => "transcript-pixel-mismatch",
         "P5-TEXT-RECONSTRUCTION-01" => "stale-raster-reuse",
         "P5-TEXT-COST-01" => "complete-document-rescan",
+        "P5-TEXT-ASYNC-PRESENTATION-01" => "bypass-query-or-stale-presentation-completion",
         "P5-CLOSE-01" => "open-requirement",
         _ => return None,
     })

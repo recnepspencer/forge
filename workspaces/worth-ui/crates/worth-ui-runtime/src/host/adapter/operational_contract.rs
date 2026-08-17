@@ -73,6 +73,50 @@ pub trait WorthUiOperationalHostAdapter:
         worth_ui_host_contract::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun
     }
 
+    fn prepare_mounted_text_raster(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+        _view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+        _demands: &[worth_ui_host_contract::UiGlyphRasterDemandBatchView<'_>],
+        _pins: worth_ui_host_contract::UiGlyphRasterPinTransitionView<'_>,
+        _rasterizer: &mut dyn worth_ui_host_contract::UiGlyphRasterMissRasterizer,
+    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
+            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
+        )
+    }
+
+    fn complete_mounted_text_raster(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+        _pending: worth_ui_host_contract::UiGlyphRasterTransactionPending,
+    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
+            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
+        )
+    }
+
+    fn cancel_mounted_text_raster(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+        _pending: worth_ui_host_contract::UiGlyphRasterTransactionPending,
+    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
+            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
+        )
+    }
+
+    fn release_mounted_text_pins(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+        _request: worth_ui_host_contract::UiMountedTextPinReleaseRequest,
+        _pins: worth_ui_host_contract::UiGlyphRasterPinTransitionView<'_>,
+    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
+            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
+        )
+    }
+
     fn register_surface(
         &self,
         _authority: &UiHostAdapterSessionAuthority,
@@ -201,6 +245,50 @@ where
         self.perform_mounted_surface_cancellation(token)
     }
 
+    fn prepare_mounted_text_raster(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+        _view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+        _demands: &[worth_ui_host_contract::UiGlyphRasterDemandBatchView<'_>],
+        _pins: worth_ui_host_contract::UiGlyphRasterPinTransitionView<'_>,
+        _rasterizer: &mut dyn worth_ui_host_contract::UiGlyphRasterMissRasterizer,
+    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
+            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
+        )
+    }
+
+    fn complete_mounted_text_raster(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+        _pending: worth_ui_host_contract::UiGlyphRasterTransactionPending,
+    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
+            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
+        )
+    }
+
+    fn cancel_mounted_text_raster(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+        _pending: worth_ui_host_contract::UiGlyphRasterTransactionPending,
+    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
+            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
+        )
+    }
+
+    fn release_mounted_text_pins(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+        _request: worth_ui_host_contract::UiMountedTextPinReleaseRequest,
+        _pins: worth_ui_host_contract::UiGlyphRasterPinTransitionView<'_>,
+    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
+            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
+        )
+    }
+
     fn register_surface(
         &self,
         authority: &UiHostAdapterSessionAuthority,
@@ -236,92 +324,5 @@ where
 }
 
 #[cfg(test)]
-mod tests {
-    use std::cell::Cell;
-
-    use worth_ui_host_contract::{
-        UiHostCaptureArtifactBudget, UiHostCaptureFrameAffinity, UiHostCaptureObservationOutcome,
-        UiHostCaptureRequestIdentity, UiHostCaptureSurfaceAffinity,
-        UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiHostPresentationEpoch,
-        UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt, UiHostSurfaceIdentity,
-        UiHostVisualCaptureRequest, UiMountedFrameIdentity, UiMountedPresentationAttemptIdentity,
-        UiSurfaceBindingGeneration, WorthUiHostCapabilityReport, WorthUiHostContract,
-        WorthUiHostMechanicsAdapter, WorthUiMeasurementHostAdapter,
-    };
-
-    use super::{UiHostAdapterSessionAuthority, WorthUiOperationalHostAdapter};
-
-    #[derive(Default)]
-    struct PendingCaptureMechanics {
-        capture_calls: Cell<usize>,
-    }
-
-    impl WorthUiMeasurementHostAdapter for PendingCaptureMechanics {
-        fn observe_measurement(
-            &self,
-            _request: &UiHostMeasurementRequest,
-        ) -> UiHostMeasurementObservationValue {
-            unreachable!("the focused capture mechanics declare no measurement capability")
-        }
-    }
-
-    impl WorthUiHostMechanicsAdapter for PendingCaptureMechanics {
-        fn mechanical_host_contract(&self) -> WorthUiHostContract {
-            WorthUiHostContract::headless()
-        }
-
-        fn mechanical_capability_report(&self) -> WorthUiHostCapabilityReport {
-            WorthUiHostCapabilityReport::available(Vec::new())
-        }
-
-        fn perform_visual_capture(
-            &self,
-            _request: UiHostVisualCaptureRequest,
-        ) -> UiHostCaptureObservationOutcome {
-            self.capture_calls.set(self.capture_calls.get() + 1);
-            UiHostCaptureObservationOutcome::Pending
-        }
-
-        fn release_mechanical_host_session(
-            &self,
-            host_session_identity: u64,
-        ) -> UiHostSessionReleaseOutcome {
-            UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
-                host_session_identity,
-                0,
-            ))
-        }
-    }
-
-    #[test]
-    fn mechanics_capture_port_rejects_foreign_session_before_adapter_effects() {
-        let mechanics = PendingCaptureMechanics::default();
-        let authority = UiHostAdapterSessionAuthority::activate(7);
-        assert!(matches!(
-            mechanics.capture_visual_presentation(&authority, capture_request(7)),
-            UiHostCaptureObservationOutcome::Pending
-        ));
-        assert!(matches!(
-            mechanics.capture_visual_presentation(&authority, capture_request(8)),
-            UiHostCaptureObservationOutcome::Unsupported
-        ));
-        assert_eq!(mechanics.capture_calls.get(), 1);
-    }
-
-    fn capture_request(host_session_identity: u64) -> UiHostVisualCaptureRequest {
-        UiHostVisualCaptureRequest::admitted_by_runtime(
-            UiHostCaptureRequestIdentity::issued_by_runtime(1),
-            UiHostCaptureFrameAffinity::observed_by_runtime(
-                UiMountedFrameIdentity::mint_unbound().unwrap(),
-                UiMountedPresentationAttemptIdentity::mint_unbound().unwrap(),
-            ),
-            UiHostCaptureSurfaceAffinity::observed_by_runtime(
-                host_session_identity,
-                UiHostSurfaceIdentity::mint_unbound().unwrap(),
-                UiSurfaceBindingGeneration::mint_unbound().unwrap(),
-                UiHostPresentationEpoch::issued_by_host(1),
-            ),
-            UiHostCaptureArtifactBudget::admitted_by_runtime(false, 0),
-        )
-    }
-}
+#[path = "operational_contract_tests.rs"]
+mod tests;

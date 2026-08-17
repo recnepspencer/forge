@@ -272,6 +272,13 @@ fn hash_faces(hasher: &mut Sha256, faces: &[UiQualifiedTextFaceResource]) {
             None => hasher.update([0]),
         }
         hasher.update([u8::from(face.intrinsic_color())]);
+        for glyph in face.color_glyphs() {
+            hasher.update(glyph.glyph_id().to_le_bytes());
+            hasher.update([match glyph.source() {
+                crate::layout_artifact::UiQualifiedTextColorSource::Outline => 0,
+                crate::layout_artifact::UiQualifiedTextColorSource::Bitmap => 1,
+            }]);
+        }
     }
 }
 
@@ -366,3 +373,7 @@ const fn overflow_tag(value: crate::UiTextOverflow) -> u8 {
         crate::UiTextOverflow::Ellipsis => 1,
     }
 }
+
+#[cfg(test)]
+#[path = "identity_color_tests.rs"]
+mod color_tests;

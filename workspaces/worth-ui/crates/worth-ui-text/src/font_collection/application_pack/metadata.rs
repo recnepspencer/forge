@@ -2,10 +2,10 @@ use harfrust::{FontRef, Tag};
 use worth_ui_host_contract::UiFontSlant;
 
 use super::{
-    color_tables, container, metadata_inventory, metadata_inventory::UiApplicationFaceMetadata,
+    container, metadata_inventory, metadata_inventory::UiApplicationFaceMetadata,
     UiApplicationFontFaceDefinition,
 };
-use crate::font_collection::{face::axis_range, UiFontCollectionAdmissionDenial};
+use crate::font_collection::{color_glyph, face::axis_range, UiFontCollectionAdmissionDenial};
 
 pub(super) fn validate_face_definition(
     face: &UiApplicationFontFaceDefinition,
@@ -30,7 +30,7 @@ pub(super) fn validate_face_definition(
     {
         return Err(Denial::UnsupportedShapingTable);
     }
-    let intrinsic_color = !color_tables::validate(&font)?.is_empty();
+    let intrinsic_color = !color_glyph::validate(&font)?.is_empty();
     validate_face_metadata(&font, face)?;
     metadata_inventory::derive(&font, intrinsic_color)
 }

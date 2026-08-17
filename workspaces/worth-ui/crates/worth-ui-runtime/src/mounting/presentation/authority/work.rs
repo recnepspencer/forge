@@ -44,6 +44,13 @@ impl UiMountedPresentationWork {
         Rc::ptr_eq(&self.authority, seal)
     }
 
+    pub(crate) fn resolve_layout(
+        &self,
+        identity: worth_ui_host_contract::UiQualifiedTextLayoutIdentity,
+    ) -> Option<&worth_ui_text::UiQualifiedTextLayout> {
+        self.layout_owner.as_ref()?.qualified_layout(identity)
+    }
+
     pub(crate) fn bind_layout_owner(
         &mut self,
         owner: std::sync::Arc<crate::mounting::UiMountedProjectionFrame>,

@@ -3,14 +3,22 @@
 ## Status and Placement
 
 Status: implementation specification for the ten-phase slice immediately
-after Milestone 3.14 and before Milestone 3.15. Phase 1-2 qualification and
-public-authority records are closed and proved. The future Phase 4 text gate is
-deliberately reopened by the framework-grade Unicode and emoji requirement
-below: `worth-ui-body-default-v1` remains immutable predecessor evidence, while
-`worth-ui-global-text-v2` must close its exact assets, dependencies, generated
-Unicode data, capacities, and conformance corpus before Phase 4 implementation
-planning. A different asset, dependency, capacity, signature, or platform
-policy is a specification change rather than implementation discretion.
+after Milestone 3.14 and before Milestone 3.15. Phases 1-4 are closed and
+proved in the append-only ledger. `worth-ui-body-default-v1` remains immutable
+Phase 1-2 predecessor evidence; the qualified `worth-ui-global-text-v2`
+profile is the closed Phase 4 authority consumed by Phase 5. A different asset,
+dependency, capacity, signature, or platform policy is a specification change
+rather than implementation discretion. Phase 5 contains twelve rows; the
+physical Signal architecture change makes the retained `P5-ATLAS-01` artifact
+stale, so its next governed Phase 5 candidate reopens it together with the
+still-OPEN feature rows without rewriting the closed Phase 1-4 prefix.
+
+The detailed Phase 5 raster, atlas, native text-presentation, courtroom,
+cost, topology, and documentation contract is governed by
+[`milestone-3.14.1-phase-5.md`](milestone-3.14.1-phase-5.md). It is a
+normative subordinate specification, not a separate roadmap milestone or
+proof ledger. This parent retains the overall milestone contract, phase order,
+exact Phase 5 row inventory, and successor handoff.
 
 Milestones 3.10-3.14 established one real application lifecycle, exact mounted
 identity, observation-driven rebind, projected product data, and
@@ -20,8 +28,10 @@ focus, motion, appearance, and later native services would otherwise be built
 against a host scheduled for deletion.
 
 The milestone is deliberately broad in native mechanics and narrow in product
-meaning. It does not reopen authored meaning, Query authority, targeting,
-intent admission, consequence publication, or appearance semantics.
+meaning. It does not reopen authored meaning, broad Query migration, targeting,
+intent admission, consequence publication, or appearance semantics. Phase 5
+does add one narrow Query-owned async presentation result through the existing
+WORTH UI Query binding boundary.
 
 Treat this as the largest single 3.x platform-migration slice. Its ten phases
 are proof and authority gates, not equal units of effort; implementation
@@ -570,69 +580,25 @@ rescan an unchanged text carrier; each must fail for its named reason.
 
 ### `HP-03`: Text and atlas courtroom
 
-Use `MountedPresentationWorld::qualified_text` with the exact
-`worth-ui-global-text-v2` font collection and a checked-in, independently
-authored corpus containing Latin with combining marks and canonical-
-equivalence twins; Greek and Cyrillic; Arabic joining, marks, digits, paired
-brackets, and embedded English; Hebrew with numbers; Devanagari and Bengali
-conjuncts; Thai and Khmer dictionary-sensitive wrapping; Hangul; CJK
-punctuation and wrapping; mixed-script fallback; and Unicode 17.0 emoji
-presentation-selector, keycap, flag, tag, modifier, and multi-person ZWJ
-sequences. Include hard breaks, tabs, whitespace, narrow and wide wrapping,
-grapheme wrapping, maximum lines plus ellipsis, clipping, multiple style and
-fallback runs, maximum lawful paragraph bytes, and one valid unassigned scalar
-that must use the pinned Last Resort disposition.
-Include one single-line mixed-span case with a small red application-font run,
-a large green run from the same family, a differently sized blue italic Arabic
-run from another family, and intrinsic-color emoji. The application supplies
-the reference font bytes; the courtroom never depends on a proprietary or
-ambient machine-installed face.
+Use `MountedPresentationWorld::qualified_text` through the ordinary public
+application, Query admission, mounting, runtime, headless, native, and
+Windows/WGPU boundaries. It combines the exact qualified text profile,
+application-owned fonts, multilingual and complex layout, the full Unicode 17
+RGI set, mixed original-range paint spans, alpha and intrinsic-color raster,
+separate bounded atlases, saturation, DPI/text-scale changes, failure,
+destruction/reconstruction, unchanged-zero, and exact cleanup.
 
-The courtroom establishes four independent observations over the same
-causally issued mounted rows:
+Unicode/layout fixtures, a pinned raster oracle, an independent atlas model,
+headless transcripts, retained-target readback, and compositor-visible capture
+must adjudicate the same mounted identities. Exhaustive internal raster
+evidence and representative real pixels are both required. Each unique corpus,
+model, and native execution runs once per source-state and claim digest; rows
+share authenticated receipts and the final gate validates rather than reruns
+the retained portfolio.
 
-1. Unicode conformance data and a test-owned paragraph oracle adjudicate
-   grapheme, word, line-break, bidi-level, logical/visual-order, and original-
-   byte-range results without importing production analysis code.
-2. Shaping fixtures generated once from the pinned reference HarfBuzz tool and
-   exact font assets adjudicate face selection, glyph sequence, advances,
-   offsets, cluster ranges, and feature posture; checked-in expected records
-   include their tool, data, font, and profile digests.
-3. A layout oracle independently fits the shaped records into lines and checks
-   baselines, ink/logical bounds, overflow, caret stops, hit-test results, and
-   selection rectangles. Measurement requests and native presentation must
-   name the same `UiQualifiedTextLayout` identity.
-4. The existing external pixel boundary adjudicates monochrome glyph coverage,
-   exact per-span foreground RGBA, color emoji layers, clipping, ordering, and
-   transparent pixels outside glyph ink. The oracle verifies that foreground
-   follows original ranges through bidi visual reordering, that mixed-size
-   runs share the qualified baseline and line box, and that intrinsic-color
-   emoji is not tinted by adjacent text. The atlas oracle independently models
-   alpha/color capacity, pinning, candidate eviction, retained bytes, and
-   reconstruction.
-
-The hostile sequence changes one paragraph and width while leaving all other
-text identical, introduces repeated and new alpha/color glyphs, reaches both
-atlas capacity boundaries, removes unpinned candidates, preserves live pins,
-changes pure DPI, changes framework text scale, destroys every derived layout,
-glyph buffer, and atlas page, and reconstructs from mounted authority. Pure
-DPI changes preserve logical line and caret geometry while replacing raster
-generation; width or text-scale changes replace layout generation. An
-unchanged turn performs zero Unicode analysis, fallback probes, shaping, line
-layout, rasterization, atlas mutation, upload, surface acquisition, and
-presentation work.
-
-The courtroom must turn red if implementation uses an ASCII-only path, shapes
-before bidi/run segmentation, reorders source bytes, breaks inside a grapheme
-or shaping cluster, chooses fallback per scalar, splits a ZWJ/flag/modifier
-sequence, ignores FE0E/FE0F, drops a color layer, uses a system font, allows
-measurement and rendering to reshape independently, elides Last Resort
-attribution, collapses several foreground spans into one color, assigns color
-by visual rather than original range, tints intrinsic-color emoji, reshapes or
-remeasures on a color-value-only edit, evicts a pinned glyph, retains stale
-width/text-scale/DPI state, clears to an opaque adapter color, scans or
-reshapes every retained paragraph for one changed row, or reconstructs pixels
-from an atlas/cache instead of mounted authority.
+The exact real world, hostile sequence, decisions, typed outcomes, cost/resource
+contract, mutants, and proof-economy requirements are owned by the
+[Phase 5 subordinate specification](milestone-3.14.1-phase-5.md#decisive-product-courtroom-hp-03).
 
 ### `HP-04`: Native lifecycle courtroom
 
@@ -1504,6 +1470,7 @@ diagram.
 ```text
 _docs/worth-ui/
   milestone-3.14.1.md                            [create: governing design]
+  milestone-3.14.1-phase-5.md                    [create: Phase 5 subordinate design]
   milestone-3.14.1-proof-ledger.csv              [create: closure evidence]
 
 workspaces/worth-ui/
@@ -1665,16 +1632,17 @@ Committed successors enter additively:
 
 ### Current implementation status
 
-Phase 1-2 production requirements were closed at revision `234c3aaf4` by
-thirty `PROVED`, `final_source=true` ledger rows. This specification/roadmap
-revision changes governed source bytes, so the operational verifier must
-reexecute the immutable prefix and `P3-PREDECESSOR-01` must retain that fresh
-current-source handoff before any other Phase 3 proof. The predecessor rows,
-nonces, and artifacts are not refreshed or rewritten. This does not reopen
-their production behavior or v1 profile evidence. Later phases remain ordered
-and open. The Phase 2 rectangle seed does not imply retained-delta, text,
-input, resize, capture, recovery, or parity evidence. The framework-grade text
-decision separately reopens the future Phase 4 qualification gate.
+Phases 1-4 are recorded as `PROVED`, `final_source=true` without rewriting
+their predecessor rows, nonces, or artifacts. Phase 5 begins with a fresh
+operational `P5-PREDECESSOR-01` handoff that reexecutes the immutable Phase 1-4
+portfolio against current source. That current-source handoff must close before
+any still-open Phase 5 feature row. `P5-ATLAS-01` is already proved on its
+prior governed source, but the physical Signal pivot changes its exact owner,
+source, lifecycle, completion/recovery semantics, and evidence. Its next
+governed candidate therefore reopens it without modifying the immutable Phase
+1-4 prefix. The other existing rows plus the new
+`P5-TEXT-ASYNC-PRESENTATION-01` row are intentionally OPEN; readiness evidence
+does not imply pixels, async completion truth, recovery, parity, or closure.
 
 ### Phase 1: Protocol, qualification, and topology closure
 
@@ -1936,40 +1904,36 @@ with no system-font or adapter-layout authority.
 
 ### Phase 5: Color glyphs, emoji, atlas, and native text presentation
 
-Consume only Phase 4 `UiQualifiedTextLayout` artifacts. Implement typed alpha
-and color glyph raster batches, grayscale outline and color outline/bitmap
-source order, receipt-attributed glyph-run commands carrying exact paint-span
-identity and logical straight foreground RGBA, separate bounded alpha and RGBA
-atlases, live-layout pinning, deterministic candidate eviction, staged uploads,
-pure-DPI raster replacement, text-scale/layout replacement, and complete
-layout/raster/atlas reconstruction from mounted authority. Alpha-mask glyphs
-are tinted and premultiplied only in the qualified presentation pipeline;
-intrinsic-color glyphs preserve their palette/bitmap color and ignore the
-surrounding foreground unless a later profile explicitly qualifies tinting.
-Exercise
-every exact sequence in the full Unicode 17 RGI emoji corpus, including variation selectors,
-flags, modifiers, tags, keycaps, and multi-person ZWJ sequences; no color layer
-or cluster may be dropped or split.
+Consume only Phase 4 `UiQualifiedTextLayout` authority. Close qualified alpha
+and intrinsic-color raster, separate bounded native atlases, live-layout
+pinning, deterministic unpinned eviction, staged upload, original-range paint
+spans, DPI/text-scale behavior, native pixels, exact cost, cleanup, and complete
+derived-state reconstruction. Native completion is fed through Runtime Bridge
+into one Query-owned semantic mounted-presentation async result; glyphs, atlas
+entries, pages, and uploads remain native implementation resources. Every
+exact Unicode 17 RGI mapping is proved
+internally; representative real pixels cover every admitted raster source and
+sequence class. Consumers may not reshape, refallback, rebreak, substitute
+fonts, or own framework text state.
 
-A color-only successor with unchanged text, font collection, style-span
-boundaries, width, locale, direction, and text scale reuses the exact
-`UiQualifiedTextLayout`, shaped glyphs, metrics, caret/hit/selection geometry,
-and atlas entries. It updates only affected glyph-run foreground payloads and
-their logical damage. Changing a paint-span boundary may re-itemize and reshape
-only the intersecting run because one glyph may not straddle two foreground
-colors. Headless transcripts and native pixels must report the same mounted
-paint-span identity and RGBA.
+Phase 5 uses two disjoint Signal domains. Query/Runtime Bridge owns the
+semantic presentation graph and its application-visible invalidation. One
+bounded physical Signal runtime in each host-native host/device lifecycle owns
+atlas/upload/poll/retry/cancel/recovery/wake/shutdown progression around native
+resources. Host-native retains WGPU and atlas physical truth and imports no
+Query; Signal stores no raw WGPU handles and grants no native effect authority.
 
-Close all remaining `HP-03` atlas, native pixel, external adjudication, cost,
-saturation, and hostile mutation evidence and produce the glyph rebaseline
-candidate without yet changing the cumulative Pulse expectation. Measurement,
-hit testing, rasterization, and rendering must report one layout identity.
+The normative authority graph, staged raster/atlas transaction, profile
+semantics, `HP-03` courtroom, resource/cost contract, implementation gates,
+destination tree, documentation, and acceptance evidence are specified in
+[`milestone-3.14.1-phase-5.md`](milestone-3.14.1-phase-5.md).
 
-Phase 5 contains exactly eleven append-only rows. It begins with
+Phase 5 contains exactly twelve append-only rows. It begins with
 `P5-PREDECESSOR-01`, then proves `P5-GLYPH-RASTER-01`,
 `P5-COLOR-EMOJI-01`, `P5-ATLAS-01`, `P5-ATLAS-PINNING-01`,
 `P5-TEXT-DPI-01`, `P5-TEXT-SPAN-PAINT-01`, `P5-TEXT-PIXELS-01`,
-`P5-TEXT-RECONSTRUCTION-01`, and `P5-TEXT-COST-01`, and ends with
+`P5-TEXT-RECONSTRUCTION-01`, `P5-TEXT-COST-01`, and
+`P5-TEXT-ASYNC-PRESENTATION-01`, and ends with
 `P5-CLOSE-01`. The predecessor row must reexecute the immutable Phase 1-4
 prefix against current source before any Phase 5 feature row may close. The
 close row must reject any open predecessor or Phase 5 row. Feature rows include an external
@@ -1981,11 +1945,19 @@ color assignment, emoji tinting, and layout regeneration on a color-only edit.
 RGI sequence mapping internally; native pixel evidence supplies representative
 observations for every admitted color source and sequence class and cannot
 replace the exhaustive internal corpus proof.
+`P5-TEXT-ASYNC-PRESENTATION-01` requires the public `HP-03` path to retain
+pending/current/stale/failed/cancelled/superseded/unresolved posture in Query,
+while host-native alone decides external completion and runtime retains exact
+attempt lineage. Query remains absent from host-native and runtime; the sole
+production WORTH UI Query edge is `worth-ui-query-binding`. Host-native alone
+may import Signal for the dedicated physical runtime. Runtime owns neither
+Signal graph.
 
 Destination-topology tests may freeze ownership, type separation, and forbidden
 consumer dependencies before implementation. They are readiness evidence only:
 they emit no ledger counter or mutation receipt and cannot be mapped as the main
-or hostile control for any Phase 5 feature row.
+or hostile control for any Phase 5 feature row. Phase 5 remains part of this
+milestone and uses this milestone's single append-only ledger.
 
 Phase 6 may trust deterministic framework-grade text layout and attributable
 multilingual/color-emoji pixels without system fallback, environment-selected
@@ -2113,6 +2085,7 @@ every guarantee.
 | `workspaces/worth-ui/docs/visual-inspection.md` | Snapshot capture is exact presented-source-target readback with typed affinity, cancellation, budget, disposal, and a distinct compositor-visible observation posture. | Native capture and anti-substitution evidence. |
 | `workspaces/worth-ui/docs/interaction-and-intents.md` | Native observations replace egui translation without changing targeting, IME/draft phase distinctions, or intent authority. | 3.14 cumulative input evidence. |
 | `_docs/worth-ui/worth_ui_roadmap.md` | 3.14.1 contract closure and 3.15 dependency remain current. | Documentary consistency audit. |
+| `_docs/worth-ui/milestone-3.14.1-phase-5.md` | Phase 5 raster, atlas, pixels, cost, reconstruction, and proof authority remains explicit without duplicating a roadmap milestone or ledger. | Documentary consistency audit and exact Phase 5 ledger inventory check. |
 
 Delete or rewrite every continuing example that names eframe, egui context,
 adapter repaint, or the retired host. Do not create a milestone closeout guide

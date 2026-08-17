@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import contextlib
-import io
 import os
 import subprocess
 import sys
@@ -23,6 +21,11 @@ from worth_ui_ledger_row_cache import RowEvidenceCache
 from worth_ui_ledger_row_execution import execute_or_restore, run_row
 from worth_ui_ledger_retained_portfolio import portfolio_identity, publish
 from worth_ui_ledger_source_state import source_state_digest
+from worth_ui_ledger_closure_storage import (
+    ledger_lock as acquire_ledger_lock,
+    render_requirement_update,
+    write_requirements as write_ledger_requirements,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,29 +33,8 @@ LEDGER = ROOT / "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv"
 LEDGER_LOCK = LEDGER.with_suffix(".lock")
 
 
-@contextlib.contextmanager
 def ledger_lock(identity: Path = LEDGER_LOCK):
-    identity.parent.mkdir(parents=True, exist_ok=True)
-    with identity.open("a+b") as stream:
-        if os.fstat(stream.fileno()).st_size == 0:
-            stream.write(b"0")
-            stream.flush()
-        stream.seek(0)
-        if os.name == "nt":
-            import msvcrt
-            msvcrt.locking(stream.fileno(), msvcrt.LK_LOCK, 1)
-            try:
-                yield
-            finally:
-                stream.seek(0)
-                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
-        else:
-            import fcntl
-            fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+    return acquire_ledger_lock(identity)
 
 
 def close_row(row: dict[str, str], result: dict[str, object]) -> None:
@@ -74,39 +56,7 @@ def run(command_text: str, candidate_ledger: Path | None = None) -> dict[str, ob
 def write_requirements(
     rows: list[dict[str, str]], fields: list[str], requirements: set[str]
 ) -> None:
-    original = LEDGER.read_text(encoding="utf-8")
-    rendered = render_requirement_update(original, rows, fields, requirements)
-    with tempfile.NamedTemporaryFile(
-        "w", encoding="utf-8", newline="", dir=LEDGER.parent, delete=False
-    ) as stream:
-        stream.write(rendered)
-        temporary = Path(stream.name)
-    temporary.replace(LEDGER)
-
-
-def render_requirement_update(
-    original: str,
-    rows: list[dict[str, str]],
-    fields: list[str],
-    requirements: set[str],
-) -> str:
-    mutable = {row["requirement"]: row for row in rows if row["requirement"] in requirements}
-    if set(mutable) != requirements:
-        raise RuntimeError("ledger update names an unknown requirement")
-    lines = original.splitlines(keepends=True)
-    requirement_index = fields.index("requirement")
-    for index, line in enumerate(lines[1:], 1):
-        record = next(csv.reader([line]))
-        requirement = record[requirement_index]
-        if requirement in mutable:
-            lines[index] = serialize_row(mutable[requirement], fields)
-    return "".join(lines)
-
-
-def serialize_row(row: dict[str, str], fields: list[str]) -> str:
-    stream = io.StringIO(newline="")
-    csv.DictWriter(stream, fieldnames=fields, lineterminator="\n").writerow(row)
-    return stream.getvalue()
+    write_ledger_requirements(LEDGER, rows, fields, requirements)
 
 
 def main() -> int:
@@ -127,12 +77,8 @@ def governed_main(arguments: argparse.Namespace) -> int:
     )
     if requirement is None:
         require_complete_phase_mapping(rows, through_phase, configured)
-    elif through_phase > 2 and not prepare_only:
-        require_complete_phase_mapping(rows, through_phase, configured)
     for row in selected:
-        prepare_claim(row, configured[row["requirement"]])
-        row["result"] = "OPEN"
-        row["final_source"] = "false"
+        reopen_claim(row, configured[row["requirement"]])
     if selected:
         write_requirements(rows, fields, {row["requirement"] for row in selected})
     if prepare_only:
@@ -152,6 +98,29 @@ def governed_main(arguments: argparse.Namespace) -> int:
     else:
         raise RuntimeError("unsupported Worth UI milestone phase")
     return 0
+
+
+def reopen_claim(row: dict[str, str], proof: object) -> None:
+    previous_artifact = row.get("result_artifact_digest")
+    prepare_claim(row, proof)
+    row.update(
+        {
+            "matched_test_count": "0",
+            "command_result": "not-run",
+            "source_revision": "not-bound",
+            "source_digest": "not-bound",
+            "source_state_digest": "not-bound",
+            "run_nonce": "not-bound",
+            "result_artifact_digest": "not-bound",
+            "result": "OPEN",
+            "final_source": "false",
+            "reopen_lineage": (
+                f"supersedes:{previous_artifact}"
+                if previous_artifact and previous_artifact != "not-bound"
+                else row.get("reopen_lineage", "none")
+            ),
+        }
+    )
 
 
 def read_ledger() -> tuple[list[str], list[dict[str, str]]]:
@@ -336,7 +305,9 @@ def close_phase_four(
 def close_phase_five(
     rows: list[dict[str, str]], fields: list[str], selected: list[dict[str, str]]
 ) -> None:
-    close_phase_with_priority(rows, fields, selected, ["P5-PREDECESSOR-01"], "P5-CLOSE-01", 5)
+    requirements = {row["requirement"] for row in selected}
+    verify_phase = 5 if "P5-CLOSE-01" in requirements else None
+    close_selected_atomically(rows, fields, selected, verify_phase=verify_phase)
 
 
 def close_phase_with_priority(

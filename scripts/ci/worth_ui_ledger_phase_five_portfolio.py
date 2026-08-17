@@ -24,16 +24,22 @@ class PhaseFivePortfolioExecution:
 
     def execute(self) -> None:
         by_requirement = {row["requirement"]: row for row in self.rows}
-        order = ["P5-PREDECESSOR-01"]
+        order = ["P5-PREDECESSOR-01", "P5-ATLAS-01", "P5-ATLAS-PINNING-01"]
         close = by_requirement.pop("P5-CLOSE-01", None)
         ordered = [by_requirement.pop(name) for name in order if name in by_requirement]
         ordered.extend(by_requirement.values())
         if close is not None:
             ordered.append(close)
+        atlas_artifact: str | None = None
         for index, row in enumerate(ordered):
             artifact = self.temporary / f"p5-{index:02}.json"
+            values: dict[str, object] = {"candidate_ledger": self.candidate}
+            if row["requirement"] == "P5-ATLAS-PINNING-01":
+                if atlas_artifact is None:
+                    raise RuntimeError("pinning proof requires the proved atlas artifact")
+                values["supporting_world_artifact"] = atlas_artifact
             observation = self.rerun_row(
-                row, artifact, self.compile_artifact, candidate_ledger=self.candidate
+                row, artifact, self.compile_artifact, **values
             )
             self.observations.append(observation)
             record_proved_execution(
@@ -44,3 +50,5 @@ class PhaseFivePortfolioExecution:
                 self.ledger,
                 self.candidate,
             )
+            if row["requirement"] == "P5-ATLAS-01":
+                atlas_artifact = relative(self.root, artifact)

@@ -18,6 +18,33 @@ pub(crate) struct UiQualifiedTextFaceResource {
     pack: Option<UiQualifiedFontPackIdentity>,
     bytes: Arc<[u8]>,
     intrinsic_color: bool,
+    color_glyphs: Box<[UiQualifiedTextColorGlyph]>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum UiQualifiedTextColorSource {
+    Outline,
+    Bitmap,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct UiQualifiedTextColorGlyph {
+    glyph_id: u16,
+    source: UiQualifiedTextColorSource,
+}
+
+impl UiQualifiedTextColorGlyph {
+    pub(crate) const fn new(glyph_id: u16, source: UiQualifiedTextColorSource) -> Self {
+        Self { glyph_id, source }
+    }
+
+    pub(crate) const fn glyph_id(self) -> u16 {
+        self.glyph_id
+    }
+
+    pub(crate) const fn source(self) -> UiQualifiedTextColorSource {
+        self.source
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -74,6 +101,7 @@ impl UiQualifiedTextFaceResource {
         pack: Option<UiQualifiedFontPackIdentity>,
         bytes: Arc<[u8]>,
         intrinsic_color: bool,
+        color_glyphs: Box<[UiQualifiedTextColorGlyph]>,
     ) -> Self {
         Self {
             identity,
@@ -81,6 +109,7 @@ impl UiQualifiedTextFaceResource {
             pack,
             bytes,
             intrinsic_color,
+            color_glyphs,
         }
     }
 
@@ -98,6 +127,18 @@ impl UiQualifiedTextFaceResource {
     }
     pub(crate) const fn intrinsic_color(&self) -> bool {
         self.intrinsic_color
+    }
+
+    pub(crate) fn color_source(&self, glyph_id: u32) -> Option<UiQualifiedTextColorSource> {
+        let glyph_id = u16::try_from(glyph_id).ok()?;
+        self.color_glyphs
+            .iter()
+            .find(|glyph| glyph.glyph_id() == glyph_id)
+            .map(|glyph| glyph.source())
+    }
+
+    pub(crate) fn color_glyphs(&self) -> &[UiQualifiedTextColorGlyph] {
+        &self.color_glyphs
     }
 }
 

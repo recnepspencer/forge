@@ -17,8 +17,8 @@ pub(super) fn perform_native_presentation(
     state: &mut UiNativeHostState,
     view: &UiMountedFrameConsumptionView<'_>,
 ) -> UiHostSurfacePresentationOutcome {
-    if !state.pending_presentations.is_empty() {
-        return mark_presentation_indeterminate(state);
+    if let Some(outcome) = perform_mounted_text_work(state, view) {
+        return outcome;
     }
     match view.presentation_work() {
         UiMountedPresentationWorkView::Initial(_) => perform_initial(state, view),
@@ -26,6 +26,56 @@ pub(super) fn perform_native_presentation(
         UiMountedPresentationWorkView::Reconstruction(_) => perform_reconstruction(state, view),
         UiMountedPresentationWorkView::Unchanged(unchanged) => {
             perform_unchanged(state, view, unchanged)
+        }
+    }
+}
+
+fn perform_mounted_text_work(
+    state: &mut UiNativeHostState,
+    view: &UiMountedFrameConsumptionView<'_>,
+) -> Option<UiHostSurfacePresentationOutcome> {
+    let work = view.text_raster_work()?;
+    struct CallbackRasterizer<'work>(&'work worth_ui_host_contract::UiMountedTextRasterWork<'work>);
+    impl worth_ui_host_contract::UiGlyphRasterMissRasterizer for CallbackRasterizer<'_> {
+        fn rasterize(
+            &mut self,
+            misses: worth_ui_host_contract::UiGlyphRasterMissSelectionView<'_>,
+            sink: &mut dyn worth_ui_host_contract::UiGlyphRasterBatchSink,
+        ) -> Result<(), worth_ui_host_contract::UiGlyphRasterCallbackDenial> {
+            self.0.rasterize(misses, sink)
+        }
+    }
+    let mut rasterizer = CallbackRasterizer(work);
+    let outcome = super::text_atlas::perform(
+        state,
+        crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::from_view(view),
+        work.demands(),
+        work.pins(),
+        &mut rasterizer,
+    );
+    if matches!(
+        outcome,
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Committed(_)
+            | worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Pending(_)
+    ) {
+        state.text_pins_by_binding.insert(
+            view.binding().diagnostic_value(),
+            work.binding_pins().to_vec().into_boxed_slice(),
+        );
+    }
+    match outcome {
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Committed(_) => None,
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Pending(_) => Some(
+            UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
+                worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred,
+            ),
+        ),
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(_)
+        | worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedAfterRasterization(_) => {
+            Some(adapter_declined())
+        }
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::EffectsIndeterminate(_) => {
+            Some(mark_presentation_indeterminate(state))
         }
     }
 }
@@ -41,6 +91,7 @@ fn perform_reconstruction(
     let result = present_cold_reconstruction::<UiWgpuNativePresentationPort>(
         graphics,
         &mut state.resources,
+        &mut state.physical_signal,
         view,
     );
     let (cost, retained, pixels, port_crossings) = match result {
@@ -73,8 +124,12 @@ fn perform_initial(
     let Some(graphics) = state.graphics.as_mut() else {
         return adapter_declined();
     };
-    let result =
-        present_initial::<UiWgpuNativePresentationPort>(graphics, &mut state.resources, view);
+    let result = present_initial::<UiWgpuNativePresentationPort>(
+        graphics,
+        &mut state.resources,
+        &mut state.physical_signal,
+        view,
+    );
     let (observation, cost, retained) = match result {
         Ok(presented) => presented.into_parts(),
         Err(failure) => return settle_presentation_failure(state, failure),
@@ -140,7 +195,13 @@ fn present_delta_work(
     let Some(retained) = state.retained_draw_lists.get_mut(&key) else {
         return Err(before_effects_malformed());
     };
-    present_delta::<UiWgpuNativePresentationPort>(graphics, &mut state.resources, view, retained)
+    present_delta::<UiWgpuNativePresentationPort>(
+        graphics,
+        &mut state.resources,
+        &mut state.physical_signal,
+        view,
+        retained,
+    )
 }
 
 fn perform_unchanged(

@@ -17,7 +17,8 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             .client
             .as_ref()
             .and_then(UiNativeEventLoopClient::presentation_attribution);
-        let peak_census = self.shared.borrow().resources.peak();
+        let peak_census = self.shared.borrow().compiler_total_peak();
+        let peak_text_pins = self.shared.borrow().peak_text_pins.clone();
         let effect_posture = self.shared.borrow().effect_posture;
         let graphics = self
             .shared
@@ -39,7 +40,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         let host_census = shared.close();
         drop(shared);
         let cleanup_complete =
-            terminal_cleanup_complete(client_closed, readiness_owner_count == 1, &host_census);
+            terminal_cleanup_complete(client_closed, readiness_owner_count == 2, &host_census);
         let failure = self.failure_cause(
             cleanup_complete,
             presentation.as_ref(),
@@ -51,6 +52,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
                 Rc::clone(&self.shared),
                 host_census,
                 client_cleanup,
+                self.physical_clock,
             );
             return Err(UiNativeEventLoopStopReport {
                 cause,
@@ -59,6 +61,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
                 terminal_census: host_census,
                 client_cleanup_complete: client_closed,
                 cleanup,
+                peak_text_pins,
             });
         }
         Ok(self.completed_report(
@@ -68,6 +71,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             peak_census,
             host_census,
             retained_frames,
+            peak_text_pins,
         ))
     }
 
@@ -118,6 +122,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         peak_census: crate::native::UiNativeResourceCensus,
         terminal_census: crate::native::UiNativeResourceCensus,
         retained_frames: Vec<crate::native::UiNativeRetainedFrameObservation>,
+        peak_text_pins: Box<[crate::native::text_atlas::UiNativeTextPinObservation]>,
     ) -> UiNativeEventLoopRunReport {
         let thread = self
             .thread_observation
@@ -138,6 +143,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             peak_census,
             terminal_census,
             retained_frames: retained_frames.into_boxed_slice(),
+            peak_text_pins,
         }
     }
 }

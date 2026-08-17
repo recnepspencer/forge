@@ -7,12 +7,9 @@ use skrifa::{
 
 pub(super) use kurbo::Rect;
 
-use crate::font_collection::UiFontGlyphInkBounds;
+use crate::font_collection::{color_glyph::path, UiFontGlyphInkBounds};
 
-use super::{
-    color_path,
-    color_region::{Coverage, Layer, Region},
-};
+use super::color_region::{Coverage, Layer, Region};
 
 pub(super) fn bounds(
     font: &harfrust::FontRef<'_>,
@@ -72,7 +69,7 @@ impl<'font, 'data, 'coords> InkPainter<'font, 'data, 'coords> {
     }
 
     pub(super) fn push_clip_rect(&mut self, rect: Rect) {
-        let path = color_path::rectangle(rect, self.transform.to_kurbo());
+        let path = path::rectangle(rect, self.transform.to_kurbo());
         self.push_clip_path(path);
     }
 
@@ -113,7 +110,7 @@ impl ColorPainter for InkPainter<'_, '_, '_> {
     }
 
     fn push_clip_glyph(&mut self, glyph_id: GlyphId) {
-        let path = color_path::glyph(self.font, self.coords, glyph_id, self.transform.to_kurbo())
+        let path = path::glyph(self.font, self.coords, glyph_id, self.transform.to_kurbo())
             .unwrap_or_default();
         self.push_clip_path(path);
     }
@@ -173,13 +170,9 @@ impl ColorPainter for InkPainter<'_, '_, '_> {
 
 fn brush_alpha_range(brush: &Brush<'_>, palette_alphas: &[u8]) -> Option<AlphaRange> {
     let color_alpha = |palette_index: u16, alpha: f32| {
-        let palette = if palette_index == 0xFFFF {
-            1.0
-        } else {
-            palette_alphas
-                .get(usize::from(palette_index))
-                .map_or(0.0, |alpha| f32::from(*alpha) / 255.0)
-        };
+        let palette = palette_alphas
+            .get(usize::from(palette_index))
+            .map_or(0.0, |alpha| f32::from(*alpha) / 255.0);
         alpha.clamp(0.0, 1.0) * palette
     };
     let range = match brush {

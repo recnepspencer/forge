@@ -1,4 +1,4 @@
-pub(super) const EXPECTED_REQUIREMENTS: [&str; 79] = [
+pub(super) const EXPECTED_REQUIREMENTS: [&str; 80] = [
     "P1-AFFINITY-01",
     "P1-AUTHORITY-01",
     "P1-BACKEND-FEATURES-01",
@@ -77,6 +77,7 @@ pub(super) const EXPECTED_REQUIREMENTS: [&str; 79] = [
     "P5-TEXT-PIXELS-01",
     "P5-TEXT-RECONSTRUCTION-01",
     "P5-TEXT-COST-01",
+    "P5-TEXT-ASYNC-PRESENTATION-01",
     "P5-CLOSE-01",
 ];
 

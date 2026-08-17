@@ -20,11 +20,13 @@ kurbo.workspace = true
 linesweeper.workspace = true
 png.workspace = true
 sha2.workspace = true
+swash.workspace = true
 unicode-bidi.workspace = true
 unicode-segmentation.workspace = true
 worth-ui-host-contract.workspace = true
 
 [dev-dependencies]
+rustybuzz.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 

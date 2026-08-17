@@ -15,3 +15,8 @@ include!(concat!(env!("OUT_DIR"), "/global_text_profile.rs"));
 pub(crate) fn is_rgi_emoji(source: &str) -> bool {
     UNICODE_17_RGI_EMOJI.binary_search(&source).is_ok()
 }
+
+#[cfg(test)]
+pub(crate) fn unicode_17_rgi_emoji() -> &'static [&'static str] {
+    UNICODE_17_RGI_EMOJI
+}

@@ -331,7 +331,26 @@ fn graphics_fixture() -> Value {
 fn resource_census_fixture(count: u64, retained_targets: u64) -> Value {
     let mut census = serde_json::Map::new();
     for class in worth_ui_host_native::UiNativeResourceCensus::field_names() {
-        census.insert(class.to_owned(), Value::from(count));
+        let observed = if [
+            "windows",
+            "surfaces",
+            "adapters",
+            "devices",
+            "queues",
+            "retained_targets",
+            "registrations",
+            "readback_buffers",
+            "pending_submissions",
+            "event_wake_registrations",
+            "application_drivers",
+        ]
+        .contains(&class)
+        {
+            count
+        } else {
+            0
+        };
+        census.insert(class.to_owned(), Value::from(observed));
     }
     census.insert("retained_targets".to_owned(), Value::from(retained_targets));
     Value::Object(census)

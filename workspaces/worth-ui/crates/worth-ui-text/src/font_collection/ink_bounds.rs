@@ -1,9 +1,10 @@
 #[path = "ink_bounds/bitmap.rs"]
 pub(super) mod bitmap;
+#[cfg(test)]
+#[path = "ink_bounds/bitmap_tests.rs"]
+pub(super) mod bitmap_tests;
 #[path = "ink_bounds/color.rs"]
 pub(super) mod color;
-#[path = "ink_bounds/color_path.rs"]
-mod color_path;
 #[path = "ink_bounds/color_region.rs"]
 mod color_region;
 #[cfg(test)]

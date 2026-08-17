@@ -66,7 +66,7 @@ def rows(through_phase: int) -> list[dict[str, str]]:
     with ledger_identity().open(encoding="utf-8", newline="") as stream:
         complete = list(csv.DictReader(stream))
     result = [row for row in complete if int(row["phase"]) <= through_phase]
-    expected = {2: 30, 3: 47, 4: 68, 5: 79}[through_phase]
+    expected = {2: 30, 3: 47, 4: 68, 5: 80}[through_phase]
     if len(result) != expected or any(
         row["result"] != "PROVED" or row["final_source"] != "true" for row in result
     ):

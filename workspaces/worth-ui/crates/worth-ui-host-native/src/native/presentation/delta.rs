@@ -32,6 +32,7 @@ impl UiNativeDeltaPresentation {
 pub(crate) fn present_delta<Port: UiNativePresentationPort>(
     graphics: &mut UiNativeGraphics,
     resources: &mut UiNativeResourceRegistry,
+    physical_signal: &mut crate::native::physical_work_signal::UiNativePhysicalSignalOwner,
     view: &UiMountedFrameConsumptionView<'_>,
     retained: &mut UiNativeRetainedDrawList,
 ) -> Result<UiNativeDeltaPresentation, UiNativePresentationFailure> {
@@ -50,7 +51,11 @@ pub(crate) fn present_delta<Port: UiNativePresentationPort>(
             port_crossings: 0,
         });
     }
-    let owners = match reserve_presentation_owners(resources) {
+    let owners = match reserve_presentation_owners(
+        resources,
+        physical_signal,
+        crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::from_view(view),
+    ) {
         Ok(owners) => owners,
         Err(failure) => {
             retained
@@ -62,7 +67,12 @@ pub(crate) fn present_delta<Port: UiNativePresentationPort>(
     settle_staged_delta(
         retained,
         undo,
-        settle_port_result(resources, owners, Port::present(graphics, plan)),
+        settle_port_result(
+            resources,
+            physical_signal,
+            owners,
+            Port::present(graphics, plan),
+        ),
     )
 }
 

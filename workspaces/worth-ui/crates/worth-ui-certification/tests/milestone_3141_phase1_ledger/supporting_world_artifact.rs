@@ -7,6 +7,9 @@ const HP02: &str = "P3-HP02-WORLD-01";
 const MIXED_REQUIREMENT: &str = "P3-DELTA-SOURCE-01";
 const MIXED_TEST: &str =
     "host_platform::mixed_carrier_successors_are_local_at_the_4096_command_ceiling";
+const PINNING: &str = "P5-ATLAS-PINNING-01";
+const ATLAS_REQUIREMENT: &str = "P5-ATLAS-01";
+const ATLAS_TEST: &str = "native::mechanics_adapter::text_atlas::tests::gate_d_evidence::real_dx12_signal_transaction_matches_the_independent_atlas_model_and_closes_exactly";
 
 pub(super) fn validate(
     artifact: &Value,
@@ -14,13 +17,23 @@ pub(super) fn validate(
     source_revision: &str,
     source_state_digest: &str,
 ) -> Result<(), String> {
-    if command.requirement != HP02 {
-        return artifact
+    match command.requirement.as_str() {
+        HP02 => validate_hp02(artifact, command, source_revision, source_state_digest),
+        PINNING => validate_atlas(artifact, command, source_revision, source_state_digest),
+        _ => artifact
             .get("supporting_world")
             .is_none_or(Value::is_null)
             .then_some(())
-            .ok_or_else(|| "non-HP-02 row carries a supporting world".to_owned());
+            .ok_or_else(|| "row without a dependency carries a supporting world".to_owned()),
     }
+}
+
+fn validate_hp02(
+    artifact: &Value,
+    command: &CommandBinding,
+    source_revision: &str,
+    source_state_digest: &str,
+) -> Result<(), String> {
     let binding = artifact
         .get("supporting_world")
         .ok_or_else(|| "HP-02 omits its mixed-carrier supporting world".to_owned())?;
@@ -44,13 +57,62 @@ pub(super) fn validate(
     validate_content(&supporting, source_revision, source_state_digest)
 }
 
+fn validate_atlas(
+    artifact: &Value,
+    command: &CommandBinding,
+    source_revision: &str,
+    source_state_digest: &str,
+) -> Result<(), String> {
+    let binding = artifact
+        .get("supporting_world")
+        .ok_or_else(|| "pinning evidence omits its atlas dependency".to_owned())?;
+    let identity = binding
+        .get("artifact")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "pinning atlas dependency omits its artifact identity".to_owned())?;
+    require_command_bound_source(command, identity)?;
+    require_str(binding, "requirement", ATLAS_REQUIREMENT)?;
+    require_u64(binding, "worlds", 0)?;
+    require_u64(binding, "presentations", 0)?;
+    let expected_digest = super::source_digest::file_digest(identity)?;
+    require_str(binding, "artifact_digest", &expected_digest)?;
+    let supporting = read_artifact(identity)?;
+    super::dependency_row::require_proved_artifact(
+        ATLAS_REQUIREMENT,
+        identity,
+        &expected_digest,
+        &supporting,
+    )?;
+    validate_atlas_content(&supporting, source_revision, source_state_digest)
+}
+
 fn require_command_bound_source(command: &CommandBinding, identity: &str) -> Result<(), String> {
     command
         .sources
         .iter()
         .any(|source| source == identity)
         .then_some(())
-        .ok_or_else(|| "HP-02 supporting world is not a command-bound source".to_owned())
+        .ok_or_else(|| "supporting artifact is not a command-bound source".to_owned())
+}
+
+fn validate_atlas_content(
+    supporting: &Value,
+    source_revision: &str,
+    source_state_digest: &str,
+) -> Result<(), String> {
+    require_u64(supporting, "schema_version", 5)?;
+    require_str(supporting, "requirement", ATLAS_REQUIREMENT)?;
+    require_str(supporting, "package", "worth-ui-host-native")?;
+    require_str(supporting, "target_kind", "lib")?;
+    require_str(supporting, "target_name", "lib")?;
+    require_str(supporting, "test_name", ATLAS_TEST)?;
+    require_u64(supporting, "matched_test_count", 1)?;
+    require_u64(supporting, "executed_test_count", 1)?;
+    require_u64(supporting, "passed_test_count", 1)?;
+    require_u64(supporting, "ignored_test_count", 0)?;
+    require_str(supporting, "exit_posture", "passed")?;
+    require_str(supporting, "source_revision", source_revision)?;
+    require_str(supporting, "source_state_digest", source_state_digest)
 }
 
 fn validate_content(

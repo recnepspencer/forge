@@ -30,6 +30,8 @@ use crate::projection_lifecycle::support::ScalarLifecycleWorld;
 
 #[path = "font_stack/accessibility_geometry.rs"]
 mod accessibility_geometry;
+#[path = "font_stack/native_text_raster.rs"]
+mod native_text_raster;
 
 const VALUE: &str = "Ready \u{21AF}\n\u{5E9}\u{5DC}\u{5D5}\u{5DD} \u{1F469}\u{200D}\u{1F4BB}";
 const ACCENT_COLOR: &str = "theme.platform_pulse.projected_status.accent_text";

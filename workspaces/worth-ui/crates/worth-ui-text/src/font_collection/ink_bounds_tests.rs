@@ -12,7 +12,7 @@ use crate::{UiFontFamilyStack, UiQualifiedTextLayout, UiTextFaceRequest};
 #[test]
 pub(crate) fn variable_and_color_glyph_ink_is_derived_from_the_selected_font_instance() {
     super::ink_bounds::color_tests::transparent_and_porter_duff_layers_have_exact_nonzero_bounds();
-    super::ink_bounds::bitmap::transparent_and_bordered_bitmap_alpha_has_exact_support();
+    super::ink_bounds::bitmap_tests::transparent_and_bordered_bitmap_alpha_has_exact_support();
     let (profile, sources) = profile_collection_and_sources();
     let definition = UiApplicationFontPackDefinition {
         name: Arc::from("ink-metric variable application family"),

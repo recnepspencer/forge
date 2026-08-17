@@ -13,8 +13,25 @@ pub trait UiNativeEventLoopClient {
         &mut self,
         grant: UiNativeReadinessGrant,
     ) -> Result<UiNativeEventLoopDirective, ()>;
+    fn physical_work_progressed(
+        &mut self,
+        _grant: UiNativePhysicalProgressGrant,
+    ) -> Result<UiNativeEventLoopDirective, ()> {
+        Ok(UiNativeEventLoopDirective::Continue)
+    }
     fn presentation_attribution(&self) -> Option<UiNativeClientPresentationAttribution>;
     fn close(self) -> UiNativeEventLoopClientClose;
+}
+
+#[must_use]
+pub struct UiNativePhysicalProgressGrant {
+    _private: (),
+}
+
+impl UiNativePhysicalProgressGrant {
+    pub(super) const fn issued() -> Self {
+        Self { _private: () }
+    }
 }
 
 pub trait UiNativeEventLoopClientCleanup {
@@ -79,6 +96,7 @@ pub struct UiNativeEventLoopStopReport {
     pub(super) terminal_census: UiNativeResourceCensus,
     pub(super) client_cleanup_complete: bool,
     pub(super) cleanup: Option<UiNativeEventLoopCleanup>,
+    pub(super) peak_text_pins: Box<[crate::native::text_atlas::UiNativeTextPinObservation]>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -96,6 +114,7 @@ pub struct UiNativeEventLoopRunReport {
     pub(super) terminal_census: UiNativeResourceCensus,
     pub(super) port_crossings: u8,
     pub(super) retained_frames: Box<[UiNativeRetainedFrameObservation]>,
+    pub(super) peak_text_pins: Box<[crate::native::text_atlas::UiNativeTextPinObservation]>,
 }
 
 impl UiNativeEventLoopRunReport {
@@ -149,6 +168,11 @@ impl UiNativeEventLoopRunReport {
 
     pub fn retained_frames(&self) -> &[UiNativeRetainedFrameObservation] {
         &self.retained_frames
+    }
+
+    #[doc(hidden)]
+    pub fn peak_text_pins(&self) -> &[crate::native::text_atlas::UiNativeTextPinObservation] {
+        &self.peak_text_pins
     }
 }
 
@@ -234,6 +258,11 @@ impl UiNativeEventLoopStopReport {
 
     pub fn into_cleanup(self) -> Option<UiNativeEventLoopCleanup> {
         self.cleanup
+    }
+
+    #[doc(hidden)]
+    pub fn peak_text_pins(&self) -> &[crate::native::text_atlas::UiNativeTextPinObservation] {
+        &self.peak_text_pins
     }
 }
 

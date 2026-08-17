@@ -61,6 +61,22 @@ impl WorthUiNativeEventLoop {
                 ));
             }
         };
+        let physical_readiness_owner = match readiness.register_level() {
+            Ok(owner) => owner,
+            Err(()) => {
+                readiness.close();
+                self.state
+                    .borrow_mut()
+                    .resources
+                    .release_all(loop_resources)
+                    .expect("event-loop preflight owners remain exact");
+                return Err(stop_before_callbacks(
+                    self.state,
+                    client,
+                    UiNativeEventLoopRunDenial::IncompleteCleanup,
+                ));
+            }
+        };
         let mut application = UiNativeEventLoopApplication {
             shared: self.state,
             configuration: self.window,
@@ -68,6 +84,7 @@ impl WorthUiNativeEventLoop {
             first_frame_presented: false,
             readiness,
             readiness_owner,
+            physical_readiness_owner,
             readiness_signals: 0,
             redraw_turns: 0,
             idle_wait_turns: 0,
@@ -77,6 +94,7 @@ impl WorthUiNativeEventLoop {
             thread_observation: None,
             loop_resources,
             port_crossings: 0,
+            physical_clock: super::physical_clock::UiNativePhysicalEventClock::new(),
         };
         if event_loop.run_app(&mut application).is_err() {
             application
@@ -92,13 +110,18 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
     client: Client,
     cause: UiNativeEventLoopRunDenial,
 ) -> UiNativeEventLoopStopReport {
-    let peak_census = state.borrow().resources.peak();
+    let peak_census = state.borrow().compiler_total_peak();
+    let peak_text_pins = state.borrow().peak_text_pins.clone();
     let effect_posture = state.borrow().effect_posture;
     let client_cleanup = client.close().into_cleanup();
     let client_cleanup_complete = client_cleanup.is_none();
     let terminal_census = state.borrow_mut().close();
-    let cleanup =
-        UiNativeEventLoopCleanup::retain(Rc::clone(&state), terminal_census, client_cleanup);
+    let cleanup = UiNativeEventLoopCleanup::retain(
+        Rc::clone(&state),
+        terminal_census,
+        client_cleanup,
+        super::physical_clock::UiNativePhysicalEventClock::new(),
+    );
     UiNativeEventLoopStopReport {
         cause: if terminal_cleanup_complete(client_cleanup_complete, true, &terminal_census) {
             cause
@@ -110,5 +133,6 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
         terminal_census,
         client_cleanup_complete,
         cleanup,
+        peak_text_pins,
     }
 }

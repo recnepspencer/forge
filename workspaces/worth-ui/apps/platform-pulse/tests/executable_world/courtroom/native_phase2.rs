@@ -265,24 +265,42 @@ fn assert_exact_graphics(graphics: &serde_json::Value) {
 }
 
 fn assert_exact_resource_evidence(evidence: &serde_json::Value) {
-    assert_eq!(
-        evidence["peak"],
-        serde_json::json!({
-            "windows": 1,
-            "surfaces": 1,
-            "adapters": 1,
-            "devices": 1,
-            "queues": 1,
-            "retained_targets": 2,
-            "registrations": 1,
-            "readback_buffers": 1,
-            "pending_submissions": 1,
-            "event_wake_registrations": 1,
-            "application_drivers": 1,
-        })
-    );
+    let mut expected = PHASE_FIVE_ATLAS_RESOURCE_CLASSES
+        .iter()
+        .map(|field| ((*field).to_owned(), serde_json::Value::from(0)))
+        .collect::<serde_json::Map<_, _>>();
+    for (field, count) in [
+        ("windows", 1),
+        ("surfaces", 1),
+        ("adapters", 1),
+        ("devices", 1),
+        ("queues", 1),
+        ("retained_targets", 2),
+        ("registrations", 1),
+        ("readback_buffers", 1),
+        ("pending_submissions", 1),
+        ("event_wake_registrations", 1),
+        ("application_drivers", 1),
+    ] {
+        expected.insert(field.to_owned(), count.into());
+    }
+    assert_eq!(evidence["peak"], serde_json::Value::Object(expected));
     assert_eq!(evidence["terminal_zero"], true);
 }
+
+const PHASE_FIVE_ATLAS_RESOURCE_CLASSES: &[&str] = &[
+    "alpha_atlas_pages",
+    "color_atlas_pages",
+    "atlas_staging_buffers",
+    "text_atlas_plans",
+    "text_atlas_reservations",
+    "text_atlas_pins",
+    "text_atlas_recoveries",
+    "text_atlas_alpha_entries",
+    "text_atlas_color_entries",
+    "text_atlas_upload_submissions",
+    "text_atlas_recovery_authorities",
+];
 
 fn expected_native_seed_authored_provenance_digest() -> u64 {
     independent_text_digest("app/native_seed.wui") ^ 1_u64.rotate_left(13)

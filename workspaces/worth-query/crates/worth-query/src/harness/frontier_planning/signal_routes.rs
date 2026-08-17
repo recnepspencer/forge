@@ -9,7 +9,7 @@ use crate::planning::{
 use worth_signal::facade::adapters::FrontierRouteEvidenceReason;
 
 use super::fixtures::{
-    runtime_signal_stage_execution_record, sample_signal_frontier_summary,
+    runtime_signal_stage_execution_record, sample_signal_execution_surface,
     sample_stage_execution_record,
 };
 
@@ -19,9 +19,7 @@ fn signal_stage_record_admitted_reason_maps_to_parallel_route_evidence() {
         crate::harness::fixtures::execution_preflights::ordered_collection_without_traversal_preflight();
     let admitted = admit_ordered_collection_frontier_preflight(preflight.clone())
         .expect("ordered collection should admit on the ordered frontier lane");
-    let signal_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
-        &sample_signal_frontier_summary(),
-    );
+    let signal_surface = sample_signal_execution_surface();
     let stage = sample_stage_execution_record(
         FrontierRouteEvidenceReason::AdmittedProofSafeGroupedConcurrent,
     );
@@ -45,9 +43,7 @@ fn signal_stage_record_serial_reason_maps_to_serial_fallback_evidence() {
     let preflight = crate::harness::fixtures::execution_preflights::ordered_collection_preflight();
     let admitted = admit_bounded_materialization_frontier_preflight(preflight.clone())
         .expect("bounded materialization should admit on the serial fallback frontier lane");
-    let signal_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
-        &sample_signal_frontier_summary(),
-    );
+    let signal_surface = sample_signal_execution_surface();
     let evidence = signal_surface.to_serial_fallback_evidence(
         preflight.basis().proof().digest().as_str(),
         SerialFallbackReason::SerialExecutor,
@@ -69,9 +65,7 @@ fn signal_stage_record_preserves_specific_serial_admission_reasons() {
     let preflight = crate::harness::fixtures::execution_preflights::ordered_collection_preflight();
     let admitted = admit_bounded_materialization_frontier_preflight(preflight.clone())
         .expect("bounded materialization should admit on the serial fallback frontier lane");
-    let signal_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
-        &sample_signal_frontier_summary(),
-    );
+    let signal_surface = sample_signal_execution_surface();
 
     let cases = [
         (
@@ -120,9 +114,7 @@ fn signal_backed_route_evidence_rejects_basis_mismatch() {
     let preflight = crate::harness::fixtures::execution_preflights::ordered_collection_preflight();
     let admitted = admit_bounded_materialization_frontier_preflight(preflight.clone())
         .expect("bounded materialization should admit on the serial fallback frontier lane");
-    let signal_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
-        &sample_signal_frontier_summary(),
-    );
+    let signal_surface = sample_signal_execution_surface();
     let evidence = signal_surface.to_serial_fallback_evidence(
         "wrong-basis-digest",
         SerialFallbackReason::SerialExecutor,
@@ -148,9 +140,7 @@ fn same_basis_bundle_lowers_into_signal_backed_serial_fallback_routes() {
         crate::harness::fixtures::execution_preflights::ordered_collection_preflight(),
     )
     .expect("bounded materialization should admit on the serial fallback frontier lane");
-    let route_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
-        &sample_signal_frontier_summary(),
-    );
+    let route_surface = sample_signal_execution_surface();
     let bundle_evidence = SignalFrontierBundleEvidence::from_route_evidences(vec![
         route_surface.to_serial_fallback_evidence(
             first.as_preflight().basis().proof().digest().as_str(),
@@ -195,9 +185,7 @@ fn signal_backed_serial_bundle_rejects_evidence_count_mismatch() {
         crate::harness::fixtures::execution_preflights::ordered_collection_preflight(),
     )
     .expect("bounded materialization should admit on the serial fallback frontier lane");
-    let signal_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
-        &sample_signal_frontier_summary(),
-    );
+    let signal_surface = sample_signal_execution_surface();
     let runtime_stage = runtime_signal_stage_execution_record();
     let bundle_evidence = SignalFrontierBundleEvidence::from_stage_records(
         preflight.as_preflight().basis().proof().digest().as_str(),
@@ -226,9 +214,7 @@ fn signal_backed_serial_bundle_rejects_evidence_count_mismatch() {
 
 #[test]
 fn signal_backed_serial_bundle_rejects_basis_mismatch() {
-    let route_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
-        &sample_signal_frontier_summary(),
-    );
+    let route_surface = sample_signal_execution_surface();
     let bundle_evidence = SignalFrontierBundleEvidence::from_route_evidences(vec![
         SerialFallbackEvidence::from_surface(
             "basis-a",
@@ -277,9 +263,7 @@ fn signal_backed_serial_bundle_rejects_basis_mismatch() {
 
 #[test]
 fn signal_bundle_surface_digest_binds_member_basis_evidence() {
-    let route_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
-        &sample_signal_frontier_summary(),
-    );
+    let route_surface = sample_signal_execution_surface();
     let left = SignalFrontierBundleEvidence::from_route_evidences(vec![
         SerialFallbackEvidence::from_surface(
             "basis-a",

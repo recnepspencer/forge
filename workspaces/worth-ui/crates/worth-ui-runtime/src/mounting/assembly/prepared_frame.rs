@@ -150,7 +150,7 @@ impl UiPreparedMountedFrame {
 pub(crate) fn binding_requirement(
     binding: crate::mounting::UiSurfaceBindingIdentityView,
 ) -> UiMountedSurfaceBindingRequirement {
-    UiMountedSurfaceBindingRequirement::with_baseline(
+    UiMountedSurfaceBindingRequirement::with_baseline_and_device_scale(
         binding.semantic_surface_identity(),
         binding.host_surface_identity(),
         binding.binding_generation(),
@@ -158,5 +158,6 @@ pub(crate) fn binding_requirement(
         binding.capability_profile_digest(),
         binding.presentation_mode(),
         binding.baseline(),
+        binding.profile().device_scale_milli(),
     )
 }

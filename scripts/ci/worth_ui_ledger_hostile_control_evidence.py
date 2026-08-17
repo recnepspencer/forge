@@ -13,6 +13,7 @@ from worth_ui_ledger_command import (
     listed_test_names,
 )
 from worth_ui_ledger_observation import mutation_case_observation, mutation_control_observation
+from worth_ui_3141_phase4_case_contracts import hostile_cases
 
 
 Execution = Callable[[list[str], str], tuple[subprocess.CompletedProcess[str], int]]
@@ -57,7 +58,7 @@ def control_payload(
     observed.mutation_cases = mutation_case_observation(
         "" if observed.execution is None else observed.execution.stdout, requirement
     )
-    if requirement == "P4-FONT-COLLECTION-01" and observed.mutation_cases is None:
+    if hostile_cases(requirement) is not None and observed.mutation_cases is None:
         observed.posture = "mutation-case-mismatch"
     return control_fields(test, requirement, observed)
 

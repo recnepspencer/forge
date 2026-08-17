@@ -18,6 +18,7 @@ import worth_ui_3141_supporting_world as supporting_world
 from worth_ui_3141_proof_plan import prepare_claim, proofs
 from verify_worth_ui_3141_ledger import bind_fresh_compile_artifact
 from worth_ui_ledger_source_state import source_state_digest
+from worth_ui_ledger_closure_storage import csv_rows
 from worth_ui_ledger_dependency_tests import LedgerDependencyTests
 from worth_ui_ledger_operational_verification_tests import OperationalVerificationTests
 from worth_ui_predecessor_handoff_tests import PredecessorHandoffCostTests
@@ -118,6 +119,19 @@ class GovernedRaceTests(unittest.TestCase):
         self.assertEqual(
             execution_cost("P4-PREDECESSOR-01"),
             "executed-tests=55;presentations=28",
+        )
+
+    def test_phase_five_predecessor_owns_the_unique_current_portfolio_cost(self) -> None:
+        from worth_ui_3141_ledger_contracts import construction_cost, execution_cost
+
+        self.assertEqual(
+            construction_cost("P5-PREDECESSOR-01"),
+            "main-tests=44;hostile-controls=45;product-processes=6;compile-sessions=2;"
+            "courtroom-worlds=12",
+        )
+        self.assertEqual(
+            execution_cost("P5-PREDECESSOR-01"),
+            "executed-tests=91;presentations=56",
         )
 
     def test_phase_three_control_requires_the_exact_immutable_mutation_case(self) -> None:
@@ -319,8 +333,6 @@ class GovernedRaceTests(unittest.TestCase):
 
         row = {"requirement": "P4-BIDI-01"}
         proof = proofs()[row["requirement"]]
-        from worth_ui_3141_proof_plan import prepare_claim
-
         prepare_claim(row, proof)
         manifest = Path(
             "workspaces/worth-ui/profiles/worth-ui-global-text-v2/manifest.toml"
@@ -330,9 +342,12 @@ class GovernedRaceTests(unittest.TestCase):
             row["font_profile_digest"], hashlib.sha256(manifest.read_bytes()).hexdigest()
         )
 
-    def test_expensive_hostile_controls_own_the_same_twenty_second_budget(self) -> None:
+    def test_expensive_hostile_controls_own_their_reviewed_budget(self) -> None:
         from worth_ui_ledger_command import control_budget_ms
 
+        self.assertEqual(control_budget_ms("P3-DELTA-SOURCE-01"), 90_000)
+        self.assertEqual(control_budget_ms("P3-HEADLESS-COST-01"), 90_000)
+        self.assertEqual(control_budget_ms("P3-PRODUCER-SLOPE-01"), 90_000)
         self.assertEqual(control_budget_ms("P3-PREDECESSOR-01"), 20_000)
         self.assertEqual(control_budget_ms("P4-PREDECESSOR-01"), 20_000)
         self.assertEqual(control_budget_ms("P4-FONT-COLLECTION-01"), 20_000)
@@ -381,13 +396,5 @@ class GovernedRaceTests(unittest.TestCase):
             )
         self.assertFalse(admitted)
         writer.assert_not_called()
-
-def csv_rows(content: str):
-    import csv
-    import io
-
-    return csv.DictReader(io.StringIO(content))
-
-
 if __name__ == "__main__":
     unittest.main()

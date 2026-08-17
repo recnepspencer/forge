@@ -11,8 +11,12 @@ use crate::native::{UiNativeEffectPosture, UiNativeHostState};
 struct PendingProbe(std::rc::Rc<std::cell::Cell<bool>>);
 
 impl UiNativePendingExternalObligation for PendingProbe {
-    fn try_settle(&mut self, _device: Option<&wgpu::Device>) -> bool {
-        false
+    fn poll_observation(
+        &mut self,
+        basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
+        _device: Option<&wgpu::Device>,
+    ) -> crate::native::physical_work_signal::UiNativePhysicalSignalExternalObservation {
+        basis.observe(crate::native::physical_work_signal::UiNativePhysicalSignalStatus::Pending)
     }
 }
 
@@ -43,10 +47,15 @@ fn external_port_orchestration_and_effect_postures_are_exact() {
     crate::native::presentation::prove_nonuniform_readback_port();
     let mut state = UiNativeHostState::new();
     let external_dropped = std::rc::Rc::new(std::cell::Cell::new(false));
-    let owners = reserve_presentation_owners(&mut state.resources)
-        .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
+    let owners = reserve_presentation_owners(
+        &mut state.resources,
+        &mut state.physical_signal,
+        crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::test(),
+    )
+    .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
     let pending = settle_port_result(
         &mut state.resources,
+        &mut state.physical_signal,
         owners,
         Err(UiNativePresentationPortFailure::ReadbackUnsettled(
             Box::new(PendingProbe(std::rc::Rc::clone(&external_dropped))),

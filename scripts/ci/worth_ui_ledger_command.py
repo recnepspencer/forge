@@ -86,7 +86,7 @@ def parse_args() -> GovernedTest:
     validate_features(parser, arguments.package, features, "main")
     control = parse_control(parser, arguments)
     requires_control = (
-        arguments.requirement.startswith(("P2-", "P3-", "P4-"))
+        arguments.requirement.startswith(("P2-", "P3-", "P4-", "P5-"))
         or arguments.requirement == "P1-CONSUMERS-01"
     )
     if requires_control != (control is not None):
@@ -285,6 +285,12 @@ def exact_test_duration_ms(output: str, command_duration_ms: int) -> int:
 
 
 def control_budget_ms(requirement: str) -> int:
+    if requirement in {
+        "P3-DELTA-SOURCE-01",
+        "P3-HEADLESS-COST-01",
+        "P3-PRODUCER-SLOPE-01",
+    }:
+        return 90_000
     if requirement in {"P4-BIDI-01", "P4-LINE-LAYOUT-01"}:
         return 60_000 if requirement == "P4-BIDI-01" else 120_000
     if requirement in {
@@ -292,6 +298,7 @@ def control_budget_ms(requirement: str) -> int:
         "P4-TEXT-COST-01",
         "P4-TEXT-CONTENT-LOCALITY-01",
         "P4-TEXT-WIDTH-LOCALITY-01",
+        "P5-ATLAS-PINNING-01",
     }:
         return 30_000
     return (

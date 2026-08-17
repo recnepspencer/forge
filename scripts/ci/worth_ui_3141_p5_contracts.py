@@ -11,6 +11,7 @@ P5_FEATURE_ROWS = (
     "P5-TEXT-PIXELS-01",
     "P5-TEXT-RECONSTRUCTION-01",
     "P5-TEXT-COST-01",
+    "P5-TEXT-ASYNC-PRESENTATION-01",
 )
 
 P5_REQUIREMENTS = ("P5-PREDECESSOR-01", *P5_FEATURE_ROWS, "P5-CLOSE-01")
@@ -29,6 +30,10 @@ P5_MUTATIONS = {
     "P5-TEXT-PIXELS-01": ("pixel-identity", "transcript-pixel-mismatch"),
     "P5-TEXT-RECONSTRUCTION-01": ("derived-state-reuse", "stale-raster-reuse"),
     "P5-TEXT-COST-01": ("retained-scan", "complete-document-rescan"),
+    "P5-TEXT-ASYNC-PRESENTATION-01": (
+        "query-presentation-authority",
+        "bypass-query-or-stale-presentation-completion",
+    ),
     "P5-CLOSE-01": ("ledger", "open-requirement"),
 }
 
@@ -36,14 +41,15 @@ P5_COUNTERS = {
     "P5-PREDECESSOR-01": ("requirements", 68),
     "P5-GLYPH-RASTER-01": ("raster-batches", 2),
     "P5-COLOR-EMOJI-01": ("rgi-sequences", 3953),
-    "P5-ATLAS-01": ("atlas-kinds", 2),
+    "P5-ATLAS-01": ("physical-signal-runtimes", 1),
     "P5-ATLAS-PINNING-01": ("pinned-layouts", 1),
     "P5-TEXT-DPI-01": ("dpi-replacements", 1),
     "P5-TEXT-SPAN-PAINT-01": ("paint-spans", 2),
     "P5-TEXT-PIXELS-01": ("pixel-observations", 2),
     "P5-TEXT-RECONSTRUCTION-01": ("reconstructed-atlases", 1),
-    "P5-TEXT-COST-01": ("retained-scans", 0),
-    "P5-CLOSE-01": ("requirements", 11),
+    "P5-TEXT-COST-01": ("ui-locality-worlds", 32),
+    "P5-TEXT-ASYNC-PRESENTATION-01": ("presentation-transitions", 10),
+    "P5-CLOSE-01": ("requirements", 12),
 }
 
 P5_FAULT_BOUNDARIES = {
@@ -58,7 +64,11 @@ P5_FAULT_BOUNDARIES = {
             "P5-TEXT-DPI-01",
             "P5-TEXT-SPAN-PAINT-01",
         }
-        else "not-applicable"
+        else (
+            "after-effects-may-have-begun"
+            if requirement == "P5-TEXT-ASYNC-PRESENTATION-01"
+            else "not-applicable"
+        )
     )
     for requirement in P5_REQUIREMENTS
 }
@@ -67,8 +77,13 @@ P5_FAULT_BOUNDARIES = {
 def p5_construction_cost(requirement: str) -> str:
     if requirement == "P5-PREDECESSOR-01":
         return (
-            "main-tests=47;hostile-controls=48;product-processes=3;"
-            "compile-sessions=2;courtroom-worlds=6"
+            "main-tests=44;hostile-controls=45;product-processes=6;"
+            "compile-sessions=2;courtroom-worlds=12"
+        )
+    if requirement == "P5-ATLAS-PINNING-01":
+        return (
+            "main-tests=1;hostile-controls=1;product-processes=1;"
+            "compile-sessions=0;courtroom-worlds=1"
         )
     return (
         "main-tests=1;hostile-controls=1;product-processes=0;"
@@ -78,5 +93,7 @@ def p5_construction_cost(requirement: str) -> str:
 
 def p5_execution_cost(requirement: str) -> str:
     if requirement == "P5-PREDECESSOR-01":
-        return "executed-tests=97;presentations=28"
+        return "executed-tests=91;presentations=56"
+    if requirement == "P5-ATLAS-PINNING-01":
+        return "executed-tests=2;presentations=0;atlas-transactions=13"
     return "executed-tests=2;presentations=0"

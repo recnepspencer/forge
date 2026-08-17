@@ -3,6 +3,11 @@ use std::rc::Rc;
 
 use crate::native::{UiNativeHostState, WorthUiNativeEventLoop, WorthUiNativeMechanicsAdapter};
 
+/// The exact native mechanics half consumed by the runtime binding.
+pub struct WorthUiPreparedNativeMechanics {
+    adapter: WorthUiNativeMechanicsAdapter,
+}
+
 /// Effect-free qualified native mechanics preparation.
 ///
 /// Preparing this value allocates no event loop, window, surface, adapter,
@@ -26,14 +31,80 @@ impl WorthUiPreparedNativeHost {
     pub fn into_parts(
         self,
         window: UiNativeWindowConfiguration,
-    ) -> (WorthUiNativeMechanicsAdapter, WorthUiNativeEventLoop) {
+    ) -> (WorthUiPreparedNativeMechanics, WorthUiNativeEventLoop) {
         debug_assert_eq!(
             self.profile,
             super::UiNativePlatformProfileIdentity::WORTH_UI_WINDOWS_DX12_V1
         );
+        let adapter =
+            WorthUiNativeMechanicsAdapter::from_preparation(Rc::clone(&self.state), self.profile);
         (
-            WorthUiNativeMechanicsAdapter::from_preparation(Rc::clone(&self.state), self.profile),
+            WorthUiPreparedNativeMechanics { adapter },
             WorthUiNativeEventLoop::from_preparation(self.state, window),
+        )
+    }
+}
+
+impl worth_ui_host_contract::WorthUiMeasurementHostAdapter for WorthUiPreparedNativeMechanics {
+    fn observe_measurement(
+        &self,
+        request: &worth_ui_host_contract::UiHostMeasurementRequest,
+    ) -> worth_ui_host_contract::UiHostMeasurementObservationValue {
+        worth_ui_host_contract::WorthUiMeasurementHostAdapter::observe_measurement(
+            &self.adapter,
+            request,
+        )
+    }
+}
+
+impl worth_ui_host_contract::WorthUiHostMechanicsAdapter for WorthUiPreparedNativeMechanics {
+    fn mechanical_host_contract(&self) -> worth_ui_host_contract::WorthUiHostContract {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::mechanical_host_contract(&self.adapter)
+    }
+
+    fn mechanical_capability_report(&self) -> worth_ui_host_contract::WorthUiHostCapabilityReport {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::mechanical_capability_report(
+            &self.adapter,
+        )
+    }
+
+    fn perform_mounted_surface_presentation(
+        &self,
+        view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+    ) -> worth_ui_host_contract::UiHostSurfacePresentationOutcome {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::perform_mounted_surface_presentation(
+            &self.adapter,
+            view,
+        )
+    }
+
+    fn perform_surface_registration(
+        &self,
+        request: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
+    ) -> worth_ui_host_contract::UiHostSurfaceRegistrationOutcome {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::perform_surface_registration(
+            &self.adapter,
+            request,
+        )
+    }
+
+    fn perform_surface_deregistration(
+        &self,
+        request: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
+    ) -> worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::perform_surface_deregistration(
+            &self.adapter,
+            request,
+        )
+    }
+
+    fn release_mechanical_host_session(
+        &self,
+        host_session_identity: u64,
+    ) -> worth_ui_host_contract::UiHostSessionReleaseOutcome {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::release_mechanical_host_session(
+            &self.adapter,
+            host_session_identity,
         )
     }
 }

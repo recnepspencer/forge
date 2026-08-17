@@ -14,6 +14,8 @@ use super::{UiNativeGraphicsPort, UiNativeHostState, UiWgpuNativeGraphicsPort};
 mod cleanup;
 mod contract;
 mod finish;
+mod physical_clock;
+mod physical_progression;
 mod run;
 mod terminal_cleanup;
 #[cfg(test)]
@@ -27,8 +29,10 @@ pub use cleanup::UiNativeEventLoopCleanup;
 pub use contract::{
     UiNativeClientPresentationAttribution, UiNativeEventLoopClient, UiNativeEventLoopClientCleanup,
     UiNativeEventLoopClientClose, UiNativeEventLoopDirective, UiNativeEventLoopRunDenial,
-    UiNativeEventLoopRunReport, UiNativeEventLoopStopReport, UiNativeReadinessGrant,
+    UiNativeEventLoopRunReport, UiNativeEventLoopStopReport, UiNativePhysicalProgressGrant,
+    UiNativeReadinessGrant,
 };
+use physical_clock::UiNativePhysicalEventClock;
 use terminal_cleanup::terminal_cleanup_complete;
 pub(crate) use window_port::UiNativeOwnedWindow;
 use window_port::{UiNativeWindowPort, UiWinitNativeWindowPort};
@@ -45,6 +49,7 @@ struct UiNativeEventLoopApplication<Client> {
     first_frame_presented: bool,
     readiness: super::UiNativeReadinessRegistry,
     readiness_owner: super::UiNativeReadyOwner,
+    physical_readiness_owner: super::UiNativeReadyOwner,
     readiness_signals: u64,
     redraw_turns: u64,
     idle_wait_turns: u64,
@@ -54,6 +59,7 @@ struct UiNativeEventLoopApplication<Client> {
     thread_observation: Option<UiNativeEventLoopThreadObservation>,
     loop_resources: Vec<super::UiNativeResourceOwner>,
     port_crossings: u8,
+    physical_clock: UiNativePhysicalEventClock,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -72,6 +78,10 @@ impl WorthUiNativeEventLoop {
 }
 
 impl<Client: UiNativeEventLoopClient> ApplicationHandler for UiNativeEventLoopApplication<Client> {
+    fn new_events(&mut self, event_loop: &ActiveEventLoop, _cause: winit::event::StartCause) {
+        self.advance_physical_signal_clock(event_loop);
+    }
+
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let callback_thread = std::thread::current().id();
         let admission = transition_callback_thread(
@@ -153,7 +163,19 @@ impl<Client: UiNativeEventLoopClient> ApplicationHandler for UiNativeEventLoopAp
         }
     }
 
-    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        self.request_physical_signal_redraw();
+        if self
+            .shared
+            .borrow()
+            .physical_signal
+            .observation()
+            .pending_wakes
+            != 0
+        {
+            event_loop.set_control_flow(ControlFlow::Poll);
+        }
+        self.schedule_physical_signal_deadline(event_loop);
         if !self.first_frame_presented {
             return;
         }
@@ -266,6 +288,25 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
     }
 
     fn redraw(&mut self, event_loop: &ActiveEventLoop) {
+        let physical = physical_progression::progress_ready_physical_work(
+            &mut self.readiness,
+            self.physical_readiness_owner,
+            &self.shared,
+        );
+        if physical == physical_progression::UiNativePhysicalWakeProgress::Progressed {
+            let directive = self.client.as_mut().and_then(|client| {
+                client
+                    .physical_work_progressed(UiNativePhysicalProgressGrant::issued())
+                    .ok()
+            });
+            if directive.is_none() {
+                return self.fail(event_loop, UiNativeEventLoopRunDenial::ApplicationDriver);
+            }
+            if apply_directive(event_loop, directive.expect("checked directive")) {
+                return event_loop.exit();
+            }
+        }
+        self.request_physical_signal_redraw();
         let Ok(work) = self.readiness.take(self.readiness_owner) else {
             return;
         };
@@ -287,6 +328,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             self.first_frame_presented = true;
         }
     }
+
     fn commit_readiness(&mut self, event_loop: &ActiveEventLoop) {
         let basis = self.shared.borrow().graphics.as_ref().map(|graphics| {
             (
@@ -324,6 +366,9 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             }
             Ok(super::readiness::UiNativeReadinessSignalDisposition::Coalesced) => {
                 self.coalesced_wakes += 1;
+            }
+            Ok(super::readiness::UiNativeReadinessSignalDisposition::NoWork) => {
+                unreachable!("committed application readiness always carries work")
             }
             Err(()) => self.fail(event_loop, UiNativeEventLoopRunDenial::ApplicationDriver),
         }

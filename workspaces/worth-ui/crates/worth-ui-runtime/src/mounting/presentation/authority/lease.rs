@@ -125,6 +125,7 @@ mod tests {
                     &initial,
                 ),
                 qualified_text: &NoQualifiedText,
+                text_raster_work: None,
             },
         );
         assert!(!gate.admits(&view));

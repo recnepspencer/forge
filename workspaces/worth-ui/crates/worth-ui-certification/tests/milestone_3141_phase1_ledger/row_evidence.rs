@@ -158,8 +158,10 @@ pub(super) fn validate_observations(row: &Row) -> Result<(), String> {
 pub(super) fn validate_sources(row: &Row) -> Result<(), String> {
     let current_source = row_is_current_source(row)?;
     for source in row["source_identity"].split(';') {
-        if !current_source && matches!(row["phase"].as_str(), "1" | "2") {
-            if historical_or_retained_source_exists(source, &row["source_revision"]) {
+        if !current_source {
+            if historical_or_retained_source_exists(source, &row["source_revision"])
+                || retained_artifact_names_source(row, source)
+            {
                 continue;
             }
             return Err(format!("missing historical source {source}"));
@@ -184,6 +186,22 @@ pub(super) fn validate_sources(row: &Row) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+fn retained_artifact_names_source(row: &Row, source: &str) -> bool {
+    let Ok(path) = super::source_digest::repository_file(&row["retained_result_artifact"]) else {
+        return false;
+    };
+    let Ok(bytes) = std::fs::read(path) else {
+        return false;
+    };
+    let Ok(artifact) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
+        return false;
+    };
+    artifact["source_digest"].as_str() == Some(row["source_digest"].as_str())
+        && artifact["source_identity"]
+            .as_array()
+            .is_some_and(|sources| sources.iter().any(|value| value.as_str() == Some(source)))
 }
 
 pub(super) fn row_is_current_source(row: &Row) -> Result<bool, String> {

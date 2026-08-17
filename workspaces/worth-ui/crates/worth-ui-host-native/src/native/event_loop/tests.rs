@@ -22,8 +22,16 @@ struct PendingProbe {
 }
 
 impl UiNativePendingExternalObligation for PendingProbe {
-    fn try_settle(&mut self, _device: Option<&wgpu::Device>) -> bool {
-        self.settles.get()
+    fn poll_observation(
+        &mut self,
+        basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
+        _device: Option<&wgpu::Device>,
+    ) -> crate::native::physical_work_signal::UiNativePhysicalSignalExternalObservation {
+        basis.observe(if self.settles.get() {
+            crate::native::physical_work_signal::UiNativePhysicalSignalStatus::Completed
+        } else {
+            crate::native::physical_work_signal::UiNativePhysicalSignalStatus::Pending
+        })
     }
 }
 
@@ -107,7 +115,12 @@ fn stop_report_retains_effect_posture_and_exact_cleanup_census() {
         report.effect_posture(),
         UiNativeEffectPosture::PresentationIndeterminate
     );
-    assert!(report.peak_census().is_zero());
+    let peak = report.peak_census();
+    assert_eq!(peak.physical_signal_runtimes, 1);
+    assert_eq!(peak.physical_signal_workers, 1);
+    assert!(peak.entries().all(|(name, count)| {
+        matches!(name, "physical_signal_runtimes" | "physical_signal_workers") || count == 0
+    }));
     assert!(report.terminal_census().is_zero());
     assert!(report.client_cleanup_complete());
 }
@@ -155,10 +168,16 @@ fn indeterminate_external_work_moves_into_retryable_cleanup_authority() {
     let settles = Rc::new(std::cell::Cell::new(false));
     {
         let mut state = state.borrow_mut();
-        let owners = reserve_presentation_owners(&mut state.resources)
-            .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
+        let state = &mut *state;
+        let owners = reserve_presentation_owners(
+            &mut state.resources,
+            &mut state.physical_signal,
+            crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::test(),
+        )
+        .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
         let pending = settle_port_result(
             &mut state.resources,
+            &mut state.physical_signal,
             owners,
             Err(UiNativePresentationPortFailure::ReadbackUnsettled(
                 Box::new(PendingProbe {
@@ -189,6 +208,76 @@ fn indeterminate_external_work_moves_into_retryable_cleanup_authority() {
     };
     assert!(!dropped.get());
     settles.set(true);
+    std::thread::sleep(std::time::Duration::from_millis(2));
     assert!(cleanup.retry().expect("settled cleanup").is_zero());
     assert!(dropped.get());
+}
+
+#[test]
+fn delayed_physical_wake_settles_without_an_ordinary_redraw_grant() {
+    let state = Rc::new(RefCell::new(UiNativeHostState::new()));
+    let dropped = Rc::new(std::cell::Cell::new(false));
+    let settles = Rc::new(std::cell::Cell::new(false));
+    {
+        let mut state = state.borrow_mut();
+        let UiNativeHostState {
+            resources,
+            physical_signal,
+            pending_presentations,
+            ..
+        } = &mut *state;
+        let owners = reserve_presentation_owners(
+            resources,
+            physical_signal,
+            crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::test(),
+        )
+        .unwrap_or_else(|_| panic!("the physical request must admit"));
+        let pending = settle_port_result(
+            resources,
+            physical_signal,
+            owners,
+            Err(UiNativePresentationPortFailure::ReadbackUnsettled(
+                Box::new(PendingProbe {
+                    dropped: Rc::clone(&dropped),
+                    settles: Rc::clone(&settles),
+                }),
+            )),
+        );
+        let Err(UiNativePresentationFailure::Indeterminate(pending)) = pending else {
+            panic!("the external readback must remain physically pending");
+        };
+        pending_presentations.push(pending);
+        let due = physical_signal
+            .next_due_tick()
+            .expect("the pending readback owns a delayed physical wake");
+        settles.set(true);
+        physical_signal
+            .advance_clock_to(due)
+            .expect("the delayed Signal wake must become ready");
+    }
+
+    let mut readiness = crate::native::UiNativeReadinessRegistry::new();
+    let ordinary = readiness.register().unwrap();
+    let physical = readiness.register_level().unwrap();
+    let mut redraw_requests = 0;
+    assert_eq!(
+        crate::native::readiness::signal_level_ready(&mut readiness, physical, true, || {
+            redraw_requests += 1
+        },),
+        Ok(crate::native::readiness::UiNativeReadinessSignalDisposition::RedrawRequested)
+    );
+
+    assert_eq!(
+        super::physical_progression::progress_ready_physical_work(&mut readiness, physical, &state,),
+        super::physical_progression::UiNativePhysicalWakeProgress::Progressed
+    );
+    assert_eq!(redraw_requests, 1);
+    assert!(readiness.take(ordinary).is_err());
+    assert_eq!(
+        state.borrow().physical_signal.observation().active_requests,
+        0
+    );
+    assert!(state.borrow().pending_presentations.is_empty());
+    assert!(dropped.get());
+    assert!(state.borrow_mut().close().is_zero());
 }

@@ -12,11 +12,15 @@ from worth_ui_ledger_dependency import require_proved_artifact
 MIXED_REQUIREMENT = "P3-DELTA-SOURCE-01"
 MIXED_ARTIFACT = "_docs/worth-ui/milestone-3.14.1-evidence/p3-delta-source-01.json"
 MIXED_TEST = "host_platform::mixed_carrier_successors_are_local_at_the_4096_command_ceiling"
+ATLAS_REQUIREMENT = "P5-ATLAS-01"
+ATLAS_ARTIFACT = "_docs/worth-ui/milestone-3.14.1-evidence/p5-atlas-01.json"
 
 
-def validate_phase3_hp02_support(
+def validate_supporting_dependency(
     test: Any, revision: str, state_digest: str, root: Path
 ) -> dict[str, Any] | None:
+    if test.requirement == "P5-ATLAS-PINNING-01":
+        return validate_phase5_atlas_dependency(test, revision, state_digest, root)
     if test.requirement != "P3-HP02-WORLD-01":
         return None
     identity = os.environ.get("WORTH_UI_SUPPORTING_WORLD_ARTIFACT", MIXED_ARTIFACT)
@@ -61,4 +65,40 @@ def validate_phase3_hp02_support(
         "requirement": MIXED_REQUIREMENT,
         "worlds": 1,
         "presentations": 5,
+    }
+
+
+def validate_phase3_hp02_support(
+    test: Any, revision: str, state_digest: str, root: Path
+) -> dict[str, Any] | None:
+    return validate_supporting_dependency(test, revision, state_digest, root)
+
+
+def validate_phase5_atlas_dependency(
+    test: Any, revision: str, state_digest: str, root: Path
+) -> dict[str, Any]:
+    identity = os.environ.get("WORTH_UI_SUPPORTING_WORLD_ARTIFACT", ATLAS_ARTIFACT)
+    if identity not in test.sources:
+        raise ValueError("pinning proof omits its atlas producer artifact")
+    artifact = json.loads((root / identity).read_text(encoding="utf-8"))
+    digest = require_proved_artifact(root, ATLAS_REQUIREMENT, identity, artifact)
+    required = {
+        "schema_version": 5,
+        "requirement": ATLAS_REQUIREMENT,
+        "exit_posture": "passed",
+        "executed_test_count": 1,
+        "passed_test_count": 1,
+        "ignored_test_count": 0,
+        "source_revision": revision,
+        "source_state_digest": state_digest,
+    }
+    for field, expected in required.items():
+        if artifact.get(field) != expected:
+            raise ValueError(f"pinning atlas dependency has wrong {field}")
+    return {
+        "artifact": identity,
+        "artifact_digest": digest,
+        "requirement": ATLAS_REQUIREMENT,
+        "worlds": 0,
+        "presentations": 0,
     }

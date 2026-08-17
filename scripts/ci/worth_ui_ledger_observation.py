@@ -91,7 +91,7 @@ def observed_costs(
         return None
     if test.requirement == "P3-PREDECESSOR-01":
         return construction_cost(test.requirement), execution_cost(test.requirement)
-    if test.requirement == "P4-PREDECESSOR-01":
+    if test.requirement in {"P4-PREDECESSOR-01", "P5-PREDECESSOR-01"}:
         return predecessor_costs(test, control)
     if test.requirement == "P3-HP02-WORLD-01":
         if supporting_world is None or control is None:
@@ -100,6 +100,28 @@ def observed_costs(
             "main-tests=1;hostile-controls=1;product-processes=1;compile-sessions=0;"
             "courtroom-worlds=1;shared-mounted-worlds=1",
             "executed-tests=2;presentations=7;shared-presentations=5",
+        )
+    if test.requirement == "P5-ATLAS-PINNING-01":
+        control_tests = 0 if control is None else control.get("executed_test_count")
+        presentations = None if observation is None else observation.get("presentations")
+        atlas_transactions = None if observation is None else observation.get("atlas_transactions")
+        if (
+            supporting_world is None
+            or supporting_world.get("requirement") != "P5-ATLAS-01"
+            or observation is None
+            or observation.get("schema") != "worth-ui-native-gate-d-pin-world-v1"
+            or not isinstance(control_tests, int)
+            or not isinstance(presentations, int)
+            or presentations < 0
+            or not isinstance(atlas_transactions, int)
+            or atlas_transactions < 0
+        ):
+            return None
+        return (
+            f"main-tests=1;hostile-controls={control_tests};product-processes=1;"
+            "compile-sessions=0;courtroom-worlds=1",
+            f"executed-tests={1 + control_tests};presentations={presentations};"
+            f"atlas-transactions={atlas_transactions}",
         )
     p2 = test.requirement.startswith("P2-")
     compile_sessions = compile_sessions_observed(test.sources) + int(
