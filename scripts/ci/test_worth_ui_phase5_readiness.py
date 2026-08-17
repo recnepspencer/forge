@@ -14,6 +14,7 @@ if str(CI) not in sys.path:
     sys.path.insert(0, str(CI))
 
 import close_worth_ui_3141_ledger as ledger_closer
+from worth_ui_3141_ledger_contracts import EXPECTED_IGNORED
 from worth_ui_ledger_command import GovernedTest, control_budget_ms, execution_budget_ms
 from worth_ui_ledger_observation import observed_costs
 import worth_ui_ledger_phase_five_portfolio as phase_five_portfolio
@@ -21,6 +22,9 @@ import worth_ui_ledger_verifier_rebinding as verifier_rebinding
 
 
 class PhaseFiveReadinessTests(unittest.TestCase):
+    def test_real_dx12_atlas_main_retains_its_declared_ignore_posture(self) -> None:
+        self.assertTrue(EXPECTED_IGNORED["P5-ATLAS-01"])
+
     def test_runtime_pin_control_owns_its_observed_budget(self) -> None:
         self.assertEqual(control_budget_ms("P5-ATLAS-PINNING-01"), 30_000)
         self.assertEqual(control_budget_ms("P5-COLOR-EMOJI-01"), 60_000)

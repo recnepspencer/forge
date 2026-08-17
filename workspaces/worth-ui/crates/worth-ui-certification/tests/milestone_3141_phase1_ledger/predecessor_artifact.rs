@@ -13,7 +13,7 @@ const EXPECTED_MAPPING_DIGEST: &str =
 const EXPECTED_PHASE_THREE_MAPPING_DIGEST: &str =
     "b7d3f182c3bcd19baee831dc1097ec01c7cd1ef704554b61c5edf7cd47145c91";
 const EXPECTED_PHASE_FOUR_MAPPING_DIGEST: &str =
-    "18072c0ef0bbb717051d527027a8166f54eaf744789814ed4326b87ba332175e";
+    "f894d2b284d5d3c4efcfa6dd98fff9ff3ec7a8884995f2478db87172f7ede1b6";
 
 #[cfg(test)]
 #[path = "predecessor_artifact_tests.rs"]

@@ -160,7 +160,7 @@ pub(crate) fn expected_declared_ignored(requirement: &str) -> bool {
         )
         || matches!(
             requirement,
-            "P5-PREDECESSOR-01" | "P5-ATLAS-PINNING-01" | "P5-CLOSE-01"
+            "P5-PREDECESSOR-01" | "P5-ATLAS-01" | "P5-ATLAS-PINNING-01" | "P5-CLOSE-01"
         )
 }
 
@@ -242,4 +242,9 @@ fn phase_five_raster_budgets_match_the_governed_worlds() {
     assert_eq!(main_budget_ms("P5-GLYPH-RASTER-01"), 60_000);
     assert_eq!(main_budget_ms("P5-COLOR-EMOJI-01"), 180_000);
     assert_eq!(control_budget_ms("P5-COLOR-EMOJI-01"), 60_000);
+}
+
+#[test]
+fn real_dx12_atlas_main_retains_its_declared_ignore_posture() {
+    assert!(expected_declared_ignored("P5-ATLAS-01"));
 }
