@@ -39,7 +39,7 @@ pub(super) fn execution_cost(requirement: &str) -> Option<&'static str> {
     }
     Some(match requirement {
         "P5-PREDECESSOR-01" => "executed-tests=91;presentations=56",
-        "P5-ATLAS-PINNING-01" => "executed-tests=2;presentations=1;atlas-transactions=2",
+        "P5-ATLAS-PINNING-01" => "executed-tests=2;presentations=1;atlas-transactions=3",
         _ => "executed-tests=2;presentations=0",
     })
 }

@@ -95,5 +95,5 @@ def p5_execution_cost(requirement: str) -> str:
     if requirement == "P5-PREDECESSOR-01":
         return "executed-tests=91;presentations=56"
     if requirement == "P5-ATLAS-PINNING-01":
-        return "executed-tests=2;presentations=1;atlas-transactions=2"
+        return "executed-tests=2;presentations=1;atlas-transactions=3"
     return "executed-tests=2;presentations=0"

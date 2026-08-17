@@ -10,7 +10,8 @@ use crate::mounting::qualified_text_test_support::inert_qualified_layout;
 use worth_ui_host_contract::{
     UiHostSurfaceIdentity, UiHostSurfacePresentationMode, UiMountedPaintCommandChange,
     UiMountedPaintOrderIntegrity, UiMountedPresentationDelta, UiMountedPresentationDeltaInput,
-    UiMountedPresentationWorkView, UiMountedSurfaceBindingRequirement,
+    UiMountedPresentationInitial, UiMountedPresentationInitialInput, UiMountedPresentationWorkView,
+    UiMountedSurfaceBindingRequirement,
     WorthUiHostCapabilityObservationGeneration,
 };
 
@@ -124,4 +125,42 @@ fn removal_only_delta_preserves_explicit_command_identity_without_raster_demand(
     assert!(prepared.demand_batches().is_empty());
     assert!(prepared.pin_commands().is_empty());
     assert_eq!(prepared.pin_removals(), &[removed]);
+}
+
+#[test]
+fn complete_empty_text_set_reaches_the_committed_pin_owner() {
+    let projection = semantic_text_projection_for_certification(
+        UiSemanticTextProjectionCertificationMutation::Exact,
+    );
+    let requirement = requirement(&projection);
+    let populated = initial_presentation_mechanics_for_certification(&projection, requirement);
+    let affinity = populated.affinity();
+    let empty = UiMountedPresentationInitial::from_inert_mechanics(
+        UiMountedPresentationInitialInput {
+            successor: affinity.successor(),
+            surface: affinity.surface(),
+            binding: affinity.binding(),
+            content: affinity.content(),
+            baseline: affinity.baseline(),
+            projection,
+            commands: Vec::new(),
+            order: Vec::new(),
+            order_integrity: UiMountedPaintOrderIntegrity::for_order(&[]),
+            damage: Vec::new(),
+            production_cost: Default::default(),
+        },
+    );
+    let preparation = prepare_mounted_semantic_text(
+        UiMountedPresentationWorkView::Initial(&empty),
+        UiMountedEventTimeDpiAuthority::from_requirement(requirement).unwrap(),
+        |_| None,
+    )
+    .expect("an empty complete set must reach the committed text-pin owner");
+    let UiNativeTextPresentationPreparation::Prepared(prepared) = preparation else {
+        panic!("an empty complete set performs no layout or raster admission");
+    };
+    assert!(prepared.pin_set_complete());
+    assert!(prepared.demand_batches().is_empty());
+    assert!(prepared.pin_commands().is_empty());
+    assert!(prepared.pin_removals().is_empty());
 }

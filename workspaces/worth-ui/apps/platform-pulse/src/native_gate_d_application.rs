@@ -71,6 +71,7 @@ fn gate_d_program() -> UiNativeApplicationProgram {
             .expect("Gate D first-owner release frame"),
         UiNativeApplicationFrame::with_component_presence([presence_change(SECOND, false)])
             .expect("Gate D last-owner release frame"),
+        UiNativeApplicationFrame::present_current(),
     ])
     .expect("Gate D frame program is bounded")
 }

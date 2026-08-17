@@ -47,7 +47,7 @@ class PhaseFiveReadinessTests(unittest.TestCase):
                 "mounted_bindings": 1,
                 "pinned_layouts": 2,
                 "presentations": 1,
-                "atlas_transactions": 2,
+                "atlas_transactions": 3,
             },
             {"requirement": "P5-ATLAS-01"},
             None,
@@ -57,7 +57,7 @@ class PhaseFiveReadinessTests(unittest.TestCase):
             (
                 "main-tests=1;hostile-controls=1;product-processes=1;"
                 "compile-sessions=0;courtroom-worlds=1",
-                "executed-tests=2;presentations=1;atlas-transactions=2",
+                "executed-tests=2;presentations=1;atlas-transactions=3",
             ),
         )
 
