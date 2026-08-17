@@ -7,7 +7,7 @@ use worth_ui::facade::declaration::{
 };
 use worth_ui_native_platform::{
     UiNativeApplicationDefinition, UiNativeApplicationPreparation,
-    UiNativeApplicationPreparationOutcome,
+    UiNativeApplicationPreparationOutcome, UiNativeApplicationProgram,
 };
 
 const COMPONENT: &str = "platform.pulse.native_seed.rectangle";
@@ -42,7 +42,11 @@ impl UiNativeApplicationDefinition for PlatformPulseNativeSeedApplication {
                 .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())?;
             builder.register_theme_token(theme_token())?;
             builder.register_component(component())?;
-            builder.with_rust_authored_input(authored_input())
+            builder.with_rust_authored_input(authored_input())?;
+            drop(builder);
+            preparation.install_frame_program(
+                UiNativeApplicationProgram::single_frame().remain_open_until_external_close(),
+            )
         })();
         match result {
             Ok(()) => preparation.complete(),

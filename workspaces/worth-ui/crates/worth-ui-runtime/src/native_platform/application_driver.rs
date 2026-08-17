@@ -56,7 +56,10 @@ impl UiNativeApplicationDriver {
     }
 
     fn next_directive(&self) -> UiNativeEventLoopDirective {
-        if self.next_frame >= self.program.frames().len() && self.pending_frame.is_none() {
+        if self.program.closes_after_program()
+            && self.next_frame >= self.program.frames().len()
+            && self.pending_frame.is_none()
+        {
             UiNativeEventLoopDirective::Close
         } else {
             UiNativeEventLoopDirective::Continue

@@ -281,6 +281,8 @@ fn assert_exact_resource_evidence(evidence: &serde_json::Value) {
         ("pending_submissions", 1),
         ("event_wake_registrations", 1),
         ("application_drivers", 1),
+        ("physical_signal_runtimes", 1),
+        ("physical_signal_workers", 1),
     ] {
         expected.insert(field.to_owned(), count.into());
     }
@@ -300,6 +302,11 @@ const PHASE_FIVE_ATLAS_RESOURCE_CLASSES: &[&str] = &[
     "text_atlas_color_entries",
     "text_atlas_upload_submissions",
     "text_atlas_recovery_authorities",
+    "text_atlas_in_flight_transactions",
+    "physical_signal_runtimes",
+    "physical_signal_workers",
+    "physical_signal_pending_work",
+    "physical_signal_wakes",
 ];
 
 fn expected_native_seed_authored_provenance_digest() -> u64 {

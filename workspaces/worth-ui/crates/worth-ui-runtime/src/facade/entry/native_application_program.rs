@@ -4,6 +4,7 @@ const MAXIMUM_CHANGES_PER_FRAME: usize = 4_096;
 #[must_use]
 pub struct UiNativeApplicationProgram {
     frames: Box<[UiNativeApplicationFrame]>,
+    close_after_program: bool,
 }
 
 #[must_use]
@@ -45,17 +46,28 @@ impl UiNativeApplicationProgram {
         }
         Ok(Self {
             frames: frames.into_boxed_slice(),
+            close_after_program: true,
         })
     }
 
     pub fn single_frame() -> Self {
         Self {
             frames: Box::new([UiNativeApplicationFrame::present_current()]),
+            close_after_program: true,
         }
+    }
+
+    pub fn remain_open_until_external_close(mut self) -> Self {
+        self.close_after_program = false;
+        self
     }
 
     pub(crate) fn frames(&self) -> &[UiNativeApplicationFrame] {
         &self.frames
+    }
+
+    pub(crate) const fn closes_after_program(&self) -> bool {
+        self.close_after_program
     }
 }
 
@@ -174,5 +186,9 @@ mod tests {
                 .len(),
             1
         );
+        assert!(UiNativeApplicationProgram::single_frame().closes_after_program());
+        assert!(!UiNativeApplicationProgram::single_frame()
+            .remain_open_until_external_close()
+            .closes_after_program());
     }
 }

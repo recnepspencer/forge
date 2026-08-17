@@ -45,15 +45,18 @@ struct WindowsCaptureExposure<'bound> {
 
 impl Drop for WindowsCaptureExposure<'_> {
     fn drop(&mut self) {
-        self.bound
-            .window
-            .SetWindowPos(
-                HwndPlace::Place(co::HWND_PLACE::NOTOPMOST),
-                POINT::default(),
-                SIZE::default(),
-                co::SWP::NOMOVE | co::SWP::NOSIZE | co::SWP::NOACTIVATE,
-            )
-            .expect("capture exposure must restore ordinary z-order");
+        let restoration = self.bound.window.SetWindowPos(
+            HwndPlace::Place(co::HWND_PLACE::NOTOPMOST),
+            POINT::default(),
+            SIZE::default(),
+            co::SWP::NOMOVE | co::SWP::NOSIZE | co::SWP::NOACTIVATE,
+        );
+        if let Err(error) = restoration {
+            assert!(
+                !self.bound.window.IsWindow(),
+                "capture exposure must restore ordinary z-order for a live window: {error}"
+            );
+        }
     }
 }
 
