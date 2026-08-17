@@ -9,6 +9,8 @@ const NATIVE_DEPS: &[&str] = &[
     "toml",
     "wgpu",
     "winit",
+    "worth_proof",
+    "worth_signal",
     "worth_ui_host_contract",
     "worth_ui_retained_order",
 ];
