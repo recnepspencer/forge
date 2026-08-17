@@ -38,6 +38,7 @@ const ATLAS_POSITIVE: &[&str] = &[
     "temporal-recovery",
     "retry-correlation",
     "retained-content-extent",
+    "event-loop-progression",
     "production-supersession",
     "terminal-census",
 ];

@@ -2,10 +2,13 @@
 
 #[path = "upload_batch.rs"]
 mod batch;
+#[path = "upload/correlation.rs"]
+mod correlation;
 
 use super::recovery::UiNativeTextAtlasDenial;
 use super::UiNativeTextAtlasUpload;
 use crate::native::{UiNativeOwnedResource, UiNativeResourceClass, UiNativeResourceRegistry};
+use correlation::PendingAtlasTransactionCorrelation;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(crate) enum UiNativeGpuAtlasKind {
@@ -51,12 +54,6 @@ struct PendingAtlasUpload {
     physical_bytes: u64,
 }
 
-#[derive(Clone, Copy)]
-struct PendingAtlasTransactionCorrelation {
-    transaction: u64,
-    basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiNativeTextAtlasPhysicalPoll {
     Pending,
@@ -72,55 +69,6 @@ impl UiNativeTextAtlasGpuPages {
             pending: Vec::new(),
             correlations: Vec::new(),
         }
-    }
-
-    pub(crate) fn bind_transaction_correlation(
-        &mut self,
-        transaction: u64,
-        basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
-    ) -> Result<(), UiNativeTextAtlasDenial> {
-        if self
-            .correlations
-            .iter()
-            .any(|correlation| correlation.transaction == transaction)
-        {
-            return Err(UiNativeTextAtlasDenial::ReservationConflict);
-        }
-        self.correlations
-            .push(PendingAtlasTransactionCorrelation { transaction, basis });
-        Ok(())
-    }
-
-    pub(crate) fn release_transaction_correlation(&mut self, transaction: u64) {
-        self.correlations
-            .retain(|correlation| correlation.transaction != transaction);
-    }
-
-    pub(crate) fn rebind_transaction_correlation(
-        &mut self,
-        transaction: u64,
-        basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
-    ) -> bool {
-        let Some(correlation) = self
-            .correlations
-            .iter_mut()
-            .find(|correlation| correlation.transaction == transaction)
-        else {
-            return false;
-        };
-        correlation.basis = basis;
-        true
-    }
-
-    #[cfg(test)]
-    pub(crate) fn transaction_correlation_basis(
-        &self,
-        transaction: u64,
-    ) -> Option<crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis> {
-        self.correlations
-            .iter()
-            .find(|correlation| correlation.transaction == transaction)
-            .map(|correlation| correlation.basis)
     }
 
     pub(crate) fn page_count(&self, kind: UiNativeGpuAtlasKind) -> usize {

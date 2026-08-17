@@ -281,3 +281,41 @@ fn delayed_physical_wake_settles_without_an_ordinary_redraw_grant() {
     assert!(dropped.get());
     assert!(state.borrow_mut().close().is_zero());
 }
+
+pub(crate) fn production_event_loop_progresses_ready_atlas_work() {
+    let state = Rc::new(RefCell::new(UiNativeHostState::new()));
+    let pending = crate::native::mechanics_adapter::seed_pending_atlas_for_event_loop(
+        &mut state.borrow_mut(),
+    );
+    {
+        let mut state = state.borrow_mut();
+        let due = state
+            .physical_signal
+            .next_due_tick()
+            .expect("the pending atlas upload retains a physical deadline");
+        state
+            .physical_signal
+            .advance_clock_to(due)
+            .expect("the event clock admits the exact pending atlas wake");
+    }
+
+    let mut readiness = crate::native::UiNativeReadinessRegistry::new();
+    let physical = readiness.register_level().unwrap();
+    assert_eq!(
+        crate::native::readiness::signal_level_ready(&mut readiness, physical, true, || {}),
+        Ok(crate::native::readiness::UiNativeReadinessSignalDisposition::RedrawRequested)
+    );
+    assert_eq!(
+        super::physical_progression::progress_ready_physical_work(&mut readiness, physical, &state),
+        super::physical_progression::UiNativePhysicalWakeProgress::Progressed
+    );
+    assert!(matches!(
+        state.borrow_mut().complete_pending_text_atlas(pending),
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Committed(_)
+    ));
+    assert_eq!(
+        state.borrow().physical_signal.observation().active_requests,
+        0
+    );
+    assert!(state.borrow_mut().close().is_zero());
+}

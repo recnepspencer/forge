@@ -1,7 +1,4 @@
-use worth_ui_host_contract::{
-    UiGlyphRasterTransactionOutcome, UiGlyphRasterTransactionPending,
-    UiGlyphRasterTransactionReceipt,
-};
+use worth_ui_host_contract::{UiGlyphRasterTransactionOutcome, UiGlyphRasterTransactionPending};
 
 use super::UiNativeHostState;
 use crate::native::physical_work_signal::{
@@ -277,55 +274,6 @@ impl UiNativeHostState {
         }
     }
 
-    pub(crate) fn commit_text_atlas_in_flight(&mut self) -> UiGlyphRasterTransactionOutcome {
-        let Some(in_flight) = self.text_atlas_in_flight.take() else {
-            return stale_plan();
-        };
-        let pending = in_flight.pending();
-        let signal_token = in_flight.signal_token();
-        let Some((plan, uploads)) = in_flight.into_commit_parts() else {
-            self.text_atlas_in_flight =
-                Some(UiNativeTextAtlasInFlight::recovery(pending, signal_token));
-            return stale_plan();
-        };
-        match self.text_atlas.settle(
-            plan,
-            &uploads,
-            crate::native::text_atlas::UiNativeTextAtlasExternalOutcome::Submitted,
-        ) {
-            crate::native::text_atlas::UiNativeTextAtlasCommitOutcome::Committed(receipt) => {
-                UiGlyphRasterTransactionOutcome::Committed(
-                    UiGlyphRasterTransactionReceipt::from_text_mechanics(
-                        receipt.generation.get(),
-                        receipt.misses,
-                        receipt.hits,
-                        receipt.evictions,
-                        receipt.committed_pins,
-                        receipt.staged_bytes,
-                        receipt.physical_staged_bytes,
-                        receipt.peak_entries,
-                        receipt.peak_texel_bytes,
-                    ),
-                )
-            }
-            crate::native::text_atlas::UiNativeTextAtlasCommitOutcome::Denied(denial) => {
-                UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(map_atlas_denial(denial))
-            }
-            crate::native::text_atlas::UiNativeTextAtlasCommitOutcome::EffectsIndeterminate(
-                recovery,
-            ) => {
-                let generation = recovery.generation().get();
-                self.text_atlas_recovery = Some(recovery);
-                UiGlyphRasterTransactionOutcome::EffectsIndeterminate(
-                    worth_ui_host_contract::UiGlyphRasterEffectsIndeterminate::from_text_mechanics(
-                        pending.demand_identity(),
-                        generation,
-                    ),
-                )
-            }
-        }
-    }
-
     fn resolve_text_atlas_recovery(&mut self, pending: UiGlyphRasterTransactionPending) -> bool {
         let Some(in_flight) = self.text_atlas_in_flight.take() else {
             return false;
@@ -374,13 +322,13 @@ fn recovery_outcome(pending: UiGlyphRasterTransactionPending) -> UiGlyphRasterTr
     )
 }
 
-fn stale_plan() -> UiGlyphRasterTransactionOutcome {
+pub(super) fn stale_plan() -> UiGlyphRasterTransactionOutcome {
     UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
         worth_ui_host_contract::UiGlyphRasterTransactionDenial::StalePlan,
     )
 }
 
-fn map_atlas_denial(
+pub(super) fn map_atlas_denial(
     denial: crate::native::text_atlas::UiNativeTextAtlasDenial,
 ) -> worth_ui_host_contract::UiGlyphRasterTransactionDenial {
     use crate::native::text_atlas::UiNativeTextAtlasDenial as Native;

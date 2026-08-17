@@ -366,6 +366,26 @@ fn presentation_basis() -> crate::native::physical_work_signal::UiNativePhysical
     crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::test()
 }
 
+pub(crate) fn seed_pending_atlas_for_event_loop(
+    state: &mut crate::native::UiNativeHostState,
+) -> UiGlyphRasterTransactionPending {
+    let demand = demand_for(key_for(801), 61);
+    let mut rasterizer = signal_failure_tests::SubmittingRasterizer;
+    let mut upload_port = signal_failure_tests::PendingUploadPort;
+    let outcome = perform_with_upload_port(
+        state,
+        presentation_basis(),
+        &[demand],
+        UiGlyphRasterPinTransitionView::from_text_mechanics(&[], &[]),
+        &mut rasterizer,
+        &mut upload_port,
+    );
+    let UiGlyphRasterTransactionOutcome::Pending(pending) = outcome else {
+        panic!("the event-loop fixture must retain admitted atlas work: {outcome:?}");
+    };
+    pending
+}
+
 #[path = "text_atlas_signal_failure_tests.rs"]
 mod signal_failure_tests;
 

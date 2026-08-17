@@ -260,7 +260,7 @@ pub(super) fn cancellation_and_supersession_atomically_quarantine_retained_nativ
         assert_eq!(state.physical_signal.observation().active_requests, 1);
         let counters = state.physical_signal.observation().counters;
         assert_eq!(counters.supersessions, u64::from(supersede));
-        assert_eq!(counters.cancellations, u64::from(!supersede));
+        assert_eq!(counters.cancellations, 1);
 
         assert!(state.progress_text_atlas_physical(pending));
         assert!(state.text_atlas_in_flight.is_none());

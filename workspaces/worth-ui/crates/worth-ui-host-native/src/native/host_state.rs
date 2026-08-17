@@ -14,6 +14,7 @@ mod presentation_lifecycle;
 #[cfg(test)]
 #[path = "host_state/temporal_retry_tests.rs"]
 mod temporal_retry_tests;
+mod text_atlas_commit;
 mod text_atlas_lifecycle;
 
 pub(crate) struct UiNativeHostState {

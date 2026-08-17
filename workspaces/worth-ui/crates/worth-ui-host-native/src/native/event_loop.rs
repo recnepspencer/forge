@@ -20,6 +20,8 @@ mod run;
 mod terminal_cleanup;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+pub(crate) use tests::production_event_loop_progresses_ready_atlas_work;
 mod window_port;
 
 #[cfg(test)]

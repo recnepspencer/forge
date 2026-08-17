@@ -325,12 +325,6 @@ pub enum UiHostSurfaceCancellationOutcome {
     EffectsMayHaveBegun,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum UiHostSurfaceStopReason {
-    Cancelled,
-    Superseded,
-}
-
 impl UiMountedCompletedEffects {
     pub fn new(mut families: Vec<UiMountedEffectFamily>) -> Self {
         families.sort();

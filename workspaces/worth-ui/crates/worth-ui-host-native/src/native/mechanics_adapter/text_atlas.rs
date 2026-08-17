@@ -77,6 +77,9 @@ fn perform_with_upload_port(
 #[path = "text_atlas_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+pub(crate) use tests::seed_pending_atlas_for_event_loop;
+
 #[path = "text_atlas_upload_sink.rs"]
 mod text_atlas_upload_sink;
 

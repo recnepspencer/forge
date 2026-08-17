@@ -19,6 +19,9 @@ mod presentation_text_atlas;
 #[path = "mechanics_adapter/text_atlas.rs"]
 mod text_atlas;
 
+#[cfg(test)]
+pub(crate) use text_atlas::seed_pending_atlas_for_event_loop;
+
 pub(crate) struct WorthUiNativeMechanicsAdapter {
     state: Rc<RefCell<UiNativeHostState>>,
     profile: crate::UiNativePlatformProfileIdentity,

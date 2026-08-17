@@ -96,6 +96,11 @@ impl UiNativePlatformCloseReceipt {
     pub const fn text_atlas_transactions(&self) -> u64 {
         self.report.text_atlas_transactions()
     }
+
+    #[doc(hidden)]
+    pub fn text_pin_frame_counts(&self) -> &[u32] {
+        self.report.text_pin_frame_counts()
+    }
 }
 
 impl UiNativePlatformStopReport {

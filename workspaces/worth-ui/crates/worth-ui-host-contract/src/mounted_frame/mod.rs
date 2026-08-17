@@ -5,6 +5,7 @@ mod presentation_cost;
 mod presentation_work;
 mod protocol;
 mod surface_registration;
+mod surface_stop;
 
 #[cfg(test)]
 mod presentation_work_tests;
@@ -23,8 +24,8 @@ pub use identity::{
 pub use presentation::{
     UiHostPresentationCompletionToken, UiHostSurfaceCancellationOutcome,
     UiHostSurfaceInFlightCompletion, UiHostSurfacePresentationDenial,
-    UiHostSurfacePresentationOutcome, UiHostSurfaceStopReason, UiMountedCompletedEffects,
-    UiMountedEffectFamily, UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView,
+    UiHostSurfacePresentationOutcome, UiMountedCompletedEffects, UiMountedEffectFamily,
+    UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView,
     UiMountedSurfacePresentationCompletion, UiMountedTextRasterCallback, UiMountedTextRasterWork,
     UiPresentationDeadline,
 };
@@ -58,3 +59,4 @@ pub use surface_registration::{
     UiHostSurfaceRegistrationInput, UiHostSurfaceRegistrationOutcome,
     UiHostSurfaceRegistrationRequest,
 };
+pub use surface_stop::UiHostSurfaceStopReason;

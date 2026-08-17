@@ -29,6 +29,7 @@ POSITIVE_CASES = {
         "temporal-recovery",
         "retry-correlation",
         "retained-content-extent",
+        "event-loop-progression",
         "production-supersession",
         "terminal-census",
     ),
