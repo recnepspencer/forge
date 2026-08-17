@@ -241,6 +241,7 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
         &self,
         authority: &UiHostAdapterSessionAuthority,
         token: worth_ui_host_contract::UiHostPresentationCompletionToken,
+        _reason: worth_ui_host_contract::UiHostSurfaceStopReason,
     ) -> UiHostSurfaceCancellationOutcome {
         if !authority.admits_mounted_completion_token(&token) {
             return UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun;

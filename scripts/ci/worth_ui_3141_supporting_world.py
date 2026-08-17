@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from worth_ui_ledger_dependency import require_proved_artifact
-from worth_ui_3141_phase4_case_contracts import hostile_cases, positive_cases
+from worth_ui_3141_p5_case_contracts import hostile_cases, positive_cases
 
 
 MIXED_REQUIREMENT = "P3-DELTA-SOURCE-01"

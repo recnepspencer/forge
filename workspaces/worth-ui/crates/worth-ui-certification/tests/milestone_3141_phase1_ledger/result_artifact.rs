@@ -137,6 +137,7 @@ fn validate_artifact_proofs(
     command: &CommandBinding,
 ) -> Result<(), String> {
     super::phase_four_case_contract::validate(&command.requirement, artifact)?;
+    super::phase_five_case_contract::validate(&command.requirement, artifact)?;
     if command.shared_main {
         super::shared_world_artifact::validate(
             artifact,

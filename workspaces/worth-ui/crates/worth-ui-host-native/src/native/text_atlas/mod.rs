@@ -1,6 +1,5 @@
 //! Native-owned bounded atlas transaction and resource lifecycle.
 
-mod activity;
 mod admission;
 mod alpha;
 mod candidate_store;
@@ -36,6 +35,10 @@ mod upload_staging;
 #[cfg(test)]
 mod boundary_tests;
 #[cfg(test)]
+mod content_extent_tests;
+#[cfg(test)]
+mod correlation_tests;
+#[cfg(test)]
 pub(crate) mod eviction_tests;
 #[cfg(test)]
 mod model_key;
@@ -56,10 +59,13 @@ mod placement_model_tests;
 #[cfg(test)]
 mod recovery_identity_tests;
 
-pub(crate) use activity::UiNativeTextAtlasActivity;
 pub use capacity::{UiNativeTextAtlasCapacityPosture, UiNativeTextAtlasQualifiedCapacity};
 pub(crate) use census::UiNativeTextAtlasPhysicalPosture;
 pub use census::{UiNativeTextAtlasCensus, UiNativeTextAtlasResourceClass};
+#[cfg(test)]
+pub(crate) use content_extent_tests::retained_content_extent_is_the_uploaded_shape_not_the_padded_allocation;
+#[cfg(test)]
+pub(crate) use correlation_tests::physical_transaction_correlation_rebinds_to_the_current_signal_attempt;
 pub(crate) use demand::UiNativeTextAtlasDemand;
 #[cfg(test)]
 pub(crate) use gate_d_model_evidence::{

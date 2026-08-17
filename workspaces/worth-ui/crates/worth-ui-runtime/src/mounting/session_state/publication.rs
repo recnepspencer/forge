@@ -183,6 +183,19 @@ impl WorthUiMountedSessionState {
         }
     }
 
+    pub(crate) fn supersede_presentation(
+        &mut self,
+        host: &crate::facade::WorthUiHostSessionAuthority,
+        in_flight: UiMountedPresentationInFlight,
+    ) -> UiMountedPublicationTransition {
+        match self.presentation.supersede(in_flight, host.effect_port()) {
+            Ok(outcome) => self.finish_presentation(outcome),
+            Err(denial) => {
+                UiMountedPublicationTransition::new(UiMountedFrameOutcome::CompletionDenied(denial))
+            }
+        }
+    }
+
     pub(crate) fn finish_presentation(
         &mut self,
         outcome: UiMountedPresentationOutcome,

@@ -55,6 +55,14 @@ impl UiNativeHostState {
         {
             return false;
         }
+        if let Some(gpu) = self.text_atlas_gpu.as_mut() {
+            if gpu.transaction_pending(pending.transaction())
+                && !gpu
+                    .rebind_transaction_correlation(pending.transaction(), token.external_basis())
+            {
+                return false;
+            }
+        }
         if self.physical_signal.token_uses_recovery(token)
             && self
                 .text_atlas_in_flight
@@ -286,7 +294,6 @@ impl UiNativeHostState {
             crate::native::text_atlas::UiNativeTextAtlasExternalOutcome::Submitted,
         ) {
             crate::native::text_atlas::UiNativeTextAtlasCommitOutcome::Committed(receipt) => {
-                self.text_atlas_activity.record_committed_transaction();
                 UiGlyphRasterTransactionOutcome::Committed(
                     UiGlyphRasterTransactionReceipt::from_text_mechanics(
                         receipt.generation.get(),

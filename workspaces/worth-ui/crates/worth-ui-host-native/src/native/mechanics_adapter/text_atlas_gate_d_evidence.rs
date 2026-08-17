@@ -77,6 +77,8 @@ fn real_dx12_signal_transaction_matches_the_independent_atlas_model_and_closes_e
     signal_failure_tests::cancellation_and_supersession_atomically_quarantine_retained_native_uploads();
     signal_failure_tests::replayed_external_completion_cannot_settle_a_new_atlas_request();
     crate::native::text_atlas::assert_gate_d_model_boundaries();
+    crate::native::text_atlas::physical_transaction_correlation_rebinds_to_the_current_signal_attempt();
+    crate::native::text_atlas::retained_content_extent_is_the_uploaded_shape_not_the_padded_allocation();
     let mut state = crate::native::UiNativeHostState::new();
     let mut rasterizer = MixedSubmittingRasterizer;
     exercise_real_dx12_commit(&mut state, &mut rasterizer);
@@ -86,7 +88,7 @@ fn real_dx12_signal_transaction_matches_the_independent_atlas_model_and_closes_e
     assert!(signal.runtime_owned);
     assert!(signal.signal_performed_transitions > 0);
     assert!(state.close().is_zero());
-    println!("WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-01\":[\"exact-signal-basis\",\"independent-model\",\"real-dx12-alpha-color\",\"bounded-capacity\",\"temporal-recovery\",\"terminal-census\"]}}");
+    println!("WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-01\":[\"exact-signal-basis\",\"independent-model\",\"real-dx12-alpha-color\",\"bounded-capacity\",\"temporal-recovery\",\"retry-correlation\",\"retained-content-extent\",\"production-supersession\",\"terminal-census\"]}}");
     println!(
         "WORTH_UI_LEDGER_COUNTERS={{\"P5-ATLAS-01\":1,\"physical-signal-runtimes\":{}}}",
         u8::from(signal.runtime_owned)

@@ -122,7 +122,7 @@ impl<'session> WorthUiMountedContentRebindInFlight<'session> {
             mounted,
             publication,
         } = *self;
-        let outcome = session.cancel_mounted_presentation(mounted);
+        let outcome = session.supersede_mounted_presentation(mounted);
         finish(session, outcome, publication)
     }
 }

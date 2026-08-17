@@ -1,9 +1,9 @@
 {
   "schema": "worth-ui-compile-contract-result-v1",
   "exit_posture": "passed",
-  "run_nonce": "8916e8a185ff5b1a912e5a3cbc68aadd",
-  "source_revision": "763e51cb44de6551c6090d1ad6e89432efb69ab6",
-  "source_state_digest": "17ae39d2e52d99387f3bf3a0a0db655368e07210f20e9427bcf726acfcb6cff6",
+  "run_nonce": "b1e84287702e11ef030b253cc625ff5d",
+  "source_revision": "c9af05d2ebb103a608de448f326ca40caab91def",
+  "source_state_digest": "5ca841b4fe84b6e82fae9cd9be25979532582c1041029307709a6a18a7615b2d",
   "cargo_sessions": 2,
   "fail_targets": 74,
   "pass_targets": 24,
@@ -166,9 +166,9 @@
       "kind": "fail",
       "target": "host-phase5-raw-text-effect-bypass",
       "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/raw_text_effects_require_runtime_authority.rs",
-      "source_sha256": "b3c7c2ebe1f847906faf2429ec90aae3f82f256615a945b08fad53b6bd8706a0",
+      "source_sha256": "2f70886aebd5744a8d54d445046ae57c2a7a5b7682696948f85d3f38b91f9212",
       "snapshot": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/raw_text_effects_require_runtime_authority.stderr",
-      "snapshot_sha256": "b99ccbefd765ade65c9c1a502451018a6a88f73dd4ea616599597903d26cafe8"
+      "snapshot_sha256": "8cbe759f92b74f3e9325a28d12ff3ddfd01e65f4f683fbf293e2857e8da3fd3b"
     },
     {
       "owner": "host",

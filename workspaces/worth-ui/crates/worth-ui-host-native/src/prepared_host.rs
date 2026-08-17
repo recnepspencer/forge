@@ -91,10 +91,12 @@ impl worth_ui_host_contract::WorthUiHostMechanicsAdapter for WorthUiPreparedNati
     fn perform_mounted_surface_cancellation(
         &self,
         token: worth_ui_host_contract::UiHostPresentationCompletionToken,
+        reason: worth_ui_host_contract::UiHostSurfaceStopReason,
     ) -> worth_ui_host_contract::UiHostSurfaceCancellationOutcome {
         worth_ui_host_contract::WorthUiHostMechanicsAdapter::perform_mounted_surface_cancellation(
             &self.adapter,
             token,
+            reason,
         )
     }
 

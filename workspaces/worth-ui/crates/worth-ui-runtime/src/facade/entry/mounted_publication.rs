@@ -57,6 +57,16 @@ impl WorthUiActiveApplicationSession {
         finish_mounted_transition(&mut self.host_exchange, transition)
     }
 
+    pub(crate) fn supersede_mounted_presentation(
+        &mut self,
+        in_flight: UiMountedPresentationInFlight,
+    ) -> UiMountedFrameOutcome {
+        let transition = self
+            .mounted
+            .supersede_presentation(&self.host_session, in_flight);
+        finish_mounted_transition(&mut self.host_exchange, transition)
+    }
+
     pub fn current_mounted_publication(&self) -> Option<&UiMountedFramePublicationReceipt> {
         self.mounted.current_publication()
     }

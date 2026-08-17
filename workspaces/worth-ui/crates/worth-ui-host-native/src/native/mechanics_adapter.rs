@@ -135,8 +135,9 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
     fn perform_mounted_surface_cancellation(
         &self,
         token: worth_ui_host_contract::UiHostPresentationCompletionToken,
+        reason: worth_ui_host_contract::UiHostSurfaceStopReason,
     ) -> worth_ui_host_contract::UiHostSurfaceCancellationOutcome {
-        presentation_text_atlas::cancel(&mut self.state.borrow_mut(), token)
+        presentation_text_atlas::stop(&mut self.state.borrow_mut(), token, reason)
     }
 
     fn perform_surface_deregistration(

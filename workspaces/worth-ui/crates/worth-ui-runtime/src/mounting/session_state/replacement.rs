@@ -229,7 +229,7 @@ impl WorthUiMountedSessionState {
     ) -> Result<UiMountedGraphReplacementPresentation, UiMountedGraphReplacementCompletionRejection>
     {
         let observed = in_flight.handle.clone();
-        let outcome = match self.presentation.cancel(observed, host.effect_port()) {
+        let outcome = match self.presentation.supersede(observed, host.effect_port()) {
             Ok(outcome) => outcome,
             Err(denial) => {
                 return Err(UiMountedGraphReplacementCompletionRejection {

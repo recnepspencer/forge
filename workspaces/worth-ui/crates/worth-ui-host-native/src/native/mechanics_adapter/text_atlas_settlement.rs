@@ -41,7 +41,6 @@ pub(super) fn settle_plan(
 ) -> UiGlyphRasterTransactionOutcome {
     match state.text_atlas.settle(plan, &uploads, external) {
         UiNativeTextAtlasCommitOutcome::Committed(receipt) => {
-            state.text_atlas_activity.record_committed_transaction();
             UiGlyphRasterTransactionOutcome::Committed(
                 UiGlyphRasterTransactionReceipt::from_text_mechanics(
                     receipt.generation.get(),

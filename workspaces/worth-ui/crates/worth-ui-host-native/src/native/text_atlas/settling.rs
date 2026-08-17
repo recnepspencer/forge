@@ -103,6 +103,7 @@ fn commit_submitted(
     core.next_entry = core.next_entry.max(next_entry_after_plan(plan));
     core.generation = plan.candidate_generation;
     core.completed_use_epoch = committed_epoch;
+    core.committed_transactions = core.committed_transactions.saturating_add(1);
     core.reservation = None;
     plan.committed = true;
     UiNativeTextAtlasCommitOutcome::Committed(UiNativeTextAtlasCommitReceipt {
@@ -147,6 +148,7 @@ fn update_candidate_digests(
         {
             entry.digest = upload.digest();
             entry.bearing = upload.bearing();
+            entry.content_extent = [upload.width(), upload.height()];
             entry.staged_bytes = u64::try_from(upload.bytes().len()).unwrap_or(u64::MAX);
         }
     }

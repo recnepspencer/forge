@@ -23,8 +23,8 @@ pub use identity::{
 pub use presentation::{
     UiHostPresentationCompletionToken, UiHostSurfaceCancellationOutcome,
     UiHostSurfaceInFlightCompletion, UiHostSurfacePresentationDenial,
-    UiHostSurfacePresentationOutcome, UiMountedCompletedEffects, UiMountedEffectFamily,
-    UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView,
+    UiHostSurfacePresentationOutcome, UiHostSurfaceStopReason, UiMountedCompletedEffects,
+    UiMountedEffectFamily, UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView,
     UiMountedSurfacePresentationCompletion, UiMountedTextRasterCallback, UiMountedTextRasterWork,
     UiPresentationDeadline,
 };

@@ -16,6 +16,12 @@ ATLAS = f"{NATIVE}/text_atlas"
 TEXT = "workspaces/worth-ui/crates/worth-ui-text/src"
 TEXT_RASTER = f"{TEXT}/raster"
 
+P5_CASE_AUTHORITY_SOURCES = (
+    "scripts/ci/worth_ui_3141_p5_case_contracts.py",
+    f"{LEDGER}/phase_five_case_contract.rs",
+    f"{LEDGER}/result_artifact.rs",
+)
+
 PHYSICAL_SIGNAL_SOURCES = (
     f"{PHYSICAL}/mod.rs",
     f"{PHYSICAL}/completion_reconciliation.rs",
@@ -40,10 +46,11 @@ PHYSICAL_SIGNAL_SOURCES = (
     f"{PHYSICAL}/tests/request_locality.rs",
 )
 
-ATLAS_TRANSACTION_SOURCES = PHYSICAL_SIGNAL_SOURCES + (
-    "scripts/ci/worth_ui_3141_phase4_case_contracts.py",
+ATLAS_TRANSACTION_SOURCES = PHYSICAL_SIGNAL_SOURCES + P5_CASE_AUTHORITY_SOURCES + (
     f"{NATIVE}/host_state.rs",
     f"{NATIVE}/host_state/text_atlas_lifecycle.rs",
+    f"{NATIVE}/event_loop/physical_progression.rs",
+    f"{NATIVE}/event_loop/tests.rs",
     f"{NATIVE}/resource_census.rs",
     f"{NATIVE}/resource_ownership.rs",
     f"{NATIVE}/resource_registry.rs",
@@ -67,10 +74,12 @@ ATLAS_TRANSACTION_SOURCES = PHYSICAL_SIGNAL_SOURCES + (
     f"{ATLAS}/census.rs",
     f"{ATLAS}/cleanup.rs",
     f"{ATLAS}/color.rs",
+    f"{ATLAS}/content_extent_tests.rs",
     f"{ATLAS}/demand.rs",
     f"{ATLAS}/demand_admission.rs",
     f"{ATLAS}/entry.rs",
     f"{ATLAS}/eviction.rs",
+    f"{ATLAS}/eviction_tests.rs",
     f"{ATLAS}/gate_d_model_evidence.rs",
     f"{ATLAS}/in_flight.rs",
     f"{ATLAS}/key.rs",
@@ -94,8 +103,8 @@ ATLAS_TRANSACTION_SOURCES = PHYSICAL_SIGNAL_SOURCES + (
     f"{ATLAS}/transaction.rs",
     f"{ATLAS}/transaction_plan_snapshot.rs",
     f"{ATLAS}/upload.rs",
+    f"{ATLAS}/upload_batch.rs",
     f"{ATLAS}/upload_staging.rs",
-    f"{ATLAS}/activity.rs",
 )
 
 RUNTIME_PIN_SOURCES = (
@@ -124,7 +133,7 @@ PINNING_PRODUCT_SOURCES = ATLAS_TRANSACTION_SOURCES + RUNTIME_PIN_SOURCES + (
     "scripts/ci/worth_ui_ledger_row_evidence.py",
     "scripts/ci/worth_ui_ledger_verifier_rebinding.py",
     f"{LEDGER}/dependency_row.rs",
-    f"{LEDGER}/phase_four_case_contract.rs",
+    f"{LEDGER}/phase_five_case_contract.rs",
     f"{LEDGER}/runner_artifact_authentication.rs",
     f"{LEDGER}/supporting_world_artifact.rs",
     "workspaces/worth-ui/crates/worth-ui-host-contract/src/operational_adapter.rs",
@@ -154,6 +163,9 @@ PINNING_PRODUCT_SOURCES = ATLAS_TRANSACTION_SOURCES + RUNTIME_PIN_SOURCES + (
     "workspaces/worth-ui/crates/worth-ui-runtime/src/host/adapter/operational_contract.rs",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/host/adapter/session_authority.rs",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/mod.rs",
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/platform.rs",
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/application_driver.rs",
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/native_platform_binding.rs",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/authorized_native_host.rs",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/outcome.rs",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/text_presentation/mounted_coordinator.rs",
@@ -198,7 +210,7 @@ def glyph_raster_proof(proof_type: Any, control_type: Any) -> Any:
         "phase5_ledger_evidence::qualified_alpha_and_color_raster_cross_exact_production_authority",
         f"{TEXT_RASTER}/demand.rs::derive_glyph_raster_demand",
         f"{TEXT}/phase5_ledger_evidence.rs::qualified_alpha_and_color_raster_cross_exact_production_authority",
-        GLYPH_RASTER_SOURCES,
+        GLYPH_RASTER_SOURCES + P5_CASE_AUTHORITY_SOURCES,
         control=control_type(
             "worth-ui-certification",
             ("test", "topology_contracts"),
@@ -215,7 +227,7 @@ def color_raster_proof(proof_type: Any, control_type: Any) -> Any:
         "phase5_ledger_evidence::every_qualified_color_source_and_rgi_sequence_crosses_production_raster",
         f"{TEXT_RASTER}/color/mod.rs::rasterize_intrinsic_color",
         f"{TEXT}/phase5_ledger_evidence.rs::every_qualified_color_source_and_rgi_sequence_crosses_production_raster",
-        COLOR_RASTER_SOURCES,
+        COLOR_RASTER_SOURCES + P5_CASE_AUTHORITY_SOURCES,
         control=control_type(
             "worth-ui-text",
             ("lib", "lib"),
@@ -278,8 +290,12 @@ def predecessor_proof(
             validator,
             handoff,
             "scripts/ci/worth_ui_3141_p5_proofs.py",
+            "scripts/ci/worth_ui_predecessor_handoff.py",
             "scripts/ci/verify_worth_ui_3141_ledger.py",
+            "scripts/ci/worth_ui_ledger_operational_successors.py",
             "scripts/ci/worth_ui_ledger_phase_five_portfolio.py",
+            "scripts/ci/worth_ui_ledger_portfolio_row.py",
+            "scripts/ci/worth_ui_ledger_source_state.py",
             predecessor_artifact,
         ),
         control=control_type(

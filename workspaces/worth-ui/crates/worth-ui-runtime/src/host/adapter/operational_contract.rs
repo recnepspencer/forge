@@ -69,6 +69,7 @@ pub trait WorthUiOperationalHostAdapter:
         &self,
         _authority: &UiHostAdapterSessionAuthority,
         _token: worth_ui_host_contract::UiHostPresentationCompletionToken,
+        _reason: worth_ui_host_contract::UiHostSurfaceStopReason,
     ) -> worth_ui_host_contract::UiHostSurfaceCancellationOutcome {
         worth_ui_host_contract::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun
     }
@@ -194,11 +195,12 @@ where
         &self,
         authority: &UiHostAdapterSessionAuthority,
         token: worth_ui_host_contract::UiHostPresentationCompletionToken,
+        reason: worth_ui_host_contract::UiHostSurfaceStopReason,
     ) -> worth_ui_host_contract::UiHostSurfaceCancellationOutcome {
         if !authority.admits_mounted_completion_token(&token) {
             return worth_ui_host_contract::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun;
         }
-        self.perform_mounted_surface_cancellation(token)
+        self.perform_mounted_surface_cancellation(token, reason)
     }
 
     fn register_surface(

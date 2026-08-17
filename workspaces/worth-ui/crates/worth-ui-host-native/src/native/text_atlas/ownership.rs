@@ -141,6 +141,7 @@ pub(crate) struct AtlasCore {
     pub(crate) next_reservation: u64,
     pub(crate) next_entry: u64,
     pub(crate) completed_use_epoch: u64,
+    pub(crate) committed_transactions: u64,
     pub(crate) pins: BTreeSet<PinIdentity>,
     pub(crate) quarantined: bool,
     pub(crate) lineage: UiNativeTextAtlasLineageIdentity,
@@ -156,6 +157,7 @@ impl AtlasCore {
             next_reservation: 1,
             next_entry: 1,
             completed_use_epoch: 0,
+            committed_transactions: 0,
             pins: BTreeSet::new(),
             quarantined: false,
             lineage,
@@ -214,6 +216,10 @@ impl UiNativeTextAtlas {
             .into_boxed_slice()
     }
 
+    pub(crate) fn committed_transactions(&self) -> u64 {
+        self.core.borrow().committed_transactions
+    }
+
     pub(crate) fn entry_view(&self, key: UiGlyphRasterKey) -> Option<UiNativeTextAtlasEntryView> {
         let core = self.core.borrow();
         let (entry, kind) = match key.source() {
@@ -232,7 +238,7 @@ impl UiNativeTextAtlas {
             kind,
             page: entry.page,
             origin: [entry.rect.x, entry.rect.y],
-            extent: [entry.rect.width, entry.rect.height],
+            extent: entry.content_extent,
             bearing: entry.bearing,
         })
     }

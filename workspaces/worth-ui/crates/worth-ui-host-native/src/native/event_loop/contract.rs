@@ -115,6 +115,7 @@ pub struct UiNativeEventLoopRunReport {
     pub(super) port_crossings: u8,
     pub(super) retained_frames: Box<[UiNativeRetainedFrameObservation]>,
     pub(super) peak_text_pins: Box<[crate::native::text_atlas::UiNativeTextPinObservation]>,
+    pub(super) text_pin_frame_counts: Box<[u32]>,
     pub(super) text_atlas_transactions: u64,
 }
 
@@ -182,6 +183,10 @@ impl UiNativeEventLoopRunReport {
             .map(|pin| pin.layout_digest())
             .collect::<std::collections::BTreeSet<_>>()
             .len()
+    }
+
+    pub fn text_pin_frame_counts(&self) -> &[u32] {
+        &self.text_pin_frame_counts
     }
 
     pub const fn text_atlas_transactions(&self) -> u64 {

@@ -20,40 +20,6 @@ POSITIVE_CASES = {
         "generation-replace-remove-pins-predecessor-bytes",
         "exact-generation-reconstruction",
     ),
-    "P5-GLYPH-RASTER-01": (
-        "exact-demand-identity",
-        "fractional-origin",
-        "variable-outline",
-        "last-resort-outline",
-        "cross-layout-raster-reuse",
-        "qualified-alpha-color-batches",
-    ),
-    "P5-COLOR-EMOJI-01": (
-        "colrv0-cpal",
-        "colrv1-cpal",
-        "cbdt-cblc",
-        "sbix-png-dupe",
-        "selector-lane",
-        "exhaustive-rgi",
-        "gradient-composite",
-        "nonseparable-composite",
-        "bitmap-composite",
-    ),
-    "P5-ATLAS-01": (
-        "exact-signal-basis",
-        "independent-model",
-        "real-dx12-alpha-color",
-        "bounded-capacity",
-        "temporal-recovery",
-        "terminal-census",
-    ),
-    "P5-ATLAS-PINNING-01": (
-        "shared-layout-pins",
-        "runtime-transaction-owner",
-        "native-signal-settlement",
-        "last-owner-release",
-        "terminal-census",
-    ),
 }
 
 
@@ -72,30 +38,6 @@ HOSTILE_CASES = {
         "variable-axis-range-substitution",
         "missing-unicode-coverage",
         "pack-family-boundary-alias",
-    ),
-    "P5-GLYPH-RASTER-01": (
-        "consumer-reshape",
-        "ambient-system-font",
-    ),
-    "P5-COLOR-EMOJI-01": (
-        "foreground-tint",
-        "cluster-split",
-        "source-substitution",
-        "malformed-graph",
-        "unsupported-bitmap",
-        "unbounded-current-color",
-    ),
-    "P5-ATLAS-01": (
-        "callback-before-effects",
-        "partial-upload-indeterminate",
-        "replayed-completion",
-        "capacity-before-raster",
-        "cancellation-recovery",
-        "equal-epoch-registration-order",
-    ),
-    "P5-ATLAS-PINNING-01": (
-        "shared-owner-preservation",
-        "last-owner-release",
     ),
 }
 

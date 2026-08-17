@@ -108,6 +108,7 @@ fn run_native_gate_d_pin_world() -> ExitCode {
                 "presentations": receipt.retained_frames().len(),
                 "atlas_transactions": receipt.text_atlas_transactions(),
                 "native_peak_pin_count": peak.text_atlas_pins,
+                "native_frame_pin_counts": receipt.text_pin_frame_counts(),
                 "physical_signal_runtimes": peak.physical_signal_runtimes,
                 "physical_signal_workers": peak.physical_signal_workers,
                 "alpha_entries": peak.text_atlas_alpha_entries,

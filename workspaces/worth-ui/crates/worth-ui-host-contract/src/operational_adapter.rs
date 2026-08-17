@@ -80,6 +80,7 @@ pub trait WorthUiHostMechanicsAdapter: crate::WorthUiMeasurementHostAdapter {
     fn perform_mounted_surface_cancellation(
         &self,
         _token: crate::UiHostPresentationCompletionToken,
+        _reason: crate::UiHostSurfaceStopReason,
     ) -> crate::UiHostSurfaceCancellationOutcome {
         crate::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun
     }

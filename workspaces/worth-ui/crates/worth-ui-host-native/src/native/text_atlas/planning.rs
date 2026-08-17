@@ -232,6 +232,7 @@ fn insert_entry(
         key: demand.key(),
         page,
         rect,
+        content_extent: [demand.width(), demand.height()],
         bearing: worth_ui_host_contract::UiGlyphRasterBearing::from_sixty_fourths(0, 0),
         staged_bytes: demand.staged_bytes(),
         digest: [0; 32],

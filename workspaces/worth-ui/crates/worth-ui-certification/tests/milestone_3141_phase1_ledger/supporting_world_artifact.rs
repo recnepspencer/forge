@@ -118,7 +118,7 @@ fn validate_atlas_content(
         "structural_counter",
         "physical-signal-runtimes=1",
     )?;
-    super::phase_four_case_contract::validate(ATLAS_REQUIREMENT, supporting)
+    super::phase_five_case_contract::validate(ATLAS_REQUIREMENT, supporting)
 }
 
 fn validate_content(

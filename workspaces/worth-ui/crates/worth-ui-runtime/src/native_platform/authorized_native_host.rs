@@ -111,11 +111,13 @@ impl WorthUiOperationalHostAdapter for UiAuthorizedNativeHostAdapter {
         &self,
         authority: &UiHostAdapterSessionAuthority,
         token: worth_ui_host_contract::UiHostPresentationCompletionToken,
+        reason: worth_ui_host_contract::UiHostSurfaceStopReason,
     ) -> worth_ui_host_contract::UiHostSurfaceCancellationOutcome {
         if !authority.admits_mounted_completion_token(&token) {
             return worth_ui_host_contract::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun;
         }
-        self.adapter.perform_mounted_surface_cancellation(token)
+        self.adapter
+            .perform_mounted_surface_cancellation(token, reason)
     }
 
     fn register_surface(

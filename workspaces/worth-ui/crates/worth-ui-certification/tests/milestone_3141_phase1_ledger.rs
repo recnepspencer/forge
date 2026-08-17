@@ -27,6 +27,8 @@ mod future_requirement_contract;
 mod mutation_tests;
 #[path = "milestone_3141_phase1_ledger/open_gate_posture.rs"]
 mod open_gate_posture;
+#[path = "milestone_3141_phase1_ledger/phase_five_case_contract.rs"]
+mod phase_five_case_contract;
 #[path = "milestone_3141_phase1_ledger/phase_four_case_contract.rs"]
 mod phase_four_case_contract;
 #[path = "milestone_3141_phase1_ledger/phase_progression.rs"]

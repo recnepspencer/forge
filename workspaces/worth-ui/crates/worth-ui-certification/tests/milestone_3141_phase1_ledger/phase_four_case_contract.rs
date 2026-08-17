@@ -37,66 +37,6 @@ const FONT_COLLECTION_HOSTILE: &[&str] = &[
     "pack-family-boundary-alias",
 ];
 
-const GLYPH_RASTER_POSITIVE: &[&str] = &[
-    "exact-demand-identity",
-    "fractional-origin",
-    "variable-outline",
-    "last-resort-outline",
-    "cross-layout-raster-reuse",
-    "qualified-alpha-color-batches",
-];
-
-const GLYPH_RASTER_HOSTILE: &[&str] = &["consumer-reshape", "ambient-system-font"];
-
-const COLOR_RASTER_POSITIVE: &[&str] = &[
-    "colrv0-cpal",
-    "colrv1-cpal",
-    "cbdt-cblc",
-    "sbix-png-dupe",
-    "selector-lane",
-    "exhaustive-rgi",
-    "gradient-composite",
-    "nonseparable-composite",
-    "bitmap-composite",
-];
-
-const COLOR_RASTER_HOSTILE: &[&str] = &[
-    "foreground-tint",
-    "cluster-split",
-    "source-substitution",
-    "malformed-graph",
-    "unsupported-bitmap",
-    "unbounded-current-color",
-];
-
-const ATLAS_POSITIVE: &[&str] = &[
-    "exact-signal-basis",
-    "independent-model",
-    "real-dx12-alpha-color",
-    "bounded-capacity",
-    "temporal-recovery",
-    "terminal-census",
-];
-
-const ATLAS_HOSTILE: &[&str] = &[
-    "callback-before-effects",
-    "partial-upload-indeterminate",
-    "replayed-completion",
-    "capacity-before-raster",
-    "cancellation-recovery",
-    "equal-epoch-registration-order",
-];
-
-const PINNING_POSITIVE: &[&str] = &[
-    "shared-layout-pins",
-    "runtime-transaction-owner",
-    "native-signal-settlement",
-    "last-owner-release",
-    "terminal-census",
-];
-
-const PINNING_HOSTILE: &[&str] = &["shared-owner-preservation", "last-owner-release"];
-
 pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String> {
     let Some((positive, hostile)) = required_cases(requirement) else {
         return Ok(());
@@ -112,10 +52,6 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
 fn required_cases(requirement: &str) -> Option<(&'static [&'static str], &'static [&'static str])> {
     match requirement {
         "P4-FONT-COLLECTION-01" => Some((FONT_COLLECTION_POSITIVE, FONT_COLLECTION_HOSTILE)),
-        "P5-GLYPH-RASTER-01" => Some((GLYPH_RASTER_POSITIVE, GLYPH_RASTER_HOSTILE)),
-        "P5-COLOR-EMOJI-01" => Some((COLOR_RASTER_POSITIVE, COLOR_RASTER_HOSTILE)),
-        "P5-ATLAS-01" => Some((ATLAS_POSITIVE, ATLAS_HOSTILE)),
-        "P5-ATLAS-PINNING-01" => Some((PINNING_POSITIVE, PINNING_HOSTILE)),
         _ => None,
     }
 }
@@ -140,13 +76,7 @@ mod tests {
 
     #[test]
     fn registered_case_sets_reject_missing_reordered_and_substituted_cases() {
-        for requirement in [
-            "P4-FONT-COLLECTION-01",
-            "P5-GLYPH-RASTER-01",
-            "P5-COLOR-EMOJI-01",
-            "P5-ATLAS-01",
-            "P5-ATLAS-PINNING-01",
-        ] {
+        for requirement in ["P4-FONT-COLLECTION-01"] {
             validate(requirement, &artifact(requirement)).unwrap();
             for (field, hostile) in [("governed_cases", false), ("mutation_cases", true)] {
                 for mutation in ["missing", "reordered", "substituted"] {

@@ -96,6 +96,33 @@ impl UiNativeTextAtlasGpuPages {
             .retain(|correlation| correlation.transaction != transaction);
     }
 
+    pub(crate) fn rebind_transaction_correlation(
+        &mut self,
+        transaction: u64,
+        basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
+    ) -> bool {
+        let Some(correlation) = self
+            .correlations
+            .iter_mut()
+            .find(|correlation| correlation.transaction == transaction)
+        else {
+            return false;
+        };
+        correlation.basis = basis;
+        true
+    }
+
+    #[cfg(test)]
+    pub(crate) fn transaction_correlation_basis(
+        &self,
+        transaction: u64,
+    ) -> Option<crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis> {
+        self.correlations
+            .iter()
+            .find(|correlation| correlation.transaction == transaction)
+            .map(|correlation| correlation.basis)
+    }
+
     pub(crate) fn page_count(&self, kind: UiNativeGpuAtlasKind) -> usize {
         match kind {
             UiNativeGpuAtlasKind::Alpha => self.alpha.len(),

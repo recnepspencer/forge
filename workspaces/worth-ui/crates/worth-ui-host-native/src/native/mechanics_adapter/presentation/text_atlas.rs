@@ -129,6 +129,7 @@ pub(super) fn complete(
             state
                 .text_pins_by_binding
                 .insert(pending.binding, pending.binding_pins);
+            state.record_text_pin_frame_observation();
             match pending.continuation {
                 UiNativePendingTextContinuation::AtlasReady => {
                     UiHostSurfaceInFlightCompletion::RejectedBeforeEffects(
@@ -146,9 +147,10 @@ pub(super) fn complete(
     }
 }
 
-pub(super) fn cancel(
+pub(super) fn stop(
     state: &mut UiNativeHostState,
     token: UiHostPresentationCompletionToken,
+    reason: worth_ui_host_contract::UiHostSurfaceStopReason,
 ) -> UiHostSurfaceCancellationOutcome {
     let Some(pending) = state
         .pending_text_presentations
@@ -156,7 +158,14 @@ pub(super) fn cancel(
     else {
         return UiHostSurfaceCancellationOutcome::CancelledBeforeEffects;
     };
-    let _ = state.cancel_pending_text_atlas(pending.atlas);
+    let _ = match reason {
+        worth_ui_host_contract::UiHostSurfaceStopReason::Cancelled => {
+            state.cancel_pending_text_atlas(pending.atlas)
+        }
+        worth_ui_host_contract::UiHostSurfaceStopReason::Superseded => {
+            state.supersede_pending_text_atlas(pending.atlas)
+        }
+    };
     UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun
 }
 

@@ -128,7 +128,26 @@ impl UiMountedPresentationCoordinator {
         let Some(state) = self.in_flight.remove(&in_flight.attempt()) else {
             return Err(UiMountedPresentationCompletionDenial::UnknownAttempt);
         };
-        Ok(self.cancel_state(state, host))
+        Ok(self.stop_state(
+            state,
+            host,
+            worth_ui_host_contract::UiHostSurfaceStopReason::Cancelled,
+        ))
+    }
+
+    pub(crate) fn supersede(
+        &mut self,
+        in_flight: UiMountedPresentationInFlight,
+        host: UiHostEffectPort<'_>,
+    ) -> Result<UiMountedPresentationOutcome, UiMountedPresentationCompletionDenial> {
+        let Some(state) = self.in_flight.remove(&in_flight.attempt()) else {
+            return Err(UiMountedPresentationCompletionDenial::UnknownAttempt);
+        };
+        Ok(self.stop_state(
+            state,
+            host,
+            worth_ui_host_contract::UiHostSurfaceStopReason::Superseded,
+        ))
     }
 
     pub(crate) fn shutdown(
@@ -147,7 +166,11 @@ impl UiMountedPresentationCoordinator {
                 .in_flight
                 .remove(&attempt)
                 .expect("shutdown attempt was retained by the coordinator");
-            let outcome = self.cancel_state(state, host);
+            let outcome = self.stop_state(
+                state,
+                host,
+                worth_ui_host_contract::UiHostSurfaceStopReason::Cancelled,
+            );
             let (disposition, affected) = match &outcome {
                 UiMountedPresentationOutcome::RejectedBeforeEffects(_) => (
                     super::super::UiMountedPresentationShutdownDisposition::CancelledBeforeEffects,
@@ -175,10 +198,11 @@ impl UiMountedPresentationCoordinator {
         )
     }
 
-    fn cancel_state(
+    fn stop_state(
         &mut self,
         state: UiMountedPresentationInFlightState,
         host: UiHostEffectPort<'_>,
+        reason: worth_ui_host_contract::UiHostSurfaceStopReason,
     ) -> UiMountedPresentationOutcome {
         let UiMountedPresentationInFlightState {
             frame,
@@ -200,7 +224,7 @@ impl UiMountedPresentationCoordinator {
                 )
             })
             .collect::<Vec<_>>();
-        let effects_may_have_begun = cancel_all(pending, host);
+        let effects_may_have_begun = stop_all(pending, host, reason);
         if effects_may_have_begun || !completed.is_empty() {
             return self.indeterminate(
                 frame,
@@ -307,12 +331,24 @@ pub(super) fn cancel_all(
     pending: Vec<UiPendingMountedSurface>,
     host: UiHostEffectPort<'_>,
 ) -> bool {
+    stop_all(
+        pending,
+        host,
+        worth_ui_host_contract::UiHostSurfaceStopReason::Cancelled,
+    )
+}
+
+fn stop_all(
+    pending: Vec<UiPendingMountedSurface>,
+    host: UiHostEffectPort<'_>,
+    reason: worth_ui_host_contract::UiHostSurfaceStopReason,
+) -> bool {
     let mut effects_may_have_begun = false;
     for pending_surface in pending {
-        effects_may_have_begun |= host
-            .adapter()
-            .cancel_mounted_surface(host.authority(), pending_surface.token)
-            == UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun;
+        effects_may_have_begun |=
+            host.adapter()
+                .cancel_mounted_surface(host.authority(), pending_surface.token, reason)
+                == UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun;
     }
     effects_may_have_begun
 }

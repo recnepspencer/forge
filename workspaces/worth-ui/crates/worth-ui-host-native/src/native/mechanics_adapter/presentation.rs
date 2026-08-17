@@ -22,6 +22,7 @@ pub(super) fn perform_native_presentation(
     if view.text_raster_work().is_some() {
         return match text_atlas::begin(state, view) {
             text_atlas::UiMountedTextWorkOutcome::Ready => {
+                state.record_text_pin_frame_observation();
                 text_atlas::settle_deferred(state, view, None)
             }
             text_atlas::UiMountedTextWorkOutcome::Pending(pending) => {
