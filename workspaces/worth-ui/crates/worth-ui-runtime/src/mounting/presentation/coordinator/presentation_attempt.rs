@@ -28,7 +28,6 @@ pub(super) struct UiMountedPresentationStart<'host, 'authority> {
 #[derive(Default)]
 pub(super) struct UiMountedPresentationProgress {
     pub(super) pending: Vec<super::super::state::UiPendingMountedSurface>,
-    pub(super) pending_text: Vec<super::super::state::UiPendingMountedTextRaster>,
     pub(super) rejected: Vec<UiMountedSurfacePresentationRejection>,
     pub(super) completed: Vec<UiMountedSurfacePresentationReceipt>,
 }
@@ -148,17 +147,8 @@ pub(super) fn terminalize_surface_uncertainty(
 ) -> UiIndeterminatePresentationEvidence {
     let mut affected =
         aggregate_affected(&progress.completed, &progress.pending, &progress.rejected);
-    for binding in progress.pending_text.iter().map(|pending| pending.binding) {
-        if !affected.contains(&binding) {
-            affected.push(binding);
-        }
-    }
     affected.push(binding);
     super::settlement::cancel_all(std::mem::take(&mut progress.pending), host);
-    super::text_raster_settlement::cancel_all_text(
-        std::mem::take(&mut progress.pending_text),
-        host,
-    );
     let evidence =
         UiIndeterminatePresentationEvidence::new(affected, std::mem::take(&mut progress.completed));
     match additional_cost {

@@ -43,15 +43,9 @@ pub(super) struct UiMountedPresentationInFlightState {
     pub(super) attempt: UiMountedPresentationAttemptIdentity,
     pub(super) deadline: UiPresentationDeadline,
     pub(super) pending: Vec<UiPendingMountedSurface>,
-    pub(super) pending_text: Vec<UiPendingMountedTextRaster>,
     pub(super) rejected: Vec<UiMountedSurfacePresentationRejection>,
     pub(super) completed: Vec<UiMountedSurfacePresentationReceipt>,
     pub(super) candidates: super::work_producer::UiMountedPresentationCandidates,
-}
-
-pub(super) struct UiPendingMountedTextRaster {
-    pub(super) binding: UiSurfaceBindingGeneration,
-    pub(super) pending: crate::native_platform::text_presentation::UiNativeMountedTextPending,
 }
 
 pub(super) struct UiPendingMountedSurface {
@@ -190,7 +184,6 @@ impl UiMountedPresentationInFlight {
                 .pending
                 .iter()
                 .map(|pending| pending.binding)
-                .chain(state.pending_text.iter().map(|pending| pending.binding))
                 .collect(),
             cost,
         }

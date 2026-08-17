@@ -122,8 +122,9 @@ impl UploadSink {
             return Err(UiGlyphRasterBatchSubmissionDenial::Duplicate);
         }
         self.uploads
-            .push(UiNativeTextAtlasUpload::from_text_mechanics(
+            .push(UiNativeTextAtlasUpload::with_bearing_from_text_mechanics(
                 record.key,
+                record.bearing,
                 record.extent.width(),
                 record.extent.height(),
                 record.stride,

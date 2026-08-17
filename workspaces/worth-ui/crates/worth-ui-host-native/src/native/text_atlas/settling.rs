@@ -147,6 +147,7 @@ fn update_candidate_digests(
             .or_else(|| plan.candidate_color.added_entry_mut(upload.key()))
         {
             entry.digest = upload.digest();
+            entry.bearing = upload.bearing();
             entry.staged_bytes = u64::try_from(upload.bytes().len()).unwrap_or(u64::MAX);
         }
     }

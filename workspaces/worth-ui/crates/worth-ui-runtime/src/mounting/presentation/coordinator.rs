@@ -24,7 +24,6 @@ mod presented;
 mod semantic_text_raster;
 mod settlement;
 mod text_pins;
-mod text_raster_settlement;
 mod work_preparation;
 
 use presentation_attempt::{
@@ -53,7 +52,6 @@ struct UiMountedPresentationSettlement<'host> {
     attempt: UiMountedPresentationAttemptIdentity,
     deadline: UiPresentationDeadline,
     pending: Vec<super::state::UiPendingMountedSurface>,
-    pending_text: Vec<super::state::UiPendingMountedTextRaster>,
     rejected: Vec<UiMountedSurfacePresentationRejection>,
     completed: Vec<UiMountedSurfacePresentationReceipt>,
     candidates: super::work_producer::UiMountedPresentationCandidates,
@@ -193,7 +191,6 @@ impl UiMountedPresentationCoordinator {
             attempt: start.attempt,
             deadline: start.deadline,
             pending: progress.pending,
-            pending_text: progress.pending_text,
             rejected: progress.rejected,
             completed: progress.completed,
             candidates: prepared.candidates,
@@ -205,7 +202,7 @@ impl UiMountedPresentationCoordinator {
         &mut self,
         settlement: UiMountedPresentationSettlement<'_>,
     ) -> UiMountedPresentationOutcome {
-        if !settlement.pending.is_empty() || !settlement.pending_text.is_empty() {
+        if !settlement.pending.is_empty() {
             return self.retain_in_flight(settlement);
         }
         if settlement.completed.is_empty() {
@@ -233,7 +230,6 @@ impl UiMountedPresentationCoordinator {
                     &settlement.rejected,
                 );
                 settlement::cancel_all(settlement.pending, settlement.host);
-                text_raster_settlement::cancel_all_text(settlement.pending_text, settlement.host);
                 return self.indeterminate(
                     settlement.frame,
                     settlement.retention,
@@ -248,7 +244,6 @@ impl UiMountedPresentationCoordinator {
             attempt: settlement.attempt,
             deadline: settlement.deadline,
             pending: settlement.pending,
-            pending_text: settlement.pending_text,
             rejected: settlement.rejected,
             completed: settlement.completed,
             candidates: settlement.candidates,

@@ -11,6 +11,7 @@ pub(crate) struct UiAtlasEntry {
     pub(crate) key: UiGlyphRasterKey,
     pub(crate) page: u32,
     pub(crate) rect: UiAtlasRect,
+    pub(crate) bearing: worth_ui_host_contract::UiGlyphRasterBearing,
     pub(crate) staged_bytes: u64,
     pub(crate) digest: [u8; 32],
     pub(crate) pin_count: u32,

@@ -1,11 +1,7 @@
 //! Portable runtime transaction joining mounted text meaning to the native
 //! host's private atlas effect facade.
 
-use worth_ui_host_contract::{
-    UiGlyphRasterPinTransitionView, UiGlyphRasterTransactionOutcome, UiMountedFrameConsumptionView,
-};
-
-use crate::facade::UiHostEffectPort;
+use worth_ui_host_contract::UiGlyphRasterPinTransitionView;
 
 use super::{
     UiNativeTextMissRasterizer, UiNativeTextPresentationPrepared, UiNativeTextRasterWorkReport,
@@ -14,11 +10,6 @@ use super::{
 pub(crate) struct UiNativeTextAtlasTransaction<'layout> {
     demand_views: Box<[worth_ui_host_contract::UiGlyphRasterDemandBatchView<'layout>]>,
     rasterizer: UiNativeTextMissRasterizer<'layout>,
-}
-
-pub(crate) struct UiNativeTextAtlasTransactionObservation {
-    pub(crate) outcome: UiGlyphRasterTransactionOutcome,
-    pub(crate) raster_work: UiNativeTextRasterWorkReport,
 }
 
 impl<'layout> UiNativeTextAtlasTransaction<'layout> {
@@ -71,24 +62,5 @@ impl<'layout> UiNativeTextAtlasTransaction<'layout> {
             &callback,
         );
         operation(&work)
-    }
-
-    pub(crate) fn execute(
-        mut self,
-        host: UiHostEffectPort<'_>,
-        view: &UiMountedFrameConsumptionView<'_>,
-        pins: UiGlyphRasterPinTransitionView<'_>,
-    ) -> UiNativeTextAtlasTransactionObservation {
-        let outcome = host.adapter().prepare_mounted_text_raster(
-            host.authority(),
-            view,
-            &self.demand_views,
-            pins,
-            &mut self.rasterizer,
-        );
-        UiNativeTextAtlasTransactionObservation {
-            outcome,
-            raster_work: self.rasterizer.report(),
-        }
     }
 }

@@ -40,17 +40,14 @@ impl UiMountedPresentationCoordinator {
             retention,
             attempt,
             pending,
-            pending_text,
             rejected,
             completed,
             ..
         } = state;
-        let mut affected = aggregate_affected(&completed, &pending, &rejected);
-        super::text_raster_settlement::extend_bindings(&mut affected, &pending_text);
+        let affected = aggregate_affected(&completed, &pending, &rejected);
         let timeout_rejections = pending
             .iter()
             .map(|pending| pending.binding)
-            .chain(pending_text.iter().map(|pending| pending.binding))
             .map(|binding| {
                 UiMountedSurfacePresentationRejection::new(
                     binding,
@@ -58,10 +55,7 @@ impl UiMountedPresentationCoordinator {
                 )
             })
             .collect::<Vec<_>>();
-        if cancel_all(pending, host)
-            || super::text_raster_settlement::cancel_all_text(pending_text, host)
-            || !completed.is_empty()
-        {
+        if cancel_all(pending, host) || !completed.is_empty() {
             return self.indeterminate(
                 frame,
                 retention,
@@ -86,14 +80,12 @@ impl UiMountedPresentationCoordinator {
             attempt,
             deadline,
             pending,
-            pending_text,
             rejected,
             completed,
             candidates,
         } = state;
         let mut progress = super::UiMountedPresentationProgress {
             pending: Vec::new(),
-            pending_text: Vec::new(),
             rejected,
             completed,
         };
@@ -115,22 +107,12 @@ impl UiMountedPresentationCoordinator {
             }
         }
         progress.pending.extend(remaining);
-        if let Some(binding) = super::text_raster_settlement::observe_pending(
-            host,
-            pending_text,
-            &mut progress,
-            &mut self.text,
-        ) {
-            let evidence = terminalize_pending_uncertainty(&mut progress, host, binding, None);
-            return self.indeterminate(frame, retention, attempt, evidence);
-        }
         self.finish_or_wait(super::UiMountedPresentationSettlement {
             frame,
             retention,
             attempt,
             deadline,
             pending: progress.pending,
-            pending_text: progress.pending_text,
             rejected: progress.rejected,
             completed: progress.completed,
             candidates,
@@ -203,17 +185,14 @@ impl UiMountedPresentationCoordinator {
             retention,
             attempt,
             pending,
-            pending_text,
             rejected,
             completed,
             ..
         } = state;
-        let mut affected = aggregate_affected(&completed, &pending, &rejected);
-        super::text_raster_settlement::extend_bindings(&mut affected, &pending_text);
+        let affected = aggregate_affected(&completed, &pending, &rejected);
         let cancellation_rejections = pending
             .iter()
             .map(|pending| pending.binding)
-            .chain(pending_text.iter().map(|pending| pending.binding))
             .map(|binding| {
                 UiMountedSurfacePresentationRejection::new(
                     binding,
@@ -221,8 +200,7 @@ impl UiMountedPresentationCoordinator {
                 )
             })
             .collect::<Vec<_>>();
-        let effects_may_have_begun = cancel_all(pending, host)
-            || super::text_raster_settlement::cancel_all_text(pending_text, host);
+        let effects_may_have_begun = cancel_all(pending, host);
         if effects_may_have_begun || !completed.is_empty() {
             return self.indeterminate(
                 frame,
@@ -308,13 +286,8 @@ fn terminalize_pending_uncertainty(
 ) -> UiIndeterminatePresentationEvidence {
     let mut affected =
         aggregate_affected(&progress.completed, &progress.pending, &progress.rejected);
-    super::text_raster_settlement::extend_bindings(&mut affected, &progress.pending_text);
     affected.push(binding);
     cancel_all(std::mem::take(&mut progress.pending), host);
-    super::text_raster_settlement::cancel_all_text(
-        std::mem::take(&mut progress.pending_text),
-        host,
-    );
     let evidence =
         UiIndeterminatePresentationEvidence::new(affected, std::mem::take(&mut progress.completed));
     match additional_cost {

@@ -174,6 +174,15 @@ pub(crate) struct UiNativeTextAtlas {
     pub(crate) plan_calls: Cell<usize>,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct UiNativeTextAtlasEntryView {
+    pub(crate) kind: super::upload::UiNativeGpuAtlasKind,
+    pub(crate) page: u32,
+    pub(crate) origin: [u32; 2],
+    pub(crate) extent: [u32; 2],
+    pub(crate) bearing: worth_ui_host_contract::UiGlyphRasterBearing,
+}
+
 impl Default for UiNativeTextAtlas {
     fn default() -> Self {
         Self::new()
@@ -199,5 +208,28 @@ impl UiNativeTextAtlas {
             .map(PinIdentity::observation)
             .collect::<Vec<_>>()
             .into_boxed_slice()
+    }
+
+    pub(crate) fn entry_view(&self, key: UiGlyphRasterKey) -> Option<UiNativeTextAtlasEntryView> {
+        let core = self.core.borrow();
+        let (entry, kind) = match key.source() {
+            worth_ui_host_contract::UiGlyphRasterSource::AlphaOutline
+            | worth_ui_host_contract::UiGlyphRasterSource::LastResort => (
+                core.alpha.entries.get(&key)?,
+                super::upload::UiNativeGpuAtlasKind::Alpha,
+            ),
+            worth_ui_host_contract::UiGlyphRasterSource::ColorOutline
+            | worth_ui_host_contract::UiGlyphRasterSource::ColorBitmap => (
+                core.color.entries.get(&key)?,
+                super::upload::UiNativeGpuAtlasKind::Color,
+            ),
+        };
+        Some(UiNativeTextAtlasEntryView {
+            kind,
+            page: entry.page,
+            origin: [entry.rect.x, entry.rect.y],
+            extent: [entry.rect.width, entry.rect.height],
+            bearing: entry.bearing,
+        })
     }
 }

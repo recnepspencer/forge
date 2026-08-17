@@ -73,50 +73,6 @@ pub trait WorthUiOperationalHostAdapter:
         worth_ui_host_contract::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun
     }
 
-    fn prepare_mounted_text_raster(
-        &self,
-        _authority: &UiHostAdapterSessionAuthority,
-        _view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
-        _demands: &[worth_ui_host_contract::UiGlyphRasterDemandBatchView<'_>],
-        _pins: worth_ui_host_contract::UiGlyphRasterPinTransitionView<'_>,
-        _rasterizer: &mut dyn worth_ui_host_contract::UiGlyphRasterMissRasterizer,
-    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
-            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
-        )
-    }
-
-    fn complete_mounted_text_raster(
-        &self,
-        _authority: &UiHostAdapterSessionAuthority,
-        _pending: worth_ui_host_contract::UiGlyphRasterTransactionPending,
-    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
-            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
-        )
-    }
-
-    fn cancel_mounted_text_raster(
-        &self,
-        _authority: &UiHostAdapterSessionAuthority,
-        _pending: worth_ui_host_contract::UiGlyphRasterTransactionPending,
-    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
-            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
-        )
-    }
-
-    fn release_mounted_text_pins(
-        &self,
-        _authority: &UiHostAdapterSessionAuthority,
-        _request: worth_ui_host_contract::UiMountedTextPinReleaseRequest,
-        _pins: worth_ui_host_contract::UiGlyphRasterPinTransitionView<'_>,
-    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
-            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
-        )
-    }
-
     fn register_surface(
         &self,
         _authority: &UiHostAdapterSessionAuthority,
@@ -243,50 +199,6 @@ where
             return worth_ui_host_contract::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun;
         }
         self.perform_mounted_surface_cancellation(token)
-    }
-
-    fn prepare_mounted_text_raster(
-        &self,
-        _authority: &UiHostAdapterSessionAuthority,
-        _view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
-        _demands: &[worth_ui_host_contract::UiGlyphRasterDemandBatchView<'_>],
-        _pins: worth_ui_host_contract::UiGlyphRasterPinTransitionView<'_>,
-        _rasterizer: &mut dyn worth_ui_host_contract::UiGlyphRasterMissRasterizer,
-    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
-            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
-        )
-    }
-
-    fn complete_mounted_text_raster(
-        &self,
-        _authority: &UiHostAdapterSessionAuthority,
-        _pending: worth_ui_host_contract::UiGlyphRasterTransactionPending,
-    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
-            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
-        )
-    }
-
-    fn cancel_mounted_text_raster(
-        &self,
-        _authority: &UiHostAdapterSessionAuthority,
-        _pending: worth_ui_host_contract::UiGlyphRasterTransactionPending,
-    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
-            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
-        )
-    }
-
-    fn release_mounted_text_pins(
-        &self,
-        _authority: &UiHostAdapterSessionAuthority,
-        _request: worth_ui_host_contract::UiMountedTextPinReleaseRequest,
-        _pins: worth_ui_host_contract::UiGlyphRasterPinTransitionView<'_>,
-    ) -> worth_ui_host_contract::UiGlyphRasterTransactionOutcome {
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(
-            worth_ui_host_contract::UiGlyphRasterTransactionDenial::Unsupported,
-        )
     }
 
     fn register_surface(

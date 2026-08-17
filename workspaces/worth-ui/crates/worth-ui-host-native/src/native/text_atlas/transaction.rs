@@ -183,6 +183,7 @@ impl UiNativeTextAtlasPinTransition {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiNativeTextAtlasUpload {
     key: UiGlyphRasterKey,
+    bearing: worth_ui_host_contract::UiGlyphRasterBearing,
     width: u32,
     height: u32,
     stride: u32,
@@ -202,6 +203,27 @@ impl UiNativeTextAtlasUpload {
     ) -> Self {
         Self {
             key,
+            bearing: worth_ui_host_contract::UiGlyphRasterBearing::from_sixty_fourths(0, 0),
+            width,
+            height,
+            stride,
+            bytes: bytes.into(),
+            digest,
+        }
+    }
+
+    pub(crate) fn with_bearing_from_text_mechanics(
+        key: UiGlyphRasterKey,
+        bearing: worth_ui_host_contract::UiGlyphRasterBearing,
+        width: u32,
+        height: u32,
+        stride: u32,
+        bytes: impl Into<Box<[u8]>>,
+        digest: [u8; 32],
+    ) -> Self {
+        Self {
+            key,
+            bearing,
             width,
             height,
             stride,
@@ -212,6 +234,10 @@ impl UiNativeTextAtlasUpload {
 
     pub(crate) const fn key(&self) -> UiGlyphRasterKey {
         self.key
+    }
+
+    pub(crate) const fn bearing(&self) -> worth_ui_host_contract::UiGlyphRasterBearing {
+        self.bearing
     }
 
     pub(crate) const fn width(&self) -> u32 {

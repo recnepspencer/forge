@@ -46,7 +46,6 @@ pub use crate::graph::{
     UiGraphFactConsumerIdentity, UiGraphFactIndexBasis, UiGraphFactIndexEntry,
     UiGraphFactLookupCost, UiGraphFactLookupDenial, UiGraphFactLookupReceipt,
 };
-pub use crate::native_platform::text_presentation::UiGateDPinWorldEvidence;
 pub(crate) use activation_interruption::interrupt_if_armed;
 pub use activation_interruption::{
     with_activation_precommit_interruption, WorthUiActivationPrecommitStage,
@@ -90,9 +89,6 @@ pub use mounted_frame_execution::{
 pub use planning::planning_pair_for_certification_suite;
 pub use presentation_mechanics::initial_presentation_mechanics_for_certification;
 
-pub fn run_gate_d_pin_world() -> UiGateDPinWorldEvidence {
-    crate::native_platform::text_presentation::run_gate_d_pin_world()
-}
 pub use rebind_identity_lifecycle::{
     identity_lifecycle_decision_for_certification, UiIdentityLifecyclePresence,
     UiRebindPlanningBasisMutation, UiResolvedIdentityLifecycleCertificationExt,

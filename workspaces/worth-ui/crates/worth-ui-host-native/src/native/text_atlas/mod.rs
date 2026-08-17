@@ -63,8 +63,8 @@ pub(crate) use gate_d_model_evidence::{
 pub(crate) use in_flight::UiNativeTextAtlasInFlight;
 pub(crate) use key::canonical_raster_key_bytes;
 pub use key::{UiAtlasEntryIdentity, UiNativeValidatedRasterKey};
-pub(crate) use ownership::UiNativeTextAtlas;
 pub use ownership::UiNativeTextPinObservation;
+pub(crate) use ownership::{UiNativeTextAtlas, UiNativeTextAtlasEntryView};
 pub use pinning::{UiNativeTextAtlasPin, UiNativeTextAtlasPinSnapshot};
 pub use recovery::{
     UiNativeTextAtlasDenial, UiNativeTextAtlasGeneration, UiNativeTextAtlasLineageIdentity,

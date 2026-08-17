@@ -7,7 +7,7 @@ use super::upload_staging::{
 };
 use crate::native::{UiNativeOwnedResource, UiNativeResourceClass, UiNativeResourceRegistry};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(crate) enum UiNativeGpuAtlasKind {
     Alpha,
     Color,
@@ -93,6 +93,22 @@ impl UiNativeTextAtlasGpuPages {
             UiNativeGpuAtlasKind::Alpha => self.alpha.len(),
             UiNativeGpuAtlasKind::Color => self.color.len(),
         }
+    }
+
+    pub(crate) fn page_view(
+        &self,
+        kind: UiNativeGpuAtlasKind,
+        page: u32,
+    ) -> Option<(wgpu::TextureView, [u32; 2])> {
+        let page = usize::try_from(page).ok()?;
+        let (texture, extent) = match kind {
+            UiNativeGpuAtlasKind::Alpha => (self.alpha.get(page)?, [1_024, 1_024]),
+            UiNativeGpuAtlasKind::Color => (self.color.get(page)?, [2_048, 2_048]),
+        };
+        Some((
+            texture.create_view(&wgpu::TextureViewDescriptor::default()),
+            extent,
+        ))
     }
 
     pub(crate) fn ensure_page(

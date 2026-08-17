@@ -10,7 +10,6 @@ use worth_ui_host_contract::WorthUiHostCapabilityReport;
 
 mod adapter;
 mod measurement_adapter;
-mod text_raster_adapter;
 mod visual_capture_script;
 
 use visual_capture_script::ScriptedVisualCapture;
@@ -66,9 +65,6 @@ struct ScriptedPresentationState {
     visual_capture_calls: Vec<worth_ui_host_contract::UiHostVisualCaptureRequest>,
     visual_cancellation_outcome: worth_ui_host_contract::UiHostCaptureCancellationOutcome,
     visual_cancellation_calls: Vec<worth_ui_host_contract::UiHostVisualCaptureRequest>,
-    text_raster_calls: usize,
-    text_rasterized_records: usize,
-    live_text_pins: Vec<worth_ui_host_contract::UiGlyphRasterPinRequest>,
 }
 
 impl Default for ScriptedPresentationState {
@@ -98,9 +94,6 @@ impl Default for ScriptedPresentationState {
             visual_cancellation_outcome:
                 worth_ui_host_contract::UiHostCaptureCancellationOutcome::CancelledBeforeReadback,
             visual_cancellation_calls: Vec::new(),
-            text_raster_calls: 0,
-            text_rasterized_records: 0,
-            live_text_pins: Vec::new(),
         }
     }
 }
@@ -262,18 +255,6 @@ impl ScriptedPresentationHost {
 
     pub fn observation_events(&self) -> Vec<&'static str> {
         self.state.lock().unwrap().observation_events.clone()
-    }
-
-    pub fn text_raster_calls(&self) -> usize {
-        self.state.lock().unwrap().text_raster_calls
-    }
-
-    pub fn text_rasterized_records(&self) -> usize {
-        self.state.lock().unwrap().text_rasterized_records
-    }
-
-    pub fn live_text_pins(&self) -> Vec<worth_ui_host_contract::UiGlyphRasterPinRequest> {
-        self.state.lock().unwrap().live_text_pins.clone()
     }
 }
 
