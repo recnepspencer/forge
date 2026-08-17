@@ -1,11 +1,12 @@
 use worth_ui_host_contract::{
     UiHostPresentationCompletionToken, UiHostSurfaceCancellationOutcome,
     UiHostSurfaceInFlightCompletion, UiHostSurfacePresentationOutcome,
-    UiMountedFrameConsumptionView, UiMountedSurfacePresentationCompletion,
+    UiMountedFrameConsumptionView,
 };
 
 use crate::native::{
-    host_state::UiNativePendingTextPresentation, UiNativeEffectPosture, UiNativeHostState,
+    host_state::{UiNativePendingTextContinuation, UiNativePendingTextPresentation},
+    UiNativeEffectPosture, UiNativeHostState,
 };
 
 pub(super) enum UiMountedTextWorkOutcome {
@@ -68,13 +69,13 @@ pub(super) fn retain_pending(
         worth_ui_host_contract::UiGlyphRasterTransactionPending,
         Box<[worth_ui_host_contract::UiGlyphRasterPinRequest]>,
     ),
-    completion: UiMountedSurfacePresentationCompletion,
+    continuation: UiNativePendingTextContinuation,
 ) {
     state.pending_text_presentations.insert(
         token.diagnostic_value(),
         UiNativePendingTextPresentation {
             atlas,
-            completion,
+            continuation,
             binding: view.binding().diagnostic_value(),
             binding_pins,
         },
@@ -101,7 +102,16 @@ pub(super) fn complete(
             state
                 .text_pins_by_binding
                 .insert(pending.binding, pending.binding_pins);
-            UiHostSurfaceInFlightCompletion::Presented(pending.completion)
+            match pending.continuation {
+                UiNativePendingTextContinuation::Presented(completion) => {
+                    UiHostSurfaceInFlightCompletion::Presented(completion)
+                }
+                UiNativePendingTextContinuation::AtlasReady => {
+                    UiHostSurfaceInFlightCompletion::RejectedBeforeEffects(
+                        worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred,
+                    )
+                }
+            }
         }
         worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(_)
         | worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedAfterRasterization(_)

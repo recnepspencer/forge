@@ -31,7 +31,26 @@ pub(super) fn perform_native_presentation(
     match presentation {
         UiHostSurfacePresentationOutcome::Presented(completion) => {
             let token = view.issue_completion_token();
-            text_atlas::retain_pending(state, view, &token, (pending, binding_pins), completion);
+            text_atlas::retain_pending(
+                state,
+                view,
+                &token,
+                (pending, binding_pins),
+                crate::native::host_state::UiNativePendingTextContinuation::Presented(completion),
+            );
+            UiHostSurfacePresentationOutcome::InFlight(token)
+        }
+        UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
+            worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred,
+        ) => {
+            let token = view.issue_completion_token();
+            text_atlas::retain_pending(
+                state,
+                view,
+                &token,
+                (pending, binding_pins),
+                crate::native::host_state::UiNativePendingTextContinuation::AtlasReady,
+            );
             UiHostSurfacePresentationOutcome::InFlight(token)
         }
         UiHostSurfacePresentationOutcome::InFlight(_)

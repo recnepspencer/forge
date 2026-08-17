@@ -1,0 +1,108 @@
+use worth_ui::facade::declaration::{
+    ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
+    ComponentSemanticTextContract, ComponentStateOwnership, SurfaceDescriptor, SurfaceId,
+    SurfaceKind, SurfacePlacementClass, SurfaceStateClass, ThemeColorValue, ThemeTokenDescriptor,
+    ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
+    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
+};
+use worth_ui_native_platform::{
+    UiNativeApplicationDefinition, UiNativeApplicationFrame, UiNativeApplicationPreparation,
+    UiNativeApplicationPreparationOutcome, UiNativeApplicationProgram,
+    UiNativeComponentPresenceChange, UiNativeComponentSemanticTextChange,
+};
+
+const FIRST: &str = "gate.d.text.first";
+const SECOND: &str = "gate.d.text.second";
+const FIRST_AUTHORED: &str = "gate-d-first";
+const SECOND_AUTHORED: &str = "gate-d-second";
+const SURFACE: &str = "gate.d.surface";
+const TEXT_TOKEN: &str = "theme.gate_d.text";
+const SHARED_TEXT: &str =
+    "Gate D shares one qualified layout and releases its atlas pins at the last owner.";
+
+pub(crate) struct PlatformPulseNativeGateDApplication;
+
+impl UiNativeApplicationDefinition for PlatformPulseNativeGateDApplication {
+    fn prepare(
+        self,
+        mut preparation: UiNativeApplicationPreparation,
+    ) -> UiNativeApplicationPreparationOutcome {
+        let result = (|| {
+            preparation.install_frame_program(gate_d_program())?;
+            let mut builder = preparation.builder();
+            builder
+                .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())?;
+            builder.register_theme_token(text_token())?;
+            builder.register_component(text_component(FIRST, 0))?;
+            builder.register_component(text_component(SECOND, 1))?;
+            builder.register_surface(SurfaceDescriptor::new(
+                SurfaceId::new(SURFACE).expect("Gate D surface identity"),
+                SurfaceKind::primary_content(),
+                ComponentId::new(FIRST).expect("Gate D root component"),
+                SurfacePlacementClass::primary_region(),
+                SurfaceStateClass::ephemeral(),
+            ))?;
+            let module = WorthUiRustAuthoredArtifactInputModule::new("app/gate_d_text.wui")
+                .with_token(TEXT_TOKEN, "#ffffff")
+                .with_component_authored_identity(FIRST, FIRST_AUTHORED)
+                .with_component_authored_identity(SECOND, SECOND_AUTHORED)
+                .with_surface_authored_identity(SURFACE, "gate-d-surface");
+            builder
+                .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
+        })();
+        match result {
+            Ok(()) => preparation.complete(),
+            Err(cause) => preparation.deny(cause),
+        }
+    }
+}
+
+fn gate_d_program() -> UiNativeApplicationProgram {
+    UiNativeApplicationProgram::new([
+        UiNativeApplicationFrame::with_semantic_text([
+            text_change(FIRST_AUTHORED),
+            text_change(SECOND_AUTHORED),
+        ])
+        .expect("Gate D initial text frame"),
+        UiNativeApplicationFrame::with_component_presence([presence_change(FIRST_AUTHORED, false)])
+            .expect("Gate D first-owner release frame"),
+        UiNativeApplicationFrame::with_component_presence([presence_change(
+            SECOND_AUTHORED,
+            false,
+        )])
+        .expect("Gate D last-owner release frame"),
+    ])
+    .expect("Gate D frame program is bounded")
+}
+
+fn text_component(identity: &str, paint_order: u32) -> ComponentDescriptor {
+    ComponentDescriptor::new(
+        ComponentId::new(identity).expect("Gate D component identity"),
+        ComponentPropSchema::named(format!("{identity}.props")),
+        ComponentChildPolicy::text_children(),
+        ComponentStateOwnership::runtime_owned(),
+    )
+    .with_semantic_text(ComponentSemanticTextContract::body_default(
+        ThemeTokenId::new(TEXT_TOKEN).expect("Gate D text token"),
+        paint_order,
+    ))
+}
+
+fn text_token() -> ThemeTokenDescriptor {
+    ThemeTokenDescriptor::define(
+        ThemeTokenId::new(TEXT_TOKEN).expect("Gate D text token identity"),
+        ThemeTokenFamily::surface(),
+        ThemeTokenSource::application(),
+        ThemeTokenValue::color(ThemeColorValue::hex("#ffffff").expect("Gate D text color")),
+    )
+}
+
+fn text_change(identity: &str) -> UiNativeComponentSemanticTextChange {
+    UiNativeComponentSemanticTextChange::new(format!("component:{identity}"), SHARED_TEXT)
+        .expect("Gate D semantic text change")
+}
+
+fn presence_change(identity: &str, present: bool) -> UiNativeComponentPresenceChange {
+    UiNativeComponentPresenceChange::new(format!("component:{identity}"), present)
+        .expect("Gate D component presence change")
+}

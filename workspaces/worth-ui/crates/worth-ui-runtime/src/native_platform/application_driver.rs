@@ -54,6 +54,14 @@ impl UiNativeApplicationDriver {
     > {
         event_loop.run(self)
     }
+
+    fn next_directive(&self) -> UiNativeEventLoopDirective {
+        if self.next_frame >= self.program.frames().len() && self.pending_frame.is_none() {
+            UiNativeEventLoopDirective::Close
+        } else {
+            UiNativeEventLoopDirective::Continue
+        }
+    }
 }
 
 impl UiNativeEventLoopClient for UiNativeApplicationDriver {
@@ -114,7 +122,7 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             )?;
         }
         self.last_ready_generation = grant.generation();
-        Ok(UiNativeEventLoopDirective::Continue)
+        Ok(self.next_directive())
     }
 
     fn physical_work_progressed(
@@ -142,7 +150,7 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
                 &mut self.attribution,
             )?;
         }
-        Ok(UiNativeEventLoopDirective::Continue)
+        Ok(self.next_directive())
     }
 
     fn presentation_attribution(
@@ -214,12 +222,24 @@ fn retain_or_attribute(
     pending: &mut Option<crate::mounting::UiMountedPresentationInFlight>,
     attribution: &mut Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
 ) -> Result<bool, ()> {
-    if let crate::mounting::UiMountedFrameOutcome::InFlight(in_flight) = outcome {
-        *pending = Some(in_flight);
-        return Ok(false);
+    match outcome {
+        crate::mounting::UiMountedFrameOutcome::InFlight(in_flight) => {
+            *pending = Some(in_flight);
+            return Ok(false);
+        }
+        crate::mounting::UiMountedFrameOutcome::RejectedBeforeEffects(rejected)
+            if rejected.rejections().iter().all(|rejection| {
+                rejection.denial()
+                    == worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred
+            }) =>
+        {
+            return Ok(true);
+        }
+        outcome => {
+            let observed = shell.presentation_attribution(&outcome).ok_or(())?;
+            *attribution = Some(observed);
+        }
     }
-    let observed = shell.presentation_attribution(&outcome).ok_or(())?;
-    *attribution = Some(observed);
     Ok(true)
 }
 

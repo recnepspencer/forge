@@ -3,6 +3,8 @@ mod launch_configuration;
 mod lifecycle_observation_publication;
 mod native_frame;
 #[cfg(feature = "executable-world")]
+mod native_gate_d_application;
+#[cfg(feature = "executable-world")]
 mod native_phase3_application;
 mod query_source;
 mod source_watch;
@@ -85,32 +87,42 @@ fn run_application() -> ExitCode {
 
 #[cfg(feature = "executable-world")]
 fn run_native_gate_d_pin_world() -> ExitCode {
-    let evidence = worth_ui::facade::certification::run_native_gate_d_pin_world();
-    println!(
-        "{}",
-        serde_json::json!({
-            "schema": "worth-ui-native-gate-d-pin-world-v1",
-            "mounted_bindings": evidence.mounted_bindings(),
-            "pinned_layouts": evidence.pinned_layouts(),
-            "expected_pin_count": evidence.expected_pin_count(),
-            "native_committed_pin_count": evidence.native_committed_pin_count(),
-            "native_peak_pin_count": evidence.native_peak_pin_count(),
-            "physical_signal_runtimes": evidence.physical_signal_runtimes(),
-            "pressure_transactions": evidence.pressure_transactions(),
-            "pressure_releases": evidence.pressure_releases(),
-            "evictions": evidence.evictions(),
-            "atlas_transactions": evidence.atlas_transactions(),
-            "rasterized_glyphs": evidence.rasterized_glyphs(),
-            "presentations": 0,
-            "local_owner_releases": evidence.local_owner_releases(),
-            "native_final_releases": evidence.native_final_releases(),
-            "terminal_zero": evidence.terminal_zero(),
-        })
-    );
-    if evidence.terminal_zero() {
-        ExitCode::SUCCESS
-    } else {
-        ExitCode::from(3)
+    use worth_ui_native_platform::{
+        UiNativePlatformOutcome, UiNativePlatformProfile, UiNativeWindowSpec, WorthUiNativePlatform,
+    };
+    let profile = UiNativePlatformProfile::single_window(UiNativeWindowSpec::new(
+        "WORTH UI Gate D Pin Courtroom",
+        [160, 96],
+    ));
+    let Ok(platform) = WorthUiNativePlatform::prepare(profile) else {
+        return ExitCode::from(2);
+    };
+    match platform.run(native_gate_d_application::PlatformPulseNativeGateDApplication) {
+        UiNativePlatformOutcome::Closed(receipt) => {
+            let peak = receipt.peak_census();
+            let terminal = receipt.terminal_census();
+            let evidence = serde_json::json!({
+                "schema": "worth-ui-native-gate-d-pin-world-v2",
+                "mounted_bindings": 1,
+                "pinned_layouts": peak.text_atlas_pins,
+                "native_peak_pin_count": peak.text_atlas_pins,
+                "physical_signal_runtimes": peak.physical_signal_runtimes,
+                "physical_signal_workers": peak.physical_signal_workers,
+                "alpha_entries": peak.text_atlas_alpha_entries,
+                "color_entries": peak.text_atlas_color_entries,
+                "terminal_zero": terminal.is_zero(),
+            });
+            println!("{evidence}");
+            if terminal.is_zero() && peak.text_atlas_pins > 0 {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(3)
+            }
+        }
+        outcome => {
+            eprintln!("worth-ui-native-gate-d stopped: {outcome:?}");
+            ExitCode::from(3)
+        }
     }
 }
 

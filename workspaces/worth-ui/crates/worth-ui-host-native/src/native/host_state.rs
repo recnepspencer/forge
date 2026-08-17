@@ -47,9 +47,14 @@ pub(crate) struct UiNativeHostState {
 
 pub(crate) struct UiNativePendingTextPresentation {
     pub(crate) atlas: worth_ui_host_contract::UiGlyphRasterTransactionPending,
-    pub(crate) completion: worth_ui_host_contract::UiMountedSurfacePresentationCompletion,
+    pub(crate) continuation: UiNativePendingTextContinuation,
     pub(crate) binding: u64,
     pub(crate) binding_pins: Box<[worth_ui_host_contract::UiGlyphRasterPinRequest]>,
+}
+
+pub(crate) enum UiNativePendingTextContinuation {
+    Presented(worth_ui_host_contract::UiMountedSurfacePresentationCompletion),
+    AtlasReady,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

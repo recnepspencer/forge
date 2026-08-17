@@ -5,8 +5,8 @@ pub use worth_ui_runtime::native_platform::{
     UiNativeApplicationPreparation, UiNativeApplicationPreparationDenial,
     UiNativeApplicationPreparationDenialCause, UiNativeApplicationPreparationOutcome,
     UiNativeApplicationProgram, UiNativeApplicationProgramDenial, UiNativeComponentPresenceChange,
-    UiNativePlatformCloseReceipt, UiNativePlatformOutcome, UiNativePlatformPreparationDenial,
-    UiNativePlatformProfile, UiNativePlatformStopReason, UiNativePlatformStopReport,
-    UiNativeWindowSpec, UiPreparedNativeApplication, UiPreparedNativePlatform,
-    WorthUiNativePlatform,
+    UiNativeComponentSemanticTextChange, UiNativePlatformCloseReceipt, UiNativePlatformOutcome,
+    UiNativePlatformPreparationDenial, UiNativePlatformProfile, UiNativePlatformStopReason,
+    UiNativePlatformStopReport, UiNativeWindowSpec, UiPreparedNativeApplication,
+    UiPreparedNativePlatform, WorthUiNativePlatform,
 };

@@ -246,6 +246,13 @@ fn observe_pending_surface(
             None
         }
         UiHostSurfaceInFlightCompletion::RejectedBeforeEffects(denial) => {
+            if denial
+                == worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred
+            {
+                if let Some(candidate) = text_candidate {
+                    text.commit_surface_candidate(candidate);
+                }
+            }
             progress
                 .rejected
                 .push(UiMountedSurfacePresentationRejection::new(binding, denial));

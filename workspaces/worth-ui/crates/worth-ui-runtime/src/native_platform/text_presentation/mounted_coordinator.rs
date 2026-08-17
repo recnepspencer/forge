@@ -45,6 +45,12 @@ impl UiNativeMountedTextCoordinator {
             worth_ui_host_contract::UiHostSurfacePresentationOutcome::InFlight(_) => {
                 Some(candidate)
             }
+            worth_ui_host_contract::UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
+                worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred,
+            ) => {
+                self.pins.commit_presented(candidate);
+                None
+            }
             worth_ui_host_contract::UiHostSurfacePresentationOutcome::RejectedBeforeEffects(_)
             | worth_ui_host_contract::UiHostSurfacePresentationOutcome::PresentationIndeterminate => {
                 None
