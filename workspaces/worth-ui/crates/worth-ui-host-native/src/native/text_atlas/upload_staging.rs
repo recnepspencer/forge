@@ -1,18 +1,16 @@
-//! Row-aligned staging construction and one exact WGPU copy submission.
+//! Row-aligned staging construction and one exact WGPU batch submission.
 
 use super::capacity::source_channels;
 use super::recovery::UiNativeTextAtlasDenial;
 use super::transaction::{upload_shape_is_valid, UiNativeTextAtlasUpload};
 use super::upload::{AtlasPageTarget, UiNativeGpuAtlasKind};
 
-pub(super) struct AtlasCopySubmission<'copy> {
-    pub(super) device: &'copy wgpu::Device,
-    pub(super) queue: &'copy wgpu::Queue,
+pub(super) struct AtlasCopyCommand<'copy> {
     pub(super) target: AtlasPageTarget<'copy>,
     pub(super) origin: [u32; 2],
     pub(super) upload: &'copy UiNativeTextAtlasUpload,
     pub(super) layout: CopyLayout,
-    pub(super) staging: &'copy wgpu::Buffer,
+    pub(super) staging_offset: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -92,38 +90,45 @@ pub(super) fn copy_rows(
     Ok(staged_bytes)
 }
 
-pub(super) fn submit_copy(input: AtlasCopySubmission<'_>) -> wgpu::SubmissionIndex {
-    let mut encoder = input
-        .device
-        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+pub(super) fn submit_copies(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    staging: &wgpu::Buffer,
+    copies: &[AtlasCopyCommand<'_>],
+) -> wgpu::SubmissionIndex {
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("worth-ui-text-atlas-upload"),
         });
-    encoder.copy_buffer_to_texture(
-        wgpu::TexelCopyBufferInfo {
-            buffer: input.staging,
-            layout: wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(u32::try_from(input.layout.padded_row).unwrap_or(u32::MAX)),
-                rows_per_image: Some(input.upload.height()),
+    for copy in copies {
+        encoder.copy_buffer_to_texture(
+            wgpu::TexelCopyBufferInfo {
+                buffer: staging,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: copy.staging_offset,
+                    bytes_per_row: Some(
+                        u32::try_from(copy.layout.padded_row).unwrap_or(u32::MAX),
+                    ),
+                    rows_per_image: Some(copy.upload.height()),
+                },
             },
-        },
-        wgpu::TexelCopyTextureInfo {
-            texture: input.target.texture,
-            mip_level: 0,
-            origin: wgpu::Origin3d {
-                x: input.origin[0],
-                y: input.origin[1],
-                z: 0,
+            wgpu::TexelCopyTextureInfo {
+                texture: copy.target.texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d {
+                    x: copy.origin[0],
+                    y: copy.origin[1],
+                    z: 0,
+                },
+                aspect: wgpu::TextureAspect::All,
             },
-            aspect: wgpu::TextureAspect::All,
-        },
-        wgpu::Extent3d {
-            width: input.upload.width(),
-            height: input.upload.height(),
-            depth_or_array_layers: 1,
-        },
-    );
-    input.queue.submit([encoder.finish()])
+            wgpu::Extent3d {
+                width: copy.upload.width(),
+                height: copy.upload.height(),
+                depth_or_array_layers: 1,
+            },
+        );
+    }
+    queue.submit([encoder.finish()])
 }
 
 pub(super) fn align_to_copy_row(bytes: u64) -> Result<u64, UiNativeTextAtlasDenial> {

@@ -89,13 +89,7 @@ fn context_for_positioned<'layout>(
         .styles()
         .get(usize::from(run.style_index()))
         .ok_or(UiGlyphRasterDemandDenial::ForeignLayout)?;
-    let coverage = layout
-        .artifact()
-        .coverage()
-        .iter()
-        .copied()
-        .find(|coverage| coverage.original_range() == glyph.original_range())
-        .ok_or(UiGlyphRasterDemandDenial::MissingCoverage)?;
+    let coverage = coverage_for_glyph(layout, *glyph)?;
     if coverage.disposition() == UiTextCoverageDisposition::LayoutControl {
         return Ok(None);
     }
@@ -112,6 +106,45 @@ fn context_for_positioned<'layout>(
         glyph_index,
         positioned_glyph_index,
     }))
+}
+
+fn coverage_for_glyph(
+    layout: &UiQualifiedTextLayout,
+    glyph: UiQualifiedTextGlyphRecord,
+) -> Result<UiQualifiedTextCoverageRecord, UiGlyphRasterDemandDenial> {
+    let glyph_range = glyph.original_range();
+    let mut matching = layout
+        .artifact()
+        .coverage()
+        .iter()
+        .copied()
+        .filter(|coverage| {
+            let range = coverage.original_range();
+            range.end() > glyph_range.start() && range.start() < glyph_range.end()
+        });
+    let first = matching
+        .next()
+        .filter(|coverage| coverage.original_range().start() == glyph_range.start())
+        .ok_or(UiGlyphRasterDemandDenial::MissingCoverage)?;
+    let mut covered_end = first.original_range().end();
+    for coverage in matching {
+        if covered_end >= glyph_range.end() {
+            return Err(UiGlyphRasterDemandDenial::MissingCoverage);
+        }
+        let range = coverage.original_range();
+        if range.start() != covered_end
+            || coverage.face() != first.face()
+            || coverage.disposition() != first.disposition()
+            || coverage.attempted_collection() != first.attempted_collection()
+        {
+            return Err(UiGlyphRasterDemandDenial::MissingCoverage);
+        }
+        covered_end = range.end();
+    }
+    if covered_end != glyph_range.end() {
+        return Err(UiGlyphRasterDemandDenial::MissingCoverage);
+    }
+    Ok(first)
 }
 
 fn raster_key(

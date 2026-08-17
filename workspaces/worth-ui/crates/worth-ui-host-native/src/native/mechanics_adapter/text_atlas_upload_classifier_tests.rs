@@ -10,34 +10,32 @@ use worth_ui_host_contract::{
     UiQualifiedFontFaceIdentity, UiTextProfileGeneration,
 };
 
-struct FaultAfterFirst {
-    uploads: usize,
+struct FaultAfterPageAllocation {
+    pages: usize,
 }
 
-impl AtlasUploadOperations for FaultAfterFirst {
+impl AtlasUploadOperations for FaultAfterPageAllocation {
     fn page_count(&self, _kind: UiNativeGpuAtlasKind) -> usize {
-        1
+        self.pages
     }
 
     fn ensure_page(&mut self, _kind: UiNativeGpuAtlasKind) -> Result<(), UiNativeTextAtlasDenial> {
+        self.pages += 1;
         Ok(())
     }
 
-    fn upload(
+    fn upload_batch(
         &mut self,
         _transaction: u64,
-        _validated: &ValidatedUpload,
-        _upload: &UiNativeTextAtlasUpload,
+        _validated: &[ValidatedUpload],
+        _uploads: &[UiNativeTextAtlasUpload],
     ) -> Result<(), UiNativeTextAtlasDenial> {
-        self.uploads += 1;
-        (self.uploads == 1)
-            .then_some(())
-            .ok_or(UiNativeTextAtlasDenial::UploadRejected)
+        Err(UiNativeTextAtlasDenial::UploadRejected)
     }
 }
 
 #[test]
-fn production_upload_loop_classifies_failure_after_the_first_submit_as_indeterminate() {
+fn production_upload_loop_classifies_failure_after_page_allocation_as_indeterminate() {
     let first_key = key(1);
     let second_key = key(2);
     let identity = UiGlyphRasterDemandIdentity::from_text_mechanics([11; 32]);
@@ -51,7 +49,7 @@ fn production_upload_loop_classifies_failure_after_the_first_submit_as_indetermi
         .unwrap();
     let uploads = [upload(first_key), upload(second_key)];
     let failure = submit_uploads(
-        &mut FaultAfterFirst { uploads: 0 },
+        &mut FaultAfterPageAllocation { pages: 0 },
         UploadRequest {
             plan: &plan,
             uploads: &uploads,

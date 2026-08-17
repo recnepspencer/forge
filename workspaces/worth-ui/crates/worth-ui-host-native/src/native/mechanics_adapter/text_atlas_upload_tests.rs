@@ -78,8 +78,8 @@ fn real_port_upload_is_coupled_to_production_plan_receipt_and_census() {
         .expect("the production upload port must submit the qualified upload");
     assert_eq!(gpu.page_count(UiNativeGpuAtlasKind::Alpha), 1);
     assert_eq!(gpu.page_count(UiNativeGpuAtlasKind::Color), 1);
-    assert_eq!(gpu.pending_count(), 2);
-    assert_eq!(resources.current().atlas_staging_buffers, 2);
+    assert_eq!(gpu.pending_count(), 1);
+    assert_eq!(resources.current().atlas_staging_buffers, 1);
     gpu.settle_pending(&device, &mut resources);
     assert_eq!(gpu.pending_count(), 0);
     assert_eq!(resources.current().atlas_staging_buffers, 0);

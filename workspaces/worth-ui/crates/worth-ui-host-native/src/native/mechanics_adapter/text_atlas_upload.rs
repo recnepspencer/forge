@@ -1,7 +1,7 @@
 //! Replaceable external upload port for the native text-atlas transaction.
 
 use crate::native::text_atlas::{
-    UiNativeGpuAtlasKind, UiNativeTextAtlasGpuPages, UiNativeTextAtlasGpuUploadRequest,
+    UiNativeGpuAtlasKind, UiNativeTextAtlasGpuBatchUpload, UiNativeTextAtlasGpuPages,
     UiNativeTextAtlasTransactionPlan, UiNativeTextAtlasUpload,
 };
 use crate::native::UiNativeHostState;
@@ -257,11 +257,11 @@ trait AtlasUploadOperations {
         &mut self,
         kind: UiNativeGpuAtlasKind,
     ) -> Result<(), crate::native::text_atlas::UiNativeTextAtlasDenial>;
-    fn upload(
+    fn upload_batch(
         &mut self,
         transaction: u64,
-        validated: &ValidatedUpload,
-        upload: &UiNativeTextAtlasUpload,
+        validated: &[ValidatedUpload],
+        uploads: &[UiNativeTextAtlasUpload],
     ) -> Result<(), crate::native::text_atlas::UiNativeTextAtlasDenial>;
 }
 
@@ -277,24 +277,29 @@ impl AtlasUploadOperations for UiNativeTextAtlasUploadContext<'_> {
         self.gpu.ensure_page(self.device, self.resources, kind)
     }
 
-    fn upload(
+    fn upload_batch(
         &mut self,
         transaction: u64,
-        validated: &ValidatedUpload,
-        upload: &UiNativeTextAtlasUpload,
+        validated: &[ValidatedUpload],
+        uploads: &[UiNativeTextAtlasUpload],
     ) -> Result<(), crate::native::text_atlas::UiNativeTextAtlasDenial> {
+        let requests = validated
+            .iter()
+            .zip(uploads)
+            .map(|(validated, upload)| UiNativeTextAtlasGpuBatchUpload {
+                kind: validated.kind,
+                page: validated.page,
+                origin: validated.origin,
+                upload,
+            })
+            .collect::<Vec<_>>();
         self.gpu
-            .upload_for_transaction(
-                UiNativeTextAtlasGpuUploadRequest {
-                    device: self.device,
-                    queue: self.queue,
-                    resources: self.resources,
-                    kind: validated.kind,
-                    page: validated.page,
-                    origin: validated.origin,
-                    upload,
-                },
+            .upload_batch_for_transaction(
+                self.device,
+                self.queue,
+                self.resources,
                 transaction,
+                &requests,
             )
             .map(|_| ())
     }
@@ -304,22 +309,29 @@ fn submit_uploads(
     operations: &mut impl AtlasUploadOperations,
     request: UploadRequest<'_>,
 ) -> Result<(), GpuUploadFailure> {
-    let mut submitted = false;
-    for upload in request.uploads {
-        let validated = validate_upload(request.plan, upload)?;
-        while operations.page_count(validated.kind)
-            <= usize::try_from(validated.page).unwrap_or(usize::MAX)
+    let validated = request
+        .uploads
+        .iter()
+        .map(|upload| validate_upload(request.plan, upload))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut effects_started = false;
+    for placement in &validated {
+        while operations.page_count(placement.kind)
+            <= usize::try_from(placement.page).unwrap_or(usize::MAX)
         {
             operations
-                .ensure_page(validated.kind)
-                .map_err(|denial| upload_failure(submitted, denial))?;
+                .ensure_page(placement.kind)
+                .map_err(|denial| upload_failure(effects_started, denial))?;
+            effects_started = true;
         }
-        operations
-            .upload(request.plan.transaction_identity(), &validated, upload)
-            .map_err(|denial| upload_failure(submitted, denial))?;
-        submitted = true;
     }
-    Ok(())
+    operations
+        .upload_batch(
+            request.plan.transaction_identity(),
+            &validated,
+            request.uploads,
+        )
+        .map_err(|denial| upload_failure(effects_started, denial))
 }
 
 fn validate_upload(

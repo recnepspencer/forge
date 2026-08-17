@@ -34,7 +34,7 @@ pub(super) fn physical_capacity_denial(
         .0
         .saturating_sub(current.0)
         .saturating_add(needed.1.saturating_sub(current.1));
-    let staging_owners = plan.miss_demands().len();
+    let staging_owners = usize::from(!plan.miss_demands().is_empty());
     (!state
         .resources
         .admits(additional_pages.saturating_add(staging_owners)))

@@ -226,6 +226,8 @@ mod tests {
 
 #[cfg(test)]
 mod demand_alpha_tests;
+#[cfg(test)]
+mod demand_ligature_tests;
 
 #[cfg(test)]
 mod alpha_transaction_tests;

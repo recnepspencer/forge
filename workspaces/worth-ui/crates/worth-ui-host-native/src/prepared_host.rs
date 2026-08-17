@@ -78,6 +78,26 @@ impl worth_ui_host_contract::WorthUiHostMechanicsAdapter for WorthUiPreparedNati
         )
     }
 
+    fn perform_mounted_surface_completion(
+        &self,
+        token: worth_ui_host_contract::UiHostPresentationCompletionToken,
+    ) -> worth_ui_host_contract::UiHostSurfaceInFlightCompletion {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::perform_mounted_surface_completion(
+            &self.adapter,
+            token,
+        )
+    }
+
+    fn perform_mounted_surface_cancellation(
+        &self,
+        token: worth_ui_host_contract::UiHostPresentationCompletionToken,
+    ) -> worth_ui_host_contract::UiHostSurfaceCancellationOutcome {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::perform_mounted_surface_cancellation(
+            &self.adapter,
+            token,
+        )
+    }
+
     fn perform_surface_registration(
         &self,
         request: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,

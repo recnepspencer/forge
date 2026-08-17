@@ -16,7 +16,7 @@ use crate::{
     UiTextParagraphConstraintsInput, UiTextStyleSpan, UiTextWrap,
 };
 
-fn layout_for(source: &str) -> crate::UiQualifiedTextLayout {
+pub(super) fn layout_for(source: &str) -> crate::UiQualifiedTextLayout {
     let (fonts, _) = UiGlobalFontCollection::admit_qualified_profile().unwrap();
     let fonts = Arc::new(fonts);
     let constraints = UiTextParagraphConstraints::new(UiTextParagraphConstraintsInput {
@@ -51,7 +51,7 @@ fn layout_for(source: &str) -> crate::UiQualifiedTextLayout {
     .unwrap()
 }
 
-fn full_damage() -> UiMountedLogicalDamage {
+pub(super) fn full_damage() -> UiMountedLogicalDamage {
     UiMountedLogicalDamage::from_runtime_mounting(
         UiMountedCanonicalBox::canonicalize(UiMountedCanonicalBoxInput {
             x: -4.0,
@@ -85,14 +85,14 @@ fn paint_for(source: &str, identity_byte: u8) -> UiMountedTextForegroundSpan {
     )
 }
 
-struct DemandScenario<'a> {
-    source: &'a str,
-    damage: &'a [UiMountedLogicalDamage],
-    dpi_milli: u32,
-    lane: UiGlyphRasterLane,
+pub(super) struct DemandScenario<'a> {
+    pub(super) source: &'a str,
+    pub(super) damage: &'a [UiMountedLogicalDamage],
+    pub(super) dpi_milli: u32,
+    pub(super) lane: UiGlyphRasterLane,
 }
 
-fn demand_for(
+pub(super) fn demand_for(
     layout: &crate::UiQualifiedTextLayout,
     scenario: DemandScenario<'_>,
 ) -> UiGlyphRasterDemandBatch {

@@ -1,10 +1,10 @@
 //! Real WGPU atlas pages and aligned staging uploads.
 
+#[path = "upload_batch.rs"]
+mod batch;
+
 use super::recovery::UiNativeTextAtlasDenial;
 use super::transaction::UiNativeTextAtlasUpload;
-use super::upload_staging::{
-    copy_rows, submit_copy, validate_upload_target, AtlasCopySubmission, CopyLayout,
-};
 use crate::native::{UiNativeOwnedResource, UiNativeResourceClass, UiNativeResourceRegistry};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -24,6 +24,14 @@ pub(crate) struct UiNativeTextAtlasGpuUploadRequest<'upload> {
     pub(crate) device: &'upload wgpu::Device,
     pub(crate) queue: &'upload wgpu::Queue,
     pub(crate) resources: &'upload mut UiNativeResourceRegistry,
+    pub(crate) kind: UiNativeGpuAtlasKind,
+    pub(crate) page: u32,
+    pub(crate) origin: [u32; 2],
+    pub(crate) upload: &'upload UiNativeTextAtlasUpload,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct UiNativeTextAtlasGpuBatchUpload<'upload> {
     pub(crate) kind: UiNativeGpuAtlasKind,
     pub(crate) page: u32,
     pub(crate) origin: [u32; 2],
@@ -182,42 +190,36 @@ impl UiNativeTextAtlasGpuPages {
             origin,
             upload,
         } = request;
-        let target = self.page_target(kind, page)?;
-        validate_upload_target(&target, kind, origin, upload)?;
-        let layout = CopyLayout::from_upload(upload)?;
-        let staged_bytes = copy_rows(upload, layout)?;
-        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("worth-ui-text-atlas-staging"),
-            size: layout.staging_size,
-            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-        let owner = UiNativeOwnedResource::register(
-            buffer,
-            UiNativeResourceClass::AtlasStagingBuffer,
-            resources,
-        )
-        .map_err(|_| UiNativeTextAtlasDenial::StagingCapacityExceeded)?;
-        queue.write_buffer(&owner, 0, &staged_bytes);
-        let submission = submit_copy(AtlasCopySubmission {
+        self.upload_batch_for_transaction(
             device,
             queue,
-            target,
-            origin,
-            upload,
-            layout,
-            staging: &owner,
-        });
-        self.pending.push(PendingAtlasUpload {
-            staging: owner,
-            submission,
+            resources,
             transaction,
-            physical_bytes: layout.staging_size,
-        });
-        Ok(UiNativeGpuUploadReceipt {
-            logical_bytes: u64::try_from(upload.bytes().len()).unwrap_or(u64::MAX),
-            physical_bytes: layout.staging_size,
-        })
+            &[UiNativeTextAtlasGpuBatchUpload {
+                kind,
+                page,
+                origin,
+                upload,
+            }],
+        )
+    }
+
+    pub(crate) fn upload_batch_for_transaction(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        resources: &mut UiNativeResourceRegistry,
+        transaction: u64,
+        uploads: &[UiNativeTextAtlasGpuBatchUpload<'_>],
+    ) -> Result<UiNativeGpuUploadReceipt, UiNativeTextAtlasDenial> {
+        batch::upload_batch_for_transaction(
+            self,
+            device,
+            queue,
+            resources,
+            transaction,
+            uploads,
+        )
     }
 
     fn page_target(

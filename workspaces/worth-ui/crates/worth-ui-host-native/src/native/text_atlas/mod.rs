@@ -81,5 +81,6 @@ pub(crate) use transaction::{
 };
 pub(crate) use upload::UiNativeGpuAtlasKind;
 pub(crate) use upload::{
-    UiNativeTextAtlasGpuPages, UiNativeTextAtlasGpuUploadRequest, UiNativeTextAtlasPhysicalPoll,
+    UiNativeTextAtlasGpuBatchUpload, UiNativeTextAtlasGpuPages, UiNativeTextAtlasGpuUploadRequest,
+    UiNativeTextAtlasPhysicalPoll,
 };
