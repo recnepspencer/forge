@@ -10,7 +10,8 @@ use super::key::canonical_raster_key_bytes;
 use super::ownership::AtlasCore;
 use super::pinning::validate_pin_transition;
 use super::recovery::UiNativeTextAtlasDenial;
-use super::transaction::{UiNativeTextAtlasDemand, UiNativeTextAtlasPinTransition};
+use super::transaction::UiNativeTextAtlasPinTransition;
+use super::UiNativeTextAtlasDemand;
 
 pub(super) fn translate_demands(
     demands: &[UiGlyphRasterDemandBatchView<'_>],

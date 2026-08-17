@@ -3,7 +3,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use worth_ui_host_contract::UiHostSurfaceRegistrationRequest;
 
 use super::physical_work_signal::UiNativePhysicalSignalOwner;
-use super::text_atlas::{UiNativeTextAtlas, UiNativeTextAtlasGpuPages, UiNativeTextAtlasInFlight};
+use super::text_atlas::{
+    UiNativeTextAtlas, UiNativeTextAtlasActivity, UiNativeTextAtlasGpuPages,
+    UiNativeTextAtlasInFlight,
+};
 use super::{
     event_loop::UiNativeOwnedWindow, UiNativeOwnedGraphics, UiNativePendingPresentation,
     UiNativePresentationObservation, UiNativeResourceCensus, UiNativeResourceOwner,
@@ -30,6 +33,7 @@ pub(crate) struct UiNativeHostState {
     pub(crate) presentation_epochs: BTreeMap<u64, worth_ui_host_contract::UiHostPresentationEpoch>,
     pub(crate) reconstruction_required: BTreeSet<u64>,
     pub(crate) text_atlas: UiNativeTextAtlas,
+    pub(crate) text_atlas_activity: UiNativeTextAtlasActivity,
     pub(crate) text_atlas_gpu: Option<UiNativeTextAtlasGpuPages>,
     pub(crate) text_atlas_in_flight: Option<UiNativeTextAtlasInFlight>,
     pub(crate) text_atlas_recovery: Option<super::text_atlas::UiNativeTextAtlasRecovery>,
@@ -80,6 +84,7 @@ impl UiNativeHostState {
             presentation_epochs: BTreeMap::new(),
             reconstruction_required: BTreeSet::new(),
             text_atlas: UiNativeTextAtlas::new(),
+            text_atlas_activity: UiNativeTextAtlasActivity::default(),
             text_atlas_gpu: None,
             text_atlas_in_flight: None,
             text_atlas_recovery: None,

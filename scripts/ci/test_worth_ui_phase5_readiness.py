@@ -43,10 +43,11 @@ class PhaseFiveReadinessTests(unittest.TestCase):
             subprocess.CompletedProcess([], 0, "", ""),
             {"executed_test_count": 1},
             {
-                "schema": "worth-ui-native-gate-d-pin-world-v1",
-                "shared_bindings": 2,
-                "presentations": 0,
-                "atlas_transactions": 13,
+                "schema": "worth-ui-native-gate-d-pin-world-v2",
+                "mounted_bindings": 1,
+                "pinned_layouts": 2,
+                "presentations": 1,
+                "atlas_transactions": 2,
             },
             {"requirement": "P5-ATLAS-01"},
             None,
@@ -56,7 +57,7 @@ class PhaseFiveReadinessTests(unittest.TestCase):
             (
                 "main-tests=1;hostile-controls=1;product-processes=1;"
                 "compile-sessions=0;courtroom-worlds=1",
-                "executed-tests=2;presentations=0;atlas-transactions=13",
+                "executed-tests=2;presentations=1;atlas-transactions=2",
             ),
         )
 
@@ -107,10 +108,13 @@ class PhaseFiveReadinessTests(unittest.TestCase):
         for sources in (atlas_sources, pin_sources):
             self.assertEqual(len(sources), len(set(sources)))
             for source in sources:
+                if source == verifier_rebinding.P5_ATLAS_ARTIFACT:
+                    continue
                 self.assertTrue(
                     (ROOT / source).is_file(),
                     f"mapped Gate D source does not exist: {source}",
                 )
+        self.assertIn(verifier_rebinding.P5_ATLAS_ARTIFACT, pin_sources)
         self.assertFalse(any(
             "coordinator/gate_d_pin_evidence" in source for source in pin_sources
         ))

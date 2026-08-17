@@ -5,10 +5,8 @@ use super::model_oracle::{IndependentAtlasModel, ModelDemand, ModelKey};
 use super::ownership::UiNativeTextAtlas;
 use super::placement::UiAtlasPage;
 use super::settlement::UiNativeTextAtlasCommitOutcome;
-use super::transaction::{
-    UiNativeTextAtlasDemand, UiNativeTextAtlasExternalOutcome, UiNativeTextAtlasUpload,
-};
-use super::UiAtlasEntryIdentity;
+use super::transaction::UiNativeTextAtlasExternalOutcome;
+use super::{UiAtlasEntryIdentity, UiNativeTextAtlasDemand, UiNativeTextAtlasUpload};
 use std::collections::HashSet;
 use worth_ui_host_contract::{
     UiFontCollectionGeneration, UiFontCollectionLineageIdentity, UiGlyphRasterDemandIdentity,

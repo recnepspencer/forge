@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from worth_ui_ledger_dependency import require_proved_artifact
+from worth_ui_3141_phase4_case_contracts import hostile_cases, positive_cases
 
 
 MIXED_REQUIREMENT = "P3-DELTA-SOURCE-01"
@@ -95,6 +96,15 @@ def validate_phase5_atlas_dependency(
     for field, expected in required.items():
         if artifact.get(field) != expected:
             raise ValueError(f"pinning atlas dependency has wrong {field}")
+    if artifact.get("structural_counter") != "physical-signal-runtimes=1":
+        raise ValueError("pinning atlas dependency has wrong structural counter")
+    if artifact.get("governed_cases") != list(positive_cases(ATLAS_REQUIREMENT) or ()):
+        raise ValueError("pinning atlas dependency has wrong positive case inventory")
+    control = artifact.get("hostile_control")
+    if not isinstance(control, dict) or control.get("mutation_cases") != list(
+        hostile_cases(ATLAS_REQUIREMENT) or ()
+    ):
+        raise ValueError("pinning atlas dependency has wrong hostile case inventory")
     return {
         "artifact": identity,
         "artifact_digest": digest,

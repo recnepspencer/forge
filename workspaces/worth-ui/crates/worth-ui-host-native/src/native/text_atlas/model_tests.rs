@@ -3,9 +3,8 @@
 use super::model_oracle::{IndependentAtlasModel, ModelDemand, ModelKey, ModelPin, ModelSource};
 use super::ownership::UiNativeTextAtlas;
 use super::settlement::UiNativeTextAtlasCommitOutcome;
-use super::transaction::{
-    UiNativeTextAtlasDemand, UiNativeTextAtlasExternalOutcome, UiNativeTextAtlasUpload,
-};
+use super::transaction::UiNativeTextAtlasExternalOutcome;
+use super::{UiNativeTextAtlasDemand, UiNativeTextAtlasUpload};
 use worth_ui_host_contract::{
     UiFontCollectionGeneration, UiFontCollectionLineageIdentity, UiGlyphRasterDemandIdentity,
     UiGlyphRasterFractionalOrigin, UiGlyphRasterKey, UiGlyphRasterKeyInput, UiGlyphRasterPalette,

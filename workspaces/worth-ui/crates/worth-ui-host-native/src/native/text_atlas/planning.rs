@@ -17,9 +17,8 @@ use super::ownership::{AtlasCore, UiNativeTextAtlas};
 use super::pinning::protected_keys;
 use super::placement::UiAtlasRect;
 use super::recovery::{UiNativeTextAtlasDenial, UiNativeTextAtlasGeneration};
-use super::transaction::{
-    UiNativeTextAtlasDemand, UiNativeTextAtlasPinTransition, UiNativeTextAtlasTransactionPlan,
-};
+use super::transaction::{UiNativeTextAtlasPinTransition, UiNativeTextAtlasTransactionPlan};
+use super::UiNativeTextAtlasDemand;
 
 struct Candidate {
     alpha: CandidateAtlasStore,

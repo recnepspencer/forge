@@ -1,5 +1,6 @@
 //! Native-owned bounded atlas transaction and resource lifecycle.
 
+mod activity;
 mod admission;
 mod alpha;
 mod candidate_store;
@@ -7,6 +8,7 @@ mod capacity;
 mod census;
 mod cleanup;
 mod color;
+mod demand;
 mod demand_admission;
 mod entry;
 #[cfg(test)]
@@ -19,6 +21,7 @@ mod ownership;
 mod pinning;
 mod placement;
 mod planning;
+mod raster_upload;
 mod recovery;
 mod settlement;
 mod settling;
@@ -53,9 +56,11 @@ mod placement_model_tests;
 #[cfg(test)]
 mod recovery_identity_tests;
 
+pub(crate) use activity::UiNativeTextAtlasActivity;
 pub use capacity::{UiNativeTextAtlasCapacityPosture, UiNativeTextAtlasQualifiedCapacity};
 pub(crate) use census::UiNativeTextAtlasPhysicalPosture;
 pub use census::{UiNativeTextAtlasCensus, UiNativeTextAtlasResourceClass};
+pub(crate) use demand::UiNativeTextAtlasDemand;
 #[cfg(test)]
 pub(crate) use gate_d_model_evidence::{
     assert_gate_d_model_boundaries, assert_independent_committed_transaction,
@@ -66,6 +71,7 @@ pub use key::{UiAtlasEntryIdentity, UiNativeValidatedRasterKey};
 pub use ownership::UiNativeTextPinObservation;
 pub(crate) use ownership::{UiNativeTextAtlas, UiNativeTextAtlasEntryView};
 pub use pinning::{UiNativeTextAtlasPin, UiNativeTextAtlasPinSnapshot};
+pub(crate) use raster_upload::UiNativeTextAtlasUpload;
 pub use recovery::{
     UiNativeTextAtlasDenial, UiNativeTextAtlasGeneration, UiNativeTextAtlasLineageIdentity,
     UiNativeTextAtlasRecovery, UiNativeTextAtlasRecoverySnapshot,
@@ -73,11 +79,9 @@ pub use recovery::{
 pub(crate) use settlement::UiNativeTextAtlasCommitOutcome;
 #[cfg(test)]
 pub(crate) use test_device_tests::qualified_test_device;
-#[cfg(test)]
-pub(crate) use transaction::UiNativeTextAtlasDemand;
 pub(crate) use transaction::{
     UiNativeTextAtlasExternalOutcome, UiNativeTextAtlasPinRequest, UiNativeTextAtlasPinTransition,
-    UiNativeTextAtlasTransactionPlan, UiNativeTextAtlasUpload,
+    UiNativeTextAtlasTransactionPlan,
 };
 pub(crate) use upload::UiNativeGpuAtlasKind;
 pub(crate) use upload::{

@@ -1,9 +1,10 @@
 //! Row-aligned staging construction and one exact WGPU batch submission.
 
 use super::capacity::source_channels;
+use super::raster_upload::upload_shape_is_valid;
 use super::recovery::UiNativeTextAtlasDenial;
-use super::transaction::{upload_shape_is_valid, UiNativeTextAtlasUpload};
 use super::upload::{AtlasPageTarget, UiNativeGpuAtlasKind};
+use super::UiNativeTextAtlasUpload;
 
 pub(super) struct AtlasCopyCommand<'copy> {
     pub(super) target: AtlasPageTarget<'copy>,

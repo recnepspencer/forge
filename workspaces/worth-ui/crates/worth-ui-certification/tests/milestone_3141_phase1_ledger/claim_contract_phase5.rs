@@ -20,10 +20,16 @@ pub(super) fn construction_cost(requirement: &str) -> Option<&'static str> {
     if !requirement.starts_with("P5-") {
         return None;
     }
-    Some(if requirement == "P5-PREDECESSOR-01" {
-        "main-tests=44;hostile-controls=45;product-processes=6;compile-sessions=2;courtroom-worlds=12"
-    } else {
-        "main-tests=1;hostile-controls=1;product-processes=0;compile-sessions=0;courtroom-worlds=0"
+    Some(match requirement {
+        "P5-PREDECESSOR-01" => {
+            "main-tests=44;hostile-controls=45;product-processes=6;compile-sessions=2;courtroom-worlds=12"
+        }
+        "P5-ATLAS-PINNING-01" => {
+            "main-tests=1;hostile-controls=1;product-processes=1;compile-sessions=0;courtroom-worlds=1"
+        }
+        _ => {
+            "main-tests=1;hostile-controls=1;product-processes=0;compile-sessions=0;courtroom-worlds=0"
+        }
     })
 }
 
@@ -31,9 +37,9 @@ pub(super) fn execution_cost(requirement: &str) -> Option<&'static str> {
     if !requirement.starts_with("P5-") {
         return None;
     }
-    Some(if requirement == "P5-PREDECESSOR-01" {
-        "executed-tests=91;presentations=56"
-    } else {
-        "executed-tests=2;presentations=0"
+    Some(match requirement {
+        "P5-PREDECESSOR-01" => "executed-tests=91;presentations=56",
+        "P5-ATLAS-PINNING-01" => "executed-tests=2;presentations=1;atlas-transactions=2",
+        _ => "executed-tests=2;presentations=0",
     })
 }

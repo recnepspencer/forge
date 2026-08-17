@@ -141,7 +141,7 @@ def phase_proofs(phase: int) -> dict[str, object]:
 def phase_rows_to_prepare(
     rows: list[dict[str, str]],
     through_phase: int,
-    requirement: str | None,
+    requirement: str | list[str] | None,
     configured: dict[str, object],
     current_state: str | None = None,
 ) -> list[dict[str, str]]:
@@ -164,11 +164,19 @@ def phase_rows_to_prepare(
     ]
     if requirement is None:
         return candidates
-    selected = [row for row in candidates if row["requirement"] == requirement]
-    if requirement not in configured:
-        raise RuntimeError(f"{requirement} has no governed proof mapping")
-    if not selected:
-        raise RuntimeError(f"{requirement} is not one open Phase {through_phase} row")
+    requested = [requirement] if isinstance(requirement, str) else list(requirement)
+    if len(requested) != len(set(requested)):
+        raise RuntimeError("duplicate Phase requirement selection")
+    unmapped = [identity for identity in requested if identity not in configured]
+    if unmapped:
+        raise RuntimeError(f"{unmapped[0]} has no governed proof mapping")
+    selected = [row for row in candidates if row["requirement"] in requested]
+    selected_identities = {row["requirement"] for row in selected}
+    unavailable = [identity for identity in requested if identity not in selected_identities]
+    if unavailable:
+        raise RuntimeError(
+            f"{unavailable[0]} is not one open Phase {through_phase} row"
+        )
     return selected
 
 
@@ -362,7 +370,11 @@ def parse_arguments() -> argparse.Namespace:
         description="Atomically close Worth UI milestone 3.14.1 ledger evidence"
     )
     parser.add_argument("--through-phase", type=int, choices=(2, 3, 4, 5), default=2)
-    parser.add_argument("--requirement")
+    parser.add_argument(
+        "--requirement",
+        action="append",
+        help="repeat to refresh multiple Phase rows in one atomic transaction",
+    )
     parser.add_argument("--prepare-only", action="store_true")
     return parser.parse_args()
 

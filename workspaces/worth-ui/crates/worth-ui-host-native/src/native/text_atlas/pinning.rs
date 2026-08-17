@@ -9,7 +9,8 @@ use super::key::UiAtlasEntryIdentity;
 use super::ownership::{AtlasCore, PinIdentity};
 use super::recovery::UiNativeTextAtlasDenial;
 use super::recovery::UiNativeTextAtlasGeneration;
-use super::transaction::{UiNativeTextAtlasDemand, UiNativeTextAtlasPinTransition};
+use super::transaction::UiNativeTextAtlasPinTransition;
+use super::UiNativeTextAtlasDemand;
 
 pub struct UiNativeTextAtlasPin {
     layout: UiQualifiedTextLayoutIdentity,

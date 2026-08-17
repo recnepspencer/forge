@@ -67,6 +67,7 @@ ATLAS_TRANSACTION_SOURCES = PHYSICAL_SIGNAL_SOURCES + (
     f"{ATLAS}/census.rs",
     f"{ATLAS}/cleanup.rs",
     f"{ATLAS}/color.rs",
+    f"{ATLAS}/demand.rs",
     f"{ATLAS}/demand_admission.rs",
     f"{ATLAS}/entry.rs",
     f"{ATLAS}/eviction.rs",
@@ -86,6 +87,7 @@ ATLAS_TRANSACTION_SOURCES = PHYSICAL_SIGNAL_SOURCES + (
     f"{ATLAS}/planning.rs",
     f"{ATLAS}/recovery.rs",
     f"{ATLAS}/recovery_identity_tests.rs",
+    f"{ATLAS}/raster_upload.rs",
     f"{ATLAS}/settlement.rs",
     f"{ATLAS}/settling.rs",
     f"{ATLAS}/test_device_tests.rs",
@@ -93,6 +95,7 @@ ATLAS_TRANSACTION_SOURCES = PHYSICAL_SIGNAL_SOURCES + (
     f"{ATLAS}/transaction_plan_snapshot.rs",
     f"{ATLAS}/upload.rs",
     f"{ATLAS}/upload_staging.rs",
+    f"{ATLAS}/activity.rs",
 )
 
 RUNTIME_PIN_SOURCES = (
@@ -112,6 +115,7 @@ RUNTIME_PIN_SOURCES = (
 
 PINNING_PRODUCT_SOURCES = ATLAS_TRANSACTION_SOURCES + RUNTIME_PIN_SOURCES + (
     "scripts/ci/worth_ui_3141_supporting_world.py",
+    "scripts/ci/worth_ui_3141_p5_contracts.py",
     "scripts/ci/worth_ui_ledger_dependency.py",
     "scripts/ci/worth_ui_ledger_hostile_control_evidence.py",
     "scripts/ci/worth_ui_ledger_observation.py",
@@ -151,9 +155,11 @@ PINNING_PRODUCT_SOURCES = ATLAS_TRANSACTION_SOURCES + RUNTIME_PIN_SOURCES + (
     "workspaces/worth-ui/crates/worth-ui-runtime/src/host/adapter/session_authority.rs",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/mod.rs",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/authorized_native_host.rs",
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/outcome.rs",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/text_presentation/mounted_coordinator.rs",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/qualified_text_test_support.rs",
     "workspaces/worth-ui/apps/platform-pulse/src/main.rs",
+    "workspaces/worth-ui/apps/platform-pulse/src/native_gate_d_application.rs",
     "workspaces/worth-ui/apps/platform-pulse/Cargo.toml",
     "workspaces/worth-ui/crates/worth-ui/src/facade/certification.rs",
     "workspaces/worth-ui/crates/worth-ui/src/facade/mod.rs",

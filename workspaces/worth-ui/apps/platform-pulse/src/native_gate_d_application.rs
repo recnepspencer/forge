@@ -20,8 +20,7 @@ const SECOND_AUTHORED: &str = "gate-d-second";
 const SURFACE: &str = "gate.d.surface";
 const BASELINE_TOKEN: &str = "theme.gate_d.baseline";
 const TEXT_TOKEN: &str = "theme.gate_d.text";
-const SHARED_TEXT: &str =
-    "Gate D shares one qualified layout and releases its atlas pins at the last owner.";
+const SHARED_TEXT: &str = "CURRENT";
 
 pub(crate) struct PlatformPulseNativeGateDApplication;
 
@@ -39,7 +38,7 @@ impl UiNativeApplicationDefinition for PlatformPulseNativeGateDApplication {
             builder.register_theme_token(text_token())?;
             builder.register_component(baseline_component())?;
             builder.register_component(text_component(FIRST, 0))?;
-            builder.register_component(text_component(SECOND, 1))?;
+            builder.register_component(text_component(SECOND, 0))?;
             builder.register_surface(SurfaceDescriptor::new(
                 SurfaceId::new(SURFACE).expect("Gate D surface identity"),
                 SurfaceKind::primary_content(),
@@ -66,7 +65,6 @@ impl UiNativeApplicationDefinition for PlatformPulseNativeGateDApplication {
 
 fn gate_d_program() -> UiNativeApplicationProgram {
     UiNativeApplicationProgram::new([
-        UiNativeApplicationFrame::present_current(),
         UiNativeApplicationFrame::with_semantic_text([text_change(FIRST), text_change(SECOND)])
             .expect("Gate D initial text frame"),
         UiNativeApplicationFrame::with_component_presence([presence_change(FIRST, false)])

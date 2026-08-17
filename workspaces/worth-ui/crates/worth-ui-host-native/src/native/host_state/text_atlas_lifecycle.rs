@@ -286,6 +286,7 @@ impl UiNativeHostState {
             crate::native::text_atlas::UiNativeTextAtlasExternalOutcome::Submitted,
         ) {
             crate::native::text_atlas::UiNativeTextAtlasCommitOutcome::Committed(receipt) => {
+                self.text_atlas_activity.record_committed_transaction();
                 UiGlyphRasterTransactionOutcome::Committed(
                     UiGlyphRasterTransactionReceipt::from_text_mechanics(
                         receipt.generation.get(),

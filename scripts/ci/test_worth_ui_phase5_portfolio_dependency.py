@@ -18,6 +18,7 @@ if str(CI) not in sys.path:
     sys.path.insert(0, str(CI))
 
 from worth_ui_3141_proof_plan import prepare_claim, proofs
+from worth_ui_3141_phase4_case_contracts import hostile_cases, positive_cases
 from worth_ui_3141_supporting_world import validate_phase5_atlas_dependency
 from worth_ui_ledger_command import claim_digest
 from worth_ui_ledger_operational_successors import stage_execution_claim
@@ -100,6 +101,11 @@ class PhaseFivePortfolioDependencyTests(unittest.TestCase):
             "source_identity": sources,
             "mapping_source_identity": sources,
             "source_rebindings": [],
+            "structural_counter": "physical-signal-runtimes=1",
+            "governed_cases": list(positive_cases(ATLAS) or ()),
+            "hostile_control": {
+                "mutation_cases": list(hostile_cases(ATLAS) or ()),
+            },
         }
         evidence["runner_authentication"] = authentication_tag(evidence, root)
         artifact.write_text(json.dumps(evidence), encoding="utf-8")

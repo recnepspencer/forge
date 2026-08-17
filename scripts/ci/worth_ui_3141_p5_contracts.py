@@ -42,7 +42,7 @@ P5_COUNTERS = {
     "P5-GLYPH-RASTER-01": ("raster-batches", 2),
     "P5-COLOR-EMOJI-01": ("rgi-sequences", 3953),
     "P5-ATLAS-01": ("physical-signal-runtimes", 1),
-    "P5-ATLAS-PINNING-01": ("pinned-layouts", 1),
+    "P5-ATLAS-PINNING-01": ("pinned-layouts", 2),
     "P5-TEXT-DPI-01": ("dpi-replacements", 1),
     "P5-TEXT-SPAN-PAINT-01": ("paint-spans", 2),
     "P5-TEXT-PIXELS-01": ("pixel-observations", 2),
@@ -95,5 +95,5 @@ def p5_execution_cost(requirement: str) -> str:
     if requirement == "P5-PREDECESSOR-01":
         return "executed-tests=91;presentations=56"
     if requirement == "P5-ATLAS-PINNING-01":
-        return "executed-tests=2;presentations=0;atlas-transactions=13"
+        return "executed-tests=2;presentations=1;atlas-transactions=2"
     return "executed-tests=2;presentations=0"

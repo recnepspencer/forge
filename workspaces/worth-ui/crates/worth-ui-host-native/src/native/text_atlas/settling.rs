@@ -6,9 +6,8 @@ use super::admission::{candidate_entry_mut, next_entry_after_plan};
 use super::ownership::UiNativeTextAtlas;
 use super::recovery::{UiNativeTextAtlasDenial, UiNativeTextAtlasRecovery};
 use super::settlement::{UiNativeTextAtlasCommitOutcome, UiNativeTextAtlasCommitReceipt};
-use super::transaction::{
-    UiNativeTextAtlasExternalOutcome, UiNativeTextAtlasTransactionPlan, UiNativeTextAtlasUpload,
-};
+use super::transaction::{UiNativeTextAtlasExternalOutcome, UiNativeTextAtlasTransactionPlan};
+use super::UiNativeTextAtlasUpload;
 
 impl UiNativeTextAtlas {
     pub(crate) fn settle(

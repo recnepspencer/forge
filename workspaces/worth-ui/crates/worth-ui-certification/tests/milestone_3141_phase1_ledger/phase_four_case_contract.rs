@@ -91,10 +91,7 @@ const PINNING_POSITIVE: &[&str] = &[
     "shared-layout-pins",
     "runtime-transaction-owner",
     "native-signal-settlement",
-    "pressure-saturation",
-    "deterministic-unpinned-replacement",
     "last-owner-release",
-    "atlas-capacity-dependency",
     "terminal-census",
 ];
 

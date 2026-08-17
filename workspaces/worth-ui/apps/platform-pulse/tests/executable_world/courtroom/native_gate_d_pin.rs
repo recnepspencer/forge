@@ -23,6 +23,8 @@ fn live_layout_pins_cross_runtime_native_signal_and_release_at_last_owner() {
     assert_eq!(evidence["schema"], "worth-ui-native-gate-d-pin-world-v2");
     assert_eq!(evidence["mounted_bindings"], 1);
     assert_eq!(evidence["pinned_layouts"], 2);
+    assert!(evidence["presentations"].as_u64().unwrap() > 0);
+    assert!(evidence["atlas_transactions"].as_u64().unwrap() > 0);
     assert!(evidence["native_peak_pin_count"].as_u64().unwrap() > 0);
     assert_eq!(evidence["physical_signal_runtimes"], 1);
     assert_eq!(evidence["physical_signal_workers"], 1);
@@ -30,6 +32,6 @@ fn live_layout_pins_cross_runtime_native_signal_and_release_at_last_owner() {
     assert_eq!(evidence["color_entries"], 0);
     assert_eq!(evidence["terminal_zero"], true);
     println!("WORTH_UI_LEDGER_OBSERVATION={evidence}");
-    println!("WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-PINNING-01\":[\"runtime-transaction-owner\",\"native-signal-settlement\",\"last-owner-release\",\"terminal-census\"]}}");
+    println!("WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-PINNING-01\":[\"shared-layout-pins\",\"runtime-transaction-owner\",\"native-signal-settlement\",\"last-owner-release\",\"terminal-census\"]}}");
     println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-ATLAS-PINNING-01\":2}}");
 }

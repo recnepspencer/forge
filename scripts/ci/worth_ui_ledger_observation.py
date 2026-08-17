@@ -109,7 +109,7 @@ def observed_costs(
             supporting_world is None
             or supporting_world.get("requirement") != "P5-ATLAS-01"
             or observation is None
-            or observation.get("schema") != "worth-ui-native-gate-d-pin-world-v1"
+            or observation.get("schema") != "worth-ui-native-gate-d-pin-world-v2"
             or not isinstance(control_tests, int)
             or not isinstance(presentations, int)
             or presentations < 0

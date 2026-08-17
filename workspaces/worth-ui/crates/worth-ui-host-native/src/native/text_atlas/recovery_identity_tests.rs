@@ -2,8 +2,8 @@
 
 use super::ownership::UiNativeTextAtlas;
 use super::settlement::UiNativeTextAtlasCommitOutcome;
-use super::transaction::{UiNativeTextAtlasExternalOutcome, UiNativeTextAtlasUpload};
-use super::{UiNativeTextAtlasDemand, UiNativeTextAtlasPinTransition};
+use super::transaction::UiNativeTextAtlasExternalOutcome;
+use super::{UiNativeTextAtlasDemand, UiNativeTextAtlasPinTransition, UiNativeTextAtlasUpload};
 use crate::native::text_atlas::boundary_tests::{demand, key};
 use worth_ui_host_contract::UiGlyphRasterSource;
 

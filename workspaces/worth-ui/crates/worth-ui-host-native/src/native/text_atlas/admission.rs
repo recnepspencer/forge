@@ -9,7 +9,8 @@ use super::entry::UiAtlasEntry;
 use super::key::{canonical_raster_key_bytes, UiNativeValidatedRasterKey};
 use super::ownership::AtlasStore;
 use super::recovery::UiNativeTextAtlasDenial;
-use super::transaction::{UiNativeTextAtlasDemand, UiNativeTextAtlasTransactionPlan};
+use super::transaction::UiNativeTextAtlasTransactionPlan;
+use super::UiNativeTextAtlasDemand;
 
 pub(crate) fn normalize_demands(
     demands: &[UiNativeTextAtlasDemand],

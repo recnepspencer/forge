@@ -91,6 +91,11 @@ impl UiNativePlatformCloseReceipt {
     pub fn peak_text_layout_count(&self) -> usize {
         self.report.peak_text_layout_count()
     }
+
+    #[doc(hidden)]
+    pub const fn text_atlas_transactions(&self) -> u64 {
+        self.report.text_atlas_transactions()
+    }
 }
 
 impl UiNativePlatformStopReport {

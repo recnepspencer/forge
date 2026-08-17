@@ -112,7 +112,13 @@ fn validate_atlas_content(
     require_u64(supporting, "ignored_test_count", 0)?;
     require_str(supporting, "exit_posture", "passed")?;
     require_str(supporting, "source_revision", source_revision)?;
-    require_str(supporting, "source_state_digest", source_state_digest)
+    require_str(supporting, "source_state_digest", source_state_digest)?;
+    require_str(
+        supporting,
+        "structural_counter",
+        "physical-signal-runtimes=1",
+    )?;
+    super::phase_four_case_contract::validate(ATLAS_REQUIREMENT, supporting)
 }
 
 fn validate_content(

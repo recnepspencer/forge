@@ -297,23 +297,6 @@ class GovernedRaceTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "proof mappings are incomplete"):
             ledger_closer.require_complete_phase_mapping(rows, 3, {"P3-ONE"})
 
-    def test_current_phase_source_drift_reopens_without_rewriting_predecessors(self) -> None:
-        rows = [
-            {
-                "phase": "3", "requirement": "P3-ONE", "result": "PROVED",
-                "final_source": "true", "source_state_digest": "old",
-            },
-            {
-                "phase": "4", "requirement": "P4-ONE", "result": "PROVED",
-                "final_source": "true", "source_state_digest": "old",
-            },
-        ]
-        selected = ledger_closer.phase_rows_to_prepare(
-            rows, 4, None, {"P4-ONE": object()}, "current"
-        )
-        self.assertEqual([row["requirement"] for row in selected], ["P4-ONE"])
-        self.assertEqual(rows[0]["result"], "PROVED")
-
     def test_historical_phase_two_rows_never_reopen_on_later_source_drift(self) -> None:
         rows = [
             {

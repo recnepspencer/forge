@@ -4,7 +4,7 @@
 mod batch;
 
 use super::recovery::UiNativeTextAtlasDenial;
-use super::transaction::UiNativeTextAtlasUpload;
+use super::UiNativeTextAtlasUpload;
 use crate::native::{UiNativeOwnedResource, UiNativeResourceClass, UiNativeResourceRegistry};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]

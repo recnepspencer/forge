@@ -1,9 +1,9 @@
 use super::ownership::UiNativeTextAtlas;
 use crate::native::text_atlas::settlement::UiNativeTextAtlasCommitOutcome;
 use crate::native::text_atlas::transaction::{
-    UiNativeTextAtlasDemand, UiNativeTextAtlasExternalOutcome, UiNativeTextAtlasPinRequest,
-    UiNativeTextAtlasPinTransition, UiNativeTextAtlasUpload,
+    UiNativeTextAtlasExternalOutcome, UiNativeTextAtlasPinRequest, UiNativeTextAtlasPinTransition,
 };
+use crate::native::text_atlas::{UiNativeTextAtlasDemand, UiNativeTextAtlasUpload};
 use worth_ui_host_contract::{
     UiFontCollectionGeneration, UiFontCollectionLineageIdentity, UiGlyphRasterDemandIdentity,
     UiGlyphRasterFractionalOrigin, UiGlyphRasterKey, UiGlyphRasterKeyInput, UiGlyphRasterPalette,

@@ -56,7 +56,7 @@ pub(crate) fn counter_amount(requirement: &str) -> Option<u64> {
         "P5-GLYPH-RASTER-01" => 2,
         "P5-COLOR-EMOJI-01" => 3953,
         "P5-ATLAS-01" => 1,
-        "P5-ATLAS-PINNING-01" => 1,
+        "P5-ATLAS-PINNING-01" => 2,
         "P5-TEXT-DPI-01" => 1,
         "P5-TEXT-SPAN-PAINT-01" => 2,
         "P5-TEXT-PIXELS-01" => 2,

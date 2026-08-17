@@ -1,133 +1,17 @@
 //! Move-only atlas transaction records and inert cross-domain upload views.
 use super::candidate_store::CandidateAtlasStore;
-use super::capacity::{physical_staging_bytes, source_channels};
 use super::ownership::AtlasCore;
+use super::raster_upload::{upload_shape_is_valid, UiNativeTextAtlasUpload};
 use super::recovery::UiNativeTextAtlasGeneration;
 #[cfg(test)]
 use super::transaction_plan_snapshot::UiNativeTextAtlasTransactionPlanSnapshot;
+use super::UiNativeTextAtlasDemand;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::rc::Rc;
 use worth_ui_host_contract::{
-    UiGlyphRasterDemandBatchView, UiGlyphRasterDemandIdentity, UiGlyphRasterDemandRecord,
-    UiGlyphRasterKey, UiGlyphRasterLane, UiQualifiedTextLayoutIdentity, UiTextScaleGeneration,
+    UiGlyphRasterDemandIdentity, UiGlyphRasterKey, UiQualifiedTextLayoutIdentity,
 };
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct UiNativeTextAtlasDemand {
-    identity: UiGlyphRasterDemandIdentity,
-    key: UiGlyphRasterKey,
-    width: u32,
-    height: u32,
-    staged_bytes: u64,
-    physical_staged_bytes: u64,
-    source_identity: UiGlyphRasterDemandIdentity,
-    source_layout: UiQualifiedTextLayoutIdentity,
-    source_lane: UiGlyphRasterLane,
-    source_dpi_milli: u32,
-    source_text_scale: UiTextScaleGeneration,
-    source_record: Option<UiGlyphRasterDemandRecord>,
-}
-
-impl UiNativeTextAtlasDemand {
-    pub(super) fn from_host_contract(
-        identity: UiGlyphRasterDemandIdentity,
-        demand: UiGlyphRasterDemandBatchView<'_>,
-        record: UiGlyphRasterDemandRecord,
-    ) -> Self {
-        Self {
-            identity,
-            key: record.key(),
-            width: record.extent().width(),
-            height: record.extent().height(),
-            staged_bytes: record.staged_bytes(),
-            physical_staged_bytes: physical_staging_bytes(
-                record.extent().width(),
-                record.extent().height(),
-                record.key().source(),
-            )
-            .unwrap_or(u64::MAX),
-            source_identity: demand.identity(),
-            source_layout: demand.layout_identity(),
-            source_lane: demand.lane(),
-            source_dpi_milli: demand.dpi_milli(),
-            source_text_scale: demand.text_scale_generation(),
-            source_record: Some(record),
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn from_native_geometry(
-        identity: UiGlyphRasterDemandIdentity,
-        key: UiGlyphRasterKey,
-        width: u32,
-        height: u32,
-        staged_bytes: u64,
-    ) -> Self {
-        Self {
-            identity,
-            key,
-            width,
-            height,
-            staged_bytes,
-            physical_staged_bytes: physical_staging_bytes(width, height, key.source())
-                .unwrap_or(u64::MAX),
-            source_identity: identity,
-            source_layout: UiQualifiedTextLayoutIdentity::from_text_mechanics([0; 32]),
-            source_lane: UiGlyphRasterLane::Ordinary,
-            source_dpi_milli: key.dpi_milli(),
-            source_text_scale: UiTextScaleGeneration::new(1).expect("nonzero test scale"),
-            source_record: None,
-        }
-    }
-
-    pub(crate) const fn identity(self) -> UiGlyphRasterDemandIdentity {
-        self.identity
-    }
-
-    pub(crate) const fn key(self) -> UiGlyphRasterKey {
-        self.key
-    }
-
-    pub(crate) const fn width(self) -> u32 {
-        self.width
-    }
-
-    pub(crate) const fn height(self) -> u32 {
-        self.height
-    }
-
-    pub(crate) const fn staged_bytes(self) -> u64 {
-        self.staged_bytes
-    }
-
-    pub(crate) const fn physical_staged_bytes(self) -> u64 {
-        self.physical_staged_bytes
-    }
-
-    pub(crate) const fn source_identity(self) -> UiGlyphRasterDemandIdentity {
-        self.source_identity
-    }
-
-    pub(crate) const fn source_layout(self) -> UiQualifiedTextLayoutIdentity {
-        self.source_layout
-    }
-
-    pub(crate) const fn source_lane(self) -> UiGlyphRasterLane {
-        self.source_lane
-    }
-
-    pub(crate) const fn source_dpi_milli(self) -> u32 {
-        self.source_dpi_milli
-    }
-
-    pub(crate) const fn source_text_scale(self) -> UiTextScaleGeneration {
-        self.source_text_scale
-    }
-
-    pub(crate) const fn source_record(self) -> Option<UiGlyphRasterDemandRecord> {
-        self.source_record
-    }
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct UiNativeTextAtlasPinRequest {
@@ -177,87 +61,6 @@ impl UiNativeTextAtlasPinTransition {
 
     pub(crate) fn releases(&self) -> &[UiNativeTextAtlasPinRequest] {
         &self.releases
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct UiNativeTextAtlasUpload {
-    key: UiGlyphRasterKey,
-    bearing: worth_ui_host_contract::UiGlyphRasterBearing,
-    width: u32,
-    height: u32,
-    stride: u32,
-    bytes: Box<[u8]>,
-    digest: [u8; 32],
-}
-
-impl UiNativeTextAtlasUpload {
-    #[doc(hidden)]
-    pub fn from_text_mechanics(
-        key: UiGlyphRasterKey,
-        width: u32,
-        height: u32,
-        stride: u32,
-        bytes: impl Into<Box<[u8]>>,
-        digest: [u8; 32],
-    ) -> Self {
-        Self {
-            key,
-            bearing: worth_ui_host_contract::UiGlyphRasterBearing::from_sixty_fourths(0, 0),
-            width,
-            height,
-            stride,
-            bytes: bytes.into(),
-            digest,
-        }
-    }
-
-    pub(crate) fn with_bearing_from_text_mechanics(
-        key: UiGlyphRasterKey,
-        bearing: worth_ui_host_contract::UiGlyphRasterBearing,
-        width: u32,
-        height: u32,
-        stride: u32,
-        bytes: impl Into<Box<[u8]>>,
-        digest: [u8; 32],
-    ) -> Self {
-        Self {
-            key,
-            bearing,
-            width,
-            height,
-            stride,
-            bytes: bytes.into(),
-            digest,
-        }
-    }
-
-    pub(crate) const fn key(&self) -> UiGlyphRasterKey {
-        self.key
-    }
-
-    pub(crate) const fn bearing(&self) -> worth_ui_host_contract::UiGlyphRasterBearing {
-        self.bearing
-    }
-
-    pub(crate) const fn width(&self) -> u32 {
-        self.width
-    }
-
-    pub(crate) const fn height(&self) -> u32 {
-        self.height
-    }
-
-    pub(crate) const fn stride(&self) -> u32 {
-        self.stride
-    }
-
-    pub(crate) fn bytes(&self) -> &[u8] {
-        &self.bytes
-    }
-
-    pub(crate) const fn digest(&self) -> [u8; 32] {
-        self.digest
     }
 }
 
@@ -371,15 +174,15 @@ impl UiNativeTextAtlasTransactionPlan {
         let miss_keys = self
             .misses
             .iter()
-            .map(|demand| demand.key)
+            .map(|demand| demand.key())
             .collect::<HashSet<_>>();
         if miss_keys.len() != self.misses.len() {
             return false;
         }
         let mut upload_keys = HashSet::with_capacity(uploads.len());
         uploads.iter().all(|upload| {
-            upload_keys.insert(upload.key)
-                && miss_keys.contains(&upload.key)
+            upload_keys.insert(upload.key())
+                && miss_keys.contains(&upload.key())
                 && self.admits_upload(upload)
                 && upload_shape_is_valid(upload)
         }) && upload_keys == miss_keys
@@ -387,11 +190,11 @@ impl UiNativeTextAtlasTransactionPlan {
 
     fn admits_upload(&self, upload: &UiNativeTextAtlasUpload) -> bool {
         self.misses.iter().any(|demand| {
-            demand.key == upload.key
-                && upload.width <= demand.width
-                && upload.height <= demand.height
-                && u64::try_from(upload.bytes.len()).unwrap_or(u64::MAX) <= demand.staged_bytes
-                && upload.key.source() == demand.key.source()
+            demand.key() == upload.key()
+                && upload.width() <= demand.width()
+                && upload.height() <= demand.height()
+                && u64::try_from(upload.bytes().len()).unwrap_or(u64::MAX) <= demand.staged_bytes()
+                && upload.key().source() == demand.key().source()
         })
     }
 }
@@ -407,18 +210,4 @@ impl Drop for UiNativeTextAtlasTransactionPlan {
             }
         }
     }
-}
-
-pub(crate) fn upload_shape_is_valid(upload: &UiNativeTextAtlasUpload) -> bool {
-    let Some(expected) = u64::from(upload.width())
-        .checked_mul(u64::from(upload.height()))
-        .and_then(|pixels| pixels.checked_mul(source_channels(upload.key().source())))
-    else {
-        return false;
-    };
-    u64::try_from(upload.bytes().len()).ok() == Some(expected)
-        && upload.stride()
-            == upload
-                .width()
-                .saturating_mul(u32::try_from(source_channels(upload.key().source())).unwrap_or(0))
 }

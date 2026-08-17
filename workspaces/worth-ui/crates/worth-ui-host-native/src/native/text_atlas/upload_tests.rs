@@ -2,7 +2,7 @@ use super::*;
 use crate::native::text_atlas::{
     capacity::source_channels,
     qualified_test_device,
-    transaction::upload_shape_is_valid,
+    raster_upload::upload_shape_is_valid,
     upload_staging::{align_to_copy_row, source_matches_kind},
 };
 use crate::native::{UiNativeResourceCensus, UiNativeResourceRegistry};

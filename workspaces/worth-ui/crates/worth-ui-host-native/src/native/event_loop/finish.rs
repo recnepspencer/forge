@@ -19,6 +19,11 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             .and_then(UiNativeEventLoopClient::presentation_attribution);
         let peak_census = self.shared.borrow().compiler_total_peak();
         let peak_text_pins = self.shared.borrow().peak_text_pins.clone();
+        let text_atlas_transactions = self
+            .shared
+            .borrow()
+            .text_atlas_activity
+            .committed_transactions();
         let effect_posture = self.shared.borrow().effect_posture;
         let graphics = self
             .shared
@@ -72,6 +77,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             host_census,
             retained_frames,
             peak_text_pins,
+            text_atlas_transactions,
         ))
     }
 
@@ -123,6 +129,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         terminal_census: crate::native::UiNativeResourceCensus,
         retained_frames: Vec<crate::native::UiNativeRetainedFrameObservation>,
         peak_text_pins: Box<[crate::native::text_atlas::UiNativeTextPinObservation]>,
+        text_atlas_transactions: u64,
     ) -> UiNativeEventLoopRunReport {
         let thread = self
             .thread_observation
@@ -144,6 +151,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             terminal_census,
             retained_frames: retained_frames.into_boxed_slice(),
             peak_text_pins,
+            text_atlas_transactions,
         }
     }
 }

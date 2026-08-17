@@ -105,6 +105,8 @@ fn run_native_gate_d_pin_world() -> ExitCode {
                 "schema": "worth-ui-native-gate-d-pin-world-v2",
                 "mounted_bindings": 1,
                 "pinned_layouts": receipt.peak_text_layout_count(),
+                "presentations": receipt.retained_frames().len(),
+                "atlas_transactions": receipt.text_atlas_transactions(),
                 "native_peak_pin_count": peak.text_atlas_pins,
                 "physical_signal_runtimes": peak.physical_signal_runtimes,
                 "physical_signal_workers": peak.physical_signal_workers,
