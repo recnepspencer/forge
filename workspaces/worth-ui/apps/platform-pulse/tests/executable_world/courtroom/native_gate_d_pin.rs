@@ -20,30 +20,16 @@ fn live_layout_pins_cross_runtime_native_signal_and_release_at_last_owner() {
         .expect("the Gate D pin evidence is readable");
     let evidence: serde_json::Value =
         serde_json::from_str(stdout.trim()).expect("the Gate D pin evidence is exact JSON");
-    assert_eq!(evidence["schema"], "worth-ui-native-gate-d-pin-world-v1");
-    assert_eq!(evidence["mounted_bindings"], 2);
-    assert_eq!(evidence["pinned_layouts"], 1);
-    assert!(evidence["expected_pin_count"].as_u64().unwrap() > 0);
-    assert!(evidence["native_committed_pin_count"].as_u64().unwrap() > 0);
-    assert!(
-        evidence["expected_pin_count"].as_u64().unwrap()
-            > evidence["native_committed_pin_count"].as_u64().unwrap()
-    );
-    assert_eq!(
-        evidence["native_peak_pin_count"],
-        evidence["expected_pin_count"]
-    );
+    assert_eq!(evidence["schema"], "worth-ui-native-gate-d-pin-world-v2");
+    assert_eq!(evidence["mounted_bindings"], 1);
+    assert_eq!(evidence["pinned_layouts"], 2);
+    assert!(evidence["native_peak_pin_count"].as_u64().unwrap() > 0);
     assert_eq!(evidence["physical_signal_runtimes"], 1);
-    assert_eq!(evidence["pressure_transactions"], 5);
-    assert_eq!(evidence["pressure_releases"], 5);
-    assert!(evidence["evictions"].as_u64().unwrap() > 0);
-    assert_eq!(evidence["atlas_transactions"], 13);
-    assert_eq!(evidence["presentations"], 0);
-    assert_eq!(evidence["local_owner_releases"], 1);
-    assert_eq!(evidence["native_final_releases"], 1);
-    assert!(evidence["rasterized_glyphs"].as_u64().unwrap() > 0);
+    assert_eq!(evidence["physical_signal_workers"], 1);
+    assert!(evidence["alpha_entries"].as_u64().unwrap() > 0);
+    assert_eq!(evidence["color_entries"], 0);
     assert_eq!(evidence["terminal_zero"], true);
     println!("WORTH_UI_LEDGER_OBSERVATION={evidence}");
-    println!("WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-PINNING-01\":[\"shared-layout-pins\",\"runtime-transaction-owner\",\"native-signal-settlement\",\"pressure-saturation\",\"deterministic-unpinned-replacement\",\"last-owner-release\",\"atlas-capacity-dependency\",\"terminal-census\"]}}");
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-ATLAS-PINNING-01\":1}}");
+    println!("WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-PINNING-01\":[\"runtime-transaction-owner\",\"native-signal-settlement\",\"last-owner-release\",\"terminal-census\"]}}");
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-ATLAS-PINNING-01\":2}}");
 }

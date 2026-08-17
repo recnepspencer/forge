@@ -55,6 +55,7 @@ impl WorthUiNativeApplicationShell {
     pub(crate) fn presentation_attribution(
         &self,
         outcome: &UiMountedFrameOutcome,
+        prior: Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
     ) -> Option<worth_ui_host_native::UiNativeClientPresentationAttribution> {
         let receipt = match outcome {
             UiMountedFrameOutcome::Published(receipt)
@@ -66,23 +67,46 @@ impl WorthUiNativeApplicationShell {
         let attribution = self
             .session
             .mounted
-            .native_filled_rect_attribution(receipt.frame(), binding)?;
-        Some(
+            .native_filled_rect_attribution(receipt.frame(), binding);
+        if let Some(attribution) = attribution {
+            return Some(
+                worth_ui_host_native::UiNativeClientPresentationAttribution::reported(
+                    [
+                        receipt.frame().diagnostic_value(),
+                        attribution.surface.diagnostic_value(),
+                        binding.diagnostic_value(),
+                        attribution.mounted_instance.diagnostic_value(),
+                        attribution.node_receipt.diagnostic_value(),
+                        receipt.attempt().diagnostic_value(),
+                    ],
+                    [
+                        attribution.authored_provenance_digest,
+                        attribution.authored_semantic_identity_digest,
+                    ],
+                ),
+            );
+        }
+        let prior = prior?;
+        matches!(
+            outcome,
+            UiMountedFrameOutcome::Published(_) | UiMountedFrameOutcome::Reconciled(_)
+        )
+        .then(|| {
             worth_ui_host_native::UiNativeClientPresentationAttribution::reported(
                 [
                     receipt.frame().diagnostic_value(),
-                    attribution.surface.diagnostic_value(),
+                    prior.surface(),
                     binding.diagnostic_value(),
-                    attribution.mounted_instance.diagnostic_value(),
-                    attribution.node_receipt.diagnostic_value(),
+                    prior.mounted_instance(),
+                    prior.node_receipt(),
                     receipt.attempt().diagnostic_value(),
                 ],
                 [
-                    attribution.authored_provenance_digest,
-                    attribution.authored_semantic_identity_digest,
+                    prior.authored_provenance_digest(),
+                    prior.authored_semantic_identity_digest(),
                 ],
-            ),
-        )
+            )
+        })
     }
 
     pub(crate) fn rebind_native_surface_scale(

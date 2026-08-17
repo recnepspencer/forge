@@ -53,7 +53,6 @@ pub(crate) struct UiNativePendingTextPresentation {
 }
 
 pub(crate) enum UiNativePendingTextContinuation {
-    Presented(worth_ui_host_contract::UiMountedSurfacePresentationCompletion),
     AtlasReady,
 }
 

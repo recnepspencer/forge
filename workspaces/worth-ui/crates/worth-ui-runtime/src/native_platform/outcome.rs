@@ -86,6 +86,11 @@ impl UiNativePlatformCloseReceipt {
     pub fn retained_frames(&self) -> &[worth_ui_host_native::UiNativeRetainedFrameObservation] {
         self.report.retained_frames()
     }
+
+    #[doc(hidden)]
+    pub fn peak_text_layout_count(&self) -> usize {
+        self.report.peak_text_layout_count()
+    }
 }
 
 impl UiNativePlatformStopReport {

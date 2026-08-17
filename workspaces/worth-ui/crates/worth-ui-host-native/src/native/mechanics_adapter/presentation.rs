@@ -19,53 +19,18 @@ pub(super) fn perform_native_presentation(
     state: &mut UiNativeHostState,
     view: &UiMountedFrameConsumptionView<'_>,
 ) -> UiHostSurfacePresentationOutcome {
-    let pin_only = view
-        .text_raster_work()
-        .is_some_and(|work| work.demands().is_empty());
-    let text = match text_atlas::begin(state, view) {
-        text_atlas::UiMountedTextWorkOutcome::Ready => None,
-        text_atlas::UiMountedTextWorkOutcome::Pending(pending) => Some(pending),
-        text_atlas::UiMountedTextWorkOutcome::Terminal(outcome) => return outcome,
-    };
-    if pin_only {
-        return text_atlas::settle_pin_only(state, view, text);
+    if view.text_raster_work().is_some() {
+        return match text_atlas::begin(state, view) {
+            text_atlas::UiMountedTextWorkOutcome::Ready => {
+                text_atlas::settle_deferred(state, view, None)
+            }
+            text_atlas::UiMountedTextWorkOutcome::Pending(pending) => {
+                text_atlas::settle_deferred(state, view, Some(pending))
+            }
+            text_atlas::UiMountedTextWorkOutcome::Terminal(outcome) => outcome,
+        };
     }
-    let presentation = perform_surface_work(state, view);
-    let Some((pending, binding_pins)) = text else {
-        return presentation;
-    };
-    match presentation {
-        UiHostSurfacePresentationOutcome::Presented(completion) => {
-            let token = view.issue_completion_token();
-            text_atlas::retain_pending(
-                state,
-                view,
-                &token,
-                (pending, binding_pins),
-                crate::native::host_state::UiNativePendingTextContinuation::Presented(completion),
-            );
-            UiHostSurfacePresentationOutcome::InFlight(token)
-        }
-        UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
-            worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred,
-        ) => {
-            let token = view.issue_completion_token();
-            text_atlas::retain_pending(
-                state,
-                view,
-                &token,
-                (pending, binding_pins),
-                crate::native::host_state::UiNativePendingTextContinuation::AtlasReady,
-            );
-            UiHostSurfacePresentationOutcome::InFlight(token)
-        }
-        UiHostSurfacePresentationOutcome::InFlight(_)
-        | UiHostSurfacePresentationOutcome::RejectedBeforeEffects(_)
-        | UiHostSurfacePresentationOutcome::PresentationIndeterminate => {
-            let _ = state.cancel_pending_text_atlas(pending);
-            mark_presentation_indeterminate(state)
-        }
-    }
+    perform_surface_work(state, view)
 }
 
 fn perform_surface_work(

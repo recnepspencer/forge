@@ -174,6 +174,14 @@ impl UiNativeEventLoopRunReport {
     pub fn peak_text_pins(&self) -> &[crate::native::text_atlas::UiNativeTextPinObservation] {
         &self.peak_text_pins
     }
+
+    pub fn peak_text_layout_count(&self) -> usize {
+        self.peak_text_pins
+            .iter()
+            .map(|pin| pin.layout_digest())
+            .collect::<std::collections::BTreeSet<_>>()
+            .len()
+    }
 }
 
 impl UiNativeClientPresentationAttribution {

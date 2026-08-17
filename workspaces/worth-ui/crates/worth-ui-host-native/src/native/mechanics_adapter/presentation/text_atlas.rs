@@ -35,6 +35,7 @@ pub(super) fn begin(
         work.pins(),
         &mut rasterizer,
     );
+    state.record_compiler_total_peak();
     match outcome {
         worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Committed(_) => {
             state.text_pins_by_binding.insert(
@@ -82,7 +83,7 @@ pub(super) fn retain_pending(
     );
 }
 
-pub(super) fn settle_pin_only(
+pub(super) fn settle_deferred(
     state: &mut UiNativeHostState,
     view: &UiMountedFrameConsumptionView<'_>,
     pending: Option<(
@@ -116,7 +117,9 @@ pub(super) fn complete(
             worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined,
         );
     };
-    match state.complete_pending_text_atlas(pending.atlas) {
+    let outcome = state.complete_pending_text_atlas(pending.atlas);
+    state.record_compiler_total_peak();
+    match outcome {
         worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Pending(next) => {
             pending.atlas = next;
             state.pending_text_presentations.insert(key, pending);
@@ -127,9 +130,6 @@ pub(super) fn complete(
                 .text_pins_by_binding
                 .insert(pending.binding, pending.binding_pins);
             match pending.continuation {
-                UiNativePendingTextContinuation::Presented(completion) => {
-                    UiHostSurfaceInFlightCompletion::Presented(completion)
-                }
                 UiNativePendingTextContinuation::AtlasReady => {
                     UiHostSurfaceInFlightCompletion::RejectedBeforeEffects(
                         worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred,

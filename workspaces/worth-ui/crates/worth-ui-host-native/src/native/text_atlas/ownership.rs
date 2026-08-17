@@ -123,6 +123,10 @@ impl PinIdentity {
 }
 
 impl UiNativeTextPinObservation {
+    pub(crate) const fn layout_digest(self) -> [u8; 32] {
+        self.layout
+    }
+
     #[doc(hidden)]
     pub fn matches(self, request: worth_ui_host_contract::UiGlyphRasterPinRequest) -> bool {
         self == PinIdentity::new(request.layout_identity(), request.key()).observation()

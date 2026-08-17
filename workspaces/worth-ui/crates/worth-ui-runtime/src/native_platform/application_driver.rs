@@ -231,16 +231,49 @@ fn retain_or_attribute(
             if rejected.rejections().iter().all(|rejection| {
                 rejection.denial()
                     == worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred
-            }) =>
+        }) =>
         {
             return Ok(true);
         }
         outcome => {
-            let observed = shell.presentation_attribution(&outcome).ok_or(())?;
-            *attribution = Some(observed);
+            retain_presentation_attribution(
+                attribution,
+                shell.presentation_attribution(&outcome, *attribution),
+            )?;
         }
     }
     Ok(true)
+}
+
+fn retain_presentation_attribution(
+    current: &mut Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
+    observed: Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
+) -> Result<(), ()> {
+    if let Some(observed) = observed {
+        *current = Some(observed);
+        return Ok(());
+    }
+    current.is_some().then_some(()).ok_or(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::retain_presentation_attribution;
+    use worth_ui_host_native::UiNativeClientPresentationAttribution;
+
+    #[test]
+    fn deferred_logical_frames_preserve_the_last_physical_attribution() {
+        let first = UiNativeClientPresentationAttribution::reported([1, 2, 3, 4, 5, 6], [7, 8]);
+        let second =
+            UiNativeClientPresentationAttribution::reported([9, 10, 11, 12, 13, 14], [15, 16]);
+        let mut current = None;
+        assert_eq!(retain_presentation_attribution(&mut current, None), Err(()));
+        retain_presentation_attribution(&mut current, Some(first)).unwrap();
+        retain_presentation_attribution(&mut current, None).unwrap();
+        assert_eq!(current, Some(first));
+        retain_presentation_attribution(&mut current, Some(second)).unwrap();
+        assert_eq!(current, Some(second));
+    }
 }
 
 impl UiNativeEventLoopClientCleanup for UiNativeApplicationDriverCleanup {
