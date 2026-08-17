@@ -100,9 +100,13 @@ impl UiMountedPresentationCoordinator {
         let mut remaining = Vec::new();
         let mut pending_iter = pending.into_iter();
         while let Some(pending_surface) = pending_iter.next() {
-            if let Some((binding, additional_cost)) =
-                observe_pending_surface(&frame, host, pending_surface, &mut progress)
-            {
+            if let Some((binding, additional_cost)) = observe_pending_surface(
+                &frame,
+                host,
+                pending_surface,
+                &mut progress,
+                &mut self.text,
+            ) {
                 remaining.extend(pending_iter);
                 progress.pending.extend(remaining);
                 let evidence =
@@ -239,6 +243,7 @@ fn observe_pending_surface(
     host: UiHostEffectPort<'_>,
     pending: UiPendingMountedSurface,
     progress: &mut super::UiMountedPresentationProgress,
+    text: &mut crate::native_platform::text_presentation::UiNativeMountedTextCoordinator,
 ) -> Option<(
     worth_ui_host_contract::UiSurfaceBindingGeneration,
     Option<worth_ui_host_contract::UiHostPresentationCostReport>,
@@ -247,6 +252,7 @@ fn observe_pending_surface(
         binding,
         token,
         expected_effects,
+        text_candidate,
     } = pending;
     match host
         .adapter()
@@ -257,6 +263,7 @@ fn observe_pending_surface(
                 binding,
                 token,
                 expected_effects,
+                text_candidate,
             });
             None
         }
@@ -285,6 +292,9 @@ fn observe_pending_surface(
                     effects,
                     adapter_cost,
                 ));
+            if let Some(candidate) = text_candidate {
+                text.commit_surface_candidate(candidate);
+            }
             None
         }
     }

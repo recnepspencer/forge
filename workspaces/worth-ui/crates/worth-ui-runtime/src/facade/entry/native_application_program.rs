@@ -9,12 +9,19 @@ pub struct UiNativeApplicationProgram {
 #[must_use]
 pub struct UiNativeApplicationFrame {
     component_presence: Box<[UiNativeComponentPresenceChange]>,
+    semantic_text: Box<[UiNativeComponentSemanticTextChange]>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiNativeComponentPresenceChange {
     authored_semantic_identity: Box<str>,
     present: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiNativeComponentSemanticTextChange {
+    authored_semantic_identity: Box<str>,
+    text: Box<str>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -56,6 +63,7 @@ impl UiNativeApplicationFrame {
     pub fn present_current() -> Self {
         Self {
             component_presence: Box::new([]),
+            semantic_text: Box::new([]),
         }
     }
 
@@ -68,11 +76,29 @@ impl UiNativeApplicationFrame {
         }
         Ok(Self {
             component_presence: changes.into_boxed_slice(),
+            semantic_text: Box::new([]),
+        })
+    }
+
+    pub fn with_semantic_text(
+        changes: impl IntoIterator<Item = UiNativeComponentSemanticTextChange>,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        let changes = changes.into_iter().collect::<Vec<_>>();
+        if changes.len() > MAXIMUM_CHANGES_PER_FRAME {
+            return Err(UiNativeApplicationProgramDenial::ChangeCapacityExceeded);
+        }
+        Ok(Self {
+            component_presence: Box::new([]),
+            semantic_text: changes.into_boxed_slice(),
         })
     }
 
     pub(crate) fn component_presence(&self) -> &[UiNativeComponentPresenceChange] {
         &self.component_presence
+    }
+
+    pub(crate) fn semantic_text(&self) -> &[UiNativeComponentSemanticTextChange] {
+        &self.semantic_text
     }
 }
 
@@ -97,6 +123,34 @@ impl UiNativeComponentPresenceChange {
 
     pub(crate) const fn present(&self) -> bool {
         self.present
+    }
+}
+
+impl UiNativeComponentSemanticTextChange {
+    pub fn new(
+        authored_semantic_identity: impl Into<Box<str>>,
+        text: impl Into<Box<str>>,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        let identity = authored_semantic_identity.into();
+        let text = text.into();
+        if !identity.starts_with("component:")
+            || identity.len() == "component:".len()
+            || text.is_empty()
+        {
+            return Err(UiNativeApplicationProgramDenial::InvalidComponentIdentity);
+        }
+        Ok(Self {
+            authored_semantic_identity: identity,
+            text,
+        })
+    }
+
+    pub(crate) fn authored_semantic_identity(&self) -> &str {
+        &self.authored_semantic_identity
+    }
+
+    pub(crate) fn text(&self) -> &str {
+        &self.text
     }
 }
 

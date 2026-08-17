@@ -39,9 +39,17 @@ pub(crate) struct UiNativeHostState {
     )>,
     pub(crate) text_pins_by_binding:
         BTreeMap<u64, Box<[worth_ui_host_contract::UiGlyphRasterPinRequest]>>,
+    pub(crate) pending_text_presentations: BTreeMap<u64, UiNativePendingTextPresentation>,
     pub(crate) physical_signal: UiNativePhysicalSignalOwner,
     pub(crate) peak_census: UiNativeResourceCensus,
     pub(crate) peak_text_pins: Box<[super::text_atlas::UiNativeTextPinObservation]>,
+}
+
+pub(crate) struct UiNativePendingTextPresentation {
+    pub(crate) atlas: worth_ui_host_contract::UiGlyphRasterTransactionPending,
+    pub(crate) completion: worth_ui_host_contract::UiMountedSurfacePresentationCompletion,
+    pub(crate) binding: u64,
+    pub(crate) binding_pins: Box<[worth_ui_host_contract::UiGlyphRasterPinRequest]>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -73,6 +81,7 @@ impl UiNativeHostState {
             text_atlas_recovery: None,
             text_atlas_completion: None,
             text_pins_by_binding: BTreeMap::new(),
+            pending_text_presentations: BTreeMap::new(),
             physical_signal: UiNativePhysicalSignalOwner::new(),
             peak_census: UiNativeResourceCensus::default(),
             peak_text_pins: Box::new([]),
@@ -122,6 +131,7 @@ impl UiNativeHostState {
             self.text_atlas_recovery = None;
             self.text_atlas_completion = None;
             self.text_pins_by_binding.clear();
+            self.pending_text_presentations.clear();
             if let Some(atlas_gpu) = self.text_atlas_gpu.take() {
                 atlas_gpu
                     .try_close(&mut self.resources)

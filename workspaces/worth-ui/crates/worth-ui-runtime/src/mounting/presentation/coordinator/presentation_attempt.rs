@@ -45,19 +45,21 @@ pub(super) fn present_one_surface(
     if native_host_owns_semantic_text_boundary(
         start.host.adapter().operational_host_contract().kind(),
     ) {
-        if let Some(outcome) = super::semantic_text_raster::present(
+        if let Some(observation) = super::semantic_text_raster::present(
             start,
             requirement,
             presentation_work,
             progress,
             text,
         ) {
+            let (outcome, text_candidate) = observation.into_parts();
             return record_presentation_outcome(
                 start,
                 surface,
                 expected_effects,
                 progress,
                 outcome,
+                text_candidate,
             );
         }
         if progress
@@ -79,7 +81,7 @@ pub(super) fn present_one_surface(
         .host
         .adapter()
         .present_mounted_surface(start.host.authority(), &view);
-    record_presentation_outcome(start, surface, expected_effects, progress, outcome)
+    record_presentation_outcome(start, surface, expected_effects, progress, outcome, None)
 }
 
 fn record_presentation_outcome(
@@ -88,6 +90,7 @@ fn record_presentation_outcome(
     expected_effects: &[worth_ui_host_contract::UiMountedEffectFamily],
     progress: &mut UiMountedPresentationProgress,
     outcome: UiHostSurfacePresentationOutcome,
+    text_candidate: Option<super::UiMountedTextPinCandidate>,
 ) -> Result<(), UiIndeterminatePresentationEvidence> {
     let requirement = surface.requirement();
     match outcome {
@@ -107,6 +110,7 @@ fn record_presentation_outcome(
                     binding: requirement.binding(),
                     token,
                     expected_effects: expected_effects.to_vec().into_boxed_slice(),
+                    text_candidate,
                 });
             Ok(())
         }

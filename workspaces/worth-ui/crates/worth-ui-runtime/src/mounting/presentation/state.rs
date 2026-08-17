@@ -58,6 +58,7 @@ pub(super) struct UiPendingMountedSurface {
     pub(super) binding: UiSurfaceBindingGeneration,
     pub(super) token: UiHostPresentationCompletionToken,
     pub(super) expected_effects: Box<[worth_ui_host_contract::UiMountedEffectFamily]>,
+    pub(super) text_candidate: Option<super::coordinator::UiMountedTextPinCandidate>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

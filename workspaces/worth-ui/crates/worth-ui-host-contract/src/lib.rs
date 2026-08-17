@@ -23,7 +23,6 @@ pub use mounted_frame::{
     UiHostSurfaceRegistrationRequest, UiMountIncarnation, UiMountedCompletedEffects,
     UiMountedContentGeneration, UiMountedContractIdentityExhaustion, UiMountedEffectFamily,
     UiMountedFrameCanonicalCore, UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView,
-    UiMountedTextRasterCallback, UiMountedTextRasterWork,
     UiMountedFrameIdentity, UiMountedFrameIntegrity, UiMountedFrameManifest,
     UiMountedFrameSchemaVersion, UiMountedInstanceIdentity, UiMountedLaneParticipation,
     UiMountedLogicalDamage, UiMountedNodeReceiptIdentity, UiMountedNodeReceiptIssuer,
@@ -40,8 +39,9 @@ pub use mounted_frame::{
     UiMountedPresentationSchemaVersion, UiMountedPresentationUnchanged,
     UiMountedPresentationUnchangedInput, UiMountedPresentationWorkView,
     UiMountedSurfaceBindingRequirement, UiMountedSurfacePresentationCompletion,
-    UiPresentationDeadline, UiRequiredLaneContribution, UiRequiredLaneContributionStatus,
-    UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+    UiMountedTextRasterCallback, UiMountedTextRasterWork, UiPresentationDeadline,
+    UiRequiredLaneContribution, UiRequiredLaneContributionStatus, UiSemanticSurfaceIdentity,
+    UiSurfaceBindingGeneration,
 };
 pub use mounted_projection::{
     UiHeadlessMountedParticipationRecord, UiHeadlessMountedResourceHandle,

@@ -111,7 +111,9 @@ impl UiMountedTextPinState {
         )
     }
 
-    pub(crate) fn binding_pins(candidate: &UiMountedTextPinCandidate) -> &[UiGlyphRasterPinRequest] {
+    pub(crate) fn binding_pins(
+        candidate: &UiMountedTextPinCandidate,
+    ) -> &[UiGlyphRasterPinRequest] {
         &candidate.binding_pins
     }
 

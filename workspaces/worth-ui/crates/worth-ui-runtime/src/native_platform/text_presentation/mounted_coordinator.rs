@@ -31,6 +31,11 @@ pub(crate) struct UiNativeMountedTextBeginObservation {
     pub(crate) additions: Box<[UiGlyphRasterPinRequest]>,
 }
 
+pub(crate) struct UiNativeMountedSurfaceTextObservation {
+    outcome: worth_ui_host_contract::UiHostSurfacePresentationOutcome,
+    pending_candidate: Option<UiMountedTextPinCandidate>,
+}
+
 pub(crate) enum UiNativeMountedTextOutcome {
     Committed {
         receipt: UiGlyphRasterTransactionReceipt,
@@ -79,7 +84,7 @@ impl UiNativeMountedTextCoordinator {
         present: impl FnOnce(
             &worth_ui_host_contract::UiMountedTextRasterWork<'_>,
         ) -> worth_ui_host_contract::UiHostSurfacePresentationOutcome,
-    ) -> Option<worth_ui_host_contract::UiHostSurfacePresentationOutcome> {
+    ) -> Option<UiNativeMountedSurfaceTextObservation> {
         let candidate = self.pins.candidate(binding, prepared);
         let transition = UiMountedTextPinState::transition_view(&candidate);
         let mut transaction = UiNativeTextAtlasTransaction::prepare(prepared, resolve)?;
@@ -88,16 +93,34 @@ impl UiNativeMountedTextCoordinator {
             UiMountedTextPinState::binding_pins(&candidate),
             present,
         );
-        if matches!(
+        let pending_candidate = match outcome {
+            worth_ui_host_contract::UiHostSurfacePresentationOutcome::Presented(_) => {
+                self.pins.commit_presented(candidate);
+                None
+            }
+            worth_ui_host_contract::UiHostSurfacePresentationOutcome::InFlight(_) => {
+                Some(candidate)
+            }
+            worth_ui_host_contract::UiHostSurfacePresentationOutcome::RejectedBeforeEffects(_)
+            | worth_ui_host_contract::UiHostSurfacePresentationOutcome::PresentationIndeterminate => {
+                None
+            }
+        };
+        Some(UiNativeMountedSurfaceTextObservation {
             outcome,
-            worth_ui_host_contract::UiHostSurfacePresentationOutcome::Presented(_)
-                | worth_ui_host_contract::UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
-                    worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred
-                )
-        ) {
-            self.pins.commit_presented(candidate);
-        }
-        Some(outcome)
+            pending_candidate,
+        })
+    }
+
+    pub(crate) fn commit_surface_candidate(&mut self, candidate: UiMountedTextPinCandidate) {
+        self.pins.commit_presented(candidate);
+    }
+
+    pub(crate) fn deregistration_candidate(
+        &self,
+        binding: UiSurfaceBindingGeneration,
+    ) -> UiMountedTextPinCandidate {
+        self.pins.deregistration_candidate(binding)
     }
 
     pub(crate) fn begin<'layout>(
@@ -217,5 +240,16 @@ impl UiNativeMountedTextCoordinator {
                 }
             }
         }
+    }
+}
+
+impl UiNativeMountedSurfaceTextObservation {
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        worth_ui_host_contract::UiHostSurfacePresentationOutcome,
+        Option<UiMountedTextPinCandidate>,
+    ) {
+        (self.outcome, self.pending_candidate)
     }
 }

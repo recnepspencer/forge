@@ -19,8 +19,8 @@ pub(crate) use gate_d_pin_evidence::run_gate_d_pin_world;
 #[cfg(any(test, feature = "certification-support"))]
 pub use gate_d_pin_evidence::UiGateDPinWorldEvidence;
 pub(crate) use mounted_coordinator::{
-    UiNativeMountedTextCoordinator, UiNativeMountedTextOutcome, UiNativeMountedTextPending,
-    UiNativeMountedTextReleaseOutcome,
+    UiNativeMountedSurfaceTextObservation, UiNativeMountedTextCoordinator,
+    UiNativeMountedTextOutcome, UiNativeMountedTextPending, UiNativeMountedTextReleaseOutcome,
 };
 pub(crate) use preparation::{
     prepare_mounted_semantic_text, UiMountedEventTimeDpiAuthority,

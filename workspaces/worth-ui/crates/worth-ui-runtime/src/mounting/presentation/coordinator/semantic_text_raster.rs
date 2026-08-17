@@ -15,9 +15,13 @@ pub(super) fn present(
     presentation_work: &super::super::UiMountedPresentationWork,
     progress: &mut UiMountedPresentationProgress,
     text: &mut UiNativeMountedTextCoordinator,
-) -> Option<UiHostSurfacePresentationOutcome> {
+) -> Option<crate::native_platform::text_presentation::UiNativeMountedSurfaceTextObservation> {
     let Some(dpi) = UiMountedEventTimeDpiAuthority::from_requirement(requirement) else {
-        record_rejection(progress, requirement, UiHostSurfacePresentationDenial::AdapterDeclined);
+        record_rejection(
+            progress,
+            requirement,
+            UiHostSurfacePresentationDenial::AdapterDeclined,
+        );
         return None;
     };
     let preparation = prepare_mounted_semantic_text(presentation_work.view(), dpi, |identity| {

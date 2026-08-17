@@ -68,11 +68,12 @@ impl WorthUiMountedSessionState {
         let candidate = self
             .identity
             .prepare_surface_deregistration(binding, preserve_published_frame)?;
-        self.presentation
-            .release_text_pins_for_deregistration(host.effect_port(), candidate.request())?;
+        let text_pin_candidate = self.presentation.prepare_text_pin_deregistration(binding);
         self.presentation
             .host_truth_mut()
             .deregister_surface(host.effect_port(), candidate.request())?;
+        self.presentation
+            .commit_text_pin_deregistration(text_pin_candidate);
         let semantic_surface = self.identity.commit_surface_deregistration(candidate);
         if has_published_predecessor && requires_reconciliation && !required_by_current {
             self.presentation

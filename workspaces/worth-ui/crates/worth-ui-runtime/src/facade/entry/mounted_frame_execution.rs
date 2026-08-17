@@ -48,6 +48,35 @@ impl WorthUiActiveApplicationSession {
             .map_err(WorthUiMountedFrameExecutionStop::PublicationLease)?;
         completion.execute_mounted_frame(request, deadline, now)
     }
+
+    pub(crate) fn execute_mounted_frame_with_content(
+        &mut self,
+        request: UiMountedFrameRequest,
+        deadline: UiPresentationDeadline,
+        now: u64,
+        semantic_content: crate::mounting::UiMountedSemanticContentInput,
+        collect_sources: impl FnOnce(&mut WorthUiFrameworkTurn<'_>),
+    ) -> Result<UiMountedFrameOutcome, WorthUiMountedFrameExecutionStop<'_>> {
+        let completion = self
+            .execute_framework_turn(collect_sources)
+            .map_err(WorthUiMountedFrameExecutionStop::PublicationLease)?;
+        let execution = completion.into_execution().map_err(|completion| {
+            WorthUiMountedFrameExecutionStop::FrameworkTransition(
+                WorthUiMountedFrameFrameworkTransitionStop { completion },
+            )
+        })?;
+        let frame = execution
+            .prepare_mounted_frame_with_content_internal(request, semantic_content)
+            .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
+        let transition =
+            execution
+                .mounted
+                .present_prepared_frame(execution.host_session, frame, deadline, now);
+        Ok(finish_mounted_transition(
+            execution.host_exchange,
+            transition,
+        ))
+    }
 }
 
 impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {

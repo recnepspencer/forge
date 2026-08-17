@@ -66,6 +66,7 @@ impl WorthUiApp {
             surface: configured.surface,
             mounted_rows: configured.mounted_rows,
             mounted_row_indices: configured.mounted_row_indices,
+            semantic_text_values: Default::default(),
         })
     }
 }

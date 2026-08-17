@@ -75,12 +75,15 @@ impl Default for UiMountedPresentationCoordinator {
 }
 
 impl UiMountedPresentationCoordinator {
-    pub(crate) fn release_text_pins_for_deregistration(
-        &mut self,
-        _host: UiHostEffectPort<'_>,
-        _surface: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
-    ) -> Result<(), crate::mounting::UiMountedIdentityDenial> {
-        Ok(())
+    pub(crate) fn prepare_text_pin_deregistration(
+        &self,
+        binding: UiSurfaceBindingGeneration,
+    ) -> UiMountedTextPinCandidate {
+        self.text.deregistration_candidate(binding)
+    }
+
+    pub(crate) fn commit_text_pin_deregistration(&mut self, candidate: UiMountedTextPinCandidate) {
+        self.text.commit_surface_candidate(candidate);
     }
 
     pub(crate) fn present(

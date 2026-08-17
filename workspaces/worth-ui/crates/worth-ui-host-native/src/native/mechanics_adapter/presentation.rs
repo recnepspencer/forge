@@ -13,69 +13,46 @@ use crate::native::{
     UiNativeRetainedFrameObservation,
 };
 
+use super::presentation_text_atlas as text_atlas;
+
 pub(super) fn perform_native_presentation(
     state: &mut UiNativeHostState,
     view: &UiMountedFrameConsumptionView<'_>,
 ) -> UiHostSurfacePresentationOutcome {
-    if let Some(outcome) = perform_mounted_text_work(state, view) {
-        return outcome;
+    let text = match text_atlas::begin(state, view) {
+        text_atlas::UiMountedTextWorkOutcome::Ready => None,
+        text_atlas::UiMountedTextWorkOutcome::Pending(pending) => Some(pending),
+        text_atlas::UiMountedTextWorkOutcome::Terminal(outcome) => return outcome,
+    };
+    let presentation = perform_surface_work(state, view);
+    let Some((pending, binding_pins)) = text else {
+        return presentation;
+    };
+    match presentation {
+        UiHostSurfacePresentationOutcome::Presented(completion) => {
+            let token = view.issue_completion_token();
+            text_atlas::retain_pending(state, view, &token, (pending, binding_pins), completion);
+            UiHostSurfacePresentationOutcome::InFlight(token)
+        }
+        UiHostSurfacePresentationOutcome::InFlight(_)
+        | UiHostSurfacePresentationOutcome::RejectedBeforeEffects(_)
+        | UiHostSurfacePresentationOutcome::PresentationIndeterminate => {
+            let _ = state.cancel_pending_text_atlas(pending);
+            mark_presentation_indeterminate(state)
+        }
     }
+}
+
+fn perform_surface_work(
+    state: &mut UiNativeHostState,
+    view: &UiMountedFrameConsumptionView<'_>,
+) -> UiHostSurfacePresentationOutcome {
     match view.presentation_work() {
         UiMountedPresentationWorkView::Initial(_) => perform_initial(state, view),
         UiMountedPresentationWorkView::Delta(_) => perform_delta(state, view),
         UiMountedPresentationWorkView::Reconstruction(_) => perform_reconstruction(state, view),
         UiMountedPresentationWorkView::Unchanged(unchanged) => {
             perform_unchanged(state, view, unchanged)
-        }
-    }
-}
-
-fn perform_mounted_text_work(
-    state: &mut UiNativeHostState,
-    view: &UiMountedFrameConsumptionView<'_>,
-) -> Option<UiHostSurfacePresentationOutcome> {
-    let work = view.text_raster_work()?;
-    struct CallbackRasterizer<'work>(&'work worth_ui_host_contract::UiMountedTextRasterWork<'work>);
-    impl worth_ui_host_contract::UiGlyphRasterMissRasterizer for CallbackRasterizer<'_> {
-        fn rasterize(
-            &mut self,
-            misses: worth_ui_host_contract::UiGlyphRasterMissSelectionView<'_>,
-            sink: &mut dyn worth_ui_host_contract::UiGlyphRasterBatchSink,
-        ) -> Result<(), worth_ui_host_contract::UiGlyphRasterCallbackDenial> {
-            self.0.rasterize(misses, sink)
-        }
-    }
-    let mut rasterizer = CallbackRasterizer(work);
-    let outcome = super::text_atlas::perform(
-        state,
-        crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::from_view(view),
-        work.demands(),
-        work.pins(),
-        &mut rasterizer,
-    );
-    if matches!(
-        outcome,
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Committed(_)
-            | worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Pending(_)
-    ) {
-        state.text_pins_by_binding.insert(
-            view.binding().diagnostic_value(),
-            work.binding_pins().to_vec().into_boxed_slice(),
-        );
-    }
-    match outcome {
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Committed(_) => None,
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::Pending(_) => Some(
-            UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
-                worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred,
-            ),
-        ),
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(_)
-        | worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedAfterRasterization(_) => {
-            Some(adapter_declined())
-        }
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::EffectsIndeterminate(_) => {
-            Some(mark_presentation_indeterminate(state))
         }
     }
 }
@@ -342,7 +319,7 @@ fn settle_presentation_failure(
     }
 }
 
-fn mark_presentation_indeterminate(
+pub(super) fn mark_presentation_indeterminate(
     state: &mut UiNativeHostState,
 ) -> UiHostSurfacePresentationOutcome {
     state.effect_posture = UiNativeEffectPosture::PresentationIndeterminate;
@@ -355,7 +332,7 @@ fn malformed() -> UiHostSurfacePresentationOutcome {
     )
 }
 
-fn adapter_declined() -> UiHostSurfacePresentationOutcome {
+pub(super) fn adapter_declined() -> UiHostSurfacePresentationOutcome {
     UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
         worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined,
     )

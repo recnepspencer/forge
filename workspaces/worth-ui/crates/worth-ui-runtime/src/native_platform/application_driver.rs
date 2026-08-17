@@ -13,6 +13,9 @@ pub(crate) struct UiNativeApplicationDriver {
     consumed_application_cleanup_complete: bool,
     pending_cleanup: Option<UiNativeApplicationDriverCleanup>,
     program: crate::facade::entry::UiNativeApplicationProgram,
+    next_frame: usize,
+    pending_frame: Option<crate::mounting::UiMountedPresentationInFlight>,
+    next_completion_tick: u64,
 }
 
 enum UiNativeApplicationDriverCleanup {
@@ -36,6 +39,9 @@ impl UiNativeApplicationDriver {
             consumed_application_cleanup_complete: false,
             pending_cleanup: None,
             program,
+            next_frame: 0,
+            pending_frame: None,
+            next_completion_tick: 1,
         }
     }
 
@@ -98,11 +104,44 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             shell.rebind_native_surface_scale(grant.scale_factor_milli())?;
             self.scale_factor_milli = Some(grant.scale_factor_milli());
         }
-        self.attribution = present_program(shell, &self.program)?;
-        if self.attribution.is_none() {
-            return Err(());
+        if self.pending_frame.is_none() {
+            advance_program(
+                shell,
+                &self.program,
+                &mut self.next_frame,
+                &mut self.pending_frame,
+                &mut self.attribution,
+            )?;
         }
         self.last_ready_generation = grant.generation();
+        Ok(UiNativeEventLoopDirective::Continue)
+    }
+
+    fn physical_work_progressed(
+        &mut self,
+        _grant: worth_ui_host_native::UiNativePhysicalProgressGrant,
+    ) -> Result<UiNativeEventLoopDirective, ()> {
+        let Some(in_flight) = self.pending_frame.take() else {
+            return Ok(UiNativeEventLoopDirective::Continue);
+        };
+        let shell = self.shell.as_mut().ok_or(())?;
+        self.next_completion_tick = self.next_completion_tick.saturating_add(1);
+        let outcome = shell.complete_frame_presentation(in_flight, self.next_completion_tick);
+        if retain_or_attribute(
+            shell,
+            outcome,
+            &mut self.pending_frame,
+            &mut self.attribution,
+        )? {
+            self.next_frame = self.next_frame.saturating_add(1);
+            advance_program(
+                shell,
+                &self.program,
+                &mut self.next_frame,
+                &mut self.pending_frame,
+                &mut self.attribution,
+            )?;
+        }
         Ok(UiNativeEventLoopDirective::Continue)
     }
 
@@ -145,26 +184,43 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
     }
 }
 
-fn present_once(
-    shell: &mut WorthUiNativeApplicationShell,
-    tick: u64,
-) -> Result<Option<worth_ui_host_native::UiNativeClientPresentationAttribution>, ()> {
-    let outcome = shell.present_frame(u64::MAX, tick).map_err(|_| ())?;
-    Ok(shell.presentation_attribution(&outcome))
-}
-
-fn present_program(
+fn advance_program(
     shell: &mut WorthUiNativeApplicationShell,
     program: &crate::facade::entry::UiNativeApplicationProgram,
-) -> Result<Option<worth_ui_host_native::UiNativeClientPresentationAttribution>, ()> {
-    let mut attribution = None;
-    for (index, frame) in program.frames().iter().enumerate() {
+    next_frame: &mut usize,
+    pending: &mut Option<crate::mounting::UiMountedPresentationInFlight>,
+    attribution: &mut Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
+) -> Result<(), ()> {
+    while let Some(frame) = program.frames().get(*next_frame) {
         shell
             .apply_component_presence(frame.component_presence())
             .map_err(|_| ())?;
-        attribution = present_once(shell, u64::try_from(index + 1).map_err(|_| ())?)?;
+        shell
+            .apply_component_semantic_text(frame.semantic_text())
+            .map_err(|_| ())?;
+        let tick = u64::try_from(*next_frame + 1).map_err(|_| ())?;
+        let outcome = shell.present_frame(u64::MAX, tick).map_err(|_| ())?;
+        if !retain_or_attribute(shell, outcome, pending, attribution)? {
+            return Ok(());
+        }
+        *next_frame = next_frame.saturating_add(1);
     }
-    Ok(attribution)
+    Ok(())
+}
+
+fn retain_or_attribute(
+    shell: &WorthUiNativeApplicationShell,
+    outcome: crate::mounting::UiMountedFrameOutcome,
+    pending: &mut Option<crate::mounting::UiMountedPresentationInFlight>,
+    attribution: &mut Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
+) -> Result<bool, ()> {
+    if let crate::mounting::UiMountedFrameOutcome::InFlight(in_flight) = outcome {
+        *pending = Some(in_flight);
+        return Ok(false);
+    }
+    let observed = shell.presentation_attribution(&outcome).ok_or(())?;
+    *attribution = Some(observed);
+    Ok(true)
 }
 
 impl UiNativeEventLoopClientCleanup for UiNativeApplicationDriverCleanup {

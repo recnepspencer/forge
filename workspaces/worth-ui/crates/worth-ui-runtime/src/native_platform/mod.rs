@@ -11,7 +11,7 @@ pub(crate) mod text_presentation;
 
 pub use crate::facade::entry::{
     UiNativeApplicationFrame, UiNativeApplicationProgram, UiNativeApplicationProgramDenial,
-    UiNativeComponentPresenceChange,
+    UiNativeComponentPresenceChange, UiNativeComponentSemanticTextChange,
 };
 pub use application::{
     UiNativeApplicationBuilder, UiNativeApplicationDefinition, UiNativeApplicationPreparation,

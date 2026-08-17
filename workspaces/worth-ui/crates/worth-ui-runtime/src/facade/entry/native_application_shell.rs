@@ -17,6 +17,7 @@ pub struct WorthUiNativeApplicationShell {
     surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
     mounted_rows: Vec<NativeMountedRow>,
     mounted_row_indices: HashMap<Box<str>, usize>,
+    semantic_text_values: HashMap<Box<str>, std::sync::Arc<str>>,
 }
 
 struct NativeMountedRow {
@@ -152,12 +153,71 @@ impl WorthUiNativeApplicationShell {
         now_tick: u64,
     ) -> Result<UiMountedFrameOutcome, super::WorthUiMountedFrameExecutionStop<'_>> {
         let request = self.session.mounted_frame_request();
-        self.session.execute_mounted_frame(
+        let mut semantic_content = crate::mounting::UiMountedSemanticContentInput::empty();
+        for (identity, text) in &self.semantic_text_values {
+            let index = *self
+                .mounted_row_indices
+                .get(identity.as_ref())
+                .ok_or_else(|| {
+                    super::WorthUiMountedFrameExecutionStop::Preparation(
+                        crate::mounting::UiMountedFramePreparationDenial::Projection(
+                            crate::mounting::UiMountedProjectionDenial::UnknownGraphNode,
+                        ),
+                    )
+                })?;
+            semantic_content
+                .insert_scalar(
+                    self.mounted_rows[index].graph_node,
+                    crate::mounting::UiMountedSemanticTextValueDirective::Replace(
+                        std::sync::Arc::clone(text),
+                    ),
+                    std::sync::Arc::from("native-application-program"),
+                )
+                .map_err(|_| {
+                    super::WorthUiMountedFrameExecutionStop::Preparation(
+                        crate::mounting::UiMountedFramePreparationDenial::Projection(
+                            crate::mounting::UiMountedProjectionDenial::UnknownGraphNode,
+                        ),
+                    )
+                })?;
+        }
+        self.session.execute_mounted_frame_with_content(
             request,
             UiPresentationDeadline::at_tick(deadline_tick),
             now_tick,
+            semantic_content,
             |_| {},
         )
+    }
+
+    pub(crate) fn apply_component_semantic_text(
+        &mut self,
+        changes: &[super::UiNativeComponentSemanticTextChange],
+    ) -> Result<(), ()> {
+        for change in changes {
+            if !self
+                .mounted_row_indices
+                .contains_key(change.authored_semantic_identity())
+            {
+                return Err(());
+            }
+        }
+        for change in changes {
+            self.semantic_text_values.insert(
+                Box::from(change.authored_semantic_identity()),
+                std::sync::Arc::from(change.text()),
+            );
+        }
+        Ok(())
+    }
+
+    pub(crate) fn complete_frame_presentation(
+        &mut self,
+        in_flight: crate::mounting::UiMountedPresentationInFlight,
+        now_tick: u64,
+    ) -> UiMountedFrameOutcome {
+        self.session
+            .complete_mounted_presentation(in_flight, now_tick)
     }
 
     pub fn generation_identity(

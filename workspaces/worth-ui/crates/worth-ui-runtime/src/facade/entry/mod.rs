@@ -142,7 +142,7 @@ pub use mounted_preview::{
 };
 pub use native_application_program::{
     UiNativeApplicationFrame, UiNativeApplicationProgram, UiNativeApplicationProgramDenial,
-    UiNativeComponentPresenceChange,
+    UiNativeComponentPresenceChange, UiNativeComponentSemanticTextChange,
 };
 pub use native_application_shell::{
     WorthUiNativeApplicationCleanup, WorthUiNativeApplicationShell,
