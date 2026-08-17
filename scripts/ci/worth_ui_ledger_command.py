@@ -269,6 +269,8 @@ def execution_budget_ms(requirement: str) -> int:
         return 180_000
     if requirement == "P4-LINE-LAYOUT-01":
         return 120_000
+    if requirement == "P5-COLOR-EMOJI-01":
+        return 180_000
     return 60_000
 
 
@@ -301,6 +303,8 @@ def control_budget_ms(requirement: str) -> int:
         "P5-ATLAS-PINNING-01",
     }:
         return 30_000
+    if requirement == "P5-COLOR-EMOJI-01":
+        return 60_000
     return (
         20_000
         if requirement in {

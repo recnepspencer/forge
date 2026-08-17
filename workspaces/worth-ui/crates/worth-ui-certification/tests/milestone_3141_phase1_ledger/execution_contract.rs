@@ -170,6 +170,15 @@ pub(super) fn main_for(requirement: &str) -> Option<TestIdentity> {
             "topology_contracts",
             "milestone_3141_phase1_ledger::predecessor_handoff::phase_five_predecessor_handoff_is_current",
         ),
+        "P5-GLYPH-RASTER-01" => integration(
+            "worth-ui-certification",
+            "topology_contracts",
+            "milestone_3141_phase1_topology::phase_five_raster_authority::consumer_raster_authority_mutants_are_rejected",
+        ),
+        "P5-COLOR-EMOJI-01" => library(
+            "worth-ui-text",
+            "phase5_ledger_evidence::emoji_tint_split_and_unqualified_color_sources_are_rejected",
+        ),
         "P5-ATLAS-01" => library(
             "worth-ui-host-native",
             "native::mechanics_adapter::text_atlas::tests::gate_d_evidence::real_dx12_signal_transaction_matches_the_independent_atlas_model_and_closes_exactly",

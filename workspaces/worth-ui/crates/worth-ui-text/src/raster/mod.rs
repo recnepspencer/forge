@@ -231,3 +231,5 @@ mod demand_ligature_tests;
 
 #[cfg(test)]
 mod alpha_transaction_tests;
+#[cfg(test)]
+pub(crate) mod phase5_evidence;

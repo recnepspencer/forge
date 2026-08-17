@@ -22,6 +22,8 @@ mod style;
 
 #[cfg(test)]
 mod phase4_ledger_evidence;
+#[cfg(test)]
+mod phase5_ledger_evidence;
 
 pub(crate) use admission::UiAdmittedTextParagraph;
 pub use admission::{

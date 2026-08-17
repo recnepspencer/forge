@@ -14,7 +14,7 @@ if str(CI) not in sys.path:
     sys.path.insert(0, str(CI))
 
 import close_worth_ui_3141_ledger as ledger_closer
-from worth_ui_ledger_command import GovernedTest, control_budget_ms
+from worth_ui_ledger_command import GovernedTest, control_budget_ms, execution_budget_ms
 from worth_ui_ledger_observation import observed_costs
 import worth_ui_ledger_phase_five_portfolio as phase_five_portfolio
 import worth_ui_ledger_verifier_rebinding as verifier_rebinding
@@ -23,6 +23,8 @@ import worth_ui_ledger_verifier_rebinding as verifier_rebinding
 class PhaseFiveReadinessTests(unittest.TestCase):
     def test_runtime_pin_control_owns_its_observed_budget(self) -> None:
         self.assertEqual(control_budget_ms("P5-ATLAS-PINNING-01"), 30_000)
+        self.assertEqual(control_budget_ms("P5-COLOR-EMOJI-01"), 60_000)
+        self.assertEqual(execution_budget_ms("P5-COLOR-EMOJI-01"), 180_000)
 
     def test_product_pin_world_reports_its_actual_process_and_presentation_cost(self) -> None:
         test = GovernedTest(
@@ -62,14 +64,20 @@ class PhaseFiveReadinessTests(unittest.TestCase):
         configured = ledger_closer.phase_proofs(5)
         self.assertEqual(
             set(configured),
-            {"P5-PREDECESSOR-01", "P5-ATLAS-01", "P5-ATLAS-PINNING-01"},
+            {
+                "P5-PREDECESSOR-01",
+                "P5-GLYPH-RASTER-01",
+                "P5-COLOR-EMOJI-01",
+                "P5-ATLAS-01",
+                "P5-ATLAS-PINNING-01",
+            },
         )
         rows = [
             {"phase": "5", "requirement": requirement}
             for requirement in (
                 "P5-PREDECESSOR-01",
                 "P5-GLYPH-RASTER-01",
-                "P5-CLOSE-01",
+                "P5-TEXT-DPI-01",
             )
         ]
         with self.assertRaisesRegex(RuntimeError, "proof mappings are incomplete"):
@@ -90,7 +98,7 @@ class PhaseFiveReadinessTests(unittest.TestCase):
             "workspaces/worth-ui/apps/platform-pulse/tests/executable_world/"
             "product_process/shutdown.rs",
             "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/"
-            "text_presentation/gate_d_pin_evidence.rs",
+            "text_presentation/mounted_coordinator.rs",
             "workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/"
             "authorized_native_host.rs",
             "scripts/ci/worth_ui_ledger_verifier_rebinding.py",

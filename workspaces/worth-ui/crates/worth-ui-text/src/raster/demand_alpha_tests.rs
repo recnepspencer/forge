@@ -122,7 +122,7 @@ fn demand_for_at(
 }
 
 #[test]
-fn mounted_translation_controls_damage_selection_and_fractional_raster_phase() {
+pub(super) fn mounted_translation_controls_damage_selection_and_fractional_raster_phase() {
     let source = "WORTH";
     let layout = layout_for(source);
     let damage = [UiMountedLogicalDamage::from_runtime_mounting(
@@ -162,7 +162,7 @@ fn mounted_translation_controls_damage_selection_and_fractional_raster_phase() {
 }
 
 #[test]
-fn demand_uses_layout_owned_lineage_and_alpha_raster_reuses_exact_misses() {
+pub(super) fn demand_uses_layout_owned_lineage_and_alpha_raster_reuses_exact_misses() {
     let source = "WORTH WORTH";
     let layout = layout_for(source);
     let demand = demand_for(
@@ -202,6 +202,22 @@ fn demand_uses_layout_owned_lineage_and_alpha_raster_reuses_exact_misses() {
             == record.pixels().len()
             && record.digest().bytes() == digest
     }));
+}
+
+pub(super) fn qualified_alpha_batch_family_count() -> usize {
+    let source = "W";
+    let layout = layout_for(source);
+    let demand = demand_for(
+        &layout,
+        DemandScenario {
+            source,
+            damage: &[full_damage()],
+            dpi_milli: 1_000,
+            lane: UiGlyphRasterLane::Ordinary,
+        },
+    );
+    let raster = rasterize_alpha_outline(&layout, &demand).unwrap();
+    usize::from(!raster.batch().records().is_empty())
 }
 
 #[test]
@@ -246,7 +262,7 @@ fn reconstruction_demand_keeps_cost_in_reconstruction_lane() {
 }
 
 #[test]
-fn demand_keeps_whole_clusters_and_defers_color_sources() {
+pub(super) fn demand_keeps_whole_clusters_and_defers_color_sources() {
     for source in ["a\u{301}", "العربية", "कर्म", "\u{0378}"] {
         let layout = layout_for(source);
         let demand = demand_for(
@@ -331,7 +347,7 @@ fn clipping_denies_no_work_and_repeated_keys_are_miss_only() {
 }
 
 #[test]
-fn same_generation_foreign_lineage_is_denied_before_outline_work() {
+pub(super) fn same_generation_foreign_lineage_is_denied_before_outline_work() {
     let layout = layout_for("W");
     let demand = demand_for(
         &layout,

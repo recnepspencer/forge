@@ -19,7 +19,7 @@ use crate::{
 };
 
 #[test]
-fn distinct_layout_attributions_share_one_color_raster_key() {
+pub(super) fn distinct_layout_attributions_share_one_color_raster_key() {
     let (fonts, _) = UiGlobalFontCollection::admit_qualified_profile().unwrap();
     let fonts = Arc::new(fonts);
     let source = "👩\u{200d}💻";

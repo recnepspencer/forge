@@ -22,7 +22,7 @@ use super::{
 use crate::{rasterize_intrinsic_color, UiGlyphRasterSource};
 
 #[test]
-fn colrv1_gradient_and_composite_cross_the_font_backed_raster_boundary() {
+pub(super) fn colrv1_gradient_and_composite_cross_the_font_backed_raster_boundary() {
     let (outline, glyph) = outline_and_a_glyph();
     let palettes = cpal_colors(&[[255, 0, 0, 255], [0, 0, 255, 255]]);
     let gradient = raster_application_face(with_tables(
@@ -54,7 +54,7 @@ fn colrv1_gradient_and_composite_cross_the_font_backed_raster_boundary() {
 }
 
 #[test]
-fn colrv1_nonseparable_modes_match_independent_w3c_vectors_after_srgb_storage() {
+pub(super) fn colrv1_nonseparable_modes_match_independent_w3c_vectors_after_srgb_storage() {
     let (outline, glyph) = outline_and_a_glyph();
     let palettes = cpal_colors(&[[230, 90, 140, 255], [60, 210, 110, 255]]);
     for (mode, expected) in [
@@ -81,7 +81,7 @@ fn colrv1_nonseparable_modes_match_independent_w3c_vectors_after_srgb_storage() 
 }
 
 #[test]
-fn cbdt_composite_crosses_admission_layout_demand_and_raster() {
+pub(super) fn cbdt_composite_crosses_admission_layout_demand_and_raster() {
     let (outline, glyph) = outline_and_a_glyph();
     let pixels = raster_application_face(cbdt_composite_font(
         &outline,
@@ -92,7 +92,7 @@ fn cbdt_composite_crosses_admission_layout_demand_and_raster() {
 }
 
 #[test]
-fn cbdt_missing_target_cycle_and_sbix_jpg_tiff_deny_atomically() {
+pub(super) fn cbdt_missing_target_cycle_and_sbix_jpg_tiff_deny_atomically() {
     let (profile, sources) = profile_collection_and_sources();
     let outline = &sources["noto-sans-roman"];
     let glyph = read_fonts::FontRef::from_index(outline, 0)
@@ -136,7 +136,7 @@ fn cbdt_missing_target_cycle_and_sbix_jpg_tiff_deny_atomically() {
 }
 
 #[test]
-fn current_color_and_every_unbounded_colrv1_root_deny_atomically() {
+pub(super) fn current_color_and_every_unbounded_colrv1_root_deny_atomically() {
     let (profile, sources) = profile_collection_and_sources();
     let outline = &sources["noto-sans-roman"];
     let glyph = read_fonts::FontRef::from_index(outline, 0)

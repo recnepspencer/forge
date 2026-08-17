@@ -1,10 +1,10 @@
 pub(super) fn main_test(requirement: &str) -> Option<&'static str> {
     Some(match requirement {
         "P5-GLYPH-RASTER-01" => {
-            "milestone_3141_phase1_topology::phase_five_destination::text_owns_typed_alpha_and_color_raster_batches"
+            "phase5_ledger_evidence::qualified_alpha_and_color_raster_cross_exact_production_authority"
         }
         "P5-COLOR-EMOJI-01" => {
-            "milestone_3141_phase1_topology::phase_five_destination::color_glyphs_preserve_intrinsic_color_and_cluster_identity"
+            "phase5_ledger_evidence::every_qualified_color_source_and_rgi_sequence_crosses_production_raster"
         }
         "P5-TEXT-DPI-01" => {
             "milestone_3141_phase1_topology::phase_five_destination::dpi_replacement_is_pure_raster_and_does_not_relayout"

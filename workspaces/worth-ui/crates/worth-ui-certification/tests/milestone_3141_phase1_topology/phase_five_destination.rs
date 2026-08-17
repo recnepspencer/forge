@@ -189,8 +189,6 @@ fn unimplemented_phase_five_feature_rows_remain_open() {
     )
     .expect("milestone ledger");
     for requirement in [
-        "P5-GLYPH-RASTER-01",
-        "P5-COLOR-EMOJI-01",
         "P5-ATLAS-01",
         "P5-ATLAS-PINNING-01",
         "P5-TEXT-DPI-01",

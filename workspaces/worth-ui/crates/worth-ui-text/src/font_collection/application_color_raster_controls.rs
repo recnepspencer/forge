@@ -17,7 +17,7 @@ use super::{
 use crate::{rasterize_intrinsic_color, UiGlyphRasterSource};
 
 #[test]
-fn colrv0_layers_use_linear_premultiplied_order() {
+pub(super) fn colrv0_layers_use_linear_premultiplied_order() {
     let (outline, glyph) = outline_and_a_glyph();
     let colors = cpal_colors(&[[255, 0, 0, 128], [0, 0, 255, 128]]);
     let red_then_blue = raster_pixels(
@@ -39,7 +39,7 @@ fn colrv0_layers_use_linear_premultiplied_order() {
 }
 
 #[test]
-fn bitmap_raster_selects_the_globally_nearest_qualified_strike() {
+pub(super) fn bitmap_raster_selects_the_globally_nearest_qualified_strike() {
     let (outline, glyph) = outline_and_a_glyph();
     let bytes = with_tables(
         &outline,
@@ -60,7 +60,7 @@ fn bitmap_raster_selects_the_globally_nearest_qualified_strike() {
 }
 
 #[test]
-fn unsupported_cbdt_pixel_formats_deny_before_application_pack_publication() {
+pub(super) fn unsupported_cbdt_pixel_formats_deny_before_application_pack_publication() {
     let (profile, sources) = profile_collection_and_sources();
     let bytes = unsupported_cbdt_bit_depth(&sources["noto-color-emoji"]);
     assert_pack_denial(

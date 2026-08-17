@@ -31,7 +31,7 @@ struct AlphaOracle {
 }
 
 #[test]
-fn public_alpha_raster_matches_exact_oracle_across_fractional_origins() {
+pub(super) fn public_alpha_raster_matches_exact_oracle_across_fractional_origins() {
     let layout = profile_layout("A");
     for (origin_x, origin_y, expected_x, expected_y) in [
         (0.0, 0.0, 0, 28),
@@ -48,7 +48,7 @@ fn public_alpha_raster_matches_exact_oracle_across_fractional_origins() {
 }
 
 #[test]
-fn public_alpha_raster_matches_exact_variable_and_last_resort_oracle() {
+pub(super) fn public_alpha_raster_matches_exact_variable_and_last_resort_oracle() {
     let (light, heavy) = variable_layouts();
     let last_resort = profile_layout("\u{0378}");
     assert_matches_pinned_swash_oracle(&light, "W", (0.0, 0.0), (0, 28));

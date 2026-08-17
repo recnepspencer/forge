@@ -21,7 +21,7 @@ use crate::{
 };
 
 #[test]
-fn qualified_color_transaction_preserves_cluster_and_rgba_identity() {
+pub(super) fn qualified_color_transaction_preserves_cluster_and_rgba_identity() {
     let source = "👩\u{200d}💻";
     let layout = layout_for(source);
     let demand = demand_for(&layout, source);
@@ -72,7 +72,7 @@ fn qualified_color_transaction_preserves_cluster_and_rgba_identity() {
 }
 
 #[test]
-fn intrinsic_color_ignores_mounted_foreground_tint() {
+pub(super) fn intrinsic_color_ignores_mounted_foreground_tint() {
     let source = "👩\u{200d}💻";
     let layout = layout_for(source);
     let red = demand_for_foreground(&layout, source, UiMountedRgba8::new(255, 0, 0, 255));
@@ -91,7 +91,7 @@ fn intrinsic_color_ignores_mounted_foreground_tint() {
 }
 
 #[test]
-fn variation_selector_stays_in_one_intrinsic_color_cluster() {
+pub(super) fn variation_selector_stays_in_one_intrinsic_color_cluster() {
     let source = "❤️";
     assert_eq!(source.as_bytes(), &[0xE2, 0x9D, 0xA4, 0xEF, 0xB8, 0x8F]);
     let layout = layout_for(source);
@@ -114,7 +114,7 @@ fn variation_selector_stays_in_one_intrinsic_color_cluster() {
 }
 
 #[test]
-fn text_and_emoji_variation_selectors_choose_distinct_raster_lanes() {
+pub(super) fn text_and_emoji_variation_selectors_choose_distinct_raster_lanes() {
     let text = "\u{2764}\u{FE0E}";
     let emoji = "\u{2764}\u{FE0F}";
     let text_layout = layout_for(text);
@@ -168,7 +168,7 @@ fn duplicated_color_demand_completes_as_one_aggregate_record_set() {
 }
 
 #[test]
-fn source_substitution_is_rejected_by_positioned_glyph_provenance() {
+pub(super) fn source_substitution_is_rejected_by_positioned_glyph_provenance() {
     let source = "👩\u{200d}💻";
     let layout = layout_for(source);
     let demand = demand_for(&layout, source);
@@ -219,7 +219,7 @@ fn source_substitution_is_rejected_by_positioned_glyph_provenance() {
 }
 
 #[test]
-fn every_unicode_17_rgi_sequence_crosses_intrinsic_color_owner() {
+pub(super) fn every_unicode_17_rgi_sequence_crosses_intrinsic_color_owner() {
     let (fonts, _) = UiGlobalFontCollection::admit_qualified_profile().unwrap();
     let fonts = Arc::new(fonts);
     let mut color_records = 0_usize;
@@ -304,7 +304,7 @@ fn assert_independent_rgi_glyph_mapping(source: &str, layout: &crate::UiQualifie
     );
 }
 
-fn layout_for(source: &str) -> crate::UiQualifiedTextLayout {
+pub(super) fn layout_for(source: &str) -> crate::UiQualifiedTextLayout {
     let (fonts, _) = UiGlobalFontCollection::admit_qualified_profile().unwrap();
     layout_with_fonts(source, Arc::new(fonts))
 }
@@ -345,7 +345,10 @@ fn layout_with_fonts(
     .unwrap()
 }
 
-fn demand_for(layout: &crate::UiQualifiedTextLayout, source: &str) -> UiGlyphRasterDemandBatch {
+pub(super) fn demand_for(
+    layout: &crate::UiQualifiedTextLayout,
+    source: &str,
+) -> UiGlyphRasterDemandBatch {
     demand_for_foreground(layout, source, UiMountedRgba8::new(255, 255, 255, 255))
 }
 

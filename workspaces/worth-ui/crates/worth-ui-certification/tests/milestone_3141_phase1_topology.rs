@@ -18,6 +18,8 @@ mod phase_five_destination;
 mod phase_five_physical_signal;
 #[path = "milestone_3141_phase1_topology/phase_five_query_async.rs"]
 mod phase_five_query_async;
+#[path = "milestone_3141_phase1_topology/phase_five_raster_authority.rs"]
+mod phase_five_raster_authority;
 #[path = "milestone_3141_phase1_topology/phase_five_raster_order.rs"]
 mod phase_five_raster_order;
 #[path = "milestone_3141_phase1_topology/phase_three_application.rs"]
