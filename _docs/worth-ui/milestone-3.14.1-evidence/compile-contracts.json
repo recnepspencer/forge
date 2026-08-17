@@ -1,9 +1,9 @@
 {
   "schema": "worth-ui-compile-contract-result-v1",
   "exit_posture": "passed",
-  "run_nonce": "143fd8102f75a1d35de6be54ceda0b32",
-  "source_revision": "ccd8bd0ff6fc07aaad3d1031c3dcd06b5d404daf",
-  "source_state_digest": "14d1b1c21e2ed5d08487ee664bcaa222a6960c90e9e9ec6f1133239e9845c51d",
+  "run_nonce": "1efbf2c2d42a0c82118435053b233ebe",
+  "source_revision": "7564cb36b924f8f4c5f025457169c3f5e640ba9e",
+  "source_state_digest": "7a625e9e898d4a317f6396ff75acbcafd266e47df902bf863203e563112adfd0",
   "cargo_sessions": 2,
   "fail_targets": 74,
   "pass_targets": 24,

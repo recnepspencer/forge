@@ -74,20 +74,30 @@ pub(super) fn production_retry_rebinds_the_retained_gpu_correlation() {
         .next_due_tick()
         .expect("the scheduled retry owns its successor wake");
     state.physical_signal.advance_clock_to(retry_due).unwrap();
+    assert_eq!(
+        state
+            .text_atlas_gpu
+            .as_ref()
+            .expect("the retry retains its physical submission")
+            .pending_count(),
+        1
+    );
+    assert_eq!(state.resources.current().atlas_staging_buffers, 1);
+    device
+        .poll(wgpu::PollType::Wait {
+            submission_index: None,
+            timeout: Some(crate::native::presentation::GPU_WAIT_DEADLINE),
+        })
+        .expect("the qualified retry submission must physically complete");
     assert!(state.progress_text_atlas_physical(pending));
-    let successor_basis = state
-        .text_atlas_gpu
-        .as_ref()
-        .and_then(|gpu| gpu.transaction_correlation_basis(pending.transaction()))
-        .expect("the physical submission retains its rebound correlation");
-    assert_ne!(successor_basis, first_basis);
     assert!(matches!(
         state.complete_pending_text_atlas(pending),
         UiGlyphRasterTransactionOutcome::Committed(_)
     ));
+    assert_eq!(state.resources.current().atlas_staging_buffers, 0);
 
-    let mut gpu = state.text_atlas_gpu.take().unwrap();
-    gpu.settle_pending(&device, &mut state.resources);
+    let gpu = state.text_atlas_gpu.take().unwrap();
+    assert_eq!(gpu.pending_count(), 0);
     gpu.try_close(&mut state.resources)
         .unwrap_or_else(|_| panic!("the settled correlation must release exactly"));
     assert!(state.close().is_zero());

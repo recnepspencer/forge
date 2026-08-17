@@ -101,6 +101,13 @@ impl UiNativePlatformCloseReceipt {
     pub fn text_pin_frame_counts(&self) -> &[u32] {
         self.report.text_pin_frame_counts()
     }
+
+    #[doc(hidden)]
+    pub fn text_pin_frame_observations(
+        &self,
+    ) -> &[Box<[worth_ui_host_native::UiNativeTextPinObservation]>] {
+        self.report.text_pin_frame_observations()
+    }
 }
 
 impl UiNativePlatformStopReport {

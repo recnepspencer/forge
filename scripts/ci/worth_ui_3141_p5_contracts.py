@@ -42,7 +42,7 @@ P5_COUNTERS = {
     "P5-GLYPH-RASTER-01": ("raster-batches", 2),
     "P5-COLOR-EMOJI-01": ("rgi-sequences", 3953),
     "P5-ATLAS-01": ("physical-signal-runtimes", 1),
-    "P5-ATLAS-PINNING-01": ("pinned-layouts", 2),
+    "P5-ATLAS-PINNING-01": ("pinned-layouts", 3),
     "P5-TEXT-DPI-01": ("dpi-replacements", 1),
     "P5-TEXT-SPAN-PAINT-01": ("paint-spans", 2),
     "P5-TEXT-PIXELS-01": ("pixel-observations", 2),

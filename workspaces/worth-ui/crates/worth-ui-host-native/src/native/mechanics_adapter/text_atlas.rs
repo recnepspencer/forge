@@ -86,6 +86,13 @@ mod text_atlas_upload_sink;
 #[path = "text_atlas_upload.rs"]
 mod text_atlas_upload;
 
+#[path = "text_atlas_physical_ownership.rs"]
+mod text_atlas_physical_ownership;
+
+#[cfg(test)]
+#[path = "text_atlas_dx12_upload_port.rs"]
+mod text_atlas_dx12_upload_port;
+
 #[path = "text_atlas_admission.rs"]
 mod text_atlas_admission;
 

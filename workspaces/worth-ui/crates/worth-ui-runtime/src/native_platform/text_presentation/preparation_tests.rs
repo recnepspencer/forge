@@ -11,8 +11,7 @@ use worth_ui_host_contract::{
     UiHostSurfaceIdentity, UiHostSurfacePresentationMode, UiMountedPaintCommandChange,
     UiMountedPaintOrderIntegrity, UiMountedPresentationDelta, UiMountedPresentationDeltaInput,
     UiMountedPresentationInitial, UiMountedPresentationInitialInput, UiMountedPresentationWorkView,
-    UiMountedSurfaceBindingRequirement,
-    WorthUiHostCapabilityObservationGeneration,
+    UiMountedSurfaceBindingRequirement, WorthUiHostCapabilityObservationGeneration,
 };
 
 fn requirement(
@@ -135,8 +134,8 @@ fn complete_empty_text_set_reaches_the_committed_pin_owner() {
     let requirement = requirement(&projection);
     let populated = initial_presentation_mechanics_for_certification(&projection, requirement);
     let affinity = populated.affinity();
-    let empty = UiMountedPresentationInitial::from_inert_mechanics(
-        UiMountedPresentationInitialInput {
+    let empty =
+        UiMountedPresentationInitial::from_inert_mechanics(UiMountedPresentationInitialInput {
             successor: affinity.successor(),
             surface: affinity.surface(),
             binding: affinity.binding(),
@@ -148,8 +147,7 @@ fn complete_empty_text_set_reaches_the_committed_pin_owner() {
             order_integrity: UiMountedPaintOrderIntegrity::for_order(&[]),
             damage: Vec::new(),
             production_cost: Default::default(),
-        },
-    );
+        });
     let preparation = prepare_mounted_semantic_text(
         UiMountedPresentationWorkView::Initial(&empty),
         UiMountedEventTimeDpiAuthority::from_requirement(requirement).unwrap(),

@@ -356,7 +356,7 @@ fn pending_physical_staging_denies_before_raster_and_cannot_be_closed_early() {
         Ok(()) => panic!("pending submissions must retain cleanup authority"),
     };
     assert_eq!(state.resources.current().atlas_staging_buffers, 8);
-    gpu.settle_pending(&device, &mut state.resources);
+    gpu.settle_pending(&mut state.resources);
     gpu.try_close(&mut state.resources)
         .unwrap_or_else(|_| panic!("settled uploads must close"));
     assert!(state.resources.current().is_zero());

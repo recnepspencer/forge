@@ -17,6 +17,7 @@ TEXT = "workspaces/worth-ui/crates/worth-ui-text/src"
 TEXT_RASTER = f"{TEXT}/raster"
 
 P5_CASE_AUTHORITY_SOURCES = (
+    "scripts/ci/worth_ui_3141_case_contracts.py",
     "scripts/ci/worth_ui_3141_p5_case_contracts.py",
     f"{LEDGER}/phase_five_case_contract.rs",
     f"{LEDGER}/result_artifact.rs",
@@ -58,11 +59,14 @@ ATLAS_TRANSACTION_SOURCES = PHYSICAL_SIGNAL_SOURCES + P5_CASE_AUTHORITY_SOURCES 
     f"{NATIVE}/mechanics_adapter/text_atlas.rs",
     f"{NATIVE}/mechanics_adapter/text_atlas_admission.rs",
     f"{NATIVE}/mechanics_adapter/text_atlas_gate_d_evidence.rs",
+    f"{NATIVE}/mechanics_adapter/text_atlas_dx12_upload_port.rs",
     f"{NATIVE}/mechanics_adapter/text_atlas_retry_correlation_tests.rs",
     f"{NATIVE}/mechanics_adapter/text_atlas_rasterization.rs",
     f"{NATIVE}/mechanics_adapter/text_atlas_settlement.rs",
     f"{NATIVE}/mechanics_adapter/text_atlas_transaction.rs",
     f"{NATIVE}/mechanics_adapter/text_atlas_upload.rs",
+    f"{NATIVE}/mechanics_adapter/text_atlas_physical_ownership.rs",
+    f"{NATIVE}/mechanics_adapter/text_atlas_upload_tests.rs",
     f"{NATIVE}/mechanics_adapter/text_atlas_upload_sink.rs",
     f"{NATIVE}/mechanics_adapter/text_atlas_signal_failure_tests.rs",
     f"{NATIVE}/mechanics_adapter/text_atlas_tests.rs",
@@ -140,6 +144,10 @@ PINNING_PRODUCT_SOURCES = ATLAS_TRANSACTION_SOURCES + RUNTIME_PIN_SOURCES + (
     "scripts/ci/worth_ui_ledger_row_evidence.py",
     "scripts/ci/worth_ui_ledger_verifier_rebinding.py",
     f"{LEDGER}/dependency_row.rs",
+    f"{LEDGER}/execution_posture.rs",
+    f"{LEDGER}/result_artifact_cost.rs",
+    f"{LEDGER}/result_artifact_gate_d_pin.rs",
+    f"{LEDGER}/result_artifact_gate_d_pin_tests.rs",
     f"{LEDGER}/runner_artifact_authentication.rs",
     f"{LEDGER}/supporting_world_artifact.rs",
     "workspaces/worth-ui/crates/worth-ui-host-contract/src/lib.rs",

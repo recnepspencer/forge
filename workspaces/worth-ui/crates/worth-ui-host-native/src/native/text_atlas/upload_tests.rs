@@ -84,7 +84,7 @@ pub(in crate::native::text_atlas) fn real_wgpu_upload_owns_pages_and_releases_st
     assert_eq!(receipt.logical_bytes, 4);
     assert_eq!(receipt.physical_bytes, 512);
     assert_eq!(resources.current().atlas_staging_buffers, 1);
-    pages.settle_pending(&device, &mut resources);
+    pages.settle_pending(&mut resources);
     assert_eq!(resources.current().atlas_staging_buffers, 0);
     assert_eq!(resources.current().alpha_atlas_pages, 1);
     pages
@@ -102,7 +102,7 @@ pub(in crate::native::text_atlas) fn real_wgpu_upload_owns_pages_and_releases_st
             upload: &color_upload,
         })
         .unwrap();
-    pages.settle_pending(&device, &mut resources);
+    pages.settle_pending(&mut resources);
     assert_eq!(resources.current().color_atlas_pages, 1);
     assert_eq!(resources.current().atlas_staging_buffers, 0);
     pages

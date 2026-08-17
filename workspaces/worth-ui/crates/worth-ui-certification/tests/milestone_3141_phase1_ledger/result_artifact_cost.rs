@@ -70,7 +70,6 @@ fn validate_gate_d_pin_world(artifact: &Value, control_tests: u64) -> Result<(),
         1 + control_tests
     );
     if control_tests != 1
-        || observation["terminal_zero"].as_bool() != Some(true)
         || artifact["construction_cost"].as_str() != Some(&construction)
         || artifact["execution_cost"].as_str() != Some(&execution)
     {

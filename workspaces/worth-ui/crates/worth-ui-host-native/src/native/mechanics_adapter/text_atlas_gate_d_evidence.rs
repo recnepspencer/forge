@@ -83,8 +83,10 @@ fn real_dx12_signal_transaction_matches_the_independent_atlas_model_and_closes_e
     crate::native::text_atlas::retained_content_extent_is_the_uploaded_shape_not_the_padded_allocation();
     let mut state = crate::native::UiNativeHostState::new();
     let mut rasterizer = MixedSubmittingRasterizer;
-    exercise_real_dx12_commit(&mut state, &mut rasterizer);
-    exercise_temporal_recovery(&mut state, &mut rasterizer);
+    let mut port = super::text_atlas_dx12_upload_port::QualifiedDx12UploadPort::new();
+    exercise_real_dx12_commit(&mut state, &mut rasterizer, &mut port);
+    port.defer_settlement();
+    exercise_temporal_recovery(&mut state, &mut rasterizer, &mut port);
     assert!(state.text_atlas.census().is_zero());
     let signal = state.physical_signal.observation();
     assert!(signal.runtime_owned);
@@ -106,13 +108,15 @@ fn host_atlas_escape_and_lifecycle_faults_are_causally_rejected() {
     signal_failure_tests::replayed_external_completion_cannot_settle_a_new_atlas_request();
     crate::native::text_atlas::eviction_tests::equal_epoch_eviction_matches_model_and_ignores_registration_order();
     crate::native::text_atlas::eviction_tests::every_complete_key_field_participates_in_equal_epoch_eviction_order();
-    println!("WORTH_UI_LEDGER_MUTATION_CASES={{\"P5-ATLAS-01\":[\"callback-before-effects\",\"partial-upload-indeterminate\",\"replayed-completion\",\"capacity-before-raster\",\"cancellation-recovery\",\"equal-epoch-registration-order\"]}}");
+    super::text_atlas_upload::tests::alpha_and_color_physical_owner_merger_is_rejected();
+    println!("WORTH_UI_LEDGER_MUTATION_CASES={{\"P5-ATLAS-01\":[\"callback-before-effects\",\"partial-upload-indeterminate\",\"replayed-completion\",\"capacity-before-raster\",\"cancellation-recovery\",\"equal-epoch-registration-order\",\"alpha-color-owner-merger\"]}}");
     println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-ATLAS-01\":\"host-atlas-escape\"}}");
 }
 
 fn exercise_real_dx12_commit(
     state: &mut crate::native::UiNativeHostState,
     rasterizer: &mut MixedSubmittingRasterizer,
+    port: &mut super::text_atlas_dx12_upload_port::QualifiedDx12UploadPort,
 ) {
     let alpha = demand_for(key_for(51), 51);
     let color_key = key_for_source(52, UiGlyphRasterSource::ColorOutline);
@@ -123,14 +127,13 @@ fn exercise_real_dx12_commit(
         UiGlyphRasterPinRequest::from_text_mechanics(color.layout_identity(), color_key),
     ];
     let pins = UiGlyphRasterPinTransitionView::from_text_mechanics(&additions, &[]);
-    let mut port = super::text_atlas_upload::QualifiedDx12UploadPort::new();
     let outcome = perform_with_upload_port(
         state,
         presentation_basis(),
         &demands,
         pins,
         rasterizer,
-        &mut port,
+        port,
     );
     let receipt = match outcome {
         UiGlyphRasterTransactionOutcome::Committed(receipt) => receipt,
@@ -160,16 +163,16 @@ fn exercise_real_dx12_commit(
 fn exercise_temporal_recovery(
     state: &mut crate::native::UiNativeHostState,
     rasterizer: &mut MixedSubmittingRasterizer,
+    pending_port: &mut super::text_atlas_dx12_upload_port::QualifiedDx12UploadPort,
 ) {
     let retry_demand = demand_for(key_for(53), 53);
-    let mut pending_port = signal_failure_tests::PendingUploadPort;
     let pending = perform_with_upload_port(
         state,
         presentation_basis(),
         &[retry_demand],
         UiGlyphRasterPinTransitionView::from_text_mechanics(&[], &[]),
         rasterizer,
-        &mut pending_port,
+        pending_port,
     );
     let UiGlyphRasterTransactionOutcome::Pending(retry_pending) = pending else {
         panic!("the injected pending port must retain exact physical work");
@@ -203,6 +206,7 @@ fn exercise_temporal_recovery(
         ),
         "the retained retry must transition to recovery: {cancellation:?}"
     );
+    pending_port.complete();
     assert!(state.progress_text_atlas_physical(retry_pending));
     let terminal = state.physical_signal.observation();
     assert_eq!(terminal.active_requests, 0);

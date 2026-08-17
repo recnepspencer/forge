@@ -149,12 +149,6 @@ impl UiNativeHostState {
         pending: UiGlyphRasterTransactionPending,
     ) -> Option<crate::native::physical_work_signal::UiNativePhysicalSignalExternalObservation>
     {
-        let Some(graphics) = self.graphics.as_ref() else {
-            return self
-                .text_atlas_in_flight
-                .as_ref()
-                .map(|in_flight| in_flight.observe(UiNativePhysicalSignalStatus::Completed));
-        };
         let Some(gpu) = self.text_atlas_gpu.as_mut() else {
             return self
                 .text_atlas_in_flight
@@ -164,11 +158,7 @@ impl UiNativeHostState {
         if !gpu.transaction_pending(pending.transaction()) {
             return None;
         }
-        gpu.poll_transaction_observation(
-            &graphics.device,
-            &mut self.resources,
-            pending.transaction(),
-        )
+        gpu.poll_transaction_observation(&mut self.resources, pending.transaction())
     }
 
     pub(crate) fn transition_pending_text_atlas_to_recovery(

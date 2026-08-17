@@ -123,8 +123,14 @@ impl PinIdentity {
 }
 
 impl UiNativeTextPinObservation {
-    pub(crate) const fn layout_digest(self) -> [u8; 32] {
+    #[doc(hidden)]
+    pub const fn layout_digest(self) -> [u8; 32] {
         self.layout
+    }
+
+    #[doc(hidden)]
+    pub const fn raster_key_digest(self) -> [u8; 32] {
+        self.raster_key
     }
 
     #[doc(hidden)]

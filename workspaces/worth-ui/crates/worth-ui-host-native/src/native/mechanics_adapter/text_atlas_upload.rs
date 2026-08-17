@@ -6,6 +6,9 @@ use crate::native::text_atlas::{
 };
 use crate::native::UiNativeHostState;
 
+#[cfg(test)]
+use super::text_atlas_physical_ownership::physical_ownership_counts_match;
+use super::text_atlas_physical_ownership::physical_ownership_matches;
 use super::text_atlas_settlement::map_denial;
 use worth_ui_host_contract::UiGlyphRasterSource;
 use worth_ui_host_contract::UiGlyphRasterTransactionDenial;
@@ -69,17 +72,19 @@ impl UiNativeTextAtlasUploadPort for RealTextAtlasUploadPort {
     }
 }
 
-struct CorrelatedUploadInput<'input> {
-    gpu: &'input mut Option<UiNativeTextAtlasGpuPages>,
-    resources: &'input mut crate::native::UiNativeResourceRegistry,
-    device: &'input wgpu::Device,
-    queue: &'input wgpu::Queue,
-    plan: &'input UiNativeTextAtlasTransactionPlan,
-    uploads: &'input [UiNativeTextAtlasUpload],
-    basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
+pub(super) struct CorrelatedUploadInput<'input> {
+    pub(super) gpu: &'input mut Option<UiNativeTextAtlasGpuPages>,
+    pub(super) resources: &'input mut crate::native::UiNativeResourceRegistry,
+    pub(super) device: &'input wgpu::Device,
+    pub(super) queue: &'input wgpu::Queue,
+    pub(super) plan: &'input UiNativeTextAtlasTransactionPlan,
+    pub(super) uploads: &'input [UiNativeTextAtlasUpload],
+    pub(super) basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
 }
 
-fn submit_correlated_upload(input: CorrelatedUploadInput<'_>) -> CorrelatedGpuUploadObservation {
+pub(super) fn submit_correlated_upload(
+    input: CorrelatedUploadInput<'_>,
+) -> CorrelatedGpuUploadObservation {
     let gpu = input.gpu.get_or_insert_with(UiNativeTextAtlasGpuPages::new);
     if let Err(denial) =
         gpu.bind_transaction_correlation(input.plan.transaction_identity(), input.basis)
@@ -102,7 +107,19 @@ fn submit_correlated_upload(input: CorrelatedUploadInput<'_>) -> CorrelatedGpuUp
         },
     );
     match result {
-        Ok(()) => correlated_submission(input.gpu, input.plan, input.basis),
+        Ok(())
+            if physical_ownership_matches(
+                input.plan.candidate_page_counts(),
+                input
+                    .gpu
+                    .as_ref()
+                    .expect("submitted atlas GPU owner remains installed"),
+                input.resources,
+            ) =>
+        {
+            correlated_submission(input.gpu, input.plan, input.basis)
+        }
+        Ok(()) => correlated_failure(input.basis, GpuUploadFailure::Indeterminate),
         Err(failure) => {
             if matches!(failure, GpuUploadFailure::BeforeEffects(_)) {
                 input
@@ -134,66 +151,6 @@ fn correlated_submission(
     CorrelatedGpuUploadObservation {
         external: Ok(crate::native::text_atlas::UiNativeTextAtlasExternalOutcome::Submitted),
         signal: basis.observe(status),
-    }
-}
-
-#[cfg(test)]
-pub(super) struct QualifiedDx12UploadPort {
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-}
-
-#[cfg(test)]
-impl QualifiedDx12UploadPort {
-    pub(super) fn new() -> Self {
-        let (device, queue, info) = crate::native::text_atlas::qualified_test_device();
-        assert_eq!(info.backend, wgpu::Backend::Dx12);
-        Self { device, queue }
-    }
-}
-
-#[cfg(test)]
-impl UiNativeTextAtlasUploadPort for QualifiedDx12UploadPort {
-    fn upload(
-        &mut self,
-        state: &mut UiNativeHostState,
-        plan: &UiNativeTextAtlasTransactionPlan,
-        uploads: &[UiNativeTextAtlasUpload],
-        basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
-    ) -> CorrelatedGpuUploadObservation {
-        let mut observation = submit_correlated_upload(CorrelatedUploadInput {
-            gpu: &mut state.text_atlas_gpu,
-            resources: &mut state.resources,
-            device: &self.device,
-            queue: &self.queue,
-            plan,
-            uploads,
-            basis,
-        });
-        if state
-            .text_atlas_gpu
-            .as_ref()
-            .is_some_and(|gpu| gpu.transaction_pending(plan.transaction_identity()))
-        {
-            self.device
-                .poll(wgpu::PollType::Wait {
-                    submission_index: None,
-                    timeout: Some(crate::native::presentation::GPU_WAIT_DEADLINE),
-                })
-                .expect("qualified DX12 evidence must observe physical completion");
-            observation.signal = state
-                .text_atlas_gpu
-                .as_mut()
-                .and_then(|gpu| {
-                    gpu.poll_transaction_observation(
-                        &self.device,
-                        &mut state.resources,
-                        plan.transaction_identity(),
-                    )
-                })
-                .expect("qualified DX12 upload must return its exact correlated completion");
-        }
-        observation
     }
 }
 
@@ -371,4 +328,4 @@ mod classifier_tests;
 
 #[cfg(test)]
 #[path = "text_atlas_upload_tests.rs"]
-mod tests;
+pub(super) mod tests;

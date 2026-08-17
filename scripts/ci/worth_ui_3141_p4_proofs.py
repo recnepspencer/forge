@@ -44,6 +44,7 @@ def font_and_profile_proofs(proof_type: Any, control_type: Any) -> dict[str, Any
             font_evidence,
             "font_collection::phase4_evidence::application_font_authority_mutants_are_rejected_at_the_owning_boundaries",
             font_evidence,
+            "scripts/ci/worth_ui_3141_case_contracts.py",
             "scripts/ci/worth_ui_3141_phase4_case_contracts.py",
             f"{TEXT_ROOT}/font_collection/selection.rs",
             f"{TEXT_ROOT}/font_collection/application_pack.rs",

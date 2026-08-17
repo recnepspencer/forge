@@ -116,6 +116,8 @@ pub struct UiNativeEventLoopRunReport {
     pub(super) retained_frames: Box<[UiNativeRetainedFrameObservation]>,
     pub(super) peak_text_pins: Box<[crate::native::text_atlas::UiNativeTextPinObservation]>,
     pub(super) text_pin_frame_counts: Box<[u32]>,
+    pub(super) text_pin_frame_observations:
+        Box<[Box<[crate::native::text_atlas::UiNativeTextPinObservation]>]>,
     pub(super) text_atlas_transactions: u64,
 }
 
@@ -187,6 +189,13 @@ impl UiNativeEventLoopRunReport {
 
     pub fn text_pin_frame_counts(&self) -> &[u32] {
         &self.text_pin_frame_counts
+    }
+
+    #[doc(hidden)]
+    pub fn text_pin_frame_observations(
+        &self,
+    ) -> &[Box<[crate::native::text_atlas::UiNativeTextPinObservation]>] {
+        &self.text_pin_frame_observations
     }
 
     pub const fn text_atlas_transactions(&self) -> u64 {

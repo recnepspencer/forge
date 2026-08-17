@@ -48,6 +48,7 @@ const ATLAS_HOSTILE: &[&str] = &[
     "capacity-before-raster",
     "cancellation-recovery",
     "equal-epoch-registration-order",
+    "alpha-color-owner-merger",
 ];
 const PIN_POSITIVE: &[&str] = &[
     "shared-layout-pins",

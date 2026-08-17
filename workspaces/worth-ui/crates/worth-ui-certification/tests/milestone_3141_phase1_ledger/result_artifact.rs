@@ -7,6 +7,9 @@ use super::result_artifact_binding::{
 };
 use super::source_digest;
 
+#[path = "result_artifact_gate_d_pin.rs"]
+mod gate_d_pin;
+
 pub(super) use super::result_artifact_binding::current_revision;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -168,6 +171,7 @@ fn validate_artifact_proofs(
             .and_then(|(_, amount)| amount.parse::<u64>().ok())
             .ok_or_else(|| "ledger structural counter has no exact amount".to_owned())?,
     )?;
+    gate_d_pin::validate(&command.requirement, artifact)?;
     super::result_artifact_cost::validate(&command.requirement, artifact)?;
     if command.requirement.starts_with("P2-") {
         validate_native_boundary_observation(artifact)?;
@@ -195,3 +199,7 @@ mod mutation_tests;
 #[cfg(test)]
 #[path = "result_artifact_phase_three_tests.rs"]
 mod phase_three_tests;
+
+#[cfg(test)]
+#[path = "result_artifact_gate_d_pin_tests.rs"]
+mod gate_d_pin_tests;

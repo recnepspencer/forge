@@ -101,14 +101,30 @@ fn run_native_gate_d_pin_world() -> ExitCode {
         UiNativePlatformOutcome::Closed(receipt) => {
             let peak = receipt.peak_census();
             let terminal = receipt.terminal_census();
+            let pin_frames = receipt
+                .text_pin_frame_observations()
+                .iter()
+                .map(|frame| {
+                    frame
+                        .iter()
+                        .map(|pin| {
+                            serde_json::json!({
+                                "layout": hex_digest(pin.layout_digest()),
+                                "raster_key": hex_digest(pin.raster_key_digest()),
+                            })
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
             let evidence = serde_json::json!({
                 "schema": "worth-ui-native-gate-d-pin-world-v2",
-                "mounted_bindings": 1,
+                "mounted_bindings": usize::from(receipt.presentation().binding_generation() != 0),
                 "pinned_layouts": receipt.peak_text_layout_count(),
                 "presentations": receipt.retained_frames().len(),
                 "atlas_transactions": receipt.text_atlas_transactions(),
                 "native_peak_pin_count": peak.text_atlas_pins,
                 "native_frame_pin_counts": receipt.text_pin_frame_counts(),
+                "native_frame_pins": pin_frames,
                 "physical_signal_runtimes": peak.physical_signal_runtimes,
                 "physical_signal_workers": peak.physical_signal_workers,
                 "alpha_entries": peak.text_atlas_alpha_entries,
@@ -127,6 +143,11 @@ fn run_native_gate_d_pin_world() -> ExitCode {
             ExitCode::from(3)
         }
     }
+}
+
+#[cfg(feature = "executable-world")]
+fn hex_digest(digest: [u8; 32]) -> String {
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 #[cfg(feature = "executable-world")]

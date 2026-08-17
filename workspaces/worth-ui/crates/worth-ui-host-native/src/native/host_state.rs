@@ -45,6 +45,8 @@ pub(crate) struct UiNativeHostState {
     pub(crate) peak_census: UiNativeResourceCensus,
     pub(crate) peak_text_pins: Box<[super::text_atlas::UiNativeTextPinObservation]>,
     pub(crate) text_pin_frame_counts: Vec<u32>,
+    pub(crate) text_pin_frame_observations:
+        Vec<Box<[super::text_atlas::UiNativeTextPinObservation]>>,
 }
 
 pub(crate) struct UiNativePendingTextPresentation {
@@ -92,6 +94,7 @@ impl UiNativeHostState {
             peak_census: UiNativeResourceCensus::default(),
             peak_text_pins: Box::new([]),
             text_pin_frame_counts: Vec::new(),
+            text_pin_frame_observations: Vec::new(),
         };
         state.record_compiler_total_peak();
         state
@@ -115,8 +118,10 @@ impl UiNativeHostState {
     }
 
     pub(crate) fn record_text_pin_frame_observation(&mut self) {
+        let observations = self.text_atlas.pin_observations();
         self.text_pin_frame_counts
-            .push(u32::try_from(self.text_atlas.pin_observations().len()).unwrap_or(u32::MAX));
+            .push(u32::try_from(observations.len()).unwrap_or(u32::MAX));
+        self.text_pin_frame_observations.push(observations);
     }
 
     pub(crate) fn close(&mut self) -> UiNativeResourceCensus {
@@ -338,7 +343,7 @@ pub(crate) mod tests {
             .text_atlas_gpu
             .as_mut()
             .unwrap()
-            .settle_pending(&device, &mut state.resources);
+            .settle_pending(&mut state.resources);
         assert!(state.close().is_zero());
         assert!(state.text_atlas_gpu.is_none());
     }

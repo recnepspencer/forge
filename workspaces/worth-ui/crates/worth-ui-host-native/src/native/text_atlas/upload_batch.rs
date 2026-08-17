@@ -66,6 +66,7 @@ pub(super) fn upload_batch_for_transaction(
         .collect::<Vec<_>>();
     let submission = submit_copies(device, queue, &owner, &copies);
     pages.pending.push(PendingAtlasUpload {
+        device: device.clone(),
         staging: owner,
         submission,
         transaction,

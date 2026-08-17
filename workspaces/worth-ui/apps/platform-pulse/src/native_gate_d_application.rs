@@ -20,7 +20,8 @@ const SECOND_AUTHORED: &str = "gate-d-second";
 const SURFACE: &str = "gate.d.surface";
 const BASELINE_TOKEN: &str = "theme.gate_d.baseline";
 const TEXT_TOKEN: &str = "theme.gate_d.text";
-const SHARED_TEXT: &str = "CURRENT\u{2764}\u{FE0F}";
+const FIRST_TEXT: &str = "CURRENT\u{2764}\u{FE0F}A";
+const SECOND_TEXT: &str = "CURRENT\u{2764}\u{FE0F}B";
 
 pub(crate) struct PlatformPulseNativeGateDApplication;
 
@@ -125,7 +126,12 @@ fn baseline_token() -> ThemeTokenDescriptor {
 }
 
 fn text_change(identity: &str) -> UiNativeComponentSemanticTextChange {
-    UiNativeComponentSemanticTextChange::new(format!("component:{identity}"), SHARED_TEXT)
+    let text = match identity {
+        FIRST => FIRST_TEXT,
+        SECOND => SECOND_TEXT,
+        _ => unreachable!("Gate D text identity is closed"),
+    };
+    UiNativeComponentSemanticTextChange::new(format!("component:{identity}"), text)
         .expect("Gate D semantic text change")
 }
 

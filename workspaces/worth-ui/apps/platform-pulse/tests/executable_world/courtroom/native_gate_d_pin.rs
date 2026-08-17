@@ -1,3 +1,4 @@
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 use std::time::{Duration, Instant};
 
@@ -22,21 +23,60 @@ fn live_layout_pins_cross_runtime_native_signal_and_release_at_last_owner() {
         serde_json::from_str(stdout.trim()).expect("the Gate D pin evidence is exact JSON");
     assert_eq!(evidence["schema"], "worth-ui-native-gate-d-pin-world-v2");
     assert_eq!(evidence["mounted_bindings"], 1);
-    assert_eq!(evidence["pinned_layouts"], 2);
-    assert!(evidence["presentations"].as_u64().unwrap() > 0);
-    assert!(evidence["atlas_transactions"].as_u64().unwrap() > 0);
-    assert!(evidence["native_peak_pin_count"].as_u64().unwrap() > 0);
+    assert_eq!(evidence["pinned_layouts"], 3);
+    assert_eq!(evidence["presentations"], 1);
+    assert_eq!(evidence["atlas_transactions"], 3);
+    assert_eq!(evidence["native_peak_pin_count"], 44);
     let frame_pins = evidence["native_frame_pin_counts"].as_array().unwrap();
-    assert_eq!(frame_pins.len(), 3);
-    assert_eq!(frame_pins[0], evidence["native_peak_pin_count"]);
-    assert_eq!(frame_pins[1], evidence["native_peak_pin_count"]);
-    assert_eq!(frame_pins[2], 0);
+    assert_eq!(frame_pins, &[44, 35, 0]);
+    assert_exact_layout_key_transition(&evidence);
     assert_eq!(evidence["physical_signal_runtimes"], 1);
     assert_eq!(evidence["physical_signal_workers"], 1);
-    assert!(evidence["alpha_entries"].as_u64().unwrap() > 0);
-    assert!(evidence["color_entries"].as_u64().unwrap() > 0);
+    assert_eq!(evidence["alpha_entries"], 35);
+    assert_eq!(evidence["color_entries"], 1);
     assert_eq!(evidence["terminal_zero"], true);
     println!("WORTH_UI_LEDGER_OBSERVATION={evidence}");
     println!("WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-PINNING-01\":[\"shared-layout-pins\",\"runtime-transaction-owner\",\"native-signal-settlement\",\"alpha-color-event-loop-progression\",\"last-owner-release\",\"preclose-pin-transition\",\"terminal-census\"]}}");
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-ATLAS-PINNING-01\":2}}");
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-ATLAS-PINNING-01\":3}}");
+}
+
+fn assert_exact_layout_key_transition(evidence: &serde_json::Value) {
+    let frames = evidence["native_frame_pins"].as_array().unwrap();
+    assert_eq!(frames.len(), 3);
+    let first = layout_keys(&frames[0]);
+    let second = layout_keys(&frames[1]);
+    assert_eq!(first.len(), 3);
+    assert_eq!(second.len(), 2);
+    assert!(frames[2].as_array().unwrap().is_empty());
+    for (layout, keys) in &second {
+        assert_eq!(first.get(layout), Some(keys));
+    }
+    let removed = first
+        .iter()
+        .find(|(layout, _)| !second.contains_key(*layout))
+        .map(|(_, keys)| keys)
+        .expect("one mounted text layout is removed");
+    let shared_survivor = second
+        .values()
+        .find(|keys| !keys.is_disjoint(removed))
+        .expect("one retained layout shares raster keys with the removed layout");
+    assert!(!removed
+        .difference(shared_survivor)
+        .collect::<Vec<_>>()
+        .is_empty());
+    assert!(!shared_survivor
+        .difference(removed)
+        .collect::<Vec<_>>()
+        .is_empty());
+}
+
+fn layout_keys(frame: &serde_json::Value) -> BTreeMap<&str, BTreeSet<&str>> {
+    let mut layouts = BTreeMap::new();
+    for pin in frame.as_array().unwrap() {
+        layouts
+            .entry(pin["layout"].as_str().unwrap())
+            .or_insert_with(BTreeSet::new)
+            .insert(pin["raster_key"].as_str().unwrap());
+    }
+    layouts
 }

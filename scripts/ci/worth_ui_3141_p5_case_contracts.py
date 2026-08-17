@@ -60,6 +60,7 @@ HOSTILE_CASES = {
         "capacity-before-raster",
         "cancellation-recovery",
         "equal-epoch-registration-order",
+        "alpha-color-owner-merger",
     ),
     "P5-ATLAS-PINNING-01": ("shared-owner-preservation", "last-owner-release"),
 }

@@ -48,6 +48,7 @@ pub(super) struct AtlasPageTarget<'page> {
 }
 
 struct PendingAtlasUpload {
+    device: wgpu::Device,
     staging: UiNativeOwnedResource<wgpu::Buffer>,
     submission: wgpu::SubmissionIndex,
     transaction: u64,
@@ -210,15 +211,12 @@ impl UiNativeTextAtlasGpuPages {
             .ok_or(UiNativeTextAtlasDenial::PageCapacityExceeded)
     }
 
-    pub(crate) fn settle_pending(
-        &mut self,
-        device: &wgpu::Device,
-        resources: &mut UiNativeResourceRegistry,
-    ) {
+    pub(crate) fn settle_pending(&mut self, resources: &mut UiNativeResourceRegistry) {
         let pending = std::mem::take(&mut self.pending);
         let mut remaining = Vec::with_capacity(pending.len());
         for upload in pending {
-            let settled = device
+            let settled = upload
+                .device
                 .poll(wgpu::PollType::Wait {
                     submission_index: Some(upload.submission.clone()),
                     timeout: Some(crate::native::presentation::GPU_WAIT_DEADLINE),
@@ -239,7 +237,6 @@ impl UiNativeTextAtlasGpuPages {
     /// in its group has physically settled and its staging owner is released.
     pub(crate) fn poll_transaction_observation(
         &mut self,
-        device: &wgpu::Device,
         resources: &mut UiNativeResourceRegistry,
         transaction: u64,
     ) -> Option<crate::native::physical_work_signal::UiNativePhysicalSignalExternalObservation>
@@ -259,7 +256,7 @@ impl UiNativeTextAtlasGpuPages {
                 continue;
             }
             observed_transaction = true;
-            match device.poll(wgpu::PollType::Wait {
+            match upload.device.poll(wgpu::PollType::Wait {
                 submission_index: Some(upload.submission.clone()),
                 timeout: Some(std::time::Duration::ZERO),
             }) {

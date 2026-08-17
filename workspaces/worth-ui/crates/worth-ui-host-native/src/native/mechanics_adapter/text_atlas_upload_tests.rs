@@ -80,7 +80,7 @@ fn real_port_upload_is_coupled_to_production_plan_receipt_and_census() {
     assert_eq!(gpu.page_count(UiNativeGpuAtlasKind::Color), 1);
     assert_eq!(gpu.pending_count(), 1);
     assert_eq!(resources.current().atlas_staging_buffers, 1);
-    gpu.settle_pending(&device, &mut resources);
+    gpu.settle_pending(&mut resources);
     assert_eq!(gpu.pending_count(), 0);
     assert_eq!(resources.current().atlas_staging_buffers, 0);
     let receipt = match atlas.settle(plan, &uploads, UiNativeTextAtlasExternalOutcome::Submitted) {
@@ -108,6 +108,13 @@ fn real_port_upload_is_coupled_to_production_plan_receipt_and_census() {
     gpu.try_close(&mut resources)
         .unwrap_or_else(|_| panic!("settled test uploads must close"));
     assert!(resources.current().is_zero());
+}
+
+#[test]
+pub(in crate::native::mechanics_adapter) fn alpha_and_color_physical_owner_merger_is_rejected() {
+    assert!(physical_ownership_counts_match((1, 1), (1, 1), (1, 1)));
+    assert!(!physical_ownership_counts_match((1, 1), (2, 0), (2, 0)));
+    assert!(!physical_ownership_counts_match((1, 1), (1, 1), (2, 0)));
 }
 
 fn key() -> UiGlyphRasterKey {
