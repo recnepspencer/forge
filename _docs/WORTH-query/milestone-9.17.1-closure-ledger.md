@@ -13,7 +13,7 @@ not close a row.
 | 1 | Foundational exact branch-reference grammar and candidate-vocabulary migration | Closed — Luna and Sol certified | Phase 2 plan and two plan critics |
 | 2 | Supply Chain semantic world and independent oracle | Closed — Luna and Sol certified | Phase 3 plan and two plan critics |
 | 3 | Production-backed Supply Chain compiler and baseline audit | Closed — Luna and Sol certified | Phase 4 plan and two plan critics |
-| 4 | Relational immutable commit/reference split and branch-local MVCC foundation | Implementation complete — owner-binding currentness, exact recovery/merge continuity, runtime affinity, fork/catalog sharing, compatibility inventory, and fresh evidence are green; final Sol certification remains the only closure gate | Record final Sol review and then hand off to Phase 5/6 without widening the compatibility inventory |
+| 4 | Relational immutable commit/reference split and branch-local MVCC foundation | Closed — independent qa-loop, qa-tests, and code-quality-qa certified `7cbeb3a8645809890143b28117b5e6fc87aeb3cc` | Hand off to Phase 5/6 without widening the compatibility inventory |
 
 ## Phase 1 evidence ledger
 
@@ -1134,3 +1134,21 @@ visible immutable root, sibling-read isolation, exact external readmission,
 merge selection/publication, retention/reclamation, physical COW proof, or
 complete product MVCC. Those obligations remain in the later phases named by
 the milestone specification.
+
+## Final independent certifications (7cbeb3a86)
+
+GPT-5.6 was unavailable in this harness. Each skill used a fresh, read-only,
+worktree-isolated Grok 4.6 critic that did not inherit implementer
+conclusions. Earlier critics withheld on `3d29c4fa9` and `d4338e317`; those
+supported findings were fixed before this pass.
+
+| Skill | Critic identity | Revision | Verdict |
+| --- | --- | --- | --- |
+| qa-loop | independent Grok qa-loop reviewer, model grok-4.6, read-only | `7cbeb3a8645809890143b28117b5e6fc87aeb3cc` | CERTIFY |
+| qa-tests | independent Grok qa-tests reviewer, model grok-4.6, read-only | `7cbeb3a8645809890143b28117b5e6fc87aeb3cc` | CERTIFY |
+| code-quality-qa | independent Grok code-quality-qa reviewer, model grok-4.6, read-only | `7cbeb3a8645809890143b28117b5e6fc87aeb3cc` | CERTIFY |
+
+Phase 4 is closed for the currentness cutover only. This record does not claim
+visible immutable roots, repeatable-read bases, detached transactions,
+prepared candidates, compare-and-publish, physical copy-on-write, external
+retention/reclamation, or complete product MVCC.
