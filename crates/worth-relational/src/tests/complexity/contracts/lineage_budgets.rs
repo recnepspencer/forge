@@ -54,7 +54,7 @@ fn complexity_budget_lineage_branch_divergence_reports_breadth() {
     let _main = create_entity_outcome(&mut runtime, "main");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )

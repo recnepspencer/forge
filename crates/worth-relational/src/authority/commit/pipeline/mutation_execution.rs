@@ -9,6 +9,7 @@ pub(super) struct MutatedCommitExecution {
     version_id: crate::identity::data::VersionId,
     effect: crate::authority::mutation::MutationEffect,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+    created_relations: crate::transactions::data::CommitCreatedRelationBindings,
 }
 
 impl MutatedCommitExecution {
@@ -27,12 +28,14 @@ impl MutatedCommitExecution {
         crate::identity::data::VersionId,
         crate::authority::mutation::MutationEffect,
         crate::transactions::data::CommitCreatedEntityBindings,
+        crate::transactions::data::CommitCreatedRelationBindings,
     ) {
         (
             self.validated,
             self.version_id,
             self.effect,
             self.created_entities,
+            self.created_relations,
         )
     }
 }
@@ -44,6 +47,7 @@ pub(super) fn mutate_commit_execution(
     let (admitted, working_state) = validated.prepared_mut().mutation_parts();
     let (transaction_id, options, merged_plan, _, commit_log, phase_timing) =
         admitted.phase_view().into_parts();
+    let target_branch = Some(options.target_branch());
     let mutation = run_authoritative_mutation_phase(
         runtime,
         MutationPhaseInput {
@@ -52,15 +56,17 @@ pub(super) fn mutate_commit_execution(
             transaction_id,
             working_state,
             merged_plan,
-            target_branch: options.target_branch.as_ref(),
+            target_branch,
         },
     )?;
-    let (version_id, effect, invariant_results, created_entities) = mutation.into_parts();
+    let (version_id, effect, invariant_results, created_entities, created_relations) =
+        mutation.into_parts();
     validated.push_invariant(invariant_results);
     Ok(MutatedCommitExecution {
         validated,
         version_id,
         effect,
         created_entities,
+        created_relations,
     })
 }

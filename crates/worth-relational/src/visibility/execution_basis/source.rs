@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 use crate::runtime::RelationalRuntime;
 use crate::visibility::exact_commit_snapshot::{
     open_retained_commit_snapshot, RelationalRetainedCommitSnapshotDenial,
@@ -38,7 +38,7 @@ impl RelationalApplicationCommitBasisSource {
     pub fn admit_application_commit(
         &self,
         expected_runtime_instance_id: u64,
-        commit: &CommitReference,
+        commit: &RelationalCommitReceipt,
     ) -> Result<RelationalExecutionBasisLease, RelationalApplicationCommitBasisDenial> {
         self.admit_application_commit_observing(expected_runtime_instance_id, commit, || {})
     }
@@ -46,7 +46,7 @@ impl RelationalApplicationCommitBasisSource {
     fn admit_application_commit_observing(
         &self,
         expected_runtime_instance_id: u64,
-        commit: &CommitReference,
+        commit: &RelationalCommitReceipt,
         observe_validated_commit: impl FnOnce(),
     ) -> Result<RelationalExecutionBasisLease, RelationalApplicationCommitBasisDenial> {
         self.runtime.with_runtime(|runtime| {

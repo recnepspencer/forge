@@ -68,9 +68,10 @@ fn merge_planning_distinguishes_disjoint_aspect_intent_from_strategy_intent_conf
             .commit_strategies()
             .execute(&request, &snapshot)
             .expect("aspect execution");
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, TransactionOptions::default())
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered aspect plan");
         let validated = authority
             .validate_lowered_plan(lowered)
@@ -101,16 +102,13 @@ fn merge_planning_distinguishes_disjoint_aspect_intent_from_strategy_intent_conf
             .commit_strategies()
             .execute(&request, &snapshot)
             .expect("replica execution");
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(
+                &mut runtime,
+                Some(feature_branch.clone()),
+            );
         let lowered = authority
-            .lower_execution(
-                &request,
-                &execution,
-                TransactionOptions {
-                    target_branch: Some(feature_branch.clone()),
-                    ..TransactionOptions::default()
-                },
-            )
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered replica plan");
         let validated = authority
             .validate_lowered_plan(lowered)
@@ -211,16 +209,20 @@ fn merge_planning_classifies_same_declared_aspect_field_as_strategy_intent_confl
             .commit_strategies()
             .execute(&request, &snapshot)
             .expect("aspect execution");
+        let transaction_options = branch
+            .as_ref()
+            .map(|branch| {
+                crate::tests::support::test_owner_transaction_options_for_branch(
+                    &runtime,
+                    branch.clone(),
+                )
+            })
+            .unwrap_or_else(|| {
+                crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            });
         let mut authority = runtime.commit_strategies_authority();
         let lowered = authority
-            .lower_execution(
-                &request,
-                &execution,
-                TransactionOptions {
-                    target_branch: branch,
-                    ..TransactionOptions::default()
-                },
-            )
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered aspect plan");
         let validated = authority
             .validate_lowered_plan(lowered)

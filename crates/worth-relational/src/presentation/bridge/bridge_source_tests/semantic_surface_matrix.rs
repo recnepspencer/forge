@@ -7,8 +7,8 @@ use worth_runtime_bridge::facade::TruthDeltaSurfaceKind;
 use crate::config::data::CascadeDeletePolicy;
 use crate::facade::schema::DeclaredAspectContractBinding;
 use crate::facade::transactions::{
-    CreateIntent, EntityMutationIntent, EntitySpec, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    CreateIntent, EntityMutationIntent, EntitySpec, MutationIntent, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 use crate::tests::support::{
     aspect_key, changed_entities, create_entity_outcome, create_relation_outcome,
@@ -82,7 +82,7 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
         structural_binding("facet", 93, AspectBinding::StructuralFacet),
     ]);
     let mut runtime = fixture.build_runtime();
-    let mut creation = runtime.begin_transaction(TransactionOptions::default());
+    let mut creation = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     creation.push_batch(
         WorkerIntentBatch::new("structural-create").push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -136,7 +136,8 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
         TruthDeltaSurfaceKind::EntityFacet,
     );
 
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("summary-field-update").push(
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(
             UpdateEntityFieldsIntent {

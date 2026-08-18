@@ -18,7 +18,7 @@ pub(in crate::domain_computation) fn commit_observe_and_admit_fixture(
     record: &WorthQueryDispatchOutboxRecord,
 ) -> (
     WorthQueryAdmittedExternalDispatchAttempt,
-    worth_relational::facade::history::CommitReference,
+    worth_relational::facade::history::RelationalCommitReceipt,
     worth_relational::facade::transactions::RecordRef,
     u64,
 ) {
@@ -83,8 +83,11 @@ pub(in crate::domain_computation) fn commit_distinct_records_and_admit_fixture(
                 kind_id: second_spec.kind_id,
                 client_key: second_spec.client_key.clone(),
             };
-            let mut transaction: RelationalTransaction<'_> =
-                runtime.begin_transaction(Default::default());
+            let mut transaction: RelationalTransaction<'_> = runtime.begin_transaction(
+                runtime
+                    .transaction_options_for_main()
+                    .expect("main branch binding"),
+            );
             transaction.push_batch(
                 WorkerIntentBatch::new("same-value-distinct-record-causal-twin")
                     .push(first_intent)
@@ -105,7 +108,10 @@ pub(in crate::domain_computation) fn commit_distinct_records_and_admit_fixture(
             );
             let second_binding =
                 WorthQueryCommittedDispatchOutboxBinding::fixture(record.clone(), second_ref);
-            let snapshot = runtime.snapshots().snapshot_for_branch(&branch).unwrap();
+            let snapshot = runtime
+                .snapshots()
+                .historical_snapshot_for_branch(&branch)
+                .unwrap();
             let runtime_id = snapshot.runtime_instance_id;
             runtime.snapshots().release_snapshot(&snapshot);
             (
@@ -145,8 +151,11 @@ pub(in crate::domain_computation::primary_graph) fn commit_and_observe_fixture(
             Some(record),
         )
         .expect("declared fixture outbox binds a create intent");
-        let mut transaction: RelationalTransaction<'_> =
-            runtime.begin_transaction(Default::default());
+        let mut transaction: RelationalTransaction<'_> = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(WorkerIntentBatch::new("committed-outbox-real-test").push(intent));
         let committed = transaction.commit().expect("fixture outbox commits");
         let binding = WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
@@ -163,7 +172,7 @@ pub(in crate::domain_computation::primary_graph) fn commit_and_observe_fixture(
         .expect("declared outbox has a binding");
         let snapshot = runtime
             .snapshots()
-            .snapshot_for_branch(&branch)
+            .historical_snapshot_for_branch(&branch)
             .expect("fixture branch has a snapshot");
         let runtime_id = snapshot.runtime_instance_id;
         runtime.snapshots().release_snapshot(&snapshot);

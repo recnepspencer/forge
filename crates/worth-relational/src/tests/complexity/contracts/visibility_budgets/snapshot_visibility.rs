@@ -82,7 +82,7 @@ fn complexity_budget_branch_creation_reuses_cached_visibility_state() {
     runtime.performance_access().reset_counters();
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )

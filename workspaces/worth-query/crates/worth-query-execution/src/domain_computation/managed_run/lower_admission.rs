@@ -77,8 +77,14 @@ pub(in crate::domain_computation) fn admit_managed_lower_execution_basis(
             kind: WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis,
             detail: Arc::from("managed truth branch is not a Relational branch identity"),
         })?;
+    let relational_identity = relational
+        .branch_identity(&relational_branch)
+        .map_err(|denial| WorthQueryManagedLowerAdmissionFailure {
+            kind: WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis,
+            detail: Arc::from(denial.detail()),
+        })?;
     let relational_basis = relational
-        .admit_execution_basis(&relational_branch, version_id)
+        .admit_execution_basis_for_identity(&relational_identity, version_id)
         .map_err(|denial| WorthQueryManagedLowerAdmissionFailure {
             kind: WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis,
             detail: Arc::from(denial.detail()),

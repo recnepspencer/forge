@@ -17,7 +17,7 @@ impl<'a> RelationalTransaction<'a> {
 
     pub fn create_savepoint(&mut self) -> SavepointId {
         assert!(
-            self.options.allow_nested_savepoints,
+            self.options.allow_nested_savepoints(),
             "nested savepoints are disabled for this transaction"
         );
         let savepoint_id = self.runtime.services.next_savepoint_id();

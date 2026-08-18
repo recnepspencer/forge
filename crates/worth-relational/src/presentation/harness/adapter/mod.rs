@@ -9,7 +9,6 @@ use worth_harness::facade::{
 use crate::facade::harness::RelationalHarnessError;
 use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use crate::facade::transactions::WorkerIntentBatch;
-use crate::transactions::data::TransactionOptions;
 
 use super::batches::{entity_fixture_batch, relation_fixture_batch};
 use super::data::{RelationalFixture, RelationalHarnessAdapter};
@@ -80,13 +79,13 @@ impl HarnessAdapter for RelationalHarnessAdapter {
 
     fn load_fixture(
         &self,
-        runtime: &mut Self::Runtime,
+        mut runtime: &mut Self::Runtime,
         fixture: &worth_harness::facade::ScenarioFixture<Self::Fixture>,
     ) -> Result<(), Self::Error> {
         if fixture.fixture.entities.is_empty() && fixture.fixture.relations.is_empty() {
             return Ok(());
         }
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(entity_fixture_batch(&fixture.fixture.entities));
         let outcome = txn.commit().map_err(commit_error_to_harness_error)?;
         let entity_ids = outcome
@@ -98,7 +97,8 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             })
             .collect::<Vec<_>>();
         if !fixture.fixture.relations.is_empty() {
-            let mut relation_txn = runtime.begin_transaction(TransactionOptions::default());
+            let mut relation_txn =
+                crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
             relation_txn.push_batch(relation_fixture_batch(
                 &fixture.fixture.relations,
                 &entity_ids,
@@ -112,10 +112,10 @@ impl HarnessAdapter for RelationalHarnessAdapter {
 
     fn apply_mutation_batch(
         &self,
-        runtime: &mut Self::Runtime,
+        mut runtime: &mut Self::Runtime,
         batch: &MutationBatch<Self::Mutation>,
     ) -> Result<(), Self::Error> {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         for operation in &batch.operations {
             let operation: WorkerIntentBatch = operation.clone();
             txn.push_batch(operation);

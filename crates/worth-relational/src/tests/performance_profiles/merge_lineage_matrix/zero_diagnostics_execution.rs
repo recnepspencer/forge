@@ -9,10 +9,10 @@ pub(super) fn certify_merge_execution_zero_diagnostics_budget(suite: &'static st
             runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
             create_entity(&mut runtime, "main-anchor");
             create_branch_from_main(&mut runtime, "feature");
-            let mut txn = runtime.begin_transaction(TransactionOptions {
-                target_branch: Some(BranchId("feature".to_string())),
-                ..TransactionOptions::default()
-            });
+            let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+                &mut runtime,
+                BranchId("feature".to_string()),
+            );
             txn.push_batch(
                 WorkerIntentBatch::new("create-feature-only").push(
                     MutationIntent::Create(CreateIntent::Entity(

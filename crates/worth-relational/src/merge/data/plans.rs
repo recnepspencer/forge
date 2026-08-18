@@ -160,6 +160,7 @@ pub(crate) struct ValidatedSchemaDeclaredCorrespondence {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MergePlanningError {
     RequestNormalization(RelationalMergeRequestNormalizationDenial),
+    UnboundBranchCurrentness,
     MissingSourceHead {
         branch_id: BranchId,
     },

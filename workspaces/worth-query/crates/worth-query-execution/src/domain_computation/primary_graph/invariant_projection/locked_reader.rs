@@ -101,7 +101,7 @@ where
         WorthQueryInvariantProjectionWorkLimitExceeded,
     > {
         let projected = self.graph.with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
+            let snapshot = runtime.snapshots().historical_snapshot();
             let projected = catch_unwind(AssertUnwindSafe(|| {
                 let mut reader = WorthQueryApplicationInvariantProjectionReader {
                     runtime,

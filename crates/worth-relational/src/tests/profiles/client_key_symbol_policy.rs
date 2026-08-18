@@ -7,7 +7,7 @@ fn client_key_symbol_policy_interns_client_keys_before_merge() {
         .schema_registry(test_schema_registry())
         .client_key_symbol_policy(ClientKeySymbolPolicy::RequireInterned)
         .build();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("intern-me"));
     let plan = txn.merged_plan().unwrap().clone();
 

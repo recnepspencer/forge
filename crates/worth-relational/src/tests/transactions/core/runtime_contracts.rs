@@ -50,7 +50,7 @@ fn relational_error_wraps_authority_failures_with_context() {
     let entity = create_entity(&mut runtime, "first");
     delete_entity(&mut runtime, entity);
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("stale-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {

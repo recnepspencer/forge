@@ -1,0 +1,9 @@
+error[E0382]: use of moved value: `basis`
+ --> tests/ui/branch_reference/fork_basis_is_consumed.rs:9:64
+  |
+7 |     let basis = unimplemented_basis();
+  |         ----- move occurs because `basis` has type `AdmittedRelationalForkSourceBasis`, which does not implement the `Copy` trait
+8 |     let _ = runtime.fork_branch(BranchId("first".to_owned()), basis);
+  |                                                               ----- value moved here
+9 |     let _ = runtime.fork_branch(BranchId("second".to_owned()), basis);
+  |                                                                ^^^^^ value used here after move

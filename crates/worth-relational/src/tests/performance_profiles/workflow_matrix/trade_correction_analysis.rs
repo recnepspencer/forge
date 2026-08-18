@@ -11,10 +11,10 @@ pub(super) fn certify_trade_correction_analysis_round_trip(suite: &'static str) 
             runtime.performance_access().reset_counters();
             let analysis_commit_started_at = Instant::now();
             let analysis_commit = {
-                let mut txn = runtime.begin_transaction(TransactionOptions {
-                    target_branch: Some(BranchId("analysis".to_string())),
-                    ..TransactionOptions::default()
-                });
+                let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+                    &mut runtime,
+                    BranchId("analysis".to_string()),
+                );
                 txn.push_batch(
                     WorkerIntentBatch::new("correct-trade").push(
                         MutationIntent::Create(CreateIntent::Entity(

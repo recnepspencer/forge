@@ -9,6 +9,7 @@ pub(super) struct SnapshotValidatedCommitExecution {
     version_id: crate::identity::data::VersionId,
     effect: crate::authority::mutation::MutationEffect,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+    created_relations: crate::transactions::data::CommitCreatedRelationBindings,
     history: crate::authority::commit::phases::history::ResolvedCommitHistory,
     merge_parent_branches: Vec<crate::history::data::BranchId>,
     additional_diagnostics_entries: Vec<crate::diagnostics::data::RelationalDiagnosticsEntry>,
@@ -28,6 +29,7 @@ impl SnapshotValidatedCommitExecution {
         crate::identity::data::VersionId,
         crate::authority::mutation::MutationEffect,
         crate::transactions::data::CommitCreatedEntityBindings,
+        crate::transactions::data::CommitCreatedRelationBindings,
         crate::authority::commit::phases::history::ResolvedCommitHistory,
         Vec<crate::history::data::BranchId>,
         Vec<crate::diagnostics::data::RelationalDiagnosticsEntry>,
@@ -42,6 +44,7 @@ impl SnapshotValidatedCommitExecution {
             self.version_id,
             self.effect,
             self.created_entities,
+            self.created_relations,
             self.history,
             self.merge_parent_branches,
             self.additional_diagnostics_entries,
@@ -84,7 +87,7 @@ fn into_snapshot_validated_execution(
 ) -> SnapshotValidatedCommitExecution {
     let (mutated, history, merge_parents, diagnostics, merge_authority, continuity) =
         history_bound.into_parts();
-    let (validated, version_id, effect, created_entities) = mutated.into_parts();
+    let (validated, version_id, effect, created_entities, created_relations) = mutated.into_parts();
     let (prepared, invariant_executions) = validated.into_parts();
     let (admitted, public_structural_summary, working_state) = prepared.into_parts();
     SnapshotValidatedCommitExecution {
@@ -95,6 +98,7 @@ fn into_snapshot_validated_execution(
         version_id,
         effect,
         created_entities,
+        created_relations,
         history,
         merge_parent_branches: merge_parents,
         additional_diagnostics_entries: diagnostics,

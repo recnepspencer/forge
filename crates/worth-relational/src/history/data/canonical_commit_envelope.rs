@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
-use crate::history::data::{BranchId, CommitId, CommitReference};
-use crate::indexes::data::{DerivedIndexArtifacts, DerivedIndexGeneration};
+use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
+use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::{
     LineageArtifactCounters, LineageDecisionLogDigestBasis, LineageDecisionRecord,
     LineageDigestBasis, LineageEventBatchDigestBasis, LineageEventRecord, PublishedLineageArtifact,
@@ -22,8 +22,13 @@ use crate::transactions::data::{
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CanonicalCommitEnvelope {
-    pub commit: CommitReference,
+    pub commit: RelationalCommitReceipt,
     pub branch_context: BranchId,
+    /// Exact owner cell state immediately before this commit advances the
+    /// branch. It lets recovery admit a branch created after a checkpoint
+    /// without rebuilding currentness from a legacy head projection.
+    #[serde(default)]
+    pub(crate) branch_cell_checkpoint: Option<crate::branch::RelationalBranchCellCheckpoint>,
     pub authority_kind: CanonicalCommitAuthorityKind,
     pub strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
     pub merge_execution_authority: Option<PublishedMergeExecutionAuthority>,
@@ -50,14 +55,14 @@ pub enum CanonicalCommitAuthorityKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct CommittedRecordChange<'a> {
-    pub commit: &'a CommitReference,
+    pub commit: &'a RelationalCommitReceipt,
     pub record: &'a PublishedAuthoritativeRecordPatch,
 }
 
 impl CanonicalCommitEnvelope {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        commit: CommitReference,
+        commit: RelationalCommitReceipt,
         branch_context: BranchId,
         authority_kind: CanonicalCommitAuthorityKind,
         strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
@@ -79,6 +84,7 @@ impl CanonicalCommitEnvelope {
         Self {
             commit,
             branch_context,
+            branch_cell_checkpoint: None,
             authority_kind,
             strategy_artifacts,
             merge_execution_authority,
@@ -201,10 +207,6 @@ impl CanonicalCommitEnvelope {
     pub(crate) fn published_lineage_mut_for_test(&mut self) -> &mut PublishedLineageArtifact {
         &mut self.lineage
     }
-
-    pub fn append_index_generations_canonical(&mut self, generations: &[DerivedIndexGeneration]) {
-        self.derived_index_artifacts.extend_canonical(generations);
-    }
 }
 
 fn intent_record_ref(intent: &MutationIntent) -> Option<RecordRef> {
@@ -234,7 +236,7 @@ mod tests {
         DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope,
         RelationalDiagnosticArtifact,
     };
-    use crate::history::data::{BranchId, CommitId, CommitReference};
+    use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
     use crate::identity::data::{EntityId, PartitionId, VersionId};
     use crate::indexes::data::DerivedIndexArtifacts;
     use crate::lineage::data::{
@@ -258,7 +260,7 @@ mod tests {
         update_target: EntityId,
     ) -> CanonicalCommitEnvelope {
         CanonicalCommitEnvelope::new(
-            CommitReference {
+            RelationalCommitReceipt {
                 commit_id: CommitId(1),
                 version_id: VersionId(1),
                 branch_id: BranchId("main".to_string()),

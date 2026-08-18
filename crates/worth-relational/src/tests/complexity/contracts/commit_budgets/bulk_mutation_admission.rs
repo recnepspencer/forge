@@ -7,7 +7,7 @@ fn complexity_budget_bulk_mutation_planning_reports_identity_scope_and_batch_evi
     let target = create_entity_in_partition(&mut runtime, "target", PartitionId(11));
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("entities").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
@@ -69,7 +69,7 @@ fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_comm
     let target = create_entity(&mut runtime, "target");
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("relation-batch").push(MutationIntent::Create(
             CreateIntent::BulkRelations(BulkRelationCreateIntent {
@@ -99,7 +99,7 @@ fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_comm
     assert_eq!(preflight_counters.bulk_mutation_lineage_transition_count, 0);
     assert_eq!(preflight_counters.bulk_mutation_provenance_record_count, 0);
 
-    let mut commit_txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut commit_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     commit_txn.push_batch(
         WorkerIntentBatch::new("relation-batch").push(MutationIntent::Create(
             CreateIntent::BulkRelations(BulkRelationCreateIntent {

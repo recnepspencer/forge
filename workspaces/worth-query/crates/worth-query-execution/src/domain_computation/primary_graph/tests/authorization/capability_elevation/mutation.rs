@@ -45,7 +45,11 @@ pub(super) fn set_status(
             locator,
             status.into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(WorkerIntentBatch::new("set-elevation-status").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -81,7 +85,11 @@ pub(super) fn add_self_approver(
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(WorkerIntentBatch::new("add-self-approver").push(
             MutationIntent::Create(CreateIntent::Relation(RelationSpec {
                 partition_id: PartitionId::main(),
@@ -131,7 +139,7 @@ pub(super) fn replace_elevation_resource(
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = runtime.snapshots().historical_snapshot();
         let relation = runtime
             .read_truth()
             .visible_relations_of_kind(relation_kind, snapshot.version_id)
@@ -157,7 +165,11 @@ pub(super) fn replace_elevation_resource(
                 },
             )));
         }
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(batch);
         transaction.commit().unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
@@ -195,7 +207,11 @@ pub(super) fn add_elevation_resource(
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(WorkerIntentBatch::new("add-elevation-resource").push(
             MutationIntent::Create(CreateIntent::Relation(RelationSpec {
                 partition_id: PartitionId::main(),
@@ -242,7 +258,11 @@ pub(super) fn complete_review_out_of_band(
             locator,
             CapabilityReviewStatus::Completed.into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(
             WorkerIntentBatch::new("complete-review-out-of-band")
                 .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -293,7 +313,7 @@ pub(super) fn replace_support_grantor_with_custodian(
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = runtime.snapshots().historical_snapshot();
         let grantor = runtime
             .read_truth()
             .visible_relations_of_kind(grantor_kind, snapshot.version_id)
@@ -302,7 +322,11 @@ pub(super) fn replace_support_grantor_with_custodian(
             .expect("the request support has one current grantor path")
             .relation_id;
         runtime.snapshots().release_snapshot(&snapshot);
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(
             WorkerIntentBatch::new("replace-elevation-support-policy-path")
                 .push(MutationIntent::Relation(RelationMutationIntent::Delete(

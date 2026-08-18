@@ -13,7 +13,7 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let entity = create_entity(&mut runtime, "before");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("field-patch").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -61,8 +61,8 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
             aspect_key,
             value: PublishedAuthoritativePatchValue::Scalar(value),
             ..
-        }] if aspect_key == &AspectKey::new("name").unwrap()
-            && value == &AspectValue::String("after".into())
+        }] if *aspect_key == AspectKey::new("name").unwrap()
+            && *value == AspectValue::String("after".into())
     ));
     let authoritative_name = current_read
         .get_entity(entity)

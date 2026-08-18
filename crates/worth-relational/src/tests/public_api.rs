@@ -35,7 +35,7 @@ fn facade_namespaces_expose_domain_groupings() {
     let _runtime = facade::runtime::RelationalRuntimeApi::builder()
         .schema_registry(facade::schema::RelationalSchemaRegistry::new())
         .build();
-    let _txn_options = facade::transactions::TransactionOptions::default();
+    let _txn_options = crate::tests::support::test_owner_transaction_options_for_main(&_runtime);
     let _durability_mode = facade::durability::DurabilityMode::InMemoryCanonical;
     let _diagnostics_scope = facade::diagnostics::DiagnosticsScope::Transaction;
     let _patch_mode = facade::publication::PatchPublicationMode::CommitNative;
@@ -109,6 +109,34 @@ fn foreign_runtime_cannot_observe_an_execution_basis_as_live() {
 
     assert!(runtime.snapshots().execution_basis_is_live(&identity));
     assert!(!foreign.snapshots().execution_basis_is_live(&identity));
+}
+
+#[test]
+fn foreign_runtime_branch_identity_cannot_admit_execution_basis() {
+    let mut runtime = public_api_runtime();
+    let foreign = public_api_runtime();
+    let committed =
+        crate::tests::support::create_entity_outcome(&mut runtime, "foreign-identity-basis");
+    let version_id = committed.snapshot.version_id;
+    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
+    let foreign_identity = foreign.main_branch_identity();
+
+    let denial = match runtime
+        .snapshots()
+        .admit_execution_basis_for_identity(&foreign_identity, version_id)
+    {
+        Ok(_) => panic!("a foreign owner identity must not cross the runtime boundary"),
+        Err(denial) => denial,
+    };
+
+    assert_eq!(
+        denial.kind(),
+        facade::runtime::RelationalExecutionBasisDenialKind::BranchMismatch
+    );
+    assert_eq!(denial.counters().version_availability_check_count(), 0);
+    assert_eq!(denial.counters().branch_affinity_check_count(), 0);
+    assert_eq!(denial.counters().snapshot_identity_allocation_count(), 0);
+    assert_eq!(denial.counters().lease_registry_insert_count(), 0);
 }
 
 #[test]

@@ -6,6 +6,7 @@ mod merge_replay_continuity;
 mod rejected_and_parent_closure;
 mod retention_inspection_store;
 mod schema_transition_continuity;
+mod tail_checkpoint_validation;
 
 use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::facade::diagnostics::{DiagnosticCode, DiagnosticsScope};
@@ -33,7 +34,7 @@ use crate::facade::schema::{
     SchemaElementKind, SchemaElementRef, SchemaId, SchemaPublicationImpact,
     SchemaReconciliationPolicy, SchemaStratum, SchemaSubscriberImpact, SchemaVersionId,
 };
-use crate::facade::transactions::{TransactionCommitError, TransactionOptions};
+use crate::facade::transactions::TransactionCommitError;
 use crate::tests::support::*;
 
 // CONTRACT: durability

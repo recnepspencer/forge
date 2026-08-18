@@ -57,9 +57,11 @@ impl WorthQueryMemoryWorkspace {
             .checked_add(insert_count as u64)
             .ok_or_else(|| WorthQueryWorkspaceError::new("batch client-key space exhausted"))?;
         let (batch, prepared) = self.prepare_batch(mutations)?;
-        let mut transaction = self
+        let options = self
             .runtime
-            .begin_transaction(TransactionOptions::default());
+            .transaction_options_for_main()
+            .expect("memory workspace main branch remains owner-admissible");
+        let mut transaction = self.runtime.begin_transaction(options);
         transaction.push_batch(batch);
         let result = transaction
             .commit()

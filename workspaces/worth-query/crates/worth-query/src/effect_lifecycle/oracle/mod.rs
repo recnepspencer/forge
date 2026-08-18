@@ -141,7 +141,7 @@ fn relational_subject_for_plan(
             .as_merge()
             .expect("merge lowering should retain merge artifact");
         return Ok((
-            merge.merge_request().target_branch.0.clone(),
+            merge.merge_request().target_branch().0.clone(),
             outcome.commit.outcome().commit.commit_id.0,
             outcome.commit.outcome().commit.version_id.0,
             outcome
@@ -177,7 +177,7 @@ fn relational_target_branch_for_plan(
         });
     }
     if let Some(merge) = executed.lowered().as_merge() {
-        return Ok(merge.merge_request().target_branch.clone());
+        return Ok(merge.merge_request().target_branch().clone());
     }
     Err(EffectExecutionOracleError::new(
         EffectExecutionOracleErrorKind::RelationalOracleUnsupportedEffect,

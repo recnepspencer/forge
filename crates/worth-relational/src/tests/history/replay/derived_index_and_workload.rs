@@ -69,7 +69,7 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
     let relation = changed_relations(&relation_outcome)[0];
     let _retained = delete_entity(&mut runtime, source);
     let replace_outcome = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(
             WorkerIntentBatch::new("replace-anchor").push(MutationIntent::Entity(
                 EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -185,14 +185,16 @@ fn hostile_commit_replay_equivalence_test() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut transition_txn =
-        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-            schema_transition_for_subscriber_impact(
-                SchemaVersionId(2),
-                SchemaSubscriberImpact::ConsumableSurfaceChanged,
+    let mut transition_txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                schema_transition_for_subscriber_impact(
+                    SchemaVersionId(2),
+                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                ),
+                Some(SchemaReconciliationPolicy::PreserveInformation),
             ),
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ));
+    );
     transition_txn.push_batch(batch_create("after-boundary"));
     let _transition_outcome = transition_txn.commit().unwrap();
 

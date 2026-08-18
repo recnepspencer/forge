@@ -59,10 +59,11 @@ pub(super) fn install_schema_version(
 }
 
 pub(super) fn transaction_options_for_subscriber_impact(
+    runtime: &crate::facade::runtime::RelationalRuntime,
     schema_version_id: SchemaVersionId,
     subscriber_impact: SchemaSubscriberImpact,
 ) -> TransactionOptions {
-    TransactionOptions::default().with_schema_transition(
+    crate::tests::support::test_owner_transaction_options_for_main(runtime).with_schema_transition(
         schema_transition_for_subscriber_impact(schema_version_id, subscriber_impact),
         Some(SchemaReconciliationPolicy::PreserveInformation),
     )

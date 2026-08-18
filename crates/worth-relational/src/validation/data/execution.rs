@@ -97,8 +97,9 @@ pub enum InvariantReportedRule {
     Custom(CustomInvariantSemanticIdentity),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum InvariantWitnessBasis {
+    #[default]
     StringOnly,
     Pass,
     UniqueEntityAspectField {
@@ -107,12 +108,6 @@ pub enum InvariantWitnessBasis {
         field_locator_canonical_bytes: Vec<u8>,
         value_canonical_bytes: Vec<u8>,
     },
-}
-
-impl Default for InvariantWitnessBasis {
-    fn default() -> Self {
-        Self::StringOnly
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

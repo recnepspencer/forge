@@ -85,7 +85,7 @@ pub(super) fn bind_commit_history(
             super::rejection::attach_rejection(commit_log, CommitPhase::ArtifactAssembly, error)
         })?;
     emit_schema_continuity_diagnostic(runtime, &history.branch_id, &schema_continuity);
-    let merge_parent_branches = options.merge_parent_branches.clone();
+    let merge_parent_branches = options.merge_parent_branch_ids();
     Ok(HistoryBoundCommitExecution {
         mutated,
         history,

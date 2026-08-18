@@ -26,7 +26,7 @@ pub(super) fn admit_live_managed_basis<Schema>(
         .with_runtime(|runtime| {
             runtime
                 .history()
-                .latest_commit()
+                .historical_latest_commit()
                 .map(|head| head.version_id)
         })
         .ok_or_else(|| {

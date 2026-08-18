@@ -1,0 +1,16 @@
+error: cannot construct `TransactionOptions` with struct literal syntax due to private fields
+ --> tests/ui/branch_reference/transaction_options_requires_owner_binding.rs:4:13
+  |
+4 |     let _ = TransactionOptions {
+  |             ^^^^^^^^^^^^^^^^^^
+5 |         allow_nested_savepoints: true,
+  |         ----------------------------- private field
+  |
+  = note: ...and other private fields `diagnostics_required`, `deterministic_merge_required`, `branch_binding`, `merge_parent_bindings`, `proposed_schema_transition` and `schema_reconciliation_policy` that were not provided
+help: you might have meant to use the `from_owner_binding` associated function
+  |
+4 -     let _ = TransactionOptions {
+5 -         allow_nested_savepoints: true,
+6 -     };
+4 +     let _ = TransactionOptions::from_owner_binding(_);
+  |

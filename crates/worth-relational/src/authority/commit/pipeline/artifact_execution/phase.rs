@@ -8,7 +8,7 @@ use crate::authority::commit::publication::assemble_patch;
 use crate::authority::mutation::MutationEffect;
 use crate::commit_strategies::data::StrategyCommitArtifactBundle;
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
-use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::identity::data::VersionId;
 use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
@@ -19,7 +19,7 @@ use crate::transactions::data::{
 pub(super) struct ArtifactAssemblyInput<'a> {
     pub(super) working_state: &'a mut crate::storage::overlay::WorkingState,
     pub(super) effect: MutationEffect,
-    pub(super) commit_reference: &'a CommitReference,
+    pub(super) commit_reference: &'a RelationalCommitReceipt,
     pub(super) branch_id: &'a BranchId,
     pub(super) version_id: VersionId,
     pub(super) merge_parent_branches: &'a [BranchId],

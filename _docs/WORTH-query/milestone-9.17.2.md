@@ -62,8 +62,11 @@ advancement, or Query admission on behalf of those owners.
 ## Current Boundary
 
 - 9.17.1 supplies exact owner-issued component bases, owner validation and
-  readmission ports, owner-local preparation candidates, committed component
-  bases, retention, and cancellation/cleanup contracts.
+  readmission ports, opaque pre-effect Relational preparation candidates, the
+  Relational compare-and-publish port and its typed performed/stale/denied/
+  cancelled/failure outcomes, committed component bases, retention, and
+  cancellation/cleanup contracts. Neither a candidate nor a performed owner
+  commit is product-current.
 - Runtime Bridge already has typed truth/Signal correspondence and speculative
   branch binding artifacts, but some are description-oriented and do not form
   an authoritative ordinary composite history.
@@ -283,8 +286,10 @@ and emits receipts inline.
 
 Install the Bridge-owned admission boundary over the exact owner ports from
 9.17.1. Define complete binding axes, compatibility, currentness, boundary
-readmission, and typed mismatch outcomes. Retire Bridge-authored string joins,
-branch-id derivation, and raw pair construction as authority paths.
+readmission, and typed mismatch outcomes. Preserve the 9.17.1 distinction
+between a pre-effect prepared candidate, a post-effect performed owner commit,
+and a product-current composite publication. Retire Bridge-authored string
+joins, branch-id derivation, and raw pair construction as authority paths.
 
 This phase emits an admitted composite basis, not a composite commit or branch
 head.

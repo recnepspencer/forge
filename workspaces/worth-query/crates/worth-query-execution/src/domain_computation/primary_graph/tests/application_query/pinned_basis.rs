@@ -343,7 +343,11 @@ fn change_account_label(
             locator,
             new_label.to_string().into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(WorkerIntentBatch::new("change-label-after-basis-pin").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {

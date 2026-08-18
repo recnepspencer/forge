@@ -12,23 +12,25 @@ pub(crate) fn validate_lowered_plan(
     runtime: &mut RelationalRuntime,
     lowered: crate::commit_strategies::data::LoweredStrategyCommitPlan,
 ) -> Result<ValidatedStrategyCommitPlan, TransactionCommitError> {
-    let basis_branch = lowered
-        .options()
-        .target_branch
-        .clone()
-        .unwrap_or_else(|| crate::history::data::BranchId("main".to_string()));
-    let validated_against_branch_head = runtime.history().branch_head(&basis_branch).cloned();
-    let validated_against_commit_id = validated_against_branch_head
+    let validated_against_commit =
+        runtime.legacy_branch_binding_commit(lowered.options().branch_binding());
+    let validated_against_commit_id = validated_against_commit
         .as_ref()
-        .map(|commit| commit.commit_id);
-    let validated_against_version_id = validated_against_branch_head
-        .as_ref()
-        .map(|commit| commit.version_id)
-        .unwrap_or_else(|| runtime.current_version_id());
+        .map(|commit| commit.commit_id());
+    let validated_against_version_id = runtime
+        .legacy_branch_binding_version(lowered.options().branch_binding())
+        .ok_or_else(|| {
+            TransactionCommitError::conflict(crate::transactions::data::CommitConflict::new(
+                crate::transactions::data::ConflictClass::StaleValidationBasis {
+                    detail: "owner-issued branch binding has no exact local version basis"
+                        .to_owned(),
+                },
+            ))
+        })?;
     let (structural_summary, working_state, _) = prepare_authoritative_working_state_scope(
         runtime,
         lowered.merged_plan(),
-        lowered.options().merge_parent_branches.len(),
+        lowered.options().merge_parent_bindings().len(),
     );
     let preview_validation_version_id =
         crate::identity::data::VersionId(validated_against_version_id.0.saturating_add(1));
@@ -99,7 +101,7 @@ fn preview_strategy_post_mutation_validation(
     let branch_local_delete_allowance = branch_local_delete_allowance_for_plan(
         runtime,
         lowered.merged_plan(),
-        lowered.options().target_branch.as_ref(),
+        Some(lowered.options().target_branch()),
     );
     let mut preview_symbols = runtime.services.symbols.clone();
     apply_plan_to_working_state(

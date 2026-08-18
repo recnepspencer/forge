@@ -95,7 +95,7 @@ fn publish_recovered_runtime(
     let outcome = RuntimeRecoveryOutcome {
         recovered_commits: restored.history.commit_envelopes.len(),
         latest_commit: restored.history().latest_commit().cloned(),
-        restored_branches: restored.history.branch_heads.len(),
+        restored_branches: restored.history.branch_count(),
         cursor: plan.cursor,
         coverage: RecoveryCoverage {
             checkpoint_commits,

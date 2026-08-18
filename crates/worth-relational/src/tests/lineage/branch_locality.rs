@@ -14,7 +14,7 @@ fn lineage_branch_divergence_is_queryable() {
     let _main = create_entity_outcome(&mut runtime, "main");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -58,7 +58,7 @@ fn historical_lineage_resolution_is_branch_local_under_divergent_replacements() 
         .lineage_id;
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )

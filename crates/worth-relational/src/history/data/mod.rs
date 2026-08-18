@@ -3,6 +3,7 @@ mod branch_creation;
 mod canonical_commit_envelope;
 mod committed_version;
 mod merge_branch_basis;
+#[cfg(test)]
 mod merge_branch_basis_foundational;
 
 use serde::{Deserialize, Serialize};
@@ -27,6 +28,7 @@ pub use merge_branch_basis::{
     MergeBaseSelectionRule, RelationalMergeBranchBasis, RelationalMergeBranchBasisDenial,
     ResolvedMergeBase,
 };
+#[cfg(test)]
 pub use merge_branch_basis_foundational::{
     RelationalFoundationalCurrentMergeBranchBasisArtifact,
     RelationalMergeBranchBasisFoundationalLoweringDenial,
@@ -51,7 +53,9 @@ pub enum HistoryRetentionClass {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CommitReference {
+/// Immutable commit receipt. The branch id is authoring provenance only; it
+/// never represents or selects a mutable branch head.
+pub struct RelationalCommitReceipt {
     pub commit_id: CommitId,
     pub version_id: VersionId,
     pub branch_id: BranchId,
@@ -60,7 +64,7 @@ pub struct CommitReference {
 
 /// Consumer-side semantic wrapper for authoritative parent order.
 ///
-/// `CommitReference.parents` remains the sole authoritative storage and
+/// `RelationalCommitReceipt.parents` remains the sole authoritative storage and
 /// publication surface. This wrapper exists only to make order-sensitive
 /// consumption explicit in parity, certification, and diagnostics paths.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,7 +95,7 @@ pub enum HistoryDriftClass {
     DurabilityParityDrift,
 }
 
-impl CommitReference {
+impl RelationalCommitReceipt {
     pub fn ordered_parents(&self) -> OrderedParentList {
         OrderedParentList::from_authoritative(self.parents.clone())
     }
@@ -138,20 +142,8 @@ impl HistoryShapeClassification {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct VersionNode {
-    pub commit: CommitReference,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BranchHead {
-    pub branch_id: BranchId,
-    pub head: Option<CommitReference>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct VersionGraphSnapshot {
-    pub branches: Vec<BranchHead>,
-    pub commits: Vec<VersionNode>,
+pub(crate) struct VersionNode {
+    pub(crate) commit: RelationalCommitReceipt,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -164,8 +156,8 @@ pub enum MergeConflictRecord {
 pub struct MergeInspection {
     pub source_branch: BranchId,
     pub target_branch: BranchId,
-    pub source_head: Option<CommitReference>,
-    pub target_head: Option<CommitReference>,
+    pub source_head: Option<RelationalCommitReceipt>,
+    pub target_head: Option<RelationalCommitReceipt>,
     /// Current merge-base result under the runtime's common-ancestor selection
     /// rule.
     pub merge_base: Option<CommitId>,

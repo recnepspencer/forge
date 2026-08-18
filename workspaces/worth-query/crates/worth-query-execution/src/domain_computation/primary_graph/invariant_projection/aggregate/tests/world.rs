@@ -224,7 +224,11 @@ impl AggregateWorld {
                     fields,
                 },
             ));
-            let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+            let mut transaction = runtime.begin_transaction(
+                runtime
+                    .transaction_options_for_main()
+                    .expect("main branch binding"),
+            );
             transaction
                 .push_batch(WorkerIntentBatch::new("aggregate-stale-generation").push(intent));
             transaction.commit().expect("amount replacement commits");

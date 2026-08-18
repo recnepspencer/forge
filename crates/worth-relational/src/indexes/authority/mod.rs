@@ -115,7 +115,6 @@ impl<'runtime> IndexAuthority<'runtime> {
             }
         }
 
-        self.attach_generations_to_commit(request.source_commit_id, &generations);
         self.publish_build_diagnostic(&request, &generations, &failed_indexes);
 
         DerivedIndexBuildOutcome {
@@ -150,25 +149,6 @@ impl<'runtime> IndexAuthority<'runtime> {
             .commit_envelopes
             .get(&commit_id)
             .map(|commit| commit.commit.version_id)
-    }
-
-    fn attach_generations_to_commit(
-        &mut self,
-        commit_id: CommitId,
-        generations: &[DerivedIndexGeneration],
-    ) {
-        self.runtime
-            .history_authority()
-            .append_index_generations(commit_id, generations);
-        if let Some(log_entry) = self
-            .runtime
-            .durability
-            .log
-            .iter_mut()
-            .find(|entry| entry.commit.commit_id == commit_id)
-        {
-            log_entry.append_index_generations_canonical(generations);
-        }
     }
 
     fn publish_build_diagnostic(

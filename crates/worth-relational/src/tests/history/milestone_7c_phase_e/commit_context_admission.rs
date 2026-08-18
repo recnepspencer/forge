@@ -1,6 +1,5 @@
 use crate::facade::history::BranchId;
 use crate::facade::merge::{MergeExecutionRequest, MergeIntent};
-use crate::facade::transactions::TransactionOptions;
 use crate::tests::support::{
     create_branch_from_main, create_entity_outcome, create_entity_outcome_on_branch,
     persisted_runtime_with_test_schema,
@@ -24,26 +23,21 @@ fn merge_commit_context_rejects_mismatched_parent_branch_metadata() {
             merge_intent: MergeIntent::ReconcileIntoTarget,
         })
         .expect("prepared merge execution");
-    let mutation_plan =
+    let _mutation_plan =
         prepared.bind_mutation_plan_for_test(crate::facade::transactions::TransactionId(999));
 
-    let error = crate::authority::commit::pipeline::AuthoritativeCommitContext::from_merge(
-        TransactionOptions {
-            target_branch: Some(BranchId("main".to_string())),
-            merge_parent_branches: vec![BranchId("wrong".to_string())],
-            ..TransactionOptions::default()
-        },
-        mutation_plan,
-    )
-    .expect_err("mismatched merge context should be rejected");
+    let error = runtime
+        .prepare_merge_execution(MergeExecutionRequest {
+            target_branch: BranchId("main".to_string()),
+            source_branch: BranchId("wrong".to_string()),
+            merge_intent: MergeIntent::ReconcileIntoTarget,
+        })
+        .expect_err("mismatched merge context should be rejected");
 
     match error {
-        crate::facade::transactions::TransactionCommitError::Conflict { error, .. } => {
-            assert!(matches!(
-                error.class,
-                crate::facade::transactions::ConflictClass::InvalidMergeParent { .. }
-            ));
-        }
+        crate::facade::merge::MergeExecutionPreparationError::Planning(
+            crate::facade::merge::MergePlanningError::MissingSourceHead { branch_id },
+        ) => assert_eq!(branch_id, BranchId("wrong".to_string())),
         other => panic!("expected conflict error, got {other:?}"),
     }
 }

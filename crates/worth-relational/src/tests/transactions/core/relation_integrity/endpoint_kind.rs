@@ -40,7 +40,7 @@ fn relation_integrity_commit_boundary_rejects_forbidden_self_edge() {
         .build();
     let entity = create_entity(&mut runtime, "self");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("relation").push(MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {

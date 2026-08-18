@@ -53,10 +53,12 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
             }
 
             runtime.performance_access().reset_counters();
-            let mut txn = runtime.begin_transaction(TransactionOptions {
-                target_branch: Some(feature_branch.clone()),
-                ..TransactionOptions::default()
-            });
+            let mut txn = runtime.begin_transaction(
+                crate::tests::support::test_owner_transaction_options_for_branch(
+                    &runtime,
+                    feature_branch.clone(),
+                ),
+            );
             let savepoint = txn.create_savepoint();
             let mut transient_batch = WorkerIntentBatch::new("chip-transient-fanout");
             for (index, target) in transient_targets.iter().enumerate() {

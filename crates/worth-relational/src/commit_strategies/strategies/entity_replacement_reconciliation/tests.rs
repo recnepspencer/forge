@@ -151,7 +151,7 @@ fn entity_replacement_reconciliation_strategy_replacement_declaration_applies_to
         .commit_strategies()
         .execute(&request, &snapshot)
         .expect("strategy execution");
-    let mut txn = runtime.begin_transaction(Default::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     for batch in execution
         .mutation_program()
         .worker_batches()

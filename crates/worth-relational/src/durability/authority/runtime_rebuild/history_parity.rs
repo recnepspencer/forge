@@ -10,16 +10,43 @@ use super::super::super::derived_index_artifacts::apply_envelope_derived_index_a
 pub(super) fn apply_authoritative_commit_artifacts(
     runtime: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
-) {
+    allow_reconstructed_replacement: bool,
+) -> Result<(), DurabilityError> {
+    if runtime
+        .history
+        .commit_envelopes
+        .get(&envelope.commit.commit_id)
+        .is_some_and(|existing| existing.as_ref() != envelope)
+        && !allow_reconstructed_replacement
+    {
+        return Err(DurabilityError::new(
+            RecoveryFailureClass::CorruptCheckpoint,
+            format!(
+                "recovery commit envelope conflicts for commit {}",
+                envelope.commit.commit_id.0
+            ),
+        ));
+    }
+    if runtime
+        .history
+        .commit_catalog
+        .get(envelope.commit.commit_id)
+        .is_some_and(|existing| existing.envelope().as_ref() != envelope)
+        && !allow_reconstructed_replacement
+    {
+        return Err(DurabilityError::new(
+            RecoveryFailureClass::CorruptCheckpoint,
+            format!(
+                "recovery commit artifact conflicts for commit {}",
+                envelope.commit.commit_id.0
+            ),
+        ));
+    }
     runtime.history.commit_graph.insert(
         envelope.commit.commit_id,
         VersionNode {
             commit: envelope.commit.clone(),
         },
-    );
-    runtime.history.branch_heads.insert(
-        envelope.branch_context.clone(),
-        Some(envelope.commit.clone()),
     );
     runtime
         .history
@@ -29,6 +56,10 @@ pub(super) fn apply_authoritative_commit_artifacts(
         .history
         .patch_stream_index
         .insert(envelope.patch.position, envelope.commit.commit_id);
+    runtime
+        .history
+        .record_recovered_commit(envelope, allow_reconstructed_replacement)
+        .map_err(|detail| DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail))?;
 
     if !envelope.lineage_events().is_empty() {
         for event in envelope.lineage_events() {
@@ -47,6 +78,7 @@ pub(super) fn apply_authoritative_commit_artifacts(
     }
 
     apply_envelope_derived_index_artifacts(runtime, envelope);
+    Ok(())
 }
 
 pub(super) fn validate_recovered_history_parity(
@@ -99,11 +131,17 @@ pub(super) fn validate_expected_recovery_parent_shape(
     let observed_parents = ordered_parents.as_slice();
     let current_branch_head = runtime
         .history
-        .branch_heads
-        .get(&envelope.branch_context)
-        .and_then(|head| head.as_ref())
-        .map(|head| head.commit_id);
-    let admitted_target_head = current_branch_head.or_else(|| observed_parents.first().copied());
+        .branch_cell(&envelope.branch_context)
+        .and_then(|cell| match cell.observation().target() {
+            worth_foundational::FoundationalBranchTarget::Basis(target) => {
+                Some(crate::history::data::CommitId(target.commit_id()))
+            }
+            worth_foundational::FoundationalBranchTarget::Empty => None,
+        });
+    // The branch-reference cell is the only currentness authority.  An empty
+    // cell is an explicit empty target, not permission to infer a head from
+    // the envelope's parent list.
+    let admitted_target_head = current_branch_head;
 
     if envelope.merge_parent_branches.is_empty() {
         let expected = admitted_target_head.into_iter().collect::<Vec<_>>();
@@ -127,10 +165,13 @@ pub(super) fn validate_expected_recovery_parent_shape(
     for branch in &envelope.merge_parent_branches {
         let branch_head = runtime
             .history
-            .branch_heads
-            .get(branch)
-            .and_then(|head| head.as_ref())
-            .map(|head| head.commit_id)
+            .branch_cell(branch)
+            .and_then(|cell| match cell.observation().target() {
+                worth_foundational::FoundationalBranchTarget::Basis(target) => {
+                    Some(crate::history::data::CommitId(target.commit_id()))
+                }
+                worth_foundational::FoundationalBranchTarget::Empty => None,
+            })
             .ok_or_else(|| {
                 DurabilityError::new(
                     RecoveryFailureClass::ReplayFailure,

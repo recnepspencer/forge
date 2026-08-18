@@ -15,7 +15,7 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
         .rebuild_unique_entity_aspect_field_indexes();
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("duplicate-name").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -58,7 +58,7 @@ fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() 
         .rebuild_unique_entity_aspect_field_indexes();
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("duplicate-name").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {

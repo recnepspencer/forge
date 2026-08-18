@@ -29,6 +29,7 @@ pub use initial_schema_installation::{
     RelationalInitialSchemaInstallation, RelationalInitialSchemaInstallationDenial,
     RelationalInitialSchemaInstallationDenialKind, RelationalInitialSchemaInstallationReceipt,
 };
+pub use state::RelationalPhase4ReferenceCostCounters;
 
 pub(crate) use crate::storage::overlay::{PartitionAccess, WorkingState};
 pub(crate) use construction::RuntimeExtensions;

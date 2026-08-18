@@ -58,7 +58,11 @@ fn conditional_runtime_bridge_with_change_sequence(
         dependency.contract().key().clone(),
         CanonicalFieldPath::single(field.clone()),
     );
-    let mut create = relational.begin_transaction(TransactionOptions::default());
+    let mut create = relational.begin_transaction(
+        relational
+            .transaction_options_for_main()
+            .expect("main branch binding"),
+    );
     create.push_batch(WorkerIntentBatch::new("create-delivery-entity").push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -76,7 +80,11 @@ fn conditional_runtime_bridge_with_change_sequence(
             RecordRef::Relation(_) => None,
         })
         .expect("create commit should retain the delivery entity");
-    let mut update = relational.begin_transaction(TransactionOptions::default());
+    let mut update = relational.begin_transaction(
+        relational
+            .transaction_options_for_main()
+            .expect("main branch binding"),
+    );
     update.push_batch(WorkerIntentBatch::new("update-delivery-entity").push(
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(
             UpdateEntityFieldsIntent {
@@ -89,7 +97,11 @@ fn conditional_runtime_bridge_with_change_sequence(
     let mut requests = vec![request(&updated)];
     let mut snapshots = vec![snapshot(&created), snapshot(&updated)];
     if repeat_after_value {
-        let mut repeated = relational.begin_transaction(TransactionOptions::default());
+        let mut repeated = relational.begin_transaction(
+            relational
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         repeated.push_batch(WorkerIntentBatch::new("repeat-delivery-value").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {

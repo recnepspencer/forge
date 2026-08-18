@@ -4944,13 +4944,23 @@ The order is strict. The umbrella closes only after 9.17.3.
 
 ### Submilestone Sequence
 
-#### Milestone 9.17.1: Owner Component Bases And Relational Branch-Local MVCC
+#### Milestone 9.17.1: Exact Owner Bases And Relational Branch-Local MVCC
 
-Relational and Signal each freeze exact private-minted component bases;
-Relational then replaces the global ordinary commit coordinator with branch-
-qualified observation, transaction, conflict, publication, history, and
-retention authority. Closure requires controlled independent-branch progress,
-same-head conflict honesty, exact owner readmission, bounded lifecycle, and no
+Foundational first freezes one descriptive vocabulary that separates immutable
+target bases from mutable branch references and names exact reference
+observations, generations, forks, comparisons, and movements. Relational and
+Signal then cut their public branch/basis surfaces over that shared language
+while retaining private owner authority. Relational separates immutable commits
+from mutable branch references and replaces the global ordinary commit
+coordinator with branch-qualified observation, detached transaction state,
+exact-head validation, atomic branch-root publication, canonical history, and
+obligation-bound retention. Before the MVCC cutover, Relational ships the
+Supply Chain certification world: a public-facade causal compiler, named
+semantic deltas, independent pure oracle, and Court/Standard/Scale profiles
+retained for later merge certification. Closure requires no sibling semantic
+crossover, exact shared ancestry, zero-copy fork, touched-region copy-on-write,
+controlled independent-branch progress, one-winner same-reference races, exact
+owner readmission, bounded lifecycle, Signal zero-work basis reuse, and no
 composite product claim.
 
 #### Milestone 9.17.2: Composite Runtime-World History And Coordinated Publication
@@ -4973,10 +4983,16 @@ the umbrella and unlocks 9.18.
 
 ### Must Ship
 
-- 9.17.1 ships owner-issued Relational and Signal branch bases that remain
-  distinct and non-substitutable, plus Relational-owned branch-local versions,
-  snapshots, transactions, conflicts, retention, publication candidates, and
-  concurrent independent-branch progress without an ordinary global lock
+- 9.17.1 first ships the Supply Chain causal certification world, independent
+  semantic oracle, reusable merge-ready deltas, and structural-sharing
+  observations; then ships a shared Foundational immutable-basis/mutable-
+  reference grammar;
+  owner-issued Relational and Signal branch bases that remain distinct and
+  non-substitutable; a Relational split between immutable commits and mutable
+  references; and Relational-owned branch-local versions, repeatable snapshots,
+  detached transactions, exact-head conflicts, atomic branch roots, retention,
+  prepared candidates, performed owner commits, and concurrent independent-
+  branch progress without an ordinary global lock
 - 9.17.2 ships Runtime Bridge-owned exact component correspondence, immutable
   single-parent composite commits, product branch references, retention,
   explicit reuse/fork posture, and coordinated compare-and-publish with no
@@ -4987,9 +5003,10 @@ the umbrella and unlocks 9.18.
   cuts over the public facade; and deletes the Relational-only/ambient-Signal
   lane
 - all operational transitions consume compiler-visible, private-minted
-  predecessor types using `worth-proof` progression beneath stronger owner
-  artifacts, while `worth-foundational` supplies portable canonical and
-  boundary vocabulary without becoming operational authority
+  predecessor types using concrete `worth-proof` carriers specialized to
+  owner-sealed markers; governed facades expose no caller-selected generic
+  authority parameter; and `worth-foundational` supplies portable canonical
+  and boundary vocabulary without becoming operational authority
 
 ### Must Preserve
 
@@ -5004,10 +5021,14 @@ the umbrella and unlocks 9.18.
 
 ### Acceptance Evidence
 
-Independent component and composite-history probes prove shared immutable Signal
-basis reuse, Relational-only and Signal-only advancement, combined publication,
-distinct equal-version authority, cross-branch progress, same-head conflict,
-exact ancestry and retention, no half publication, and exact lifecycle cleanup.
+Independent component and composite-history probes prove a causally installed
+Supply Chain baseline against a non-production semantic oracle, no branch
+crossover, shared immutable history without duplicated truth, touched-region copy-on-write,
+shared immutable Signal basis reuse, Relational-only and Signal-only
+advancement, combined publication, immutable-commit/mutable-reference
+separation, distinct equal-version authority, cross-branch progress, same-head
+conflict, atomic branch-root visibility, exact ancestry and retention, no half
+publication, and exact lifecycle cleanup.
 The final 9.17.3 court proves the same facts through the real Query composition
 root, public facade, default and admitted parallel lanes, compiler denials,
 exact counters, executable docs, and exact-zero legacy residue.

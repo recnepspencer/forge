@@ -1,4 +1,4 @@
-use worth_relational::facade::history::{BranchId, CommitId, CommitReference};
+use worth_relational::facade::history::{BranchId, CommitId, RelationalCommitReceipt};
 use worth_relational::facade::indexes::DerivedIndexBuildRequest;
 
 use super::WorthQueryPrimaryGraphIntegrationHandle;
@@ -78,9 +78,9 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
             .runtime
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let previous = runtime.history().latest_commit().cloned();
+        let previous = runtime.history().historical_latest_commit().cloned();
         let outcome = mutate(&mut runtime);
-        let committed = runtime.history().latest_commit().cloned();
+        let committed = runtime.history().historical_latest_commit().cloned();
         if previous == committed {
             return Ok(outcome);
         }
@@ -109,7 +109,7 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
 }
 
 fn missing_committed_mutation(
-    previous: Option<&CommitReference>,
+    previous: Option<&RelationalCommitReceipt>,
     requested_index_count: usize,
 ) -> WorthQueryPrimaryGraphIndexRefreshDenial {
     WorthQueryPrimaryGraphIndexRefreshDenial {
@@ -123,8 +123,8 @@ fn missing_committed_mutation(
 }
 
 fn index_build_rejected(
-    previous: Option<&CommitReference>,
-    committed: &CommitReference,
+    previous: Option<&RelationalCommitReceipt>,
+    committed: &RelationalCommitReceipt,
     requested_index_count: usize,
     failed_index_count: usize,
 ) -> WorthQueryPrimaryGraphIndexRefreshDenial {

@@ -9,9 +9,10 @@ fn execute_lowered_commit_routes_strategy_plan_through_authoritative_pipeline() 
     let request = canonical_request();
     let execution = execution_draft(&request);
     let lowered = {
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         authority
-            .lower_execution(&request, &execution, TransactionOptions::default())
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered strategy plan")
     };
 
@@ -49,9 +50,10 @@ fn validate_lowered_plan_preserves_strategy_provenance_and_commit_boundary_summa
     let request = canonical_request();
     let execution = execution_draft(&request);
     let lowered = {
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         authority
-            .lower_execution(&request, &execution, TransactionOptions::default())
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered strategy plan")
     };
 
@@ -94,9 +96,10 @@ fn execute_validated_commit_routes_prevalidated_strategy_plan_through_authoritat
     let request = canonical_request();
     let execution = execution_draft(&request);
     let validated = {
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, TransactionOptions::default())
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered strategy plan");
         authority
             .validate_lowered_plan(lowered)
@@ -148,16 +151,18 @@ fn execute_validated_commit_rejects_stale_validation_basis_after_intervening_com
     let request = canonical_request();
     let execution = execution_draft(&request);
     let validated = {
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, TransactionOptions::default())
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered strategy plan");
         authority
             .validate_lowered_plan(lowered)
             .expect("validated lowered strategy plan")
     };
 
-    let mut ordinary_txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut ordinary_txn =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     ordinary_txn.push_batch(WorkerIntentBatch::new("ordinary-create").push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId(1),

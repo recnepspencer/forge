@@ -15,12 +15,15 @@ use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use std::sync::Arc;
 
-use super::{CommitCreatedEntityBindings, CommitValidation, CommitValidationSummary};
+use super::{
+    CommitCreatedEntityBindings, CommitCreatedRelationBindings, CommitValidation,
+    CommitValidationSummary,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommitOutcome {
     pub transaction_id: TransactionId,
-    pub commit: crate::history::data::CommitReference,
+    pub commit: crate::history::data::RelationalCommitReceipt,
     pub version_id: crate::identity::data::VersionId,
     pub snapshot: SnapshotHandle,
     pub changed_records: Vec<RecordRef>,
@@ -111,6 +114,7 @@ pub struct CommitResult {
     validation: CommitValidation,
     execution: CommitExecution,
     created_entities: CommitCreatedEntityBindings,
+    created_relations: CommitCreatedRelationBindings,
 }
 
 impl Deref for CommitResult {
@@ -170,6 +174,7 @@ impl CommitResult {
             validation,
             execution,
             created_entities,
+            created_relations,
         ) = seal.into_parts();
         Self {
             outcome,
@@ -180,6 +185,7 @@ impl CommitResult {
             validation,
             execution,
             created_entities,
+            created_relations,
         }
     }
 
@@ -197,6 +203,15 @@ impl CommitResult {
         created: &crate::transactions::data::CreatedEntityRef,
     ) -> Option<crate::identity::data::EntityId> {
         self.created_entities.resolve(created)
+    }
+
+    /// Resolves the relation identity assigned to this exact create
+    /// correspondence by the authoritative commit that produced this result.
+    pub fn created_relation(
+        &self,
+        created: &crate::transactions::data::CreatedRelationRef,
+    ) -> Option<crate::identity::data::RelationId> {
+        self.created_relations.resolve(created)
     }
 
     pub fn commit_log(&self) -> &CommitLog {
@@ -301,20 +316,18 @@ impl CommitResult {
         let traces = self.aspect_emission_traces();
         AspectTagAccuracyReport {
             records_checked: traces.len() as u64,
-            correctly_tagged_records: self
-                .patch_vs_truth_delta_report()
-                .exact_match
-                .then_some(traces.len() as u64)
-                .unwrap_or_else(|| {
-                    traces
-                        .iter()
-                        .zip(self.patch().iter())
-                        .filter(|(trace, record)| {
-                            trace.changed_aspects == record.authoritative_changed_aspects()
-                                && trace.contains_opaque_aspect == record.contains_opaque_aspect
-                        })
-                        .count() as u64
-                }),
+            correctly_tagged_records: if self.patch_vs_truth_delta_report().exact_match {
+                traces.len() as u64
+            } else {
+                traces
+                    .iter()
+                    .zip(self.patch().iter())
+                    .filter(|(trace, record)| {
+                        trace.changed_aspects == record.authoritative_changed_aspects()
+                            && trace.contains_opaque_aspect == record.contains_opaque_aspect
+                    })
+                    .count() as u64
+            },
             touched_aspects: crate::publication::patch::data::ordered_aspect_keys(
                 traces
                     .iter()

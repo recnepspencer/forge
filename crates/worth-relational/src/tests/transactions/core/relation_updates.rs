@@ -10,7 +10,7 @@ fn relation_endpoint_update_preserves_relation_identity_and_rewrites_endpoints()
     let new_target = create_entity(&mut runtime, "new-target");
     let relation = create_relation(&mut runtime, source, original_target, "edge");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-relation").push(MutationIntent::Relation(
             RelationMutationIntent::UpdateEndpoints(UpdateRelationEndpointsIntent {
@@ -58,7 +58,7 @@ fn relation_endpoint_update_rejects_duplicate_relation_identity() {
     let first = create_relation(&mut runtime, source, left, "edge-left");
     let _second = create_relation(&mut runtime, source, right, "edge-right");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("duplicate-rewire").push(MutationIntent::Relation(
             RelationMutationIntent::UpdateEndpoints(UpdateRelationEndpointsIntent {
@@ -96,7 +96,7 @@ fn relation_endpoint_update_accepts_same_batch_created_target() {
         client_key: crate::symbols::data::ClientKey::raw("same-batch-target"),
     };
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-to-created")
             .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -149,7 +149,7 @@ fn relation_endpoint_update_to_same_batch_created_target_survives_old_target_ret
         client_key: crate::symbols::data::ClientKey::raw("rewired-target"),
     };
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-and-retire-old-target")
             .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -218,7 +218,7 @@ fn relation_endpoint_update_to_same_batch_created_source_survives_old_source_ret
         client_key: crate::symbols::data::ClientKey::raw("rewired-source"),
     };
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-and-retire-old-source")
             .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {

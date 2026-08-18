@@ -172,6 +172,7 @@ pub(super) fn admit_commit_execution(
         &context.options,
         context.validated_against_commit_id,
         context.validated_against_version_id,
+        context.validated_against_branch_version,
     )?;
     Ok(AdmittedCommitExecution {
         transaction_id: context.transaction_id,
@@ -194,15 +195,40 @@ fn enforce_validated_strategy_basis(
     options: &crate::transactions::data::TransactionOptions,
     validated_against_commit_id: Option<crate::history::data::CommitId>,
     validated_against_version_id: Option<crate::identity::data::VersionId>,
+    validated_against_branch_version: Option<crate::branch::RelationalBranchVersion>,
 ) -> Result<(), TransactionCommitError> {
-    let branch = options
-        .target_branch
-        .clone()
-        .unwrap_or_else(|| runtime.config.history.main_branch.clone());
-    let head = runtime.history().branch_head(&branch).cloned();
-    validate_version_basis(runtime, head.as_ref(), validated_against_version_id)?;
+    let branch = options.target_branch().clone();
+    if options.branch_binding().identity().runtime_instance_id() != runtime.runtime_instance_id() {
+        return Err(stale_strategy_validation_basis(
+            "transaction branch binding belongs to another Relational runtime",
+        ));
+    }
+    if !runtime.legacy_branch_binding_is_current(options.branch_binding()) {
+        return Err(stale_strategy_validation_basis(
+            "transaction branch binding is no longer current",
+        ));
+    }
+    if let Some(validated_branch_version) = validated_against_branch_version {
+        let binding = options.branch_binding();
+        let Some(cell) = runtime.history.branch_cell(&branch) else {
+            return Err(stale_strategy_validation_basis(
+                "validated transaction branch is no longer registered",
+            ));
+        };
+        if cell.identity() != binding.identity()
+            || cell.observation() != binding.observation()
+            || cell.truth_version() != validated_branch_version
+        {
+            return Err(stale_strategy_validation_basis(
+                "validated transaction no longer matches the current branch reference",
+            ));
+        }
+    }
+    let current_commit = runtime.legacy_branch_binding_commit(options.branch_binding());
+    let current_version = runtime.legacy_branch_binding_version(options.branch_binding());
+    validate_version_basis(current_version, validated_against_version_id)?;
     if validated_against_commit_id.is_some()
-        && head.as_ref().map(|commit| commit.commit_id) != validated_against_commit_id
+        && current_commit.as_ref().map(|commit| commit.commit_id()) != validated_against_commit_id
     {
         return Err(stale_strategy_validation_basis(
             "validated strategy plan no longer matches the current committed commit basis",
@@ -212,16 +238,17 @@ fn enforce_validated_strategy_basis(
 }
 
 fn validate_version_basis(
-    runtime: &RelationalRuntime,
-    head: Option<&crate::history::data::CommitReference>,
+    current_version: Option<crate::identity::data::VersionId>,
     validated_version: Option<crate::identity::data::VersionId>,
 ) -> Result<(), TransactionCommitError> {
     let Some(validated_version) = validated_version else {
         return Ok(());
     };
-    let observed = head
-        .map(|commit| commit.version_id)
-        .unwrap_or_else(|| runtime.current_version_id());
+    let Some(observed) = current_version else {
+        return Err(stale_strategy_validation_basis(
+            "owner-issued branch binding has no exact local version basis",
+        ));
+    };
     (validated_version == observed)
         .then_some(())
         .ok_or_else(|| {

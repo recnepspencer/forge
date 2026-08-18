@@ -1,4 +1,4 @@
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 use crate::lineage::authority::LineageAuthority;
 use crate::lineage::data::{
     CorrespondenceCandidateId, CorrespondencePromotionOutcome,
@@ -9,7 +9,7 @@ impl<'runtime> LineageAuthority<'runtime> {
     pub fn promote_correspondence(
         &mut self,
         candidate_id: CorrespondenceCandidateId,
-        commit: CommitReference,
+        commit: RelationalCommitReceipt,
     ) -> Result<CorrespondencePromotionOutcome, CorrespondencePromotionRejectionClass> {
         let recorded = match self.recorded_candidate(candidate_id) {
             Ok(recorded) => recorded,
@@ -35,7 +35,7 @@ impl<'runtime> LineageAuthority<'runtime> {
     pub fn try_promote_correspondence(
         &mut self,
         candidate_id: CorrespondenceCandidateId,
-        commit: CommitReference,
+        commit: RelationalCommitReceipt,
     ) -> CorrespondencePromotionOutcome {
         match self.promote_correspondence(candidate_id, commit) {
             Ok(resolution) => resolution,
@@ -49,7 +49,7 @@ impl<'runtime> LineageAuthority<'runtime> {
     pub(crate) fn promote_correspondence_with_post_plan_hook_for_test(
         &mut self,
         candidate_id: CorrespondenceCandidateId,
-        commit: CommitReference,
+        commit: RelationalCommitReceipt,
         after_plan_lowered: impl FnOnce(&mut crate::runtime::RelationalRuntime),
     ) -> Result<CorrespondencePromotionOutcome, CorrespondencePromotionRejectionClass> {
         let recorded = self.recorded_candidate(candidate_id)?;

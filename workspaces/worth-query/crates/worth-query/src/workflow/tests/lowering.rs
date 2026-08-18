@@ -134,11 +134,11 @@ fn merge_lowering_preserves_explicit_branches_and_requires_authority_validation(
     assert_eq!(lowered.counters().workflow_mutation_lowering_count(), 0);
     assert_eq!(lowered.counters().workflow_staleness_check_count(), 1);
 
-    let control = MergeExecutionRequest {
-        target_branch: BranchId("main".to_string()),
-        source_branch: BranchId("candidate".to_string()),
-        merge_intent: MergeIntent::ReconcileIntoTarget,
-    };
+    let control = MergeExecutionRequest::new(
+        BranchId("main".to_string()),
+        BranchId("candidate".to_string()),
+        MergeIntent::ReconcileIntoTarget,
+    );
     assert_eq!(lowered.merge_request(), &control);
 }
 

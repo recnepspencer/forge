@@ -5,7 +5,7 @@ use crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan;
 use crate::authority::commit::publication::diagnostics_summary_artifact;
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use crate::transactions::data::{
     AspectEmissionTrace, AspectEvaluationTrace, CommitAspectSummary, CommitChangeSummary,
@@ -35,7 +35,7 @@ pub(in crate::authority::commit::pipeline) struct PublicationFinalizeArtifacts {
 pub(super) struct PublicationPreparationInput<'a> {
     pub(super) working_state: &'a mut crate::runtime::WorkingState,
     pub(super) patch: PublishedAuthoritativePatchEnvelope,
-    pub(super) commit_reference: &'a CommitReference,
+    pub(super) commit_reference: &'a RelationalCommitReceipt,
     pub(super) branch_id: &'a crate::history::data::BranchId,
     pub(super) version_id: crate::identity::data::VersionId,
     pub(super) merge_parent_branches: &'a [crate::history::data::BranchId],
@@ -153,7 +153,7 @@ fn capture_publication_traces(
 struct PublicationAuthorityInput<'a> {
     working_state: &'a mut crate::runtime::WorkingState,
     patch: &'a PublishedAuthoritativePatchEnvelope,
-    commit_reference: &'a CommitReference,
+    commit_reference: &'a RelationalCommitReceipt,
     branch_id: &'a crate::history::data::BranchId,
     version_id: crate::identity::data::VersionId,
     merge_parent_branches: &'a [crate::history::data::BranchId],
@@ -214,7 +214,7 @@ fn prepare_authoritative_publication(
 
 struct PublicationCompletionInput<'a> {
     patch: PublishedAuthoritativePatchEnvelope,
-    commit_reference: &'a CommitReference,
+    commit_reference: &'a RelationalCommitReceipt,
     changed_records: Vec<RecordRef>,
     canonical_deltas: Vec<crate::authority::mutation::CanonicalRecordAspectDelta>,
     adjacency_deltas: Vec<crate::authority::mutation::AdjacencyDelta>,
@@ -335,7 +335,7 @@ fn summarize_commit_aspects(
     let mut zero_aspect_structural_delta_count = 0;
 
     for delta in deltas {
-        let aspect_count = delta.changed_aspects.iter().count();
+        let aspect_count = delta.changed_aspects.len();
         match delta.target {
             RecordRef::Entity(_) => changed_entity_aspect_count += aspect_count,
             RecordRef::Relation(_) => changed_relation_aspect_count += aspect_count,

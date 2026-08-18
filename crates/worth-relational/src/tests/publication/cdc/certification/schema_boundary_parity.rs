@@ -18,13 +18,16 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        schema_transition_for_subscriber_impact(
-            SchemaVersionId(2),
-            SchemaSubscriberImpact::ConsumableSurfaceChanged,
-        ),
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                schema_transition_for_subscriber_impact(
+                    SchemaVersionId(2),
+                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                ),
+                Some(SchemaReconciliationPolicy::PreserveInformation),
+            ),
+    );
     txn.push_batch(batch_create("after-boundary"));
     txn.commit().unwrap();
 
@@ -66,14 +69,16 @@ fn diff_cdc_truth_parity_test() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut txn_v2 =
-        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-            schema_transition_for_subscriber_impact(
-                SchemaVersionId(2),
-                SchemaSubscriberImpact::ConsumableSurfaceChanged,
+    let mut txn_v2 = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                schema_transition_for_subscriber_impact(
+                    SchemaVersionId(2),
+                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                ),
+                Some(SchemaReconciliationPolicy::PreserveInformation),
             ),
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ));
+    );
     txn_v2.push_batch(batch_create("after-v2"));
     txn_v2.commit().unwrap();
 
@@ -82,14 +87,16 @@ fn diff_cdc_truth_parity_test() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut txn_v3 =
-        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-            schema_transition_for_subscriber_impact(
-                SchemaVersionId(3),
-                SchemaSubscriberImpact::ConsumableSurfaceChanged,
+    let mut txn_v3 = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                schema_transition_for_subscriber_impact(
+                    SchemaVersionId(3),
+                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                ),
+                Some(SchemaReconciliationPolicy::PreserveInformation),
             ),
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ));
+    );
     txn_v3.push_batch(batch_create("after-v3"));
     txn_v3.commit().unwrap();
 

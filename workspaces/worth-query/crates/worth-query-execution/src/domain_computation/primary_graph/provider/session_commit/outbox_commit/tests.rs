@@ -77,7 +77,11 @@ fn commit_only_other_outbox() -> (
     )
     .expect("committed outbox create binds");
     let committed = provider.graph.with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(
             WorkerIntentBatch::new("outbox-resolution-owner-proof").push(committed_intent),
         );

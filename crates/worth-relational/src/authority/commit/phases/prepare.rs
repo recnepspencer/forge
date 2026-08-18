@@ -133,7 +133,7 @@ pub(crate) fn prepare_working_state_scope(
         prepare_authoritative_working_state_scope(
             transaction.runtime,
             &merged_plan,
-            transaction.options.merge_parent_branches.len(),
+            transaction.options.merge_parent_bindings().len(),
         );
     phase_timing.draft_structural_summary_micros =
         prepare_phase_timing.draft_structural_summary_micros;

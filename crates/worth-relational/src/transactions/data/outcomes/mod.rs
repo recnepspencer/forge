@@ -4,6 +4,7 @@ mod commit_result;
 mod commit_validation;
 mod conflict_class;
 mod created_entity_bindings;
+mod created_relation_bindings;
 mod plan_artifacts;
 mod rollback;
 
@@ -27,6 +28,7 @@ pub use conflict_class::{
     RelationEndpointUpdateMissingState,
 };
 pub(crate) use created_entity_bindings::CommitCreatedEntityBindings;
+pub(crate) use created_relation_bindings::CommitCreatedRelationBindings;
 pub(crate) use plan_artifacts::merge_commit_mutation_plan_token;
 pub use plan_artifacts::{
     AuthoritativeApplyPlan, LoweredCommitPlan, MergeCommitMutationPlan, MergeExecutionOutcome,

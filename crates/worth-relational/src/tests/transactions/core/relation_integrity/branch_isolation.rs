@@ -10,7 +10,7 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
     let accepted = create_relation_outcome(&mut runtime, source, target_a, "accepted");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -42,10 +42,10 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         .unwrap()
         .position;
 
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(BranchId("feature".to_string())),
-        ..TransactionOptions::default()
-    });
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut runtime,
+        BranchId("feature".to_string()),
+    );
     txn.push_batch(WorkerIntentBatch::new("illegal-feature-relation").push(
         MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {

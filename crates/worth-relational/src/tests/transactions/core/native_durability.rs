@@ -29,7 +29,7 @@ fn native_struct_reference_and_clear_state_survive_checkpoint_readmission() {
         .contract_for(&aspect_key("label"))
         .unwrap();
 
-    let mut initial = runtime.begin_transaction(TransactionOptions::default());
+    let mut initial = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     initial.push_batch(WorkerIntentBatch::new("native-entity-struct").push(
         MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
             ApplyEntityAspectPatchIntent {
@@ -58,7 +58,8 @@ fn native_struct_reference_and_clear_state_survive_checkpoint_readmission() {
         field_sets: Vec::new(),
         field_clears: vec![status],
     }]);
-    let mut clear_transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut clear_transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     clear_transaction.push_batch(WorkerIntentBatch::new("native-field-clear").push(
         MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
             ApplyEntityAspectPatchIntent {

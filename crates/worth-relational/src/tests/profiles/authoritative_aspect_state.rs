@@ -6,7 +6,7 @@ fn fieldless_entity_create_commits_with_absent_authoritative_aspect_state() {
     let mut runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .build();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("opaque").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -57,7 +57,8 @@ fn authoritative_field_patches_are_order_independent_in_patch_output() {
         .schema_registry(order_independent_schema)
         .build();
 
-    let mut left_txn = left_runtime.begin_transaction(TransactionOptions::default());
+    let mut left_txn =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut left_runtime);
     left_txn.push_batch(
         WorkerIntentBatch::new("left-field-patch").push(MutationIntent::Create(
             CreateIntent::Entity(crate::transactions::data::EntitySpec {
@@ -81,7 +82,8 @@ fn authoritative_field_patches_are_order_independent_in_patch_output() {
     );
     left_txn.commit().unwrap();
 
-    let mut right_txn = right_runtime.begin_transaction(TransactionOptions::default());
+    let mut right_txn =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut right_runtime);
     right_txn.push_batch(
         WorkerIntentBatch::new("right-field-patch").push(MutationIntent::Create(
             CreateIntent::Entity(crate::transactions::data::EntitySpec {

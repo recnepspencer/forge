@@ -15,6 +15,7 @@ fn subscriber_stream_rejects_unsupported_contract_upgrade_boundary() {
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
+        &runtime,
         SchemaVersionId(2),
         SchemaSubscriberImpact::ContractUpgradeRequired,
     ));
@@ -64,6 +65,7 @@ fn subscriber_stream_applies_contract_upgrade_when_declared_supported() {
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
+        &runtime,
         SchemaVersionId(2),
         SchemaSubscriberImpact::ContractUpgradeRequired,
     ));
@@ -118,6 +120,7 @@ fn subscriber_stream_rejects_renegotiation_required_boundary() {
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
+        &runtime,
         SchemaVersionId(2),
         SchemaSubscriberImpact::RenegotiationRequired,
     ));

@@ -60,16 +60,16 @@ fn merge_commit_inspection_stays_envelope_projected() {
     let entity = changed_entities(&created)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .expect("feature branch");
 
-    let mut feature_txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(BranchId("feature".to_string())),
-        ..TransactionOptions::default()
-    });
+    let mut feature_txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut runtime,
+        BranchId("feature".to_string()),
+    );
     feature_txn.push_batch(
         WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {

@@ -21,7 +21,7 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
         SchemaVersionId(1),
     );
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     let savepoint = txn.create_savepoint();
     txn.push_batch(
         WorkerIntentBatch::new("illegal-self-edge").push(MutationIntent::Create(
@@ -82,7 +82,7 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
         SchemaVersionId(1),
     );
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     let savepoint = txn.create_savepoint();
     txn.push_batch(WorkerIntentBatch::new("rolled-back-delete-source").push(
         MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {

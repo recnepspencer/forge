@@ -121,14 +121,17 @@ impl RelationalRuntime {
         config: super::RelationalRuntimeConfig,
         extensions: RuntimeExtensions,
     ) -> Self {
+        let services = extensions.build_runtime_services();
+        let mut history = <HistorySubsystem as RuntimeSubsystem>::new(&config.history.main_branch);
+        history.set_runtime_instance_id(services.runtime_instance_id());
         Self {
             schema_contract_runtime: extensions.build_schema_contract_runtime_subsystem(&config),
             commit_strategies: extensions.build_commit_strategy_subsystem(&config),
-            history: <HistorySubsystem as RuntimeSubsystem>::new(&config.history.main_branch),
+            history,
             indexes: <IndexingSubsystem as RuntimeSubsystem>::new(&()),
             lineage: <LineageSubsystem as RuntimeSubsystem>::new(&()),
             durability: <DurabilitySubsystem as RuntimeSubsystem>::new(&config),
-            services: extensions.build_runtime_services(),
+            services,
             partitions: BTreeMap::new(),
             visibility: <VisibilitySubsystem as RuntimeSubsystem>::new(&config),
             publication: extensions.build_publication_subsystem(),
@@ -137,6 +140,8 @@ impl RelationalRuntime {
     }
 
     pub fn fork(&self) -> Self {
+        let services = RuntimeSubsystem::fork(&self.services);
+        let runtime_instance_id = services.runtime_instance_id();
         Self {
             config: self.config.clone(),
             schema_contract_runtime: RuntimeSubsystem::fork(&self.schema_contract_runtime),
@@ -144,11 +149,11 @@ impl RelationalRuntime {
             partitions: self.partitions.clone(),
             visibility: RuntimeSubsystem::fork(&self.visibility),
             publication: RuntimeSubsystem::fork(&self.publication),
-            history: RuntimeSubsystem::fork(&self.history),
+            history: self.history.fork_for_runtime(runtime_instance_id),
             indexes: RuntimeSubsystem::fork(&self.indexes),
             lineage: RuntimeSubsystem::fork(&self.lineage),
             durability: RuntimeSubsystem::fork(&self.durability),
-            services: RuntimeSubsystem::fork(&self.services),
+            services,
         }
     }
 }

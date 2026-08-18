@@ -35,7 +35,7 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
         false,
     );
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("summary-field-patch").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -87,7 +87,7 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
             field_sets,
             field_clears,
             ..
-        }] if aspect_key == &AspectKey::new("summary").unwrap()
+        }] if *aspect_key == AspectKey::new("summary").unwrap()
             && field_sets.len() == 1
             && field_sets[0].field == FieldKey::new("title").unwrap()
             && field_sets[0].value == AspectValue::String("after".into())
@@ -145,7 +145,7 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
 }
 
 pub(super) fn create_entity_with_summary_fields(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     client_key: &str,
     summary_title: &str,
     summary_status: &str,
@@ -186,7 +186,7 @@ pub(super) fn create_entity_with_summary_fields(
             AspectValue::String("scalar-title".into()),
         );
     }
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new(format!("batch-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),

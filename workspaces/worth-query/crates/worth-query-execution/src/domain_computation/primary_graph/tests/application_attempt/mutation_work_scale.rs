@@ -256,7 +256,11 @@ fn grow_unrelated_accounts(world: &super::super::fixture::AuthorizationWorld, co
                 })))
             },
         );
-        let mut transaction = runtime.begin_transaction(Default::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(batch);
         transaction.commit().expect("unrelated population commits");
         graph.ensure_primary_indexes_current(runtime).unwrap();

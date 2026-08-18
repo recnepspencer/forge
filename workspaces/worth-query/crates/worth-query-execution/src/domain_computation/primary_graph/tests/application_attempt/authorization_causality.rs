@@ -109,7 +109,7 @@ fn revoke_account_ownership(
         .expect("account ownership is installed")
         .kind;
     graph.with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = runtime.snapshots().historical_snapshot();
         let relation = runtime
             .read_truth()
             .visible_relations_of_kind(relation_kind, snapshot.version_id)
@@ -118,7 +118,11 @@ fn revoke_account_ownership(
             .expect("the admitted account has one ownership edge")
             .relation_id;
         runtime.snapshots().release_snapshot(&snapshot);
-        let mut transaction = runtime.begin_transaction(Default::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(WorkerIntentBatch::new("revoke-account-owner").push(
             MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
                 relation_id: relation,

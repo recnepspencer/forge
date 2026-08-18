@@ -31,13 +31,12 @@ use super::support::{
 fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let main_head_before = update_entity_name(
         &mut runtime,
         entity_id,
@@ -46,7 +45,7 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
     );
     let branch_head_before = runtime
         .history()
-        .branch_head(&BranchId("branch-a".to_string()))
+        .historical_branch_head(&BranchId("branch-a".to_string()))
         .expect("branch-a head should exist")
         .commit_id;
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
@@ -72,7 +71,7 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
     assert_eq!(
         runtime
             .history()
-            .branch_head(&BranchId("main".to_string()))
+            .historical_branch_head(&BranchId("main".to_string()))
             .expect("main head should remain present")
             .commit_id,
         main_head_before
@@ -80,12 +79,12 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
     assert_eq!(
         runtime
             .history()
-            .branch_head(&BranchId("branch-a".to_string()))
+            .historical_branch_head(&BranchId("branch-a".to_string()))
             .expect("branch-a head should advance")
             .commit_id,
         commit.outcome().commit.commit_id
     );
-    let snapshot = runtime.snapshots().snapshot();
+    let snapshot = runtime.snapshots().historical_snapshot();
     let read_view = runtime
         .read_truth()
         .read_snapshot(&snapshot)
@@ -102,13 +101,12 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
 fn retained_lowered_mutation_denies_after_intervening_truth_change() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
         runtime_workflow_binding_for_branch(
             branch_snapshot_identity(&runtime, "branch-a"),
@@ -122,7 +120,7 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
 
     let branch_head_before = runtime
         .history()
-        .branch_head(&BranchId("branch-a".to_string()))
+        .historical_branch_head(&BranchId("branch-a".to_string()))
         .expect("branch-a head should exist")
         .commit_id;
     update_entity_name(
@@ -144,20 +142,24 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
     assert_eq!(
         runtime
             .history()
-            .branch_head(&BranchId("branch-a".to_string()))
+            .historical_branch_head(&BranchId("branch-a".to_string()))
             .expect("stale denial should preserve intervening branch head")
             .commit_id,
-        runtime.history().latest_commit().unwrap().commit_id
+        runtime
+            .history()
+            .historical_latest_commit()
+            .unwrap()
+            .commit_id
     );
     assert_ne!(
         runtime
             .history()
-            .branch_head(&BranchId("branch-a".to_string()))
+            .historical_branch_head(&BranchId("branch-a".to_string()))
             .expect("branch-a head should remain advanced by intervening commit")
             .commit_id,
         branch_head_before
     );
-    let snapshot = runtime.snapshots().snapshot();
+    let snapshot = runtime.snapshots().historical_snapshot();
     let read_view = runtime
         .read_truth()
         .read_snapshot(&snapshot)
@@ -174,13 +176,12 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
 fn lowered_branch_mutation_does_not_deny_when_only_another_branch_moves() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
         runtime_workflow_binding_for_branch(
             branch_snapshot_identity(&runtime, "branch-a"),
@@ -211,7 +212,7 @@ fn lowered_branch_mutation_does_not_deny_when_only_another_branch_moves() {
     assert_eq!(
         runtime
             .history()
-            .branch_head(&BranchId("main".to_string()))
+            .historical_branch_head(&BranchId("main".to_string()))
             .expect("main branch should retain intervening head")
             .commit_id,
         main_head_before
@@ -236,10 +237,11 @@ fn create_entity(
     name: &str,
     branch: BranchId,
 ) -> worth_relational::facade::identity::EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch),
-        ..TransactionOptions::default()
-    });
+    let mut txn = runtime.begin_transaction(
+        runtime
+            .owner_transaction_options_for_branch(&branch)
+            .expect("branch binding"),
+    );
     txn.push_batch(
         WorkerIntentBatch::new(format!("create-{name}")).push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -268,10 +270,11 @@ fn update_entity_name(
     name: &str,
     branch: BranchId,
 ) -> worth_relational::facade::history::CommitId {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch),
-        ..TransactionOptions::default()
-    });
+    let mut txn = runtime.begin_transaction(
+        runtime
+            .owner_transaction_options_for_branch(&branch)
+            .expect("branch binding"),
+    );
     txn.push_batch(
         WorkerIntentBatch::new(format!("update-{name}")).push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {

@@ -7,7 +7,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("create").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -45,7 +45,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
     assert_eq!(created_aspect_summary.changed_relation_aspect_count, 0);
 
     let updated = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(
             WorkerIntentBatch::new("update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -93,7 +93,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
     assert_eq!(updated_aspect_summary.changed_entity_aspect_count, 1);
 
     let idempotent_declared_update = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(WorkerIntentBatch::new("idempotent-declared-update").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {

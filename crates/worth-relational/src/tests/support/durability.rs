@@ -7,7 +7,7 @@ pub(crate) fn create_branch_from_main(
     let branch_id = BranchId(branch_name.to_string());
     runtime
         .history_authority()
-        .create_branch(branch_id.clone(), &BranchId("main".to_string()))
+        .fork_branch_from(branch_id.clone(), &BranchId("main".to_string()))
         .unwrap();
     branch_id
 }

@@ -92,7 +92,7 @@ fn aspect_history_projection_filter_matches_field_level_patch_locus() {
         ..AspectSchemaFixture::default()
     }
     .build_runtime();
-    let mut create_txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut create_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     create_txn.push_batch(
         WorkerIntentBatch::new("summary-history").push(MutationIntent::Create(
             CreateIntent::Entity(crate::transactions::data::EntitySpec {
@@ -111,7 +111,7 @@ fn aspect_history_projection_filter_matches_field_level_patch_locus() {
     );
     let created = create_txn.commit().unwrap();
     let entity = changed_entities(&created)[0];
-    let mut update_txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut update_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     update_txn.push_batch(WorkerIntentBatch::new("summary-history-update").push(
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(
             UpdateEntityFieldsIntent {

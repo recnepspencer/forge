@@ -192,15 +192,18 @@ fn relational_source_and_lease(
     assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("model should be a valid graph role");
+    let branch_identity = source
+        .branch_identity(&branch_id)
+        .expect("Relational source should expose the owner branch identity");
     let bridge_basis = source
-        .admit_execution_basis(&branch_id, version_id)
+        .admit_execution_basis_for_identity(&branch_identity, version_id)
         .expect("Relational source should retain the bridge execution basis");
     let substitute = if matching_snapshot {
         None
     } else {
         Some(
             source
-                .admit_execution_basis(&branch_id, version_id)
+                .admit_execution_basis_for_identity(&branch_identity, version_id)
                 .expect("same version should admit an independent execution basis"),
         )
     };
@@ -233,7 +236,11 @@ fn relational_runtime() -> RelationalRuntime {
 fn create_fixture_entity(
     runtime: &mut RelationalRuntime,
 ) -> worth_relational::facade::transactions::CommitResult {
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction = runtime.begin_transaction(
+        runtime
+            .transaction_options_for_main()
+            .expect("main branch binding"),
+    );
     transaction.push_batch(WorkerIntentBatch::new("managed-run-fixture").push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),

@@ -218,7 +218,7 @@ where
         );
         let entity_resolution = graph.retain_entity_resolution_context();
         let policy = graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
+            let snapshot = runtime.snapshots().historical_snapshot();
             let result = if !graph_work.admits_snapshot(&snapshot) {
                 Err(denial(
                     WorthQueryApplicationQueryAdmissionDenialKind::GraphWorkAdmissionUnavailable,

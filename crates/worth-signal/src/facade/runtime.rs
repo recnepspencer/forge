@@ -119,27 +119,13 @@ pub use crate::logic::transaction::RuntimeHistory as History;
 pub use crate::logic::transaction::SignalRuntimeConfig;
 pub use crate::logic::transaction::SignalRuntimeConfig as RuntimeConfig;
 pub use crate::logic::transaction::TransactionExecutionRequest as TransactionRunRequest;
+#[cfg(test)]
 pub use crate::logic::transaction::{
-    bridge_signal_branch_basis_trust_boundary, BatchChangeSession, BranchTargetedTransactionDenial,
-    BranchTargetedTransactionExecutionOutcome, BranchTargetedTransactionRequest,
-    ExecutedBranchTargetedTransactionReceipt, LoweredBranchTargetedTransactionPlan,
-    PlannedRuntimeMerge, PlannedSignalBranchRetirement, PlannedSignalBranchRetirementBatch, Recipe,
-    RequiredDerivedRebuildSet, RuntimeMerge, SignalBranchBasis, SignalBranchBasisArtifact,
-    SignalBranchBasisCompactExplanation, SignalBranchBasisDenial, SignalBranchBasisIdentity,
-    SignalBranchBasisValidationOutcome, SignalBranchForkDenial, SignalBranchForkReceipt,
-    SignalBranchForkRequest, SignalBranchForkRequestBasis, SignalBranchHeadPosture,
-    SignalBranchRestorePosture, SignalBranchRetirementBatchDenial,
-    SignalBranchRetirementBatchReceipt, SignalBranchRetirementBatchRequest,
-    SignalBranchRetirementDenial, SignalBranchRetirementReason, SignalBranchRetirementReceipt,
-    SignalBranchRetirementRequest, SignalBranchTransactionHead, SignalRuntime,
-    SignalRuntimeBuilder, SignalTransaction, TemporalCertificationBuilder,
-    TemporalCertificationBundle, TemporalCertificationBundleMismatchClass,
-    TemporalCertificationBundleParityReport, TemporalCertificationFailure,
-    TemporalCertificationFamily, TemporalCertificationRecord, TemporalCertificationSummary,
-    TemporalEligibilityFact, TemporalReconstructabilityArtifact, TemporalReplayMismatchClass,
-    TemporalReplayParityReport, TemporalStateRebuildProof, TemporalTransactionEvidence,
-    TransactionOutcome, TransactionResult, TransactionTiming,
-    ValidatedBranchTargetedTransactionRequest,
+    bridge_signal_branch_basis_trust_boundary, BoundaryBridgedSignalBranchBasisArtifact,
+    SignalBranchBasis, SignalBranchBasisArtifact, SignalBranchBasisCompactExplanation,
+    SignalBranchBasisDenial, SignalBranchBasisIdentity, SignalBranchBasisValidationOutcome,
+    SignalBranchHeadPosture, SignalBranchRestorePosture, SignalBranchTransactionHead,
+    StaleSignalBranchBasisArtifact,
 };
 pub use crate::logic::transaction::{
     temporal_certification_builder, temporal_certification_bundle,
@@ -147,6 +133,26 @@ pub use crate::logic::transaction::{
     temporal_replay_parity_report, REQUIRED_TEMPORAL_CERTIFICATION_FAMILIES,
     TEMPORAL_CERTIFICATION_BUNDLE_PARITY_SCHEMA_VERSION,
     TEMPORAL_CERTIFICATION_BUNDLE_SCHEMA_VERSION, TEMPORAL_REPLAY_PARITY_SCHEMA_VERSION,
+};
+pub use crate::logic::transaction::{
+    BatchChangeSession, PlannedRuntimeMerge, PlannedSignalBranchRetirement,
+    PlannedSignalBranchRetirementBatch, Recipe, RequiredDerivedRebuildSet, RuntimeMerge,
+    SignalBranchRetirementBatchReceipt, SignalBranchRetirementReason,
+    SignalBranchRetirementReceipt, SignalRuntime, SignalRuntimeBuilder, SignalTransaction,
+    TemporalCertificationBuilder, TemporalCertificationBundle,
+    TemporalCertificationBundleMismatchClass, TemporalCertificationBundleParityReport,
+    TemporalCertificationFailure, TemporalCertificationFamily, TemporalCertificationRecord,
+    TemporalCertificationSummary, TemporalEligibilityFact, TemporalReconstructabilityArtifact,
+    TemporalReplayMismatchClass, TemporalReplayParityReport, TemporalStateRebuildProof,
+    TemporalTransactionEvidence, TransactionOutcome, TransactionResult, TransactionTiming,
+};
+#[cfg(test)]
+pub use crate::logic::transaction::{
+    BranchTargetedTransactionDenial, BranchTargetedTransactionRequest, SignalBranchForkDenial,
+    SignalBranchForkReceipt, SignalBranchForkRequest, SignalBranchForkRequestBasis,
+    SignalBranchRetirementBatchDenial, SignalBranchRetirementBatchRequest,
+    SignalBranchRetirementDenial, SignalBranchRetirementRequest,
+    ValidatedBranchTargetedTransactionRequest,
 };
 pub use crate::logic::transaction::{
     CommittedObservationEventSummary, MatchingObserverSet, ObservationBoundaryOutcome,

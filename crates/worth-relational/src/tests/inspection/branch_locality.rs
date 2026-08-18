@@ -16,14 +16,14 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
     let entity = changed_entities(&created)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .expect("feature branch");
 
     let main_update = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(
             WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -39,10 +39,10 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
         txn.commit().expect("main update")
     };
     let feature_update = {
-        let mut txn = runtime.begin_transaction(TransactionOptions {
-            target_branch: Some(BranchId("feature".to_string())),
-            ..TransactionOptions::default()
-        });
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+            &mut runtime,
+            BranchId("feature".to_string()),
+        );
         txn.push_batch(
             WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -129,14 +129,14 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
     let entity = changed_entities(&base)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .expect("feature branch");
 
     let main_update = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(
             WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -152,10 +152,10 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
         txn.commit().expect("main update")
     };
     let feature_update = {
-        let mut txn = runtime.begin_transaction(TransactionOptions {
-            target_branch: Some(BranchId("feature".to_string())),
-            ..TransactionOptions::default()
-        });
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+            &mut runtime,
+            BranchId("feature".to_string()),
+        );
         txn.push_batch(
             WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {

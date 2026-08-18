@@ -1,7 +1,6 @@
 use crate::facade::history::BranchId;
 use crate::facade::transactions::{
-    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    CommitResult, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
@@ -13,10 +12,10 @@ pub(crate) fn emit_case_audit_record(
     event: &str,
 ) -> CommitResult {
     let case = world.workflow_case(case_role);
-    let mut txn = world.runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch_id),
-        ..TransactionOptions::default()
-    });
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut world.runtime,
+        branch_id,
+    );
     txn.push_batch(
         WorkerIntentBatch::new(format!("audit-{}", event.replace(' ', "-"))).push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(

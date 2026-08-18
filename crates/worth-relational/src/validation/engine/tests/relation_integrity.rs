@@ -170,7 +170,7 @@ fn prepared_acyclicity_scope_rejects_visible_graphs_that_exceed_scan_budget() {
 #[test]
 fn commit_publication_stage_rejects_sources_without_required_connectivity() {
     let mut runtime = runtime_with_acyclicity_and_connectivity();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("node-a").push(MutationIntent::Create(CreateIntent::Entity(
             EntitySpec {
@@ -201,7 +201,7 @@ fn minimum_cardinality_current_version_scans_only_live_slots() {
     let retired_relation =
         create_relation_of_kind(&mut runtime, KindId(2), source, retired_target, "retired");
     create_relation_of_kind(&mut runtime, KindId(2), source, target, "live");
-    let mut delete_txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut delete_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     delete_txn.push_batch(
         WorkerIntentBatch::new("delete-retired").push(MutationIntent::Relation(
             RelationMutationIntent::Delete(DeleteRelationIntent {

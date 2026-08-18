@@ -73,7 +73,7 @@ fn replay_contract_success_preserves_merge_parent_order() {
     let main = create_entity_outcome(&mut runtime, "main");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )

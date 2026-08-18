@@ -1,6 +1,6 @@
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 use crate::lineage::authority::phase_types::{
-    BranchScopedCommitReference, LoweredPromotionPlan, PromotionAuthority,
+    BranchScopedRelationalCommitReceipt, LoweredPromotionPlan, PromotionAuthority,
     PromotionEligibleCorrespondenceCandidate, ValidatedCorrespondenceCandidate,
 };
 use crate::lineage::authority::LineageAuthority;
@@ -28,10 +28,10 @@ impl PromotionEligibleCorrespondenceCandidate {
     }
 }
 
-impl BranchScopedCommitReference {
+impl BranchScopedRelationalCommitReceipt {
     fn new(
         authority: &PromotionAuthority,
-        commit: CommitReference,
+        commit: RelationalCommitReceipt,
     ) -> Result<Self, CorrespondencePromotionRejectionClass> {
         if commit.branch_id != *authority.branch_id() {
             return Err(CorrespondencePromotionRejectionClass::BranchScopeMismatch);
@@ -44,7 +44,7 @@ impl LoweredPromotionPlan {
     fn new(
         candidate_id: crate::lineage::data::CorrespondenceCandidateId,
         authority: PromotionAuthority,
-        commit: BranchScopedCommitReference,
+        commit: BranchScopedRelationalCommitReceipt,
         sources: Vec<crate::lineage::authority::phase_types::BranchScopedLineageRef>,
         targets: Vec<crate::lineage::authority::phase_types::BranchScopedLineageRef>,
     ) -> Result<Self, CorrespondencePromotionRejectionClass> {
@@ -71,7 +71,7 @@ impl<'runtime> LineageAuthority<'runtime> {
     pub(super) fn promotion_eligible_candidate(
         &mut self,
         validated: ValidatedCorrespondenceCandidate,
-        commit: &CommitReference,
+        commit: &RelationalCommitReceipt,
     ) -> Result<PromotionEligibleCorrespondenceCandidate, CorrespondencePromotionRejectionClass>
     {
         let candidate = validated.candidate();
@@ -123,12 +123,12 @@ impl<'runtime> LineageAuthority<'runtime> {
     pub(super) fn lower_promotion_plan(
         &self,
         eligible: PromotionEligibleCorrespondenceCandidate,
-        commit: CommitReference,
+        commit: RelationalCommitReceipt,
     ) -> Result<LoweredPromotionPlan, CorrespondencePromotionRejectionClass> {
         LoweredPromotionPlan::new(
             eligible.candidate().candidate_id,
             eligible.authority().clone(),
-            BranchScopedCommitReference::new(eligible.authority(), commit)?,
+            BranchScopedRelationalCommitReceipt::new(eligible.authority(), commit)?,
             eligible.branch_scoped_sources().to_vec(),
             eligible.branch_scoped_targets().to_vec(),
         )

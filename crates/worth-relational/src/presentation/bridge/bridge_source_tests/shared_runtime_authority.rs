@@ -1,9 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::facade::identity::PartitionId;
-use crate::facade::transactions::{
-    CreateIntent, EntitySpec, MutationIntent, TransactionOptions, WorkerIntentBatch,
-};
+use crate::facade::transactions::{CreateIntent, EntitySpec, MutationIntent, WorkerIntentBatch};
 use crate::tests::support::{aspect_key, field_key, single_string_aspect_field_patch};
 use worth_foundational::ScalarAspectType;
 use worth_runtime_bridge::facade::{
@@ -33,7 +31,8 @@ fn shared_source_retains_the_live_runtime_authority_and_observes_later_commits()
 
     let committed = {
         let mut runtime = runtime.lock().expect("test runtime lock");
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction =
+            crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         transaction.push_batch(WorkerIntentBatch::new("shared-authority-create").push(
             MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId::main(),
@@ -52,7 +51,7 @@ fn shared_source_retains_the_live_runtime_authority_and_observes_later_commits()
         .changed_records
         .iter()
         .find_map(|record| match record {
-            crate::facade::transactions::RecordRef::Entity(entity) => Some(*entity),
+            crate::facade::transactions::RecordRef::Entity(entity) => Some(entity),
             crate::facade::transactions::RecordRef::Relation(_) => None,
         })
         .expect("created entity");

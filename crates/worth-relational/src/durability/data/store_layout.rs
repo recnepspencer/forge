@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::config::data::RelationalRuntimeProfile;
-use crate::history::data::{CommitId, CommitReference};
+use crate::history::data::{CommitId, RelationalCommitReceipt};
 use crate::identity::data::VersionId;
 use crate::schema::data::SchemaVersionId;
 
@@ -33,7 +33,7 @@ pub enum DurableIntegrityStatus {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CheckpointCoverage {
-    pub up_to_commit: Option<CommitReference>,
+    pub up_to_commit: Option<RelationalCommitReceipt>,
     pub up_to_version: Option<VersionId>,
 }
 

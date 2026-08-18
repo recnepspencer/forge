@@ -14,6 +14,7 @@ pub(crate) struct MutationApplyOutcome {
     pub(crate) effect: MutationEffect,
     pub(crate) preparation_telemetry: MutationPreparationTelemetry,
     pub(crate) created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+    pub(crate) created_relations: crate::transactions::data::CommitCreatedRelationBindings,
 }
 
 pub(crate) fn apply_plan_to_working_state(
@@ -44,11 +45,12 @@ pub(crate) fn apply_plan_to_working_state(
     }
 
     let preparation_telemetry = workspace.preparation_telemetry();
-    let created_entities = workspace.into_created_entity_bindings();
+    let (created_entities, created_relations) = workspace.into_created_bindings();
     Ok(MutationApplyOutcome {
         effect,
         preparation_telemetry,
         created_entities,
+        created_relations,
     })
 }
 

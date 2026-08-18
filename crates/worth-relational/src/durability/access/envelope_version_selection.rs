@@ -6,5 +6,5 @@ pub(crate) fn descriptor_semantics_version_for_envelopes(
         .last()
         .or_else(|| checkpoint_envelopes.last())
         .map(|envelope| envelope.descriptor_semantics_version)
-        .unwrap_or_else(crate::schema::data::DescriptorSemanticsVersion::default)
+        .unwrap_or_default()
 }

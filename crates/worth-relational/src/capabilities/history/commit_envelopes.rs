@@ -9,8 +9,8 @@ pub(crate) trait CommitEnvelopeSource {
 impl CommitEnvelopeSource for RelationalRuntime {
     fn commit_envelope(&self, commit_id: CommitId) -> Option<&CanonicalCommitEnvelope> {
         self.history
-            .commit_envelopes
-            .get(&commit_id)
-            .map(|envelope| envelope.as_ref())
+            .commit_catalog
+            .get(commit_id)
+            .map(|artifact| artifact.envelope().as_ref())
     }
 }

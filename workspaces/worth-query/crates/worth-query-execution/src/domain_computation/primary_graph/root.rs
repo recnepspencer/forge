@@ -30,7 +30,7 @@ impl WorthQueryPrimaryGraph {
         mut layout: WorthQueryPrimaryGraphLayout,
         mut runtime: RelationalRuntime,
     ) -> Self {
-        let runtime_snapshot = runtime.snapshots().snapshot();
+        let runtime_snapshot = runtime.snapshots().historical_snapshot();
         let relational_runtime_instance_id = runtime_snapshot.runtime_instance_id;
         runtime.snapshots().release_snapshot(&runtime_snapshot);
         let mut indexes_by_locator = BTreeMap::new();
@@ -272,7 +272,7 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
         self.with_runtime(|runtime| {
             runtime
                 .history()
-                .branch_head(&worth_relational::facade::history::BranchId(
+                .historical_branch_head(&worth_relational::facade::history::BranchId(
                     branch.to_owned(),
                 ))
                 .map(|head| {
@@ -302,7 +302,7 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
         &self,
         runtime: &mut RelationalRuntime,
     ) -> Result<(), &'static str> {
-        let Some(head) = runtime.history().latest_commit().cloned() else {
+        let Some(head) = runtime.history().historical_latest_commit().cloned() else {
             return Ok(());
         };
         self.ensure_primary_indexes_for_commit(runtime, head)
@@ -315,7 +315,7 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
     ) -> Result<(), &'static str> {
         let head = runtime
             .history()
-            .branch_head(branch)
+            .historical_branch_head(branch)
             .cloned()
             .ok_or("primary graph branch has no authoritative head")?;
         self.ensure_primary_indexes_for_commit(runtime, head)
@@ -328,7 +328,7 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
     ) -> Result<(), &'static str> {
         let commit = runtime
             .history()
-            .committed_version(version)
+            .historical_committed_version(version)
             .ok_or("application-query basis version has no retained commit")?
             .commit()
             .clone();
@@ -338,7 +338,7 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
     fn ensure_primary_indexes_for_commit(
         &self,
         runtime: &mut RelationalRuntime,
-        head: worth_relational::facade::history::CommitReference,
+        head: worth_relational::facade::history::RelationalCommitReceipt,
     ) -> Result<(), &'static str> {
         let branch = head.branch_id.clone();
         let current = self.primary_index_ids.iter().all(|index_id| {

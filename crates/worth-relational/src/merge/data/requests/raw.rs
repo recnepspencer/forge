@@ -8,10 +8,22 @@ pub enum MergeIntent {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Descriptive merge selectors. These ids are not branch-head authority:
+/// owner planning resolves them to the exact branch-cell observation and
+/// truth version, and prepared execution verifies both again before effects.
 pub struct MergePlanningRequest {
+    #[cfg(test)]
     pub target_branch: BranchId,
+    #[cfg(not(test))]
+    target_branch: BranchId,
+    #[cfg(test)]
     pub source_branch: BranchId,
+    #[cfg(not(test))]
+    source_branch: BranchId,
+    #[cfg(test)]
     pub merge_intent: MergeIntent,
+    #[cfg(not(test))]
+    merge_intent: MergeIntent,
 }
 
 impl MergePlanningRequest {
@@ -41,10 +53,22 @@ impl MergePlanningRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Descriptive execution selectors. They carry no expected commit or
+/// currentness claim; the owner binds the request to exact branch references
+/// during preparation and rejects any reference movement before publication.
 pub struct MergeExecutionRequest {
+    #[cfg(test)]
     pub target_branch: BranchId,
+    #[cfg(not(test))]
+    target_branch: BranchId,
+    #[cfg(test)]
     pub source_branch: BranchId,
+    #[cfg(not(test))]
+    source_branch: BranchId,
+    #[cfg(test)]
     pub merge_intent: MergeIntent,
+    #[cfg(not(test))]
+    merge_intent: MergeIntent,
 }
 
 impl MergeExecutionRequest {

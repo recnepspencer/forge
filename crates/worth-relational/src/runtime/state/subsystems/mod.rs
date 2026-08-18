@@ -18,6 +18,7 @@ pub(crate) trait RuntimeSubsystem: Sized {
 pub(crate) use commit_strategies::CommitStrategiesSubsystem;
 pub(crate) use durability::DurabilitySubsystem;
 pub(crate) use history::HistorySubsystem;
+pub use history::RelationalPhase4ReferenceCostCounters;
 pub(crate) use indexing::IndexingSubsystem;
 pub(crate) use lineage::LineageSubsystem;
 pub(crate) use publication::PublicationSubsystem;

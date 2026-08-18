@@ -1,6 +1,6 @@
 use crate::commit_strategies::data::StrategyReplayDescriptor;
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
-use crate::history::data::{BranchId, CommitId, CommitReference, OrderedParentList};
+use crate::history::data::{BranchId, CommitId, OrderedParentList, RelationalCommitReceipt};
 use crate::indexes::data::{DerivedIndexArtifacts, DerivedIndexEntries};
 use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use crate::replay::data::ReplaySnapshotSurface;
@@ -111,7 +111,7 @@ pub(crate) fn digest_snapshot_summary(surface: &ReplaySnapshotSurface) -> [u8; 3
         .finish()
 }
 
-pub(crate) fn digest_branch_head_surface(commit: Option<&CommitReference>) -> [u8; 32] {
+pub(crate) fn digest_branch_head_surface(commit: Option<&RelationalCommitReceipt>) -> [u8; 32] {
     let builder = ReplayDigestBuilder::new("worth.relational.replay.surface.branch_head.v1");
     match commit {
         Some(commit) => builder
@@ -125,7 +125,7 @@ pub(crate) fn digest_branch_head_surface(commit: Option<&CommitReference>) -> [u
     }
 }
 
-pub(crate) fn digest_branch_head_summary(commit: Option<&CommitReference>) -> [u8; 32] {
+pub(crate) fn digest_branch_head_summary(commit: Option<&RelationalCommitReceipt>) -> [u8; 32] {
     let builder = ReplayDigestBuilder::new("worth.relational.replay.summary.branch_head.v1");
     match commit {
         Some(commit) => builder

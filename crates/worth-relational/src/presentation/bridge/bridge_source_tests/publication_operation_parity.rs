@@ -11,7 +11,7 @@ use crate::facade::identity::{KindId, PartitionId};
 use crate::facade::schema::DeclaredAspectContractBinding;
 use crate::facade::transactions::{
     ApplyEntityAspectPatchIntent, CreateIntent, EntityAspectCreateIntent, EntityMutationIntent,
-    MutationIntent, TransactionOptions, WorkerIntentBatch,
+    MutationIntent, WorkerIntentBatch,
 };
 use crate::tests::support::{
     aspect_key, changed_entities, entity_summary_struct_aspect, field_key, AspectSchemaFixture,
@@ -51,7 +51,7 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             value: ContractValidationInput::Struct(initial_summary),
         },
     ]);
-    let mut create = runtime.begin_transaction(TransactionOptions::default());
+    let mut create = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     create.push_batch(WorkerIntentBatch::new("publication-set-whole").push(
         MutationIntent::Create(CreateIntent::EntityAspects(EntityAspectCreateIntent {
             partition_id: PartitionId::main(),
@@ -85,7 +85,8 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             field_clears: vec![field_key("status")],
         },
     ]);
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("publication-clear-parity").push(
         MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
             ApplyEntityAspectPatchIntent {

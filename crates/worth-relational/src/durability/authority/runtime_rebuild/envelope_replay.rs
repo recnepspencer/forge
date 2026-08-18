@@ -22,11 +22,52 @@ pub(super) fn replay_durable_envelope(
     available_commit_ids: &BTreeSet<crate::history::data::CommitId>,
     plan: &RecoveryPlan,
 ) -> Result<(), DurabilityError> {
+    let had_checkpoint_artifact = restored
+        .history
+        .commit_envelopes
+        .contains_key(&envelope.commit.commit_id);
     validate_parent_closure(restored, envelope, available_commit_ids)?;
+    match envelope.branch_cell_checkpoint.clone() {
+        Some(checkpoint) => restored
+            .history
+            .admit_recovered_branch_cell(checkpoint, &envelope.branch_context)
+            .map_err(|detail| {
+                DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail)
+            })?,
+        None if !restored.history.has_branch(&envelope.branch_context) => {
+            return Err(DurabilityError::new(
+                RecoveryFailureClass::CorruptCheckpoint,
+                format!(
+                    "recovery checkpoint omitted branch cell `{}` and its commit envelope carried no exact admission",
+                    envelope.branch_context.0
+                ),
+            ));
+        }
+        None => {}
+    }
+    restored
+        .history
+        .require_recovered_branch(&envelope.branch_context)
+        .map_err(|detail| DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail))?;
+    for branch in &envelope.merge_parent_branches {
+        restored
+            .history
+            .require_recovered_branch(branch)
+            .map_err(|detail| {
+                DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail)
+            })?;
+    }
     validate_expected_recovery_parent_shape(restored, envelope)?;
-    install_admitted_branch_head(restored, envelope);
+    restored
+        .history
+        .prepare_recovery_sequence(envelope.commit.commit_id, envelope.commit.version_id);
     replay_envelope_effect(restored, envelope)?;
-    restore_authoritative_artifacts_when_required(restored, envelope, plan)
+    restore_authoritative_artifacts_when_required(
+        restored,
+        envelope,
+        plan,
+        !had_checkpoint_artifact,
+    )
 }
 
 fn validate_parent_closure(
@@ -69,41 +110,37 @@ fn validate_parent_closure(
     Ok(())
 }
 
-fn install_admitted_branch_head(
-    restored: &mut RelationalRuntime,
-    envelope: &CanonicalCommitEnvelope,
-) {
-    if !restored
-        .history
-        .branch_heads
-        .contains_key(&envelope.branch_context)
-    {
-        let parent_head = envelope
-            .commit
-            .ordered_parents()
-            .as_slice()
-            .first()
-            .and_then(|parent| restored.history.commit_envelopes.get(parent))
-            .map(|parent| parent.commit.clone());
-        restored
-            .history
-            .branch_heads
-            .insert(envelope.branch_context.clone(), parent_head);
-    }
-}
-
 fn replay_envelope_effect(
     restored: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
 ) -> Result<(), DurabilityError> {
     if is_metadata_only_lineage_commit(envelope) || is_metadata_only_merge_commit(envelope) {
-        restored.history_authority().publish_metadata_only_commit(
-            envelope.commit.commit_id,
-            envelope.commit.clone(),
-            envelope.branch_context.clone(),
-            envelope.patch.position,
-            Arc::new(envelope.clone()),
-        );
+        if is_metadata_only_merge_commit(envelope) {
+            apply_authoritative_commit_artifacts(restored, envelope, false)?;
+            restored
+                .history_authority()
+                .publish_commit(
+                    envelope.commit.commit_id,
+                    envelope.commit.clone(),
+                    envelope.branch_context.clone(),
+                    envelope.patch.position,
+                    Arc::new(envelope.clone()),
+                )
+                .map_err(|detail| {
+                    DurabilityError::new(RecoveryFailureClass::ReplayFailure, detail)
+                })?;
+            return Ok(());
+        }
+        restored
+            .history_authority()
+            .publish_metadata_artifact(
+                envelope.commit.commit_id,
+                envelope.commit.clone(),
+                envelope.branch_context.clone(),
+                envelope.patch.position,
+                Arc::new(envelope.clone()),
+            )
+            .map_err(|detail| DurabilityError::new(RecoveryFailureClass::ReplayFailure, detail))?;
         return Ok(());
     }
     if envelope.merge_parent_branches.is_empty() {
@@ -118,9 +155,10 @@ fn restore_authoritative_artifacts_when_required(
     restored: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
     plan: &RecoveryPlan,
+    allow_reconstructed_replacement: bool,
 ) -> Result<(), DurabilityError> {
     if plan.should_restore_authoritative_envelope(envelope.commit.commit_id) {
-        apply_authoritative_commit_artifacts(restored, envelope);
+        apply_authoritative_commit_artifacts(restored, envelope, allow_reconstructed_replacement)?;
         validate_recovered_history_parity(restored, envelope)?;
     }
     Ok(())
@@ -130,11 +168,13 @@ fn replay_ordinary_commit(
     restored: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
 ) -> Result<(), DurabilityError> {
-    let mut txn = restored.begin_transaction(TransactionOptions {
-        target_branch: Some(envelope.branch_context.clone()),
-        merge_parent_branches: envelope.merge_parent_branches.clone(),
-        ..schema_transition_options_for_replay(envelope)
-    });
+    let mut options = owner_options_for_branch(restored, &envelope.branch_context)?;
+    options = options.with_merge_parent_bindings(owner_merge_parent_bindings(
+        restored,
+        &envelope.merge_parent_branches,
+    )?);
+    let options = schema_transition_options_for_replay(options, envelope);
+    let mut txn = restored.begin_transaction(options);
     txn.push_batch(WorkerIntentBatch {
         name: format!("recovery-commit-{}", envelope.commit.commit_id.0),
         partition_key: None,
@@ -165,15 +205,12 @@ fn replay_merge_commit(
             ),
         )
     })?;
-    let context = AuthoritativeCommitContext::from_merge(
-        TransactionOptions {
-            target_branch: Some(envelope.branch_context.clone()),
-            merge_parent_branches: envelope.merge_parent_branches.clone(),
-            ..TransactionOptions::default()
-        },
-        merge_plan,
-    )
-    .map_err(|_| {
+    let mut options = owner_options_for_branch(restored, &envelope.branch_context)?;
+    options = options.with_merge_parent_bindings(owner_merge_parent_bindings(
+        restored,
+        &envelope.merge_parent_branches,
+    )?);
+    let context = AuthoritativeCommitContext::from_merge(options, merge_plan).map_err(|_| {
         DurabilityError::new(
             RecoveryFailureClass::ReplayFailure,
             format!(
@@ -205,8 +242,10 @@ fn is_metadata_only_merge_commit(envelope: &CanonicalCommitEnvelope) -> bool {
         && envelope.merged_plan.merged_intents.is_empty()
 }
 
-fn schema_transition_options_for_replay(envelope: &CanonicalCommitEnvelope) -> TransactionOptions {
-    let options = TransactionOptions::default();
+fn schema_transition_options_for_replay(
+    options: TransactionOptions,
+    envelope: &CanonicalCommitEnvelope,
+) -> TransactionOptions {
     let Some(transition) = envelope.schema_transition.as_ref() else {
         return options;
     };
@@ -220,4 +259,50 @@ fn schema_transition_options_for_replay(envelope: &CanonicalCommitEnvelope) -> T
         },
         Some(transition.reconciliation_descriptor.policy),
     )
+}
+
+fn owner_options_for_branch(
+    restored: &RelationalRuntime,
+    branch: &crate::history::data::BranchId,
+) -> Result<TransactionOptions, DurabilityError> {
+    let identity = restored.branch_identity(branch).map_err(|denial| {
+        DurabilityError::new(
+            RecoveryFailureClass::ReplayFailure,
+            format!("recovered branch cannot issue transaction binding: {denial:?}"),
+        )
+    })?;
+    restored
+        .transaction_options_for(&identity)
+        .map_err(|denial| {
+            DurabilityError::new(
+                RecoveryFailureClass::ReplayFailure,
+                format!("recovered branch binding was denied: {denial:?}"),
+            )
+        })
+}
+
+fn owner_merge_parent_bindings(
+    restored: &RelationalRuntime,
+    branches: &[crate::history::data::BranchId],
+) -> Result<Vec<crate::branch::RelationalLegacyBranchBinding>, DurabilityError> {
+    branches
+        .iter()
+        .map(|branch| {
+            let identity = restored.branch_identity(branch).map_err(|denial| {
+                DurabilityError::new(
+                    RecoveryFailureClass::ReplayFailure,
+                    format!("recovered merge parent identity was denied: {denial:?}"),
+                )
+            })?;
+            restored
+                .transaction_options_for(&identity)
+                .map(|options| options.branch_binding().clone())
+                .map_err(|denial| {
+                    DurabilityError::new(
+                        RecoveryFailureClass::ReplayFailure,
+                        format!("recovered merge parent binding was denied: {denial:?}"),
+                    )
+                })
+        })
+        .collect()
 }

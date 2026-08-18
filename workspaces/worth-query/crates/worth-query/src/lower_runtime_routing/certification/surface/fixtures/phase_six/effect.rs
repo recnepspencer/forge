@@ -78,13 +78,12 @@ pub(crate) fn representative_effect_relational_mutation_row() -> RepresentativeA
 pub(crate) fn representative_effect_relational_merge_row() -> RepresentativeArtifacts {
     let mut runtime = relational_runtime_with_intent_strategy();
     create_entity(&mut runtime, "main", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("candidate".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("candidate branch should exist");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("candidate".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("candidate branch should exist");
     create_entity(
         &mut runtime,
         "candidate-only",

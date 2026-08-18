@@ -51,7 +51,7 @@ fn relation_kind_scans_return_only_visible_relations_of_that_kind() {
     let r1 = create_relation(&mut runtime, left, right, "r1");
     let r2 = create_relation(&mut runtime, right, third, "r2");
     let deleted = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(
             WorkerIntentBatch::new("delete-r1").push(MutationIntent::Relation(
                 RelationMutationIntent::Delete(DeleteRelationIntent { relation_id: r1 }),

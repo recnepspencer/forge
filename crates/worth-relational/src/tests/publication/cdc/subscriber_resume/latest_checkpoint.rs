@@ -29,6 +29,7 @@ fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_c
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut visible_txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
+        &runtime,
         SchemaVersionId(2),
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
     ));
@@ -37,6 +38,7 @@ fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_c
 
     install_schema_version(&mut runtime, SchemaVersionId(3));
     let mut upgrade_txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
+        &runtime,
         SchemaVersionId(3),
         SchemaSubscriberImpact::ContractUpgradeRequired,
     ));

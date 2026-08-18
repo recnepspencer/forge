@@ -7,7 +7,7 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
     let anchor_entity = changed_entities(&anchor)[0];
     let checkpoint = checkpoint_for_schema_version(anchor.patch_position(), SchemaVersionId(1));
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("surviving"));
     let savepoint = txn.create_savepoint();
     txn.push_batch(batch_create("abandoned"));

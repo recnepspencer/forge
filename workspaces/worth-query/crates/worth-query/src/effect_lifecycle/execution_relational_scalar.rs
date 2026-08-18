@@ -14,7 +14,7 @@ pub(super) fn execute_lowered_mutation(
     declaration: &LoweredMutationIntentDeclaration,
 ) -> Result<CommitResult, (EffectExecutionDenialKind, String)> {
     ensure_exact_basis_freshness(runtime, declaration)?;
-    let transaction_options = mutation_transaction_options(declaration)?;
+    let transaction_options = mutation_transaction_options(runtime, declaration)?;
     let canonical: CanonicalStrategyCommitRequest = runtime
         .commit_strategies()
         .canonicalize_request(declaration.strategy_request())
@@ -24,7 +24,7 @@ pub(super) fn execute_lowered_mutation(
                 EffectExecutionDenialKind::RelationalStrategyCanonicalizationFailed,
             )
         })?;
-    let snapshot = runtime.snapshots().snapshot();
+    let snapshot = runtime.snapshots().historical_snapshot();
     let execution: StrategyExecutionDraft = runtime
         .commit_strategies()
         .execute(&canonical, &snapshot)
@@ -59,12 +59,18 @@ pub(super) fn execute_lowered_mutation(
 }
 
 pub(super) fn mutation_transaction_options(
+    runtime: &RelationalRuntime,
     declaration: &LoweredMutationIntentDeclaration,
 ) -> Result<TransactionOptions, (EffectExecutionDenialKind, String)> {
-    mutation_target_branch(declaration).map(|target_branch| TransactionOptions {
-        target_branch: Some(target_branch),
-        ..TransactionOptions::default()
-    })
+    let target_branch = mutation_target_branch(declaration)?;
+    runtime
+        .owner_transaction_options_for_branch(&target_branch)
+        .map_err(|denial| {
+            (
+                EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+                format!("owner rejected mutation target branch: {denial:?}"),
+            )
+        })
 }
 
 pub(crate) fn mutation_target_branch(
@@ -119,7 +125,7 @@ fn current_branch_snapshot_identity(
 ) -> Result<WorthQuerySnapshotIdentity, (EffectExecutionDenialKind, String)> {
     let history = runtime.history();
     let head = history
-        .branch_head(branch)
+        .historical_branch_head(branch)
         .ok_or_else(|| {
             (
                 EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,

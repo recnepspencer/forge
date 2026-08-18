@@ -69,7 +69,7 @@ impl WorthQueryPrimaryGraphProvider {
                 .ensure_primary_indexes_current_for_branch(runtime, branch)?;
             let snapshot = runtime
                 .snapshots()
-                .snapshot_for_branch(branch)
+                .historical_snapshot_for_branch(branch)
                 .ok_or("provider idempotency branch has no current snapshot")?;
             let resolution = resolve_at_snapshot(self, runtime, &snapshot, &layout, binding);
             runtime.snapshots().release_snapshot(&snapshot);
@@ -260,7 +260,7 @@ fn resolve_projected_idempotency(
     let committed = context
         .runtime
         .history()
-        .committed_version(record.created_at_version)
+        .historical_committed_version(record.created_at_version)
         .ok_or("provider idempotency creation commit is unavailable")?;
     let Some(AspectValue::UInt64(outcome_identity)) = record.outcome_identity else {
         return Err("provider idempotency outcome identity is unavailable");

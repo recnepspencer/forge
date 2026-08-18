@@ -10,7 +10,7 @@ fn durability_contract_recovery_rebuilds_branch_pinned_retention_from_branch_hea
     let _relation = create_relation_outcome(&mut runtime, source_entity, target_entity, "r1");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -38,17 +38,17 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
     let entity = changed_entities(&created)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
     let _main_update = update_entity(&mut runtime, entity, "main");
     let _feature_update = {
-        let mut txn = runtime.begin_transaction(TransactionOptions {
-            target_branch: Some(BranchId("feature".to_string())),
-            ..TransactionOptions::default()
-        });
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+            &mut runtime,
+            BranchId("feature".to_string()),
+        );
         txn.push_batch(
             WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -103,7 +103,7 @@ fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
 
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -159,7 +159,7 @@ fn durability_contract_persisted_commit_fails_closed_when_store_path_is_not_dire
         })
         .build();
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("fail-closed"));
     let error = txn.commit().unwrap_err();
 

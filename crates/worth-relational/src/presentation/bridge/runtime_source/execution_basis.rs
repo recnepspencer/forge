@@ -1,3 +1,4 @@
+use crate::branch::RelationalBranchIdentity;
 use crate::history::data::BranchId;
 use crate::identity::data::VersionId;
 use crate::visibility::execution_basis::{
@@ -14,6 +15,24 @@ pub enum RelationalBridgeTruthViewBasisDenial {
 }
 
 impl RuntimeBridgeRelationalSource {
+    /// Returns the owner-issued identity for one registered Relational branch.
+    /// The branch name is descriptive input; the returned identity is the
+    /// runtime-affine value required by execution-basis admission.
+    pub fn branch_identity(
+        &self,
+        branch_id: &BranchId,
+    ) -> Result<RelationalBranchIdentity, RelationalExecutionBasisDenial> {
+        self.runtime.with_runtime(|runtime| {
+            runtime.branch_identity(branch_id).map_err(|_denial| {
+                RelationalExecutionBasisDenial::new(
+                    crate::visibility::execution_basis::RelationalExecutionBasisDenialKind::BranchMismatch,
+                    "Relational branch identity was not owner-admissible",
+                    Default::default(),
+                )
+            })
+        })
+    }
+
     /// Resolves the Relational-owned branch for an existing version without
     /// granting execution authority for that version.
     pub fn resolve_execution_basis_branch(&self, version_id: VersionId) -> Option<BranchId> {
@@ -24,15 +43,25 @@ impl RuntimeBridgeRelationalSource {
 
     /// Asks the owning Relational source to retain one exact version for a
     /// managed execution. The returned move-only lease is the read authority;
-    /// a copied version or snapshot identity cannot substitute for it.
-    pub fn admit_execution_basis(
+    /// a copied branch name, version, or snapshot identity cannot substitute
+    /// for the owner-issued identity.
+    pub fn admit_execution_basis_for_identity(
         &self,
-        branch_id: &BranchId,
+        identity: &RelationalBranchIdentity,
         version_id: VersionId,
     ) -> Result<RelationalExecutionBasisLease, RelationalExecutionBasisDenial> {
         self.runtime.with_runtime(|runtime| {
+            if identity.runtime_instance_id() != runtime.runtime_instance_id() {
+                return Err(RelationalExecutionBasisDenial::new(
+                    crate::visibility::execution_basis::RelationalExecutionBasisDenialKind::BranchMismatch,
+                    "owner branch identity belongs to another runtime",
+                    Default::default(),
+                ));
+            }
             crate::visibility::execution_basis::admit_execution_basis(
-                runtime, branch_id, version_id,
+                runtime,
+                identity.branch_id(),
+                version_id,
             )
         })
     }
@@ -68,7 +97,18 @@ impl RuntimeBridgeRelationalSource {
                     "Bridge truth-view branch is not a Relational branch identity".to_owned(),
                 )
             })?;
-        self.admit_execution_basis(&branch_id, version_id)
+        self.runtime.with_runtime(|runtime| {
+            let identity = runtime.branch_identity(&branch_id).map_err(|denial| {
+                RelationalBridgeTruthViewBasisDenial::SnapshotAuthority(format!(
+                    "Bridge truth-view branch was not owner-admissible: {denial:?}"
+                ))
+            })?;
+            crate::visibility::execution_basis::admit_execution_basis(
+                runtime,
+                identity.branch_id(),
+                version_id,
+            )
             .map_err(RelationalBridgeTruthViewBasisDenial::ExecutionBasis)
+        })
     }
 }

@@ -17,9 +17,10 @@ pub(super) fn install_schema_version(
 }
 
 pub(super) fn visible_bridge_transition_options(
+    runtime: &crate::facade::runtime::RelationalRuntime,
     schema_version_id: SchemaVersionId,
 ) -> TransactionOptions {
-    TransactionOptions::default().with_schema_transition(
+    crate::tests::support::test_owner_transaction_options_for_main(runtime).with_schema_transition(
         ProposedSchemaTransition {
             source_schema_id: SchemaId("test".to_string()),
             source_schema_version_id: SchemaVersionId(schema_version_id.0 - 1),

@@ -1,12 +1,12 @@
-use worth_relational::facade::history::{BranchId, CommitId, CommitReference};
+use worth_relational::facade::history::{BranchId, CommitId, RelationalCommitReceipt};
 use worth_relational::facade::identity::VersionId;
 
 use super::redo_intent::{
     WorthQueryProvedUndo, WorthQueryProvedUndoAxisProbe, WorthQueryRedoIntent,
 };
 
-pub(super) fn probe_commit(commit_id: u64) -> CommitReference {
-    CommitReference {
+pub(super) fn probe_commit(commit_id: u64) -> RelationalCommitReceipt {
+    RelationalCommitReceipt {
         commit_id: CommitId(commit_id),
         version_id: VersionId(commit_id),
         branch_id: BranchId("main".to_owned()),

@@ -1,5 +1,8 @@
 use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::facade::history::MergeConflictRecord;
+use crate::facade::merge::{
+    MergeExecutionPreparationError, MergeExecutionRequest, MergeIntent, MergePlanningError,
+};
 use crate::facade::transactions::CommitPhase;
 use crate::tests::support::*;
 
@@ -9,7 +12,7 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -93,11 +96,63 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
 fn merge_commit_requires_existing_parent_branch_heads() {
     let mut runtime = runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
-    let txn = runtime.begin_transaction(
-        TransactionOptions::default().merge_from_branches(vec![BranchId("missing".to_string())]),
-    );
-    let error = txn.commit().unwrap_err();
+    let error = runtime
+        .prepare_merge_execution(MergeExecutionRequest::new(
+            BranchId("main".to_string()),
+            BranchId("missing".to_string()),
+            MergeIntent::ReconcileIntoTarget,
+        ))
+        .unwrap_err();
 
+    assert!(matches!(
+        error,
+        MergeExecutionPreparationError::Planning(MergePlanningError::MissingSourceHead { branch_id })
+            if branch_id == BranchId("missing".to_string())
+    ));
+}
+
+#[test]
+fn merge_commit_rejects_stale_secondary_parent_binding_after_parent_moves() {
+    let mut runtime = runtime_with_test_schema();
+    create_entity_outcome(&mut runtime, "merge-base");
+    runtime
+        .history_authority()
+        .fork_branch_from(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-before-prepare",
+        BranchId("feature".to_string()),
+    );
+
+    let target_identity = runtime.main_branch_identity();
+    let target_options = runtime
+        .transaction_options_for(&target_identity)
+        .expect("target binding is owner-issued");
+    let parent_identity = runtime
+        .branch_identity(&BranchId("feature".to_string()))
+        .expect("parent identity is owner-issued");
+    let parent_binding = runtime
+        .transaction_options_for(&parent_identity)
+        .expect("parent binding is owner-issued")
+        .branch_binding()
+        .clone();
+    let prepared = runtime
+        .begin_transaction(target_options.with_merge_parent_bindings(vec![parent_binding]))
+        .validate()
+        .expect("target candidate validates before the parent moves");
+
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-after-prepare",
+        BranchId("feature".to_string()),
+    );
+    let error = runtime
+        .commit_validated_mutation(prepared)
+        .expect_err("a moved secondary parent must stale the prepared binding");
     assert!(matches!(
         error,
         TransactionCommitError::Conflict { error: ref conflict, .. }
@@ -112,7 +167,7 @@ fn merge_inspection_reports_overlapping_authority() {
     let shared = changed_entities(&base)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -144,7 +199,7 @@ fn merge_commit_rejects_overlapping_authority_since_merge_base() {
     let shared = changed_entities(&base)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -156,11 +211,11 @@ fn merge_commit_rejects_overlapping_authority_since_merge_base() {
         "feature-updated",
         BranchId("feature".to_string()),
     );
-    let txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(BranchId("main".to_string())),
-        merge_parent_branches: vec![BranchId("feature".to_string())],
-        ..TransactionOptions::default()
-    });
+    let txn = crate::tests::support::test_owner_begin_merge_transaction(
+        &mut runtime,
+        BranchId("main".to_string()),
+        vec![BranchId("feature".to_string())],
+    );
     let error = txn.commit().unwrap_err();
 
     assert!(matches!(

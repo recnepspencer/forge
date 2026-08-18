@@ -2,6 +2,7 @@ mod ancestry;
 mod aspect_history_queries;
 mod commit_surfaces;
 mod merge_branch_basis;
+#[cfg(test)]
 mod merge_branch_basis_foundational;
 
 use crate::runtime::RelationalRuntime;

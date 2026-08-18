@@ -21,7 +21,8 @@ pub(super) fn certify_dense_fanout_compile_wave(suite: &'static str) {
         runtime.performance_access().reset_counters();
         let commit_started_at = Instant::now();
         let commit_outcome = {
-            let mut txn = runtime.begin_transaction(TransactionOptions::default());
+            let mut txn =
+                crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
             let mut batch = WorkerIntentBatch::new("chip-fanout-wave");
             for (index, target) in targets.iter().enumerate() {
                 batch = batch.push(MutationIntent::Create(CreateIntent::Relation(

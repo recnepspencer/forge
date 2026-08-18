@@ -77,7 +77,11 @@ pub(crate) fn correspondence_bridge(
         dependency.contract().key().clone(),
         CanonicalFieldPath::single(field.clone()),
     );
-    let mut create = relational.begin_transaction(TransactionOptions::default());
+    let mut create = relational.begin_transaction(
+        relational
+            .transaction_options_for_main()
+            .expect("main branch binding"),
+    );
     create.push_batch(WorkerIntentBatch::new("create-conditional-entity").push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -99,7 +103,11 @@ pub(crate) fn correspondence_bridge(
         })
         .expect("create commit should retain its entity identity");
 
-    let mut update = relational.begin_transaction(TransactionOptions::default());
+    let mut update = relational.begin_transaction(
+        relational
+            .transaction_options_for_main()
+            .expect("main branch binding"),
+    );
     update.push_batch(WorkerIntentBatch::new("update-conditional-identity").push(
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(
             UpdateEntityFieldsIntent {

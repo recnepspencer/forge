@@ -39,11 +39,17 @@ pub use basis::{
 pub use branches::{
     foundational_branch_candidate, foundational_branch_local_state_definitions,
     FoundationalBranchCandidateArtifact, FoundationalBranchCandidateBuilder,
-    FoundationalBranchCandidateId, FoundationalBranchComparisonBasis, FoundationalBranchForkBasis,
-    FoundationalBranchForkObservationBasis, FoundationalBranchId,
-    FoundationalBranchIdConstructionDenial, FoundationalBranchLocalConstructionDenial,
-    FoundationalBranchLocalStateDefinition, FoundationalBranchLocalStateKind,
-    FoundationalBranchObservationBasis, FoundationalStagedBranchArtifact,
+    FoundationalBranchCandidateComparisonBasis, FoundationalBranchCandidateForkBasis,
+    FoundationalBranchCandidateForkObservationBasis, FoundationalBranchCandidateId,
+    FoundationalBranchCandidateObservationBasis, FoundationalBranchComparisonBasis,
+    FoundationalBranchForkBasis, FoundationalBranchId, FoundationalBranchIdConstructionDenial,
+    FoundationalBranchLocalConstructionDenial, FoundationalBranchLocalStateDefinition,
+    FoundationalBranchLocalStateKind, FoundationalBranchReferenceGeneration,
+    FoundationalBranchReferenceGenerationAdvanceDenial, FoundationalBranchReferenceMismatch,
+    FoundationalBranchReferenceMismatchAxis, FoundationalBranchReferenceMovement,
+    FoundationalBranchReferenceMovementKind, FoundationalBranchReferenceObservation,
+    FoundationalBranchTarget, FoundationalBranchTargetBasis, FoundationalBranchTargetEncoding,
+    FoundationalBranchTargetEncodingConstructionDenial, FoundationalStagedBranchArtifact,
 };
 pub use commits::{
     foundational_committed_authority_admission, FoundationalAuthorityTransitionClass,

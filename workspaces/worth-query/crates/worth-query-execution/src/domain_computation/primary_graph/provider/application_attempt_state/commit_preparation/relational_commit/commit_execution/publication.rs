@@ -43,7 +43,7 @@ pub(super) fn publish(
     let changed_record_count = committed.patch().len();
     let after = runtime
         .snapshots()
-        .snapshot_for_branch(&branch)
+        .historical_snapshot_for_branch(&branch)
         .ok_or_else(|| {
             let _ = runtime.snapshots().release_snapshot(&before);
             failure("application branch has no current post-commit snapshot")

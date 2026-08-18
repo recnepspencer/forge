@@ -45,10 +45,10 @@ pub(crate) fn create_entity(
     name: &str,
     branch: BranchId,
 ) -> worth_relational::facade::identity::EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch),
-        ..TransactionOptions::default()
-    });
+    let options = runtime
+        .owner_transaction_options_for_branch(&branch)
+        .expect("fixture branch remains owner-admissible");
+    let mut txn = runtime.begin_transaction(options);
     txn.push_batch(
         WorkerIntentBatch::new(format!("create-{name}")).push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -104,7 +104,7 @@ pub(crate) fn exact_branch_snapshot_identity(
 ) -> WorthQuerySnapshotIdentity {
     let history = runtime.history();
     let head = history
-        .branch_head(&BranchId(branch.to_string()))
+        .historical_branch_head(&BranchId(branch.to_string()))
         .expect("exact branch fixture requires a current branch head");
     WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
         worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(

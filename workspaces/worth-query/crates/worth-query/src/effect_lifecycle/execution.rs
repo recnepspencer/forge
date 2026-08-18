@@ -115,9 +115,17 @@ pub(crate) fn execute_lowered_merge(
     declaration: &crate::workflow::LoweredMergeWorkflowDeclaration,
 ) -> Result<MergeExecutionOutcome, (EffectExecutionDenialKind, String)> {
     let prepared = runtime
-        .prepare_merge_execution(declaration.merge_request().clone())
+        .bind_merge_execution_request(declaration.merge_request().clone())
         .map_err(|error| {
-            lower_runtime_error(error, EffectExecutionDenialKind::MergePreparationFailed)
+            (
+                EffectExecutionDenialKind::MergePreparationFailed,
+                format!("{error:?}"),
+            )
+        })
+        .and_then(|bound| {
+            runtime.prepare_merge_execution(bound).map_err(|error| {
+                lower_runtime_error(error, EffectExecutionDenialKind::MergePreparationFailed)
+            })
         })?;
     runtime.execute_prepared_merge(prepared).map_err(|error| {
         lower_runtime_error(error, EffectExecutionDenialKind::MergeExecutionFailed)

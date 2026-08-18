@@ -122,7 +122,7 @@ impl WorthQueryExecutionRuntime {
             .clone()
             .into_foundational_value();
         graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
+            let snapshot = runtime.snapshots().historical_snapshot();
             let result = validate_freshness_at_snapshot(
                 runtime,
                 &snapshot,
@@ -178,7 +178,7 @@ where
     PrincipalIdentity: TypedApplicationIdentityValue,
 {
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = runtime.snapshots().historical_snapshot();
         let result = resolve_at_snapshot(runtime, &snapshot, &resolution);
         runtime.snapshots().release_snapshot(&snapshot);
         result

@@ -3,32 +3,42 @@ use crate::history::data::{BranchCreateError, BranchId};
 use super::HistoryAuthority;
 
 impl<'runtime> HistoryAuthority<'runtime> {
-    pub fn create_branch(
+    /// Legacy in-crate adapter retained while callers migrate to the
+    /// owner-issued fork basis API. It is deliberately not part of the
+    /// public facade and cannot mint a branch from a raw head projection.
+    /// Owner convenience for the fork-only transition. The raw ids are
+    /// descriptive selectors; this method immediately observes an exact
+    /// source basis and delegates to `RelationalRuntime::fork_branch`.
+    pub(crate) fn fork_branch_from(
         &mut self,
         new_branch: BranchId,
         from_branch: &BranchId,
     ) -> Result<(), BranchCreateError> {
-        if self.runtime.history.branch_heads.contains_key(&new_branch) {
-            return Err(BranchCreateError::branch_already_exists());
-        }
-        let Some(source_head) = self.runtime.history.branch_heads.get(from_branch).cloned() else {
-            return Err(BranchCreateError::source_branch_missing());
-        };
+        let (_, basis) = self
+            .runtime
+            .observe_fork_source(from_branch)
+            .map_err(|denial| match denial {
+                crate::branch::RelationalForkDenial::DuplicateTarget => {
+                    BranchCreateError::branch_already_exists()
+                }
+                crate::branch::RelationalForkDenial::SourceBranchMissing
+                | crate::branch::RelationalForkDenial::EmptySource
+                | crate::branch::RelationalForkDenial::ForeignRuntime
+                | crate::branch::RelationalForkDenial::StaleSource
+                | crate::branch::RelationalForkDenial::MissingArtifact
+                | crate::branch::RelationalForkDenial::InvalidTarget(_)
+                | crate::branch::RelationalForkDenial::Cell(_) => {
+                    BranchCreateError::source_branch_missing()
+                }
+            })?;
         self.runtime
-            .history
-            .branch_heads
-            .insert(new_branch, source_head.clone());
-        self.runtime
-            .visibility_pins()
-            .move_branch_head_visibility_residency(
-                None,
-                source_head.as_ref().map(|head| head.version_id),
-            );
-        if let Some(source_head) = source_head {
-            self.runtime
-                .visibility_pins()
-                .pin_branch_version(source_head.version_id);
-        }
-        Ok(())
+            .fork_branch(new_branch, basis)
+            .map(|_| ())
+            .map_err(|denial| match denial {
+                crate::branch::RelationalForkDenial::DuplicateTarget => {
+                    BranchCreateError::branch_already_exists()
+                }
+                _ => BranchCreateError::source_branch_missing(),
+            })
     }
 }

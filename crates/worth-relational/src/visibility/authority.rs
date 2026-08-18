@@ -1,9 +1,13 @@
 use crate::capabilities::VisibilityPolicySource;
-use crate::runtime::{RelationalRuntime, SnapshotGuard, SnapshotHandleBinding};
+#[cfg(test)]
+use crate::runtime::SnapshotGuard;
+use crate::runtime::{RelationalRuntime, SnapshotHandleBinding};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
+#[cfg(test)]
+use crate::visibility::cache_state::retained_state;
 use crate::visibility::cache_state::{
     bump_active_snapshot_ref, cached_state_for_version, evict_cache_if_needed, insert_state,
-    residency_for_version, retained_state,
+    residency_for_version,
 };
 use crate::visibility::exact_commit_snapshot::{
     open_retained_commit_snapshot, projection_binding_denial,
@@ -66,11 +70,21 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         handle
     }
 
-    pub fn snapshot(&mut self) -> SnapshotHandle {
+    /// Transitional commit-selection projection used only inside Relational
+    /// while the Phase-6 exact read-basis surface is still pending.  It is
+    /// deliberately crate-private and cannot be a public currentness door.
+    pub(crate) fn snapshot(&mut self) -> SnapshotHandle {
         self.open_active_snapshot(
             self.runtime.current_version_id(),
             SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
         )
+    }
+
+    /// Transitional immutable snapshot projection retained for existing
+    /// Query consumers. It is a read-only compatibility adapter; Phase 6 owns
+    /// exact external read-basis admission.
+    pub fn historical_snapshot(&mut self) -> SnapshotHandle {
+        self.snapshot()
     }
 
     /// Opens the current immutable snapshot for one exact branch.
@@ -78,19 +92,23 @@ impl<'runtime> VisibilityAuthority<'runtime> {
     /// This is the branch-qualified counterpart to [`Self::snapshot`]. It
     /// refuses to infer another branch when the requested branch has no
     /// current head or when retained version ownership disagrees.
-    pub fn snapshot_for_branch(
+    /// Opens the current immutable snapshot for an owner-issued branch
+    /// identity inside the transitional Relational projection.  This adapter
+    /// is crate-private until Phase 6 owns exact read-basis admission.
+    #[cfg(test)]
+    pub(crate) fn snapshot_for_identity(
         &mut self,
-        branch_id: &crate::history::data::BranchId,
+        identity: &crate::branch::RelationalBranchIdentity,
     ) -> Option<SnapshotHandle> {
+        if identity.runtime_instance_id() != self.runtime.runtime_instance_id() {
+            return None;
+        }
+        let branch_id = identity.branch_id();
         let version_id = self
             .runtime
             .history()
             .branch_head(branch_id)
-            .map(|head| head.version_id)
-            .or_else(|| {
-                (branch_id == &self.runtime.config.history.main_branch)
-                    .then(|| self.runtime.current_version_id())
-            })?;
+            .map(|head| head.version_id)?;
         let handle = self.open_active_snapshot(
             version_id,
             SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
@@ -103,6 +121,56 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         }
     }
 
+    /// Transitional branch-qualified snapshot projection for an owner-issued
+    /// identity. The identity is runtime-affine and cannot be forged from a
+    /// copied branch name.
+    pub fn historical_snapshot_for_identity(
+        &mut self,
+        identity: &crate::branch::RelationalBranchIdentity,
+    ) -> Option<SnapshotHandle> {
+        if identity.runtime_instance_id() != self.runtime.runtime_instance_id() {
+            return None;
+        }
+        let branch_id = identity.branch_id();
+        let version_id = self
+            .runtime
+            .history()
+            .branch_head(branch_id)
+            .map(|head| head.version_id)?;
+        let handle = self.open_active_snapshot(
+            version_id,
+            SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+        );
+        if &handle.branch_id == branch_id {
+            Some(handle)
+        } else {
+            self.release_snapshot(&handle);
+            None
+        }
+    }
+
+    /// Transitional descriptive branch read for existing Query consumers.
+    /// The name is resolved through the runtime owner immediately and never
+    /// becomes a transaction or publication binding.
+    pub fn historical_snapshot_for_branch(
+        &mut self,
+        branch_id: &crate::history::data::BranchId,
+    ) -> Option<SnapshotHandle> {
+        let identity = self.runtime.branch_identity(branch_id).ok()?;
+        self.historical_snapshot_for_identity(&identity)
+    }
+
+    /// Transitional in-crate projection retained for legacy Relational
+    /// tests.  Production callers must use [`Self::snapshot_for_identity`].
+    #[cfg(test)]
+    pub(crate) fn snapshot_for_branch(
+        &mut self,
+        branch_id: &crate::history::data::BranchId,
+    ) -> Option<SnapshotHandle> {
+        let identity = self.runtime.branch_identity(branch_id).ok()?;
+        self.snapshot_for_identity(&identity)
+    }
+
     /// Observes the already-published snapshot for one exact canonical commit.
     ///
     /// This does not open a current branch head, allocate a snapshot identity,
@@ -112,7 +180,7 @@ impl<'runtime> VisibilityAuthority<'runtime> {
     pub fn retained_snapshot_for_commit(
         &self,
         expected_runtime_instance_id: u64,
-        commit: &crate::history::data::CommitReference,
+        commit: &crate::history::data::RelationalCommitReceipt,
     ) -> Result<RelationalRetainedCommitSnapshot, RelationalRetainedCommitSnapshotDenial> {
         open_retained_commit_snapshot(self.runtime, expected_runtime_instance_id, commit)
     }
@@ -122,11 +190,11 @@ impl<'runtime> VisibilityAuthority<'runtime> {
     pub fn project_retained_entity_for_commit<T>(
         &self,
         expected_runtime_instance_id: u64,
-        commit: &crate::history::data::CommitReference,
+        commit: &crate::history::data::RelationalCommitReceipt,
         entity_id: crate::identity::data::EntityId,
         expected_kind_id: crate::identity::data::KindId,
         projection_scope: crate::visibility::materialization::read_records::ProjectionAspectScope,
-        mut project: impl FnMut(
+        project: impl FnMut(
             crate::visibility::materialization::read_records::EntityProjectionRecord<'_>,
         ) -> Option<T>,
     ) -> Result<RelationalRetainedCommitEntityProjection<T>, RelationalRetainedCommitSnapshotDenial>
@@ -147,7 +215,7 @@ impl<'runtime> VisibilityAuthority<'runtime> {
                 entity_id,
                 expected_kind_id,
                 projection_scope,
-                |record| project(record),
+                project,
             )
             .map_err(|_| {
                 RelationalRetainedCommitSnapshotDenial::new(
@@ -161,7 +229,8 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         Ok(RelationalRetainedCommitEntityProjection::new(value, work))
     }
 
-    pub fn pin_snapshot(
+    #[cfg(test)]
+    pub(crate) fn pin_snapshot(
         &mut self,
         version_id: crate::identity::data::VersionId,
     ) -> Option<SnapshotGuard> {
@@ -205,7 +274,34 @@ impl<'runtime> VisibilityAuthority<'runtime> {
             .is_some()
     }
 
-    pub fn admit_execution_basis(
+    /// Owner-bound execution-basis admission for a later visibility phase.
+    /// The branch identity is runtime-affine and owner-issued; the raw branch
+    /// selector remains an in-crate compatibility projection only.
+    #[cfg(test)]
+    pub(crate) fn admit_execution_basis_for_identity(
+        &mut self,
+        identity: &crate::branch::RelationalBranchIdentity,
+        version_id: crate::identity::data::VersionId,
+    ) -> Result<
+        crate::visibility::execution_basis::RelationalExecutionBasisLease,
+        crate::visibility::execution_basis::RelationalExecutionBasisDenial,
+    > {
+        if identity.runtime_instance_id() != self.runtime.runtime_instance_id() {
+            return Err(crate::visibility::execution_basis::RelationalExecutionBasisDenial::new(
+                crate::visibility::execution_basis::RelationalExecutionBasisDenialKind::BranchMismatch,
+                "owner branch identity belongs to another runtime",
+                Default::default(),
+            ));
+        }
+        crate::visibility::execution_basis::admit_execution_basis(
+            self.runtime,
+            identity.branch_id(),
+            version_id,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn admit_execution_basis(
         &mut self,
         branch_id: &crate::history::data::BranchId,
         version_id: crate::identity::data::VersionId,

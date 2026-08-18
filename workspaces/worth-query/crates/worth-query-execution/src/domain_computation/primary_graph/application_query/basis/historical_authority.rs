@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 use std::time::Instant;
 
 use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
-use worth_relational::facade::history::CommitReference;
+use worth_relational::facade::history::RelationalCommitReceipt;
 use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
 #[cfg(test)]
 use worth_runtime_bridge::facade::{
@@ -23,7 +23,7 @@ pub struct WorthQueryApplicationHistoricalRead {
 pub(super) enum WorthQueryApplicationHistoricalReadSource {
     ApplicationCommit {
         provider_runtime_instance_id: u64,
-        commit: CommitReference,
+        commit: RelationalCommitReceipt,
     },
     #[cfg(test)]
     BridgeSelector(BridgeTruthViewSelector),

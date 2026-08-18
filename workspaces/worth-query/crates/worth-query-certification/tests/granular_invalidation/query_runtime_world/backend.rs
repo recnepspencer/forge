@@ -34,7 +34,7 @@ impl runtime::WorthQueryRuntimeSnapshotIdentityAdapter for PrimarySnapshotAdapte
         self.0.with_runtime(|runtime| {
             let history = runtime.history();
             let head = history
-                .branch_head(&worth_relational::facade::history::BranchId("main".into()))
+                .historical_branch_head(&worth_relational::facade::history::BranchId("main".into()))
                 .expect("the published primary graph must retain a main head");
             foundation::WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
                 worth_runtime_bridge::facade::TruthSnapshotIdentity::from_relational_snapshot(

@@ -1,4 +1,4 @@
-use crate::capabilities::{HistorySource, ReplayRead};
+use crate::capabilities::{CommitEnvelopeSource, HistorySource, ReplayRead};
 use crate::history::data::HistoryDriftClass;
 use crate::replay::data::{
     CanonicalCommitEnvelope, RelationalReplayRequest, ReplayMismatch, ReplayMismatchClass,
@@ -229,17 +229,18 @@ pub(super) fn compare_replay_surfaces(
             || format!("{:?}", replayed_surface),
         );
     }
+    let expected_branch_head = expected_truth_branch_head(runtime, envelope);
     compare_replay_surface(
         runtime,
         verification_plan,
         mismatches,
         ReplayObservableSurface::BranchHead,
         ReplayMismatchClass::BranchHeadDrift,
-        surface_basis_for_branch_head(Some(&envelope.commit)),
+        surface_basis_for_branch_head(expected_branch_head.as_ref()),
         surface_basis_for_branch_head(replay_runtime.branch_head_ref(&request.branch_id)),
         "branch head movement differed",
-        || replay_runtime.branch_head_ref(&request.branch_id) == Some(&envelope.commit),
-        || format!("{:?}", Some(&envelope.commit)),
+        || replay_runtime.branch_head_ref(&request.branch_id) == expected_branch_head.as_ref(),
+        || format!("{:?}", expected_branch_head),
         || format!("{:?}", replay_runtime.branch_head_ref(&request.branch_id)),
     );
     if compared_surfaces.contains(&ReplayObservableSurface::Lineage) {
@@ -281,4 +282,22 @@ pub(super) fn compare_replay_surfaces(
             || format!("{:?}", replayed_derived_index_artifacts),
         );
     }
+}
+
+fn expected_truth_branch_head(
+    runtime: &RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+) -> Option<crate::history::data::RelationalCommitReceipt> {
+    let metadata_only = envelope.authority_kind
+        == crate::history::data::CanonicalCommitAuthorityKind::MetadataOnlyLineage;
+    if metadata_only {
+        return envelope
+            .commit
+            .ordered_parents()
+            .as_slice()
+            .first()
+            .and_then(|parent| runtime.commit_envelope(*parent))
+            .map(|parent| parent.commit.clone());
+    }
+    Some(envelope.commit.clone())
 }

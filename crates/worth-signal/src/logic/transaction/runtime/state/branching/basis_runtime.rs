@@ -1,5 +1,9 @@
 use worth_proof::TransitionOutcome;
 
+use worth_foundational::FoundationalBranchReferenceGeneration;
+
+use crate::branch::{admit_runtime_signal_branch_observation, AdmittedSignalBranchBasis};
+use crate::data::error::SignalError;
 use crate::state::{SignalBranchHandle, SignalSnapshotV1, SnapshotRestoreIntent};
 
 use super::super::runtime_state::SignalRuntime;
@@ -7,6 +11,7 @@ use super::basis::{
     materialize_branch_basis, SignalBranchBasisArtifact, SignalBranchBasisDenial,
     SignalBranchBasisIdentity, SignalBranchBasisValidationOutcome,
 };
+use super::basis_definition::signal_definition_basis;
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
@@ -166,5 +171,218 @@ where
         }
 
         TransitionOutcome::success(basis)
+    }
+
+    /// Observe one live Signal branch through the shared Foundational
+    /// reference grammar and immediately attach the owner-issued basis proof.
+    /// The old numeric head remains an internal engine detail; callers receive
+    /// only the exact immutable observation that can be compared or carried.
+    pub fn observe_signal_branch_basis(
+        &self,
+        branch: SignalBranchHandle,
+    ) -> Result<AdmittedSignalBranchBasis, SignalError> {
+        let live_branch = self
+            .graph
+            .branch_handle(branch.id)
+            .or_else(|| self.branches.branch_handle(branch.id))
+            .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name.clone()))?;
+        let identity = SignalBranchBasisIdentity::from_branch_handle(&live_branch);
+        let observation = identity
+            .to_foundational_observation(
+                self.graph.runtime_instance_id().to_string(),
+                live_branch.name.clone(),
+                signal_definition_basis(self),
+                FoundationalBranchReferenceGeneration::new(
+                    self.branches.branch_head_generation(live_branch.id),
+                ),
+            )
+            .map_err(|denial| {
+                SignalError::invalid_input(format!(
+                    "Signal branch observation construction denied: {denial:?}"
+                ))
+            })?;
+        Ok(admit_runtime_signal_branch_observation(
+            observation,
+            live_branch.id,
+        ))
+    }
+
+    /// Fork from an exact, owner-issued canonical basis. The basis is
+    /// borrowed so immutable Signal observations remain cheaply shareable;
+    /// the runtime still rechecks the live observation before using its
+    /// private fork engine.
+    pub fn fork_signal_branch(
+        &mut self,
+        name: impl Into<String>,
+        source: &AdmittedSignalBranchBasis,
+    ) -> Result<SignalBranchHandle, SignalError> {
+        let branch_id = source.owner_branch_id().ok_or_else(|| {
+            SignalError::invalid_input(
+                "Signal fork requires a runtime-issued branch basis, not a structural observation",
+            )
+        })?;
+        let branch = self
+            .branch_handle(branch_id)
+            .ok_or_else(|| SignalError::unknown_branch(Some(branch_id), "fork-source"))?;
+        let live = self.observe_signal_branch_basis(branch.clone())?;
+        live.observation()
+            .compare(source.observation())
+            .map_err(|mismatch| {
+                SignalError::invalid_input(format!(
+                    "Signal fork source basis is stale or foreign: {mismatch:?}"
+                ))
+            })?;
+        let request = super::SignalBranchForkRequest::from_parent_branch_head(name, branch_id);
+        match self.fork_branch(request) {
+            TransitionOutcome::Success(receipt) => Ok(receipt.created_branch().clone()),
+            TransitionOutcome::Denied(denial) => Err(Self::fork_denial_to_signal_error(denial)),
+            other => Err(SignalError::internal(format!(
+                "unexpected non-terminal Signal fork outcome: {other:?}"
+            ))),
+        }
+    }
+
+    /// Canonical-basis adapter for targeted transactions. The returned plan
+    /// is opaque to callers; only the canonical observation crosses the
+    /// facade while the legacy head tuple remains private engine state.
+    pub fn plan_signal_branch_targeted_transaction(
+        &mut self,
+        branch: SignalBranchHandle,
+        expected: &AdmittedSignalBranchBasis,
+    ) -> TransitionOutcome<
+        super::LoweredBranchTargetedTransactionPlan,
+        super::BranchTargetedTransactionDenial,
+    > {
+        let Ok(live) = self.observe_signal_branch_basis(branch.clone()) else {
+            return TransitionOutcome::denied(
+                super::BranchTargetedTransactionDenial::UnknownTargetBranch {
+                    branch_id: branch.id,
+                },
+            );
+        };
+        if live.observation().compare(expected.observation()).is_err() {
+            return TransitionOutcome::denied(
+                super::BranchTargetedTransactionDenial::CanonicalBasisMismatch,
+            );
+        }
+        let head = match self.branch_transaction_head(branch.clone()) {
+            TransitionOutcome::Success(head) => head,
+            TransitionOutcome::Denied(denial) => return TransitionOutcome::denied(denial),
+            _ => {
+                return TransitionOutcome::denied(
+                    super::BranchTargetedTransactionDenial::UnknownTargetBranch {
+                        branch_id: branch.id,
+                    },
+                )
+            }
+        };
+        self.plan_branch_targeted_transaction(super::BranchTargetedTransactionRequest::new(
+            branch, head,
+        ))
+    }
+
+    /// Canonical-basis adapter for one branch retirement plan.
+    pub fn plan_signal_branch_retirement(
+        &mut self,
+        branch: SignalBranchHandle,
+        expected: &AdmittedSignalBranchBasis,
+        reason: super::SignalBranchRetirementReason,
+    ) -> TransitionOutcome<super::PlannedSignalBranchRetirement, super::SignalBranchRetirementDenial>
+    {
+        let Ok(live) = self.observe_signal_branch_basis(branch.clone()) else {
+            return TransitionOutcome::denied(super::SignalBranchRetirementDenial::UnknownBranch {
+                branch_id: branch.id,
+            });
+        };
+        if live.observation().compare(expected.observation()).is_err() {
+            return TransitionOutcome::denied(
+                super::SignalBranchRetirementDenial::CanonicalBasisMismatch,
+            );
+        }
+        let head = match self.branch_transaction_head(branch.clone()) {
+            TransitionOutcome::Success(head) => head,
+            TransitionOutcome::Denied(denial) => {
+                return TransitionOutcome::denied(match denial {
+                    super::BranchTargetedTransactionDenial::UnknownTargetBranch { branch_id } => {
+                        super::SignalBranchRetirementDenial::UnknownBranch { branch_id }
+                    }
+                    super::BranchTargetedTransactionDenial::StaleTargetHead {
+                        expected,
+                        observed,
+                    } => {
+                        super::SignalBranchRetirementDenial::StaleBranchHead { expected, observed }
+                    }
+                    _ => super::SignalBranchRetirementDenial::UnknownBranch {
+                        branch_id: branch.id,
+                    },
+                })
+            }
+            _ => {
+                return TransitionOutcome::denied(
+                    super::SignalBranchRetirementDenial::UnknownBranch {
+                        branch_id: branch.id,
+                    },
+                )
+            }
+        };
+        self.plan_branch_retirement(super::SignalBranchRetirementRequest::new(
+            branch, head, reason,
+        ))
+    }
+
+    /// Canonical-basis adapter for an atomic retirement batch. Each basis is
+    /// checked before any legacy request is assembled, so a stale or foreign
+    /// observation cannot be smuggled through the batch lane.
+    pub fn plan_signal_branch_retirement_batch(
+        &mut self,
+        requests: Vec<(
+            SignalBranchHandle,
+            AdmittedSignalBranchBasis,
+            super::SignalBranchRetirementReason,
+        )>,
+    ) -> TransitionOutcome<
+        super::PlannedSignalBranchRetirementBatch,
+        super::SignalBranchRetirementBatchDenial,
+    > {
+        let mut native_requests = Vec::with_capacity(requests.len());
+        for (position, (branch, basis, reason)) in requests.into_iter().enumerate() {
+            let Ok(live) = self.observe_signal_branch_basis(branch.clone()) else {
+                return TransitionOutcome::denied(
+                    super::SignalBranchRetirementBatchDenial::Retirement {
+                        position: position as u32,
+                        denial: super::SignalBranchRetirementDenial::UnknownBranch {
+                            branch_id: branch.id,
+                        },
+                    },
+                );
+            };
+            if live.observation().compare(basis.observation()).is_err() {
+                return TransitionOutcome::denied(
+                    super::SignalBranchRetirementBatchDenial::Retirement {
+                        position: position as u32,
+                        denial: super::SignalBranchRetirementDenial::CanonicalBasisMismatch,
+                    },
+                );
+            }
+            let head = match self.branch_transaction_head(branch.clone()) {
+                TransitionOutcome::Success(head) => head,
+                TransitionOutcome::Denied(_) | TransitionOutcome::Failed(_) => {
+                    return TransitionOutcome::denied(
+                        super::SignalBranchRetirementBatchDenial::Retirement {
+                            position: position as u32,
+                            denial: super::SignalBranchRetirementDenial::UnknownBranch {
+                                branch_id: branch.id,
+                            },
+                        },
+                    )
+                }
+            };
+            native_requests.push(super::SignalBranchRetirementRequest::new(
+                branch, head, reason,
+            ));
+        }
+        self.plan_branch_retirement_batch(super::SignalBranchRetirementBatchRequest::new(
+            native_requests,
+        ))
     }
 }

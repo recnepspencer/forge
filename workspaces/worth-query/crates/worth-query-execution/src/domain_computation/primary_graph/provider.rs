@@ -117,7 +117,7 @@ impl WorthQueryPrimaryGraphProvider {
 
     pub(in crate::domain_computation::primary_graph) fn record_conditional_commit(
         &self,
-        commit: &worth_relational::facade::history::CommitReference,
+        commit: &worth_relational::facade::history::RelationalCommitReceipt,
         records: impl IntoIterator<Item = worth_relational::facade::transactions::RecordRef>,
     ) -> std::collections::BTreeSet<worth_relational::facade::identity::KindId> {
         let records = records.into_iter().collect::<Vec<_>>();
@@ -317,7 +317,7 @@ impl WorthQueryPrimaryGraphProvider {
 
     pub(super) fn observe_completed_application(
         &self,
-        commit: &worth_relational::facade::history::CommitReference,
+        commit: &worth_relational::facade::history::RelationalCommitReceipt,
     ) -> Option<WorthQueryPrimaryGraphCommittedApplication> {
         self.completed_commit_evidence
             .lock()

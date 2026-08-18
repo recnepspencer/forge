@@ -18,7 +18,7 @@ fn complexity_budget_relation_identity_validation_avoids_partition_scan() {
     }
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("duplicate").push(MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {

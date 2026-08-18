@@ -291,7 +291,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                     .latest_commit()
                     .map(|commit| commit.version_id),
             },
-            branches: self.runtime.history().branches(),
+            branch_cells: self.runtime.history().branch_cells_snapshot(),
             envelopes,
             partition_images: self
                 .runtime

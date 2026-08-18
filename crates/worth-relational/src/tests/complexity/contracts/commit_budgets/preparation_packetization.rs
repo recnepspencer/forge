@@ -7,7 +7,7 @@ fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
     );
     runtime.performance_access().reset_counters();
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("bulk-entities").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {

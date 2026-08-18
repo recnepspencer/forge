@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
-use crate::facade::history::{BranchId, CommitId, VersionNode};
+use crate::branch::{RelationalBranchReferenceCell, RelationalBranchTarget};
+use crate::facade::history::{BranchId, CommitId};
 use crate::facade::identity::VersionId;
 use crate::facade::merge::{MergeIntent, MergePlanningRequest};
 use crate::facade::runtime::RelationalRuntime;
-use crate::history::data::{MergeBaseSelectionRule, RelationalMergeBranchBasis};
+use crate::history::data::{MergeBaseSelectionRule, RelationalMergeBranchBasis, VersionNode};
 use crate::tests::support::{
     checkpoint_and_recover_with, create_branch_from_main, create_entity,
     create_entity_outcome_on_branch, persisted_runtime_with_test_schema,
@@ -218,6 +219,7 @@ fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &B
     orphan_head.commit_id = CommitId(9_999_001);
     orphan_head.version_id = VersionId(9_999_001);
     orphan_head.branch_id = branch_id.clone();
+    orphan_head.parents.clear();
 
     let mut envelope = disconnected
         .history
@@ -231,8 +233,22 @@ fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &B
 
     runtime
         .history
-        .branch_heads
-        .insert(branch_id.clone(), Some(orphan_head.clone()));
+        .commit_catalog
+        .append_envelope(Arc::new(envelope.clone()))
+        .expect("disconnected artifact id is unique");
+    let mut branch_cell =
+        RelationalBranchReferenceCell::empty(runtime.runtime_instance_id(), branch_id.clone())
+            .expect("disconnected branch identity is valid");
+    branch_cell
+        .advance_truth(worth_foundational::FoundationalBranchTarget::basis(
+            RelationalBranchTarget::from_commit_receipt(
+                runtime.runtime_instance_id(),
+                &orphan_head,
+                RelationalBranchTarget::roots_for_commit(&orphan_head),
+            ),
+        ))
+        .expect("disconnected branch reference is valid");
+    runtime.history.insert_branch_cell(branch_cell);
     runtime.history.commit_graph.insert(
         orphan_head.commit_id,
         VersionNode {

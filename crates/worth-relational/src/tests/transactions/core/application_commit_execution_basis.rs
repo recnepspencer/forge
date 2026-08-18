@@ -11,8 +11,10 @@ use crate::tests::support::*;
 fn application_commit_source_admits_the_whole_exact_retained_commit() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "retained");
+    let runtime = Arc::new(runtime);
     let runtime_instance_id = runtime.runtime_instance_id();
-    let source = RelationalApplicationCommitBasisSource::for_runtime(Arc::new(runtime));
+    let branch_cells_before = runtime.history().branch_cells_snapshot();
+    let source = RelationalApplicationCommitBasisSource::for_runtime(Arc::clone(&runtime));
 
     let lease = source
         .admit_application_commit(runtime_instance_id, &created.commit)
@@ -21,6 +23,11 @@ fn application_commit_source_admits_the_whole_exact_retained_commit() {
     assert_eq!(lease.identity().runtime_instance_id(), runtime_instance_id);
     assert_eq!(lease.identity().branch_id(), &created.commit.branch_id);
     assert_eq!(lease.version_id(), created.commit.version_id);
+    assert_eq!(
+        runtime.history().branch_cells_snapshot(),
+        branch_cells_before,
+        "historical application-commit admission cannot move branch currentness"
+    );
 }
 
 #[test]

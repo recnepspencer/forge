@@ -224,11 +224,11 @@ fn planned_query_execution_supports_aspect_filtered_relation_scans_through_reduc
 }
 
 fn create_entity_with_summary_title(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     client_key: &str,
     summary_title: &str,
 ) -> crate::facade::identity::EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("summary-{client_key}")).push(MutationIntent::Create(
             CreateIntent::Entity(crate::transactions::data::EntitySpec {

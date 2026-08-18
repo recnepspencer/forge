@@ -5,7 +5,7 @@ use super::{
     DurableStore, RecoveryAuthorityContinuityMismatch,
 };
 use crate::history::data::CanonicalCommitEnvelope;
-use crate::history::data::{CommitId, CommitReference};
+use crate::history::data::{CommitId, RelationalCommitReceipt};
 use crate::replay::data::ReplayVerificationLayer;
 use crate::schema::data::DescriptorSemanticsVersion;
 
@@ -19,7 +19,7 @@ pub struct RecoveryCursor {
 pub struct RecoveryCoverage {
     pub checkpoint_commits: usize,
     pub replayed_tail_commits: usize,
-    pub recovered_through_commit: Option<CommitReference>,
+    pub recovered_through_commit: Option<RelationalCommitReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

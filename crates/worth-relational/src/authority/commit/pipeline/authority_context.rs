@@ -31,6 +31,7 @@ pub(crate) struct AuthoritativeCommitContext {
     pub(super) prevalidated_commit_boundary: Option<InvariantExecutionResult>,
     pub(super) validated_against_commit_id: Option<crate::history::data::CommitId>,
     pub(super) validated_against_version_id: Option<crate::identity::data::VersionId>,
+    pub(super) validated_against_branch_version: Option<crate::branch::RelationalBranchVersion>,
     pub(super) strategy_commit_artifacts: Option<StrategyCommitArtifactBundle>,
 }
 
@@ -59,6 +60,7 @@ impl AuthoritativeCommitContext {
             commit_boundary,
             validated_against_commit,
             validated_against_version,
+            validated_against_branch_version,
             batch_count,
             ..
         } = candidate;
@@ -86,6 +88,7 @@ impl AuthoritativeCommitContext {
             prevalidated_commit_boundary: Some(commit_boundary),
             validated_against_commit_id: validated_against_commit,
             validated_against_version_id: Some(validated_against_version),
+            validated_against_branch_version: Some(validated_against_branch_version),
             strategy_commit_artifacts: None,
         }
     }
@@ -116,6 +119,7 @@ impl AuthoritativeCommitContext {
             prevalidated_commit_boundary: None,
             validated_against_commit_id: None,
             validated_against_version_id: None,
+            validated_against_branch_version: None,
             strategy_commit_artifacts: None,
         }
     }
@@ -167,6 +171,7 @@ impl AuthoritativeCommitContext {
             prevalidated_commit_boundary: None,
             validated_against_commit_id: None,
             validated_against_version_id: None,
+            validated_against_branch_version: None,
             strategy_commit_artifacts: None,
         })
     }
@@ -197,6 +202,7 @@ impl AuthoritativeCommitContext {
             prevalidated_commit_boundary: None,
             validated_against_commit_id: None,
             validated_against_version_id: None,
+            validated_against_branch_version: None,
             strategy_commit_artifacts: Some(StrategyCommitArtifactBundle::from_lowered(
                 &lowered_plan,
                 descriptor,
@@ -236,6 +242,7 @@ impl AuthoritativeCommitContext {
             prevalidated_commit_boundary: Some(validated_plan.commit_boundary_invariants().clone()),
             validated_against_commit_id: validated_plan.validated_against_commit_id(),
             validated_against_version_id: Some(validated_plan.validated_against_version_id()),
+            validated_against_branch_version: None,
             strategy_commit_artifacts: Some(
                 StrategyCommitArtifactBundle::from_lowered(
                     validated_plan.lowered_plan(),
@@ -257,12 +264,12 @@ fn validate_merge_context_proof(
     options: &TransactionOptions,
     merge_plan: &MergeCommitMutationPlan,
 ) -> Result<(), TransactionCommitError> {
-    if options.target_branch.as_ref() != Some(&merge_plan.target_branch) {
+    if options.target_branch() != &merge_plan.target_branch {
         return Err(invalid_merge_context(
             "merge commit context target branch does not match merge proof",
         ));
     }
-    if options.merge_parent_branches != merge_plan.merge_parent_branches.as_ref() {
+    if options.merge_parent_branch_ids() != merge_plan.merge_parent_branches.as_ref() {
         return Err(invalid_merge_context(
             "merge commit context merge parent branches do not match merge proof",
         ));

@@ -31,9 +31,10 @@ fn replay_commit_certifies_strategy_surface_for_strategy_bearing_commit() {
         .execute(&request, &snapshot)
         .expect("strategy executes against committed basis");
     let commit = {
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, TransactionOptions::default())
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered strategy plan");
         let validated = authority
             .validate_lowered_plan(lowered)
@@ -109,9 +110,10 @@ fn intent_reconciliation_strategy_commits_and_replays_end_to_end() {
         .execute(&request, &snapshot)
         .expect("strategy executes against committed basis");
     let commit = {
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, TransactionOptions::default())
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered strategy plan");
         let validated = authority
             .validate_lowered_plan(lowered)
@@ -203,9 +205,10 @@ fn entity_replacement_reconciliation_strategy_commits_lineage_sensitive_replace_
         .execute(&request, &snapshot)
         .expect("replacement strategy executes against committed basis");
     let commit = {
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, TransactionOptions::default())
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered replacement strategy plan");
         let validated = authority
             .validate_lowered_plan(lowered)

@@ -26,13 +26,12 @@ use super::support::{
 fn mutation_execution_verifies_against_independent_relational_runtime_state() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
         runtime_workflow_binding_for_branch(
             branch_snapshot_identity(&runtime, "branch-a"),
@@ -63,13 +62,12 @@ fn mutation_execution_verifies_against_independent_relational_runtime_state() {
 fn merge_execution_verifies_against_independent_relational_runtime_state() {
     let mut runtime = relational_runtime_with_intent_strategy();
     create_entity(&mut runtime, "main", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("candidate".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("candidate branch should exist");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("candidate".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("candidate branch should exist");
     create_entity(
         &mut runtime,
         "candidate-only",
@@ -143,13 +141,12 @@ fn mutation_batch_verifies_against_independent_relational_runtime_state() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let left = create_entity(&mut runtime, "left", BranchId("main".to_string()));
     let right = create_entity(&mut runtime, "right", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should exist");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should exist");
     let binding = runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime));
 
     let executed = effect_batch()
@@ -186,13 +183,12 @@ fn mutation_batch_verifies_against_independent_relational_runtime_state() {
 fn relational_oracle_rejects_independent_commit_mismatch() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should exist");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should exist");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
         runtime_workflow_binding_for_branch(
             branch_snapshot_identity(&runtime, "branch-a"),

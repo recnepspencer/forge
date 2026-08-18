@@ -103,17 +103,19 @@ impl<T> FoundationalCommittedAuthorityArtifact<T> {
         self.merge_verdict().target_branch()
     }
 
-    pub fn fork_basis(&self) -> &crate::transitions::FoundationalBranchForkBasis {
+    pub fn fork_basis(&self) -> &crate::transitions::FoundationalBranchCandidateForkBasis {
         self.merge_verdict().fork_basis()
     }
 
-    pub fn observation_basis(&self) -> crate::transitions::FoundationalBranchObservationBasis {
+    pub fn observation_basis(
+        &self,
+    ) -> crate::transitions::FoundationalBranchCandidateObservationBasis {
         self.merge_verdict().observation_basis()
     }
 
     pub fn comparison_basis(
         &self,
-    ) -> Option<&crate::transitions::FoundationalBranchComparisonBasis> {
+    ) -> Option<&crate::transitions::FoundationalBranchCandidateComparisonBasis> {
         self.merge_verdict().comparison_basis()
     }
 

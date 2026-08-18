@@ -1,7 +1,7 @@
 //! Immutable exact-commit evidence retained for equivalent receipt resolution.
 
 use std::collections::BTreeMap;
-use worth_relational::facade::history::{CommitId, CommitReference};
+use worth_relational::facade::history::{CommitId, RelationalCommitReceipt};
 
 use super::super::WorthQueryPrimaryGraphCommittedApplication;
 
@@ -35,7 +35,7 @@ impl WorthQueryCompletedCommitEvidenceStore {
 
     pub(in crate::domain_computation::primary_graph) fn observe(
         &self,
-        commit: &CommitReference,
+        commit: &RelationalCommitReceipt,
     ) -> Option<WorthQueryPrimaryGraphCommittedApplication> {
         self.by_commit
             .get(&commit.commit_id)

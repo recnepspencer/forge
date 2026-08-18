@@ -97,7 +97,15 @@ fn foundational_lowering_does_not_collapse_distinct_relational_meanings() {
 
 #[test]
 fn execution_authoring_and_explicit_normalization_lower_identically() {
-    let runtime = persisted_runtime_with_test_schema();
+    let mut runtime = persisted_runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&mut runtime, "merge-seed");
+    runtime
+        .history_authority()
+        .fork_branch_from(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .expect("feature branch has an exact owner cell");
     let raw = MergeExecutionRequest::new(
         BranchId("main".to_string()),
         BranchId("feature".to_string()),

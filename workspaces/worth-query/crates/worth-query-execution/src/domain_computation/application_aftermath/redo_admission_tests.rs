@@ -3,7 +3,7 @@
 use worth_foundational::facade::CanonicalDigestId;
 use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
 use worth_relational::facade::{
-    history::{BranchId, CommitId, CommitReference},
+    history::{BranchId, CommitId, RelationalCommitReceipt},
     identity::VersionId,
 };
 
@@ -24,8 +24,8 @@ use super::redo_recovery::WorthQueryRedoRecovery;
 use crate::domain_computation::authorization::WorthQueryOperationScopeBinding;
 use crate::domain_computation::primary_graph::WorthQueryApplicationIdempotencyBinding;
 
-fn relational_commit(id: u64) -> CommitReference {
-    CommitReference {
+fn relational_commit(id: u64) -> RelationalCommitReceipt {
+    RelationalCommitReceipt {
         commit_id: CommitId(id),
         version_id: VersionId(id),
         branch_id: BranchId("main".to_owned()),
@@ -102,7 +102,7 @@ fn bound_scope_digest() -> [u8; 32] {
 fn admit(
     proved: WorthQueryProvedUndo,
     intent: &WorthQueryRedoIntent,
-    current_head: CommitReference,
+    current_head: RelationalCommitReceipt,
     prior_redo: WorthQueryPriorRedoObservation,
     governed_input: Option<[u8; 32]>,
 ) -> Result<super::WorthQueryRedoAdmission, super::WorthQueryRedoDenial> {

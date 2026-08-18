@@ -47,7 +47,7 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         None,
     );
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("illegal-overflow").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {

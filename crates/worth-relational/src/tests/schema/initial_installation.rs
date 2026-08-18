@@ -6,9 +6,7 @@ use crate::facade::schema::{
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaRegistryErrorClass,
     SchemaVersionId,
 };
-use crate::facade::transactions::{
-    CreateIntent, EntitySpec, MutationIntent, TransactionOptions, WorkerIntentBatch,
-};
+use crate::facade::transactions::{CreateIntent, EntitySpec, MutationIntent, WorkerIntentBatch};
 use crate::facade::{identity::PartitionId, symbols::ClientKey};
 
 #[test]
@@ -69,7 +67,8 @@ fn initial_schema_authority_closes_after_first_commit() {
                 .unwrap(),
         )
         .build();
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("close-schema-installation").push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),

@@ -18,7 +18,7 @@ fn branch_head_visibility_updates_incrementally_under_branch_churn() {
     let entity = changed_entities(&base)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("analysis".to_string()),
             &BranchId("main".to_string()),
         )
@@ -55,7 +55,7 @@ fn branch_head_protection_can_be_lazy_without_populating_visibility_cache() {
     let entity = changed_entities(&base)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("analysis".to_string()),
             &BranchId("main".to_string()),
         )

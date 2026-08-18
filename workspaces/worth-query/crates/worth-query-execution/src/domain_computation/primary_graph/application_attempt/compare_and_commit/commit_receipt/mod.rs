@@ -6,7 +6,7 @@ mod projection;
 mod publication_source;
 
 use worth_query_installation::facade::WorthQueryCanonicalWorkPhases;
-use worth_relational::facade::history::{CommitId, CommitReference};
+use worth_relational::facade::history::{CommitId, RelationalCommitReceipt};
 
 use crate::domain_computation::application_aftermath::{
     WorthQueryCommittedAftermathCausality, WorthQueryDispatchOutboxRecord,
@@ -31,7 +31,7 @@ pub struct WorthQueryApplicationCommitReceipt {
         crate::domain_computation::provider_session::WorthQueryProviderSessionTerminalBinding,
     pub(super) outcome_identity: Option<super::super::WorthQueryApplicationCommitOutcomeIdentity>,
     pub(super) provider_runtime_instance_id: u64,
-    pub(super) commit: CommitReference,
+    pub(super) commit: RelationalCommitReceipt,
     pub(super) changed_record_count: usize,
     pub(super) emitted_effect_count: usize,
     pub(super) mutation_work:
@@ -71,7 +71,7 @@ impl WorthQueryApplicationCommitReceipt {
         self.commit.commit_id
     }
 
-    pub const fn commit_reference(&self) -> &CommitReference {
+    pub const fn commit_reference(&self) -> &RelationalCommitReceipt {
         &self.commit
     }
 

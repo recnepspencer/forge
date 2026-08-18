@@ -45,9 +45,11 @@ impl WorthQueryMemoryWorkspace {
                 )))
             },
         );
-        let mut transaction = self
+        let options = self
             .runtime
-            .begin_transaction(TransactionOptions::default());
+            .transaction_options_for_main()
+            .expect("memory workspace main branch remains owner-admissible");
+        let mut transaction = self.runtime.begin_transaction(options);
         transaction.push_batch(batch);
         let result = transaction
             .commit()

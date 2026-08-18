@@ -99,17 +99,17 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
     let target_b = create_entity(&mut runtime, "target-b");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
 
     let accepted_feature = {
-        let mut txn = runtime.begin_transaction(TransactionOptions {
-            target_branch: Some(BranchId("feature".to_string())),
-            ..TransactionOptions::default()
-        });
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+            &mut runtime,
+            BranchId("feature".to_string()),
+        );
         txn.push_batch(WorkerIntentBatch::new("accepted-feature-relation").push(
             MutationIntent::Create(CreateIntent::Relation(
                 crate::transactions::data::RelationSpec {
@@ -129,10 +129,10 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
         .branch_head(&BranchId("feature".to_string()))
         .cloned();
 
-    let mut rejected_txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(BranchId("feature".to_string())),
-        ..TransactionOptions::default()
-    });
+    let mut rejected_txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut runtime,
+        BranchId("feature".to_string()),
+    );
     rejected_txn.push_batch(WorkerIntentBatch::new("rejected-feature-relation").push(
         MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {

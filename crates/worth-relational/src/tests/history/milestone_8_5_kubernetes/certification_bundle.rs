@@ -46,8 +46,8 @@ pub(super) struct KubernetesNoopEvidence {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct KubernetesBranchHeadEvidence {
-    pub(super) main: Option<CommitReference>,
-    pub(super) controller: Option<CommitReference>,
+    pub(super) main: Option<RelationalCommitReceipt>,
+    pub(super) controller: Option<RelationalCommitReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

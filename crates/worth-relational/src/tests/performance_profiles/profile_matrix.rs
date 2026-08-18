@@ -16,7 +16,8 @@ fn perf_profile_matrix() {
             runtime.performance_access().reset_counters();
             let commit_started_at = Instant::now();
             let commit_outcome = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 for index in 0..24 {
                     txn.push_batch(batch_create(&format!("profile-certification-{index}")));
                 }
@@ -133,7 +134,8 @@ fn perf_profile_matrix() {
             runtime.performance_access().reset_counters();
             let commit_started_at = Instant::now();
             let commit_outcome = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 for index in 0..24 {
                     txn.push_batch(batch_create(&format!("profile-geometry-{index}")));
                 }
@@ -253,7 +255,8 @@ fn perf_profile_matrix() {
             runtime.performance_access().reset_counters();
             let commit_started_at = Instant::now();
             let commit_outcome = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 for index in 0..24 {
                     txn.push_batch(batch_create(&format!("profile-zero-{index}")));
                 }

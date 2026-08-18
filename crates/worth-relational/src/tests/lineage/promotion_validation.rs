@@ -52,7 +52,7 @@ fn lineage_promotion_validation_rejects_commit_branch_mismatch() {
         .lineage_id;
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -136,7 +136,7 @@ fn lineage_promotion_validation_resolves_anchor_truth_from_history_not_caller_sh
         vec![target_lineage],
         "forged-anchor-shape",
     );
-    let forged_anchor = crate::facade::history::CommitReference {
+    let forged_anchor = crate::facade::history::RelationalCommitReceipt {
         commit_id: second.commit.commit_id,
         version_id: crate::facade::identity::VersionId(second.commit.version_id.0 + 999),
         branch_id: second.commit.branch_id.clone(),
@@ -147,11 +147,15 @@ fn lineage_promotion_validation_resolves_anchor_truth_from_history_not_caller_sh
         .lineage_authority()
         .promote_correspondence(candidate.candidate_id, forged_anchor)
         .unwrap();
+    let promoted_commit_id = promoted
+        .promoted_commit_id()
+        .expect("metadata promotion commit");
     let promoted_commit = runtime
-        .history()
-        .branch_head(&BranchId("main".to_string()))
-        .cloned()
-        .expect("promoted commit");
+        .replay()
+        .canonical_commit_envelope(promoted_commit_id)
+        .expect("promoted commit artifact")
+        .commit
+        .clone();
 
     assert_eq!(
         promoted.promoted_commit_id(),

@@ -26,8 +26,7 @@ pub(super) use crate::facade::replay::{
     ReplayObservableSurface, ReplayVerificationMode,
 };
 pub(super) use crate::facade::transactions::{
-    CreateIntent, EntityMutationIntent, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    CreateIntent, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 pub(super) use crate::identity::data::{EntityId, KindId, PartitionId};
 pub(super) use crate::runtime::builder::RelationalRuntimeBuilder;
@@ -207,7 +206,7 @@ pub(super) fn persisted_intent_runtime_with_failing_executor(
 }
 
 pub(super) fn execute_persisted_intent_strategy_commit(
-    runtime: &mut crate::facade::runtime::RelationalRuntime,
+    mut runtime: &mut crate::facade::runtime::RelationalRuntime,
     entity: EntityId,
 ) -> crate::facade::transactions::CommitResult {
     let request = runtime
@@ -239,9 +238,10 @@ pub(super) fn execute_persisted_intent_strategy_commit(
         .commit_strategies()
         .execute(&request, &snapshot)
         .expect("strategy execution");
-    let mut authority = runtime.commit_strategies_authority();
+    let (transaction_options, mut authority) =
+        crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
     let lowered = authority
-        .lower_execution(&request, &execution, TransactionOptions::default())
+        .lower_execution(&request, &execution, transaction_options)
         .expect("lowered strategy plan");
     let validated = authority
         .validate_lowered_plan(lowered)

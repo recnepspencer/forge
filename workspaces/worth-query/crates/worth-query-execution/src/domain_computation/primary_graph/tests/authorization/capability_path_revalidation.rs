@@ -74,7 +74,7 @@ fn replace_grantor_with_custodian(
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = runtime.snapshots().historical_snapshot();
         let grantor = runtime
             .read_truth()
             .visible_relations_of_kind(grantor_kind, snapshot.version_id)
@@ -83,7 +83,11 @@ fn replace_grantor_with_custodian(
             .expect("the admitted capability has one current grantor path")
             .relation_id;
         runtime.snapshots().release_snapshot(&snapshot);
-        let mut transaction = runtime.begin_transaction(Default::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(
             WorkerIntentBatch::new("replace-capability-policy-path")
                 .push(MutationIntent::Relation(RelationMutationIntent::Delete(

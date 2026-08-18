@@ -29,7 +29,7 @@ pub struct SignalBranchRetirementRequest {
 }
 
 impl SignalBranchRetirementRequest {
-    pub fn new(
+    pub(crate) fn new(
         branch: SignalBranchHandle,
         expected_head: SignalBranchTransactionHead,
         reason: SignalBranchRetirementReason,
@@ -41,15 +41,15 @@ impl SignalBranchRetirementRequest {
         }
     }
 
-    pub fn branch(&self) -> &SignalBranchHandle {
+    pub(crate) fn branch(&self) -> &SignalBranchHandle {
         &self.branch
     }
 
-    pub fn expected_head(&self) -> &SignalBranchTransactionHead {
+    pub(crate) fn expected_head(&self) -> &SignalBranchTransactionHead {
         &self.expected_head
     }
 
-    pub fn reason(&self) -> SignalBranchRetirementReason {
+    pub(crate) fn reason(&self) -> SignalBranchRetirementReason {
         self.reason
     }
 }
@@ -69,6 +69,7 @@ pub enum SignalBranchRetirementDenial {
         expected: SignalBranchTransactionHead,
         observed: SignalBranchTransactionHead,
     },
+    CanonicalBasisMismatch,
     LiveChildren {
         branch_id: SignalBranchId,
         child_branch_ids: Vec<SignalBranchId>,
@@ -86,11 +87,11 @@ pub struct PlannedSignalBranchRetirement {
 }
 
 impl PlannedSignalBranchRetirement {
-    pub fn request(&self) -> &SignalBranchRetirementRequest {
+    pub(crate) fn request(&self) -> &SignalBranchRetirementRequest {
         &self.request
     }
 
-    pub fn validated_basis(&self) -> &SignalBranchBasisArtifact {
+    pub(crate) fn validated_basis(&self) -> &SignalBranchBasisArtifact {
         &self.validated_basis
     }
 
@@ -166,7 +167,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn plan_branch_retirement(
+    pub(crate) fn plan_branch_retirement(
         &mut self,
         request: SignalBranchRetirementRequest,
     ) -> TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial> {
@@ -188,7 +189,7 @@ where
         })
     }
 
-    pub fn retire_branch(
+    pub(crate) fn retire_branch(
         &mut self,
         plan: PlannedSignalBranchRetirement,
     ) -> TransitionOutcome<SignalBranchRetirementReceipt, SignalBranchRetirementDenial> {
@@ -268,7 +269,7 @@ where
         TransitionOutcome::success(receipt)
     }
 
-    pub fn plan_branch_retirement_batch(
+    pub(crate) fn plan_branch_retirement_batch(
         &mut self,
         request: SignalBranchRetirementBatchRequest,
     ) -> TransitionOutcome<PlannedSignalBranchRetirementBatch, SignalBranchRetirementBatchDenial>
@@ -308,7 +309,7 @@ where
         TransitionOutcome::success(PlannedSignalBranchRetirementBatch { plans })
     }
 
-    pub fn retire_branch_batch(
+    pub(crate) fn retire_branch_batch(
         &mut self,
         plan: PlannedSignalBranchRetirementBatch,
     ) -> TransitionOutcome<SignalBranchRetirementBatchReceipt, SignalBranchRetirementBatchDenial>
@@ -335,7 +336,7 @@ where
         TransitionOutcome::success(SignalBranchRetirementBatchReceipt::new(receipts))
     }
 
-    pub fn branch_retirement_receipt(
+    pub(crate) fn branch_retirement_receipt(
         &self,
         branch_id: SignalBranchId,
     ) -> Option<&SignalBranchRetirementReceipt> {

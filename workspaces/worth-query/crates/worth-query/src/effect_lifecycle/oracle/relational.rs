@@ -52,7 +52,7 @@ impl RelationalExecutionOracle {
         branch: &BranchId,
     ) -> Result<Self, EffectExecutionOracleError> {
         let history = runtime.history();
-        let observed = history.branch_head(branch).ok_or_else(|| {
+        let observed = history.historical_branch_head(branch).ok_or_else(|| {
             EffectExecutionOracleError::new(
                 EffectExecutionOracleErrorKind::RelationalObservationMissingBranchHead,
                 format!(

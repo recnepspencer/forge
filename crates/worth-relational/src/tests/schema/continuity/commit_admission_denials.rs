@@ -11,7 +11,7 @@ fn commit_rejects_undeclared_schema_drift_against_branch_head() {
     }
     .build_registry();
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("schema-drift").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -96,10 +96,13 @@ fn declared_schema_transition_rejects_wrong_source_basis() {
         )],
     };
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                proposed_transition,
+                Some(SchemaReconciliationPolicy::PreserveInformation),
+            ),
+    );
     txn.push_batch(batch_create("b"));
     let error = txn.commit().unwrap_err();
 
@@ -154,10 +157,13 @@ fn declared_schema_transition_rejects_wrong_target_basis() {
         )],
     };
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                proposed_transition,
+                Some(SchemaReconciliationPolicy::PreserveInformation),
+            ),
+    );
     txn.push_batch(batch_create("b"));
     let error = txn.commit().unwrap_err();
 
@@ -221,10 +227,13 @@ fn declared_schema_transition_requires_non_empty_runtime_basis() {
         )],
     };
 
-    let txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                proposed_transition,
+                Some(SchemaReconciliationPolicy::PreserveInformation),
+            ),
+    );
     let error = txn.commit().unwrap_err();
 
     match error {
@@ -278,10 +287,13 @@ fn declared_type_continuity_denied_schema_transition_reports_specific_conflict_c
         )],
     };
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                proposed_transition,
+                Some(SchemaReconciliationPolicy::PreserveInformation),
+            ),
+    );
     txn.push_batch(batch_create("b"));
     let error = txn.commit().unwrap_err();
 

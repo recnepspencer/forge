@@ -4,7 +4,7 @@ use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::record_changes::allocate_relation;
 use crate::authority::mutation::MutationWorkspace;
 use crate::transactions::data::{
-    CommitConflict, ConflictClass, EntityReference, RecordAspectPatchTarget,
+    CommitConflict, ConflictClass, CreatedRelationRef, EntityReference, RecordAspectPatchTarget,
     RelationAspectCreateIntent,
 };
 
@@ -49,6 +49,16 @@ pub(super) fn apply(
             .mark_relation_slot_touched(relation_id.partition_id, relation_id.slot_index());
         relation_id
     });
+    workspace.register_created_relation(
+        CreatedRelationRef {
+            partition_id: intent.partition_id,
+            kind_id: intent.kind_id,
+            client_key: intent.client_key.clone(),
+            source: intent.source.clone(),
+            target: intent.target.clone(),
+        },
+        relation_id,
+    );
     Ok(MutationOutcome::relation_created(
         relation_id,
         source,

@@ -31,6 +31,7 @@ pub(crate) fn lower_execution(
         .merged_plan()
         .map_err(StrategyLoweringError::mutation_conflict)?
         .clone();
+    let owner_bound_options = transaction.options.clone();
     let lowering_provenance =
         StrategyLoweringProvenance::from_request_and_execution(request, execution);
     let lowering_summary = build_lowering_summary(execution, bulk_mutation_batch.as_ref());
@@ -39,7 +40,7 @@ pub(crate) fn lower_execution(
         request.clone(),
         execution.clone(),
         transaction_id,
-        options,
+        owner_bound_options,
         bulk_mutation_batch,
         merged_plan,
         lowering_provenance,
@@ -113,9 +114,7 @@ mod tests {
         StrategyExecutionSummary, StrategyInputSchemaName, StrategyInputSchemaVersion,
         StrategyMutationProgram, StrategyOutputSchemaName, StrategyRequestOrigin,
     };
-    use crate::facade::transactions::{
-        CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
-    };
+    use crate::facade::transactions::{CreateIntent, MutationIntent, WorkerIntentBatch};
     use crate::identity::data::{KindId, PartitionId};
     use crate::runtime::builder::RelationalRuntimeBuilder;
     use crate::symbols::data::ClientKey;
@@ -178,14 +177,11 @@ mod tests {
             .build();
         let request = canonical_request();
         let execution = execution_draft(&request);
+        let transaction_options =
+            crate::tests::support::test_owner_transaction_options_for_main(&runtime);
 
-        let lowered = lower_execution(
-            &mut runtime,
-            &request,
-            &execution,
-            TransactionOptions::default(),
-        )
-        .expect("lowered strategy plan");
+        let lowered = lower_execution(&mut runtime, &request, &execution, transaction_options)
+            .expect("lowered strategy plan");
 
         assert_eq!(lowered.request().strategy_id(), CommitStrategyId(41));
         assert_eq!(lowered.merged_plan().merged_intents.len(), 1);
@@ -216,12 +212,14 @@ mod tests {
             request.caller_provenance().clone(),
         );
         let execution = execution_draft(&request);
+        let transaction_options =
+            crate::tests::support::test_owner_transaction_options_for_main(&runtime);
 
         let error = lower_execution(
             &mut runtime,
             &other_request,
             &execution,
-            TransactionOptions::default(),
+            transaction_options,
         )
         .unwrap_err();
 

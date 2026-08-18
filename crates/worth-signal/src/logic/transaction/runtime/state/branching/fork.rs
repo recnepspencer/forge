@@ -105,15 +105,15 @@ pub struct SignalBranchForkReceipt {
 }
 
 impl SignalBranchForkReceipt {
-    pub fn request(&self) -> &SignalBranchForkRequest {
+    pub(crate) fn request(&self) -> &SignalBranchForkRequest {
         &self.request
     }
 
-    pub fn parent_basis(&self) -> &SignalBranchBasisArtifact {
+    pub(crate) fn parent_basis(&self) -> &SignalBranchBasisArtifact {
         &self.parent_basis
     }
 
-    pub fn requested_snapshot_basis(&self) -> Option<&SignalBranchBasisArtifact> {
+    pub(crate) fn requested_snapshot_basis(&self) -> Option<&SignalBranchBasisArtifact> {
         self.requested_snapshot_basis.as_ref()
     }
 
@@ -121,11 +121,11 @@ impl SignalBranchForkReceipt {
         &self.created_branch
     }
 
-    pub fn created_branch_basis(&self) -> &SignalBranchBasisArtifact {
+    pub(crate) fn created_branch_basis(&self) -> &SignalBranchBasisArtifact {
         &self.created_branch_basis
     }
 
-    pub fn active_branch_after_fork_basis(&self) -> &SignalBranchBasisArtifact {
+    pub(crate) fn active_branch_after_fork_basis(&self) -> &SignalBranchBasisArtifact {
         &self.active_branch_after_fork_basis
     }
 }
@@ -149,7 +149,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn fork_branch(
+    pub(crate) fn fork_branch(
         &mut self,
         request: SignalBranchForkRequest,
     ) -> TransitionOutcome<SignalBranchForkReceipt, SignalBranchForkDenial> {
@@ -167,7 +167,7 @@ where
         self.fork_branch_resolved(request, None)
     }
 
-    pub fn fork_branch_with_snapshot(
+    pub(crate) fn fork_branch_with_snapshot(
         &mut self,
         request: SignalBranchForkRequest,
         snapshot: &SignalSnapshotV1,

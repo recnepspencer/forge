@@ -152,7 +152,7 @@ fn current_relation(
 ) -> RelationId {
     let graph = world.application.runtime.primary_graph().unwrap();
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = runtime.snapshots().historical_snapshot();
         let relation = runtime
             .read_truth()
             .visible_relations_of_kind(kind, snapshot.version_id)
@@ -169,7 +169,11 @@ fn mutate(world: &AuthorizationWorld, build: impl FnOnce(WorkerIntentBatch) -> W
     let graph = world.application.runtime.primary_graph().unwrap();
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(build(WorkerIntentBatch::new(
             "capability-composition-hostility",
         )));

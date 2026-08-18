@@ -25,7 +25,10 @@ pub(super) fn commit_bootstrap_rows(
     relation_rows: Vec<WorthQueryTypedRelationBootstrapRow>,
 ) -> Result<worth_relational::facade::history::CommitId, WorthQueryPrimaryGraphInstallationDenial> {
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let options = runtime
+            .transaction_options_for_main()
+            .expect("configured main branch remains owner-admissible");
+        let mut transaction = runtime.begin_transaction(options);
         let mut batch = WorkerIntentBatch::new("application-principal-bootstrap");
         for (ordinal, row) in rows.into_iter().enumerate() {
             batch = append_principal_row(batch, ordinal, row);

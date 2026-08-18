@@ -1,6 +1,7 @@
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
+use crate::branch::RelationalLegacyBranchBinding;
 use crate::history::data::BranchId;
 
 use super::{
@@ -36,7 +37,7 @@ pub enum RelationalMergeTopologyIntent {
     RequireStrictTopologyStability,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct NormalizedRelationalMergeRequest {
     family: RelationalMergeRequestFamily,
     scope: RelationalMergeScope,
@@ -47,7 +48,25 @@ pub struct NormalizedRelationalMergeRequest {
     schema_reconciliation_posture: RelationalMergeSchemaReconciliationPosture,
     topology_intent: RelationalMergeTopologyIntent,
     request_digest: String,
+    #[serde(skip)]
+    owner_bindings: Option<(RelationalLegacyBranchBinding, RelationalLegacyBranchBinding)>,
 }
+
+impl PartialEq for NormalizedRelationalMergeRequest {
+    fn eq(&self, other: &Self) -> bool {
+        self.family == other.family
+            && self.scope == other.scope
+            && self.target_branch == other.target_branch
+            && self.source_branch == other.source_branch
+            && self.merge_intent == other.merge_intent
+            && self.correspondence_posture == other.correspondence_posture
+            && self.schema_reconciliation_posture == other.schema_reconciliation_posture
+            && self.topology_intent == other.topology_intent
+            && self.request_digest == other.request_digest
+    }
+}
+
+impl Eq for NormalizedRelationalMergeRequest {}
 
 impl NormalizedRelationalMergeRequest {
     pub fn admit_full_branch(
@@ -91,6 +110,7 @@ impl NormalizedRelationalMergeRequest {
             schema_reconciliation_posture,
             topology_intent,
             request_digest: String::new(),
+            owner_bindings: None,
         };
         request.request_digest = normalized_merge_request_digest(&request);
         Ok(request)
@@ -100,9 +120,9 @@ impl NormalizedRelationalMergeRequest {
         request: MergePlanningRequest,
     ) -> Result<Self, RelationalMergeRequestNormalizationDenial> {
         Self::admit_full_branch(
-            request.target_branch,
-            request.source_branch,
-            request.merge_intent,
+            request.target_branch().clone(),
+            request.source_branch().clone(),
+            request.merge_intent(),
             RelationalMergeCorrespondencePosture::Advisory,
             RelationalMergeSchemaReconciliationPosture::Participate,
             RelationalMergeTopologyIntent::PreserveTopologySemantics,
@@ -113,13 +133,42 @@ impl NormalizedRelationalMergeRequest {
         request: MergeExecutionRequest,
     ) -> Result<Self, RelationalMergeRequestNormalizationDenial> {
         Self::admit_full_branch(
-            request.target_branch,
-            request.source_branch,
-            request.merge_intent,
+            request.target_branch().clone(),
+            request.source_branch().clone(),
+            request.merge_intent(),
             RelationalMergeCorrespondencePosture::Advisory,
             RelationalMergeSchemaReconciliationPosture::Participate,
             RelationalMergeTopologyIntent::PreserveTopologySemantics,
         )
+    }
+
+    pub(crate) fn from_owner_bound_planning_request(
+        request: super::OwnerBoundMergePlanningRequest,
+    ) -> Result<Self, RelationalMergeRequestNormalizationDenial> {
+        let (raw, target_binding, source_binding) = request.into_parts();
+        let mut normalized = Self::from_planning_request(raw)?;
+        normalized.owner_bindings = Some((target_binding, source_binding));
+        Ok(normalized)
+    }
+
+    pub(crate) fn from_owner_bound_execution_request(
+        request: super::OwnerBoundMergeExecutionRequest,
+    ) -> Result<Self, RelationalMergeRequestNormalizationDenial> {
+        let (raw, target_binding, source_binding) = request.into_parts();
+        let mut normalized = Self::from_execution_request(raw)?;
+        normalized.owner_bindings = Some((target_binding, source_binding));
+        Ok(normalized)
+    }
+
+    pub(crate) fn owner_bindings(
+        &self,
+    ) -> Option<(
+        &RelationalLegacyBranchBinding,
+        &RelationalLegacyBranchBinding,
+    )> {
+        self.owner_bindings
+            .as_ref()
+            .map(|(target, source)| (target, source))
     }
 
     pub fn family(&self) -> RelationalMergeRequestFamily {
@@ -208,10 +257,6 @@ impl<'de> Deserialize<'de> for NormalizedRelationalMergeRequest {
 
 impl From<NormalizedRelationalMergeRequest> for MergeExecutionRequest {
     fn from(value: NormalizedRelationalMergeRequest) -> Self {
-        Self {
-            target_branch: value.target_branch,
-            source_branch: value.source_branch,
-            merge_intent: value.merge_intent,
-        }
+        Self::new(value.target_branch, value.source_branch, value.merge_intent)
     }
 }

@@ -29,7 +29,9 @@ impl RelationalRuntime {
         crate::commit_strategies::facade::CommitStrategiesAuthorityFacade::new(self)
     }
 
-    pub(crate) fn runtime_instance_id(&self) -> u64 {
-        self.services.runtime_instance_id()
+    pub fn phase4_reference_cost_counters(
+        &self,
+    ) -> crate::runtime::RelationalPhase4ReferenceCostCounters {
+        self.history.phase4_costs()
     }
 }

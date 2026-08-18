@@ -9,7 +9,7 @@ use crate::diagnostics::data::{
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
 use crate::history::data::CanonicalCommitAuthorityKind;
-use crate::history::data::{BranchId, CommitReference};
+use crate::history::data::{BranchId, RelationalCommitReceipt};
 use crate::lineage::authority::diagnostic_fields::metadata_promotion_summary_fields;
 use crate::lineage::authority::phase_types::{
     ExecutionAuthorizedPromotionPlan, LoweredPromotionPlan,
@@ -77,11 +77,11 @@ impl<'runtime> LineageAuthority<'runtime> {
         &mut self,
         plan: &ExecutionAuthorizedPromotionPlan,
         artifact: &LineageFinalizationArtifact,
-    ) -> Result<CommitReference, CorrespondencePromotionExecutionFailureClass> {
+    ) -> Result<RelationalCommitReceipt, CorrespondencePromotionExecutionFailureClass> {
         let candidate_id = plan.candidate_id();
         let authoritative_anchor = plan.authoritative_anchor();
 
-        let promotion_commit = CommitReference {
+        let promotion_commit = RelationalCommitReceipt {
             commit_id: self.runtime.history().next_commit_id(),
             version_id: authoritative_anchor.version_id,
             branch_id: authoritative_anchor.branch_id.clone(),
@@ -134,13 +134,16 @@ impl<'runtime> LineageAuthority<'runtime> {
         let patch_position = envelope.patch.position;
         self.runtime
             .history_authority()
-            .publish_metadata_only_commit(
+            .publish_metadata_artifact(
                 promotion_commit.commit_id,
                 promotion_commit.clone(),
                 promotion_commit.branch_id.clone(),
                 patch_position,
                 Arc::new(envelope),
-            );
+            )
+            .map_err(|_| {
+                CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed
+            })?;
         self.record_published_lineage_events(&published_lineage);
         self.runtime
             .publication_authority()

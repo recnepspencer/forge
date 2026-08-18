@@ -1,5 +1,5 @@
 use crate::history::data::CanonicalCommitEnvelope;
-use crate::history::data::{AspectHistoryQueryResult, BranchId, CommitId, CommitReference};
+use crate::history::data::{AspectHistoryQueryResult, BranchId, CommitId, RelationalCommitReceipt};
 use crate::identity::data::{EntityId, RelationId};
 use crate::lineage::data::HistoricalLineageResolution;
 use crate::visibility::materialization::read_records::ProjectionAspectFilter;
@@ -19,7 +19,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         self.runtime.history().recent_commit_ids(branch_id, limit)
     }
 
-    pub(crate) fn branch_head_ref(&self, branch_id: &BranchId) -> Option<CommitReference> {
+    pub(crate) fn branch_head_ref(&self, branch_id: &BranchId) -> Option<RelationalCommitReceipt> {
         self.runtime.history().branch_head(branch_id).cloned()
     }
 

@@ -12,7 +12,7 @@ fn failed_commit_carries_attempt_log() {
     let entity = create_entity(&mut runtime, "first");
     delete_entity(&mut runtime, entity);
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("stale-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -50,7 +50,7 @@ fn patch_budget_failure_carries_artifact_phase_decision_trace() {
             max_published_snapshot_handles: 8,
         })
         .build();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("budget-fail"));
     let error = txn.commit().unwrap_err();
 
@@ -78,7 +78,7 @@ fn stale_entity_ids_are_rejected() {
     let mut runtime = runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "first");
     delete_entity(&mut runtime, entity);
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -102,7 +102,7 @@ fn stale_entity_ids_are_rejected() {
 #[test]
 fn unknown_entity_kind_fails_explicitly() {
     let mut runtime = runtime_with_test_schema();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("unknown-kind").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -134,7 +134,7 @@ fn duplicate_relation_identity_is_rejected() {
     let target = changed_entities(&target_outcome)[0];
     create_relation(&mut runtime, source, target, "r1");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("duplicate").push(MutationIntent::Create(CreateIntent::Relation(
             RelationSpec {
@@ -159,7 +159,7 @@ fn duplicate_relation_identity_is_rejected() {
 #[test]
 fn savepoint_rollback_discards_inner_work_only() {
     let mut runtime = runtime_with_test_schema();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("outer"));
     let savepoint = txn.create_savepoint();
     txn.push_batch(batch_create("inner"));
@@ -188,7 +188,7 @@ fn snapshot_audit_failure_discards_only_touched_overlay() {
     });
     let baseline = create_entity_outcome(&mut runtime, "baseline");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("blocked"));
     let error = txn.commit().unwrap_err();
     let committed_read = runtime
@@ -261,13 +261,17 @@ fn audit_retained_relations_remain_visible_after_endpoint_delete() {
 #[test]
 fn merged_plan_is_stable_across_batch_order() {
     let mut runtime_a = runtime_with_test_schema();
-    let mut txn_a = runtime_a.begin_transaction(TransactionOptions::default());
+    let mut txn_a = runtime_a.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime_a),
+    );
     txn_a.push_batch(batch_create("b"));
     txn_a.push_batch(batch_create("a"));
     let plan_a = txn_a.merged_plan().unwrap().clone();
 
     let mut runtime_b = runtime_with_test_schema();
-    let mut txn_b = runtime_b.begin_transaction(TransactionOptions::default());
+    let mut txn_b = runtime_b.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime_b),
+    );
     txn_b.push_batch(batch_create("a"));
     txn_b.push_batch(batch_create("b"));
     let plan_b = txn_b.merged_plan().unwrap().clone();

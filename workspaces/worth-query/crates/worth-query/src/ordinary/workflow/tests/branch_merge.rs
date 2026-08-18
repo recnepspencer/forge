@@ -238,13 +238,12 @@ fn explicit_merge(
 ) {
     let mut runtime = relational_runtime_with_intent_strategy();
     create_entity(&mut runtime, "main", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("candidate".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("candidate branch should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("candidate".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("candidate branch should be created");
     create_entity(
         &mut runtime,
         "candidate-only",

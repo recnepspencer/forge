@@ -40,7 +40,7 @@ pub(super) fn commit(
     let _ = mint;
     let before = runtime
         .snapshots()
-        .snapshot_for_branch(&branch)
+        .historical_snapshot_for_branch(&branch)
         .ok_or_else(|| failure("application branch has no current pre-commit snapshot"))?;
     let committed = runtime.commit_validated_mutation(candidate).map_err(|_| {
         let _ = runtime.snapshots().release_snapshot(&before);

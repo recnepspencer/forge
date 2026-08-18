@@ -715,48 +715,303 @@ projection, proof-forging, replay-readmission, or consumer-residue findings.
 ## Milestone 9.17.1 Required Suite
 
 `Owner Component Basis And Relational Branch-Local MVCC Certification` is
-required for Milestone 9.17.1. It must use real Relational transaction/history
-facades and the real Signal branch-basis facade rather than directly writing
-heads, versions, snapshots, generations, or retention state.
+required for Milestone 9.17.1. Its governing architecture, profiles, deltas,
+authority boundaries, counters, and closure ledger are defined in
+[milestone-9.17.1.md](./milestone-9.17.1.md). The suite uses the real Relational
+schema, transaction, branch, history, inspection, and retention facades and the
+real Signal branch-basis facade. Direct head, root, version, snapshot,
+generation, id, index, or retention-table mutation cannot certify a claim.
 
-The suite must build one causally complete component world and run these named
-scenarios:
+### Required world and oracle
 
-- `blocked_branch_a_does_not_stop_branch_b`: branch A blocks immediately before
-  its lawful publication boundary while branch B commits; branch-B wait and
-  unrelated-state-touch counters remain exactly zero
-- `same_relational_head_has_one_winner`: two branch-A transactions share one
-  expected head; exactly one publishes and the other receives the precise
-  stale/conflict outcome without head movement
-- `equal_ordinals_do_not_substitute_authority`: equal local versions on
-  different branches and runtimes are swapped one axis at a time and deny
-  before owner effects
+The suite first ships the canonical **Supply Chain** world. Its
+immutable definition compiles through production facades into a fresh runtime;
+semantic names bind only to owner-issued handles. Court, Standard, and Scale
+profiles share the same schema, semantic-key, scenario-delta, observation, and
+oracle vocabulary. Phase 3 certifies the empty-installation and operating
+baselines through public schema, transaction, snapshot, and read facades. The
+contested-planning, retention-pressure, and schema-version-boundary baselines
+remain semantic declarations until the later branch-reference, MVCC, and
+schema-version phases add the owner-issued basis and transaction capabilities
+they require. A Phase-3 baseline's descriptive branch envelope is not an
+admitted operational basis.
+
+The production compiler and independent oracle are distinct causal paths. The
+oracle interprets semantic deltas over ordered semantic maps and ancestry; it
+does not use Relational MVCC, roots, indexes, queries, history classifiers,
+encoders, digests, or visibility logic. A separate adapter projects public
+runtime results to semantic observations and a separate comparator evaluates
+them. Fixture construction, owner execution, observation, oracle, and
+comparison failures remain distinguishable.
+
+The world is a prerequisite deliverable, not incidental test setup. These
+world-certification cases are required:
+
+- `supply_chain_world_compiles_causally_through_public_facades`
+- `supply_chain_named_handles_are_owner_issued_and_complete`
+- `supply_chain_baseline_matches_independent_oracle`
+- `supply_chain_oracle_rejects_missing_write_and_sibling_leak`
+- `supply_chain_oracle_rejects_floating_head_and_wrong_ancestry`
+- `supply_chain_profiles_preserve_meaning_while_scaling_density`
+- `supply_chain_failure_trace_replays_from_profile_seed_and_delta_log`
+
+The existing Fintech and generic worlds remain green preservation suites. They
+do not replace Supply Chain closure evidence.
+
+Phase 3 must also contain causal negative twins for each production boundary.
+The failure family is part of the certification contract, not optional test
+decoration: invalid declarations fail before runtime admission; schema kind
+collisions fail at initial installation; a bad endpoint and an over-tight
+publication budget fail at transaction/publication admission; missing,
+incomplete, duplicate, wrong-kind, and wrong-endpoint semantic correspondences
+fail before a baseline is certified; foreign-runtime and unknown snapshot
+handles are denied; unbound entity/relation identities are rejected instead of
+ignored; and oracle, observation, and comparison failures remain distinct.
+The empty lane must execute a required public no-op commit and public read-view
+observation, with zero patch records, rather than constructing an in-memory
+empty observation or admitting an optional/current snapshot. Standard's 8,211 patch records must be below the explicit
+16,384 public budget, and a deliberately tiny budget must produce a typed
+publication denial.
+
+The owner-correspondence proof must cover all three relation-creation paths:
+normal relation creation, relation-aspect creation, and bulk relation creation.
+Each path must resolve the exact semantic client key and endpoint references
+through the sealed commit result; changed-record order, endpoint matching, or
+allocator arithmetic is not evidence.
+
+Phase 1's Foundational/owner-reference contract tests are deliberately
+structural: they use deterministic owner-shaped descriptors to pin lowering,
+owner affinity, exact bytes, malformed transport, and concrete witness doors.
+They are not production-world or currentness evidence. The causal production
+compiler gate is `supply_chain_world_compiles_causally_through_public_facades`
+in Phase 3; Signal's production cutover and live-basis proof are a Phase 11
+gate. A green phase-1 adapter test must never be cited as proof that a copied
+descriptor is current, admitted, or able to mutate an owner.
+
+### Phase 4 required subset: immutable commits and fork-only references
+
+Phase 4 is the first causal branch-reference gate, but it is deliberately
+narrower than the later MVCC courtroom. The existing Supply Chain compiler
+must issue a real owner branch observation for the installed baseline. The
+fork API consumes a concrete Proof-backed, fork-only source basis; tests must
+not construct a target, branch head, root, retention lease, or expected head
+from raw ids, strings, `CommitReference`, snapshots, or oracle state. A Phase
+3 descriptive baseline envelope is not sufficient by itself.
+
+The required Phase 4 cases are:
+
+- `immutable_commit_is_not_mutable_branch_reference`: the canonical artifact
+  and ordered parentage are immutable while each branch owns a separate
+  reference cell, generation line, and local truth version;
+- `fork_targets_one_canonical_source_artifact`: Court and Standard forks
+  target the exact owner-issued source artifact, allocate no second commit
+  envelope, and start local truth version zero;
+- `fork_provenance_is_not_target_authority`: source observation and authoring
+  provenance are recorded separately; neither a source branch name nor
+  provenance payload can operate a target reference;
+- `reference_version_and_generation_laws_are_checked`: truth movements advance
+  local version plus generation, metadata movements advance generation only,
+  and generation/version overflow denies before registry or catalog effects;
+- `fork_denials_are_typed_and_residue_free`: stale source generation,
+  foreign-runtime/equal-ordinal twin, duplicate target, empty-source policy,
+  malformed target, and missing owner basis fail distinctly with no catalog or
+  reference-registry mutation;
+- `runtime_clone_rebinds_reference_affinity`: a cloned runtime cannot operate
+  source-runtime observations even when commit ids and local versions match;
+- `canonical_catalog_has_one_artifact`: history readers resolve immutable
+  commit identity/parentage from the append-only catalog, while diagnostic
+  catalog-latest output cannot select a branch or read root; and
+- `retired_branch_authority_is_absent`: compile-pass/fail and source residue
+  checks find no public combined `CommitReference`, `BranchHead` authority,
+  `ExpectedBranchHead`, optional/ambient branch routing, latest-publication
+  currentness fallback, broad `HistoryAuthority::publish_commit`/
+  `publish_metadata_only_commit`/`append_index_generations`, generic authority
+  bound, or public raw target constructor.
+
+The Phase 4 UI suite must also prove that `AdmittedRelationalForkSourceBasis`
+cannot be passed to snapshot/read, transaction, publication, general-retention,
+or Phase-6 readmission operations, and that callers cannot construct either
+fork-only or general admitted bases from `FoundationalBranchReferenceObservation`
+values. The later general admitted-basis UI cases remain phase-gated and are
+not counted as Phase 4 evidence.
+
+The Phase 4 mutation controls are equally narrow: duplicate the source
+artifact per fork, drop generation from comparison, accept a foreign-runtime
+twin, derive a target from authoring provenance, re-open a public raw target
+constructor, or route currentness through publication-latest. Each mutation
+must make its associated case fail. Phase 4 does **not** claim immutable root
+visibility, semantic sibling reads, copy-on-write bytes, repeatable reads,
+descriptor readmission, external retention, atomic publication, cancellation,
+or reclamation; those cases remain assigned to Phases 5, 6, 9, and 10/12.
+
+The legacy transaction engine may keep its broad runtime borrow while this
+subset is implemented, but public transaction construction must already carry
+one required `RelationalLegacyBranchBinding`. That binding is privately minted,
+runtime-affine, non-serializable, non-forgeable, and accepted only by the
+private transition adapter; it is not a renamed `BranchId`, fork basis, or
+general admitted read basis, and has no `Default`/`None` path. Optional
+`target_branch`, ambient main defaults, and commit-id-only `ExpectedBranchHead`
+inputs are forbidden. Only the private adapter may bridge the unchanged legacy
+executor. `merge_parent_branches` and all other branch-bearing transaction
+inputs are private owner-resolved bindings or non-operational provenance; raw
+public `BranchId` selectors cannot resolve a current head. The public
+`TransactionOptions` construction path has no `Default`, `Serialize`, or
+`Deserialize` fallback.
+
+`runtime_fork_rebinds_branch_cells` is mandatory: `RelationalRuntime::fork`
+creates an operational clone with a fresh runtime identity and freshly
+rebound branch cells. A source-runtime observation must deny as foreign in the
+clone even when commit ordinals and local versions are equal.
+
+`phase4_reference_cost_probe` is mandatory at fan-outs 1, 64, and 512. It
+reports fixture setup separately and asserts constant per-fork catalog lookup,
+artifact-clone, and branch-cell-contact counts with no branch-population scan.
+This is metadata-only scaling evidence; physical bytes, copy-on-write, root
+visibility, and full cost slopes remain later phases. Residue checks inspect
+exported types and operational call paths rather than banning diagnostic names
+such as `protect_branch_heads` by substring alone.
+
+The repository's pre-existing public historical-read, Bridge, application-
+commit, and replay adapters are a bounded compatibility inventory for later
+consumer cutovers. Phase-4 certification must not call
+`admit_application_commit`, Bridge lease admission, `project_version`,
+`replay_commit`/`replay_range`, or replay-retention methods. A dedicated residue
+check rejects those names under `tests/relational_certification`; the exact
+application-commit compatibility proof also snapshots branch cells before and
+after lease admission and requires byte-for-byte equality. Compatibility APIs
+must validate owner/runtime affinity, must not move a branch cell, and must not
+reach fork, transaction, or publication admission. Their eventual exact-basis
+replacement is a later-phase requirement, not a new Phase-4 authority lane.
+
+The recovery and currentness court additionally requires exact checkpoint
+rebinding to the recovering runtime, fail-closed mismatch handling, metadata
+generation idempotence, no empty-parent fallback, exact ordered merge parents,
+foreign-runtime identity denial, and a local-empty truth version of zero. The
+focused evidence targets are `merge_replay_continuity`, the foreign-runtime
+owner-admission case, the local-empty-basis case, the branch-reference
+contract/UI suites, and the full `relational_certification` target (currently
+91 cases).
+
+### Required branch-local MVCC scenarios
+
+All scenarios start from a `CertifiedSupplyChainBaseline`, execute named deltas
+through public owner facades, and compare every affected branch to the
+independent oracle:
+
+- `immutable_commit_is_not_mutable_branch_reference`: fork Storm and
+  Maintenance from the exact contested baseline; each receives an independent
+  reference/generation and local version zero while targeting one source
+  commit, and moving either reference does not move the other
+- `fork_reuses_baseline_without_copy`: Court, Standard, and Scale forks report
+  zero materialized entities, relations, authoritative truth bytes, and commit
+  envelopes; the ancestor commit/root is unique and exactly retained
+- `branch_write_copies_only_touched_regions`: Storm Reroute and Atlas
+  Maintenance materialize only their declared persistent regions/root paths;
+  unchanged cargo, port, and infrastructure regions remain shared
+- `branches_share_history_without_sharing_mutable_fate`: Storm, Maintenance,
+  and Medical Hold observe one exact ancestor and independent overlay,
+  generation, lifecycle, coordination, and publication state
+- `branch_observations_have_no_sibling_crossover`: each branch matches parent
+  plus its own accepted deltas; no latest-head lookup, sibling overlay, index,
+  or cache can leak another branch's facts
+- `blocked_branch_a_does_not_stop_branch_b`: Storm pauses immediately before
+  its bounded publication critical section while Maintenance commits; branch-B
+  unrelated-wait and branch-A-contact counters remain exactly zero
+- `same_relational_reference_has_one_winner`: two Competing Aurora Arrival
+  candidates share one expected reference; exactly one publishes and the loser
+  reports exact expected/observed mismatch with no partial residue
+- `branch_root_publication_is_atomic`: readers around publication observe the
+  complete prior or next storage/schema/index/visibility root, never a mixture
+- `equal_ordinals_do_not_substitute_authority`: equal local versions,
+  generations, digests, or valid old commit ids from different branches or
+  runtimes are swapped one axis at a time and deny before effects
+- `metadata_movement_advances_reference_generation`: metadata-only movement
+  retains declared truth version/root while advancing reference generation
 - `boundary_crossing_requires_owner_readmission`: serialized, restored, and
-  checkpoint-derived component descriptors cannot regain operational authority
-  without current owner validation
-- `signal_basis_reuse_is_exact_and_immutable`: several consumers retain one
-  exact Signal basis with zero graph copy/evaluation/cache duplication, while a
-  mutation requires an owner-issued fork or advance
-- `retention_follows_live_obligations`: branch, snapshot, transaction,
-  candidate, and external composition pins independently prevent reclamation
-  and release exactly
-- `cancellation_cleans_every_owner_phase`: cancellation before reservation,
-  after reservation, after validation, after candidate creation, and before
-  publication leaves no unauthorized head movement or unbounded residue
-- `branch_local_work_has_branch_local_slopes`: unrelated branch count, history,
-  writers, and diagnostics do not increase selected-branch validation or
-  publication counters
+  checkpoint-derived descriptors cannot operate without current owner
+  validation
+- `retention_follows_live_obligations`: branch, observation, transaction,
+  candidate, and external pins retain exact ancestors independently
+- `branch_deletion_reclaims_only_unique_unretained_regions`: deleting Storm
+  cannot reclaim shared baseline or Maintenance-visible regions and eventually
+  exposes only Storm-unique unretained bytes as reclaimable
+- `cancellation_obeys_the_linearization_point`: every named pre-effect seam
+  leaves no movement/residue, while cancellation after movement returns the
+  performed commit
+- `seeded_supply_chain_sequences_match_oracle_per_branch`: generated fork/delta/
+  observe/retain/archive/delete traces compare truth and ancestry after every
+  step and emit a shrinkable reproduction trace
+- `branch_local_work_has_branch_local_slopes`: unrelated branches/history do
+  not increase selected-branch work, and copy/materialization scales with the
+  declared footprint rather than complete world size
+- `signal_basis_reuse_is_exact_and_immutable`: consumers share one admitted
+  basis with zero graph copy/evaluation/cache duplication; mutation requires an
+  owner-issued transition
 
-The suite must also include consolidated public compile-pass/compile-fail
-evidence for raw basis minting, cross-branch transaction/head pairing, phase
-skipping, prepared-candidate publication, generic authority substitution, and
-consumed-witness reuse. Compiler evidence is limited to those current public
-authority guarantees; it is not a general Rust API census.
+The closure matrix is mandatory; adding assertions without filling a row does
+not add proof:
 
-Milestone 9.17.1 may report closed only when the current ordinary Relational
-path contains no global commit coordinator or broad mutable entry that
-serializes independent branches, every owner basis is private-minted and
-readmission-bound, and no composite product authority is claimed.
+| Production claim | Plausible defect | Supply Chain world/delta | Independent observation | Required consequential evidence |
+| --- | --- | --- | --- | --- |
+| Baseline is production-reachable | compiler injects ids, roots, or indexes | Operating baseline | public baseline projection versus pure definition | construction report, handle audit, baseline mismatch class |
+| Sibling truth is isolated | latest/global root or sibling overlay leaks | Storm + Maintenance + Medical Hold | oracle state per exact branch basis | per-branch truth/ancestry digest and zero crossover report |
+| Immutable ancestry is physically shared | fork deep-clones truth/envelopes | 1/64/4,096 contested forks | stable sharing inspection plus commit lookup | zero fork materialization and one ancestor artifact |
+| Copy-on-write is proportional | first write clones complete world | Storm, Maintenance, one-cargo hold | touched semantic handles versus stable regions | touched/reused regions and new authoritative bytes |
+| Branch publication is independent | global borrow/lock/actor serializes work | paused Storm, active Maintenance | Maintenance completion plus scoped owner counters | zero unrelated wait/contact and exact M1 observation |
+| Same-reference CAS is exact | partial/equal-ordinal comparison admits two | competing Aurora arrival | publication outcomes plus history/root projections | one performed commit, exact stale loser, zero residue |
+| Visibility is atomic | root components move separately | Storm publication with concurrent readers | whole public observations before/after | no mixed storage/schema/index/visibility tuple |
+| Retention preserves shared and unique truth | delete releases too early or never reclaims | retained M1 then release/delete | public retained read plus sharing/reclamation inspection | shared ancestor survives; only unique unretained bytes reclaim |
+| Model sequences cover interactions | hand-picked examples miss order defect | seeded fork/delta/lifecycle traces | pure semantic state and ancestry after every step | replayable/shrinkable trace and first divergent observation |
+| Signal basis reuse is zero-work | clone/use revalidates or evaluates | 1/64/1,024 holders | exact basis identity plus Signal owner counters | zero graph/evaluation/cache work after admission |
+
+### Required structural and cost observations
+
+The public read-only inspection surface reports fork-materialized entity,
+relation, authoritative-byte, and commit-envelope counts; shared-root
+acquisitions; touched/reused regions and new authoritative bytes per
+publication; unique canonical commit artifacts; logical branch bytes; unique
+physical authoritative bytes; and reclaimable unique bytes. Safe stable region
+locators are acceptable; pointer equality alone is not.
+
+Required axes include Supply Chain Court/Standard/Scale profiles, 1/64/4,096
+branches, 1/1,024/65,536 retained commits where practical, 1/64/4,096-record
+footprints, and 1/64/1,024 immutable basis holders. Fixture compilation cost is
+reported separately. At 4,096 unchanged forks, unique truth bytes remain flat
+apart from reference/cell/retention metadata. A one-record or one-relation
+write cannot materialize the whole world.
+
+### Compiler, mutation, and residue evidence
+
+Consolidated public compile-pass/compile-fail evidence covers raw basis
+minting, cross-branch transaction/snapshot/candidate/lease pairing, phase
+skipping, prepared-candidate publication, generic `Auth: AuthorityMarker`
+governed facades, forged owner markers, cross-owner witness substitution,
+restored-descriptor operation, and consumed-witness reuse. Compiler evidence
+is limited to current public authority guarantees, not a general API census.
+
+Required sabotage includes private fixture injection, production-derived
+oracle output, eager fork clone, whole-world first-write clone, global latest-
+root reads, sibling-overlay reuse, duplicated ancestor envelopes, partial root
+publication, global publication mutex, omitted retention class, and trusted
+restored descriptor. A claim is not closed if its test still passes after its
+associated sabotage.
+
+The phase-1 reference suite records these sabotage controls as deferred
+release-court obligations: dropping runtime/graph affinity, erasing the Empty
+versus Basis tag, omitting generation, reopening a generic authority or
+readmission door, or replacing a concrete owner target with optional fields
+must turn the corresponding test red. The mutation artifacts are collected
+with the production Supply Chain and owner cutover suites rather than being
+counted as phase-1 production evidence.
+
+Milestone 9.17.1 may report closed only when the causal world and independent
+oracle pass; semantic isolation and physical sharing are both proved; the
+ordinary Relational path contains no combined commit/reference authority,
+global commit coordinator, broad mutable transaction entry, split visible
+root, ambient branch default, eager fork/world clone, or test-only authority
+lane; every owner basis is private-minted and readmission-bound; Signal and
+Relational use the same Foundational reference grammar; and no component
+artifact claims composite product authority.
 
 ## Milestone 9.17.2 Required Suite
 

@@ -25,6 +25,7 @@ pub use materialized_aspect_values::{
     MergeValueSourceSide,
 };
 
+use crate::branch::{RelationalBranchObservation, RelationalBranchVersion};
 use crate::history::data::{CommitId, RelationalMergeBranchBasis};
 use crate::merge::data::{
     BranchTouchedRecordDelta, LoweredMergePlanRecord, LoweredRecordDecision,
@@ -47,8 +48,12 @@ pub struct RuntimeInstanceId(pub u64);
 pub struct MergeExecutionAuthorityBinding {
     pub request: NormalizedRelationalMergeRequest,
     pub runtime_instance_id: RuntimeInstanceId,
-    pub target_head_commit_id: CommitId,
-    pub source_head_commit_id: CommitId,
+    pub(crate) target_head_commit_id: CommitId,
+    pub(crate) source_head_commit_id: CommitId,
+    pub(crate) target_reference: RelationalBranchObservation,
+    pub(crate) source_reference: RelationalBranchObservation,
+    pub(crate) target_truth_version: RelationalBranchVersion,
+    pub(crate) source_truth_version: RelationalBranchVersion,
     pub merge_base_commit_id: CommitId,
     pub schema_snapshot_digest: String,
     pub freshness_policy: MergeExecutionFreshnessPolicy,
@@ -71,6 +76,7 @@ pub struct MergeExecutionReadinessReport {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MergeExecutionPreparationError {
+    OwnerBinding(crate::merge::data::RelationalMergeRequestBindingDenial),
     Planning(MergePlanningError),
     NotExecutionReady(MergeExecutionReadinessReport),
     Compilation(MergeExecutionCompilationError),
@@ -87,6 +93,13 @@ pub enum MergeExecutionError {
         branch: crate::history::data::BranchId,
         planned: CommitId,
         current: Option<CommitId>,
+    },
+    StaleBranchReference {
+        branch: crate::history::data::BranchId,
+        planned_generation: u64,
+        current_generation: Option<u64>,
+        planned_truth_version: u64,
+        current_truth_version: Option<u64>,
     },
     MergeBaseDrift {
         planned: CommitId,

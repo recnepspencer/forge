@@ -12,7 +12,7 @@ use crate::domain_computation::primary_graph::provider::{
 pub(in crate::domain_computation::primary_graph) struct WorthQueryPrimaryGraphCommitEvidence {
     provider_session_binding:
         crate::domain_computation::provider_session::WorthQueryProviderSessionTerminalBinding,
-    commit: worth_relational::facade::history::CommitReference,
+    commit: worth_relational::facade::history::RelationalCommitReceipt,
     mutation_work: WorthQueryPrimaryMutationWorkEvidence,
     retained_preimage:
         Option<crate::domain_computation::application_aftermath::WorthQueryRetainedPreImage>,
@@ -69,7 +69,7 @@ impl WorthQueryPrimaryGraphCommitEvidence {
 
     pub(in crate::domain_computation::primary_graph) const fn commit_reference(
         &self,
-    ) -> &worth_relational::facade::history::CommitReference {
+    ) -> &worth_relational::facade::history::RelationalCommitReceipt {
         &self.commit
     }
 

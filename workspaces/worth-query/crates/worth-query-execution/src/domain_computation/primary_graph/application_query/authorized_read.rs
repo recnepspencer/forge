@@ -72,7 +72,7 @@ where
     let (read_outcome, proof) = plan
         .graph_work
         .execute_query_read(basis, |runtime, layout| {
-            let current = runtime.snapshots().snapshot();
+            let current = runtime.snapshots().historical_snapshot();
             let authorization_work = validate_current_authorization(
                 application,
                 &entity_resolution,

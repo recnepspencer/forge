@@ -209,7 +209,7 @@ fn derived_index_build_materializes_declared_struct_field_through_field_projecti
         ..AspectSchemaFixture::default()
     }
     .build_runtime();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("batch-alpha").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -286,11 +286,11 @@ fn field_comparison_key(value: &str) -> AuthoritativeFieldComparisonKey {
 }
 
 fn create_entity_with_aspect_fields(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     client_key: &str,
     fields: AspectFieldPatch,
 ) -> crate::facade::identity::EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new(format!("batch-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {

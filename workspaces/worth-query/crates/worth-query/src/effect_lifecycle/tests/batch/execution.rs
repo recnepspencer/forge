@@ -20,13 +20,12 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let left = create_entity(&mut runtime, "left", BranchId("main".to_string()));
     let right = create_entity(&mut runtime, "right", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let binding = runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime));
 
     let executed = effect_batch()
@@ -72,7 +71,7 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
             .is_some_and(|commit| commit.outcome().commit.commit_id == aggregate_commit_id)
     }));
 
-    let snapshot = runtime.snapshots().snapshot();
+    let snapshot = runtime.snapshots().historical_snapshot();
     let read_view = runtime
         .read_truth()
         .read_snapshot(&snapshot)
@@ -90,13 +89,12 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
 fn mutation_batch_preserves_branch_scoped_authority_target() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let main_head_before = update_entity_name(
         &mut runtime,
         entity_id,
@@ -105,7 +103,7 @@ fn mutation_batch_preserves_branch_scoped_authority_target() {
     );
     let branch_head_before = runtime
         .history()
-        .branch_head(&BranchId("branch-a".to_string()))
+        .historical_branch_head(&BranchId("branch-a".to_string()))
         .expect("branch-a head should exist")
         .commit_id;
 
@@ -137,13 +135,12 @@ fn mutation_batch_preserves_branch_scoped_authority_target() {
 fn retained_lowered_batch_denies_after_intervening_truth_change() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let lowered = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
         .push(raw_mutation_effect_with_binding(
@@ -179,7 +176,7 @@ fn retained_lowered_batch_denies_after_intervening_truth_change() {
     assert_eq!(
         runtime
             .history()
-            .branch_head(&BranchId("branch-a".to_string()))
+            .historical_branch_head(&BranchId("branch-a".to_string()))
             .expect("intervening branch head should remain authoritative")
             .commit_id,
         intervening_commit_id
@@ -190,13 +187,12 @@ fn retained_lowered_batch_denies_after_intervening_truth_change() {
 fn lowered_branch_batch_does_not_deny_when_only_another_branch_moves() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let lowered = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
         .push(raw_mutation_effect_with_binding(

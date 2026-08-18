@@ -249,12 +249,12 @@ pub(super) fn parameters(
 pub(super) fn branch_head(
     world: &super::super::fixture::AuthorizationWorld,
     branch: &str,
-) -> worth_relational::facade::history::CommitReference {
+) -> worth_relational::facade::history::RelationalCommitReceipt {
     let graph = world.application.runtime.primary_graph().unwrap();
     graph.integration_handle().with_runtime(|runtime| {
         runtime
             .history()
-            .branch_head(&BranchId(branch.to_string()))
+            .historical_branch_head(&BranchId(branch.to_string()))
             .unwrap()
             .clone()
     })
@@ -282,10 +282,12 @@ fn change_account_label(
             locator,
             label.to_string().into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions {
-            target_branch: Some(BranchId(branch.to_string())),
-            ..TransactionOptions::default()
-        });
+        let branch_id = BranchId(branch.to_string());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .owner_transaction_options_for_branch(&branch_id)
+                .expect("branch binding"),
+        );
         transaction.push_batch(WorkerIntentBatch::new("query-lane-label").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {

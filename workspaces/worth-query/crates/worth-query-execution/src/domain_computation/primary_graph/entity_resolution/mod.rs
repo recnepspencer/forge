@@ -196,7 +196,7 @@ where
         })?;
         let installed = graph.retain_entity_resolution_context();
         let result = graph.integration_handle().with_runtime_mut(|relational| {
-            let snapshot = relational.snapshots().snapshot();
+            let snapshot = relational.snapshots().historical_snapshot();
             let result = installed
                 .at_snapshot(relational, &snapshot, mode)
                 .and_then(|truth| {

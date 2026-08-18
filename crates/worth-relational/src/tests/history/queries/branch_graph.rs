@@ -7,7 +7,7 @@ fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -16,7 +16,7 @@ fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
         create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
     let main_second =
         create_entity_outcome_on_branch(&mut runtime, "main-b", BranchId("main".to_string()));
-    let graph = runtime.history().version_graph();
+    let branch_cells = runtime.history().branch_cells_snapshot();
 
     assert_eq!(
         runtime
@@ -40,8 +40,8 @@ fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
         main_second.commit.parents,
         vec![main_outcome.commit.commit_id]
     );
-    assert_eq!(graph.branches.len(), 2);
-    assert_eq!(graph.commits.len(), 3);
+    assert_eq!(branch_cells.len(), 2);
+    assert_eq!(runtime.history().immutable_commit_count(), 3);
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
     let main = create_entity_outcome(&mut runtime, "main");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -76,16 +76,17 @@ fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
 #[test]
 fn duplicate_branch_creation_is_rejected() {
     let mut runtime = runtime_with_test_schema();
+    create_entity_outcome(&mut runtime, "main-seed");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
     let error = runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )

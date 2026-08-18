@@ -142,7 +142,7 @@ where
     pub fn snapshot(&self) -> WorthQueryApplicationInvariantProjectionSnapshot<Schema> {
         let snapshot = self
             .graph
-            .with_runtime_mut(|runtime| runtime.snapshots().snapshot());
+            .with_runtime_mut(|runtime| runtime.snapshots().historical_snapshot());
         WorthQueryApplicationInvariantProjectionSnapshot {
             graph: self.graph.clone(),
             layout: Arc::clone(&self.layout),

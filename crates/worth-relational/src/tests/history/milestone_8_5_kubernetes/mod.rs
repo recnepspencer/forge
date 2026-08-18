@@ -10,14 +10,14 @@ use crate::commit_strategies::strategies::{
 use crate::facade::commit_strategies::NativeStrategyCommitRequest;
 use crate::facade::config::RelationalRuntimeProfile;
 use crate::facade::durability::{DurabilityMode, DurableStoreLayout};
-use crate::facade::history::{BranchId, CommitReference};
+use crate::facade::history::{BranchId, RelationalCommitReceipt};
 use crate::facade::merge::{MergeIntent, MergePlanningRequest};
 use crate::facade::replay::{
     RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode, ReplayObservableSurface,
     ReplayVerificationMode,
 };
 use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
-use crate::facade::transactions::{CommitResult, TransactionOptions};
+use crate::facade::transactions::CommitResult;
 use crate::tests::support::{
     checkpoint_and_recover_with, create_branch_from_main, create_entity, entity_field_aspect,
     entity_u64_field_aspect, lifecycle_aspect, read_entity_name, unique_test_store_path,

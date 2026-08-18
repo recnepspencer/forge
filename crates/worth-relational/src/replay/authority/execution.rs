@@ -163,7 +163,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
         );
         let runtime = match self.runtime.rebuild_runtime_from_plan(replay_plan) {
             Ok(runtime) => runtime,
-            Err(_) => {
+            Err(_error) => {
                 return Err(self.fail_and_record(
                     request.clone(),
                     Some(&admission.envelope),

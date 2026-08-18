@@ -170,8 +170,9 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
         .schema_registry(registry)
         .build();
 
-    let mut main_txn =
-        runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+    let mut main_txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime),
+    );
     main_txn.push_batch(
         crate::facade::transactions::WorkerIntentBatch::new("main-seed").push(
             MutationIntent::Create(CreateIntent::Entity(
@@ -191,11 +192,12 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
     main_txn.commit().unwrap();
 
     create_branch_from_main(&mut runtime, "feature");
-    let mut feature_txn =
-        runtime.begin_transaction(crate::facade::transactions::TransactionOptions {
-            target_branch: Some(BranchId("feature".to_string())),
-            ..crate::facade::transactions::TransactionOptions::default()
-        });
+    let mut feature_txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_branch(
+            &runtime,
+            BranchId("feature".to_string()),
+        ),
+    );
     feature_txn.push_batch(
         crate::facade::transactions::WorkerIntentBatch::new("feature-seed").push(
             MutationIntent::Create(CreateIntent::Entity(

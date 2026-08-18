@@ -76,7 +76,7 @@ impl BranchTargetedTransactionRequest {
         &self.target_branch
     }
 
-    pub fn expected_head(&self) -> &SignalBranchTransactionHead {
+    pub(crate) fn expected_head(&self) -> &SignalBranchTransactionHead {
         &self.expected_head
     }
 }
@@ -97,6 +97,7 @@ pub enum BranchTargetedTransactionDenial {
         expected: SignalBranchTransactionHead,
         observed: SignalBranchTransactionHead,
     },
+    CanonicalBasisMismatch,
 }
 
 #[derive(Debug, Clone)]
@@ -106,11 +107,11 @@ pub struct ValidatedBranchTargetedTransactionRequest {
 }
 
 impl ValidatedBranchTargetedTransactionRequest {
-    pub fn request(&self) -> &BranchTargetedTransactionRequest {
+    pub(crate) fn request(&self) -> &BranchTargetedTransactionRequest {
         &self.request
     }
 
-    pub fn observed_head(&self) -> &SignalBranchTransactionHead {
+    pub(crate) fn observed_head(&self) -> &SignalBranchTransactionHead {
         &self.observed_head
     }
 }
@@ -122,7 +123,7 @@ pub struct LoweredBranchTargetedTransactionPlan {
 }
 
 impl LoweredBranchTargetedTransactionPlan {
-    pub fn validated(&self) -> &ValidatedBranchTargetedTransactionRequest {
+    pub(crate) fn validated(&self) -> &ValidatedBranchTargetedTransactionRequest {
         &self.validated
     }
 
@@ -142,15 +143,15 @@ pub struct ExecutedBranchTargetedTransactionReceipt {
 }
 
 impl ExecutedBranchTargetedTransactionReceipt {
-    pub fn plan(&self) -> &LoweredBranchTargetedTransactionPlan {
+    pub(crate) fn plan(&self) -> &LoweredBranchTargetedTransactionPlan {
         &self.plan
     }
 
-    pub fn before_head(&self) -> &SignalBranchTransactionHead {
+    pub(crate) fn before_head(&self) -> &SignalBranchTransactionHead {
         &self.before_head
     }
 
-    pub fn after_head(&self) -> &SignalBranchTransactionHead {
+    pub(crate) fn after_head(&self) -> &SignalBranchTransactionHead {
         &self.after_head
     }
 
@@ -182,7 +183,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn branch_transaction_head(
+    pub(crate) fn branch_transaction_head(
         &self,
         branch: SignalBranchHandle,
     ) -> TransitionOutcome<SignalBranchTransactionHead, BranchTargetedTransactionDenial> {
@@ -192,7 +193,7 @@ where
         }
     }
 
-    pub fn plan_branch_targeted_transaction(
+    pub(crate) fn plan_branch_targeted_transaction(
         &mut self,
         request: BranchTargetedTransactionRequest,
     ) -> TransitionOutcome<LoweredBranchTargetedTransactionPlan, BranchTargetedTransactionDenial>
@@ -216,7 +217,7 @@ where
         })
     }
 
-    pub fn execute_branch_targeted_transaction<F>(
+    pub(crate) fn execute_branch_targeted_transaction<F>(
         &mut self,
         runtime_ctx: &mut Ctx,
         plan: LoweredBranchTargetedTransactionPlan,

@@ -1,4 +1,4 @@
-use crate::history::data::{BranchId, CommitReference};
+use crate::history::data::{BranchId, RelationalCommitReceipt};
 use crate::identity::data::LineageId;
 use crate::lineage::data::{CorrespondenceCandidate, CorrespondenceCandidateId};
 
@@ -88,12 +88,12 @@ impl PromotionAuthority {
 }
 
 #[derive(Debug, Clone)]
-pub(in crate::lineage::authority) struct BranchScopedCommitReference {
-    pub(super) commit: CommitReference,
+pub(in crate::lineage::authority) struct BranchScopedRelationalCommitReceipt {
+    pub(super) commit: RelationalCommitReceipt,
 }
 
-impl BranchScopedCommitReference {
-    pub(in crate::lineage::authority) fn commit(&self) -> &CommitReference {
+impl BranchScopedRelationalCommitReceipt {
+    pub(in crate::lineage::authority) fn commit(&self) -> &RelationalCommitReceipt {
         &self.commit
     }
 }
@@ -102,7 +102,7 @@ impl BranchScopedCommitReference {
 pub(in crate::lineage::authority) struct LoweredPromotionPlan {
     pub(super) candidate_id: CorrespondenceCandidateId,
     pub(super) authority: PromotionAuthority,
-    pub(super) commit: BranchScopedCommitReference,
+    pub(super) commit: BranchScopedRelationalCommitReceipt,
     pub(super) sources: Vec<BranchScopedLineageRef>,
     pub(super) targets: Vec<BranchScopedLineageRef>,
 }
@@ -116,7 +116,7 @@ impl LoweredPromotionPlan {
         self.authority.branch_id()
     }
 
-    pub(in crate::lineage::authority) fn commit(&self) -> &CommitReference {
+    pub(in crate::lineage::authority) fn commit(&self) -> &RelationalCommitReceipt {
         self.commit.commit()
     }
 
@@ -132,7 +132,7 @@ impl LoweredPromotionPlan {
 #[derive(Debug, Clone)]
 pub(in crate::lineage::authority) struct ExecutionAuthorizedPromotionPlan {
     pub(super) lowered: LoweredPromotionPlan,
-    pub(super) authoritative_anchor: CommitReference,
+    pub(super) authoritative_anchor: RelationalCommitReceipt,
 }
 
 impl ExecutionAuthorizedPromotionPlan {
@@ -144,7 +144,7 @@ impl ExecutionAuthorizedPromotionPlan {
         self.lowered.branch_id()
     }
 
-    pub(in crate::lineage::authority) fn commit(&self) -> &CommitReference {
+    pub(in crate::lineage::authority) fn commit(&self) -> &RelationalCommitReceipt {
         self.lowered.commit()
     }
 
@@ -156,7 +156,7 @@ impl ExecutionAuthorizedPromotionPlan {
         self.lowered.targets()
     }
 
-    pub(in crate::lineage::authority) fn authoritative_anchor(&self) -> &CommitReference {
+    pub(in crate::lineage::authority) fn authoritative_anchor(&self) -> &RelationalCommitReceipt {
         &self.authoritative_anchor
     }
 }

@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use crate::facade::identity::PartitionId;
 use crate::facade::transactions::{
-    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionOptions,
-    WorkerIntentBatch,
+    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, WorkerIntentBatch,
 };
 use crate::tests::support::{
     changed_entities, create_entity_outcome, field_key, single_string_aspect_field_patch,
@@ -23,7 +22,7 @@ fn runtime_bridge_lineage_source_resolves_real_relational_history() {
     let created = create_entity_outcome(&mut runtime, "source");
     let entity = changed_entities(&created)[0];
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {

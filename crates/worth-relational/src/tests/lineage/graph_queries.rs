@@ -5,8 +5,7 @@ use crate::facade::lineage::{
     LineageGraphTraversalBasis,
 };
 use crate::facade::transactions::{
-    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionOptions,
-    WorkerIntentBatch,
+    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, WorkerIntentBatch,
 };
 use crate::tests::support::*;
 
@@ -41,7 +40,7 @@ fn lineage_graph_replace_emits_replace_edge() {
     let created = create_entity_outcome(&mut runtime, "source");
     let entity = changed_entities(&created)[0];
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -85,7 +84,7 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
     let left_entity = changed_entities(&left)[0];
     let right_entity = changed_entities(&right)[0];
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace-many")
             .push(MutationIntent::Entity(EntityMutationIntent::Replace(
@@ -169,7 +168,7 @@ fn lineage_graph_replace_commit_publishes_replace_decision_log_entry() {
     let created = create_entity_outcome(&mut runtime, "source");
     let entity = changed_entities(&created)[0];
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {

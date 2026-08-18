@@ -1137,3 +1137,122 @@ Milestone 5 named certification suites
   - structural_legality_counter_snapshot
   - custom_panic_capture_report
   - publication_boundary_rejection_matrix
+
+## Milestone 9.17.1: Supply Chain Branch-Local MVCC Certification
+
+The governing architecture is
+[Query Milestone 9.17.1](../WORTH-query/milestone-9.17.1.md), and the
+authoritative named suite is
+[Owner Component Basis And Relational Branch-Local MVCC Certification](../WORTH-query/test-requirements.md#milestone-9171-required-suite).
+This section records the Relational-owned test obligation. It does not create a
+second specification or permit a Relational-only authority dialect.
+
+### World-first prerequisite
+
+Before branch-local MVCC implementation can claim phase closure, Relational
+must ship the deterministic Supply Chain certification world with:
+
+- immutable semantic definitions for ports, terminals, berths, vessels,
+  voyages, calls, cargo, inspections, and their relation contracts;
+- Court, Standard, and Scale profiles with identical meaning and increasing
+  density;
+- empty, operating, contested-planning, retention-pressure, and schema-version
+  baselines;
+- named Storm Reroute, Atlas Maintenance, Medical Hold, Southpoint Expansion,
+  Competing Arrival, Atlas Retirement, Port-Call Rewire, and Hazard V2 deltas;
+- a compiler that installs a fresh runtime only through public schema and
+  transaction facades and binds semantic names only to owner-issued handles;
+- a baseline audit that distinguishes fixture failure from runtime failure;
+- a pure semantic oracle that does not use production queries, MVCC roots,
+  indexes, encoders, digests, branch-head lookup, visibility, or history
+  classifiers; and
+- separate public observation and comparison paths plus replayable profile,
+  seed, delta trace, and pause schedule for every failure.
+
+The existing Fintech and generic worlds continue as preservation evidence, not
+9.17.1's independent semantic oracle.
+
+### Mandatory certification groups
+
+The `relational_certification` integration target owns these cohesive groups:
+
+1. **World causality** — public installation, owner-issued handle completeness,
+   baseline/oracle agreement, profile parity, typed fixture failures, and
+   mutation sensitivity.
+2. **Reference and ancestry** — immutable commit versus mutable reference,
+   exact fork basis, local version zero, metadata generation, foreign/equal-
+   ordinal substitution, and one canonical shared ancestor.
+3. **Semantic isolation** — repeatable admitted-basis reads, read-your-writes,
+   no sibling crossover, three-way fan-out, and per-step pure-oracle comparison.
+4. **Independent progress and publication** — paused Storm versus progressing
+   Maintenance, one-winner Competing Arrival, atomic complete-root visibility,
+   exact stale outcome, and zero losing residue.
+5. **Structural sharing** — zero-copy fork, touched-region copy-on-write,
+   unchanged-region reuse, logical-versus-physical byte accounting, no shared
+   mutable fate, and unique-only reclamation.
+6. **Retention and lifecycle** — independent head/observation/transaction/
+   candidate/external obligations, archive/delete posture, sibling-safe
+   reclamation, readmission after boundary weakening, and exact terminal
+   release.
+7. **Cancellation and budgets** — every named pre-effect seam, deferred
+   cancellation inside the bounded critical section, performed outcome after
+   linearization, and typed exhaustion before effects.
+8. **Model sequences** — seeded and shrinkable fork/delta/observe/retain/
+   archive/delete traces checked after every step against semantic branch state
+   and ancestry.
+9. **Cost slopes** — Court/Standard/Scale fixture separation; 1/64/4,096
+   branches; retained-history, footprint, and immutable-holder axes; zero
+   unrelated-branch wait/contact; and no total-world copy slope.
+10. **Compiler and sabotage** — unforgeable exact bases and phases, prohibited
+    cross-branch/cross-owner substitutions, and one causal mutation per claim.
+
+### Machine-checkable outputs
+
+Every applicable run emits canonical evidence rather than log inspection:
+
+- `supply_chain_definition_digest`
+- `supply_chain_installed_baseline_digest`
+- `supply_chain_oracle_observation_digest`
+- `supply_chain_observed_projection_digest`
+- `supply_chain_delta_trace_digest`
+- `branch_reference_observation_matrix`
+- `branch_truth_and_ancestry_digest`
+- `branch_isolation_mismatch_report`
+- `publication_outcome_and_residue_matrix`
+- `retention_obligation_matrix`
+- `cancellation_effect_boundary_matrix`
+- `fork_materialization_counter_snapshot`
+- `publication_region_reuse_counter_snapshot`
+- `logical_vs_unique_physical_byte_report`
+- `shared_ancestor_and_commit_uniqueness_report`
+- `reclaimable_unique_byte_report`
+- `branch_local_cost_slope_report`
+- `oracle_mutation_sensitivity_report`
+- `compiler_denial_matrix`
+- `residue_search_report`
+
+Exact identifiers may be represented by safe canonical locators in evidence;
+raw process pointers are neither stable output nor a sufficient sharing oracle.
+
+### Required hostile mutations
+
+Certification must fail after each corresponding defect is introduced:
+
+- bypass public world construction with direct state or id injection;
+- derive expected state with a production query/encoder/digest;
+- clone baseline truth or commit envelopes on fork;
+- clone the complete world on first branch write;
+- resolve an admitted read from the latest global or sibling root;
+- reuse a sibling transaction overlay or coordination cell;
+- compare only version, generation, commit id, or digest;
+- publish storage, schema, index, visibility, history, or patch state in
+  separately visible steps;
+- serialize unrelated branches behind one runtime-global lock/actor/borrow;
+- omit one retention obligation or reclaim a shared ancestor early; or
+- report cancellation after movement without returning the performed commit.
+
+The later Relational merge program must reuse this world, compiler, baselines,
+deltas, oracle, observation adapter, comparator, and sharing evidence for
+disjoint adoption, same-field conflict, delete-versus-update, endpoint rewiring,
+schema reconciliation, and common-ancestor selection. 9.17.1 prepares those
+honest inputs but does not claim merge behavior.

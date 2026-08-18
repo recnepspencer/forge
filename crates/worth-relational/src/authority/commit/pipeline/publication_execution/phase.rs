@@ -3,8 +3,10 @@ use super::super::rejection::{attach_rejection, elapsed_micros};
 use crate::authority::commit::phases::publication::append_durable_commit;
 use crate::authority::mutation::apply_adjacency_deltas;
 use crate::history::data::CanonicalCommitEnvelope;
-use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::identity::data::VersionId;
+use crate::publication::bundle::PublicationStage;
+use crate::publication::data::PublicationError;
 use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     CommitLog, CommitPhase, CommitPhaseTiming, TransactionCommitError,
@@ -78,7 +80,7 @@ pub(super) struct FinalizePublicationPhaseInput<'a> {
     pub(super) version_id: VersionId,
     pub(super) previous_branch_head_version: Option<VersionId>,
     pub(super) commit_id: CommitId,
-    pub(super) commit_reference: &'a CommitReference,
+    pub(super) commit_reference: &'a RelationalCommitReceipt,
     pub(super) branch_id: &'a BranchId,
     pub(super) merge_base_commits: &'a [CommitId],
     pub(super) merge_parent_branches: &'a [BranchId],
@@ -87,7 +89,7 @@ pub(super) struct FinalizePublicationPhaseInput<'a> {
 pub(super) fn finalize_publication_phase(
     runtime: &mut RelationalRuntime,
     input: FinalizePublicationPhaseInput<'_>,
-) -> FinalizedPublicationPhase {
+) -> Result<FinalizedPublicationPhase, TransactionCommitError> {
     let FinalizePublicationPhaseInput {
         commit_log,
         phase_timing,
@@ -122,7 +124,14 @@ pub(super) fn finalize_publication_phase(
             merge_parent_branches,
             adjacency_deltas,
         },
-    );
+    )
+    .map_err(|detail| {
+        TransactionCommitError::publication(PublicationError::new(
+            PublicationStage::BundleAssembly,
+            detail,
+        ))
+        .with_commit_log(commit_log.clone())
+    })?;
     commit_log.record_commit_published(commit_id, &commit_reference.branch_id.0);
     commit_log.complete_phase(CommitPhase::Publication);
     phase_timing.publication_micros = elapsed_micros(phase_started);
@@ -138,10 +147,10 @@ pub(super) fn finalize_publication_phase(
     phase_timing.publication_post_commit_consumer_micros =
         publication_phase_timing.post_commit_consumer_micros;
 
-    FinalizedPublicationPhase {
+    Ok(FinalizedPublicationPhase {
         canonical_commit_envelope,
         changed_records,
-    }
+    })
 }
 
 struct FinalizeCommitInput<'a> {
@@ -149,7 +158,7 @@ struct FinalizeCommitInput<'a> {
     version_id: VersionId,
     previous_branch_head_version: Option<VersionId>,
     commit_id: CommitId,
-    commit_reference: &'a CommitReference,
+    commit_reference: &'a RelationalCommitReceipt,
     canonical_commit_envelope: Arc<CanonicalCommitEnvelope>,
     branch_id: &'a BranchId,
     merge_base_commits: &'a [CommitId],
@@ -162,7 +171,7 @@ fn finalize_commit_publication(
     runtime: &mut RelationalRuntime,
     mut working_state: crate::storage::overlay::WorkingState,
     input: FinalizeCommitInput<'_>,
-) -> crate::authority::commit::phases::finalize::PublicationPhaseTiming {
+) -> Result<crate::authority::commit::phases::finalize::PublicationPhaseTiming, String> {
     let mut phase_timing =
         crate::authority::commit::phases::finalize::PublicationPhaseTiming::default();
     let phase_started = std::time::Instant::now();
@@ -187,6 +196,6 @@ fn finalize_commit_publication(
             merge_parent_branches: input.merge_parent_branches,
             phase_timing: &mut phase_timing,
         },
-    );
-    phase_timing
+    )?;
+    Ok(phase_timing)
 }

@@ -6,8 +6,10 @@ Milestone 9.17 is the governing umbrella for the ordinary composite product-
 branch foundation. It is implemented through three authority-aligned
 submilestones:
 
-1. [Milestone 9.17.1](./milestone-9.17.1.md) establishes exact owner-issued
-   component bases and real Relational branch-local MVCC.
+1. [Milestone 9.17.1](./milestone-9.17.1.md) first establishes the causal
+   Supply Chain certification world and independent semantic oracle, then exact
+   owner-issued component bases and real Relational branch-local MVCC with
+   branch isolation and structural sharing.
 2. [Milestone 9.17.2](./milestone-9.17.2.md) establishes Runtime Bridge-owned
    composite runtime-world history and coordinated publication.
 3. [Milestone 9.17.3](./milestone-9.17.3.md) carries that authority through
@@ -105,8 +107,10 @@ creating a second ordinary product-branch path.
   identity from Relational branch identity and therefore cannot represent an
   independently selected Signal basis honestly.
 - `worth-foundational` already owns portable branch, commit, parentage,
-  correspondence, canonical-basis, locator, and boundary vocabulary. Those
-  values describe cross-boundary meaning but grant no runtime authority.
+  correspondence, canonical-basis, locator, and boundary vocabulary. 9.17.1
+  extends that descriptive language with the shared immutable-target/mutable-
+  reference observation grammar required by both owners. Those values describe
+  cross-boundary meaning but grant no runtime authority.
 - `worth-proof` already owns phase progression, checked outcomes, assumption
   basis, freshness downgrade, readmission, performed-effect law, and fixed-
   shape composition. It is the substrate for compiler-visible progression,
@@ -202,29 +206,35 @@ publication, or Query-restamped authority must fail this courtroom.
     candidates have typed bounded owner-managed lifecycle posture.
 13. Independent branches are never serialized by an ordinary global commit
     lock. Shared mechanical storage cannot erase logical ownership.
-14. Retention pins exact composite commits and every exact component basis
+14. Relational forks reuse exact immutable ancestry without duplicating truth;
+    branch-local writes copy only touched persistent regions, and stable
+    inspection distinguishes logical branch bytes from unique physical bytes.
+15. Retention pins exact composite commits and every exact component basis
     needed by live branches, snapshots, transactions, corrections,
     publication, or recovery.
-15. `worth-foundational` vocabulary remains descriptive and canonical. A
+16. `worth-foundational` vocabulary remains descriptive and canonical. A
     canonical digest, locator, branch descriptor, or correspondence value
     cannot become operational admission authority.
-16. `worth-proof` supplies progression, basis, freshness, readmission,
-    structural-fact, and performed-effect law beneath stronger owner-specific
-    types. Generic Proof carriers cannot replace those types.
-17. Every operational phase transition consumes the exact private-minted
+17. `worth-proof` supplies the concrete authority-witness carrier plus
+    progression, basis, freshness, readmission, structural-fact, and performed-
+    effect law. Each owner declares a sealed marker and privately issues the
+    specialized Proof carrier after live checks. Governed facades require that
+    exact specialization or a stronger owner artifact; they never accept a
+    caller-selected generic authority marker.
+18. Every operational phase transition consumes the exact private-minted
     predecessor. Illegal ordering, raw candidate promotion, stale proof reuse,
     and weaker-type substitution are compiler-rejected where public API shape
     permits and otherwise fail typed before effects.
-18. Derived Signal caches, Query projections, diagnostics, and certification
+19. Derived Signal caches, Query projections, diagnostics, and certification
     artifacts have zero component or composite currentness authority.
-19. Merge, rebase, multi-parent publication, tags, offline synchronization,
+20. Merge, rebase, multi-parent publication, tags, offline synchronization,
     durable restart, and distributed recovery remain governed elsewhere.
 
 ## Authority-Aligned Milestone Partition
 
 | Submilestone | Sole governing outcome | Primary owner | Explicit exclusion |
 | --- | --- | --- | --- |
-| [9.17.1](./milestone-9.17.1.md) | Exact component basis contracts and concurrent Relational branch-local MVCC | Relational and Signal, each for its own basis | No composite product branch or public Query workflow |
+| [9.17.1](./milestone-9.17.1.md) | Causal merge-ready Relational certification world, exact component basis contracts, and structurally shared concurrent Relational branch-local MVCC | Relational and Signal, each for its own basis; Relational certification for the world/oracle | No merge behavior, composite product branch, or public Query workflow |
 | [9.17.2](./milestone-9.17.2.md) | Immutable composite history, product branch references, and coordinated compare-and-publish | Runtime Bridge | No Query-owned history or public facade cutover |
 | [9.17.3](./milestone-9.17.3.md) | End-to-end Query carriage, public branch facade, lifecycle docs, and hostile certification | Query as audience facade and certification owner | No new component or composition authority |
 
@@ -352,8 +362,10 @@ work and may not be implied by local closure.
 
 Milestone 9.17 closes only when:
 
-- 9.17.1 proves exact component bases and independent Relational branch
-  progress without a global ordinary commit coordinator;
+- 9.17.1 proves a causal production-backed Supply Chain world against an
+  independent oracle, exact component bases, no branch crossover, shared immutable ancestry
+  without copied truth, and independent Relational branch progress without a
+  global ordinary commit coordinator;
 - 9.17.2 proves exact composite correspondence, immutable single-parent
   history, product branch references, retention, and no-half-publication
   compare-and-publish;

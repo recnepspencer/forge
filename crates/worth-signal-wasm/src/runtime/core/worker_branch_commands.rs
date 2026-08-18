@@ -4,13 +4,9 @@ use crate::boundary::errors::WorthSignalJsError;
 use crate::recipe::model::TransactionOp;
 use crate::runtime::summaries::RunSummary;
 use worth_proof::TransitionOutcome;
-use worth_signal::facade::history::{
-    RuntimeBranch, RuntimeBranchId, SignalBranchForkRequest, SignalBranchRetirementReason,
-    SignalBranchRetirementRequest,
-};
-use worth_signal::facade::{
-    BranchTargetedTransactionRequest, SignalBranchTransactionHead, SignalError,
-};
+use worth_signal::facade::branch::AdmittedSignalBranchBasis;
+use worth_signal::facade::history::{RuntimeBranch, RuntimeBranchId, SignalBranchRetirementReason};
+use worth_signal::facade::SignalError;
 
 use super::certification_digest::canonical_certification_digest;
 use super::state::{BranchRuntimeState, PendingCallbackDependencyPatch};
@@ -33,10 +29,7 @@ impl RuntimeCore {
             .runtime
             .branch_handle(RuntimeBranchId(branch_id))
             .ok_or_else(|| unknown_branch(branch_id))?;
-        let native_head = expect_success(
-            self.runtime.branch_transaction_head(branch.clone()),
-            "read worker branch head",
-        )?;
+        let native_basis = self.native_branch_basis(branch.clone())?;
         let state = self.state_for_branch(branch_id);
         let native_state_digest = self.branch_state_proof(branch_id)?.state_digest;
         let authored_state_digest = canonical_certification_digest(&(
@@ -46,10 +39,10 @@ impl RuntimeCore {
         ))?;
         Ok(worker_basis(
             branch,
-            native_head,
+            native_basis,
             state,
             authored_state_digest,
-        ))
+        )?)
     }
 
     pub fn fork_worker_branch(
@@ -58,16 +51,14 @@ impl RuntimeCore {
     ) -> Result<WorkerForkBranchReceipt, WorthSignalJsError> {
         let parent_basis = self.worker_branch_basis(request.parent_branch_id)?;
         require_basis(&request.expected_parent_basis, &parent_basis, "forkBranch")?;
+        let native_parent_basis = self.native_branch_basis_by_id(request.parent_branch_id)?;
         let parent_state = self.state_for_branch(request.parent_branch_id);
-        let receipt = expect_success(
-            self.runtime
-                .fork_branch(SignalBranchForkRequest::from_parent_branch_head(
-                    request.name,
-                    RuntimeBranchId(request.parent_branch_id),
-                )),
-            "fork worker branch",
-        )?;
-        let branch = receipt.created_branch().clone();
+        let branch = self
+            .runtime
+            .fork_signal_branch(request.name, &native_parent_basis)
+            .map_err(|error| {
+                WorthSignalJsError::invalid_input(format!("fork worker branch denied: {error}"))
+            })?;
         self.branch_states.insert(branch.id.0, parent_state);
         let created_basis = self.worker_branch_basis(branch.id.0)?;
         Ok(WorkerForkBranchReceipt {
@@ -91,17 +82,12 @@ impl RuntimeCore {
             .runtime
             .branch_handle(RuntimeBranchId(request.branch_id))
             .ok_or_else(|| unknown_branch(request.branch_id))?;
-        let native_head = expect_success(
-            self.runtime.branch_transaction_head(branch.clone()),
-            "read targeted worker branch head",
+        let native_basis = self.native_branch_basis(branch.clone())?;
+        let plan = expect_success(
+            self.runtime
+                .plan_signal_branch_targeted_transaction(branch, &native_basis),
+            "plan targeted worker transaction",
         )?;
-        let plan =
-            expect_success(
-                self.runtime.plan_branch_targeted_transaction(
-                    BranchTargetedTransactionRequest::new(branch, native_head),
-                ),
-                "plan targeted worker transaction",
-            )?;
 
         let active_branch_id_before = self.runtime.current_branch().id.0;
         let active_state = self.snapshot_branch_state();
@@ -130,17 +116,19 @@ impl RuntimeCore {
         ));
         let dependency_patches_for_tx = dependency_patches.clone();
 
-        let outcome =
-            self.runtime
-                .execute_branch_targeted_transaction(&mut self.store, plan, move |tx| {
-                    apply_set_changes(tx, &store, &dense_grids, &changes)?;
-                    tx.evaluate_dirty(&evaluator)?;
-                    let patches = apply_pending_dependency_patches_in_transaction(tx, &store)?;
-                    *dependency_patches_for_tx.lock().map_err(|_| {
-                        SignalError::internal("dependency patch receipt mutex poisoned")
-                    })? = Some(patches);
-                    Ok(())
-                });
+        let outcome = self.runtime.execute_signal_branch_targeted_transaction(
+            &mut self.store,
+            plan,
+            move |tx| {
+                apply_set_changes(tx, &store, &dense_grids, &changes)?;
+                tx.evaluate_dirty(&evaluator)?;
+                let patches = apply_pending_dependency_patches_in_transaction(tx, &store)?;
+                *dependency_patches_for_tx.lock().map_err(|_| {
+                    SignalError::internal("dependency patch receipt mutex poisoned")
+                })? = Some(patches);
+                Ok(())
+            },
+        );
 
         let executed = match outcome {
             TransitionOutcome::Success(receipt) => receipt,
@@ -184,20 +172,18 @@ impl RuntimeCore {
             .runtime
             .branch_handle(RuntimeBranchId(request.branch_id))
             .ok_or_else(|| unknown_branch(request.branch_id))?;
-        let native_head = expect_success(
-            self.runtime.branch_transaction_head(branch.clone()),
-            "read retiring worker branch head",
-        )?;
         let plan = expect_success(
-            self.runtime
-                .plan_branch_retirement(SignalBranchRetirementRequest::new(
-                    branch,
-                    native_head,
-                    request.reason.into(),
-                )),
+            self.runtime.plan_signal_branch_retirement(
+                branch,
+                &self.native_branch_basis_by_id(request.branch_id)?,
+                request.reason.into(),
+            ),
             "plan worker branch retirement",
         )?;
-        let receipt = expect_success(self.runtime.retire_branch(plan), "retire worker branch")?;
+        let receipt = expect_success(
+            self.runtime.retire_signal_branch(plan),
+            "retire worker branch",
+        )?;
         self.branch_states.remove(&request.branch_id);
         self.snapshot_states
             .retain(|(branch_id, _), _| *branch_id != request.branch_id);
@@ -223,6 +209,30 @@ impl RuntimeCore {
         self.restore_branch_metadata(state.metadata.clone());
         self.lock_store()?.restore_snapshot(state.store.clone());
         self.sync_callback_diagnostics_from_store()
+    }
+
+    pub(super) fn native_branch_basis_by_id(
+        &self,
+        branch_id: u64,
+    ) -> Result<AdmittedSignalBranchBasis, WorthSignalJsError> {
+        let branch = self
+            .runtime
+            .branch_handle(RuntimeBranchId(branch_id))
+            .ok_or_else(|| unknown_branch(branch_id))?;
+        self.native_branch_basis(branch)
+    }
+
+    pub(super) fn native_branch_basis(
+        &self,
+        branch: RuntimeBranch,
+    ) -> Result<AdmittedSignalBranchBasis, WorthSignalJsError> {
+        self.runtime
+            .observe_signal_branch_basis(branch)
+            .map_err(|error| {
+                WorthSignalJsError::invalid_input(format!(
+                    "read worker branch basis denied: {error}"
+                ))
+            })
     }
 
     fn validate_targeted_transaction_shape(
@@ -292,19 +302,28 @@ impl From<WorkerBranchRetirementReason> for SignalBranchRetirementReason {
 
 fn worker_basis(
     branch: RuntimeBranch,
-    native_head: SignalBranchTransactionHead,
+    native_basis: AdmittedSignalBranchBasis,
     state: BranchRuntimeState,
     authored_state_digest: String,
-) -> WorkerBranchBasisReceipt {
-    WorkerBranchBasisReceipt {
+) -> Result<WorkerBranchBasisReceipt, WorthSignalJsError> {
+    let target = native_basis
+        .observation()
+        .target()
+        .as_basis()
+        .ok_or_else(|| {
+            WorthSignalJsError::internal("live Signal basis unexpectedly has an empty target")
+        })?;
+    let native_head_digest =
+        canonical_certification_digest(&native_basis.observation().canonical_encoding())?;
+    Ok(WorkerBranchBasisReceipt {
         branch_id: branch.id.0,
         branch_name: branch.name,
-        snapshot_id: native_head.snapshot_id().map(|id| id.0),
-        native_head_generation: native_head.generation(),
-        native_head_digest: native_head.head_digest().to_owned(),
+        snapshot_id: target.snapshot_id(),
+        native_head_generation: native_basis.observation().generation().get(),
+        native_head_digest,
         authored_graph_generation: state.authored_graph_generation,
         authored_state_digest,
-    }
+    })
 }
 
 pub(super) fn require_basis(

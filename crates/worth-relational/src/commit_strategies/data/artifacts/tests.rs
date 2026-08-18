@@ -17,9 +17,7 @@ use crate::commit_strategies::data::{
     StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
     StrategyRequestOrigin, StrategyTraversalBasis,
 };
-use crate::facade::transactions::{
-    CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
-};
+use crate::facade::transactions::{CreateIntent, MutationIntent, WorkerIntentBatch};
 use crate::identity::data::{EntityId, KindId, PartitionId};
 use crate::runtime::builder::RelationalRuntimeBuilder;
 use crate::symbols::data::ClientKey;
@@ -103,9 +101,10 @@ fn lowered_bundle() -> StrategyCommitArtifactBundle {
         .build();
     let request = canonical_request();
     let execution = execution_draft(&request);
-    let lowered = runtime
-        .commit_strategies_authority()
-        .lower_execution(&request, &execution, TransactionOptions::default())
+    let (transaction_options, mut authority) =
+        crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+    let lowered = authority
+        .lower_execution(&request, &execution, transaction_options)
         .expect("lowered strategy plan");
 
     StrategyCommitArtifactBundle::from_lowered(&lowered, &descriptor(), runtime.runtime_config())
@@ -118,9 +117,10 @@ fn strategy_commit_artifact_bundle_carries_consistent_typed_artifacts() {
         .build();
     let request = canonical_request();
     let execution = execution_draft(&request);
-    let lowered = runtime
-        .commit_strategies_authority()
-        .lower_execution(&request, &execution, TransactionOptions::default())
+    let (transaction_options, mut authority) =
+        crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+    let lowered = authority
+        .lower_execution(&request, &execution, transaction_options)
         .expect("lowered strategy plan");
     let bundle = StrategyCommitArtifactBundle::from_lowered(
         &lowered,

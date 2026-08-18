@@ -19,14 +19,17 @@ pub(super) fn commit_record(
     identity: u64,
 ) -> (
     WorthQueryCommittedDispatchOutboxBinding,
-    worth_relational::facade::history::CommitReference,
+    worth_relational::facade::history::RelationalCommitReceipt,
     u64,
 ) {
     let record = record_for(identity);
     let branch = primary_relational_branch_id();
     let (binding, commit, runtime_id) = provider.graph.with_runtime_mut(|runtime| {
-        let mut transaction: RelationalTransaction<'_> =
-            runtime.begin_transaction(Default::default());
+        let mut transaction: RelationalTransaction<'_> = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(
             WorkerIntentBatch::new("committed-outbox-owner-test").push(
                 dispatch_outbox_create_intent(
@@ -45,7 +48,10 @@ pub(super) fn commit_record(
         .unwrap()
         .unwrap();
         let commit = committed.outcome().commit.clone();
-        let snapshot = runtime.snapshots().snapshot_for_branch(&branch).unwrap();
+        let snapshot = runtime
+            .snapshots()
+            .historical_snapshot_for_branch(&branch)
+            .unwrap();
         let runtime_id = snapshot.runtime_instance_id;
         runtime.snapshots().release_snapshot(&snapshot);
         (binding, commit, runtime_id)

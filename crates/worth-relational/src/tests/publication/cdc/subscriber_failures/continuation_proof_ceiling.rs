@@ -39,7 +39,10 @@ fn subscriber_stream_rejects_when_normalized_continuation_proof_exceeds_complexi
         );
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
-    let mut txn = runtime.begin_transaction(visible_bridge_transition_options(SchemaVersionId(2)));
+    let mut txn = runtime.begin_transaction(visible_bridge_transition_options(
+        &runtime,
+        SchemaVersionId(2),
+    ));
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
 

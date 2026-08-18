@@ -19,7 +19,7 @@ fn equal_version_snapshot_from_another_relational_runtime_is_rejected() {
     let first_version = first_graph
         .integration_handle()
         .with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
+            let snapshot = runtime.snapshots().historical_snapshot();
             let version = snapshot.version_id;
             runtime.snapshots().release_snapshot(&snapshot);
             version
@@ -28,7 +28,7 @@ fn equal_version_snapshot_from_another_relational_runtime_is_rejected() {
     second_graph
         .integration_handle()
         .with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
+            let snapshot = runtime.snapshots().historical_snapshot();
             assert_eq!(snapshot.version_id, first_version);
             let denial = match installed.at_snapshot(
                 runtime,
@@ -68,7 +68,11 @@ fn rebuilt_index_generation_preserves_stable_entity_meaning() {
         .unwrap();
 
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let head = runtime.history().latest_commit().unwrap().clone();
+        let head = runtime
+            .history()
+            .historical_latest_commit()
+            .unwrap()
+            .clone();
         let build = runtime
             .index_authority()
             .build_for_commit(DerivedIndexBuildRequest {
@@ -81,7 +85,7 @@ fn rebuilt_index_generation_preserves_stable_entity_meaning() {
             build.generations[0].generation_id,
             identity.identity_index_generation()
         );
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = runtime.snapshots().historical_snapshot();
         let truth = installed
             .at_snapshot(
                 runtime,
@@ -100,7 +104,7 @@ fn installed_context_derives_binding_layout_and_index_from_its_graph() {
     let graph = world.application.runtime.primary_graph().unwrap();
     let installed = graph.retain_entity_resolution_context();
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = runtime.snapshots().historical_snapshot();
         let truth = installed
             .at_snapshot(runtime, &snapshot, WorthQueryPrincipalResolutionMode::Ordinary)
             .unwrap();

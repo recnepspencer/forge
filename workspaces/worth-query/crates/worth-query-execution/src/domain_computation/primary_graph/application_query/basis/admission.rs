@@ -205,7 +205,7 @@ where
             handle.ensure_primary_indexes_current(runtime).map(|()| {
                 runtime
                     .history()
-                    .latest_commit()
+                    .historical_latest_commit()
                     .map_or(worth_relational::facade::identity::VersionId(0), |commit| {
                         commit.version_id
                     })
@@ -240,9 +240,18 @@ where
                 "Relational version branch",
             )
         })?;
+    let identity = application
+        .relational_source
+        .branch_identity(&branch)
+        .map_err(|basis| {
+            admission_denial(
+                WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
+                basis.detail(),
+            )
+        })?;
     application
         .relational_source
-        .admit_execution_basis(&branch, version)
+        .admit_execution_basis_for_identity(&identity, version)
         .map_err(|basis| {
             admission_denial(
                 WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,

@@ -1,4 +1,4 @@
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 use crate::identity::data::VersionId;
 use crate::publication::bundle::{PublicationBundle, PublicationStatus};
 use crate::publication::PublicationAuthority;
@@ -29,7 +29,7 @@ impl<'runtime> PublicationAuthority<'runtime> {
 
     pub(crate) fn assemble_publication_bundle(
         &mut self,
-        commit_reference: CommitReference,
+        commit_reference: RelationalCommitReceipt,
         version_id: VersionId,
         patch: crate::publication::patch::data::PublishedAuthoritativePatchEnvelope,
         diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,

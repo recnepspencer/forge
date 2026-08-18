@@ -45,7 +45,7 @@ pub(super) fn prepare_commit_execution(
     let merge_parent_count = admitted
         .merge_history_plan()
         .map(|plan| plan.requested_merge_parent_count)
-        .unwrap_or(admitted.options().merge_parent_branches.len());
+        .unwrap_or(admitted.options().merge_parent_bindings().len());
     let PreparedAuthorityScope {
         structural_summary,
         working_state,

@@ -18,8 +18,8 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::transactions::{
-    CreateIntent, EntityMutationIntent, MutationIntent, RecordRef, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    CreateIntent, EntityMutationIntent, MutationIntent, RecordRef, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 use crate::merge::data::AspectMergePolicyDeclaration;
 use crate::schema::data::{
@@ -223,15 +223,13 @@ fn create_entity_with_aspect_fields(
 }
 
 fn create_entity_with_aspect_fields_on_branch(
-    runtime: &mut crate::facade::runtime::RelationalRuntime,
+    mut runtime: &mut crate::facade::runtime::RelationalRuntime,
     client_key: &str,
     fields: crate::transactions::data::AspectFieldPatch,
     branch_id: BranchId,
 ) -> crate::facade::identity::EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch_id),
-        ..TransactionOptions::default()
-    });
+    let mut txn =
+        crate::tests::support::test_owner_begin_transaction_for_branch(&mut runtime, branch_id);
     txn.push_batch(WorkerIntentBatch::new(format!("create-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -246,7 +244,7 @@ fn create_entity_with_aspect_fields_on_branch(
 }
 
 fn update_entity_aspect_fields_on_branch(
-    runtime: &mut crate::facade::runtime::RelationalRuntime,
+    mut runtime: &mut crate::facade::runtime::RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     fields: crate::transactions::data::AspectFieldPatch,
     branch_id: BranchId,
@@ -259,10 +257,8 @@ fn update_entity_aspect_fields_on_branch(
         field_key("name"),
     )
     .to_string();
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch_id),
-        ..TransactionOptions::default()
-    });
+    let mut txn =
+        crate::tests::support::test_owner_begin_transaction_for_branch(&mut runtime, branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("update-aspect-fields").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {

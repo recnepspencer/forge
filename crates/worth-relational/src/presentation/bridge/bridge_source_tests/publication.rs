@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
 use crate::facade::identity::PartitionId;
-use crate::facade::transactions::{
-    CreateIntent, EntitySpec, MutationIntent, TransactionOptions, WorkerIntentBatch,
-};
+use crate::facade::transactions::{CreateIntent, EntitySpec, MutationIntent, WorkerIntentBatch};
 use crate::tests::support::{
     aspect_key, create_entity_outcome, field_key, single_string_aspect_field_patch,
 };
@@ -80,7 +78,8 @@ fn partition_source_filters_the_real_commit_and_retains_exact_partition_provenan
             ),
         }))
     };
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(
         WorkerIntentBatch::new("partition-publication")
             .push(entity(PartitionId::main(), "main"))
@@ -94,7 +93,7 @@ fn partition_source_filters_the_real_commit_and_retains_exact_partition_provenan
             crate::facade::transactions::RecordRef::Entity(entity)
                 if entity.partition_id == PartitionId::new(7) =>
             {
-                Some(*entity)
+                Some(entity)
             }
             _ => None,
         })
@@ -264,7 +263,7 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
         .commit
         .commit_id;
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("update").push(MutationIntent::Create(
             crate::transactions::data::CreateIntent::Entity(

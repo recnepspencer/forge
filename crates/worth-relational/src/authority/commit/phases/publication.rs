@@ -6,7 +6,7 @@ use crate::capabilities::{
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsScope, RelationalDiagnosticFields, RelationalDiagnosticValue,
 };
-use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::history::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::LineageFinalizationArtifact;
@@ -42,7 +42,7 @@ pub(crate) fn enforce_patch_budget(
 
 pub(crate) fn canonical_commit_envelope(
     runtime: &mut crate::runtime::RelationalRuntime,
-    commit_reference: &CommitReference,
+    commit_reference: &RelationalCommitReceipt,
     branch_id: &BranchId,
     authority_kind: CanonicalCommitAuthorityKind,
     strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
@@ -75,7 +75,7 @@ pub(crate) fn canonical_commit_envelope(
             "lineage artifact branch scope mismatch",
         )));
     }
-    let envelope = CanonicalCommitEnvelope::new(
+    let mut envelope = CanonicalCommitEnvelope::new(
         commit_reference.clone(),
         published_lineage.branch_id().clone(),
         authority_kind,
@@ -95,6 +95,10 @@ pub(crate) fn canonical_commit_envelope(
         schema_continuity.schema_reconciliation_descriptor.clone(),
         schema_continuity.descriptor_semantics_version,
     );
+    envelope.branch_cell_checkpoint = runtime
+        .history
+        .branch_cell(branch_id)
+        .map(crate::branch::RelationalBranchReferenceCell::checkpoint);
     validate_schema_continuity_publication(runtime, branch_id, schema_continuity, &envelope)?;
     Ok(envelope)
 }

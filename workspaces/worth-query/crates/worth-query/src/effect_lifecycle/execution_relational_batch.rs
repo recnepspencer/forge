@@ -18,7 +18,7 @@ pub(super) fn execute_lowered_mutation_batch(
     for declaration in declarations {
         ensure_exact_basis_freshness(runtime, declaration)?;
     }
-    let snapshot = runtime.snapshots().snapshot();
+    let snapshot = runtime.snapshots().historical_snapshot();
     let transaction_options = declarations
         .first()
         .ok_or_else(|| {
@@ -27,7 +27,7 @@ pub(super) fn execute_lowered_mutation_batch(
                 "batch-native mutation execution requires at least one declaration".to_string(),
             )
         })
-        .and_then(mutation_transaction_options)?;
+        .and_then(|declaration| mutation_transaction_options(runtime, declaration))?;
     let lowered_components = declarations
         .iter()
         .map(|declaration| lower_batch_component(runtime, declaration, &snapshot))
@@ -68,13 +68,10 @@ fn lower_batch_component(
                 EffectExecutionDenialKind::RelationalStrategyExecutionFailed,
             )
         })?;
+    let transaction_options = mutation_transaction_options(runtime, declaration)?;
     let mut authority = runtime.commit_strategies_authority();
     let lowered = authority
-        .lower_execution(
-            &canonical,
-            &execution,
-            mutation_transaction_options(declaration)?,
-        )
+        .lower_execution(&canonical, &execution, transaction_options)
         .map_err(|error| {
             lower_runtime_error(
                 error,

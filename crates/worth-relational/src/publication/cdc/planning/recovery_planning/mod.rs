@@ -39,7 +39,7 @@ pub(crate) fn plan_subscriber_recovery(
     let (start_after_position, mut diagnostics) = resolve_checkpoint(
         runtime,
         request.checkpoint(),
-        available_envelope_source.durable_envelopes().as_deref(),
+        available_envelope_source.durable_envelopes(),
     )?;
     request_validation::validate_checkpoint_contract(runtime, &request)?;
 

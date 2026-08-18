@@ -1,0 +1,39 @@
+warning: unreachable statement
+ --> tests/ui/branch_reference/fork_basis_has_no_nonfork_capabilities.rs:5:5
+  |
+4 |     let basis: AdmittedRelationalForkSourceBasis = todo!();
+  |                                                    ------- any code following this expression is unreachable
+5 |     let _ = basis.observe_branch();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `observe_branch` found for struct `AdmittedRelationalForkSourceBasis` in the current scope
+ --> tests/ui/branch_reference/fork_basis_has_no_nonfork_capabilities.rs:5:19
+  |
+5 |     let _ = basis.observe_branch();
+  |                   ^^^^^^^^^^^^^^ method not found in `AdmittedRelationalForkSourceBasis`
+
+error[E0599]: no method named `begin_transaction` found for struct `AdmittedRelationalForkSourceBasis` in the current scope
+ --> tests/ui/branch_reference/fork_basis_has_no_nonfork_capabilities.rs:6:19
+  |
+6 |     let _ = basis.begin_transaction();
+  |                   ^^^^^^^^^^^^^^^^^ method not found in `AdmittedRelationalForkSourceBasis`
+
+error[E0599]: no method named `publish_commit` found for struct `AdmittedRelationalForkSourceBasis` in the current scope
+ --> tests/ui/branch_reference/fork_basis_has_no_nonfork_capabilities.rs:7:19
+  |
+7 |     let _ = basis.publish_commit();
+  |                   ^^^^^^^^^^^^^^ method not found in `AdmittedRelationalForkSourceBasis`
+
+error[E0599]: no method named `retain_component_basis` found for struct `AdmittedRelationalForkSourceBasis` in the current scope
+ --> tests/ui/branch_reference/fork_basis_has_no_nonfork_capabilities.rs:8:19
+  |
+8 |     let _ = basis.retain_component_basis();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^ method not found in `AdmittedRelationalForkSourceBasis`
+
+error[E0599]: no method named `readmit` found for struct `AdmittedRelationalForkSourceBasis` in the current scope
+ --> tests/ui/branch_reference/fork_basis_has_no_nonfork_capabilities.rs:9:19
+  |
+9 |     let _ = basis.readmit();
+  |                   ^^^^^^^ method not found in `AdmittedRelationalForkSourceBasis`

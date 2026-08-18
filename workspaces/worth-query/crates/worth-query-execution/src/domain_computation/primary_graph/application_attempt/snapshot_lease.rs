@@ -14,8 +14,9 @@ impl WorthQueryApplicationSnapshotLease {
         layout: std::sync::Arc<super::super::schema_layout::WorthQueryPrimaryGraphLayout>,
         branch: &worth_relational::facade::history::BranchId,
     ) -> Option<Self> {
-        let snapshot =
-            handle.with_runtime_mut(|runtime| runtime.snapshots().snapshot_for_branch(branch))?;
+        let snapshot = handle.with_runtime_mut(|runtime| {
+            runtime.snapshots().historical_snapshot_for_branch(branch)
+        })?;
         Some(Self {
             handle,
             snapshot: Some(snapshot),

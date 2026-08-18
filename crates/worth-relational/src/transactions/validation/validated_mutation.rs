@@ -5,6 +5,7 @@ use crate::authority::commit::phases::prepare::{
     prepare_working_state_scope, PreparedWorkingStateScope,
 };
 use crate::authority::mutation::apply_plan_to_working_state;
+use crate::branch::RelationalBranchVersion;
 use crate::history::data::{BranchId, CommitId};
 use crate::identity::data::VersionId;
 use crate::runtime::RelationalRuntime;
@@ -52,6 +53,7 @@ pub struct ValidatedRelationalMutation {
     pub(crate) evidence: RelationalMutationInvariantEvidence,
     pub(crate) validated_against_commit: Option<CommitId>,
     pub(crate) validated_against_version: VersionId,
+    pub(crate) validated_against_branch_version: RelationalBranchVersion,
     pub(crate) batch_count: usize,
 }
 
@@ -64,45 +66,46 @@ impl ValidatedRelationalMutation {
 impl RelationalTransaction<'_> {
     pub fn validate(mut self) -> Result<ValidatedRelationalMutation, TransactionCommitError> {
         let batch_count = self.batches.len();
-        let branch = self
-            .options
-            .target_branch
-            .clone()
-            .unwrap_or_else(|| self.runtime.config.history.main_branch.clone());
-        let validated_against_commit = self
-            .runtime
-            .history()
-            .branch_head(&branch)
-            .map(|head| head.commit_id);
-        if self
-            .options
-            .expected_branch_head
-            .is_some_and(|expected| expected.observed_commit() != validated_against_commit)
-        {
+        let branch_binding = self.options.branch_binding().clone();
+        let branch = branch_binding.identity().branch_id().clone();
+        if branch_binding.identity().runtime_instance_id() != self.runtime.runtime_instance_id() {
             return Err(TransactionCommitError::conflict(CommitConflict::new(
                 ConflictClass::StaleValidationBasis {
-                    detail: "expected branch head differs from Relational owner truth".to_owned(),
+                    detail: "branch binding belongs to another Relational runtime".to_owned(),
                 },
             )));
         }
+        if !self
+            .runtime
+            .legacy_branch_binding_is_current(&branch_binding)
+        {
+            return Err(TransactionCommitError::conflict(CommitConflict::new(
+                ConflictClass::StaleValidationBasis {
+                    detail: "owner-issued branch binding is no longer current".to_owned(),
+                },
+            )));
+        }
+        let binding_commit = self.runtime.legacy_branch_binding_commit(&branch_binding);
         let validated_against_version = self
             .runtime
-            .history()
-            .branch_head(&branch)
-            .map(|head| head.version_id)
-            .unwrap_or_else(|| self.runtime.current_version_id());
+            .legacy_branch_binding_version(&branch_binding)
+            .ok_or_else(|| {
+                TransactionCommitError::conflict(CommitConflict::new(
+                    ConflictClass::StaleValidationBasis {
+                        detail: "owner-issued branch binding has no exact local version basis"
+                            .to_owned(),
+                    },
+                ))
+            })?;
+        let validated_against_commit = binding_commit.as_ref().map(|head| head.commit_id());
         let prepared = prepare_working_state_scope(&mut self)?;
         let commit_boundary = self
             .runtime
             .invariant_authority()
             .enforce_commit_boundary(&prepared.merged_plan)?;
         let proposed_version = self.runtime.history().preview_next_version_id();
-        let (mutation_sensitive, publication) = validate_proposed_state(
-            self.runtime,
-            &prepared,
-            proposed_version,
-            self.options.target_branch.as_ref(),
-        )?;
+        let (mutation_sensitive, publication) =
+            validate_proposed_state(self.runtime, &prepared, proposed_version, Some(&branch))?;
         let summary = CommitValidation::summarize(&[
             commit_boundary.clone(),
             mutation_sensitive,
@@ -120,6 +123,7 @@ impl RelationalTransaction<'_> {
             },
             validated_against_commit,
             validated_against_version,
+            validated_against_branch_version: branch_binding.truth_version(),
             batch_count,
         })
     }
@@ -193,23 +197,17 @@ fn validate_proposed_state(
 mod tests {
     use super::*;
     use crate::tests::support::{create_entity, runtime_with_test_schema};
-    use crate::transactions::data::{ExpectedBranchHead, TransactionOptions};
 
     #[test]
-    fn expected_head_is_checked_against_owner_truth_during_validation() {
+    fn stale_owner_binding_is_rejected_during_validation() {
         let mut runtime = runtime_with_test_schema();
-        let branch = runtime.config.history.main_branch.clone();
-        let stale = runtime
-            .history()
-            .branch_head(&branch)
-            .map(|head| head.commit_id);
+        let identity = runtime.main_branch_identity();
+        let stale_options = runtime
+            .transaction_options_for(&identity)
+            .expect("main branch owner binding");
         let _ = create_entity(&mut runtime, "head-advance");
-        let expected = stale.map_or(ExpectedBranchHead::Empty, ExpectedBranchHead::Commit);
 
-        let denied = match runtime
-            .begin_transaction(TransactionOptions::for_branch(branch).expect_branch_head(expected))
-            .validate()
-        {
+        let denied = match runtime.begin_transaction(stale_options).validate() {
             Err(denied) => denied,
             Ok(_) => panic!("Relational must reject a stale expected head"),
         };
@@ -229,15 +227,12 @@ mod tests {
     #[test]
     fn owner_rechecks_head_after_validation_before_commit() {
         let mut runtime = runtime_with_test_schema();
-        let branch = runtime.config.history.main_branch.clone();
-        let expected = runtime
-            .history()
-            .branch_head(&branch)
-            .map_or(ExpectedBranchHead::Empty, |head| {
-                ExpectedBranchHead::Commit(head.commit_id)
-            });
+        let identity = runtime.main_branch_identity();
+        let options = runtime
+            .transaction_options_for(&identity)
+            .expect("main branch owner binding");
         let candidate = runtime
-            .begin_transaction(TransactionOptions::for_branch(branch).expect_branch_head(expected))
+            .begin_transaction(options)
             .validate()
             .expect("head is current at validation");
 

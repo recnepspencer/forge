@@ -139,9 +139,11 @@ impl WorthQueryMemoryWorkspace {
         entity_identity: WorthQueryEntityIdentity,
     ) -> Result<WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
         let entity_id = super::runtime_identity::entity_id_from_identity(entity_identity.clone())?;
-        let mut txn = self
+        let options = self
             .runtime
-            .begin_transaction(TransactionOptions::default());
+            .transaction_options_for_main()
+            .expect("memory workspace main branch remains owner-admissible");
+        let mut txn = self.runtime.begin_transaction(options);
         txn.push_batch(
             WorkerIntentBatch::new("query-memory-delete").push(MutationIntent::Entity(
                 EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),

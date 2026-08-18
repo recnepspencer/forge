@@ -39,7 +39,7 @@ impl<'a> RelationalTransaction<'a> {
             lineage: super::planning::bulk::bulk_mutation_lineage(&intents),
             provenance: super::planning::bulk::bulk_mutation_provenance(
                 self.transaction_id,
-                self.options.target_branch.clone(),
+                Some(self.options.target_branch().clone()),
                 &self.batches,
             ),
             intents: intents.into(),
@@ -91,7 +91,7 @@ impl<'a> RelationalTransaction<'a> {
     pub fn inspect_staging(&self) -> crate::inspection::data::TransactionInspectionSurface {
         super::staging::inspection::inspect_staging_surface(
             self.transaction_id,
-            self.options.target_branch.clone(),
+            Some(self.options.target_branch().clone()),
             &self.savepoints,
             &self.batches,
         )

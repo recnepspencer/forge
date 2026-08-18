@@ -1,9 +1,7 @@
 use crate::facade::history::BranchId;
 use crate::facade::identity::{KindId, PartitionId};
 use crate::facade::merge::{MergeExecutionRequest, MergeIntent};
-use crate::facade::transactions::{
-    CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
-};
+use crate::facade::transactions::{CreateIntent, MutationIntent, WorkerIntentBatch};
 use crate::tests::support::{
     create_branch_from_main, create_entity, create_entity_outcome_on_branch,
     persisted_runtime_with_test_schema, read_entity_field, read_entity_name,
@@ -79,10 +77,10 @@ pub(super) fn certify_prefer_richer_merge_execution() -> MergeExecutionCertifica
     let main_entity = create_entity(&mut runtime, "shared-name");
     create_branch_from_main(&mut runtime, "feature");
 
-    let mut feature_txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(BranchId("feature".to_string())),
-        ..TransactionOptions::default()
-    });
+    let mut feature_txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut runtime,
+        BranchId("feature".to_string()),
+    );
     feature_txn.push_batch(
         WorkerIntentBatch::new("feature-seed").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {

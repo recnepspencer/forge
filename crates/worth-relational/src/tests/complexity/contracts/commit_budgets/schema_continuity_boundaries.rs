@@ -14,13 +14,16 @@ fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() 
     .build_registry();
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        schema_transition_for_subscriber_impact(
-            SchemaVersionId(2),
-            crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
-        ),
-        Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                schema_transition_for_subscriber_impact(
+                    SchemaVersionId(2),
+                    crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                ),
+                Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+            ),
+    );
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
     let counters = runtime.performance_access().counters();
@@ -45,13 +48,16 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
         )
     }
     .build_registry();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        schema_transition_for_subscriber_impact(
-            SchemaVersionId(2),
-            crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
-        ),
-        Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                schema_transition_for_subscriber_impact(
+                    SchemaVersionId(2),
+                    crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                ),
+                Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+            ),
+    );
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
 
@@ -83,13 +89,16 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
     .build_registry();
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        schema_transition_for_subscriber_impact(
-            SchemaVersionId(2),
-            crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
-        ),
-        Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                schema_transition_for_subscriber_impact(
+                    SchemaVersionId(2),
+                    crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                ),
+                Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+            ),
+    );
     txn.push_batch(batch_create("after-boundary"));
     let transitioned = txn.commit().unwrap();
     let schema_counters = runtime.performance_access().counters();

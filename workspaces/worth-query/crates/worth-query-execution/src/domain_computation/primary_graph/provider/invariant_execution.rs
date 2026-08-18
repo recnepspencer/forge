@@ -69,11 +69,7 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
             return admission.passed(evidence);
         }
         let owner_work = u64::try_from(material.expected.len()).map_err(|_| owner_failure())?;
-        let candidate = self.validate_relational_candidate(
-            material.batch,
-            &material.branch,
-            material.expected_branch_head,
-        )?;
+        let candidate = self.validate_relational_candidate(material.batch, &material.branch)?;
         let summary = candidate.invariant_evidence().summary();
         let work = super::mutation_work::WorthQueryPrimaryMutationWorkCounters::new(
             WorthQueryInvariantWorkMint { _private: () },
@@ -101,7 +97,6 @@ struct ApplicationInvariantCandidateMaterial {
     batch: worth_relational::facade::transactions::WorkerIntentBatch,
     branch: worth_relational::facade::history::BranchId,
     decision_facts: usize,
-    expected_branch_head: Option<worth_relational::facade::transactions::ExpectedBranchHead>,
 }
 
 impl ApplicationInvariantCandidateMaterial {
@@ -145,7 +140,6 @@ impl WorthQueryPrimaryGraphProvider {
             batch: staged.batch().clone(),
             branch: staged.branch().clone(),
             decision_facts: staged.decision_fact_count(),
-            expected_branch_head: staged.expected_branch_head(),
         })
     }
 
@@ -153,7 +147,6 @@ impl WorthQueryPrimaryGraphProvider {
         &self,
         batch: worth_relational::facade::transactions::WorkerIntentBatch,
         branch: &worth_relational::facade::history::BranchId,
-        expected_branch_head: Option<worth_relational::facade::transactions::ExpectedBranchHead>,
     ) -> Result<
         worth_relational::facade::transactions::ValidatedRelationalMutation,
         WorthQueryInvariantExecutionFailure,
@@ -164,17 +157,19 @@ impl WorthQueryPrimaryGraphProvider {
             batch
         };
         let candidate = self.graph.with_runtime_mut(|runtime| {
-            let mut transaction = runtime.begin_transaction(
-                worth_relational::facade::transactions::TransactionOptions {
-                    target_branch: Some(branch.clone()),
-                    expected_branch_head,
-                    ..Default::default()
-                },
-            );
+            let identity = runtime
+                .branch_identity(branch)
+                .map_err(|_| owner_failure())?;
+            let options = runtime
+                .transaction_options_for(&identity)
+                .map_err(|_| owner_failure())?;
+            let mut transaction = runtime.begin_transaction(options);
             transaction.push_batch(batch);
-            transaction.validate()
+            Ok::<_, WorthQueryInvariantExecutionFailure>(transaction.validate())
         });
-        let candidate = candidate.map_err(|_| owner_failure())?;
+        let candidate = candidate
+            .map_err(|error| error)?
+            .map_err(|_| owner_failure())?;
         validate_owner_evidence(candidate.invariant_evidence(), branch)?;
         Ok(candidate)
     }

@@ -87,6 +87,8 @@ mod runtime;
 mod savepoint;
 #[path = "support/schema.rs"]
 mod schema;
+#[path = "support/transaction_authority.rs"]
+mod transaction_authority;
 
 pub(crate) use aspect_field_patches::*;
 pub(crate) use durability::*;
@@ -98,6 +100,7 @@ pub(crate) use relation_integrity::*;
 pub(crate) use runtime::*;
 pub(crate) use savepoint::*;
 pub(crate) use schema::*;
+pub(crate) use transaction_authority::*;
 
 pub(crate) fn diagnostic_field<'a>(
     entry: &'a crate::facade::diagnostics::RelationalDiagnosticsEntry,

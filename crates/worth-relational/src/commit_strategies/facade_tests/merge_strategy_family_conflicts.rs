@@ -52,9 +52,10 @@ fn merge_planning_classifies_different_strategy_families_as_strategy_intent_conf
             )
             .expect("main canonical request");
         let execution = update_execution_draft(&request, entity, "main-strategy");
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, TransactionOptions::default())
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered main strategy plan");
         let validated = authority
             .validate_lowered_plan(lowered)
@@ -87,16 +88,13 @@ fn merge_planning_classifies_different_strategy_families_as_strategy_intent_conf
             )
             .expect("feature canonical request");
         let execution = update_execution_draft(&request, entity, "feature-strategy");
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(
+                &mut runtime,
+                Some(feature_branch.clone()),
+            );
         let lowered = authority
-            .lower_execution(
-                &request,
-                &execution,
-                TransactionOptions {
-                    target_branch: Some(feature_branch.clone()),
-                    ..TransactionOptions::default()
-                },
-            )
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered feature strategy plan");
         let validated = authority
             .validate_lowered_plan(lowered)
@@ -192,9 +190,10 @@ fn merge_planning_with_real_strategies_preserves_strategy_specific_manual_bounda
             .commit_strategies()
             .execute(&request, &snapshot)
             .expect("intent execution");
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, TransactionOptions::default())
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered intent plan");
         let validated = authority
             .validate_lowered_plan(lowered)
@@ -225,16 +224,13 @@ fn merge_planning_with_real_strategies_preserves_strategy_specific_manual_bounda
             .commit_strategies()
             .execute(&request, &snapshot)
             .expect("replica execution");
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(
+                &mut runtime,
+                Some(feature_branch.clone()),
+            );
         let lowered = authority
-            .lower_execution(
-                &request,
-                &execution,
-                TransactionOptions {
-                    target_branch: Some(feature_branch.clone()),
-                    ..TransactionOptions::default()
-                },
-            )
+            .lower_execution(&request, &execution, transaction_options)
             .expect("lowered replica plan");
         let validated = authority
             .validate_lowered_plan(lowered)

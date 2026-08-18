@@ -8,8 +8,7 @@ use worth_runtime_bridge::facade::{
 use crate::config::data::CascadeDeletePolicy;
 use crate::facade::identity::PartitionId;
 use crate::facade::transactions::{
-    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionOptions,
-    WorkerIntentBatch,
+    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, WorkerIntentBatch,
 };
 use crate::tests::support::{
     changed_entities, create_entity_outcome, field_key, runtime_with_declared_aspect_schema,
@@ -57,12 +56,15 @@ fn runtime_bridge_snapshot_reader_requires_live_execution_basis_authority() {
     let created = create_entity_outcome(&mut runtime, "managed");
     let version_id = created.version_id;
     let branch_id = created.snapshot.branch_id.clone();
+    let branch_identity = runtime
+        .branch_identity(&branch_id)
+        .expect("created branch identity is owner-issued");
     let entity_identity = active_entity_identity(&created);
     assert!(runtime.snapshots().release_snapshot(&created.snapshot));
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("test graph role");
     let lease = source
-        .admit_execution_basis(&branch_id, version_id)
+        .admit_execution_basis_for_identity(&branch_identity, version_id)
         .expect("Relational source should admit its reconstructible version");
     let identity = bridge_snapshot_identity_for_handle(lease.snapshot_handle());
 
@@ -100,10 +102,10 @@ fn active_entity_identity(
 }
 
 fn replace_entity_after_snapshot(
-    runtime: &mut crate::facade::runtime::RelationalRuntime,
+    mut runtime: &mut crate::facade::runtime::RelationalRuntime,
     created: &crate::facade::transactions::CommitResult,
 ) {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("update").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {

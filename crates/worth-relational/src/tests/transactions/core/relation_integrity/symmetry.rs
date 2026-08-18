@@ -38,7 +38,7 @@ fn relation_integrity_commit_boundary_requires_paired_inverse_edge() {
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("one-way").push(MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -128,7 +128,7 @@ fn relation_integrity_commit_boundary_requires_canonical_undirected_ordering() {
     let first = create_entity(&mut runtime, "first");
     let second = create_entity(&mut runtime, "second");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("reverse-undirected").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -191,7 +191,7 @@ fn relation_integrity_commit_boundary_prohibits_inverse_duplication() {
 
     create_relation(&mut runtime, source, target, "forward");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("inverse").push(MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -252,7 +252,7 @@ fn relation_integrity_commit_boundary_requires_paired_twin_edge() {
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("missing-twin").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {

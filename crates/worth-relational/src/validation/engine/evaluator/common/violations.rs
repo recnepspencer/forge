@@ -55,7 +55,7 @@ impl StorageInconsistencyContext {
 pub(crate) fn canonicalize_violations(
     mut violations: Vec<InvariantViolation>,
 ) -> Vec<InvariantViolation> {
-    violations.sort_by(|left, right| left.witness_key().cmp(&right.witness_key()));
+    violations.sort_by_key(|violation| violation.witness_key());
     violations
 }
 

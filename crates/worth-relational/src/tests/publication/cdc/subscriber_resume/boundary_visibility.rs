@@ -14,6 +14,7 @@ fn subscriber_stream_reports_crossed_schema_boundary_from_in_memory_history() {
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
+        &runtime,
         SchemaVersionId(2),
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
     ));
@@ -61,6 +62,7 @@ fn subscriber_stream_treats_unconsumed_boundary_as_unchanged() {
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
+        &runtime,
         SchemaVersionId(2),
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
     ));

@@ -16,6 +16,9 @@ pub(crate) fn resolve_snapshot_handle(
     runtime: &RelationalRuntime,
     handle: &SnapshotHandle,
 ) -> Option<SnapshotHandle> {
+    if handle.runtime_instance_id != runtime.runtime_instance_id() {
+        return None;
+    }
     if let Some((branch_id, version_id, read_policy)) =
         runtime.active_snapshot_binding(handle.snapshot_id)
     {
@@ -57,6 +60,9 @@ pub(crate) fn resolve_snapshot_state(
     runtime: &RelationalRuntime,
     handle: &SnapshotHandle,
 ) -> Option<ResolvedVisibilitySnapshot> {
+    if handle.runtime_instance_id != runtime.runtime_instance_id() {
+        return None;
+    }
     if let Some((branch_id, version_id, read_policy)) =
         runtime.active_snapshot_binding(handle.snapshot_id)
     {

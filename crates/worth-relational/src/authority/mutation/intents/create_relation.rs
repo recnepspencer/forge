@@ -2,7 +2,8 @@ use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::record_changes::allocate_relation;
 use crate::authority::mutation::MutationWorkspace;
 use crate::transactions::data::{
-    CommitConflict, ConflictClass, EntityReference, RecordAspectPatchTarget, RelationSpec,
+    CommitConflict, ConflictClass, CreatedRelationRef, EntityReference, RecordAspectPatchTarget,
+    RelationSpec,
 };
 use worth_foundational::facade::PortablePatchReadmissionPurpose;
 
@@ -53,6 +54,16 @@ pub(super) fn apply(
             .mark_relation_slot_touched(relation_id.partition_id, relation_id.slot_index());
         relation_id
     });
+    workspace.register_created_relation(
+        CreatedRelationRef {
+            partition_id: spec.partition_id,
+            kind_id: spec.kind_id,
+            client_key: spec.client_key.clone(),
+            source: spec.source.clone(),
+            target: spec.target.clone(),
+        },
+        relation_id,
+    );
     Ok(MutationOutcome::relation_created(
         relation_id,
         source,

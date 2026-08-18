@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 use crate::identity::data::{EntityId, KindId, LineageId, PartitionId, VersionId};
 use crate::lineage::authority::LineageAuthority;
 use crate::lineage::data::{
@@ -14,7 +14,7 @@ impl<'runtime> LineageAuthority<'runtime> {
     pub(crate) fn ensure_lineage_for_commit(
         &mut self,
         staged: &mut WorkingState,
-        commit: &CommitReference,
+        commit: &RelationalCommitReceipt,
         merged_plan: &[MutationIntent],
         changed_records: &[RecordRef],
     ) -> LineageFinalizationArtifact {

@@ -52,7 +52,7 @@ where
         graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime
                 .snapshots()
-                .snapshot_for_branch(branch)
+                .historical_snapshot_for_branch(branch)
                 .ok_or_else(inconsistent_authorization)?;
             let current = validate_retained_currentness(
                 authorization,
@@ -81,7 +81,7 @@ where
         graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime
                 .snapshots()
-                .snapshot_for_branch(branch)
+                .historical_snapshot_for_branch(branch)
                 .ok_or_else(inconsistent_authorization)?;
             let primary = self.validate_retained_capability_observation(
                 capability, installed, &sample, runtime, &snapshot,

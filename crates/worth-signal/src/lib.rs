@@ -125,6 +125,7 @@
 
 #![forbid(unsafe_code)]
 
+mod branch;
 mod clock;
 mod data;
 pub mod diagnostics;

@@ -1,5 +1,5 @@
 use worth_query_installation::facade::ApplicationSchema;
-use worth_relational::facade::{history::CommitReference, transactions::RecordRef};
+use worth_relational::facade::{history::RelationalCommitReceipt, transactions::RecordRef};
 
 use super::lifecycle::WorthQueryConditionalOperationRegistry;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
@@ -13,7 +13,7 @@ where
     /// returns. Clock observation therefore consumes only derived state.
     pub(in crate::domain_computation::primary_graph) fn maintain_conditional_commit(
         &self,
-        commit: &CommitReference,
+        commit: &RelationalCommitReceipt,
         records: Vec<RecordRef>,
     ) {
         let changed_kinds = self

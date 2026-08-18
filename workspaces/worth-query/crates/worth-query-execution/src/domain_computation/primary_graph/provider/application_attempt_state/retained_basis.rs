@@ -21,7 +21,10 @@ impl WorthQueryObservedApplicationFactBasis {
         &self,
         runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
     ) -> bool {
-        let Some(snapshot) = runtime.snapshots().snapshot_for_branch(&self.branch) else {
+        let Some(snapshot) = runtime
+            .snapshots()
+            .historical_snapshot_for_branch(&self.branch)
+        else {
             return false;
         };
         let fresh = self.fact.remains_equal_in(runtime, &snapshot);

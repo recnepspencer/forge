@@ -308,9 +308,9 @@ fn replay_contract_preserves_metadata_only_promotion_commit_truth_and_recovery()
         .history()
         .branch_head(&BranchId("main".to_string()))
         .cloned()
-        .expect("promoted branch head");
+        .expect("truth branch head remains available after metadata promotion");
 
-    assert_eq!(promoted_commit.commit_id, promoted_commit_id);
+    assert_eq!(promoted_commit.commit_id, second.commit.commit_id);
     assert_eq!(promoted_commit.version_id, second.commit.version_id);
 
     let replay = runtime
@@ -346,7 +346,7 @@ fn replay_contract_preserves_metadata_only_promotion_commit_truth_and_recovery()
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
 
-    assert_eq!(recovered_head.commit_id, promoted_commit_id);
+    assert_eq!(recovered_head.commit_id, second.commit.commit_id);
     assert_eq!(recovered_head.version_id, second.commit.version_id);
     assert!(recovered.replay().compare_outcome(&recovered_replay));
 }

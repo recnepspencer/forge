@@ -6,7 +6,8 @@ use crate::tests::support::*;
 #[test]
 fn bulk_create_entities_match_equivalent_singular_creates() {
     let mut bulk_runtime = runtime_with_test_schema();
-    let mut bulk_txn = bulk_runtime.begin_transaction(TransactionOptions::default());
+    let mut bulk_txn =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut bulk_runtime);
     bulk_txn.push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
         CreateIntent::BulkEntities(BulkEntityCreateIntent {
             partition_id: PartitionId::main(),
@@ -72,7 +73,7 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
         Vec<Option<String>>,
     ) {
         let mut runtime = runtime_with_test_schema_execution_model(execution_model);
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
                 partition_id: PartitionId::main(),
@@ -172,7 +173,7 @@ fn cross_context_relations_respect_relation_kind_policy() {
         .build();
     let source = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("forbidden-cross-context").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {

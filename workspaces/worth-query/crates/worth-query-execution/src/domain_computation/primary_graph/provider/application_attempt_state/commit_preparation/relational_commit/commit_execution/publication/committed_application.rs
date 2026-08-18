@@ -1,6 +1,6 @@
 //! Durable committed-application evidence minted only from publication completion.
 
-use worth_relational::facade::history::{BranchId, CommitReference};
+use worth_relational::facade::history::{BranchId, RelationalCommitReceipt};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation::primary_graph) struct WorthQueryPrimaryGraphCommittedApplication {
@@ -51,7 +51,7 @@ impl WorthQueryPrimaryGraphCommittedApplication {
 
     pub(in crate::domain_computation::primary_graph) const fn commit_reference(
         &self,
-    ) -> &CommitReference {
+    ) -> &RelationalCommitReceipt {
         self.commit_evidence.commit_reference()
     }
 

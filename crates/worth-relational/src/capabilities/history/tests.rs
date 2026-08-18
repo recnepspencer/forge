@@ -5,7 +5,7 @@ use super::{CommitEnvelopeSource, HistorySource, PatchStreamCommitRef, PatchStre
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticArtifact,
 };
-use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::history::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::{
@@ -65,7 +65,7 @@ impl PatchStreamSource for FakeHistorySource {
 }
 
 impl HistorySource for FakeHistorySource {
-    fn branch_head_ref(&self, _branch_id: &BranchId) -> Option<&CommitReference> {
+    fn branch_head_ref(&self, _branch_id: &BranchId) -> Option<&RelationalCommitReceipt> {
         None
     }
 
@@ -79,7 +79,7 @@ impl HistorySource for FakeHistorySource {
 
 fn commit_envelope(commit_id: u64, version_id: u64) -> CanonicalCommitEnvelope {
     CanonicalCommitEnvelope::new(
-        CommitReference {
+        RelationalCommitReceipt {
             commit_id: CommitId(commit_id),
             version_id: crate::identity::data::VersionId(version_id),
             branch_id: BranchId("main".to_string()),

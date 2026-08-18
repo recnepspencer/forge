@@ -61,61 +61,63 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
             return;
         }
 
-        let current_state = self.runtime.storage_access().current_state();
-        let reader = self.runtime.read_truth();
-        let mut entity_actions = Vec::new();
-        let mut relation_actions = Vec::new();
-        for record in changed_records {
-            match record {
-                crate::transactions::data::RecordRef::Entity(entity_id) => {
-                    let was_visible = old_version.is_some_and(|version_id| {
-                        reader
+        let (entity_actions, relation_actions) = {
+            let current_state = self.runtime.storage_access().current_state();
+            let reader = self.runtime.read_truth();
+            let mut entity_actions = Vec::new();
+            let mut relation_actions = Vec::new();
+            for record in changed_records {
+                match record {
+                    crate::transactions::data::RecordRef::Entity(entity_id) => {
+                        let was_visible = old_version.is_some_and(|version_id| {
+                            reader
+                                .authoritative_entity_record_for_id_at_version(
+                                    &current_state,
+                                    *entity_id,
+                                    version_id,
+                                )
+                                .is_some()
+                        });
+                        let is_visible = reader
                             .authoritative_entity_record_for_id_at_version(
                                 &current_state,
                                 *entity_id,
-                                version_id,
+                                new_version,
                             )
-                            .is_some()
-                    });
-                    let is_visible = reader
-                        .authoritative_entity_record_for_id_at_version(
-                            &current_state,
-                            *entity_id,
-                            new_version,
-                        )
-                        .is_some();
-                    match (was_visible, is_visible) {
-                        (false, true) => entity_actions.push((*entity_id, 1)),
-                        (true, false) => entity_actions.push((*entity_id, -1)),
-                        _ => {}
+                            .is_some();
+                        match (was_visible, is_visible) {
+                            (false, true) => entity_actions.push((*entity_id, 1)),
+                            (true, false) => entity_actions.push((*entity_id, -1)),
+                            _ => {}
+                        }
                     }
-                }
-                crate::transactions::data::RecordRef::Relation(relation_id) => {
-                    let was_visible = old_version.is_some_and(|version_id| {
-                        reader
+                    crate::transactions::data::RecordRef::Relation(relation_id) => {
+                        let was_visible = old_version.is_some_and(|version_id| {
+                            reader
+                                .authoritative_relation_record_for_id_at_version(
+                                    &current_state,
+                                    *relation_id,
+                                    version_id,
+                                )
+                                .is_some()
+                        });
+                        let is_visible = reader
                             .authoritative_relation_record_for_id_at_version(
                                 &current_state,
                                 *relation_id,
-                                version_id,
+                                new_version,
                             )
-                            .is_some()
-                    });
-                    let is_visible = reader
-                        .authoritative_relation_record_for_id_at_version(
-                            &current_state,
-                            *relation_id,
-                            new_version,
-                        )
-                        .is_some();
-                    match (was_visible, is_visible) {
-                        (false, true) => relation_actions.push((*relation_id, 1)),
-                        (true, false) => relation_actions.push((*relation_id, -1)),
-                        _ => {}
+                            .is_some();
+                        match (was_visible, is_visible) {
+                            (false, true) => relation_actions.push((*relation_id, 1)),
+                            (true, false) => relation_actions.push((*relation_id, -1)),
+                            _ => {}
+                        }
                     }
                 }
             }
-        }
-        drop(current_state);
+            (entity_actions, relation_actions)
+        };
         for (entity_id, delta) in entity_actions {
             if delta > 0 {
                 self.pin_branch_entity(entity_id);

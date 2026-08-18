@@ -1,4 +1,4 @@
-use crate::facade::history::{BranchId, CommitReference};
+use crate::facade::history::{BranchId, RelationalCommitReceipt};
 use crate::facade::indexes::{
     DerivedIndexBuildOutcome, DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId,
     DerivedIndexKind,
@@ -26,7 +26,7 @@ pub(crate) fn build_branch_scoped_case_index(
     world: &mut FintechWorld,
     index_id: DerivedIndexId,
     branch_id: BranchId,
-    source_commit: CommitReference,
+    source_commit: RelationalCommitReceipt,
 ) -> DerivedIndexBuildOutcome {
     world
         .runtime
@@ -42,7 +42,7 @@ pub(crate) fn promote_case_correspondence(
     world: &mut FintechWorld,
     left: FintechCaseRole,
     right: FintechCaseRole,
-    commit: CommitReference,
+    commit: RelationalCommitReceipt,
 ) -> LineageResolutionStatus {
     let authoritative_commit = world
         .runtime

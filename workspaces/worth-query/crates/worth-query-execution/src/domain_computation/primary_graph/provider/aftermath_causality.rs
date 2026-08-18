@@ -60,9 +60,9 @@ impl WorthQueryPrimaryGraphProvider {
     fn branch_head(
         &self,
         branch: &worth_relational::facade::history::BranchId,
-    ) -> Option<worth_relational::facade::history::CommitReference> {
+    ) -> Option<worth_relational::facade::history::RelationalCommitReceipt> {
         self.graph
-            .with_runtime(|runtime| runtime.history().branch_head(branch).cloned())
+            .with_runtime(|runtime| runtime.history().historical_branch_head(branch).cloned())
     }
 
     pub(in crate::domain_computation::primary_graph) fn resolve_aftermath_causality(
@@ -77,7 +77,7 @@ impl WorthQueryPrimaryGraphProvider {
                 .ensure_primary_indexes_current_for_branch(runtime, &branch)?;
             let snapshot = runtime
                 .snapshots()
-                .snapshot_for_branch(&branch)
+                .historical_snapshot_for_branch(&branch)
                 .ok_or("aftermath causality branch has no current snapshot")?;
             let resolution = WorthQueryAftermathCausalityRead {
                 runtime,
@@ -100,7 +100,7 @@ where
     pub(crate) fn relational_branch_head(
         &self,
         branch: &worth_relational::facade::history::BranchId,
-    ) -> Option<worth_relational::facade::history::CommitReference> {
+    ) -> Option<worth_relational::facade::history::RelationalCommitReceipt> {
         self.primary_provider.branch_head(branch)
     }
 
@@ -137,7 +137,7 @@ impl WorthQueryAftermathCausalityRead<'_> {
         let committed = self
             .runtime
             .history()
-            .committed_version(created_at)
+            .historical_committed_version(created_at)
             .ok_or("aftermath causality creation commit is unavailable")?;
         WorthQueryCommittedAftermathCausality::seal(
             self.pending.clone(),

@@ -38,22 +38,6 @@ pub(super) fn restore_checkpoint_state(
             )
         },
     )?;
-    restored.history.branch_heads = checkpoint
-        .branches
-        .iter()
-        .cloned()
-        .map(|head| (head.branch_id, head.head))
-        .collect();
-    if !restored
-        .history
-        .branch_heads
-        .contains_key(&restored.config.history.main_branch)
-    {
-        restored
-            .history
-            .branch_heads
-            .insert(restored.config.history.main_branch.clone(), None);
-    }
     restored.history.commit_envelopes = checkpoint
         .envelopes
         .iter()
@@ -78,6 +62,16 @@ pub(super) fn restore_checkpoint_state(
             )
         })
         .collect();
+    restored.history.rebuild_phase4_registry();
+    restored
+        .history
+        .restore_branch_cells(&checkpoint.branch_cells)
+        .map_err(|detail| {
+            DurabilityError::new(
+                crate::durability::data::RecoveryFailureClass::CorruptCheckpoint,
+                detail,
+            )
+        })?;
     restored.lineage.nodes = checkpoint
         .lineage
         .nodes()

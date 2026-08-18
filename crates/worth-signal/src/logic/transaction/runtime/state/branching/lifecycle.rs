@@ -145,7 +145,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    fn fork_denial_to_signal_error(denial: SignalBranchForkDenial) -> SignalError {
+    pub(super) fn fork_denial_to_signal_error(denial: SignalBranchForkDenial) -> SignalError {
         match denial {
             SignalBranchForkDenial::UnknownParentBranch { parent_branch_id } => {
                 SignalError::unknown_branch(Some(parent_branch_id), "fork-parent")

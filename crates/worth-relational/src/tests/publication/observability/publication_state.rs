@@ -136,7 +136,7 @@ fn snapshot_audit_failure_blocks_publication() {
         )],
         ..InvariantCatalog::default()
     });
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("blocked"));
     let error = txn.commit().unwrap_err();
 

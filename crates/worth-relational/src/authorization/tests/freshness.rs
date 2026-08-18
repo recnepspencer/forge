@@ -138,12 +138,13 @@ fn newly_matching_parallel_path_stales_the_exact_observation() {
 }
 
 fn create_relation_of_kind(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &mut crate::runtime::RelationalRuntime,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
     kind_id: KindId,
 ) {
-    let mut transaction = runtime.begin_transaction(Default::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(
         WorkerIntentBatch::new("unrelated-kind").push(MutationIntent::Create(
             CreateIntent::Relation(RelationSpec {

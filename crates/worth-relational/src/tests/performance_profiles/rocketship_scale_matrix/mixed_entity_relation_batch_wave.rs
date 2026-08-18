@@ -85,7 +85,8 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_mixed_entity_relation_batc
             runtime.performance_access().reset_counters();
             let update_started_at = Instant::now();
             let update = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 let mut batch =
                     WorkerIntentBatch::new("rocketship-mixed-entity-relation-batch-wave");
                 for (index, entity) in batch_targets.iter().enumerate() {

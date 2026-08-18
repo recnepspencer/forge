@@ -1,0 +1,47 @@
+use super::phase4_fork_evidence::{assert_oracle_matches, certified_supply_chain_world};
+use super::world::supply_chain::SupplyChainScale;
+use worth_relational::facade::history::BranchId;
+
+#[test]
+fn phase4_reference_cost_probe_separates_setup_and_operation_work() {
+    for fanout in [1usize, 64, 512] {
+        let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+        assert_oracle_matches(&world, &expected);
+        let setup = world.runtime.phase4_reference_cost_counters();
+        let mut previous = setup;
+        for _ in 0..fanout {
+            let (_, source_basis) = world
+                .runtime
+                .observe_fork_source(&BranchId("main".to_owned()))
+                .expect("main remains a live fork source");
+            world
+                .runtime
+                .fork_branch(
+                    BranchId(format!("probe-{fanout}-{}", previous.reference_allocations)),
+                    source_basis,
+                )
+                .expect("metadata-only fork succeeds");
+            let current = world.runtime.phase4_reference_cost_counters();
+            assert_eq!(
+                current.branch_cell_lookups - previous.branch_cell_lookups,
+                2
+            );
+            assert_eq!(current.catalog_lookups - previous.catalog_lookups, 1);
+            assert_eq!(current.artifact_clones - previous.artifact_clones, 0);
+            assert_eq!(
+                current.branch_population_scans - previous.branch_population_scans,
+                0,
+                "fork operation must not scan the branch population"
+            );
+            assert_eq!(
+                current.reference_allocations - previous.reference_allocations,
+                1
+            );
+            assert_eq!(
+                current.branch_cell_contacts - previous.branch_cell_contacts,
+                3
+            );
+            previous = current;
+        }
+    }
+}

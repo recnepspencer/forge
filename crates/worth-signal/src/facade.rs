@@ -7,6 +7,15 @@
 //! integration modules that implement it.
 
 pub mod adapters;
+pub mod branch {
+    pub use crate::branch::{
+        admit_signal_branch_observation, signal_branch_observation, AdmittedSignalBranchBasis,
+        SignalBranchBasisAuthority, SignalBranchBasisAuthorityMarker, SignalBranchBasisOwnerProof,
+        SignalBranchBasisProof, SignalBranchComparisonBasis, SignalBranchForkBasis,
+        SignalBranchObservation, SignalBranchObservationConstructionDenial, SignalBranchTarget,
+        SignalBranchTargetConstructionDenial,
+    };
+}
 pub mod core;
 pub mod diagnostics;
 pub mod history;
@@ -97,27 +106,27 @@ pub use self::history::{
 
 #[cfg(test)]
 pub use self::runtime::*;
+#[cfg(test)]
+#[allow(deprecated)]
+pub use self::runtime::{
+    bridge_signal_branch_basis_trust_boundary, BoundaryBridgedSignalBranchBasisArtifact,
+    SignalBranchBasis, SignalBranchBasisArtifact, SignalBranchBasisCompactExplanation,
+    SignalBranchBasisDenial, SignalBranchBasisIdentity, SignalBranchBasisValidationOutcome,
+    SignalBranchHeadPosture, SignalBranchRestorePosture, SignalBranchTransactionHead,
+    StaleSignalBranchBasisArtifact,
+};
 #[cfg(not(test))]
 #[allow(deprecated)]
 pub use self::runtime::{
-    bridge_signal_branch_basis_trust_boundary, mark_dirty_batch, BatchChange, BatchChangeResult,
-    BatchChangeSession, BranchTargetedTransactionDenial, BranchTargetedTransactionExecutionOutcome,
-    BranchTargetedTransactionRequest, ChangeBatch, ChangeBatchAdmission, ChangeBatchCommit,
-    ExecutedBranchTargetedTransactionReceipt, History, IntervalWakeRegeneration,
-    LoweredBranchTargetedTransactionPlan, PlannedSignalBranchRetirement,
-    PlannedSignalBranchRetirementBatch, PreviousValueRevision, ReadyTemporalWake, RecipeInstance,
-    RetiredTemporalWake, RunSummary, RuntimeConfig, RuntimeMerge, RuntimePolicy,
-    ScheduledTemporalWake, SignalBranchBasis, SignalBranchBasisArtifact, SignalBranchBasisDenial,
-    SignalBranchBasisIdentity, SignalBranchBasisValidationOutcome, SignalBranchForkDenial,
-    SignalBranchForkReceipt, SignalBranchForkRequest, SignalBranchForkRequestBasis,
-    SignalBranchHeadPosture, SignalBranchRestorePosture, SignalBranchRetirementBatchDenial,
-    SignalBranchRetirementBatchReceipt, SignalBranchRetirementBatchRequest,
-    SignalBranchRetirementDenial, SignalBranchRetirementReason, SignalBranchRetirementReceipt,
-    SignalBranchRetirementRequest, SignalBranchTransactionHead, SignalRuntime, SignalTransaction,
+    mark_dirty_batch, BatchChange, BatchChangeResult, BatchChangeSession, ChangeBatch,
+    ChangeBatchAdmission, ChangeBatchCommit, History, IntervalWakeRegeneration,
+    PlannedSignalBranchRetirement, PlannedSignalBranchRetirementBatch, PreviousValueRevision,
+    ReadyTemporalWake, RecipeInstance, RetiredTemporalWake, RunSummary, RuntimeConfig,
+    RuntimeMerge, RuntimePolicy, ScheduledTemporalWake, SignalBranchRetirementBatchReceipt,
+    SignalBranchRetirementReason, SignalBranchRetirementReceipt, SignalRuntime, SignalTransaction,
     TemporalFrontierSnapshot, TemporalPreviousValueAccess, TemporalPreviousValueReference,
     TemporalWakeId, TemporalWakeReschedule, TemporalWakeRetirementReason, TemporalWakeReuse,
-    TemporalWakeSummary, TransactionOutcome, TransactionResult, TransactionTiming,
-    ValidatedBranchTargetedTransactionRequest, WakeOrdinal,
+    TemporalWakeSummary, TransactionOutcome, TransactionResult, TransactionTiming, WakeOrdinal,
 };
 #[cfg(test)]
 #[allow(deprecated)]

@@ -7,9 +7,21 @@ impl RelationalRuntime {
         MergeAccess::new(self)
     }
 
+    #[cfg(test)]
     pub fn prepare_merge_execution(
         &self,
         request: crate::merge::data::MergeExecutionRequest,
+    ) -> Result<
+        crate::merge::data::PreparedMergeExecution,
+        crate::merge::data::MergeExecutionPreparationError,
+    > {
+        self.merge().prepare_merge_execution(request)
+    }
+
+    #[cfg(not(test))]
+    pub fn prepare_merge_execution(
+        &self,
+        request: crate::merge::data::OwnerBoundMergeExecutionRequest,
     ) -> Result<
         crate::merge::data::PreparedMergeExecution,
         crate::merge::data::MergeExecutionPreparationError,

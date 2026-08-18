@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::history::data::CanonicalCommitEnvelope;
 use crate::indexes::data::DerivedIndexArtifacts;
 use crate::runtime::RelationalRuntime;
@@ -48,12 +46,4 @@ pub(crate) fn apply_envelope_derived_index_artifacts(
             generations.sort_by_key(|candidate| candidate.generation_id);
         }
     }
-
-    let commit_envelope = runtime
-        .history
-        .commit_envelopes
-        .get_mut(&envelope.commit.commit_id)
-        .expect("authoritative durable envelope must be present after restoration");
-    Arc::make_mut(commit_envelope)
-        .append_index_generations_canonical(envelope.derived_index_artifacts().generations());
 }

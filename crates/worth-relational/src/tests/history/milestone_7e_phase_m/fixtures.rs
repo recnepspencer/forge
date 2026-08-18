@@ -184,10 +184,12 @@ fn update_entity_status_on_branch(
     status: &str,
     branch: &str,
 ) {
-    let mut txn = runtime.begin_transaction(crate::facade::transactions::TransactionOptions {
-        target_branch: Some(BranchId(branch.to_string())),
-        ..crate::facade::transactions::TransactionOptions::default()
-    });
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_branch(
+            &runtime,
+            BranchId(branch.to_string()),
+        ),
+    );
     txn.push_batch(
         crate::facade::transactions::WorkerIntentBatch::new(format!("status-{branch}")).push(
             crate::facade::transactions::MutationIntent::Entity(

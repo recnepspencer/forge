@@ -1,14 +1,8 @@
-use crate::history::data::CommitReference;
 use crate::publication::bundle::PublicationBundle;
 use crate::runtime::{RelationalReplayRecord, RelationalRuntime};
 
 pub(crate) trait PublicationBundleSource {
     fn latest_publication_bundle(&self) -> Option<&PublicationBundle<RelationalReplayRecord>>;
-
-    fn latest_published_commit_ref(&self) -> Option<&CommitReference> {
-        self.latest_publication_bundle()
-            .map(|bundle| &bundle.commit)
-    }
 }
 
 impl PublicationBundleSource for RelationalRuntime {

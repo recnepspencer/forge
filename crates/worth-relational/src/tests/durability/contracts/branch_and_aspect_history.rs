@@ -175,7 +175,7 @@ fn durability_contract_recovery_preserves_branch_local_endpoint_deletion_retirem
     let relation = changed_relations(&relation_outcome)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )

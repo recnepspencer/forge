@@ -56,7 +56,7 @@ pub(crate) fn resolve_schema_continuity(
             schema_continuity_conflict(
                 runtime,
                 branch_id,
-                options.proposed_schema_transition.as_ref(),
+                options.proposed_schema_transition(),
                 None,
                 ConflictClass::InvalidSchemaTransitionShape {
                     detail: error.detail,
@@ -68,11 +68,11 @@ pub(crate) fn resolve_schema_continuity(
         history.branch_head(branch_id).cloned()
     };
     let Some(previous_head) = previous_head else {
-        if let Some(proposed_transition) = &options.proposed_schema_transition {
+        if let Some(proposed_transition) = options.proposed_schema_transition() {
             return materialize_declared_transition(
                 runtime,
                 proposed_transition.clone(),
-                options.schema_reconciliation_policy,
+                options.schema_reconciliation_policy().cloned(),
                 current_descriptor_semantics_version,
                 current_descriptor_canonical_basis_version,
                 branch_id,
@@ -102,7 +102,7 @@ pub(crate) fn resolve_schema_continuity(
         return Err(schema_continuity_conflict(
             runtime,
             branch_id,
-            options.proposed_schema_transition.as_ref(),
+            options.proposed_schema_transition(),
             Some(previous_envelope),
             ConflictClass::DescriptorSemanticsVersionUnsupported {
                 previous_descriptor_semantics_version: previous_envelope
@@ -114,11 +114,11 @@ pub(crate) fn resolve_schema_continuity(
 
     let drift_detected = previous_envelope.schema_version != current_schema_version
         || previous_envelope.schema_authority != current_schema_authority;
-    match &options.proposed_schema_transition {
+    match options.proposed_schema_transition() {
         Some(proposed_transition) => materialize_declared_transition(
             runtime,
             proposed_transition.clone(),
-            options.schema_reconciliation_policy,
+            options.schema_reconciliation_policy().cloned(),
             current_descriptor_semantics_version,
             current_descriptor_canonical_basis_version,
             branch_id,

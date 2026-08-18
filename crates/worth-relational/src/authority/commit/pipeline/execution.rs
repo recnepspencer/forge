@@ -22,6 +22,6 @@ pub(crate) fn execute_authoritative_commit(
     let snapshot_validated = validate_snapshot_publication(runtime, history_bound)?;
     let assembled = assemble_commit_artifacts(runtime, snapshot_validated)?;
     let durable = append_commit_durably(runtime, assembled)?;
-    let published = publish_commit_execution(runtime, durable);
+    let published = publish_commit_execution(runtime, durable)?;
     Ok(assemble_commit_result(runtime, published))
 }

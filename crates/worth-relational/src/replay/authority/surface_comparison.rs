@@ -1,5 +1,5 @@
 use crate::commit_strategies::data::StrategyCommitArtifactBundle;
-use crate::history::data::{CommitReference, OrderedParentList};
+use crate::history::data::{OrderedParentList, RelationalCommitReceipt};
 use crate::replay::data::{
     digest_branch_head_summary, digest_branch_head_surface, digest_diagnostics_summary,
     digest_diagnostics_surface, digest_history_summary, digest_history_surface,
@@ -242,7 +242,7 @@ pub(super) fn surface_basis_for_snapshot(
 }
 
 pub(super) fn surface_basis_for_branch_head(
-    commit: Option<&CommitReference>,
+    commit: Option<&RelationalCommitReceipt>,
 ) -> ReplaySurfaceComparisonBasis {
     let basis = commit.cloned();
     ReplaySurfaceComparisonBasis::new(

@@ -73,8 +73,11 @@ fn a_committed_record_of_another_kind_denies_before_projection() {
             WorthQueryApplicationCommitOutcomeIdentity::mint().unwrap(),
             0,
         );
-        let mut transaction: RelationalTransaction<'_> =
-            runtime.begin_transaction(Default::default());
+        let mut transaction: RelationalTransaction<'_> = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(
             WorkerIntentBatch::new("wrong-kind-outbox-owner-test")
                 .push(outbox_intent)
@@ -97,7 +100,7 @@ fn a_committed_record_of_another_kind_denies_before_projection() {
         let binding = WorthQueryCommittedDispatchOutboxBinding::fixture(record.clone(), wrong_ref);
         let snapshot = runtime
             .snapshots()
-            .snapshot_for_branch(&primary_relational_branch_id())
+            .historical_snapshot_for_branch(&primary_relational_branch_id())
             .unwrap();
         let runtime_id = snapshot.runtime_instance_id;
         runtime.snapshots().release_snapshot(&snapshot);
@@ -121,7 +124,11 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
             Some(&record),
         )
         .unwrap();
-        let mut create: RelationalTransaction<'_> = runtime.begin_transaction(Default::default());
+        let mut create: RelationalTransaction<'_> = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         create.push_batch(WorkerIntentBatch::new("live-outbox-before-delete").push(intent));
         let created = create.commit().unwrap();
         let binding = WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
@@ -134,7 +141,11 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
         let RecordRef::Entity(entity_id) = binding.record_ref().clone() else {
             panic!("outbox binding is an entity")
         };
-        let mut delete: RelationalTransaction<'_> = runtime.begin_transaction(Default::default());
+        let mut delete: RelationalTransaction<'_> = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         delete.push_batch(
             WorkerIntentBatch::new("delete-outbox-before-owner-read").push(MutationIntent::Entity(
                 EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
@@ -143,7 +154,7 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
         let deleted = delete.commit().unwrap();
         let snapshot = runtime
             .snapshots()
-            .snapshot_for_branch(&primary_relational_branch_id())
+            .historical_snapshot_for_branch(&primary_relational_branch_id())
             .unwrap();
         let runtime_id = snapshot.runtime_instance_id;
         runtime.snapshots().release_snapshot(&snapshot);
@@ -162,7 +173,7 @@ fn committed_substituted_row(
 ) -> (
     std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     WorthQueryCommittedDispatchOutboxBinding,
-    worth_relational::facade::history::CommitReference,
+    worth_relational::facade::history::RelationalCommitReceipt,
     u64,
 ) {
     let world = installed_authorization_world(true);
@@ -178,8 +189,11 @@ fn committed_substituted_row(
         };
         let alternate_key = format!("corrupt-outbox-field-{field}");
         let corrupted = corrupted_spec(&layout, expected, field, replacement, &alternate_key);
-        let mut transaction: RelationalTransaction<'_> =
-            runtime.begin_transaction(Default::default());
+        let mut transaction: RelationalTransaction<'_> = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(
             WorkerIntentBatch::new("persisted-outbox-corruption-matrix")
                 .push(intent)
@@ -199,7 +213,10 @@ fn committed_substituted_row(
             pending.record().clone(),
             RecordRef::Entity(corrupted_id),
         );
-        let snapshot = runtime.snapshots().snapshot_for_branch(&branch).unwrap();
+        let snapshot = runtime
+            .snapshots()
+            .historical_snapshot_for_branch(&branch)
+            .unwrap();
         let runtime_id = snapshot.runtime_instance_id;
         runtime.snapshots().release_snapshot(&snapshot);
         (binding, committed.outcome().commit.clone(), runtime_id)

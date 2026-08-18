@@ -42,13 +42,11 @@ impl<'a> RelationalTransaction<'a> {
         current_state: &impl PartitionAccess,
         mut intents: Vec<MutationIntent>,
     ) -> Result<(MergedCommitPlan, MergedPlanPreparationTiming), CommitConflict> {
-        let history = self.runtime.history();
         let created_entities = collect_created_entity_refs(&intents);
         let branch_basis_version_id = self
-            .options
-            .target_branch
-            .as_ref()
-            .and_then(|branch_id| history.branch_head(branch_id).map(|head| head.version_id));
+            .runtime
+            .legacy_branch_binding_commit(self.options.branch_binding())
+            .map(|head| head.version_id());
         let validation_started = Instant::now();
         for intent in &intents {
             validate_intent(
@@ -97,31 +95,46 @@ impl<'a> RelationalTransaction<'a> {
         let mut merge_bases = Vec::new();
         let target_head = self
             .runtime
-            .history()
-            .branch_head(target_branch)
-            .map(|head| head.commit_id);
-        if let Some(head) = self.runtime.history().branch_head(target_branch) {
-            parents.push(head.commit_id);
+            .legacy_branch_binding_commit(self.options.branch_binding())
+            .map(|head| head.commit_id());
+        if let Some(head) = target_head {
+            parents.push(head);
         }
-        for merge_branch in self
-            .options
-            .merge_parent_branches
-            .iter()
-            .cloned()
-            .collect::<BTreeSet<_>>()
-        {
+        for merge_binding in self.options.merge_parent_bindings().iter() {
+            if !self.runtime.legacy_branch_binding_is_current(merge_binding) {
+                return Err(CommitConflict::new(ConflictClass::InvalidMergeParent {
+                    detail: format!(
+                        "merge parent identity is foreign or stale: {}",
+                        merge_binding.identity().branch_id().0
+                    ),
+                }));
+            }
+            let merge_branch = merge_binding.identity().branch_id().clone();
             if &merge_branch == target_branch {
                 continue;
             }
             let history = self.runtime.history();
-            let Some(head) = history.branch_head(&merge_branch) else {
+            let Some(head) = self
+                .runtime
+                .legacy_branch_binding_commit(merge_binding)
+                .map(|identity| identity.commit_id())
+            else {
                 return Err(CommitConflict::new(ConflictClass::InvalidMergeParent {
                     detail: format!("requested additional branch {:?} has no head", merge_branch),
                 }));
             };
-            if !parents.contains(&head.commit_id) {
-                if let Some(target_head) = target_head {
-                    let inspection = history.inspect_merge(&merge_branch, target_branch);
+            if !parents.contains(&head) {
+                if target_head.is_some() {
+                    let inspection = history
+                        .inspect_merge_from_bindings(merge_binding, self.options.branch_binding());
+                    let Some(inspection) = inspection else {
+                        return Err(CommitConflict::new(ConflictClass::MissingMergeBase {
+                            detail: format!(
+                                "requested additional branch {:?} has no common ancestor with target branch {:?}",
+                                merge_branch, target_branch
+                            ),
+                        }));
+                    };
                     if !inspection.conflicting_records.is_empty() {
                         return Err(CommitConflict::new(ConflictClass::MergeConflictOverlap {
                             detail: format!(
@@ -130,11 +143,7 @@ impl<'a> RelationalTransaction<'a> {
                             ),
                         }));
                     }
-                    let Some(merge_base) = self
-                        .runtime
-                        .history()
-                        .max_commit_id_common_ancestor(target_head, head.commit_id)
-                    else {
+                    let Some(merge_base) = inspection.merge_base else {
                         return Err(CommitConflict::new(ConflictClass::MissingMergeBase {
                                 detail: format!(
                                 "requested additional branch {:?} has no common ancestor with target branch {:?}",
@@ -144,7 +153,7 @@ impl<'a> RelationalTransaction<'a> {
                     };
                     merge_bases.push(merge_base);
                 }
-                parents.push(head.commit_id);
+                parents.push(head);
             }
         }
         Ok((

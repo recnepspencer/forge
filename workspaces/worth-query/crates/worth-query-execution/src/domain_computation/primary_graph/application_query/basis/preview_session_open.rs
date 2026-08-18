@@ -111,7 +111,7 @@ where
         let head = graph.integration_handle().with_runtime(|runtime| {
             runtime
                 .history()
-                .branch_head(&primary_relational_branch_id())
+                .historical_branch_head(&primary_relational_branch_id())
                 .cloned()
         });
         let head = head.ok_or_else(current_truth_denial)?;

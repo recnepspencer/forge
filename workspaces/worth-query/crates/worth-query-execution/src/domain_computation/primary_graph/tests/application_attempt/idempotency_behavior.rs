@@ -145,16 +145,13 @@ fn idempotency_lookup_never_substitutes_another_branch_head() {
         .primary_provider
         .graph
         .with_runtime_mut(|runtime| {
-            runtime
-                .history_authority()
-                .create_branch(feature.clone(), &main)
-                .unwrap();
+            let (_, basis) = runtime.observe_fork_source(&main).unwrap();
+            runtime.fork_branch(feature.clone(), basis).unwrap();
             let mut transaction: worth_relational::facade::transactions::RelationalTransaction<'_> =
                 runtime.begin_transaction(
-                    worth_relational::facade::transactions::TransactionOptions {
-                        target_branch: Some(feature.clone()),
-                        ..Default::default()
-                    },
+                    runtime
+                        .owner_transaction_options_for_branch(&feature)
+                        .expect("feature branch binding"),
                 );
             transaction.push_batch(
                 worth_relational::facade::transactions::WorkerIntentBatch::new(

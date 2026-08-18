@@ -206,13 +206,13 @@ mod tests {
     use crate::tests::support::{create_entity, runtime_with_test_schema};
     use crate::transactions::data::{
         BulkMutationAdmissionDenial, ConflictClass, CreateIntent, EntityMutationIntent,
-        MutationIntent, MutationStateInconsistencyEvidence, TransactionOptions, WorkerIntentBatch,
+        MutationIntent, MutationStateInconsistencyEvidence, WorkerIntentBatch,
     };
 
     #[test]
     fn naming_admission_rejects_tampered_normalized_key_plan() {
         let mut runtime = runtime_with_test_schema();
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
                 partition_id: PartitionId::main(),
@@ -247,7 +247,7 @@ mod tests {
     fn lineage_admission_rejects_tampered_transition_digest() {
         let mut runtime = runtime_with_test_schema();
         let entity = create_entity(&mut runtime, "replace-me");
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(
             WorkerIntentBatch::new("rewrite").push(MutationIntent::Entity(
                 EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -283,7 +283,7 @@ mod tests {
         let mut runtime = runtime_with_test_schema();
         let source = create_entity(&mut runtime, "source");
         let target = create_entity(&mut runtime, "target");
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(
             WorkerIntentBatch::new("worker-a").push(MutationIntent::Create(
                 CreateIntent::BulkRelations(BulkRelationCreateIntent {
@@ -321,7 +321,7 @@ mod tests {
     fn naming_admission_does_not_mutate_runtime_counters() {
         let mut runtime = runtime_with_test_schema();
         runtime.performance_access().reset_counters();
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
                 partition_id: PartitionId::main(),

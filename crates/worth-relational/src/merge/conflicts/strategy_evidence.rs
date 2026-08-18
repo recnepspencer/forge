@@ -81,11 +81,7 @@ fn strategy_descriptors_for_delta(
         let key = (
             descriptor.descriptor_digest().0,
             *descriptor.intent_scope_digest().bytes(),
-            descriptor
-                .intent_scope_targets()
-                .iter()
-                .cloned()
-                .collect::<Vec<_>>(),
+            descriptor.intent_scope_targets().to_vec(),
         );
         dedup.entry(key).or_insert(descriptor);
     }

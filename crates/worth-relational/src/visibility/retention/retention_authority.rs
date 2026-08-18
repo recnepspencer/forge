@@ -347,13 +347,11 @@ fn run_partition_retention_pass<K: RecordKind>(
                     *reclaimable += 1;
                     if runtime.config.storage.mvcc.auto_reclaim_deleted_records
                         && *reclaimed < runtime.config.storage.mvcc.reclaim_batch_size
-                    {
-                        if runtime
+                        && runtime
                             .storage_authority()
                             .reclaim_record_if_reclaimable::<K>(partition_id, slot)
-                        {
-                            *reclaimed += 1;
-                        }
+                    {
+                        *reclaimed += 1;
                     }
                 }
             }

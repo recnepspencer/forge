@@ -296,14 +296,6 @@ impl WorthQueryStagedApplicationAttempt<'_> {
     pub(super) fn decision_fact_count(&self) -> usize {
         self.attempt.decision_fact_count()
     }
-
-    pub(super) fn expected_branch_head(
-        &self,
-    ) -> Option<worth_relational::facade::transactions::ExpectedBranchHead> {
-        self.attempt
-            .aftermath_causality()
-            .map(|causality| causality.expected_head())
-    }
 }
 
 #[cfg(test)]

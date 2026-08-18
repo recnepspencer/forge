@@ -7,7 +7,6 @@ use crate::replay::data::{
     ReplayVerificationLayer, ReplayVerificationMode,
 };
 use crate::runtime::RelationalRuntime;
-use crate::transactions::data::TransactionOptions;
 
 use super::super::planning::replay_commit_closure_by_commit_id_order;
 
@@ -229,14 +228,58 @@ fn lower_strategy_replay(
     mismatches: &mut Vec<ReplayMismatch>,
 ) -> Option<StrategyCommitArtifactBundle> {
     let replay_request = expected_artifacts.replay_request();
+    let identity = match basis_runtime.branch_identity(&envelope.branch_context) {
+        Ok(identity) => identity,
+        Err(denial) => {
+            mismatches.push(strategy_mismatch(
+                ReplayMismatchClass::StrategyLoweringDrift,
+                format!("strategy replay branch identity was not owner-admissible: {denial:?}"),
+                expected_artifacts,
+                None,
+            ));
+            return None;
+        }
+    };
+    let mut options = match basis_runtime.transaction_options_for(&identity) {
+        Ok(options) => options,
+        Err(denial) => {
+            mismatches.push(strategy_mismatch(
+                ReplayMismatchClass::StrategyLoweringDrift,
+                format!("strategy replay branch binding was denied: {denial:?}"),
+                expected_artifacts,
+                None,
+            ));
+            return None;
+        }
+    };
+    let parent_bindings = match envelope
+        .merge_parent_branches
+        .iter()
+        .map(|branch| {
+            let identity = basis_runtime.branch_identity(branch)?;
+            let options = basis_runtime.transaction_options_for(&identity)?;
+            Ok::<_, crate::branch::RelationalLegacyBranchBindingDenial>(
+                options.branch_binding().clone(),
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()
+    {
+        Ok(bindings) => bindings,
+        Err(denial) => {
+            mismatches.push(strategy_mismatch(
+                ReplayMismatchClass::StrategyLoweringDrift,
+                format!("strategy replay merge parent identity was denied: {denial:?}"),
+                expected_artifacts,
+                None,
+            ));
+            return None;
+        }
+    };
+    options = options.with_merge_parent_bindings(parent_bindings);
     let lowered = match basis_runtime.commit_strategies_authority().lower_execution(
         &replay_request,
         execution,
-        TransactionOptions {
-            target_branch: Some(envelope.branch_context.clone()),
-            merge_parent_branches: envelope.merge_parent_branches.clone(),
-            ..TransactionOptions::default()
-        },
+        options,
     ) {
         Ok(lowered) => lowered,
         Err(error) => {
@@ -321,7 +364,7 @@ fn ensure_strategy_replay_basis_branch(
 
     basis_runtime
         .history_authority()
-        .create_branch(envelope.branch_context.clone(), &source_branch)
+        .fork_branch_from(envelope.branch_context.clone(), &source_branch)
         .map_err(|error| {
             format!(
                 "failed to reconstruct strategy replay basis branch {:?} from {:?}: {error:?}",

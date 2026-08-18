@@ -252,12 +252,12 @@ fn relation_summary_struct_aspect(
 }
 
 fn create_entity_with_summary_fields(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     client_key: &str,
     summary_title: &str,
     summary_status: &str,
 ) -> EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new(format!("batch-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -294,14 +294,14 @@ fn create_entity_with_summary_fields(
 }
 
 fn create_relation_with_summary_fields(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     source: EntityId,
     target: EntityId,
     client_key: &str,
     summary_title: &str,
     summary_status: &str,
 ) {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("relation-{client_key}")).push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {

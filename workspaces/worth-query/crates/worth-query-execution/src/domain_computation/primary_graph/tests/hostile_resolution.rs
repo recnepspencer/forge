@@ -204,7 +204,11 @@ fn change_principal_identity(
             layout.principal_identity_locator,
             identity.into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(WorkerIntentBatch::new("change-principal-identity").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -232,7 +236,11 @@ fn disable_mapping(
             layout.status_locator,
             WorthQueryPrincipalMappingStatus::Disabled.into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(WorkerIntentBatch::new("disable-mapping").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -302,7 +310,11 @@ fn append_duplicate_mapping(world: &mut super::fixture::IdentityWorld, subject: 
                     fields: AspectFieldPatch::default(),
                 },
             )));
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(batch);
         let commit = transaction.commit().unwrap();
         let build = runtime

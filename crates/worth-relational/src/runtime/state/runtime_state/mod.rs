@@ -1,4 +1,6 @@
+mod branch_authority;
 mod core_access;
+mod merge_authority;
 #[cfg(test)]
 mod test_support;
 

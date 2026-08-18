@@ -234,16 +234,20 @@ pub(super) fn execute_strategy_commit(
         .commit_strategies()
         .execute(&request, &snapshot)
         .expect("strategy execution");
+    let transaction_options = target_branch
+        .as_ref()
+        .map(|branch| {
+            crate::tests::support::test_owner_transaction_options_for_branch(
+                &*runtime,
+                branch.clone(),
+            )
+        })
+        .unwrap_or_else(|| {
+            crate::tests::support::test_owner_transaction_options_for_main(&*runtime)
+        });
     let mut authority = runtime.commit_strategies_authority();
     let lowered = authority
-        .lower_execution(
-            &request,
-            &execution,
-            TransactionOptions {
-                target_branch,
-                ..TransactionOptions::default()
-            },
-        )
+        .lower_execution(&request, &execution, transaction_options)
         .expect("lowered strategy plan");
     let validated = authority
         .validate_lowered_plan(lowered)

@@ -248,7 +248,11 @@ fn mutate_field(
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
         let fields = AspectFieldPatch::from(BTreeMap::from([(locator, value)]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(WorkerIntentBatch::new(batch).push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
         )));

@@ -1,6 +1,9 @@
 use std::collections::BTreeSet;
 
-use crate::history::data::{BranchId, CommitId, MergeConflictRecord, MergeInspection};
+use crate::branch::RelationalLegacyBranchBinding;
+#[cfg(test)]
+use crate::history::data::BranchId;
+use crate::history::data::{CommitId, MergeConflictRecord, MergeInspection};
 
 use super::HistoryAccess;
 
@@ -18,7 +21,8 @@ impl<'runtime> HistoryAccess<'runtime> {
     ///
     /// The underlying selection rule is `max_commit_id_common_ancestor`, which
     /// intersects both ancestor sets and chooses the maximum `CommitId`.
-    pub fn latest_common_ancestor_between_branches(
+    #[cfg(test)]
+    pub(crate) fn latest_common_ancestor_between_branches(
         &self,
         left_branch: &BranchId,
         right_branch: &BranchId,
@@ -28,7 +32,73 @@ impl<'runtime> HistoryAccess<'runtime> {
         self.max_commit_id_common_ancestor(left, right)
     }
 
-    pub fn can_merge_branch_into(
+    /// Selects the common ancestor from two exact owner observations.  Raw
+    /// branch names are intentionally not a production currentness input.
+    pub(crate) fn latest_common_ancestor_between_bindings(
+        &self,
+        left_binding: &RelationalLegacyBranchBinding,
+        right_binding: &RelationalLegacyBranchBinding,
+    ) -> Option<CommitId> {
+        let left = self.bound_head_commit_id(left_binding)?;
+        let right = self.bound_head_commit_id(right_binding)?;
+        self.max_commit_id_common_ancestor(left, right)
+    }
+
+    /// Inspect merge overlap from owner-issued branch bindings. Raw branch
+    /// names remain a diagnostic/test vocabulary and cannot select current
+    /// heads for production planning.
+    pub(crate) fn inspect_merge_from_bindings(
+        &self,
+        source_binding: &RelationalLegacyBranchBinding,
+        target_binding: &RelationalLegacyBranchBinding,
+    ) -> Option<MergeInspection> {
+        let source_branch = source_binding.identity().branch_id().clone();
+        let target_branch = target_binding.identity().branch_id().clone();
+        let source_head_id = self.bound_head_commit_id(source_binding)?;
+        let target_head_id = self.bound_head_commit_id(target_binding)?;
+        let source_head = self
+            .runtime
+            .history
+            .commit_catalog
+            .get(source_head_id)
+            .map(|artifact| artifact.envelope().commit.clone())?;
+        let target_head = self
+            .runtime
+            .history
+            .commit_catalog
+            .get(target_head_id)
+            .map(|artifact| artifact.envelope().commit.clone())?;
+        let merge_base =
+            self.max_commit_id_common_ancestor(source_head.commit_id, target_head.commit_id);
+        let source_only_commits =
+            self.branch_unique_commit_closure_by_commit_id_order(source_head.commit_id, merge_base);
+        let target_only_commits =
+            self.branch_unique_commit_closure_by_commit_id_order(target_head.commit_id, merge_base);
+        let conflicting_records = self.merge_conflicts_between(
+            source_only_commits.as_slice(),
+            target_only_commits.as_slice(),
+        );
+        Some(MergeInspection {
+            source_branch,
+            target_branch,
+            source_head: Some(source_head),
+            target_head: Some(target_head),
+            merge_base,
+            source_only_commits,
+            target_only_commits,
+            can_merge: merge_base.is_some() && conflicting_records.is_empty(),
+            conflicting_records,
+        })
+    }
+
+    fn bound_head_commit_id(&self, binding: &RelationalLegacyBranchBinding) -> Option<CommitId> {
+        self.runtime
+            .legacy_branch_binding_commit(binding)
+            .map(|identity| identity.commit_id())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn can_merge_branch_into(
         &self,
         source_branch: &BranchId,
         target_branch: &BranchId,
@@ -43,7 +113,8 @@ impl<'runtime> HistoryAccess<'runtime> {
             .is_some()
     }
 
-    pub fn inspect_merge(
+    #[cfg(test)]
+    pub(crate) fn inspect_merge(
         &self,
         source_branch: &BranchId,
         target_branch: &BranchId,

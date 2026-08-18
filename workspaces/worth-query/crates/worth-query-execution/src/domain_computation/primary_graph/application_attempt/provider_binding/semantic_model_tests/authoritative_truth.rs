@@ -185,7 +185,11 @@ fn commit<const N: usize>(
     name: &str,
     intents: [MutationIntent; N],
 ) -> worth_relational::facade::transactions::CommitResult {
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction = runtime.begin_transaction(
+        runtime
+            .transaction_options_for_main()
+            .expect("main branch binding"),
+    );
     transaction.push_batch(
         intents
             .into_iter()

@@ -86,8 +86,8 @@ pub(super) fn recover_stage(
 pub(super) fn recover_stage_from_final_history(
     source: &RelationalRuntime,
     root_path: std::path::PathBuf,
-    source_head: crate::history::data::CommitReference,
-    target_head: crate::history::data::CommitReference,
+    source_head: crate::history::data::RelationalCommitReceipt,
+    target_head: crate::history::data::RelationalCommitReceipt,
 ) -> RelationalRuntime {
     let mut chain = source
         .history()

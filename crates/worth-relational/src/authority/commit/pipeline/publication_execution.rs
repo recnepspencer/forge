@@ -47,6 +47,7 @@ pub(super) struct PublishedCommitExecution {
     invariant_executions: Vec<crate::validation::engine::InvariantExecutionResult>,
     version_id: crate::identity::data::VersionId,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+    created_relations: crate::transactions::data::CommitCreatedRelationBindings,
     history: crate::authority::commit::phases::history::ResolvedCommitHistory,
     canonical_commit_envelope: std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
     changed_records: Vec<crate::transactions::data::RecordRef>,
@@ -65,6 +66,7 @@ impl PublishedCommitExecution {
         Vec<crate::validation::engine::InvariantExecutionResult>,
         crate::identity::data::VersionId,
         crate::transactions::data::CommitCreatedEntityBindings,
+        crate::transactions::data::CommitCreatedRelationBindings,
         crate::authority::commit::phases::history::ResolvedCommitHistory,
         std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
         Vec<crate::transactions::data::RecordRef>,
@@ -78,6 +80,7 @@ impl PublishedCommitExecution {
             self.invariant_executions,
             self.version_id,
             self.created_entities,
+            self.created_relations,
             self.history,
             self.canonical_commit_envelope,
             self.changed_records,
@@ -96,6 +99,22 @@ pub(super) fn append_commit_durably(
     let append_authority = crate::durability::authority::DurableAppendAuthority::from_commit(
         CommitDurableAppendAdmission::new(runtime, commit_id, branch_id),
     );
+    runtime
+        .history_authority()
+        .validate_versioned_publication(
+            commit_id,
+            &publication.canonical_commit_envelope().commit,
+            branch_id,
+            publication.canonical_commit_envelope(),
+        )
+        .map_err(|detail| {
+            crate::transactions::data::TransactionCommitError::publication(
+                crate::publication::data::PublicationError::new(
+                    crate::publication::bundle::PublicationStage::BundleAssembly,
+                    detail,
+                ),
+            )
+        })?;
     let (_, _, _, _, commit_log, phase_timing) = admitted.phase_view().into_parts();
     append_durable_commit_phase(
         runtime,
@@ -114,7 +133,7 @@ pub(super) fn append_commit_durably(
 pub(super) fn publish_commit_execution(
     runtime: &mut crate::runtime::RelationalRuntime,
     durable: DurableCommitExecution,
-) -> PublishedCommitExecution {
+) -> Result<PublishedCommitExecution, crate::transactions::data::TransactionCommitError> {
     let (
         mut admitted,
         public_structural_summary,
@@ -122,6 +141,7 @@ pub(super) fn publish_commit_execution(
         invariant_executions,
         version_id,
         created_entities,
+        created_relations,
         history,
         merge_parent_branches,
         publication,
@@ -145,7 +165,7 @@ pub(super) fn publish_commit_execution(
             merge_base_commits: &history.merge_base_commits,
             merge_parent_branches: &merge_parent_branches,
         },
-    );
+    )?;
     let (canonical_commit_envelope, changed_records) = finalized.into_parts();
     if let Some(accounting) = admitted.take_merge_accounting() {
         runtime.performance_access().count_merge_execution_request(
@@ -153,17 +173,18 @@ pub(super) fn publish_commit_execution(
             accounting.emitted_mutation_intents,
         );
     }
-    PublishedCommitExecution {
+    Ok(PublishedCommitExecution {
         admitted,
         public_structural_summary,
         invariant_executions,
         version_id,
         created_entities,
+        created_relations,
         history,
         canonical_commit_envelope,
         changed_records,
         publication_snapshot,
         aspect_evaluation_traces,
         aspect_emission_traces,
-    }
+    })
 }

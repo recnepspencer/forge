@@ -164,7 +164,7 @@ fn project_financial_record(
     graph.with_runtime(|runtime| {
         let version = runtime
             .history()
-            .branch_head(&worth_relational::facade::history::BranchId("main".into()))?
+            .historical_branch_head(&worth_relational::facade::history::BranchId("main".into()))?
             .version_id;
         let entity = worth_relational::facade::identity::EntityId::new(
             worth_relational::facade::identity::PartitionId::new(record.partition_id()),

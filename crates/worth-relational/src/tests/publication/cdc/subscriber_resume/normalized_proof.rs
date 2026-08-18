@@ -9,6 +9,7 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
+        &runtime,
         SchemaVersionId(2),
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
     ));
@@ -29,6 +30,7 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
 
     install_schema_version(&mut runtime, SchemaVersionId(3));
     let mut second_txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
+        &runtime,
         SchemaVersionId(3),
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
     ));
@@ -70,6 +72,7 @@ fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trac
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut first_transition =
         runtime.begin_transaction(transaction_options_for_subscriber_impact(
+            &runtime,
             SchemaVersionId(2),
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
         ));
@@ -91,6 +94,7 @@ fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trac
     install_schema_version(&mut runtime, SchemaVersionId(3));
     let mut second_transition =
         runtime.begin_transaction(transaction_options_for_subscriber_impact(
+            &runtime,
             SchemaVersionId(3),
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
         ));

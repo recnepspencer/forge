@@ -62,10 +62,13 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
         )],
     };
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                proposed_transition,
+                Some(SchemaReconciliationPolicy::PreserveInformation),
+            ),
+    );
     txn.push_batch(
         WorkerIntentBatch::new("schema-transition").push(MutationIntent::Create(
             CreateIntent::Entity(crate::transactions::data::EntitySpec {
@@ -194,10 +197,13 @@ fn schema_certification_transition_is_explained_and_counted() {
     };
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                proposed_transition,
+                Some(SchemaReconciliationPolicy::PreserveInformation),
+            ),
+    );
     txn.push_batch(WorkerIntentBatch::new("schema-transition-certified").push(
         MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {

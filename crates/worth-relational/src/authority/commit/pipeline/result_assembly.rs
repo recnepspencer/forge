@@ -18,6 +18,7 @@ struct CommitResultMaterial {
     invariant_executions: Vec<crate::validation::engine::InvariantExecutionResult>,
     version_id: crate::identity::data::VersionId,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+    created_relations: crate::transactions::data::CommitCreatedRelationBindings,
     history: crate::authority::commit::phases::history::ResolvedCommitHistory,
     canonical_commit_envelope: std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
     changed_records: Vec<crate::transactions::data::RecordRef>,
@@ -35,6 +36,7 @@ pub(crate) struct CommitResultSeal {
     validation: CommitValidation,
     execution: CommitExecution,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+    created_relations: crate::transactions::data::CommitCreatedRelationBindings,
 }
 
 impl CommitResultSeal {
@@ -49,6 +51,7 @@ impl CommitResultSeal {
         CommitValidation,
         CommitExecution,
         crate::transactions::data::CommitCreatedEntityBindings,
+        crate::transactions::data::CommitCreatedRelationBindings,
     ) {
         (
             self.outcome,
@@ -59,6 +62,7 @@ impl CommitResultSeal {
             self.validation,
             self.execution,
             self.created_entities,
+            self.created_relations,
         )
     }
 }
@@ -90,6 +94,7 @@ impl CommitResultMaterial {
             invariant_executions,
             version_id,
             created_entities,
+            created_relations,
             history,
             canonical_commit_envelope,
             changed_records,
@@ -116,6 +121,7 @@ impl CommitResultMaterial {
             invariant_executions,
             version_id,
             created_entities,
+            created_relations,
             history,
             canonical_commit_envelope,
             changed_records,
@@ -162,6 +168,7 @@ impl CommitResultMaterial {
                 complexity_delta: complexity_delta(self.complexity_before, complexity_after),
             },
             created_entities: self.created_entities,
+            created_relations: self.created_relations,
         })
     }
 }

@@ -10,7 +10,7 @@ fn relation_integrity_commit_boundary_rejects_endpoint_delete_with_live_relation
     let (source, _target, _relation) =
         create_endpoint_deletion_relation_fixture(&mut runtime, "live");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("delete-source").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: source }),
@@ -63,7 +63,7 @@ fn relation_integrity_commit_boundary_rejects_replace_when_retained_relation_kee
     let (source, _target, _relation) =
         create_endpoint_deletion_relation_fixture(&mut runtime, "live");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace-source").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -104,7 +104,7 @@ fn relation_integrity_commit_boundary_requires_relation_deletion_in_same_commit_
     let (source, _target, _relation) =
         create_endpoint_deletion_relation_fixture(&mut runtime, "live");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("delete-source").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: source }),
@@ -176,7 +176,7 @@ fn relation_integrity_commit_boundary_rejects_relation_retirement_under_cascade_
     let (source, _target, _relation) =
         create_endpoint_deletion_relation_fixture(&mut runtime, "live");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("delete-source").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: source }),
@@ -232,7 +232,7 @@ fn relation_integrity_endpoint_deletion_history_stays_branch_local_under_diverge
 
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )

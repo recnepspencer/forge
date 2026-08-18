@@ -222,8 +222,9 @@ fn commit_boundary_cardinality_failure_fields_localize_nonmanifold_like_overflow
     let target_a = create_entity(&mut runtime, "target-a");
     let target_b = create_entity(&mut runtime, "target-b");
     let _accepted = {
-        let mut txn =
-            runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+        let mut txn = runtime.begin_transaction(
+            crate::tests::support::test_owner_transaction_options_for_main(&runtime),
+        );
         txn.push_batch(
             crate::facade::transactions::WorkerIntentBatch::new("accepted").push(
                 MutationIntent::Create(CreateIntent::Relation(

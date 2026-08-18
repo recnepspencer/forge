@@ -6,8 +6,7 @@ use crate::facade::lineage::{
     HistoricalResolutionRequest, LineageGraphRequest, LineageGraphTraversalBasis,
 };
 use crate::facade::transactions::{
-    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionOptions,
-    WorkerIntentBatch,
+    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, WorkerIntentBatch,
 };
 use crate::tests::support::*;
 
@@ -25,7 +24,7 @@ fn historical_lineage_resolution_follows_replace_events() {
         .unwrap()
         .lineage_id;
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -105,7 +104,7 @@ fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
         let _ = create_entity_outcome(&mut runtime, &label);
     }
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -160,7 +159,7 @@ fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
         .unwrap()
         .lineage_id;
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {

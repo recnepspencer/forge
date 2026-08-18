@@ -109,9 +109,10 @@ pub use policy::{
 };
 pub use requests::{
     MergeExecutionRequest, MergeIntent, MergePlanningRequest, NormalizedRelationalMergeRequest,
+    OwnerBoundMergeExecutionRequest, OwnerBoundMergePlanningRequest,
     RelationalFoundationalMergeRequest, RelationalMergeCorrespondencePosture,
-    RelationalMergeRequestFamily, RelationalMergeRequestNormalizationDenial,
-    RelationalMergeSchemaReconciliationPosture, RelationalMergeScope,
-    RelationalMergeTopologyIntent,
+    RelationalMergeRequestBindingDenial, RelationalMergeRequestFamily,
+    RelationalMergeRequestNormalizationDenial, RelationalMergeSchemaReconciliationPosture,
+    RelationalMergeScope, RelationalMergeTopologyIntent,
 };
 pub use resolved_value_strategy::MergeResolvedAspectValueStrategy;

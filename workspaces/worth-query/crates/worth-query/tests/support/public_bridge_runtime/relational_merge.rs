@@ -38,22 +38,23 @@ pub fn public_relational_merge_runtime() -> RelationalRuntime {
         ))
         .build();
     create_empty_entity(&mut runtime, "main", "main-seed");
+    let (_, basis) = runtime
+        .observe_fork_source(&BranchId("main".to_string()))
+        .expect("main branch should expose an exact fork source");
     runtime
-        .history_authority()
-        .create_branch(
-            BranchId("candidate".to_string()),
-            &BranchId("main".to_string()),
-        )
+        .fork_branch(BranchId("candidate".to_string()), basis)
         .expect("candidate branch should be created");
     create_empty_entity(&mut runtime, "candidate", "candidate-seed");
     runtime
 }
 
 fn create_empty_entity(runtime: &mut RelationalRuntime, branch: &str, key: &str) {
-    let mut transaction = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(BranchId(branch.to_string())),
-        ..TransactionOptions::default()
-    });
+    let branch_id = BranchId(branch.to_string());
+    let mut transaction = runtime.begin_transaction(
+        runtime
+            .owner_transaction_options_for_branch(&branch_id)
+            .expect("branch binding"),
+    );
     transaction.push_batch(WorkerIntentBatch::new(format!("create-{key}")).push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),

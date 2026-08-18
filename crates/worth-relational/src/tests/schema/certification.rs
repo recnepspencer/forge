@@ -69,13 +69,16 @@ fn schema_evolution_cdc_contract_test() {
     }
     .build_registry();
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        schema_transition_for_subscriber_impact(
-            SchemaVersionId(2),
-            SchemaSubscriberImpact::ConsumableSurfaceChanged,
-        ),
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
+            .with_schema_transition(
+                schema_transition_for_subscriber_impact(
+                    SchemaVersionId(2),
+                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                ),
+                Some(SchemaReconciliationPolicy::PreserveInformation),
+            ),
+    );
     txn.push_batch(batch_create("boundary"));
     let committed = txn.commit().unwrap();
 

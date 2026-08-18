@@ -8,6 +8,7 @@ pub struct SnapshotGuard {
 }
 
 impl SnapshotGuard {
+    #[cfg(test)]
     pub(crate) fn new(handle: SnapshotHandle) -> Self {
         Self { handle }
     }

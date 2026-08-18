@@ -25,7 +25,7 @@ use crate::authority::mutation::record_changes::{
 use crate::authority::mutation::MutationWorkspace;
 use crate::transactions::data::{
     AspectFieldPatch, BulkImportRowDomain, BulkImportStage, BulkRelationCreateIntent,
-    CommitConflict, ConflictClass, EntityReference, RecordAspectPatchTarget,
+    CommitConflict, ConflictClass, CreatedRelationRef, EntityReference, RecordAspectPatchTarget,
 };
 use crate::validation::data::InvariantGroupSet;
 use worth_foundational::facade::PortablePatchReadmissionPurpose;
@@ -75,7 +75,14 @@ fn for_each_staged_bulk_relation_row(
                 .cloned()
                 .unwrap_or_default();
             apply_staged_relation_row(
-                intent, workspace, outcome, version_id, source, target, fields,
+                intent,
+                workspace,
+                outcome,
+                version_id,
+                intent.client_keys.get(offset).cloned(),
+                source,
+                target,
+                fields,
             )?;
         }
         return Ok(());
@@ -119,6 +126,7 @@ fn for_each_staged_bulk_relation_row(
                 .cloned()
                 .enumerate()
                 .map(|(offset, (source, target))| ImportStagedRow::Relation {
+                    client_key: intent.client_keys.get(packet_index_floor + offset).cloned(),
                     source,
                     target,
                     fields: intent
@@ -134,11 +142,12 @@ fn for_each_staged_bulk_relation_row(
     for row in stage_import_packets(workspace, packets) {
         match row {
             ImportStagedRow::Relation {
+                client_key,
                 source,
                 target,
                 fields,
             } => apply_staged_relation_row(
-                intent, workspace, outcome, version_id, source, target, fields,
+                intent, workspace, outcome, version_id, client_key, source, target, fields,
             )?,
             ImportStagedRow::Entity { .. } => {
                 return Err(CommitConflict::new(
@@ -159,6 +168,7 @@ fn apply_staged_relation_row(
     workspace: &mut MutationWorkspace<'_>,
     outcome: &mut MutationOutcome,
     version_id: crate::identity::data::VersionId,
+    client_key: Option<crate::symbols::data::ClientKey>,
     source: EntityReference,
     target: EntityReference,
     fields: AspectFieldPatch,
@@ -203,6 +213,18 @@ fn apply_staged_relation_row(
             .mark_relation_slot_touched(relation_id.partition_id, relation_id.slot_index());
         relation_id
     });
+    if let Some(client_key) = client_key {
+        workspace.register_created_relation(
+            CreatedRelationRef {
+                partition_id: intent.partition_id,
+                kind_id: intent.kind_id,
+                client_key,
+                source: source.clone(),
+                target: target.clone(),
+            },
+            relation_id,
+        );
+    }
     outcome.record_change(RecordMutation::RelationCreated {
         relation_id,
         kind_id: intent.kind_id,

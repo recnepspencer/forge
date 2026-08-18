@@ -11,8 +11,7 @@ use crate::tests::support::{
 };
 use crate::transactions::data::{
     ApplyEntityAspectPatchIntent, ApplyRelationAspectPatchIntent, DeleteRelationIntent,
-    EntityMutationIntent, MutationIntent, RecordRef, RelationMutationIntent, TransactionOptions,
-    WorkerIntentBatch,
+    EntityMutationIntent, MutationIntent, RecordRef, RelationMutationIntent, WorkerIntentBatch,
 };
 
 use super::{assert_work, locator, project, validate};
@@ -210,8 +209,9 @@ fn relation_summary_patch(
     ))
 }
 
-fn commit_intent(runtime: &mut crate::runtime::RelationalRuntime, intent: MutationIntent) {
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+fn commit_intent(mut runtime: &mut crate::runtime::RelationalRuntime, intent: MutationIntent) {
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("footprint-setup").push(intent));
     transaction.commit().expect("fixture state commits");
 }

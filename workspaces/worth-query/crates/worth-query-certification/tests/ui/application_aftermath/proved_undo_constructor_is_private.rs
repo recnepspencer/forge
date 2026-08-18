@@ -1,13 +1,13 @@
 use worth_query_host::facade::provisional_aftermath::WorthQueryProvedUndo;
 use worth_relational::facade::{
-    history::{BranchId, CommitId, CommitReference},
+    history::{BranchId, CommitId, RelationalCommitReceipt},
     identity::VersionId,
 };
 
 fn main() {
     let _forged = WorthQueryProvedUndo {
         original_operation: [0; 32],
-        undo_commit: CommitReference {
+        undo_commit: RelationalCommitReceipt {
             commit_id: CommitId(7),
             version_id: VersionId(7),
             branch_id: BranchId("main".to_owned()),

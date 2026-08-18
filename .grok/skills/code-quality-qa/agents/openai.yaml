@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Quality QA"
+  short_description: "Review code structure and composition quality"
+  default_prompt: "Use $code-quality-qa to review this code for composition and domain-structure quality."

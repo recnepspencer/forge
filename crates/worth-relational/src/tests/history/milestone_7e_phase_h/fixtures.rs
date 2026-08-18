@@ -13,9 +13,7 @@ use crate::facade::schema::{
     EntityKindRegistration, KindAspectContractDeclarations, RelationIntegrityDeclarations,
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
-use crate::facade::transactions::{
-    CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
-};
+use crate::facade::transactions::{CreateIntent, MutationIntent, WorkerIntentBatch};
 use crate::merge::data::RelationalSchemaReconciliationWitnessRowInput;
 use crate::tests::support::{
     aspect_key, entity_field_aspect, field_key, relation_field_aspect, relation_source_aspect,
@@ -183,7 +181,7 @@ pub(super) fn runtime_with_relation_identity_registry(
 }
 
 pub(super) fn create_named_entity_on_branch(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     client_key: &str,
     name: &str,
     status: Option<&str>,
@@ -193,10 +191,10 @@ pub(super) fn create_named_entity_on_branch(
     if let Some(status) = status {
         fields.push((aspect_key("status"), field_key("status"), status));
     }
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(BranchId(branch.to_string())),
-        ..TransactionOptions::default()
-    });
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut runtime,
+        BranchId(branch.to_string()),
+    );
     txn.push_batch(WorkerIntentBatch::new(format!("seed-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {

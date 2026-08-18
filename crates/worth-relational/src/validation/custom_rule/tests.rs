@@ -6,8 +6,8 @@ use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::RelationalSchemaRegistry;
 use crate::facade::transactions::{
     CreateIntent, CreatedEntityRef, DeleteEntityIntent, DeleteRelationIntent, EntityReference,
-    EntitySpec, MutationIntent, RelationMutationIntent, TransactionOptions,
-    UpdateRelationEndpointsIntent, WorkerIntentBatch,
+    EntitySpec, MutationIntent, RelationMutationIntent, UpdateRelationEndpointsIntent,
+    WorkerIntentBatch,
 };
 use crate::symbols::data::ClientKey;
 use crate::tests::support::{create_entity, create_relation, runtime_with_test_schema};
@@ -168,7 +168,7 @@ fn touched_scope_tracks_planned_relation_endpoint_updates() {
             target: EntityReference::Existing(new_target),
         },
     ));
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new("rewire").push(intent.clone()));
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
@@ -224,7 +224,7 @@ fn touched_scope_tracks_planned_relation_endpoint_updates_to_created_entities() 
             target: EntityReference::Created(created_target.clone()),
         },
     ));
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-to-created")
             .push(create_target.clone())
@@ -263,7 +263,7 @@ fn touched_scope_tracks_planned_relation_deletes() {
     let intent = MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
         relation_id,
     }));
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new("delete").push(intent.clone()));
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
@@ -296,7 +296,7 @@ fn touched_scope_tracks_planned_entity_deletes() {
     let intent = MutationIntent::Entity(crate::facade::transactions::EntityMutationIntent::Delete(
         DeleteEntityIntent { entity_id },
     ));
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new("delete-entity").push(intent.clone()));
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,

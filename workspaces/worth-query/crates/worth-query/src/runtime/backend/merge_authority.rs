@@ -34,7 +34,7 @@ impl WorthQueryBackendMergeAuthority {
         }
         let basis = runtime
             .history()
-            .resolve_merge_branch_basis(&source_branch, &target_branch)
+            .historical_merge_branch_basis(&source_branch, &target_branch)
             .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
         let target_snapshot_identity = WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
             worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
@@ -114,10 +114,10 @@ impl WorthQueryBackendMergeAuthority {
     ) -> Result<(), WorthQueryWorkspaceError> {
         let history = runtime.history();
         let target_head = history
-            .branch_head(&self.target_branch)
+            .historical_branch_head(&self.target_branch)
             .ok_or_else(|| WorthQueryWorkspaceError::new("merge target branch is missing"))?;
         let source_head = history
-            .branch_head(&self.source_branch)
+            .historical_branch_head(&self.source_branch)
             .ok_or_else(|| WorthQueryWorkspaceError::new("merge source branch is missing"))?;
         if target_head.commit_id.0 != self.target_head_commit_id
             || source_head.commit_id.0 != self.source_head_commit_id

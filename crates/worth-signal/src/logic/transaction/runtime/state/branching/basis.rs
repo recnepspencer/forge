@@ -2,11 +2,14 @@ use std::convert::Infallible;
 
 use serde::{Deserialize, Serialize};
 use worth_proof::{
-    Artifact, AssumptionBasis, AuthorityMarker, AuthorityWitness,
-    BoundaryBridgedAuthorityRevalidationRequiredBasis, CurrentValidity, FreshnessScopedBasis,
-    NoProofs, PhaseMarker, StaleReadableBasis, TransitionOutcome,
+    Artifact, AssumptionBasis, BoundaryBridgedAuthorityRevalidationRequiredBasis, CurrentValidity,
+    FreshnessScopedBasis, PhaseMarker, StaleReadableBasis, TransitionOutcome,
 };
 
+use crate::branch::{
+    mint_signal_branch_authority, signal_branch_basis_proof, SignalBranchBasisAuthority,
+    SignalBranchBasisProof,
+};
 use crate::logic::transaction::canonical_digest;
 use crate::state::{
     SignalBranchHandle, SignalBranchId, SignalSnapshotId, SignalSnapshotV1, SnapshotRestoreIntent,
@@ -18,30 +21,6 @@ pub const SIGNAL_BRANCH_BASIS_SCHEMA_VERSION: &str = "worth-signal-branch-basis-
 pub struct SignalBranchBasisReady;
 
 impl PhaseMarker for SignalBranchBasisReady {}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SignalBranchBasisAuthority(());
-
-impl SignalBranchBasisAuthority {
-    pub(crate) const fn new() -> Self {
-        Self(())
-    }
-}
-
-impl AuthorityMarker for SignalBranchBasisAuthority {}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SignalBranchBasisReadmissionAuthority(());
-
-#[allow(dead_code)]
-impl SignalBranchBasisReadmissionAuthority {
-    pub(crate) const fn new() -> Self {
-        Self(())
-    }
-}
-
-impl AuthorityMarker for SignalBranchBasisReadmissionAuthority {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchHeadPosture {
@@ -75,6 +54,52 @@ pub struct SignalBranchBasisIdentity {
 }
 
 impl SignalBranchBasisIdentity {
+    /// Lower only the immutable target basis. The branch identity remains an
+    /// observation axis and must be supplied to the signal observation adapter
+    /// from this identity's owner-issued branch_id.
+    pub fn to_foundational_target(
+        &self,
+        graph_instance_id: impl Into<String>,
+        definition_basis: u64,
+    ) -> Result<
+        crate::branch::SignalBranchTarget,
+        crate::branch::SignalBranchTargetConstructionDenial,
+    > {
+        let restore_snapshot_id = match &self.restore_posture {
+            SignalBranchRestorePosture::NotRestoreDerived => None,
+            SignalBranchRestorePosture::SnapshotRestore { snapshot_id, .. } => Some(snapshot_id.0),
+        };
+        crate::branch::SignalBranchTarget::new(
+            graph_instance_id,
+            definition_basis,
+            self.snapshot_id.map(|snapshot_id| snapshot_id.0),
+            restore_snapshot_id,
+        )
+    }
+
+    /// Lower this owner-issued identity into a complete shared observation.
+    /// The branch id is carried from the identity rather than guessed from
+    /// the human-readable branch name.
+    pub fn to_foundational_observation(
+        &self,
+        graph_instance_id: impl AsRef<str>,
+        branch_name: impl AsRef<str>,
+        definition_basis: u64,
+        generation: worth_foundational::FoundationalBranchReferenceGeneration,
+    ) -> Result<
+        crate::branch::SignalBranchObservation,
+        crate::branch::SignalBranchObservationConstructionDenial,
+    > {
+        let target = self.to_foundational_target(graph_instance_id.as_ref(), definition_basis)?;
+        crate::branch::signal_branch_observation(
+            graph_instance_id,
+            self.branch_id.0,
+            branch_name,
+            worth_foundational::FoundationalBranchTarget::basis(target),
+            generation,
+        )
+    }
+
     pub(super) fn from_branch_handle(branch: &SignalBranchHandle) -> Self {
         Self {
             branch_id: branch.id,
@@ -214,21 +239,39 @@ pub enum SignalBranchBasisDenial {
 pub type SignalBranchBasisArtifact = Artifact<
     SignalBranchBasisReady,
     SignalBranchBasis,
-    NoProofs,
+    SignalBranchBasisProof,
     FreshnessScopedBasis<CurrentValidity, AssumptionBasis<SignalBranchBasisIdentity>>,
 >;
 
-pub type BoundaryBridgedSignalBranchBasisArtifact = Artifact<
+type BoundaryBridgedSignalBranchBasisState = Artifact<
     SignalBranchBasisReady,
     SignalBranchBasis,
-    NoProofs,
+    SignalBranchBasisProof,
     BoundaryBridgedAuthorityRevalidationRequiredBasis<SignalBranchBasisIdentity>,
 >;
+
+/// Boundary-weakened branch basis with an owner-specific readmission door.
+///
+/// The underlying Proof artifact remains private so the public surface cannot
+/// expose `Artifact::readmit_with_authority<Auth: AuthorityMarker>` as a
+/// generic authority lane. Signal readmission must use Signal's concrete
+/// authority witness.
+pub struct BoundaryBridgedSignalBranchBasisArtifact(BoundaryBridgedSignalBranchBasisState);
+
+impl BoundaryBridgedSignalBranchBasisArtifact {
+    pub fn readmit_with_authority(
+        self,
+        basis: SignalBranchBasisIdentity,
+        authority: SignalBranchBasisAuthority,
+    ) -> SignalBranchBasisArtifact {
+        self.0.readmit_with_authority(basis, authority)
+    }
+}
 
 pub type StaleSignalBranchBasisArtifact = Artifact<
     SignalBranchBasisReady,
     SignalBranchBasis,
-    NoProofs,
+    SignalBranchBasisProof,
     StaleReadableBasis<SignalBranchBasisIdentity>,
 >;
 
@@ -244,12 +287,13 @@ pub(super) fn materialize_branch_basis(
     identity: SignalBranchBasisIdentity,
 ) -> SignalBranchBasisArtifact {
     let payload = SignalBranchBasis::from_identity(branch_name, identity.clone());
-    let authority = AuthorityWitness::from_authority_marker(SignalBranchBasisAuthority::new());
-    Artifact::with_current_basis(payload, identity, authority)
+    let authority = mint_signal_branch_authority();
+    let proofs = signal_branch_basis_proof(&authority);
+    Artifact::with_proofs_and_current_basis(payload, proofs, identity, authority)
 }
 
 pub fn bridge_signal_branch_basis_trust_boundary(
     basis: SignalBranchBasisArtifact,
 ) -> BoundaryBridgedSignalBranchBasisArtifact {
-    basis.bridge_trust_boundary()
+    BoundaryBridgedSignalBranchBasisArtifact(basis.bridge_trust_boundary())
 }

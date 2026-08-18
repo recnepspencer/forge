@@ -6,6 +6,7 @@ use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, Sug
 pub enum BranchCreateErrorClass {
     BranchAlreadyExists,
     SourceBranchMissing,
+    InvalidTarget,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,6 +21,7 @@ impl BranchCreateError {
         let detail = match class {
             BranchCreateErrorClass::BranchAlreadyExists => "branch already exists".to_string(),
             BranchCreateErrorClass::SourceBranchMissing => "source branch missing".to_string(),
+            BranchCreateErrorClass::InvalidTarget => "target branch is invalid".to_string(),
         };
         Self {
             class,
@@ -35,5 +37,9 @@ impl BranchCreateError {
 
     pub fn source_branch_missing() -> Self {
         Self::new(BranchCreateErrorClass::SourceBranchMissing)
+    }
+
+    pub fn invalid_target() -> Self {
+        Self::new(BranchCreateErrorClass::InvalidTarget)
     }
 }

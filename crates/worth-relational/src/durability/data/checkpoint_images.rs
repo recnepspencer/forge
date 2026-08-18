@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use worth_foundational::facade::{PortableAspectContract, PortableRecordAspectState};
 
 use super::CheckpointCoverage;
-use crate::history::data::BranchHead;
+use crate::branch::RelationalBranchCellCheckpoint;
 use crate::history::data::CanonicalCommitEnvelope;
 use crate::identity::data::{
     EntityId, KindId, LineageId, PartitionId, RelationId, StructuralFingerprint, VersionId,
@@ -120,7 +120,8 @@ pub struct PartitionCheckpointImage {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DurableCheckpoint {
     pub coverage: CheckpointCoverage,
-    pub branches: Vec<BranchHead>,
+    #[serde(default)]
+    pub(crate) branch_cells: Vec<RelationalBranchCellCheckpoint>,
     pub envelopes: Vec<CanonicalCommitEnvelope>,
     pub partition_images: Vec<PartitionCheckpointImage>,
     pub aspect_contracts: Vec<PortableAspectContract>,

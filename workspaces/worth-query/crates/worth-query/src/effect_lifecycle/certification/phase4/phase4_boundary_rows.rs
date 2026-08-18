@@ -172,13 +172,12 @@ pub(super) fn host_override_denial_row() -> EffectLifecyclePhase4CertificationRo
 pub(super) fn stale_after_admission_row() -> EffectLifecyclePhase4CertificationRow {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should exist");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should exist");
     let basis = EffectAuthoringBasis::from(branch_mutation_basis("branch-a"));
     let raw = raw_mutation_effect_with_binding(
         runtime_workflow_binding_for_branch(
@@ -217,13 +216,12 @@ pub(super) fn stale_after_admission_row() -> EffectLifecyclePhase4CertificationR
 pub(super) fn stale_after_lowering_row() -> EffectLifecyclePhase4CertificationRow {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should exist");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should exist");
     let basis = EffectAuthoringBasis::from(branch_mutation_basis("branch-a"));
     let lowered = scope_admitted_effect_plan(
         match evaluate_effect_eligibility(

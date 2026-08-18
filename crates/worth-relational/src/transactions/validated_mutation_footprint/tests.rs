@@ -12,8 +12,8 @@ use crate::tests::support::{
 use crate::transactions::data::{
     ApplyEntityAspectPatchIntent, CreateIntent, DeleteEntityIntent, EntityMutationIntent,
     EntityReference, EntitySpec, MutationIntent, RecordRef, RelationMutationIntent,
-    ReplaceEntityIntent, TransactionOptions, UpdateEntityFieldsIntent,
-    UpdateRelationEndpointsIntent, WorkerIntentBatch,
+    ReplaceEntityIntent, UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent,
+    WorkerIntentBatch,
 };
 use crate::transactions::ValidatedRelationalMutation;
 
@@ -172,14 +172,15 @@ fn omitted_demand_performs_no_footprint_scan_or_materialization() {
 }
 
 fn validate(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &mut crate::runtime::RelationalRuntime,
     intents: impl IntoIterator<Item = MutationIntent>,
 ) -> ValidatedRelationalMutation {
     let batch = intents.into_iter().fold(
         WorkerIntentBatch::new("footprint-owner-proof"),
         WorkerIntentBatch::push,
     );
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(batch);
     transaction
         .validate()

@@ -160,8 +160,9 @@ pub(super) fn create_entity(
     runtime: &mut RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
-    let mut txn =
-        runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+    let mut txn = runtime.begin_transaction(
+        crate::tests::support::test_owner_transaction_options_for_main(&runtime),
+    );
     txn.push_batch(
         crate::facade::transactions::WorkerIntentBatch::new(name)
             .push(MutationIntent::Create(

@@ -31,6 +31,12 @@ fn lineage_promotion_execution_stays_advisory_until_promoted() {
         vec![right_lineage],
         "candidate",
     );
+    let branch_id = BranchId("main".to_string());
+    let before_metadata = runtime
+        .history
+        .branch_cell(&branch_id)
+        .expect("main branch cell")
+        .clone();
     let graph_before = runtime.lineage_access().graph(LineageGraphRequest {
         branch_id: BranchId("main".to_string()),
         traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
@@ -68,6 +74,30 @@ fn lineage_promotion_execution_stays_advisory_until_promoted() {
         .lineage_events()
         .iter()
         .any(|event| event.kind == crate::facade::lineage::LineageEventKind::Correspond));
+    let after_metadata = runtime
+        .history
+        .branch_cell(&branch_id)
+        .expect("main branch cell after promotion");
+    assert_eq!(
+        after_metadata.truth_version(),
+        before_metadata.truth_version(),
+        "metadata publication must not advance branch truth"
+    );
+    assert_eq!(
+        after_metadata.observation().target(),
+        before_metadata.observation().target(),
+        "metadata publication must preserve the branch target"
+    );
+    assert_eq!(
+        after_metadata.observation().generation().get(),
+        before_metadata.observation().generation().get() + 1,
+        "metadata publication advances only the reference generation"
+    );
+    assert_eq!(
+        runtime.history().branch_head(&branch_id),
+        Some(&second.commit),
+        "metadata publication must not replace the branch-cell truth head"
+    );
 }
 
 #[test]

@@ -29,13 +29,12 @@ use super::{
 pub(super) fn branch_mutation_execution_row() -> EffectLifecyclePhase4CertificationRow {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should exist");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should exist");
     let basis = EffectAuthoringBasis::from(branch_mutation_basis("branch-a"));
     let raw = raw_mutation_effect_with_binding(
         runtime_workflow_binding_for_branch(
@@ -76,13 +75,12 @@ pub(super) fn branch_mutation_execution_row() -> EffectLifecyclePhase4Certificat
 pub(super) fn relational_merge_execution_row() -> EffectLifecyclePhase4CertificationRow {
     let mut runtime = relational_runtime_with_intent_strategy();
     create_entity(&mut runtime, "main", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("candidate".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("candidate branch should exist");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("candidate".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("candidate branch should exist");
     create_entity(
         &mut runtime,
         "candidate-only",
@@ -171,13 +169,12 @@ pub(super) fn batch_execution_row() -> EffectLifecyclePhase4CertificationRow {
     let mut runtime = relational_runtime_with_intent_strategy();
     let left = create_entity(&mut runtime, "left", BranchId("main".to_string()));
     let right = create_entity(&mut runtime, "right", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should exist");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should exist");
     let basis = EffectAuthoringBasis::from(branch_mutation_basis("branch-a"));
     let binding = runtime_workflow_binding_for_branch(
         branch_snapshot_identity(&runtime, "branch-a"),
@@ -220,13 +217,12 @@ pub(super) fn batch_execution_row() -> EffectLifecyclePhase4CertificationRow {
 pub(super) fn relational_oracle_row() -> EffectLifecyclePhase4CertificationRow {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should exist");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should exist");
     let basis = EffectAuthoringBasis::from(branch_mutation_basis("branch-a"));
     let executed = scope_admitted_effect_plan(
         match evaluate_effect_eligibility(

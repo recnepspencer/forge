@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::history::data::{BranchId, CommitReference};
+use crate::history::data::{BranchId, RelationalCommitReceipt};
 use crate::identity::data::LineageId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,7 +16,7 @@ pub enum LineageEventKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LineageEventRecord {
     pub(crate) event_id: u64,
-    pub(crate) commit: CommitReference,
+    pub(crate) commit: RelationalCommitReceipt,
     pub(crate) branch_id: BranchId,
     pub(crate) kind: LineageEventKind,
     pub(crate) sources: Vec<LineageId>,
@@ -28,7 +28,7 @@ impl LineageEventRecord {
         self.event_id
     }
 
-    pub fn commit(&self) -> &CommitReference {
+    pub fn commit(&self) -> &RelationalCommitReceipt {
         &self.commit
     }
 

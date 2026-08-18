@@ -11,7 +11,7 @@ pub(crate) fn open_audit_branch(world: &mut FintechWorld) -> BranchId {
     world
         .runtime
         .history_authority()
-        .create_branch(branch.clone(), &BranchId("main".to_string()))
+        .fork_branch_from(branch.clone(), &BranchId("main".to_string()))
         .unwrap();
     branch
 }

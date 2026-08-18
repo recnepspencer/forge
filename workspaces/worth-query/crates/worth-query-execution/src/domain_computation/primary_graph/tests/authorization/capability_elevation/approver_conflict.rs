@@ -89,7 +89,11 @@ fn add_approver_conflict(world: &super::super::super::fixture::AuthorizationWorl
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = runtime.begin_transaction(
+            runtime
+                .transaction_options_for_main()
+                .expect("main branch binding"),
+        );
         transaction.push_batch(WorkerIntentBatch::new("add-approver-conflict").push(
             MutationIntent::Create(CreateIntent::Relation(RelationSpec {
                 partition_id: PartitionId::main(),

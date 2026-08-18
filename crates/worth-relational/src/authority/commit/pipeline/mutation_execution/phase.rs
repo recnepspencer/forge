@@ -13,6 +13,7 @@ pub(super) struct MutationPhaseOutput {
     effect: crate::authority::mutation::MutationEffect,
     invariant_results: crate::validation::engine::InvariantExecutionResult,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+    created_relations: crate::transactions::data::CommitCreatedRelationBindings,
 }
 
 impl MutationPhaseOutput {
@@ -27,12 +28,14 @@ impl MutationPhaseOutput {
         crate::authority::mutation::MutationEffect,
         crate::validation::engine::InvariantExecutionResult,
         crate::transactions::data::CommitCreatedEntityBindings,
+        crate::transactions::data::CommitCreatedRelationBindings,
     ) {
         (
             self.version_id,
             self.effect,
             self.invariant_results,
             self.created_entities,
+            self.created_relations,
         )
     }
 }
@@ -99,6 +102,7 @@ fn run_authoritative_mutation_for_runtime(
         effect,
         preparation_telemetry,
         created_entities,
+        created_relations,
     } = apply_plan_to_working_state(
         working_state,
         &apply_plan,
@@ -122,6 +126,7 @@ fn run_authoritative_mutation_for_runtime(
         effect,
         invariant_results,
         created_entities,
+        created_relations,
     })
 }
 

@@ -2,11 +2,11 @@ use crate::facade::identity::{EntityId, KindId, PartitionId};
 use crate::facade::runtime::RelationalRuntime;
 use crate::facade::transactions::{
     AspectFieldPatch, BulkEntityCreateIntent, CommitResult, CreateIntent, MutationIntent,
-    RecordRef, TransactionOptions, WorkerIntentBatch,
+    RecordRef, WorkerIntentBatch,
 };
 
 pub(super) fn bulk_create_entities<I>(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     batch_name: &str,
     partition_id: PartitionId,
     specs: I,
@@ -18,7 +18,7 @@ where
         .into_iter()
         .map(|(key, fields)| (crate::facade::symbols::ClientKey::raw(key), fields))
         .unzip();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new(batch_name).push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {

@@ -11,7 +11,7 @@ pub(super) struct FinalizationInput<'a> {
     pub(super) version_id: crate::identity::data::VersionId,
     pub(super) previous_branch_head_version: Option<crate::identity::data::VersionId>,
     pub(super) commit_id: crate::history::data::CommitId,
-    pub(super) commit_reference: &'a crate::history::data::CommitReference,
+    pub(super) commit_reference: &'a crate::history::data::RelationalCommitReceipt,
     pub(super) canonical_commit_envelope:
         std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
     pub(super) branch_id: &'a crate::history::data::BranchId,
@@ -25,7 +25,7 @@ pub(super) struct FinalizationInput<'a> {
 pub(super) fn finalize_published_commit(
     runtime: &mut crate::runtime::RelationalRuntime,
     input: FinalizationInput<'_>,
-) {
+) -> Result<(), String> {
     let FinalizationInput {
         clone_mode,
         committed_partitions,
@@ -50,7 +50,7 @@ pub(super) fn finalize_published_commit(
         branch_id,
         canonical_commit_envelope,
         phase_timing,
-    );
+    )?;
     advance_visibility(
         runtime,
         previous_branch_head_version,
@@ -74,6 +74,7 @@ pub(super) fn finalize_published_commit(
         },
         phase_timing,
     );
+    Ok(())
 }
 
 fn publish_storage(
@@ -111,13 +112,13 @@ fn refresh_indexes(
 fn publish_history(
     runtime: &mut crate::runtime::RelationalRuntime,
     commit_id: crate::history::data::CommitId,
-    commit_reference: &crate::history::data::CommitReference,
+    commit_reference: &crate::history::data::RelationalCommitReceipt,
     branch_id: &crate::history::data::BranchId,
     envelope: std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
-) {
+) -> Result<(), String> {
     let started = std::time::Instant::now();
-    runtime.history_authority().publish_commit(
+    let result = runtime.history_authority().publish_commit(
         commit_id,
         commit_reference.clone(),
         branch_id.clone(),
@@ -125,6 +126,7 @@ fn publish_history(
         envelope,
     );
     timing.history_publish_micros = started.elapsed().as_micros() as u64;
+    result
 }
 
 fn advance_visibility(
@@ -202,7 +204,7 @@ struct PostCommitArtifactInput<'a> {
     commit_id: crate::history::data::CommitId,
     snapshot_id: crate::snapshots::data::SnapshotId,
     branch_id: &'a crate::history::data::BranchId,
-    commit_reference: &'a crate::history::data::CommitReference,
+    commit_reference: &'a crate::history::data::RelationalCommitReceipt,
     merge_parent_branches: &'a [crate::history::data::BranchId],
     merge_base_commits: &'a [crate::history::data::CommitId],
 }

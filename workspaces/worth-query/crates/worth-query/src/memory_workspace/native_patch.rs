@@ -159,9 +159,11 @@ impl WorthQueryMemoryWorkspace {
         mutation_kind: WorthQueryMutationKind,
         touches: Vec<WorthQueryAspectTouch>,
     ) -> Result<WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
-        let mut transaction = self
+        let options = self
             .runtime
-            .begin_transaction(TransactionOptions::default());
+            .transaction_options_for_main()
+            .expect("memory workspace main branch remains owner-admissible");
+        let mut transaction = self.runtime.begin_transaction(options);
         transaction
             .push_batch(WorkerIntentBatch::new("query-memory-native-aspect-patch").push(intent));
         let result = transaction

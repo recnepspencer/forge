@@ -1,4 +1,4 @@
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 use crate::identity::data::LineageId;
 use crate::lineage::authority::LineageAuthority;
 #[cfg(test)]
@@ -24,7 +24,7 @@ impl<'runtime> LineageAuthority<'runtime> {
 
     pub(super) fn emit_authoritative_lineage_event(
         &mut self,
-        commit: &CommitReference,
+        commit: &RelationalCommitReceipt,
         kind: LineageEventKind,
         sources: Vec<LineageId>,
         targets: Vec<LineageId>,
@@ -36,7 +36,7 @@ impl<'runtime> LineageAuthority<'runtime> {
 
     pub(super) fn prepare_authoritative_lineage_event(
         &mut self,
-        commit: &CommitReference,
+        commit: &RelationalCommitReceipt,
         kind: LineageEventKind,
         sources: Vec<LineageId>,
         targets: Vec<LineageId>,
