@@ -14,6 +14,8 @@ mod observation_contracts;
 mod oracle_ancestry;
 #[path = "relational_certification/oracle_application.rs"]
 mod oracle_application;
+#[path = "relational_certification/phase4_compatibility.rs"]
+mod phase4_compatibility;
 #[path = "relational_certification/phase4_cost.rs"]
 mod phase4_cost;
 #[path = "relational_certification/phase4_fork.rs"]

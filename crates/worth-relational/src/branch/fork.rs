@@ -189,13 +189,18 @@ impl RelationalRuntime {
             FoundationalBranchTarget::Empty => None,
             FoundationalBranchTarget::Basis(target) => Some(CommitId(target.commit_id())),
         };
-        if let Some(commit_id) = shared_commit_id {
+        let source_head_version = if let Some(commit_id) = shared_commit_id {
             self.history.phase4_costs.catalog_lookups =
                 self.history.phase4_costs.catalog_lookups.saturating_add(1);
-            if self.history.commit_catalog.get(commit_id).is_none() {
-                return Err(RelationalForkDenial::MissingArtifact);
-            }
-        }
+            let artifact = self
+                .history
+                .commit_catalog
+                .get(commit_id)
+                .ok_or(RelationalForkDenial::MissingArtifact)?;
+            Some(artifact.identity().version_id())
+        } else {
+            None
+        };
         Ok(PreparedForkTarget {
             target_cell,
             target_branch: target_branch_id,
@@ -203,6 +208,7 @@ impl RelationalRuntime {
             fork_provenance,
             target_truth_version,
             shared_commit_id,
+            source_head_version,
         })
     }
 
@@ -228,11 +234,7 @@ impl RelationalRuntime {
             .branch_cell_contacts
             .saturating_add(1);
         self.history.insert_branch_cell(target.target_cell);
-        let source_head_version = self
-            .history()
-            .branch_head(&source_branch)
-            .map(|source_head| source_head.version_id);
-        if let Some(source_head_version) = source_head_version {
+        if let Some(source_head_version) = target.source_head_version {
             self.visibility_pins()
                 .move_branch_head_visibility_residency(None, Some(source_head_version));
             self.visibility_pins()
@@ -268,4 +270,5 @@ struct PreparedForkTarget {
     fork_provenance: RelationalBranchObservation,
     target_truth_version: RelationalBranchVersion,
     shared_commit_id: Option<CommitId>,
+    source_head_version: Option<crate::identity::data::VersionId>,
 }

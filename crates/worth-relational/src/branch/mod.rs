@@ -3,6 +3,7 @@ mod basis;
 mod fork;
 mod identity;
 mod reference;
+mod registry;
 mod target;
 mod version;
 
@@ -17,9 +18,12 @@ pub use identity::RelationalBranchIdentity;
 pub use reference::RelationalBranchCellDenial;
 pub use reference::{
     relational_branch_observation, RelationalBranchComparisonBasis, RelationalBranchForkBasis,
-    RelationalBranchObservation, RelationalBranchObservationConstructionDenial,
+    RelationalBranchObservationConstructionDenial, RelationalBranchReferenceObservation,
     RelationalBranchReferenceState,
 };
-pub(crate) use reference::{RelationalBranchCellCheckpoint, RelationalBranchReferenceCell};
+pub(crate) use reference::{
+    RelationalBranchCellCheckpoint, RelationalBranchObservation, RelationalBranchReferenceCell,
+};
+pub(crate) use registry::RelationalBranchReferenceRegistry;
 pub use target::{RelationalBranchRootDescriptor, RelationalBranchTarget};
 pub use version::RelationalBranchVersion;

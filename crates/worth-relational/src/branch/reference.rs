@@ -10,8 +10,11 @@ use super::target::RelationalBranchTarget;
 use super::RelationalBranchVersion;
 use crate::history::data::BranchId;
 
-pub type RelationalBranchObservation =
+/// Exact Phase-4 reference observation. This is not the later Phase-6
+/// repeatable-read `RelationalBranchObservation` artifact.
+pub type RelationalBranchReferenceObservation =
     FoundationalBranchReferenceObservation<RelationalBranchTarget>;
+pub(crate) type RelationalBranchObservation = RelationalBranchReferenceObservation;
 pub type RelationalBranchForkBasis = FoundationalBranchForkBasis<RelationalBranchTarget>;
 pub type RelationalBranchComparisonBasis =
     FoundationalBranchComparisonBasis<RelationalBranchTarget>;

@@ -1404,6 +1404,18 @@ explicit and temporary:
   Supply Chain Phase-4 code, cannot mint a fork basis, and cannot write a
   branch cell. Replay and reconstruction remain cert-only; their later
   retention/read-basis ownership is tracked by Phases 6 and 10.
+- `HistoryAccess::historical_branch_head`,
+  `VisibilityAuthority::historical_snapshot`,
+  `historical_snapshot_for_identity`, `historical_snapshot_for_branch`, and
+  `HistoryAccess::historical_merge_branch_basis` are pre-existing Query
+  consumer adapters renamed during this cutover. `historical_snapshot` opens
+  the already-published catalog-latest version as a read-only projection;
+  `historical_snapshot_for_*` and `historical_branch_head` resolve through an
+  owner/runtime-affine identity or an exact cell-plus-catalog lookup.
+  `historical_merge_branch_basis` is a merge-planning projection. None of
+  them may move a branch cell, mint a fork basis, or enter transaction or
+  publication admission. Phase 6 owns their exact-basis replacement. They
+  are not imported by the Phase-4 Supply Chain target.
 
 The compatibility list is a bounded exception, not permission to add another
 raw branch selector or lease constructor. Each entry must have an owner/runtime

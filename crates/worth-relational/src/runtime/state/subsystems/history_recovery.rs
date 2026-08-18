@@ -79,7 +79,7 @@ impl HistorySubsystem {
                 ));
             }
         }
-        self.branch_cells = cells;
+        self.branch_cells.restore_all(cells);
         Ok(())
     }
 

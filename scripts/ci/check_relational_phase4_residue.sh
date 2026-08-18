@@ -38,7 +38,7 @@ if rg -n "pub fn (pin_snapshot|admit_execution_basis_for_identity)\(" "$RELATION
   cat /tmp/worth-relational-phase4-residue.txt >&2
   failures=1
 fi
-if rg -n "admit_application_commit|admit_execution_basis_for_identity|admit_truth_view_execution_basis|project_version|retain_version_for_replay|replay_(commit|range)|replay_authority|(^|[^[:alnum:]_])(self|world|replay_api|recovery_api|runtime|[[:alnum:]_]*runtime|world\.runtime)\.replay[[:space:]]*\(" "$ROOT_DIR/crates/worth-relational/tests/relational_certification" --glob '*.rs' >/tmp/worth-relational-phase4-residue.txt 2>&1; then
+if rg -n "admit_application_commit|admit_execution_basis_for_identity|admit_truth_view_execution_basis|project_version|retain_version_for_replay|historical_snapshot|historical_branch_head|historical_merge_branch_basis|replay_(commit|range)|replay_authority|(^|[^[:alnum:]_])(self|world|replay_api|recovery_api|runtime|[[:alnum:]_]*runtime|world\.runtime)\.replay[[:space:]]*\(" "$ROOT_DIR/crates/worth-relational/tests/relational_certification" --glob '*.rs' --glob '!**/phase4_compatibility.rs' >/tmp/worth-relational-phase4-residue.txt 2>&1; then
   echo "[relational-phase4-residue] FAIL: Phase-4 Supply Chain certification imported a later compatibility authority" >&2
   cat /tmp/worth-relational-phase4-residue.txt >&2
   failures=1
@@ -87,7 +87,7 @@ if rg -n -P "#\[cfg\(not\(test\)\)\][\\r\\n]+\\s*pub\\s+(target_branch|source_br
 fi
 
 population_iteration_count="$(rg -n "branch_cells\.(values|keys)" "$HISTORY_STATE" | wc -l | tr -d ' ')"
-if [[ "$population_iteration_count" != "2" ]]; then
+if [[ "$population_iteration_count" != "1" ]]; then
   echo "[relational-phase4-residue] FAIL: branch population iteration escaped the instrumented boundary (found $population_iteration_count sites)" >&2
   rg -n "branch_cells\.(values|keys)" "$HISTORY_STATE" >&2 || true
   failures=1

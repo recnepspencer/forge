@@ -1,15 +1,15 @@
 mod authority;
+mod basis;
 mod reference;
 mod target;
 
-pub(crate) use authority::{
-    admit_runtime_signal_branch_observation, mint_signal_branch_authority,
-    signal_branch_basis_proof,
-};
+pub(crate) use authority::{mint_signal_branch_authority, signal_branch_basis_proof};
 pub use authority::{
-    admit_signal_branch_observation, AdmittedSignalBranchBasis, SignalBranchBasisAuthority,
-    SignalBranchBasisAuthorityMarker, SignalBranchBasisOwnerProof, SignalBranchBasisProof,
+    SignalBranchBasisAuthority, SignalBranchBasisAuthorityMarker, SignalBranchBasisOwnerProof,
+    SignalBranchBasisProof,
 };
+pub(crate) use basis::admit_runtime_signal_branch_observation;
+pub use basis::{admit_signal_branch_observation, AdmittedSignalBranchBasis};
 pub use reference::{
     signal_branch_observation, SignalBranchComparisonBasis, SignalBranchForkBasis,
     SignalBranchObservation, SignalBranchObservationConstructionDenial,

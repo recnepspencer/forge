@@ -186,8 +186,8 @@ impl<'runtime> HistoryAccess<'runtime> {
             if !seen.insert(commit_id) {
                 continue;
             }
-            if let Some(node) = self.runtime.history.commit_graph.get(&commit_id) {
-                stack.extend(node.commit.parents.iter().copied());
+            if let Some(artifact) = self.runtime.history.commit_catalog.get(commit_id) {
+                stack.extend(artifact.envelope().commit.parents.iter().copied());
             }
         }
         self.runtime
@@ -225,7 +225,13 @@ impl<'runtime> HistoryAccess<'runtime> {
     fn commit_record_set(&self, commits: &[CommitId]) -> BTreeSet<MergeConflictRecord> {
         commits
             .iter()
-            .filter_map(|commit_id| self.runtime.history.commit_envelopes.get(commit_id))
+            .filter_map(|commit_id| {
+                self.runtime
+                    .history
+                    .commit_catalog
+                    .get(*commit_id)
+                    .map(|artifact| artifact.envelope())
+            })
             .flat_map(|envelope| envelope.touched_record_refs().into_iter())
             .map(|record_ref| match record_ref {
                 crate::transactions::data::RecordRef::Entity(entity_id) => {

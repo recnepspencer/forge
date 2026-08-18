@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-use crate::branch::{RelationalBranchCellCheckpoint, RelationalBranchReferenceCell};
+use crate::branch::{
+    RelationalBranchCellCheckpoint, RelationalBranchReferenceCell,
+    RelationalBranchReferenceRegistry,
+};
 use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::{BranchId, CommitId, VersionNode};
 use crate::history::RelationalCommitCatalog;
@@ -33,7 +36,7 @@ pub struct RelationalPhase4ReferenceCostCounters {
 pub(crate) struct HistorySubsystem {
     pub(crate) runtime_instance_id: u64,
     pub(crate) main_branch: BranchId,
-    branch_cells: BTreeMap<BranchId, RelationalBranchReferenceCell>,
+    branch_cells: RelationalBranchReferenceRegistry,
     pub(crate) commit_catalog: RelationalCommitCatalog,
     pub(crate) phase4_costs: RelationalPhase4ReferenceCostCounters,
     /// Population-wide reference traversal is deliberately hidden behind
@@ -56,7 +59,7 @@ impl HistorySubsystem {
         Self {
             runtime_instance_id: 0,
             main_branch: main_branch.clone(),
-            branch_cells: BTreeMap::from([(main_branch.clone(), main_cell)]),
+            branch_cells: RelationalBranchReferenceRegistry::from_main(main_cell),
             commit_catalog: RelationalCommitCatalog::default(),
             phase4_costs: RelationalPhase4ReferenceCostCounters::default(),
             branch_population_scans: Arc::new(AtomicU64::new(0)),
@@ -108,16 +111,18 @@ impl HistorySubsystem {
     pub(crate) fn set_runtime_instance_id(&mut self, runtime_instance_id: u64) {
         self.runtime_instance_id = runtime_instance_id;
         self.record_branch_population_scan();
-        let cells = std::mem::take(&mut self.branch_cells);
-        self.branch_cells = cells
-            .into_values()
-            .map(|cell| {
-                let rebound = cell
-                    .rebind_runtime(runtime_instance_id)
-                    .expect("existing branch identities must remain valid when rebound");
-                (rebound.identity().branch_id().clone(), rebound)
-            })
-            .collect();
+        let cells = self.branch_cells.take_all();
+        self.branch_cells.restore_all(
+            cells
+                .into_values()
+                .map(|cell| {
+                    let rebound = cell
+                        .rebind_runtime(runtime_instance_id)
+                        .expect("existing branch identities must remain valid when rebound");
+                    (rebound.identity().branch_id().clone(), rebound)
+                })
+                .collect(),
+        );
     }
 
     pub(crate) fn fork_for_runtime(&self, runtime_instance_id: u64) -> Self {
@@ -159,12 +164,11 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn insert_branch_cell(&mut self, cell: RelationalBranchReferenceCell) {
-        self.branch_cells
-            .insert(cell.identity().branch_id().clone(), cell);
+        self.branch_cells.insert(cell);
     }
 
     pub(crate) fn has_branch(&self, branch_id: &BranchId) -> bool {
-        self.branch_cells.contains_key(branch_id)
+        self.branch_cells.contains(branch_id)
     }
 
     /// Require a branch cell already admitted by an exact checkpoint. Replay
@@ -210,9 +214,8 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn branch_cells_snapshot(&self) -> Vec<RelationalBranchCellCheckpoint> {
-        self.branch_population_values()
-            .map(RelationalBranchReferenceCell::checkpoint)
-            .collect()
+        self.record_branch_population_scan();
+        self.branch_cells.checkpoints()
     }
 
     pub(crate) fn branch_ids_snapshot(&self) -> Vec<BranchId> {
@@ -222,11 +225,6 @@ impl HistorySubsystem {
 
     fn record_branch_population_scan(&self) {
         self.branch_population_scans.fetch_add(1, Ordering::Relaxed);
-    }
-
-    fn branch_population_values(&self) -> impl Iterator<Item = &RelationalBranchReferenceCell> {
-        self.record_branch_population_scan();
-        self.branch_cells.values()
     }
 }
 

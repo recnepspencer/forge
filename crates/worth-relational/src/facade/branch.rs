@@ -1,8 +1,8 @@
 pub use crate::branch::{
     relational_branch_observation, AdmittedRelationalForkSourceBasis, RelationalBranchCellDenial,
     RelationalBranchComparisonBasis, RelationalBranchForkBasis, RelationalBranchIdentity,
-    RelationalBranchObservation, RelationalBranchObservationAuthorityMarker,
-    RelationalBranchObservationConstructionDenial, RelationalBranchReferenceState,
+    RelationalBranchObservationAuthorityMarker, RelationalBranchObservationConstructionDenial,
+    RelationalBranchReferenceObservation, RelationalBranchReferenceState,
     RelationalBranchRootDescriptor, RelationalBranchTarget, RelationalBranchVersion,
     RelationalForkDenial, RelationalForkOutcome, RelationalForkSourceAuthority,
     RelationalForkSourceAuthorityMarker, RelationalForkSourceDescriptor,

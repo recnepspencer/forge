@@ -1,10 +1,8 @@
 use worth_relational::facade::branch::AdmittedRelationalForkSourceBasis;
+use worth_relational::facade::runtime::RelationalRuntime;
 
 fn main() {
+    let runtime: &mut RelationalRuntime = todo!();
     let basis: AdmittedRelationalForkSourceBasis = todo!();
-    let _ = basis.observe_branch();
-    let _ = basis.begin_transaction();
-    let _ = basis.publish_commit();
-    let _ = basis.retain_component_basis();
-    let _ = basis.readmit();
+    let _ = runtime.begin_transaction(basis);
 }

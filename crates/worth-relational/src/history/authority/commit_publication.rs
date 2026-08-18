@@ -94,14 +94,17 @@ impl<'runtime> HistoryAuthority<'runtime> {
             .commit_catalog
             .validate_envelope(canonical_commit_envelope)
             .map_err(|denial| format!("publication catalog admission denied: {denial:?}"))?;
-        let mut cell = match self.runtime.history.branch_cell(branch_id).cloned() {
-            Some(cell) => cell,
-            None => crate::branch::RelationalBranchReferenceCell::empty(
-                self.runtime.history.runtime_instance_id,
-                branch_id.clone(),
-            )
-            .map_err(|denial| format!("publication branch identity denied: {denial:?}"))?,
-        };
+        let mut cell = self
+            .runtime
+            .history
+            .branch_cell(branch_id)
+            .cloned()
+            .ok_or_else(|| {
+                format!(
+                    "publication cannot mint a missing branch cell `{}`",
+                    branch_id.0
+                )
+            })?;
         match sequence {
             PublicationSequence::Truth => {
                 let roots = RelationalBranchTarget::roots_for_commit(commit_reference);
@@ -265,12 +268,10 @@ fn insert_published_commit(
             .map_err(|denial| format!("published catalog admission denied: {denial:?}"))?;
     }
     if !history.has_branch(&branch_id) {
-        let cell = crate::branch::RelationalBranchReferenceCell::empty(
-            history.runtime_instance_id,
-            branch_id.clone(),
-        )
-        .map_err(|denial| format!("published branch identity denied: {denial:?}"))?;
-        history.insert_branch_cell(cell);
+        return Err(format!(
+            "publication cannot mint a missing branch cell `{}`",
+            branch_id.0
+        ));
     }
     match sequence {
         PublicationSequence::Truth => {
