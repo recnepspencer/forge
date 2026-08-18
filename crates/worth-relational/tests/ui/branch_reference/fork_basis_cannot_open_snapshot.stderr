@@ -1,0 +1,25 @@
+warning: unreachable statement
+ --> tests/ui/branch_reference/fork_basis_cannot_open_snapshot.rs:6:5
+  |
+5 |     let runtime: &mut RelationalRuntime = todo!();
+  |                                           ------- any code following this expression is unreachable
+6 |     let basis: AdmittedRelationalForkSourceBasis = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+ --> tests/ui/branch_reference/fork_basis_cannot_open_snapshot.rs:7:66
+  |
+7 |     let _ = runtime.snapshots().historical_snapshot_for_identity(&basis);
+  |                                 -------------------------------- ^^^^^^ expected `&RelationalBranchIdentity`, found `&AdmittedRelationalForkSourceBasis`
+  |                                 |
+  |                                 arguments to this method are incorrect
+  |
+  = note: expected reference `&RelationalBranchIdentity`
+             found reference `&AdmittedRelationalForkSourceBasis`
+note: method defined here
+ --> src/visibility/authority.rs
+  |
+  |     pub fn historical_snapshot_for_identity(
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

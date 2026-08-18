@@ -20,5 +20,6 @@ mod relation_updates;
 mod runtime_contracts;
 mod same_commit_relation_endpoints;
 mod snapshot_and_retention;
+mod stale_fork_generation;
 mod struct_field_patch_authority;
 mod visibility_aspect_versions;
