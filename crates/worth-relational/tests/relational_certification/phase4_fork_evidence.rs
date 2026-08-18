@@ -4,8 +4,8 @@ use super::world::supply_chain::{
     SupplyChainWorldDefinition,
 };
 use worth_relational::facade::branch::{
-    RelationalBranchIdentity, RelationalBranchReferenceState, RelationalForkSourceDescriptor,
-    RelationalLegacyBranchBindingDenial,
+    RelationalBranchIdentity, RelationalBranchIdentityDenial, RelationalBranchReferenceState,
+    RelationalForkSourceDescriptor,
 };
 use worth_relational::facade::history::{BranchId, CommitId, RelationalCommitIdentity};
 use worth_relational::facade::runtime::{RelationalPhase4ReferenceCostCounters, RelationalRuntime};
@@ -16,10 +16,8 @@ use worth_relational::facade::runtime::{RelationalPhase4ReferenceCostCounters, R
 pub(crate) struct Phase4ReferenceEvidence {
     pub(crate) source: Option<RelationalForkSourceDescriptor>,
     pub(crate) target: Option<RelationalForkSourceDescriptor>,
-    pub(crate) source_identity:
-        Result<RelationalBranchIdentity, RelationalLegacyBranchBindingDenial>,
-    pub(crate) target_identity:
-        Result<RelationalBranchIdentity, RelationalLegacyBranchBindingDenial>,
+    pub(crate) source_identity: Result<RelationalBranchIdentity, RelationalBranchIdentityDenial>,
+    pub(crate) target_identity: Result<RelationalBranchIdentity, RelationalBranchIdentityDenial>,
     pub(crate) source_state: Option<RelationalBranchReferenceState>,
     pub(crate) target_state: Option<RelationalBranchReferenceState>,
     pub(crate) catalog_count: usize,

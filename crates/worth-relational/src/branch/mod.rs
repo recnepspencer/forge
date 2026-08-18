@@ -14,7 +14,7 @@ pub use authority::{
 };
 pub use basis::{AdmittedRelationalForkSourceBasis, RelationalForkSourceDescriptor};
 pub use fork::{RelationalForkDenial, RelationalForkOutcome};
-pub use identity::RelationalBranchIdentity;
+pub use identity::{RelationalBranchIdentity, RelationalBranchIdentityDenial};
 pub use reference::RelationalBranchCellDenial;
 pub use reference::{
     relational_branch_observation, RelationalBranchComparisonBasis, RelationalBranchForkBasis,

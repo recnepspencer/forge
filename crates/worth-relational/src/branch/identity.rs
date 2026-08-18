@@ -1,5 +1,17 @@
 use crate::history::data::BranchId;
 
+/// Typed denial for owner identity lookup. This is not a transaction-binding
+/// denial and cannot admit a fork or transaction.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RelationalBranchIdentityDenial {
+    ForeignRuntime {
+        expected_runtime_instance_id: u64,
+        actual_runtime_instance_id: u64,
+    },
+    UnknownBranch(BranchId),
+    IdentityMismatch,
+}
+
 /// Runtime-affine owner identity for a relational branch.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RelationalBranchIdentity {

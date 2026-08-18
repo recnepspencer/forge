@@ -3,7 +3,9 @@ use super::phase4_fork_evidence::{
     certified_supply_chain_world,
 };
 use super::world::supply_chain::SupplyChainScale;
-use worth_relational::facade::branch::RelationalLegacyBranchBindingDenial;
+use worth_relational::facade::branch::{
+    RelationalBranchIdentityDenial, RelationalLegacyBranchBindingDenial,
+};
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::merge::{MergeExecutionRequest, MergeIntent};
 use worth_relational::facade::transactions::{
@@ -32,7 +34,7 @@ fn owner_issues_transaction_options_from_exact_main_identity() {
         world
             .runtime
             .branch_identity(&BranchId("forged-target".to_owned())),
-        Err(RelationalLegacyBranchBindingDenial::UnknownBranch(branch))
+        Err(RelationalBranchIdentityDenial::UnknownBranch(branch))
             if branch == BranchId("forged-target".to_owned())
     ));
     assert_oracle_matches(&world, &expected);
@@ -232,7 +234,7 @@ fn unknown_branch_cannot_issue_an_owner_binding() {
 
     assert!(matches!(
         world.runtime.branch_identity(&BranchId("ghost".to_owned())),
-        Err(RelationalLegacyBranchBindingDenial::UnknownBranch(branch))
+        Err(RelationalBranchIdentityDenial::UnknownBranch(branch))
             if branch == BranchId("ghost".to_owned())
     ));
     let after = capture_reference_evidence(

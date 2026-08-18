@@ -3,7 +3,7 @@ use super::phase4_fork_evidence::{
     canonical_empty_supply_chain_runtime, capture_reference_evidence, certified_supply_chain_world,
 };
 use super::world::supply_chain::SupplyChainScale;
-use worth_relational::facade::branch::{RelationalForkDenial, RelationalLegacyBranchBindingDenial};
+use worth_relational::facade::branch::{RelationalBranchIdentityDenial, RelationalForkDenial};
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::transactions::WorkerIntentBatch;
 
@@ -237,7 +237,7 @@ fn malformed_fork_target_denies_before_reference_installation() {
     ));
     assert!(matches!(
         world.runtime.branch_identity(&BranchId(String::new())),
-        Err(RelationalLegacyBranchBindingDenial::UnknownBranch(_))
+        Err(RelationalBranchIdentityDenial::UnknownBranch(_))
     ));
     let after = capture_reference_evidence(
         &mut world.runtime,
@@ -378,7 +378,7 @@ fn stale_fork_source_denial_does_not_install_a_target_reference() {
         world
             .runtime
             .branch_identity(&BranchId("stale".to_owned())),
-        Err(RelationalLegacyBranchBindingDenial::UnknownBranch(branch))
+        Err(RelationalBranchIdentityDenial::UnknownBranch(branch))
             if branch == BranchId("stale".to_owned())
     ));
     let after = capture_reference_evidence(

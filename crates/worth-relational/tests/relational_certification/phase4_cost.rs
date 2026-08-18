@@ -8,6 +8,7 @@ fn phase4_reference_cost_probe_separates_setup_and_operation_work() {
         let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
         assert_oracle_matches(&world, &expected);
         let setup = world.runtime.phase4_reference_cost_counters();
+        let setup_catalog = world.runtime.history().immutable_commit_count();
         let mut previous = setup;
         for _ in 0..fanout {
             let (_, source_basis) = world
@@ -43,5 +44,10 @@ fn phase4_reference_cost_probe_separates_setup_and_operation_work() {
             );
             previous = current;
         }
+        assert_eq!(
+            world.runtime.history().immutable_commit_count(),
+            setup_catalog,
+            "metadata-only forks must not append catalog artifacts"
+        );
     }
 }

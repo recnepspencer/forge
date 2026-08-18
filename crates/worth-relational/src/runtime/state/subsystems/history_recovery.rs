@@ -83,7 +83,7 @@ impl HistorySubsystem {
         Ok(())
     }
 
-    pub(crate) fn rebuild_phase4_registry(&mut self) {
+    pub(crate) fn rebuild_catalog_from_durable_envelopes(&mut self) {
         self.commit_catalog = RelationalCommitCatalog::default();
         let envelopes = self
             .commit_envelopes

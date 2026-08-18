@@ -25,16 +25,17 @@ impl RelationalRuntime {
     pub fn branch_identity(
         &self,
         branch_id: &BranchId,
-    ) -> Result<RelationalBranchIdentity, RelationalLegacyBranchBindingDenial> {
-        let cell = self
-            .history
-            .branch_cell(branch_id)
-            .ok_or_else(|| RelationalLegacyBranchBindingDenial::UnknownBranch(branch_id.clone()))?;
+    ) -> Result<RelationalBranchIdentity, crate::branch::RelationalBranchIdentityDenial> {
+        let cell = self.history.branch_cell(branch_id).ok_or_else(|| {
+            crate::branch::RelationalBranchIdentityDenial::UnknownBranch(branch_id.clone())
+        })?;
         if cell.identity().runtime_instance_id() != self.runtime_instance_id() {
-            return Err(RelationalLegacyBranchBindingDenial::ForeignRuntime {
-                expected_runtime_instance_id: self.runtime_instance_id(),
-                actual_runtime_instance_id: cell.identity().runtime_instance_id(),
-            });
+            return Err(
+                crate::branch::RelationalBranchIdentityDenial::ForeignRuntime {
+                    expected_runtime_instance_id: self.runtime_instance_id(),
+                    actual_runtime_instance_id: cell.identity().runtime_instance_id(),
+                },
+            );
         }
         Ok(cell.identity().clone())
     }
@@ -72,7 +73,9 @@ impl RelationalRuntime {
         &self,
         branch_id: &BranchId,
     ) -> Result<TransactionOptions, RelationalLegacyBranchBindingDenial> {
-        let identity = self.branch_identity(branch_id)?;
+        let identity = self
+            .branch_identity(branch_id)
+            .map_err(identity_to_binding_denial)?;
         self.transaction_options_for(&identity)
     }
 
@@ -111,7 +114,7 @@ impl RelationalRuntime {
     > {
         let identity = self
             .branch_identity(branch_id)
-            .map_err(map_binding_denial)?;
+            .map_err(|denial| map_binding_denial(identity_to_binding_denial(denial)))?;
         self.legacy_branch_binding_for_identity(&identity)
             .map_err(map_binding_denial)
     }
@@ -178,6 +181,26 @@ impl RelationalRuntime {
 
     pub(crate) fn runtime_instance_id(&self) -> u64 {
         self.services.runtime_instance_id()
+    }
+}
+
+fn identity_to_binding_denial(
+    denial: crate::branch::RelationalBranchIdentityDenial,
+) -> RelationalLegacyBranchBindingDenial {
+    match denial {
+        crate::branch::RelationalBranchIdentityDenial::ForeignRuntime {
+            expected_runtime_instance_id,
+            actual_runtime_instance_id,
+        } => RelationalLegacyBranchBindingDenial::ForeignRuntime {
+            expected_runtime_instance_id,
+            actual_runtime_instance_id,
+        },
+        crate::branch::RelationalBranchIdentityDenial::UnknownBranch(branch) => {
+            RelationalLegacyBranchBindingDenial::UnknownBranch(branch)
+        }
+        crate::branch::RelationalBranchIdentityDenial::IdentityMismatch => {
+            RelationalLegacyBranchBindingDenial::IdentityMismatch
+        }
     }
 }
 

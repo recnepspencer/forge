@@ -44,7 +44,11 @@ pub(crate) struct HistorySubsystem {
     /// lets those shared-`&self` methods record a scan without making the
     /// operational counters interior-mutable.
     branch_population_scans: Arc<AtomicU64>,
+    /// Durable recovery/diagnostic sidecar. Currentness and fork identity
+    /// read the catalog, not this map.
     pub(crate) commit_graph: BTreeMap<crate::history::data::CommitId, VersionNode>,
+    /// Durable recovery sidecar holding the same sealed envelope the catalog
+    /// already admitted. It cannot mint a branch cell or a fork basis.
     pub(crate) commit_envelopes:
         BTreeMap<crate::history::data::CommitId, Arc<CanonicalCommitEnvelope>>,
     pub(crate) patch_stream_index: BTreeMap<PatchStreamPosition, crate::history::data::CommitId>,

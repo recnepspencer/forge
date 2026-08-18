@@ -62,7 +62,7 @@ pub(super) fn restore_checkpoint_state(
             )
         })
         .collect();
-    restored.history.rebuild_phase4_registry();
+    restored.history.rebuild_catalog_from_durable_envelopes();
     restored
         .history
         .restore_branch_cells(&checkpoint.branch_cells)

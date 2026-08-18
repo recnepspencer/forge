@@ -1,4 +1,3 @@
-mod branch_management;
 mod commit_publication;
 mod replay_retention;
 
@@ -17,5 +16,9 @@ impl RelationalRuntime {
 impl<'runtime> HistoryAuthority<'runtime> {
     pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
         Self { runtime }
+    }
+
+    pub(crate) fn runtime(&mut self) -> &mut RelationalRuntime {
+        self.runtime
     }
 }

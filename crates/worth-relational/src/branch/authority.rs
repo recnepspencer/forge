@@ -52,6 +52,24 @@ pub enum RelationalLegacyBranchBindingDenial {
     IdentityMismatch,
 }
 
+impl From<super::RelationalBranchIdentityDenial> for RelationalLegacyBranchBindingDenial {
+    fn from(denial: super::RelationalBranchIdentityDenial) -> Self {
+        match denial {
+            super::RelationalBranchIdentityDenial::ForeignRuntime {
+                expected_runtime_instance_id,
+                actual_runtime_instance_id,
+            } => Self::ForeignRuntime {
+                expected_runtime_instance_id,
+                actual_runtime_instance_id,
+            },
+            super::RelationalBranchIdentityDenial::UnknownBranch(branch) => {
+                Self::UnknownBranch(branch)
+            }
+            super::RelationalBranchIdentityDenial::IdentityMismatch => Self::IdentityMismatch,
+        }
+    }
+}
+
 /// Private compatibility binding for the pre-detached transaction executor.
 /// It is runtime-affine and owner-minted; it has no default, serde, or raw-id
 /// constructor and is intentionally distinct from fork/read bases.

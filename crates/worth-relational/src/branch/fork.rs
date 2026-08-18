@@ -1,6 +1,7 @@
 use worth_foundational::FoundationalBranchTarget;
 
 use crate::history::data::{BranchCreateError, BranchId, CommitId};
+use crate::history::HistoryAuthority;
 use crate::runtime::RelationalRuntime;
 
 use super::authority::admit_relational_fork_source;
@@ -271,4 +272,33 @@ struct PreparedForkTarget {
     target_truth_version: RelationalBranchVersion,
     shared_commit_id: Option<CommitId>,
     source_head_version: Option<crate::identity::data::VersionId>,
+}
+
+impl HistoryAuthority<'_> {
+    /// In-crate compatibility adapter for replay and preservation callers.
+    /// It observes an owner fork token and delegates to `fork_branch`; it is
+    /// not a public currentness door and is not a second fork authority.
+    pub(crate) fn fork_branch_from(
+        &mut self,
+        new_branch: BranchId,
+        from_branch: &BranchId,
+    ) -> Result<(), BranchCreateError> {
+        let runtime = self.runtime();
+        let (_, basis) =
+            runtime
+                .observe_fork_source(from_branch)
+                .map_err(|denial| match denial {
+                    RelationalForkDenial::DuplicateTarget => {
+                        BranchCreateError::branch_already_exists()
+                    }
+                    _ => BranchCreateError::source_branch_missing(),
+                })?;
+        runtime
+            .fork_branch(new_branch, basis)
+            .map(|_| ())
+            .map_err(|denial| match denial {
+                RelationalForkDenial::DuplicateTarget => BranchCreateError::branch_already_exists(),
+                _ => BranchCreateError::source_branch_missing(),
+            })
+    }
 }

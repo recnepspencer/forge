@@ -29,29 +29,32 @@ fn inventoried_historical_reads_do_not_move_branch_cells() {
         .as_u64();
 
     let identity = world.runtime.main_branch_identity();
-    let _ = world
+    assert!(world
         .runtime
         .history()
-        .historical_branch_head(&identity.branch_id().clone());
+        .historical_branch_head(identity.branch_id())
+        .is_some());
     let _ = world.runtime.snapshots().historical_snapshot();
-    let _ = world
+    assert!(world
         .runtime
         .snapshots()
-        .historical_snapshot_for_identity(&identity);
-    let _ = world
+        .historical_snapshot_for_identity(&identity)
+        .is_some());
+    assert!(world
         .runtime
         .snapshots()
-        .historical_snapshot_for_branch(&BranchId("main".to_owned()));
+        .historical_snapshot_for_branch(&BranchId("main".to_owned()))
+        .is_some());
     let replay_version = world
         .runtime
         .history()
         .historical_branch_head(&BranchId("main".to_owned()))
         .expect("main has a published catalog receipt")
         .version_id;
-    let _ = world
+    assert!(world
         .runtime
         .history_authority()
-        .retain_version_for_replay(replay_version);
+        .retain_version_for_replay(replay_version));
 
     let after = capture_reference_evidence(
         &mut world.runtime,
