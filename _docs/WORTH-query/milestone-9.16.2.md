@@ -536,62 +536,178 @@ as semantic authority, or dispatch eligibility decided by a database row.
 
 ## Ordered Phase Plan
 
+These are implementation and review gates, not capability-group headings. Each
+phase must close its own authority and proof boundary before the next phase may
+consume it. A later end-to-end court cannot retroactively make an earlier
+package, durability, recovery, or dispatch boundary honest.
+
 ### Phase 1: Stable Identity And Declared Provenance
 
-Ship stable identities for every package-relevant Rust axis, remove
-package-canonical `type_name`, and make operation/effect references
-declaration-minted. Prove stability, collision denial, forgery denial, and no
-warm regression.
+Starting from the existing validated portable package, ship stable identities
+for every package-relevant Rust axis, remove package-canonical `type_name`, and
+make operation/effect references declaration-minted. Only the owning
+declarations may construct provenance-bearing references; copied names and
+caller-selected digests open no package or dispatch path. Compile-fail,
+collision, module-move, semantic-mutation, and warm-cost evidence lets Phase 2
+trust the identity vocabulary without trusting representation accidents.
 
-### Phase 2: Package Decomposition And Reconstruction
+### Phase 2: Complete Typed Package Export
 
-Ship versioned manifest, typed records, bounded export/reconstruction, fresh
-validation, and expected-identity comparison. Prove completeness with
-mutation-sensitive twins and hostile record tests.
+Consume one freshly validated package and export a versioned manifest plus the
+complete typed logical record families in canonical order under explicit size
+and count budgets. The export is descriptive meaning, never live runtime
+authority, and no adapter-specific node, edge, row, document, or callback may
+enter it. Closure-inventory and mutation-sensitive omission/duplication tests
+let Phase 3 trust that every package-relevant semantic family has one stable
+portable projection.
 
-### Phase 3: Relational Pluggable Durability Boundary
+### Phase 3: Bounded Reconstruction And Fresh Query Validation
+
+Consume only untrusted typed records, enforce manifest closure and decode
+budgets, reconstruct a candidate, recompute semantic identity, and ask Query to
+validate it freshly. Neither stored identity nor successful decoding may mint
+a validated package. Round-trip, cross-splice, dropped/duplicated record,
+unsupported-version, forged-identity, and budget-exhaustion courts let Phase 4
+trust exact semantic re-entry rather than a serialization shortcut.
+
+### Phase 4: Neutral Release Archive And Trust Envelope
+
+Encode the complete typed package as one deterministic, versioned,
+store-neutral archive and define the host-owned signature/provenance envelope,
+expected-identity comparison, compatibility window, and Git/GitHub release
+workflow. Archive bytes, signatures, tags, filenames, and release names remain
+non-authoritative until Phase 3 reconstruction succeeds under current host
+policy. Determinism, tamper, downgrade, coexistence, and wrong-expected-release
+evidence lets later physical stores retain and transport one independently
+verifiable release artifact without dictating their schema.
+
+### Phase 5: Relational Durability Authority And Backend Contract
 
 Move local filesystem durability behind a Relational-owned, publicly
 implementable backend contract while preserving owner-issued append authority,
 versioned canonical artifact encoding, append-before-success, checkpoints,
 replay, and recovery. Run existing local durability tests unchanged plus backend
 conformance and artifact-compatibility tests. No Query/PostgreSQL type enters
-Relational.
+Relational, and no successful backend write may mint Relational publication
+authority. Phase 8 may trust one owner-defined durability contract whose local
+implementation already proves acknowledgement and recovery semantics.
 
-### Phase 4: Runtime-Level PostgreSQL Adapter And Current Owner Implementations
+### Phase 6: PostgreSQL Adapter, Connection Lifecycle, And Migrations
 
-Create the stable `worth-runtime-postgres` adapter facade and populate its Query-package
-and Relational owner boundaries. Ship migrations, catalogs, archive storage,
-normalized package projections, exact activation, canonical append,
-checkpoints, and recovery loading with bounded synchronous pools. Prove that
-Query/Relational own no SQL and that later Signal/Runtime Bridge adapters enter
-as siblings without changing facade or dependency direction.
+Create the stable `worth-runtime-postgres` facade, configuration, connection
+lifecycle, bounded blocking/pool posture, namespace boundary, migration ledger,
+compatibility refusal, and transaction mechanics. This phase exposes honest
+database readiness only; it does not claim package installation, Relational
+recovery, or dispatch readiness. Real-PostgreSQL migration, rollback-refusal,
+pool-exhaustion, namespace-isolation, and dependency-enforcement evidence lets
+owner adapters enter beneath the facade without moving it or leaking SQL
+upstream.
 
-### Phase 5: Fresh-Process Recovery And Provider Rebinding
+### Phase 7: Exact Package Registry, Coexistence, And Activation
+
+Populate the Query-package PostgreSQL owner boundary with archive storage,
+exact semantic-identity lookup, normalized derived projections, provenance,
+and generation-qualified activation records. Store multiple same-named and
+incompatible releases without latest-name selection; activation records report
+host policy choice but never bypass Query reconstruction or validation.
+Destroy/rebuild projections, racing activation, wrong-identity, namespace, and
+4,096-package lookup courts let Phase 9 select one exact release without a
+catalog scan or physical row becoming semantic authority.
+
+### Phase 8: PostgreSQL Relational Commit, Checkpoint, And Replay
+
+Implement the Phase 5 backend contract in the Relational PostgreSQL owner
+boundary. Atomically persist each canonical Relational commit and its existing
+co-committed Query outbox facts before acknowledgement; add versioned
+checkpoints, bounded replay tails, recovery cursors, retention posture, and
+rebuildable indexes. Kill-before-commit, kill-after-commit-before-response,
+torn-write, corruption, ordering, checkpoint-plus-tail, and backend-conformance
+evidence lets Phase 9 recover owner truth without SQL rows acquiring
+publication authority.
+
+### Phase 9: Owner-First Host Recovery, Rebinding, And Readiness
 
 Ship Query's recovered-runtime installer and the `worth-query-host` persistent
-recovery barrier. Reconstruct package and current Relational owner state, create
-a new runtime generation, rebind host providers/secrets, reconcile indexes, and
-expose readiness only after closure. Freeze the ordered owner-recovery protocol
-that 9.17 extends. Prove kill/restart equality with uninterrupted execution.
+recovery barrier. Consume the exact Phase 7 release, reconstruct and freshly
+validate it, ask Relational to readmit Phase 8 owner truth, create a new runtime
+generation, rebind current providers/secrets/clock/authorizer, reconcile
+derived indexes, and expose readiness only after closure. Startup failure must
+leave execution and dispatch closed. Fresh-process equality, missing provider,
+wrong package, corrupt owner history, and destroyed-index evidence freezes the
+ordered owner-recovery protocol that 9.17 extends and lets Phase 10 trust one
+live recovered runtime.
 
-### Phase 6: Existing Outbox Restart Claim And Dispatch
+### Phase 10: Existing-Outbox Observation And Fresh Query Admission
 
 Ship Query's private performed-product-publication carrier and fresh-claim
-admission plus PostgreSQL discovery, lease, fencing, attempt, retry, outcome,
-and reconciliation. Never create a second payload. In the present runtime the
-carrier retains Relational performed publication; freeze the 9.17 handoff that
-replaces its source with Bridge performed composite publication. Prove crash
-ambiguity, competing workers, stale fences, poison isolation, stable
-idempotency, and recovery without old handles.
+admission over the exact recovered outbox fact, package/effect contract,
+correlation identity, provider binding, runtime generation, and current
+performed publication. Never create or copy a second payload. In the present
+runtime the carrier retains Relational performed publication; freeze the 9.17
+handoff that replaces its source with Bridge performed composite publication.
+Forgery, stale-runtime, wrong-release, wrong-binding, non-current-publication,
+and old-handle-loss evidence mechanically forbids a PostgreSQL status row from
+authorizing dispatch and lets Phase 11 claim only Query-admitted work.
 
-### Phase 7: Archive, NCR Journey, Operations, And Cutover
+### Phase 11: PostgreSQL Discovery, Claiming, Leasing, And Fencing
 
-Ship neutral archive, GitHub release example, complete NCR restart journey,
-operator docs, health/metrics, backup/restore and migration runbooks, facade
-checks, scale/work counters, and residue searches. Cut Workflow Editor to the
-signed archive plus PostgreSQL runtime. Close only with a fresh-process real
-PostgreSQL court.
+Build the derived pending-work index, bounded discovery, transactional claim,
+lease renewal, monotonically increasing fencing epoch, and current-fence
+verification beneath Query admission. SQL transactions must end before any
+network send, and deleting the index must permit exact rebuild from canonical
+Relational history. Contention, lease expiry, stale worker, index destruction,
+namespace isolation, and bounded-polling evidence lets Phase 12 hold one
+current operational claim without confusing that claim with effect authority
+or exactly-once delivery.
+
+### Phase 12: Dispatch, Idempotency, Retry, And Crash Reconciliation
+
+Cross the external transport boundary only after consuming Phase 10 admission
+and the current Phase 11 fence. Send the existing payload under its stable
+idempotency key; durably record attempts and outcomes, bounded backoff, poison
+posture, cancellation, indeterminate response recovery, and reconciliation.
+Operational delivery rows do not become workflow truth, and no direct
+post-dispatch mutation bypasses Query. Crashes before send, after send, before
+acknowledgement, during retry, and after lease replacement prove at-least-once
+runtime behavior while leaving exactly-once consequence to the idempotent
+external owner.
+
+### Phase 13: Operational Reconstruction, Migration, And Disaster Recovery
+
+Close the reconstructive and administrative lanes independently of ordinary
+execution: projection destruction/rebuild, checkpoint and retention operations,
+supported schema upgrades, incompatible-version refusal, backup, restore into
+a separate database, and recovery from the restored artifacts. Every operation
+is bounded, reports progress and failure posture, and cannot silently activate
+another release or weaken durability. Migration fault injection, corrupt
+backup, partial restore, derived-state deletion, and separately restored
+representative workflow history evidence lets operators trust recovery without
+using diagnostic state as authority.
+
+### Phase 14: Production Observability, Capacity, And Isolation
+
+Ship readiness/liveness semantics, owner- and lane-specific health, metrics,
+work/amplification counters, queue and pool saturation posture, alertable poison
+work, namespace isolation, and documented capacity limits. Prove exact indexed
+lookup and bounded claim/recovery work at 4,096 unrelated packages and long
+history, zero archive/recovery scans during warm execution, and fail-closed
+overload before unbounded queues or pool starvation. These observations remain
+sidecars; deleting them cannot alter package, Relational, outbox, or dispatch
+truth. Phase 15 may trust an operable production composition rather than a
+correct but unmanageable library.
+
+### Phase 15: NCR Vertical Certification And Workflow-Editor Cutover
+
+Exercise the real composition root from one signed GitHub NCR release through
+exact installation, submit and transition execution, atomic state plus existing
+notification outbox commit, process death, fresh recovery, provider rebinding,
+fenced notification dispatch, observable outcome, backup/restore, and release
+coexistence. Compile/run caller and operator documentation against the public
+facades; run dependency, facade, mutation, scale, crash, and residue courts;
+then cut Workflow Editor to the signed archive plus PostgreSQL runtime. This
+phase integrates already-proved boundaries and may not absorb unfinished work
+from Phases 1 through 14 or substitute an in-memory reenactment for the real
+PostgreSQL fresh-process court.
 
 Each phase ends with a closure ledger. Later work cannot hide an unmet
 authority or crash-consistency guarantee.

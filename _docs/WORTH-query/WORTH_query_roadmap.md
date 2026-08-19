@@ -4957,6 +4957,16 @@ artifact may mint Query or Relational authority.
 The governing milestone spec is
 [milestone-9.16.2.md](./milestone-9.16.2.md).
 
+Implementation closes through fifteen independently reviewable gates: stable
+identity; typed export; bounded reconstruction; neutral archive; Relational
+durability authority; PostgreSQL lifecycle/migrations; package
+registry/coexistence; PostgreSQL Relational commit/recovery; owner-first host
+readiness; fresh outbox admission; claiming/leasing/fencing; external dispatch
+and reconciliation; operational reconstruction/disaster recovery;
+observability/capacity/isolation; and the final NCR vertical certification plus
+Workflow Editor cutover. The final court aggregates these proofs; it cannot
+retroactively close an unfinished earlier boundary.
+
 ### Must Ship
 
 - stable semantic identities for every package-relevant Rust type axis, with

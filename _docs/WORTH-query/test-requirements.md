@@ -719,6 +719,17 @@ for Milestone 9.16.2. It begins at the production package and persistent
 `worth-query-host` facades, uses production `worth-runtime-postgres` adapters
 against a real PostgreSQL server, and crosses fresh process boundaries.
 
+This suite is the aggregate Milestone 9.16.2 court, not a substitute for phase
+closure. The fifteen-phase plan in
+[milestone-9.16.2.md](./milestone-9.16.2.md) must retain phase-local evidence
+for identity/provenance, typed export, reconstruction, archive trust,
+Relational backend conformance, PostgreSQL migration/lifecycle, release
+coexistence, Relational commit/replay, owner-first readiness, Query outbox
+admission, claim/fencing, dispatch/reconciliation, disaster recovery,
+capacity/isolation, and the NCR cutover. An aggregate green result cannot close
+an earlier boundary whose own authority, crash, mutation, or cost evidence is
+missing.
+
 The suite must run these named scenarios:
 
 - `portable_release_round_trips_by_exact_identity`: deterministic archive,
