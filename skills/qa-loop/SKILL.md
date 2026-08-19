@@ -1,6 +1,6 @@
 ---
 name: qa-loop
-description: Review and correct completed WORTH implementation work through a requirement-and-evidence closure ledger. Use after a coherent implementation phase or slice to audit specification fidelity and causally relevant risks, fix root causes, reopen affected guarantees, and continue until the implementation is genuinely proved.
+description: Review and correct completed WORTH implementation work through a requirement-and-evidence closure ledger and a fresh independent agent or CLI critic. Use after a coherent implementation phase or slice to audit specification fidelity and causally relevant risks, obtain outside-eyes review, fix root causes, reopen affected guarantees, and continue until the implementation is genuinely proved.
 ---
 
 # QA Loop
@@ -9,6 +9,47 @@ Attempt to falsify both the implementation and the completeness of the ledger.
 The specification is authoritative, but it may not exhaust the system's
 intended obligations. Green tests, completed fixes, and finding counts do not
 define completion.
+
+## Independent review
+
+Launch a fresh, read-only independent reviewer at the start of the QA loop.
+Do not wait for a self-exhausted primary pass. The critic is an independent
+evidence source for missed defects, not a substitute for the primary agent's
+repository work.
+
+If the user names a reviewer, model, or CLI, use it. Supported choices may
+include a fresh Codex agent, Claude CLI, Cursor Agent, Grok, or another
+user-supplied non-interactive review command. Do not invent a command, install a
+tool, authenticate an account, or substitute a similarly named service. Verify
+that the selected reviewer is available before relying on it.
+
+If the user does not name a reviewer, default to Luna Max and proceed without
+blocking for a choice. If neither Luna Max nor a user-selected reviewer can be
+launched, report that the independent-review requirement is blocked; do not
+relabel the primary agent's pass as outside review.
+
+Give the critic a compact, source-bound review packet containing only the raw
+task-local evidence it needs:
+
+- repository instructions and governing specification
+- the frozen revision or deterministic source fingerprint
+- the scoped diff and changed files
+- relevant producer, consumer, authority, persistence, and facade boundaries
+- any search-coverage already recorded; do not delay launch to finish a
+  complete manifest
+- test commands, failures, logs, and evidence artifacts
+- a neutral request to find correctness, authority, lifecycle, recovery,
+  performance, topology, DX, and proof defects that are causally relevant
+
+Do not give the critic the primary agent's findings, intended fixes, suspected
+bugs, closure ledger conclusions, or preferred answer before its first pass.
+Keep the critic read-only. It may inspect and report, but the primary agent owns
+edits, verification, and final judgment.
+
+Record the critic identity, model or command, source revision, scope, prompt,
+and complete findings in the audit history. Verify every external finding
+against repository evidence. Reject unsupported claims explicitly rather than
+accepting them for consensus, and add any newly exposed guarantee to the ledger.
 
 ## Establish scope
 
@@ -133,6 +174,11 @@ Record every finding against the ledger rows it invalidates. State:
 
 Do not report preferences or speculative concerns as defects.
 
+The independent critic runs from the start, in parallel with primary discovery.
+It may change the risk map and ledger. Reconcile both passes against source and
+runtime evidence. Agreement does not prove a claim; disagreement requires
+direct evidence.
+
 When a defect was not represented by an existing row, treat that as two
 failures: the implementation defect and a ledger-completeness defect. Add the
 missing guarantee, inspect the surrounding semantic family, and determine
@@ -170,6 +216,17 @@ Before declaring completion:
 - preserve resolved findings and their closure evidence
 - record any unrelated repository failure as an explicit scoped caveat
 - ensure the ledger contains no stale `OPEN` or `DEFECT` rows
+- obtain a closure pass from a new critic instance when material production,
+  authority, lifecycle, persistence, or proof changes were made during QA
+- verify that the closure critic reviewed the final source revision and did not
+  inherit the first critic's conclusions
+
+If the critic finds a material defect, fix it, reopen affected guarantees, and
+launch a new final-source critic. Never keep one critic running as a search
+assistant across correction turns. The replacement critic defaults to Luna Max
+unless the user specified another reviewer.
 
 Report closure from the ledger. Never infer closure from the absence of new
-findings in a single pass.
+findings in a single pass. Summarize which independent reviewer was used, which
+findings were accepted or rejected and why, and whether the final outside-eyes
+pass found any unresolved defect.

@@ -1,6 +1,6 @@
 ---
 name: code-quality-qa
-description: Review and correct WORTH production-code composition and domain topology. Use when auditing directory structure, future insertion, file responsibilities, function decomposition, naming, facade honesty, helper placement, module boundaries, or applying the 400-line file limit and 60-line and five-argument function advisories to every dirty workspace file against `composition_laws.md` and `domain_structure_laws.md`.
+description: Review and correct WORTH production-code composition and domain topology with a fresh independent reviewer at the start. Use when auditing directory structure, future insertion, file responsibilities, function decomposition, naming, facade honesty, helper placement, module boundaries, or applying the 400-line file limit and 60-line and five-argument function advisories to every dirty workspace file against `composition_laws.md` and `domain_structure_laws.md`.
 ---
 
 # Code Quality QA
@@ -34,6 +34,36 @@ Identify:
 - the public facade and dependency direction
 - which responsibilities should be independently understood, replaced, tested,
   evolved, or deleted
+
+## Independent review
+
+Launch a fresh, read-only independent reviewer at the start. Do not wait for a
+self-exhausted primary structural pass. The critic is an independent evidence
+source for missed composition defects, not a substitute for the primary agent's
+repository work.
+
+The primary agent still inspects the complete dirty set, every numeric
+advisory, relevant parent and child modules, sibling owners, facades,
+dependency edges, and the committed destination topology. Search each finding's
+semantic family for parallel bags, mixed-level coordinators, dishonest facades,
+misplaced support, duplicated owners, and unstable naming.
+
+If the user names a reviewer, model, or CLI, use it. If the user does not name
+a reviewer, default to Luna Max and proceed without blocking for a choice. If
+neither Luna Max nor a user-selected reviewer can be launched, report that the
+independent-review requirement is blocked; do not relabel the primary agent's
+pass as outside review.
+
+Give the reviewer a compact packet containing repository laws, governing
+specification, current revision or deterministic source fingerprint, scoped
+diff, destination topology, dirty-file inventory, enforcement results, and the
+raw files needed to look for missed composition defects. Keep conclusions and
+preferred fixes out of its first prompt.
+
+Verify every reviewer finding directly. If a material correction follows, use a
+new reviewer for the final-source closure pass rather than retaining the old
+reviewer as a search assistant. The replacement reviewer defaults to Luna Max
+unless the user specified another reviewer.
 
 ## Review
 
@@ -93,4 +123,5 @@ after the structure stabilizes.
 
 Reassess naming, placement, dependency direction, deletion boundaries, and
 committed future insertion after each material correction. Continue until no
-meaningful structural findings remain.
+meaningful structural findings remain. Closure requires both the exhausted
+primary pass and a final independent pass over the same frozen source state.
