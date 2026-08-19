@@ -3,17 +3,18 @@ use worth_foundational::{
     foundational_diagnostic_locator_boundary_artifact, foundational_diagnostic_scope,
     materialize_diagnostic_support_report, AdmissionReadinessProfile, BoundaryArtifactField,
     BoundaryArtifactId, BoundaryArtifactLocator, CertificationPostureProfile,
-    CompatibilityPostureProfile, DiagnosticRichnessProfile, FoundationalDiagnosticCounterSnapshot,
-    FoundationalDiagnosticDeliveryClass, FoundationalDiagnosticEvidencePosture,
-    FoundationalDiagnosticLocalityClaim, FoundationalDiagnosticMaterializationDenial,
-    FoundationalDiagnosticOutcomeKind, FoundationalDiagnosticPartiality, FoundationalDiagnosticRow,
+    CompatibilityPostureProfile, DiagnosticRichnessProfile, ExecutionObjectiveProfile,
+    FoundationalDiagnosticCounterSnapshot, FoundationalDiagnosticDeliveryClass,
+    FoundationalDiagnosticEvidencePosture, FoundationalDiagnosticLocalityClaim,
+    FoundationalDiagnosticMaterializationDenial, FoundationalDiagnosticOutcomeKind,
+    FoundationalDiagnosticPartiality, FoundationalDiagnosticRow,
     FoundationalDiagnosticSemanticLabelSet, FoundationalDiagnosticSeverity,
     FoundationalDiagnosticSubject, FoundationalDiagnosticSupportClaimStrength,
     FoundationalDiagnosticSupportEvidencePosture, FoundationalDiagnosticSupportInput,
     FoundationalDiagnosticSupportReport, FoundationalDiagnosticSupportRow,
     FoundationalDiagnosticSurfaceAvailability, FoundationalDiagnosticWidenedFalloutPosture,
-    FoundationalProfileSet, FoundationalProfileSetInput, RetentionDeliveryProfile,
-    SupportPostureProfile,
+    FoundationalProfileSet, FoundationalProfileSetInput, ObservationActivationProfile,
+    RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_store_physical_isolation::S5IsolationEvidenceRichness;
 
@@ -138,6 +139,16 @@ fn profile_set(finding: &ExecutedPhysicalIsolationFinding) -> FoundationalProfil
         }
         S5IsolationEvidenceRichness::Forensic => DiagnosticRichnessProfile::Forensic,
     };
+    let (execution_objective, observation_activation) = match finding.profile().richness() {
+        S5IsolationEvidenceRichness::MinimalRequired => (
+            ExecutionObjectiveProfile::Throughput,
+            ObservationActivationProfile::OnDemand,
+        ),
+        S5IsolationEvidenceRichness::Forensic => (
+            ExecutionObjectiveProfile::Throughput,
+            ObservationActivationProfile::Continuous,
+        ),
+    };
     FoundationalProfileSet::new(FoundationalProfileSetInput {
         diagnostic_richness,
         support_posture: SupportPostureProfile::SupportReady,
@@ -145,6 +156,8 @@ fn profile_set(finding: &ExecutedPhysicalIsolationFinding) -> FoundationalProfil
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::EvidenceBacked,
+        execution_objective,
+        observation_activation,
     })
     .expect("S5 diagnostic profile is evidence-backed and retained")
 }

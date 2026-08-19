@@ -63,16 +63,17 @@ pub(super) fn run_grouped_concurrent_apply_pass(
             .iter()
             .map(|group| group.task_indices.len() as u32)
             .sum();
-        graph
-            .telemetry_mut()
-            .execution
-            .parallel_stage_dispatch_count += 1;
+        graph.with_telemetry(|telemetry| {
+            telemetry.execution.parallel_stage_dispatch_count += 1;
+        });
 
         let dependency_input_start = RuntimeInstant::now();
         let dependency_inputs =
             collect_effect_dependency_inputs_iter(graph, tasks.iter().map(|task| task.node()))?;
-        graph.telemetry_mut().execution.dependency_input_build_nanos +=
-            dependency_input_start.elapsed().as_nanos();
+        let dependency_input_nanos = dependency_input_start.elapsed().as_nanos();
+        graph.with_telemetry(|telemetry| {
+            telemetry.execution.dependency_input_build_nanos += dependency_input_nanos;
+        });
         let task_count = tasks.len();
         let group_inputs = concurrent_packets::build_concurrent_apply_group_inputs(
             tasks,
@@ -102,12 +103,16 @@ pub(super) fn run_grouped_concurrent_apply_pass(
             }
         };
 
-        graph.telemetry_mut().execution.group_local_packet_breadth += group_packets
+        let group_local_breadth = group_packets
             .iter()
             .map(|packet| packet.packet_breadth() as u64)
             .sum::<u64>();
-        graph.telemetry_mut().execution.reduction_packet_breadth += group_packets.len() as u64;
-        graph.telemetry_mut().execution.reduction_group_count += group_packets.len() as u64;
+        let packet_count = group_packets.len() as u64;
+        graph.with_telemetry(|telemetry| {
+            telemetry.execution.group_local_packet_breadth += group_local_breadth;
+            telemetry.execution.reduction_packet_breadth += packet_count;
+            telemetry.execution.reduction_group_count += packet_count;
+        });
         concurrent_packets::reduce_grouped_concurrent_packets(
             graph,
             summary,

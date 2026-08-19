@@ -50,7 +50,7 @@ where
             .family(),
         crate::logic::transaction::BranchMergeRequestScopeFamily::FullBranch
     ) {
-        runtime.telemetry.transaction.scoped_merge_denial_count += 1;
+        runtime.with_telemetry(|telemetry| telemetry.transaction.scoped_merge_denial_count += 1);
         let denied_node = denial_anchor.or_else(|| target_only_nodes.first().copied()).ok_or_else(
             || {
                 SignalError::branch_merge_failed(

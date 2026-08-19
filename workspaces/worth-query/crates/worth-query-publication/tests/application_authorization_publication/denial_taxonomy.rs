@@ -1,12 +1,12 @@
 use worth_foundational::facade::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalBoundaryArtifactCategory,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalBoundaryArtifactCategory,
     FoundationalBoundaryEvidenceCloseoutDisposition, FoundationalBoundaryEvidenceExecutionPosture,
     FoundationalBoundaryEvidenceFreshnessPosture, FoundationalBoundaryEvidenceLocality,
     FoundationalBoundaryEvidenceReceiptKind, FoundationalDiagnosticDenialClass,
     FoundationalDiagnosticOutcomeKind, FoundationalDiagnosticRow,
     FoundationalProfileAttachmentTargetKind, FoundationalProfileSet, FoundationalProfileSetInput,
-    RetentionDeliveryProfile, SupportPostureProfile,
+    ObservationActivationProfile, RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_query_execution::facade::primary_graph::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind as Kind,
@@ -197,6 +197,8 @@ fn exact_profile() -> FoundationalProfileSet {
         diagnostic_richness: DiagnosticRichnessProfile::Standard,
         support_posture: SupportPostureProfile::SupportReady,
         compatibility_posture: CompatibilityPostureProfile::CompatibilityLowered,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::EvidenceBacked,

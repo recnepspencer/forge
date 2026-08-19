@@ -114,6 +114,11 @@ pub(crate) fn stamp_trace_summary_and_record_lineage_transition_from_image(
         execution_record_id,
         semantic_segment_id,
     )?;
+    if !graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::DescriptiveLineage,
+    ) {
+        return Ok(());
+    }
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
     let emitted_on_branch_id = graph.observe().current_branch().id;
     graph
@@ -136,6 +141,11 @@ pub(crate) fn record_invalidation_lineage(
     node: NodeId,
     cause: InvalidationCause,
 ) {
+    if !graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::DescriptiveLineage,
+    ) {
+        return;
+    }
     let Some(artifact_id) = graph.node_lineage_artifact_id(node).ok().flatten() else {
         return;
     };

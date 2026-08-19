@@ -4,8 +4,9 @@ use crate::{
 };
 use worth_foundational::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalProfileSet, FoundationalProfileSetInput,
-    RetentionDeliveryProfile, SupportPostureProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalProfileSet,
+    FoundationalProfileSetInput, ObservationActivationProfile, RetentionDeliveryProfile,
+    SupportPostureProfile,
 };
 
 use super::{
@@ -105,6 +106,8 @@ fn support_widening_uses_the_foundational_requested_admitted_materialized_progre
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Durable,
         certification_posture: CertificationPostureProfile::EvidenceBacked,
+        execution_objective: ExecutionObjectiveProfile::Throughput,
+        observation_activation: ObservationActivationProfile::Continuous,
     })
     .unwrap();
 

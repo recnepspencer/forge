@@ -121,6 +121,10 @@ where
     }
 
     pub fn event_bus_mut(&mut self) -> &mut EventBus<E, D, Ctx> {
+        self.event_bus
+            .set_telemetry_capture(self.graph.captures_observation_surface(
+                crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+            ));
         &mut self.event_bus
     }
 
@@ -134,5 +138,33 @@ where
 
     pub fn telemetry(&self) -> &RuntimeTelemetry {
         &self.telemetry
+    }
+
+    pub(in crate::logic::transaction::runtime) fn with_telemetry(
+        &mut self,
+        update: impl FnOnce(&mut RuntimeTelemetry),
+    ) {
+        if self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        ) {
+            update(&mut self.telemetry);
+        }
+    }
+
+    pub(in crate::logic::transaction::runtime) fn with_resource_telemetry(
+        &mut self,
+        update: impl FnOnce(&mut crate::data::telemetry::ResourceTelemetry),
+    ) {
+        self.with_telemetry(|telemetry| update(&mut telemetry.resource));
+    }
+
+    pub(in crate::logic::transaction::runtime) fn telemetry_snapshot(&self) -> RuntimeTelemetry {
+        if self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        ) {
+            self.telemetry
+        } else {
+            RuntimeTelemetry::default()
+        }
     }
 }

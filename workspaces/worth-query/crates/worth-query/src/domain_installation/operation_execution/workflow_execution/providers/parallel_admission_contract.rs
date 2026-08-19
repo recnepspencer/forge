@@ -236,9 +236,9 @@ fn lower_reason_material(reason: FrontierRouteEvidenceReason) -> &'static str {
         FrontierRouteEvidenceReason::FullParallelUnsupportedByMutableEngine => {
             "full_parallel_unsupported_by_mutable_engine"
         }
-        FrontierRouteEvidenceReason::AdmittedOperational => "admitted_operational",
-        FrontierRouteEvidenceReason::AdmittedDevelopment => "admitted_development",
-        FrontierRouteEvidenceReason::AdmittedForensic => "admitted_forensic",
+        FrontierRouteEvidenceReason::AdmittedThroughput => "admitted_throughput",
+        FrontierRouteEvidenceReason::AdmittedBalanced => "admitted_balanced",
+        FrontierRouteEvidenceReason::AdmittedLatencyBounded => "admitted_latency_bounded",
         FrontierRouteEvidenceReason::AdmittedProofSafeGroupedConcurrent => {
             "admitted_proof_safe_grouped_concurrent"
         }

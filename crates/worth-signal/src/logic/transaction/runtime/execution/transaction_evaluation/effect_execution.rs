@@ -43,15 +43,11 @@ where
         ) {
             Ok(report) => report,
             Err(err) => {
-                if let Some(summary) = self.graph.observe().latest_failure_diagnostics().cloned() {
-                    self.scratch.semantic_delta.failure_summary = Some(summary);
-                } else {
-                    self.record_failure_from_error(
-                        ExecutionFailurePhase::Apply,
-                        &err,
-                        Some(plan.summary),
-                    );
-                }
+                self.record_failure_from_error(
+                    ExecutionFailurePhase::Apply,
+                    &err,
+                    Some(plan.summary),
+                );
                 return Err(err);
             }
         };
@@ -59,7 +55,7 @@ where
             .record_report(&report, execution_start.elapsed().as_nanos());
         self.scratch.temporal.absorb_report(&report);
         self.lower_observation_classifications_from_report(&report)?;
-        absorb_execution_report_telemetry(self.telemetry, &report);
+        self.with_telemetry(|telemetry| absorb_execution_report_telemetry(telemetry, &report));
         self.retire_consumed_temporal_wakes_from_report(&report)?;
         Ok(report)
     }

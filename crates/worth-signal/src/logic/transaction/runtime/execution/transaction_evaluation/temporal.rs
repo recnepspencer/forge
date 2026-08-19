@@ -65,7 +65,9 @@ where
             node,
             aspect_version,
             output_identity,
-            &mut self.telemetry.temporal,
+            self.telemetry
+                .as_deref_mut()
+                .map(|telemetry| &mut telemetry.temporal),
         )?;
         self.scratch
             .temporal
@@ -137,7 +139,9 @@ where
                             active_wake_id,
                             condition,
                             due_tick,
-                            &mut self.telemetry.temporal,
+                            self.telemetry
+                                .as_deref_mut()
+                                .map(|telemetry| &mut telemetry.temporal),
                         )?;
                         self.scratch
                             .temporal
@@ -158,7 +162,9 @@ where
                     active_wake_id,
                     condition,
                     due_tick,
-                    &mut self.telemetry.temporal,
+                    self.telemetry
+                        .as_deref_mut()
+                        .map(|telemetry| &mut telemetry.temporal),
                 )?;
                 self.scratch
                     .temporal
@@ -178,7 +184,9 @@ where
                 let reschedule = self.temporal.reschedule_wake(
                     active_wake_id,
                     due_tick,
-                    &mut self.telemetry.temporal,
+                    self.telemetry
+                        .as_deref_mut()
+                        .map(|telemetry| &mut telemetry.temporal),
                 )?;
                 self.scratch
                     .temporal
@@ -196,7 +204,7 @@ where
                     self.temporal.clock_basis().current_tick(),
                 );
                 self.scratch.temporal.record_reused_wake(reuse);
-                self.telemetry.temporal.wake_reuse_count += 1;
+                self.with_telemetry(|telemetry| telemetry.temporal.wake_reuse_count += 1);
             }
             return Ok(None);
         }
@@ -204,7 +212,9 @@ where
             owner,
             condition,
             due_tick,
-            &mut self.telemetry.temporal,
+            self.telemetry
+                .as_deref_mut()
+                .map(|telemetry| &mut telemetry.temporal),
         )?;
         self.scratch.temporal.record_scheduled_wake(wake.clone());
         Ok(Some(wake))
@@ -241,7 +251,7 @@ where
     pub(in crate::logic::transaction::runtime::execution) fn promote_due_temporal_wakes_ready(
         &mut self,
     ) -> Result<(), SignalError> {
-        self.telemetry.temporal.temporal_broad_scan_denial_count += 1;
+        self.with_telemetry(|telemetry| telemetry.temporal.temporal_broad_scan_denial_count += 1);
         loop {
             let frontier = self.temporal.frontier_snapshot();
             let Some(next_due_tick) = frontier.next_due_tick() else {
@@ -255,9 +265,12 @@ where
                     "temporal frontier reported due tick without a due wake id",
                 ));
             };
-            let ready = self
-                .temporal
-                .promote_wake_ready(wake_id, &mut self.telemetry.temporal)?;
+            let ready = self.temporal.promote_wake_ready(
+                wake_id,
+                self.telemetry
+                    .as_deref_mut()
+                    .map(|telemetry| &mut telemetry.temporal),
+            )?;
             self.scratch.temporal.record_ready_wake(ready);
         }
         Ok(())
@@ -332,9 +345,12 @@ where
             };
             match self.temporal.ready_wake_for_owner(owner) {
                 Some(ready) if matches!(ready.condition(), TemporalCondition::Interval(_)) => {
-                    let regeneration = self
-                        .temporal
-                        .regenerate_interval_wake(wake_id, &mut self.telemetry.temporal)?;
+                    let regeneration = self.temporal.regenerate_interval_wake(
+                        wake_id,
+                        self.telemetry
+                            .as_deref_mut()
+                            .map(|telemetry| &mut telemetry.temporal),
+                    )?;
                     self.scratch
                         .temporal
                         .record_interval_regeneration(regeneration.clone());
@@ -349,7 +365,9 @@ where
                     let retired = self.temporal.retire_wake(
                         wake_id,
                         TemporalWakeRetirementReason::Consumed,
-                        &mut self.telemetry.temporal,
+                        self.telemetry
+                            .as_deref_mut()
+                            .map(|telemetry| &mut telemetry.temporal),
                     )?;
                     self.scratch.temporal.record_retired_wake(retired);
                 }

@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/profiles/front_doors/raw_profile_set_cannot_enter_common_path_progression.rs:22:49
+  --> tests/ui/profiles/front_doors/raw_profile_set_cannot_enter_common_path_progression.rs:24:49
    |
-22 |     let _ = profiles().progression().admit_same(profile);
+24 |     let _ = profiles().progression().admit_same(profile);
    |                                      ---------- ^^^^^^^ expected `Artifact<..., ...>`, found `FoundationalProfileSet`
    |                                      |
    |                                      arguments to this method are incorrect

@@ -261,7 +261,10 @@ fn restore_snapshot_with_active_policy_prunes_cold_richness_without_changing_ope
     runtime.set_runtime_policy(
         SignalRuntimePolicy::operational()
             .with_explanation_retention(ArtifactRetentionPolicy::Omit)
-            .with_provenance_retention(ArtifactRetentionPolicy::Omit),
+            .with_provenance_retention(ArtifactRetentionPolicy::Omit)
+            .with_observation_activation(
+                worth_foundational::ObservationActivationProfile::Continuous,
+            ),
     );
     runtime
         .transaction(&mut runtime_ctx, |tx| {

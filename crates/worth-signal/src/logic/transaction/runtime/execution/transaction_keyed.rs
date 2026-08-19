@@ -120,7 +120,7 @@ where
     {
         let strategy = self.graph.derive_evaluation_strategy();
         let executor = executor_for_strategy(strategy);
-        self.telemetry.invalidation.keyed_evaluation_count += 1;
+        self.with_telemetry(|telemetry| telemetry.invalidation.keyed_evaluation_count += 1);
         self.stage_evaluate_candidate_batch(std::slice::from_ref(&node))?;
         self.rollback_packets
             .capture_config_baseline_if_needed(self.config);
@@ -171,7 +171,7 @@ where
                 )
             });
             if let Some(cached) = cached {
-                self.telemetry.evaluation.memoization_hits += 1;
+                self.with_telemetry(|telemetry| telemetry.evaluation.memoization_hits += 1);
                 let cached_result = cached;
                 self.scratch.staged_memo_writes.insert(
                     (family_id, key_id, resolve_memo_key_id()?),
@@ -213,11 +213,13 @@ where
                     .record_report(&report, execution_start.elapsed().as_nanos());
                 self.scratch.temporal.absorb_report(&report);
                 self.lower_observation_classifications_from_report(&report)?;
-                absorb_execution_report_telemetry(self.telemetry, &report);
+                self.with_telemetry(|telemetry| {
+                    absorb_execution_report_telemetry(telemetry, &report)
+                });
                 self.retire_consumed_temporal_wakes_from_report(&report)?;
                 return self.apply_result(Ok(()));
             }
-            self.telemetry.evaluation.memoization_misses += 1;
+            self.with_telemetry(|telemetry| telemetry.evaluation.memoization_misses += 1);
         }
 
         let last_result = Mutex::new(None);
@@ -263,7 +265,9 @@ where
                     .record_report(&report, execution_start.elapsed().as_nanos());
                 self.scratch.temporal.absorb_report(&report);
                 self.lower_observation_classifications_from_report(&report)?;
-                absorb_execution_report_telemetry(self.telemetry, &report);
+                self.with_telemetry(|telemetry| {
+                    absorb_execution_report_telemetry(telemetry, &report)
+                });
                 self.retire_consumed_temporal_wakes_from_report(&report)?;
                 self.apply_result(Ok(()))
             }

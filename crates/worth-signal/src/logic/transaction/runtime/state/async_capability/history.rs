@@ -29,7 +29,7 @@ where
             .expect("historical parity should materialize explanation availability for live nodes");
         let explanation_summary = explanation_artifact
             .as_ref()
-            .map(|artifact| artifact.diagnostics_summary(self.runtime_policy().tier));
+            .map(|artifact| artifact.diagnostics_summary(self.graph().diagnostics_profile()));
         let diagnostics_result = self.try_resource_diagnostics_summary(budget);
         let diagnostics_allocations = 1u32
             .saturating_add(u32::from(observation_batch_report.is_some()))
@@ -39,7 +39,7 @@ where
             diagnostics_allocations,
             0,
         );
-        self.telemetry.resource.async_node_historical_parity_count += 1;
+        self.with_resource_telemetry(|telemetry| telemetry.async_node_historical_parity_count += 1);
 
         let (diagnostics_summary, diagnostics_denial) = match diagnostics_result {
             Ok(summary) => (Some(summary), None),

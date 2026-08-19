@@ -45,7 +45,7 @@ impl ResourceRuntimeState {
         evidence: ResourceRevalidationEvidence,
         revalidation_decision_digest: ResourcePolicyDigest,
         resolved_timeout: Option<ScheduledResourceTimeoutAdmission>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRevalidationReport {
         let input = RevalidationCoalescingInput {
             intent,
@@ -59,7 +59,8 @@ impl ResourceRuntimeState {
             resolved_timeout,
         };
         let active_in_flight = self.exact_revalidation_coalescing_target(&input);
-        let prepared = self.prepare_revalidation_coalescing(input, active_in_flight, telemetry);
+        let prepared =
+            self.prepare_revalidation_coalescing(input, active_in_flight, telemetry.as_deref_mut());
         let PreparedRevalidationCoalescing {
             node,
             active_request_id,
@@ -74,11 +75,21 @@ impl ResourceRuntimeState {
             temporal_wake_footprint,
             terminal_visibility_classified,
         } = prepared;
-        self.install_revalidation_coalescing(coalesced_request, coalesced_in_flight, telemetry);
-        self.transfer_revalidation_timeout_wake(active_request_id, resolved_timeout, telemetry);
-        telemetry.resource_revalidation_admission_count += 1;
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        self.install_revalidation_coalescing(
+            coalesced_request,
+            coalesced_in_flight,
+            telemetry.as_deref_mut(),
+        );
+        self.transfer_revalidation_timeout_wake(
+            active_request_id,
+            resolved_timeout,
+            telemetry.as_deref_mut(),
+        );
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_revalidation_admission_count += 1;
+        }
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::revalidation_admission(
                 1,
                 0,
@@ -138,7 +149,7 @@ impl ResourceRuntimeState {
         &mut self,
         input: RevalidationCoalescingInput,
         active_in_flight: InFlightResourceRequest,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> PreparedRevalidationCoalescing {
         let node = input.intent.node();
         let request_intent = match input.intent.transaction_deadline() {
@@ -154,11 +165,11 @@ impl ResourceRuntimeState {
         );
         let lifecycle_ordinal = self.issue_lifecycle_ordinal();
         let (output_continuity, terminal_visibility_classified) = self
-            .classify_terminal_output_continuity_for_node(
+            .classify_terminal_output_continuity_for_node_optional(
                 node,
                 input.descriptor_id,
                 ResourceTerminalVisibilityCause::Supersession,
-                telemetry,
+                telemetry.as_deref_mut(),
             );
         let transition = ResourceLifecycleTransition::new(
             node,
@@ -205,33 +216,37 @@ impl ResourceRuntimeState {
         &mut self,
         coalesced_request: AdmittedResourceRequest,
         coalesced_in_flight: InFlightResourceRequest,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) {
         self.in_flight_by_request
             .insert(coalesced_request.handle().request_id(), coalesced_in_flight);
         self.mark_terminal_in_flight(coalesced_request.handle().request_id());
-        telemetry.resource_request_admission_count += 1;
-        telemetry.resource_revalidation_coalesced_count += 1;
-        telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
-        telemetry.resource_in_flight_frontier_width = telemetry
-            .resource_in_flight_frontier_width
-            .max(self.active_request_by_node.len() as u64);
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_request_admission_count += 1;
+            telemetry.resource_revalidation_coalesced_count += 1;
+            telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
+            telemetry.resource_in_flight_frontier_width = telemetry
+                .resource_in_flight_frontier_width
+                .max(self.active_request_by_node.len() as u64);
+        }
     }
 
     fn transfer_revalidation_timeout_wake(
         &mut self,
         active_request_id: ResourceRequestId,
         resolved_timeout: Option<ScheduledResourceTimeoutAdmission>,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) {
         if let Some(timeout) = resolved_timeout {
             self.in_flight_by_request
                 .get_mut(&active_request_id)
                 .expect("coalesced revalidation winner must remain active")
                 .attach_timeout_wake(timeout.wake_id);
-            telemetry.resource_timeout_temporal_wake_footprint = telemetry
-                .resource_timeout_temporal_wake_footprint
-                .saturating_add(1);
+            if let Some(telemetry) = telemetry {
+                telemetry.resource_timeout_temporal_wake_footprint = telemetry
+                    .resource_timeout_temporal_wake_footprint
+                    .saturating_add(1);
+            }
         }
     }
 

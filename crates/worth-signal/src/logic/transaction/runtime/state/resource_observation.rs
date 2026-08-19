@@ -84,33 +84,23 @@ where
         )
         .with_coalescing_width(coalescing_width)
         .with_output_continuity_classification_width(output_continuity_width);
-        self.telemetry
-            .resource
-            .resource_observation_policy_decision_count += observation_policy_decision_count;
-        self.telemetry.resource.resource_observation_candidate_width = self
-            .telemetry
-            .resource
-            .resource_observation_candidate_width
-            .saturating_add(events.len() as u64);
-        self.telemetry.resource.resource_observation_coalesced_width = self
-            .telemetry
-            .resource
-            .resource_observation_coalesced_width
-            .saturating_add(coalescing_width as u64);
-        self.telemetry.resource.resource_observation_delivered_width = self
-            .telemetry
-            .resource
-            .resource_observation_delivered_width
-            .saturating_add(delivered_width as u64);
-        self.telemetry
-            .resource
-            .resource_denied_completion_observation_count += denied_completion_observation_count;
-        self.telemetry
-            .resource
-            .resource_retry_schedule_observation_count += retry_schedule_observation_count;
-        self.telemetry
-            .resource
-            .record_boundary_performance_envelope(performance);
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.resource_observation_policy_decision_count +=
+                observation_policy_decision_count;
+            telemetry.resource_observation_candidate_width = telemetry
+                .resource_observation_candidate_width
+                .saturating_add(events.len() as u64);
+            telemetry.resource_observation_coalesced_width = telemetry
+                .resource_observation_coalesced_width
+                .saturating_add(coalescing_width as u64);
+            telemetry.resource_observation_delivered_width = telemetry
+                .resource_observation_delivered_width
+                .saturating_add(delivered_width as u64);
+            telemetry.resource_denied_completion_observation_count +=
+                denied_completion_observation_count;
+            telemetry.resource_retry_schedule_observation_count += retry_schedule_observation_count;
+            telemetry.record_boundary_performance_envelope(performance);
+        });
 
         Some(ResourceObservationBatchReport::new(events, performance))
     }

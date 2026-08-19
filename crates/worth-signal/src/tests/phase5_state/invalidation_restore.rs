@@ -159,3 +159,49 @@ fn snapshot_restore_lineage_records_restore_mode_structurally() {
         }
     ));
 }
+
+#[test]
+fn snapshot_restore_lineage_uses_installed_authority_not_request_mirror() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(
+        SignalRuntimePolicy::development()
+            .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::PerNode),
+    );
+    let node = graph.node().output_identity().build();
+    evaluate(&mut graph, node, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("stable"))
+    })
+    .unwrap();
+    let mut snapshot = graph.capture_snapshot();
+
+    snapshot
+        .checkpoint_image
+        .authority
+        .diagnostics
+        .set_request_mirror(
+            SignalRuntimePolicy::operational()
+                .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::CompactGlobal),
+        );
+    graph
+        .diagnostics_state_mut()
+        .set_request_mirror(SignalRuntimePolicy::operational());
+    graph
+        .try_set_runtime_policy(
+            SignalRuntimePolicy::operational()
+                .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::CompactGlobal),
+        )
+        .expect("the conflicting live policy should be admissible");
+    graph.restore_snapshot(&snapshot).unwrap();
+
+    assert!(graph.observe().lineage_records().iter().any(|record| {
+        record.snapshot_id() == Some(snapshot.meta.snapshot_id)
+            && record.node() == Some(node)
+            && matches!(
+                record.kind,
+                LineageRecordKind::SnapshotRestore {
+                    restore_kind: SnapshotRestoreKind::PerNodeArtifact,
+                    ..
+                }
+            )
+    }));
+}

@@ -1,4 +1,5 @@
 mod envelope;
+mod failure_capture;
 mod transaction_commit;
 mod transaction_mutation;
 mod transaction_observation;

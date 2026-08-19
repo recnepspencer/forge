@@ -19,8 +19,13 @@ where
         condition: TemporalCondition,
         due_tick: ClockTick,
     ) -> Result<ScheduledTemporalWake, SignalError> {
-        self.temporal
-            .schedule_wake(condition, due_tick, &mut self.telemetry.temporal)
+        let telemetry = self
+            .graph
+            .captures_observation_surface(
+                crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+            )
+            .then_some(&mut self.telemetry.temporal);
+        self.temporal.schedule_wake(condition, due_tick, telemetry)
     }
 
     pub fn schedule_owned_temporal_wake(
@@ -30,8 +35,16 @@ where
         due_tick: ClockTick,
     ) -> Result<ScheduledTemporalWake, SignalError> {
         self.validate_temporal_wake_owner(owner)?;
-        self.temporal
-            .schedule_owned_wake(owner, condition, due_tick, &mut self.telemetry.temporal)
+        self.temporal.schedule_owned_wake(
+            owner,
+            condition,
+            due_tick,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.temporal),
+        )
     }
 
     pub(super) fn validate_temporal_wake_owner(
@@ -145,7 +158,9 @@ where
                         active_wake_id,
                         condition,
                         due_tick,
-                        &mut self.telemetry.temporal,
+                        self.graph
+                            .captures_observation_surface(crate::logic::transaction::SignalObservationSurface::OptionalTelemetry)
+                            .then_some(&mut self.telemetry.temporal),
                     )?;
                     summary.record_policy_supersession(supersession);
                 }
@@ -157,7 +172,11 @@ where
                 active_wake_id,
                 condition,
                 due_tick,
-                &mut self.telemetry.temporal,
+                self.graph
+                    .captures_observation_surface(
+                        crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                    )
+                    .then_some(&mut self.telemetry.temporal),
             )?;
             summary.record_policy_supersession(supersession);
             return Ok(summary);
@@ -175,7 +194,7 @@ where
                 self.clock_basis().current_tick(),
             );
             summary.record_reused(reuse);
-            self.telemetry.temporal.wake_reuse_count += 1;
+            self.with_telemetry(|telemetry| telemetry.temporal.wake_reuse_count += 1);
         }
         Ok(summary)
     }

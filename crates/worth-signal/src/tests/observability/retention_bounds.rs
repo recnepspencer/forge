@@ -1,7 +1,8 @@
 use super::runtime_world::build_runtime;
 use crate::facade::{
     render_execution_history_summary, render_graph_summary, DiagnosticsAvailability,
-    DiagnosticsTier, NodeEvaluationResult, SignalGraph, SignalRuntimePolicy,
+    DiagnosticsTier, NodeEvaluationResult, SignalGraph, SignalObservationRequest,
+    SignalRuntimePolicy,
 };
 use crate::tests::support::{version_ab, ASPECT_A};
 
@@ -23,6 +24,10 @@ fn branch_and_snapshot_churn_respect_retention_budget_under_all_tiers() {
     ] {
         let mut runtime = build_runtime(SignalGraph::new());
         runtime.set_runtime_policy(policy);
+        let session = runtime
+            .begin_observation_session(SignalObservationRequest::operation())
+            .unwrap();
+        runtime.cancel_observation_session(&session).unwrap();
         let source = runtime.graph_mut().node().output_identity().build();
         let mut runtime_ctx = ();
 
@@ -189,6 +194,10 @@ fn long_session_branch_churn_with_mixed_reads_keeps_bounds_and_cold_work_honest(
         .with_history_details(false);
     let mut runtime = build_runtime(SignalGraph::new());
     runtime.set_runtime_policy(policy);
+    let session = runtime
+        .begin_observation_session(SignalObservationRequest::operation())
+        .unwrap();
+    runtime.cancel_observation_session(&session).unwrap();
     let source = runtime.graph_mut().node().output_identity().build();
     let mut runtime_ctx = ();
 

@@ -18,9 +18,14 @@ pub(crate) fn record_semantic_execution(
     first_target: Option<NodeId>,
     report: &ExecutionReport,
 ) {
-    let runtime_policy = graph.runtime_policy();
-    let retention_budget = runtime_policy.retention_budget;
-    let profile = runtime_policy.tier;
+    if !graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+    ) {
+        return;
+    }
+    let installed_policy = graph.installed_runtime_policy();
+    let retention_budget = installed_policy.retention_budget();
+    let profile = installed_policy.tier();
     let (change, invalidation) = graph
         .diagnostics_state()
         .pending_change_summary()
@@ -88,34 +93,38 @@ pub(crate) fn record_semantic_execution(
     graph
         .diagnostics_state_mut()
         .complete_flow_without_graph_summary(flow, history);
-    let branch_id = graph.current_branch().id;
-    for task in report
-        .stages
-        .iter()
-        .flat_map(|stage| stage.task_records.iter())
-    {
-        let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
-        let replay_projection = graph
-            .node_replay_projection(task.node)
-            .ok()
-            .unwrap_or_default();
-        let lineage_artifact_id = graph.node_lineage_artifact_id(task.node).ok().flatten();
-        graph
-            .diagnostics_state_mut()
-            .record_replay_event(ReplayEvent::new(
-                cursor,
-                ReplayEventKind::TaskApplied,
-                branch_id,
-                None,
-                Some(task.node),
-                Some(task.id.0),
-                Some(task.semantic_segment_id.0),
-                lineage_artifact_id.or(replay_projection.lineage_artifact_id),
-                Some(task.reuse_origin),
-                replay_projection.persistent_correspondence_kind,
-                replay_projection.composition_region_count,
-                Some(ReplayEventDetail::TaskOutcome(task.outcome)),
-            ));
+    if graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::ReplayDetail,
+    ) {
+        let branch_id = graph.current_branch().id;
+        for task in report
+            .stages
+            .iter()
+            .flat_map(|stage| stage.task_records.iter())
+        {
+            let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
+            let replay_projection = graph
+                .node_replay_projection(task.node)
+                .ok()
+                .unwrap_or_default();
+            let lineage_artifact_id = graph.node_lineage_artifact_id(task.node).ok().flatten();
+            graph
+                .diagnostics_state_mut()
+                .record_replay_event(ReplayEvent::new(
+                    cursor,
+                    ReplayEventKind::TaskApplied,
+                    branch_id,
+                    None,
+                    Some(task.node),
+                    Some(task.id.0),
+                    Some(task.semantic_segment_id.0),
+                    lineage_artifact_id.or(replay_projection.lineage_artifact_id),
+                    Some(task.reuse_origin),
+                    replay_projection.persistent_correspondence_kind,
+                    replay_projection.composition_region_count,
+                    Some(ReplayEventDetail::TaskOutcome(task.outcome)),
+                ));
+        }
     }
 }
 

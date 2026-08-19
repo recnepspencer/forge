@@ -39,6 +39,9 @@ where
         declaration: &ResourceNodeDeclaration,
         budget: Option<ResourceDiagnosticsExpansionBudget>,
     ) -> Result<ResourceReplayAvailabilityReport, crate::data::error::SignalError> {
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         let summary_read = self.resource_runtime_summary_read_report();
         let compatibility = self.admit_resource_policy_restore_compatibility(declaration)?;
         let unavailable_count = summary_read
@@ -55,9 +58,11 @@ where
                     .retained_retry_lineage_unavailable_count(),
             ) as u32;
 
-        self.telemetry
-            .resource
-            .resource_replay_availability_decision_count += 1;
+        if capture_telemetry {
+            self.telemetry
+                .resource
+                .resource_replay_availability_decision_count += 1;
+        }
 
         let (
             class,
@@ -68,9 +73,11 @@ where
             diagnostics_denial,
         ) = match compatibility {
             Ok(proof) if unavailable_count == 0 => {
-                self.telemetry
-                    .resource
-                    .resource_replay_availability_retained_count += 1;
+                if capture_telemetry {
+                    self.telemetry
+                        .resource
+                        .resource_replay_availability_retained_count += 1;
+                }
                 (
                     ResourceReplayAvailabilityClass::Retained,
                     None,
@@ -81,12 +88,14 @@ where
                 )
             }
             Ok(proof) if proof.replay_decision_class().denies_unavailable_history() => {
-                self.telemetry
-                    .resource
-                    .resource_replay_availability_denied_count += 1;
-                self.telemetry
-                    .resource
-                    .resource_replay_budget_history_unavailable_count += 1;
+                if capture_telemetry {
+                    self.telemetry
+                        .resource
+                        .resource_replay_availability_denied_count += 1;
+                    self.telemetry
+                        .resource
+                        .resource_replay_budget_history_unavailable_count += 1;
+                }
                 (
                     ResourceReplayAvailabilityClass::Denied,
                     Some(ResourceReplayAvailabilityDenialClass::BudgetHistoryUnavailable),
@@ -98,9 +107,11 @@ where
             }
             Ok(proof) => match budget {
                 None => {
-                    self.telemetry
-                        .resource
-                        .resource_replay_availability_omitted_count += 1;
+                    if capture_telemetry {
+                        self.telemetry
+                            .resource
+                            .resource_replay_availability_omitted_count += 1;
+                    }
                     (
                         ResourceReplayAvailabilityClass::Omitted,
                         None,
@@ -112,9 +123,11 @@ where
                 }
                 Some(budget) => match self.try_resource_diagnostics_summary(budget) {
                     Ok(summary) => {
-                        self.telemetry
-                            .resource
-                            .resource_replay_availability_reconstructed_count += 1;
+                        if capture_telemetry {
+                            self.telemetry
+                                .resource
+                                .resource_replay_availability_reconstructed_count += 1;
+                        }
                         (
                             ResourceReplayAvailabilityClass::Reconstructed,
                             None,
@@ -125,9 +138,11 @@ where
                         )
                     }
                     Err(denial) => {
-                        self.telemetry
-                            .resource
-                            .resource_replay_availability_unavailable_count += 1;
+                        if capture_telemetry {
+                            self.telemetry
+                                .resource
+                                .resource_replay_availability_unavailable_count += 1;
+                        }
                         (
                             ResourceReplayAvailabilityClass::Unavailable,
                             None,
@@ -140,9 +155,11 @@ where
                 },
             },
             Err(denial) => {
-                self.telemetry
-                    .resource
-                    .resource_replay_availability_denied_count += 1;
+                if capture_telemetry {
+                    self.telemetry
+                        .resource
+                        .resource_replay_availability_denied_count += 1;
+                }
                 (
                     ResourceReplayAvailabilityClass::Denied,
                     Some(ResourceReplayAvailabilityDenialClass::RestoreCompatibilityDenied),
@@ -182,12 +199,11 @@ where
             u32::from(class == ResourceReplayAvailabilityClass::Denied),
             u32::from(diagnostics_summary.is_some() || diagnostics_denial.is_some()),
         );
-        let performance = {
+        if capture_telemetry {
             self.telemetry
                 .resource
                 .record_boundary_performance_envelope(performance);
-            performance
-        };
+        }
 
         Ok(ResourceReplayAvailabilityReport::new(
             class,
@@ -202,8 +218,12 @@ where
     }
 
     pub fn reconstruct_resource_replay_summary(&mut self) -> ResourceReplayReconstructionReport {
-        self.resource
-            .reconstruct_replay_summary(&mut self.telemetry.resource)
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.resource.reconstruct_replay_summary_optional(
+            capture_telemetry.then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn resource_diagnostics_summary_with_cold_reconstruction_budget(
@@ -226,15 +246,20 @@ where
         &mut self,
         budget: ResourceDiagnosticsExpansionBudget,
     ) -> Result<ResourceDiagnosticsSummary, ResourceDiagnosticsExpansionDenial> {
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         let runtime_summary = self.resource_runtime_summary();
         let latest_branch_restore_report = self.latest_resource_branch_restore_report();
         let estimated_replay_width = self.resource.replay_reconstruction_width();
         let estimated_forensic_width = estimated_replay_width;
         let branch_restore_width = u32::from(latest_branch_restore_report.is_some());
         let effective_policy = self.resource.effective_diagnostics_policy();
-        self.telemetry
-            .resource
-            .resource_diagnostics_policy_decision_count += 1;
+        if capture_telemetry {
+            self.telemetry
+                .resource
+                .resource_diagnostics_policy_decision_count += 1;
+        }
         if let Some(class) = match effective_policy.class() {
             crate::data::resource::ResourceDiagnosticsDecisionClass::RetainedOnly => Some(
                 crate::data::resource::ResourceDiagnosticsExpansionDenialClass::PolicyRetainedOnly,
@@ -279,17 +304,19 @@ where
                 estimated_replay_width,
                 branch_restore_width,
             );
-            self.telemetry.resource.resource_diagnostics_expansion_count += 1;
-            self.telemetry
-                .resource
-                .resource_diagnostics_expansion_input_width = self
-                .telemetry
-                .resource
-                .resource_diagnostics_expansion_input_width
-                .max(performance.input_width() as u64);
-            self.telemetry
-                .resource
-                .record_boundary_performance_envelope(performance);
+            self.with_resource_telemetry(|telemetry| telemetry.resource_diagnostics_expansion_count += 1);
+            if capture_telemetry {
+                self.telemetry
+                    .resource
+                    .resource_diagnostics_expansion_input_width = self
+                    .telemetry
+                    .resource
+                    .resource_diagnostics_expansion_input_width
+                    .max(performance.input_width() as u64);
+                self.telemetry
+                    .resource
+                    .record_boundary_performance_envelope(performance);
+            }
             return Err(ResourceDiagnosticsExpansionDenial::new(
                 class,
                 effective_policy.class(),
@@ -311,20 +338,24 @@ where
             replay_reconstruction_width,
             branch_restore_width,
         );
-        self.telemetry.resource.resource_diagnostics_expansion_count += 1;
-        self.telemetry
-            .resource
-            .resource_diagnostics_expansion_input_width = self
-            .telemetry
-            .resource
-            .resource_diagnostics_expansion_input_width
-            .max(performance.input_width() as u64);
-        self.telemetry
-            .resource
-            .resource_diagnostics_cold_reconstruction_count += 1;
-        self.telemetry
-            .resource
-            .record_boundary_performance_envelope(performance);
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.resource_diagnostics_expansion_count += 1
+        });
+        if capture_telemetry {
+            self.telemetry
+                .resource
+                .resource_diagnostics_expansion_input_width = self
+                .telemetry
+                .resource
+                .resource_diagnostics_expansion_input_width
+                .max(performance.input_width() as u64);
+            self.telemetry
+                .resource
+                .resource_diagnostics_cold_reconstruction_count += 1;
+            self.telemetry
+                .resource
+                .record_boundary_performance_envelope(performance);
+        }
         Ok(ResourceDiagnosticsSummary::new(
             runtime_summary,
             latest_branch_restore_report,

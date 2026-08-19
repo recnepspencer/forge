@@ -6,9 +6,11 @@ impl ResourceRuntimeState {
     pub fn commit_staged_resource_completion(
         &mut self,
         staged: StagedResourceCompletionEffect,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<ResourceCompletionCommitReport, crate::data::error::SignalError> {
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         let admitted = staged.admitted_completion();
         let handle = admitted.handle();
         let Some(in_flight) = self.in_flight_by_request.get_mut(&handle.request_id()) else {
@@ -49,14 +51,17 @@ impl ResourceRuntimeState {
             .clear_request_generation(handle.generation());
         let committed = CommittedResourceCompletionArtifact::new(staged, transition);
 
-        telemetry.resource_completion_commit_count += 1;
-        telemetry.resource_output_continuity_decision_count += 1;
-        telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
-        let performance = Self::record_boundary_performance(
-            telemetry,
-            ResourceBoundaryPerformanceEnvelope::completion_commit(1)
-                .with_output_continuity_classification_width(1),
-        );
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_completion_commit_count += 1;
+            telemetry.resource_output_continuity_decision_count += 1;
+            telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
+        }
+        let envelope = ResourceBoundaryPerformanceEnvelope::completion_commit(1)
+            .with_output_continuity_classification_width(1);
+        let performance = telemetry
+            .as_deref_mut()
+            .map(|telemetry| Self::record_boundary_performance(telemetry, envelope))
+            .unwrap_or(envelope);
 
         Ok(ResourceCompletionCommitReport::new(
             committed,

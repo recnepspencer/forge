@@ -64,6 +64,7 @@ pub struct ConcurrentApplyReductionPlan {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ApplyPlanSerialFallbackReason {
+    BelowFullParallelThreshold,
     FullParallelUnsupportedByMutableEngine,
 }
 
@@ -71,6 +72,7 @@ impl ApplyPlanSerialFallbackReason {
     #[cfg(feature = "parallel")]
     pub fn code(self) -> &'static str {
         match self {
+            Self::BelowFullParallelThreshold => "below-full-parallel-threshold",
             Self::FullParallelUnsupportedByMutableEngine => {
                 "full-parallel-unsupported-by-mutable-engine"
             }

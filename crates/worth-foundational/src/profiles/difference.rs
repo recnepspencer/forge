@@ -7,6 +7,8 @@ pub enum FoundationalProfileCompatibilityClass {
     RetentionOnlyNarrowing,
     SupportPostureChange,
     CertificationPostureChange,
+    ExecutionObjectiveChange,
+    ObservationActivationChange,
     Incompatible,
 }
 
@@ -68,6 +70,22 @@ fn classify_profile_compatibility(
         left.certification_posture(),
         right.certification_posture(),
         FoundationalProfileCompatibilityClass::CertificationPostureChange,
+        &mut changed_family,
+    ) {
+        return FoundationalProfileCompatibilityClass::Incompatible;
+    }
+    if record_difference(
+        left.execution_objective(),
+        right.execution_objective(),
+        FoundationalProfileCompatibilityClass::ExecutionObjectiveChange,
+        &mut changed_family,
+    ) {
+        return FoundationalProfileCompatibilityClass::Incompatible;
+    }
+    if record_difference(
+        left.observation_activation(),
+        right.observation_activation(),
+        FoundationalProfileCompatibilityClass::ObservationActivationChange,
         &mut changed_family,
     ) {
         return FoundationalProfileCompatibilityClass::Incompatible;

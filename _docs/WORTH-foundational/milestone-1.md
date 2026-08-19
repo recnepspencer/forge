@@ -924,7 +924,7 @@ downstream:
   point at concrete boundary meaning.
 - Milestone 7 lineage/provenance/receipts need identity and basis-id categories
   before provenance can be self-describing.
-- Milestone 9 migrations need this substrate before crate-local dialects can
+- Milestone 11 migrations need this substrate before crate-local dialects can
   converge.
 
 ## Explicit Non-Goals

@@ -195,6 +195,9 @@ fn snapshot_capture_denial_preserves_the_original_queue_binding() {
     let queue = runtime
         .bind_resource_managed_queue(admitted, 2)
         .expect("managed request should bind one queue");
+    let observation = runtime
+        .begin_observation_session(SignalObservationRequest::counters())
+        .expect("observation should admit before the denied snapshot");
 
     let denial = runtime
         .capture_snapshot()
@@ -205,6 +208,10 @@ fn snapshot_capture_denial_preserves_the_original_queue_binding() {
             bound_queue_count: 1
         }
     );
+    assert!(matches!(
+        runtime.begin_observation_session(SignalObservationRequest::work()),
+        Err(SignalObservationAdmissionDenial::SessionAlreadyActive)
+    ));
     runtime
         .enqueue_resource_managed_queue(&queue, 1)
         .expect("denial must leave the original binding usable");
@@ -214,6 +221,7 @@ fn snapshot_capture_denial_preserves_the_original_queue_binding() {
     runtime
         .dequeue_resource_managed_queue(&queue, 1)
         .expect("binding should drain retained occupancy");
+    runtime.cancel_observation_session(&observation).unwrap();
     let reclaimed = runtime.compact_resource_lifecycle_history(1);
     assert_eq!(reclaimed.reclaimed_in_flight_count(), 1);
     runtime

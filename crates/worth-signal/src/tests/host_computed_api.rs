@@ -239,6 +239,55 @@ fn generic_execute_prepared_plan_records_host_computed_telemetry() {
 }
 
 #[test]
+fn host_computed_telemetry_is_idle_on_demand_and_captured_by_explicit_session() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(crate::facade::SignalRuntimePolicy::operational());
+    let source = graph.node().build();
+    let target = graph.node().on_demand().build();
+    let before = graph.observe().metrics().host_computed;
+    let plan = graph
+        .build_evaluation_plan(&[target], EvaluationRequestMode::Default)
+        .unwrap();
+    crate::logic::planner::execute_prepared_plan(
+        &mut graph,
+        &plan,
+        &(),
+        &|ctx: &mut EvaluationContext<'_, ()>| {
+            if ctx.node() == target {
+                let _ = ctx.read(source, ASPECT_A)?;
+            }
+            Ok(ctx.finish(crate::tests::support::version_ab(1, 0)))
+        },
+    )
+    .unwrap();
+    assert_eq!(graph.observe().metrics().host_computed, before);
+
+    let session = graph
+        .begin_observation_session(crate::facade::SignalObservationRequest::telemetry())
+        .unwrap();
+    mark_dirty(&mut graph, source, ASPECT_A).unwrap();
+    let plan = graph
+        .build_evaluation_plan(&[target], EvaluationRequestMode::Default)
+        .unwrap();
+    crate::logic::planner::execute_prepared_plan(
+        &mut graph,
+        &plan,
+        &(),
+        &|ctx: &mut EvaluationContext<'_, ()>| {
+            if ctx.node() == target {
+                let _ = ctx.read(source, ASPECT_A)?;
+            }
+            Ok(ctx.finish(crate::tests::support::version_ab(2, 0)))
+        },
+    )
+    .unwrap();
+    let after = graph.observe().metrics().host_computed;
+    assert!(after.evaluation_request_admission_count > before.evaluation_request_admission_count);
+    assert!(after.committed_artifact_count > before.committed_artifact_count);
+    graph.cancel_observation_session(&session).unwrap();
+}
+
+#[test]
 fn host_computed_outcomes_expose_typed_diagnostics_summary() {
     let node = NodeId::new(40, 0);
     let source = NodeId::new(41, 0);

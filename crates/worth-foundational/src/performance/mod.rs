@@ -48,7 +48,8 @@ pub use certified::{
 pub use claims::{
     FoundationalAuthoritativePerformanceClaim, FoundationalAuthoritativePerformanceClaimBuilder,
     FoundationalPerformanceClaimAuthoringFrontDoor, FoundationalPerformanceClaimConstructionDenial,
-    FoundationalPerformanceClaimSurface, FoundationalPolicyAdmissionPerformanceClaim,
+    FoundationalPerformanceClaimSurface, FoundationalPerformanceObservationContext,
+    FoundationalPolicyAdmissionPerformanceClaim,
     FoundationalPolicyAdmissionPerformanceClaimBuilder,
     FoundationalReplayMaterializationPerformanceClaim,
     FoundationalReplayMaterializationPerformanceClaimBuilder,

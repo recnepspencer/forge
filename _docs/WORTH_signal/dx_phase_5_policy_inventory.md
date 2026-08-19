@@ -12,6 +12,11 @@ This document is the source-of-truth working artifact for the first four Phase
 
 This is the document the code cleanup should follow.
 
+Phase 8 supersedes the transitional compatibility notes below: the tier-named
+parallel threshold fields and `set_diagnostics_profile(...)` aliases have been
+removed. Current code uses execution-objective threshold fields and
+`reset_runtime_policy_to_tier(...)` or `set_runtime_policy(...)`.
+
 It is intentionally practical.
 
 The point is not to restate every type in academic language.
@@ -69,7 +74,7 @@ This audit covers the policy families named in the Phase 5 plan:
 ### `SignalRuntime::build_for::<Ctx>(graph)`
 
 - Owner module:
-  [runtime_state.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/logic/transaction/runtime/state/runtime_state.rs)
+  [runtime_state/mod.rs](C:/forge_workspace/worktree_3/crates/worth-signal/src/logic/transaction/runtime/state/runtime_state/mod.rs)
 - Current public path:
   `worth_signal::facade::SignalRuntime::build_for`
 - What it really controls:
@@ -82,7 +87,7 @@ This audit covers the policy families named in the Phase 5 plan:
 ### `SignalRuntime::{development_for, operational_for, web_development_for, fintech_for, forensic_for}`
 
 - Owner module:
-  [runtime_state.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/logic/transaction/runtime/state/runtime_state.rs)
+  [runtime_state/construction/context_presets.rs](C:/forge_workspace/worktree_3/crates/worth-signal/src/logic/transaction/runtime/state/runtime_state/construction/context_presets.rs)
 - Current public path:
   `worth_signal::facade::SignalRuntime::*_for`
 - What it really controls:
@@ -118,23 +123,37 @@ This audit covers the policy families named in the Phase 5 plan:
 - Likely audience:
   advanced runtime user
 
+### `SignalRuntime::try_set_runtime_policy(...)`
+
+- Owner module:
+  [observation.rs](C:/forge_workspace/worktree_3/crates/worth-signal/src/logic/transaction/runtime/state/observation.rs)
+- Current public path:
+  `worth_signal::facade::SignalRuntime::try_set_runtime_policy`
+- What it really controls:
+  result-bearing runtime-policy admission and installation after build
+- Current default:
+  no-op unless called
+- Likely audience:
+  advanced runtime user and integrations accepting caller configuration
+
 ### `SignalGraph::set_runtime_policy(...)`
 
 - Owner module:
   [runtime.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/data/graph/diagnostics_access/runtime.rs)
 - Current public path:
-  direct graph API, not the main runtime story
+  crate-internal support; external tooling must use the canonical
+  `SignalRuntime` builder or runtime mutation front door
 - What it really controls:
   graph-local diagnostics and retention posture
 - Current default:
   `SignalRuntimePolicy::default()` which is `development`
 - Likely audience:
-  advanced runtime user, internal/support
+  internal/support tooling only
 
 ### `SignalRuntimePolicy`
 
 - Owner module:
-  [mod.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/diagnostics/policy/mod.rs)
+  [definition.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/runtime_policy/definition.rs)
 - Current public path:
   `worth_signal::facade::SignalRuntimePolicy`
 - What it really controls:
@@ -162,12 +181,12 @@ This audit covers the policy families named in the Phase 5 plan:
 - Likely audience:
   daily user, advanced runtime user
 
-### `SignalGraph::set_diagnostics_profile(...)`
+### Removed: `SignalGraph::set_diagnostics_profile(...)`
 
 - Owner module:
   [runtime.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/data/graph/diagnostics_access/runtime.rs)
 - Current public path:
-  direct graph API
+  removed in M10 Phase 8
 - What it really controls:
   resets full runtime policy to `SignalRuntimePolicy::for_tier(profile)`
 - Current default:
@@ -175,12 +194,12 @@ This audit covers the policy families named in the Phase 5 plan:
 - Likely audience:
   advanced runtime user, internal/support
 
-### `SignalRuntime::set_diagnostics_profile(...)`
+### Removed: `SignalRuntime::set_diagnostics_profile(...)`
 
 - Owner module:
   [observation.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/logic/transaction/runtime/state/observation.rs)
 - Current public path:
-  `worth_signal::facade::SignalRuntime::set_diagnostics_profile`
+  removed in M10 Phase 8
 - What it really controls:
   resets full runtime policy to the chosen tier preset
 - Current default:
@@ -191,7 +210,7 @@ This audit covers the policy families named in the Phase 5 plan:
 ### `SignalRuntimePolicy::{operational, development, forensic, web_development, fintech, kernel, game_engine}`
 
 - Owner module:
-  [mod.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/diagnostics/policy/mod.rs)
+  [presets.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/runtime_policy/presets.rs)
 - Current public path:
   `worth_signal::facade::SignalRuntimePolicy::*`
 - What it really controls:
@@ -204,7 +223,7 @@ This audit covers the policy families named in the Phase 5 plan:
 ### `SignalRuntimePolicy::{with_explanation_retention, with_provenance_retention, with_replay_detail, with_semantic_retention, with_history_limit, with_detail_limit, with_history_details, with_snapshot_restore_lineage_mode}`
 
 - Owner module:
-  [mod.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/diagnostics/policy/mod.rs)
+  [presets.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/runtime_policy/presets.rs)
 - Current public path:
   `worth_signal::facade::SignalRuntimePolicy::*`
 - What it really controls:
@@ -217,7 +236,7 @@ This audit covers the policy families named in the Phase 5 plan:
 ### `RetentionBudget` and `ReconstructionBudget`
 
 - Owner module:
-  [mod.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/diagnostics/policy/mod.rs)
+  [definition.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/diagnostics/policy/definition.rs)
 - Current public path:
   `worth_signal::facade::RetentionBudget`,
   `worth_signal::facade::ReconstructionBudget`
@@ -235,12 +254,12 @@ This audit covers the policy families named in the Phase 5 plan:
 ### `ParallelAdmissionPolicy`
 
 - Owner module:
-  [mod.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/diagnostics/policy/mod.rs)
+  [parallel.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/runtime_policy/parallel.rs)
 - Current public path:
   `worth_signal::facade::ParallelAdmissionPolicy`
 - What it really controls:
-  when the runtime will admit staged or full parallel work under each
-  diagnostics tier
+  when the runtime will admit staged or full parallel work for each execution
+  objective
 - Current default:
   embedded in `SignalRuntimePolicy`
 - Likely audience:
@@ -249,7 +268,7 @@ This audit covers the policy families named in the Phase 5 plan:
 ### `SignalRuntimePolicy::with_parallel_admission(...)`
 
 - Owner module:
-  [mod.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/diagnostics/policy/mod.rs)
+  [presets.rs](C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/crates/worth-signal/src/runtime_policy/presets.rs)
 - Current public path:
   `worth_signal::facade::SignalRuntimePolicy::with_parallel_admission`
 - What it really controls:
@@ -593,14 +612,11 @@ Competing controls:
 - `SignalRuntime::*_for`
 - `SignalRuntimeBuilder::runtime_policy`
 - `SignalRuntime::set_runtime_policy`
-- `SignalGraph::set_runtime_policy`
 
 Problem:
 
-- these are not all equal in the intended product story, but today they can all
-  look respectable
-- `SignalGraph::set_runtime_policy` especially leaks a lower-level owner into
-  the same conceptual decision
+- the graph mutator is crate-internal and must not become a second public
+  policy front door
 
 Target owner:
 
@@ -611,19 +627,7 @@ Target owner:
 
 ---
 
-## 2. Diagnostics richness currently has two "official" knobs
-
-Competing controls:
-
-- `set_diagnostics_profile(...)`
-- `set_runtime_policy(...)`
-
-Problem:
-
-- `set_diagnostics_profile(...)` is not just a lighter alias
-- it resets the whole policy bundle to `SignalRuntimePolicy::for_tier(profile)`
-- that means one conceptual decision appears to have two owners, and one of
-  them silently throws away narrower custom overrides
+## 2. Diagnostics richness has one runtime-policy owner
 
 Target owner:
 
@@ -789,7 +793,6 @@ Published story:
 
 Policy:
 
-- do not present `set_diagnostics_profile(...)` as a co-equal posture API
 - do not present graph-level runtime policy mutation as a normal owner
 
 ---
@@ -912,7 +915,7 @@ These are the decisions the next implementation pass should follow.
   preset constructors and `SignalRuntimePolicy`
 - Contain:
   graph-level runtime-policy mutation
-- De-emphasize or transition:
+- Removed in Phase 8:
   `set_diagnostics_profile(...)`
 
 ## Diagnostics richness
@@ -921,8 +924,8 @@ These are the decisions the next implementation pass should follow.
   `SignalRuntimePolicy` posture presets and bounded `with_*` overrides
 - Keep but contain:
   raw budget structs
-- De-emphasize or transition:
-  tier/profile mutation as a separate co-equal owner
+- Keep but contain:
+  tier/profile selection as a preset input; it does not own parallel admission
 
 ## Comparators
 
@@ -961,14 +964,11 @@ If we change anything, the normal path should still be:
 - named presets when needed
 - builder only for abnormal setup
 
-## 2. If `set_diagnostics_profile(...)` remains temporarily, it must be clearly transitional
+## 2. The former diagnostics-profile compatibility path is removed
 
-Right now it looks more official than it should.
-
-If it stays for compatibility:
-
-- it should be documented as a convenience reset to a preset tier
-- it should not be taught as a primary owner of diagnostics behavior
+Use `reset_runtime_policy_to_tier(...)` for a stock preset reset and
+`set_runtime_policy(...)` for a complete policy change. There is no separate
+diagnostics-profile mutation alias.
 
 ## 3. Builder and runtime mutation can both remain where they encode different moments
 

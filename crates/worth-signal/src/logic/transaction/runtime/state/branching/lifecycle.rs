@@ -31,7 +31,7 @@ where
 
     pub fn switch_branch(&mut self, branch: SignalBranchHandle) -> Result<(), SignalError> {
         let current = self.graph.current_branch();
-        let preserved_transaction = self.telemetry.transaction;
+        let preserved_transaction = self.telemetry_snapshot().transaction;
         if branch.id == current.id {
             return Ok(());
         }
@@ -40,19 +40,24 @@ where
             .branch_state(branch.id)
             .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name.clone()))?;
         self.ensure_branch_state_managed_queue_transfer_allowed(target_state)?;
-        let Some(state) = self.branches.take_stored_branch_transfer(branch.id) else {
+        let Some(packet) = self.branches.take_stored_branch_transfer(branch.id) else {
             return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
         };
+        self.graph.interrupt_observation_at_boundary();
+        let mut state = packet.into_state();
+        state.graph_mut().interrupt_observation_at_boundary();
         let current_state = self.take_heavy_active_branch_state()?;
         self.branches.store_branch_state(current_state);
         self.apply_branch_lifecycle_transfer(BranchLifecycleTransfer::Move(
-            AuthorityTransferPacket::new(branch.id, state.into_state()),
+            AuthorityTransferPacket::new(branch.id, state),
         ))?;
-        Self::merge_global_transaction_telemetry(
-            preserved_transaction,
-            &mut self.telemetry.transaction,
-        );
-        self.telemetry.transaction.move_transfer_count += 2;
+        self.with_telemetry(|telemetry| {
+            Self::merge_global_transaction_telemetry(
+                preserved_transaction,
+                &mut telemetry.transaction,
+            );
+            telemetry.transaction.move_transfer_count += 2;
+        });
         self.graph
             .diagnostics_state_mut()
             .set_active_branch(branch.id);

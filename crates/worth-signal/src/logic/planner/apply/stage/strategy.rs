@@ -31,6 +31,15 @@ pub(super) fn build_lowered_apply_plan(
     #[cfg(feature = "parallel")]
     if executor.is_full_parallel() {
         if let Some(policy) = executor.parallel_policy() {
+            let installed_threshold = graph.installed_runtime_policy().full_parallel_min_tasks();
+            if tasks.len() < installed_threshold {
+                return LoweredApplyPlan::Serial(SerialApplyPlan {
+                    groups: serial_groups(),
+                    rejection_reason: Some(
+                        ApplyPlanSerialFallbackReason::BelowFullParallelThreshold,
+                    ),
+                });
+            }
             let groups = super::concurrent_packets::build_stage_apply_groups(tasks, policy);
             if super::concurrent_packets::can_lower_true_grouped_concurrent(graph, tasks, &groups) {
                 let group_footprints = groups.iter().map(|group| group.footprint.clone()).collect();

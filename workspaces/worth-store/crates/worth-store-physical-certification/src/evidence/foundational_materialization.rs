@@ -4,11 +4,12 @@ use worth_foundational::{
     foundational_profile_progression_authority, materialize_admitted_foundational_profile,
     plan_artifact_boundary_bundle, plan_descriptive_boundary_materialization,
     request_foundational_profile_set, AdmissionReadinessProfile, CertificationPostureProfile,
-    CompatibilityPostureProfile, DiagnosticRichnessProfile, FoundationalBoundaryArtifactSurface,
-    FoundationalBoundaryMaterializationBundle, FoundationalBoundaryMaterializationSeam,
-    FoundationalBoundaryMaterializationSource, FoundationalBoundaryReceiptSurface,
-    FoundationalBoundaryReportSurface, FoundationalProfileSet, FoundationalProfileSetInput,
-    MaterializedFoundationalProfileSet, RetentionDeliveryProfile, SupportPostureProfile,
+    CompatibilityPostureProfile, DiagnosticRichnessProfile, ExecutionObjectiveProfile,
+    FoundationalBoundaryArtifactSurface, FoundationalBoundaryMaterializationBundle,
+    FoundationalBoundaryMaterializationSeam, FoundationalBoundaryMaterializationSource,
+    FoundationalBoundaryReceiptSurface, FoundationalBoundaryReportSurface, FoundationalProfileSet,
+    FoundationalProfileSetInput, MaterializedFoundationalProfileSet, ObservationActivationProfile,
+    RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_proof::TransitionOutcome;
 
@@ -177,6 +178,8 @@ fn materialized_profile_set() -> MaterializedFoundationalProfileSet {
         admission_readiness: AdmissionReadinessProfile::ProductionGateReady,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::EvidenceBacked,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
     })
     .expect("physical evidence profile composition is valid");
     let requested = request_foundational_profile_set(profile);

@@ -6,6 +6,8 @@ mod execution;
 mod invalidation_performed;
 mod transaction;
 
+pub use super::telemetry_mutation::RuntimeTelemetryMutation;
+
 pub use execution::{
     EvaluationTelemetry, ExecutionTelemetry, InvalidationTelemetry, PlannerTelemetry,
 };

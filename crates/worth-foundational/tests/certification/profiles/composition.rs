@@ -13,6 +13,8 @@ fn coherent_profile_input() -> FoundationalProfileSetInput {
         admission_readiness: AdmissionReadinessProfile::ProductionGateReady,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::ProductionCertified,
+        execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+        observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
     }
 }
 
@@ -82,6 +84,8 @@ fn profile_composition_denies_certified_posture_without_required_support_or_rete
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::EvidenceBacked,
+        execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+        observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
     });
     assert_eq!(
         internal_only,
@@ -95,6 +99,8 @@ fn profile_composition_denies_certified_posture_without_required_support_or_rete
         admission_readiness: AdmissionReadinessProfile::CandidateOnly,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::EvidenceBacked,
+        execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+        observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
     });
     assert_eq!(
         readiness_too_weak,
@@ -109,6 +115,8 @@ fn profile_composition_denies_certified_posture_without_required_support_or_rete
             admission_readiness: AdmissionReadinessProfile::Admitted,
             retention_delivery: RetentionDeliveryProfile::Ephemeral,
             certification_posture: CertificationPostureProfile::EvidenceBacked,
+            execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+            observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
         });
     assert_eq!(
         retention_too_weak_for_evidence,
@@ -122,6 +130,8 @@ fn profile_composition_denies_certified_posture_without_required_support_or_rete
         admission_readiness: AdmissionReadinessProfile::ProductionGateReady,
         retention_delivery: RetentionDeliveryProfile::Durable,
         certification_posture: CertificationPostureProfile::ProductionCertified,
+        execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+        observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
     });
     assert_eq!(
         support_too_weak,
@@ -138,6 +148,8 @@ fn profile_composition_denies_certified_posture_without_required_support_or_rete
             admission_readiness: AdmissionReadinessProfile::Admitted,
             retention_delivery: RetentionDeliveryProfile::Retained,
             certification_posture: CertificationPostureProfile::ProductionCertified,
+            execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+            observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
         });
     assert_eq!(
         readiness_too_weak_for_production,
@@ -151,6 +163,8 @@ fn profile_composition_denies_certified_posture_without_required_support_or_rete
         admission_readiness: AdmissionReadinessProfile::ProductionGateReady,
         retention_delivery: RetentionDeliveryProfile::Ephemeral,
         certification_posture: CertificationPostureProfile::ProductionCertified,
+        execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+        observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
     });
     assert_eq!(
         retention_too_weak,

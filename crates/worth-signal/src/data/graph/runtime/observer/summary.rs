@@ -7,12 +7,13 @@ use crate::data::proof::{
 use crate::data::trace::{ColdArtifactRecord, RuntimeArtifactHot, RuntimeArtifactWarm};
 use crate::diagnostics::access::GraphDiagnostics;
 use crate::diagnostics::history::ExecutionInspector;
-use crate::diagnostics::policy::{OrdinaryAccessLane, SignalRuntimePolicy};
+use crate::diagnostics::policy::OrdinaryAccessLane;
 use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::diagnostics::{FailureSummary, FlowSummary, RollbackDiagnostic};
 use crate::logic::transaction::ObservationBoundarySummary;
 use crate::presentation::metrics::GraphMetrics;
+use crate::runtime_policy::SignalRuntimePolicy;
 
 impl<'a> GraphObserver<'a> {
     pub fn telemetry(&self) -> &'a crate::data::telemetry::RuntimeTelemetry {
@@ -64,7 +65,7 @@ impl<'a> GraphObserver<'a> {
     }
 
     pub fn runtime_policy(&self) -> SignalRuntimePolicy {
-        self.graph.observation.diagnostics.policy()
+        self.graph.runtime_policy()
     }
 
     pub fn diagnostics_summary(&self, profile: DiagnosticsTier) -> GraphSummary {
@@ -78,7 +79,10 @@ impl<'a> GraphObserver<'a> {
         GraphSummary::from_graph(
             self.graph,
             profile,
-            self.runtime_policy().retention_budget.detail_limit,
+            self.graph
+                .installed_runtime_policy()
+                .retention_budget()
+                .detail_limit,
             OrdinaryAccessLane,
         )
     }
@@ -88,7 +92,7 @@ impl<'a> GraphObserver<'a> {
     }
 
     pub fn execution_history_summary(&self, profile: DiagnosticsTier) -> ExecutionHistorySummary {
-        let retention_budget = SignalRuntimePolicy::for_tier(profile).retention_budget;
+        let retention_budget = self.graph.installed_runtime_policy().retention_budget();
         if let Some(summary) = self.graph.diagnostics_state().recent_history().back() {
             if !retention_budget.retain_history_details || !summary.nodes.is_empty() {
                 return summary.with_profile(profile);

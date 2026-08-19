@@ -30,19 +30,22 @@ That rule governs every milestone:
 7. profiles must be able to remove optional descriptive richness centrally
    without changing authoritative outcomes or requiring leaf-call-site policy
    branching
-8. no milestone may force one hot-path memory layout or one runtime
+8. execution objective, observation activation, diagnostic richness, retention,
+   support, certification, and durability must remain distinct meanings rather
+   than collapsing into one environment label
+9. no milestone may force one hot-path memory layout or one runtime
    representation across crates that legitimately need AoS, SoA, AoSoA, or
    custom topology
-9. lowered plans may need to execute at runtime, but shared crates must expose
+10. lowered plans may need to execute at runtime, but shared crates must expose
    only the proof/composition and descriptive boundary language, not a generic
    executor
-10. shared boundary vocabulary must not collapse authoritative truth, derived
+11. shared boundary vocabulary must not collapse authoritative truth, derived
    artifacts, and descriptive/forensic surfaces into one generic artifact
    model
-11. same-family symbolic composition, lifecycle outcomes, and resolution maps
+12. same-family symbolic composition, lifecycle outcomes, and resolution maps
     should have one descriptive language across crates rather than local
     receipt folklore
-12. branching, merging, and commits must have one shared authority-transition
+13. branching, merging, and commits must have one shared authority-transition
     language rather than being hidden inside generic artifact materialization
     or crate-local transaction folklore
 
@@ -171,6 +174,8 @@ The following gates must be preserved from the first milestone onward:
 - reduced-richness profiles must be able to suppress optional history, replay,
   lineage, provenance, or forensic materialization at named seams without
   changing authoritative outcomes
+- throughput objective and on-demand observation activation must remain
+  orthogonal to richness, retention, authority, security, and durability
 - shared identity, equivalence, outcome, and locator surfaces must remain
   explicit enough that comparison, suppression, certification, and debugging do
   not devolve into local folklore
@@ -810,70 +815,6 @@ crates.
   optional history, replay, lineage, provenance, or forensic surfaces out of
   the certified hot path without changing authoritative outputs
 
-## Milestone 9: Cross-Crate Migration And Closure
-
-### Goal
-
-Retire the major crate-local dialects that `worth-foundational` was created to
-replace and prove that the shared vocabulary actually converges the stack.
-
-### Must Ship
-
-- migration of the most central aspect/value/digest/profile surfaces in
-  `worth-relational`, `worth-query`, `worth-signal`, and `worth-store` onto the
-  foundational vocabulary
-- migration of the most central identity/equivalence/outcome/locator surfaces
-  in `worth-relational`, `worth-query`, `worth-signal`, and `worth-store` onto
-  the foundational vocabulary
-- migration of the most central same-family composition receipt/lifecycle/
-  resolution surfaces in the crates that need them onto the foundational
-  vocabulary
-- explicit debt accounting for any remaining compatibility JSON, local
-  diagnostic dialects, or local artifact-category drift
-- cross-crate parity harnesses proving that semantically identical boundary
-  artifacts compare, digest, and explain the same way
-- facade-safe adoption paths so domain crates consume foundational vocabulary
-  without leaking internal reorganizations across the workspace
-
-### Semantic Guarantees
-
-- migrated crates must converge on shared meaning, not merely shared wrapper
-  names
-- authoritative, derived, planned, descriptive, and receipt-bearing surfaces
-  must remain distinguishable after migration
-- semantically identical boundary artifacts from different crates must compare
-  and explain the same way
-- identity, equivalence, outcome, and locator surfaces must also converge or
-  remain named debt
-- same-family composition receipts and resolution/lifecycle evidence must also
-  converge or remain named debt
-
-### Representation Boundaries
-
-- migration must not force any crate to give up a cost-honest internal layout
-- adopting the shared vocabulary must not require leaking internal subsystem
-  structure across facades
-- residual crate-local dialects may remain only as named debt, not as silent
-  alternate semantics
-
-### Must Preserve
-
-- migrations must reduce semantic drift rather than merely add wrappers
-- no crate may be forced to abandon a cost-honest internal representation just
-  to "use the shared crate"
-- no milestone closure until the shared vocabulary proves it can replace real
-  crate-local dialects under hostile comparison cases
-- explicit debt must remain explicit; partial migration is not silent closure
-
-### Acceptance Evidence
-
-- cross-crate migration parity tests
-- digest equivalence tests across migrated surfaces
-- hostile support-artifact comparison tests across at least two independently
-  migrated crates
-- documented debt inventory for any remaining non-foundational dialects that
-  still survive by necessity
-
 ## Milestone 9: Scoped Merge Selection And Cherry-Pick Vocabulary
 
 Detailed spec: [`milestone-9.md`](milestone-9.md)
@@ -924,6 +865,137 @@ selected-node or selected-aspect merge execution.
 - scoped merge denial topology tests
 - scoped merge canonical-basis and locator tests
 - compile-fail coverage for raw selected loci and category substitution
+
+## Milestone 10: Throughput And On-Demand Observation Vocabulary
+
+Detailed spec: [`milestone-10.md`](milestone-10.md)
+
+### Goal
+
+Add shared, orthogonal vocabulary for execution objective and observation
+activation, then prove through real `worth-signal` adoption that a throughput
+runtime can remove optional observation work from ordinary execution without
+changing authoritative outcomes, stable identity, or replay linkage.
+
+### Must Ship
+
+- `LatencyBounded`, `Balanced`, and `Throughput` execution-objective meaning
+- `OnDemand` and `Continuous` observation-activation meaning
+- actual observation disposition and observation-specific absence vocabulary
+- complete profile composition, identity, difference, and progression support
+  for the new axes
+- optional observation work classes in performance claims
+- a compiler-visible Signal runtime-policy pipeline
+- `SignalRuntimePolicy::operational()` as the public Throughput + OnDemand
+  constructor, with pre-construction hot-path gates and managed observation
+  sessions
+- exact semantic parity, zero-optional-work, lifecycle, mutation-sensitive,
+  and measured performance evidence through Signal's production composition
+  root
+- a precise Store adoption handoff that preserves every durability invariant
+
+### Semantic Guarantees
+
+- throughput changes cost strategy, never truth, authority, security, or
+  durability
+- on-demand changes when optional observation work begins, not what correctness
+  facts must exist
+- richness, activation, retention, support, certification, and execution
+  objective remain independent profile meanings
+- performed observation evidence requires pre-execution admission and completed
+  execution
+- missing evidence remains typed and cannot appear as an empty complete report
+
+### Representation Boundaries
+
+- Foundational owns shared meaning and comparison law, not runtime execution,
+  telemetry storage, session management, or durability
+- Signal owns its policy compiler, observation lifecycle, hot-path gates, and
+  local diagnostic/lineage representation
+- Store retains complete ownership of WAL, MVCC, acknowledgement, recovery,
+  compaction, and persistence policy
+
+### Acceptance Evidence
+
+- canonical profile identity and difference tests for both new axes
+- hostile activation/richness/retention composition tests
+- optional-work inclusion/exclusion tests
+- real Signal no-observer zero-work and explicit-observer performed-evidence
+  twins
+- operational digest parity across profile, branch, snapshot, restore, serial,
+  parallel, and WASM-supported lanes
+- scale-sensitive throughput evidence with declared workloads and structural
+  counters
+
+## Milestone 11: Cross-Crate Migration And Closure
+
+### Goal
+
+Retire the major crate-local dialects that `worth-foundational` was created to
+replace and prove that the shared vocabulary actually converges the stack.
+
+### Must Ship
+
+- migration of the most central aspect/value/digest/profile surfaces in
+  `worth-relational`, `worth-query`, `worth-signal`, and `worth-store` onto the
+  foundational vocabulary
+- migration of the most central identity/equivalence/outcome/locator surfaces
+  in `worth-relational`, `worth-query`, `worth-signal`, and `worth-store` onto
+  the foundational vocabulary
+- migration of the most central same-family composition receipt/lifecycle/
+  resolution surfaces in the crates that need them onto the foundational
+  vocabulary
+- migration of execution-objective, observation-activation, observation
+  disposition, and optional-work disclosure where adopting runtimes expose
+  those meanings
+- explicit debt accounting for any remaining compatibility JSON, local
+  diagnostic dialects, local artifact-category drift, or local runtime-profile
+  dialects
+- cross-crate parity harnesses proving that semantically identical boundary
+  artifacts compare, digest, and explain the same way
+- facade-safe adoption paths so domain crates consume foundational vocabulary
+  without leaking internal reorganizations across the workspace
+
+### Semantic Guarantees
+
+- migrated crates must converge on shared meaning, not merely shared wrapper
+  names
+- authoritative, derived, planned, descriptive, and receipt-bearing surfaces
+  must remain distinguishable after migration
+- semantically identical boundary artifacts from different crates must compare
+  and explain the same way
+- identity, equivalence, outcome, locator, profile, and observation surfaces
+  must also converge or remain named debt
+- same-family composition receipts and resolution/lifecycle evidence must also
+  converge or remain named debt
+
+### Representation Boundaries
+
+- migration must not force any crate to give up a cost-honest internal layout
+- adopting the shared vocabulary must not require leaking internal subsystem
+  structure across facades
+- residual crate-local dialects may remain only as named debt, not as silent
+  alternate semantics
+
+### Must Preserve
+
+- migrations must reduce semantic drift rather than merely add wrappers
+- no crate may be forced to abandon a cost-honest internal representation just
+  to "use the shared crate"
+- no milestone closure until the shared vocabulary proves it can replace real
+  crate-local dialects under hostile comparison cases
+- explicit debt must remain explicit; partial migration is not silent closure
+
+### Acceptance Evidence
+
+- cross-crate migration parity tests
+- digest equivalence tests across migrated surfaces
+- hostile support-artifact comparison tests across at least two independently
+  migrated crates
+- profile and observation-disposition parity across at least two independently
+  migrated runtimes
+- documented debt inventory for any remaining non-foundational dialects that
+  still survive by necessity
 
 ## Outstanding Future Debt
 

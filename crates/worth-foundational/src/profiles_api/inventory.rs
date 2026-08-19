@@ -73,7 +73,7 @@ const PROFILE_PUBLIC_SURFACE: [FoundationalProfilePublicSurfaceEntry; 9] = [
     FoundationalProfilePublicSurfaceEntry::new(
         "worth_foundational::profiles_api::lower_lane::materialization",
         FoundationalProfilePublicLane::LowerLane,
-        "inspectable descriptive surface inventories, applicability, and materialization planning vocabulary",
+        "inspectable descriptive surface inventories, applicability, materialization planning, and explicit observation-disposition vocabulary",
         "common-path materialization staging",
     ),
     FoundationalProfilePublicSurfaceEntry::new(

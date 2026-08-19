@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/boundary_artifacts/descriptive_extensions/same_family_boundary_artifact_cannot_satisfy_authoritative_api.rs:61:28
+  --> tests/ui/boundary_artifacts/descriptive_extensions/same_family_boundary_artifact_cannot_satisfy_authoritative_api.rs:63:28
    |
-61 |     requires_authoritative(&same_family);
+63 |     requires_authoritative(&same_family);
    |     ---------------------- ^^^^^^^^^^^^ expected `FoundationalAuthoritativeBoundaryClaim<...>`, found `FoundationalSameFamilyBoundaryArtifact<...>`
    |     |
    |     arguments to this function are incorrect
@@ -9,7 +9,7 @@ error[E0308]: mismatched types
    = note: expected reference `&FoundationalAuthoritativeBoundaryClaim<FoundationalBoundaryArtifactSurface<Vec<u8>>>`
               found reference `&FoundationalSameFamilyBoundaryArtifact<FoundationalBoundaryArtifactSurface<Vec<u8>>>`
 note: function defined here
-  --> tests/ui/boundary_artifacts/descriptive_extensions/same_family_boundary_artifact_cannot_satisfy_authoritative_api.rs:44:4
+  --> tests/ui/boundary_artifacts/descriptive_extensions/same_family_boundary_artifact_cannot_satisfy_authoritative_api.rs:46:4
    |
-44 | fn requires_authoritative(_: &FoundationalAuthoritativeBoundaryClaim<FoundationalBoundaryArtifactSurface<Vec<u8>>>) {}
+46 | fn requires_authoritative(_: &FoundationalAuthoritativeBoundaryClaim<FoundationalBoundaryArtifactSurface<Vec<u8>>>) {}
    |    ^^^^^^^^^^^^^^^^^^^^^^ ----------------------------------------------------------------------------------------

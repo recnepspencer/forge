@@ -192,8 +192,20 @@ fn frontier_tracing_policy_changes_retained_richness_not_invalidation_truth() {
     development.set_runtime_policy(SignalRuntimePolicy::development());
 
     let changed = &[ChangedRegion::new("wing").with_detail("rib-12")];
+    let operational_observation = operational
+        .begin_observation_session(SignalObservationRequest::frontier())
+        .unwrap();
+    let development_observation = development
+        .begin_observation_session(SignalObservationRequest::frontier())
+        .unwrap();
     mark_dirty_with_regions(&mut operational, source, ASPECT_A, changed).unwrap();
     mark_dirty_with_regions(&mut development, source, ASPECT_A, changed).unwrap();
+    operational
+        .finish_optional_invalidation_execution_observation(&operational_observation)
+        .unwrap();
+    development
+        .finish_optional_invalidation_execution_observation(&development_observation)
+        .unwrap();
 
     let operational_summary = operational
         .observe()

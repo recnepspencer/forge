@@ -1726,7 +1726,7 @@ categories:
   and commit outcomes honestly
 - Milestone 7 lineage/provenance/receipt work needs typed commit parentage,
   deltas, and receipts before it can attach deeper history or provenance law
-- Milestone 9 migrations need this shared transition vocabulary before runtime
+- Milestone 11 migrations need this shared transition vocabulary before runtime
   crates can retire local transaction/preview/commit dialects
 
 This milestone must remain after Milestone 4 because it consumes boundary

@@ -18,7 +18,7 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
         .with_kernel_defaults()
         .build();
     runtime.set_runtime_policy(
-        SignalRuntimePolicy::game_engine()
+        SignalRuntimePolicy::development()
             .with_history_limit(8)
             .with_detail_limit(4),
     );

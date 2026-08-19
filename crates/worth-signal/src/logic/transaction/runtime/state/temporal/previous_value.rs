@@ -32,7 +32,7 @@ impl TemporalRuntimeState {
         node: crate::data::handle::NodeId,
         aspect_version: crate::data::aspect::AspectVersion,
         output_identity: Option<crate::data::output::OutputIdentity>,
-        telemetry: &mut crate::data::telemetry::TemporalTelemetry,
+        telemetry: Option<&mut crate::data::telemetry::TemporalTelemetry>,
     ) -> Result<TemporalPreviousValueReference, SignalError> {
         let Some(ready) = self.ready_wakes.get(&access.wake_id()) else {
             return Err(SignalError::invalid_input(format!(
@@ -58,7 +58,9 @@ impl TemporalRuntimeState {
         }
 
         let revision = self.issue_previous_value_revision();
-        telemetry.previous_value_reference_count += 1;
+        if let Some(telemetry) = telemetry {
+            telemetry.previous_value_reference_count += 1;
+        }
         Ok(TemporalPreviousValueReference::new(
             revision,
             access,
@@ -103,12 +105,16 @@ where
             .observe()
             .runtime_artifact_warm(node)?
             .and_then(|warm| warm.output_identity.clone());
+        let captures_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        let telemetry = captures_telemetry.then_some(&mut self.telemetry.temporal);
         self.temporal.capture_previous_value_reference(
             access,
             node,
             aspect_version,
             output_identity,
-            &mut self.telemetry.temporal,
+            telemetry,
         )
     }
 }

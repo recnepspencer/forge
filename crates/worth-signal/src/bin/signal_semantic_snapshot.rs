@@ -12,7 +12,7 @@ use worth_signal::facade::specialist::{ParallelExecutionPolicy, RunMode, StageEx
 #[cfg(feature = "parallel")]
 use worth_signal::facade::{
     Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge, NodeEvaluationResult,
-    NodeId, SignalGraph,
+    NodeId, SignalGraph, SignalRuntime,
 };
 
 #[cfg(feature = "parallel")]
@@ -49,6 +49,7 @@ fn materialization_label(mode: DiagnosticsAvailability) -> &'static str {
         DiagnosticsAvailability::ReconstructedAvailable => "reconstructed",
         DiagnosticsAvailability::OmittedByTier
         | DiagnosticsAvailability::DeniedByBudget
+        | DiagnosticsAvailability::ObservationNotActivated
         | DiagnosticsAvailability::UnavailableNotRetained
         | DiagnosticsAvailability::UnavailableNotReconstructable => "unavailable",
     }
@@ -169,8 +170,11 @@ fn main() {
     );
     let executor = parse_executor(&profile);
 
-    let mut graph = SignalGraph::new();
-    graph.set_runtime_policy(runtime_policy);
+    let mut runtime = SignalRuntime::<(), (), (), (), ()>::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .runtime_policy(runtime_policy)
+        .build();
+    let mut graph = runtime.graph_mut();
     let source = graph.node().output_identity().build();
     let shell = graph.node().tolerance(1).partitioned_output().build();
     let core = graph.node().tolerance(1).partitioned_output().build();
@@ -229,7 +233,7 @@ fn main() {
         .unwrap();
 
     mark_dirty_batch(
-        &mut graph,
+        &mut *graph,
         &BatchChange::singleton(
             source,
             ASPECT_A,

@@ -71,7 +71,12 @@ impl SignalGraph {
         node: NodeId,
         rewiring: Option<crate::logic::explain::RewiringSummary>,
     ) -> Result<(), SignalError> {
-        let policy = self.runtime_policy();
+        if !self.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::DescriptiveFacts,
+        ) {
+            return Ok(());
+        }
+        let policy = self.installed_runtime_policy();
         if !policy.retains_explanation_facts() && !policy.retains_provenance_facts() {
             return Ok(());
         }

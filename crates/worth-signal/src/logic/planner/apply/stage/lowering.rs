@@ -5,7 +5,6 @@ use crate::data::graph::SignalGraph;
 use crate::data::host_computed::{admit_or_error, HostComputedApiFamily};
 use crate::data::node::{AuthorityPolicy, PathClass};
 use crate::data::performance::{ResolvedExecutionStrategy, ResolvedMaintenanceStrategy};
-use crate::diagnostics::SignalRuntimePolicy;
 use crate::logic::planner::precompute::{PreparedTaskPatch, StageExecutionData};
 use crate::logic::planner::semantic::StageSemanticIdentity;
 use crate::logic::planner::types::{
@@ -35,8 +34,7 @@ pub(super) fn build_stage_execution_form(
     stage_identities: &[StageSemanticIdentity],
 ) -> Result<LoweredStageExecutionForm, SignalError> {
     let prepared_patches = stage_execution.into_patches(stage_tasks);
-    let resolved_policy =
-        SignalRuntimePolicy::for_tier(graph.diagnostics_profile()).resolve_performance_policy();
+    let resolved_policy = graph.resolved_performance_policy();
 
     if should_lower_direct_serial(executor) {
         return Ok(LoweredStageExecutionForm::Serial(
@@ -187,13 +185,16 @@ fn lower_task_patch(
     graph.refresh_runtime_dependencies_of(patch.node)?;
     let current_dependencies =
         CanonicalDependencies::from_slice(graph.current_runtime_dependencies_of(patch.node)?);
+    let mut telemetry_guard = graph.telemetry_mut();
+    let telemetry = telemetry_guard.as_deref_mut();
     let admitted = admit_or_error(
         HostComputedApiFamily::CorePreparedEvaluation,
         patch.node,
         current_dependencies.as_slice(),
         patch.prepared,
-        graph.telemetry_mut(),
+        telemetry,
     )?;
+    drop(telemetry_guard);
     let (prepared, _admitted_reads, dependency_patch) = admitted.into_parts();
     let next_dependencies = CanonicalDependencies::from_slice(dependency_patch.next_dependencies());
     let before_state = graph.get_state(patch.node)?;

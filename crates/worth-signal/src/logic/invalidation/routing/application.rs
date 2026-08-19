@@ -7,7 +7,8 @@ use super::counters::record_diagnostic_projection;
 pub(super) fn execute_invalidation_frontier(
     graph: &mut SignalGraph,
     plan: &FrontierPlan,
-) -> Result<FrontierDiagnosticsSidecar, SignalError> {
+    capture_frontier: bool,
+) -> Result<Option<FrontierDiagnosticsSidecar>, SignalError> {
     for seed in plan.seed_batch.as_slice() {
         super::mark_source_seed(graph, seed)?;
     }
@@ -18,11 +19,14 @@ pub(super) fn execute_invalidation_frontier(
     };
     record_diagnostic_projection(graph, &counters);
 
-    Ok(FrontierDiagnosticsSidecar::new(
+    if !capture_frontier {
+        return Ok(None);
+    }
+    Ok(Some(FrontierDiagnosticsSidecar::new(
         plan.seed_batch.as_slice().len() as u64,
         Vec::new(),
         Vec::new(),
         plan.touched_scope_summary.clone(),
         counters,
-    ))
+    )))
 }

@@ -9,9 +9,9 @@ pub enum ParallelAdmissionReason {
     ValidationHeavyStage,
     BelowFullParallelThreshold,
     FullParallelUnsupportedByMutableEngine,
-    AdmittedOperational,
-    AdmittedDevelopment,
-    AdmittedForensic,
+    AdmittedThroughput,
+    AdmittedBalanced,
+    AdmittedLatencyBounded,
     AdmittedProofSafeGroupedConcurrent,
 }
 
@@ -26,9 +26,9 @@ impl ParallelAdmissionReason {
             Self::FullParallelUnsupportedByMutableEngine => {
                 "full-parallel-unsupported-by-mutable-engine"
             }
-            Self::AdmittedOperational => "admitted-operational",
-            Self::AdmittedDevelopment => "admitted-development",
-            Self::AdmittedForensic => "admitted-forensic",
+            Self::AdmittedThroughput => "admitted-throughput",
+            Self::AdmittedBalanced => "admitted-balanced",
+            Self::AdmittedLatencyBounded => "admitted-latency-bounded",
             Self::AdmittedProofSafeGroupedConcurrent => "admitted-proof-safe-grouped-concurrent",
         }
     }
@@ -51,11 +51,13 @@ impl ParallelAdmissionReason {
             Self::FullParallelUnsupportedByMutableEngine => {
                 "stage stayed out of full parallel mode because the current mutable graph engine does not support concurrent apply yet"
             }
-            Self::AdmittedOperational => {
-                "stage ran in parallel under the low-overhead operational policy"
+            Self::AdmittedThroughput => {
+                "stage ran in parallel under the throughput execution objective"
             }
-            Self::AdmittedDevelopment => "stage ran in parallel under the development policy",
-            Self::AdmittedForensic => "stage ran in parallel under the forensic policy",
+            Self::AdmittedBalanced => "stage ran in parallel under the balanced execution objective",
+            Self::AdmittedLatencyBounded => {
+                "stage ran in parallel under the latency-bounded execution objective"
+            }
             Self::AdmittedProofSafeGroupedConcurrent => {
                 "stage ran through proof-safe grouped concurrent apply with deterministic reduction-only publication"
             }

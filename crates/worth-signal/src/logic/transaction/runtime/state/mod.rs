@@ -14,6 +14,10 @@ mod runtime_observation;
 mod runtime_state;
 mod temporal;
 
+pub(crate) use crate::observation::session::admit as admit_signal_observation_request;
+pub(crate) use crate::observation::session::{
+    SignalObservationCaptureGate, SignalObservationDropCleanup, SignalObservationSessionState,
+};
 pub(in crate::logic::transaction::runtime) use branching::BranchManager;
 pub use branching::{
     bridge_signal_branch_basis_trust_boundary, BoundaryBridgedSignalBranchBasisArtifact,
@@ -116,6 +120,10 @@ pub use merge::{
     StructuralMergeCandidateRecord, StructuralMergeJournalSlice, TargetNodeIdentityIntent,
     TopologyRepairSummary, BRANCH_STATE_PROOF_BASIS_VERSION, MERGE_PROOF_SCHEMA_VERSION,
     SIGNAL_MERGE_COMPATIBILITY_SCHEMA_VERSION,
+};
+pub use observation::{
+    SignalObservationAdmissionDenial, SignalObservationCompletion, SignalObservationRequest,
+    SignalObservationSession, SignalObservationSurface,
 };
 pub use observer::{RuntimeMaterializer, RuntimeObserver};
 #[allow(unused_imports)]

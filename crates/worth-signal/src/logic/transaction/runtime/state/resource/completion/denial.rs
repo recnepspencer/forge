@@ -8,7 +8,7 @@ impl ResourceRuntimeState {
         raw: &RawCompletionEnvelope,
         class: CompletionDenialClass,
         node: Option<ResourceNodeId>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
         count_scalar_boundary: bool,
     ) -> ResourceCompletionAdmissionReport {
         let denial_id = self.issue_denial_id();
@@ -18,45 +18,52 @@ impl ResourceRuntimeState {
             self.latest_denied_completion_by_node.insert(node, denied);
         }
 
-        telemetry.resource_completion_denial_count += 1;
-        match class {
-            CompletionDenialClass::Stale => telemetry.resource_stale_completion_denial_count += 1,
-            CompletionDenialClass::Superseded => {
-                telemetry.resource_superseded_completion_denial_count += 1
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_completion_denial_count += 1;
+            match class {
+                CompletionDenialClass::Stale => {
+                    telemetry.resource_stale_completion_denial_count += 1
+                }
+                CompletionDenialClass::Superseded => {
+                    telemetry.resource_superseded_completion_denial_count += 1
+                }
+                CompletionDenialClass::Malformed => {
+                    telemetry.resource_malformed_completion_denial_count += 1
+                }
+                CompletionDenialClass::Partial => {
+                    telemetry.resource_partial_completion_denial_count += 1
+                }
+                CompletionDenialClass::Contradictory => {
+                    telemetry.resource_contradictory_completion_denial_count += 1
+                }
+                CompletionDenialClass::Duplicate => {
+                    telemetry.resource_duplicate_completion_denial_count += 1
+                }
+                CompletionDenialClass::UnknownRequest => {
+                    telemetry.resource_unknown_request_completion_denial_count += 1
+                }
+                CompletionDenialClass::RetainedHistoryUnavailable => {
+                    telemetry.resource_retained_history_unavailable_completion_denial_count += 1
+                }
+                CompletionDenialClass::Cancelled => {
+                    telemetry.resource_cancelled_completion_denial_count += 1
+                }
+                CompletionDenialClass::Rejected => {
+                    telemetry.resource_rejected_completion_denial_count += 1
+                }
+                CompletionDenialClass::TimedOut => {
+                    telemetry.resource_timed_out_completion_denial_count += 1
+                }
+                CompletionDenialClass::Retired | CompletionDenialClass::Impossible => {}
             }
-            CompletionDenialClass::Malformed => {
-                telemetry.resource_malformed_completion_denial_count += 1
-            }
-            CompletionDenialClass::Partial => {
-                telemetry.resource_partial_completion_denial_count += 1
-            }
-            CompletionDenialClass::Contradictory => {
-                telemetry.resource_contradictory_completion_denial_count += 1
-            }
-            CompletionDenialClass::Duplicate => {
-                telemetry.resource_duplicate_completion_denial_count += 1
-            }
-            CompletionDenialClass::UnknownRequest => {
-                telemetry.resource_unknown_request_completion_denial_count += 1
-            }
-            CompletionDenialClass::RetainedHistoryUnavailable => {
-                telemetry.resource_retained_history_unavailable_completion_denial_count += 1
-            }
-            CompletionDenialClass::Cancelled => {
-                telemetry.resource_cancelled_completion_denial_count += 1
-            }
-            CompletionDenialClass::Rejected => {
-                telemetry.resource_rejected_completion_denial_count += 1
-            }
-            CompletionDenialClass::TimedOut => {
-                telemetry.resource_timed_out_completion_denial_count += 1
-            }
-            CompletionDenialClass::Retired | CompletionDenialClass::Impossible => {}
         }
         let performance = ResourceBoundaryPerformanceEnvelope::completion_admission(0, 1, 0)
             .with_density_strategy(ResourceDensityStrategy::scalar_completion());
         let performance = if count_scalar_boundary {
-            Self::record_boundary_performance(telemetry, performance)
+            telemetry
+                .as_deref_mut()
+                .map(|telemetry| Self::record_boundary_performance(telemetry, performance))
+                .unwrap_or(performance)
         } else {
             performance
         };

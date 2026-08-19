@@ -13,6 +13,7 @@ where
     T: Copy + Ord,
 {
     pub fn capture_snapshot(&mut self) -> Result<SignalSnapshotV1, SignalError> {
+        Self::ensure_managed_queue_branch_transfer_allowed(&self.resource)?;
         let mut snapshot = self.graph.capture_snapshot();
         let retained_replay = self
             .graph
@@ -22,7 +23,12 @@ where
             .cloned()
             .collect::<Vec<_>>();
         snapshot.diagnostic_graph.clear_branch_mutation_nodes();
-        snapshot.runtime_telemetry = Some(self.telemetry);
+        snapshot.runtime_telemetry = self
+            .graph
+            .captures_observation_surface(
+                crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+            )
+            .then_some(self.telemetry);
         snapshot.reconstructability = Some(
             super::super::super::reconstructability::ReconstructabilityRecord::from_snapshot_boundary(
                 snapshot.meta.branch_id,
@@ -103,23 +109,38 @@ where
             .branch_state(branch.id)
             .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name.clone()))?;
         Self::ensure_managed_queue_branch_transfer_allowed(stored_state.resource())?;
+        self.graph.interrupt_observation_at_boundary();
         let Some((snapshot, branch_catalog, snapshot_state)) =
             self.branches.with_stored_branch_state_mut(branch.id, |state| {
-            let policy = state.graph().runtime_policy();
-            let artifact_retention = SnapshotArtifactRetentionPolicy::from_runtime_policy(policy);
+            state.graph_mut().interrupt_observation_at_boundary();
+            let installed = state.graph().installed_runtime_policy();
+            let request_metadata = installed.requested_policy();
+            let artifact_retention =
+                SnapshotArtifactRetentionPolicy::from_retention_budget(installed.retention_budget());
             let meta = state
                 .graph_mut()
                 .diagnostics_state_mut()
-                .allocate_snapshot_meta(policy, artifact_retention);
+                .allocate_snapshot_meta(request_metadata, artifact_retention);
             state
                 .graph_mut()
                 .diagnostics_state_mut()
                 .set_branch_head_snapshot(branch.id, meta.snapshot_id);
+            crate::diagnostics::recorder::record_snapshot_event(
+                state.graph_mut(),
+                crate::diagnostics::replay::ReplayEventKind::SnapshotCaptured,
+                Some(meta.snapshot_id),
+                format!("snapshot {}", meta.snapshot_id.0),
+            );
             let diagnostics = state
                 .graph()
                 .diagnostics_state()
                 .snapshot_payload_with_retention(artifact_retention);
-            let graph_telemetry = *state.graph().telemetry();
+            let captures_telemetry = state.graph().captures_observation_surface(
+                crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+            );
+            let graph_telemetry = captures_telemetry
+                .then(|| *state.graph().telemetry())
+                .unwrap_or_default();
             let retained_replay = state
                 .graph()
                 .observe()
@@ -136,7 +157,7 @@ where
                         dependency_snapshot_batch: state
                             .graph()
                             .capture_checkpoint_dependency_snapshot_batch(),
-                        graph_telemetry: *state.graph().telemetry(),
+                        graph_telemetry,
                     },
                     diagnostic_graph: {
                         let mut graph = state.graph().clone_stateful();
@@ -145,7 +166,7 @@ where
                     },
                     diagnostics,
                 graph_telemetry,
-                runtime_telemetry: Some(*state.runtime_telemetry()),
+                runtime_telemetry: captures_telemetry.then_some(*state.runtime_telemetry()),
                 reconstructability: Some(
                     super::super::super::reconstructability::ReconstructabilityRecord::from_snapshot_boundary(
                         branch.id,

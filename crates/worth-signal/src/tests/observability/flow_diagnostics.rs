@@ -178,6 +178,9 @@ fn operational_flow_diagnostics_do_not_sample_explanations_by_default() {
         .unwrap();
     let mut runtime = build_runtime(graph);
     runtime.set_runtime_policy(SignalRuntimePolicy::operational());
+    let observation = runtime
+        .begin_observation_session(crate::facade::SignalObservationRequest::telemetry())
+        .unwrap();
 
     runtime
         .transaction(&mut (), |tx| {
@@ -201,6 +204,7 @@ fn operational_flow_diagnostics_do_not_sample_explanations_by_default() {
             Ok(())
         })
         .unwrap();
+    runtime.finish_observation_session(&observation).unwrap();
 
     let flow = runtime.observe().latest_flow_diagnostics().unwrap();
     assert!(

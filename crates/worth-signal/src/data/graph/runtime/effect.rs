@@ -70,16 +70,17 @@ impl SignalGraph {
         let Some(write) = artifact_write else {
             return PreparedEffectArtifactWrite::default();
         };
-        self.telemetry_mut()
-            .storage
-            .hot_write_runtime_artifact_count += u64::from(write.runtime.is_some());
+        if let Some(mut telemetry) = self.telemetry_mut() {
+            telemetry.storage.hot_write_runtime_artifact_count +=
+                u64::from(write.runtime.is_some());
+        }
         let retained = if write.cold_intent.is_none()
             && vocabulary::runtime_policy_omits_cold_artifacts(self)
         {
-            self.telemetry_mut().storage.hot_write_cold_bypass_count += 1;
-            self.telemetry_mut()
-                .storage
-                .deferred_cold_artifact_bypass_count += 1;
+            if let Some(mut telemetry) = self.telemetry_mut() {
+                telemetry.storage.hot_write_cold_bypass_count += 1;
+                telemetry.storage.deferred_cold_artifact_bypass_count += 1;
+            }
             None
         } else {
             self.materialize_retained_artifact(write.cold_intent)

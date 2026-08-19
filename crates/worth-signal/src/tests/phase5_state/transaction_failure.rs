@@ -1,5 +1,6 @@
 use crate::facade::{
     NodeEvaluationResult, ReplayEventKind, SignalError, SignalGraph, SignalRuntime,
+    SignalRuntimePolicy,
 };
 use crate::tests::support::{version_ab, ASPECT_A};
 
@@ -47,8 +48,13 @@ fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_art
         .lineage_for_node(source)
         .to_owned_records();
     let feature_replay_before = runtime.observe().replay_for_branch(feature.id);
+    let policy_before_failure = runtime.runtime_policy();
 
     let err = runtime.transaction(&mut runtime_ctx, |tx| {
+        tx.try_set_runtime_policy(SignalRuntimePolicy::forensic())
+            .map_err(|_| {
+                SignalError::invalid_input("forensic rollback policy should be admissible")
+            })?;
         tx.mark_dirty(source, ASPECT_A)?;
         tx.read(source, &|view| {
             Ok(view.finish(
@@ -59,6 +65,11 @@ fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_art
         Err(SignalError::invalid_input("force branch-local rollback"))
     });
     assert!(err.is_err(), "failing transaction should surface an error");
+    assert_eq!(
+        runtime.runtime_policy(),
+        policy_before_failure,
+        "failed transactions must restore the installed runtime policy"
+    );
 
     assert_eq!(
         runtime.observe().branch_head_snapshot_id(feature.id),

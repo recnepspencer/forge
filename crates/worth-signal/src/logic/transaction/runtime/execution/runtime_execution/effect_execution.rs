@@ -60,7 +60,11 @@ where
             evaluator,
             executor,
         )?;
-        absorb_execution_report_telemetry(&mut self.telemetry, &report);
+        if self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        ) {
+            absorb_execution_report_telemetry(&mut self.telemetry, &report);
+        }
         self.retire_consumed_temporal_wakes_from_report(&report)?;
         Ok(report)
     }

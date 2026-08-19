@@ -132,15 +132,18 @@ impl SignalApp {
         else {
             return Ok(());
         };
+        let mut telemetry_guard = self.graph.telemetry_mut();
+        let telemetry = telemetry_guard.as_deref_mut();
         let Ok(admitted) = admit_or_error(
             HostComputedApiFamily::EasyClosure,
             node,
             &dependencies,
             prepared,
-            self.graph.telemetry_mut(),
+            telemetry,
         ) else {
             return Ok(());
         };
+        drop(telemetry_guard);
         let (prepared, reads, patch) = admitted.into_parts();
         self.values.insert(node, value);
         let mut snapshot = crate::data::dependency::DependencySnapshot::empty();

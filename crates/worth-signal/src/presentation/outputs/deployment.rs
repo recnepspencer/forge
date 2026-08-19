@@ -1,5 +1,5 @@
-use crate::diagnostics::SignalRuntimePolicy;
 use crate::logic::planner::StageExecutor;
+use crate::runtime_policy::SignalRuntimePolicy;
 
 /// Recommended deployment presets for common workload shapes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -16,6 +16,15 @@ impl ResourceRuntimeState {
         descriptor_id: ResourceDescriptorId,
         telemetry: &mut ResourceTelemetry,
     ) -> ResourceOutputContinuity {
+        self.pending_output_continuity_for_node_optional(node, descriptor_id, Some(telemetry))
+    }
+
+    pub(in crate::logic::transaction::runtime::state::resource) fn pending_output_continuity_for_node_optional(
+        &self,
+        node: ResourceNodeId,
+        descriptor_id: ResourceDescriptorId,
+        mut telemetry: Option<&mut ResourceTelemetry>,
+    ) -> ResourceOutputContinuity {
         let continuity = match (
             self.descriptors.get(&descriptor_id),
             self.current_lifecycle_summary(node),
@@ -34,7 +43,7 @@ impl ResourceRuntimeState {
             }
             _ => ResourceOutputContinuity::NoPriorOutput,
         };
-        self.record_output_continuity_decision(continuity, telemetry);
+        self.record_output_continuity_decision_optional(continuity, telemetry.as_deref_mut());
         continuity
     }
 
@@ -44,6 +53,21 @@ impl ResourceRuntimeState {
         descriptor_id: ResourceDescriptorId,
         cause: ResourceTerminalVisibilityCause,
         telemetry: &mut ResourceTelemetry,
+    ) -> (ResourceOutputContinuity, bool) {
+        self.classify_terminal_output_continuity_for_node_optional(
+            node,
+            descriptor_id,
+            cause,
+            Some(telemetry),
+        )
+    }
+
+    pub(in crate::logic::transaction::runtime::state::resource) fn classify_terminal_output_continuity_for_node_optional(
+        &self,
+        node: ResourceNodeId,
+        descriptor_id: ResourceDescriptorId,
+        cause: ResourceTerminalVisibilityCause,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> (ResourceOutputContinuity, bool) {
         let prior_output_exists = self
             .current_lifecycle_summary(node)
@@ -76,7 +100,7 @@ impl ResourceRuntimeState {
         } else {
             ResourceOutputContinuity::OutputUnavailableByPolicy
         };
-        self.record_output_continuity_decision(continuity, telemetry);
+        self.record_output_continuity_decision_optional(continuity, telemetry.as_deref_mut());
         (continuity, true)
     }
 
@@ -85,6 +109,17 @@ impl ResourceRuntimeState {
         continuity: ResourceOutputContinuity,
         telemetry: &mut ResourceTelemetry,
     ) {
+        self.record_output_continuity_decision_optional(continuity, Some(telemetry));
+    }
+
+    pub(in crate::logic::transaction::runtime::state::resource) fn record_output_continuity_decision_optional(
+        &self,
+        continuity: ResourceOutputContinuity,
+        telemetry: Option<&mut ResourceTelemetry>,
+    ) {
+        let Some(telemetry) = telemetry else {
+            return;
+        };
         telemetry.resource_output_continuity_decision_count += 1;
         match continuity {
             ResourceOutputContinuity::PriorOutputPreserved => {

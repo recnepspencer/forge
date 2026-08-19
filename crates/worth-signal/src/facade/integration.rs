@@ -36,7 +36,9 @@ pub use crate::data::reuse::{
     ReuseStrategyBoundaryAuthority,
 };
 pub use crate::data::subscriber_context::{SubscriberContext, SubscriberContextError};
-pub use crate::data::telemetry::{HostComputedTelemetry, ResourceTelemetry, RuntimeTelemetry};
+pub use crate::data::telemetry::{
+    HostComputedTelemetry, ResourceTelemetry, RuntimeTelemetry, RuntimeTelemetryMutation,
+};
 pub use crate::data::telemetry::{
     InvalidationPerformedCounter, SignalInvalidationRealizedCounters,
 };

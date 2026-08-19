@@ -5,11 +5,12 @@ use worth_foundational::{
     materialize_diagnostic_explanation_bundle, materialize_diagnostic_support_report,
     AdmissionReadinessProfile, BoundaryArtifactField, BoundaryArtifactId,
     CertificationPostureProfile, CompatibilityPostureProfile, DiagnosticRichnessProfile,
-    FoundationalDiagnosticCounterSnapshot, FoundationalDiagnosticDeliveryClass,
-    FoundationalDiagnosticExplanationInput, FoundationalDiagnosticOutcomeKind,
-    FoundationalDiagnosticPartiality, FoundationalDiagnosticSubject,
-    FoundationalDiagnosticSupportClaimStrength, FoundationalDiagnosticSupportInput,
-    FoundationalDiagnosticSurfaceAvailability, FoundationalProfileSet, FoundationalProfileSetInput,
+    ExecutionObjectiveProfile, FoundationalDiagnosticCounterSnapshot,
+    FoundationalDiagnosticDeliveryClass, FoundationalDiagnosticExplanationInput,
+    FoundationalDiagnosticOutcomeKind, FoundationalDiagnosticPartiality,
+    FoundationalDiagnosticSubject, FoundationalDiagnosticSupportClaimStrength,
+    FoundationalDiagnosticSupportInput, FoundationalDiagnosticSurfaceAvailability,
+    FoundationalProfileSet, FoundationalProfileSetInput, ObservationActivationProfile,
     RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_store_aspect_native::{

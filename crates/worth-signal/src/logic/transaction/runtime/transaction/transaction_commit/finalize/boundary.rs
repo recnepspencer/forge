@@ -53,7 +53,7 @@ where
             rollback,
             failure.clone(),
             observation,
-            *self.telemetry,
+            self.telemetry_snapshot(),
         );
         CapturedFinalization {
             result,

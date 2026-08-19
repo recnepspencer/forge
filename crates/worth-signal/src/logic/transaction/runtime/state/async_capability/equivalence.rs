@@ -89,9 +89,9 @@ where
             diagnostics_allocations,
             0,
         );
-        self.telemetry
-            .resource
-            .async_node_capability_equivalence_count += 1;
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.async_node_capability_equivalence_count += 1
+        });
 
         Ok(AsyncNodeCapabilityEquivalenceReport::new(
             declaration,

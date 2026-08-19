@@ -38,7 +38,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../logic/invalidation/routing.rs",
         Function,
         "mark_dirty_batch",
-        "5b0532190636ac36cd352e29ab24640cda73f452075810ec1ee28881445d0228"
+        "f29afe1da2da0fd4d45a84b44ace8cddc7c97e4119a4174f4f7a805f82e72457"
     ),
     owner!(
         "source-only invalidation planning",
@@ -54,7 +54,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../logic/invalidation/routing/application.rs",
         Function,
         "execute_invalidation_frontier",
-        "1b11cbe86e78ab2aa6fc28b5883e7eb855155e7d748f332fda9d18198d78a0b6"
+        "af590bcdf760cd202e428d6b32b450457f0099cdb9705fcc7ad6a229c5ca60ff"
     ),
     owner!(
         "producer-local reverse index query",
@@ -86,7 +86,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../logic/invalidation/routing/counters.rs",
         Function,
         "record_diagnostic_projection",
-        "829c2eb048fdfde215b680cf6ec09047fdd4dae736c4815053274962c1cf0ee8"
+        "659e54a587b6f50b395a2612defb073739e7776648256fc53b8218b496a4a0f6"
     ),
     owner!(
         "effect telemetry writers",
@@ -94,7 +94,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../data/graph/runtime/effect/evidence.rs",
         Method,
         "record_effect_telemetry",
-        "4987c15810a57e3803efc0f3c16ad123380a5526722ef85570000992f7dc7c3c"
+        "2bb879290c6608c49c296c0007afc882d2bc1d39e2c36085f1e6a8c2a6e34219"
     ),
     owner!(
         "effect state publication",
@@ -166,7 +166,7 @@ pub(super) const RUNTIME_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../logic/invalidation/causality/dependency_admission.rs",
         Method,
         "prepare_direct_output_causes",
-        "100c59fa552eb769743e2b98b2c011ece2cad28a715872e3cf15b419d9fcfefa"
+        "43301d4605f3a0ae3813b11634b123e58a1e9263b22a8b53899f1859b4574238"
     ),
     owner!(
         "stable predecessor resolution",

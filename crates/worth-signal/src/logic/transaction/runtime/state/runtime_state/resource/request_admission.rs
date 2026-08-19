@@ -16,7 +16,9 @@ where
     ) -> Result<ResourceRequestAdmissionReport, crate::data::error::SignalError> {
         let resource_node = intent.node();
         if !self.graph.is_alive(intent.node().node()) {
-            self.telemetry.resource.resource_non_live_owner_denial_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.resource_non_live_owner_denial_count += 1
+            });
             return Err(crate::data::error::SignalError::invalid_input(format!(
                 "cannot admit resource request for non-live owner {}",
                 intent.node().node()
@@ -59,13 +61,16 @@ where
         self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
         self.retire_superseded_resource_retry_wake(prior_retry_wake)?;
         let _ = self.resource.clear_pending_retry_for_node(resource_node);
+        let captures_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         let report = match self.resource.admit_resource_request(
             intent,
             self.graph.current_branch().id,
             current_tick,
             true,
             scheduled_timeout_admission,
-            &mut self.telemetry.resource,
+            captures_telemetry.then_some(&mut self.telemetry.resource),
         ) {
             Ok(report) => report,
             Err(err) => {

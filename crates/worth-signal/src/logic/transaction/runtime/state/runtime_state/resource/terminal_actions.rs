@@ -27,9 +27,15 @@ where
         {
             self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Cancelled)?;
         }
+        let mut telemetry = self
+            .graph
+            .captures_observation_surface(
+                crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+            )
+            .then_some(&mut self.telemetry.resource);
         let report =
             self.resource
-                .cancel_resource_request(handle, reason, &mut self.telemetry.resource);
+                .cancel_resource_request(handle, reason, telemetry.as_deref_mut());
         Ok(report)
     }
 
@@ -41,9 +47,15 @@ where
         if let Some(wake_id) = self.resource.active_timeout_wake_for_handle(handle) {
             self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Consumed)?;
         }
+        let mut telemetry = self
+            .graph
+            .captures_observation_surface(
+                crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+            )
+            .then_some(&mut self.telemetry.resource);
         let report =
             self.resource
-                .reject_resource_request(handle, reason, &mut self.telemetry.resource);
+                .reject_resource_request(handle, reason, telemetry.as_deref_mut());
         Ok(report)
     }
 
@@ -60,9 +72,15 @@ where
         {
             self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Consumed)?;
         }
+        let mut telemetry = self
+            .graph
+            .captures_observation_surface(
+                crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+            )
+            .then_some(&mut self.telemetry.resource);
         let report =
             self.resource
-                .admit_resource_timeout(handle, ready_wake, &mut self.telemetry.resource);
+                .admit_resource_timeout(handle, ready_wake, telemetry.as_deref_mut());
         Ok(report)
     }
 
@@ -70,19 +88,23 @@ where
         &mut self,
         handle: ResourceRequestHandle,
     ) -> Result<ResourceTimeoutHeartbeatExtensionReport, crate::data::error::SignalError> {
-        let (node, previous_timeout_wake_id, extension_duration) = match self
-            .resource
-            .timeout_heartbeat_extension_candidate(handle, &mut self.telemetry.resource)
-        {
-            Ok(candidate) => candidate,
-            Err(class) => {
-                return Ok(self.resource.deny_timeout_heartbeat_extension_for_report(
-                    handle.request_id(),
-                    class,
-                    &mut self.telemetry.resource,
-                ))
-            }
-        };
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        let (node, previous_timeout_wake_id, extension_duration) =
+            match self.resource.timeout_heartbeat_extension_candidate(
+                handle,
+                capture_telemetry.then_some(&mut self.telemetry.resource),
+            ) {
+                Ok(candidate) => candidate,
+                Err(class) => {
+                    return Ok(self.resource.deny_timeout_heartbeat_extension_for_report(
+                        handle.request_id(),
+                        class,
+                        capture_telemetry.then_some(&mut self.telemetry.resource),
+                    ))
+                }
+            };
         let current_tick = self.clock_basis().current_tick();
         let due_tick = crate::data::temporal::ClockTick::new(
             current_tick.get().saturating_add(extension_duration.get()),
@@ -96,7 +118,7 @@ where
             handle,
             previous_timeout_wake_id,
             extended_timeout_wake.clone(),
-            &mut self.telemetry.resource,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
         );
         if report.extended_heartbeat().is_some() {
             self.retire_temporal_wake(

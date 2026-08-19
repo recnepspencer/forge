@@ -55,6 +55,28 @@ These requirements are compatible only if we separate:
 1. **semantic traceability**
 2. **trace materialization cost**
 
+### M10 policy vocabulary
+
+The runtime now names two independent policy axes through
+`worth-foundational`: `ExecutionObjectiveProfile` (`LatencyBounded`, `Balanced`,
+or `Throughput`) and `ObservationActivationProfile` (`OnDemand` or
+`Continuous`).  A diagnostics tier remains a descriptive preset input; it is
+not the planner's runtime authority.  Signal policy must progress through
+`request -> admitted -> resolved -> installed`, and planners consume the
+installed policy rather than reading a caller-supplied tier directly.
+
+`Throughput` is therefore a hot-path objective, not permission to weaken graph
+truth, deterministic ordering, durability, or stable lineage.  Optional
+diagnostic, provenance, replay, and structural work is either explicitly
+activated and disclosed or represented as a typed absence.  No timing claim is
+authoritative by itself.
+
+The public constructor `SignalRuntimePolicy::operational()` is the
+Throughput + OnDemand production posture.  The idle-versus-introspective
+packet records that this posture completes more work than Forensic
+Continuous; it does not introduce a second constructor.  Parallel
+region-disjoint execution remains the next Throughput scaling investment.
+
 ### What this document is not
 
 This is not a list of performance tips.

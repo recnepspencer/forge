@@ -47,7 +47,7 @@ pub(super) fn generate(
         scale,
         outputs,
         LocalityGenerationContract::traced(
-            partition_action_traces(source, correlated_source),
+            partition_action_traces(source, correlated_source, &dimensions),
             lane,
         ),
     )
@@ -79,48 +79,72 @@ fn append_whole_partition_detail_twin(
 fn partition_action_traces(
     source: LocalitySemanticOutputId,
     correlated_source: LocalitySemanticOutputId,
+    dimensions: &PartitionScale,
 ) -> Vec<FinancialLocalityActionTrace> {
+    let mutation_width = approximately_one_percent_width(dimensions);
     vec![
         factor_trace(
             FinancialLocalityTraceIdentity::PrimaryMutation,
-            vec![mutation(MutationDeclaration {
-                producer: source,
-                aspect: FinancialAspect::Curve,
-                scope: LocalityScope::detail(0, 0),
-                admission_generation: 2,
-                publication_order: 0,
-            })],
+            scoped_curve_mutations(source, mutation_width, false),
         ),
         factor_trace(
             FinancialLocalityTraceIdentity::PartitionWholeRegion,
-            vec![mutation(MutationDeclaration {
-                producer: source,
-                aspect: FinancialAspect::Curve,
-                scope: LocalityScope::partition(0),
-                admission_generation: 2,
-                publication_order: 0,
-            })],
+            scoped_curve_mutations(source, mutation_width, true),
         ),
-        factor_trace(
-            FinancialLocalityTraceIdentity::PartitionCorrelatedScopes,
-            vec![
+        factor_trace(FinancialLocalityTraceIdentity::PartitionCorrelatedScopes, {
+            let mut mutations = scoped_curve_mutations(source, mutation_width, false);
+            mutations.extend([
                 mutation(MutationDeclaration {
                     producer: correlated_source,
                     aspect: FinancialAspect::Price,
                     scope: LocalityScope::detail(500, 1),
-                    admission_generation: 2,
-                    publication_order: 0,
+                    admission_generation: 2 + mutation_width as u64,
+                    publication_order: mutation_width as u32,
                 }),
                 mutation(MutationDeclaration {
                     producer: correlated_source,
                     aspect: FinancialAspect::Volatility,
                     scope: LocalityScope::detail(501, 2),
-                    admission_generation: 3,
-                    publication_order: 1,
+                    admission_generation: 3 + mutation_width as u64,
+                    publication_order: mutation_width as u32 + 1,
                 }),
-            ],
-        ),
+            ]);
+            mutations
+        }),
     ]
+}
+
+fn approximately_one_percent_width(dimensions: &PartitionScale) -> u16 {
+    let total_outputs = 1usize
+        + 1
+        + usize::from(dimensions.instruments_per_matching_region)
+        + usize::from(dimensions.matching_memberships.saturating_sub(1))
+        + 2 * usize::from(dimensions.regions.saturating_sub(1))
+        + 3;
+    total_outputs.div_ceil(100) as u16
+}
+
+fn scoped_curve_mutations(
+    source: LocalitySemanticOutputId,
+    width: u16,
+    whole_partition: bool,
+) -> Vec<FinancialLocalityMutation> {
+    (0..width)
+        .map(|index| {
+            let scope = if whole_partition {
+                LocalityScope::partition(index)
+            } else {
+                LocalityScope::detail(index, 0)
+            };
+            mutation(MutationDeclaration {
+                producer: source,
+                aspect: FinancialAspect::Curve,
+                scope,
+                admission_generation: 2 + u64::from(index),
+                publication_order: u32::from(index),
+            })
+        })
+        .collect()
 }
 
 fn factor_trace(

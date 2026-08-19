@@ -64,7 +64,7 @@ impl<'a> GraphDiagnostics<'a> {
     }
 
     pub fn summary_now(&self) -> GraphSummary {
-        self.summary(self.graph.runtime_policy().tier)
+        self.summary(self.graph.installed_runtime_policy().tier())
     }
 
     pub fn history(&self, profile: DiagnosticsTier) -> ExecutionHistorySummary {
@@ -72,7 +72,7 @@ impl<'a> GraphDiagnostics<'a> {
     }
 
     pub fn history_now(&self) -> ExecutionHistorySummary {
-        self.history(self.graph.runtime_policy().tier)
+        self.history(self.graph.installed_runtime_policy().tier())
     }
 
     pub fn health(&self, profile: DiagnosticsTier) -> GraphSummary {

@@ -35,9 +35,9 @@ pub enum FrontierRouteEvidenceReason {
     ValidationHeavyStage,
     BelowFullParallelThreshold,
     FullParallelUnsupportedByMutableEngine,
-    AdmittedOperational,
-    AdmittedDevelopment,
-    AdmittedForensic,
+    AdmittedThroughput,
+    AdmittedBalanced,
+    AdmittedLatencyBounded,
     AdmittedProofSafeGroupedConcurrent,
 }
 
@@ -45,9 +45,9 @@ impl FrontierRouteEvidenceReason {
     pub fn is_parallel_admitted(self) -> bool {
         matches!(
             self,
-            Self::AdmittedOperational
-                | Self::AdmittedDevelopment
-                | Self::AdmittedForensic
+            Self::AdmittedThroughput
+                | Self::AdmittedBalanced
+                | Self::AdmittedLatencyBounded
                 | Self::AdmittedProofSafeGroupedConcurrent
         )
     }
@@ -68,9 +68,9 @@ impl FrontierRouteEvidenceReason {
             Self::FullParallelUnsupportedByMutableEngine => {
                 Some(FrontierRouteSerialFallbackReason::FullParallelUnsupportedByMutableEngine)
             }
-            Self::AdmittedOperational
-            | Self::AdmittedDevelopment
-            | Self::AdmittedForensic
+            Self::AdmittedThroughput
+            | Self::AdmittedBalanced
+            | Self::AdmittedLatencyBounded
             | Self::AdmittedProofSafeGroupedConcurrent => None,
         }
     }
@@ -87,9 +87,9 @@ impl From<ParallelAdmissionReason> for FrontierRouteEvidenceReason {
             ParallelAdmissionReason::FullParallelUnsupportedByMutableEngine => {
                 Self::FullParallelUnsupportedByMutableEngine
             }
-            ParallelAdmissionReason::AdmittedOperational => Self::AdmittedOperational,
-            ParallelAdmissionReason::AdmittedDevelopment => Self::AdmittedDevelopment,
-            ParallelAdmissionReason::AdmittedForensic => Self::AdmittedForensic,
+            ParallelAdmissionReason::AdmittedThroughput => Self::AdmittedThroughput,
+            ParallelAdmissionReason::AdmittedBalanced => Self::AdmittedBalanced,
+            ParallelAdmissionReason::AdmittedLatencyBounded => Self::AdmittedLatencyBounded,
             ParallelAdmissionReason::AdmittedProofSafeGroupedConcurrent => {
                 Self::AdmittedProofSafeGroupedConcurrent
             }

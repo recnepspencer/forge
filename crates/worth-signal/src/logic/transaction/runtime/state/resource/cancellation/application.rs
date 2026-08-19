@@ -37,7 +37,7 @@ impl ResourceRuntimeState {
         request_id: ResourceRequestId,
         reason: ResourceCancellationReason,
         visited: &mut std::collections::BTreeSet<ResourceRequestId>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<AppliedResourceCancellation> {
         if !visited.insert(request_id) {
             return None;
@@ -50,11 +50,17 @@ impl ResourceRuntimeState {
         }
 
         let policy = self.cancellation_policy_basis(&in_flight);
-        let prepared =
-            self.prepare_cancellation_application(in_flight.clone(), reason, policy, telemetry);
-        self.apply_cancellation_transition(&prepared, telemetry);
-        let host_advisory = self.build_host_cancellation_advisory(&prepared, telemetry);
-        let grace_window = self.build_cancellation_grace_window(&prepared, telemetry);
+        let prepared = self.prepare_cancellation_application(
+            in_flight.clone(),
+            reason,
+            policy,
+            telemetry.as_deref_mut(),
+        );
+        self.apply_cancellation_transition(&prepared, telemetry.as_deref_mut());
+        let host_advisory =
+            self.build_host_cancellation_advisory(&prepared, telemetry.as_deref_mut());
+        let grace_window =
+            self.build_cancellation_grace_window(&prepared, telemetry.as_deref_mut());
         let cancelled = CancelledResourceRequest::new(
             prepared.handle,
             prepared.cancellation_ordinal,
@@ -67,7 +73,7 @@ impl ResourceRuntimeState {
         let propagated_dependents = self.propagate_dependent_cancellations(
             &prepared.policy.declared_dependent_cancellation_nodes,
             visited,
-            telemetry,
+            telemetry.as_deref_mut(),
         );
         Some(AppliedResourceCancellation {
             cancelled,
@@ -101,15 +107,15 @@ impl ResourceRuntimeState {
         in_flight: InFlightResourceRequest,
         reason: ResourceCancellationReason,
         policy: CancellationPolicyBasis,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> PreparedCancellationApplication {
         let lifecycle_ordinal = self.issue_lifecycle_ordinal();
         let cancellation_ordinal = self.issue_cancellation_ordinal();
-        let (output_continuity, _) = self.classify_terminal_output_continuity_for_node(
+        let (output_continuity, _) = self.classify_terminal_output_continuity_for_node_optional(
             in_flight.node(),
             in_flight.descriptor_id(),
             ResourceTerminalVisibilityCause::Cancellation,
-            telemetry,
+            telemetry.as_deref_mut(),
         );
         let transition = ResourceLifecycleTransition::new(
             in_flight.node(),
@@ -140,7 +146,7 @@ impl ResourceRuntimeState {
     fn apply_cancellation_transition(
         &mut self,
         prepared: &PreparedCancellationApplication,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) {
         self.in_flight_by_request
             .get_mut(&prepared.handle.request_id())
@@ -159,18 +165,22 @@ impl ResourceRuntimeState {
         self.clear_latest_denied_completion_for_node(prepared.node);
         self.retry_budget_ledger
             .clear_request_generation(prepared.handle.generation());
-        telemetry.resource_cancellation_policy_decision_count += 1;
-        telemetry.resource_runtime_hard_cancellation_count += 1;
-        telemetry.resource_cancellation_count += 1;
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_cancellation_policy_decision_count += 1;
+            telemetry.resource_runtime_hard_cancellation_count += 1;
+            telemetry.resource_cancellation_count += 1;
+        }
     }
 
     fn build_host_cancellation_advisory(
         &self,
         prepared: &PreparedCancellationApplication,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<ResourceHostCancellationAdvisory> {
         prepared.policy.requests_host_advisory.then(|| {
-            telemetry.resource_host_cancellation_advisory_count += 1;
+            if let Some(telemetry) = telemetry {
+                telemetry.resource_host_cancellation_advisory_count += 1;
+            }
             ResourceHostCancellationAdvisory::requested(prepared.policy.cancellation_digest.clone())
         })
     }
@@ -178,10 +188,12 @@ impl ResourceRuntimeState {
     fn build_cancellation_grace_window(
         &self,
         prepared: &PreparedCancellationApplication,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<ResourceCancellationGraceWindow> {
         prepared.policy.grace_period.map(|duration| {
-            telemetry.resource_cancellation_grace_period_count += 1;
+            if let Some(telemetry) = telemetry {
+                telemetry.resource_cancellation_grace_period_count += 1;
+            }
             ResourceCancellationGraceWindow::new(duration)
         })
     }
@@ -190,7 +202,7 @@ impl ResourceRuntimeState {
         &mut self,
         dependent_nodes: &[ResourceNodeId],
         visited: &mut std::collections::BTreeSet<ResourceRequestId>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Vec<CancelledResourceRequest> {
         let mut propagated = Vec::new();
         for dependent_node in dependent_nodes {
@@ -203,11 +215,13 @@ impl ResourceRuntimeState {
                 dependent_request_id,
                 ResourceCancellationReason::RuntimePolicy,
                 visited,
-                telemetry,
+                telemetry.as_deref_mut(),
             ) else {
                 continue;
             };
-            telemetry.resource_dependent_cancellation_propagation_count += 1;
+            if let Some(telemetry) = telemetry.as_deref_mut() {
+                telemetry.resource_dependent_cancellation_propagation_count += 1;
+            }
             propagated.push(dependent_cancellation.cancelled.clone());
             propagated.extend(dependent_cancellation.propagated_dependents);
         }

@@ -53,10 +53,9 @@ impl SignalGraph {
 
     #[allow(dead_code)]
     pub(crate) fn rebuild_subscriber_index_from_dependencies(&mut self) -> Result<(), SignalError> {
-        self.observation
-            .telemetry
-            .storage
-            .subscriber_index_rebuild_count += 1;
+        if let Some(mut telemetry) = self.telemetry_mut() {
+            telemetry.storage.subscriber_index_rebuild_count += 1;
+        }
         let live_nodes = self.live_node_ids();
         let mut rebuilt = vec![Vec::<NodeId>::new(); self.arena_capacity()];
 
@@ -220,7 +219,9 @@ impl SignalGraph {
         if plan.is_empty() {
             return Ok(());
         }
-        self.telemetry_mut().invalidation.subscriber_repair_breadth += plan.as_slice().len() as u64;
+        if let Some(mut telemetry) = self.telemetry_mut() {
+            telemetry.invalidation.subscriber_repair_breadth += plan.as_slice().len() as u64;
+        }
 
         for rewrite in plan.as_slice() {
             self.set_subscribers_sorted(rewrite.source, rewrite.subscribers.as_slice())?;

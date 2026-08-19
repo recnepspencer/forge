@@ -7,7 +7,7 @@ impl ResourceRuntimeState {
         &mut self,
         admitted: AdmittedResourceRequest,
         queue_capacity: u64,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<ResourceManagedQueueBinding, ResourceManagedQueueDenial> {
         let state = ResourceManagedQueueState::new(queue_capacity).map_err(|class| {
             ResourceManagedQueueDenial::new(
@@ -16,7 +16,9 @@ impl ResourceRuntimeState {
                 ResourceManagedQueueCounters::none(),
             )
         })?;
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         let request_id = admitted.handle().request_id();
         let request = self
             .in_flight_by_request
@@ -67,7 +69,7 @@ impl ResourceRuntimeState {
         &mut self,
         binding: &ResourceManagedQueueBinding,
         width: u64,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<ResourceManagedQueueMutationReport, ResourceManagedQueueDenial> {
         self.mutate_managed_queue(
             binding,
@@ -80,7 +82,7 @@ impl ResourceRuntimeState {
         &mut self,
         binding: &ResourceManagedQueueBinding,
         width: u64,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<ResourceManagedQueueMutationReport, ResourceManagedQueueDenial> {
         self.mutate_managed_queue(
             binding,
@@ -94,9 +96,11 @@ impl ResourceRuntimeState {
         binding: &ResourceManagedQueueBinding,
         width: u64,
         kind: ResourceManagedQueueMutationKind,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<ResourceManagedQueueMutationReport, ResourceManagedQueueDenial> {
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         let request_id = binding.request().request_id();
         let request = self
             .in_flight_by_request

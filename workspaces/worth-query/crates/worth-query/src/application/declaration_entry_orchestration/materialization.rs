@@ -1,9 +1,10 @@
 use worth_foundational::facade::{
     plan_foundational_profile_materialization_with_elision, profiles, AdmissionReadinessProfile,
     BoundaryArtifactTarget, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalBoundaryEvidenceMaterializationProfile,
-    FoundationalDescriptiveElisionProfile, FoundationalMaterializationCost,
-    MaterializedFoundationalProfileSet, RetentionDeliveryProfile, SupportPostureProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile,
+    FoundationalBoundaryEvidenceMaterializationProfile, FoundationalDescriptiveElisionProfile,
+    FoundationalMaterializationCost, MaterializedFoundationalProfileSet,
+    ObservationActivationProfile, RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_proof::TransitionOutcome;
 
@@ -270,6 +271,8 @@ pub(crate) fn materialized_profile_for_tier(
             .diagnostic_richness(DiagnosticRichnessProfile::OperationalMinimal)
             .support_posture(SupportPostureProfile::InternalOnly)
             .compatibility_posture(CompatibilityPostureProfile::CompatibilityLowered)
+            .execution_objective(ExecutionObjectiveProfile::Throughput)
+            .observation_activation(ObservationActivationProfile::Continuous)
             .admission_readiness(AdmissionReadinessProfile::Admitted)
             .retention_delivery(RetentionDeliveryProfile::Retained)
             .certification_posture(CertificationPostureProfile::Uncertified)
@@ -280,6 +283,8 @@ pub(crate) fn materialized_profile_for_tier(
             .diagnostic_richness(DiagnosticRichnessProfile::Standard)
             .support_posture(SupportPostureProfile::SupportReady)
             .compatibility_posture(CompatibilityPostureProfile::CompatibilityLowered)
+            .execution_objective(ExecutionObjectiveProfile::Balanced)
+            .observation_activation(ObservationActivationProfile::Continuous)
             .admission_readiness(AdmissionReadinessProfile::Admitted)
             .retention_delivery(RetentionDeliveryProfile::Retained)
             .certification_posture(CertificationPostureProfile::Uncertified)
@@ -290,6 +295,8 @@ pub(crate) fn materialized_profile_for_tier(
             .diagnostic_richness(DiagnosticRichnessProfile::Forensic)
             .support_posture(SupportPostureProfile::CertificationReady)
             .compatibility_posture(CompatibilityPostureProfile::CompatibilityLowered)
+            .execution_objective(ExecutionObjectiveProfile::Balanced)
+            .observation_activation(ObservationActivationProfile::Continuous)
             .admission_readiness(AdmissionReadinessProfile::Admitted)
             .retention_delivery(RetentionDeliveryProfile::Retained)
             .certification_posture(CertificationPostureProfile::EvidenceBacked)
@@ -322,5 +329,6 @@ pub(crate) fn descriptive_materialization_cost_for_tier(
     plan_foundational_profile_materialization_with_elision::<BoundaryArtifactTarget>(
         &profile, elision,
     )
+    .expect("declaration-entry materialization planning should succeed")
     .cost()
 }

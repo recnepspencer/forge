@@ -171,6 +171,7 @@ Status meanings:
 | Tolerance / epsilon gates | Implemented | Comparator policies include exact and tolerance-based suppression |
 | Deterministic execution behavior | Implemented | Current traversal/order semantics are intentionally deterministic |
 | Telemetry baseline | Implemented | Runtime counters exist for evaluation, invalidation, rollback, GC, and gating |
+| Execution objective and observation activation policy | Implemented | Foundational objective/activation vocabulary lowers through admitted, resolved, and installed Signal policy; throughput remains an objective, not a truth or durability waiver |
 | Serialization-friendly graph state | Implemented | Core graph and node data are serializable, though snapshot API is not yet first-class |
 
 #### Incremental computation semantics
