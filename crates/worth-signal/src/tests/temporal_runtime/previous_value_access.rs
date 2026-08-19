@@ -1,7 +1,7 @@
 use crate::facade::{
     Aspect, AspectVersion, ClockAdvanceRequest, ClockDomain, ClockTick, NodeEvaluationResult,
     OutputIdentity, PreviousValueRevision, SignalError, SignalGraph, SignalRuntime,
-    TemporalCondition, TemporalWakeRetirementReason,
+    SignalRuntimePolicy, TemporalCondition, TemporalWakeRetirementReason,
 };
 
 #[test]
@@ -70,6 +70,62 @@ fn ready_temporal_wake_grants_previous_value_access_and_captures_committed_state
             .storage
             .reconstructed_artifact_read_count,
         reconstructed_reads_before
+    );
+}
+
+#[test]
+fn on_demand_previous_value_access_does_not_capture_optional_telemetry() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    runtime.set_runtime_policy(SignalRuntimePolicy::operational());
+    let source = runtime.graph_mut().node().build();
+
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.read(source, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                        Aspect::new(0),
+                        7,
+                    )]))
+                    .with_output_identity("on-demand-previous-value"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    let wake = runtime
+        .schedule_temporal_wake(TemporalCondition::after(2).unwrap(), ClockTick::new(2))
+        .unwrap();
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(2),
+        ))
+        .unwrap();
+    let ready = runtime.promote_temporal_wake_ready(wake.id()).unwrap();
+    let access = runtime
+        .grant_temporal_previous_value_access(ready.id())
+        .unwrap();
+
+    let reference = runtime.previous_temporal_value(&access, source).unwrap();
+
+    assert_eq!(reference.revision(), PreviousValueRevision::new(1));
+    assert_eq!(reference.branch_id(), runtime.current_branch().id);
+    assert_eq!(reference.access_wake_id(), ready.id());
+    assert_eq!(reference.node(), source);
+    assert_eq!(reference.captured_at_tick(), ClockTick::new(2));
+    assert_eq!(reference.aspect_version().get(Aspect::new(0)), 7);
+    assert_eq!(
+        reference.output_identity().map(OutputIdentity::as_str),
+        Some("on-demand-previous-value")
+    );
+
+    assert_eq!(
+        runtime.telemetry().temporal.previous_value_reference_count,
+        0,
+        "OnDemand previous-value access must not write optional telemetry"
     );
 }
 

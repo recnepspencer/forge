@@ -27,6 +27,7 @@ pub mod resource;
 pub mod reuse;
 pub mod subscriber_context;
 pub mod telemetry;
+mod telemetry_mutation;
 pub mod temporal;
 pub mod tier;
 pub mod tier_policy_table;

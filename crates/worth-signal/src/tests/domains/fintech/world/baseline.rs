@@ -76,7 +76,7 @@ pub(in crate::tests::domains::fintech) struct FinancialReproductionTuple {
     pub(in crate::tests::domains::fintech) economic_delta: i64,
 }
 
-pub(in crate::tests::domains::fintech) struct CausallyCompleteFinancialBaseline {
+pub(crate) struct CausallyCompleteFinancialBaseline {
     compiled: CompiledFinancialWorld,
     fresh: FreshFinancialRecompute,
     reproduction: FinancialReproductionTuple,
@@ -129,7 +129,7 @@ impl CausallyCompleteFinancialBaseline {
         &self.compiled
     }
 
-    pub(in crate::tests::domains::fintech) fn into_compiled(self) -> CompiledFinancialWorld {
+    pub(crate) fn into_compiled(self) -> CompiledFinancialWorld {
         self.compiled
     }
 

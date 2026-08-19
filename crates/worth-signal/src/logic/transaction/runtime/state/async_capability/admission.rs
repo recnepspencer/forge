@@ -83,9 +83,9 @@ where
             .descriptor_for_node(ResourceNodeId::from_node(node))
             .map(|descriptor| descriptor.lowered_policy_bundle().bundle_digest().clone())
             .ok_or_else(|| {
-                self.telemetry
-                    .resource
-                    .resource_undeclared_owner_denial_count += 1;
+                self.with_resource_telemetry(|telemetry| {
+                    telemetry.resource_undeclared_owner_denial_count += 1;
+                });
                 SignalError::invalid_input(format!(
                     "cannot use async capability APIs for undeclared node {}",
                     node
@@ -148,15 +148,15 @@ where
                 Some(AsyncNodeConditionBlockClass::TemporalConditionNotReady),
                 lifecycle,
             ) if lifecycle != ResourceLifecycleClass::Unrequested => {
-                self.telemetry
-                    .resource
-                    .async_node_revalidation_eligibility_count += 1;
+                self.with_resource_telemetry(|telemetry| {
+                    telemetry.async_node_revalidation_eligibility_count += 1;
+                });
                 AsyncNodeAdmissionClass::RefreshEligibleNoNewLineage
             }
             (_, Some(_), _) => {
-                self.telemetry
-                    .resource
-                    .async_node_condition_blocked_admission_count += 1;
+                self.with_resource_telemetry(|telemetry| {
+                    telemetry.async_node_condition_blocked_admission_count += 1;
+                });
                 AsyncNodeAdmissionClass::BlockedByCondition
             }
             _ => AsyncNodeAdmissionClass::AdmittedNewLineage,
@@ -165,9 +165,9 @@ where
         if class != AsyncNodeAdmissionClass::BlockedByCondition
             && self.is_interior_async_gate(node)?
         {
-            self.telemetry
-                .resource
-                .async_node_interior_gate_admission_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.async_node_interior_gate_admission_count += 1;
+            });
         }
 
         self.record_locality_counters(mode, class, &contract, dirty_aspects, &dirty_scoped_aspects);
@@ -232,14 +232,14 @@ where
             return;
         }
         if !dirty_aspects.is_empty() && contract.projection.consumes != AspectMask::ALL {
-            self.telemetry
-                .resource
-                .async_node_aspect_local_refresh_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.async_node_aspect_local_refresh_count += 1;
+            });
         }
         if !dirty_scoped_aspects.is_empty() && contract.projection.consumes_partitions.is_some() {
-            self.telemetry
-                .resource
-                .async_node_partition_local_refresh_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.async_node_partition_local_refresh_count += 1;
+            });
         }
     }
 
@@ -264,9 +264,9 @@ where
                     .then_some(AsyncNodeConditionBlockClass::DeltaThresholdNotCrossed))
             }
             EvaluationCondition::Temporal(condition) => {
-                self.telemetry
-                    .resource
-                    .async_node_condition_governed_admission_count += 1;
+                self.with_resource_telemetry(|telemetry| {
+                    telemetry.async_node_condition_governed_admission_count += 1;
+                });
                 Ok((!self.temporal_condition_ready(node, condition)?)
                     .then_some(AsyncNodeConditionBlockClass::TemporalConditionNotReady))
             }
@@ -284,9 +284,9 @@ where
         node: NodeId,
         reference: &TemporalPreviousValueReference,
     ) -> Result<Option<AsyncNodeConditionBlockClass>, SignalError> {
-        self.telemetry
-            .resource
-            .async_node_previous_value_governed_admission_count += 1;
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.async_node_previous_value_governed_admission_count += 1;
+        });
         let current_output_identity = self
             .graph
             .observe()
@@ -353,9 +353,9 @@ where
                 )
             }
         };
-        self.telemetry
-            .resource
-            .record_boundary_performance_envelope(envelope);
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.record_boundary_performance_envelope(envelope);
+        });
         envelope
     }
 }

@@ -1178,7 +1178,7 @@ artifact-bearing surface depends on it:
   before their attachments can be interpreted consistently
 - Milestone 8 performance vocabulary needs explicit materialization seams and
   cost carriers before layout/performance reporting can attach honestly
-- Milestone 9 migrations need one shared boundary artifact language before
+- Milestone 11 migrations need one shared boundary artifact language before
   crate-local envelope dialects can retire
 
 This milestone must remain before Milestone 5 because branch/merge/commit

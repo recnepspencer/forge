@@ -7,9 +7,18 @@ impl ResourceRuntimeState {
         &self,
         telemetry: &mut ResourceTelemetry,
     ) -> ResourceRuntimeSummaryReadReport {
-        telemetry.resource_retained_summary_read_count += 1;
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        self.summary_read_report_optional(Some(telemetry))
+    }
+
+    pub fn summary_read_report_optional(
+        &self,
+        mut telemetry: Option<&mut ResourceTelemetry>,
+    ) -> ResourceRuntimeSummaryReadReport {
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_retained_summary_read_count += 1;
+        }
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::summary_read(),
         );
         ResourceRuntimeSummaryReadReport::new(self.summary(), performance)

@@ -123,7 +123,10 @@ impl CompiledFinancialWorld {
         self.runtime.set_runtime_policy(
             SignalRuntimePolicy::for_tier(diagnostics_tier)
                 .with_history_limit(8)
-                .with_detail_limit(4),
+                .with_detail_limit(4)
+                .with_observation_activation(
+                    worth_foundational::ObservationActivationProfile::Continuous,
+                ),
         );
         let risk = self.handles.position(instrument).risk;
         self.runtime

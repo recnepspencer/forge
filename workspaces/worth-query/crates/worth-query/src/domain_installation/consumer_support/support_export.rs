@@ -1,6 +1,7 @@
 use worth_foundational::facade::{
     profiles, AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, RetentionDeliveryProfile, SupportPostureProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalProfileSet,
+    ObservationActivationProfile, RetentionDeliveryProfile, SupportPostureProfile,
     SupportProfiledArtifact,
 };
 use worth_proof::TransitionOutcome;
@@ -111,34 +112,20 @@ pub(super) fn materialize_foundational_support_projection(
             posture: postures[dimension.index()],
         }
     });
-    let all_available = rows
-        .iter()
-        .all(|row| row.posture == WorthQueryConsumerSupportPosture::Supported);
-    let has_deferred = rows
-        .iter()
-        .any(|row| row.posture == WorthQueryConsumerSupportPosture::Deferred);
-    let payload = WorthQueryFoundationalConsumerSupportProjection {
-        binding_identity: binding_identity.into(),
-        basis_identity: basis_identity.into(),
-        installation_generation: installation_generation.ordinal(),
-        freshness: if is_current {
-            WorthQueryConsumerSupportBoundaryFreshness::Current
-        } else {
-            WorthQueryConsumerSupportBoundaryFreshness::Stale
-        },
-        availability: if all_available {
-            WorthQueryConsumerSupportBoundaryAvailability::FullyAvailable
-        } else {
-            WorthQueryConsumerSupportBoundaryAvailability::RequiredDimensionsAvailable
-        },
-        degradation: if has_deferred {
-            WorthQueryConsumerSupportBoundaryDegradation::UnrequiredDimensionsDeferred
-        } else {
-            WorthQueryConsumerSupportBoundaryDegradation::None
-        },
+    let payload = consumer_support_export_payload(
+        binding_identity,
+        basis_identity,
+        installation_generation,
+        is_current,
         rows,
-    };
-    let profile = profiles()
+    );
+    let profile = consumer_support_export_profile()?;
+    attach_consumer_support_export(profile, payload)
+}
+
+fn consumer_support_export_profile(
+) -> Result<FoundationalProfileSet, WorthQueryFoundationalSupportExportDenial> {
+    profiles()
         .set()
         .diagnostic_richness(DiagnosticRichnessProfile::Standard)
         .support_posture(SupportPostureProfile::SupportReady)
@@ -146,8 +133,73 @@ pub(super) fn materialize_foundational_support_projection(
         .admission_readiness(AdmissionReadinessProfile::Admitted)
         .retention_delivery(RetentionDeliveryProfile::Retained)
         .certification_posture(CertificationPostureProfile::EvidenceBacked)
+        .execution_objective(ExecutionObjectiveProfile::Balanced)
+        .observation_activation(ObservationActivationProfile::Continuous)
         .compose()
-        .map_err(|_| WorthQueryFoundationalSupportExportDenial::ProfileConstruction)?;
+        .map_err(|_| WorthQueryFoundationalSupportExportDenial::ProfileConstruction)
+}
+
+fn consumer_support_export_payload(
+    binding_identity: &str,
+    basis_identity: &str,
+    installation_generation: super::super::WorthQueryDomainInstallationGeneration,
+    is_current: bool,
+    rows: [WorthQueryConsumerSupportBoundaryRow; WorthQueryConsumerSupportDimension::COUNT],
+) -> WorthQueryFoundationalConsumerSupportProjection {
+    WorthQueryFoundationalConsumerSupportProjection {
+        binding_identity: binding_identity.into(),
+        basis_identity: basis_identity.into(),
+        installation_generation: installation_generation.ordinal(),
+        freshness: consumer_support_export_freshness(is_current),
+        availability: consumer_support_export_availability(&rows),
+        degradation: consumer_support_export_degradation(&rows),
+        rows,
+    }
+}
+
+fn consumer_support_export_freshness(
+    is_current: bool,
+) -> WorthQueryConsumerSupportBoundaryFreshness {
+    if is_current {
+        WorthQueryConsumerSupportBoundaryFreshness::Current
+    } else {
+        WorthQueryConsumerSupportBoundaryFreshness::Stale
+    }
+}
+
+fn consumer_support_export_availability(
+    rows: &[WorthQueryConsumerSupportBoundaryRow; WorthQueryConsumerSupportDimension::COUNT],
+) -> WorthQueryConsumerSupportBoundaryAvailability {
+    if rows
+        .iter()
+        .all(|row| row.posture == WorthQueryConsumerSupportPosture::Supported)
+    {
+        WorthQueryConsumerSupportBoundaryAvailability::FullyAvailable
+    } else {
+        WorthQueryConsumerSupportBoundaryAvailability::RequiredDimensionsAvailable
+    }
+}
+
+fn consumer_support_export_degradation(
+    rows: &[WorthQueryConsumerSupportBoundaryRow; WorthQueryConsumerSupportDimension::COUNT],
+) -> WorthQueryConsumerSupportBoundaryDegradation {
+    if rows
+        .iter()
+        .any(|row| row.posture == WorthQueryConsumerSupportPosture::Deferred)
+    {
+        WorthQueryConsumerSupportBoundaryDegradation::UnrequiredDimensionsDeferred
+    } else {
+        WorthQueryConsumerSupportBoundaryDegradation::None
+    }
+}
+
+fn attach_consumer_support_export(
+    profile: FoundationalProfileSet,
+    payload: WorthQueryFoundationalConsumerSupportProjection,
+) -> Result<
+    SupportProfiledArtifact<WorthQueryFoundationalConsumerSupportProjection>,
+    WorthQueryFoundationalSupportExportDenial,
+> {
     let requested = worth_foundational::facade::request_foundational_profile_set(profile);
     let admitted = match profiles().progression().admit_same(requested) {
         TransitionOutcome::Success(admitted) => admitted,

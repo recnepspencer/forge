@@ -35,7 +35,7 @@ fn admitted_profile_basis_uses_profile_domain_and_stable_family_order() {
     assert_eq!(ready.payload().domain(), CanonicalBasisDomain::Profile);
     let entries = foundational_profile_canonical_basis_entries(ready.payload());
     let loci: Vec<_> = entries.iter().map(|entry| entry.locus().clone()).collect();
-    assert_eq!(loci.len(), 6);
+    assert_eq!(loci.len(), 8);
     assert!(entries
         .iter()
         .all(|entry| entry.kind() == CanonicalBasisEntryKind::Profile));
@@ -46,6 +46,8 @@ fn admitted_profile_basis_uses_profile_domain_and_stable_family_order() {
             CanonicalBasisLocus::Named("certification_posture".into()),
             CanonicalBasisLocus::Named("compatibility_posture".into()),
             CanonicalBasisLocus::Named("diagnostic_richness".into()),
+            CanonicalBasisLocus::Named("execution_objective".into()),
+            CanonicalBasisLocus::Named("observation_activation".into()),
             CanonicalBasisLocus::Named("retention_delivery".into()),
             CanonicalBasisLocus::Named("support_posture".into()),
         ]

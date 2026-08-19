@@ -7,7 +7,7 @@ pub(super) fn record_semantic_artifacts(
     node: crate::data::handle::NodeId,
     rewiring: Option<&RewiringSummary>,
 ) -> Result<(), SignalError> {
-    let policy = graph.runtime_policy();
+    let policy = graph.installed_runtime_policy();
     if !policy.retains_explanation_facts() && !policy.retains_provenance_facts() {
         return Ok(());
     }

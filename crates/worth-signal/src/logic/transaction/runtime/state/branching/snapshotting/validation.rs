@@ -25,8 +25,10 @@ where
         }
         let mut graph =
             SignalGraph::restore_from_checkpoint_authority(&snapshot.checkpoint_image.authority)?;
-        graph.telemetry_mut().checkpoint.restore_authority_breadth +=
-            graph.active_node_count() as u64;
+        let active_nodes = graph.active_node_count() as u64;
+        graph.with_telemetry(|telemetry| {
+            telemetry.checkpoint.restore_authority_breadth += active_nodes
+        });
         Ok(graph)
     }
 
@@ -68,10 +70,9 @@ where
                 }
             }
         }
-        graph
-            .telemetry_mut()
-            .checkpoint
-            .restore_required_derived_breadth += rebuild_breadth;
+        graph.with_telemetry(|telemetry| {
+            telemetry.checkpoint.restore_required_derived_breadth += rebuild_breadth;
+        });
         graph.readmit_checkpoint_causes()?;
         Ok(())
     }
@@ -80,7 +81,6 @@ where
         graph: &mut SignalGraph,
         snapshot: &SignalSnapshotV1,
         current_diagnostics: &crate::diagnostics::state::DiagnosticsState,
-        current_policy: crate::diagnostics::policy::SignalRuntimePolicy,
         intent: SnapshotRestoreIntent,
     ) {
         graph
@@ -93,16 +93,18 @@ where
             intent.artifacts,
             SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
         ) {
-            graph.diagnostics_state_mut().set_policy(current_policy);
+            let installed = graph.installed_runtime_policy();
+            graph
+                .diagnostics_state_mut()
+                .set_installed_policy(installed);
         }
-        graph
-            .telemetry_mut()
-            .checkpoint
-            .restore_diagnostic_richness_breadth += snapshot.diagnostics.recent_history.len()
-            as u64
+        let diagnostics_breadth = snapshot.diagnostics.recent_history.len() as u64
             + snapshot.diagnostics.replay_frames.len() as u64
             + snapshot.diagnostics.explanation_facts.len() as u64
             + snapshot.diagnostics.provenance_facts.len() as u64
             + snapshot.diagnostics.lineage_records.len() as u64;
+        graph.with_telemetry(|telemetry| {
+            telemetry.checkpoint.restore_diagnostic_richness_breadth += diagnostics_breadth;
+        });
     }
 }

@@ -83,7 +83,7 @@ impl SignalGraph {
         }
         let previous_hot = self.node_runtime_artifact_hot(effect.operational.node)?;
         let cold_intent =
-            build_cold_artifact_intent(effect, &self.runtime_policy().retention_budget);
+            build_cold_artifact_intent(effect, &self.installed_runtime_policy().retention_budget());
         let write = Some(HotArtifactWrite {
             runtime: Some(RuntimeArtifactState::new(
                 RuntimeArtifactHot {

@@ -18,31 +18,35 @@ use std::sync::{Arc, Mutex};
 use crate::data::aspect::AspectVersion;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
-use crate::data::output::{ChangedRegion, NodeEvaluationResult};
-use crate::facade::{NodeState, RuntimeMetrics, SignalGraph, SignalRuntime, SignalRuntimePolicy};
+use crate::facade::{NodeState, RuntimeMetrics, SignalGraph, SignalRuntime};
 
-use super::baseline::{seal_financial_baseline, CausallyCompleteFinancialBaseline};
 use super::{
     FinancialConsumerRole, FinancialEconomicSnapshot, FinancialSemanticProjection,
     FinancialWorldDefinition, InstrumentId, MarketFactorKey, SemanticOutputKey,
 };
 use crate::tests::domains::fintech::execution_tier::FintechTier;
 
-use self::evaluation::FinancialEvaluationProgram;
-use self::runtime_finance::runtime_financial_snapshot;
-use self::topology::{build_semantic_topology, factor_signal_aspect};
+use self::topology::factor_signal_aspect;
 
 type FinancialRuntime = SignalRuntime<(), (), (), (), FintechTier>;
 
-pub(in crate::tests::domains::fintech) use compiled_authority::CompiledFinancialWorld;
-use compiled_authority::{CompiledFinancialWorldKind, CompiledPortfolioFinancialWorld};
+use compiled_authority::source_result;
+use compiled_authority::CompiledFinancialWorldKind;
+pub(crate) use compiled_authority::{
+    compile_financial_world, compile_financial_world_with_policy, CompiledFinancialWorld,
+};
 pub(in crate::tests::domains::fintech) use dependency_rewire::FinancialDependencyRewireEvidence;
 pub(in crate::tests::domains::fintech) use factor_sequence::FinancialFactorSequenceEvidence;
 pub(in crate::tests::domains::fintech) use lifecycle_composition::FinancialBranchLifecycleCompletion;
-pub(in crate::tests::domains::fintech) use locality_execution::{
+pub(in crate::tests::domains::fintech) use locality_execution::strategy_work_projection;
+pub(crate) use locality_execution::{
     compile_financial_locality_world, compile_financial_locality_world_at_tier,
-    strategy_work_projection, FinancialLocalityRedObservation, FinancialPerformedCanonicalWork,
-    FinancialPerformedWorkOrigin, FinancialRestoreLifecycleEvidence,
+    compile_financial_locality_world_with_policy, FinancialPerformanceBatchReport,
+    LocalityOptionalObservationInventory,
+};
+pub(in crate::tests::domains::fintech) use locality_execution::{
+    FinancialLocalityRedObservation, FinancialPerformedCanonicalWork, FinancialPerformedWorkOrigin,
+    FinancialRestoreLifecycleEvidence,
 };
 pub(in crate::tests::domains::fintech) use quote_translation::FinancialQuoteTranslationEvidence;
 
@@ -63,7 +67,7 @@ pub(in crate::tests::domains::fintech) struct ConsumerSemanticHandle(
 );
 
 #[derive(Clone, Debug)]
-pub(in crate::tests::domains::fintech) struct FinancialSemanticHandles {
+pub(crate) struct FinancialSemanticHandles {
     pub(super) factors: BTreeMap<MarketFactorKey, FactorSourceHandle>,
     pub(super) positions: BTreeMap<InstrumentId, PositionSemanticHandles>,
     pub(super) consumers: BTreeMap<FinancialConsumerRole, ConsumerSemanticHandle>,
@@ -91,7 +95,7 @@ impl FinancialSemanticHandles {
         self.consumers[&role]
     }
 
-    pub(in crate::tests::domains::fintech) fn node_for(&self, key: SemanticOutputKey) -> NodeId {
+    pub(crate) fn node_for(&self, key: SemanticOutputKey) -> NodeId {
         match key {
             SemanticOutputKey::Factor(factor) => self.factor(factor).0,
             SemanticOutputKey::Valuation(instrument) => self.position(instrument).valuation,
@@ -109,7 +113,7 @@ impl FinancialSemanticHandles {
 }
 
 #[derive(Clone, Default)]
-pub(in crate::tests::domains::fintech) struct FinancialEvaluationLedger {
+pub(crate) struct FinancialEvaluationLedger {
     counts: Arc<Mutex<BTreeMap<SemanticOutputKey, u64>>>,
 }
 
@@ -126,7 +130,7 @@ impl FinancialEvaluationLedger {
             .clear();
     }
 
-    pub(in crate::tests::domains::fintech) fn observed_work(&self) -> BTreeSet<SemanticOutputKey> {
+    pub(crate) fn observed_work(&self) -> BTreeSet<SemanticOutputKey> {
         self.counts
             .lock()
             .expect("financial ledger lock poisoned")
@@ -145,204 +149,35 @@ impl FinancialEvaluationLedger {
     }
 }
 
-pub(in crate::tests::domains::fintech) fn compile_financial_world(
-    definition: FinancialWorldDefinition,
-) -> Result<CausallyCompleteFinancialBaseline, SignalError> {
-    if definition.locality().is_some() {
-        return Err(SignalError::invalid_input(
-            "locality courtrooms require compile_financial_locality_world",
-        ));
-    }
-    let mut runtime = SignalRuntime::builder(SignalGraph::new())
-        .with_kernel_defaults()
-        .with_tiers::<FintechTier>()
-        .build();
-    runtime.set_runtime_policy(
-        SignalRuntimePolicy::fintech()
-            .with_history_limit(8)
-            .with_detail_limit(4),
-    );
-    let handles = build_semantic_topology(&mut runtime.graph_mut(), &definition)?;
-    let economic_snapshot = runtime_financial_snapshot(&definition);
-    let projection = FinancialSemanticProjection::initial(&economic_snapshot);
-    let ledger = FinancialEvaluationLedger::default();
-    let baseline_dependency_revisions = projection
-        .iter()
-        .map(|(key, _)| {
-            Ok((
-                key,
-                runtime
-                    .graph()
-                    .dependency_revision(handles.node_for(key))?
-                    .0,
-            ))
-        })
-        .collect::<Result<BTreeMap<_, _>, SignalError>>()?;
-    let portfolio = CompiledPortfolioFinancialWorld {
-        runtime,
-        definition,
-        economic_snapshot,
-        projection,
-        handles,
-        ledger,
-        baseline_dependency_revisions,
-        baseline_aspect_versions: BTreeMap::new(),
-    };
-    let mut compiled = CompiledFinancialWorld {
-        kind: CompiledFinancialWorldKind::Portfolio(portfolio),
-    };
-    compiled.establish_initial_truth()?;
-    compiled.baseline_aspect_versions = compiled
-        .projection
-        .iter()
-        .map(|(key, _)| Ok((key, compiled.node_version(key)?)))
-        .collect::<Result<BTreeMap<_, _>, SignalError>>()?;
-    seal_financial_baseline(compiled)
-}
-
 impl CompiledFinancialWorld {
-    fn program(&self) -> FinancialEvaluationProgram {
-        FinancialEvaluationProgram::new(
-            self.definition.clone(),
-            self.projection.clone(),
-            self.handles.clone(),
-            self.ledger.clone(),
-        )
+    pub(crate) fn semantic_output_keys(&self) -> BTreeSet<SemanticOutputKey> {
+        self.projection.iter().map(|(key, _)| key).collect()
     }
 
-    fn establish_initial_truth(&mut self) -> Result<(), SignalError> {
-        let program = self.program();
-        let evaluator = program.evaluator();
-        let factor_nodes = self
-            .handles
-            .factors
-            .iter()
-            .map(|(factor, handle)| (*factor, handle.0))
-            .collect::<Vec<_>>();
-        let risk_nodes = self
-            .definition
-            .positions()
-            .iter()
-            .map(|position| self.handles.position(position.instrument).risk)
-            .collect::<Vec<_>>();
-        let consumer_nodes = self
-            .definition
-            .consumers()
-            .iter()
-            .map(|consumer| self.handles.consumer(consumer.role).0)
-            .collect::<Vec<_>>();
-        self.runtime.transaction(&mut (), |tx| {
-            for (factor, node) in &factor_nodes {
-                let result = source_result(&program, *factor);
-                tx.target(*node)
-                    .on_demand()
-                    .read(&move |view| Ok(view.finish(result.clone())))?;
-            }
-            for node in &risk_nodes {
-                tx.read(*node, &evaluator)?;
-            }
-            for node in &consumer_nodes {
-                tx.read(*node, &evaluator)?;
-            }
-            Ok(())
-        })?;
-        self.ledger.clear();
-        Ok(())
-    }
-
-    pub(in crate::tests::domains::fintech) fn apply_factor_change(
-        &mut self,
-        next_definition: FinancialWorldDefinition,
-        factor: MarketFactorKey,
-    ) -> Result<(), SignalError> {
-        let next_snapshot = runtime_financial_snapshot(&next_definition);
-        let next_projection = self.projection.advance(&next_snapshot);
-        let program = FinancialEvaluationProgram::new(
-            next_definition.clone(),
-            next_projection.clone(),
-            self.handles.clone(),
-            self.ledger.clone(),
-        );
-        let evaluator = program.evaluator();
-        let source = self.handles.factor(factor).0;
-        let valuation_wave = self
-            .definition
-            .positions()
-            .iter()
-            .map(|position| self.handles.position(position.instrument).valuation)
-            .collect::<Vec<_>>();
-        let risk_wave = self
-            .definition
-            .positions()
-            .iter()
-            .map(|position| self.handles.position(position.instrument).risk)
-            .collect::<Vec<_>>();
-        let consumer_wave = self
-            .definition
-            .consumers()
-            .iter()
-            .map(|consumer| self.handles.consumer(consumer.role).0)
-            .collect::<Vec<_>>();
-        let source_result = source_result(&program, factor);
-        let ledger = self.ledger.clone();
-        self.ledger.clear();
-        self.runtime.transaction(&mut (), |tx| {
-            tx.mark_changed(source, factor_signal_aspect(&next_definition, factor))?;
-            ledger.record(SemanticOutputKey::Factor(factor));
-            tx.target(source)
-                .on_demand()
-                .read(&move |view| Ok(view.finish(source_result.clone())))?;
-            Ok(())
-        })?;
-        for wave in [valuation_wave, risk_wave, consumer_wave] {
-            let dirty = wave
-                .into_iter()
-                .filter(|node| {
-                    self.runtime
-                        .graph()
-                        .get_state(*node)
-                        .is_ok_and(|state| !matches!(state, NodeState::Clean))
-                })
-                .collect::<Vec<_>>();
-            self.runtime.transaction(&mut (), |tx| {
-                for node in &dirty {
-                    tx.read(*node, &evaluator)?;
-                }
-                Ok(())
-            })?;
-        }
-        self.definition = next_definition;
-        self.economic_snapshot = next_snapshot;
-        self.projection = next_projection;
-        Ok(())
-    }
-
-    pub(in crate::tests::domains::fintech) fn definition(&self) -> &FinancialWorldDefinition {
+    pub(crate) fn definition(&self) -> &FinancialWorldDefinition {
         match &self.kind {
             CompiledFinancialWorldKind::Portfolio(portfolio) => &portfolio.definition,
             CompiledFinancialWorldKind::Locality(locality) => locality.definition(),
         }
     }
 
-    pub(in crate::tests::domains::fintech) fn economic_snapshot(
-        &self,
-    ) -> &FinancialEconomicSnapshot {
+    pub(crate) fn economic_snapshot(&self) -> &FinancialEconomicSnapshot {
         &self.economic_snapshot
     }
 
-    pub(in crate::tests::domains::fintech) fn projection(&self) -> &FinancialSemanticProjection {
+    pub(crate) fn projection(&self) -> &FinancialSemanticProjection {
         &self.projection
     }
 
-    pub(in crate::tests::domains::fintech) fn handles(&self) -> &FinancialSemanticHandles {
+    pub(crate) fn handles(&self) -> &FinancialSemanticHandles {
         &self.handles
     }
 
-    pub(in crate::tests::domains::fintech) fn ledger(&self) -> &FinancialEvaluationLedger {
+    pub(crate) fn ledger(&self) -> &FinancialEvaluationLedger {
         &self.ledger
     }
 
-    pub(in crate::tests::domains::fintech) fn graph(&self) -> &SignalGraph {
+    pub(crate) fn graph(&self) -> &SignalGraph {
         self.runtime.graph()
     }
 
@@ -363,10 +198,7 @@ impl CompiledFinancialWorld {
             .node_aspect_version(self.handles.node_for(key))
     }
 
-    pub(in crate::tests::domains::fintech) fn node_state(
-        &self,
-        key: SemanticOutputKey,
-    ) -> Result<NodeState, SignalError> {
+    pub(crate) fn node_state(&self, key: SemanticOutputKey) -> Result<NodeState, SignalError> {
         self.runtime.graph().get_state(self.handles.node_for(key))
     }
 
@@ -376,14 +208,4 @@ impl CompiledFinancialWorld {
     ) -> crate::data::aspect::Aspect {
         factor_signal_aspect(&self.definition, factor)
     }
-}
-
-fn source_result(
-    program: &FinancialEvaluationProgram,
-    factor: MarketFactorKey,
-) -> NodeEvaluationResult {
-    let (partition, detail) = factor.partition();
-    program
-        .result_for(SemanticOutputKey::Factor(factor))
-        .with_changed_region(ChangedRegion::new(partition).with_detail(detail))
 }

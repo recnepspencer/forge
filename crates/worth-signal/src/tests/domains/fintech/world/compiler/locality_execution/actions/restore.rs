@@ -62,7 +62,9 @@ pub(super) fn certify_restore_lifecycle(
         .restore_branch_snapshot(analysis.clone(), &analysis_snapshot)?;
     world.runtime.switch_branch(analysis.clone())?;
     let restore_replay = world.runtime.replay_for_branch(analysis.id);
-    if restore_replay
+    if world.runtime.graph().captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::ReplayDetail,
+    ) && restore_replay
         .frames
         .iter()
         .all(|frame| frame.kind != ReplayEventKind::SnapshotRestored)
@@ -101,8 +103,10 @@ pub(super) fn certify_restore_lifecycle(
         world.runtime.graph().pending_causes(target)?,
     )?;
 
-    let rebuilt = current_ready(&mut world.runtime.graph_mut(), target)?;
-    execute_ready(world.runtime.graph(), rebuilt, || Ok(()))?;
+    // Admission proves that the restored cause can form a current readiness
+    // token.  Leave that token unconsumed so the subsequent production plan
+    // settles the complete dependency wave and its downstream outputs.
+    let _rebuilt = current_ready(&mut world.runtime.graph_mut(), target)?;
     let fresh = FreshFinancialLocalityRecompute::run_for_trace(
         world.locality_definition(),
         &world.locality_definition().action_traces()[0],
@@ -137,6 +141,31 @@ pub(super) fn certify_restore_lifecycle(
         .runtime
         .execute_prepared_plan(&plan, &(), &evaluator)?;
     rerun.execute_prepared_plan(&rerun_plan, &(), &evaluator)?;
+    // A single plan can expose a newly dirty downstream wave only after its
+    // upstream producer commits.  Continue with fresh plans until the
+    // restored and independently reconstructed graphs are both settled; this
+    // keeps the lifecycle oracle honest for deep partitioned chains.
+    for _ in 0..=world.locality_definition().outputs().len() {
+        let remaining = unsettled_nodes(world, world.runtime.graph())?;
+        if remaining.is_empty() {
+            break;
+        }
+        let next_plan = world
+            .runtime
+            .graph_mut()
+            .build_evaluation_plan(&remaining, EvaluationRequestMode::Default)?;
+        world
+            .runtime
+            .execute_prepared_plan(&next_plan, &(), &evaluator)?;
+    }
+    for _ in 0..=world.locality_definition().outputs().len() {
+        let remaining = unsettled_nodes(world, &rerun)?;
+        if remaining.is_empty() {
+            break;
+        }
+        let next_plan = rerun.build_evaluation_plan(&remaining, EvaluationRequestMode::Default)?;
+        rerun.execute_prepared_plan(&next_plan, &(), &evaluator)?;
+    }
     for (output, expected) in fresh.shocked_values() {
         let node = world.handles[output];
         let restored_value = committed_value(world.runtime.graph(), node)?;
@@ -149,11 +178,13 @@ pub(super) fn certify_restore_lifecycle(
         }
     }
     let replay = world.runtime.replay_for_branch(analysis.id);
-    if replay.frames.is_empty()
+    if world.runtime.graph().captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::ReplayDetail,
+    ) && (replay.frames.is_empty()
         || replay
             .frames
             .iter()
-            .any(|frame| frame.branch_id != analysis.id)
+            .any(|frame| frame.branch_id != analysis.id))
     {
         let frame_summary = replay
             .frames

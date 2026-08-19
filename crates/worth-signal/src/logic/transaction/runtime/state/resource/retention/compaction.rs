@@ -25,7 +25,15 @@ impl ResourceRuntimeState {
         max_reclaimed: u32,
         telemetry: &mut ResourceTelemetry,
     ) -> ResourceLifecycleRetentionCompactionReport {
-        self.compact_lifecycle_history_with_budget(
+        self.compact_lifecycle_history_optional(max_reclaimed, Some(telemetry))
+    }
+
+    pub fn compact_lifecycle_history_optional(
+        &mut self,
+        max_reclaimed: u32,
+        telemetry: Option<&mut ResourceTelemetry>,
+    ) -> ResourceLifecycleRetentionCompactionReport {
+        self.compact_lifecycle_history_with_budget_optional(
             max_reclaimed,
             ResourceRetentionCompactionBudget::unbounded(),
             telemetry,
@@ -38,11 +46,24 @@ impl ResourceRuntimeState {
         retained_history_limit: Option<u32>,
         telemetry: &mut ResourceTelemetry,
     ) -> ResourceLifecycleRetentionCompactionReport {
+        self.compact_lifecycle_history_with_retained_limit_optional(
+            max_reclaimed,
+            retained_history_limit,
+            Some(telemetry),
+        )
+    }
+
+    pub fn compact_lifecycle_history_with_retained_limit_optional(
+        &mut self,
+        max_reclaimed: u32,
+        retained_history_limit: Option<u32>,
+        telemetry: Option<&mut ResourceTelemetry>,
+    ) -> ResourceLifecycleRetentionCompactionReport {
         let budget = retained_history_limit.map_or_else(
             ResourceRetentionCompactionBudget::unbounded,
             ResourceRetentionCompactionBudget::retained_history_limit_only,
         );
-        self.compact_lifecycle_history_with_budget(max_reclaimed, budget, telemetry)
+        self.compact_lifecycle_history_with_budget_optional(max_reclaimed, budget, telemetry)
     }
 
     pub fn compact_lifecycle_history_with_budget(
@@ -50,6 +71,15 @@ impl ResourceRuntimeState {
         max_reclaimed: u32,
         budget: ResourceRetentionCompactionBudget,
         telemetry: &mut ResourceTelemetry,
+    ) -> ResourceLifecycleRetentionCompactionReport {
+        self.compact_lifecycle_history_with_budget_optional(max_reclaimed, budget, Some(telemetry))
+    }
+
+    pub fn compact_lifecycle_history_with_budget_optional(
+        &mut self,
+        max_reclaimed: u32,
+        budget: ResourceRetentionCompactionBudget,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceLifecycleRetentionCompactionReport {
         let selected = self.select_compaction_candidates(max_reclaimed);
         let mut counts = LifecycleCompactionCounts {
@@ -60,15 +90,15 @@ impl ResourceRuntimeState {
         self.apply_retained_history_limit(budget.retained_lifecycle_history_limit(), &mut counts);
         self.apply_denied_completion_limit(budget.retained_denied_completion_limit(), &mut counts);
         self.apply_retry_lineage_limit(budget.retained_retry_lineage_limit(), &mut counts);
-        self.record_compaction_telemetry(&counts, telemetry);
+        self.record_compaction_telemetry(&counts, telemetry.as_deref_mut());
 
         let retained_history_width = self.retained_in_flight_history_by_request.len() as u32;
         let retained_denied_completion_width = self.denied_completions.len() as u32;
         let retained_retry_lineage_width = self.retained_retry_lineage_by_ordinal.len() as u32;
         let hot_in_flight_width = self.in_flight_by_request.len() as u32;
         let policy_provenance_digest = self.compaction_policy_provenance_digest();
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::lifecycle_retention_compaction(
                 counts.selected_terminal_count,
                 counts.reclaimed_in_flight_count,
@@ -286,28 +316,31 @@ impl ResourceRuntimeState {
     fn record_compaction_telemetry(
         &self,
         counts: &LifecycleCompactionCounts,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) {
-        telemetry.resource_hot_in_flight_compaction_count += 1;
-        telemetry.resource_in_flight_retired_record_count = telemetry
-            .resource_in_flight_retired_record_count
-            .saturating_add(counts.selected_terminal_count as u64);
-        telemetry.resource_in_flight_reclaimed_record_count = telemetry
-            .resource_in_flight_reclaimed_record_count
-            .saturating_add(counts.reclaimed_in_flight_count as u64);
-        telemetry.resource_retained_lifecycle_history_write_count = telemetry
-            .resource_retained_lifecycle_history_write_count
-            .saturating_add(counts.retained_history_write_count as u64);
-        telemetry.resource_retained_lifecycle_history_pruned_count = telemetry
-            .resource_retained_lifecycle_history_pruned_count
-            .saturating_add(counts.retained_history_pruned_count as u64);
-        telemetry.resource_retained_denied_completion_count = self.denied_completions.len() as u64;
-        telemetry.resource_retained_retry_lineage_count =
-            self.retained_retry_lineage_by_ordinal.len() as u64;
-        telemetry.resource_retained_history_unavailable_count = telemetry
-            .resource_retained_history_unavailable_count
-            .saturating_add(counts.retained_history_unavailable_count as u64);
-        telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_hot_in_flight_compaction_count += 1;
+            telemetry.resource_in_flight_retired_record_count = telemetry
+                .resource_in_flight_retired_record_count
+                .saturating_add(counts.selected_terminal_count as u64);
+            telemetry.resource_in_flight_reclaimed_record_count = telemetry
+                .resource_in_flight_reclaimed_record_count
+                .saturating_add(counts.reclaimed_in_flight_count as u64);
+            telemetry.resource_retained_lifecycle_history_write_count = telemetry
+                .resource_retained_lifecycle_history_write_count
+                .saturating_add(counts.retained_history_write_count as u64);
+            telemetry.resource_retained_lifecycle_history_pruned_count = telemetry
+                .resource_retained_lifecycle_history_pruned_count
+                .saturating_add(counts.retained_history_pruned_count as u64);
+            telemetry.resource_retained_denied_completion_count =
+                self.denied_completions.len() as u64;
+            telemetry.resource_retained_retry_lineage_count =
+                self.retained_retry_lineage_by_ordinal.len() as u64;
+            telemetry.resource_retained_history_unavailable_count = telemetry
+                .resource_retained_history_unavailable_count
+                .saturating_add(counts.retained_history_unavailable_count as u64);
+            telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
+        }
     }
 
     fn compaction_policy_provenance_digest(&self) -> String {

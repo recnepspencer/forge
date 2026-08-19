@@ -118,6 +118,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    runtime.with_telemetry(|telemetry| telemetry.transaction.scoped_candidate_lowering_count += 1);
     let source_graph = states.source_state.graph();
     let target_state = states
         .target_state_owned
@@ -126,10 +127,11 @@ where
         .ok_or_else(|| SignalError::invalid_input("merge target branch state disappeared"))?;
     let target_graph = target_state.graph();
     if !states.source_state.mutation_ledger().boundary_established {
-        runtime
-            .telemetry
-            .transaction
-            .scoped_candidate_broad_scan_denial_count += 1;
+        runtime.with_telemetry(|telemetry| {
+            telemetry
+                .transaction
+                .scoped_candidate_broad_scan_denial_count += 1
+        });
         return Err(SignalError::branch_merge_failed(
             BranchMergeFailureKind::UnsupportedMergeStrategy,
             "branch merge requires an established mutation-journal boundary; whole-live branch scans are no longer admitted",
@@ -153,46 +155,10 @@ where
     );
     let target_identity_journal = target_state.mutation_ledger().structural_merge_journal();
 
-    runtime
-        .telemetry
-        .transaction
-        .scoped_candidate_lowering_count += 1;
     let mut scoped_candidates =
         LoweredScopedMergeCandidateSet::lower(request, &source_journal, source_graph)?;
-    match scoped_candidates.scope_family() {
-        BranchMergeRequestScopeFamily::FullBranch => {
-            runtime
-                .telemetry
-                .transaction
-                .scoped_candidate_full_branch_count += 1;
-        }
-        BranchMergeRequestScopeFamily::SelectedNodes => {
-            runtime
-                .telemetry
-                .transaction
-                .scoped_candidate_selected_node_count += 1;
-        }
-        BranchMergeRequestScopeFamily::SelectedAspects => {
-            runtime
-                .telemetry
-                .transaction
-                .scoped_candidate_selected_aspect_count += 1;
-        }
-    }
-    let breadth = scoped_candidates.breadth_summary();
-    runtime
-        .telemetry
-        .transaction
-        .scoped_candidate_requested_scope_breadth += breadth.requested_scope_width;
-    runtime
-        .telemetry
-        .transaction
-        .scoped_candidate_admitted_breadth += breadth.admitted_candidate_width;
-    runtime
-        .telemetry
-        .transaction
-        .scoped_candidate_skipped_breadth += breadth.skipped_scope_width;
-    runtime.telemetry.transaction.scoped_candidate_no_op_breadth += breadth.no_op_scope_width;
+    let candidate_scope_family = scoped_candidates.scope_family();
+    let breadth = scoped_candidates.breadth_summary().clone();
 
     let source_nodes = scoped_candidates.admitted_candidate_nodes().to_vec();
     let planned_candidates = scoped_candidates.planned_candidates().clone();
@@ -222,28 +188,48 @@ where
     }
     scoped_candidates =
         scoped_candidates.with_support_closure_nodes(conservative_support_nodes.iter().copied());
-    runtime
-        .telemetry
-        .transaction
-        .scoped_candidate_support_closure_breadth +=
-        scoped_candidates.breadth_summary().support_closure_width;
-    runtime.telemetry.transaction.scoped_merge_admission_count += 1;
+    let support_closure_width = scoped_candidates.breadth_summary().support_closure_width;
     let admission = classify_initial_scoped_merge_admission(
         request,
         &scoped_candidates,
         source_graph,
         request.normalized_request().request().strategy_hint,
     );
+    runtime.with_telemetry(|telemetry| {
+        match candidate_scope_family {
+            BranchMergeRequestScopeFamily::FullBranch => {
+                telemetry.transaction.scoped_candidate_full_branch_count += 1
+            }
+            BranchMergeRequestScopeFamily::SelectedNodes => {
+                telemetry.transaction.scoped_candidate_selected_node_count += 1
+            }
+            BranchMergeRequestScopeFamily::SelectedAspects => {
+                telemetry.transaction.scoped_candidate_selected_aspect_count += 1
+            }
+        }
+        telemetry
+            .transaction
+            .scoped_candidate_requested_scope_breadth += breadth.requested_scope_width;
+        telemetry.transaction.scoped_candidate_admitted_breadth += breadth.admitted_candidate_width;
+        telemetry.transaction.scoped_candidate_skipped_breadth += breadth.skipped_scope_width;
+        telemetry.transaction.scoped_candidate_no_op_breadth += breadth.no_op_scope_width;
+        telemetry
+            .transaction
+            .scoped_candidate_support_closure_breadth += support_closure_width;
+        telemetry.transaction.scoped_merge_admission_count += 1;
+    });
     let scoped_candidates = match admission {
         worth_proof::TransitionOutcome::Success(ready) => ready.scoped_candidates().clone(),
         outcome => {
-            runtime.telemetry.transaction.scoped_merge_denial_count +=
-                u64::from(matches!(outcome, worth_proof::TransitionOutcome::Denied(_)));
-            runtime.telemetry.transaction.scoped_merge_unavailable_count += u64::from(!matches!(
-                outcome,
-                worth_proof::TransitionOutcome::Success(_)
-                    | worth_proof::TransitionOutcome::Denied(_)
-            ));
+            runtime.with_telemetry(|telemetry| {
+                telemetry.transaction.scoped_merge_denial_count +=
+                    u64::from(matches!(outcome, worth_proof::TransitionOutcome::Denied(_)));
+                telemetry.transaction.scoped_merge_unavailable_count += u64::from(!matches!(
+                    outcome,
+                    worth_proof::TransitionOutcome::Success(_)
+                        | worth_proof::TransitionOutcome::Denied(_)
+                ));
+            });
             return Err(scoped_admission_outcome_to_signal_error(outcome));
         }
     };

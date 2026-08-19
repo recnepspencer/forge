@@ -62,9 +62,9 @@ where
                 )),
                 0,
             );
-        self.telemetry
-            .resource
-            .async_node_hierarchy_historical_parity_count += 1;
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.async_node_hierarchy_historical_parity_count += 1
+        });
         Ok(AsyncNodeHierarchyHistoricalParityReport::new(
             handle.node(),
             hierarchy_replay_summary,

@@ -1,13 +1,16 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use super::DiagnosticsState;
-use crate::diagnostics::policy::SignalRuntimePolicy;
+use crate::runtime_policy::SignalRuntimePolicy;
 use crate::state::SignalBranchId;
 
 impl DiagnosticsState {
     pub fn authority_carrier_clone(&self) -> Self {
         let mut state = Self {
-            policy: self.policy,
+            request_mirror: self.request_mirror,
+            installed_retention_budget: self.installed_retention_budget,
+            installed_tier: self.installed_tier,
+            installed_frontier_tracing_policy: self.installed_frontier_tracing_policy,
             latest_flow: None,
             latest_failure: None,
             latest_rollback: None,
@@ -38,6 +41,7 @@ impl DiagnosticsState {
             latest_frontier_execution: None,
             latest_invalidation_planning_estimate: None,
             latest_invalidation_trace_records: Vec::new(),
+            observation_activation_mask: self.observation_activation_mask,
         };
         state.bootstrap_defaults();
         state
@@ -47,7 +51,11 @@ impl DiagnosticsState {
 impl Default for DiagnosticsState {
     fn default() -> Self {
         let mut state = Self {
-            policy: SignalRuntimePolicy::default(),
+            request_mirror: SignalRuntimePolicy::default(),
+            installed_retention_budget: SignalRuntimePolicy::default().retention_budget,
+            installed_tier: SignalRuntimePolicy::default().tier,
+            installed_frontier_tracing_policy: SignalRuntimePolicy::default()
+                .frontier_tracing_policy,
             latest_flow: None,
             latest_failure: None,
             latest_rollback: None,
@@ -78,6 +86,7 @@ impl Default for DiagnosticsState {
             latest_frontier_execution: None,
             latest_invalidation_planning_estimate: None,
             latest_invalidation_trace_records: Vec::new(),
+            observation_activation_mask: 0,
         };
         state.bootstrap_defaults();
         state

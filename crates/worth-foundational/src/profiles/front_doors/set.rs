@@ -1,8 +1,8 @@
 use super::super::{
     request_foundational_profile_set, AdmissionReadinessProfile, CertificationPostureProfile,
-    CompatibilityPostureProfile, DiagnosticRichnessProfile, FoundationalProfileSet,
-    FoundationalProfileSetInput, RequestedFoundationalProfileArtifact, RetentionDeliveryProfile,
-    SupportPostureProfile,
+    CompatibilityPostureProfile, DiagnosticRichnessProfile, ExecutionObjectiveProfile,
+    FoundationalProfileSet, FoundationalProfileSetInput, ObservationActivationProfile,
+    RequestedFoundationalProfileArtifact, RetentionDeliveryProfile, SupportPostureProfile,
 };
 use super::vocabulary::{
     FoundationalProfileFrontDoorConstructionDenial, FoundationalProfileFrontDoorFamily,
@@ -16,6 +16,8 @@ pub struct FoundationalProfileSetFrontDoor {
     admission_readiness: Option<AdmissionReadinessProfile>,
     retention_delivery: Option<RetentionDeliveryProfile>,
     certification_posture: Option<CertificationPostureProfile>,
+    execution_objective: Option<ExecutionObjectiveProfile>,
+    observation_activation: Option<ObservationActivationProfile>,
     duplicate_family: Option<FoundationalProfileFrontDoorFamily>,
 }
 
@@ -28,6 +30,8 @@ impl FoundationalProfileSetFrontDoor {
             admission_readiness: None,
             retention_delivery: None,
             certification_posture: None,
+            execution_objective: None,
+            observation_activation: None,
             duplicate_family: None,
         }
     }
@@ -86,6 +90,24 @@ impl FoundationalProfileSetFrontDoor {
         self
     }
 
+    pub fn execution_objective(mut self, profile: ExecutionObjectiveProfile) -> Self {
+        let duplicate = self.execution_objective.replace(profile).is_some();
+        self.record_assignment(
+            FoundationalProfileFrontDoorFamily::ExecutionObjective,
+            duplicate,
+        );
+        self
+    }
+
+    pub fn observation_activation(mut self, profile: ObservationActivationProfile) -> Self {
+        let duplicate = self.observation_activation.replace(profile).is_some();
+        self.record_assignment(
+            FoundationalProfileFrontDoorFamily::ObservationActivation,
+            duplicate,
+        );
+        self
+    }
+
     pub fn compose(
         self,
     ) -> Result<FoundationalProfileSet, FoundationalProfileFrontDoorConstructionDenial> {
@@ -119,6 +141,14 @@ impl FoundationalProfileSetFrontDoor {
             certification_posture: Self::require(
                 self.certification_posture,
                 FoundationalProfileFrontDoorFamily::CertificationPosture,
+            )?,
+            execution_objective: Self::require(
+                self.execution_objective,
+                FoundationalProfileFrontDoorFamily::ExecutionObjective,
+            )?,
+            observation_activation: Self::require(
+                self.observation_activation,
+                FoundationalProfileFrontDoorFamily::ObservationActivation,
             )?,
         })
         .map_err(FoundationalProfileFrontDoorConstructionDenial::IllegalComposition)

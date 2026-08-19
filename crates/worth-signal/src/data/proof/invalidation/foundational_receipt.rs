@@ -9,6 +9,7 @@ pub enum InvalidationFoundationalReceiptDenial {
     Bundle(worth_foundational::FoundationalPerformanceBundleConstructionDenial),
     CounterRows(worth_foundational::FoundationalCounterBackedPerformanceReceiptConstructionDenial),
     ExcludedRecoveryWork,
+    ObservationSurfaceUnavailable,
 }
 
 pub type FoundationalInvalidationPerformanceReceipt =
@@ -21,6 +22,12 @@ pub fn attach_foundational_invalidation_performance_receipt(
     performed: SignalInvalidationExecutionReceipt,
     expected: SignalInvalidationRealizedCounters,
 ) -> Result<FoundationalInvalidationPerformanceReceipt, InvalidationFoundationalReceiptDenial> {
+    if !performed
+        .request()
+        .includes(crate::logic::transaction::SignalObservationSurface::PerformedCounters)
+    {
+        return Err(InvalidationFoundationalReceiptDenial::ObservationSurfaceUnavailable);
+    }
     if performed
         .realized_counters()
         .value(InvalidationPerformedCounter::RecoveryReconstructionWork)

@@ -1,9 +1,9 @@
 use worth_foundational::facade::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalProfileNarrowingKind,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalProfileNarrowingKind,
     FoundationalProfileNarrowingRecord, FoundationalProfileProgressionDenial,
-    FoundationalProfileSet, FoundationalProfileSetInput, RetentionDeliveryProfile,
-    SupportPostureProfile,
+    FoundationalProfileSet, FoundationalProfileSetInput, ObservationActivationProfile,
+    RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_query_publication::facade::domain_computation::{
     publish_application_authorization_denial, WorthQueryApplicationAuthorizationProfileStage,
@@ -90,6 +90,8 @@ fn profile(richness: DiagnosticRichnessProfile) -> FoundationalProfileSet {
         diagnostic_richness: richness,
         support_posture: SupportPostureProfile::SupportReady,
         compatibility_posture: CompatibilityPostureProfile::CompatibilityLowered,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::EvidenceBacked,

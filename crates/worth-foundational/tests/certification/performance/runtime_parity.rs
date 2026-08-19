@@ -34,6 +34,8 @@ fn support_ready_profile() -> worth_foundational::FoundationalProfileSet {
         .admission_readiness(worth_foundational::AdmissionReadinessProfile::Admitted)
         .retention_delivery(RetentionDeliveryProfile::Retained)
         .certification_posture(CertificationPostureProfile::Uncertified)
+        .execution_objective(worth_foundational::ExecutionObjectiveProfile::Balanced)
+        .observation_activation(worth_foundational::ObservationActivationProfile::Continuous)
         .compose()
         .expect("support-ready profile should compose")
 }

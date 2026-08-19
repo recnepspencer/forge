@@ -7,7 +7,7 @@ impl ResourceRuntimeState {
     pub fn admit_resource_completion_batch(
         &mut self,
         completions: impl IntoIterator<Item = RawCompletionEnvelope>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceCompletionBatchAdmissionReport {
         let mut completions = completions.into_iter().collect::<Vec<_>>();
         let input_width = completions.len() as u32;
@@ -39,7 +39,9 @@ impl ResourceRuntimeState {
             );
             if let Some(prior) = seen_identities.get(&identity) {
                 duplicate_width = duplicate_width.saturating_add(1);
-                telemetry.resource_completion_validation_count += 1;
+                if let Some(telemetry) = telemetry.as_deref_mut() {
+                    telemetry.resource_completion_validation_count += 1;
+                }
                 let class = if prior == &raw {
                     CompletionDenialClass::Duplicate
                 } else {
@@ -55,7 +57,7 @@ impl ResourceRuntimeState {
                             .map(|retained| retained.node())
                     });
                 let denied = self
-                    .deny_completion(&raw, class, denied_node, telemetry, false)
+                    .deny_completion(&raw, class, denied_node, telemetry.as_deref_mut(), false)
                     .denied_completion()
                     .expect("batch duplicate denial should retain denied completion");
                 denied_completions.push(denied);
@@ -63,7 +65,8 @@ impl ResourceRuntimeState {
             }
             seen_identities.insert(identity, raw.clone());
 
-            let report = self.admit_resource_completion_with_boundary(raw, telemetry, false);
+            let report =
+                self.admit_resource_completion_with_boundary(raw, telemetry.as_deref_mut(), false);
             if let Some(admitted) = report.admitted_completion() {
                 admitted_completions.push(admitted);
             }
@@ -72,18 +75,21 @@ impl ResourceRuntimeState {
             }
         }
 
-        telemetry.resource_completion_batch_admission_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_completion_batch_admission_count += 1;
+        }
         let admitted_count = admitted_completions.len() as u32;
         let denied_count = denied_completions.len() as u32;
-        let performance = Self::record_boundary_performance(
-            telemetry,
-            ResourceBoundaryPerformanceEnvelope::completion_batch_admission(
-                input_width,
-                admitted_count,
-                denied_count,
-            )
-            .with_density_strategy(density_strategy),
-        );
+        let envelope = ResourceBoundaryPerformanceEnvelope::completion_batch_admission(
+            input_width,
+            admitted_count,
+            denied_count,
+        )
+        .with_density_strategy(density_strategy);
+        let performance = telemetry
+            .as_deref_mut()
+            .map(|telemetry| Self::record_boundary_performance(telemetry, envelope))
+            .unwrap_or(envelope);
         ResourceCompletionBatchAdmissionReport::new(
             admitted_completions,
             denied_completions,

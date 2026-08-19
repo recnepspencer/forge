@@ -140,16 +140,20 @@ impl PreparedSerialStageBatch {
         }
         let reconcile_start = crate::clock::RuntimeInstant::now();
         graph.reconcile_dependencies_batch_borrowed(&reconcile_batch)?;
-        graph.telemetry_mut().execution.dependency_reconcile_nanos +=
-            reconcile_start.elapsed().as_nanos();
+        let reconcile_nanos = reconcile_start.elapsed().as_nanos();
+        graph.with_telemetry(|telemetry| {
+            telemetry.execution.dependency_reconcile_nanos += reconcile_nanos;
+        });
 
         let dependency_input_start = crate::clock::RuntimeInstant::now();
         let dependency_inputs = crate::logic::evaluation::collect_effect_dependency_inputs_iter(
             graph,
             lowered.lowered_tasks.iter().map(|task| task.node),
         )?;
-        graph.telemetry_mut().execution.dependency_input_build_nanos +=
-            dependency_input_start.elapsed().as_nanos();
+        let dependency_input_nanos = dependency_input_start.elapsed().as_nanos();
+        graph.with_telemetry(|telemetry| {
+            telemetry.execution.dependency_input_build_nanos += dependency_input_nanos;
+        });
 
         let apply_inputs = lowered
             .lowered_tasks

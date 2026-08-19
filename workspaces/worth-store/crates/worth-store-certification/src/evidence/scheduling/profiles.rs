@@ -1,7 +1,8 @@
 use worth_foundational::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalProfileSet, FoundationalProfileSetInput,
-    RetentionDeliveryProfile, SupportPostureProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalProfileSet,
+    FoundationalProfileSetInput, ObservationActivationProfile, RetentionDeliveryProfile,
+    SupportPostureProfile,
 };
 use worth_store_physical_backend::{BackendTargetProfile, CapabilityEvidenceClass};
 
@@ -23,18 +24,24 @@ pub struct S6FoundationalProfileEvidence {
     authority_boundary: S6FoundationalAuthorityBoundary,
 }
 
+pub(crate) fn operational_evidence_profile() -> FoundationalProfileSet {
+    FoundationalProfileSet::new(FoundationalProfileSetInput {
+        diagnostic_richness: DiagnosticRichnessProfile::OperationalMinimal,
+        support_posture: SupportPostureProfile::SupportReady,
+        compatibility_posture: CompatibilityPostureProfile::NativeOnly,
+        admission_readiness: AdmissionReadinessProfile::Admitted,
+        retention_delivery: RetentionDeliveryProfile::Retained,
+        certification_posture: CertificationPostureProfile::EvidenceBacked,
+        execution_objective: ExecutionObjectiveProfile::Throughput,
+        observation_activation: ObservationActivationProfile::OnDemand,
+    })
+    .expect("S6 materialization profile is retained evidence-backed support")
+}
+
 impl S6FoundationalProfileEvidence {
     pub(crate) fn from_sources(sources: &S6CertificationEvidenceSources) -> Self {
         Self {
-            profile_set: FoundationalProfileSet::new(FoundationalProfileSetInput {
-                diagnostic_richness: DiagnosticRichnessProfile::OperationalMinimal,
-                support_posture: SupportPostureProfile::SupportReady,
-                compatibility_posture: CompatibilityPostureProfile::NativeOnly,
-                admission_readiness: AdmissionReadinessProfile::Admitted,
-                retention_delivery: RetentionDeliveryProfile::Retained,
-                certification_posture: CertificationPostureProfile::EvidenceBacked,
-            })
-            .expect("S6 materialization profile is retained evidence-backed support"),
+            profile_set: operational_evidence_profile(),
             backend_profile: sources.backend_admission().profile(),
             backend_evidence_class: sources.backend_admission().evidence_class(),
             authority_boundary: S6FoundationalAuthorityBoundary::CertificationEvidenceOnly,
@@ -55,5 +62,35 @@ impl S6FoundationalProfileEvidence {
 
     pub const fn authority_boundary(&self) -> S6FoundationalAuthorityBoundary {
         self.authority_boundary
+    }
+}
+
+#[cfg(test)]
+mod operational_axes {
+    use super::operational_evidence_profile;
+    use worth_foundational::{
+        DiagnosticRichnessProfile, ExecutionObjectiveProfile, ObservationActivationProfile,
+        RetentionDeliveryProfile,
+    };
+
+    #[test]
+    fn operational_evidence_profile_is_throughput_on_demand_without_changing_retention() {
+        let profile = operational_evidence_profile();
+        assert_eq!(
+            profile.execution_objective(),
+            ExecutionObjectiveProfile::Throughput
+        );
+        assert_eq!(
+            profile.observation_activation(),
+            ObservationActivationProfile::OnDemand
+        );
+        assert_eq!(
+            profile.retention_delivery(),
+            RetentionDeliveryProfile::Retained
+        );
+        assert_eq!(
+            profile.diagnostic_richness(),
+            DiagnosticRichnessProfile::OperationalMinimal
+        );
     }
 }

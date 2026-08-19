@@ -14,7 +14,7 @@ impl TemporalRuntimeState {
         &mut self,
         condition: TemporalCondition,
         due_tick: ClockTick,
-        telemetry: &mut TemporalTelemetry,
+        telemetry: Option<&mut TemporalTelemetry>,
     ) -> Result<ScheduledTemporalWake, SignalError> {
         self.admit_scheduled_wake(
             TemporalWakeOwner::Manual,
@@ -30,7 +30,7 @@ impl TemporalRuntimeState {
         owner: TemporalWakeOwner,
         condition: TemporalCondition,
         due_tick: ClockTick,
-        telemetry: &mut TemporalTelemetry,
+        mut telemetry: Option<&mut TemporalTelemetry>,
         allow_past_due: bool,
     ) -> Result<ScheduledTemporalWake, SignalError> {
         if !allow_past_due && due_tick < self.clock_basis.current_tick() {
@@ -58,14 +58,16 @@ impl TemporalRuntimeState {
         self.insert_scheduled_frontier_entry(&wake);
         self.insert_owner_frontier_entry(wake.owner(), wake.ordinal(), wake.id());
         self.scheduled_wakes.insert(wake.id(), wake.clone());
-        telemetry.temporal_wake_count += 1;
-        telemetry.scheduled_frontier_width = telemetry
-            .scheduled_frontier_width
-            .max(self.scheduled_frontier.len() as u64);
-        telemetry.wake_allocation_count += 1;
-        telemetry.ready_queue_width = telemetry
-            .ready_queue_width
-            .max(self.ready_wakes.len() as u64);
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.temporal_wake_count += 1;
+            telemetry.scheduled_frontier_width = telemetry
+                .scheduled_frontier_width
+                .max(self.scheduled_frontier.len() as u64);
+            telemetry.wake_allocation_count += 1;
+            telemetry.ready_queue_width = telemetry
+                .ready_queue_width
+                .max(self.ready_wakes.len() as u64);
+        }
         Ok(wake)
     }
 
@@ -73,7 +75,7 @@ impl TemporalRuntimeState {
         &mut self,
         wake_id: TemporalWakeId,
         due_tick: ClockTick,
-        telemetry: &mut TemporalTelemetry,
+        mut telemetry: Option<&mut TemporalTelemetry>,
     ) -> Result<TemporalWakeReschedule, SignalError> {
         let (owner, condition) = if let Some(wake) = self.scheduled_wakes.get(&wake_id) {
             (wake.owner(), wake.condition().clone())
@@ -95,10 +97,16 @@ impl TemporalRuntimeState {
             )));
         }
 
-        let retired =
-            self.retire_wake(wake_id, TemporalWakeRetirementReason::Superseded, telemetry)?;
-        let scheduled = self.admit_scheduled_wake(owner, condition, due_tick, telemetry, false)?;
-        telemetry.rescheduled_wake_count += 1;
+        let retired = self.retire_wake(
+            wake_id,
+            TemporalWakeRetirementReason::Superseded,
+            telemetry.as_deref_mut(),
+        )?;
+        let scheduled =
+            self.admit_scheduled_wake(owner, condition, due_tick, telemetry.as_deref_mut(), false)?;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.rescheduled_wake_count += 1;
+        }
         Ok(TemporalWakeReschedule::new(retired, scheduled))
     }
 
@@ -107,7 +115,7 @@ impl TemporalRuntimeState {
         wake_id: TemporalWakeId,
         condition: TemporalCondition,
         due_tick: ClockTick,
-        telemetry: &mut TemporalTelemetry,
+        mut telemetry: Option<&mut TemporalTelemetry>,
     ) -> Result<TemporalWakeReschedule, SignalError> {
         let owner = self.active_wake_owner(wake_id).ok_or_else(|| {
             SignalError::invalid_input(format!(
@@ -132,17 +140,23 @@ impl TemporalRuntimeState {
             )));
         }
 
-        let retired =
-            self.retire_wake(wake_id, TemporalWakeRetirementReason::Superseded, telemetry)?;
-        let scheduled = self.admit_scheduled_wake(owner, condition, due_tick, telemetry, false)?;
-        telemetry.rescheduled_wake_count += 1;
+        let retired = self.retire_wake(
+            wake_id,
+            TemporalWakeRetirementReason::Superseded,
+            telemetry.as_deref_mut(),
+        )?;
+        let scheduled =
+            self.admit_scheduled_wake(owner, condition, due_tick, telemetry.as_deref_mut(), false)?;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.rescheduled_wake_count += 1;
+        }
         Ok(TemporalWakeReschedule::new(retired, scheduled))
     }
 
     pub fn promote_wake_ready(
         &mut self,
         wake_id: TemporalWakeId,
-        telemetry: &mut TemporalTelemetry,
+        telemetry: Option<&mut TemporalTelemetry>,
     ) -> Result<ReadyTemporalWake, SignalError> {
         let scheduled = self.scheduled_wakes.remove(&wake_id).ok_or_else(|| {
             SignalError::invalid_input(format!(
@@ -176,9 +190,11 @@ impl TemporalRuntimeState {
         self.ready_frontier
             .insert(ready.ready_ordinal(), ready.id());
         self.ready_wakes.insert(wake_id, ready.clone());
-        telemetry.ready_queue_width = telemetry
-            .ready_queue_width
-            .max(self.ready_wakes.len() as u64);
+        if let Some(telemetry) = telemetry {
+            telemetry.ready_queue_width = telemetry
+                .ready_queue_width
+                .max(self.ready_wakes.len() as u64);
+        }
         Ok(ready)
     }
 
@@ -186,7 +202,7 @@ impl TemporalRuntimeState {
         &mut self,
         wake_id: TemporalWakeId,
         reason: TemporalWakeRetirementReason,
-        telemetry: &mut TemporalTelemetry,
+        telemetry: Option<&mut TemporalTelemetry>,
     ) -> Result<RetiredTemporalWake, SignalError> {
         if let Some(ready) = self.ready_wakes.remove(&wake_id) {
             self.ready_frontier.remove(&ready.ready_ordinal());
@@ -200,10 +216,12 @@ impl TemporalRuntimeState {
                 reason,
             );
             self.retired_wakes.insert(wake_id, retired.clone());
-            telemetry.retired_wake_count += 1;
-            telemetry.ready_queue_width = telemetry
-                .ready_queue_width
-                .max(self.ready_wakes.len() as u64);
+            if let Some(telemetry) = telemetry {
+                telemetry.retired_wake_count += 1;
+                telemetry.ready_queue_width = telemetry
+                    .ready_queue_width
+                    .max(self.ready_wakes.len() as u64);
+            }
             return Ok(retired);
         }
 
@@ -223,7 +241,9 @@ impl TemporalRuntimeState {
                 reason,
             );
             self.retired_wakes.insert(wake_id, retired.clone());
-            telemetry.retired_wake_count += 1;
+            if let Some(telemetry) = telemetry {
+                telemetry.retired_wake_count += 1;
+            }
             return Ok(retired);
         }
 
@@ -236,7 +256,7 @@ impl TemporalRuntimeState {
     pub fn regenerate_interval_wake(
         &mut self,
         wake_id: TemporalWakeId,
-        telemetry: &mut TemporalTelemetry,
+        mut telemetry: Option<&mut TemporalTelemetry>,
     ) -> Result<IntervalWakeRegeneration, SignalError> {
         let ready = self.ready_wakes.get(&wake_id).cloned().ok_or_else(|| {
             SignalError::invalid_input(format!(
@@ -256,20 +276,25 @@ impl TemporalRuntimeState {
 
         let (successor_due, suppressed_interval_count) =
             self.compute_interval_successor_due(ready.due_tick(), &interval)?;
-        let retired =
-            self.retire_wake(wake_id, TemporalWakeRetirementReason::Consumed, telemetry)?;
+        let retired = self.retire_wake(
+            wake_id,
+            TemporalWakeRetirementReason::Consumed,
+            telemetry.as_deref_mut(),
+        )?;
         let scheduled = self.admit_scheduled_wake(
             ready.owner(),
             TemporalCondition::Interval(interval),
             successor_due,
-            telemetry,
+            telemetry.as_deref_mut(),
             true,
         )?;
-        telemetry.rescheduled_wake_count += 1;
-        telemetry.interval_wake_regeneration_count += 1;
-        telemetry.missed_interval_count = telemetry
-            .missed_interval_count
-            .saturating_add(suppressed_interval_count);
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.rescheduled_wake_count += 1;
+            telemetry.interval_wake_regeneration_count += 1;
+            telemetry.missed_interval_count = telemetry
+                .missed_interval_count
+                .saturating_add(suppressed_interval_count);
+        }
 
         Ok(IntervalWakeRegeneration::new(
             retired,
@@ -324,7 +349,7 @@ impl TemporalRuntimeState {
         owner: TemporalWakeOwner,
         condition: TemporalCondition,
         due_tick: ClockTick,
-        telemetry: &mut TemporalTelemetry,
+        telemetry: Option<&mut TemporalTelemetry>,
     ) -> Result<ScheduledTemporalWake, SignalError> {
         self.admit_scheduled_wake(owner, condition, due_tick, telemetry, false)
     }
@@ -333,7 +358,7 @@ impl TemporalRuntimeState {
         &mut self,
         owner: TemporalWakeOwner,
         reason: TemporalWakeRetirementReason,
-        telemetry: &mut TemporalTelemetry,
+        mut telemetry: Option<&mut TemporalTelemetry>,
     ) -> Result<TemporalWakeRetirementBatch, SignalError> {
         let Some(owned) = self.owner_frontier.get(&owner) else {
             return Ok(TemporalWakeRetirementBatch::new(owner, reason, Vec::new()));
@@ -350,7 +375,7 @@ impl TemporalRuntimeState {
         }
         let mut retired = Vec::with_capacity(wake_ids.len());
         for wake_id in wake_ids {
-            retired.push(self.retire_wake(wake_id, reason, telemetry)?);
+            retired.push(self.retire_wake(wake_id, reason, telemetry.as_deref_mut())?);
         }
         Ok(TemporalWakeRetirementBatch::new(owner, reason, retired))
     }

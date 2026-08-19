@@ -8,6 +8,7 @@ mod transaction;
 pub use computation::{DefinedComputation, DefinedKeyedComputation, Recipe};
 pub use config::SignalRuntimeConfig;
 pub use execution::{RuntimeExecutionRequest, TransactionExecutionRequest};
+pub(crate) use state::admit_signal_observation_request;
 pub(crate) use state::RuntimeObservationRegistry;
 pub use state::{branch_state_proof_report, canonical_digest};
 #[allow(unused_imports)]
@@ -110,14 +111,19 @@ pub use state::{
     ObservationNotice, ObservationPolicy, ObservationReadContext, ObservationRegistrySummary,
     ObservationTrigger, ObservedNodeSet, ObserverId, PlannedRuntimeMerge, ReconstructabilityProof,
     ReconstructabilityRecord, ReplaySuffixRebuildProof, RequiredDerivedRebuildSet, RuntimeHistory,
-    RuntimeMaterializer, RuntimeMerge, RuntimeObserver, SignalRuntime, SignalRuntimeBuilder,
-    TemporalCertificationBuilder, TemporalCertificationBundle,
-    TemporalCertificationBundleMismatchClass, TemporalCertificationBundleParityReport,
-    TemporalCertificationFailure, TemporalCertificationFamily, TemporalCertificationRecord,
-    TemporalCertificationSummary, TemporalReconstructabilityArtifact, TemporalReplayMismatchClass,
-    TemporalReplayParityReport, TemporalStateRebuildProof,
-    REQUIRED_TEMPORAL_CERTIFICATION_FAMILIES, TEMPORAL_CERTIFICATION_BUNDLE_PARITY_SCHEMA_VERSION,
+    RuntimeMaterializer, RuntimeMerge, RuntimeObserver, SignalObservationAdmissionDenial,
+    SignalObservationCompletion, SignalObservationRequest, SignalObservationSession,
+    SignalObservationSurface, SignalRuntime, SignalRuntimeBuilder, TemporalCertificationBuilder,
+    TemporalCertificationBundle, TemporalCertificationBundleMismatchClass,
+    TemporalCertificationBundleParityReport, TemporalCertificationFailure,
+    TemporalCertificationFamily, TemporalCertificationRecord, TemporalCertificationSummary,
+    TemporalReconstructabilityArtifact, TemporalReplayMismatchClass, TemporalReplayParityReport,
+    TemporalStateRebuildProof, REQUIRED_TEMPORAL_CERTIFICATION_FAMILIES,
+    TEMPORAL_CERTIFICATION_BUNDLE_PARITY_SCHEMA_VERSION,
     TEMPORAL_CERTIFICATION_BUNDLE_SCHEMA_VERSION, TEMPORAL_REPLAY_PARITY_SCHEMA_VERSION,
+};
+pub(crate) use state::{
+    SignalObservationCaptureGate, SignalObservationDropCleanup, SignalObservationSessionState,
 };
 #[allow(unused_imports)]
 pub use transaction::{

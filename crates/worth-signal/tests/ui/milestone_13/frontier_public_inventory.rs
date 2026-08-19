@@ -17,8 +17,10 @@ fn main() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
-    let observation = runtime.begin_invalidation_execution_observation();
-    let _ = runtime.finish_invalidation_execution_observation(observation);
+    let observation = runtime
+        .begin_invalidation_execution_observation()
+        .expect("observation admission should succeed for the sample runtime");
+    let _ = runtime.finish_invalidation_execution_observation(&observation);
     let _ = runtime.observe_invalidation_execution(|_| Ok(()));
     let _: Option<&surface::InvalidationPlanningEstimate> =
         runtime.graph().observe().latest_invalidation_planning_estimate();

@@ -57,9 +57,8 @@ pub use lineage::{
 };
 pub use policy::{
     ArtifactRetentionPolicy, DiagnosticsAvailability, FrontierCyclePolicy,
-    FrontierPropagationPolicy, FrontierTracingPolicy, ParallelAdmissionPolicy,
-    ReconstructionBudget, ReplayDetailPolicy, RetentionBudget, SemanticRetentionPolicy,
-    SignalRuntimePolicy, SnapshotRestoreLineageMode,
+    FrontierPropagationPolicy, FrontierTracingPolicy, ReconstructionBudget, ReplayDetailPolicy,
+    RetentionBudget, SemanticRetentionPolicy, SnapshotRestoreLineageMode,
 };
 pub use profile::DiagnosticsTier as DiagnosticsLevel;
 pub use replay::ReplaySlice as ReplayView;

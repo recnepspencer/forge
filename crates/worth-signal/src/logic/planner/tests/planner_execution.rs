@@ -63,16 +63,40 @@ where
     F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
     O: IntoEvaluationOutput,
 {
-    graph.telemetry_mut().planner.plans_built += 1;
-    graph.telemetry_mut().planner.stages_built += plan.stages.len() as u64;
-    graph.telemetry_mut().planner.tasks_scheduled += plan.summary.task_count as u64;
-    graph.telemetry_mut().execution.max_tasks_in_stage = graph
+    graph
+        .telemetry_mut()
+        .expect("telemetry admitted")
+        .planner
+        .plans_built += 1;
+    graph
+        .telemetry_mut()
+        .expect("telemetry admitted")
+        .planner
+        .stages_built += plan.stages.len() as u64;
+    graph
+        .telemetry_mut()
+        .expect("telemetry admitted")
+        .planner
+        .tasks_scheduled += plan.summary.task_count as u64;
+    graph
+        .telemetry_mut()
+        .expect("telemetry admitted")
+        .execution
+        .max_tasks_in_stage = graph
         .telemetry()
         .execution
         .max_tasks_in_stage
         .max(plan.summary.max_stage_width as u64);
-    graph.telemetry_mut().execution.serial_executor_usage_count += 1;
-    graph.telemetry_mut().planner.maybe_stale_validation_tasks += plan
+    graph
+        .telemetry_mut()
+        .expect("telemetry admitted")
+        .execution
+        .serial_executor_usage_count += 1;
+    graph
+        .telemetry_mut()
+        .expect("telemetry admitted")
+        .planner
+        .maybe_stale_validation_tasks += plan
         .stages
         .iter()
         .flat_map(|stage| &stage.tasks)
@@ -85,7 +109,11 @@ where
     for stage in &plan.stages {
         let stage_start = std::time::Instant::now();
         let snapshot_start = std::time::Instant::now();
-        graph.telemetry_mut().execution.execution_snapshots_built += 1;
+        graph
+            .telemetry_mut()
+            .expect("telemetry admitted")
+            .execution
+            .execution_snapshots_built += 1;
         let mut prepared_tasks = Vec::with_capacity(stage.tasks.len());
         let mut precompute_telemetry = TestPrecomputeTelemetry::default();
         let precompute_start = std::time::Instant::now();
@@ -111,13 +139,26 @@ where
         apply_test_precompute_telemetry(graph, &precompute_telemetry);
         let snapshot_nanos = snapshot_start.elapsed().as_nanos();
         let precompute_nanos = precompute_start.elapsed().as_nanos();
-        graph.telemetry_mut().execution.execution_snapshot_nanos += snapshot_nanos;
-        graph.telemetry_mut().execution.stage_precompute_nanos += precompute_nanos;
         graph
             .telemetry_mut()
+            .expect("telemetry admitted")
+            .execution
+            .execution_snapshot_nanos += snapshot_nanos;
+        graph
+            .telemetry_mut()
+            .expect("telemetry admitted")
+            .execution
+            .stage_precompute_nanos += precompute_nanos;
+        graph
+            .telemetry_mut()
+            .expect("telemetry admitted")
             .execution
             .prepared_evaluations_produced += prepared_tasks.len() as u64;
-        graph.telemetry_mut().execution.serial_precompute_task_count += prepared_tasks.len() as u64;
+        graph
+            .telemetry_mut()
+            .expect("telemetry admitted")
+            .execution
+            .serial_precompute_task_count += prepared_tasks.len() as u64;
         report.execution_snapshots_built += 1;
         report.execution_snapshot_nanos += snapshot_nanos;
         report.prepared_evaluations_produced += prepared_tasks.len() as u32;
@@ -208,9 +249,16 @@ where
             );
             accumulate_report_counters(&mut report, &task_record.record);
             stage_record.task_records.push(task_record.record);
-            graph.telemetry_mut().execution.prepared_evaluations_applied += 1;
-            graph.telemetry_mut().execution.dependency_capture_updates +=
-                apply_result.dependency_updates as u64;
+            graph
+                .telemetry_mut()
+                .expect("telemetry admitted")
+                .execution
+                .prepared_evaluations_applied += 1;
+            graph
+                .telemetry_mut()
+                .expect("telemetry admitted")
+                .execution
+                .dependency_capture_updates += apply_result.dependency_updates as u64;
             report.prepared_evaluations_applied += 1;
             report.dependency_capture_updates += apply_result.dependency_updates;
         }
@@ -219,9 +267,21 @@ where
         stage_record.duration_nanos = stage_start.elapsed().as_nanos();
         report.stage_apply_nanos += stage_record.apply_duration_nanos;
         report.semantic_finalize_nanos += stage_record.semantic_finalize_duration_nanos;
-        graph.telemetry_mut().execution.stage_apply_nanos += stage_record.apply_duration_nanos;
-        graph.telemetry_mut().execution.stage_execution_count += 1;
-        graph.telemetry_mut().execution.stage_execution_nanos += stage_record.duration_nanos;
+        graph
+            .telemetry_mut()
+            .expect("telemetry admitted")
+            .execution
+            .stage_apply_nanos += stage_record.apply_duration_nanos;
+        graph
+            .telemetry_mut()
+            .expect("telemetry admitted")
+            .execution
+            .stage_execution_count += 1;
+        graph
+            .telemetry_mut()
+            .expect("telemetry admitted")
+            .execution
+            .stage_execution_nanos += stage_record.duration_nanos;
         report.stages.push(stage_record);
     }
 

@@ -9,14 +9,15 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use worth_foundational::{
     performance, performance_api, profiles, CertificationPostureProfile, DiagnosticRichnessProfile,
-    FoundationalPerformanceAccessPatternPosture, FoundationalPerformanceAttachmentTargetKind,
-    FoundationalPerformanceBoundary, FoundationalPerformanceBreadthLocalityPosture,
-    FoundationalPerformanceCounterName, FoundationalPerformanceCounterRow,
-    FoundationalPerformanceCounterSpec, FoundationalPerformanceEvidenceStrength,
-    FoundationalPerformanceExecutionTemperature, FoundationalPerformanceFallbackDebtPosture,
-    FoundationalPerformanceFreshnessRetentionPosture, FoundationalPerformanceReportRequest,
-    FoundationalPerformanceSupportingEvidenceCode, FoundationalPerformanceSupportingEvidenceRow,
-    FoundationalPerformanceWorkClass, RetentionDeliveryProfile, SupportPostureProfile,
+    ExecutionObjectiveProfile, FoundationalPerformanceAccessPatternPosture,
+    FoundationalPerformanceAttachmentTargetKind, FoundationalPerformanceBoundary,
+    FoundationalPerformanceBreadthLocalityPosture, FoundationalPerformanceCounterName,
+    FoundationalPerformanceCounterRow, FoundationalPerformanceCounterSpec,
+    FoundationalPerformanceEvidenceStrength, FoundationalPerformanceExecutionTemperature,
+    FoundationalPerformanceFallbackDebtPosture, FoundationalPerformanceFreshnessRetentionPosture,
+    FoundationalPerformanceReportRequest, FoundationalPerformanceSupportingEvidenceCode,
+    FoundationalPerformanceSupportingEvidenceRow, FoundationalPerformanceWorkClass,
+    ObservationActivationProfile, RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_ui_dsl::WorthUiSourceModuleId;
 
@@ -77,6 +78,8 @@ pub(super) fn foundational_frame_report(
                 .admission_readiness(worth_foundational::AdmissionReadinessProfile::Admitted)
                 .retention_delivery(RetentionDeliveryProfile::Retained)
                 .certification_posture(CertificationPostureProfile::Uncertified)
+                .execution_objective(ExecutionObjectiveProfile::Balanced)
+                .observation_activation(ObservationActivationProfile::Continuous)
                 .compose()
                 .expect("profile composes"),
             include_layout_intent: false,

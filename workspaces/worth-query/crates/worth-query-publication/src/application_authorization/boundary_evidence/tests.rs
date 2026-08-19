@@ -1,12 +1,12 @@
 use worth_foundational::facade::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalBoundaryEvidenceReceiptKind,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalBoundaryEvidenceReceiptKind,
     FoundationalDiagnosticDenialClass, FoundationalDiagnosticLocalityClaim,
     FoundationalDiagnosticOutcomeKind, FoundationalDiagnosticRow,
     FoundationalDiagnosticWidenedFalloutPosture, FoundationalProfileAttachmentTargetKind,
     FoundationalProfileNarrowingKind, FoundationalProfileNarrowingRecord,
     FoundationalProfileProgressionDenial, FoundationalProfileSet, FoundationalProfileSetInput,
-    RetentionDeliveryProfile, SupportPostureProfile,
+    ObservationActivationProfile, RetentionDeliveryProfile, SupportPostureProfile,
 };
 
 use super::profile::admit_profile;
@@ -282,6 +282,8 @@ fn profile(richness: DiagnosticRichnessProfile) -> FoundationalProfileSet {
         diagnostic_richness: richness,
         support_posture: SupportPostureProfile::SupportReady,
         compatibility_posture: CompatibilityPostureProfile::CompatibilityLowered,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::EvidenceBacked,

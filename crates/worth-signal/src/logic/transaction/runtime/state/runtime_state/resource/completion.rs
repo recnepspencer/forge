@@ -20,48 +20,84 @@ where
         &mut self,
         completion: RawCompletionEnvelope,
     ) -> ResourceCompletionAdmissionReport {
-        self.resource
-            .admit_resource_completion(completion, &mut self.telemetry.resource)
+        self.resource.admit_resource_completion(
+            completion,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn admit_resource_completion_batch(
         &mut self,
         completions: impl IntoIterator<Item = RawCompletionEnvelope>,
     ) -> ResourceCompletionBatchAdmissionReport {
-        self.resource
-            .admit_resource_completion_batch(completions, &mut self.telemetry.resource)
+        self.resource.admit_resource_completion_batch(
+            completions,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn stage_admitted_resource_completion(
         &mut self,
         admitted: AdmittedResourceCompletion,
     ) -> Result<ResourceCompletionStagingReport, crate::data::error::SignalError> {
-        self.resource
-            .stage_admitted_resource_completion(admitted, &mut self.telemetry.resource)
+        self.resource.stage_admitted_resource_completion(
+            admitted,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn stage_denied_resource_completion(
         &mut self,
         denied: DeniedResourceCompletion,
     ) -> Result<ResourceCompletionDenialStagingReport, crate::data::error::SignalError> {
-        self.resource
-            .stage_denied_resource_completion(denied, &mut self.telemetry.resource)
+        self.resource.stage_denied_resource_completion(
+            denied,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn rollback_staged_resource_completion(
         &mut self,
         staged: StagedResourceCompletionEffect,
     ) -> ResourceCompletionRollbackReport {
-        self.resource
-            .rollback_staged_resource_completion(staged, &mut self.telemetry.resource)
+        self.resource.rollback_staged_resource_completion(
+            staged,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn rollback_staged_denied_resource_completion(
         &mut self,
         staged: StagedDeniedResourceCompletionEffect,
     ) -> ResourceCompletionRollbackReport {
-        self.resource
-            .rollback_staged_denied_resource_completion(staged, &mut self.telemetry.resource)
+        self.resource.rollback_staged_denied_resource_completion(
+            staged,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn commit_staged_resource_completion(
@@ -72,9 +108,14 @@ where
         if let Some(wake_id) = self.resource.active_timeout_wake_for_handle(handle) {
             self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Consumed)?;
         }
-        let report = self
-            .resource
-            .commit_staged_resource_completion(staged, &mut self.telemetry.resource)?;
+        let report = self.resource.commit_staged_resource_completion(
+            staged,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.resource),
+        )?;
         let node = report.lifecycle().node();
         let prior_stale_after_wake = self.resource.active_stale_after_wake_for_node(node);
         let scheduled_stale_after_wake = self

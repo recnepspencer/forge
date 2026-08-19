@@ -49,10 +49,12 @@ impl ResourceRuntimeState {
         revalidation_decision_digest: ResourcePolicyDigest,
         freshness_decision: ResourceRevalidationFreshnessDecision,
         evidence: ResourceRevalidationEvidence,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
         if count_policy_decision {
-            telemetry.resource_revalidation_policy_decision_count += 1;
+            if let Some(telemetry) = telemetry.as_deref_mut() {
+                telemetry.resource_revalidation_policy_decision_count += 1;
+            }
         }
         let disposition = match self.preview_revalidation_admission(intent, &freshness_decision) {
             ResourceRevalidationAdmissionPreview::Proceed { descriptor_id } => {
@@ -66,7 +68,7 @@ impl ResourceRuntimeState {
                 active_request_id,
             },
             ResourceRevalidationAdmissionPreview::Deny(class) => {
-                return Err(self.deny_revalidation(intent, class, telemetry));
+                return Err(self.deny_revalidation(intent, class, telemetry.as_deref_mut()));
             }
         };
         Ok(PreparedResourceRevalidation {
@@ -81,7 +83,7 @@ impl ResourceRuntimeState {
         &mut self,
         intent: ResourceRevalidationIntent,
         revalidation_decision_digest: ResourcePolicyDigest,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
         self.prepare_resource_revalidation(
             intent,
@@ -97,7 +99,7 @@ impl ResourceRuntimeState {
     pub(in crate::logic::transaction::runtime::state) fn prepare_forced_resource_revalidation(
         &mut self,
         proof: ActiveResourceRevalidationProof,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
         let intent = ResourceRevalidationIntent::with_expected_active(proof.node(), proof.handle());
         self.prepare_resource_revalidation(
@@ -115,7 +117,7 @@ impl ResourceRuntimeState {
     pub(in crate::logic::transaction::runtime::state) fn prepare_dependency_change_resource_revalidation(
         &mut self,
         proof: DependencyChangeResourceRevalidationProof,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
         let intent = ResourceRevalidationIntent::new(proof.node());
         self.prepare_resource_revalidation(
@@ -130,7 +132,7 @@ impl ResourceRuntimeState {
     pub(in crate::logic::transaction::runtime::state) fn prepare_observer_demand_resource_revalidation(
         &mut self,
         proof: ObserverDemandResourceRevalidationProof,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
         let intent = ResourceRevalidationIntent::new(proof.node());
         self.prepare_resource_revalidation(
@@ -145,7 +147,7 @@ impl ResourceRuntimeState {
     pub(in crate::logic::transaction::runtime::state) fn prepare_terminal_state_resource_revalidation(
         &mut self,
         proof: TerminalStateResourceRevalidationProof,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
         let intent = ResourceRevalidationIntent::new(proof.node());
         self.prepare_resource_revalidation(
@@ -160,7 +162,7 @@ impl ResourceRuntimeState {
     pub(in crate::logic::transaction::runtime::state) fn prepare_fulfilled_lifecycle_resource_revalidation(
         &mut self,
         proof: FulfilledLifecycleResourceRevalidationProof,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
         let intent = ResourceRevalidationIntent::new(proof.node());
         self.prepare_resource_revalidation(
@@ -177,7 +179,7 @@ impl ResourceRuntimeState {
         node: ResourceNodeId,
         ready_wake: ReadyTemporalWake,
         revalidation_decision_digest: ResourcePolicyDigest,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
         let intent = ResourceRevalidationIntent::new(node);
         self.prepare_resource_revalidation(

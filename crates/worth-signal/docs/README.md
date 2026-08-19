@@ -133,6 +133,11 @@ Start with `worth_signal::facade::*` if you want the broader runtime surface.
 - [guides/snapshots-branches-and-history.md](./guides/snapshots-branches-and-history.md)
 - [guides/parallel-execution.md](./guides/parallel-execution.md)
 
+The runtime policy guide also documents the Milestone 10 objective/activation
+handoff: `SignalRuntimePolicyRequest` → admitted → resolved → installed. The
+installed policy is the planner authority; diagnostics tiers remain descriptive
+presets and do not independently choose execution strategy.
+
 ## Walkthroughs
 
 - [walkthroughs/easy-task-board.md](./walkthroughs/easy-task-board.md)

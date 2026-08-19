@@ -151,7 +151,7 @@ pub(super) fn retains_reuse_boundary_detail(
     graph: &SignalGraph,
     strategy: Option<crate::data::reuse::ReuseStrategy>,
 ) -> bool {
-    let retention = graph.runtime_policy().retention_budget;
+    let retention = graph.installed_runtime_policy().retention_budget();
     let cold_retention_active = matches!(
         retention.explanation_retention,
         crate::diagnostics::policy::ArtifactRetentionPolicy::Retain

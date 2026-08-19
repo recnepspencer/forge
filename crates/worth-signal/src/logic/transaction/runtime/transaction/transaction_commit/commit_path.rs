@@ -30,7 +30,7 @@ where
             return self.fail_and_rollback(
                 "poisoned transaction rollback",
                 None,
-                Some("transaction rolled back because it was poisoned".to_string()),
+                Some("transaction rolled back because it was poisoned"),
                 ExecutionFailurePhase::Rollback,
                 true,
                 Ok(TransactionOutcome::Poisoned),
@@ -84,10 +84,11 @@ where
                     }
                     StagedEventOperation::Flush(barrier) => {
                         let flush_start = RuntimeInstant::now();
-                        let completed_subscribers = match self
-                            .event_bus
-                            .flush(barrier, self.runtime_ctx)
-                        {
+                        let completed_subscribers = match self.event_bus.flush_with_capture(
+                            barrier,
+                            self.runtime_ctx,
+                            self.captures_optional_telemetry(),
+                        ) {
                             Ok(completed_subscribers) => completed_subscribers,
                             Err(flush_err) => {
                                 self.scratch.staged_event_flush_nanos +=
@@ -229,14 +230,16 @@ where
                     .merge_domain_impact(domain, impact);
             }
         }
-        self.checkpoint
-            .telemetry_mut()
-            .checkpoint
-            .checkpoint_flushes += self.scratch.staged_checkpoint_flushes;
-        self.checkpoint
-            .telemetry_mut()
-            .checkpoint
-            .checkpoint_flush_nanos += self.scratch.staged_checkpoint_flush_nanos;
+        if self.captures_optional_telemetry() {
+            self.checkpoint
+                .telemetry_mut()
+                .checkpoint
+                .checkpoint_flushes += self.scratch.staged_checkpoint_flushes;
+            self.checkpoint
+                .telemetry_mut()
+                .checkpoint
+                .checkpoint_flush_nanos += self.scratch.staged_checkpoint_flush_nanos;
+        }
         let touched_nodes = self.scratch.graph_patches.touched_nodes(self.graph);
         let touched_node_count = touched_nodes.len() as u32;
         for ((family_id, key_id, memo_key_id), result) in
@@ -256,25 +259,31 @@ where
         self.branches
             .advance_branch_head_generation(current_branch.id);
         self.graph.clear_branch_mutation_nodes();
-        self.telemetry.transaction.transaction_commit_count += 1;
-        self.telemetry.transaction.staged_node_patch_count += self.scratch.staged_patch_count;
-        self.telemetry.transaction.max_touched_nodes_in_txn = self
-            .telemetry
-            .transaction
-            .max_touched_nodes_in_txn
-            .max(self.scratch.staged_patch_count);
+        let staged_patch_count = self.scratch.staged_patch_count;
+        self.with_telemetry(|telemetry| {
+            telemetry.transaction.transaction_commit_count += 1;
+            telemetry.transaction.staged_node_patch_count += staged_patch_count;
+            telemetry.transaction.max_touched_nodes_in_txn = telemetry
+                .transaction
+                .max_touched_nodes_in_txn
+                .max(staged_patch_count);
+        });
         for node in touched_nodes.as_slice().iter().copied() {
             let _ = self.graph.record_operational_diagnostic_facts(node, None);
         }
-        self.scratch
-            .semantic_delta
-            .replay_events
-            .push(TransactionReplayEntry {
-                kind: ReplayEventKind::TransactionCommitted,
-                detail: "transaction committed".to_string(),
-                execution_record_id: None,
-                semantic_segment_id: None,
-            });
+        if self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::ReplayDetail,
+        ) {
+            self.scratch
+                .semantic_delta
+                .replay_events
+                .push(TransactionReplayEntry {
+                    kind: ReplayEventKind::TransactionCommitted,
+                    detail: "transaction committed".to_string(),
+                    execution_record_id: None,
+                    semantic_segment_id: None,
+                });
+        }
         let observation_outcome = match self.commit_posture {
             TransactionCommitPosture::Visible => ObservationBoundaryOutcome::Delivered,
             TransactionCommitPosture::BranchLocal => {
@@ -289,13 +298,17 @@ where
             if matches!(self.commit_posture, TransactionCommitPosture::Visible) {
                 self.observations.deliver_committed(self.graph, &deliveries) as u64
             } else {
-                self.telemetry
-                    .transaction
-                    .branch_local_suppressed_observation_count +=
-                    u64::from(observation.branch_local_suppressed_event_count);
+                self.with_telemetry(|telemetry| {
+                    telemetry
+                        .transaction
+                        .branch_local_suppressed_observation_count +=
+                        u64::from(observation.branch_local_suppressed_event_count);
+                });
                 0
             };
-        self.telemetry.transaction.delivered_observation_count += delivered_observation_count;
+        self.with_telemetry(|telemetry| {
+            telemetry.transaction.delivered_observation_count += delivered_observation_count;
+        });
         self.scratch.semantic_delta.observation = observation;
         Ok(self.finalize_semantic_delta(
             false,

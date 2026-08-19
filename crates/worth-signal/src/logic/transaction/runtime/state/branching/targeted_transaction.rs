@@ -5,55 +5,16 @@ use worth_proof::TransitionOutcome;
 
 use crate::clock::RuntimeInstant;
 use crate::data::error::SignalError;
-use crate::logic::transaction::canonical_digest;
 use crate::logic::transaction::runtime::transaction::{
     SignalTransaction, TransactionCommitPosture, TransactionExecutionState, TransactionResult,
     TransactionRollbackPacketSet, TransactionScratch,
 };
-use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
+use crate::state::{SignalBranchHandle, SignalBranchId};
 
 use super::super::runtime_state::{
     AuthorityTransferPacket, BranchLifecycleTransfer, SignalRuntime,
 };
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SignalBranchTransactionHead {
-    branch_id: SignalBranchId,
-    snapshot_id: Option<SignalSnapshotId>,
-    generation: u64,
-    head_digest: String,
-}
-
-impl SignalBranchTransactionHead {
-    fn new(
-        branch_id: SignalBranchId,
-        snapshot_id: Option<SignalSnapshotId>,
-        generation: u64,
-    ) -> Self {
-        Self {
-            branch_id,
-            snapshot_id,
-            generation,
-            head_digest: canonical_digest(&(branch_id, snapshot_id, generation)),
-        }
-    }
-
-    pub fn branch_id(&self) -> SignalBranchId {
-        self.branch_id
-    }
-
-    pub fn snapshot_id(&self) -> Option<SignalSnapshotId> {
-        self.snapshot_id
-    }
-
-    pub fn generation(&self) -> u64 {
-        self.generation
-    }
-
-    pub fn head_digest(&self) -> &str {
-        &self.head_digest
-    }
-}
+use super::transaction_head::SignalBranchTransactionHead;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BranchTargetedTransactionRequest {
@@ -197,9 +158,9 @@ where
         request: BranchTargetedTransactionRequest,
     ) -> TransitionOutcome<LoweredBranchTargetedTransactionPlan, BranchTargetedTransactionDenial>
     {
-        self.telemetry
-            .transaction
-            .branch_targeted_transaction_plan_count += 1;
+        self.with_telemetry(|telemetry| {
+            telemetry.transaction.branch_targeted_transaction_plan_count += 1;
+        });
         let observed_head = match self.validate_targeted_request(&request) {
             Ok(head) => head,
             Err(denial) => {
@@ -253,7 +214,7 @@ where
             .expect("validated targeted transaction transfer must preserve branch identity");
 
         let transaction_result = self.execute_branch_local_transaction(runtime_ctx, apply);
-        let targeted_transaction_telemetry = self.telemetry.transaction;
+        let targeted_transaction_telemetry = self.telemetry_snapshot().transaction;
         let target_state = self
             .take_heavy_active_branch_state()
             .expect("branch-local transaction cannot mint managed queue authority");
@@ -262,10 +223,12 @@ where
             AuthorityTransferPacket::new(active_branch_before.id, active_state),
         ))
         .expect("targeted transaction must restore the caller's active branch");
-        Self::merge_global_transaction_telemetry(
-            targeted_transaction_telemetry,
-            &mut self.telemetry.transaction,
-        );
+        self.with_telemetry(|telemetry| {
+            Self::merge_global_transaction_telemetry(
+                targeted_transaction_telemetry,
+                &mut telemetry.transaction,
+            );
+        });
         let active_branch_after = self.graph.current_branch();
 
         let transaction = match transaction_result {
@@ -275,15 +238,18 @@ where
         let after_head = self
             .observe_branch_transaction_head(&plan.validated.request.target_branch)
             .expect("executed target branch must remain live after restoration");
-        self.telemetry
-            .transaction
-            .branch_targeted_transaction_execution_count += 1;
-        self.telemetry
-            .transaction
-            .branch_targeted_transaction_active_switch_avoided_count += 1;
-        self.telemetry
-            .transaction
-            .branch_targeted_transaction_touched_node_count += u64::from(transaction.touched_nodes);
+        let touched_nodes = u64::from(transaction.touched_nodes);
+        self.with_telemetry(|telemetry| {
+            telemetry
+                .transaction
+                .branch_targeted_transaction_execution_count += 1;
+            telemetry
+                .transaction
+                .branch_targeted_transaction_active_switch_avoided_count += 1;
+            telemetry
+                .transaction
+                .branch_targeted_transaction_touched_node_count += touched_nodes;
+        });
         TransitionOutcome::success(ExecutedBranchTargetedTransactionReceipt {
             plan,
             before_head,
@@ -302,7 +268,10 @@ where
     where
         F: FnOnce(&mut SignalTransaction<'_, D, I, E, Ctx, T>) -> Result<(), SignalError>,
     {
-        self.telemetry.transaction.transaction_begin_count += 1;
+        let captures_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.with_telemetry(|telemetry| telemetry.transaction.transaction_begin_count += 1);
         self.config.sync_graph_capacity(&self.graph);
         let mut transaction = SignalTransaction {
             runtime_ctx,
@@ -313,7 +282,7 @@ where
             event_bus: &mut self.event_bus,
             resource: &mut self.resource,
             temporal: &mut self.temporal,
-            telemetry: &mut self.telemetry,
+            telemetry: captures_telemetry.then_some(&mut self.telemetry),
             branches: &mut self.branches,
             scratch: TransactionScratch::new(),
             rollback_packets: TransactionRollbackPacketSet::default(),
@@ -341,10 +310,10 @@ where
                 branch_id: request.target_branch.id,
             });
         }
-        if request.expected_head.branch_id != request.target_branch.id {
+        if request.expected_head.branch_id() != request.target_branch.id {
             return Err(BranchTargetedTransactionDenial::CrossBranchHead {
                 target_branch_id: request.target_branch.id,
-                head_branch_id: request.expected_head.branch_id,
+                head_branch_id: request.expected_head.branch_id(),
             });
         }
         let observed = self.observe_branch_transaction_head(&request.target_branch)?;
@@ -376,16 +345,20 @@ where
     }
 
     fn record_targeted_denial(&mut self, denial: &BranchTargetedTransactionDenial) {
-        self.telemetry
-            .transaction
-            .branch_targeted_transaction_denial_count += 1;
+        self.with_telemetry(|telemetry| {
+            telemetry
+                .transaction
+                .branch_targeted_transaction_denial_count += 1;
+        });
         if matches!(
             denial,
             BranchTargetedTransactionDenial::StaleTargetHead { .. }
         ) {
-            self.telemetry
-                .transaction
-                .branch_targeted_transaction_stale_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry
+                    .transaction
+                    .branch_targeted_transaction_stale_count += 1;
+            });
         }
     }
 }

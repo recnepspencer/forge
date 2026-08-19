@@ -3,6 +3,14 @@
 This folder documents the Milestone 3 profile surface in
 `worth-foundational`.
 
+Milestone 10 extends that surface with two orthogonal families:
+`ExecutionObjectiveProfile` (`LatencyBounded`, `Balanced`, `Throughput`) and
+`ObservationActivationProfile` (`OnDemand`, `Continuous`). They are part of
+the total composed profile, so callers must choose both explicitly. The
+objective selects among already-correct runtime strategies; activation says
+when optional observation may begin. Neither changes correctness, durability,
+authority, or stable identity.
+
 Use these docs when you need to answer questions like:
 
 - How do I declare what level of diagnostics, retention, compatibility, and
@@ -24,6 +32,7 @@ Read the docs in this order if you are new to the surface:
 5. [Profile Identity, Difference, And Canonical Basis](./profile-identity-difference-and-canonical-basis.md)
 6. [Proof-Bearing Profile Certification And Readmission](./proof-bearing-profile-certification-and-readmission.md)
 7. [Profile Production Readiness](./profile-production-readiness.md)
+8. [Throughput And Observation Activation](./throughput-and-observation-activation.md)
 
 The order matters.
 
@@ -47,6 +56,12 @@ The grouped public surface for this milestone is also part of what shipped:
 - `worth_foundational::profiles_api::lower_lane::certification`
 - `worth_foundational::profiles_api::stronger_lane`
 - `worth_foundational::profiles_api::stronger_lane::readiness`
+
+Phase 4 closes the facade parity for the lower-lane materialization surface:
+its explicit-disposition planner and `FoundationalObservationDisposition` are
+the same production symbols exposed by the root facade. The stronger readiness
+lane remains proof-bearing; a descriptive M10 report is not a substitute for
+that artifact.
 
 These docs are capability-first on purpose. They are not milestone notes,
 closeout notes, or test tours. If a profile capability shipped, it should have

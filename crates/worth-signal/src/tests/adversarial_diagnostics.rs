@@ -1,6 +1,6 @@
 use crate::data::trace::TraceSummary;
-use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::facade::*;
+use crate::runtime_policy::SignalRuntimePolicy;
 use crate::tests::support::{evaluate, version_ab, ASPECT_A, ASPECT_B};
 
 #[test]
@@ -10,6 +10,9 @@ fn operational_profile_stays_bounded_under_snapshot_and_dependency_churn() {
     let source_a = graph.node().build();
     let source_b = graph.node().build();
     let dependent = graph.node().build();
+    let observation = graph
+        .begin_observation_session(SignalObservationRequest::telemetry())
+        .unwrap();
 
     let bootstrap = |graph: &mut SignalGraph, use_source_b: bool| {
         graph.drop_dependency(dependent, source_a, ASPECT_A).ok();
@@ -46,6 +49,9 @@ fn operational_profile_stays_bounded_under_snapshot_and_dependency_churn() {
             .unwrap();
     }
 
+    graph
+        .finish_observation_session(&observation)
+        .expect("telemetry observation should include the churn evaluations");
     let diagnostics = graph.observe().diagnostics();
     let policy = SignalRuntimePolicy::for_tier(DiagnosticsTier::Operational);
     assert!(diagnostics.recent_history().len() <= policy.retention_budget.history_limit);

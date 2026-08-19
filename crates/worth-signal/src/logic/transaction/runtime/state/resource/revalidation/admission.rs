@@ -15,7 +15,7 @@ impl ResourceRuntimeState {
         branch_id: SignalBranchId,
         generation_started_tick: crate::data::temporal::ClockTick,
         resolved_timeout: Option<ScheduledResourceTimeoutAdmission>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRevalidationReport {
         let PreparedResourceRevalidation {
             intent,
@@ -39,7 +39,7 @@ impl ResourceRuntimeState {
                 evidence,
                 revalidation_decision_digest,
                 resolved_timeout,
-                telemetry,
+                telemetry.as_deref_mut(),
             );
         }
         let PreparedResourceRevalidationDisposition::Proceed { descriptor_id } = disposition else {
@@ -58,7 +58,7 @@ impl ResourceRuntimeState {
             generation_started_tick,
             false,
             resolved_timeout,
-            telemetry,
+            telemetry.as_deref_mut(),
         );
         let admitted_request = request_report.admitted_request();
         if let Some(in_flight) = self
@@ -72,9 +72,11 @@ impl ResourceRuntimeState {
         let transition = request_report.transition();
         let lifecycle_transition_count = request_report.performance().lifecycle_transition_count();
 
-        telemetry.resource_revalidation_admission_count += 1;
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_revalidation_admission_count += 1;
+        }
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::revalidation_admission(
                 1,
                 0,

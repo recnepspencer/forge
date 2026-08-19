@@ -23,43 +23,54 @@ where
         self.finished = true;
         let rollback_patch_count = self.rollback_patch_count();
         let touched_nodes = self.scratch.graph_patches.touched_nodes(self.graph).len() as u32;
-        self.event_bus.rollback(self.runtime_ctx);
+        self.event_bus
+            .rollback_with_capture(self.runtime_ctx, self.captures_optional_telemetry());
         self.stage_graph_rollback_packets()?;
         if !self.poisoned {
-            self.telemetry.transaction.transaction_rollback_count += 1;
+            self.with_telemetry(|telemetry| telemetry.transaction.transaction_rollback_count += 1);
         }
-        let rollback = RollbackDiagnostic::new(
-            true,
-            rollback_patch_count,
-            self.telemetry.transaction.max_touched_nodes_in_txn,
-            Some(if self.poisoned {
-                "poisoned transaction rollback".to_string()
-            } else {
-                "explicit rollback".to_string()
-            }),
-            self.scratch.semantic_delta.event_epochs.clone(),
-        );
-        self.scratch.semantic_delta.rollback = Some(rollback);
+        let max_touched_nodes = self
+            .telemetry_snapshot()
+            .transaction
+            .max_touched_nodes_in_txn;
+        let captures_rollback = self.graph.captures_rollback_diagnostics();
+        self.scratch.semantic_delta.rollback = captures_rollback.then(|| {
+            RollbackDiagnostic::new(
+                true,
+                rollback_patch_count,
+                max_touched_nodes,
+                Some(if self.poisoned {
+                    "poisoned transaction rollback".to_string()
+                } else {
+                    "explicit rollback".to_string()
+                }),
+                self.scratch.semantic_delta.event_epochs.clone(),
+            )
+        });
         let (_, observation) = self
             .scratch
             .observations
             .drain_delivery_boundary(ObservationBoundaryOutcome::RollbackSuppressed);
-        self.telemetry
-            .transaction
-            .rollback_suppressed_observation_count +=
-            u64::from(observation.rollback_suppressed_event_count);
+        self.with_telemetry(|telemetry| {
+            telemetry.transaction.rollback_suppressed_observation_count +=
+                u64::from(observation.rollback_suppressed_event_count);
+        });
         self.scratch.semantic_delta.observation = observation;
         if self.poisoned {
-            self.telemetry.transaction.transaction_poison_count += 1;
-            self.scratch
-                .semantic_delta
-                .replay_events
-                .push(TransactionReplayEntry {
-                    kind: ReplayEventKind::TransactionRolledBack,
-                    detail: "poisoned transaction rollback".to_string(),
-                    execution_record_id: None,
-                    semantic_segment_id: None,
-                });
+            self.with_telemetry(|telemetry| telemetry.transaction.transaction_poison_count += 1);
+            if self.graph.captures_observation_surface(
+                crate::logic::transaction::SignalObservationSurface::ReplayDetail,
+            ) {
+                self.scratch
+                    .semantic_delta
+                    .replay_events
+                    .push(TransactionReplayEntry {
+                        kind: ReplayEventKind::TransactionRolledBack,
+                        detail: "poisoned transaction rollback".to_string(),
+                        execution_record_id: None,
+                        semantic_segment_id: None,
+                    });
+            }
             return Ok(self.finalize_semantic_delta(
                 true,
                 TransactionOutcome::Poisoned,
@@ -67,15 +78,19 @@ where
                 commit_start.elapsed().as_nanos(),
             ));
         }
-        self.scratch
-            .semantic_delta
-            .replay_events
-            .push(TransactionReplayEntry {
-                kind: ReplayEventKind::TransactionRolledBack,
-                detail: "explicit rollback".to_string(),
-                execution_record_id: None,
-                semantic_segment_id: None,
-            });
+        if self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::ReplayDetail,
+        ) {
+            self.scratch
+                .semantic_delta
+                .replay_events
+                .push(TransactionReplayEntry {
+                    kind: ReplayEventKind::TransactionRolledBack,
+                    detail: "explicit rollback".to_string(),
+                    execution_record_id: None,
+                    semantic_segment_id: None,
+                });
+        }
         Ok(self.finalize_semantic_delta(
             true,
             TransactionOutcome::RolledBack,
@@ -122,7 +137,7 @@ where
         &mut self,
         rollback_reason: &str,
         error: Option<SignalError>,
-        fallback_failure_message: Option<String>,
+        fallback_failure_message: Option<&str>,
         failure_phase: ExecutionFailurePhase,
         increment_poison_count: bool,
         outcome: Result<TransactionOutcome, SignalError>,
@@ -130,66 +145,76 @@ where
     ) -> Result<TransactionResult, SignalError> {
         let rollback_patch_count = self.rollback_patch_count();
         let touched_nodes = self.scratch.graph_patches.touched_nodes(self.graph).len() as u32;
-        self.event_bus.rollback(self.runtime_ctx);
+        self.event_bus
+            .rollback_with_capture(self.runtime_ctx, self.captures_optional_telemetry());
         self.stage_graph_rollback_packets()?;
-        let rollback = RollbackDiagnostic::new(
-            true,
-            rollback_patch_count,
-            self.telemetry.transaction.max_touched_nodes_in_txn,
-            Some(rollback_reason.to_string()),
-            self.scratch.semantic_delta.event_epochs.clone(),
-        );
-        let profile = self.graph.diagnostics_profile();
-        self.scratch.semantic_delta.rollback = Some(rollback);
+        let captures_rollback = self.graph.captures_rollback_diagnostics();
+        self.scratch.semantic_delta.rollback = captures_rollback.then(|| {
+            RollbackDiagnostic::new(
+                true,
+                rollback_patch_count,
+                self.telemetry_snapshot()
+                    .transaction
+                    .max_touched_nodes_in_txn,
+                Some(rollback_reason.to_string()),
+                self.scratch.semantic_delta.event_epochs.clone(),
+            )
+        });
         let (_, observation) = self
             .scratch
             .observations
             .drain_delivery_boundary(ObservationBoundaryOutcome::RollbackSuppressed);
-        self.telemetry
-            .transaction
-            .rollback_suppressed_observation_count +=
-            u64::from(observation.rollback_suppressed_event_count);
-        self.scratch.semantic_delta.observation = observation;
-        self.scratch.semantic_delta.failure_summary = Some(match &error {
-            Some(err) => ExecutionFailureContext::from_error(failure_phase, err, None)
-                .summarize(self.scratch.semantic_delta.rollback.as_ref(), profile),
-            None => ExecutionFailureContext::new(
-                failure_phase,
-                None,
-                None,
-                None,
-                None,
-                None,
-                fallback_failure_message
-                    .as_deref()
-                    .unwrap_or(rollback_reason),
-            )
-            .summarize(self.scratch.semantic_delta.rollback.as_ref(), profile),
+        self.with_telemetry(|telemetry| {
+            telemetry.transaction.rollback_suppressed_observation_count +=
+                u64::from(observation.rollback_suppressed_event_count);
         });
-        self.scratch
-            .semantic_delta
-            .replay_events
-            .push(TransactionReplayEntry {
-                kind: ReplayEventKind::TransactionRolledBack,
-                detail: rollback_reason.to_string(),
-                execution_record_id: None,
-                semantic_segment_id: None,
+        self.scratch.semantic_delta.observation = observation;
+        if self.graph.captures_failure_diagnostics() {
+            let profile = self.graph.diagnostics_profile();
+            self.scratch.semantic_delta.failure_summary = Some(match &error {
+                Some(err) => ExecutionFailureContext::from_error(failure_phase, err, None)
+                    .summarize(self.scratch.semantic_delta.rollback.as_ref(), profile),
+                None => ExecutionFailureContext::new(
+                    failure_phase,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    fallback_failure_message.unwrap_or(rollback_reason),
+                )
+                .summarize(self.scratch.semantic_delta.rollback.as_ref(), profile),
             });
-        self.scratch
-            .semantic_delta
-            .replay_events
-            .push(TransactionReplayEntry {
-                kind: ReplayEventKind::FailureRecorded,
-                detail: error
-                    .as_ref()
-                    .map(|err| err.to_string())
-                    .or(fallback_failure_message)
-                    .unwrap_or_else(|| rollback_reason.to_string()),
-                execution_record_id: None,
-                semantic_segment_id: None,
-            });
+        }
+        if self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::ReplayDetail,
+        ) {
+            self.scratch
+                .semantic_delta
+                .replay_events
+                .push(TransactionReplayEntry {
+                    kind: ReplayEventKind::TransactionRolledBack,
+                    detail: rollback_reason.to_string(),
+                    execution_record_id: None,
+                    semantic_segment_id: None,
+                });
+            let detail = error
+                .as_ref()
+                .map(|err| err.to_string())
+                .or_else(|| fallback_failure_message.map(str::to_owned))
+                .unwrap_or_else(|| rollback_reason.to_string());
+            self.scratch
+                .semantic_delta
+                .replay_events
+                .push(TransactionReplayEntry {
+                    kind: ReplayEventKind::FailureRecorded,
+                    detail,
+                    execution_record_id: None,
+                    semantic_segment_id: None,
+                });
+        }
         if increment_poison_count {
-            self.telemetry.transaction.transaction_poison_count += 1;
+            self.with_telemetry(|telemetry| telemetry.transaction.transaction_poison_count += 1);
         }
         match outcome {
             Ok(outcome) => Ok(self.finalize_semantic_delta(

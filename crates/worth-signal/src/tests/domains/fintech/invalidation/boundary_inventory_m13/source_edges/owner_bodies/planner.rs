@@ -87,7 +87,7 @@ pub(super) const PLANNER_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../../logic/planner/apply/stage/concurrent.rs",
         Function,
         "run_grouped_concurrent_apply_pass",
-        "db67e6aeed6340e5c6d54ce72b5fc7a391c148dafc9f4c1eda916c44cd132737"
+        "4ab3b1197695ca5849d9bccedad6d4d30e3f8ae2069a5beb37d7f23aea8d4d93"
     ),
     owner!(
         "parallel packet construction",
@@ -103,7 +103,7 @@ pub(super) const PLANNER_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../../logic/planner/apply/stage/concurrent_packets.rs",
         Function,
         "reduce_grouped_concurrent_packets",
-        "40109f5204bca3a7f4a8db58a658dde9194e072ce45517f60511679f57884e2d"
+        "80989410e21e2f68ae9b2f0de4ea94d2d2f0326439645b63bc9f7f281d5d9c68"
     ),
     owner!(
         "parallel task output publication",
@@ -127,7 +127,7 @@ pub(super) const PLANNER_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../../logic/planner/apply/serial_batch/preparation.rs",
         Method,
         "prepare",
-        "03bc435ba7013d23fd11c82ff8136005d0198818f5cf34ca6e741fbde2390d99"
+        "d0e2f7b703c71e8a9366b0be692cf4d9fae947ef59e57c978333f30c4109a9ac"
     ),
     owner!(
         "serial batch application",
@@ -135,7 +135,7 @@ pub(super) const PLANNER_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../../logic/planner/apply/serial_batch/application.rs",
         Method,
         "apply",
-        "d8d80858e9549dd6976279cda10d6f493d585b28792325a62b5382d38e81ee7d"
+        "e0e090ff378d5e2b5fda755dc0acfd6630f4e902036b03bad2708607efaf279e"
     ),
     owner!(
         "serial task application",
@@ -143,7 +143,7 @@ pub(super) const PLANNER_OWNER_BODIES: &[OwnerBody] = &[
         "../../../../../../../logic/planner/apply/serial_batch/application.rs",
         Function,
         "apply_serial_input",
-        "f4a85bf4c2f54ffa7526f10675f215706a694b9039e4cd1aacb870eaf81ac513"
+        "b7a601e8a1efc73d3954759214006afc0bdb53be2be0663789e14a514f58040f"
     ),
     owner!(
         "serial snapshot reduction",

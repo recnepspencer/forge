@@ -21,5 +21,7 @@ fn main() {
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::Uncertified,
+        execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+        observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
     });
 }

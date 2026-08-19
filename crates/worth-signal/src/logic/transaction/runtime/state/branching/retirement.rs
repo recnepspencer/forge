@@ -6,11 +6,7 @@ use crate::logic::transaction::canonical_digest;
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
 use super::super::runtime_state::SignalRuntime;
-use super::{
-    PlannedSignalBranchRetirementBatch, SignalBranchRetirementBatchDenial,
-    SignalBranchRetirementBatchReceipt, SignalBranchRetirementBatchRequest,
-};
-use super::{SignalBranchBasisArtifact, SignalBranchTransactionHead};
+use super::{transaction_head::SignalBranchTransactionHead, SignalBranchBasisArtifact};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchRetirementReason {
@@ -80,9 +76,9 @@ pub enum SignalBranchRetirementDenial {
 
 #[derive(Debug, Clone)]
 pub struct PlannedSignalBranchRetirement {
-    request: SignalBranchRetirementRequest,
-    validated_basis: SignalBranchBasisArtifact,
-    planned_child_membership_count: u32,
+    pub(super) request: SignalBranchRetirementRequest,
+    pub(super) validated_basis: SignalBranchBasisArtifact,
+    pub(super) planned_child_membership_count: u32,
 }
 
 impl PlannedSignalBranchRetirement {
@@ -170,9 +166,11 @@ where
         &mut self,
         request: SignalBranchRetirementRequest,
     ) -> TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial> {
-        self.telemetry.transaction.branch_retirement_plan_count += 1;
+        self.with_telemetry(|telemetry| telemetry.transaction.branch_retirement_plan_count += 1);
         if let Err(denial) = self.validate_retirement_request(&request) {
-            self.telemetry.transaction.branch_retirement_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.transaction.branch_retirement_denial_count += 1
+            });
             return TransitionOutcome::denied(denial);
         }
 
@@ -193,7 +191,9 @@ where
         plan: PlannedSignalBranchRetirement,
     ) -> TransitionOutcome<SignalBranchRetirementReceipt, SignalBranchRetirementDenial> {
         if let Err(denial) = self.validate_retirement_request(&plan.request) {
-            self.telemetry.transaction.branch_retirement_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.transaction.branch_retirement_denial_count += 1
+            });
             return TransitionOutcome::denied(denial);
         }
 
@@ -239,22 +239,22 @@ where
             .retire_branch_from_catalog(branch.id);
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
-        self.telemetry.transaction.branch_retirement_execution_count += 1;
-        self.telemetry
-            .transaction
-            .branch_retirement_reclaimed_branch_state_count +=
-            u64::from(receipt.reclaimed_branch_state_count);
-        self.telemetry
-            .transaction
-            .branch_retirement_reclaimed_snapshot_state_count +=
-            u64::from(receipt.reclaimed_snapshot_state_count);
-        self.telemetry
-            .transaction
-            .branch_retirement_reclaimed_runtime_meta_count +=
-            u64::from(receipt.reclaimed_runtime_meta_count);
-        self.telemetry
-            .transaction
-            .branch_retirement_retained_proof_count += 1;
+        self.with_telemetry(|telemetry| {
+            telemetry.transaction.branch_retirement_execution_count += 1;
+            telemetry
+                .transaction
+                .branch_retirement_reclaimed_branch_state_count +=
+                u64::from(receipt.reclaimed_branch_state_count);
+            telemetry
+                .transaction
+                .branch_retirement_reclaimed_snapshot_state_count +=
+                u64::from(receipt.reclaimed_snapshot_state_count);
+            telemetry
+                .transaction
+                .branch_retirement_reclaimed_runtime_meta_count +=
+                u64::from(receipt.reclaimed_runtime_meta_count);
+            telemetry.transaction.branch_retirement_retained_proof_count += 1;
+        });
         crate::diagnostics::recorder::record_snapshot_event(
             &mut self.graph,
             crate::diagnostics::replay::ReplayEventKind::BranchRetired,
@@ -268,80 +268,6 @@ where
         TransitionOutcome::success(receipt)
     }
 
-    pub fn plan_branch_retirement_batch(
-        &mut self,
-        request: SignalBranchRetirementBatchRequest,
-    ) -> TransitionOutcome<PlannedSignalBranchRetirementBatch, SignalBranchRetirementBatchDenial>
-    {
-        if request.requests().is_empty() {
-            return TransitionOutcome::denied(SignalBranchRetirementBatchDenial::Empty);
-        }
-        let mut scheduled = BTreeSet::new();
-        let mut plans = Vec::with_capacity(request.requests().len());
-        for (position, retirement) in request.requests().iter().enumerate() {
-            if scheduled.contains(&retirement.branch().id) {
-                return TransitionOutcome::denied(
-                    SignalBranchRetirementBatchDenial::DuplicateBranch {
-                        branch_id: retirement.branch().id,
-                    },
-                );
-            }
-            self.telemetry.transaction.branch_retirement_plan_count += 1;
-            if let Err(denial) = self.validate_retirement_request_after(retirement, &scheduled) {
-                self.telemetry.transaction.branch_retirement_denial_count += 1;
-                return TransitionOutcome::denied(SignalBranchRetirementBatchDenial::Retirement {
-                    position: position as u32,
-                    denial,
-                });
-            }
-            let validated_basis = match self.branch_basis_artifact(retirement.branch().clone()) {
-                TransitionOutcome::Success(basis) => basis,
-                other => panic!("validated batch retirement basis must succeed: {other:?}"),
-            };
-            plans.push(PlannedSignalBranchRetirement {
-                request: retirement.clone(),
-                validated_basis,
-                planned_child_membership_count: 0,
-            });
-            scheduled.insert(retirement.branch().id);
-        }
-        TransitionOutcome::success(PlannedSignalBranchRetirementBatch { plans })
-    }
-
-    pub fn retire_branch_batch(
-        &mut self,
-        plan: PlannedSignalBranchRetirementBatch,
-    ) -> TransitionOutcome<SignalBranchRetirementBatchReceipt, SignalBranchRetirementBatchDenial>
-    {
-        let mut scheduled = BTreeSet::new();
-        for (position, retirement) in plan.plans.iter().enumerate() {
-            if let Err(denial) =
-                self.validate_retirement_request_after(retirement.request(), &scheduled)
-            {
-                return TransitionOutcome::denied(SignalBranchRetirementBatchDenial::Retirement {
-                    position: position as u32,
-                    denial,
-                });
-            }
-            scheduled.insert(retirement.request().branch().id);
-        }
-        let mut receipts = Vec::with_capacity(plan.plans.len());
-        for retirement in plan.plans {
-            match self.retire_branch(retirement) {
-                TransitionOutcome::Success(receipt) => receipts.push(receipt),
-                other => panic!("prevalidated retirement batch must execute atomically: {other:?}"),
-            }
-        }
-        TransitionOutcome::success(SignalBranchRetirementBatchReceipt::new(receipts))
-    }
-
-    pub fn branch_retirement_receipt(
-        &self,
-        branch_id: SignalBranchId,
-    ) -> Option<&SignalBranchRetirementReceipt> {
-        self.branches.branch_retirement_receipt(branch_id)
-    }
-
     fn validate_retirement_request(
         &self,
         request: &SignalBranchRetirementRequest,
@@ -349,7 +275,7 @@ where
         self.validate_retirement_request_after(request, &BTreeSet::new())
     }
 
-    fn validate_retirement_request_after(
+    pub(super) fn validate_retirement_request_after(
         &self,
         request: &SignalBranchRetirementRequest,
         retired_before: &BTreeSet<SignalBranchId>,

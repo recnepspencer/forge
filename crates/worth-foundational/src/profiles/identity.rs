@@ -158,7 +158,7 @@ pub fn classify_foundational_profile_compatibility(
         .compatibility_class()
 }
 
-fn foundational_profile_basis_entries(profile: FoundationalProfileSet) -> [CanonicalBasisEntry; 6] {
+fn foundational_profile_basis_entries(profile: FoundationalProfileSet) -> [CanonicalBasisEntry; 8] {
     [
         profile_text_entry(
             "diagnostic_richness",
@@ -183,6 +183,14 @@ fn foundational_profile_basis_entries(profile: FoundationalProfileSet) -> [Canon
         profile_text_entry(
             "certification_posture",
             certification_posture_token(profile.certification_posture()),
+        ),
+        profile_text_entry(
+            "execution_objective",
+            execution_objective_token(profile.execution_objective()),
+        ),
+        profile_text_entry(
+            "observation_activation",
+            observation_activation_token(profile.observation_activation()),
         ),
     ]
 }
@@ -269,6 +277,16 @@ fn certification_posture_token(
     }
 }
 
+fn execution_objective_token(value: crate::profiles::ExecutionObjectiveProfile) -> &'static str {
+    value.token()
+}
+
+fn observation_activation_token(
+    value: crate::profiles::ObservationActivationProfile,
+) -> &'static str {
+    value.token()
+}
+
 fn profile_set_from_basis(ready: &CanonicalBasisSequence) -> FoundationalProfileSet {
     let entry = |name: &str| {
         ready
@@ -332,67 +350,21 @@ fn profile_set_from_basis(ready: &CanonicalBasisSequence) -> FoundationalProfile
             }
             other => panic!("unexpected certification posture token {other}"),
         },
+        execution_objective: match text("execution_objective") {
+            "latency-bounded" => crate::profiles::ExecutionObjectiveProfile::LatencyBounded,
+            "balanced" => crate::profiles::ExecutionObjectiveProfile::Balanced,
+            "throughput" => crate::profiles::ExecutionObjectiveProfile::Throughput,
+            other => panic!("unexpected execution objective token {other}"),
+        },
+        observation_activation: match text("observation_activation") {
+            "on-demand" => crate::profiles::ObservationActivationProfile::OnDemand,
+            "continuous" => crate::profiles::ObservationActivationProfile::Continuous,
+            other => panic!("unexpected observation activation token {other}"),
+        },
     })
     .expect("profile basis entries reconstruct coherent profile")
 }
 
 #[cfg(test)]
-mod tests {
-    use worth_proof::TransitionOutcome;
-
-    use crate::canonicalization::{
-        CanonicalBasisDomain, CanonicalBasisSequence, CanonicalizationCost,
-        CanonicalizationRuleVersion,
-    };
-    use crate::{
-        admit_requested_foundational_profile, derive_foundational_profile_identity,
-        foundational_profile_progression_authority, request_foundational_profile_set,
-        AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-        DiagnosticRichnessProfile, FoundationalProfileIdentity, FoundationalProfileSet,
-        FoundationalProfileSetInput, RetentionDeliveryProfile, SupportPostureProfile,
-    };
-
-    fn profile() -> FoundationalProfileSet {
-        FoundationalProfileSet::new(FoundationalProfileSetInput {
-            diagnostic_richness: DiagnosticRichnessProfile::Standard,
-            support_posture: SupportPostureProfile::SupportReady,
-            compatibility_posture: CompatibilityPostureProfile::CompatibilityLowered,
-            admission_readiness: AdmissionReadinessProfile::Admitted,
-            retention_delivery: RetentionDeliveryProfile::Retained,
-            certification_posture: CertificationPostureProfile::EvidenceBacked,
-        })
-        .expect("coherent profile")
-    }
-
-    #[test]
-    fn profile_identity_equality_ignores_canonicalization_cost_counters() {
-        let version =
-            CanonicalizationRuleVersion::new("m3.profile.identity.eq").expect("valid version");
-        let profile = profile();
-        let admitted = match admit_requested_foundational_profile(
-            request_foundational_profile_set(profile),
-            profile,
-            None,
-            foundational_profile_progression_authority(),
-        ) {
-            TransitionOutcome::Success(admitted) => admitted,
-            outcome => panic!("expected admitted profile, got {outcome:?}"),
-        };
-        let identity = match derive_foundational_profile_identity(version, &admitted) {
-            TransitionOutcome::Success(identity) => identity,
-            outcome => panic!("expected profile identity, got {outcome:?}"),
-        };
-        let mutated_basis = CanonicalBasisSequence::new(
-            identity.basis.version().clone(),
-            CanonicalBasisDomain::Profile,
-            identity.basis.entries().to_vec(),
-            CanonicalizationCost::new(identity.basis.cost().entry_count(), 99, 0, 0),
-        );
-        let with_different_cost = FoundationalProfileIdentity {
-            basis: mutated_basis,
-            digest: identity.digest.clone(),
-        };
-
-        assert_eq!(identity, with_different_cost);
-    }
-}
+#[path = "identity_tests.rs"]
+mod tests;

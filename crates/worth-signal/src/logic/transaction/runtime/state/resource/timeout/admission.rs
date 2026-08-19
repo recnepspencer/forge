@@ -19,17 +19,22 @@ impl ResourceRuntimeState {
         &mut self,
         handle: ResourceRequestHandle,
         ready_wake: ReadyTemporalWake,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceTimeoutReport {
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         let in_flight = match self.validate_timeout_admission(handle, &ready_wake) {
             Ok(in_flight) => in_flight,
-            Err(class) => return self.deny_timeout(handle.request_id(), class, telemetry),
+            Err(class) => {
+                return self.deny_timeout(handle.request_id(), class, telemetry.as_deref_mut())
+            }
         };
-        let prepared = self.prepare_timeout_admission(in_flight, handle, ready_wake, telemetry);
-        self.apply_timeout_admission(&prepared, telemetry);
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        let prepared =
+            self.prepare_timeout_admission(in_flight, handle, ready_wake, telemetry.as_deref_mut());
+        self.apply_timeout_admission(&prepared, telemetry.as_deref_mut());
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::timeout_admission(1, 0, 1)
                 .with_output_continuity_classification_width(u32::from(
                     prepared.terminal_visibility_classified,
@@ -77,10 +82,10 @@ impl ResourceRuntimeState {
         in_flight: InFlightResourceRequest,
         handle: ResourceRequestHandle,
         ready_wake: ReadyTemporalWake,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> PreparedTimeoutAdmission {
         let (output_continuity, terminal_visibility_classified) = self
-            .classify_terminal_output_continuity_for_node(
+            .classify_terminal_output_continuity_for_node_optional(
                 in_flight.node(),
                 in_flight.descriptor_id(),
                 ResourceTerminalVisibilityCause::Timeout,
@@ -128,7 +133,7 @@ impl ResourceRuntimeState {
     fn apply_timeout_admission(
         &mut self,
         prepared: &PreparedTimeoutAdmission,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) {
         self.in_flight_by_request
             .get_mut(&prepared.request_id)
@@ -145,10 +150,12 @@ impl ResourceRuntimeState {
         self.lifecycle_by_node
             .insert(prepared.node, prepared.lifecycle);
         self.clear_latest_denied_completion_for_node(prepared.node);
-        telemetry.resource_timeout_admission_count += 1;
-        telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
-        telemetry.resource_timeout_temporal_wake_footprint = telemetry
-            .resource_timeout_temporal_wake_footprint
-            .saturating_add(1);
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_timeout_admission_count += 1;
+            telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
+            telemetry.resource_timeout_temporal_wake_footprint = telemetry
+                .resource_timeout_temporal_wake_footprint
+                .saturating_add(1);
+        }
     }
 }

@@ -6,7 +6,7 @@ use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::graph::SignalGraph;
 use crate::data::resource::FrozenResourcePolicyRegistry;
 use crate::data::tier::TierPolicy;
-use crate::diagnostics::policy::SignalRuntimePolicy;
+use crate::runtime_policy::SignalRuntimePolicy;
 use crate::schema::data::SignalSchemaRegistry;
 
 use super::merge::{

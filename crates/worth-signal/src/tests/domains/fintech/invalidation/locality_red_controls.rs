@@ -2,9 +2,11 @@ use super::super::certification::invalidation::{
     FinancialLocalityExpectationManifest, FreshFinancialLocalityRecompute,
 };
 use super::super::world::{
-    compile_financial_locality_world, CompiledFinancialWorld, FinancialLocalityRedObservation,
-    FinancialWorldDefinition, LocalitySemanticOutputId, SparseFanoutAxis,
+    compile_financial_locality_world, compile_financial_locality_world_at_tier,
+    CompiledFinancialWorld, FinancialLocalityRedObservation, FinancialWorldDefinition,
+    LocalitySemanticOutputId, SparseFanoutAxis,
 };
+use crate::facade::DiagnosticsTier;
 use std::collections::BTreeSet;
 use std::ops::Deref;
 
@@ -115,8 +117,9 @@ fn prepare_red_control(
     FinancialLocalityExpectationManifest,
     FreshFinancialLocalityRecompute,
 ) {
-    let compiled = compile_financial_locality_world(definition)
-        .expect("financial locality world must compile and seal its baseline");
+    let compiled =
+        compile_financial_locality_world_at_tier(definition, DiagnosticsTier::Operational)
+            .expect("financial locality world must compile and seal its baseline");
     let manifest = FinancialLocalityExpectationManifest::derive(
         compiled.locality_definition(),
         compiled.locality_graph_instance(),
@@ -139,9 +142,18 @@ fn execute_red_control(
     manifest: FinancialLocalityExpectationManifest,
     fresh: FreshFinancialLocalityRecompute,
 ) -> RedControlEvidence {
+    let observation_session = compiled
+        .begin_operation_observation()
+        .expect("performed red control must admit an observation session");
     let observation = compiled
         .run_inherited_breadth_red_control()
         .expect("financial locality mutation must execute");
+    let receipt = compiled
+        .finish_operation_observation(observation_session)
+        .expect("performed red control must finish its observation session");
+    assert!(receipt
+        .request()
+        .includes(crate::facade::SignalObservationSurface::PerformedWork));
     assert_eq!(
         compiled
             .committed_locality_financial_values()
@@ -161,6 +173,17 @@ fn execute_red_control(
         observation.evaluated_outputs,
         *manifest.necessary_evaluations()
     );
+    assert!(
+        observation
+            .performed_counters
+            .value(crate::data::telemetry::InvalidationPerformedCounter::WorkItemsAdmitted)
+            > 0,
+        "pre-cutover Operational/no-observer control must retain optional performed work"
+    );
+    assert!(
+        observation.lineage_records > 0,
+        "pre-cutover Operational/no-observer control must retain lineage records"
+    );
     assert_eq!(
         observation.reverse_candidates_returned,
         observation.direct_candidates_examined
@@ -170,6 +193,32 @@ fn execute_red_control(
         expected_evaluations: manifest.necessary_evaluations().clone(),
         expected_stops: manifest.unchanged_output_stops().clone(),
     }
+}
+
+#[test]
+fn operational_no_session_control_keeps_optional_performed_work_absent() {
+    let definition =
+        FinancialWorldDefinition::sparse_book_fanout(41, 64, SparseFanoutAxis::IndexDisjoint);
+    let (mut compiled, _, fresh) = prepare_red_control(definition);
+    let observation = compiled
+        .run_inherited_breadth_red_control()
+        .expect("idle operational control must execute");
+    assert!(crate::data::telemetry::InvalidationPerformedCounter::ALL
+        .into_iter()
+        .all(|counter| observation.performed_counters.value(counter) == 0));
+    assert_eq!(observation.lineage_records, 0);
+    assert!(observation.performed_work.is_empty());
+    assert_eq!(observation.explanation_fact_count, 0);
+    assert_eq!(observation.provenance_fact_count, 0);
+    assert!(!observation.frontier_summary_retained);
+    assert_eq!(observation.replay_event_count, 0);
+    assert!(!observation.flow_summary_retained);
+    assert_eq!(
+        compiled
+            .committed_locality_financial_values()
+            .expect("idle control must preserve operational truth"),
+        *fresh.shocked_values()
+    );
 }
 
 #[test]

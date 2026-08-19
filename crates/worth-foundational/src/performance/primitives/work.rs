@@ -12,10 +12,15 @@ pub enum FoundationalPerformanceWorkClass {
     ReplayReconstruction,
     SupportReportAssembly,
     ForensicParity,
+    StructuralCounterCapture,
+    DiagnosticFactCapture,
+    DescriptiveLineageRecordMaintenance,
+    ProvenanceFactCapture,
+    ReplaySidecarMaintenance,
 }
 
 pub fn foundational_performance_work_class_definitions(
-) -> [FoundationalPerformanceWorkClassDefinition; 8] {
+) -> [FoundationalPerformanceWorkClassDefinition; 13] {
     [
         FoundationalPerformancePrimitiveDefinition::new(
             FoundationalPerformanceWorkClass::AuthoritativeRead,
@@ -64,6 +69,36 @@ pub fn foundational_performance_work_class_definitions(
             "forensic_parity",
             "forensic comparison or parity work that widens the lane",
             "ordinary narrow operational work",
+        ),
+        FoundationalPerformancePrimitiveDefinition::new(
+            FoundationalPerformanceWorkClass::StructuralCounterCapture,
+            "structural_counter_capture",
+            "capture of optional structural counters for an admitted observation",
+            "correctness-required state validation",
+        ),
+        FoundationalPerformancePrimitiveDefinition::new(
+            FoundationalPerformanceWorkClass::DiagnosticFactCapture,
+            "diagnostic_fact_capture",
+            "capture of optional diagnostic facts and summaries",
+            "authoritative semantic decisions",
+        ),
+        FoundationalPerformancePrimitiveDefinition::new(
+            FoundationalPerformanceWorkClass::DescriptiveLineageRecordMaintenance,
+            "descriptive_lineage_record_maintenance",
+            "maintenance of optional descriptive lineage records and indexes",
+            "stable artifact identity or replay linkage",
+        ),
+        FoundationalPerformancePrimitiveDefinition::new(
+            FoundationalPerformanceWorkClass::ProvenanceFactCapture,
+            "provenance_fact_capture",
+            "capture of optional provenance facts for support or forensics",
+            "authority validation or custody evidence",
+        ),
+        FoundationalPerformancePrimitiveDefinition::new(
+            FoundationalPerformanceWorkClass::ReplaySidecarMaintenance,
+            "replay_sidecar_maintenance",
+            "maintenance of optional replay-sidecar detail",
+            "correctness-required replay linkage",
         ),
     ]
 }

@@ -43,8 +43,8 @@ fn phase_1_inventory_freezes_complete_critical_source_files() {
 fn phase_1_inventory_rejects_comment_decoy_and_writer_misrouting() {
     let owner = owner("routing counter projection");
     let mutated = owner.source.replace(
-        "graph.telemetry_mut().invalidation.frontier_seed_count += counters.frontier_seed_count;",
-        "graph.telemetry_mut().invalidation.frontier_group_count += counters.frontier_seed_count;\n/* graph.telemetry_mut().invalidation.frontier_seed_count += counters.frontier_seed_count; */",
+        "telemetry.invalidation.frontier_seed_count += counters.frontier_seed_count;",
+        "telemetry.invalidation.frontier_group_count += counters.frontier_seed_count;\n/* telemetry.invalidation.frontier_seed_count += counters.frontier_seed_count; */",
     );
     assert_owner_body_changed(owner, &mutated);
 }

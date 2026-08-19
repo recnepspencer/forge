@@ -23,7 +23,7 @@ impl CompiledFinancialWorld {
         &self.baseline_aspect_versions[&key]
     }
 
-    pub(in crate::tests::domains::fintech) fn verify_committed_financial_truth(
+    pub(crate) fn verify_committed_financial_truth(
         &self,
         required_work: &BTreeSet<SemanticOutputKey>,
     ) -> Result<(), SignalError> {
@@ -36,7 +36,7 @@ impl CompiledFinancialWorld {
         verify_projected_work(self, required_work)
     }
 
-    pub(in crate::tests::domains::fintech) fn committed_financial_values(
+    pub(crate) fn committed_financial_values(
         &self,
     ) -> Result<BTreeMap<SemanticOutputKey, i64>, SignalError> {
         self.projection

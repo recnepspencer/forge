@@ -24,12 +24,16 @@ where
         if let Some(failure) = failure {
             self.graph.diagnostics_state_mut().record_failure(failure);
         }
-        self.graph
-            .diagnostics_state_mut()
-            .attach_event_epochs_to_latest_flow(result.event_epochs.clone());
-        self.graph
-            .diagnostics_state_mut()
-            .record_observation(result.observation.clone());
+        if self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        ) {
+            self.graph
+                .diagnostics_state_mut()
+                .attach_event_epochs_to_latest_flow(result.event_epochs.clone());
+            self.graph
+                .diagnostics_state_mut()
+                .record_observation(result.observation.clone());
+        }
         for entry in replay_events {
             record_transaction_semantic_event(
                 self.graph,

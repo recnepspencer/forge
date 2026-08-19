@@ -5,9 +5,9 @@ use worth_harness::facade::{DiagnosticsLevel, ExecutionMode, ObservationStatus};
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::node::{EvaluationCondition, NodeState};
-use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsTier;
 use crate::logic::planner::{EvaluationPlan, StageExecutor};
+use crate::runtime_policy::SignalRuntimePolicy;
 
 use super::SignalHarnessBridge;
 

@@ -6,8 +6,8 @@ pub mod profile;
 
 pub use definition::{
     DetailLimit, FrontierCyclePolicy, FrontierPropagationPolicy, FrontierTracingPolicy,
-    HistoryLimit, ParallelAdmissionPolicy, ReconstructionBudget, ReplayDetailPolicy,
-    RetentionBudget, SemanticRetentionPolicy, SignalRuntimePolicy, SnapshotRestoreLineageMode,
+    HistoryLimit, ReconstructionBudget, ReplayDetailPolicy, RetentionBudget,
+    SemanticRetentionPolicy, SnapshotRestoreLineageMode,
 };
 pub use materialization::{
     ArtifactRetentionPolicy, DiagnosticsAvailability, ExplicitColdAccessLane, OrdinaryAccessLane,

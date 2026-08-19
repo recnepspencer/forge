@@ -36,6 +36,7 @@ where
     }
 
     fn checkpoint_telemetry(&self) -> CheckpointTelemetry {
+        let telemetry = self.telemetry_snapshot();
         CheckpointTelemetry {
             event_flushes: self.event_bus.telemetry().checkpoint.event_flushes,
             event_flush_nanos: self.event_bus.telemetry().checkpoint.event_flush_nanos,
@@ -46,28 +47,21 @@ where
                 .checkpoint
                 .checkpoint_flush_nanos,
             rollback_count: self.event_bus.telemetry().checkpoint.rollback_count,
-            snapshot_restore_count: self.telemetry.checkpoint.snapshot_restore_count,
-            snapshot_restore_apply_active_policy_count: self
-                .telemetry
+            snapshot_restore_count: telemetry.checkpoint.snapshot_restore_count,
+            snapshot_restore_apply_active_policy_count: telemetry
                 .checkpoint
                 .snapshot_restore_apply_active_policy_count,
-            snapshot_restore_shared_delta_node_count: self
-                .telemetry
+            snapshot_restore_shared_delta_node_count: telemetry
                 .checkpoint
                 .snapshot_restore_shared_delta_node_count,
-            snapshot_restore_coarse_reason_count: self
-                .telemetry
+            snapshot_restore_coarse_reason_count: telemetry
                 .checkpoint
                 .snapshot_restore_coarse_reason_count,
-            checkpoint_size: self.telemetry.checkpoint.checkpoint_size,
-            journal_replay_span: self.telemetry.checkpoint.journal_replay_span,
-            restore_authority_breadth: self.telemetry.checkpoint.restore_authority_breadth,
-            restore_required_derived_breadth: self
-                .telemetry
-                .checkpoint
-                .restore_required_derived_breadth,
-            restore_diagnostic_richness_breadth: self
-                .telemetry
+            checkpoint_size: telemetry.checkpoint.checkpoint_size,
+            journal_replay_span: telemetry.checkpoint.journal_replay_span,
+            restore_authority_breadth: telemetry.checkpoint.restore_authority_breadth,
+            restore_required_derived_breadth: telemetry.checkpoint.restore_required_derived_breadth,
+            restore_diagnostic_richness_breadth: telemetry
                 .checkpoint
                 .restore_diagnostic_richness_breadth,
         }

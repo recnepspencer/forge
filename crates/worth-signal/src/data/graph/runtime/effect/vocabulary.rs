@@ -127,7 +127,7 @@ pub(super) fn build_cold_artifact_intent(
 }
 
 pub(super) fn runtime_policy_omits_cold_artifacts(graph: &SignalGraph) -> bool {
-    let retention = graph.runtime_policy().retention_budget;
+    let retention = graph.installed_runtime_policy().retention_budget();
     matches!(
         retention.explanation_retention,
         ArtifactRetentionPolicy::Omit

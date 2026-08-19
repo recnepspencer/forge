@@ -17,7 +17,9 @@ where
     ) -> Result<ResourceRevalidationReport, crate::data::error::SignalError> {
         let resource_node = intent.node();
         if !self.graph.is_alive(resource_node.node()) {
-            self.telemetry.resource.resource_non_live_owner_denial_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.resource_non_live_owner_denial_count += 1
+            });
             return Err(crate::data::error::SignalError::invalid_input(format!(
                 "cannot revalidate resource node for non-live owner {}",
                 resource_node.node()
@@ -41,10 +43,13 @@ where
                     "resource-policy-revalidation-plan:undeclared",
                 )
             });
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         let prepared_revalidation = match self.resource.prepare_explicit_resource_revalidation(
             intent,
             revalidation_decision_digest,
-            &mut self.telemetry.resource,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
         ) {
             Ok(prepared) => prepared,
             Err(report) => return Ok(report),
@@ -76,7 +81,7 @@ where
             self.graph.current_branch().id,
             current_tick,
             scheduled_timeout_admission,
-            &mut self.telemetry.resource,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
         );
         self.reconcile_resource_revalidation_wakes(
             &report,
@@ -95,8 +100,14 @@ where
         crate::data::resource::ActiveResourceRevalidationProof,
         crate::data::error::SignalError,
     > {
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         self.resource
-            .prove_active_resource_revalidation_handle(handle, &mut self.telemetry.resource)
+            .prove_active_resource_revalidation_handle(
+                handle,
+                capture_telemetry.then_some(&mut self.telemetry.resource),
+            )
             .ok_or_else(|| {
                 crate::data::error::SignalError::invalid_input(format!(
                     "cannot mint active revalidation proof for stale or non-active request {}",
@@ -111,7 +122,9 @@ where
     ) -> Result<ResourceRevalidationReport, crate::data::error::SignalError> {
         let resource_node = proof.node();
         if !self.graph.is_alive(resource_node.node()) {
-            self.telemetry.resource.resource_non_live_owner_denial_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.resource_non_live_owner_denial_count += 1
+            });
             return Err(crate::data::error::SignalError::invalid_input(format!(
                 "cannot force revalidate non-live resource node {}",
                 resource_node.node()
@@ -119,10 +132,15 @@ where
         }
 
         let current_tick = self.clock_basis().current_tick();
-        self.telemetry
-            .resource
-            .resource_revalidation_policy_decision_count += 1;
-        self.telemetry.resource.resource_forced_revalidation_count += 1;
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        if capture_telemetry {
+            self.telemetry
+                .resource
+                .resource_revalidation_policy_decision_count += 1;
+        }
+        self.with_resource_telemetry(|telemetry| telemetry.resource_forced_revalidation_count += 1);
         if let Some(class) = self
             .resource
             .validate_forced_resource_revalidation_proof(&proof)
@@ -131,13 +149,13 @@ where
                 proof.node(),
                 proof.handle(),
                 class,
-                &mut self.telemetry.resource,
+                capture_telemetry.then_some(&mut self.telemetry.resource),
             ));
         }
-        let prepared_revalidation = match self
-            .resource
-            .prepare_forced_resource_revalidation(proof, &mut self.telemetry.resource)
-        {
+        let prepared_revalidation = match self.resource.prepare_forced_resource_revalidation(
+            proof,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
+        ) {
             Ok(prepared) => prepared,
             Err(report) => return Ok(report),
         };
@@ -169,7 +187,7 @@ where
             self.graph.current_branch().id,
             current_tick,
             scheduled_timeout_admission,
-            &mut self.telemetry.resource,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
         );
         self.reconcile_resource_revalidation_wakes(
             &report,

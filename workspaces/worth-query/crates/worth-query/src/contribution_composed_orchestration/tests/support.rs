@@ -2,8 +2,9 @@ use std::marker::PhantomData;
 
 use worth_foundational::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalProfileSet, FoundationalProfileSetInput,
-    RetentionDeliveryProfile, SupportPostureProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalProfileSet,
+    FoundationalProfileSetInput, ObservationActivationProfile, RetentionDeliveryProfile,
+    SupportPostureProfile,
 };
 
 use crate::application::{
@@ -249,6 +250,8 @@ pub(super) fn standard_profile() -> FoundationalProfileSet {
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::Uncertified,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
     })
     .unwrap()
 }

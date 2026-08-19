@@ -47,6 +47,7 @@ impl SignalGraph {
         graph.topology.dependency_snapshots = DependencySnapshotStore::default();
         graph.topology.dependency_snapshot_shapes = DependencySnapshotShapeStore::default();
         graph.observation.diagnostics = self.observation.diagnostics.authority_carrier_clone();
+        let installed_policy = graph.observation.installed_policy();
         SignalCheckpointAuthority {
             arena: SignalCheckpointArena {
                 slots: graph
@@ -78,6 +79,7 @@ impl SignalGraph {
             },
             cause_sets: graph.cause_sets,
             diagnostics: graph.observation.diagnostics,
+            installed_policy,
         }
     }
 
@@ -92,6 +94,28 @@ impl SignalGraph {
         let mut cause_sets = authority.cause_sets.clone();
         cause_sets.readmit_graph_instance(instance_id);
         let cause_readmission_required = cause_sets.has_occupied_sets();
+        let observation_sessions: crate::logic::transaction::SignalObservationSessionState =
+            Default::default();
+        observation_sessions.set_default_surface_mask(
+            authority
+                .installed_policy
+                .observation_capture_plan()
+                .default_surface_mask(),
+        );
+        let invalidation_performed_counters =
+            super::InvalidationPerformedCounterState::with_capture_gate(
+                observation_sessions.capture_gate(),
+            );
+        let invalidation_performed_work = super::PerformedWorkCaptureState::with_capture_gate(
+            observation_sessions.capture_gate(),
+        );
+        let observation_capture_cleanup =
+            std::sync::Arc::new(super::ObservationCaptureCleanup::new(
+                invalidation_performed_counters.shared_values(),
+                invalidation_performed_work.shared_bindings(),
+                observation_sessions.shared_completed_execution_boundaries(),
+                observation_sessions.shared_last_completion(),
+            ));
         let mut graph = Self {
             lifecycle_token: Default::default(),
             instance_id,
@@ -171,15 +195,24 @@ impl SignalGraph {
                 branch_mutation_view: BTreeMap::new(),
                 branch_mutation_records: BTreeMap::new(),
                 diagnostics: authority.diagnostics.clone(),
+                installed_policy: authority.installed_policy,
             },
             schema_registry: SignalSchemaRegistry::default(),
             aspect_lowering_owner: None,
             conditional_dependency_versions: BTreeMap::new(),
             authorization_policy_identities: BTreeSet::new(),
             invalidation_readiness_epoch: 0,
-            invalidation_performed_counters: Default::default(),
+            invalidation_performed_counters,
+            invalidation_performed_work,
+            observation_sessions,
+            observation_capture_cleanup: Some(observation_capture_cleanup),
             pending_repeated_invalidation_admissions: BTreeMap::new(),
         };
+        let installed_policy = graph.observation.installed_policy;
+        graph
+            .observation
+            .diagnostics
+            .set_installed_policy(installed_policy);
         graph.rebuild_checkpoint_topology()?;
         Ok(graph)
     }

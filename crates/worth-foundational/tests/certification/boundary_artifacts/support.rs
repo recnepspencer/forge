@@ -29,6 +29,8 @@ pub fn materialized_profile(
         admission_readiness: readiness,
         retention_delivery: retention,
         certification_posture: certification,
+        execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+        observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
     })
     .expect("coherent profile");
     let requested = request_foundational_profile_set(profile);

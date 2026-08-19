@@ -14,6 +14,9 @@ fn game_engine_frame_session_handles_threshold_flapping_branch_churn_and_posthoc
         SignalRuntimePolicy::game_engine()
             .with_history_limit(6)
             .with_detail_limit(2)
+            .with_observation_activation(
+                worth_foundational::ObservationActivationProfile::Continuous,
+            )
             .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::PerNode),
     );
     let source = runtime.graph_mut().node().output_identity().build();

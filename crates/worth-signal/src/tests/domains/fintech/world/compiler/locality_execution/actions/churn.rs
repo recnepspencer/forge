@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::data::dependency::DependencyEdge;
@@ -14,19 +14,20 @@ use crate::logic::context::EvaluationContext;
 use crate::logic::invalidation::scheduling::{
     admit_current_readiness, execute_ready, lower_current_work,
 };
-use crate::logic::planner::StageExecutor;
+use crate::logic::planner::{StageExecutionOutcome, StageExecutor};
 use crate::tests::domains::fintech::world::{
     FinancialLocalityAction, FinancialLocalitySubscription, LocalitySemanticOutputId,
 };
 
 use super::super::{signal_aspect, CompiledFinancialLocalityWorld};
 use super::churn_program::ChurnEvaluationProgram;
+use super::LocalityExecutionSettlement;
 
 pub(super) fn run_churn_trace(
     world: &mut CompiledFinancialLocalityWorld,
     trace_index: usize,
     executor: StageExecutor,
-) -> Result<BTreeSet<LocalitySemanticOutputId>, SignalError> {
+) -> Result<LocalityExecutionSettlement, SignalError> {
     let actions = world.locality_definition().action_traces()[trace_index]
         .actions()
         .to_vec();
@@ -37,6 +38,7 @@ pub(super) fn run_churn_trace(
     );
     let evaluator = |view: &mut EvaluationContext<'_, ()>| program.evaluate(view);
     let mut staged = BTreeMap::<u16, ReadyInvalidationBatch>::new();
+    let mut stage_outcomes = Vec::new();
     for (index, action) in actions.iter().copied().enumerate() {
         match action {
             FinancialLocalityAction::CommitFactor(mutation) => {
@@ -55,7 +57,7 @@ pub(super) fn run_churn_trace(
                     matches!(next, FinancialLocalityAction::StagePreRewireWork { .. })
                 });
                 if !is_pre_rewire {
-                    settle_current_frontier(world, &evaluator, executor)?;
+                    settle_current_frontier(world, &evaluator, executor, &mut stage_outcomes)?;
                 }
             }
             FinancialLocalityAction::StagePreRewireWork { round, binding } => {
@@ -150,7 +152,12 @@ pub(super) fn run_churn_trace(
     if !staged.is_empty() {
         return Err(SignalError::internal("churn trace left stale work staged"));
     }
-    Ok(program.evaluated_outputs())
+    Ok(LocalityExecutionSettlement {
+        evaluated_outputs: program.evaluated_outputs(),
+        evaluated_sequence: program.evaluated_outputs().into_iter().collect(),
+        stage_outcomes,
+        stage_records: Vec::new(),
+    })
 }
 
 fn current_ready(
@@ -176,6 +183,7 @@ fn settle_current_frontier(
     ) -> Result<crate::logic::evaluation::EvaluationOutput, SignalError>
           + Sync),
     executor: StageExecutor,
+    stage_outcomes: &mut Vec<StageExecutionOutcome>,
 ) -> Result<(), SignalError> {
     let waves = world
         .locality_definition()
@@ -201,9 +209,11 @@ fn settle_current_frontier(
             .runtime
             .graph_mut()
             .build_evaluation_plan(&nodes, EvaluationRequestMode::Default)?;
-        world
-            .runtime
-            .execute_prepared_plan_with_executor(&plan, &(), evaluator, executor)?;
+        let report =
+            world
+                .runtime
+                .execute_prepared_plan_with_executor(&plan, &(), evaluator, executor)?;
+        stage_outcomes.extend(report.stages.into_iter().map(|stage| stage.outcome));
     }
     Ok(())
 }

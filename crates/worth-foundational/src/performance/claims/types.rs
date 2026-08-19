@@ -1,3 +1,4 @@
+use super::context::FoundationalPerformanceObservationContext;
 use crate::performance::primitives::{
     FoundationalPerformanceAccessPatternPosture, FoundationalPerformanceBoundary,
     FoundationalPerformanceBreadthLocalityPosture, FoundationalPerformanceEvidenceStrength,
@@ -16,6 +17,7 @@ pub(crate) struct FoundationalPerformanceClaimPayload {
     pub(crate) fallback_debt: FoundationalPerformanceFallbackDebtPosture,
     pub(crate) included_work: Vec<FoundationalPerformanceWorkClass>,
     pub(crate) excluded_work: Vec<FoundationalPerformanceWorkClass>,
+    pub(crate) observation_context: Option<FoundationalPerformanceObservationContext>,
 }
 
 pub trait FoundationalPerformanceClaimSurface: sealed::Sealed {
@@ -28,6 +30,7 @@ pub trait FoundationalPerformanceClaimSurface: sealed::Sealed {
     fn fallback_debt(&self) -> FoundationalPerformanceFallbackDebtPosture;
     fn included_work(&self) -> &[FoundationalPerformanceWorkClass];
     fn excluded_work(&self) -> &[FoundationalPerformanceWorkClass];
+    fn observation_context(&self) -> Option<&FoundationalPerformanceObservationContext>;
 }
 
 macro_rules! performance_claim_type {
@@ -71,6 +74,12 @@ macro_rules! performance_claim_type {
             pub fn excluded_work(&self) -> &[FoundationalPerformanceWorkClass] {
                 &self.0.excluded_work
             }
+
+            pub fn observation_context(
+                &self,
+            ) -> Option<&FoundationalPerformanceObservationContext> {
+                self.0.observation_context.as_ref()
+            }
         }
 
         impl FoundationalPerformanceClaimSurface for $name {
@@ -108,6 +117,10 @@ macro_rules! performance_claim_type {
 
             fn excluded_work(&self) -> &[FoundationalPerformanceWorkClass] {
                 self.excluded_work()
+            }
+
+            fn observation_context(&self) -> Option<&FoundationalPerformanceObservationContext> {
+                self.observation_context()
             }
         }
     };

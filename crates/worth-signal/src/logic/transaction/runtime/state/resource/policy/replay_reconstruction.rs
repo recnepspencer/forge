@@ -67,13 +67,20 @@ impl ResourceRuntimeState {
         &self,
         telemetry: &mut ResourceTelemetry,
     ) -> ResourceReplayReconstructionReport {
+        self.reconstruct_replay_summary_optional(Some(telemetry))
+    }
+
+    pub fn reconstruct_replay_summary_optional(
+        &self,
+        mut telemetry: Option<&mut ResourceTelemetry>,
+    ) -> ResourceReplayReconstructionReport {
         let basis = self.collect_replay_reconstruction_basis();
         let widths = basis.widths();
         let digests = Self::digest_replay_reconstruction(&basis);
-        let performance = self.record_replay_reconstruction_telemetry(
+        let performance = self.record_replay_reconstruction_telemetry_optional(
             &widths,
             basis.retained_history_unavailable_count,
-            telemetry,
+            telemetry.as_deref_mut(),
         );
         ResourceReplayReconstructionReport::new(
             widths.descriptor,
@@ -281,34 +288,44 @@ impl ResourceRuntimeState {
         }
     }
 
-    fn record_replay_reconstruction_telemetry(
+    fn record_replay_reconstruction_telemetry_optional(
         &self,
         widths: &ReplayReconstructionWidths,
         retained_history_unavailable_count: u32,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceBoundaryPerformanceEnvelope {
-        telemetry.resource_replay_reconstruction_count += 1;
-        telemetry.resource_replay_reconstruction_lifecycle_width = telemetry
-            .resource_replay_reconstruction_lifecycle_width
-            .max(widths.lifecycle_summary as u64);
-        telemetry.resource_replay_reconstruction_denial_width = telemetry
-            .resource_replay_reconstruction_denial_width
-            .max(widths.denied_completion as u64);
-        telemetry.resource_replay_reconstruction_in_flight_width = telemetry
-            .resource_replay_reconstruction_in_flight_width
-            .max(widths.in_flight as u64);
-        telemetry.resource_retained_history_unavailable_count = telemetry
-            .resource_retained_history_unavailable_count
-            .saturating_add(retained_history_unavailable_count as u64);
-        Self::record_boundary_performance(
-            telemetry,
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_replay_reconstruction_count += 1;
+            telemetry.resource_replay_reconstruction_lifecycle_width = telemetry
+                .resource_replay_reconstruction_lifecycle_width
+                .max(widths.lifecycle_summary as u64);
+            telemetry.resource_replay_reconstruction_denial_width = telemetry
+                .resource_replay_reconstruction_denial_width
+                .max(widths.denied_completion as u64);
+            telemetry.resource_replay_reconstruction_in_flight_width = telemetry
+                .resource_replay_reconstruction_in_flight_width
+                .max(widths.in_flight as u64);
+            telemetry.resource_retained_history_unavailable_count = telemetry
+                .resource_retained_history_unavailable_count
+                .saturating_add(retained_history_unavailable_count as u64);
+            Self::record_boundary_performance(
+                telemetry,
+                ResourceBoundaryPerformanceEnvelope::replay_reconstruction(
+                    widths.descriptor,
+                    widths.lifecycle_summary,
+                    widths.denied_completion,
+                    widths.in_flight,
+                    retained_history_unavailable_count,
+                ),
+            )
+        } else {
             ResourceBoundaryPerformanceEnvelope::replay_reconstruction(
                 widths.descriptor,
                 widths.lifecycle_summary,
                 widths.denied_completion,
                 widths.in_flight,
                 retained_history_unavailable_count,
-            ),
-        )
+            )
+        }
     }
 }
