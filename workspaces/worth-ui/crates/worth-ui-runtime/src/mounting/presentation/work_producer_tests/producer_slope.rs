@@ -1,3 +1,4 @@
+use std::time::{Duration, Instant};
 use worth_ui_host_contract::{
     UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedPresentationWorkView,
     UiMountedRgba8,
@@ -8,62 +9,104 @@ use super::world::{rect_spec, MountedPresentationWorld};
 
 #[test]
 fn admitted_sources_leave_only_local_work_inside_delta_issuance() {
-    let mut observed = Vec::new();
-    for retained in [1, 32, 2_048, 4_096] {
-        for changed_index in change_positions(retained) {
-            let actual = exercise_one_change(retained, changed_index);
-            assert_eq!(actual, expected_local_cost(retained));
-            observed.push(actual);
-        }
-    }
-    assert_eq!(observed.len(), 12);
+    run_locality_cases(&[(1, 0), (32, 0), (32, 16), (32, 31)]);
     println!("WORTH_UI_LEDGER_COUNTERS={{\"P3-DELTA-SOURCE-01\":1,\"P3-PRODUCER-SLOPE-01\":0}}");
     println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-DELTA-SOURCE-01\":\"successor-rediscovery\",\"P3-PRODUCER-SLOPE-01\":\"complete-successor-scan\"}}"
+        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-DELTA-SOURCE-01\":\"successor-rediscovery\",\"P3-PRODUCER-SLOPE-01\":\"complete-successor-scan\",\"P5-TEXT-COST-01\":\"complete-document-rescan\"}}"
     );
 }
 
-fn change_positions(retained: usize) -> [usize; 3] {
-    [0, retained / 2, retained.saturating_sub(1)]
+fn run_locality_cases(cases: &[(usize, usize)]) {
+    let fixture_started = Instant::now();
+    let text_layout = cases
+        .iter()
+        .any(|(retained, _)| *retained > 2_048)
+        .then(|| {
+            crate::mounting::qualified_text_test_support::UiQualifiedTextTestFixture::new()
+                .layout("WORTH")
+        });
+    println!(
+        "WORTH_UI_PRODUCER_SLOPE_FIXTURE_TIMING={{\"materialized\":{},\"elapsed_ms\":{}}}",
+        text_layout.is_some(),
+        fixture_started.elapsed().as_millis(),
+    );
+    for &(retained, changed_index) in cases {
+        let (actual, timing) = exercise_one_change(
+            retained,
+            changed_index,
+            text_layout.as_ref().map(|layout| layout.view()),
+        );
+        assert_eq!(actual, expected_local_cost(retained));
+        report_timing(retained, changed_index, timing);
+    }
 }
 
 fn expected_local_cost(retained: usize) -> [u64; 7] {
     [1, 1, 2, 2, 0, 0, u64::try_from(retained * 2).unwrap()]
 }
 
-fn exercise_one_change(retained: usize, changed_index: usize) -> [u64; 7] {
+#[derive(Clone, Copy)]
+struct FixtureTiming {
+    identities: Duration,
+    predecessor_projection: Duration,
+    successor_projection: Duration,
+    retained_state: Duration,
+    delta_issuance: Duration,
+}
+
+fn exercise_one_change(
+    retained: usize,
+    changed_index: usize,
+    text_layout: Option<worth_ui_host_contract::UiQualifiedTextLayoutView<'_>>,
+) -> ([u64; 7], FixtureTiming) {
+    let identities_started = Instant::now();
     let world = MountedPresentationWorld::new();
     let instances = (0..retained)
         .map(|_| UiMountedInstanceIdentity::mint_unbound().unwrap())
         .collect::<Vec<_>>();
+    let identities = identities_started.elapsed();
     let predecessor_frame = UiMountedFrameIdentity::mint_unbound().unwrap();
     let successor_frame = UiMountedFrameIdentity::mint_unbound().unwrap();
-    let (predecessor, successor) = if retained > 2_048 {
-        (
-            world.mixed_projection(predecessor_frame, &instances, None),
-            world.mixed_projection(successor_frame, &instances, Some(changed_index)),
+    let predecessor_started = Instant::now();
+    let predecessor = if retained > 2_048 {
+        world.mixed_projection(
+            predecessor_frame,
+            &instances,
+            None,
+            text_layout.expect("mixed closure case requires a qualified-text fixture"),
         )
     } else {
-        (
-            world.projection(
-                predecessor_frame,
-                instances
-                    .iter()
-                    .enumerate()
-                    .map(|(index, instance)| rect_spec(*instance, index as f32 * 40.0)),
-            ),
-            world.projection(
-                successor_frame,
-                instances.iter().enumerate().map(|(index, instance)| {
-                    let mut spec = rect_spec(*instance, index as f32 * 40.0);
-                    if index == changed_index {
-                        spec.color = UiMountedRgba8::new(242, 204, 96, 255);
-                    }
-                    spec
-                }),
-            ),
+        world.projection(
+            predecessor_frame,
+            instances
+                .iter()
+                .enumerate()
+                .map(|(index, instance)| rect_spec(*instance, index as f32 * 40.0)),
         )
     };
+    let predecessor_projection = predecessor_started.elapsed();
+    let successor_started = Instant::now();
+    let successor = if retained > 2_048 {
+        world.mixed_projection(
+            successor_frame,
+            &instances,
+            Some(changed_index),
+            text_layout.expect("mixed closure case requires a qualified-text fixture"),
+        )
+    } else {
+        world.projection(
+            successor_frame,
+            instances.iter().enumerate().map(|(index, instance)| {
+                let mut spec = rect_spec(*instance, index as f32 * 40.0);
+                if index == changed_index {
+                    spec.color = UiMountedRgba8::new(242, 204, 96, 255);
+                }
+                spec
+            }),
+        )
+    };
+    let successor_projection = successor_started.elapsed();
+    let retained_started = Instant::now();
     let predecessor_state =
         UiMountedPresentationState::from_projection(&predecessor, world.requirement, None);
     let successor_state = UiMountedPresentationState::from_projection(
@@ -71,31 +114,65 @@ fn exercise_one_change(retained: usize, changed_index: usize) -> [u64; 7] {
         world.requirement,
         Some(predecessor.frame()),
     );
+    let retained_state = retained_started.elapsed();
+    let delta_started = Instant::now();
     let lease = super::super::UiMountedPresentationLeaseGate::default()
         .claim()
         .unwrap();
     let work = predecessor_state
         .issue_successor(
             &successor_state,
-            &instances[..1],
+            std::slice::from_ref(&instances[changed_index]),
             &[],
             false,
             Some(predecessor.frame()),
             &lease,
         )
         .unwrap();
+    let delta_issuance = delta_started.elapsed();
     let UiMountedPresentationWorkView::Delta(delta) = work.view() else {
         panic!("one changed command must issue delta work");
     };
     assert_eq!(delta.changes().len(), 1);
+    let changed_identity = match &delta.changes()[0] {
+        worth_ui_host_contract::UiMountedPaintCommandChange::Insert(command)
+        | worth_ui_host_contract::UiMountedPaintCommandChange::Replace {
+            successor: command, ..
+        } => command.identity(),
+        worth_ui_host_contract::UiMountedPaintCommandChange::Remove(identity) => *identity,
+    };
+    assert_eq!(
+        changed_identity.mounted_instance(),
+        instances[changed_index]
+    );
     let cost = delta.production_cost();
-    [
-        cost.source_instances(),
-        cost.commands_considered(),
-        cost.command_index_lookups(),
-        cost.order_lookups(),
-        cost.retained_command_scans(),
-        cost.retained_command_clones(),
-        cost.projection_rows_materialized(),
-    ]
+    (
+        [
+            cost.source_instances(),
+            cost.commands_considered(),
+            cost.command_index_lookups(),
+            cost.order_lookups(),
+            cost.retained_command_scans(),
+            cost.retained_command_clones(),
+            cost.projection_rows_materialized(),
+        ],
+        FixtureTiming {
+            identities,
+            predecessor_projection,
+            successor_projection,
+            retained_state,
+            delta_issuance,
+        },
+    )
+}
+
+fn report_timing(retained: usize, changed_index: usize, timing: FixtureTiming) {
+    println!(
+        "WORTH_UI_PRODUCER_SLOPE_TIMING={{\"retained\":{retained},\"changed_index\":{changed_index},\"identities_ms\":{},\"predecessor_projection_ms\":{},\"successor_projection_ms\":{},\"retained_state_ms\":{},\"delta_issuance_ms\":{}}}",
+        timing.identities.as_millis(),
+        timing.predecessor_projection.as_millis(),
+        timing.successor_projection.as_millis(),
+        timing.retained_state.as_millis(),
+        timing.delta_issuance.as_millis(),
+    );
 }

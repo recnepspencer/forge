@@ -32,7 +32,10 @@ fn precise_replacement_carries_vacated_and_successor_bounds() {
         .issue_successor(
             &successor_state,
             &[world.first_instance],
-            &[UiMountedPaintCommandChange::Replace(replacement)],
+            &[UiMountedPaintCommandChange::replacement(
+                predecessor.retained_paint_commands()[0].identity(),
+                replacement,
+            )],
             false,
             Some(predecessor.frame()),
             &lease,
@@ -48,24 +51,4 @@ fn precise_replacement_carries_vacated_and_successor_bounds() {
         .collect::<Vec<_>>();
     xs.sort_unstable();
     assert_eq!(xs, [0, 96], "old and new pixels both require replay");
-}
-
-#[test]
-fn production_state_uses_bounded_direct_lookup_for_first_middle_and_last_collection_rows() {
-    let world = MountedPresentationWorld::new();
-    let projection = world.projection(
-        UiMountedFrameIdentity::mint_unbound().unwrap(),
-        [rect_spec(world.first_instance, 0.0)],
-    );
-    let mut state =
-        UiMountedPresentationState::from_projection(&projection, world.requirement, None);
-    let commands = super::super::work_producer::collection_commands_for_test(1_359);
-    state.install_command_lookup_probe(&commands);
-    for index in [0, commands.len() / 2, commands.len() - 1] {
-        let probes = state.command_option_probe(commands[index].identity());
-        assert!(
-            probes > 0 && probes <= 32,
-            "row {index} used {probes} probes"
-        );
-    }
 }

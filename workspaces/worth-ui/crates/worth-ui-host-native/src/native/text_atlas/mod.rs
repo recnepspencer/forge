@@ -19,6 +19,7 @@ mod key;
 mod ownership;
 mod pinning;
 mod placement;
+mod plan_observation;
 mod planning;
 mod raster_upload;
 mod recovery;
@@ -27,7 +28,6 @@ mod settling;
 #[cfg(test)]
 mod test_device_tests;
 mod transaction;
-#[cfg(test)]
 mod transaction_plan_snapshot;
 mod upload;
 mod upload_staging;
@@ -75,6 +75,7 @@ pub use key::{UiAtlasEntryIdentity, UiNativeValidatedRasterKey};
 pub use ownership::UiNativeTextPinObservation;
 pub(crate) use ownership::{UiNativeTextAtlas, UiNativeTextAtlasEntryView};
 pub use pinning::{UiNativeTextAtlasPin, UiNativeTextAtlasPinSnapshot};
+pub use plan_observation::UiNativeTextAtlasPlanObservation;
 pub(crate) use raster_upload::UiNativeTextAtlasUpload;
 pub use recovery::{
     UiNativeTextAtlasDenial, UiNativeTextAtlasGeneration, UiNativeTextAtlasLineageIdentity,

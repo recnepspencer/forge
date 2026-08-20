@@ -12,13 +12,48 @@ use crate::scenario::application_authority_closure::visual_identity_application:
     clipped_semantic_text_action_application_builder_with_host_and_profile,
     clipped_visual_identity_application_builder_with_host,
     duplicate_hit_order_application_builder_with_host,
-    region_identity_application_builder_with_host, visual_identity_application_builder_with_host,
-    VISUAL_HIT_ONLY_COMPONENT, VISUAL_IDENTITY_SURFACE, VISUAL_NEITHER_COMPONENT,
-    VISUAL_PAINT_AND_HIT_COMPONENT, VISUAL_PAINT_AND_HIT_TOKEN, VISUAL_PAINT_ONLY_COMPONENT,
-    VISUAL_PAINT_ONLY_TOKEN, VISUAL_PURPLE_TOKEN, VISUAL_RED_TOKEN,
+    region_identity_application_builder_with_host,
+    single_semantic_text_application_builder_with_host,
+    visual_identity_application_builder_with_host, PHASE5_CANCELLATION_BACKGROUND,
+    PHASE5_CANCELLATION_COLOR_TOKEN, PHASE5_CANCELLATION_COMPONENT, PHASE5_CANCELLATION_SURFACE,
+    PHASE5_CANCELLATION_TOKEN, VISUAL_HIT_ONLY_COMPONENT, VISUAL_IDENTITY_SURFACE,
+    VISUAL_NEITHER_COMPONENT, VISUAL_PAINT_AND_HIT_COMPONENT, VISUAL_PAINT_AND_HIT_TOKEN,
+    VISUAL_PAINT_ONLY_COMPONENT, VISUAL_PAINT_ONLY_TOKEN, VISUAL_PURPLE_TOKEN, VISUAL_RED_TOKEN,
 };
 
 impl FilesystemApplicationLifecycleScenario {
+    pub fn phase5_cancellation_source_text() -> String {
+        format!(
+            "component {PHASE5_CANCELLATION_BACKGROUND} {{}}\n\
+             component {PHASE5_CANCELLATION_COMPONENT} {{}}\n\
+             surface {PHASE5_CANCELLATION_SURFACE} {{}}\n\
+             token {PHASE5_CANCELLATION_TOKEN} = \"{PHASE5_CANCELLATION_COLOR_TOKEN}\";\n"
+        )
+    }
+
+    pub fn phase5_cancellation_application<Host>(&self, host: Host) -> WorthUiApp
+    where
+        Host: FixedCertificationHostBinding,
+    {
+        single_semantic_text_application_builder_with_host(host)
+            .freeze()
+            .expect("Phase 5 cancellation application freezes")
+    }
+
+    pub fn prepare_phase5_cancellation_application_with_host<Host>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: FixedCertificationHostBinding,
+    {
+        single_semantic_text_application_builder_with_host(host)
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored Phase 5 cancellation application freezes")
+    }
+
     /// Start the canonical visual-identity world compiler while allowing a
     /// scenario to add the exact capability owners its claim requires.
     pub fn visual_identity_application_builder<Host>(&self, host: Host) -> BoundApplicationBuilder

@@ -27,6 +27,7 @@ pub(super) fn frame_receipt(outcome: UiMountedFrameOutcome) -> UiMountedFramePub
             )
         }
         UiMountedFrameOutcome::InFlight(_) => panic!("mounted frame remained in flight"),
+        UiMountedFrameOutcome::Superseded(_) => panic!("mounted frame was superseded"),
         UiMountedFrameOutcome::PresentationIndeterminate(_) => {
             panic!("mounted frame presentation became indeterminate")
         }

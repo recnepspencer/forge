@@ -2,9 +2,7 @@ use worth_runtime_bridge::facade::BridgeDiagnosticsTier;
 
 use crate::production_evidence::CertificationComparatorPolicy;
 use crate::production_scenarios::run_scenario;
-use crate::sealed_run::{
-    production_claims, verify_evidence, GranularInvalidationCertificationRun,
-};
+use crate::sealed_run::{production_claims, verify_evidence, GranularInvalidationCertificationRun};
 use crate::world::GranularInvalidationScenario;
 
 pub fn assert_adversarial_sealing_denials() {
@@ -42,12 +40,10 @@ pub fn assert_adversarial_sealing_denials() {
     assert!(verify_evidence(
         scenario,
         17,
-        run_scenario(scenario, 17).with_faulted_policy(
-            CertificationComparatorPolicy::Tolerance {
-                epsilon: 999,
-                provider_identity: "forged-provider",
-            }
-        )
+        run_scenario(scenario, 17).with_faulted_policy(CertificationComparatorPolicy::Tolerance {
+            epsilon: 999,
+            provider_identity: "forged-provider",
+        })
     )
     .is_err());
     assert!(verify_evidence(

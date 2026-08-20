@@ -140,10 +140,24 @@ generations, exact face and glyph, variation coordinates, palette, size, raster 
 and fractional origin.
 
 Live layout and presentation work pin their entries. Eviction may choose only unpinned entries;
-saturation is a typed denial and never overwrites a live glyph. Reconstruction consumes the same
-qualified layout and retained font bytes, then rebuilds missing raster/atlas state under a new raster
-generation. This boundary is where Phase 5 will add deterministic outline, COLR, bitmap, and emoji
-raster output without changing Phase 4 font selection or layout identity.
+saturation is a typed denial and never overwrites a live glyph. Phase 5 supplies deterministic
+alpha-outline, COLR/CPAL, qualified bitmap, and color-emoji raster output without changing Phase 4
+font selection or layout identity. Runtime derives exact demand from mounted layout and paint
+authority; text owns raster meaning; the native host alone plans capacity, stages uploads, owns GPU
+pages, reconciles physical completion, and commits atlas entries and pins.
+
+Presentation is asynchronous at both of its distinct boundaries. One bounded host-native Signal
+runtime progresses physical atlas-upload and surface-presentation work. Separately, the WORTH UI
+Query binding installs each mounted presentation attempt as a Query-owned async result and publishes
+producer-local semantic invalidation. Signal eligibility never grants permission to rasterize,
+upload, present, or settle, and Query never owns native resources.
+
+Effects-indeterminate presentation retains an exact recovery capability. Reconstruction consumes
+current mounted/runtime authority and retained font bytes, destroys derived layout-independent
+native state, and rebuilds raster, atlas, draw-list, and target state under successor generations.
+It never treats stale raster bytes, atlas placement, a transcript, or captured pixels as source
+truth. Ordinary locality remains bounded to changed demand and exact subscribers; the qualified
+closure portfolio separately exercises 1, 32, 2,048, and 4,096 fresh worlds.
 
 ## Compiling example
 

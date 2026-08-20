@@ -1,4 +1,5 @@
 use super::*;
+use proved_fixture::ProvedEvidence;
 
 pub(super) fn proved_record(evidence: &ProvedEvidence<'_>) -> Vec<String> {
     HEADER

@@ -31,7 +31,9 @@ pub(super) fn refresh_commands(
         .iter()
         .map(|change| match change {
             UiMountedPaintCommandChange::Insert(command)
-            | UiMountedPaintCommandChange::Replace(command) => command.identity(),
+            | UiMountedPaintCommandChange::Replace {
+                successor: command, ..
+            } => command.identity(),
             UiMountedPaintCommandChange::Remove(identity) => *identity,
         })
         .collect::<HashSet<_>>();
@@ -46,7 +48,8 @@ pub(super) fn refresh_commands(
                     return None;
                 }
                 command_lookups += 1;
-                Some(UiMountedPaintCommandChange::Replace(
+                Some(UiMountedPaintCommandChange::replacement(
+                    identity,
                     successor.command(identity).clone(),
                 ))
             }),

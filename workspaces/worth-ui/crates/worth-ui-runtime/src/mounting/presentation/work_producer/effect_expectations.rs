@@ -15,8 +15,14 @@ impl UiMountedPresentationState {
             return vec![UiMountedEffectFamily::RecordedProjection];
         }
         match work.view() {
-            UiMountedPresentationWorkView::Initial(_) => self.effects.to_vec(),
-            UiMountedPresentationWorkView::Reconstruction(_) => self.effects.to_vec(),
+            UiMountedPresentationWorkView::Initial(_)
+            | UiMountedPresentationWorkView::Reconstruction(_) => {
+                let mut effects = self.effects.to_vec();
+                effects.push(UiMountedEffectFamily::NativePaint);
+                effects.sort();
+                effects.dedup();
+                effects
+            }
             UiMountedPresentationWorkView::Delta(delta) => {
                 let mut effects = Vec::new();
                 if !delta.changes().is_empty()

@@ -6,11 +6,11 @@ use worth_query::facade::domain::{
 use worth_query_host::facade::primary_graph::WorthQueryConditionalClockObservationOutcome;
 
 use crate::host_world::CourtroomWorld;
+use crate::performed_identity_observer::PerformedIdentityObserver;
 use crate::production_evidence::{
     CertificationComparatorPolicy, CertificationExecutionLane, OwnerPerformedCounterRows,
     PerformedScenarioEvidence, PerformedScenarioEvidenceParts,
 };
-use crate::performed_identity_observer::PerformedIdentityObserver;
 use crate::query_runtime_world::{build_primary_query_world, IntentSourceProjection};
 use crate::world::{GranularInvalidationScenario, GranularInvalidationWorldDefinition};
 
@@ -54,8 +54,7 @@ pub fn run_correspondence_certification(seed: u64) -> PerformedScenarioEvidence 
             ),
         )
         .expect("Query must rebind to the reconstructed source");
-    let current_binding =
-        bind_primary_runtime_granular_invalidations(&query.live, current.clone());
+    let current_binding = bind_primary_runtime_granular_invalidations(&query.live, current.clone());
     assert!(matches!(
         maintain_primary_runtime_granular_batch(
             &query.live,

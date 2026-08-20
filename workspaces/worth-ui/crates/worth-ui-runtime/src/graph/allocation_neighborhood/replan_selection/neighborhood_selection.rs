@@ -80,6 +80,7 @@ pub enum UiReplanLocalityDenial {
     EmptyScrollConsequence,
     ContradictoryScrollConsequence,
     QueryMeasurementSuccessorDenied,
+    HostMeasurementSuccessorDenied,
     CounterExhausted,
 }
 

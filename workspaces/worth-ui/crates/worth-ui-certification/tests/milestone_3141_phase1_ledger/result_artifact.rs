@@ -39,7 +39,7 @@ pub(super) fn validate(ledger: LedgerResult<'_>, command: &CommandBinding) -> Re
     validate_ledger_fields(&ledger, command)?;
     let artifact = read_artifact(ledger.artifact)?;
     validate_artifact_contract(&artifact, &ledger, command)?;
-    validate_main_execution(&artifact, command)?;
+    validate_main_execution(&artifact, command, ledger.source_validation)?;
     validate_artifact_sources(&artifact, &ledger, command)?;
     validate_artifact_proofs(&artifact, &ledger, command)?;
     if source_digest::file_digest(ledger.artifact)? != ledger.result_artifact_digest {
@@ -70,10 +70,20 @@ fn validate_artifact_contract(
     require_str(artifact, "execution_cost", ledger.execution_cost)
 }
 
-fn validate_main_execution(artifact: &Value, command: &CommandBinding) -> Result<(), String> {
+fn validate_main_execution(
+    artifact: &Value,
+    command: &CommandBinding,
+    source_validation: SourceValidationPosture,
+) -> Result<(), String> {
     require_u64(artifact, "matched_test_count", 1)?;
-    let expected_ignored =
-        super::execution_contract::expected_declared_ignored(&command.requirement);
+    let historical_mixed_world = source_validation
+        == SourceValidationPosture::HistoricalArtifactOnly
+        && matches!(
+            command.requirement.as_str(),
+            "P3-DELTA-SOURCE-01" | "P3-HEADLESS-COST-01" | "P3-PRODUCER-SLOPE-01"
+        );
+    let expected_ignored = historical_mixed_world
+        || super::execution_contract::expected_declared_ignored(&command.requirement);
     require_u64(
         artifact,
         "declared_ignored_test_count",
@@ -104,7 +114,11 @@ fn validate_main_execution(artifact: &Value, command: &CommandBinding) -> Result
     } else {
         require_i64(artifact, "test_exit_code", 0)?;
     }
-    let budget = super::execution_contract::main_budget_ms(&command.requirement);
+    let budget = if historical_mixed_world {
+        90_000
+    } else {
+        super::execution_contract::main_budget_ms(&command.requirement)
+    };
     require_u64(artifact, "test_budget_ms", budget)?;
     require_duration_within(artifact, "list_duration_ms", 300_000)?;
     require_duration_within(artifact, "ignored_list_duration_ms", 300_000)?;
@@ -154,6 +168,7 @@ fn validate_artifact_proofs(
         command,
         ledger.source_revision,
         ledger.source_state_digest,
+        ledger.source_validation,
     )?;
     super::result_artifact_control::validate(
         artifact,
@@ -203,3 +218,7 @@ mod phase_three_tests;
 #[cfg(test)]
 #[path = "result_artifact_gate_d_pin_tests.rs"]
 mod gate_d_pin_tests;
+
+#[cfg(test)]
+#[path = "result_artifact_phase_five_cost_tests.rs"]
+mod phase_five_cost_tests;

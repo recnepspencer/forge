@@ -27,6 +27,7 @@ pub(in crate::mounting::projection) struct UiMountedSemanticTextCompletionContex
     pub capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     pub capability_profile_digest: u64,
     pub font_collection: &'a Arc<worth_ui_text::UiGlobalFontCollection>,
+    pub qualification_cache: &'a super::UiMountedTextQualificationCache,
 }
 
 fn push_node_rows(

@@ -7,7 +7,13 @@ use super::super::UiMountedProjectionDenial;
 #[derive(Clone)]
 pub(in crate::mounting::projection) struct UiMountedQualifiedSemanticText {
     mechanic: UiMountedSemanticTextMechanic,
-    layout: Arc<worth_ui_text::UiQualifiedTextLayout>,
+    layout: UiMountedQualifiedLayoutState,
+}
+
+#[derive(Clone)]
+enum UiMountedQualifiedLayoutState {
+    Current(Arc<worth_ui_text::UiQualifiedTextLayout>),
+    ReconstructionRequired(Arc<worth_ui_text::UiQualifiedTextReconstructionSource>),
 }
 
 pub(in crate::mounting::projection) struct UiMountedSemanticTextRepaintInput {
@@ -29,7 +35,10 @@ impl UiMountedQualifiedSemanticText {
         layout: Arc<worth_ui_text::UiQualifiedTextLayout>,
     ) -> Self {
         debug_assert_eq!(mechanic.qualified_layout_identity(), layout.identity());
-        Self { mechanic, layout }
+        Self {
+            mechanic,
+            layout: UiMountedQualifiedLayoutState::Current(layout),
+        }
     }
 
     pub(in crate::mounting::projection) const fn mechanic(&self) -> &UiMountedSemanticTextMechanic {
@@ -42,15 +51,64 @@ impl UiMountedQualifiedSemanticText {
 
     pub(in crate::mounting::projection) fn qualified_layout(
         &self,
-    ) -> &Arc<worth_ui_text::UiQualifiedTextLayout> {
-        &self.layout
+    ) -> Option<&Arc<worth_ui_text::UiQualifiedTextLayout>> {
+        match &self.layout {
+            UiMountedQualifiedLayoutState::Current(layout) => Some(layout),
+            UiMountedQualifiedLayoutState::ReconstructionRequired(_) => None,
+        }
+    }
+
+    pub(in crate::mounting::projection) const fn layout_reconstruction_required(&self) -> bool {
+        matches!(
+            self.layout,
+            UiMountedQualifiedLayoutState::ReconstructionRequired(_)
+        )
+    }
+
+    pub(in crate::mounting::projection) fn require_layout_reconstruction(
+        &mut self,
+    ) -> Result<bool, UiMountedProjectionDenial> {
+        let UiMountedQualifiedLayoutState::Current(layout) = &self.layout else {
+            return Ok(false);
+        };
+        let source = layout
+            .reconstruction_source()
+            .cloned()
+            .ok_or(UiMountedProjectionDenial::MissingSemanticTextReconstructionSource)?;
+        self.layout = UiMountedQualifiedLayoutState::ReconstructionRequired(source);
+        Ok(true)
+    }
+
+    pub(in crate::mounting::projection) fn reconstruct_layout(
+        &mut self,
+    ) -> Result<bool, UiMountedProjectionDenial> {
+        let UiMountedQualifiedLayoutState::ReconstructionRequired(source) = &self.layout else {
+            return Ok(false);
+        };
+        let layout = source
+            .reconstruct()
+            .map_err(UiMountedProjectionDenial::SemanticTextReconstruction)?;
+        if layout.identity() != self.mechanic.qualified_layout_identity()
+            || layout.source() != self.mechanic.text()
+        {
+            return Err(UiMountedProjectionDenial::MissingSemanticTextReconstructionSource);
+        }
+        self.layout = UiMountedQualifiedLayoutState::Current(Arc::new(layout));
+        Ok(true)
     }
 
     pub(in crate::mounting::projection) fn font_collection_matches(
         &self,
         candidate: &Arc<worth_ui_text::UiGlobalFontCollection>,
     ) -> bool {
-        Arc::ptr_eq(self.layout.pinned_font_collection(), candidate)
+        match &self.layout {
+            UiMountedQualifiedLayoutState::Current(layout) => {
+                Arc::ptr_eq(layout.pinned_font_collection(), candidate)
+            }
+            UiMountedQualifiedLayoutState::ReconstructionRequired(source) => {
+                source.matches_font_collection(candidate)
+            }
+        }
     }
 
     pub(super) fn rebind(
@@ -60,64 +118,72 @@ impl UiMountedQualifiedSemanticText {
         if replacement.semantic_surface_identity() != self.surface() {
             return Err(UiMountedProjectionDenial::MissingSurfaceBinding);
         }
-        let mechanic = UiMountedSemanticTextMechanic::complete_from_runtime_mounting(
-            UiMountedSemanticTextCompletionInput {
-                content_generation: self.content_generation(),
-                frame: self.frame(),
-                surface: self.surface(),
-                binding: replacement.binding_generation(),
-                mounted_instance: self.mounted_instance(),
-                node_receipt: self.node_receipt(),
-                allocation_basis: self.allocation_basis(),
-                bounds: self.bounds(),
-                clip_bounds: self.clip_bounds(),
-                origin_x: self.origin_x(),
-                origin_y: self.origin_y(),
-                text: Arc::from(self.text()),
-                layout: self.layout.view(),
-                slot: self.slot(),
-                collection_row: self.collection_row().cloned(),
-                foregrounds: Arc::from(self.foregrounds()),
-                profile: self.profile(),
-                layer_semantic_order: self.layer_semantic_order(),
-                capability_generation: self.capability_generation(),
-                capability_profile_digest: self.capability_profile_digest(),
-            },
-        )
-        .map_err(UiMountedProjectionDenial::SemanticTextCompletion)?;
-        Ok(Self::new(mechanic, Arc::clone(&self.layout)))
+        let layout = self
+            .qualified_layout()
+            .ok_or(UiMountedProjectionDenial::MissingSemanticTextReconstructionSource)?;
+        let mechanic =
+            UiMountedSemanticTextMechanic::complete_from_runtime_mounting_with_reused_layout(
+                UiMountedSemanticTextCompletionInput {
+                    content_generation: self.content_generation(),
+                    frame: self.frame(),
+                    surface: self.surface(),
+                    binding: replacement.binding_generation(),
+                    mounted_instance: self.mounted_instance(),
+                    node_receipt: self.node_receipt(),
+                    allocation_basis: self.allocation_basis(),
+                    bounds: self.bounds(),
+                    clip_bounds: self.clip_bounds(),
+                    origin_x: self.origin_x(),
+                    origin_y: self.origin_y(),
+                    text: Arc::from(self.text()),
+                    layout: layout.view(),
+                    slot: self.slot(),
+                    collection_row: self.collection_row().cloned(),
+                    foregrounds: Arc::from(self.foregrounds()),
+                    profile: self.profile(),
+                    layer_semantic_order: self.layer_semantic_order(),
+                    capability_generation: self.capability_generation(),
+                    capability_profile_digest: self.capability_profile_digest(),
+                },
+            )
+            .map_err(UiMountedProjectionDenial::SemanticTextCompletion)?;
+        Ok(Self::new(mechanic, Arc::clone(layout)))
     }
 
     pub(in crate::mounting::projection) fn repaint(
         &self,
         input: UiMountedSemanticTextRepaintInput,
     ) -> Result<Self, UiMountedProjectionDenial> {
-        let mechanic = UiMountedSemanticTextMechanic::complete_from_runtime_mounting(
-            UiMountedSemanticTextCompletionInput {
-                content_generation: input.content_generation,
-                frame: input.frame,
-                surface: self.surface(),
-                binding: self.binding(),
-                mounted_instance: self.mounted_instance(),
-                node_receipt: input.node_receipt,
-                allocation_basis: self.allocation_basis(),
-                bounds: self.bounds(),
-                clip_bounds: self.clip_bounds(),
-                origin_x: self.origin_x(),
-                origin_y: self.origin_y(),
-                text: Arc::from(self.text()),
-                layout: self.layout.view(),
-                slot: self.slot(),
-                collection_row: self.collection_row().cloned(),
-                foregrounds: input.foregrounds,
-                profile: self.profile(),
-                layer_semantic_order: self.layer_semantic_order(),
-                capability_generation: input.capability_generation,
-                capability_profile_digest: input.capability_profile_digest,
-            },
-        )
-        .map_err(UiMountedProjectionDenial::SemanticTextCompletion)?;
-        Ok(Self::new(mechanic, Arc::clone(&self.layout)))
+        let layout = self
+            .qualified_layout()
+            .ok_or(UiMountedProjectionDenial::MissingSemanticTextReconstructionSource)?;
+        let mechanic =
+            UiMountedSemanticTextMechanic::complete_from_runtime_mounting_with_reused_layout(
+                UiMountedSemanticTextCompletionInput {
+                    content_generation: input.content_generation,
+                    frame: input.frame,
+                    surface: self.surface(),
+                    binding: self.binding(),
+                    mounted_instance: self.mounted_instance(),
+                    node_receipt: input.node_receipt,
+                    allocation_basis: self.allocation_basis(),
+                    bounds: self.bounds(),
+                    clip_bounds: self.clip_bounds(),
+                    origin_x: self.origin_x(),
+                    origin_y: self.origin_y(),
+                    text: Arc::from(self.text()),
+                    layout: layout.view(),
+                    slot: self.slot(),
+                    collection_row: self.collection_row().cloned(),
+                    foregrounds: input.foregrounds,
+                    profile: self.profile(),
+                    layer_semantic_order: self.layer_semantic_order(),
+                    capability_generation: input.capability_generation,
+                    capability_profile_digest: input.capability_profile_digest,
+                },
+            )
+            .map_err(UiMountedProjectionDenial::SemanticTextCompletion)?;
+        Ok(Self::new(mechanic, Arc::clone(layout)))
     }
 }
 
@@ -268,7 +334,10 @@ mod tests {
                 foregrounds: foreground(range, [247, 129, 47, 255]),
             })
             .unwrap();
-        assert!(Arc::ptr_eq(&row.layout, &repainted.layout));
+        assert!(Arc::ptr_eq(
+            row.qualified_layout().unwrap(),
+            repainted.qualified_layout().unwrap()
+        ));
         assert_eq!(repainted.frame(), successor_frame);
         assert_eq!(repainted.content_generation(), successor_content);
         assert_eq!(repainted.node_receipt(), successor_receipt);

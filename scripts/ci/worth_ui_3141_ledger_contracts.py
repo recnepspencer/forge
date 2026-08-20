@@ -164,10 +164,11 @@ for _requirement in COUNTERS:
     if _requirement.startswith("P3-"):
         EXPECTED_IGNORED[_requirement] = _requirement in {
             "P3-BASELINE-REPLAY-01", "P3-CLOSE-01", "P3-DAMAGE-REPLAY-01",
-            "P3-DELTA-SOURCE-01", "P3-DRAW-LIST-01", "P3-HEADLESS-COST-01",
+            "P3-DRAW-LIST-01",
             "P3-HP02-WORLD-01", "P3-PHYSICAL-AMPLIFICATION-01",
-            "P3-PREDECESSOR-01", "P3-PRODUCER-SLOPE-01", "P3-TRANSACTION-01",
-            "P3-UNCHANGED-01",
+            "P3-PREDECESSOR-01", "P3-TRANSACTION-01",
+            "P3-UNCHANGED-01", "P3-DELTA-SOURCE-01",
+            "P3-HEADLESS-COST-01", "P3-PRODUCER-SLOPE-01",
         }
 for _requirement in COUNTERS:
     if _requirement.startswith("P4-"):
@@ -180,6 +181,8 @@ for _requirement in COUNTERS:
     if _requirement.startswith("P5-"):
         EXPECTED_IGNORED[_requirement] = _requirement in {
             "P5-PREDECESSOR-01", "P5-ATLAS-01", "P5-ATLAS-PINNING-01",
+            "P5-TEXT-PIXELS-01", "P5-TEXT-RECONSTRUCTION-01",
+            "P5-TEXT-COST-01", "P5-TEXT-ASYNC-PRESENTATION-01",
             "P5-CLOSE-01",
         }
 

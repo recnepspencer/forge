@@ -350,6 +350,10 @@ fn resource_census_fixture(count: u64, retained_targets: u64) -> Value {
             "application_drivers",
             "physical_signal_runtimes",
             "physical_signal_workers",
+            "physical_signal_transition_observations",
+            "retained_draw_lists",
+            "presentation_epochs",
+            "retained_frame_observations",
         ]
         .contains(&class)
         {

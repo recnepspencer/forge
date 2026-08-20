@@ -23,7 +23,7 @@ use crate::mounting::projection::semantic_text::{
 mod phase4_locality;
 
 #[test]
-fn mechanic_source_routes_paint_only_work_through_current_mounted_authority() {
+pub(crate) fn mechanic_source_routes_paint_only_work_through_current_mounted_authority() {
     let (fonts, _) = worth_ui_text::UiGlobalFontCollection::admit_qualified_profile().unwrap();
     let fonts = Arc::new(fonts);
     let (foreign_fonts, _) =

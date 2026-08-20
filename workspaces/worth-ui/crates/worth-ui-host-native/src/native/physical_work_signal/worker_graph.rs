@@ -75,7 +75,7 @@ impl UiNativePhysicalSignalPerformed {
 pub(super) struct UiNativePhysicalSignalTopology {
     aspects: [worth_signal::facade::Aspect; PHYSICAL_SIGNAL_ASPECT_COUNT],
     sources: [NodeId; PHYSICAL_SIGNAL_ASPECT_COUNT],
-    pub(super) operations: [AsyncCapableNode; 3],
+    pub(super) operations: [[AsyncCapableNode; PHYSICAL_SIGNAL_CURRENT_REQUEST_CAPACITY]; 3],
     operation_reads: [AspectMask; 3],
 }
 
@@ -297,21 +297,25 @@ fn build_runtime(
             .build()
     });
     let operations = std::array::from_fn(|index| {
-        let node = graph
-            .node()
-            .with_contract(NodeContract::reads(declarations.resources[index].reads()))
-            .on_demand()
-            .build();
-        let declaration = declarations.resources[index].capability(node);
-        (node, declaration)
+        std::array::from_fn(|_| {
+            let node = graph
+                .node()
+                .with_contract(NodeContract::reads(declarations.resources[index].reads()))
+                .on_demand()
+                .build();
+            let declaration = declarations.resources[index].capability(node);
+            (node, declaration)
+        })
     });
     let mut runtime = SignalRuntime::build_for::<UiNativePhysicalSignalContext>(graph);
-    let capabilities = operations.map(|(node, declaration)| {
-        runtime
-            .attach_async_capability(declaration)
-            .unwrap_or_else(|error| {
-                panic!("physical Signal capability {node:?} must attach: {error}")
-            })
+    let capabilities = operations.map(|slots| {
+        slots.map(|(node, declaration)| {
+            runtime
+                .attach_async_capability(declaration)
+                .unwrap_or_else(|error| {
+                    panic!("physical Signal capability {node:?} must attach: {error}")
+                })
+        })
     });
     (
         runtime,
@@ -346,11 +350,11 @@ fn evaluate_node(
         };
         return Ok(view.finish(result));
     }
-    if let Some(index) = topology
-        .operations
-        .iter()
-        .position(|operation| operation.node() == view.node())
-    {
+    if let Some(index) = topology.operations.iter().position(|slots| {
+        slots
+            .iter()
+            .any(|operation| operation.node() == view.node())
+    }) {
         let reads = topology.operation_reads[index];
         let operation = UiNativePhysicalSignalOperation::from_index(index);
         let Some(locality) = view.domain().exact_locality else {

@@ -84,7 +84,7 @@ pub fn rasterize_intrinsic_color(
     demand: &UiGlyphRasterDemandBatch,
 ) -> Result<UiColorRasterization, UiGlyphRasterizationDenial> {
     let admission = admit_intrinsic_color(layout, demand)?;
-    rasterize_candidates(layout, demand, admission, &mut HashSet::new(), None)
+    rasterize_candidates(layout, demand, admission, &mut HashSet::new(), None, None)
 }
 
 /// Rasterize only native-admitted color keys while retaining complete demand
@@ -108,6 +108,31 @@ pub fn rasterize_intrinsic_color_selection(
         admission,
         &mut HashSet::new(),
         Some(&selected),
+        None,
+    )
+}
+
+pub fn rasterize_intrinsic_color_selection_cached(
+    layout: &UiQualifiedTextLayout,
+    demand: &UiGlyphRasterDemandBatch,
+    keys: &[UiGlyphRasterKey],
+    cache: &mut super::UiGlyphRasterCache,
+) -> Result<UiColorRasterization, UiGlyphRasterizationDenial> {
+    let admission = admit_intrinsic_color(layout, demand)?;
+    let selected = keys.iter().copied().collect::<HashSet<_>>();
+    if selected
+        .iter()
+        .any(|key| !demand.records().iter().any(|record| record.key() == *key))
+    {
+        return Err(UiGlyphRasterizationDenial::ForeignDemandRecord);
+    }
+    rasterize_candidates(
+        layout,
+        demand,
+        admission,
+        &mut HashSet::new(),
+        Some(&selected),
+        Some(cache),
     )
 }
 
@@ -126,7 +151,7 @@ pub fn rasterize_intrinsic_color_transaction(
         .iter()
         .map(|&(layout, demand)| {
             let batch_admission = admit_intrinsic_color(layout, demand)?;
-            rasterize_candidates(layout, demand, batch_admission, &mut rasterized, None)
+            rasterize_candidates(layout, demand, batch_admission, &mut rasterized, None, None)
         })
         .collect::<Result<Vec<_>, _>>()?
         .into_boxed_slice();
@@ -143,8 +168,10 @@ fn rasterize_candidates(
     admission: UiColorRasterAdmission,
     rasterized: &mut HashSet<UiGlyphRasterKey>,
     selected: Option<&HashSet<UiGlyphRasterKey>>,
+    mut cache: Option<&mut super::UiGlyphRasterCache>,
 ) -> Result<UiColorRasterization, UiGlyphRasterizationDenial> {
     let mut records = Vec::with_capacity(admission.unique_records());
+    let mut cached_records = Vec::with_capacity(admission.unique_records());
     let mut local_keys = HashSet::with_capacity(admission.unique_records());
     let mut transaction_cache_hits = 0_u32;
     for (index, record) in demand.records().iter().copied().enumerate() {
@@ -157,17 +184,35 @@ fn rasterize_candidates(
         let candidate = candidate_for_record(layout, demand, index, record)?;
         validate_color_source(layout, record.key())?;
         if rasterized.insert(record.key()) {
-            records.push((record, candidate));
+            match cache
+                .as_deref()
+                .and_then(|cache| cache.color_record(record))
+            {
+                Some(Ok(cached)) => {
+                    transaction_cache_hits = transaction_cache_hits.saturating_add(1);
+                    cached_records.push(cached);
+                }
+                Some(Err(denial)) => {
+                    return Err(UiGlyphRasterizationDenial::Record(denial));
+                }
+                None => records.push((record, candidate)),
+            }
         } else {
             transaction_cache_hits = transaction_cache_hits.saturating_add(1);
         }
     }
     let record_count = records.len();
     let mut job = ColorRasterJob::new(layout);
-    let raster_records = records
+    let mut raster_records = records
         .into_iter()
         .map(|(record, candidate)| job.rasterize(record, candidate))
         .collect::<Result<Vec<_>, _>>()?;
+    if let Some(cache) = cache.as_deref_mut() {
+        for record in &raster_records {
+            cache.insert(record);
+        }
+    }
+    raster_records.extend(cached_records);
     let batch = UiColorRasterBatch::from_text_mechanics(
         demand.identity(),
         layout.identity(),

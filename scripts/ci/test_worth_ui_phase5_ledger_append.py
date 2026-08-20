@@ -108,7 +108,7 @@ class PhaseFiveLedgerAppendTests(unittest.TestCase):
             if row["requirement"] == "P5-TEXT-COST-01"
         )
         self.assertEqual(refreshed["owner"], "worth-ui-certification")
-        self.assertEqual(refreshed["structural_counters"], "ui-locality-worlds=open")
+        self.assertEqual(refreshed["structural_counters"], "ui-locality-worlds=32")
 
 
 if __name__ == "__main__":

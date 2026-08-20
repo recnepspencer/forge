@@ -22,6 +22,7 @@ mod frame_lifecycle;
 mod graph_replacement;
 mod instance_lifecycle;
 mod interaction_affinity;
+mod layout_reconstruction;
 mod presentation_attribution;
 pub(crate) mod surface_lifecycle;
 
@@ -77,6 +78,7 @@ pub(crate) struct UiMountedIdentityState {
         Option<crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource>,
     current_reuse_contract: Option<super::UiMountedFrameReuseContract>,
     pending_projection_changes: super::UiMountedProjectionChanges,
+    peak_qualified_layouts: usize,
     semantic_revision: u64,
     binding_revision: u64,
 }
@@ -111,6 +113,7 @@ impl UiMountedIdentityState {
             current_trace_source: None,
             current_reuse_contract: None,
             pending_projection_changes: Default::default(),
+            peak_qualified_layouts: 0,
             semantic_revision,
             binding_revision,
         })

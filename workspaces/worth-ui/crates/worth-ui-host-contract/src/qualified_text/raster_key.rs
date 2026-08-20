@@ -214,6 +214,37 @@ impl UiGlyphRasterKey {
     pub const fn fractional_origin(self) -> UiGlyphRasterFractionalOrigin {
         self.origin
     }
+
+    /// Stable boundary representation used to join the same qualified key
+    /// across Runtime and the native atlas owner. It is evidence, not a
+    /// second identity or an ordering authority.
+    pub fn canonical_evidence_bytes(self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(128);
+        bytes.extend_from_slice(&self.font_collection_generation().get().to_le_bytes());
+        bytes.extend_from_slice(&self.font_collection_lineage().digest());
+        bytes.extend_from_slice(&self.profile_generation().get().to_le_bytes());
+        bytes.extend_from_slice(&self.face().font_bytes_digest());
+        bytes.extend_from_slice(&self.face().face_index().to_le_bytes());
+        bytes.extend_from_slice(&self.face().selection_digest());
+        bytes.extend_from_slice(&self.glyph_id().to_le_bytes());
+        bytes.push(u8::try_from(self.variations().len()).unwrap_or(u8::MAX));
+        for variation in self.variations().records() {
+            bytes.extend_from_slice(&variation.axis());
+            bytes.extend_from_slice(&variation.value_milli().to_le_bytes());
+        }
+        bytes.extend_from_slice(&self.palette().index().to_le_bytes());
+        bytes.extend_from_slice(&self.size().millipoints().to_le_bytes());
+        bytes.push(match self.source() {
+            UiGlyphRasterSource::ColorOutline => 0,
+            UiGlyphRasterSource::ColorBitmap => 1,
+            UiGlyphRasterSource::AlphaOutline => 2,
+            UiGlyphRasterSource::LastResort => 3,
+        });
+        bytes.extend_from_slice(&self.dpi_milli().to_le_bytes());
+        bytes.extend_from_slice(&self.fractional_origin().x_over_64().to_le_bytes());
+        bytes.extend_from_slice(&self.fractional_origin().y_over_64().to_le_bytes());
+        bytes
+    }
 }
 
 #[cfg(test)]

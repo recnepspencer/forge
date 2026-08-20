@@ -105,7 +105,7 @@ pub(super) const CONTRACTS: &[RequirementContract] = &[
         "reconstruction",
         "worth_ui_runtime::mounting::text",
         "derived-state-reuse",
-        "reconstructed-atlases"
+        "reconstructed-derived-states"
     ),
     contract!(
         "P5-TEXT-COST-01",

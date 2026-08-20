@@ -99,6 +99,27 @@ pub(super) fn demand_for(
     demand_for_at(layout, scenario, UiGlyphRasterPlacement::default())
 }
 
+pub(super) fn demand_for_spans(
+    layout: &crate::UiQualifiedTextLayout,
+    scenario: DemandScenario<'_>,
+    paint_spans: &[UiMountedTextForegroundSpan],
+) -> Result<UiGlyphRasterDemandBatch, super::UiGlyphRasterDemandDenial> {
+    derive_glyph_raster_demand(
+        layout,
+        UiGlyphRasterDemandRequest {
+            paint_spans,
+            logical_damage: scenario.damage,
+            scale: UiGlyphRasterScale::new(
+                scenario.dpi_milli,
+                layout.view().text_scale_generation(),
+            )
+            .unwrap(),
+            placement: UiGlyphRasterPlacement::default(),
+            lane: scenario.lane,
+        },
+    )
+}
+
 fn demand_for_at(
     layout: &crate::UiQualifiedTextLayout,
     scenario: DemandScenario<'_>,
@@ -216,47 +237,6 @@ pub(super) fn qualified_alpha_batch_family_count() -> usize {
     );
     let raster = rasterize_alpha_outline(&layout, &demand).unwrap();
     usize::from(!raster.batch().records().is_empty())
-}
-
-#[test]
-fn dpi_is_a_raster_identity_boundary_without_relayout() {
-    let layout = layout_for("WORTH");
-    let make = |dpi_milli| {
-        demand_for(
-            &layout,
-            DemandScenario {
-                source: "WORTH",
-                damage: &[full_damage()],
-                dpi_milli,
-                lane: UiGlyphRasterLane::Ordinary,
-            },
-        )
-    };
-    let one_x = make(1_000);
-    let one_and_a_half_x = make(1_500);
-    assert_eq!(one_x.layout_identity(), one_and_a_half_x.layout_identity());
-    assert_ne!(one_x.identity(), one_and_a_half_x.identity());
-    assert!(one_x
-        .records()
-        .iter()
-        .zip(one_and_a_half_x.records())
-        .any(|(left, right)| left.key().dpi_milli() != right.key().dpi_milli()));
-}
-
-#[test]
-fn reconstruction_demand_keeps_cost_in_reconstruction_lane() {
-    let layout = layout_for("WORTH");
-    let demand = demand_for(
-        &layout,
-        DemandScenario {
-            source: "WORTH",
-            damage: &[full_damage()],
-            dpi_milli: 1_000,
-            lane: UiGlyphRasterLane::Reconstruction,
-        },
-    );
-    assert_eq!(demand.cost().ordinary().demanded_glyphs(), 0);
-    assert!(demand.cost().reconstructive().demanded_glyphs() > 0);
 }
 
 #[test]

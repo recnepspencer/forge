@@ -65,6 +65,7 @@ pub enum UiPresentProjection<V> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiProjectionUnavailableKind {
+    Unresolved,
     Pending,
     Failed,
     Cancelled,

@@ -26,6 +26,9 @@ mod batch_b_preplan_slope;
 #[path = "work_producer_tests/precise_damage.rs"]
 mod precise_damage;
 
+#[path = "work_producer_tests/effect_expectations.rs"]
+mod effect_expectations;
+
 #[path = "work_producer_tests/world.rs"]
 mod world;
 
@@ -359,7 +362,10 @@ trait CommandChangeIdentity {
 impl CommandChangeIdentity for worth_ui_host_contract::UiMountedPaintCommandChange {
     fn identity(&self) -> worth_ui_host_contract::UiMountedPaintCommandIdentity {
         match self {
-            Self::Insert(command) | Self::Replace(command) => command.identity(),
+            Self::Insert(command)
+            | Self::Replace {
+                successor: command, ..
+            } => command.identity(),
             Self::Remove(identity) => *identity,
         }
     }

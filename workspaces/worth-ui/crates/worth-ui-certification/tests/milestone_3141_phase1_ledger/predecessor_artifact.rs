@@ -8,12 +8,12 @@ use super::{
     requirement_contract, result_artifact_binding, source_digest,
 };
 
-const EXPECTED_MAPPING_DIGEST: &str =
-    "e8e8507f746b51bd8019af3382420716d6e7a8266d8107fe689defce1063d136";
+pub(super) const EXPECTED_MAPPING_DIGEST: &str =
+    "0a45ca9be7b1084df066e6cd639b1e82cf4af3783e9d2aa1560f1dc5f48e77d5";
 const EXPECTED_PHASE_THREE_MAPPING_DIGEST: &str =
-    "b7d3f182c3bcd19baee831dc1097ec01c7cd1ef704554b61c5edf7cd47145c91";
+    "d2cf9b00dabf51641254b1f46d1fed6673dbc00212e5421b14b730206df3e6de";
 const EXPECTED_PHASE_FOUR_MAPPING_DIGEST: &str =
-    "f894d2b284d5d3c4efcfa6dd98fff9ff3ec7a8884995f2478db87172f7ede1b6";
+    "a4d1587e7cc2ea0f4d1f7ef1a2d3510dacfdaa0c30e8a7ce6ebae22c6950a139";
 
 #[cfg(test)]
 #[path = "predecessor_artifact_tests.rs"]
@@ -297,6 +297,7 @@ fn is_rebindable(identity: &str) -> bool {
             | "_docs/worth-ui/milestone-3.14.1-evidence/p3-hp02-world-01.json"
             | "_docs/worth-ui/milestone-3.14.1-evidence/p3-predecessor-handoff.json"
             | "_docs/worth-ui/milestone-3.14.1-evidence/p4-predecessor-handoff.json"
+            | "_docs/worth-ui/milestone-3.14.1-evidence/p5-predecessor-handoff.json"
     )
 }
 

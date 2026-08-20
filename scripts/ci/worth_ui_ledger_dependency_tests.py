@@ -1,3 +1,5 @@
+import hashlib
+import json
 import tempfile
 import subprocess
 import sys
@@ -188,14 +190,21 @@ class LedgerDependencyTests(unittest.TestCase):
         fields = [
             "requirement", "exact_command", "matched_test_count", "source_revision",
             "source_digest", "source_state_digest", "run_nonce", "command_result",
-            "result_artifact_digest", "result", "final_source",
+            "result_artifact_digest", "result", "final_source", "source_identity",
+            "production_entry", "independent_oracle",
         ]
         rows = [
             {field: "" for field in fields} | {
                 "requirement": requirement,
-                "exact_command": requirement,
+                "exact_command": (
+                    f"runner --artifact _docs/worth-ui/milestone-3.14.1-evidence/"
+                    f"{requirement.lower()}.json"
+                ),
                 "result": "OPEN",
                 "final_source": "false",
+                "source_identity": "source.rs",
+                "production_entry": "source.rs::production",
+                "independent_oracle": "source.rs::oracle",
             }
             for requirement in ["P3-FIRST", "P3-SECOND"]
         ]
@@ -206,6 +215,7 @@ class LedgerDependencyTests(unittest.TestCase):
             "source_state_digest": "state",
             "run_nonce": "nonce",
             "artifact_sha256": "artifact",
+            "source_identity": ["source.rs"],
         }
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -223,7 +233,15 @@ class LedgerDependencyTests(unittest.TestCase):
                 expected = ["OPEN", "OPEN"] if calls == 0 else ["PROVED", "OPEN"]
                 self.assertEqual([row["result"] for row in observed], expected)
                 calls += 1
-                return {**result, "run_nonce": f"nonce-{calls}"}
+                words = command.split()
+                artifact = root / words[words.index("--artifact") + 1]
+                artifact.parent.mkdir(parents=True, exist_ok=True)
+                artifact.write_text(json.dumps({"case": calls}) + "\n", encoding="utf-8")
+                return {
+                    **result,
+                    "run_nonce": f"nonce-{calls}",
+                    "artifact_sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
+                }
 
             with (
                 patch.object(ledger_closer, "ROOT", root),
@@ -235,8 +253,8 @@ class LedgerDependencyTests(unittest.TestCase):
                 patch.object(
                     ledger_closer,
                     "execute_or_restore",
-                    side_effect=lambda row, candidate, _cache, _claim, runner: runner(
-                        row["exact_command"], candidate
+                    side_effect=lambda row, candidate, _cache, _claim, runner, finalize: finalize(
+                        runner(row["exact_command"], candidate)
                     ),
                 ),
                 patch.object(ledger_closer, "publish"),
@@ -260,7 +278,8 @@ class LedgerDependencyTests(unittest.TestCase):
         fields = [
             "requirement", "exact_command", "matched_test_count", "source_revision",
             "source_digest", "source_state_digest", "run_nonce", "command_result",
-            "result_artifact_digest", "result", "final_source",
+            "result_artifact_digest", "result", "final_source", "source_identity",
+            "production_entry", "independent_oracle",
         ]
         row = {field: "" for field in fields} | {
             "requirement": "P3-ONLY",
@@ -270,6 +289,9 @@ class LedgerDependencyTests(unittest.TestCase):
             ),
             "result": "OPEN",
             "final_source": "false",
+            "source_identity": "source.rs",
+            "production_entry": "source.rs::production",
+            "independent_oracle": "source.rs::oracle",
         }
         result = {
             "matched_test_count": 1,
@@ -278,6 +300,7 @@ class LedgerDependencyTests(unittest.TestCase):
             "source_state_digest": "state",
             "run_nonce": "nonce",
             "artifact_sha256": "artifact",
+            "source_identity": ["source.rs"],
         }
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -292,8 +315,11 @@ class LedgerDependencyTests(unittest.TestCase):
             original = ledger.read_bytes()
 
             def replace_artifact(_command: str, _candidate: Path):
-                artifact.write_bytes(b"candidate evidence\n")
-                return result
+                artifact.write_text("{}\n", encoding="utf-8")
+                return {
+                    **result,
+                    "artifact_sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
+                }
 
             with (
                 patch.object(ledger_closer, "ROOT", root),
@@ -305,8 +331,8 @@ class LedgerDependencyTests(unittest.TestCase):
                 patch.object(
                     ledger_closer,
                     "execute_or_restore",
-                    side_effect=lambda row, candidate, _cache, _claim, runner: runner(
-                        row["exact_command"], candidate
+                    side_effect=lambda row, candidate, _cache, _claim, runner, finalize: finalize(
+                        runner(row["exact_command"], candidate)
                     ),
                 ),
                 patch.object(ledger_closer, "publish"),

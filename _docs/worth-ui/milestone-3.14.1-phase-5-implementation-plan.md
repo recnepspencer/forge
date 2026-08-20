@@ -28,32 +28,20 @@ owner.
 
 ## Current Readiness Boundary
 
-The source now contains substantial raster and Gate D atlas implementation.
-Its retained `P5-ATLAS-01` evidence predates the required physical Signal
-owner. The pivot changes the row's governed source, lifecycle authority,
-completion/recovery semantics, shutdown, counters, and proof basis, so the next
-governed candidate must reopen it. `P5-ATLAS-PINNING-01` and the other existing
-Phase 5 rows remain OPEN. The Query async-presentation row also remains OPEN
-until its real main, independent oracle, named hostile fault, counter, source
-mapping, and authenticated execution receipt exist.
+Phase 5 is implemented and closed on the current source. The immutable Phase
+1-4 portfolio was reexecuted through the authenticated predecessor handoff;
+all twelve Phase 5 rows were bound to real mains, independent oracles, named
+hostile controls, exact sources, owner-issued counters, and authenticated
+receipts. The stale retained atlas evidence was reopened and replaced by the
+single host-native physical Signal lifecycle proof rather than carried forward.
 
-The active UI branch predates the completed Signal Milestone 13 source that is
-present on `origin/master`. Batch D begins by integrating that exact upstream
-substrate and revalidating its manifest/API surface. It must not copy M13 into
-WORTH UI or implement a private approximation against the older local Signal
-tree.
-
-Before the first production batch:
-
-- reexecute and validate the immutable Phase 1-4 portfolio on current source;
-- confirm the twelve-row Phase 5 ledger inventory, reopen the stale atlas row,
-  and keep atlas pinning, cost, and Query async presentation OPEN;
-- freeze the staged transaction and typed denial/settlement API with compile
-  twins and topology tests;
-- freeze one host-native physical Signal runtime identity/construction owner,
-  exact declarations/capacity, external effect port, performed observation,
-  and shutdown contract before migrating manual lifecycle structures;
-- ensure readiness tests emit no feature-row counter or mutation receipt.
+The closed implementation retains two deliberately separate Signal domains:
+one host-native physical-work owner and one Query/Runtime-Bridge semantic
+presentation graph installed through `worth-ui-query-binding`. The native
+courtroom proves the ten-event async/reconstruction lifecycle and external
+pixels; the fresh-world 4×8 matrix proves local semantic and physical work at
+1, 32, 2,048, and 4,096 retained items. This plan now records the completed
+cutover and remains the implementation map for later audits.
 
 ## Destination Authority
 
@@ -147,7 +135,7 @@ crosses between the two graphs.
    alpha outline coverage, bounded bytes, digests, and actual counters.
 3. Preserve layout attribution separately from safe raster equivalence.
 4. Prove first/middle/last local work at 1, 32, 2,048, and 4,096 retained
-   paragraphs and reject consumer reshape/system-font mutants.
+   mechanics and reject consumer reshape/system-font mutants.
 5. Close `P5-GLYPH-RASTER-01` only after its causal mapping exists.
 
 ### Batch C: intrinsic color and exhaustive RGI
@@ -336,6 +324,13 @@ UI analysis/shaping/raster/atlas/upload/damage/presentation/pixel/census
 counters. An independent dependency model adjudicates the exact immediate
 subscribers and scope rejections.
 
+The authoritative matrix is physically divided into sixteen source-bound
+shards. Scheduled CI runs one shard per fresh worker. Local closure runs at
+most eight shard processes concurrently under one shared nine-minute deadline,
+then deterministically joins all thirty-two owner-issued rows. No individual
+test or shard may run for ten minutes, and partial, duplicate, missing, or
+timed-out shard output is not admissible evidence.
+
 The hostile matrix injects, at production owners: complete subscriber-closure
 walking; aspect filtering after enqueue; partition/detail/range filtering after
 enqueue; every-mounted-instance invalidation; paint-to-layout widening;
@@ -345,6 +340,15 @@ physical Signal; Query current publication outside Query admission;
 Signal-as-effect authority; stale/duplicate/out-of-order completion; and
 terminal Signal/native resource retention. A printed label or a second lawful
 run is not a control.
+
+For internal cost algorithms that cannot be supplied through a lawful public
+input, certification owns separately authored deterministic owner-mutant
+twins. Each twin receives the same typed case basis, predicts the specific
+wrong performed work, and is convicted against the immutable owner-issued
+observation before serialization. The twins cannot mint or edit evidence.
+Their exact conviction union is retained in the existing 32-world shard
+portfolio and checked again by the cross-worker join; only a minimum bounded
+small-world subset is repeated for the named hostile-control execution.
 
 ## Query Boundary
 

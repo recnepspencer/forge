@@ -262,6 +262,9 @@ impl ConsequenceWorld {
             UiMountedFrameOutcome::CompletionDenied(_) => {
                 panic!("mounted presentation completion denied the compatible successor")
             }
+            UiMountedFrameOutcome::Superseded(_) => {
+                panic!("headless compatible successor was unexpectedly superseded")
+            }
         }
     }
 

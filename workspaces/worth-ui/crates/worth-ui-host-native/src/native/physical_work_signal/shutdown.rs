@@ -30,6 +30,7 @@ impl super::UiNativePhysicalSignalOwner {
         }
         self.route.clear();
         self.wake.clear();
+        self.transition_observations.clear();
         self.lifecycle = UiNativePhysicalSignalLifecycle::Disposed;
         UiNativePhysicalSignalShutdown::Disposed
     }

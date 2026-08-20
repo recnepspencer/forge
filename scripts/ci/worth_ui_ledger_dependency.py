@@ -19,6 +19,8 @@ REBINDABLE_SOURCE_IDENTITIES = {
     "_docs/worth-ui/milestone-3.14.1-evidence/p3-delta-source-01.json",
     "_docs/worth-ui/milestone-3.14.1-evidence/p3-hp02-world-01.json",
     "_docs/worth-ui/milestone-3.14.1-evidence/p3-predecessor-handoff.json",
+    "_docs/worth-ui/milestone-3.14.1-evidence/p4-predecessor-handoff.json",
+    "_docs/worth-ui/milestone-3.14.1-evidence/p5-predecessor-handoff.json",
     "_docs/worth-ui/milestone-3.14.1-evidence/p5-atlas-01.json",
 }
 

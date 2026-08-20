@@ -31,6 +31,7 @@ pub(crate) struct UiNativePhysicalSignalObservation {
     pub(crate) performed_request_sequence: Option<u64>,
     pub(crate) performed_fact_revision: Option<u64>,
     pub(crate) performed_read_scopes: u8,
+    pub(crate) retained_transition_observations: usize,
 }
 
 pub(super) struct UiNativePhysicalSignalObservationInput<'owner> {
@@ -45,6 +46,7 @@ pub(super) struct UiNativePhysicalSignalObservationInput<'owner> {
     pub(super) performed_transitions: u64,
     pub(super) performed_nodes: u64,
     pub(super) last_performed: Option<super::worker_graph::UiNativePhysicalSignalPerformed>,
+    pub(super) retained_transition_observations: usize,
 }
 
 impl UiNativePhysicalSignalObservation {
@@ -85,6 +87,7 @@ impl UiNativePhysicalSignalObservation {
                 0,
                 super::worker_graph::UiNativePhysicalSignalPerformed::read_scopes,
             ),
+            retained_transition_observations: input.retained_transition_observations,
         }
     }
 }

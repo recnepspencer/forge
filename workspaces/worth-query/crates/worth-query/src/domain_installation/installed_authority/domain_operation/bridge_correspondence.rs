@@ -30,7 +30,7 @@ impl<D, O, F> WorthQueryInstalledDomainOperation<D, O, F> {
         )
     }
 
-    fn semantic_correspondence_candidate_with_observation<G: 'static>(
+    pub(crate) fn semantic_correspondence_candidate_with_observation<G: 'static>(
         &self,
         location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
         dependency_ordinal: usize,

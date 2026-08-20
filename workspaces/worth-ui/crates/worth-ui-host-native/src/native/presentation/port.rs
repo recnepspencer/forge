@@ -14,7 +14,9 @@ mod transaction;
 pub(crate) trait UiNativePresentationPort {
     fn present(
         graphics: &mut UiNativeGraphics,
+        atlas: Option<&crate::native::text_atlas::UiNativeTextAtlasGpuPages>,
         plan: UiNativePresentationPortPlan,
+        defer_initial_observation: bool,
     ) -> Result<UiNativePresentationPortObservation, UiNativePresentationPortFailure>;
 }
 
@@ -32,6 +34,7 @@ pub(crate) enum UiNativeRasterOperation {
         rect: RasterRect,
         source_rgba8: [u8; 4],
     },
+    Glyph(super::text::UiNativeGlyphCommand),
 }
 
 pub(crate) struct UiNativePresentationPortPlan {
@@ -47,16 +50,33 @@ pub(crate) struct UiNativePresentationPortObservation {
 }
 
 impl UiNativePresentationPortObservation {
+    pub(super) const fn from_async_readback(
+        pixels: [[u8; 4]; 2],
+        cost: UiHostPresentationCostReport,
+    ) -> Self {
+        Self {
+            pixels,
+            cost,
+            crossing_count: 2,
+        }
+    }
+
     pub(super) fn into_parts(self) -> ([[u8; 4]; 2], UiHostPresentationCostReport, u8) {
         (self.pixels, self.cost, self.crossing_count)
+    }
+
+    pub(crate) fn into_superseded_cost(self) -> UiHostPresentationCostReport {
+        self.cost
     }
 }
 
 impl UiNativePresentationPort for UiWgpuNativePresentationPort {
     fn present(
         graphics: &mut UiNativeGraphics,
+        atlas: Option<&crate::native::text_atlas::UiNativeTextAtlasGpuPages>,
         plan: UiNativePresentationPortPlan,
+        defer_initial_observation: bool,
     ) -> Result<UiNativePresentationPortObservation, UiNativePresentationPortFailure> {
-        transaction::present(graphics, plan)
+        transaction::present(graphics, atlas, plan, defer_initial_observation)
     }
 }

@@ -88,9 +88,9 @@ fn crate_dependencies(path: &str) -> Option<&'static [&'static str]> {
         "crates/worth-ui-dsl/Cargo.toml"
         | "crates/worth-ui-host-contract/Cargo.toml"
         | "crates/worth-ui-inspection/Cargo.toml"
-        | "crates/worth-ui-query-binding/Cargo.toml"
         | "crates/worth-ui-retained-order/Cargo.toml"
         | "crates/worth-ui-theme/Cargo.toml" => &[],
+        "crates/worth-ui-query-binding/Cargo.toml" => &["worth-ui-host-contract"],
         "crates/worth-ui-host-egui/Cargo.toml" => {
             &["worth-ui-host-contract", "worth-ui-test-support"]
         }

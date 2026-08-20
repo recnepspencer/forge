@@ -40,8 +40,13 @@ pub(super) fn qualify_layout(
             .expect("initial text scale generation"),
         styles,
     };
-    let layout = worth_ui_text::qualify_text_layout(input, Arc::clone(context.font_collection))
-        .map(Arc::new)
+    let request = worth_ui_text::UiQualifiedTextLayoutRequest::new(
+        input,
+        Arc::clone(context.font_collection),
+    );
+    let layout = context
+        .qualification_cache
+        .qualify(request)
         .map_err(UiMountedProjectionDenial::SemanticTextQualification)?;
     Ok(UiMountedTextQualification {
         layout,

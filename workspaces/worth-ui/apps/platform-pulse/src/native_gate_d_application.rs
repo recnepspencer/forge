@@ -23,7 +23,17 @@ const TEXT_TOKEN: &str = "theme.gate_d.text";
 const FIRST_TEXT: &str = "CURRENT\u{2764}\u{FE0F}A";
 const SECOND_TEXT: &str = "CURRENT\u{2764}\u{FE0F}B";
 
-pub(crate) struct PlatformPulseNativeGateDApplication;
+pub(crate) struct PlatformPulseNativeGateDApplication {
+    presentation_async: worth_ui::facade::query_binding::WorthUiPresentationAsyncInstallation,
+}
+
+impl PlatformPulseNativeGateDApplication {
+    pub(crate) fn new(
+        presentation_async: worth_ui::facade::query_binding::WorthUiPresentationAsyncInstallation,
+    ) -> Self {
+        Self { presentation_async }
+    }
+}
 
 impl UiNativeApplicationDefinition for PlatformPulseNativeGateDApplication {
     fn prepare(
@@ -31,6 +41,7 @@ impl UiNativeApplicationDefinition for PlatformPulseNativeGateDApplication {
         mut preparation: UiNativeApplicationPreparation,
     ) -> UiNativeApplicationPreparationOutcome {
         let result = (|| {
+            preparation.install_presentation_async(self.presentation_async)?;
             preparation.install_frame_program(gate_d_program())?;
             let mut builder = preparation.builder();
             builder

@@ -14,6 +14,8 @@ pub(super) struct SignalRequest {
     pub(super) handle: ResourceRequestHandle,
     pub(super) attempt: ResourceAttemptId,
     pub(super) operation: UiNativePhysicalSignalOperation,
+    pub(super) operation_slot: usize,
+    pub(super) lineage: super::identity::UiNativePhysicalSignalSlotLineage,
     pub(super) retry_wake: Option<TemporalWakeId>,
     pub(super) poll_wake: Option<TemporalWakeId>,
 }
@@ -21,6 +23,11 @@ pub(super) struct SignalRequest {
 pub(crate) struct UiNativePhysicalSignalWorker {
     pub(super) graph: UiNativePhysicalSignalGraph,
     pub(super) requests: Vec<SignalRequest>,
+}
+
+pub(crate) enum UiNativePhysicalWorkerSettlement {
+    Current,
+    Superseded,
 }
 
 impl UiNativePhysicalSignalWorker {
@@ -36,12 +43,27 @@ impl UiNativePhysicalSignalWorker {
         operation: UiNativePhysicalSignalOperation,
         work: UiNativePhysicalSignalWork,
     ) -> Result<(ResourceRequestHandle, UiNativePhysicalSignalPerformed), ()> {
+        let lineage = work.slot_lineage();
+        let operation_slot = self
+            .requests
+            .iter()
+            .find(|request| request.operation == operation && request.lineage == lineage)
+            .map(|request| request.operation_slot)
+            .or_else(|| {
+                (0..super::declarations::PHYSICAL_SIGNAL_ROUTE_CAPACITY).find(|slot| {
+                    self.requests.iter().all(|request| {
+                        request.operation != operation || request.operation_slot != *slot
+                    })
+                })
+            })
+            .ok_or(())?;
         let performed = self.graph.perform_transition(operation, work)?;
         let capability = self
             .graph
             .topology
             .operations
             .get(operation.index())
+            .and_then(|slots| slots.get(operation_slot))
             .ok_or(())?;
         let report = self
             .graph
@@ -59,6 +81,8 @@ impl UiNativePhysicalSignalWorker {
             handle,
             attempt: admitted_request.attempt(),
             operation,
+            operation_slot,
+            lineage,
             retry_wake: None,
             poll_wake: None,
         });
@@ -108,7 +132,7 @@ impl UiNativePhysicalSignalWorker {
         handle: ResourceRequestHandle,
         work: UiNativePhysicalSignalWork,
         status: super::routing::UiNativePhysicalSignalExternalStatus,
-    ) -> Result<bool, ()> {
+    ) -> Result<UiNativePhysicalWorkerSettlement, ()> {
         let Some(request) = self
             .requests
             .iter()
@@ -125,18 +149,26 @@ impl UiNativePhysicalSignalWorker {
         }
         self.graph
             .perform_transition(request.operation, request.work)?;
-        let terminal = match status {
-            super::routing::UiNativePhysicalSignalExternalStatus::Pending => false,
+        let settlement = match status {
+            super::routing::UiNativePhysicalSignalExternalStatus::Pending => {
+                UiNativePhysicalWorkerSettlement::Current
+            }
             super::routing::UiNativePhysicalSignalExternalStatus::Completed => {
                 self.complete(request)?
             }
             super::routing::UiNativePhysicalSignalExternalStatus::RejectedBeforeEffects
             | super::routing::UiNativePhysicalSignalExternalStatus::RejectedAfterRasterization => {
-                self.cancel(request)?
+                self.cancel(request)?;
+                UiNativePhysicalWorkerSettlement::Current
             }
-            super::routing::UiNativePhysicalSignalExternalStatus::EffectsIndeterminate => false,
+            super::routing::UiNativePhysicalSignalExternalStatus::EffectsIndeterminate => {
+                UiNativePhysicalWorkerSettlement::Current
+            }
         };
-        if terminal {
+        if matches!(settlement, UiNativePhysicalWorkerSettlement::Current)
+            && status != super::routing::UiNativePhysicalSignalExternalStatus::Pending
+            && status != super::routing::UiNativePhysicalSignalExternalStatus::EffectsIndeterminate
+        {
             let _ = self.graph.remove_current(work, handle);
             if let Some(index) = self
                 .requests
@@ -146,7 +178,7 @@ impl UiNativePhysicalSignalWorker {
                 self.requests.remove(index);
             }
         }
-        Ok(terminal)
+        Ok(settlement)
     }
 
     pub(crate) fn active_requests(&self) -> usize {
@@ -193,31 +225,61 @@ impl UiNativePhysicalSignalWorker {
         self.graph.last_performed()
     }
 
-    fn complete(&mut self, request: SignalRequest) -> Result<bool, ()> {
+    fn complete(&mut self, request: SignalRequest) -> Result<UiNativePhysicalWorkerSettlement, ()> {
         let envelope = RawCompletionEnvelope::new(
             request.handle.request_id(),
             request.handle.generation(),
             request.handle.branch_epoch(),
             request.attempt,
-            self.payload_contract(request.operation),
+            self.payload_contract(request),
             0,
         );
-        let report = self
-            .graph
-            .runtime
-            .admit_resource_completion(envelope)
-            .admitted_completion()
-            .ok_or(())?;
+        let report = self.graph.runtime.admit_resource_completion(envelope);
+        let admitted = match report.admitted_completion() {
+            Some(admitted) => admitted,
+            None => {
+                let denied = report.denied_completion().ok_or(())?;
+                if denied.class() != worth_signal::facade::core::CompletionDenialClass::Superseded {
+                    return Err(());
+                }
+                self.retire_superseded(request)?;
+                return Ok(UiNativePhysicalWorkerSettlement::Superseded);
+            }
+        };
         let staged = self
             .graph
             .runtime
-            .stage_admitted_resource_completion(report)
+            .stage_admitted_resource_completion(admitted)
             .map_err(|_| ())?;
         self.graph
             .runtime
             .commit_staged_resource_completion(staged.staged_effect())
             .map_err(|_| ())?;
-        Ok(true)
+        Ok(UiNativePhysicalWorkerSettlement::Current)
+    }
+
+    fn retire_superseded(&mut self, request: SignalRequest) -> Result<(), ()> {
+        if let Some(wake) = request.poll_wake {
+            self.graph
+                .runtime
+                .retire_temporal_wake(
+                    wake,
+                    worth_signal::facade::TemporalWakeRetirementReason::Superseded,
+                )
+                .map_err(|_| ())?;
+        }
+        if !self.graph.remove_current(request.work, request.handle) {
+            return Err(());
+        }
+        let index = self
+            .requests
+            .iter()
+            .position(|candidate| {
+                candidate.work == request.work && candidate.handle == request.handle
+            })
+            .ok_or(())?;
+        self.requests.remove(index);
+        Ok(())
     }
 
     fn cancel(&mut self, request: SignalRequest) -> Result<bool, ()> {
@@ -277,13 +339,14 @@ impl UiNativePhysicalSignalWorker {
             return Err(());
         }
         let operation = self.requests[index].operation;
+        let operation_slot = self.requests[index].operation_slot;
         let due = self.graph.context.clock_revision.checked_add(1).ok_or(())?;
         let scheduled = self
             .graph
             .runtime
             .schedule_owned_temporal_wake(
                 worth_signal::facade::TemporalWakeOwner::ResourceNode(
-                    self.graph.topology.operations[operation.index()].node(),
+                    self.graph.topology.operations[operation.index()][operation_slot].node(),
                 ),
                 worth_signal::facade::TemporalCondition::after(1).map_err(|_| ())?,
                 worth_signal::facade::ClockTick::new(due),
@@ -313,9 +376,9 @@ impl UiNativePhysicalSignalWorker {
 
     fn payload_contract(
         &self,
-        operation: UiNativePhysicalSignalOperation,
+        request: SignalRequest,
     ) -> worth_signal::facade::ResourcePayloadContractDigest {
-        self.graph.topology.operations[operation.index()]
+        self.graph.topology.operations[request.operation.index()][request.operation_slot]
             .payload_contract_digest()
             .clone()
     }

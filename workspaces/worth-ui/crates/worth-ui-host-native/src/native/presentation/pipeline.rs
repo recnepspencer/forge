@@ -40,8 +40,76 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
 }
 "#;
 
+const ALPHA_GLYPH_SHADER: &str = r#"
+@group(0) @binding(0) var atlas_page: texture_2d<f32>;
+@group(0) @binding(1) var atlas_sampler: sampler;
+
+struct VertexOutput {
+    @builtin(position) position: vec4<f32>,
+    @location(0) texture_uv: vec2<f32>,
+    @location(1) color: vec4<f32>,
+};
+
+@vertex
+fn vs_main(
+    @location(0) position: vec2<f32>,
+    @location(1) texture_uv: vec2<f32>,
+    @location(2) color: vec4<f32>,
+) -> VertexOutput {
+    var output: VertexOutput;
+    output.position = vec4<f32>(position, 0.0, 1.0);
+    output.texture_uv = texture_uv;
+    output.color = color;
+    return output;
+}
+
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    let coverage = textureSample(atlas_page, atlas_sampler, input.texture_uv).r;
+    let alpha = input.color.a * coverage;
+    return vec4<f32>(input.color.rgb * alpha, alpha);
+}
+"#;
+
+const COLOR_GLYPH_SHADER: &str = r#"
+@group(0) @binding(0) var atlas_page: texture_2d<f32>;
+@group(0) @binding(1) var atlas_sampler: sampler;
+
+struct VertexOutput {
+    @builtin(position) position: vec4<f32>,
+    @location(0) texture_uv: vec2<f32>,
+};
+
+@vertex
+fn vs_main(
+    @location(0) position: vec2<f32>,
+    @location(1) texture_uv: vec2<f32>,
+    @location(2) _foreground: vec4<f32>,
+) -> VertexOutput {
+    var output: VertexOutput;
+    output.position = vec4<f32>(position, 0.0, 1.0);
+    output.texture_uv = texture_uv;
+    return output;
+}
+
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    return textureSample(atlas_page, atlas_sampler, input.texture_uv);
+}
+"#;
+
 const RASTER_ATTRIBUTES: [wgpu::VertexAttribute; 2] =
     wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x4];
+const GLYPH_ATTRIBUTES: [wgpu::VertexAttribute; 3] =
+    wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2, 2 => Float32x4];
+
+pub(super) struct UiNativePresentationPipelines {
+    filled: wgpu::RenderPipeline,
+    clearing: wgpu::RenderPipeline,
+    alpha: wgpu::RenderPipeline,
+    color: wgpu::RenderPipeline,
+    sampler: wgpu::Sampler,
+}
 
 fn transfer_pipeline(
     device: &wgpu::Device,
@@ -51,9 +119,7 @@ fn transfer_pipeline(
     pipeline_with_blend(device, shader, format, None, &[])
 }
 
-pub(super) fn raster_pipelines(
-    device: &wgpu::Device,
-) -> (wgpu::RenderPipeline, wgpu::RenderPipeline) {
+pub(super) fn presentation_pipelines(device: &wgpu::Device) -> UiNativePresentationPipelines {
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("worth-ui-retained-raster"),
         source: wgpu::ShaderSource::Wgsl(RASTER_SHADER.into()),
@@ -77,7 +143,48 @@ pub(super) fn raster_pipelines(
         Some(wgpu::BlendState::REPLACE),
         &buffers,
     );
-    (blended, replacing)
+    let glyph_buffers = [wgpu::VertexBufferLayout {
+        array_stride: 32,
+        step_mode: wgpu::VertexStepMode::Vertex,
+        attributes: &GLYPH_ATTRIBUTES,
+    }];
+    let alpha_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("worth-ui-alpha-glyph"),
+        source: wgpu::ShaderSource::Wgsl(ALPHA_GLYPH_SHADER.into()),
+    });
+    let color_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("worth-ui-color-glyph"),
+        source: wgpu::ShaderSource::Wgsl(COLOR_GLYPH_SHADER.into()),
+    });
+    let alpha = pipeline_with_blend(
+        device,
+        &alpha_shader,
+        wgpu::TextureFormat::Rgba8UnormSrgb,
+        Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+        &glyph_buffers,
+    );
+    let color = pipeline_with_blend(
+        device,
+        &color_shader,
+        wgpu::TextureFormat::Rgba8UnormSrgb,
+        Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+        &glyph_buffers,
+    );
+    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        label: Some("worth-ui-text-atlas-sampler"),
+        address_mode_u: wgpu::AddressMode::ClampToEdge,
+        address_mode_v: wgpu::AddressMode::ClampToEdge,
+        mag_filter: wgpu::FilterMode::Linear,
+        min_filter: wgpu::FilterMode::Linear,
+        ..Default::default()
+    });
+    UiNativePresentationPipelines {
+        filled: blended,
+        clearing: replacing,
+        alpha,
+        color,
+        sampler,
+    }
 }
 
 fn pipeline_with_blend(
@@ -114,14 +221,49 @@ fn pipeline_with_blend(
     })
 }
 
-pub(super) fn draw_raster_operations(
+pub(super) fn draw_presentation_operations(
+    device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     target: &wgpu::TextureView,
-    vertex_buffer: Option<&wgpu::Buffer>,
-    replace_operations: &[bool],
-    pipelines: (&wgpu::RenderPipeline, &wgpu::RenderPipeline),
+    raster_vertex_buffer: Option<&wgpu::Buffer>,
+    glyph_vertex_buffer: Option<&wgpu::Buffer>,
+    operations: &[super::UiNativeRasterOperation],
+    atlas: Option<&crate::native::text_atlas::UiNativeTextAtlasGpuPages>,
+    pipelines: &UiNativePresentationPipelines,
     clear_target: bool,
 ) {
+    let glyph_bind_groups = operations
+        .iter()
+        .map(|operation| match operation {
+            super::UiNativeRasterOperation::Glyph(command) => {
+                let pages = atlas.expect("admitted glyph command retains native atlas pages");
+                let (view, _) = pages
+                    .page_view(command.atlas_kind, command.atlas_page)
+                    .expect("admitted glyph command retains its exact atlas page");
+                let pipeline = if super::text::source_is_intrinsic_color(*command) {
+                    &pipelines.color
+                } else {
+                    &pipelines.alpha
+                };
+                Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: Some("worth-ui-glyph-atlas-bind-group"),
+                    layout: &pipeline.get_bind_group_layout(0),
+                    entries: &[
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: wgpu::BindingResource::TextureView(&view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: wgpu::BindingResource::Sampler(&pipelines.sampler),
+                        },
+                    ],
+                }))
+            }
+            super::UiNativeRasterOperation::Clear(_)
+            | super::UiNativeRasterOperation::FilledRect { .. } => None,
+        })
+        .collect::<Vec<_>>();
     let attachments = [Some(wgpu::RenderPassColorAttachment {
         view: target,
         depth_slice: None,
@@ -140,14 +282,47 @@ pub(super) fn draw_raster_operations(
         color_attachments: &attachments,
         ..Default::default()
     });
-    let Some(vertex_buffer) = vertex_buffer else {
-        return;
-    };
-    pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-    for (index, replace) in replace_operations.iter().copied().enumerate() {
-        pass.set_pipeline(if replace { pipelines.1 } else { pipelines.0 });
-        let start = u32::try_from(index * 6).expect("profile-bounded raster vertices fit u32");
-        pass.draw(start..start + 6, 0..1);
+    let mut raster_index = 0_usize;
+    let mut glyph_index = 0_usize;
+    for (operation_index, operation) in operations.iter().enumerate() {
+        match operation {
+            super::UiNativeRasterOperation::Clear(_)
+            | super::UiNativeRasterOperation::FilledRect { .. } => {
+                let buffer = raster_vertex_buffer.expect("raster operation retains vertices");
+                pass.set_vertex_buffer(0, buffer.slice(..));
+                pass.set_pipeline(
+                    if matches!(operation, super::UiNativeRasterOperation::Clear(_)) {
+                        &pipelines.clearing
+                    } else {
+                        &pipelines.filled
+                    },
+                );
+                let start = u32::try_from(raster_index * 6)
+                    .expect("profile-bounded raster vertices fit u32");
+                pass.draw(start..start + 6, 0..1);
+                raster_index += 1;
+            }
+            super::UiNativeRasterOperation::Glyph(command) => {
+                let buffer = glyph_vertex_buffer.expect("glyph operation retains vertices");
+                pass.set_vertex_buffer(0, buffer.slice(..));
+                pass.set_pipeline(if super::text::source_is_intrinsic_color(*command) {
+                    &pipelines.color
+                } else {
+                    &pipelines.alpha
+                });
+                pass.set_bind_group(
+                    0,
+                    glyph_bind_groups[operation_index]
+                        .as_ref()
+                        .expect("glyph operation retains one bind group"),
+                    &[],
+                );
+                let start =
+                    u32::try_from(glyph_index * 6).expect("profile-bounded glyph vertices fit u32");
+                pass.draw(start..start + 6, 0..1);
+                glyph_index += 1;
+            }
+        }
     }
 }
 

@@ -92,7 +92,9 @@ fn real_dx12_signal_transaction_matches_the_independent_atlas_model_and_closes_e
     assert!(signal.runtime_owned);
     assert!(signal.signal_performed_transitions > 0);
     assert!(state.close().is_zero());
-    println!("WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-01\":[\"exact-signal-basis\",\"independent-model\",\"real-dx12-alpha-color\",\"bounded-capacity\",\"temporal-recovery\",\"retry-correlation\",\"retained-content-extent\",\"production-supersession\",\"terminal-census\"]}}");
+    println!(
+        "WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-01\":[\"exact-signal-basis\",\"independent-model\",\"real-dx12-alpha-color\",\"bounded-capacity\",\"temporal-recovery\",\"retry-correlation\",\"retained-content-extent\",\"production-supersession\",\"terminal-census\"]}}"
+    );
     println!(
         "WORTH_UI_LEDGER_COUNTERS={{\"P5-ATLAS-01\":1,\"physical-signal-runtimes\":{}}}",
         u8::from(signal.runtime_owned)
@@ -109,7 +111,9 @@ fn host_atlas_escape_and_lifecycle_faults_are_causally_rejected() {
     crate::native::text_atlas::eviction_tests::equal_epoch_eviction_matches_model_and_ignores_registration_order();
     crate::native::text_atlas::eviction_tests::every_complete_key_field_participates_in_equal_epoch_eviction_order();
     super::text_atlas_upload::tests::alpha_and_color_physical_owner_merger_is_rejected();
-    println!("WORTH_UI_LEDGER_MUTATION_CASES={{\"P5-ATLAS-01\":[\"callback-before-effects\",\"partial-upload-indeterminate\",\"replayed-completion\",\"capacity-before-raster\",\"cancellation-recovery\",\"equal-epoch-registration-order\",\"alpha-color-owner-merger\"]}}");
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CASES={{\"P5-ATLAS-01\":[\"callback-before-effects\",\"partial-upload-indeterminate\",\"replayed-completion\",\"capacity-before-raster\",\"cancellation-recovery\",\"equal-epoch-registration-order\",\"alpha-color-owner-merger\"]}}"
+    );
     println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-ATLAS-01\":\"host-atlas-escape\"}}");
 }
 
@@ -207,7 +211,10 @@ fn exercise_temporal_recovery(
         "the retained retry must transition to recovery: {cancellation:?}"
     );
     pending_port.complete();
-    assert!(state.progress_text_atlas_physical(retry_pending));
+    assert_eq!(
+        state.progress_text_atlas_physical(retry_pending),
+        crate::native::host_state::UiNativeTextAtlasPhysicalProgress::Terminal
+    );
     let terminal = state.physical_signal.observation();
     assert_eq!(terminal.active_requests, 0);
     assert!(terminal.counters.cancellations > 0);
@@ -224,7 +231,10 @@ fn settle_qualified_pending(
             .next_due_tick()
             .expect("an unresolved DX12 submission retains a Signal wake");
         state.physical_signal.advance_clock_to(due).unwrap();
-        assert!(state.progress_text_atlas_physical(pending));
+        assert_ne!(
+            state.progress_text_atlas_physical(pending),
+            crate::native::host_state::UiNativeTextAtlasPhysicalProgress::NoProgress
+        );
         match state.complete_pending_text_atlas(pending) {
             UiGlyphRasterTransactionOutcome::Committed(receipt) => return receipt,
             UiGlyphRasterTransactionOutcome::Pending(_) => {}

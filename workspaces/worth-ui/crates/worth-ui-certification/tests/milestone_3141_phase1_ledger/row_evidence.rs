@@ -205,14 +205,13 @@ fn retained_artifact_names_source(row: &Row, source: &str) -> bool {
 }
 
 pub(super) fn row_is_current_source(row: &Row) -> Result<bool, String> {
-    if row["source_revision"] != result_artifact::current_revision()? {
-        return Ok(false);
-    }
     let path = super::source_digest::repository_file(&row["retained_result_artifact"])?;
     let bytes = std::fs::read(path).map_err(|error| error.to_string())?;
     let artifact: serde_json::Value =
         serde_json::from_slice(&bytes).map_err(|error| error.to_string())?;
-    Ok(artifact["mapping_source_identity"].is_array() && artifact["source_rebindings"].is_array())
+    Ok(artifact["mapping_source_identity"].is_array()
+        && artifact["source_rebindings"].is_array()
+        && row["source_digest"] == super::source_digest::calculate(&row["source_identity"])?)
 }
 
 fn verifier_owned_source_exists(source: &str) -> bool {

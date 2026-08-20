@@ -75,7 +75,10 @@ fn observe(expand: bool) -> ObservedFrontier {
     );
     let outcome = maintain_primary_runtime_granular_collection_batch(
         &query.live,
-        query.collection.as_mut().expect("portfolio collection state"),
+        query
+            .collection
+            .as_mut()
+            .expect("portfolio collection state"),
         &mut query.workspace,
         &binding,
         batch,

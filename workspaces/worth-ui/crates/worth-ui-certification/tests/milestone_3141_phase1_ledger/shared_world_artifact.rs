@@ -167,8 +167,7 @@ fn shared_world_entrypoint_rejects_an_open_producer_before_reuse() {
         target_kind: "test".to_owned(),
         target_name: "application_contracts".to_owned(),
         features: Vec::new(),
-        test_name: "host_platform::mixed_carrier_successors_are_local_at_the_4096_command_ceiling"
-            .to_owned(),
+        test_name: "host_platform::mixed_carrier_successors_are_local_in_ordinary_smoke".to_owned(),
         sources: vec![identity.to_owned()],
         artifact: "row.json".to_owned(),
         control: None,

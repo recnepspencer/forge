@@ -16,18 +16,19 @@ pub use assembly::{
     UiRequiredLaneContributionStatus,
 };
 pub use identity::{
-    UiHostSurfaceIdentity, UiHostSurfacePresentationMode, UiMountIncarnation,
-    UiMountedContentGeneration, UiMountedContractIdentityExhaustion, UiMountedFrameIdentity,
-    UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity, UiMountedNodeReceiptIssuer,
-    UiMountedPresentationAttemptIdentity, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+    UiHostPresentationLineageIdentity, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
+    UiMountIncarnation, UiMountedContentGeneration, UiMountedContractIdentityExhaustion,
+    UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
+    UiMountedNodeReceiptIssuer, UiMountedPresentationAttemptIdentity, UiSemanticSurfaceIdentity,
+    UiSurfaceBindingGeneration,
 };
 pub use presentation::{
-    UiHostPresentationCompletionToken, UiHostSurfaceCancellationOutcome,
-    UiHostSurfaceInFlightCompletion, UiHostSurfacePresentationDenial,
-    UiHostSurfacePresentationOutcome, UiMountedCompletedEffects, UiMountedEffectFamily,
-    UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView,
-    UiMountedSurfacePresentationCompletion, UiMountedTextRasterCallback, UiMountedTextRasterWork,
-    UiPresentationDeadline,
+    UiHostPresentationCompletionToken, UiHostPresentationProgressClass,
+    UiHostSurfaceCancellationOutcome, UiHostSurfaceInFlightCompletion,
+    UiHostSurfacePresentationDenial, UiHostSurfacePresentationOutcome, UiMountedCompletedEffects,
+    UiMountedEffectFamily, UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView,
+    UiMountedSurfacePresentationCompletion, UiMountedSurfacePresentationSupersession,
+    UiMountedTextRasterCallback, UiMountedTextRasterWork, UiPresentationDeadline,
 };
 pub use presentation_cost::{
     UiHostPresentationCostInput, UiHostPresentationCostOverflow, UiHostPresentationCostReport,

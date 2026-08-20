@@ -180,6 +180,9 @@ fn finish<'session>(
                 },
             )
         }
+        crate::mounting::UiMountedFrameOutcome::Superseded(_) => {
+            unreachable!("ordinary native intent cannot overlap a superseding frame")
+        }
         crate::mounting::UiMountedFrameOutcome::CompletionDenied(_) => {
             panic!("exact posture completion authority became unknown")
         }

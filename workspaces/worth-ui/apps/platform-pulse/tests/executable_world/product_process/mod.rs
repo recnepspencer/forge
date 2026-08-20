@@ -10,6 +10,7 @@ mod native_desktop_lease;
 mod native_input_progression;
 #[cfg(target_os = "windows")]
 mod normal_close_progression;
+mod output_capture;
 #[cfg(target_os = "windows")]
 mod preservation_progression;
 #[cfg(target_os = "windows")]

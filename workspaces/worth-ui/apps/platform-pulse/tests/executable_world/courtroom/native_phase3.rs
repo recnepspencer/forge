@@ -1,4 +1,3 @@
-use std::io::Read;
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::time::{Duration, Instant};
 

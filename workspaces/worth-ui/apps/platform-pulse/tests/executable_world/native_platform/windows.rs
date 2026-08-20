@@ -22,6 +22,7 @@ mod client_capture;
 mod environment;
 mod gdi_capture;
 mod input_delivery;
+mod observation_readiness;
 mod process_windows;
 
 use capture_region::{
@@ -329,6 +330,14 @@ impl NativePlatformContract for WindowsNativePlatform {
             return Err(NativePlatformFailure::BoundClientAreaChanged);
         }
         Ok(bound.observation)
+    }
+
+    fn await_external_observation_ready(
+        &self,
+        bound: &Self::BoundClientArea,
+        deadline: Instant,
+    ) -> Result<ProcessBoundNativeClientAreaObservation, NativePlatformFailure> {
+        observation_readiness::await_ready(self, bound, deadline)
     }
 
     fn capture_client_area(

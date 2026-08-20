@@ -1,7 +1,7 @@
 use super::super::{
     WorthQueryAsyncDeclarationSupport, WorthQueryAsyncFailurePosture,
-    WorthQueryAsyncLoadingPosture, WorthQueryAsyncSourceFamily,
-    WorthQueryTemporalDeclarationClause, WorthQueryTemporalDuration,
+    WorthQueryAsyncLoadingPosture, WorthQueryAsyncRequestIdentityValue,
+    WorthQueryAsyncSourceFamily, WorthQueryTemporalDeclarationClause, WorthQueryTemporalDuration,
 };
 use super::async_support::{
     resource_request, AsyncResourceReadDeclaration, AsyncResourceReadFamily,
@@ -189,9 +189,15 @@ fn async_clause_accessors_retain_normalized_request_meaning() {
             );
             assert_eq!(request_identity.len(), 2);
             assert_eq!(request_identity[0].key(), "edge");
-            assert_eq!(request_identity[0].value(), "edge:42");
+            assert_eq!(
+                request_identity[0].value(),
+                &WorthQueryAsyncRequestIdentityValue::Text("edge:42".to_owned())
+            );
             assert_eq!(request_identity[1].key(), "material");
-            assert_eq!(request_identity[1].value(), "mat:blue");
+            assert_eq!(
+                request_identity[1].value(),
+                &WorthQueryAsyncRequestIdentityValue::Text("mat:blue".to_owned())
+            );
         }
         crate::application::WorthQueryAsyncDeclarationClause::CompletionRequest { .. } => {
             panic!("expected resource request clause");

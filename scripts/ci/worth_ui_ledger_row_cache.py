@@ -26,6 +26,7 @@ class RowEvidenceCache:
         state_digest: str,
     ) -> None:
         self._root = root
+        self._cache_portfolio_root = cache_root.parent
         self._cache_root = cache_root / "rows"
         self._ledger_digest = digest(ledger_basis)
         self._revision = revision
@@ -35,7 +36,30 @@ class RowEvidenceCache:
         self, requirement: str, command: str, claim_digest: str
     ) -> dict[str, Any] | None:
         binding = self.binding(requirement, command, claim_digest)
-        identity = self.identity(binding)
+        identities = [self.identity(binding)]
+        identities.extend(
+            path.parent
+            for path in self._cache_portfolio_root.glob(
+                f"*/rows/{requirement.lower()}/*/manifest.json"
+            )
+            if path.parent not in identities
+        )
+        for identity in identities:
+            restored = self.restore_identity(
+                identity, requirement, command, claim_digest, binding
+            )
+            if restored is not None:
+                return restored
+        return None
+
+    def restore_identity(
+        self,
+        identity: Path,
+        requirement: str,
+        command: str,
+        claim_digest: str,
+        binding: dict[str, object],
+    ) -> dict[str, Any] | None:
         try:
             envelope = json.loads((identity / "manifest.json").read_text(encoding="utf-8"))
             manifest = envelope["manifest"]
@@ -44,21 +68,14 @@ class RowEvidenceCache:
                 or not authenticates(
                     manifest, envelope.get("runner_authentication"), self._root
                 )
-                or manifest.get("binding") != binding
+                or not causal_binding_matches(manifest.get("binding"), binding)
             ):
                 return None
             artifact = artifact_identity(command)
             owned = owned_artifact_identities(requirement, command)
             contents = self.validated_contents(identity, manifest, owned)
             payload = json.loads(contents[artifact].decode("utf-8"))
-            if not valid_payload(
-                payload,
-                requirement,
-                claim_digest,
-                self._revision,
-                self._state_digest,
-                self._root,
-            ):
+            if not valid_restored_payload(payload, requirement, claim_digest, self._root):
                 return None
             artifact_digest = digest(contents[artifact])
             if manifest.get("artifact_sha256") != artifact_digest:
@@ -202,7 +219,11 @@ def artifact_identity(command: str) -> str:
 
 def owned_artifact_identities(requirement: str, command: str) -> tuple[str, ...]:
     result = artifact_identity(command)
-    if requirement not in {"P3-PREDECESSOR-01", "P4-PREDECESSOR-01"}:
+    if requirement not in {
+        "P3-PREDECESSOR-01",
+        "P4-PREDECESSOR-01",
+        "P5-PREDECESSOR-01",
+    }:
         return (result,)
     suffix = f"p{requirement[1]}-predecessor-handoff.json"
     sources = [
@@ -224,7 +245,11 @@ def source_artifact_bindings(
         if word != "--source":
             continue
         identity = words[index + 1]
-        if requirement in {"P3-PREDECESSOR-01", "P4-PREDECESSOR-01"} and identity.endswith(
+        if requirement in {
+            "P3-PREDECESSOR-01",
+            "P4-PREDECESSOR-01",
+            "P5-PREDECESSOR-01",
+        } and identity.endswith(
             f"p{requirement[1]}-predecessor-handoff.json"
         ):
             continue
@@ -249,6 +274,38 @@ def valid_payload(
         and payload.get("source_revision") == revision
         and payload.get("source_state_digest") == state_digest
         and authenticates(unsigned, payload.get("runner_authentication"), root)
+    )
+
+
+def valid_restored_payload(
+    payload: dict[str, Any],
+    requirement: str,
+    claim_digest: str,
+    root: Path,
+) -> bool:
+    unsigned = {key: value for key, value in payload.items() if key != "runner_authentication"}
+    return (
+        payload.get("requirement") == requirement
+        and payload.get("exit_posture") == "passed"
+        and payload.get("claim_digest") == claim_digest
+        and authenticates(unsigned, payload.get("runner_authentication"), root)
+    )
+
+
+def causal_binding_matches(
+    observed: object, expected: dict[str, object]
+) -> bool:
+    if not isinstance(observed, dict):
+        return False
+    return all(
+        observed.get(field) == expected.get(field)
+        for field in (
+            "schema",
+            "requirement",
+            "exact_command",
+            "claim_digest",
+            "source_artifact_bindings",
+        )
     )
 
 

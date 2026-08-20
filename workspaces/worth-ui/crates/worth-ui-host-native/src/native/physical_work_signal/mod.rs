@@ -3,11 +3,14 @@ mod construction;
 mod counters;
 mod declarations;
 mod identity;
+mod lifecycle_observation;
 mod locality;
 mod observation;
+mod readiness_handoff;
 mod routing;
 mod shutdown;
 mod temporal_progression;
+mod transition_observation;
 mod wake_delivery;
 mod worker;
 mod worker_graph;
@@ -29,13 +32,22 @@ pub(crate) use identity::{
     UiNativePhysicalAtlasUploadIdentity, UiNativePhysicalPresentationBasis,
     UiNativePhysicalPresentationIdentity,
 };
+pub use lifecycle_observation::UiNativePhysicalSignalLifecycleObservation;
 pub(crate) use observation::{UiNativePhysicalRecoveryPosture, UiNativePhysicalSignalObservation};
+pub(crate) use readiness_handoff::UiNativePhysicalSignalReadyAttempt;
 pub(crate) use routing::UiNativePhysicalSignalRequestToken;
 pub(crate) use routing::UiNativePhysicalSignalWork;
 pub(crate) use routing::{
     UiNativePhysicalSignalExternalBasis, UiNativePhysicalSignalExternalObservation,
     UiNativePhysicalSignalExternalStatus as UiNativePhysicalSignalStatus,
 };
+pub use transition_observation::{
+    UiNativePhysicalSignalExternalStatusClass, UiNativePhysicalSignalObservationOriginClass,
+    UiNativePhysicalSignalSettlementClass, UiNativePhysicalSignalTransitionObservation,
+    UiNativePhysicalSignalWorkClass,
+};
+
+const PHYSICAL_SIGNAL_OBSERVATION_CAPACITY: usize = 64;
 
 pub(crate) struct UiNativePhysicalSignalOwner {
     runtime_identity: identity::UiNativePhysicalSignalRuntimeIdentity,
@@ -50,6 +62,8 @@ pub(crate) struct UiNativePhysicalSignalOwner {
     next_presentation_sequence: u64,
     next_atlas_sequence: u64,
     lifecycle: UiNativePhysicalSignalLifecycle,
+    transition_observations: Vec<UiNativePhysicalSignalTransitionObservation>,
+    transition_observation_overflowed: bool,
 }
 
 impl UiNativePhysicalSignalOwner {
@@ -69,6 +83,8 @@ impl UiNativePhysicalSignalOwner {
             next_presentation_sequence: 1,
             next_atlas_sequence: 1,
             lifecycle: UiNativePhysicalSignalLifecycle::Running,
+            transition_observations: Vec::new(),
+            transition_observation_overflowed: false,
         }
     }
 
@@ -180,6 +196,32 @@ impl UiNativePhysicalSignalOwner {
     pub(crate) fn take_ready_presentation(
         &mut self,
         identity: UiNativePhysicalPresentationIdentity,
+        retained: UiNativePhysicalSignalRequestToken,
+    ) -> Result<UiNativePhysicalSignalReadyAttempt, ()> {
+        let work = UiNativePhysicalSignalWork::Presentation(identity);
+        if retained.work() != work {
+            return Err(());
+        }
+        let current = self.begin_work(work)?;
+        let handoff = match self.wake.predecessor(work) {
+            None if retained == current => UiNativePhysicalSignalReadyAttempt::Current(current),
+            Some(predecessor) if retained.handle() == predecessor => {
+                UiNativePhysicalSignalReadyAttempt::Successor {
+                    predecessor: retained,
+                    successor: current,
+                }
+            }
+            _ => return Err(()),
+        };
+        if !self.wake.take(work) {
+            return Err(());
+        }
+        Ok(handoff)
+    }
+
+    pub(crate) fn take_initial_presentation(
+        &mut self,
+        identity: UiNativePhysicalPresentationIdentity,
     ) -> Result<UiNativePhysicalSignalRequestToken, ()> {
         self.take_ready_work(UiNativePhysicalSignalWork::Presentation(identity))
     }
@@ -221,12 +263,36 @@ impl UiNativePhysicalSignalOwner {
                     .worker
                     .as_ref()
                     .and_then(worker::UiNativePhysicalSignalWorker::last_performed),
+                retained_transition_observations: self.transition_observations.len(),
             },
         )
     }
 
     pub(crate) fn next_ready_work(&self) -> Option<UiNativePhysicalSignalWork> {
         self.wake.next()
+    }
+
+    pub(crate) fn transition_observations(&self) -> &[UiNativePhysicalSignalTransitionObservation] {
+        &self.transition_observations
+    }
+
+    pub(crate) const fn lifecycle_observation(&self) -> UiNativePhysicalSignalLifecycleObservation {
+        UiNativePhysicalSignalLifecycleObservation::from_counters(self.counters)
+    }
+
+    pub(crate) const fn transition_observation_trace_complete(&self) -> bool {
+        !self.transition_observation_overflowed
+    }
+
+    fn record_transition_observation(
+        &mut self,
+        observation: UiNativePhysicalSignalTransitionObservation,
+    ) {
+        if self.transition_observations.len() == PHYSICAL_SIGNAL_OBSERVATION_CAPACITY {
+            self.transition_observations.remove(0);
+            self.transition_observation_overflowed = true;
+        }
+        self.transition_observations.push(observation);
     }
 
     pub(crate) fn declarations(&self) -> declarations::UiNativePhysicalSignalDeclarations {
@@ -261,6 +327,18 @@ impl UiNativePhysicalSignalOwner {
             return Err(());
         }
         self.wake.request(performed.work());
+        Ok(())
+    }
+
+    fn publish_successor_performed(
+        &mut self,
+        performed: worker_graph::UiNativePhysicalSignalPerformed,
+        predecessor: worth_signal::facade::ResourceRequestHandle,
+    ) -> Result<(), ()> {
+        if performed.evaluated_nodes() == 0 || !self.worker()?.contains(performed.work()) {
+            return Err(());
+        }
+        self.wake.request_successor(performed.work(), predecessor);
         Ok(())
     }
 

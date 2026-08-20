@@ -27,11 +27,40 @@ pub enum UiMountedPaintCommand {
 #[derive(Clone, Debug, PartialEq)]
 pub enum UiMountedPaintCommandChange {
     Insert(UiMountedPaintCommand),
-    Replace(UiMountedPaintCommand),
+    Replace {
+        predecessor: UiMountedPaintCommandIdentity,
+        successor: UiMountedPaintCommand,
+    },
     Remove(UiMountedPaintCommandIdentity),
 }
 
+impl UiMountedPaintCommandChange {
+    pub fn replacement(
+        predecessor: UiMountedPaintCommandIdentity,
+        successor: UiMountedPaintCommand,
+    ) -> Self {
+        Self::Replace {
+            predecessor,
+            successor,
+        }
+    }
+}
+
 impl UiMountedPaintCommandIdentity {
+    #[doc(hidden)]
+    pub fn semantic_text_from_correspondence(
+        mounted_instance: crate::UiMountedInstanceIdentity,
+        semantic_slot: u16,
+        collection_row: Option<[u8; 32]>,
+    ) -> Self {
+        Self {
+            mounted_instance,
+            family: UiMountedPaintCommandFamily::SemanticText,
+            semantic_slot,
+            collection_row,
+        }
+    }
+
     #[doc(hidden)]
     pub fn filled_rect(mechanic: &crate::UiMountedFilledRectMechanic) -> Self {
         Self {
@@ -63,6 +92,16 @@ impl UiMountedPaintCommandIdentity {
 
     pub const fn mounted_instance(self) -> crate::UiMountedInstanceIdentity {
         self.mounted_instance
+    }
+
+    #[doc(hidden)]
+    pub const fn semantic_text_identity_parts(self) -> Option<(u16, Option<[u8; 32]>)> {
+        match self.family {
+            UiMountedPaintCommandFamily::SemanticText => {
+                Some((self.semantic_slot, self.collection_row))
+            }
+            UiMountedPaintCommandFamily::FilledRect => None,
+        }
     }
 
     pub(super) fn order_fingerprint(self) -> u64 {

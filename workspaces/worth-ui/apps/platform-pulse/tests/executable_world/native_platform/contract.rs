@@ -21,6 +21,7 @@ pub(crate) enum NativePlatformFailure {
     EnvironmentQualification(String),
     WindowEnumeration(String),
     WindowLookupDeadline,
+    ExternalObservationDeadline,
     AmbiguousProcessWindows(usize),
     ClientCapture(String),
     ClientExposure(String),
@@ -54,6 +55,9 @@ impl fmt::Display for NativePlatformFailure {
             }
             Self::WindowLookupDeadline => {
                 formatter.write_str("process-bound native window lookup deadline elapsed")
+            }
+            Self::ExternalObservationDeadline => {
+                formatter.write_str("owner-issued external observation readiness deadline elapsed")
             }
             Self::AmbiguousProcessWindows(count) => {
                 write!(formatter, "found {count} visible process windows")
@@ -110,6 +114,12 @@ pub(crate) trait NativePlatformContract: sealed::Sealed {
     fn observe_bound_client_area(
         &self,
         bound: &Self::BoundClientArea,
+    ) -> Result<ProcessBoundNativeClientAreaObservation, NativePlatformFailure>;
+
+    fn await_external_observation_ready(
+        &self,
+        bound: &Self::BoundClientArea,
+        deadline: Instant,
     ) -> Result<ProcessBoundNativeClientAreaObservation, NativePlatformFailure>;
 
     fn capture_client_area(

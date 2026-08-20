@@ -1,6 +1,6 @@
 use super::WorthUiMountedSessionState;
 
-pub(crate) struct UiMountedFilledRectAttribution {
+pub(crate) struct UiMountedPaintAttribution {
     pub(crate) surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
     pub(crate) mounted_instance: worth_ui_host_contract::UiMountedInstanceIdentity,
     pub(crate) node_receipt: worth_ui_host_contract::UiMountedNodeReceiptIdentity,
@@ -9,29 +9,53 @@ pub(crate) struct UiMountedFilledRectAttribution {
 }
 
 impl WorthUiMountedSessionState {
-    pub(crate) fn native_filled_rect_attribution(
+    pub(crate) fn native_paint_attribution(
         &self,
         frame: worth_ui_host_contract::UiMountedFrameIdentity,
         binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
-    ) -> Option<UiMountedFilledRectAttribution> {
+    ) -> Option<UiMountedPaintAttribution> {
         let view = self.identity.current_projection()?.view_for(binding).ok()?;
         if view.frame() != frame {
             return None;
         }
-        let top = view.authored_paint_order().last()?.command();
-        let mechanic = view.filled_rects().rows().iter().find(|mechanic| {
-            worth_ui_host_contract::UiMountedPaintCommandIdentity::filled_rect(mechanic) == top
-        })?;
-        let authored = self
-            .identity
-            .presented_authored_attribution(mechanic.mounted_instance(), mechanic.node_receipt())?;
-        Some(UiMountedFilledRectAttribution {
-            surface: view.surface(),
-            mounted_instance: mechanic.mounted_instance(),
-            node_receipt: mechanic.node_receipt(),
-            authored_provenance_digest: authored.source_provenance_digest,
-            authored_semantic_identity_digest: authored.semantic_identity_digest,
-        })
+        for order in view.authored_paint_order().iter().rev() {
+            let command = order.command();
+            let identity = view
+                .filled_rects()
+                .rows()
+                .iter()
+                .find(|mechanic| {
+                    worth_ui_host_contract::UiMountedPaintCommandIdentity::filled_rect(mechanic)
+                        == command
+                })
+                .map(|mechanic| (mechanic.mounted_instance(), mechanic.node_receipt()))
+                .or_else(|| {
+                    view.semantic_text()
+                        .rows()
+                        .iter()
+                        .find(|mechanic| {
+                            worth_ui_host_contract::UiMountedPaintCommandIdentity::semantic_text(
+                                mechanic,
+                            ) == command
+                        })
+                        .map(|mechanic| (mechanic.mounted_instance(), mechanic.node_receipt()))
+                });
+            let Some((mounted_instance, node_receipt)) = identity else {
+                continue;
+            };
+            let Some(authored) = self.identity.current_authored_attribution(mounted_instance)
+            else {
+                continue;
+            };
+            return Some(UiMountedPaintAttribution {
+                surface: view.surface(),
+                mounted_instance,
+                node_receipt,
+                authored_provenance_digest: authored.source_provenance_digest,
+                authored_semantic_identity_digest: authored.semantic_identity_digest,
+            });
+        }
+        None
     }
 
     pub(crate) fn classify_frame_reuse(
@@ -60,6 +84,22 @@ impl WorthUiMountedSessionState {
         crate::mounting::UiMountedFramePreparationDenial,
     > {
         crate::mounting::UiMountedFrameAssembler::begin(&self.identity, input)
+    }
+
+    pub(crate) fn begin_superseding_frame_assembly<'state>(
+        &'state self,
+        predecessor: &'state crate::mounting::UiPreparedMountedFrame,
+        input: crate::mounting::UiMountedFrameAssemblyInput<'_, '_>,
+    ) -> Result<
+        crate::mounting::UiMountedFrameAssembler<'state>,
+        crate::mounting::UiMountedFramePreparationDenial,
+    > {
+        crate::mounting::UiMountedFrameAssembler::begin_graph_replacement(
+            &self.identity,
+            Some(predecessor.semantic_projection()),
+            Some(predecessor.canonical_core().frame()),
+            input,
+        )
     }
 
     pub(crate) fn current_projection_input(

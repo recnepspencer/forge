@@ -122,6 +122,8 @@ pub struct WorthUiRuntimeShutdownReceipt {
     final_frame_epoch: WorthUiRuntimeFrameEpoch,
     query_retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
     mounted_presentation: crate::mounting::UiMountedPresentationShutdownReport,
+    presentation_async_cleanup:
+        Option<crate::native_platform::text_presentation::UiPresentationAsyncTerminalCleanup>,
     visual_capture: crate::inspection::visual_snapshot::UiVisualCaptureShutdownReport,
     visual_overlay: crate::inspection::visual_snapshot::UiVisualOverlayShutdownReport,
     interaction: crate::runtime::interaction::UiInteractionShutdownReport,
@@ -146,6 +148,7 @@ impl WorthUiRuntimeShutdownReceipt {
             final_frame_epoch,
             query_retirement,
             mounted_presentation: Default::default(),
+            presentation_async_cleanup: None,
             visual_capture: Default::default(),
             visual_overlay: Default::default(),
             interaction: Default::default(),
@@ -173,6 +176,12 @@ impl WorthUiRuntimeShutdownReceipt {
 
     pub fn mounted_presentation(&self) -> &crate::mounting::UiMountedPresentationShutdownReport {
         &self.mounted_presentation
+    }
+
+    pub(crate) fn take_presentation_async_cleanup(
+        &mut self,
+    ) -> Option<crate::native_platform::text_presentation::UiPresentationAsyncTerminalCleanup> {
+        self.presentation_async_cleanup.take()
     }
 
     pub const fn visual_capture(
@@ -242,6 +251,16 @@ impl WorthUiRuntimeShutdownReceipt {
         report: crate::mounting::UiMountedPresentationShutdownReport,
     ) -> Self {
         self.mounted_presentation = report;
+        self
+    }
+
+    pub(crate) fn bind_presentation_async_cleanup(
+        mut self,
+        cleanup: Option<
+            crate::native_platform::text_presentation::UiPresentationAsyncTerminalCleanup,
+        >,
+    ) -> Self {
+        self.presentation_async_cleanup = cleanup;
         self
     }
 

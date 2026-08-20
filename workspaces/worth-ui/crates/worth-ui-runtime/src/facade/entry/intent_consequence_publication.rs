@@ -263,6 +263,9 @@ fn finish_terminal<'session>(
                 },
             )
         }
+        crate::mounting::UiMountedFrameOutcome::Superseded(_) => {
+            unreachable!("ordinary intent publication cannot overlap a superseding frame")
+        }
         crate::mounting::UiMountedFrameOutcome::CompletionDenied(_) => {
             panic!("exact consequence completion authority became unknown")
         }

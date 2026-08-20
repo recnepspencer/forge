@@ -2,8 +2,9 @@ use worth_ui::facade::app::{
     UiMountedFrameOutcome, UiMountedFramePublicationReceipt, UiMountedFrameRequest,
     UiMountedFrameRetentionRejection, UiMountedIndeterminateFrame,
     UiMountedPresentationAdmissionRejection, UiMountedPresentationCompletionDenial,
-    UiMountedPresentationInFlight, UiMountedRejectedFrame, UiPresentationDeadline, WorthUi,
-    WorthUiLegacyEguiApplicationTransition, WorthUiMountedFrameExecutionStop,
+    UiMountedPresentationInFlight, UiMountedRejectedFrame, UiMountedSupersededFrame,
+    UiPresentationDeadline, WorthUi, WorthUiLegacyEguiApplicationTransition,
+    WorthUiMountedFrameExecutionStop,
 };
 
 fn main() {
@@ -57,12 +58,14 @@ pub fn run() {
             observe_admission_denial(&rejection);
         }
         UiMountedFrameOutcome::CompletionDenied(denial) => observe_completion_denial(&denial),
+        UiMountedFrameOutcome::Superseded(superseded) => observe_superseded(&superseded),
     }
 }
 
 fn observe_stop(stop: &WorthUiMountedFrameExecutionStop<'_>) {
     match stop {
         WorthUiMountedFrameExecutionStop::PublicationLease(_) => {}
+        WorthUiMountedFrameExecutionStop::HostMeasurement(_) => {}
         WorthUiMountedFrameExecutionStop::FrameworkTransition(transition) => {
             let _ = transition.generation_identity();
         }
@@ -95,3 +98,7 @@ fn observe_admission_denial(rejection: &UiMountedPresentationAdmissionRejection)
 }
 
 fn observe_completion_denial(_denial: &UiMountedPresentationCompletionDenial) {}
+
+fn observe_superseded(superseded: &UiMountedSupersededFrame) {
+    let _ = superseded.cost_report();
+}

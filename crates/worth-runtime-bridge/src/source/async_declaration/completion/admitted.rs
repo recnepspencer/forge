@@ -32,7 +32,35 @@ impl AdmittedBridgeAsyncCompletion {
         admitted_completion: AdmittedResourceCompletion,
         counters: BridgeAsyncCompletionCounters,
     ) -> Self {
-        let completion_class = BridgeAsyncCompletionClass::Fulfilled;
+        Self::new_with_class(
+            request_identity,
+            validated_envelope,
+            admitted_completion,
+            counters,
+            BridgeAsyncCompletionClass::Fulfilled,
+        )
+    }
+
+    pub(crate) fn from_owner_effects_indeterminate(
+        self,
+        _observation: super::super::BridgeAsyncEffectsIndeterminateCompletion,
+    ) -> Self {
+        Self::new_with_class(
+            self.request_identity,
+            self.validated_envelope,
+            self.admitted_completion,
+            self.counters,
+            BridgeAsyncCompletionClass::EffectsIndeterminate,
+        )
+    }
+
+    fn new_with_class(
+        request_identity: AdmittedBridgeAsyncRequestIdentity,
+        validated_envelope: ValidatedBridgeAsyncCompletionEnvelope,
+        admitted_completion: AdmittedResourceCompletion,
+        counters: BridgeAsyncCompletionCounters,
+        completion_class: BridgeAsyncCompletionClass,
+    ) -> Self {
         let canonical_basis = Arc::<str>::from(format!(
             "bridge-async-completion|request={}|envelope={}|admitted-handle={}#{}|attempt={}|node={}|descriptor={}|ordinal={}|transition={:?}->{:?}|payload-bytes={}|class={:?}",
             request_identity.request_identity().as_str(),

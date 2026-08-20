@@ -20,6 +20,8 @@ use super::recovery::{UiNativeTextAtlasDenial, UiNativeTextAtlasGeneration};
 use super::transaction::{UiNativeTextAtlasPinTransition, UiNativeTextAtlasTransactionPlan};
 use super::UiNativeTextAtlasDemand;
 
+mod eviction;
+
 struct Candidate {
     alpha: CandidateAtlasStore,
     color: CandidateAtlasStore,
@@ -35,6 +37,10 @@ struct Candidate {
     demand_identity: UiGlyphRasterDemandIdentity,
     staged_bytes: u64,
     physical_staged_bytes: u64,
+    key_lookups: u32,
+    page_probes: u32,
+    placement_probes: u32,
+    eviction_candidates: u32,
 }
 
 impl UiNativeTextAtlas {
@@ -111,6 +117,10 @@ fn candidate_from_predecessor(core: &AtlasCore) -> Candidate {
         demand_identity: UiGlyphRasterDemandIdentity::from_text_mechanics([0; 32]),
         staged_bytes: 0,
         physical_staged_bytes: 0,
+        key_lookups: 0,
+        page_probes: 0,
+        placement_probes: 0,
+        eviction_candidates: 0,
     }
 }
 
@@ -171,12 +181,13 @@ fn admit_demand(
     completed_use_epoch: u64,
 ) -> Result<(), UiNativeTextAtlasDenial> {
     let key = demand.key();
+    candidate.key_lookups = candidate.key_lookups.saturating_add(1);
     if candidate.alpha.contains(&core.alpha, key) || candidate.color.contains(&core.color, key) {
         candidate.hits.push(key);
         return Ok(());
     }
     if candidate.alpha.len(&core.alpha) + candidate.color.len(&core.color) >= MAX_ENTRIES {
-        let evicted = evict_candidate_one(candidate, core, protected)
+        let evicted = eviction::evict_candidate_one(candidate, core, protected)
             .ok_or(UiNativeTextAtlasDenial::PinnedCapacityExceeded)?;
         candidate.evictions.push(evicted);
     }
@@ -194,21 +205,27 @@ fn allocate_slot(
 ) -> Result<(u32, UiAtlasRect), UiNativeTextAtlasDenial> {
     match demand.key().source() {
         UiGlyphRasterSource::ColorOutline | UiGlyphRasterSource::ColorBitmap => {
-            allocate_candidate_with_eviction(
+            eviction::allocate_candidate_with_eviction(
                 &mut candidate.color,
                 &core.color,
                 demand,
                 protected,
                 &mut candidate.evictions,
+                &mut candidate.page_probes,
+                &mut candidate.placement_probes,
+                &mut candidate.eviction_candidates,
             )
         }
         UiGlyphRasterSource::AlphaOutline | UiGlyphRasterSource::LastResort => {
-            allocate_candidate_with_eviction(
+            eviction::allocate_candidate_with_eviction(
                 &mut candidate.alpha,
                 &core.alpha,
                 demand,
                 protected,
                 &mut candidate.evictions,
+                &mut candidate.page_probes,
+                &mut candidate.placement_probes,
+                &mut candidate.eviction_candidates,
             )
         }
     }
@@ -248,60 +265,6 @@ fn insert_entry(
         }
     }
     Ok(())
-}
-
-fn allocate_candidate_with_eviction(
-    candidate: &mut CandidateAtlasStore,
-    predecessor: &super::ownership::AtlasStore,
-    demand: UiNativeTextAtlasDemand,
-    protected: &HashSet<UiGlyphRasterKey>,
-    evictions: &mut Vec<UiGlyphRasterKey>,
-) -> Result<(u32, UiAtlasRect), UiNativeTextAtlasDenial> {
-    loop {
-        if let Some(placement) = candidate.allocate(predecessor, demand.width(), demand.height()) {
-            return Ok(placement);
-        }
-        let Some((_, _, key)) = candidate.oldest_unprotected(predecessor, protected) else {
-            return Err(
-                if predecessor
-                    .entries
-                    .keys()
-                    .any(|key| protected.contains(key))
-                {
-                    UiNativeTextAtlasDenial::PinnedCapacityExceeded
-                } else {
-                    UiNativeTextAtlasDenial::PageCapacityExceeded
-                },
-            );
-        };
-        candidate.remove_existing(predecessor, key);
-        evictions.push(key);
-    }
-}
-
-fn evict_candidate_one(
-    candidate: &mut Candidate,
-    core: &AtlasCore,
-    protected: &HashSet<UiGlyphRasterKey>,
-) -> Option<UiGlyphRasterKey> {
-    let alpha = candidate.alpha.oldest_unprotected(&core.alpha, protected);
-    let color = candidate.color.oldest_unprotected(&core.color, protected);
-    let key = match (alpha, color) {
-        (Some(left), Some(right)) => {
-            if (left.0, &left.1) <= (right.0, &right.1) {
-                left.2
-            } else {
-                right.2
-            }
-        }
-        (Some(left), None) => left.2,
-        (None, Some(right)) => right.2,
-        (None, None) => return None,
-    };
-    if candidate.alpha.remove_existing(&core.alpha, key).is_none() {
-        candidate.color.remove_existing(&core.color, key);
-    }
-    Some(key)
 }
 
 fn pin_changes_for_overlay(
@@ -375,6 +338,14 @@ fn reserve_plan(
         next_entry: candidate.next_entry,
         staged_bytes: candidate.staged_bytes,
         physical_staged_bytes: candidate.physical_staged_bytes,
+        key_lookups: candidate.key_lookups,
+        page_probes: candidate.page_probes,
+        placement_probes: candidate.placement_probes,
+        eviction_candidates: candidate.eviction_candidates,
         committed: false,
     })
+}
+
+fn bounded_u32(value: usize) -> u32 {
+    u32::try_from(value).unwrap_or(u32::MAX)
 }

@@ -38,7 +38,7 @@ def application_proofs(control_type, proof_factory):
             ),
         ),
         "P2-EVENT-LOOP-01": proof_factory(
-            f"{HOST}/event_loop.rs::transition_callback_thread",
+            f"{HOST}/event_loop/callback_thread.rs::transition",
             control(
                 control_type,
                 "worth-ui-host-native",
@@ -124,7 +124,7 @@ def lifecycle_proofs(control_type, proof_factory):
             f"{HOST}/event_loop/window_port.rs",
             f"{HOST}/graphics/port.rs",
             f"{HOST}/presentation/port.rs",
-            f"{HOST}/presentation/readback_port.rs",
+            f"{HOST}/presentation/pending_wgpu_readback.rs",
             f"{HOST}/event_loop.rs",
             f"{HOST}/presentation.rs",
         ),

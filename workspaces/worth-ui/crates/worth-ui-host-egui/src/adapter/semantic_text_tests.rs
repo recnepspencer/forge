@@ -104,6 +104,8 @@ fn consume_projection<T>(
                 profile: row.qualified_layout_profile(),
                 font_collection: row.qualified_layout_fonts(),
                 text_scale: row.qualified_layout_scale(),
+                width_basis: worth_ui_host_contract::UiQualifiedTextLayoutWidthBasis::new(80_000)
+                    .unwrap(),
             },
         ),
     };

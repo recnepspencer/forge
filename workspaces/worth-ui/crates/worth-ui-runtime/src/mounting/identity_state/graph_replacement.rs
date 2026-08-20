@@ -43,6 +43,7 @@ impl UiMountedIdentityState {
             current_trace_source: None,
             current_reuse_contract: None,
             pending_projection_changes,
+            peak_qualified_layouts: self.peak_qualified_layouts,
             semantic_revision,
             binding_revision: self.binding_revision,
         };

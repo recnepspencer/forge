@@ -1,4 +1,7 @@
 mod application;
+mod fixture_profile;
+
+pub(super) use fixture_profile::{MixedCarrierFixtureProfile, CLOSURE, SMOKE};
 
 use worth_runtime_bridge::facade::BridgeMixedCauseOrderingInput;
 use worth_signal::facade::NodeId;
@@ -20,14 +23,6 @@ use crate::projection_lifecycle::async_fixture::{
 };
 use crate::projection_presentation::collection_query::collection_registration;
 
-const RECTANGLE_COUNT: usize = 2_048;
-const RECTANGLE_COMPONENT_COUNT: usize = 1_361;
-const SCALAR_INSTANCE_COUNT: usize = 688;
-const TEXT_COUNT: usize = 2_048;
-const COLLECTION_ROWS: usize = 1_359;
-const TEXT_BYTES: usize = 1_048_576;
-const ORDINARY_TEXT_BYTES: usize = 729;
-const FINAL_TEXT_BYTES: usize = 675;
 const REMOVAL_INDEX: usize = 2;
 const SCALAR_PROJECTION: &str = "host.platform.mixed.scalar.view";
 
@@ -52,16 +47,17 @@ struct MountedMixedRow {
 
 pub(super) fn produce(
     recorder: worth_ui_host_headless::WorthUiHeadlessRecorder,
+    profile: MixedCarrierFixtureProfile,
 ) -> MixedCarrierProduction {
-    let (mut workspace, entities) = seeded_workspace();
+    let (mut workspace, entities) = seeded_workspace(profile);
     let collection = collection_registration(&workspace.worth_ui().unwrap());
     let (scalar, scalar_observation) = scalar_observation(&mut workspace);
-    let mut session = application::build(collection.clone(), scalar, recorder.clone())
+    let mut session = application::build(profile, collection.clone(), scalar, recorder.clone())
         .launch()
         .expect("mixed carrier application launches");
-    let mut mounted = application::mount(&mut session);
-    super::world::establish_allocations(&mut session, RECTANGLE_COMPONENT_COUNT);
-    let opened = open_collection(collection, &mut workspace);
+    let mut mounted = application::mount(profile, &mut session);
+    super::world::establish_allocations(&mut session, profile.rectangle_component_count);
+    let opened = open_collection(profile, collection, &mut workspace);
     let (mut live, snapshot) = opened.into_parts();
 
     let _staging_adapter = publish(
@@ -72,8 +68,8 @@ pub(super) fn produce(
         3_140,
     );
     let staging = one_transcript(&recorder, "mixed collection staging");
-    assert_eq!(staging.filled_rects().len(), RECTANGLE_COUNT);
-    assert_eq!(staging.semantic_text().len(), COLLECTION_ROWS + 1);
+    assert_eq!(staging.filled_rects().len(), profile.rectangle_count);
+    assert_eq!(staging.semantic_text().len(), profile.collection_rows + 1);
     let initial_adapter = publish(
         &mut session,
         vec![UiProjectionObservation::Scalar(scalar_observation)],
@@ -81,12 +77,12 @@ pub(super) fn produce(
     );
     let initial = one_transcript(&recorder, "mixed initial");
     let initial_cost = latest_cost(&recorder);
-    assert_initial_ceiling(&initial);
+    assert_initial_ceiling(profile, &initial);
 
     worth_ui_query_binding::certification::update_projection_status(
         &mut workspace,
-        entities[COLLECTION_ROWS - 1].clone(),
-        &replacement_value(COLLECTION_ROWS - 1),
+        entities[profile.collection_rows - 1].clone(),
+        &replacement_value(profile, profile.collection_rows - 1),
     );
     let text_adapter = refresh(&mut live, &mut workspace, &mut session, 3_142);
     let text_replacement = one_transcript(&recorder, "mixed text replacement");
@@ -194,35 +190,38 @@ fn scalar_observation(
     )
 }
 
-fn seeded_workspace() -> (
+fn seeded_workspace(
+    profile: MixedCarrierFixtureProfile,
+) -> (
     worth_query::facade::runtime::WorthQueryWorkspace,
     Vec<worth_query::facade::foundation::WorthQueryEntityIdentity>,
 ) {
-    let rows = (0..COLLECTION_ROWS)
-        .map(|index| (format!("mixed.{index:04}"), initial_value(index)))
+    let rows = (0..profile.collection_rows)
+        .map(|index| (format!("mixed.{index:04}"), initial_value(profile, index)))
         .collect();
     worth_ui_query_binding::certification::seeded_mixed_projection_workspace(rows)
 }
 
-pub(super) fn initial_value(index: usize) -> String {
+pub(super) fn initial_value(profile: MixedCarrierFixtureProfile, index: usize) -> String {
     if index == 0 {
         return "Ready".to_owned();
     }
-    let len = if index + 1 == COLLECTION_ROWS {
-        FINAL_TEXT_BYTES
+    let len = if index + 1 == profile.collection_rows {
+        profile.final_text_bytes
     } else {
-        ORDINARY_TEXT_BYTES
+        profile.ordinary_text_bytes
     };
     format!("A{index:04}{}", "x".repeat(len - 5))
 }
 
-pub(super) fn replacement_value(index: usize) -> String {
-    let mut value = initial_value(index).into_bytes();
+pub(super) fn replacement_value(profile: MixedCarrierFixtureProfile, index: usize) -> String {
+    let mut value = initial_value(profile, index).into_bytes();
     value[0] = b'B';
     String::from_utf8(value).unwrap()
 }
 
 fn open_collection(
+    profile: MixedCarrierFixtureProfile,
     registration: worth_ui_query_binding::UiCollectionProjectionRegistration,
     workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
 ) -> worth_ui_query_binding::UiCollectionProjectionOpenReceipt {
@@ -233,8 +232,13 @@ fn open_collection(
         }
     };
     match binding.open(
-        UiCollectionProjectionBudget::new(COLLECTION_ROWS as u32, TEXT_COUNT, 0, TEXT_BYTES * 2)
-            .unwrap(),
+        UiCollectionProjectionBudget::new(
+            profile.collection_rows as u32,
+            profile.text_count,
+            0,
+            profile.text_bytes * 2,
+        )
+        .unwrap(),
         workspace,
     ) {
         UiCollectionProjectionOpenOutcome::Opened(opened) => opened,
@@ -305,15 +309,18 @@ fn publish(
     }
 }
 
-fn assert_initial_ceiling(transcript: &worth_ui_host_headless::UiHeadlessMountedFrameTranscript) {
-    assert_eq!(transcript.filled_rects().len(), RECTANGLE_COUNT);
-    assert_eq!(transcript.semantic_text().len(), TEXT_COUNT);
+fn assert_initial_ceiling(
+    profile: MixedCarrierFixtureProfile,
+    transcript: &worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
+) {
+    assert_eq!(transcript.filled_rects().len(), profile.rectangle_count);
+    assert_eq!(transcript.semantic_text().len(), profile.text_count);
     let bytes = transcript
         .semantic_text()
         .iter()
         .map(|row| row.text().len() + usize::from(row.collection_row().is_some()) * 32)
         .sum::<usize>();
-    assert_eq!(bytes, TEXT_BYTES);
+    assert_eq!(bytes, profile.text_bytes);
 }
 
 pub(super) fn text_bytes(

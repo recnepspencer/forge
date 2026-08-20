@@ -3,7 +3,6 @@ use super::candidate_store::CandidateAtlasStore;
 use super::ownership::AtlasCore;
 use super::raster_upload::{upload_shape_is_valid, UiNativeTextAtlasUpload};
 use super::recovery::UiNativeTextAtlasGeneration;
-#[cfg(test)]
 use super::transaction_plan_snapshot::UiNativeTextAtlasTransactionPlanSnapshot;
 use super::UiNativeTextAtlasDemand;
 use std::cell::RefCell;
@@ -90,6 +89,10 @@ pub(crate) struct UiNativeTextAtlasTransactionPlan {
     pub(crate) next_entry: u64,
     pub(crate) staged_bytes: u64,
     pub(crate) physical_staged_bytes: u64,
+    pub(crate) key_lookups: u32,
+    pub(crate) page_probes: u32,
+    pub(crate) placement_probes: u32,
+    pub(crate) eviction_candidates: u32,
     pub(crate) committed: bool,
 }
 
@@ -151,7 +154,6 @@ impl UiNativeTextAtlasTransactionPlan {
         self.physical_staged_bytes
     }
 
-    #[cfg(test)]
     pub(crate) fn snapshot(&self) -> UiNativeTextAtlasTransactionPlanSnapshot {
         UiNativeTextAtlasTransactionPlanSnapshot {
             demand_identity: self.demand_identity,
@@ -164,6 +166,10 @@ impl UiNativeTextAtlasTransactionPlan {
             evictions: u32::try_from(self.evictions.len()).unwrap_or(u32::MAX),
             staged_bytes: self.staged_bytes,
             physical_staged_bytes: self.physical_staged_bytes,
+            key_lookups: self.key_lookups,
+            page_probes: self.page_probes,
+            placement_probes: self.placement_probes,
+            eviction_candidates: self.eviction_candidates,
         }
     }
 

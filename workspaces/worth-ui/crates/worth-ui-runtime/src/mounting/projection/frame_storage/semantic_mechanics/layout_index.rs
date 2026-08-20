@@ -17,6 +17,10 @@ struct UiMountedQualifiedLayoutEntry {
 }
 
 impl UiMountedQualifiedLayoutIndex {
+    pub(super) fn len(&self) -> usize {
+        self.by_identity.len()
+    }
+
     pub(super) fn insert_rows(&mut self, rows: &UiMountedSemanticMechanicRows) {
         for row in rows.iter() {
             self.insert_row(row);
@@ -39,10 +43,13 @@ impl UiMountedQualifiedLayoutIndex {
     }
 
     fn insert_row(&mut self, row: &UiMountedQualifiedSemanticText) {
+        let Some(layout) = row.qualified_layout() else {
+            return;
+        };
         let identity = row.qualified_layout_identity().digest();
         let entry = self.by_identity.get(&identity).cloned().map_or_else(
             || UiMountedQualifiedLayoutEntry {
-                layout: Arc::clone(row.qualified_layout()),
+                layout: Arc::clone(layout),
                 owners: 1,
             },
             |mut entry| {

@@ -29,7 +29,7 @@ impl UiNativeEventLoopCleanup {
         self.client = self
             .client
             .take()
-            .and_then(|cleanup| cleanup.retry().into_cleanup());
+            .and_then(|cleanup| cleanup.retry().into_parts().0);
         let census = {
             let mut state = self.state.borrow_mut();
             let _ = state

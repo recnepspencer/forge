@@ -27,6 +27,11 @@ class OperationalVerificationTests(unittest.TestCase):
             ),
             patch.object(verifier, "source_revision", return_value="a" * 40),
             patch.object(verifier, "source_state_digest", return_value="b" * 64),
+            patch.object(
+                verifier,
+                "retained_source_binding",
+                return_value=("a" * 40, "b" * 64),
+            ),
             patch.object(verifier, "validate_retained_portfolio") as retained,
             patch.object(verifier, "closure_tests", return_value=2) as closure,
             patch.object(
@@ -38,6 +43,28 @@ class OperationalVerificationTests(unittest.TestCase):
             self.assertEqual(verifier.main(), 0)
         retained.assert_called_once()
         closure.assert_called_once()
+
+    def test_historical_retained_binding_forces_current_source_revalidation(self) -> None:
+        arguments = argparse.Namespace(through_phase=4, artifact=None)
+        with (
+            patch.object(verifier, "parse_args", return_value=arguments),
+            patch.object(verifier, "source_revision", return_value="a" * 40),
+            patch.object(verifier, "source_state_digest", return_value="b" * 64),
+            patch.object(
+                verifier,
+                "retained_source_binding",
+                return_value=("c" * 40, "d" * 64),
+            ),
+            patch.object(verifier, "persist_referenced_receipts") as persist,
+            patch.object(verifier, "validate_retained_portfolio") as retained,
+            patch.object(verifier, "closure_tests") as closure,
+            patch.object(verifier, "execute_current_portfolio") as execute,
+        ):
+            self.assertEqual(verifier.main(), 0)
+        execute.assert_called_once_with(arguments, "a" * 40, "b" * 64)
+        persist.assert_not_called()
+        retained.assert_not_called()
+        closure.assert_not_called()
 
     def test_foreign_runner_provenance_triggers_operational_revalidation(self) -> None:
         arguments = argparse.Namespace(through_phase=4, artifact=None)

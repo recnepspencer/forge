@@ -53,17 +53,19 @@ struct UiNativeTextRasterSource<'layout> {
     demand: &'layout worth_ui_text::UiGlyphRasterDemandBatch,
 }
 
-pub(crate) struct UiNativeTextMissRasterizer<'layout> {
+pub(crate) struct UiNativeTextMissRasterizer<'layout, 'cache> {
     sources: Box<[UiNativeTextRasterSource<'layout>]>,
     report: UiNativeTextRasterWorkReport,
+    cache: &'cache mut worth_ui_text::UiGlyphRasterCache,
 }
 
-impl<'layout> UiNativeTextMissRasterizer<'layout> {
+impl<'layout, 'cache> UiNativeTextMissRasterizer<'layout, 'cache> {
     pub(crate) fn for_prepared(
         prepared: &'layout UiNativeTextPresentationPrepared,
         resolve: impl Fn(
             worth_ui_host_contract::UiQualifiedTextLayoutIdentity,
         ) -> Option<&'layout worth_ui_text::UiQualifiedTextLayout>,
+        cache: &'cache mut worth_ui_text::UiGlyphRasterCache,
     ) -> Option<Self> {
         let sources = prepared
             .demand_batches()
@@ -78,6 +80,7 @@ impl<'layout> UiNativeTextMissRasterizer<'layout> {
         Some(Self {
             sources: sources.into_boxed_slice(),
             report: UiNativeTextRasterWorkReport::default(),
+            cache,
         })
     }
 
@@ -85,38 +88,68 @@ impl<'layout> UiNativeTextMissRasterizer<'layout> {
         self.report
     }
 
-    fn source_for(
-        &self,
-        misses: UiGlyphRasterMissSelectionView<'_>,
-    ) -> Option<&UiNativeTextRasterSource<'layout>> {
-        self.sources.iter().find(|source| {
-            source.demand.identity() == misses.demand_identity()
-                && source.demand.layout_identity() == misses.layout_identity()
-                && source.demand.lane() == misses.lane()
-        })
+    pub(crate) fn cache_len(&self) -> usize {
+        self.cache.len()
+    }
+
+    pub(crate) fn reconstruct_cache(
+        &mut self,
+    ) -> Result<(), worth_ui_text::UiGlyphRasterizationDenial> {
+        for source in &self.sources {
+            let keys = source
+                .demand
+                .records()
+                .iter()
+                .map(|record| record.key())
+                .collect::<Vec<_>>();
+            let alpha = worth_ui_text::rasterize_alpha_outline_selection_cached(
+                source.layout,
+                source.demand,
+                &keys,
+                self.cache,
+            )?;
+            let color = worth_ui_text::rasterize_intrinsic_color_selection_cached(
+                source.layout,
+                source.demand,
+                &keys,
+                self.cache,
+            )?;
+            self.report.add(alpha.cost());
+            self.report.add(color.cost());
+        }
+        Ok(())
     }
 }
 
-impl UiGlyphRasterMissRasterizer for UiNativeTextMissRasterizer<'_> {
+impl UiGlyphRasterMissRasterizer for UiNativeTextMissRasterizer<'_, '_> {
     fn rasterize(
         &mut self,
         misses: UiGlyphRasterMissSelectionView<'_>,
         sink: &mut dyn UiGlyphRasterBatchSink,
     ) -> Result<(), UiGlyphRasterCallbackDenial> {
-        let source = self
-            .source_for(misses)
+        let (layout, demand) = self
+            .sources
+            .iter()
+            .find(|source| {
+                source.demand.identity() == misses.demand_identity()
+                    && source.demand.layout_identity() == misses.layout_identity()
+                    && source.demand.lane() == misses.lane()
+            })
+            .map(|source| (source.layout, source.demand))
             .ok_or(UiGlyphRasterCallbackDenial::DemandMismatch)?;
         let keys = misses
             .records()
             .iter()
             .map(|record| record.key())
             .collect::<Vec<_>>();
-        let alpha =
-            worth_ui_text::rasterize_alpha_outline_selection(source.layout, source.demand, &keys)
-                .map_err(|_| UiGlyphRasterCallbackDenial::RasterizationDenied)?;
-        let color =
-            worth_ui_text::rasterize_intrinsic_color_selection(source.layout, source.demand, &keys)
-                .map_err(|_| UiGlyphRasterCallbackDenial::RasterizationDenied)?;
+        let alpha = worth_ui_text::rasterize_alpha_outline_selection_cached(
+            layout, demand, &keys, self.cache,
+        )
+        .map_err(|_| UiGlyphRasterCallbackDenial::RasterizationDenied)?;
+        let color = worth_ui_text::rasterize_intrinsic_color_selection_cached(
+            layout, demand, &keys, self.cache,
+        )
+        .map_err(|_| UiGlyphRasterCallbackDenial::RasterizationDenied)?;
         if !alpha.batch().records().is_empty() {
             alpha
                 .batch()

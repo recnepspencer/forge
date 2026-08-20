@@ -252,8 +252,14 @@ const PHASE_TWO_RESOURCE_CLASSES: &[&str] = &[
     "application_drivers",
 ];
 
-const PHASE_FIVE_STANDING_RESOURCE_CLASSES: &[&str] =
-    &["physical_signal_runtimes", "physical_signal_workers"];
+const PHASE_FIVE_STANDING_RESOURCE_CLASSES: &[&str] = &[
+    "physical_signal_runtimes",
+    "physical_signal_workers",
+    "physical_signal_transition_observations",
+    "retained_draw_lists",
+    "presentation_epochs",
+    "retained_frame_observations",
+];
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum ResourceSchema {

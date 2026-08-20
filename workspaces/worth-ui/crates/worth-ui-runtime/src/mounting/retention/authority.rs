@@ -8,6 +8,19 @@ use super::{
     UiMountedRetentionUsageSnapshot, UiPresentedFrameBasisRelation, UiRetainedPresentedFrame,
 };
 
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) struct UiMountedRetentionReservationIdentity(u64);
+
+impl UiMountedRetentionReservationIdentity {
+    pub(super) fn mint() -> Option<Self> {
+        use std::sync::atomic::{AtomicU64, Ordering};
+
+        static NEXT: AtomicU64 = AtomicU64::new(1);
+        let value = NEXT.fetch_add(1, Ordering::Relaxed);
+        (value != 0).then_some(Self(value))
+    }
+}
+
 mod pin_accounting;
 
 use pin_accounting::{UiMountedFramePinCounts, UiMountedPinAdmission};
@@ -36,7 +49,7 @@ pub(super) struct UiMountedFrameRetentionAuthority {
     pub(super) budget: UiMountedFrameRetentionBudget,
     pub(super) frames: UiMountedRetainedFrameState,
     pub(super) revision: u64,
-    pub(super) reservation_active: bool,
+    pub(super) reservations: BTreeMap<UiMountedRetentionReservationIdentity, usize>,
     pub(super) in_flight_structural_bytes: usize,
     pins: BTreeMap<UiMountedFrameIdentity, UiMountedFramePinCounts>,
     inspection_usage: UiMountedRetentionUsageSnapshot,
@@ -76,7 +89,7 @@ impl UiMountedFrameRetentionAuthority {
             budget,
             frames: Default::default(),
             revision: 0,
-            reservation_active: false,
+            reservations: BTreeMap::new(),
             in_flight_structural_bytes: 0,
             pins: BTreeMap::new(),
             inspection_usage: Default::default(),
@@ -221,7 +234,7 @@ impl UiMountedFrameRetentionAuthority {
         super::UiMountedFrameRetentionSnapshot {
             current: retained_frame_usage(self.frames.current.as_deref()),
             in_flight: UiMountedRetentionUsageSnapshot {
-                retained_items: usize::from(self.reservation_active),
+                retained_items: self.reservations.len(),
                 retained_structural_bytes: self.in_flight_structural_bytes,
                 active_leases: 0,
                 lease_charged_structural_bytes: 0,

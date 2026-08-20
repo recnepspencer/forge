@@ -79,6 +79,19 @@ impl UiMountedPresentationDeltaSource<'_> {
 }
 
 impl UiProjectedMountedFrameCandidate {
+    pub(in crate::mounting) fn prepare_surface_reconstruction(
+        &mut self,
+        replacements: &[(
+            worth_ui_host_contract::UiSurfaceBindingGeneration,
+            crate::mounting::UiSurfaceBindingIdentityView,
+        )],
+    ) -> Result<(), UiMountedProjectionDenial> {
+        let frame = std::sync::Arc::make_mut(&mut self.frame);
+        frame.rebind_retained_mechanics(replacements)?;
+        self.presentation_changed_instances = frame.mounted_instances().collect::<Vec<_>>().into();
+        Ok(())
+    }
+
     pub fn frame(&self) -> &UiMountedProjectionFrame {
         &self.frame
     }

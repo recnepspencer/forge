@@ -74,12 +74,10 @@ pub fn project_scenario_oracle(
                 projected.counters.admitted_impacts += 1;
             }
             if dependency.performs_signal {
-                projected
-                    .signal
-                    .insert(format!(
-                        "{}:performed-signal:{}",
-                        mutation.identity, dependency.performed_signal_partition
-                    ));
+                projected.signal.insert(format!(
+                    "{}:performed-signal:{}",
+                    mutation.identity, dependency.performed_signal_partition
+                ));
                 projected.counters.signal_seeds += 1;
                 let conditional = "conditional-eligibility-or-semantic-cleanliness";
                 projected.impacts.insert(format!("{bridge}:{conditional}"));
@@ -115,10 +113,9 @@ pub fn project_scenario_oracle(
         projected.exclusions.insert("authorization-denied:1".into());
     }
     if world.scenario == GranularInvalidationScenario::CorrespondenceRebindRestore {
-        projected.exclusions.extend([
-            "rebind:stale-batch".into(),
-            "rebind:old-binding".into(),
-        ]);
+        projected
+            .exclusions
+            .extend(["rebind:stale-batch".into(), "rebind:old-binding".into()]);
     }
     projected.counters.maintenance_operations = projected.maintenance.len();
     projected.counters.consumer_publications = projected.deliveries.len();

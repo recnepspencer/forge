@@ -79,7 +79,7 @@ class RowEvidenceCacheTests(unittest.TestCase):
             self.assertIsNotNone(restored)
             self.assertEqual((root / handoff).read_bytes(), b"authenticated handoff")
 
-    def test_claim_or_source_drift_cannot_reuse_row(self) -> None:
+    def test_claim_drift_rejects_but_unrelated_source_state_drift_reuses_row(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             artifact = "_docs/worth-ui/milestone-3.14.1-evidence/p4-row.json"
@@ -93,7 +93,7 @@ class RowEvidenceCacheTests(unittest.TestCase):
             )
             self.assertIsNone(cache.restore("P4-ROW-01", command, "d" * 64))
             drifted = RowEvidenceCache(root, root / "cache", b"ledger", "a" * 40, "e" * 64)
-            self.assertIsNone(drifted.restore("P4-ROW-01", command, "c" * 64))
+            self.assertIsNotNone(drifted.restore("P4-ROW-01", command, "c" * 64))
 
     def test_content_mutation_invalidates_cached_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

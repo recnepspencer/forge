@@ -22,6 +22,12 @@ pub struct WorthUiMountedAllocationEstablishmentReceipt {
     committed: crate::runtime::UiCommittedAllocationReplan,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct UiNativeViewportMeasurementAuthority {
+    request: UiMeasurementRequestIdentity,
+    evidence_generation: UiEvidenceAuthorityGeneration,
+}
+
 struct MountedAllocationCandidate {
     declaration: crate::declaration::UiDeclarationIdentity,
     node: crate::graph::UiGraphNodeIdentity,
@@ -83,7 +89,10 @@ pub trait WorthUiMountedAllocationCertificationExt {
 impl WorthUiActiveApplicationSession {
     pub(crate) fn establish_native_viewport_allocation(
         &mut self,
-    ) -> Result<(), WorthUiMountedAllocationEstablishmentDenial> {
+    ) -> Result<
+        Box<[UiNativeViewportMeasurementAuthority]>,
+        WorthUiMountedAllocationEstablishmentDenial,
+    > {
         let request = {
             let capability = self.host_measurement_capability();
             let assumptions =
@@ -104,8 +113,27 @@ impl WorthUiActiveApplicationSession {
                 ),
             )
         };
-        self.establish_mounted_allocation_catalog(1, [request])
-            .map(|_| ())
+        let receipt = self.establish_mounted_allocation_catalog(1, [request])?;
+        let mut authorities = receipt
+            .committed
+            .receipts()
+            .iter()
+            .flat_map(|receipt| {
+                receipt
+                    .committed_allocation()
+                    .measurement_basis()
+                    .evidence_inputs()
+                    .iter()
+                    .filter_map(|input| input.as_host_measurement_result())
+                    .map(|result| UiNativeViewportMeasurementAuthority {
+                        request: result.request_identity(),
+                        evidence_generation: result.evidence_generation(),
+                    })
+            })
+            .collect::<Vec<_>>();
+        authorities.sort_by_key(|authority| authority.request);
+        authorities.dedup_by_key(|authority| authority.request);
+        Ok(authorities.into_boxed_slice())
     }
 
     pub(crate) fn establish_mounted_allocation_catalog(
@@ -299,6 +327,16 @@ impl WorthUiActiveApplicationSession {
             entries.push((basis, candidate.selected.clone()));
         }
         disjoint_partition(graph, entries)
+    }
+}
+
+impl UiNativeViewportMeasurementAuthority {
+    pub(crate) const fn request(self) -> UiMeasurementRequestIdentity {
+        self.request
+    }
+
+    pub(crate) const fn evidence_generation(self) -> UiEvidenceAuthorityGeneration {
+        self.evidence_generation
     }
 }
 

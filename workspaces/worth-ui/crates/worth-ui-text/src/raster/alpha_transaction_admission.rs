@@ -1,9 +1,12 @@
 //! Atomic preflight for every alpha/Last Resort miss in one mounted work item.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use sha2::{Digest, Sha256};
-use worth_ui_host_contract::UiGlyphRasterKey;
+use worth_ui_host_contract::{
+    UiGlyphRasterAttribution, UiGlyphRasterDemandIdentity, UiGlyphRasterKey, UiGlyphRasterLane,
+    UiQualifiedTextLayoutIdentity,
+};
 
 use super::alpha_admission::is_alpha_source;
 use super::capacity::{MAX_BATCH_RECORDS, MAX_RASTER_EDGE, MAX_STAGED_BYTES};
@@ -24,6 +27,16 @@ pub struct UiAlphaRasterTransactionAdmission {
     validation_checks: u32,
     provenance_checks: u32,
     admitted_keys: Box<[UiGlyphRasterKey]>,
+    expected_batches: Box<[UiAlphaRasterBatchExpectation]>,
+    expected_attributions: Box<[HashMap<UiGlyphRasterKey, UiGlyphRasterAttribution>]>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct UiAlphaRasterBatchExpectation {
+    pub(super) demand: UiGlyphRasterDemandIdentity,
+    pub(super) layout: UiQualifiedTextLayoutIdentity,
+    pub(super) scale: super::demand::UiGlyphRasterScale,
+    pub(super) lane: UiGlyphRasterLane,
 }
 
 impl UiAlphaRasterTransactionAdmission {
@@ -61,6 +74,21 @@ impl UiAlphaRasterTransactionAdmission {
     pub(super) fn admitted_keys(&self) -> &[UiGlyphRasterKey] {
         &self.admitted_keys
     }
+
+    pub(super) fn expected_batch(&self, index: usize) -> Option<UiAlphaRasterBatchExpectation> {
+        self.expected_batches.get(index).copied()
+    }
+
+    pub(super) fn expected_attribution(
+        &self,
+        batch_index: usize,
+        key: UiGlyphRasterKey,
+    ) -> Option<UiGlyphRasterAttribution> {
+        self.expected_attributions
+            .get(batch_index)?
+            .get(&key)
+            .copied()
+    }
 }
 
 /// Proves the complete mounted transaction fits before any outline evaluation
@@ -71,16 +99,28 @@ pub fn admit_alpha_outline_transaction(
     let mut capacity = TransactionCapacity::default();
     let mut validation_checks = 0_u32;
     let mut provenance_checks = 0_u32;
+    let mut expected_batches = Vec::with_capacity(batches.len());
+    let mut expected_attributions = Vec::with_capacity(batches.len());
     for &(layout, demand) in batches {
         validate_demand(layout, demand)?;
+        expected_batches.push(UiAlphaRasterBatchExpectation {
+            demand: demand.identity(),
+            layout: layout.identity(),
+            scale: demand.scale(),
+            lane: demand.lane(),
+        });
         validation_checks = validation_checks
             .saturating_add(u32::try_from(demand.records().len()).unwrap_or(u32::MAX));
         provenance_checks = provenance_checks
             .saturating_add(u32::try_from(demand.provenance().len()).unwrap_or(u32::MAX));
+        let mut batch_attributions = HashMap::new();
         for (index, record) in demand.records().iter().copied().enumerate() {
             if !is_alpha_source(record.key()) {
                 continue;
             }
+            batch_attributions
+                .entry(record.key())
+                .or_insert(record.attribution());
             capacity.key_probes = capacity.key_probes.saturating_add(1);
             if capacity.keys.contains(&record.key()) {
                 continue;
@@ -93,6 +133,7 @@ pub fn admit_alpha_outline_transaction(
             }
             capacity.admit(record.key(), u64::from(width) * u64::from(height))?;
         }
+        expected_attributions.push(batch_attributions);
     }
     let admitted_keys = capacity.keys.iter().copied().collect::<Box<[_]>>();
     Ok(UiAlphaRasterTransactionAdmission {
@@ -104,6 +145,8 @@ pub fn admit_alpha_outline_transaction(
         validation_checks,
         provenance_checks,
         admitted_keys,
+        expected_batches: expected_batches.into_boxed_slice(),
+        expected_attributions: expected_attributions.into_boxed_slice(),
     })
 }
 
@@ -202,11 +245,13 @@ mod tests {
             validation_checks: 2,
             provenance_checks: 2,
             admitted_keys: Box::new(admitted),
+            expected_batches: Box::new([]),
+            expected_attributions: Box::new([]),
         };
         assert_eq!(
             super::super::alpha_transaction_completion::validate_produced_keys(
                 &admission,
-                [(admitted[0], 1)],
+                [(0, admitted[0], attribution(), 1)],
             ),
             Err(UiGlyphRasterizationDenial::TransactionOutputMismatch)
         );
@@ -227,5 +272,12 @@ mod tests {
             origin: UiGlyphRasterFractionalOrigin::from_sixty_fourths(0, 0),
         })
         .unwrap()
+    }
+
+    fn attribution() -> UiGlyphRasterAttribution {
+        UiGlyphRasterAttribution::from_text_mechanics(
+            UiQualifiedTextLayoutIdentity::from_text_mechanics([7; 32]),
+            worth_ui_host_contract::UiTextOriginalRange::new(0, 1).unwrap(),
+        )
     }
 }

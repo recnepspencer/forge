@@ -63,6 +63,30 @@ HOSTILE_CASES = {
         "alpha-color-owner-merger",
     ),
     "P5-ATLAS-PINNING-01": ("shared-owner-preservation", "last-owner-release"),
+    "P5-TEXT-ASYNC-PRESENTATION-01": (
+        "completion-without-query-admission",
+        "physical-completion-outside-signal",
+        "foreign-or-stale-basis",
+        "duplicate-or-out-of-order-current",
+        "indeterminate-flattened-to-completed",
+        "signal-as-effect-authority",
+        "cross-graph-authority",
+        "serialized-recovery-authority",
+        "reporting-material-as-authority",
+        "terminal-query-resource-leak",
+    ),
+    "P5-TEXT-COST-01": (
+        "complete-subscriber-closure",
+        "late-aspect-filter",
+        "late-scope-filter",
+        "global-partition-detail-range-union",
+        "every-mounted-presentation-invalidation",
+        "paint-to-layout-widening",
+        "dpi-to-layout-widening",
+        "dropped-immediate-dependency-cause",
+        "hidden-retained-document-scan",
+        "predicted-counter-substitution",
+    ),
 }
 
 

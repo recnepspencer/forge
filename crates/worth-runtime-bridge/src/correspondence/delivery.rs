@@ -90,9 +90,26 @@ impl RuntimeBridge {
         )
     }
 
-    fn deliver_installed_correspondence_envelope_with_counters(
+    pub(crate) fn deliver_installed_correspondence_envelope_with_counters(
         &self,
         correspondence: &BridgeInstalledSemanticCorrespondence,
+        graph: &mut SignalGraph,
+        envelope: &BridgeCommittedPatchEnvelope,
+        counters: CorrespondenceDeliveryCounters,
+    ) -> CorrespondenceDeliveryOutcome {
+        self.deliver_installed_correspondence_envelope_to_targets_with_counters(
+            correspondence,
+            &correspondence.targets,
+            graph,
+            envelope,
+            counters,
+        )
+    }
+
+    pub(crate) fn deliver_installed_correspondence_envelope_to_targets_with_counters(
+        &self,
+        correspondence: &BridgeInstalledSemanticCorrespondence,
+        targets: &super::ProvenCorrespondenceTargets,
         graph: &mut SignalGraph,
         envelope: &BridgeCommittedPatchEnvelope,
         mut counters: CorrespondenceDeliveryCounters,
@@ -103,17 +120,22 @@ impl RuntimeBridge {
         if let Some(outcome) = preflight(self, correspondence, graph) {
             return outcome;
         }
-        let targets = correspondence.targets.as_slice();
-        if let Err(outcome) = self.admit_delivery_target_allocations(correspondence, &mut counters)
+        let target_slice = targets.as_slice();
+        if let Err(outcome) =
+            self.admit_delivery_target_allocations(correspondence, target_slice, &mut counters)
         {
             return outcome;
         }
 
-        let matched =
-            match match_envelope(correspondence.ready.payload(), targets, envelope, counters) {
-                Ok(matched) => matched,
-                Err(denial) => return TransitionOutcome::Denied(denial),
-            };
+        let matched = match match_envelope(
+            correspondence.ready.payload(),
+            target_slice,
+            envelope,
+            counters,
+        ) {
+            Ok(matched) => matched,
+            Err(denial) => return TransitionOutcome::Denied(denial),
+        };
         let mut counters = matched.counters;
         let change_set = BridgeDeliveredCorrespondenceChangeSet::new(
             correspondence.basis().clone(),
@@ -128,13 +150,14 @@ impl RuntimeBridge {
         }
 
         let signal_capabilities =
-            match admit_signal_target_capabilities(graph, correspondence, &mut counters) {
+            match admit_signal_target_capabilities(graph, target_slice, &mut counters) {
                 Ok(capabilities) => capabilities,
                 Err(outcome) => return outcome,
             };
         let (scoped_changes, prepared_signal) =
-            super::signal_execution::prepare_scoped_signal_invalidation(
+            super::signal_execution::prepare_scoped_signal_invalidation_for_targets(
                 correspondence,
+                target_slice,
                 &change_set,
                 signal_capabilities,
             );
@@ -146,12 +169,12 @@ impl RuntimeBridge {
             );
         };
         counters.signal_seeds_emitted = admitted.len();
-        counters.node_fan_out = targets
+        counters.node_fan_out = target_slice
             .iter()
             .map(|target| target.node)
             .collect::<std::collections::BTreeSet<_>>()
             .len();
-        counters.slots_touched = targets.len();
+        counters.slots_touched = target_slice.len();
         TransitionOutcome::Success(BridgeCorrespondenceDeliveryReceipt::new(
             counters,
             change_set,
@@ -162,6 +185,7 @@ impl RuntimeBridge {
     fn admit_delivery_target_allocations(
         &self,
         correspondence: &BridgeInstalledSemanticCorrespondence,
+        targets: &[super::InstalledCorrespondenceTarget],
         counters: &mut CorrespondenceDeliveryCounters,
     ) -> Result<(), CorrespondenceDeliveryOutcome> {
         counters.allocation_registry_lock_attempts += 1;
@@ -178,7 +202,6 @@ impl RuntimeBridge {
                 ))
             }
         };
-        let targets = correspondence.targets.as_slice();
         for target in targets {
             counters.allocation_source_set_checks += 1;
             if !allocation_registry.admits_source_set(target) {
@@ -205,11 +228,10 @@ impl RuntimeBridge {
 
 fn admit_signal_target_capabilities(
     graph: &mut SignalGraph,
-    correspondence: &BridgeInstalledSemanticCorrespondence,
+    targets: &[super::InstalledCorrespondenceTarget],
     counters: &mut CorrespondenceDeliveryCounters,
 ) -> Result<Vec<worth_signal::facade::InstalledSignalAspectCapability>, CorrespondenceDeliveryOutcome>
 {
-    let targets = correspondence.targets.as_slice();
     let mut capabilities = Vec::with_capacity(targets.len());
     for target in targets {
         let capability = match graph.admit_installed_aspect(target.node, target.aspect) {

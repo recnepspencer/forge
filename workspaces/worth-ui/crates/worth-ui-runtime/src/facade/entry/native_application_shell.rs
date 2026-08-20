@@ -9,49 +9,59 @@ use std::collections::HashMap;
 mod component_presence;
 #[path = "native_application_shell/launch.rs"]
 mod launch;
+#[path = "native_application_shell/presentation_recovery.rs"]
+mod presentation_recovery;
+#[path = "native_application_shell/query_close.rs"]
+mod query_close;
+pub(crate) use query_close::UiNativeApplicationQueryCloseObservation;
+#[path = "native_application_shell/shutdown.rs"]
+mod shutdown;
+#[path = "native_application_shell/viewport_measurement.rs"]
+mod viewport_measurement;
+pub use shutdown::{WorthUiNativeApplicationCleanup, WorthUiNativeApplicationShutdownReceipt};
 
 /// High-level native lifecycle for one downstream application composition root.
 pub struct WorthUiNativeApplicationShell {
     pub(super) session: WorthUiActiveApplicationSession,
     binding: UiSurfaceBindingGeneration,
     surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    scale_factor_milli: u32,
     mounted_rows: Vec<NativeMountedRow>,
     mounted_row_indices: HashMap<Box<str>, usize>,
-    semantic_text_values: HashMap<Box<str>, std::sync::Arc<str>>,
+    client_physical_size: Option<[u32; 2]>,
+    viewport_measurement_pending: bool,
+    viewport_measurement_authority:
+        Box<[super::mounted_allocation_establishment::UiNativeViewportMeasurementAuthority]>,
+    pending_surface_reconciliation: Option<crate::mounting::UiMountedSurfaceReconciliationBinding>,
+    runtime_derived_state_reconstruction:
+        Option<worth_ui_host_native::UiNativeClientDerivedStateReconstructionObservation>,
 }
 
 struct NativeMountedRow {
     graph_node: crate::graph::UiGraphNodeIdentity,
     mounted: Option<worth_ui_host_contract::UiMountedInstanceIdentity>,
+    latest_mounted: worth_ui_host_contract::UiMountedInstanceIdentity,
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct WorthUiNativeApplicationShutdownReceipt {
-    mounted_shutdown_attempt_count: usize,
-    visual_capture: crate::inspection::visual_snapshot::UiVisualCaptureShutdownReport,
-    visual_overlay: crate::inspection::visual_snapshot::UiVisualOverlayShutdownReport,
-    host_session_released: bool,
-    released_surface_count: usize,
-    host_cleanup: Option<crate::facade::WorthUiHostSessionReleaseRecovery>,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct WorthUiNativeApplicationCleanup {
-    host_cleanup: Option<crate::facade::WorthUiHostSessionReleaseRecovery>,
-}
-
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub enum WorthUiNativeApplicationShellLaunchDenial {
     RuntimeLaunch,
     RuntimeLaunchCleanup(crate::runtime::WorthUiRuntimeLaunchDenial),
     SemanticSurfaceCreation,
     HostSurfaceRegistration,
     MountedInstanceCreation,
-    ViewportAllocation,
+    ViewportAllocation(super::WorthUiMountedAllocationEstablishmentDenial),
     ApplicationCleanup(WorthUiNativeApplicationCleanup),
 }
 
 impl WorthUiNativeApplicationShell {
+    pub(crate) fn cancel_mounted_presentation(
+        &mut self,
+        in_flight: crate::mounting::UiMountedPresentationInFlight,
+    ) -> crate::mounting::UiMountedFrameOutcome {
+        self.session.cancel_mounted_presentation(in_flight)
+    }
+
     pub(crate) fn presentation_attribution(
         &self,
         outcome: &UiMountedFrameOutcome,
@@ -64,20 +74,37 @@ impl WorthUiNativeApplicationShell {
             _ => return None,
         };
         let binding = *receipt.bindings().first()?;
+        self.presentation_attribution_for(
+            receipt.frame(),
+            binding,
+            receipt.attempt(),
+            prior,
+            matches!(outcome, UiMountedFrameOutcome::Unchanged(_)),
+        )
+    }
+
+    pub(crate) fn presentation_attribution_for(
+        &self,
+        frame: worth_ui_host_contract::UiMountedFrameIdentity,
+        binding: UiSurfaceBindingGeneration,
+        attempt: worth_ui_host_contract::UiMountedPresentationAttemptIdentity,
+        prior: Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
+        unchanged: bool,
+    ) -> Option<worth_ui_host_native::UiNativeClientPresentationAttribution> {
         let attribution = self
             .session
             .mounted
-            .native_filled_rect_attribution(receipt.frame(), binding);
+            .native_paint_attribution(frame, binding);
         if let Some(attribution) = attribution {
             return Some(
                 worth_ui_host_native::UiNativeClientPresentationAttribution::reported(
                     [
-                        receipt.frame().diagnostic_value(),
+                        frame.diagnostic_value(),
                         attribution.surface.diagnostic_value(),
                         binding.diagnostic_value(),
                         attribution.mounted_instance.diagnostic_value(),
                         attribution.node_receipt.diagnostic_value(),
-                        receipt.attempt().diagnostic_value(),
+                        attempt.diagnostic_value(),
                     ],
                     [
                         attribution.authored_provenance_digest,
@@ -87,19 +114,15 @@ impl WorthUiNativeApplicationShell {
             );
         }
         let prior = prior?;
-        matches!(
-            outcome,
-            UiMountedFrameOutcome::Published(_) | UiMountedFrameOutcome::Reconciled(_)
-        )
-        .then(|| {
+        (!unchanged).then(|| {
             worth_ui_host_native::UiNativeClientPresentationAttribution::reported(
                 [
-                    receipt.frame().diagnostic_value(),
+                    frame.diagnostic_value(),
                     prior.surface(),
                     binding.diagnostic_value(),
                     prior.mounted_instance(),
                     prior.node_receipt(),
-                    receipt.attempt().diagnostic_value(),
+                    attempt.diagnostic_value(),
                 ],
                 [
                     prior.authored_provenance_digest(),
@@ -113,6 +136,10 @@ impl WorthUiNativeApplicationShell {
         &mut self,
         scale_factor_milli: u32,
     ) -> Result<(), ()> {
+        if self.pending_surface_reconciliation.is_some() {
+            return Err(());
+        }
+        let affected = self.binding;
         let profile = UiSurfaceBindingProfile::new(
             scale_factor_milli,
             UiSurfaceBindingCoordinatePosture::LogicalPoints,
@@ -128,6 +155,10 @@ impl WorthUiNativeApplicationShell {
             )
             .map_err(|_| ())?
             .binding_generation();
+        self.scale_factor_milli = scale_factor_milli;
+        self.pending_surface_reconciliation = Some(
+            crate::mounting::UiMountedSurfaceReconciliationBinding::new(affected, self.binding),
+        );
         Ok(())
     }
 
@@ -177,65 +208,113 @@ impl WorthUiNativeApplicationShell {
         now_tick: u64,
     ) -> Result<UiMountedFrameOutcome, super::WorthUiMountedFrameExecutionStop<'_>> {
         let request = self.session.mounted_frame_request();
-        let mut semantic_content = crate::mounting::UiMountedSemanticContentInput::empty();
-        for (identity, text) in &self.semantic_text_values {
-            let index = *self
-                .mounted_row_indices
-                .get(identity.as_ref())
-                .ok_or_else(|| {
-                    super::WorthUiMountedFrameExecutionStop::Preparation(
-                        crate::mounting::UiMountedFramePreparationDenial::Projection(
-                            crate::mounting::UiMountedProjectionDenial::UnknownGraphNode,
-                        ),
-                    )
-                })?;
-            semantic_content
-                .insert_scalar(
-                    self.mounted_rows[index].graph_node,
-                    crate::mounting::UiMountedSemanticTextValueDirective::Replace(
-                        std::sync::Arc::clone(text),
-                    ),
-                    std::sync::Arc::from("native-application-program"),
-                )
-                .map_err(|_| {
-                    super::WorthUiMountedFrameExecutionStop::Preparation(
-                        crate::mounting::UiMountedFramePreparationDenial::Projection(
-                            crate::mounting::UiMountedProjectionDenial::UnknownGraphNode,
-                        ),
-                    )
-                })?;
+        if let Some(replacement) = self.pending_surface_reconciliation {
+            let replacements = [replacement];
+            let outcome = self
+                .session
+                .execute_mounted_rebound_frame_with_application_presentation(
+                    request,
+                    &replacements,
+                    UiPresentationDeadline::at_tick(deadline_tick),
+                    now_tick,
+                    |_| {},
+                )?;
+            self.pending_surface_reconciliation = None;
+            return Ok(outcome);
         }
-        self.session.execute_mounted_frame_with_content(
-            request,
+        let outcome = self
+            .session
+            .execute_mounted_frame_with_application_presentation(
+                request,
+                UiPresentationDeadline::at_tick(deadline_tick),
+                now_tick,
+                None,
+                |_| {},
+            )?;
+        Ok(outcome)
+    }
+
+    pub(crate) fn prepare_frame(
+        &mut self,
+    ) -> Result<crate::mounting::UiPreparedMountedFrame, super::WorthUiMountedFrameExecutionStop<'_>>
+    {
+        let request = self.session.mounted_frame_request();
+        if let Some(replacement) = self.pending_surface_reconciliation {
+            let replacements = [replacement];
+            let frame = self
+                .session
+                .prepare_mounted_reconciliation_frame_with_application_presentation(
+                    request,
+                    &replacements,
+                    |_| {},
+                )?;
+            self.pending_surface_reconciliation = None;
+            return Ok(frame);
+        }
+        self.session
+            .prepare_mounted_frame_with_application_presentation(request, |_| {})
+    }
+
+    pub(crate) fn prepare_superseding_frame(
+        &mut self,
+        predecessor: &crate::mounting::UiPreparedMountedFrame,
+    ) -> Result<crate::mounting::UiPreparedMountedFrame, super::WorthUiMountedFrameExecutionStop<'_>>
+    {
+        let request = self.session.mounted_frame_request();
+        self.session
+            .prepare_mounted_superseding_frame_with_application_presentation(
+                request,
+                predecessor,
+                |_| {},
+            )
+    }
+
+    pub(crate) fn present_prepared_frame(
+        &mut self,
+        frame: crate::mounting::UiPreparedMountedFrame,
+        deadline_tick: u64,
+        now_tick: u64,
+    ) -> UiMountedFrameOutcome {
+        self.session.present_prepared_mounted_frame_internal(
+            frame,
             UiPresentationDeadline::at_tick(deadline_tick),
             now_tick,
-            semantic_content,
-            |_| {},
         )
     }
 
-    pub(crate) fn apply_component_semantic_text(
+    pub(crate) fn present_prepared_superseding_frame(
         &mut self,
-        changes: &[super::UiNativeComponentSemanticTextChange],
-    ) -> Result<(), ()> {
-        for change in changes {
-            if !self
-                .mounted_row_indices
-                .contains_key(change.authored_semantic_identity())
-            {
-                return Err(());
-            }
-        }
-        for change in changes {
-            self.semantic_text_values.insert(
-                Box::from(change.authored_semantic_identity()),
-                std::sync::Arc::from(change.text()),
-            );
-        }
-        Ok(())
+        frame: crate::mounting::UiPreparedMountedFrame,
+        predecessor: crate::mounting::UiMountedSupersedingPresentationBasis,
+        deadline_tick: u64,
+        now_tick: u64,
+    ) -> UiMountedFrameOutcome {
+        self.session
+            .present_prepared_superseding_mounted_frame_internal(
+                frame,
+                predecessor,
+                UiPresentationDeadline::at_tick(deadline_tick),
+                now_tick,
+            )
     }
 
-    pub(crate) fn complete_frame_presentation(
+    pub fn apply_component_semantic_text(
+        &mut self,
+        changes: &[super::UiNativeComponentSemanticTextChange],
+    ) -> Result<(), super::UiNativeApplicationProgramDenial> {
+        self.session
+            .admit_application_semantic_text(changes)
+            .map_err(|_| super::UiNativeApplicationProgramDenial::SemanticTextUpdateRejected)
+    }
+
+    pub(crate) fn apply_theme_token_values(
+        &mut self,
+        changes: &[super::UiNativeThemeTokenValueChange],
+    ) -> Result<(), ()> {
+        self.session.admit_application_theme_values(changes)
+    }
+
+    pub fn complete_frame_presentation(
         &mut self,
         in_flight: crate::mounting::UiMountedPresentationInFlight,
         now_tick: u64,
@@ -244,77 +323,31 @@ impl WorthUiNativeApplicationShell {
             .complete_mounted_presentation(in_flight, now_tick)
     }
 
+    pub(crate) fn admit_duplicate_native_presentation_observation(
+        &mut self,
+        presentation: worth_ui_host_native::UiNativePhysicalPresentationCorrelation,
+    ) -> Result<(), ()> {
+        self.session
+            .admit_duplicate_native_presentation_observation(presentation)
+    }
+
+    pub(crate) fn retry_rejected_frame_presentation(
+        &mut self,
+        rejected: crate::mounting::UiMountedRejectedFrame,
+        deadline: UiPresentationDeadline,
+        now_tick: u64,
+    ) -> UiMountedFrameOutcome {
+        self.session.present_prepared_mounted_frame_internal(
+            rejected.into_frame(),
+            deadline,
+            now_tick,
+        )
+    }
+
     pub fn generation_identity(
         &self,
     ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
     {
         self.session.generation_identity()
-    }
-
-    /// Consume the shell and report runtime, mounted, and host cleanup.
-    pub fn shutdown(self) -> WorthUiNativeApplicationShutdownReceipt {
-        let mut runtime = self.session.shutdown();
-        let (host_session_released, released_surface_count) = match runtime.host_session_release() {
-            Some(worth_ui_host_contract::UiHostSessionReleaseOutcome::Released(receipt)) => {
-                (true, receipt.released_surface_count())
-            }
-            Some(worth_ui_host_contract::UiHostSessionReleaseOutcome::ReleaseIndeterminate(_))
-            | None => (false, 0),
-        };
-        WorthUiNativeApplicationShutdownReceipt {
-            mounted_shutdown_attempt_count: runtime.mounted_presentation().attempts().len(),
-            visual_capture: runtime.visual_capture(),
-            visual_overlay: runtime.visual_overlay(),
-            host_session_released,
-            released_surface_count,
-            host_cleanup: runtime.take_host_session_recovery(),
-        }
-    }
-}
-
-impl WorthUiNativeApplicationShutdownReceipt {
-    pub fn mounted_shutdown_attempt_count(&self) -> usize {
-        self.mounted_shutdown_attempt_count
-    }
-
-    pub fn host_session_released(&self) -> bool {
-        self.host_session_released
-    }
-
-    pub const fn visual_capture(
-        &self,
-    ) -> crate::inspection::visual_snapshot::UiVisualCaptureShutdownReport {
-        self.visual_capture
-    }
-
-    pub const fn visual_overlay(
-        &self,
-    ) -> crate::inspection::visual_snapshot::UiVisualOverlayShutdownReport {
-        self.visual_overlay
-    }
-
-    pub fn released_surface_count(&self) -> usize {
-        self.released_surface_count
-    }
-
-    pub(crate) fn into_host_cleanup(
-        self,
-    ) -> Option<crate::facade::WorthUiHostSessionReleaseRecovery> {
-        self.host_cleanup
-    }
-}
-
-impl WorthUiNativeApplicationCleanup {
-    pub(crate) fn retry(mut self) -> Result<(), Self> {
-        let Some(recovery) = self.host_cleanup.take() else {
-            return Err(self);
-        };
-        match recovery.retry() {
-            Ok(_) => Ok(()),
-            Err(recovery) => {
-                self.host_cleanup = Some(recovery);
-                Err(self)
-            }
-        }
     }
 }

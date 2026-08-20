@@ -26,6 +26,16 @@ impl WorthUiPreparedNativeHost {
         }
     }
 
+    /// Prepare the same qualified host with a bounded native-owner courtroom
+    /// control. Available only to certification compositions.
+    #[cfg(feature = "certification-support")]
+    pub fn prepare_qualified_for_certification(plan: crate::UiNativeQualificationPlan) -> Self {
+        Self {
+            state: Rc::new(RefCell::new(UiNativeHostState::new_for_certification(plan))),
+            profile: super::UiNativePlatformProfileIdentity::WORTH_UI_WINDOWS_DX12_V1,
+        }
+    }
+
     /// Consume the effect-free preparation into its exact mechanics adapter
     /// and event-loop owner. Neither part is independently constructible.
     pub fn into_parts(

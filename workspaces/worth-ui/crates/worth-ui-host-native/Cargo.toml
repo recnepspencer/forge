@@ -7,6 +7,10 @@ license.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = []
+certification-support = []
+
 [dependencies]
 worth-proof.workspace = true
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }

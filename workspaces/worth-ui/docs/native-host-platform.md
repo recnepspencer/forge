@@ -3,13 +3,14 @@
 ## What This Feature Is
 
 The native host platform is the framework-owned application and host boundary.
-It binds one Worth application to one qualified native profile without giving
-product code a raw adapter, event-loop client, graphics object, or wake port.
+It binds one Worth application to one qualified native profile, runs its native
+window and graphics lifecycle, and closes its resources without giving product
+code a raw adapter, event-loop client, graphics object, or wake port.
 
-Milestone 3.14.1 Phase 1 is intentionally effect-free. It freezes the public
-authority progression, protocol revision, capacities, dependency direction,
-and qualification identities. It does not open a window, event loop, surface,
-device, queue, watcher, or worker.
+Platform and application preparation remain effect-free. No window, event
+loop, surface, device, queue, or physical-work worker exists until the
+application returns a prepared definition. After that gate succeeds,
+`run(...)` enters the qualified native host and may perform native effects.
 
 ## Stable Entry Points
 
@@ -36,7 +37,9 @@ qualified UiNativePlatformProfile
 -> application registration through a borrowing builder view
 -> Prepared(UiPreparedNativeApplication)
    | Denied(UiNativeApplicationPreparationDenial)
--> Phase 1 stop with exact terminal resource census
+-> qualified native host and event-loop execution
+-> Closed(UiNativePlatformCloseReceipt)
+   | Stopped(UiNativePlatformStopReport)
 ```
 
 Calling `builder()` borrows the internal builder. It cannot extract or freeze
@@ -72,10 +75,10 @@ let prepared_platform = WorthUiNativePlatform::prepare(profile)?;
 let outcome = prepared_platform.run(Application);
 ```
 
-Phase 1 returns a typed stop before native effects and reports zero live
-resources. A preparation denial reports its preparation identity, cause,
-reverse closure count, readiness closure count, zero terminal census, and
-`event_loop_client_published: false`.
+An application-preparation denial still occurs before native effects or native
+host construction. Once preparation succeeds, `run(...)` returns either a
+close receipt or a typed stop report. Both expose the terminal resource census;
+a stop with retained external obligations also exposes cleanup authority.
 
 ## Presentation Contract
 
@@ -94,9 +97,64 @@ mechanical indexes for execution, but they do not receive the complete
 projection on ordinary successor frames and do not rediscover semantic deltas.
 Candidate retained state commits only after every required surface succeeds.
 
+## Physical Work Progression
+
+Host-native owns physical resources and effects. This includes WGPU devices,
+queues, surfaces, textures, buffers, submissions, completion polling, atlas
+storage, uploads, pins, and resource release. The native adapter's observation
+of an external effect is the source of physical completion truth.
+
+A private physical Signal runtime inside host-native owns how that work
+progresses. It admits bounded work, tracks the current physical attempt, emits
+exact readiness wakes, and governs retry, timeout, cancellation, supersession,
+recovery scheduling, and shutdown ordering. One runtime is retained for each
+native host/device lifecycle; it is not created per presentation.
+
+```text
+runtime presentation work
+-> host-native reserves physical owners
+-> private physical Signal runtime admits bounded work
+-> Winit readiness transport wakes the native event thread
+-> native adapter submits or polls the external effect
+-> typed physical observation returns to Signal
+-> Signal settles, retries, supersedes, or schedules recovery
+-> host-native commits or releases the physical owners
+```
+
+Signal owns progression, not effects. It does not store raw WGPU handles,
+allocate atlas storage, submit command buffers, poll the device, or decide that
+an external consequence completed. Readiness is eligibility to progress work;
+it is not completion evidence or effect authority. The Winit readiness
+registry transports wakes only and does not provide a second retry or
+currentness scheduler.
+
+An observation must match the exact owner-issued physical runtime, work, and
+attempt. Stale, duplicate, foreign, or superseded observations cannot settle
+current work. A rejection known to occur before effects releases its owners.
+An effects-indeterminate observation enters retained recovery until host-native
+can reconcile or close the physical consequence.
+
+Shutdown first stops new admissions, then drains retained completion and
+recovery obligations. Signal state and native resource ownership are disposed
+only after those obligations reach a terminal posture.
+
+## Relationship To Query Invalidation
+
+The physical Signal runtime is separate from the Query-semantic Signal graph.
+The physical runtime schedules native work; Query tracks which
+application-visible presentation meaning is pending, current, stale, failed,
+cancelled, superseded, or unresolved. Typed physical completion evidence may
+later be admitted to the installed Query correspondence, but Query does not
+submit, poll, retry, wake, recover, or release WGPU work.
+
+The two graphs do not share runtime identities, aspect slots, request handles,
+completion envelopes, capacities, or shutdown receipts. Runtime imports
+neither Signal nor Query, and no separate manual physical scheduler runs beside
+host-native's private Signal owner.
+
 ## Qualification
 
-The checked-in Phase 1 identities are:
+The checked-in qualified identities are:
 
 - text profile: `worth-ui-body-default-v1`;
 - native profile: `worth-ui-windows-dx12-v1`;
@@ -124,10 +182,11 @@ not promote the candidate frame.
 
 ## Current Limits
 
-Phase 1 has no native effects. Window/event-loop/device activation, native
-filled-rectangle presentation, retained damage replay, text shaping/raster,
-input/IME, capture, and full shutdown fault injection belong to the ordered
-later phases of Milestone 3.14.1.
+The physical Signal runtime is private host-native machinery, not an
+application-facing scheduling API. Application-visible async presentation
+posture and the native-completion-to-Query correspondence are still being
+stabilized and are not public control surfaces. Product code cannot select a
+Signal runtime, supply raw physical handles, or replace native recovery policy.
 
 ## Anti-Patterns
 
@@ -136,4 +195,9 @@ later phases of Milestone 3.14.1.
 - Do not pass a complete projection to a successor-frame host operation.
 - Do not treat a profile digest, baseline identity, or cost report as authority.
 - Do not infer success after an uncertain or partially completed native effect.
-- Do not activate later-phase effects behind a Phase 1 placeholder API.
+- Do not run a manual retry, timeout, currentness, or wake scheduler beside the
+  private physical Signal runtime.
+- Do not route physical WGPU progression through Query or treat semantic
+  invalidation as permission to perform native effects.
+- Do not give Signal raw WGPU handles, atlas storage ownership, or effect
+  authority.

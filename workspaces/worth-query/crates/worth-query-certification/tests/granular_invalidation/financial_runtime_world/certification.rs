@@ -6,11 +6,11 @@ use worth_query_host::facade::primary_graph::WorthQueryConditionalClockObservati
 use worth_runtime_bridge::facade::BridgeDiagnosticsTier;
 
 use super::{host::FinancialCourtroomWorld, query};
+use crate::performed_identity_observer::PerformedIdentityObserver;
 use crate::production_evidence::{
     CertificationComparatorPolicy, CertificationExecutionLane, OwnerPerformedCounterRows,
     PerformedScenarioEvidence, PerformedScenarioEvidenceParts,
 };
-use crate::performed_identity_observer::PerformedIdentityObserver;
 use crate::world::{GranularInvalidationScenario, GranularInvalidationWorldDefinition};
 
 pub fn assert_mixed_runtime_evidence_denied() {
@@ -159,10 +159,7 @@ fn run_curve_with_query(
     scenario: GranularInvalidationScenario,
     build_query: fn(&FinancialCourtroomWorld) -> query::FinancialQueryWorld,
 ) -> PerformedScenarioEvidence {
-    let declared = GranularInvalidationWorldDefinition::for_scenario(
-        scenario,
-        seed,
-    );
+    let declared = GranularInvalidationWorldDefinition::for_scenario(scenario, seed);
     let mut host = FinancialCourtroomWorld::publish_curve();
     let mut query = build_query(&host);
     accept_baseline(&mut host, true);
@@ -177,13 +174,9 @@ fn run_curve_with_query(
     assert_eq!(lower.signal_performed_delivery_count(), 1);
     let current = host.application.granular_invalidation_installation();
     let binding = bind_primary_runtime_granular_invalidations(&query.live, current.clone());
-    let outcome = maintain_primary_runtime_granular_batch(
-        &query.live,
-        &mut query.workspace,
-        &binding,
-        batch,
-    )
-    .expect("the curve certification query must maintain");
+    let outcome =
+        maintain_primary_runtime_granular_batch(&query.live, &mut query.workspace, &binding, batch)
+            .expect("the curve certification query must maintain");
     let WorthQueryPrimaryGranularMaintenanceOutcome::Performed(performed) = outcome else {
         panic!("the curve certification query must publish")
     };

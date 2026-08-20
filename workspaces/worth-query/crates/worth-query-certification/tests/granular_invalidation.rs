@@ -11,14 +11,14 @@ mod schema;
 mod delivery_convergence;
 #[path = "granular_invalidation/financial_runtime_world.rs"]
 mod financial_runtime_world;
-#[path = "granular_invalidation/necessity_manifest.rs"]
-mod necessity_manifest;
 #[path = "granular_invalidation/lifecycle_certification.rs"]
 mod lifecycle_certification;
-#[path = "granular_invalidation/production_evidence.rs"]
-mod production_evidence;
+#[path = "granular_invalidation/necessity_manifest.rs"]
+mod necessity_manifest;
 #[path = "granular_invalidation/performed_identity_observer.rs"]
 mod performed_identity_observer;
+#[path = "granular_invalidation/production_evidence.rs"]
+mod production_evidence;
 #[path = "granular_invalidation/production_scenarios.rs"]
 mod production_scenarios;
 #[path = "granular_invalidation/query_runtime_world.rs"]
@@ -43,8 +43,8 @@ use world::GranularInvalidationScenario;
 
 #[test]
 fn six_production_worlds_seal_against_the_independent_manifest() {
-    let run = GranularInvalidationCertificationRun::seal(sealed_run::production_claims(17))
-        .unwrap();
+    let run =
+        GranularInvalidationCertificationRun::seal(sealed_run::production_claims(17)).unwrap();
     assert_eq!(run.case_count(), 6);
     assert_ne!(run.report_digest(), &[0; 32]);
 }
@@ -85,7 +85,8 @@ fn portfolio_claim_rejects_a_forged_relational_record_identity() {
 fn independent_projection_oracle_agrees_with_the_declared_manifest() {
     for scenario in GranularInvalidationScenario::ALL {
         let world = world::GranularInvalidationWorldDefinition::for_scenario(scenario, 17);
-        let expected = necessity_manifest::CrossRuntimeInvalidationNecessityManifest::derive(&world);
+        let expected =
+            necessity_manifest::CrossRuntimeInvalidationNecessityManifest::derive(&world);
         let projected = scenario_execution::project_scenario_oracle(&world);
         assert_eq!(projected.relational, expected.relational);
         assert_eq!(projected.bridge, expected.bridge);
@@ -155,8 +156,14 @@ fn production_curve_and_quote_evidence_bind_real_owner_work() {
     let shared = financial_runtime_world::run_shared_certification(17);
     let restored = lifecycle_certification::run_correspondence_certification(17);
     let opaque = financial_runtime_world::run_opaque_certification(17);
-    assert_eq!(curve.scenario(), GranularInvalidationScenario::CurveDetailToLiveRisk);
-    assert_eq!(quote.scenario(), GranularInvalidationScenario::SuppressedQuoteNoQueryPatch);
+    assert_eq!(
+        curve.scenario(),
+        GranularInvalidationScenario::CurveDetailToLiveRisk
+    );
+    assert_eq!(
+        quote.scenario(),
+        GranularInvalidationScenario::SuppressedQuoteNoQueryPatch
+    );
     assert_eq!(
         portfolio.scenario(),
         GranularInvalidationScenario::OrderedPortfolioMembership

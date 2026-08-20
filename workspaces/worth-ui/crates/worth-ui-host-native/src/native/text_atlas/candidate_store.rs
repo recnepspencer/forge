@@ -16,6 +16,12 @@ pub(crate) struct CandidateAtlasStore {
     removed: HashSet<UiGlyphRasterKey>,
 }
 
+pub(crate) struct CandidateAtlasAllocation {
+    pub(crate) placement: Option<(u32, UiAtlasRect)>,
+    pub(crate) page_probes: usize,
+    pub(crate) placement_probes: usize,
+}
+
 impl CandidateAtlasStore {
     pub(crate) fn from_predecessor(predecessor: &AtlasStore) -> Self {
         Self {
@@ -77,23 +83,56 @@ impl CandidateAtlasStore {
         width: u32,
         height: u32,
     ) -> Option<(u32, UiAtlasRect)> {
+        self.allocate_observed(predecessor, width, height).placement
+    }
+
+    pub(crate) fn allocate_observed(
+        &mut self,
+        predecessor: &AtlasStore,
+        width: u32,
+        height: u32,
+    ) -> CandidateAtlasAllocation {
+        let mut page_probes = 0;
+        let mut placement_probes = 0;
         for (page, slot) in self.pages.iter_mut().enumerate() {
-            if let Some(rect) = slot.allocate(width, height) {
-                return Some((u32::try_from(page).ok()?, rect));
+            page_probes += 1;
+            let (placement, probes) = slot.allocate_observed(width, height);
+            placement_probes += probes;
+            if let Some(rect) = placement {
+                return CandidateAtlasAllocation {
+                    placement: u32::try_from(page).ok().map(|page| (page, rect)),
+                    page_probes,
+                    placement_probes,
+                };
             }
         }
-        if u32::try_from(self.pages.len()).ok()? >= predecessor.page_limit {
-            return None;
+        if u32::try_from(self.pages.len())
+            .ok()
+            .is_none_or(|pages| pages >= predecessor.page_limit)
+        {
+            return CandidateAtlasAllocation {
+                placement: None,
+                page_probes,
+                placement_probes,
+            };
         }
         self.pages.push(UiAtlasPage::new(
             predecessor.page_width,
             predecessor.page_height,
         ));
-        let page = u32::try_from(self.pages.len() - 1).ok()?;
-        self.pages
-            .last_mut()?
-            .allocate(width, height)
-            .map(|rect| (page, rect))
+        page_probes += 1;
+        let page = u32::try_from(self.pages.len() - 1).ok();
+        let (placement, probes) = self
+            .pages
+            .last_mut()
+            .expect("new atlas page remains retained")
+            .allocate_observed(width, height);
+        placement_probes += probes;
+        CandidateAtlasAllocation {
+            placement: page.zip(placement),
+            page_probes,
+            placement_probes,
+        }
     }
 
     pub(crate) fn insert(&mut self, entry: UiAtlasEntry) {
@@ -121,11 +160,21 @@ impl CandidateAtlasStore {
         predecessor: &AtlasStore,
         protected: &HashSet<UiGlyphRasterKey>,
     ) -> Option<(u64, Vec<u8>, UiGlyphRasterKey)> {
-        predecessor
+        self.oldest_unprotected_observed(predecessor, protected).0
+    }
+
+    pub(crate) fn oldest_unprotected_observed(
+        &self,
+        predecessor: &AtlasStore,
+        protected: &HashSet<UiGlyphRasterKey>,
+    ) -> (Option<(u64, Vec<u8>, UiGlyphRasterKey)>, usize) {
+        let mut candidates = 0;
+        let oldest = predecessor
             .entries
             .values()
             .filter(|entry| !self.removed.contains(&entry.key))
             .filter(|entry| !protected.contains(&entry.key))
+            .inspect(|_| candidates += 1)
             .map(|entry| {
                 (
                     entry.completed_use_epoch,
@@ -133,7 +182,8 @@ impl CandidateAtlasStore {
                     entry.key,
                 )
             })
-            .min_by(|left, right| (left.0, &left.1).cmp(&(right.0, &right.1)))
+            .min_by(|left, right| (left.0, &left.1).cmp(&(right.0, &right.1)));
+        (oldest, candidates)
     }
 
     pub(crate) fn apply(self, store: &mut AtlasStore) {

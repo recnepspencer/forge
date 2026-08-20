@@ -19,6 +19,9 @@ pub(super) struct UiPreparedFramePresentation {
 pub(super) fn prepare(
     frame: &crate::mounting::UiPreparedMountedFrame,
     retained: &UiMountedPresentationCandidates,
+    reconstruction_bindings: &std::collections::BTreeSet<
+        worth_ui_host_contract::UiSurfaceBindingGeneration,
+    >,
     authority: &UiMountedHostPresentationAuthority<'_>,
 ) -> Result<UiPreparedFramePresentation, UiHostSurfacePresentationDenial> {
     let source = frame.presentation_delta_source();
@@ -26,7 +29,29 @@ pub(super) fn prepare(
     let mut candidates = UiMountedPresentationCandidates::new();
     for surface in frame.surfaces() {
         let predecessor = retained.get(&surface.requirement().binding());
+        let reconstruction_required =
+            reconstruction_bindings.contains(&surface.requirement().binding());
         let (candidate, mut work) = match (source.predecessor(), predecessor) {
+            (Some(source_frame), Some(predecessor))
+                if reconstruction_required && source_frame == predecessor.frame() =>
+            {
+                let complete_projection = worth_ui_host_contract::UiMountedPresentationAuxiliaryState::from_runtime_mounting(
+                    surface.projection(),
+                )
+                .reconstruct_authored()
+                .map_err(|_| UiHostSurfacePresentationDenial::MalformedProjection)?;
+                let candidate = UiMountedPresentationState::from_projection(
+                    &complete_projection,
+                    surface.requirement(),
+                    Some(source_frame),
+                );
+                let work = candidate.issue_reconstruction(
+                    authority.presentation(),
+                    &complete_projection,
+                    source_frame,
+                );
+                Ok((candidate, work))
+            }
             (Some(source_frame), Some(predecessor)) if source_frame == predecessor.frame() => {
                 let candidate = UiMountedPresentationState::successor_from_source(
                     predecessor,
@@ -56,14 +81,19 @@ pub(super) fn prepare(
                 Ok((candidate, work))
             }
             (Some(source_frame), None) => {
-                let candidate = UiMountedPresentationState::from_projection(
+                let complete_projection = worth_ui_host_contract::UiMountedPresentationAuxiliaryState::from_runtime_mounting(
                     surface.projection(),
+                )
+                .reconstruct_authored()
+                .map_err(|_| UiHostSurfacePresentationDenial::MalformedProjection)?;
+                let candidate = UiMountedPresentationState::from_projection(
+                    &complete_projection,
                     surface.requirement(),
                     Some(source_frame),
                 );
                 let work = candidate.issue_reconstruction(
                     authority.presentation(),
-                    surface.projection(),
+                    &complete_projection,
                     source_frame,
                 );
                 Ok((candidate, work))

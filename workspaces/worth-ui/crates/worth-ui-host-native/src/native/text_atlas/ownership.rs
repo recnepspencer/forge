@@ -192,6 +192,7 @@ pub(crate) struct UiNativeTextAtlasEntryView {
     pub(crate) page: u32,
     pub(crate) origin: [u32; 2],
     pub(crate) extent: [u32; 2],
+    pub(crate) page_extent: [u32; 2],
     pub(crate) bearing: worth_ui_host_contract::UiGlyphRasterBearing,
 }
 
@@ -226,18 +227,51 @@ impl UiNativeTextAtlas {
         self.core.borrow().committed_transactions
     }
 
+    pub(crate) fn semantic_model_digest(&self) -> [u8; 32] {
+        let core = self.core.borrow();
+        let mut rows = Vec::with_capacity(core.alpha.entries.len() + core.color.entries.len());
+        rows.extend(
+            core.alpha
+                .entries
+                .values()
+                .map(|entry| model_entry_bytes(0, entry)),
+        );
+        rows.extend(
+            core.color
+                .entries
+                .values()
+                .map(|entry| model_entry_bytes(1, entry)),
+        );
+        rows.sort_unstable();
+        let mut digest = Sha256::new();
+        digest.update(core.alpha.page_width.to_le_bytes());
+        digest.update(core.alpha.page_height.to_le_bytes());
+        digest.update((core.alpha.pages.len() as u64).to_le_bytes());
+        digest.update(core.color.page_width.to_le_bytes());
+        digest.update(core.color.page_height.to_le_bytes());
+        digest.update((core.color.pages.len() as u64).to_le_bytes());
+        digest.update((rows.len() as u64).to_le_bytes());
+        for row in rows {
+            digest.update((row.len() as u64).to_le_bytes());
+            digest.update(row);
+        }
+        digest.finalize().into()
+    }
+
     pub(crate) fn entry_view(&self, key: UiGlyphRasterKey) -> Option<UiNativeTextAtlasEntryView> {
         let core = self.core.borrow();
-        let (entry, kind) = match key.source() {
+        let (entry, kind, page_extent) = match key.source() {
             worth_ui_host_contract::UiGlyphRasterSource::AlphaOutline
             | worth_ui_host_contract::UiGlyphRasterSource::LastResort => (
                 core.alpha.entries.get(&key)?,
                 super::upload::UiNativeGpuAtlasKind::Alpha,
+                [core.alpha.page_width, core.alpha.page_height],
             ),
             worth_ui_host_contract::UiGlyphRasterSource::ColorOutline
             | worth_ui_host_contract::UiGlyphRasterSource::ColorBitmap => (
                 core.color.entries.get(&key)?,
                 super::upload::UiNativeGpuAtlasKind::Color,
+                [core.color.page_width, core.color.page_height],
             ),
         };
         Some(UiNativeTextAtlasEntryView {
@@ -245,7 +279,26 @@ impl UiNativeTextAtlas {
             page: entry.page,
             origin: [entry.rect.x, entry.rect.y],
             extent: entry.content_extent,
+            page_extent,
             bearing: entry.bearing,
         })
     }
+}
+
+fn model_entry_bytes(kind: u8, entry: &UiAtlasEntry) -> Vec<u8> {
+    let mut row = Vec::with_capacity(160);
+    row.push(kind);
+    row.extend_from_slice(&canonical_raster_key_bytes(entry.key));
+    row.extend_from_slice(&entry.page.to_le_bytes());
+    row.extend_from_slice(&entry.rect.x.to_le_bytes());
+    row.extend_from_slice(&entry.rect.y.to_le_bytes());
+    row.extend_from_slice(&entry.rect.width.to_le_bytes());
+    row.extend_from_slice(&entry.rect.height.to_le_bytes());
+    row.extend_from_slice(&entry.content_extent[0].to_le_bytes());
+    row.extend_from_slice(&entry.content_extent[1].to_le_bytes());
+    row.extend_from_slice(&entry.bearing.x_over_64().to_le_bytes());
+    row.extend_from_slice(&entry.bearing.y_over_64().to_le_bytes());
+    row.extend_from_slice(&entry.digest);
+    row.extend_from_slice(&entry.pin_count.to_le_bytes());
+    row
 }

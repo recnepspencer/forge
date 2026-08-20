@@ -91,7 +91,7 @@ class GovernedRaceTests(unittest.TestCase):
             "P3-HEADLESS-COST-01",
             "P3-PRODUCER-SLOPE-01",
         ):
-            self.assertEqual(ledger_runner.execution_budget_ms(requirement), 90_000)
+            self.assertEqual(ledger_runner.execution_budget_ms(requirement), 120_000)
         self.assertEqual(ledger_runner.execution_budget_ms("P3-CLOSE-01"), 60_000)
         self.assertEqual(ledger_runner.execution_budget_ms("P4-BIDI-01"), 180_000)
 
@@ -328,12 +328,13 @@ class GovernedRaceTests(unittest.TestCase):
     def test_expensive_hostile_controls_own_their_reviewed_budget(self) -> None:
         from worth_ui_ledger_command import control_budget_ms
 
-        self.assertEqual(control_budget_ms("P3-DELTA-SOURCE-01"), 90_000)
-        self.assertEqual(control_budget_ms("P3-HEADLESS-COST-01"), 90_000)
-        self.assertEqual(control_budget_ms("P3-PRODUCER-SLOPE-01"), 90_000)
+        self.assertEqual(control_budget_ms("P3-DELTA-SOURCE-01"), 30_000)
+        self.assertEqual(control_budget_ms("P3-HEADLESS-COST-01"), 30_000)
+        self.assertEqual(control_budget_ms("P3-PRODUCER-SLOPE-01"), 30_000)
         self.assertEqual(control_budget_ms("P3-PREDECESSOR-01"), 20_000)
         self.assertEqual(control_budget_ms("P4-PREDECESSOR-01"), 20_000)
         self.assertEqual(control_budget_ms("P4-FONT-COLLECTION-01"), 20_000)
+        self.assertEqual(control_budget_ms("P4-COLOR-FONT-ADMISSION-01"), 30_000)
         self.assertEqual(control_budget_ms("P4-TEXT-RECONSTRUCTION-01"), 20_000)
 
     def test_operational_verifier_rebinds_compile_backed_rows(self) -> None:

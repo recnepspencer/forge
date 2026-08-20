@@ -113,7 +113,7 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
     let peak_census = state.borrow().compiler_total_peak();
     let peak_text_pins = state.borrow().peak_text_pins.clone();
     let effect_posture = state.borrow().effect_posture;
-    let client_cleanup = client.close().into_cleanup();
+    let (client_cleanup, _) = client.close().into_parts();
     let client_cleanup_complete = client_cleanup.is_none();
     let terminal_census = state.borrow_mut().close();
     let cleanup = UiNativeEventLoopCleanup::retain(

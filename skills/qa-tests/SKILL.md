@@ -1,12 +1,61 @@
 ---
 name: qa-tests
-description: Review and correct WORTH tests and test harnesses as production evidence. Use when auditing fixture realism, integration or end-to-end claims, oracle independence, adversarial strength, redundant tests, compile-test inflation, or test cost.
+description: Review and correct WORTH tests and test harnesses as production evidence with a fresh independent agent or CLI critic. Use when auditing fixture realism, integration or end-to-end claims, oracle independence, adversarial strength, redundant tests, compile-test inflation, test cost, or when outside-eyes review of a suite's proof claims is required.
 ---
 
 # QA Tests
 
 Attempt to falsify the suite's proof claims. A green test is evidence only for
 the production defect it can independently expose.
+
+## Execution posture
+
+Before running tests, classify the execution as inner-loop, batch-gate, or
+closure. Inner-loop execution is limited to the exact reproducer, causally
+affected owner tests, and the smallest honest boundary smoke. Historical
+portfolios, maximum-scale worlds, exhaustive matrices, full compile-contract
+portfolios, and ledger closure are closure-only unless they are the exact
+reproducer.
+
+Determine reruns from causal source and evidence dependencies. A global source
+fingerprint change may invalidate publication posture, but does not alone
+require every retained test to execute again.
+
+## Independent review
+
+Launch a fresh, read-only independent test critic at the start. Do not wait
+for a self-exhausted primary pass. The critic is an independent evidence source
+for missed proof defects, not a substitute for the primary agent's repository
+work.
+
+If the user names a reviewer, model, or CLI, use it. Valid choices may include
+a fresh Codex agent, Claude CLI, Cursor Agent, Grok, or another user-supplied
+non-interactive review command. Do not invent commands, install tools,
+authenticate accounts, or grant the critic write authority.
+
+If the user does not specify a reviewer, default to Luna Max and proceed
+without blocking for a choice. If neither Luna Max nor a user-selected reviewer
+can be launched, report the blocker; the primary agent cannot serve as its own
+independent critic.
+
+Give the critic a compact, source-bound packet of raw evidence only:
+
+- repository instructions, governing specification, and test requirements
+- the frozen revision or deterministic source fingerprint
+- the scoped production and test diff
+- relevant fixtures, harnesses, assertions, and real production boundaries
+- any search-coverage already recorded; do not delay launch to finish a
+  complete manifest
+- test commands, output, timings, retained artifacts, and known environment
+  constraints
+- a neutral request to identify proof claims that can remain green for the
+  wrong reason
+
+Do not disclose the primary agent's findings, planned corrections, or expected
+answer before the critic's first pass. Record the critic identity, model or
+command, source revision, scope, prompt, and complete findings. Independently
+verify each finding in source or execution; outside review supplies hypotheses
+and adversarial perspective, not authority.
 
 ## Establish the proof surface
 
@@ -62,6 +111,10 @@ Report findings before summaries. For each finding state:
 Do not report coverage percentage, assertion count, or stylistic preference as
 proof weakness by itself.
 
+Reconcile the primary review and the critic against repository evidence. Add
+critic findings only when that evidence supports them. Record rejected findings
+with the evidence that disproves them so consensus is never mistaken for proof.
+
 ## Correct and repeat
 
 Fix production weakness in production rather than padding the test. Repair
@@ -69,10 +122,21 @@ fixture provenance and reuse architecture before counterfeiting inputs.
 Consolidate redundant scenarios and compiler sessions instead of accumulating
 more green artifacts.
 
+Do not keep expanding the tests into a general Rust compiler, public-API analyzer, macro expander, or complete name-resolution engine merely to guard against hypothetical future code.
+
 After correction, rerun the relevant evidence, verify that the test fails under
 the named fault where practical, and reassess the affected proof family.
 Continue until no meaningful test or harness findings remain.
 
+When corrections materially change the production boundary, fixture
+provenance, oracle, harness topology, or claimed test form, obtain a closure
+pass from a new critic instance against the final revision. Do not reuse the
+initial critic's context or conclusions. The replacement critic defaults to
+Luna Max unless the user specified another reviewer. Never use the critic as an
+ongoing repository search assistant.
+
 Completion requires causally valid worlds, honest boundary labels, independent
 observations, intended-cause failures, adversarial evidence proportionate to
-risk, and justified compile plus execution cost.
+risk, justified compile plus execution cost, and a recorded outside-eyes pass
+with no unresolved supported finding. Report which reviewer was used and which
+critic findings were accepted or rejected and why.

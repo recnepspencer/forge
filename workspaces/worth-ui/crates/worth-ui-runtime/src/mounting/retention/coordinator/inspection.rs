@@ -26,7 +26,7 @@ impl UiMountedFrameRetentionCoordinator {
         selection: UiMountedFrameInspectionSelection,
     ) -> Result<UiSelectedMountedFrameInspection, UiMountedFrameInspectionDenial> {
         let authority = self.authority.borrow();
-        if authority.reservation_active {
+        if !authority.reservations.is_empty() {
             return Err(UiMountedFrameInspectionDenial::FrameTransitionInFlight);
         }
         let lookup = match selection.target {

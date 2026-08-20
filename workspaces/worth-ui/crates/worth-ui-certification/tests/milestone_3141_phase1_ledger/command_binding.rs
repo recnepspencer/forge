@@ -1,4 +1,4 @@
-const PACKAGES: [&str; 9] = [
+const PACKAGES: [&str; 10] = [
     "worth-ui-host-contract",
     "worth-ui-host-egui",
     "worth-ui-runtime",
@@ -7,6 +7,7 @@ const PACKAGES: [&str; 9] = [
     "worth-ui-native-platform",
     "worth-ui-platform-pulse",
     "worth-ui-certification",
+    "worth-ui-query-binding",
     "worth-ui-text",
 ];
 
@@ -336,6 +337,16 @@ fn phase_two_control_must_precede_the_requirement_binding() {
         --control-test-name native::readiness::tests::hostile \
         --source source.rs --artifact artifact.json";
     assert!(parse_words(&wrong_order.split_whitespace().collect::<Vec<_>>()).is_err());
+}
+
+#[test]
+fn phase_five_query_binding_is_a_governed_control_package() {
+    let command = "python scripts/ci/run_worth_ui_ledger_test.py \
+        --manifest-path workspaces/worth-ui/Cargo.toml --package worth-ui-platform-pulse --lib \
+        --test-name lawful --control-package worth-ui-query-binding --control-lib \
+        --control-test-name hostile --requirement P5-TEXT-ASYNC-PRESENTATION-01 \
+        --source source.rs --artifact artifact.json";
+    assert!(parse_words(&command.split_whitespace().collect::<Vec<_>>()).is_ok());
 }
 
 #[test]

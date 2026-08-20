@@ -101,7 +101,7 @@ fn phase_five_query_async_destination_owns_the_missing_substrate_extensions() {
     assert!(plan.contains("string-only"));
 
     let current_identity = repository_document(
-        "workspaces/worth-query/crates/worth-query/src/application/declaration/async_resource.rs",
+        "workspaces/worth-query/crates/worth-query/src/application/declaration/async_resource/request_identity.rs",
     );
     assert!(current_identity.contains("pub fn text("));
     let current_state = repository_document(
@@ -112,6 +112,51 @@ fn phase_five_query_async_destination_owns_the_missing_substrate_extensions() {
     }
 
     assert_complete_future_binding_or_absent();
+}
+
+#[test]
+fn semantic_and_physical_signal_domains_have_no_shared_owner_or_ambient_runtime() {
+    let query_binding =
+        repository_document("workspaces/worth-ui/crates/worth-ui-query-binding/Cargo.toml");
+    let host_native =
+        repository_document("workspaces/worth-ui/crates/worth-ui-host-native/Cargo.toml");
+    let runtime = repository_document("workspaces/worth-ui/crates/worth-ui-runtime/Cargo.toml");
+    assert!(!query_binding.contains("worth-ui-host-native"));
+    assert!(!host_native.contains("worth-query"));
+    assert!(!host_native.contains("worth-runtime-bridge"));
+    assert!(!runtime.contains("worth-signal"));
+
+    let inventory = workspace_source_inventory();
+    for source in inventory.rust_files_under("crates/worth-ui-query-binding/src/presentation_async")
+    {
+        for forbidden in [
+            "UiNativePhysicalSignalOwner",
+            "UiNativePhysicalSignalRequestToken",
+            "physical_work_signal",
+        ] {
+            assert!(
+                !source.text().contains(forbidden),
+                "{} imports physical Signal vocabulary through {forbidden}",
+                source.relative_path().display()
+            );
+        }
+    }
+    for source in
+        inventory.rust_files_under("crates/worth-ui-host-native/src/native/physical_work_signal")
+    {
+        for forbidden in [
+            "WorthQuery",
+            "worth_query",
+            "BridgeOwnedSignalRuntime",
+            "presentation_async",
+        ] {
+            assert!(
+                !source.text().contains(forbidden),
+                "{} imports semantic Signal vocabulary through {forbidden}",
+                source.relative_path().display()
+            );
+        }
+    }
 }
 
 #[test]

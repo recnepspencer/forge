@@ -7,15 +7,21 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
         return Ok(());
     }
     let observation = &artifact["boundary_observation"];
-    if observation["mounted_bindings"].as_u64() != Some(1)
+    if observation["schema"] != "worth-ui-native-gate-d-pin-world-v3"
+        || observation["mounted_bindings"].as_u64() != Some(1)
         || observation["pinned_layouts"].as_u64() != Some(3)
-        || observation["presentations"].as_u64() != Some(1)
-        || observation["atlas_transactions"].as_u64() != Some(3)
-        || observation["native_peak_pin_count"].as_u64() != Some(44)
+        || observation["presentations"].as_u64() != Some(4)
+        || observation["atlas_transactions"].as_u64() != Some(4)
+        || observation["native_peak_pin_count"].as_u64() != Some(49)
+        || observation["observation_history_complete"].as_bool() != Some(true)
         || observation["physical_signal_runtimes"].as_u64() != Some(1)
         || observation["physical_signal_workers"].as_u64() != Some(1)
-        || observation["alpha_entries"].as_u64() != Some(35)
+        || observation["alpha_entries"].as_u64() != Some(40)
         || observation["color_entries"].as_u64() != Some(1)
+        || observation["query_close_complete"].as_bool() != Some(true)
+        || !observation["closed_query_resources"]
+            .as_u64()
+            .is_some_and(|count| count > 0)
         || observation["terminal_zero"].as_bool() != Some(true)
     {
         return Err("Gate D pin product census is not exact".to_owned());
@@ -24,21 +30,23 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
 }
 
 fn validate_frames(observation: &Value) -> Result<(), String> {
-    if observation["native_frame_pin_counts"] != serde_json::json!([44, 35, 0]) {
+    if observation["native_frame_pin_counts"] != serde_json::json!([49, 49, 40, 0]) {
         return Err("Gate D pin frame counts are not exact".to_owned());
     }
     let frames = observation["native_frame_pins"]
         .as_array()
-        .filter(|frames| frames.len() == 3)
-        .ok_or_else(|| "Gate D pin world omits its three exact frames".to_owned())?;
+        .filter(|frames| frames.len() == 4)
+        .ok_or_else(|| "Gate D pin world omits its four exact frames".to_owned())?;
     let first = frame_layout_keys(&frames[0])?;
     let second = frame_layout_keys(&frames[1])?;
+    let third = frame_layout_keys(&frames[2])?;
     if first.len() != 3
-        || second.len() != 2
-        || !frames[2].as_array().is_some_and(Vec::is_empty)
-        || first.values().map(BTreeSet::len).sum::<usize>() != 44
-        || second.values().map(BTreeSet::len).sum::<usize>() != 35
-        || second
+        || first != second
+        || third.len() != 2
+        || !frames[3].as_array().is_some_and(Vec::is_empty)
+        || first.values().map(BTreeSet::len).sum::<usize>() != 49
+        || third.values().map(BTreeSet::len).sum::<usize>() != 40
+        || third
             .iter()
             .any(|(layout, keys)| first.get(layout) != Some(keys))
     {
@@ -46,10 +54,10 @@ fn validate_frames(observation: &Value) -> Result<(), String> {
     }
     let removed = first
         .iter()
-        .find(|(layout, _)| !second.contains_key(*layout))
+        .find(|(layout, _)| !third.contains_key(*layout))
         .map(|(_, keys)| keys)
         .ok_or_else(|| "Gate D pin frames omit the removed layout".to_owned())?;
-    let shared = second
+    let shared = third
         .values()
         .find(|keys| !keys.is_disjoint(removed))
         .ok_or_else(|| "Gate D pin frames omit shared retained raster keys".to_owned())?;

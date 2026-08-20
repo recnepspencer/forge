@@ -5317,13 +5317,17 @@ dependencies = [
 name = "worth-ui-query-binding"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
+ "sha2",
  "worth-foundational",
+ "worth-proof",
  "worth-query",
  "worth-query-decl",
  "worth-query-host",
  "worth-relational",
  "worth-runtime-bridge",
  "worth-signal",
+ "worth-ui-host-contract",
 ]
 
 [[package]]
@@ -5338,7 +5342,6 @@ dependencies = [
  "sha2",
  "worth-foundational",
  "worth-proof",
- "worth-query-host",
  "worth-ui-dsl",
  "worth-ui-host-contract",
  "worth-ui-host-egui",

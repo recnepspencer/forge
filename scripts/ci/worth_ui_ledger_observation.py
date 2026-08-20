@@ -109,7 +109,7 @@ def observed_costs(
             supporting_world is None
             or supporting_world.get("requirement") != "P5-ATLAS-01"
             or observation is None
-            or observation.get("schema") != "worth-ui-native-gate-d-pin-world-v2"
+            or observation.get("schema") != "worth-ui-native-gate-d-pin-world-v3"
             or not isinstance(control_tests, int)
             or not isinstance(presentations, int)
             or presentations < 0
@@ -127,8 +127,20 @@ def observed_costs(
     compile_sessions = compile_sessions_observed(test.sources) + int(
         public_example is not None and public_example.get("exit_code") == 0
     )
-    world_count = int(p2 or "WORTH_UI_LEDGER_WORLD=1" in execution.stdout)
-    product_processes = observation.get("product_processes") if p2 and observation else 0
+    world_count = stdout_numeric(execution.stdout, "WORTH_UI_LEDGER_WORLD=", int(p2))
+    product_processes = (
+        observation.get("product_processes")
+        if p2 and observation
+        else world_count
+        if test.requirement
+        in {
+            "P5-TEXT-PIXELS-01",
+            "P5-TEXT-RECONSTRUCTION-01",
+            "P5-TEXT-COST-01",
+            "P5-TEXT-ASYNC-PRESENTATION-01",
+        }
+        else 0
+    )
     control_tests = 0 if control is None else control.get("executed_test_count")
     presentations = (
         observation.get("counters", {}).get("presents")

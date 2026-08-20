@@ -75,7 +75,8 @@ pub(super) fn localize_async_completion_rejection(
             BridgeTemporalAsyncFailureSubcode::CompletionAdmissionTransportRejected
         }
         BridgeAsyncCompletionRejectionKind::SignalRuntimeThreadAffinityViolation
-        | BridgeAsyncCompletionRejectionKind::SignalCompletionAdmissionUnavailable => {
+        | BridgeAsyncCompletionRejectionKind::SignalCompletionAdmissionUnavailable
+        | BridgeAsyncCompletionRejectionKind::ForeignOwnerObservationAuthority => {
             BridgeTemporalAsyncFailureSubcode::CompletionAdmissionLifecycleDenied
         }
     };

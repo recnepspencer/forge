@@ -21,6 +21,7 @@ pub enum WorthQueryRuntimeStateKind {
     Revalidating,
     Superseded,
     Denied,
+    Unresolved,
     Unsupported,
 }
 
@@ -37,6 +38,7 @@ impl WorthQueryRuntimeStateKind {
             Self::Revalidating => "revalidating",
             Self::Superseded => "superseded",
             Self::Denied => "denied",
+            Self::Unresolved => "unresolved",
             Self::Unsupported => "unsupported",
         }
     }

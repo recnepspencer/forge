@@ -1,15 +1,11 @@
-use worth_ui_host_contract::{UiHostSurfaceCancellationOutcome, UiHostSurfaceInFlightCompletion};
-
-use super::super::outcome::{
-    UiMountedPresentationOutcome, UiMountedSurfacePresentationReceipt,
-    UiMountedSurfacePresentationRejection,
-};
+use super::super::outcome::UiMountedPresentationOutcome;
 use super::super::state::{
     UiMountedPresentationCompletionDenial, UiMountedPresentationInFlight,
-    UiMountedPresentationInFlightState, UiPendingMountedSurface,
+    UiMountedPresentationInFlightState,
 };
 use super::super::terminal::UiIndeterminatePresentationEvidence;
-use super::super::terminal::{aggregate_affected, completion_satisfies, rejected_outcome};
+use super::super::terminal::{aggregate_affected, rejected_outcome};
+use super::pending_completion::{observe_pending_surface, PendingCompletionContext};
 use super::UiMountedPresentationCoordinator;
 use crate::facade::UiHostEffectPort;
 
@@ -42,25 +38,28 @@ impl UiMountedPresentationCoordinator {
             pending,
             rejected,
             completed,
+            superseded_costs: _,
             ..
         } = state;
         let affected = aggregate_affected(&completed, &pending, &rejected);
-        let timeout_rejections = pending
-            .iter()
-            .map(|pending| pending.binding)
-            .map(|binding| {
-                UiMountedSurfacePresentationRejection::new(
-                    binding,
-                    worth_ui_host_contract::UiHostSurfacePresentationDenial::DeadlineExpired,
-                )
-            })
-            .collect::<Vec<_>>();
-        if cancel_all(pending, host) || !completed.is_empty() {
+        let stopped = super::cancellation::cancel_all(pending, host);
+        let cancellation = super::cancellation_settlement::settle(
+            stopped,
+            self.presentation_async.as_mut(),
+            worth_ui_host_contract::UiHostSurfacePresentationDenial::DeadlineExpired,
+        );
+        let requires_indeterminate = cancellation.requires_indeterminate();
+        let (timeout_rejections, semantic_receipts, recovery_required, physical_recovery_bindings) =
+            cancellation.into_parts();
+        if requires_indeterminate || !completed.is_empty() {
             return self.indeterminate(
                 frame,
                 retention,
                 attempt,
-                UiIndeterminatePresentationEvidence::new(affected, completed),
+                UiIndeterminatePresentationEvidence::new(affected, completed)
+                    .with_semantic_receipts(semantic_receipts)
+                    .with_recovery_required(recovery_required)
+                    .with_physical_recovery_bindings(physical_recovery_bindings),
             );
         }
         self.active.borrow_mut().remove(&attempt);
@@ -82,27 +81,41 @@ impl UiMountedPresentationCoordinator {
             pending,
             rejected,
             completed,
+            superseded_costs,
+            semantic_requests,
+            superseded,
+            reconstructed_bindings,
             candidates,
         } = state;
         let mut progress = super::UiMountedPresentationProgress {
             pending: Vec::new(),
             rejected,
             completed,
+            superseded_costs,
+            semantic_requests,
+            superseded,
         };
         let mut remaining = Vec::new();
         let mut pending_iter = pending.into_iter();
         while let Some(pending_surface) = pending_iter.next() {
-            if let Some((binding, additional_cost)) = observe_pending_surface(
-                &frame,
-                host,
-                pending_surface,
-                &mut progress,
-                &mut self.text,
-            ) {
+            let observation = {
+                let mut context = PendingCompletionContext::new(
+                    &frame,
+                    &mut progress,
+                    &mut self.text,
+                    self.presentation_async.as_mut(),
+                );
+                observe_pending_surface(host, pending_surface, &mut context)
+            };
+            if let Some(observation) = observation {
                 remaining.extend(pending_iter);
                 progress.pending.extend(remaining);
-                let evidence =
-                    terminalize_pending_uncertainty(&mut progress, host, binding, additional_cost);
+                let evidence = super::surface_uncertainty::terminalize(
+                    &mut progress,
+                    host,
+                    self.presentation_async.as_mut(),
+                    observation,
+                );
                 return self.indeterminate(frame, retention, attempt, evidence);
             }
         }
@@ -115,6 +128,10 @@ impl UiMountedPresentationCoordinator {
             pending: progress.pending,
             rejected: progress.rejected,
             completed: progress.completed,
+            superseded_costs: progress.superseded_costs,
+            semantic_requests: progress.semantic_requests,
+            superseded: progress.superseded,
+            reconstructed_bindings,
             candidates,
             host,
         })
@@ -156,6 +173,7 @@ impl UiMountedPresentationCoordinator {
     ) -> (
         super::super::UiMountedPresentationShutdownReport,
         Vec<UiMountedPresentationOutcome>,
+        Option<crate::native_platform::text_presentation::UiPresentationAsyncTerminalCleanup>,
     ) {
         self.shutting_down = true;
         let attempts = self.in_flight.keys().copied().collect::<Vec<_>>();
@@ -181,6 +199,7 @@ impl UiMountedPresentationCoordinator {
                     frame.report().affected_bindings().to_vec(),
                 ),
                 UiMountedPresentationOutcome::Presented(_)
+                | UiMountedPresentationOutcome::Superseded(_)
                 | UiMountedPresentationOutcome::InFlight(_) => {
                     unreachable!("shutdown cancellation always reaches a terminal state")
                 }
@@ -192,9 +211,73 @@ impl UiMountedPresentationCoordinator {
             ));
             outcomes.push(outcome);
         }
+        let (
+            closed_query_resources,
+            query_close_complete,
+            query_transitions,
+            query_transition_trace_complete,
+            query_semantic_frontiers,
+            query_semantic_frontier_trace_complete,
+            cleanup,
+        ) = match self.presentation_async.take() {
+            Some(runtime) => match runtime.into_terminal_close() {
+                Ok(receipt) => {
+                    self.unresolved_semantic_receipts.clear();
+                    self.unresolved_semantic_recoveries.clear();
+                    (
+                        receipt.closed_query_resources(),
+                        true,
+                        receipt.transitions().to_vec().into_boxed_slice(),
+                        receipt.transition_trace_complete(),
+                        receipt.settled_frontiers().to_vec().into_boxed_slice(),
+                        receipt.settled_frontier_trace_complete(),
+                        None,
+                    )
+                }
+                Err(cleanup) => (
+                    0,
+                    false,
+                    Vec::<worth_ui_query_binding::WorthUiPresentationTransitionObservation>::new()
+                        .into_boxed_slice(),
+                    false,
+                    Vec::<worth_ui_query_binding::WorthUiPresentationSemanticFrontierObservation>::new()
+                        .into_boxed_slice(),
+                    false,
+                    Some(cleanup),
+                ),
+            },
+            None => (
+                0,
+                true,
+                Vec::<worth_ui_query_binding::WorthUiPresentationTransitionObservation>::new()
+                    .into_boxed_slice(),
+                true,
+                Vec::<worth_ui_query_binding::WorthUiPresentationSemanticFrontierObservation>::new()
+                    .into_boxed_slice(),
+                true,
+                None,
+            ),
+        };
+        let (text_presentation_work, text_presentation_work_trace_complete) =
+            self.text.take_work_observations();
         (
-            super::super::UiMountedPresentationShutdownReport::new(records),
+            super::super::UiMountedPresentationShutdownReport::new(
+                records,
+                super::super::UiMountedPresentationQueryShutdown {
+                    closed_resources: closed_query_resources,
+                    complete: query_close_complete,
+                    transitions: query_transitions,
+                    transition_trace_complete: query_transition_trace_complete,
+                    semantic_frontiers: query_semantic_frontiers,
+                    semantic_frontier_trace_complete: query_semantic_frontier_trace_complete,
+                },
+                super::super::UiMountedPresentationTextShutdown {
+                    work: text_presentation_work,
+                    trace_complete: text_presentation_work_trace_complete,
+                },
+            ),
             outcomes,
+            cleanup,
         )
     }
 
@@ -211,26 +294,32 @@ impl UiMountedPresentationCoordinator {
             pending,
             rejected,
             completed,
+            superseded_costs: _,
             ..
         } = state;
         let affected = aggregate_affected(&completed, &pending, &rejected);
-        let cancellation_rejections = pending
-            .iter()
-            .map(|pending| pending.binding)
-            .map(|binding| {
-                UiMountedSurfacePresentationRejection::new(
-                    binding,
-                    worth_ui_host_contract::UiHostSurfacePresentationDenial::CancelledBeforeEffects,
-                )
-            })
-            .collect::<Vec<_>>();
-        let effects_may_have_begun = stop_all(pending, host, reason);
-        if effects_may_have_begun || !completed.is_empty() {
+        let stopped = super::cancellation::stop_all(pending, host, reason);
+        let cancellation = super::cancellation_settlement::settle(
+            stopped,
+            self.presentation_async.as_mut(),
+            worth_ui_host_contract::UiHostSurfacePresentationDenial::CancelledBeforeEffects,
+        );
+        let requires_indeterminate = cancellation.requires_indeterminate();
+        let (
+            cancellation_rejections,
+            semantic_receipts,
+            recovery_required,
+            physical_recovery_bindings,
+        ) = cancellation.into_parts();
+        if requires_indeterminate || !completed.is_empty() {
             return self.indeterminate(
                 frame,
                 retention,
                 attempt,
-                UiIndeterminatePresentationEvidence::new(affected, completed),
+                UiIndeterminatePresentationEvidence::new(affected, completed)
+                    .with_semantic_receipts(semantic_receipts)
+                    .with_recovery_required(recovery_required)
+                    .with_physical_recovery_bindings(physical_recovery_bindings),
             );
         }
         self.active.borrow_mut().remove(&attempt);
@@ -238,117 +327,4 @@ impl UiMountedPresentationCoordinator {
         rejections.extend(cancellation_rejections);
         rejected_outcome(attempt, frame, retention, rejections)
     }
-}
-
-fn observe_pending_surface(
-    frame: &super::super::super::UiPreparedMountedFrame,
-    host: UiHostEffectPort<'_>,
-    pending: UiPendingMountedSurface,
-    progress: &mut super::UiMountedPresentationProgress,
-    text: &mut crate::native_platform::text_presentation::UiNativeMountedTextCoordinator,
-) -> Option<(
-    worth_ui_host_contract::UiSurfaceBindingGeneration,
-    Option<worth_ui_host_contract::UiHostPresentationCostReport>,
-)> {
-    let UiPendingMountedSurface {
-        binding,
-        token,
-        expected_effects,
-        text_candidate,
-    } = pending;
-    match host
-        .adapter()
-        .complete_mounted_surface(host.authority(), token)
-    {
-        UiHostSurfaceInFlightCompletion::Pending(token) => {
-            progress.pending.push(UiPendingMountedSurface {
-                binding,
-                token,
-                expected_effects,
-                text_candidate,
-            });
-            None
-        }
-        UiHostSurfaceInFlightCompletion::RejectedBeforeEffects(denial) => {
-            if denial
-                == worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred
-            {
-                if let Some(candidate) = text_candidate {
-                    text.commit_surface_candidate(candidate);
-                }
-            }
-            progress
-                .rejected
-                .push(UiMountedSurfacePresentationRejection::new(binding, denial));
-            None
-        }
-        UiHostSurfaceInFlightCompletion::PresentationIndeterminate => Some((binding, None)),
-        UiHostSurfaceInFlightCompletion::Presented(completion) => {
-            let surface = frame
-                .surfaces()
-                .iter()
-                .find(|surface| surface.requirement().binding() == binding)
-                .expect("pending binding belongs to retained prepared frame");
-            if !completion_satisfies(surface, &expected_effects, &completion) {
-                return Some((binding, Some(completion.cost())));
-            }
-            let (epoch, effects, adapter_cost) = completion.into_parts();
-            progress
-                .completed
-                .push(UiMountedSurfacePresentationReceipt::new(
-                    surface.requirement(),
-                    epoch,
-                    effects,
-                    adapter_cost,
-                ));
-            if let Some(candidate) = text_candidate {
-                text.commit_surface_candidate(candidate);
-            }
-            None
-        }
-    }
-}
-
-fn terminalize_pending_uncertainty(
-    progress: &mut super::UiMountedPresentationProgress,
-    host: UiHostEffectPort<'_>,
-    binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
-    additional_cost: Option<worth_ui_host_contract::UiHostPresentationCostReport>,
-) -> UiIndeterminatePresentationEvidence {
-    let mut affected =
-        aggregate_affected(&progress.completed, &progress.pending, &progress.rejected);
-    affected.push(binding);
-    cancel_all(std::mem::take(&mut progress.pending), host);
-    let evidence =
-        UiIndeterminatePresentationEvidence::new(affected, std::mem::take(&mut progress.completed));
-    match additional_cost {
-        Some(cost) => evidence.with_additional_adapter_cost(cost),
-        None => evidence,
-    }
-}
-
-pub(super) fn cancel_all(
-    pending: Vec<UiPendingMountedSurface>,
-    host: UiHostEffectPort<'_>,
-) -> bool {
-    stop_all(
-        pending,
-        host,
-        worth_ui_host_contract::UiHostSurfaceStopReason::Cancelled,
-    )
-}
-
-fn stop_all(
-    pending: Vec<UiPendingMountedSurface>,
-    host: UiHostEffectPort<'_>,
-    reason: worth_ui_host_contract::UiHostSurfaceStopReason,
-) -> bool {
-    let mut effects_may_have_begun = false;
-    for pending_surface in pending {
-        effects_may_have_begun |=
-            host.adapter()
-                .cancel_mounted_surface(host.authority(), pending_surface.token, reason)
-                == UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun;
-    }
-    effects_may_have_begun
 }

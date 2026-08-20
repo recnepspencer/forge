@@ -31,9 +31,12 @@ impl SignalGraph {
         &self,
         target: NodeId,
     ) -> Result<bool, SignalError> {
+        let dependencies = self.current_runtime_dependencies_of(target)?;
+        if dependencies.is_empty() {
+            return Ok(false);
+        }
         let mut visited = vec![false; self.arena_capacity()];
-        let mut stack = self
-            .current_runtime_dependencies_of(target)?
+        let mut stack = dependencies
             .iter()
             .map(|edge| edge.source())
             .collect::<Vec<_>>();

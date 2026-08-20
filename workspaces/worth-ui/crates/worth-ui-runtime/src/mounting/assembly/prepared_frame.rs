@@ -91,6 +91,12 @@ impl UiPreparedMountedFrame {
         self.candidate.presentation_delta_source()
     }
 
+    pub(in crate::mounting) fn semantic_projection(
+        &self,
+    ) -> &super::super::projection::UiMountedSemanticProjection {
+        self.candidate.frame().semantic_projection()
+    }
+
     pub fn receipt(&self) -> UiMountedFrameReceipt {
         UiMountedFrameReceipt {
             canonical_core: self.canonical_core,

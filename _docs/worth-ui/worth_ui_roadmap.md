@@ -1961,6 +1961,14 @@ implementation gates, documentation, and Phase 6 handoff are governed by
 specification exists to keep this roadmap outcome-readable; it does not create
 a second milestone, ledger, or independently closable product surface.
 
+Phase 5 closed on 2026-08-18 with all twelve rows bound to one final source
+state. The retained portfolio includes deterministic alpha/color raster and
+emoji coverage, bounded native atlas ownership and pins, exact DPI/paint
+locality, a 4×8 fresh-world cost matrix through 4,096 items, external native
+pixels, complete derived-state reconstruction, Query-owned async presentation,
+and terminal-zero Signal/native/Query census. Phase 6 consumes that closed
+text-presentation authority and does not reopen it.
+
 Phase 5 also closes one narrow downstream Query integration: each semantic
 mounted text-presentation attempt is installed and retained as Query-owned
 async result state through `worth-ui-query-binding`. Runtime owns attempt

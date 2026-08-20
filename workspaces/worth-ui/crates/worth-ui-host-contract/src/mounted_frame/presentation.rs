@@ -62,26 +62,6 @@ pub struct UiMountedFrameConsumptionView<'frame> {
     text_raster_work: Option<&'frame UiMountedTextRasterWork<'frame>>,
 }
 
-/// Borrowed pure-text input attached to an ordinary mounted presentation.
-///
-/// This value carries no atlas, Signal, device, or settlement authority. The
-/// native host may invoke the raster callback only while executing the
-/// authority-checked mounted-surface operation that borrowed it.
-pub struct UiMountedTextRasterWork<'work> {
-    demands: &'work [crate::UiGlyphRasterDemandBatchView<'work>],
-    pins: crate::UiGlyphRasterPinTransitionView<'work>,
-    binding_pins: &'work [crate::UiGlyphRasterPinRequest],
-    rasterizer: &'work dyn UiMountedTextRasterCallback,
-}
-
-pub trait UiMountedTextRasterCallback {
-    fn rasterize(
-        &self,
-        misses: crate::UiGlyphRasterMissSelectionView<'_>,
-        sink: &mut dyn crate::UiGlyphRasterBatchSink,
-    ) -> Result<(), crate::UiGlyphRasterCallbackDenial>;
-}
-
 #[doc(hidden)]
 pub struct UiMountedFrameConsumptionInput<'frame> {
     pub authority: Rc<()>,
@@ -100,6 +80,18 @@ pub struct UiMountedFrameConsumptionInput<'frame> {
 pub struct UiHostPresentationCompletionToken {
     identity: u64,
     authority: Rc<()>,
+    progress_class: UiHostPresentationProgressClass,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiMountedSurfacePresentationSupersession {
+    cost: super::presentation_cost::UiHostPresentationCostReport,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiHostPresentationProgressClass {
+    PhysicalSurface,
+    TextAtlas,
 }
 
 impl<'frame> UiMountedFrameConsumptionView<'frame> {
@@ -164,6 +156,10 @@ impl<'frame> UiMountedFrameConsumptionView<'frame> {
 impl<'frame> UiMountedFrameConsumptionView<'frame> {
     pub fn host_session_identity(&self) -> u64 {
         self.host_session_identity
+    }
+
+    pub fn host_presentation_lineage(&self) -> Option<crate::UiHostPresentationLineageIdentity> {
+        crate::UiHostPresentationLineageIdentity::from_host_session(self.host_session_identity)
     }
 
     pub fn protocol(&self) -> crate::UiHostProtocolAgreement {
@@ -233,6 +229,17 @@ impl<'frame> UiMountedFrameConsumptionView<'frame> {
     }
 
     pub fn issue_completion_token(&self) -> UiHostPresentationCompletionToken {
+        self.issue_completion_token_for(UiHostPresentationProgressClass::PhysicalSurface)
+    }
+
+    pub fn issue_text_atlas_completion_token(&self) -> UiHostPresentationCompletionToken {
+        self.issue_completion_token_for(UiHostPresentationProgressClass::TextAtlas)
+    }
+
+    fn issue_completion_token_for(
+        &self,
+        progress_class: UiHostPresentationProgressClass,
+    ) -> UiHostPresentationCompletionToken {
         static NEXT_TOKEN: AtomicU64 = AtomicU64::new(1);
         let identity = NEXT_TOKEN
             .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
@@ -242,44 +249,8 @@ impl<'frame> UiMountedFrameConsumptionView<'frame> {
         UiHostPresentationCompletionToken {
             identity,
             authority: Rc::clone(&self.authority),
+            progress_class,
         }
-    }
-}
-
-#[doc(hidden)]
-impl<'work> UiMountedTextRasterWork<'work> {
-    pub fn from_text_mechanics(
-        demands: &'work [crate::UiGlyphRasterDemandBatchView<'work>],
-        pins: crate::UiGlyphRasterPinTransitionView<'work>,
-        binding_pins: &'work [crate::UiGlyphRasterPinRequest],
-        rasterizer: &'work dyn UiMountedTextRasterCallback,
-    ) -> Self {
-        Self {
-            demands,
-            pins,
-            binding_pins,
-            rasterizer,
-        }
-    }
-
-    pub fn demands(&self) -> &[crate::UiGlyphRasterDemandBatchView<'work>] {
-        self.demands
-    }
-
-    pub const fn pins(&self) -> crate::UiGlyphRasterPinTransitionView<'work> {
-        self.pins
-    }
-
-    pub const fn binding_pins(&self) -> &'work [crate::UiGlyphRasterPinRequest] {
-        self.binding_pins
-    }
-
-    pub fn rasterize(
-        &self,
-        misses: crate::UiGlyphRasterMissSelectionView<'_>,
-        sink: &mut dyn crate::UiGlyphRasterBatchSink,
-    ) -> Result<(), crate::UiGlyphRasterCallbackDenial> {
-        self.rasterizer.rasterize(misses, sink)
     }
 }
 
@@ -292,6 +263,10 @@ impl UiHostPresentationCompletionToken {
     pub fn diagnostic_value(&self) -> u64 {
         self.identity
     }
+
+    pub const fn progress_class(&self) -> UiHostPresentationProgressClass {
+        self.progress_class
+    }
 }
 
 impl std::fmt::Debug for UiHostPresentationCompletionToken {
@@ -299,6 +274,7 @@ impl std::fmt::Debug for UiHostPresentationCompletionToken {
         formatter
             .debug_struct("UiHostPresentationCompletionToken")
             .field("identity", &self.identity)
+            .field("progress_class", &self.progress_class)
             .finish_non_exhaustive()
     }
 }
@@ -316,6 +292,7 @@ pub enum UiHostSurfaceInFlightCompletion {
     Pending(UiHostPresentationCompletionToken),
     RejectedBeforeEffects(UiHostSurfacePresentationDenial),
     Presented(UiMountedSurfacePresentationCompletion),
+    Superseded(UiMountedSurfacePresentationSupersession),
     PresentationIndeterminate,
 }
 
@@ -381,6 +358,16 @@ impl UiMountedSurfacePresentationCompletion {
     }
 }
 
+impl UiMountedSurfacePresentationSupersession {
+    pub fn observed(cost: super::presentation_cost::UiHostPresentationCostReport) -> Self {
+        Self { cost }
+    }
+
+    pub fn cost(self) -> super::presentation_cost::UiHostPresentationCostReport {
+        self.cost
+    }
+}
+
 impl UiPresentationDeadline {
     pub const fn at_tick(tick: u64) -> Self {
         Self { tick }
@@ -396,3 +383,7 @@ impl UiPresentationDeadline {
 }
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
+#[path = "presentation/text_raster_work.rs"]
+mod text_raster_work;
+
+pub use text_raster_work::{UiMountedTextRasterCallback, UiMountedTextRasterWork};

@@ -112,12 +112,12 @@ def build_p3_proofs(
         ),
     }
     native_entries = {
-        "P3-BASELINE-REPLAY-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/pipeline.rs::draw_raster_operations",
+        "P3-BASELINE-REPLAY-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/pipeline.rs::draw_presentation_operations",
         "P3-DAMAGE-REPLAY-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/retained_draw_list/replay.rs::replay_plan",
         "P3-DRAW-LIST-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/retained_draw_list/delta_transaction.rs::stage_delta",
         "P3-PHYSICAL-AMPLIFICATION-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/delta.rs::delta_cost",
         "P3-TRANSACTION-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/delta.rs::settle_staged_delta",
-        "P3-UNCHANGED-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/mechanics_adapter/presentation.rs::retain_unchanged",
+        "P3-UNCHANGED-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/mechanics_adapter/presentation/retained_frame.rs::retain_unchanged",
     }
     for requirement, entry in native_entries.items():
         result[requirement] = proof_type(

@@ -21,7 +21,8 @@ pub use completion::{
     BridgeAsyncCompletionSupersessionReceipt, BridgeAsyncCompletionSupersessionReceiptIdentity,
     BridgeAsyncCompletionSupersessionRejection, BridgeAsyncCompletionSupersessionRejectionKind,
     BridgeAsyncDeniedCompletion, BridgeAsyncDeniedCompletionReceipt,
-    BridgeAsyncDeniedCompletionReceiptIdentity, ValidatedBridgeAsyncCompletionEnvelope,
+    BridgeAsyncDeniedCompletionReceiptIdentity, BridgeAsyncEffectsIndeterminateCompletion,
+    ValidatedBridgeAsyncCompletionEnvelope,
 };
 pub use counters::BridgeAsyncSourceDeclarationCounters;
 pub use declaration::{
@@ -34,7 +35,9 @@ pub use rejection::{
     BridgeAsyncSourceDeclarationRejection, BridgeAsyncSourceDeclarationRejectionKind,
 };
 pub(crate) use request_identity::state::{
-    with_signal_runtime as with_async_request_signal_runtime, BridgeSignalRuntime,
+    retire_owned_async_declaration_for_lowering, retire_owned_resource_declaration_for_lowering,
+    with_signal_runtime as with_async_request_signal_runtime, BridgeAsyncDeclarationRegistry,
+    BridgeSignalRuntime,
 };
 pub(crate) use request_identity::SignalRuntimeThreadAffinityError;
 pub use request_identity::{

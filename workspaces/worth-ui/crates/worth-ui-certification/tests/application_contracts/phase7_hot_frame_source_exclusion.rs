@@ -178,6 +178,7 @@ fn published(outcome: UiMountedFrameOutcome) -> UiMountedFramePublicationReceipt
         UiMountedFrameOutcome::RetentionDenied(_) => panic!("headless frame retention denied"),
         UiMountedFrameOutcome::AdmissionDenied(_) => panic!("headless frame admission denied"),
         UiMountedFrameOutcome::CompletionDenied(_) => panic!("headless frame completion denied"),
+        UiMountedFrameOutcome::Superseded(_) => panic!("headless frame was superseded"),
     }
 }
 

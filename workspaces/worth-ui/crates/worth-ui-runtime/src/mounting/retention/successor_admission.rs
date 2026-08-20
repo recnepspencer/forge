@@ -32,14 +32,22 @@ pub(super) fn admit_successor(
     authority: &UiMountedFrameRetentionAuthority,
     frame: &super::super::UiPreparedMountedFrame,
     reconciliation: bool,
+    superseding: Option<super::authority::UiMountedRetentionReservationIdentity>,
 ) -> Result<UiMountedSuccessorRetentionAdmission, UiMountedFrameRetentionDenial> {
-    if authority.reservation_active {
-        return Err(capacity_denial(
-            UiMountedRetentionClass::InFlight,
-            2,
-            0,
-            authority.budget.in_flight(),
-        ));
+    match superseding {
+        Some(predecessor)
+            if authority.reservations.len() == 1
+                && authority.reservations.contains_key(&predecessor) => {}
+        Some(_) => return Err(UiMountedFrameRetentionDenial::SupersedingPredecessorUnavailable),
+        None if !authority.reservations.is_empty() => {
+            return Err(capacity_denial(
+                UiMountedRetentionClass::InFlight,
+                authority.reservations.len().saturating_add(1),
+                authority.in_flight_structural_bytes,
+                authority.budget.in_flight(),
+            ))
+        }
+        None => {}
     }
     let candidate = prepare_candidate(frame)?;
     require_capacity(
@@ -48,10 +56,21 @@ pub(super) fn admit_successor(
         candidate.structural_bytes(),
         authority.budget.current(),
     )?;
+    let required_in_flight_frames = authority.reservations.len().checked_add(1).ok_or(
+        UiMountedFrameRetentionDenial::AccountingOverflow {
+            class: UiMountedRetentionClass::InFlight,
+        },
+    )?;
+    let required_in_flight_bytes = authority
+        .in_flight_structural_bytes
+        .checked_add(candidate.structural_bytes())
+        .ok_or(UiMountedFrameRetentionDenial::AccountingOverflow {
+            class: UiMountedRetentionClass::InFlight,
+        })?;
     require_capacity(
         UiMountedRetentionClass::InFlight,
-        1,
-        candidate.structural_bytes(),
+        required_in_flight_frames,
+        required_in_flight_bytes,
         authority.budget.in_flight(),
     )?;
     let structural_bytes = candidate.structural_bytes();

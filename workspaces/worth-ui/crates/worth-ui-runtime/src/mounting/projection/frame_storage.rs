@@ -10,9 +10,10 @@ use super::UiMountedProjectionDenial;
 pub(in crate::mounting) mod diagnostic_source;
 mod drawable_order;
 mod lane_recording;
+mod layout_reconstruction;
 mod mechanic_source;
 #[cfg(test)]
-mod mechanic_source_tests;
+pub(crate) mod mechanic_source_tests;
 mod node_changes;
 mod presentation_effects;
 pub(crate) mod presentation_sources;
@@ -138,15 +139,6 @@ impl UiMountedProjectionFrame {
 
     pub fn cost_report(&self) -> super::super::UiMountCostReport {
         self.counters.finish()
-    }
-
-    pub(crate) fn qualified_layout(
-        &self,
-        identity: worth_ui_host_contract::UiQualifiedTextLayoutIdentity,
-    ) -> Option<&worth_ui_text::UiQualifiedTextLayout> {
-        self.mechanics
-            .qualified_layout(identity)
-            .map(std::sync::Arc::as_ref)
     }
 
     pub(in crate::mounting) fn table_range_digest(&self) -> u64 {

@@ -356,6 +356,7 @@ fn publish(
         UiMountedFrameOutcome::RetentionDenied(_) => panic!("gesture world retention denied"),
         UiMountedFrameOutcome::AdmissionDenied(_) => panic!("gesture world admission denied"),
         UiMountedFrameOutcome::CompletionDenied(_) => panic!("gesture world completion denied"),
+        UiMountedFrameOutcome::Superseded(_) => panic!("gesture world was superseded"),
     };
     let binding = publication.bindings()[0];
     let epoch = presented_epoch(session, publication.frame(), binding);

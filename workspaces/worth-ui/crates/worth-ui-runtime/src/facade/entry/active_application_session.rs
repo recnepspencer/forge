@@ -24,6 +24,7 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) intent_admission: crate::runtime::intent::UiIntentAdmissionState,
     pub(super) intent_confirmation: crate::runtime::intent::UiIntentConfirmationState,
     pub(super) intent_postures: crate::mounting::UiIntentPostureTable,
+    pub(super) presentation: crate::runtime::presentation_state::UiApplicationPresentationState,
     pub(super) visual_inspection:
         crate::inspection::visual_snapshot::WorthUiVisualInspectionAuthority,
     pub(super) next_visual_capture_identity: u64,
@@ -35,7 +36,7 @@ pub struct WorthUiActiveApplicationSession {
 
 impl WorthUiActiveApplicationSession {
     pub(super) fn new(
-        app: WorthUiApp,
+        mut app: WorthUiApp,
         runtime: WorthUiRuntime,
         host_session: crate::facade::WorthUiHostSessionAuthority,
     ) -> Result<Self, crate::runtime::WorthUiRuntimeLaunchDenial> {
@@ -46,15 +47,21 @@ impl WorthUiActiveApplicationSession {
         let host_observation_capacity = app.host_observation_capacity();
         let visual_policy = app.visual_inspection_policy();
         let rebind_profile = app.prepared_authority().change_profile().rebind();
+        let presentation_async = app.take_presentation_async_owner();
         let intent_application_facts =
             crate::runtime::intent::UiIntentApplicationFactState::activate(
                 app.prepared_authority().intent_application_fact_plan(),
+            );
+        let presentation =
+            crate::runtime::presentation_state::UiApplicationPresentationState::activate(
+                app.capabilities(),
             );
         let application =
             crate::runtime::session::WorthUiApplicationSessionState::new(app, runtime);
         let mounted = crate::mounting::WorthUiMountedSessionState::new(
             host_session.identity(),
             mounted_frame_retention_budget,
+            presentation_async,
         )
         .map_err(|_| crate::runtime::WorthUiRuntimeLaunchDenial::MountedIdentityExhausted)?;
         let visual_inspection =
@@ -79,6 +86,7 @@ impl WorthUiActiveApplicationSession {
             intent_admission: crate::runtime::intent::UiIntentAdmissionState::new(),
             intent_confirmation: crate::runtime::intent::UiIntentConfirmationState::new(),
             intent_postures: crate::mounting::UiIntentPostureTable::new(),
+            presentation,
             visual_inspection,
             next_visual_capture_identity: 1,
             next_visual_overlay_identity: 1,
@@ -255,6 +263,7 @@ impl WorthUiActiveApplicationSession {
             mounted: &mut self.mounted,
             host_session: &self.host_session,
             host_exchange: &mut self.host_exchange,
+            presentation: &mut self.presentation,
         })
     }
 
@@ -358,5 +367,28 @@ impl WorthUiActiveApplicationSession {
         &self,
     ) -> crate::facade::WorthUiHostMeasurementCapability {
         self.host_session.measurement_capability()
+    }
+
+    pub(crate) fn register_application_semantic_text(
+        &mut self,
+        authored_identity: Box<str>,
+        graph_node: crate::graph::UiGraphNodeIdentity,
+    ) -> Result<(), ()> {
+        self.presentation
+            .register_semantic_text(authored_identity, graph_node)
+    }
+
+    pub(crate) fn admit_application_semantic_text(
+        &mut self,
+        changes: &[super::UiNativeComponentSemanticTextChange],
+    ) -> Result<(), ()> {
+        self.presentation.admit_semantic_text(changes)
+    }
+
+    pub(crate) fn admit_application_theme_values(
+        &mut self,
+        changes: &[super::UiNativeThemeTokenValueChange],
+    ) -> Result<(), ()> {
+        self.presentation.admit_theme_values(changes)
     }
 }

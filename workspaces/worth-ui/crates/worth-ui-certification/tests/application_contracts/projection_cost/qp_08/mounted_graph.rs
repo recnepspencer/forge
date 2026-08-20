@@ -137,6 +137,7 @@ fn require_published(
         }
         UiMountedFrameOutcome::AdmissionDenied(_) => panic!("initial frame admission was denied"),
         UiMountedFrameOutcome::CompletionDenied(_) => panic!("initial frame completion was denied"),
+        UiMountedFrameOutcome::Superseded(_) => panic!("initial frame was superseded"),
     }
 }
 

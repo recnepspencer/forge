@@ -60,6 +60,21 @@ impl WorthUiScalarProjectionHostPlan {
     ) {
         (self.request, self.completion)
     }
+
+    #[cfg(feature = "certification-construction")]
+    pub fn install_for_certification(
+        self,
+    ) -> Result<super::WorthUiScalarProjectionInstallation, WorthUiScalarProjectionInstallationError>
+    {
+        let (request, completion) = self.into_parts();
+        let installation =
+            worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller::new()
+                .install(request.generation(), request.into_packages())
+                .map_err(|error| {
+                    WorthUiScalarProjectionInstallationError::SourceLifecycle(format!("{error:?}"))
+                })?;
+        completion.complete(installation)
+    }
 }
 
 impl WorthUiScalarProjectionHostCompletion {
@@ -108,9 +123,13 @@ pub(crate) fn projection_runtime_builder(
 ) -> Result<runtime::WorthQueryRuntimeBuilder, WorthUiScalarProjectionInstallationError> {
     let builder = runtime::WorthQueryRuntime::builder()
         .domain_package(crate::worth_ui_domain_package())
+        .map_err(WorthUiScalarProjectionInstallationError::DomainPackage)?
+        .domain_package(crate::presentation_async::worth_ui_presentation_async_domain_package())
         .map_err(WorthUiScalarProjectionInstallationError::DomainPackage)?;
     let builder = crate::install_worth_ui_operation_executors(builder)
         .aspect_contracts(crate::worth_ui_native_aspect_contracts())
+        .map_err(WorthUiScalarProjectionInstallationError::AspectContract)?;
+    let builder = crate::presentation_async::install_worth_ui_presentation_async_runtime(builder)
         .map_err(WorthUiScalarProjectionInstallationError::AspectContract)?;
     Ok(projection_consumer_support(
         configure_product_projection_backend(builder, bridge, source),
@@ -132,6 +151,10 @@ fn projection_consumer_support(
         Dimension::Invalidation,
         Dimension::AsyncResultState,
         Dimension::Recovery,
+        Dimension::DependencyImpact,
+        Dimension::ConditionalEvaluation,
+        Dimension::ConditionalComparator,
+        Dimension::ConditionalTrigger,
     ]
     .into_iter()
     .fold(builder, |builder, dimension| {

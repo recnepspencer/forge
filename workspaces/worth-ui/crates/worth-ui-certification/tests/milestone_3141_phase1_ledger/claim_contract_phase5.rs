@@ -27,6 +27,18 @@ pub(super) fn construction_cost(requirement: &str) -> Option<&'static str> {
         "P5-ATLAS-PINNING-01" => {
             "main-tests=1;hostile-controls=1;product-processes=1;compile-sessions=0;courtroom-worlds=1"
         }
+        "P5-TEXT-PIXELS-01" => {
+            "main-tests=1;hostile-controls=1;product-processes=1;compile-sessions=0;courtroom-worlds=1"
+        }
+        "P5-TEXT-ASYNC-PRESENTATION-01" => {
+            "main-tests=1;hostile-controls=1;product-processes=1;compile-sessions=2;courtroom-worlds=1"
+        }
+        "P5-TEXT-RECONSTRUCTION-01" => {
+            "main-tests=1;hostile-controls=1;product-processes=7;compile-sessions=0;courtroom-worlds=7"
+        }
+        "P5-TEXT-COST-01" => {
+            "main-tests=1;hostile-controls=1;product-processes=32;compile-sessions=0;courtroom-worlds=32"
+        }
         _ => {
             "main-tests=1;hostile-controls=1;product-processes=0;compile-sessions=0;courtroom-worlds=0"
         }
@@ -39,7 +51,10 @@ pub(super) fn execution_cost(requirement: &str) -> Option<&'static str> {
     }
     Some(match requirement {
         "P5-PREDECESSOR-01" => "executed-tests=91;presentations=56",
-        "P5-ATLAS-PINNING-01" => "executed-tests=2;presentations=1;atlas-transactions=3",
+        "P5-ATLAS-PINNING-01" => "executed-tests=2;presentations=4;atlas-transactions=4",
+        "P5-TEXT-PIXELS-01" | "P5-TEXT-ASYNC-PRESENTATION-01" => "executed-tests=2;presentations=3",
+        "P5-TEXT-RECONSTRUCTION-01" => "executed-tests=2;presentations=21",
+        "P5-TEXT-COST-01" => "executed-tests=2;presentations=64",
         _ => "executed-tests=2;presentations=0",
     })
 }

@@ -11,11 +11,16 @@ use crate::UiNativeWindowConfiguration;
 
 use super::{UiNativeGraphicsPort, UiNativeHostState, UiWgpuNativeGraphicsPort};
 
+mod callback_thread;
 mod cleanup;
+mod close_request;
 mod contract;
 mod finish;
 mod physical_clock;
 mod physical_progression;
+mod presentation_correlation;
+mod qualified_surface_basis;
+mod readiness_progress;
 mod run;
 mod terminal_cleanup;
 #[cfg(test)]
@@ -27,12 +32,21 @@ use run::stop_before_callbacks;
 
 pub use cleanup::UiNativeEventLoopCleanup;
 pub use contract::{
-    UiNativeClientPresentationAttribution, UiNativeEventLoopClient, UiNativeEventLoopClientCleanup,
-    UiNativeEventLoopClientClose, UiNativeEventLoopDirective, UiNativeEventLoopRunDenial,
-    UiNativeEventLoopRunReport, UiNativeEventLoopStopReport, UiNativePhysicalProgressGrant,
-    UiNativeReadinessGrant,
+    UiNativeClientAuthoredMountedInstanceObservation, UiNativeClientConditionalOutcome,
+    UiNativeClientDerivedStateLossClass, UiNativeClientDerivedStateReconstructionObservation,
+    UiNativeClientPresentationAttribution, UiNativeClientPresentationMechanicIdentityObservation,
+    UiNativeClientPresentationSemanticChange,
+    UiNativeClientPresentationSemanticFrontierObservation,
+    UiNativeClientPresentationSemanticSubscriberObservation,
+    UiNativeClientPresentationTransitionKind, UiNativeClientPresentationTransitionObservation,
+    UiNativeClientResourceObservation, UiNativeClientShutdownObservation,
+    UiNativeClientTextPresentationWorkObservation, UiNativeEventLoopClient,
+    UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose, UiNativeEventLoopDirective,
+    UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport, UiNativeEventLoopStopReport,
+    UiNativePhysicalProgressClass, UiNativePhysicalProgressGrant, UiNativeReadinessGrant,
 };
 use physical_clock::UiNativePhysicalEventClock;
+pub use presentation_correlation::UiNativePhysicalPresentationCorrelation;
 use terminal_cleanup::terminal_cleanup_complete;
 pub(crate) use window_port::UiNativeOwnedWindow;
 use window_port::{UiNativeWindowPort, UiWinitNativeWindowPort};
@@ -56,16 +70,10 @@ struct UiNativeEventLoopApplication<Client> {
     coalesced_wakes: u64,
     failure: Option<UiNativeEventLoopRunDenial>,
     run_thread: std::thread::ThreadId,
-    thread_observation: Option<UiNativeEventLoopThreadObservation>,
+    thread_observation: Option<callback_thread::UiNativeEventLoopThreadObservation>,
     loop_resources: Vec<super::UiNativeResourceOwner>,
     port_crossings: u8,
     physical_clock: UiNativePhysicalEventClock,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct UiNativeEventLoopThreadObservation {
-    thread: std::thread::ThreadId,
-    matches_launch: bool,
 }
 
 impl WorthUiNativeEventLoop {
@@ -84,7 +92,7 @@ impl<Client: UiNativeEventLoopClient> ApplicationHandler for UiNativeEventLoopAp
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let callback_thread = std::thread::current().id();
-        let admission = transition_callback_thread(
+        let admission = callback_thread::transition(
             &mut self.thread_observation,
             self.run_thread,
             callback_thread,
@@ -158,7 +166,7 @@ impl<Client: UiNativeEventLoopClient> ApplicationHandler for UiNativeEventLoopAp
                     }
                 }
             }
-            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::CloseRequested => self.handle_close_requested(event_loop),
             _ => {}
         }
     }
@@ -184,25 +192,20 @@ impl<Client: UiNativeEventLoopClient> ApplicationHandler for UiNativeEventLoopAp
     }
 }
 
-fn transition_callback_thread(
-    slot: &mut Option<UiNativeEventLoopThreadObservation>,
-    run_thread: std::thread::ThreadId,
-    callback_thread: std::thread::ThreadId,
-) -> Result<UiNativeEventLoopThreadObservation, UiNativeEventLoopRunDenial> {
-    let observation = UiNativeEventLoopThreadObservation {
-        thread: callback_thread,
-        matches_launch: run_thread == callback_thread,
-    };
-    *slot = Some(observation);
-    observation
-        .matches_launch
-        .then_some(observation)
-        .ok_or(UiNativeEventLoopRunDenial::ApplicationDriver)
-}
-
-fn apply_directive(event_loop: &ActiveEventLoop, directive: UiNativeEventLoopDirective) -> bool {
+fn apply_directive(
+    shared: &Rc<RefCell<UiNativeHostState>>,
+    event_loop: &ActiveEventLoop,
+    directive: UiNativeEventLoopDirective,
+) -> bool {
     match directive {
         UiNativeEventLoopDirective::Continue => {
+            event_loop.set_control_flow(ControlFlow::Wait);
+            false
+        }
+        UiNativeEventLoopDirective::ExternalObservationReady => {
+            if let Some(window) = shared.borrow().window.as_ref() {
+                window.publish_external_observation_readiness();
+            }
             event_loop.set_control_flow(ControlFlow::Wait);
             false
         }
@@ -218,7 +221,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
     fn resume_admitted(
         &mut self,
         event_loop: &ActiveEventLoop,
-        _admission: UiNativeEventLoopThreadObservation,
+        _admission: callback_thread::UiNativeEventLoopThreadObservation,
     ) {
         if self.shared.borrow().window.is_some() {
             return;
@@ -281,7 +284,11 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         if directive.is_none() {
             return self.fail(event_loop, UiNativeEventLoopRunDenial::ApplicationDriver);
         }
-        if apply_directive(event_loop, directive.expect("checked directive")) {
+        if apply_directive(
+            &self.shared,
+            event_loop,
+            directive.expect("checked directive"),
+        ) {
             return event_loop.exit();
         }
         self.commit_readiness(event_loop);
@@ -293,16 +300,22 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             self.physical_readiness_owner,
             &self.shared,
         );
-        if physical == physical_progression::UiNativePhysicalWakeProgress::Progressed {
-            let directive = self.client.as_mut().and_then(|client| {
-                client
-                    .physical_work_progressed(UiNativePhysicalProgressGrant::issued())
-                    .ok()
-            });
+        if let Some(grant) = physical.application_progress_grant() {
+            let directive = self
+                .client
+                .as_mut()
+                .and_then(|client| client.physical_work_progressed(grant).ok());
             if directive.is_none() {
                 return self.fail(event_loop, UiNativeEventLoopRunDenial::ApplicationDriver);
             }
-            if apply_directive(event_loop, directive.expect("checked directive")) {
+            if self.apply_qualified_surface_basis_successor(event_loop) {
+                return;
+            }
+            if apply_directive(
+                &self.shared,
+                event_loop,
+                directive.expect("checked directive"),
+            ) {
                 return event_loop.exit();
             }
         }
@@ -320,57 +333,22 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             .client
             .as_mut()
             .and_then(|client| client.redraw_ready(readiness).ok());
+        // Client progression may admit or transition physical work while handling
+        // this redraw. Publish any resulting level wake before deciding whether
+        // the client requested another ordinary application turn.
+        self.request_physical_signal_redraw();
         if directive.is_none() {
             self.fail(event_loop, UiNativeEventLoopRunDenial::ApplicationDriver);
-        } else if apply_directive(event_loop, directive.expect("checked directive")) {
+        } else if self.apply_qualified_surface_basis_successor(event_loop) {
+            return;
+        } else if apply_directive(
+            &self.shared,
+            event_loop,
+            directive.expect("checked directive"),
+        ) {
             event_loop.exit();
         } else {
             self.first_frame_presented = true;
-        }
-    }
-
-    fn commit_readiness(&mut self, event_loop: &ActiveEventLoop) {
-        let basis = self.shared.borrow().graphics.as_ref().map(|graphics| {
-            (
-                (graphics.scale_factor * 1_000.0).round() as u32,
-                graphics.extent(),
-            )
-        });
-        let Some((scale_factor_milli, client_physical_size)) = basis else {
-            return self.fail(event_loop, UiNativeEventLoopRunDenial::GraphicsPreparation);
-        };
-        if self
-            .readiness
-            .commit_latest(
-                self.readiness_owner,
-                scale_factor_milli,
-                client_physical_size,
-            )
-            .is_err()
-        {
-            return self.fail(event_loop, UiNativeEventLoopRunDenial::ApplicationDriver);
-        }
-        let window = self
-            .shared
-            .borrow()
-            .window
-            .as_ref()
-            .map(|window| Arc::clone(window));
-        match super::readiness::signal_committed(&mut self.readiness, self.readiness_owner, || {
-            if let Some(window) = &window {
-                window.request_redraw();
-            }
-        }) {
-            Ok(super::readiness::UiNativeReadinessSignalDisposition::RedrawRequested) => {
-                self.readiness_signals += 1;
-            }
-            Ok(super::readiness::UiNativeReadinessSignalDisposition::Coalesced) => {
-                self.coalesced_wakes += 1;
-            }
-            Ok(super::readiness::UiNativeReadinessSignalDisposition::NoWork) => {
-                unreachable!("committed application readiness always carries work")
-            }
-            Err(()) => self.fail(event_loop, UiNativeEventLoopRunDenial::ApplicationDriver),
         }
     }
 

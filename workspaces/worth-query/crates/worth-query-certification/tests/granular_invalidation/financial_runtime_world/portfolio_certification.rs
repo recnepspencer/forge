@@ -10,11 +10,11 @@ use worth_query_execution::facade::primary_graph::{
 use worth_query_host::facade::primary_graph::WorthQueryConditionalClockObservationOutcome;
 
 use super::{host::FinancialCourtroomWorld, query};
+use crate::performed_identity_observer::PerformedIdentityObserver;
 use crate::production_evidence::{
     CertificationComparatorPolicy, CertificationExecutionLane, OwnerPerformedCounterRows,
     PerformedScenarioEvidence, PerformedScenarioEvidenceParts,
 };
-use crate::performed_identity_observer::PerformedIdentityObserver;
 use crate::world::{GranularInvalidationScenario, GranularInvalidationWorldDefinition};
 
 pub fn run_portfolio_certification(seed: u64) -> PerformedScenarioEvidence {
@@ -56,8 +56,7 @@ fn run_portfolio_certification_with_world(
     ));
     host.portfolio_gate.release();
     let current = host.application.granular_invalidation_installation();
-    let binding =
-        bind_primary_runtime_granular_invalidations(&query.live, current.clone());
+    let binding = bind_primary_runtime_granular_invalidations(&query.live, current.clone());
     let mut counters = OwnerPerformedCounterRows::default();
     let mut installation = None;
     let mut observer = PerformedIdentityObserver::default();
@@ -72,8 +71,7 @@ fn run_portfolio_certification_with_world(
     ];
     for (step, mutation) in steps.into_iter().zip(&declared.mutations) {
         step.apply(&mut host);
-        let (step_installation, lower, performed) =
-            perform(&mut host, &mut query, &binding);
+        let (step_installation, lower, performed) = perform(&mut host, &mut query, &binding);
         installation.get_or_insert(step_installation);
         assert_step_roles(step, &performed);
         observer
@@ -155,7 +153,10 @@ fn perform(
     let lower = batch.observation();
     let outcome = maintain_primary_runtime_granular_collection_batch(
         &query.live,
-        query.collection.as_mut().expect("portfolio collection state"),
+        query
+            .collection
+            .as_mut()
+            .expect("portfolio collection state"),
         &mut query.workspace,
         binding,
         batch,
@@ -167,7 +168,10 @@ fn perform(
     (installation, lower, performed)
 }
 
-fn assert_step_roles(step: PortfolioStep, performed: &WorthQueryPrimaryGranularMaintenancePerformed) {
+fn assert_step_roles(
+    step: PortfolioStep,
+    performed: &WorthQueryPrimaryGranularMaintenancePerformed,
+) {
     let roles = performed.deliveries()[0].roles();
     let expected: &[Role] = match step {
         PortfolioStep::Value(..) => &[Role::ProjectedValue],
@@ -176,11 +180,7 @@ fn assert_step_roles(step: PortfolioStep, performed: &WorthQueryPrimaryGranularM
             Role::SelectionOrMembership,
             Role::Grouping,
         ],
-        PortfolioStep::Rank(..) => &[
-            Role::ProjectedValue,
-            Role::Ordering,
-            Role::WindowBoundary,
-        ],
+        PortfolioStep::Rank(..) => &[Role::ProjectedValue, Role::Ordering, Role::WindowBoundary],
     };
     assert!(expected.iter().all(|role| roles.contains(role)));
     assert_eq!(performed.consumer_publication_count(), 1);

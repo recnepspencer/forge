@@ -142,6 +142,20 @@ def main() -> int:
         recorded_revision, recorded_digest = retained_source_binding(
             arguments.through_phase
         )
+        if (recorded_revision, recorded_digest) != (revision, state_digest):
+            print(
+                "[portfolio:revalidate] retained source binding is historical; "
+                "executing current-source portfolio",
+                file=sys.stderr,
+                flush=True,
+            )
+            execute_current_portfolio(arguments, revision, state_digest)
+            print(
+                f"Worth UI milestone 3.14.1 operationally revalidated through "
+                f"Phase {arguments.through_phase}",
+                flush=True,
+            )
+            return 0
         persist_referenced_receipts(
             ROOT, ledger_identity(), arguments.through_phase, recorded_digest
         )

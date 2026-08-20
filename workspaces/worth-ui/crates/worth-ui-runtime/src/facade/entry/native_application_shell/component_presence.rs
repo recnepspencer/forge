@@ -69,11 +69,12 @@ impl WorthUiNativeApplicationShell {
                 .session
                 .mounted_graph_node(row.graph_node)
                 .map_err(|_| ())?;
-            row.mounted = Some(
-                self.session
-                    .mount_instance(handle, self.surface)
-                    .map_err(|_| ())?,
-            );
+            let mounted = self
+                .session
+                .mount_instance(handle, self.surface)
+                .map_err(|_| ())?;
+            row.mounted = Some(mounted);
+            row.latest_mounted = mounted;
         } else {
             let mounted = row.mounted.take().ok_or(())?;
             self.session.unmount_instance(mounted).map_err(|_| ())?;

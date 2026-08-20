@@ -98,10 +98,18 @@ fn application_font_authority_mutants_are_rejected_at_the_owning_boundaries() {
 #[test]
 #[ignore = "Phase 4 closure: validates every admitted color-font source"]
 fn admitted_color_fonts_have_complete_owned_table_semantics() {
-    super::application_color_tests::every_qualified_color_table_format_crosses_public_pack_admission();
-    super::application_color_tests::qualified_colrv1_composite_and_gradient_enums_cross_public_admission();
-    super::application_color_tests::owned_color_emoji_bytes_are_selected_as_one_complete_application_cluster();
-    super::application_color_tests::repository_color_emoji_requires_resolvable_locations_and_intact_png_chunks();
+    let cases: [fn(); 4] = [
+        super::application_color_tests::every_qualified_color_table_format_crosses_public_pack_admission,
+        super::application_color_tests::qualified_colrv1_composite_and_gradient_enums_cross_public_admission,
+        super::application_color_tests::owned_color_emoji_bytes_are_selected_as_one_complete_application_cluster,
+        super::application_color_tests::repository_color_emoji_requires_resolvable_locations_and_intact_png_chunks,
+    ];
+    std::thread::scope(|scope| {
+        let executions = cases.map(|case| scope.spawn(case));
+        for execution in executions {
+            execution.join().expect("color-font evidence case passed");
+        }
+    });
     println!("WORTH_UI_LEDGER_COUNTERS={{\"P4-COLOR-FONT-ADMISSION-01\":4}}");
 }
 

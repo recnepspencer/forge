@@ -4,7 +4,7 @@ mod request;
 
 pub(crate) use external_observation::{
     UiNativePhysicalSignalExternalBasis, UiNativePhysicalSignalExternalObservation,
-    UiNativePhysicalSignalExternalStatus,
+    UiNativePhysicalSignalExternalOrigin, UiNativePhysicalSignalExternalStatus,
 };
 pub(crate) use request::{
     UiNativePhysicalSignalRequestToken, UiNativePhysicalSignalRoute, UiNativePhysicalSignalWork,

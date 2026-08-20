@@ -2,9 +2,9 @@ use crate::native::UiNativeGraphics;
 use wgpu::util::DeviceExt;
 
 use super::super::{
-    copy_evidence_pixels, draw_raster_operations, draw_retained_to_surface, raster_pipelines,
-    rectangle_vertices, retained_transfer, RasterVertex, UiNativePendingWgpuObligation,
-    UiNativeReadbackPort, UiWgpuNativeReadbackPort,
+    copy_evidence_pixels, draw_presentation_operations, draw_retained_to_surface,
+    presentation_pipelines, rectangle_vertices, retained_transfer, GlyphVertex, RasterVertex,
+    UiNativePendingWgpuObligation, UiNativePresentationPipelines, UiNativeWgpuReadbackPoll,
 };
 use super::{
     UiNativePresentationPortFailure, UiNativePresentationPortObservation,
@@ -13,7 +13,9 @@ use super::{
 
 pub(super) fn present(
     graphics: &mut UiNativeGraphics,
+    atlas: Option<&crate::native::text_atlas::UiNativeTextAtlasGpuPages>,
     plan: UiNativePresentationPortPlan,
+    defer_initial_observation: bool,
 ) -> Result<UiNativePresentationPortObservation, UiNativePresentationPortFailure> {
     let cost = plan.cost;
     let (surface_pipeline, surface_bind_group) = retained_transfer(graphics);
@@ -25,23 +27,29 @@ pub(super) fn present(
         .texture
         .create_view(&wgpu::TextureViewDescriptor::default());
     let readback = evidence_buffer(&graphics.device);
-    let vertices = raster_vertices(&plan.operations);
-    let vertex_bytes = encode_vertices(&vertices);
-    let vertex_buffer = (!vertex_bytes.is_empty()).then(|| {
+    let raster_vertices = raster_vertices(&plan.operations);
+    let raster_bytes = encode_raster_vertices(&raster_vertices);
+    let raster_vertex_buffer = (!raster_bytes.is_empty()).then(|| {
         graphics
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("worth-ui-retained-raster-vertices"),
-                contents: &vertex_bytes,
+                contents: &raster_bytes,
                 usage: wgpu::BufferUsages::VERTEX,
             })
     });
-    let replace_operations = plan
-        .operations
-        .iter()
-        .map(|operation| matches!(operation, UiNativeRasterOperation::Clear(_)))
-        .collect::<Vec<_>>();
-    let raster_pipelines = raster_pipelines(&graphics.device);
+    let glyph_vertices = glyph_vertices(&plan.operations, graphics.extent());
+    let glyph_bytes = encode_glyph_vertices(&glyph_vertices);
+    let glyph_vertex_buffer = (!glyph_bytes.is_empty()).then(|| {
+        graphics
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("worth-ui-retained-glyph-vertices"),
+                contents: &glyph_bytes,
+                usage: wgpu::BufferUsages::VERTEX,
+            })
+    });
+    let pipelines = presentation_pipelines(&graphics.device);
     let submission = encode_and_present(
         graphics,
         output,
@@ -50,25 +58,30 @@ pub(super) fn present(
         surface_pipeline,
         surface_bind_group,
         &readback,
-        vertex_buffer.as_ref(),
-        &replace_operations,
-        (&raster_pipelines.0, &raster_pipelines.1),
+        raster_vertex_buffer.as_ref(),
+        glyph_vertex_buffer.as_ref(),
+        atlas,
+        &pipelines,
         plan,
     );
-    let (pixels, readback_crossings) =
-        match UiWgpuNativeReadbackPort::read_two_pixels(&graphics.device, &readback, &submission) {
-            Ok(observation) => observation.into_parts(),
-            Err(_) => {
-                return Err(UiNativePresentationPortFailure::ReadbackUnsettled(
-                    Box::new(UiNativePendingWgpuObligation::new(readback, submission)),
-                ));
-            }
-        };
-    Ok(UiNativePresentationPortObservation {
-        pixels,
-        cost,
-        crossing_count: readback_crossings.saturating_add(1),
-    })
+    let mut pending = UiNativePendingWgpuObligation::new(readback, submission, cost);
+    if defer_initial_observation {
+        pending.retain_async_handoff();
+        return Err(UiNativePresentationPortFailure::ReadbackUnsettled(
+            Box::new(pending),
+        ));
+    }
+    match pending.poll_readback(&graphics.device) {
+        UiNativeWgpuReadbackPoll::Presented(pixels) => Ok(
+            UiNativePresentationPortObservation::from_async_readback(pixels, cost),
+        ),
+        UiNativeWgpuReadbackPoll::Pending | UiNativeWgpuReadbackPoll::Indeterminate => {
+            pending.retain_async_handoff();
+            Err(UiNativePresentationPortFailure::ReadbackUnsettled(
+                Box::new(pending),
+            ))
+        }
+    }
 }
 
 fn acquire_surface(
@@ -99,9 +112,10 @@ fn encode_and_present(
     surface_pipeline: wgpu::RenderPipeline,
     surface_bind_group: wgpu::BindGroup,
     readback: &wgpu::Buffer,
-    vertex_buffer: Option<&wgpu::Buffer>,
-    replace_operations: &[bool],
-    raster_pipelines: (&wgpu::RenderPipeline, &wgpu::RenderPipeline),
+    raster_vertex_buffer: Option<&wgpu::Buffer>,
+    glyph_vertex_buffer: Option<&wgpu::Buffer>,
+    atlas: Option<&crate::native::text_atlas::UiNativeTextAtlasGpuPages>,
+    pipelines: &UiNativePresentationPipelines,
     plan: UiNativePresentationPortPlan,
 ) -> wgpu::SubmissionIndex {
     let mut encoder = graphics
@@ -109,12 +123,15 @@ fn encode_and_present(
         .create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("worth-ui-initial-presentation"),
         });
-    draw_raster_operations(
+    draw_presentation_operations(
+        &graphics.device,
         &mut encoder,
         &retained_view,
-        vertex_buffer,
-        replace_operations,
-        raster_pipelines,
+        raster_vertex_buffer,
+        glyph_vertex_buffer,
+        &plan.operations,
+        atlas,
+        pipelines,
         plan.clear_retained_target,
     );
     draw_retained_to_surface(
@@ -137,19 +154,49 @@ fn encode_and_present(
 fn raster_vertices(operations: &[UiNativeRasterOperation]) -> Vec<RasterVertex> {
     operations
         .iter()
-        .flat_map(|operation| match *operation {
-            UiNativeRasterOperation::Clear(rect) => rectangle_vertices(rect, [0, 0, 0, 0]),
+        .filter_map(|operation| match *operation {
+            UiNativeRasterOperation::Clear(rect) => Some(rectangle_vertices(rect, [0, 0, 0, 0])),
             UiNativeRasterOperation::FilledRect { rect, source_rgba8 } => {
-                rectangle_vertices(rect, source_rgba8)
+                Some(rectangle_vertices(rect, source_rgba8))
             }
+            UiNativeRasterOperation::Glyph(_) => None,
         })
+        .flatten()
         .collect()
 }
 
-fn encode_vertices(vertices: &[RasterVertex]) -> Vec<u8> {
+fn glyph_vertices(operations: &[UiNativeRasterOperation], extent: [u32; 2]) -> Vec<GlyphVertex> {
+    operations
+        .iter()
+        .filter_map(|operation| match operation {
+            UiNativeRasterOperation::Glyph(command) => {
+                Some(super::super::text::glyph_vertices(*command, extent))
+            }
+            UiNativeRasterOperation::Clear(_) | UiNativeRasterOperation::FilledRect { .. } => None,
+        })
+        .flatten()
+        .collect()
+}
+
+fn encode_raster_vertices(vertices: &[RasterVertex]) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(vertices.len() * 24);
     for vertex in vertices {
         for value in vertex.position.into_iter().chain(vertex.color) {
+            bytes.extend_from_slice(&value.to_ne_bytes());
+        }
+    }
+    bytes
+}
+
+fn encode_glyph_vertices(vertices: &[GlyphVertex]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(vertices.len() * 32);
+    for vertex in vertices {
+        for value in vertex
+            .position
+            .into_iter()
+            .chain(vertex.texture_uv)
+            .chain(vertex.color)
+        {
             bytes.extend_from_slice(&value.to_ne_bytes());
         }
     }

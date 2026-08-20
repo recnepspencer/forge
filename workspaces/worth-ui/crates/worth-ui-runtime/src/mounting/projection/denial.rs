@@ -38,6 +38,8 @@ pub enum UiMountedProjectionDenial {
     SemanticTextCapacityExceeded,
     SemanticTextCompletion(worth_ui_host_contract::UiMountedSemanticTextCompletionDenial),
     SemanticTextQualification(worth_ui_text::UiTextQualificationDenial),
+    SemanticTextReconstruction(worth_ui_text::UiTextReconstructionDenial),
+    MissingSemanticTextReconstructionSource,
     AmbiguousDrawableOrder {
         instance: worth_ui_host_contract::UiMountedInstanceIdentity,
         layer: u32,

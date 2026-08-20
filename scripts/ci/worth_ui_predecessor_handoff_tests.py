@@ -31,20 +31,22 @@ class PredecessorHandoffCostTests(unittest.TestCase):
                 governed_snapshot.refresh_handoff_when_required(test)
             refresh.assert_not_called()
 
-    def test_predecessor_handoff_input_is_distinct_from_row_result(self) -> None:
-        row = {"requirement": "P3-PREDECESSOR-01"}
-        prepare_claim(row, proofs()["P3-PREDECESSOR-01"])
-        handoffs = [
-            source for source in row["source_identity"].split(";")
-            if source.endswith("p3-predecessor-handoff.json")
-        ]
-        self.assertEqual(len(handoffs), 1)
-        self.assertNotEqual(handoffs[0], row["retained_result_artifact"])
-        command = ["runner", "--source", handoffs[0]]
-        self.assertEqual(
-            bind_fresh_predecessor_handoff(command, "fresh.json"),
-            ["runner", "--source", "fresh.json"],
-        )
+    def test_each_predecessor_handoff_input_is_distinct_and_rebindable(self) -> None:
+        for phase in (3, 4, 5):
+            requirement = f"P{phase}-PREDECESSOR-01"
+            row = {"requirement": requirement}
+            prepare_claim(row, proofs()[requirement])
+            handoffs = [
+                source for source in row["source_identity"].split(";")
+                if source.endswith(f"p{phase}-predecessor-handoff.json")
+            ]
+            self.assertEqual(len(handoffs), 1, requirement)
+            self.assertNotEqual(handoffs[0], row["retained_result_artifact"])
+            command = ["runner", "--source", handoffs[0]]
+            self.assertEqual(
+                bind_fresh_predecessor_handoff(command, "fresh.json", phase),
+                ["runner", "--source", "fresh.json"],
+            )
 
     def test_nested_replay_does_not_consume_the_outer_candidate(self) -> None:
         test = ledger_runner.GovernedTest(

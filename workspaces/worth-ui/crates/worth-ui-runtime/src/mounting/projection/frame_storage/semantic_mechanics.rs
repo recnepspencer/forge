@@ -1,10 +1,10 @@
 use worth_ui_host_contract::{
-    UiMountedInstanceIdentity, UiMountedPaintCommand, UiMountedPaintCommandChange,
-    UiMountedSemanticTextMechanic, UiSemanticTextSlot,
+    UiMountedInstanceIdentity, UiMountedPaintCommandChange, UiMountedSemanticTextMechanic,
+    UiSemanticTextSlot,
 };
 
 use super::super::semantic_text::{
-    complete_semantic_text_replacement, UiMountedCollectionTextKey, UiMountedQualifiedSemanticText,
+    UiMountedCollectionTextKey, UiMountedQualifiedSemanticText,
     UiMountedSemanticTextCompletionContext, UiMountedSemanticTextSeed,
     UiMountedSemanticTextSeedContent, UiMountedSemanticTextSeedTransition,
 };
@@ -16,13 +16,16 @@ mod capacity;
 mod diff;
 mod key;
 mod layout_index;
+mod layout_reconstruction;
 mod paint_only;
+mod sparse_update;
 #[cfg(test)]
 mod test_views;
 
 use diff::diff_rows;
 use key::row_digest;
 use layout_index::UiMountedQualifiedLayoutIndex;
+use sparse_update::{apply_posture_update, apply_row_update};
 
 #[derive(Clone, Default)]
 pub(super) struct UiMountedSemanticMechanicSource {
@@ -210,6 +213,13 @@ impl UiMountedSemanticMechanicSource {
         self.by_layout.get(identity)
     }
 
+    fn rebuild_layout_index(&mut self) {
+        self.by_layout = UiMountedQualifiedLayoutIndex::default();
+        for (_, rows) in self.by_instance.iter() {
+            self.by_layout.insert_rows(rows);
+        }
+    }
+
     #[cfg(test)]
     pub(super) fn qualified_layout_for(
         &self,
@@ -220,7 +230,7 @@ impl UiMountedSemanticMechanicSource {
             .get(&instance)?
             .iter()
             .find(|row| row.slot() == slot)
-            .map(UiMountedQualifiedSemanticText::qualified_layout)
+            .and_then(UiMountedQualifiedSemanticText::qualified_layout)
     }
 
     pub(super) fn replace_all(
@@ -308,88 +318,4 @@ impl UiMountedSemanticMechanicRows {
         self.rows.insert(key, row);
         Ok(Some(predecessor))
     }
-}
-
-fn apply_row_update(
-    context: &UiMountedSemanticTextCompletionContext<'_>,
-    node: &UiMountedProjectionNodeRecord,
-    seed: &UiMountedSemanticTextSeed,
-    source: &super::super::semantic_text::UiMountedCollectionTextSource,
-    row: &crate::mounting::UiMountedCollectionTextRow,
-    rows: &mut UiMountedSemanticMechanicRows,
-    changes: &mut UiMountedSparseSemanticChanges,
-) -> Result<(), UiMountedProjectionDenial> {
-    let row_key = UiMountedCollectionTextKey::for_row(row);
-    let successor = source
-        .row(row_key)
-        .ok_or(UiMountedProjectionDenial::InvalidSemanticCollectionPatch)?;
-    for (field, text) in successor.selected_values().iter().enumerate() {
-        let key = UiMountedSemanticMechanicKey::collection(
-            row_key,
-            u16::try_from(field)
-                .map_err(|_| UiMountedProjectionDenial::SemanticTextCapacityExceeded)?,
-        );
-        let predecessor = rows
-            .rows
-            .get(&key)
-            .cloned()
-            .ok_or(UiMountedProjectionDenial::InvalidSemanticCollectionPatch)?;
-        if predecessor.text() == text.as_ref() {
-            continue;
-        }
-        let replacement = complete_semantic_text_replacement(
-            context,
-            node,
-            &predecessor,
-            text,
-            seed.formatting().default_row(),
-        )?;
-        rows.replace(key, replacement.clone())?;
-        changes.layouts.push((predecessor, replacement.clone()));
-        changes.commands.push(UiMountedPaintCommandChange::Replace(
-            UiMountedPaintCommand::SemanticText {
-                identity: worth_ui_host_contract::UiMountedPaintCommandIdentity::semantic_text(
-                    &replacement,
-                ),
-                mechanic: replacement.mechanic_clone(),
-            },
-        ));
-    }
-    Ok(())
-}
-
-fn apply_posture_update(
-    context: &UiMountedSemanticTextCompletionContext<'_>,
-    node: &UiMountedProjectionNodeRecord,
-    seed: &UiMountedSemanticTextSeed,
-    rows: &mut UiMountedSemanticMechanicRows,
-    changes: &mut UiMountedSparseSemanticChanges,
-) -> Result<(), UiMountedProjectionDenial> {
-    let key = UiMountedSemanticMechanicKey::posture();
-    let predecessor = rows
-        .rows
-        .get(&key)
-        .cloned()
-        .ok_or(UiMountedProjectionDenial::InvalidSemanticCollectionPatch)?;
-    if predecessor.text() == seed.posture().as_ref() {
-        return Ok(());
-    }
-    let replacement = complete_semantic_text_replacement(
-        context,
-        node,
-        &predecessor,
-        seed.posture(),
-        seed.formatting().default_row(),
-    )?;
-    rows.replace(key, replacement.clone())?;
-    changes.layouts.push((predecessor, replacement.clone()));
-    changes.commands.push(UiMountedPaintCommandChange::Replace(
-        UiMountedPaintCommand::SemanticText {
-            identity: worth_ui_host_contract::UiMountedPaintCommandIdentity::semantic_text(
-                &replacement,
-            ),
-            mechanic: replacement.mechanic_clone(),
-        },
-    ));
-    Ok(())
 }

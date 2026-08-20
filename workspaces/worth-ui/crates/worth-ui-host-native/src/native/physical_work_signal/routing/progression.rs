@@ -72,6 +72,24 @@ impl UiNativePhysicalSignalOwner {
         ))
     }
 
+    pub(crate) fn cancel_presentation_to_recovery(
+        &mut self,
+        identity: super::super::UiNativePhysicalPresentationIdentity,
+    ) -> Result<super::UiNativePhysicalSignalRequestToken, ()> {
+        let before = self.observation();
+        let token = self.transition_presentation_to_recovery(identity)?;
+        self.counters.cancellations = self.counters.cancellations.saturating_add(1);
+        let after = self.observation();
+        self.record_transition_observation(
+            super::super::transition_observation::UiNativePhysicalSignalTransitionObservation::from_owner_cancellation(
+                token.work(),
+                before,
+                after,
+            ),
+        );
+        Ok(token)
+    }
+
     pub(in crate::native::physical_work_signal) fn transition_work_to_recovery(
         &mut self,
         work: super::super::UiNativePhysicalSignalWork,

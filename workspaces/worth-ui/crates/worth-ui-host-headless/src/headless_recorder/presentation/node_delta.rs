@@ -111,11 +111,9 @@ fn validate_paint(
         UiMountedPresentationNodePaint::Command(identity) => {
             let changed = changes.iter().find_map(|change| match change {
                 UiMountedPaintCommandChange::Insert(command)
-                | UiMountedPaintCommandChange::Replace(command)
-                    if command.identity() == identity =>
-                {
-                    Some(Some(command))
-                }
+                | UiMountedPaintCommandChange::Replace {
+                    successor: command, ..
+                } if command.identity() == identity => Some(Some(command)),
                 UiMountedPaintCommandChange::Remove(removed) if *removed == identity => Some(None),
                 _ => None,
             });

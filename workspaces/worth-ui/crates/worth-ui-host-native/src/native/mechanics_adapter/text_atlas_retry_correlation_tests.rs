@@ -89,7 +89,10 @@ pub(super) fn production_retry_rebinds_the_retained_gpu_correlation() {
             timeout: Some(crate::native::presentation::GPU_WAIT_DEADLINE),
         })
         .expect("the qualified retry submission must physically complete");
-    assert!(state.progress_text_atlas_physical(pending));
+    assert_eq!(
+        state.progress_text_atlas_physical(pending),
+        crate::native::host_state::UiNativeTextAtlasPhysicalProgress::Terminal
+    );
     assert!(matches!(
         state.complete_pending_text_atlas(pending),
         UiGlyphRasterTransactionOutcome::Committed(_)

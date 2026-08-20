@@ -17,7 +17,7 @@ pub use worth_ui_runtime::facade::mounted::{
     UiMountedIndeterminateFrame, UiMountedInspectedFrame, UiMountedInspectionReceipt,
     UiMountedInspectionRequest, UiMountedPresentationAdmissionRejection,
     UiMountedPresentationCompletionDenial, UiMountedPresentationInFlight, UiMountedRejectedFrame,
-    UiMountedVisualTargetDenial, UiPresentationDeadline,
+    UiMountedSupersededFrame, UiMountedVisualTargetDenial, UiPresentationDeadline,
 };
 pub use worth_ui_runtime::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
 pub use worth_ui_runtime::facade::text::{

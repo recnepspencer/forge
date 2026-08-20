@@ -75,13 +75,6 @@ where
         self.index.ordered()
     }
 
-    pub(super) fn last(&self) -> Option<(usize, Identity)> {
-        let rank = self.index.len().checked_sub(1)?;
-        self.index
-            .identity_at(rank)
-            .map(|identity| (rank, identity))
-    }
-
     pub(super) fn contains(&self, identity: Identity) -> bool {
         self.index.contains(identity)
     }

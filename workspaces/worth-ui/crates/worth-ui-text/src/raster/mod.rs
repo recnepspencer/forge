@@ -11,6 +11,7 @@ mod alpha_record;
 mod alpha_transaction_admission;
 mod alpha_transaction_completion;
 mod batch;
+mod cache;
 mod capacity;
 mod color;
 mod cost;
@@ -27,7 +28,8 @@ mod source;
 
 pub use alpha::{
     rasterize_alpha_outline, rasterize_alpha_outline_selection,
-    rasterize_alpha_outline_transaction, UiAlphaRasterTransaction, UiAlphaRasterization,
+    rasterize_alpha_outline_selection_cached, rasterize_alpha_outline_transaction,
+    UiAlphaRasterTransaction, UiAlphaRasterization,
 };
 pub use alpha_admission::{admit_alpha_outline, UiAlphaRasterAdmission};
 pub use alpha_transaction_admission::{
@@ -40,6 +42,7 @@ pub use batch::{
     UiAlphaRasterBatch, UiColorRasterBatch, UiGlyphRasterAdmissionDenial, UiGlyphRasterBatch,
     UiGlyphRasterRecord,
 };
+pub use cache::UiGlyphRasterCache;
 pub use color::admission::{
     admit_intrinsic_color, admit_intrinsic_color_transaction, UiColorRasterAdmission,
     UiColorRasterTransactionAdmission,
@@ -47,7 +50,8 @@ pub use color::admission::{
 pub use color::completion::{UiColorRasterBatchCompletion, UiColorRasterTransactionCompletion};
 pub use color::{
     rasterize_intrinsic_color, rasterize_intrinsic_color_selection,
-    rasterize_intrinsic_color_transaction, UiColorRasterTransaction, UiColorRasterization,
+    rasterize_intrinsic_color_selection_cached, rasterize_intrinsic_color_transaction,
+    UiColorRasterTransaction, UiColorRasterization,
 };
 pub use cost::{UiGlyphRasterCost, UiGlyphRasterLaneCost};
 pub use demand::{
@@ -226,6 +230,8 @@ mod tests {
 
 #[cfg(test)]
 mod demand_alpha_tests;
+#[cfg(test)]
+pub(crate) mod demand_identity_tests;
 #[cfg(test)]
 mod demand_ligature_tests;
 

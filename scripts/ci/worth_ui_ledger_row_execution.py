@@ -17,6 +17,7 @@ def execute_or_restore(
     cache: RowEvidenceCache,
     claim: str,
     execute: Callable[[str, Path | None], dict[str, Any]],
+    finalize: Callable[[dict[str, Any]], dict[str, Any]] = lambda result: result,
 ) -> dict[str, Any]:
     requirement = row["requirement"]
     started = time.perf_counter_ns()
@@ -26,9 +27,10 @@ def execute_or_restore(
             completion_telemetry(requirement, "reuse", started),
             flush=True,
         )
-        return result
+        return finalize(result)
     print(f"[row:start] {requirement} disposition=execute", flush=True)
     result = execute(row["exact_command"], candidate)
+    result = finalize(result)
     cache.retain(requirement, row["exact_command"], claim, result)
     print(
         completion_telemetry(requirement, "execute", started),

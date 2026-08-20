@@ -162,6 +162,7 @@ fn finish_preview_outcome<'session>(
             ))
         }
         crate::mounting::UiMountedFrameOutcome::CompletionDenied(_)
+        | crate::mounting::UiMountedFrameOutcome::Superseded(_)
         | crate::mounting::UiMountedFrameOutcome::Reconciled(_)
         | crate::mounting::UiMountedFrameOutcome::Unchanged(_) => {
             unreachable!("preview publication only yields preview lifecycle outcomes")

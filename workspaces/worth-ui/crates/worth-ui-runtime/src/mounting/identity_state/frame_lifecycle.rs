@@ -98,6 +98,9 @@ impl UiMountedIdentityState {
         self.current_manifest = Some(manifest);
         self.current_core = Some(core);
         let (projection, identity_candidate, projection_changes) = candidate.into_parts();
+        self.peak_qualified_layouts = self
+            .peak_qualified_layouts
+            .max(projection.qualified_layout_count());
         let frame = identity_candidate.frame();
         let committed = self.commit_projection_changes(&projection_changes);
         debug_assert!(committed);
@@ -114,12 +117,18 @@ impl UiMountedIdentityState {
         frame: UiPreparedMountedFrame,
         receipt: UiMountedFramePublicationReceipt,
     ) {
-        debug_assert_eq!(self.current_frame, Some(frame.canonical_core().frame()));
+        debug_assert_eq!(
+            self.current_frame,
+            frame.presentation_delta_source().predecessor()
+        );
         let trace_source = frame.identity_trace_basis().authored_source().clone();
         let (candidate, manifest, core, reuse_contract) = frame.into_publication_parts();
         self.current_manifest = Some(manifest);
         self.current_core = Some(core);
         let (projection, identity_candidate, projection_changes) = candidate.into_parts();
+        self.peak_qualified_layouts = self
+            .peak_qualified_layouts
+            .max(projection.qualified_layout_count());
         let frame = identity_candidate.frame();
         let committed = self.commit_projection_changes(&projection_changes);
         debug_assert!(committed);
@@ -175,7 +184,7 @@ impl UiMountedIdentityState {
             .map_err(|_| UiMountedIdentityDenial::ReconciliationBasisMismatch)
     }
 
-    fn resolve_reconciliation_bindings(
+    pub(in crate::mounting) fn resolve_reconciliation_bindings(
         &self,
         replacements: &[super::super::UiMountedSurfaceReconciliationBinding],
     ) -> Result<Vec<UiReconciledBindingView>, UiMountedIdentityDenial> {
@@ -200,6 +209,12 @@ impl UiMountedIdentityState {
             .as_ref()
             .ok_or(UiMountedIdentityDenial::NoPublishedMountedFrame)?;
         let current_instances = current_projection.mounted_instances().collect::<Vec<_>>();
+        let identity_candidate = super::UiMountedIdentityFrameCandidate {
+            receipt_basis: self
+                .current_receipt_basis
+                .clone()
+                .ok_or(UiMountedIdentityDenial::NoPublishedMountedFrame)?,
+        };
         let reconciled_surfaces = replacement_views
             .iter()
             .map(|(_, replacement)| replacement.semantic_surface_identity())
@@ -209,16 +224,11 @@ impl UiMountedIdentityState {
             .for_reconciliation(&current_instances, &reconciled_surfaces)
             .ok_or(UiMountedIdentityDenial::ReconciliationBasisMismatch)?;
         let projection = current_projection
-            .rebound(replacement_views)
+            .rebound(identity_candidate.frame(), replacement_views)
             .map_err(|_| UiMountedIdentityDenial::ReconciliationBasisMismatch)?;
         Ok(super::super::UiProjectedMountedFrameCandidate {
             frame: std::sync::Arc::new(projection),
-            identity_candidate: UiMountedIdentityFrameCandidate {
-                receipt_basis: self
-                    .current_receipt_basis
-                    .clone()
-                    .ok_or(UiMountedIdentityDenial::NoPublishedMountedFrame)?,
-            },
+            identity_candidate,
             projection_changes,
             presentation_predecessor: self.current_frame,
             presentation_changed_instances: current_instances.into(),

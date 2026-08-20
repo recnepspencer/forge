@@ -63,9 +63,9 @@ impl WorthUiActiveApplicationSession {
         mode: UiHostSurfacePresentationMode,
         profile: UiSurfaceBindingProfile,
     ) -> Result<UiSurfaceRebindInteractionReceipt, UiSurfaceRebindInteractionDenial> {
-        let semantic_surface = self
+        let (semantic_surface, host_surface) = self
             .mounted
-            .deregister_host_surface(&self.host_session, binding)
+            .deregister_host_surface_for_rebind(&self.host_session, binding)
             .map_err(UiSurfaceRebindInteractionDenial::BeforeMutation)?;
         let interaction = self
             .interaction
@@ -76,9 +76,11 @@ impl WorthUiActiveApplicationSession {
         );
         self.intent_admission
             .cancel_binding(&mut self.intent_execution, binding);
-        match self.mounted.register_host_surface(
+        match self.mounted.register_rebound_host_surface(
             &self.host_session,
+            binding,
             semantic_surface,
+            host_surface,
             mode,
             profile,
         ) {

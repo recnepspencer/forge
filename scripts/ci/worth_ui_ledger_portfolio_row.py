@@ -88,7 +88,11 @@ class PortfolioRowExecutor:
         command[command.index("--artifact") + 1] = artifact
         command = bind_fresh_compile_artifact(command, compile_artifact)
         phase = int(current["phase"])
-        if current["requirement"] in {"P3-PREDECESSOR-01", "P4-PREDECESSOR-01"}:
+        if current["requirement"] in {
+            "P3-PREDECESSOR-01",
+            "P4-PREDECESSOR-01",
+            "P5-PREDECESSOR-01",
+        }:
             handoff = Path(artifact).with_name(f"p{phase}-predecessor-handoff.json")
             command = bind_fresh_predecessor_handoff(command, handoff.as_posix(), phase)
         if options.shared_world_artifact is not None:

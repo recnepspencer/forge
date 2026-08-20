@@ -32,6 +32,29 @@ opaque_identity!(UiMountedFrameIdentity);
 opaque_identity!(UiMountedContentGeneration);
 opaque_identity!(UiMountedPresentationAttemptIdentity);
 
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct UiHostPresentationLineageIdentity(u64);
+
+impl UiHostPresentationLineageIdentity {
+    pub(crate) const fn from_host_session(host_session_identity: u64) -> Option<Self> {
+        if host_session_identity == 0 {
+            None
+        } else {
+            Some(Self(host_session_identity))
+        }
+    }
+
+    #[cfg(feature = "certification-construction")]
+    #[doc(hidden)]
+    pub const fn from_certification_host_session(host_session_identity: u64) -> Option<Self> {
+        Self::from_host_session(host_session_identity)
+    }
+
+    pub const fn diagnostic_value(self) -> u64 {
+        self.0
+    }
+}
+
 #[doc(hidden)]
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct UiMountedNodeReceiptIssuer {

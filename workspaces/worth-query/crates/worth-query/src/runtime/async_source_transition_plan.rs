@@ -163,8 +163,13 @@ fn legal_result_transition(
                 | Kind::Stale
                 | Kind::Superseded
                 | Kind::Denied
+                | Kind::Unresolved
         ) | (Some(Kind::Current), Kind::Stale | Kind::Superseded)
             | (Some(Kind::Stale), Kind::Revalidating | Kind::Superseded)
+            | (
+                Some(Kind::Unresolved),
+                Kind::Revalidating | Kind::Stale | Kind::Superseded
+            )
             | (Some(Kind::Failed | Kind::Cancelled), Kind::Retried)
             | (
                 Some(Kind::Retried | Kind::Revalidating),
@@ -174,6 +179,7 @@ fn legal_result_transition(
                     | Kind::Stale
                     | Kind::Superseded
                     | Kind::Denied
+                    | Kind::Unresolved
             )
     )
 }
@@ -190,4 +196,43 @@ fn binding_error(
             transition.request_identity(),
         ),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use WorthQueryRuntimeAsyncResultStateKind as Kind;
+
+    #[test]
+    fn unresolved_enters_only_from_active_attempts_and_recovers_through_revalidation() {
+        assert!(legal_result_transition(
+            Some(Kind::Pending),
+            Kind::Unresolved
+        ));
+        assert!(legal_result_transition(
+            Some(Kind::Retried),
+            Kind::Unresolved
+        ));
+        assert!(legal_result_transition(
+            Some(Kind::Revalidating),
+            Kind::Unresolved
+        ));
+        assert!(legal_result_transition(
+            Some(Kind::Unresolved),
+            Kind::Revalidating
+        ));
+        assert!(legal_result_transition(Some(Kind::Unresolved), Kind::Stale));
+        assert!(legal_result_transition(
+            Some(Kind::Unresolved),
+            Kind::Superseded
+        ));
+        assert!(!legal_result_transition(
+            Some(Kind::Unresolved),
+            Kind::Current
+        ));
+        assert!(!legal_result_transition(
+            Some(Kind::Current),
+            Kind::Unresolved
+        ));
+    }
 }

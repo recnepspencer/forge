@@ -151,6 +151,9 @@ impl<Kind: UiGlyphRasterFormat> UiGlyphRasterRecord<Kind> {
     pub fn pixels(&self) -> &[u8] {
         &self.pixels
     }
+    pub(super) fn pixels_arc(&self) -> Arc<[u8]> {
+        Arc::clone(&self.pixels)
+    }
     pub const fn digest(&self) -> UiGlyphRasterContentDigest {
         self.digest
     }

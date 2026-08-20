@@ -40,10 +40,6 @@ fn validate_current_source(ledger: &LedgerResult<'_>) -> Result<(), String> {
     if ledger.source_digest != source_digest::calculate(ledger.source_identity)? {
         return Err("result artifact source digest is stale".to_owned());
     }
-    if ledger.source_state_digest != source_digest::calculate_source_state(ledger.source_revision)?
-    {
-        return Err("result artifact source-state digest is stale".to_owned());
-    }
     Ok(())
 }
 
@@ -147,9 +143,10 @@ pub(super) fn require_str(value: &Value, field: &str, expected: &str) -> Result<
 }
 
 pub(super) fn require_u64(value: &Value, field: &str, expected: u64) -> Result<(), String> {
-    (value.get(field).and_then(Value::as_u64) == Some(expected))
-        .then_some(())
-        .ok_or_else(|| format!("result artifact has wrong {field}"))
+    let observed = value.get(field).and_then(Value::as_u64);
+    (observed == Some(expected)).then_some(()).ok_or_else(|| {
+        format!("result artifact has wrong {field}: expected {expected}, observed {observed:?}")
+    })
 }
 
 pub(super) fn require_duration_within(

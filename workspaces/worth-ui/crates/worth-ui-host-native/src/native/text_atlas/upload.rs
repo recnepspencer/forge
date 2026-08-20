@@ -314,8 +314,12 @@ impl UiNativeTextAtlasGpuPages {
         })
     }
 
+    pub(crate) fn can_close(&self) -> bool {
+        self.pending.is_empty() && self.correlations.is_empty()
+    }
+
     pub(crate) fn try_close(self, resources: &mut UiNativeResourceRegistry) -> Result<(), Self> {
-        if !self.pending.is_empty() || !self.correlations.is_empty() {
+        if !self.can_close() {
             return Err(self);
         }
         for page in self.alpha {

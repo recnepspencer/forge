@@ -16,7 +16,7 @@ impl WorthUiActiveApplicationSession {
             .retire(worth_ui_inspection::UiIntentEvidenceRetirementCause::ApplicationShutdown);
         let final_intent_resource_census = self.intent_resource_census();
         debug_assert!(final_intent_resource_census.is_empty());
-        let (mounted_presentation, outcomes) =
+        let (mounted_presentation, outcomes, presentation_async_cleanup) =
             self.mounted.shutdown_presentation(&self.host_session);
         for outcome in outcomes {
             let _ = self.finish_mounted_presentation(outcome);
@@ -34,6 +34,7 @@ impl WorthUiActiveApplicationSession {
             .bind_visual_capture(visual_capture)
             .bind_visual_overlay(visual_overlay)
             .bind_mounted_presentation(mounted_presentation)
+            .bind_presentation_async_cleanup(presentation_async_cleanup)
             .bind_host_session_release(host_session_release)
             .bind_host_session_recovery(host_session_recovery)
             .bind_interaction(interaction)

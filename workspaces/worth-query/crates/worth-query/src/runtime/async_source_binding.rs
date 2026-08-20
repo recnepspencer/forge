@@ -181,6 +181,10 @@ impl WorthQueryRuntimeAsyncSourceBinding {
         &self.binding_identity
     }
 
+    pub(super) fn declaration_identity_reference(&self) -> &BridgeAsyncSourceDeclarationIdentity {
+        &self.declaration_identity
+    }
+
     pub(super) fn current_basis_identity(&self) -> WorthQueryEvidenceIdentity {
         async_source_basis_identity(
             self.declaration_identity_reporting.as_ref(),

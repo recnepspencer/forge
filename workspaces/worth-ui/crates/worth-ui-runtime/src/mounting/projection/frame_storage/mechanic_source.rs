@@ -48,6 +48,10 @@ pub(super) struct UiMountedMechanicMutation {
 }
 
 impl UiMountedMechanicSource {
+    pub(super) fn qualified_layout_count(&self) -> usize {
+        self.semantic_text.qualified_layout_count()
+    }
+
     pub(super) fn apply(
         &mut self,
         completion: UiMountedMechanicCompletion<'_>,
@@ -55,6 +59,8 @@ impl UiMountedMechanicSource {
         self.semantic_text
             .preflight(completion.changed, completion.semantic)?;
         let mut mutation = UiMountedMechanicMutation::default();
+        let qualification_cache =
+            super::super::semantic_text::UiMountedTextQualificationCache::default();
         for instance in completion.changed {
             self.remove_non_text(*instance);
             let Some(node) = completion.semantic.node(*instance) else {
@@ -82,6 +88,7 @@ impl UiMountedMechanicSource {
                     capability_generation: completion.capability_generation,
                     capability_profile_digest: completion.capability_profile_digest,
                     font_collection: completion.font_collection,
+                    qualification_cache: &qualification_cache,
                 };
             let sparse = node.semantic_text.as_ref().and_then(|seed| {
                 self.semantic_text
@@ -199,6 +206,22 @@ impl UiMountedMechanicSource {
         identity: worth_ui_host_contract::UiQualifiedTextLayoutIdentity,
     ) -> Option<&std::sync::Arc<worth_ui_text::UiQualifiedTextLayout>> {
         self.semantic_text.qualified_layout(identity)
+    }
+
+    pub(super) fn require_qualified_layout_reconstruction(
+        &mut self,
+    ) -> Result<usize, super::super::UiMountedProjectionDenial> {
+        self.semantic_text.require_layout_reconstruction()
+    }
+
+    pub(super) fn reconstruct_qualified_layouts(
+        &mut self,
+    ) -> Result<usize, super::super::UiMountedProjectionDenial> {
+        self.semantic_text.reconstruct_layouts()
+    }
+
+    pub(super) fn qualified_layout_reconstruction_required(&self) -> bool {
+        self.semantic_text.layout_reconstruction_required()
     }
 
     #[cfg(test)]

@@ -3,15 +3,16 @@
 ## Status and Placement
 
 Status: implementation specification for the ten-phase slice immediately
-after Milestone 3.14 and before Milestone 3.15. Phases 1-4 are closed and
+after Milestone 3.14 and before Milestone 3.15. Phases 1-5 are closed and
 proved in the append-only ledger. `worth-ui-body-default-v1` remains immutable
 Phase 1-2 predecessor evidence; the qualified `worth-ui-global-text-v2`
 profile is the closed Phase 4 authority consumed by Phase 5. A different asset,
 dependency, capacity, signature, or platform policy is a specification change
-rather than implementation discretion. Phase 5 contains twelve rows; the
-physical Signal architecture change makes the retained `P5-ATLAS-01` artifact
-stale, so its next governed Phase 5 candidate reopens it together with the
-still-OPEN feature rows without rewriting the closed Phase 1-4 prefix.
+rather than implementation discretion. Phase 5 closed all twelve rows on one
+current source state, including freshly rebound atlas/physical-Signal evidence,
+the Query async-presentation lifecycle, the 4×8 locality portfolio, native
+reconstruction/pixels, and terminal-zero resource closure, without rewriting
+the closed Phase 1-4 prefix.
 
 The detailed Phase 5 raster, atlas, native text-presentation, courtroom,
 cost, topology, and documentation contract is governed by

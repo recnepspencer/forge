@@ -100,6 +100,7 @@ pub struct UiMountedSemanticTextMechanic {
     layout_profile: crate::UiTextProfileGeneration,
     layout_fonts: crate::UiFontCollectionGeneration,
     layout_scale: crate::UiTextScaleGeneration,
+    layout_width: crate::UiQualifiedTextLayoutWidthBasis,
     slot: UiSemanticTextSlot,
     collection_row: Option<UiMountedCollectionRowCorrelation>,
     foregrounds: Arc<[UiMountedTextForegroundSpan]>,
@@ -107,6 +108,7 @@ pub struct UiMountedSemanticTextMechanic {
     layer_semantic_order: u32,
     capability_generation: WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
+    performed_layout_cost: Option<crate::UiQualifiedTextCostRecord>,
     semantic_digest: u64,
 }
 
@@ -208,8 +210,23 @@ impl UiMountedSemanticTextMechanic {
     pub fn complete_from_runtime_mounting(
         input: UiMountedSemanticTextCompletionInput,
     ) -> Result<Self, UiMountedSemanticTextCompletionDenial> {
+        Self::complete(input, true)
+    }
+
+    #[doc(hidden)]
+    pub fn complete_from_runtime_mounting_with_reused_layout(
+        input: UiMountedSemanticTextCompletionInput,
+    ) -> Result<Self, UiMountedSemanticTextCompletionDenial> {
+        Self::complete(input, false)
+    }
+
+    fn complete(
+        input: UiMountedSemanticTextCompletionInput,
+        layout_performed: bool,
+    ) -> Result<Self, UiMountedSemanticTextCompletionDenial> {
         validation::validate_completion(&input)?;
         let semantic_digest = validation::semantic_digest(&input);
+        let performed_layout_cost = layout_performed.then(|| input.layout.cost());
         Ok(Self {
             schema: UiMountedTextSchemaVersion::current(),
             content_generation: input.content_generation,
@@ -229,6 +246,7 @@ impl UiMountedSemanticTextMechanic {
             layout_profile: input.layout.profile_generation(),
             layout_fonts: input.layout.font_collection_generation(),
             layout_scale: input.layout.text_scale_generation(),
+            layout_width: input.layout.width_basis(),
             slot: input.slot,
             collection_row: input.collection_row,
             foregrounds: input.foregrounds,
@@ -236,6 +254,7 @@ impl UiMountedSemanticTextMechanic {
             layer_semantic_order: input.layer_semantic_order,
             capability_generation: input.capability_generation,
             capability_profile_digest: input.capability_profile_digest,
+            performed_layout_cost,
             semantic_digest,
         })
     }
@@ -294,6 +313,9 @@ impl UiMountedSemanticTextMechanic {
     pub const fn qualified_layout_scale(&self) -> crate::UiTextScaleGeneration {
         self.layout_scale
     }
+    pub const fn qualified_layout_width(&self) -> crate::UiQualifiedTextLayoutWidthBasis {
+        self.layout_width
+    }
     pub const fn slot(&self) -> UiSemanticTextSlot {
         self.slot
     }
@@ -315,13 +337,16 @@ impl UiMountedSemanticTextMechanic {
     pub const fn capability_profile_digest(&self) -> u64 {
         self.capability_profile_digest
     }
+    pub const fn performed_layout_cost(&self) -> Option<crate::UiQualifiedTextCostRecord> {
+        self.performed_layout_cost
+    }
     pub const fn semantic_digest(&self) -> u64 {
         self.semantic_digest
     }
 }
 
 impl UiMountedSemanticTextTable {
-    pub const MAX_ROWS: usize = 4_096;
+    pub const MAX_ROWS: usize = 8_192;
     pub const MAX_BYTES: usize = 8 * 1_024 * 1_024;
 
     pub fn empty() -> Self {

@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 use std::sync::OnceLock;
 
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 
 use super::{row_evidence, schema};
 
@@ -27,10 +28,10 @@ P1-TOPOLOGY-01|workspaces/worth-ui/crates/worth-ui-certification/tests/milestone
 P1-WORLDS-01|workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/host_platform/world/production.rs::produce_maximum_overlap|workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/host_platform/mod.rs::maximum_overlap_removals_cross_public_runtime_and_headless_with_exact_work|workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/host_platform/world/production.rs;workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/host_platform/mod.rs
 P2-APPLICATION-01|workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/application_driver.rs::run|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs::windows_native_boundary_world_presents_quiesces_and_closes_without_residue|workspaces/worth-ui/crates/worth-ui-runtime/src/native_platform/application_driver.rs;workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs;workspaces/worth-ui/crates/worth-ui-certification/tests/milestone_3141_phase1_topology/compile_contract_artifact.rs;_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json;scripts/ci/run_worth_ui_shared_ledger_control.py
 P2-CLOSE-01|workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop/terminal_cleanup.rs::terminal_cleanup_complete|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs::windows_native_boundary_world_presents_quiesces_and_closes_without_residue|workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop/terminal_cleanup.rs;workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop/tests.rs;_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json;scripts/ci/run_worth_ui_shared_ledger_control.py
-P2-EVENT-LOOP-01|workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop.rs::transition_callback_thread|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs::windows_native_boundary_world_presents_quiesces_and_closes_without_residue|workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop.rs;workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop/tests.rs;_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json;scripts/ci/run_worth_ui_shared_ledger_control.py
+P2-EVENT-LOOP-01|workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop/callback_thread.rs::transition|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs::windows_native_boundary_world_presents_quiesces_and_closes_without_residue|workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop/callback_thread.rs;workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop/tests.rs;_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json;scripts/ci/run_worth_ui_shared_ledger_control.py
 P2-GRAPHICS-01|workspaces/worth-ui/crates/worth-ui-host-native/src/native/graphics/adapter_selection.rs::select_eligible_adapter|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs::windows_native_boundary_world_presents_quiesces_and_closes_without_residue|workspaces/worth-ui/crates/worth-ui-host-native/src/native/graphics/adapter_selection.rs;workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/graphics.rs;_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json;scripts/ci/run_worth_ui_shared_ledger_control.py
 P2-PIXELS-01|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/native_platform/windows.rs::capture_exposed_client_area|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs::windows_native_boundary_world_presents_quiesces_and_closes_without_residue|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/native_platform/windows.rs;workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs;_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json;scripts/ci/run_worth_ui_shared_ledger_control.py
-P2-PORTS-01|workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/transaction_state.rs::settle_port_result|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs::windows_native_boundary_world_presents_quiesces_and_closes_without_residue|workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/transaction_state.rs;workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop/window_port.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/graphics/port.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/port.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/readback_port.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop.rs;_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json;scripts/ci/run_worth_ui_shared_ledger_control.py
+P2-PORTS-01|workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/transaction_state.rs::settle_port_result|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs::windows_native_boundary_world_presents_quiesces_and_closes_without_residue|workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/transaction_state.rs;workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop/window_port.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/graphics/port.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/port.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/pending_wgpu_readback.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/event_loop.rs;_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json;scripts/ci/run_worth_ui_shared_ledger_control.py
 P2-PRESENT-01|workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation.rs::present_initial|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs::windows_native_boundary_world_presents_quiesces_and_closes_without_residue|workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation.rs;workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs;workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/raster.rs;_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json;scripts/ci/run_worth_ui_shared_ledger_control.py
 P2-READINESS-01|workspaces/worth-ui/crates/worth-ui-host-native/src/native/readiness.rs::commit_latest|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs::windows_native_boundary_world_presents_quiesces_and_closes_without_residue|workspaces/worth-ui/crates/worth-ui-host-native/src/native/readiness.rs;workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs;_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json;scripts/ci/run_worth_ui_shared_ledger_control.py
 P2-WINDOW-01|workspaces/worth-ui/crates/worth-ui-host-native/src/native/graphics.rs::basis_changed|workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs::windows_native_boundary_world_presents_quiesces_and_closes_without_residue|workspaces/worth-ui/crates/worth-ui-host-native/src/native/graphics.rs;workspaces/worth-ui/apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs;_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json;scripts/ci/run_worth_ui_shared_ledger_control.py
@@ -160,4 +161,41 @@ fn require_str(row: &Value, field: &str, expected: &str, requirement: &str) -> R
     (row[field].as_str() == Some(expected))
         .then_some(())
         .ok_or_else(|| format!("{requirement} has wrong {field}"))
+}
+
+#[test]
+fn every_predecessor_mapping_entry_resolves_before_portfolio_execution() {
+    validate_contract().unwrap();
+}
+
+#[test]
+fn phase_two_mapping_digest_matches_the_predecessor_contract() {
+    validate_contract().unwrap();
+    assert_eq!(
+        mapping_digest(),
+        super::predecessor_artifact::EXPECTED_MAPPING_DIGEST
+    );
+}
+
+fn mapping_digest() -> String {
+    let mut rows = CURRENT_MAPPING.lines().collect::<Vec<_>>();
+    rows.sort_by_key(|line| {
+        line.split_once('|')
+            .map(|entry| entry.0)
+            .unwrap_or_default()
+    });
+    let mut digest = Sha256::new();
+    for row in rows {
+        let mut fields = row.split('|');
+        for field in fields.by_ref().take(3) {
+            digest.update(field.as_bytes());
+            digest.update([0]);
+        }
+        for source in fields.next().unwrap_or_default().split(';') {
+            digest.update(source.as_bytes());
+            digest.update([0]);
+        }
+        digest.update([0xff]);
+    }
+    format!("{:x}", digest.finalize())
 }

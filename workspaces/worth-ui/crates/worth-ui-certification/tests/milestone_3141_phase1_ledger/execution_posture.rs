@@ -60,7 +60,7 @@ pub(crate) fn counter_amount(requirement: &str) -> Option<u64> {
         "P5-TEXT-DPI-01" => 1,
         "P5-TEXT-SPAN-PAINT-01" => 2,
         "P5-TEXT-PIXELS-01" => 2,
-        "P5-TEXT-RECONSTRUCTION-01" => 1,
+        "P5-TEXT-RECONSTRUCTION-01" => 7,
         "P5-TEXT-COST-01" => 32,
         "P5-TEXT-ASYNC-PRESENTATION-01" => 10,
         "P5-CLOSE-01" => 12,
@@ -112,7 +112,7 @@ pub(crate) fn main_budget_ms(requirement: &str) -> u64 {
         requirement,
         "P3-DELTA-SOURCE-01" | "P3-HEADLESS-COST-01" | "P3-PRODUCER-SLOPE-01"
     ) {
-        90_000
+        120_000
     } else if matches!(requirement, "P4-BIDI-01" | "P4-LINE-LAYOUT-01") {
         if requirement == "P4-BIDI-01" {
             180_000
@@ -121,6 +121,15 @@ pub(crate) fn main_budget_ms(requirement: &str) -> u64 {
         }
     } else if requirement == "P5-COLOR-EMOJI-01" {
         180_000
+    } else if requirement == "P5-TEXT-COST-01" {
+        570_000
+    } else if requirement == "P5-TEXT-RECONSTRUCTION-01" {
+        570_000
+    } else if matches!(
+        requirement,
+        "P5-TEXT-PIXELS-01" | "P5-TEXT-ASYNC-PRESENTATION-01"
+    ) {
+        300_000
     } else {
         60_000
     }
@@ -136,12 +145,12 @@ pub(crate) fn expected_declared_ignored(requirement: &str) -> bool {
             "P3-BASELINE-REPLAY-01"
                 | "P3-CLOSE-01"
                 | "P3-DAMAGE-REPLAY-01"
-                | "P3-DELTA-SOURCE-01"
                 | "P3-DRAW-LIST-01"
-                | "P3-HEADLESS-COST-01"
                 | "P3-HP02-WORLD-01"
                 | "P3-PHYSICAL-AMPLIFICATION-01"
                 | "P3-PREDECESSOR-01"
+                | "P3-DELTA-SOURCE-01"
+                | "P3-HEADLESS-COST-01"
                 | "P3-PRODUCER-SLOPE-01"
                 | "P3-TRANSACTION-01"
                 | "P3-UNCHANGED-01"
@@ -160,7 +169,14 @@ pub(crate) fn expected_declared_ignored(requirement: &str) -> bool {
         )
         || matches!(
             requirement,
-            "P5-PREDECESSOR-01" | "P5-ATLAS-01" | "P5-ATLAS-PINNING-01" | "P5-CLOSE-01"
+            "P5-PREDECESSOR-01"
+                | "P5-ATLAS-01"
+                | "P5-ATLAS-PINNING-01"
+                | "P5-TEXT-PIXELS-01"
+                | "P5-TEXT-RECONSTRUCTION-01"
+                | "P5-TEXT-COST-01"
+                | "P5-TEXT-ASYNC-PRESENTATION-01"
+                | "P5-CLOSE-01"
         )
 }
 
@@ -185,7 +201,7 @@ pub(crate) fn control_budget_ms(requirement: &str) -> u64 {
         requirement,
         "P3-DELTA-SOURCE-01" | "P3-HEADLESS-COST-01" | "P3-PRODUCER-SLOPE-01"
     ) {
-        return 90_000;
+        return 30_000;
     }
     if matches!(requirement, "P4-BIDI-01" | "P4-LINE-LAYOUT-01") {
         return if requirement == "P4-BIDI-01" {
@@ -197,6 +213,7 @@ pub(crate) fn control_budget_ms(requirement: &str) -> u64 {
     if matches!(
         requirement,
         "P4-BIDI-INTERACTION-01"
+            | "P4-COLOR-FONT-ADMISSION-01"
             | "P4-TEXT-COST-01"
             | "P4-TEXT-CONTENT-LOCALITY-01"
             | "P4-TEXT-WIDTH-LOCALITY-01"
@@ -206,6 +223,9 @@ pub(crate) fn control_budget_ms(requirement: &str) -> u64 {
     }
     if requirement == "P5-COLOR-EMOJI-01" {
         return 60_000;
+    }
+    if requirement == "P5-TEXT-COST-01" {
+        return 120_000;
     }
     if matches!(
         requirement,
@@ -242,6 +262,8 @@ fn phase_five_raster_budgets_match_the_governed_worlds() {
     assert_eq!(main_budget_ms("P5-GLYPH-RASTER-01"), 60_000);
     assert_eq!(main_budget_ms("P5-COLOR-EMOJI-01"), 180_000);
     assert_eq!(control_budget_ms("P5-COLOR-EMOJI-01"), 60_000);
+    assert_eq!(main_budget_ms("P5-TEXT-COST-01"), 570_000);
+    assert_eq!(control_budget_ms("P5-TEXT-COST-01"), 120_000);
 }
 
 #[test]

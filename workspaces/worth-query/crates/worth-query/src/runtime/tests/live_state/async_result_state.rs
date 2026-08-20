@@ -55,6 +55,14 @@ fn bridge_projection_for(
                 "async:denied",
             )
         }
+        WorthQueryRuntimeAsyncResultStateKind::Unresolved => {
+            WorthQueryRuntimeAsyncResultProjection::completion_state(
+                BridgeAsyncCompletionState::Admitted(
+                    BridgeAsyncCompletionClass::EffectsIndeterminate,
+                ),
+                "async:unresolved",
+            )
+        }
     }
 }
 
@@ -102,6 +110,10 @@ fn runtime_state_and_inspection_project_async_result_state_parity() {
         (
             WorthQueryRuntimeAsyncResultStateKind::Denied,
             WorthQueryRuntimeStateKind::Denied,
+        ),
+        (
+            WorthQueryRuntimeAsyncResultStateKind::Unresolved,
+            WorthQueryRuntimeStateKind::Unresolved,
         ),
     ];
 

@@ -57,6 +57,42 @@ class LedgerPhaseSelectionTests(unittest.TestCase):
                 rows, 5, ["P5-ONE", "P5-THREE"], configured, "current"
             )
 
+    def test_unrelated_global_state_drift_keeps_causally_current_row(self) -> None:
+        identity = "scripts/ci/test_worth_ui_ledger_phase_selection.py"
+        rows = [
+            {
+                "phase": "5",
+                "requirement": "P5-ONE",
+                "result": "PROVED",
+                "final_source": "true",
+                "source_state_digest": "old-global-state",
+                "source_identity": identity,
+                "source_digest": ledger_closer.source_digest((identity,)),
+            }
+        ]
+        selected = ledger_closer.phase_rows_to_prepare(
+            rows, 5, None, {"P5-ONE": object()}, "new-global-state"
+        )
+        self.assertEqual(selected, [])
+
+    def test_declared_causal_source_drift_reopens_the_row(self) -> None:
+        identity = "scripts/ci/test_worth_ui_ledger_phase_selection.py"
+        rows = [
+            {
+                "phase": "5",
+                "requirement": "P5-ONE",
+                "result": "PROVED",
+                "final_source": "true",
+                "source_state_digest": "current-global-state",
+                "source_identity": identity,
+                "source_digest": "stale-causal-digest",
+            }
+        ]
+        selected = ledger_closer.phase_rows_to_prepare(
+            rows, 5, None, {"P5-ONE": object()}, "current-global-state"
+        )
+        self.assertEqual(selected, rows)
+
 
 if __name__ == "__main__":
     unittest.main()

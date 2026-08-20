@@ -7,7 +7,8 @@ impl BridgeOwnedSignalRuntime {
     pub fn successor_installation_runtime(&self) -> Result<Self, BridgeConditionalDenial> {
         let mut bridge = self.bridge.clone();
         let (graph, signal) = self
-            .graph
+            .signal_runtime
+            .graph()
             .reconstitute_for_runtime_rebind()
             .map_err(|error| {
                 BridgeConditionalDenial::new(
@@ -42,7 +43,7 @@ impl BridgeOwnedSignalRuntime {
         let mut successor = Self::new(bridge, graph)?;
         successor
             .bridge
-            .bind_signal_graph(&mut successor.graph)
+            .bind_signal_graph(&mut *successor.signal_runtime.graph_mut())
             .map_err(|error| {
                 BridgeConditionalDenial::new(
                     BridgeConditionalDenialKind::CorrespondenceAdmission,

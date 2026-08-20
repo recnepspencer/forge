@@ -33,8 +33,11 @@ pub(crate) fn present_delta<Port: UiNativePresentationPort>(
     graphics: &mut UiNativeGraphics,
     resources: &mut UiNativeResourceRegistry,
     physical_signal: &mut crate::native::physical_work_signal::UiNativePhysicalSignalOwner,
+    atlas: &crate::native::text_atlas::UiNativeTextAtlas,
+    atlas_gpu: Option<&crate::native::text_atlas::UiNativeTextAtlasGpuPages>,
     view: &UiMountedFrameConsumptionView<'_>,
     retained: &mut UiNativeRetainedDrawList,
+    defer_initial_observation: bool,
 ) -> Result<UiNativeDeltaPresentation, UiNativePresentationFailure> {
     let UiMountedPresentationWorkView::Delta(delta) = view.presentation_work() else {
         return Err(before_effects(
@@ -42,7 +45,11 @@ pub(crate) fn present_delta<Port: UiNativePresentationPort>(
         ));
     };
     let basis = UiNativeRasterBasis::from_graphics(graphics);
-    let (plan, undo) = prepare_delta_plan(basis, delta, retained)?;
+    let glyph_runs = view
+        .text_raster_work()
+        .map(|work| work.glyph_runs())
+        .unwrap_or_default();
+    let (plan, undo) = prepare_delta_plan(basis, delta, glyph_runs, atlas, retained)?;
     if plan.operations.is_empty() && !plan.clear_retained_target {
         return Ok(UiNativeDeltaPresentation {
             cost: plan.cost,
@@ -71,7 +78,7 @@ pub(crate) fn present_delta<Port: UiNativePresentationPort>(
             resources,
             physical_signal,
             owners,
-            Port::present(graphics, plan),
+            Port::present(graphics, atlas_gpu, plan, defer_initial_observation),
         ),
     )
 }
@@ -79,13 +86,15 @@ pub(crate) fn present_delta<Port: UiNativePresentationPort>(
 fn prepare_delta_plan(
     basis: UiNativeRasterBasis,
     delta: &worth_ui_host_contract::UiMountedPresentationDelta,
+    glyph_runs: &[worth_ui_host_contract::UiGlyphRunView],
+    atlas: &crate::native::text_atlas::UiNativeTextAtlas,
     retained: &mut UiNativeRetainedDrawList,
 ) -> Result<(UiNativePresentationPortPlan, UiNativeRetainedDeltaUndo), UiNativePresentationFailure>
 {
     let (replay, undo) = retained
-        .stage_delta(delta)
+        .stage_delta(delta, glyph_runs)
         .map_err(|_| before_effects(UiHostSurfacePresentationDenial::MalformedProjection))?;
-    match build_plan(basis, retained, replay, delta.nodes().len()).map_err(before_effects) {
+    match build_plan(basis, retained, replay, delta.nodes().len(), atlas).map_err(before_effects) {
         Ok(plan) => Ok((plan, undo)),
         Err(failure) => {
             retained
@@ -117,11 +126,10 @@ pub(crate) fn settle_staged_delta(
                 .expect("before-effect port refusal must preserve retained state");
             Err(failure)
         }
-        Err(failure @ UiNativePresentationFailure::Indeterminate(_)) => {
-            retained
-                .rollback_delta(undo)
-                .expect("indeterminate effects preserve predecessor application truth");
-            Err(failure)
+        Err(UiNativePresentationFailure::Pending(pending)) => {
+            Err(UiNativePresentationFailure::Pending(
+                pending.with_settlement(super::UiNativePendingSurfaceSettlement::Delta(undo)),
+            ))
         }
     }
 }
@@ -131,6 +139,7 @@ fn build_plan(
     retained: &UiNativeRetainedDrawList,
     replay: super::retained_draw_list::UiNativeRetainedReplayPlan,
     node_changes: usize,
+    atlas: &crate::native::text_atlas::UiNativeTextAtlas,
 ) -> Result<UiNativePresentationPortPlan, UiHostSurfacePresentationDenial> {
     validate_replay_baseline(replay.baseline_rgba8)?;
     let mut operations = Vec::new();
@@ -147,22 +156,42 @@ fn build_plan(
         operations.push(UiNativeRasterOperation::Clear(clear));
         for identity in &region.replay {
             let command = retained.command(*identity).ok_or_else(malformed)?;
-            let Some(bounds) = clipped_damage(command, region.damage.bounds())? else {
-                continue;
-            };
-            let Some(rect) = raster_damage_for_basis(bounds, basis).map_err(|_| malformed())?
-            else {
-                continue;
-            };
-            let UiMountedPaintCommand::FilledRect { mechanic, .. } = command else {
-                return Err(UiHostSurfacePresentationDenial::AdapterDeclined);
-            };
-            rendered_pixels = add_pixels(rendered_pixels, rect)?;
+            match command {
+                UiMountedPaintCommand::FilledRect { mechanic, .. } => {
+                    let Some(bounds) = clipped_damage(command, region.damage.bounds())? else {
+                        continue;
+                    };
+                    let Some(rect) =
+                        raster_damage_for_basis(bounds, basis).map_err(|_| malformed())?
+                    else {
+                        continue;
+                    };
+                    rendered_pixels = add_pixels(rendered_pixels, rect)?;
+                    operations.push(UiNativeRasterOperation::FilledRect {
+                        rect,
+                        source_rgba8: mechanic.color().channels(),
+                    });
+                }
+                UiMountedPaintCommand::SemanticText { .. } => {
+                    let glyphs = super::text::plan_glyph_commands(
+                        retained.glyph_runs(*identity),
+                        atlas,
+                        basis.extent(),
+                    )
+                    .map_err(|_| malformed())?;
+                    for glyph in glyphs.iter().copied().filter_map(|glyph| {
+                        super::text::clip_glyph_command(glyph, clear.physical_bounds())
+                    }) {
+                        rendered_pixels = rendered_pixels
+                            .checked_add(
+                                (glyph.target[2].ceil() as u64) * (glyph.target[3].ceil() as u64),
+                            )
+                            .ok_or_else(malformed)?;
+                        operations.push(UiNativeRasterOperation::Glyph(glyph));
+                    }
+                }
+            }
             replayed_commands = replayed_commands.checked_add(1).ok_or_else(malformed)?;
-            operations.push(UiNativeRasterOperation::FilledRect {
-                rect,
-                source_rgba8: mechanic.color().channels(),
-            });
         }
     }
     let cost = delta_cost(

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::{
-    stop_before_callbacks, transition_callback_thread, UiNativeEventLoopClient,
+    callback_thread, stop_before_callbacks, UiNativeEventLoopClient,
     UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose, UiNativeEventLoopDirective,
     UiNativeEventLoopRunDenial, UiNativeReadinessGrant,
 };
@@ -48,7 +48,7 @@ fn callback_thread_transition_rejects_off_thread_run() {
     assert!(!run_owner.contains("builder.with_any_thread(true);"));
     let run_thread = std::thread::current().id();
     let mut observation = None;
-    let lawful = transition_callback_thread(&mut observation, run_thread, run_thread).unwrap();
+    let lawful = callback_thread::transition(&mut observation, run_thread, run_thread).unwrap();
     assert_eq!(lawful.thread, run_thread);
     assert!(lawful.matches_launch);
     assert!(observation.is_some_and(|observed| observed.matches_launch));
@@ -56,7 +56,7 @@ fn callback_thread_transition_rejects_off_thread_run() {
         .join()
         .unwrap();
     assert_eq!(
-        transition_callback_thread(&mut observation, run_thread, other),
+        callback_thread::transition(&mut observation, run_thread, other),
         Err(UiNativeEventLoopRunDenial::ApplicationDriver)
     );
     let hostile = observation.expect("hostile callback remains observed");
@@ -186,7 +186,7 @@ fn indeterminate_external_work_moves_into_retryable_cleanup_authority() {
                 }),
             )),
         );
-        let Err(UiNativePresentationFailure::Indeterminate(pending)) = pending else {
+        let Err(UiNativePresentationFailure::Pending(pending)) = pending else {
             panic!("unsettled external work must enter retryable cleanup");
         };
         state.pending_presentations.push(pending);
@@ -243,7 +243,7 @@ fn delayed_physical_wake_settles_without_an_ordinary_redraw_grant() {
                 }),
             )),
         );
-        let Err(UiNativePresentationFailure::Indeterminate(pending)) = pending else {
+        let Err(UiNativePresentationFailure::Pending(pending)) = pending else {
             panic!("the external readback must remain physically pending");
         };
         pending_presentations.push(pending);
@@ -267,10 +267,10 @@ fn delayed_physical_wake_settles_without_an_ordinary_redraw_grant() {
         Ok(crate::native::readiness::UiNativeReadinessSignalDisposition::RedrawRequested)
     );
 
-    assert_eq!(
+    assert!(matches!(
         super::physical_progression::progress_ready_physical_work(&mut readiness, physical, &state,),
-        super::physical_progression::UiNativePhysicalWakeProgress::Progressed
-    );
+        super::physical_progression::UiNativePhysicalWakeProgress::PresentationProgressed { .. }
+    ));
     assert_eq!(redraw_requests, 1);
     assert!(readiness.take(ordinary).is_err());
     assert_eq!(

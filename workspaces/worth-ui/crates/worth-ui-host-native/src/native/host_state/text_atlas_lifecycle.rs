@@ -8,6 +8,13 @@ use crate::native::text_atlas::{
     UiNativeTextAtlasCensus, UiNativeTextAtlasInFlight, UiNativeTextAtlasPhysicalPosture,
 };
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum UiNativeTextAtlasPhysicalProgress {
+    NoProgress,
+    Pending,
+    Terminal,
+}
+
 impl UiNativeHostState {
     pub(crate) fn text_atlas_census(&self) -> UiNativeTextAtlasCensus {
         let physical = self
@@ -34,30 +41,30 @@ impl UiNativeHostState {
     pub(crate) fn progress_text_atlas_physical(
         &mut self,
         pending: UiGlyphRasterTransactionPending,
-    ) -> bool {
+    ) -> UiNativeTextAtlasPhysicalProgress {
         let Some(in_flight) = self.text_atlas_in_flight.as_ref() else {
-            return false;
+            return UiNativeTextAtlasPhysicalProgress::NoProgress;
         };
         if in_flight.pending() != pending {
-            return false;
+            return UiNativeTextAtlasPhysicalProgress::NoProgress;
         }
         let token = match self.physical_signal.take_ready_atlas_upload(pending) {
             Ok(token) => token,
-            Err(()) => return false,
+            Err(()) => return UiNativeTextAtlasPhysicalProgress::NoProgress,
         };
         if !self
             .text_atlas_in_flight
             .as_mut()
             .is_some_and(|in_flight| in_flight.refresh_signal_token(token))
         {
-            return false;
+            return UiNativeTextAtlasPhysicalProgress::NoProgress;
         }
         if let Some(gpu) = self.text_atlas_gpu.as_mut() {
             if gpu.transaction_pending(pending.transaction())
                 && !gpu
                     .rebind_transaction_correlation(pending.transaction(), token.external_basis())
             {
-                return false;
+                return UiNativeTextAtlasPhysicalProgress::NoProgress;
             }
         }
         if self.physical_signal.token_uses_recovery(token)
@@ -69,10 +76,10 @@ impl UiNativeHostState {
             let _ = self.quarantine_text_atlas_in_flight(pending, token);
         }
         let Some(observation) = self.poll_gpu_observation(pending) else {
-            return false;
+            return UiNativeTextAtlasPhysicalProgress::NoProgress;
         };
         match self.physical_signal.reconcile(observation) {
-            UiNativePhysicalSignalSettlement::Pending => {}
+            UiNativePhysicalSignalSettlement::Pending => UiNativeTextAtlasPhysicalProgress::Pending,
             UiNativePhysicalSignalSettlement::Completed => {
                 let outcome = if self
                     .text_atlas_in_flight
@@ -88,15 +95,21 @@ impl UiNativeHostState {
                     self.commit_text_atlas_in_flight()
                 };
                 self.text_atlas_completion = Some((pending, outcome));
+                UiNativeTextAtlasPhysicalProgress::Terminal
             }
             UiNativePhysicalSignalSettlement::Indeterminate => {
                 let outcome = self.transition_pending_text_atlas_to_recovery(pending);
                 self.text_atlas_completion = Some((pending, outcome));
+                UiNativeTextAtlasPhysicalProgress::Terminal
             }
             UiNativePhysicalSignalSettlement::Rejected
-            | UiNativePhysicalSignalSettlement::Stale => {}
+            | UiNativePhysicalSignalSettlement::Stale => {
+                UiNativeTextAtlasPhysicalProgress::NoProgress
+            }
+            UiNativePhysicalSignalSettlement::Superseded => {
+                unreachable!("the native atlas owner admits only one transaction at a time")
+            }
         }
-        true
     }
 
     pub(crate) fn complete_pending_text_atlas(

@@ -697,6 +697,12 @@ and color saturation; mixed maximum overlap; and one unchanged turn. Ordinary
 local work scales with changed/damaged demand plus atlas probes and emitted
 commands, never all retained paragraphs, layouts, glyphs, entries, or pages.
 
+The thirty-two authoritative worlds are executed as sixteen source-bound
+shards. CI assigns one shard to each fresh worker; local closure admits at most
+eight concurrent shard processes under a shared nine-minute deadline. The
+deterministic join rejects partial, duplicate, missing, or timed-out evidence,
+and no test or shard may reach ten minutes.
+
 At each retained size, the independent matrix exercises these axes separately:
 
 1. one content-only paragraph edit;
@@ -1086,6 +1092,17 @@ into layout work; dropping one immediate-dependency cause during deduplication;
 adding a hidden retained-document scan; and emitting predicted instead of
 performed counters. Each mutant must fail for its intended counter or identity
 cause while the lawful optimized/deterministic twin remains green.
+
+The hostile execution may use separately authored deterministic
+owner-mutant twins in certification when the wrong behavior is an internal
+owner algorithm rather than an admissible public input. A twin consumes the
+same typed case basis as the lawful owner and is adjudicated against the
+immutable owner-issued performed observation before serialization. It may not
+construct, edit, default, or replace that observation, and it does not create a
+second large-world portfolio. The authoritative 32-world receipt must retain
+the per-row convictions, and the exact shard join must reject a missing,
+duplicated, or unknown hostile member. A bounded small-world control may
+re-execute the minimum causal cases needed to authenticate the grouped family.
 
 ## Public Developer Experience and Documentation
 

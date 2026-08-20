@@ -41,6 +41,9 @@ const P3_MIXED_MAIN: TestIdentity = integration(
     "host_platform::mixed_carrier_successors_are_local_at_the_4096_command_ceiling",
 );
 
+#[path = "execution_contract_phase5.rs"]
+mod phase5;
+
 const fn library(package: &'static str, test_name: &'static str) -> TestIdentity {
     TestIdentity {
         package,
@@ -49,14 +52,6 @@ const fn library(package: &'static str, test_name: &'static str) -> TestIdentity
         features: EMPTY,
         test_name,
     }
-}
-
-fn phase_five_topology_main(requirement: &str) -> Option<TestIdentity> {
-    Some(integration(
-        "worth-ui-certification",
-        "topology_contracts",
-        super::execution_contract_phase5::main_test(requirement)?,
-    ))
 }
 
 const fn integration(
@@ -165,38 +160,7 @@ pub(super) fn main_for(requirement: &str) -> Option<TestIdentity> {
             "topology_contracts",
             "milestone_3141_phase1_ledger::phase_four_closure_requires_every_predecessor_and_phase_four_row",
         ),
-        "P5-PREDECESSOR-01" => integration(
-            "worth-ui-certification",
-            "topology_contracts",
-            "milestone_3141_phase1_ledger::predecessor_handoff::phase_five_predecessor_handoff_is_current",
-        ),
-        "P5-GLYPH-RASTER-01" => library(
-            "worth-ui-text",
-            "phase5_ledger_evidence::qualified_alpha_and_color_raster_cross_exact_production_authority",
-        ),
-        "P5-COLOR-EMOJI-01" => library(
-            "worth-ui-text",
-            "phase5_ledger_evidence::every_qualified_color_source_and_rgi_sequence_crosses_production_raster",
-        ),
-        "P5-ATLAS-01" => library(
-            "worth-ui-host-native",
-            "native::mechanics_adapter::text_atlas::tests::gate_d_evidence::real_dx12_signal_transaction_matches_the_independent_atlas_model_and_closes_exactly",
-        ),
-        "P5-ATLAS-PINNING-01" => TestIdentity {
-            package: "worth-ui-platform-pulse",
-            target_kind: "test",
-            target_name: "executable_world",
-            features: EXECUTABLE_WORLD,
-            test_name: "courtroom::native_gate_d_pin::live_layout_pins_cross_runtime_native_signal_and_release_at_last_owner",
-        },
-        "P5-CLOSE-01" => integration(
-            "worth-ui-certification",
-            "topology_contracts",
-            "milestone_3141_phase1_ledger::phase_five_closure_requires_every_predecessor_and_phase_five_row",
-        ),
-        requirement if requirement.starts_with("P5-") => {
-            phase_five_topology_main(requirement)?
-        }
+        requirement if requirement.starts_with("P5-") => return phase5::main_for(requirement),
         _ => return None,
     };
     Some(test)
@@ -208,6 +172,9 @@ pub(super) fn current_predecessor_main_for(requirement: &str) -> Option<TestIden
             "worth-ui-runtime",
             "mounting::presentation::work_producer_tests::damage_bounds::replacement_damage_is_clipped_to_predecessor_and_successor_visibility",
         )),
+        "P3-DELTA-SOURCE-01" | "P3-HEADLESS-COST-01" | "P3-PRODUCER-SLOPE-01" => {
+            Some(P3_MIXED_MAIN)
+        }
         _ => main_for(requirement),
     }
 }
@@ -286,38 +253,7 @@ pub(super) fn control_for(requirement: &str) -> Option<TestIdentity> {
             "mounting::projection::frame_storage::mechanic_source_tests::phase4_locality::retained_document_scan_and_global_width_substitution_are_rejected",
         ),
         "P4-CLOSE-01" => integration("worth-ui-certification", "topology_contracts", "milestone_3141_phase1_ledger::mutation_tests::phase_closure_mode_rejects_open_rows_at_or_before_its_gate"),
-        "P5-PREDECESSOR-01" => integration(
-            "worth-ui-certification",
-            "topology_contracts",
-            "milestone_3141_phase1_ledger::predecessor_artifact::tests::phase_five_stale_source_or_missing_row_is_rejected",
-        ),
-        "P5-GLYPH-RASTER-01" => integration(
-            "worth-ui-certification",
-            "topology_contracts",
-            "milestone_3141_phase1_topology::phase_five_raster_authority::consumer_raster_authority_mutants_are_rejected",
-        ),
-        "P5-COLOR-EMOJI-01" => library(
-            "worth-ui-text",
-            "phase5_ledger_evidence::emoji_tint_split_and_unqualified_color_sources_are_rejected",
-        ),
-        "P5-ATLAS-01" => library(
-            "worth-ui-host-native",
-            "native::mechanics_adapter::text_atlas::tests::gate_d_evidence::host_atlas_escape_and_lifecycle_faults_are_causally_rejected",
-        ),
-        "P5-ATLAS-PINNING-01" => library(
-            "worth-ui-runtime",
-            "mounting::presentation::coordinator::text_pins::tests::shared_pins_release_only_after_the_last_binding_is_deregistered",
-        ),
-        "P5-CLOSE-01" => integration(
-            "worth-ui-certification",
-            "topology_contracts",
-            "milestone_3141_phase1_ledger::mutation_tests::phase_closure_mode_rejects_open_rows_at_or_before_its_gate",
-        ),
-        requirement if requirement.starts_with("P5-") => integration(
-            "worth-ui-certification",
-            "topology_contracts",
-            "milestone_3141_phase1_topology::phase_five_destination::consumers_cannot_reshape_refallback_or_consult_system_fonts",
-        ),
+        requirement if requirement.starts_with("P5-") => return phase5::control_for(requirement),
         _ => return None,
     })
 }
@@ -354,6 +290,33 @@ const PROTOCOL_CASES: &[CompileCase] = &[
         "product-raw-protocol-consumer-substitution",
     ),
 ];
+const PHASE5_ASYNC_CASES: &[CompileCase] = &[
+    case(
+        "certification",
+        "fail",
+        "certification-phase5-async-authority",
+    ),
+    case(
+        "certification",
+        "fail",
+        "certification-phase5-signal-effect-authority",
+    ),
+    case(
+        "certification",
+        "fail",
+        "certification-phase5-serialized-recovery-authority",
+    ),
+    case(
+        "certification",
+        "fail",
+        "certification-phase5-reporting-authority",
+    ),
+    case(
+        "certification",
+        "pass",
+        "certification-phase5-async-authority-lawful",
+    ),
+];
 
 const fn case(owner: &'static str, kind: &'static str, target: &'static str) -> CompileCase {
     CompileCase {
@@ -370,6 +333,7 @@ pub(super) fn compile_cases_for(requirement: &str) -> &'static [CompileCase] {
         "P1-PLATFORM-AUTHORITY-01" => PLATFORM_CASES,
         "P1-PRESENTATION-AUTHORITY-01" => PRESENTATION_CASES,
         "P1-PROTOCOL-01" => PROTOCOL_CASES,
+        "P5-TEXT-ASYNC-PRESENTATION-01" => PHASE5_ASYNC_CASES,
         _ => &[],
     }
 }

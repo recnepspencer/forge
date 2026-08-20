@@ -9,6 +9,10 @@ pub struct UiNativeWindowSpec {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiNativePlatformProfile {
     window: UiNativeWindowSpec,
+    #[cfg(feature = "certification-support")]
+    qualification: Option<worth_ui_host_native::UiNativeQualificationPlan>,
+    #[cfg(feature = "certification-support")]
+    runtime_qualification: Option<super::runtime_qualification::UiNativeRuntimeQualificationPlan>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -42,11 +46,58 @@ impl UiNativeWindowSpec {
 
 impl UiNativePlatformProfile {
     pub fn single_window(window: UiNativeWindowSpec) -> Self {
-        Self { window }
+        Self {
+            window,
+            #[cfg(feature = "certification-support")]
+            qualification: None,
+            #[cfg(feature = "certification-support")]
+            runtime_qualification: None,
+        }
+    }
+
+    #[cfg(feature = "certification-support")]
+    pub fn with_native_qualification_plan(
+        mut self,
+        plan: worth_ui_host_native::UiNativeQualificationPlan,
+    ) -> Self {
+        self.qualification = Some(plan);
+        self
+    }
+
+    #[cfg(feature = "certification-support")]
+    pub fn with_runtime_qualification_plan(
+        mut self,
+        plan: super::runtime_qualification::UiNativeRuntimeQualificationPlan,
+    ) -> Self {
+        self.runtime_qualification = Some(plan);
+        self
     }
 
     pub fn window(&self) -> &UiNativeWindowSpec {
         &self.window
+    }
+
+    pub(crate) fn prepare_native_host(&self) -> worth_ui_host_native::WorthUiPreparedNativeHost {
+        #[cfg(feature = "certification-support")]
+        if let Some(plan) = self.qualification {
+            return worth_ui_host_native::WorthUiPreparedNativeHost::prepare_qualified_for_certification(
+                plan,
+            );
+        }
+        worth_ui_host_native::WorthUiPreparedNativeHost::prepare_qualified()
+    }
+
+    pub(crate) const fn driver_runtime_qualification(
+        &self,
+    ) -> Option<super::runtime_qualification::UiNativeRuntimeQualificationPlan> {
+        #[cfg(feature = "certification-support")]
+        {
+            self.runtime_qualification
+        }
+        #[cfg(not(feature = "certification-support"))]
+        {
+            None
+        }
     }
 
     pub(crate) fn validate(&self) -> Result<(), UiNativePlatformPreparationDenial> {

@@ -4,7 +4,7 @@ use worth_signal::facade::{
     AdmittedResourceRequest, InFlightResourceRequest, ResourceRequestIntent,
 };
 
-use super::super::{BridgeAsyncSourceDeclarationFamilyKind, LoweredBridgeAsyncSourceDeclaration};
+use super::super::LoweredBridgeAsyncSourceDeclaration;
 use super::binding::ValidatedBridgeAsyncRequestBasisBinding;
 use super::identity::{
     AdmittedBridgeAsyncRequestIdentity, BridgeAsyncRequestAdmissionRequest,
@@ -14,14 +14,19 @@ use super::identity_assembly::assemble_admitted_request_identity;
 use super::rejection::{
     BridgeAsyncRequestIdentityRejection, BridgeAsyncRequestIdentityRejectionKind,
 };
+use super::rollback::{
+    retire_owned_async_declaration, rollback_owned_async_request, rollback_owned_resource_request,
+};
 use super::state::{
-    live_async_declaration_for_lowering, live_resource_declaration_for_lowering,
-    BridgeSignalRuntime,
+    live_async_declaration_for_lowering, live_owned_async_declaration_for_lowering,
+    live_owned_resource_declaration_for_lowering, live_resource_declaration_for_lowering,
+    retire_owned_async_declaration_for_lowering, retire_owned_resource_declaration_for_lowering,
+    BridgeAsyncDeclarationRegistry, BridgeSignalRuntime,
 };
-use super::subscription_instance::{
-    BridgeAsyncRequestSubscriptionInstance, BridgeAsyncRequestSubscriptionInstanceKind,
+use super::subscription_instance::BridgeAsyncRequestSubscriptionInstance;
+use super::validation::{
+    family_kind_mismatch, validate_request_response, validate_subscription_backed,
 };
-use super::truth_basis::BridgeAsyncRequestTruthViewBasisKind;
 
 impl BridgeAsyncRequestAdmissionRequest {
     pub fn request_response(
@@ -58,12 +63,30 @@ impl AdmittedBridgeAsyncRequestIdentity {
         signal_runtime: &mut BridgeSignalRuntime,
         request: BridgeAsyncRequestAdmissionRequest,
     ) -> Result<Self, BridgeAsyncRequestIdentityRejection> {
+        Self::admit_with_registry(runtime_key, signal_runtime, None, request)
+    }
+
+    pub(crate) fn admit_owned(
+        runtime_key: u64,
+        signal_runtime: &mut BridgeSignalRuntime,
+        registry: &mut BridgeAsyncDeclarationRegistry,
+        request: BridgeAsyncRequestAdmissionRequest,
+    ) -> Result<Self, BridgeAsyncRequestIdentityRejection> {
+        Self::admit_with_registry(runtime_key, signal_runtime, Some(registry), request)
+    }
+
+    fn admit_with_registry(
+        runtime_key: u64,
+        signal_runtime: &mut BridgeSignalRuntime,
+        registry: Option<&mut BridgeAsyncDeclarationRegistry>,
+        request: BridgeAsyncRequestAdmissionRequest,
+    ) -> Result<Self, BridgeAsyncRequestIdentityRejection> {
         match request.family_admission() {
             BridgeAsyncRequestFamilyAdmission::RequestResponse => {
-                admit_request_response(runtime_key, signal_runtime, request)
+                admit_request_response(runtime_key, signal_runtime, registry, request)
             }
             BridgeAsyncRequestFamilyAdmission::SubscriptionBacked { .. } => {
-                admit_subscription_backed(runtime_key, signal_runtime, request)
+                admit_subscription_backed(runtime_key, signal_runtime, registry, request)
             }
         }
     }
@@ -72,6 +95,7 @@ impl AdmittedBridgeAsyncRequestIdentity {
 fn admit_request_response(
     runtime_key: u64,
     runtime: &mut BridgeSignalRuntime,
+    mut registry: Option<&mut BridgeAsyncDeclarationRegistry>,
     request: BridgeAsyncRequestAdmissionRequest,
 ) -> Result<AdmittedBridgeAsyncRequestIdentity, BridgeAsyncRequestIdentityRejection> {
     let declaration = request
@@ -85,21 +109,49 @@ fn admit_request_response(
         .ok_or_else(|| family_kind_mismatch("lowered resource descriptor"))?;
     let lowered_node = descriptor.node().node().to_string();
     let payload_contract_digest = descriptor.payload_contract_digest().as_str().to_owned();
-    let declaration = live_resource_declaration_for_lowering(
-        runtime_key,
-        runtime,
-        request.lowered().lowering_identity().as_str(),
-        &declaration,
-    )
+    let lowering = request.lowered().lowering_identity().as_str();
+    let (declaration, installed_owned) = match registry.as_deref_mut() {
+        Some(registry) => {
+            live_owned_resource_declaration_for_lowering(registry, runtime, lowering, &declaration)
+        }
+        None => {
+            live_resource_declaration_for_lowering(runtime_key, runtime, lowering, &declaration)
+                .map(|declaration| (declaration, false))
+        }
+    }
     .map_err(signal_request_rejected)?;
-    let report = runtime
-        .admit_resource_request(ResourceRequestIntent::new(declaration.node()))
-        .map_err(signal_request_rejected)?;
-    let in_flight = admitted_in_flight(
+    let report =
+        match runtime.admit_resource_request(ResourceRequestIntent::new(declaration.node())) {
+            Ok(report) => report,
+            Err(error) => {
+                if installed_owned {
+                    retire_owned_resource_declaration_for_lowering(
+                        registry.expect("owned declaration retains its registry"),
+                        runtime,
+                        lowering,
+                    )
+                    .map_err(signal_request_rejected)?;
+                }
+                return Err(signal_request_rejected(error));
+            }
+        };
+    let in_flight = match admitted_in_flight(
         runtime,
         report.admitted_request(),
         request.lowered().declaration_identity().as_str(),
-    )?;
+    ) {
+        Ok(in_flight) => in_flight,
+        Err(denial) => {
+            rollback_owned_resource_request(
+                runtime,
+                registry.as_deref_mut(),
+                installed_owned,
+                lowering,
+                report.admitted_request(),
+            )?;
+            return Err(denial);
+        }
+    };
     Ok(assemble_admitted_request_identity(
         runtime_key,
         request,
@@ -114,6 +166,7 @@ fn admit_request_response(
 fn admit_subscription_backed(
     runtime_key: u64,
     runtime: &mut BridgeSignalRuntime,
+    mut registry: Option<&mut BridgeAsyncDeclarationRegistry>,
     request: BridgeAsyncRequestAdmissionRequest,
 ) -> Result<AdmittedBridgeAsyncRequestIdentity, BridgeAsyncRequestIdentityRejection> {
     let declaration = request
@@ -127,41 +180,86 @@ fn admit_subscription_backed(
         .ok_or_else(|| family_kind_mismatch("lowered async capability bundle"))?;
     let lowered_node = bundle.node().to_string();
     let payload_contract_digest = bundle.payload_contract_digest().as_str().to_owned();
-    let declaration = live_async_declaration_for_lowering(
-        runtime_key,
-        runtime,
-        request.lowered().lowering_identity().as_str(),
-        &declaration,
-    )
+    let lowering = request.lowered().lowering_identity().as_str();
+    let (declaration, installed_owned) = match registry.as_deref_mut() {
+        Some(registry) => {
+            live_owned_async_declaration_for_lowering(registry, runtime, lowering, &declaration)
+        }
+        None => live_async_declaration_for_lowering(runtime_key, runtime, lowering, &declaration)
+            .map(|declaration| (declaration, false)),
+    }
     .map_err(signal_request_rejected)?;
-    let capable = runtime.async_capable_node(declaration.node()).ok_or_else(|| {
-        BridgeAsyncRequestIdentityRejection::new(
+    let capable = match runtime.async_capable_node(declaration.node()) {
+        Some(capable) => capable,
+        None => {
+            let denial = BridgeAsyncRequestIdentityRejection::new(
             BridgeAsyncRequestIdentityRejectionKind::SignalRequestAdmissionRejected,
             format!(
                 "signal runtime declared bridge async subscription-backed source `{}` but did not retain an attachable async capability handle for node {}",
                 request.lowered().declaration_identity().as_str(),
                 declaration.node(),
             ),
-        )
-    })?;
-    let async_report = runtime
-        .admit_async_node_request(capable.request_intent())
-        .map_err(signal_request_rejected)?;
-    let resource_report = async_report.resource_admission().cloned().ok_or_else(|| {
-        BridgeAsyncRequestIdentityRejection::new(
+            );
+            retire_owned_async_declaration(
+                runtime,
+                registry.as_deref_mut(),
+                installed_owned,
+                lowering,
+            )?;
+            return Err(denial);
+        }
+    };
+    let async_report = match runtime.admit_async_node_request(capable.request_intent()) {
+        Ok(report) => report,
+        Err(error) => {
+            if installed_owned {
+                retire_owned_async_declaration_for_lowering(
+                    registry.expect("owned declaration retains its registry"),
+                    runtime,
+                    lowering,
+                )
+                .map_err(signal_request_rejected)?;
+            }
+            return Err(signal_request_rejected(error));
+        }
+    };
+    let resource_report = match async_report.resource_admission().cloned() {
+        Some(report) => report,
+        None => {
+            let denial = BridgeAsyncRequestIdentityRejection::new(
             BridgeAsyncRequestIdentityRejectionKind::SignalAsyncRequestBlocked,
             format!(
                 "signal runtime blocked bridge async subscription-backed request identity `{}` for node {}",
                 request.lowered().declaration_identity().as_str(),
                 declaration.node(),
             ),
-        )
-    })?;
-    let in_flight = admitted_in_flight(
+            );
+            retire_owned_async_declaration(
+                runtime,
+                registry.as_deref_mut(),
+                installed_owned,
+                lowering,
+            )?;
+            return Err(denial);
+        }
+    };
+    let in_flight = match admitted_in_flight(
         runtime,
         resource_report.admitted_request(),
         request.lowered().declaration_identity().as_str(),
-    )?;
+    ) {
+        Ok(in_flight) => in_flight,
+        Err(denial) => {
+            rollback_owned_async_request(
+                runtime,
+                registry.as_deref_mut(),
+                installed_owned,
+                lowering,
+                resource_report.admitted_request(),
+            )?;
+            return Err(denial);
+        }
+    };
     Ok(assemble_admitted_request_identity(
         runtime_key,
         request,
@@ -242,82 +340,6 @@ fn admitted_in_flight(
                 ),
             )
         })
-}
-
-fn validate_request_response(
-    lowered: &LoweredBridgeAsyncSourceDeclaration,
-    basis_binding: &ValidatedBridgeAsyncRequestBasisBinding,
-) -> Result<(), BridgeAsyncRequestIdentityRejection> {
-    if lowered.family_kind() != BridgeAsyncSourceDeclarationFamilyKind::RequestResponse
-        || basis_binding.family_kind() != BridgeAsyncSourceDeclarationFamilyKind::RequestResponse
-    {
-        return Err(family_kind_mismatch(
-            "request-response family artifacts for request identity admission",
-        ));
-    }
-    validate_shared_binding(lowered, basis_binding)
-}
-
-fn validate_subscription_backed(
-    lowered: &LoweredBridgeAsyncSourceDeclaration,
-    basis_binding: &ValidatedBridgeAsyncRequestBasisBinding,
-    subscription_instance: &BridgeAsyncRequestSubscriptionInstance,
-) -> Result<(), BridgeAsyncRequestIdentityRejection> {
-    if lowered.family_kind() != BridgeAsyncSourceDeclarationFamilyKind::SubscriptionBacked
-        || basis_binding.family_kind() != BridgeAsyncSourceDeclarationFamilyKind::SubscriptionBacked
-    {
-        return Err(family_kind_mismatch(
-            "subscription-backed family artifacts for request identity admission",
-        ));
-    }
-    validate_shared_binding(lowered, basis_binding)?;
-    match (
-        basis_binding.truth_view_basis_kind(),
-        subscription_instance.kind(),
-        basis_binding
-            .truth_view_basis()
-            .preview_active_subscription_identity(),
-        subscription_instance.preview_active_subscription_identity(),
-    ) {
-        (
-            BridgeAsyncRequestTruthViewBasisKind::Preview,
-            BridgeAsyncRequestSubscriptionInstanceKind::Preview,
-            Some(left),
-            Some(right),
-        ) if left == right
-            && basis_binding.truth_view_basis().preview_parent_truth_view_basis_digest()
-                == subscription_instance.parent_truth_view_basis_digest() => Ok(()),
-        (BridgeAsyncRequestTruthViewBasisKind::Preview, _, _, _)
-        | (_, BridgeAsyncRequestSubscriptionInstanceKind::Preview, _, _) => Err(
-            BridgeAsyncRequestIdentityRejection::new(
-                BridgeAsyncRequestIdentityRejectionKind::PreviewBasisSubscriptionInstanceMismatch,
-                "bridge async preview truth-view basis must bind to the exact matching preview subscription instance",
-            ),
-        ),
-        _ => Ok(()),
-    }
-}
-
-fn validate_shared_binding(
-    lowered: &LoweredBridgeAsyncSourceDeclaration,
-    basis_binding: &ValidatedBridgeAsyncRequestBasisBinding,
-) -> Result<(), BridgeAsyncRequestIdentityRejection> {
-    if lowered.declaration_identity() != basis_binding.declaration_identity()
-        || lowered.lowering_identity() != basis_binding.lowering_identity()
-    {
-        return Err(BridgeAsyncRequestIdentityRejection::new(
-            BridgeAsyncRequestIdentityRejectionKind::LoweringIdentityMismatch,
-            "bridge async request identity binding requires one exact lowered declaration and matching request-basis binding",
-        ));
-    }
-    Ok(())
-}
-
-fn family_kind_mismatch(expected: &str) -> BridgeAsyncRequestIdentityRejection {
-    BridgeAsyncRequestIdentityRejection::new(
-        BridgeAsyncRequestIdentityRejectionKind::FamilyKindMismatch,
-        format!("bridge async request identity binding requires {expected}"),
-    )
 }
 
 fn signal_request_rejected(

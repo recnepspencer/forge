@@ -71,7 +71,7 @@ pub(super) fn narrow_host_measurement(
     )?;
     counted(counters.materialize_host_target_set(), ordinal)?;
     Ok(UiAllocationInvalidationTarget::HostMeasurement {
-        evidence_generation: measurement.result().evidence_generation(),
+        measurement: measurement.result().clone(),
         target,
     })
 }

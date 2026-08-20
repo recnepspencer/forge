@@ -132,7 +132,12 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
         &self,
         token: worth_ui_host_contract::UiHostPresentationCompletionToken,
     ) -> worth_ui_host_contract::UiHostSurfaceInFlightCompletion {
-        presentation_text_atlas::complete(&mut self.state.borrow_mut(), token)
+        let mut state = self.state.borrow_mut();
+        if presentation::owns_completion(&state, &token) {
+            presentation::complete_pending(&mut state, token)
+        } else {
+            presentation_text_atlas::complete(&mut state, token)
+        }
     }
 
     fn perform_mounted_surface_cancellation(
@@ -140,7 +145,12 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
         token: worth_ui_host_contract::UiHostPresentationCompletionToken,
         reason: worth_ui_host_contract::UiHostSurfaceStopReason,
     ) -> worth_ui_host_contract::UiHostSurfaceCancellationOutcome {
-        presentation_text_atlas::stop(&mut self.state.borrow_mut(), token, reason)
+        let mut state = self.state.borrow_mut();
+        if presentation::owns_completion(&state, &token) {
+            presentation::stop_pending(&mut state, token)
+        } else {
+            presentation_text_atlas::stop(&mut state, token, reason)
+        }
     }
 
     fn perform_surface_deregistration(

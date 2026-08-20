@@ -245,14 +245,19 @@ impl UiMountedNodeLoweringContext<'_, '_> {
                 .projection(instance.graph_node_identity()),
         )?;
         let static_paint = super::static_paint::lower_static_paint_seed(self.plan, plan_index)?;
-        let semantic_text_formatting =
-            super::semantic_text::lower_semantic_text_formatting(self.plan, plan_index)?;
         let predecessor = self
             .predecessor
             .and_then(|semantic| semantic.node(instance.identity()))
             .and_then(|node| node.semantic_text.as_ref());
+        let semantic_input = self.semantic_content.get(instance.graph_node_identity());
+        let semantic_text_formatting = super::semantic_text::lower_semantic_text_formatting(
+            self.plan,
+            plan_index,
+            semantic_input,
+            predecessor,
+        )?;
         let semantic_text = super::semantic_text::lower_semantic_text_seed(
-            self.semantic_content.get(instance.graph_node_identity()),
+            semantic_input,
             predecessor,
             semantic_text_formatting,
         )?;

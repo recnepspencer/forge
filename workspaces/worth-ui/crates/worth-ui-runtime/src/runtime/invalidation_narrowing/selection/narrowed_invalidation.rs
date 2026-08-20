@@ -18,7 +18,7 @@ pub enum UiAllocationInvalidationTarget {
         fact: std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
     },
     HostMeasurement {
-        evidence_generation: worth_ui_inspection::UiEvidenceAuthorityGeneration,
+        measurement: crate::evidence::UiMeasurementResult,
         target: crate::graph::UiAdmittedAllocationInvalidationTargetSet,
     },
     PortalAnchor {

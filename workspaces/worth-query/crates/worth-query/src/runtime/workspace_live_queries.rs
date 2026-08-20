@@ -22,6 +22,24 @@ impl WorthQueryWorkspace {
             .declare_bridge_async_live_view(name, request, schema_view, bridge_request)
     }
 
+    pub fn declare_bridge_async_live_view_with_typed_identity<T>(
+        &mut self,
+        name: impl Into<String>,
+        request: super::DeclarativeLiveQueryRequest,
+        schema_view: super::QuerySchemaView,
+        typed_request_identity: &[crate::application::WorthQueryAsyncRequestIdentityPart],
+        bridge_request: &worth_runtime_bridge::facade::AdmittedBridgeAsyncRequestIdentity,
+    ) -> Result<super::WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.runtime
+            .declare_bridge_async_live_view_with_typed_identity(
+                name,
+                request,
+                schema_view,
+                typed_request_identity,
+                bridge_request,
+            )
+    }
+
     pub fn admit_bridge_async_result_transitions<T>(
         &mut self,
         view: &super::WorthQueryLiveView<T>,

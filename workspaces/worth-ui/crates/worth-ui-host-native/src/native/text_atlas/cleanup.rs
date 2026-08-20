@@ -5,6 +5,10 @@ use super::recovery::UiNativeTextAtlasRecovery;
 use super::settlement::UiNativeTextAtlasSnapshot;
 
 impl UiNativeTextAtlas {
+    pub(crate) fn can_mutate_for_reconstruction(&self) -> bool {
+        self.core.try_borrow_mut().is_ok()
+    }
+
     pub(crate) fn snapshot(&self) -> UiNativeTextAtlasSnapshot {
         let core = self.core.borrow();
         UiNativeTextAtlasSnapshot {
@@ -34,6 +38,22 @@ impl UiNativeTextAtlas {
         };
         let lineage = core.lineage;
         *core = AtlasCore::new(lineage);
+        true
+    }
+
+    pub(crate) fn remove_pins(
+        &self,
+        requests: &[worth_ui_host_contract::UiGlyphRasterPinRequest],
+    ) -> bool {
+        let Ok(mut core) = self.core.try_borrow_mut() else {
+            return false;
+        };
+        for request in requests {
+            core.pins.remove(&super::ownership::PinIdentity::new(
+                request.layout_identity(),
+                request.key(),
+            ));
+        }
         true
     }
 

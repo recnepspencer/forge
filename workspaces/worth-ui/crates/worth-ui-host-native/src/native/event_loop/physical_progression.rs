@@ -8,7 +8,42 @@ use super::{UiNativeEventLoopApplication, UiNativeEventLoopClient, UiNativeEvent
 pub(super) enum UiNativePhysicalWakeProgress {
     NoWake,
     ConsumedWithoutReadyWork,
-    Progressed,
+    TextAtlasProgressed,
+    PresentationProgressed {
+        presentation: super::UiNativePhysicalPresentationCorrelation,
+        duplicate_observation: bool,
+    },
+    PresentationRecoveryCompleted(super::UiNativePhysicalPresentationCorrelation),
+}
+
+impl UiNativePhysicalWakeProgress {
+    pub(super) const fn application_progress_grant(
+        self,
+    ) -> Option<super::UiNativePhysicalProgressGrant> {
+        match self {
+            Self::TextAtlasProgressed => Some(super::UiNativePhysicalProgressGrant::issued(
+                super::UiNativePhysicalProgressClass::TextAtlas,
+                None,
+                false,
+            )),
+            Self::PresentationProgressed {
+                presentation,
+                duplicate_observation,
+            } => Some(super::UiNativePhysicalProgressGrant::issued(
+                super::UiNativePhysicalProgressClass::Presentation,
+                Some(presentation),
+                duplicate_observation,
+            )),
+            Self::PresentationRecoveryCompleted(presentation) => {
+                Some(super::UiNativePhysicalProgressGrant::issued(
+                    super::UiNativePhysicalProgressClass::PresentationRecovery,
+                    Some(presentation),
+                    false,
+                ))
+            }
+            Self::NoWake | Self::ConsumedWithoutReadyWork => None,
+        }
+    }
 }
 
 pub(super) fn progress_ready_physical_work(
@@ -19,11 +54,59 @@ pub(super) fn progress_ready_physical_work(
     if readiness.take_level(physical_owner).is_err() {
         return UiNativePhysicalWakeProgress::NoWake;
     }
-    if shared.borrow_mut().progress_one_physical_signal_ready() {
-        UiNativePhysicalWakeProgress::Progressed
-    } else {
-        UiNativePhysicalWakeProgress::ConsumedWithoutReadyWork
+    let progress = shared
+        .borrow_mut()
+        .progress_one_physical_signal_ready_outcome();
+    match progress {
+        crate::native::host_state::UiNativeHostPhysicalProgress::NoProgress => {
+            UiNativePhysicalWakeProgress::ConsumedWithoutReadyWork
+        }
+        crate::native::host_state::UiNativeHostPhysicalProgress::TextAtlas => {
+            UiNativePhysicalWakeProgress::TextAtlasProgressed
+        }
+        crate::native::host_state::UiNativeHostPhysicalProgress::Presentation(
+            identity,
+            crate::native::host_state::UiNativePresentationPhysicalProgress::RecoveryCompleted,
+        ) => UiNativePhysicalWakeProgress::PresentationRecoveryCompleted(correlation(identity)),
+        crate::native::host_state::UiNativeHostPhysicalProgress::Presentation(
+            identity,
+            crate::native::host_state::UiNativePresentationPhysicalProgress::IndeterminateRecoveryScheduled,
+        ) => UiNativePhysicalWakeProgress::PresentationProgressed {
+            presentation: correlation(identity),
+            duplicate_observation: false,
+        },
+        crate::native::host_state::UiNativeHostPhysicalProgress::Presentation(
+            _,
+            crate::native::host_state::UiNativePresentationPhysicalProgress::Pending,
+        ) => UiNativePhysicalWakeProgress::ConsumedWithoutReadyWork,
+        crate::native::host_state::UiNativeHostPhysicalProgress::Presentation(
+            identity,
+            crate::native::host_state::UiNativePresentationPhysicalProgress::Completed {
+                duplicate_observation,
+            },
+        ) => UiNativePhysicalWakeProgress::PresentationProgressed {
+            presentation: correlation(identity),
+            duplicate_observation,
+        },
+        crate::native::host_state::UiNativeHostPhysicalProgress::Presentation(identity, _) => {
+            UiNativePhysicalWakeProgress::PresentationProgressed {
+                presentation: correlation(identity),
+                duplicate_observation: false,
+            }
+        }
     }
+}
+
+fn correlation(
+    identity: crate::native::physical_work_signal::UiNativePhysicalPresentationIdentity,
+) -> super::UiNativePhysicalPresentationCorrelation {
+    let basis = identity.basis();
+    super::UiNativePhysicalPresentationCorrelation::issued(
+        basis.attempt(),
+        basis.surface(),
+        basis.binding(),
+        identity.sequence(),
+    )
 }
 
 impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {

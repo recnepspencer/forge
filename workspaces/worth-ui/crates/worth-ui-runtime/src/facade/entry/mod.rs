@@ -6,6 +6,7 @@ mod active_application_session;
 mod active_framework_turn;
 mod app;
 mod app_builder;
+mod app_inspection_routing;
 mod application_replacement;
 mod builder;
 #[cfg(any(test, feature = "certification-support"))]
@@ -75,7 +76,7 @@ pub use active_framework_turn::{
     WorthUiActiveRealtimeFrameCompletion, WorthUiActiveVirtualizedDataFrameCompletion,
     WorthUiMountedLaneProjectionDenial,
 };
-pub use app::{WorthUi, WorthUiApp};
+pub use app::{WorthUi, WorthUiApp, WorthUiPresentationAsyncInstallationDenial};
 #[cfg(test)]
 pub(crate) use app_builder::WorthUiCertificationApplicationBuilder;
 pub use app_builder::{
@@ -143,7 +144,9 @@ pub use mounted_preview::{
 pub use native_application_program::{
     UiNativeApplicationFrame, UiNativeApplicationProgram, UiNativeApplicationProgramDenial,
     UiNativeComponentPresenceChange, UiNativeComponentSemanticTextChange,
+    UiNativeThemeTokenValueChange,
 };
+pub(crate) use native_application_shell::UiNativeApplicationQueryCloseObservation;
 pub use native_application_shell::{
     WorthUiNativeApplicationCleanup, WorthUiNativeApplicationShell,
     WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,

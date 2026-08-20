@@ -44,6 +44,7 @@ pub enum UiMountedRetentionClass {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiMountedFrameRetentionDenial {
+    SupersedingPredecessorUnavailable,
     CapacityExceeded {
         class: UiMountedRetentionClass,
         required_frames: usize,
@@ -128,7 +129,7 @@ impl Default for UiMountedFrameRetentionBudget {
         const MIB: usize = 1024 * 1024;
         Self::new(UiMountedFrameRetentionBudgetInput {
             current: UiMountedRetentionClassBudget::new(1, 64 * MIB),
-            in_flight: UiMountedRetentionClassBudget::new(1, 64 * MIB),
+            in_flight: UiMountedRetentionClassBudget::new(2, 128 * MIB),
             observation_basis: UiMountedRetentionClassBudget::new(
                 DEFAULT_OBSERVATION_FRAME_CAPACITY,
                 256 * MIB,
@@ -148,6 +149,7 @@ impl Default for UiMountedFrameRetentionBudget {
 impl UiMountedFrameRetentionDenial {
     pub fn class(self) -> UiMountedRetentionClass {
         match self {
+            Self::SupersedingPredecessorUnavailable => UiMountedRetentionClass::InFlight,
             Self::CapacityExceeded { class, .. } | Self::AccountingOverflow { class } => class,
         }
     }

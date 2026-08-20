@@ -23,6 +23,7 @@ PACKAGES = {
     "worth-ui-host-native",
     "worth-ui-native-platform",
     "worth-ui-platform-pulse",
+    "worth-ui-query-binding",
     "worth-ui-runtime",
     "worth-ui-text",
 }
@@ -264,13 +265,19 @@ def execution_budget_ms(requirement: str) -> int:
         "P3-HEADLESS-COST-01",
         "P3-PRODUCER-SLOPE-01",
     }:
-        return 90_000
+        return 120_000
     if requirement == "P4-BIDI-01":
         return 180_000
     if requirement == "P4-LINE-LAYOUT-01":
         return 120_000
     if requirement == "P5-COLOR-EMOJI-01":
         return 180_000
+    if requirement == "P5-TEXT-COST-01":
+        return 570_000
+    if requirement == "P5-TEXT-RECONSTRUCTION-01":
+        return 570_000
+    if requirement in {"P5-TEXT-PIXELS-01", "P5-TEXT-ASYNC-PRESENTATION-01"}:
+        return 300_000
     return 60_000
 
 
@@ -292,11 +299,12 @@ def control_budget_ms(requirement: str) -> int:
         "P3-HEADLESS-COST-01",
         "P3-PRODUCER-SLOPE-01",
     }:
-        return 90_000
+        return 30_000
     if requirement in {"P4-BIDI-01", "P4-LINE-LAYOUT-01"}:
         return 60_000 if requirement == "P4-BIDI-01" else 120_000
     if requirement in {
         "P4-BIDI-INTERACTION-01",
+        "P4-COLOR-FONT-ADMISSION-01",
         "P4-TEXT-COST-01",
         "P4-TEXT-CONTENT-LOCALITY-01",
         "P4-TEXT-WIDTH-LOCALITY-01",
@@ -305,6 +313,8 @@ def control_budget_ms(requirement: str) -> int:
         return 30_000
     if requirement == "P5-COLOR-EMOJI-01":
         return 60_000
+    if requirement == "P5-TEXT-COST-01":
+        return 120_000
     return (
         20_000
         if requirement in {

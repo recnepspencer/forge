@@ -56,7 +56,7 @@ def timed_execution(
         capture_output=True,
         text=True,
         check=False,
-        timeout=300,
+        timeout=execution_timeout_seconds(command),
     )
     duration_ms = max(1, (time.perf_counter_ns() - started + 999_999) // 1_000_000)
     record = {
@@ -76,6 +76,15 @@ def timed_execution(
         flush=True,
     )
     return result, duration_ms, receipt(record, False)
+
+
+def execution_timeout_seconds(command: list[str]) -> int:
+    joined = " ".join(command)
+    if "phase5_locality_closure::" in joined:
+        return 530
+    if "native_phase_f_reconstruction::" in joined:
+        return 530
+    return 300
 
 
 def execution_binding(

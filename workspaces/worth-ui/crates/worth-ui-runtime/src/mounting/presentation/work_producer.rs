@@ -11,8 +11,6 @@ use super::{UiMountedPresentationLease, UiMountedPresentationWork};
 
 #[path = "work_producer/command_bundle.rs"]
 mod command_bundle;
-#[cfg(test)]
-pub(crate) use command_bundle::tests::collection_commands as collection_commands_for_test;
 #[path = "work_producer/delta_diff.rs"]
 mod delta_diff;
 #[path = "work_producer/effect_expectations.rs"]
@@ -144,9 +142,10 @@ impl UiMountedPresentationState {
             .iter()
             .map(|change| match change {
                 worth_ui_host_contract::UiMountedPaintCommandChange::Insert(command)
-                | worth_ui_host_contract::UiMountedPaintCommandChange::Replace(command) => {
-                    command.identity()
-                }
+                | worth_ui_host_contract::UiMountedPaintCommandChange::Replace {
+                    successor: command,
+                    ..
+                } => command.identity(),
                 worth_ui_host_contract::UiMountedPaintCommandChange::Remove(identity) => *identity,
             })
             .collect::<HashSet<_>>();
@@ -233,9 +232,9 @@ fn command_change_identity(
 ) -> worth_ui_host_contract::UiMountedPaintCommandIdentity {
     match change {
         worth_ui_host_contract::UiMountedPaintCommandChange::Insert(command)
-        | worth_ui_host_contract::UiMountedPaintCommandChange::Replace(command) => {
-            command.identity()
-        }
+        | worth_ui_host_contract::UiMountedPaintCommandChange::Replace {
+            successor: command, ..
+        } => command.identity(),
         worth_ui_host_contract::UiMountedPaintCommandChange::Remove(identity) => *identity,
     }
 }
@@ -250,9 +249,12 @@ fn precise_damage(
             worth_ui_host_contract::UiMountedPaintCommandChange::Insert(command) => {
                 [None, command_visible_bounds(command)]
             }
-            worth_ui_host_contract::UiMountedPaintCommandChange::Replace(command) => [
+            worth_ui_host_contract::UiMountedPaintCommandChange::Replace {
+                predecessor: predecessor_identity,
+                successor: command,
+            } => [
                 predecessor
-                    .command_option(command.identity())
+                    .command_option(*predecessor_identity)
                     .and_then(command_visible_bounds),
                 command_visible_bounds(command),
             ],

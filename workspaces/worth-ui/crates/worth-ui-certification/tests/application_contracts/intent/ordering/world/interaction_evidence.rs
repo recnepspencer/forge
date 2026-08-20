@@ -106,6 +106,9 @@ impl OrderingInteractionWorld {
             UiMountedFrameOutcome::CompletionDenied(_) => {
                 panic!("the IA-09 frame completion was denied")
             }
+            UiMountedFrameOutcome::Superseded(_) => {
+                panic!("the IA-09 frame was unexpectedly superseded")
+            }
         };
         let presentation =
             worth_ui::facade::observation_report::UiHostObservationPresentationBasis::new(

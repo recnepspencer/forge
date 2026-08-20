@@ -64,6 +64,19 @@ native_resource_schema! {
     PhysicalSignalWorker => physical_signal_workers,
     PhysicalSignalPendingWork => physical_signal_pending_work,
     PhysicalSignalWake => physical_signal_wakes,
+    PhysicalSignalTransitionObservation => physical_signal_transition_observations,
+    PendingPresentation => pending_presentations,
+    PendingPresentationSettlement => pending_presentation_settlements,
+    RetainedDrawList => retained_draw_lists,
+    PresentationEpoch => presentation_epochs,
+    ReconstructionRequirement => reconstruction_requirements,
+    TextPinBinding => text_pin_bindings,
+    PendingTextPresentation => pending_text_presentations,
+    RetainedFrameObservation => retained_frame_observations,
+    TextPinFrameObservation => text_pin_frame_observations,
+    TextAtlasPlanObservation => text_atlas_plan_observations,
+    ClientMountedLayout => client_mounted_layouts,
+    ClientRasterCacheEntry => client_raster_cache_entries,
 }
 
 impl UiNativeResourceCensus {
@@ -120,6 +133,67 @@ impl UiNativeResourceCensus {
             .physical_signal_pending_work
             .max(signal.active_requests);
         self.physical_signal_wakes = self.physical_signal_wakes.max(signal.pending_wakes);
+        self.physical_signal_transition_observations = self
+            .physical_signal_transition_observations
+            .max(signal.retained_transition_observations);
+        self
+    }
+
+    pub(crate) fn with_host_state(mut self, state: &super::UiNativeHostState) -> Self {
+        self.pending_presentations = self
+            .pending_presentations
+            .max(state.pending_presentations.len());
+        self.pending_presentation_settlements = self.pending_presentation_settlements.max(
+            state
+                .pending_presentations
+                .iter()
+                .filter(|pending| pending.has_settlement())
+                .count(),
+        );
+        self.retained_draw_lists = self
+            .retained_draw_lists
+            .max(state.retained_draw_lists.len());
+        self.presentation_epochs = self
+            .presentation_epochs
+            .max(state.presentation_epochs.len());
+        self.reconstruction_requirements = self
+            .reconstruction_requirements
+            .max(state.reconstruction_required.len());
+        self.text_pin_bindings = self.text_pin_bindings.max(state.text_pins_by_binding.len());
+        self.pending_text_presentations = self
+            .pending_text_presentations
+            .max(state.pending_text_presentations.len());
+        self.retained_frame_observations = self
+            .retained_frame_observations
+            .max(state.retained_frame_observations.len());
+        self.text_pin_frame_observations = self
+            .text_pin_frame_observations
+            .max(state.text_pin_frame_observations.len());
+        self.text_atlas_plan_observations = self
+            .text_atlas_plan_observations
+            .max(state.text_atlas_plan_observations.len());
+        self
+    }
+
+    pub(crate) fn with_client_peak(
+        mut self,
+        client: super::UiNativeClientResourceObservation,
+    ) -> Self {
+        self.client_mounted_layouts = self
+            .client_mounted_layouts
+            .max(client.peak_mounted_layouts());
+        self.client_raster_cache_entries = self
+            .client_raster_cache_entries
+            .max(client.peak_raster_cache_entries());
+        self
+    }
+
+    pub(crate) fn with_client_terminal(
+        mut self,
+        client: super::UiNativeClientResourceObservation,
+    ) -> Self {
+        self.client_mounted_layouts = client.terminal_mounted_layouts();
+        self.client_raster_cache_entries = client.terminal_raster_cache_entries();
         self
     }
 }

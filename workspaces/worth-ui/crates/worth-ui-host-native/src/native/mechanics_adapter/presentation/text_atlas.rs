@@ -27,6 +27,9 @@ pub(super) fn begin(
     let Some(work) = view.text_raster_work() else {
         return UiMountedTextWorkOutcome::Ready;
     };
+    if !super::presentation::glyph_run_admission::admits(view, work) {
+        return UiMountedTextWorkOutcome::Terminal(super::presentation::adapter_declined());
+    }
     let mut rasterizer = CallbackRasterizer(work);
     let outcome = super::text_atlas::perform(
         state,
@@ -53,8 +56,12 @@ pub(super) fn begin(
         worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(_) => {
             UiMountedTextWorkOutcome::Terminal(super::presentation::adapter_declined())
         }
-        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedAfterRasterization(_)
-        | worth_ui_host_contract::UiGlyphRasterTransactionOutcome::EffectsIndeterminate(_) => {
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedAfterRasterization(_) => {
+            UiMountedTextWorkOutcome::Terminal(
+                super::presentation::mark_presentation_indeterminate(state),
+            )
+        }
+        worth_ui_host_contract::UiGlyphRasterTransactionOutcome::EffectsIndeterminate(_) => {
             UiMountedTextWorkOutcome::Terminal(
                 super::presentation::mark_presentation_indeterminate(state),
             )
@@ -96,7 +103,7 @@ pub(super) fn settle_deferred(
             worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred,
         );
     };
-    let token = view.issue_completion_token();
+    let token = view.issue_text_atlas_completion_token();
     retain_pending(
         state,
         view,
