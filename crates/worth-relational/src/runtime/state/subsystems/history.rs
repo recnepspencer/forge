@@ -13,6 +13,8 @@ use crate::identity::data::VersionId;
 use crate::publication::patch::data::PatchStreamPosition;
 use crate::runtime::state::subsystems::RuntimeSubsystem;
 
+#[path = "history_publication.rs"]
+mod history_publication;
 #[path = "history_recovery.rs"]
 mod history_recovery;
 

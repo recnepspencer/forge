@@ -24,6 +24,8 @@ mod phase4_fork;
 mod phase4_fork_evidence;
 #[path = "relational_certification/phase4_owner_binding.rs"]
 mod phase4_owner_binding;
+#[path = "relational_certification/phase4_retention.rs"]
+mod phase4_retention;
 #[path = "relational_certification/production_failures.rs"]
 mod production_failures;
 #[path = "relational_certification/production_snapshot_failures.rs"]

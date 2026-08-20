@@ -11,7 +11,9 @@ pub(super) fn apply_authoritative_commit_artifacts(
     runtime: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
     allow_reconstructed_replacement: bool,
+    advance_branch_currentness: bool,
 ) -> Result<(), DurabilityError> {
+    let history_before = runtime.history.clone();
     if runtime
         .history
         .commit_envelopes
@@ -56,10 +58,18 @@ pub(super) fn apply_authoritative_commit_artifacts(
         .history
         .patch_stream_index
         .insert(envelope.patch.position, envelope.commit.commit_id);
-    runtime
+    let result = runtime
         .history
-        .record_recovered_commit(envelope, allow_reconstructed_replacement)
-        .map_err(|detail| DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail))?;
+        .record_recovered_commit(
+            envelope,
+            allow_reconstructed_replacement,
+            advance_branch_currentness,
+        )
+        .map_err(|detail| DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail));
+    if let Err(error) = result {
+        runtime.history = history_before;
+        return Err(error);
+    }
 
     if !envelope.lineage_events().is_empty() {
         for event in envelope.lineage_events() {

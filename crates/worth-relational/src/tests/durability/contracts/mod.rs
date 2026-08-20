@@ -2,6 +2,7 @@ mod adjacency_checkpoint;
 mod branch_and_aspect_history;
 mod checkpoint_recovery;
 mod descriptor_continuity;
+mod fork_provenance_checkpoint;
 mod merge_replay_continuity;
 mod rejected_and_parent_closure;
 mod retention_inspection_store;

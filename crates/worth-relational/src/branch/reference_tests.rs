@@ -70,6 +70,19 @@ fn metadata_generation_overflow_denies_before_reference_effect() {
 }
 
 #[test]
+fn retention_overflow_denies_before_obligation_effect() {
+    let mut cell = empty_cell();
+    cell.head_retention_obligations = u32::MAX;
+    let checkpoint_before = cell.checkpoint();
+
+    assert_eq!(
+        cell.retain_head(),
+        Err(RelationalBranchCellDenial::RetentionOverflow)
+    );
+    assert_eq!(cell.checkpoint(), checkpoint_before);
+}
+
+#[test]
 fn rebinding_preserves_fork_provenance_owner_branch_name() {
     let source = empty_cell();
     let fork = RelationalBranchReferenceCell::from_source(

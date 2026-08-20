@@ -65,12 +65,14 @@ impl AssembledCommitExecution {
         &PublicationPreparation,
         crate::history::data::CommitId,
         &crate::history::data::BranchId,
+        &crate::branch::RelationalLegacyBranchBinding,
     ) {
         (
             &mut self.admitted,
             &self.publication,
             self.history.commit_id,
             &self.history.branch_id,
+            &self.history.branch_binding,
         )
     }
 }

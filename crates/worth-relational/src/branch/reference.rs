@@ -27,6 +27,7 @@ pub enum RelationalBranchObservationConstructionDenial {
         observation_runtime_instance_id: u64,
         target_runtime_instance_id: u64,
     },
+    ForkProvenanceMismatch,
 }
 
 /// Lower an owner branch name into the shared exact observation grammar.
@@ -92,6 +93,7 @@ pub enum RelationalBranchCellDenial {
     BranchIdentityMismatch,
     CheckpointRuntimeMismatch,
     CheckpointObservationMismatch,
+    CheckpointForkProvenanceMismatch,
 }
 
 /// Read-only owner observation of one mutable branch-reference cell.
@@ -198,7 +200,7 @@ impl RelationalBranchReferenceCell {
             identity: RelationalBranchIdentity::new(runtime_instance_id, branch_id),
             observation,
             truth_version: RelationalBranchVersion::initial(),
-            head_retention_obligations: 0,
+            head_retention_obligations: 1,
             fork_provenance: Some(source.clone()),
             fork_source_branch_id: Some(source_branch_id),
         })
@@ -220,11 +222,22 @@ impl RelationalBranchReferenceCell {
             target,
             self.observation.generation(),
         )?;
-        let fork_provenance = self
-            .fork_provenance
-            .as_ref()
-            .zip(self.fork_source_branch_id.as_ref())
-            .map(|(source, source_branch_id)| {
+        let fork_provenance = match (
+            self.fork_provenance.as_ref(),
+            self.fork_source_branch_id.as_ref(),
+        ) {
+            (None, None) => Ok(None),
+            (Some(source), Some(source_branch_id)) => {
+                let expected_branch_id = format!(
+                    "relational/{}/{}",
+                    self.identity.runtime_instance_id(),
+                    source_branch_id.0
+                );
+                if source.branch_id().as_str() != expected_branch_id {
+                    return Err(
+                        RelationalBranchObservationConstructionDenial::ForkProvenanceMismatch,
+                    );
+                }
                 let target = match source.target() {
                     FoundationalBranchTarget::Empty => FoundationalBranchTarget::empty(),
                     FoundationalBranchTarget::Basis(target) => FoundationalBranchTarget::basis(
@@ -237,8 +250,10 @@ impl RelationalBranchReferenceCell {
                     target,
                     source.generation(),
                 )
-            })
-            .transpose()?;
+                .map(Some)
+            }
+            _ => return Err(RelationalBranchObservationConstructionDenial::ForkProvenanceMismatch),
+        }?;
         Ok(Self {
             identity: self.identity.rebind(runtime_instance_id),
             observation,
@@ -277,45 +292,6 @@ impl RelationalBranchReferenceCell {
         }
     }
 
-    pub(crate) fn from_checkpoint(
-        expected_runtime_instance_id: u64,
-        checkpoint: RelationalBranchCellCheckpoint,
-    ) -> Result<Self, RelationalBranchCellDenial> {
-        if checkpoint.observation.branch_id().as_str()
-            != format!(
-                "relational/{}/{}",
-                checkpoint.runtime_instance_id, checkpoint.branch_id.0
-            )
-        {
-            return Err(RelationalBranchCellDenial::CheckpointObservationMismatch);
-        }
-        if let FoundationalBranchTarget::Basis(target) = checkpoint.observation.target() {
-            if target.runtime_instance_id() != checkpoint.runtime_instance_id {
-                return Err(RelationalBranchCellDenial::CheckpointObservationMismatch);
-            }
-        }
-        if let Some(source) = checkpoint.fork_provenance.as_ref() {
-            if let FoundationalBranchTarget::Basis(target) = source.target() {
-                if target.runtime_instance_id() != checkpoint.runtime_instance_id {
-                    return Err(RelationalBranchCellDenial::CheckpointObservationMismatch);
-                }
-            }
-        }
-        let cell = Self {
-            identity: RelationalBranchIdentity::new(
-                checkpoint.runtime_instance_id,
-                checkpoint.branch_id,
-            ),
-            observation: checkpoint.observation,
-            truth_version: checkpoint.truth_version,
-            head_retention_obligations: checkpoint.head_retention_obligations,
-            fork_provenance: checkpoint.fork_provenance,
-            fork_source_branch_id: checkpoint.fork_source_branch_id,
-        };
-        cell.rebind_runtime(expected_runtime_instance_id)
-            .map_err(|_| RelationalBranchCellDenial::CheckpointObservationMismatch)
-    }
-
     pub(crate) fn observation(&self) -> &RelationalBranchObservation {
         &self.observation
     }
@@ -338,6 +314,11 @@ impl RelationalBranchReferenceCell {
             .checked_add(1)
             .ok_or(RelationalBranchCellDenial::RetentionOverflow)?;
         Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn set_head_retention_obligations_for_test(&mut self, obligations: u32) {
+        self.head_retention_obligations = obligations;
     }
 
     pub(crate) fn advance_metadata(&mut self) -> Result<(), RelationalBranchCellDenial> {
@@ -384,3 +365,6 @@ impl RelationalBranchReferenceCell {
 #[cfg(test)]
 #[path = "reference_tests.rs"]
 mod tests;
+
+#[path = "reference_checkpoint.rs"]
+mod checkpoint;

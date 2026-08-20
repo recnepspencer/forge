@@ -1152,3 +1152,49 @@ Phase 4 is closed for the currentness cutover only. This record does not claim
 visible immutable roots, repeatable-read bases, detached transactions,
 prepared candidates, compare-and-publish, physical copy-on-write, external
 retention/reclamation, or complete product MVCC.
+
+## Current dirty-tree corrective revalidation (Phase 4 review)
+
+This section supersedes the historical evidence counts above for the current
+working tree. The original Grok Phase-4 result was not accepted without an
+independent pass. That pass found and corrected two functional gaps: replay of
+an empty-intent merge could advance branch currentness twice, and the
+retention-overflow proof bypassed the real fork transition. The corrected
+replay path restores catalog/index sidecars with currentness disabled and lets
+the single MVCC publication perform the one branch-cell advance. The new
+causal fork denial drives `RelationalRuntime::fork_branch` and proves typed
+retention overflow leaves the source cell, registry, catalog, durable envelope
+set, and target absence unchanged. Contradictory source comments were also
+corrected before clearance.
+
+### Independent clearance
+
+The fresh read-only Sol-high review returned **CLEAR** on the current dirty
+tree. It verified Foundational exact comparison, concrete `worth-proof` fork
+and legacy-binding doors, paired fork-provenance checkpoint validation,
+publication identity preflight, lineage durable-append ordering, staged
+recovery, MVCC/history publication topology, corrected merge replay, and the
+causal denial matrix. The review explicitly preserves the narrow Phase-4
+boundary and does not promote later-phase obligations into this milestone.
+
+### Current evidence
+
+- `cargo test -p worth-relational --lib --no-fail-fast` — **1,047 passed,
+  0 failed, 25 ignored** (including the full CDC resume stress cases).
+- `cargo test -p worth-relational --test relational_certification
+  --no-fail-fast` — **95 passed, 0 failed**.
+- Merge replay continuity — **5 passed**; branch denial matrix — **3
+  passed**; branch-reference compile-fail harness — **20/20 cases passed**;
+  Supply Chain retention proof — **1 passed**.
+- Mechanical gates are green: formatting, Relational Clippy with `-D
+  warnings`, boundary topology, generated agent context, dirty Rust line cap,
+  Phase-4 residue guard, and `git diff --check`. The known `worth-signal`
+  warnings remain unrelated workspace debt.
+
+This current-tree review certifies the Phase-4 currentness cutover, canonical
+artifact singularity, fork-only admission, owner-bound legacy transaction
+routing, and exact currentness/recovery behavior. It does not certify visible
+immutable roots, repeatable-read bases, detached transactions, prepared
+candidates, compare-and-publish, physical copy-on-write, external
+retention/reclamation, broad merge publication, crash atomicity, or complete
+product MVCC.

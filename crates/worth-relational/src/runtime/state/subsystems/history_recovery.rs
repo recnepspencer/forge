@@ -102,6 +102,7 @@ impl HistorySubsystem {
         &mut self,
         envelope: &CanonicalCommitEnvelope,
         allow_reconstructed_replacement: bool,
+        advance_branch_currentness: bool,
     ) -> Result<(), String> {
         let catalog_artifact = self.commit_catalog.get(envelope.commit.commit_id);
         if catalog_artifact.is_some_and(|artifact| artifact.envelope().as_ref() != envelope) {
@@ -130,6 +131,9 @@ impl HistorySubsystem {
         }
         self.require_recovered_branch(&envelope.branch_context)
             .map_err(|detail| detail.to_owned())?;
+        if !advance_branch_currentness {
+            return Ok(());
+        }
         if is_metadata_only_envelope(envelope) {
             let metadata_already_applied = envelope
                 .branch_cell_checkpoint

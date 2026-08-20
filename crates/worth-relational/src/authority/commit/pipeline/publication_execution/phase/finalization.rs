@@ -12,6 +12,7 @@ pub(super) struct FinalizationInput<'a> {
     pub(super) previous_branch_head_version: Option<crate::identity::data::VersionId>,
     pub(super) commit_id: crate::history::data::CommitId,
     pub(super) commit_reference: &'a crate::history::data::RelationalCommitReceipt,
+    pub(super) branch_binding: &'a crate::branch::RelationalLegacyBranchBinding,
     pub(super) canonical_commit_envelope:
         std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
     pub(super) branch_id: &'a crate::history::data::BranchId,
@@ -34,6 +35,7 @@ pub(super) fn finalize_published_commit(
         previous_branch_head_version,
         commit_id,
         commit_reference,
+        branch_binding,
         canonical_commit_envelope,
         branch_id,
         merge_base_commits,
@@ -47,7 +49,7 @@ pub(super) fn finalize_published_commit(
         runtime,
         commit_id,
         commit_reference,
-        branch_id,
+        branch_binding,
         canonical_commit_envelope,
         phase_timing,
     )?;
@@ -113,15 +115,15 @@ fn publish_history(
     runtime: &mut crate::runtime::RelationalRuntime,
     commit_id: crate::history::data::CommitId,
     commit_reference: &crate::history::data::RelationalCommitReceipt,
-    branch_id: &crate::history::data::BranchId,
+    branch_binding: &crate::branch::RelationalLegacyBranchBinding,
     envelope: std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) -> Result<(), String> {
     let started = std::time::Instant::now();
-    let result = runtime.history_authority().publish_commit(
+    let result = runtime.mvcc_publication_authority().publish_commit(
         commit_id,
         commit_reference.clone(),
-        branch_id.clone(),
+        branch_binding,
         envelope.patch.position,
         envelope,
     );

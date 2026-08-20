@@ -116,13 +116,22 @@ fn replay_envelope_effect(
 ) -> Result<(), DurabilityError> {
     if is_metadata_only_lineage_commit(envelope) || is_metadata_only_merge_commit(envelope) {
         if is_metadata_only_merge_commit(envelope) {
-            apply_authoritative_commit_artifacts(restored, envelope, false)?;
+            // Preflight the owner door before recovery writes any sidecar or
+            // advances the branch cell. Artifact recovery below restores the
+            // immutable catalog/index projections only; its explicit
+            // currentness flag is false so publication owns the sole advance.
+            recovered_branch_binding(restored, &envelope.branch_context)?;
+            apply_authoritative_commit_artifacts(restored, envelope, false, false)?;
+            // Re-issue the owner binding after sidecar admission so
+            // publication validates the exact pre-publication cell and
+            // performs the one currentness transition for this commit.
+            let branch_binding = recovered_branch_binding(restored, &envelope.branch_context)?;
             restored
-                .history_authority()
+                .mvcc_publication_authority()
                 .publish_commit(
                     envelope.commit.commit_id,
                     envelope.commit.clone(),
-                    envelope.branch_context.clone(),
+                    &branch_binding,
                     envelope.patch.position,
                     Arc::new(envelope.clone()),
                 )
@@ -131,12 +140,13 @@ fn replay_envelope_effect(
                 })?;
             return Ok(());
         }
+        let branch_binding = recovered_branch_binding(restored, &envelope.branch_context)?;
         restored
-            .history_authority()
+            .mvcc_publication_authority()
             .publish_metadata_artifact(
                 envelope.commit.commit_id,
                 envelope.commit.clone(),
-                envelope.branch_context.clone(),
+                &branch_binding,
                 envelope.patch.position,
                 Arc::new(envelope.clone()),
             )
@@ -151,6 +161,26 @@ fn replay_envelope_effect(
     Ok(())
 }
 
+fn recovered_branch_binding(
+    restored: &RelationalRuntime,
+    branch_id: &crate::history::data::BranchId,
+) -> Result<crate::branch::RelationalLegacyBranchBinding, DurabilityError> {
+    let identity = restored.branch_identity(branch_id).map_err(|denial| {
+        DurabilityError::new(
+            RecoveryFailureClass::CorruptCheckpoint,
+            format!("recovery branch identity admission denied: {denial:?}"),
+        )
+    })?;
+    restored
+        .legacy_branch_binding_for_identity(&identity)
+        .map_err(|denial| {
+            DurabilityError::new(
+                RecoveryFailureClass::CorruptCheckpoint,
+                format!("recovery branch binding admission denied: {denial:?}"),
+            )
+        })
+}
+
 fn restore_authoritative_artifacts_when_required(
     restored: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
@@ -158,7 +188,12 @@ fn restore_authoritative_artifacts_when_required(
     allow_reconstructed_replacement: bool,
 ) -> Result<(), DurabilityError> {
     if plan.should_restore_authoritative_envelope(envelope.commit.commit_id) {
-        apply_authoritative_commit_artifacts(restored, envelope, allow_reconstructed_replacement)?;
+        apply_authoritative_commit_artifacts(
+            restored,
+            envelope,
+            allow_reconstructed_replacement,
+            true,
+        )?;
         validate_recovered_history_parity(restored, envelope)?;
     }
     Ok(())

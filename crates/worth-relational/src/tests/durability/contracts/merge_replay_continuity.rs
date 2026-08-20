@@ -43,6 +43,51 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
 }
 
 #[test]
+fn durability_contract_replays_empty_intent_merge_currentness_once() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&mut runtime, "main");
+    create_branch_from_main(&mut runtime, "feature");
+    create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+    let merge = merge_commit_from_branches(
+        &mut runtime,
+        BranchId("main".to_string()),
+        vec![BranchId("feature".to_string())],
+    );
+    let expected = runtime
+        .branch_reference_state(&BranchId("main".to_string()))
+        .expect("main state after empty-intent merge");
+    let expected_target = expected
+        .observation()
+        .target()
+        .as_basis()
+        .expect("empty-intent merge still publishes a truth target");
+
+    let plan = runtime
+        .durability()
+        .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
+    let mut recovered = persisted_runtime_with_test_schema();
+    recovered.durability_authority().recover(plan).unwrap();
+    let actual = recovered
+        .branch_reference_state(&BranchId("main".to_string()))
+        .expect("main state after recovery");
+    let actual_target = actual
+        .observation()
+        .target()
+        .as_basis()
+        .expect("recovered empty-intent merge still has a truth target");
+
+    assert_eq!(
+        expected.observation().generation(),
+        actual.observation().generation(),
+        "recovery must apply the merge currentness transition exactly once"
+    );
+    assert_eq!(expected.truth_version(), actual.truth_version());
+    assert_eq!(expected_target.commit_id(), actual_target.commit_id());
+    assert_eq!(expected_target.version_id(), actual_target.version_id());
+    assert_eq!(merge.commit.commit_id.0, expected_target.commit_id());
+}
+
+#[test]
 fn durability_contract_replays_merge_from_typed_authority_when_diagnostics_are_absent() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main");

@@ -95,16 +95,16 @@ pub(super) fn append_commit_durably(
     runtime: &mut crate::runtime::RelationalRuntime,
     mut assembled: AssembledCommitExecution,
 ) -> Result<DurableCommitExecution, crate::transactions::data::TransactionCommitError> {
-    let (admitted, publication, commit_id, branch_id) = assembled.append_parts();
+    let (admitted, publication, commit_id, branch_id, branch_binding) = assembled.append_parts();
     let append_authority = crate::durability::authority::DurableAppendAuthority::from_commit(
         CommitDurableAppendAdmission::new(runtime, commit_id, branch_id),
     );
     runtime
-        .history_authority()
+        .mvcc_publication_authority()
         .validate_versioned_publication(
             commit_id,
             &publication.canonical_commit_envelope().commit,
-            branch_id,
+            branch_binding,
             publication.canonical_commit_envelope(),
         )
         .map_err(|detail| {
@@ -161,6 +161,7 @@ pub(super) fn publish_commit_execution(
             previous_branch_head_version: history.previous_branch_head_version,
             commit_id: history.commit_id,
             commit_reference: &history.commit_reference,
+            branch_binding: &history.branch_binding,
             branch_id: &history.branch_id,
             merge_base_commits: &history.merge_base_commits,
             merge_parent_branches: &merge_parent_branches,

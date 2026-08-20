@@ -61,6 +61,21 @@ if rg -n "\bbranch_heads[[:space:]]*:[[:space:]]*BTreeMap" "$RELATIONAL_ROOT" --
 fi
 check_absent "retired BranchHead projection remains" "struct BranchHead" "$RELATIONAL_ROOT"
 check_absent "retired VersionGraphSnapshot projection remains" "struct VersionGraphSnapshot" "$RELATIONAL_ROOT"
+if test -e "$RELATIONAL_ROOT/history/authority/commit_publication.rs"; then
+  echo "[relational-phase4-residue] FAIL: retired broad HistoryAuthority publication module remains" >&2
+  failures=1
+fi
+
+if rg -n "pub\(crate\) fn (publish_commit|publish_metadata_artifact)" "$RELATIONAL_ROOT/history/authority" --glob '*.rs' >/tmp/worth-relational-phase4-residue.txt 2>&1; then
+  echo "[relational-phase4-residue] FAIL: broad HistoryAuthority publication door remains" >&2
+  cat /tmp/worth-relational-phase4-residue.txt >&2
+  failures=1
+fi
+
+if ! test -f "$RELATIONAL_ROOT/mvcc/publication/authority.rs"; then
+  echo "[relational-phase4-residue] FAIL: dedicated MVCC publication authority is missing" >&2
+  failures=1
+fi
 
 if rg -n "pub fn create_branch" "$RELATIONAL_ROOT/history" >/tmp/worth-relational-phase4-residue.txt 2>&1; then
   echo "[relational-phase4-residue] FAIL: raw public branch creation remains" >&2

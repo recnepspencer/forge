@@ -126,6 +126,32 @@ impl<'runtime> LineageAuthority<'runtime> {
                 &promotion_commit.branch_id,
             ),
         );
+        // Resolve and validate the exact owner binding before the durable
+        // append. The append is irreversible from this authority, so a
+        // later branch-admission denial must not strand a durable envelope.
+        let identity = self
+            .runtime
+            .branch_identity(&promotion_commit.branch_id)
+            .map_err(|_| {
+                CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed
+            })?;
+        let binding = self
+            .runtime
+            .legacy_branch_binding_for_identity(&identity)
+            .map_err(|_| {
+                CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed
+            })?;
+        self.runtime
+            .mvcc_publication_authority()
+            .validate_metadata_publication(
+                promotion_commit.commit_id,
+                &promotion_commit,
+                &binding,
+                &envelope,
+            )
+            .map_err(|_| {
+                CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed
+            })?;
         append_durable_commit(self.runtime, append_authority, &envelope).map_err(|_| {
             CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed
         })?;
@@ -133,11 +159,11 @@ impl<'runtime> LineageAuthority<'runtime> {
         let published_lineage = envelope.published_lineage().clone();
         let patch_position = envelope.patch.position;
         self.runtime
-            .history_authority()
+            .mvcc_publication_authority()
             .publish_metadata_artifact(
                 promotion_commit.commit_id,
                 promotion_commit.clone(),
-                promotion_commit.branch_id.clone(),
+                &binding,
                 patch_position,
                 Arc::new(envelope),
             )

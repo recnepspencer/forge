@@ -1,5 +1,6 @@
-mod commit_publication;
 mod replay_retention;
+#[cfg(test)]
+mod test_mutation;
 
 use crate::runtime::RelationalRuntime;
 
