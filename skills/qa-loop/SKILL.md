@@ -13,18 +13,7 @@ define completion.
 ## Independent review
 
 Launch a fresh, read-only independent reviewer at the start of the QA loop.
-Do not wait for a self-exhausted primary pass. The critic is an independent
-evidence source for missed defects, not a substitute for the primary agent's
-repository work.
-
-In parallel, the primary agent completes the scope, ledger, risk map, source
-tracing, semantic-family searches, focused execution, and root-cause
-corrections described below. It inspects every ledger guarantee and causally
-relevant boundary, searches each defect family for parallel instances,
-challenges the ledger for defects that could pass every row, and records a
-search-coverage manifest of paths, symbols, queries, boundaries, and evidence
-families. Primary discovery continues until another pass finds no new supported
-in-scope defect.
+The critic is an independent evidence source for missed defects.
 
 If the user names a reviewer, model, or CLI, use it. Supported choices may
 include a fresh Codex agent, Claude CLI, Cursor Agent, Grok, or another
@@ -35,7 +24,7 @@ that the selected reviewer is available before relying on it.
 If the user does not name a reviewer, default to Luna Max and proceed without
 blocking for a choice. If neither Luna Max nor a user-selected reviewer can be
 launched, report that the independent-review requirement is blocked; do not
-relabel the primary agent's pass as outside review.
+relabel a self-review as outside review.
 
 Give the critic a compact, source-bound review packet containing only the raw
 task-local evidence it needs:
@@ -50,10 +39,10 @@ task-local evidence it needs:
 - a neutral request to find correctness, authority, lifecycle, recovery,
   performance, topology, DX, and proof defects that are causally relevant
 
-Do not give the critic the primary agent's findings, intended fixes, suspected
-bugs, closure ledger conclusions, or preferred answer before its first pass.
-Keep the critic read-only. It may inspect and report, but the primary agent owns
-edits, verification, and final judgment.
+Do not give the critic prior findings, intended fixes, suspected bugs, closure
+ledger conclusions, or a preferred answer before its first pass.
+Keep the critic read-only. It may inspect and report; edits, verification, and
+final judgment remain outside the read-only review.
 
 Record the critic identity, model or command, source revision, scope, prompt,
 and complete findings in the audit history. Verify every external finding
@@ -183,10 +172,9 @@ Record every finding against the ledger rows it invalidates. State:
 
 Do not report preferences or speculative concerns as defects.
 
-The independent critic runs from the start, in parallel with primary discovery.
-It may change the risk map and ledger. Reconcile both passes against source and
-runtime evidence. Agreement does not prove a claim; disagreement requires
-direct evidence.
+The independent critic runs from the start and may change the risk map and
+ledger. Reconcile all review evidence against source and runtime evidence.
+Agreement does not prove a claim; disagreement requires direct evidence.
 
 When a defect was not represented by an existing row, treat that as two
 failures: the implementation defect and a ledger-completeness defect. Add the
@@ -231,10 +219,10 @@ Before declaring completion:
   inherit the first critic's conclusions
 
 If the critic finds a material defect, fix it, reopen affected guarantees, and
-repeat the primary agent's semantic-family searches to self-exhaustion before
-launch a new final-source critic. Never keep one critic running as a search
-assistant across correction turns. The replacement critic defaults to Luna Max
-unless the user specified another reviewer.
+repeat the affected semantic-family searches before launching a new final-source
+critic. Never keep one critic running as a search assistant across correction
+turns. The replacement critic defaults to Luna Max unless the user specified
+another reviewer.
 
 Report closure from the ledger. Never infer closure from the absence of new
 findings in a single pass. Summarize which independent reviewer was used, which

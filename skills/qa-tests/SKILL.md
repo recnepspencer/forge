@@ -10,10 +10,8 @@ the production defect it can independently expose.
 
 ## Independent review
 
-Launch a fresh, read-only independent test critic at the start. Do not wait
-for a self-exhausted primary pass. The critic is an independent evidence source
-for missed proof defects, not a substitute for the primary agent's repository
-work.
+Launch a fresh, read-only independent test critic at the start. The critic is
+an independent evidence source for missed proof defects.
 
 If the user names a reviewer, model, or CLI, use it. Valid choices may include
 a fresh Codex agent, Claude CLI, Cursor Agent, Grok, or another user-supplied
@@ -22,18 +20,8 @@ authenticate accounts, or grant the critic write authority.
 
 If the user does not specify a reviewer, default to Luna Max and proceed
 without blocking for a choice. If neither Luna Max nor a user-selected reviewer
-can be launched, report the blocker; the primary agent cannot serve as its own
+can be launched, report the blocker; a self-review cannot serve as an
 independent critic.
-
-In parallel, the primary agent establishes the proof surface, traces every
-relevant setup/action/observation/teardown path, inspects the production
-boundaries behind each claim, searches fixture and harness families for
-parallel weaknesses, runs focused evidence, and corrects supported findings.
-Record a continuously updated search-coverage manifest containing production
-claims, targets, fixtures, harnesses, oracles, compiler cases, queries, paths,
-commands, and fault families. Continue until another primary pass finds no new
-supported test or harness defect, then freeze the stable candidate revision or
-deterministic source fingerprint for closure review.
 
 Give the critic a compact, source-bound packet of raw evidence only:
 
@@ -48,11 +36,11 @@ Give the critic a compact, source-bound packet of raw evidence only:
 - a neutral request to identify proof claims that can remain green for the
   wrong reason
 
-Do not disclose the primary agent's findings, planned corrections, or expected
-answer before the critic's first pass. Record the critic identity, model or
-command, source revision, scope, prompt, and complete findings. Independently
-verify each finding in source or execution; outside review supplies hypotheses
-and adversarial perspective, not authority.
+Do not disclose prior findings, planned corrections, or an expected answer
+before the critic's first pass. Record the critic identity, model or command,
+source revision, scope, prompt, and complete findings. Independently verify each
+finding in source or execution; outside review supplies hypotheses and
+adversarial perspective, not authority.
 
 ## Establish the proof surface
 
@@ -108,9 +96,9 @@ Report findings before summaries. For each finding state:
 Do not report coverage percentage, assertion count, or stylistic preference as
 proof weakness by itself.
 
-Reconcile the primary review and the critic against repository evidence. Add
-critic findings only when that evidence supports them. Record rejected findings
-with the evidence that disproves them so consensus is never mistaken for proof.
+Reconcile all review evidence against repository evidence. Add critic findings
+only when that evidence supports them. Record rejected findings with the
+evidence that disproves them so consensus is never mistaken for proof.
 
 ## Correct and repeat
 
@@ -128,10 +116,10 @@ Continue until no meaningful test or harness findings remain.
 When corrections materially change the production boundary, fixture
 provenance, oracle, harness topology, or claimed test form, obtain a closure
 pass from a new critic instance against the final revision. Do not reuse the
-initial critic's context or conclusions. First repeat the primary agent's
-affected searches and proof review to self-exhaustion. The replacement critic
-defaults to Luna Max unless the user specified another reviewer. Never use the
-critic as an ongoing repository search assistant.
+initial critic's context or conclusions. Repeat affected searches and proof
+review before the closure pass. The replacement critic defaults to Luna Max
+unless the user specified another reviewer. Never use the critic as an ongoing
+repository search assistant.
 
 Completion requires causally valid worlds, honest boundary labels, independent
 observations, intended-cause failures, adversarial evidence proportionate to

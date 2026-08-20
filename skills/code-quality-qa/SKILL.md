@@ -37,29 +37,20 @@ Identify:
 
 ## Independent review
 
-Launch a fresh, read-only independent reviewer at the start. Do not wait for a
-self-exhausted primary structural pass. The critic is an independent evidence
-source for missed composition defects, not a substitute for the primary agent's
-repository work.
-
-The primary agent still inspects the complete dirty set, every numeric
-advisory, relevant parent and child modules, sibling owners, facades,
-dependency edges, and the committed destination topology. Search each finding's
-semantic family for parallel bags, mixed-level coordinators, dishonest facades,
-misplaced support, duplicated owners, and unstable naming.
+Launch a fresh, read-only independent reviewer at the start. The critic is an
+independent evidence source for missed composition defects.
 
 Record a continuously updated search-coverage manifest containing the dirty
 files, adjacent topology, queries, symbols, ownership boundaries, numeric
 candidates, and enforcement commands inspected. Correct supported findings,
-rerun the dirty inventory, and repeat until another primary pass finds no new
-in-scope structural defect. Freeze that stable candidate revision or
+rerun the dirty inventory, and freeze the stable candidate revision or
 deterministic source fingerprint before the final-source closure review.
 
 If the user names a reviewer, model, or CLI, use it. If the user does not name
 a reviewer, default to Luna Max and proceed without blocking for a choice. If
 neither Luna Max nor a user-selected reviewer can be launched, report that the
-independent-review requirement is blocked; do not relabel the primary agent's
-pass as outside review.
+independent-review requirement is blocked; do not relabel a self-review as
+outside review.
 
 Give the reviewer a compact packet containing repository laws, governing
 specification, current revision or deterministic source fingerprint, scoped
@@ -69,10 +60,10 @@ composition defects. Do not delay the initial launch merely to finish the
 manifest. Keep conclusions and preferred fixes out of its first prompt.
 
 Verify every reviewer finding directly. If a material correction follows,
-repeat the affected primary searches to self-exhaustion and use a new reviewer
-for the final-source closure pass rather than retaining the old reviewer as a
-search assistant. The replacement reviewer defaults to Luna Max unless the
-user specified another reviewer.
+repeat the affected searches and use a new reviewer for the final-source
+closure pass rather than retaining the old reviewer as a search assistant. The
+replacement reviewer defaults to Luna Max unless the user specified another
+reviewer.
 
 ## Review
 
@@ -132,5 +123,5 @@ after the structure stabilizes.
 
 Reassess naming, placement, dependency direction, deletion boundaries, and
 committed future insertion after each material correction. Continue until no
-meaningful structural findings remain. Closure requires both the exhausted
-primary pass and a final independent pass over the same frozen source state.
+meaningful structural findings remain. Closure requires a final independent
+pass over the same frozen source state.
