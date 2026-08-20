@@ -2,7 +2,7 @@ use crate::diagnostics::ExplanationFact;
 use crate::diagnostics::ProvenanceFact;
 use crate::facade::{
     mark_dirty, ArtifactRetentionPolicy, DiagnosticsAvailability, NodeEvaluationResult,
-    SignalGraph, SignalRuntime, SignalRuntimePolicy,
+    SignalGraph, SignalObservationRequest, SignalRuntime, SignalRuntimePolicy,
 };
 use crate::tests::support::{evaluate, version_ab, ASPECT_A};
 
@@ -67,6 +67,10 @@ fn snapshot_artifact_retention_policy_changes_richness_not_restore_truth() {
             .with_explanation_retention(ArtifactRetentionPolicy::Omit)
             .with_provenance_retention(ArtifactRetentionPolicy::Omit),
     );
+    let session = graph
+        .begin_observation_session(SignalObservationRequest::operation())
+        .unwrap();
+    graph.cancel_observation_session(&session).unwrap();
     let omitted_snapshot = graph.capture_snapshot();
     assert_eq!(
         omitted_snapshot

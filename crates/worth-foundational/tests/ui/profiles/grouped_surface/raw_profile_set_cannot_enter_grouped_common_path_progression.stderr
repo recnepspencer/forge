@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/profiles/grouped_surface/raw_profile_set_cannot_enter_grouped_common_path_progression.rs:22:62
+  --> tests/ui/profiles/grouped_surface/raw_profile_set_cannot_enter_grouped_common_path_progression.rs:24:62
    |
-22 |     let _ = common_path::profiles().progression().admit_same(profile);
+24 |     let _ = common_path::profiles().progression().admit_same(profile);
    |                                                   ---------- ^^^^^^^ expected `Artifact<..., ...>`, found `FoundationalProfileSet`
    |                                                   |
    |                                                   arguments to this method are incorrect

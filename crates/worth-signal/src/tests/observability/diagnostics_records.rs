@@ -84,6 +84,9 @@ fn operational_diagnostics_do_not_retain_frontier_trace_records_by_default() {
         .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
+    let observation = graph
+        .begin_observation_session(crate::facade::SignalObservationRequest::frontier())
+        .unwrap();
     mark_dirty_with_regions(
         &mut graph,
         source,
@@ -91,6 +94,9 @@ fn operational_diagnostics_do_not_retain_frontier_trace_records_by_default() {
         &[ChangedRegion::new("wing").with_detail("rib-12")],
     )
     .unwrap();
+    graph
+        .finish_optional_invalidation_execution_observation(&observation)
+        .unwrap();
 
     let diagnostics = graph.observe().diagnostics();
     assert!(diagnostics.latest_frontier_execution().is_some());

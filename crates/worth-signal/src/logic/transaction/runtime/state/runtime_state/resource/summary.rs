@@ -18,8 +18,11 @@ where
     }
 
     pub fn resource_runtime_summary_read_report(&mut self) -> ResourceRuntimeSummaryReadReport {
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         self.resource
-            .summary_read_report(&mut self.telemetry.resource)
+            .summary_read_report_optional(capture_telemetry.then_some(&mut self.telemetry.resource))
     }
 
     pub fn resource_descriptor_for_node(
@@ -33,8 +36,13 @@ where
         &mut self,
         declaration: &ResourceNodeDeclaration,
     ) -> Result<ResourcePolicyCompatibilityReport, crate::data::error::SignalError> {
-        self.resource
-            .classify_policy_compatibility(declaration, &mut self.telemetry.resource)
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.resource.classify_policy_compatibility_optional(
+            declaration,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn admit_resource_policy_restore_compatibility(
@@ -44,8 +52,13 @@ where
         Result<ResourcePolicyRestoreCompatibilityProof, DeniedResourcePolicyRestoreCompatibility>,
         crate::data::error::SignalError,
     > {
-        self.resource
-            .admit_policy_restore_compatibility(declaration, &mut self.telemetry.resource)
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.resource.admit_policy_restore_compatibility_optional(
+            declaration,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn latest_resource_branch_restore_report(&self) -> Option<ResourceBranchRestoreReport> {

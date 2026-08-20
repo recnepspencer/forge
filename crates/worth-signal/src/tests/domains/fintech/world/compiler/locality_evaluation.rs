@@ -24,6 +24,7 @@ pub(super) struct LocalityEvaluationProgram {
     baseline_aspect_version: u64,
     mutations: Vec<FinancialLocalityMutation>,
     evaluated_outputs: Arc<Mutex<BTreeSet<LocalitySemanticOutputId>>>,
+    evaluated_sequence: Arc<Mutex<Vec<LocalitySemanticOutputId>>>,
 }
 
 struct LocalityValueState<'a> {
@@ -69,6 +70,29 @@ impl LocalityEvaluationProgram {
         )
     }
 
+    pub(super) fn shocked_for_batch(
+        definition: &FinancialLocalityDefinition,
+        handles: &BTreeMap<LocalitySemanticOutputId, NodeId>,
+        baseline_financial_values: &BTreeMap<LocalitySemanticOutputId, i64>,
+        shocked_values: &BTreeMap<LocalitySemanticOutputId, i64>,
+        mutations: &[FinancialLocalityMutation],
+        batch_index: usize,
+    ) -> Self {
+        Self::with_values(
+            definition,
+            handles,
+            LocalityValueState {
+                current: shocked_values,
+                baseline: baseline_financial_values,
+                aspect_version: definition
+                    .workload()
+                    .mutation_aspect_version()
+                    .saturating_add(batch_index as u64),
+            },
+            mutations,
+        )
+    }
+
     fn with_values(
         definition: &FinancialLocalityDefinition,
         handles: &BTreeMap<LocalitySemanticOutputId, NodeId>,
@@ -88,6 +112,7 @@ impl LocalityEvaluationProgram {
             baseline_aspect_version: definition.workload().baseline_aspect_version(),
             mutations: mutations.to_vec(),
             evaluated_outputs: Arc::new(Mutex::new(BTreeSet::new())),
+            evaluated_sequence: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -102,6 +127,10 @@ impl LocalityEvaluationProgram {
             .lock()
             .expect("locality evaluation identity lock poisoned")
             .insert(output.id);
+        self.evaluated_sequence
+            .lock()
+            .expect("locality evaluation sequence lock poisoned")
+            .push(output.id);
         for subscription in &output.subscriptions {
             let source = self.handles[&subscription.upstream];
             match subscription.edge_scope {
@@ -175,6 +204,13 @@ impl LocalityEvaluationProgram {
             .expect("locality evaluation identity lock poisoned")
             .clone()
     }
+
+    pub(super) fn evaluated_sequence(&self) -> Vec<LocalitySemanticOutputId> {
+        self.evaluated_sequence
+            .lock()
+            .expect("locality evaluation sequence lock poisoned")
+            .clone()
+    }
 }
 
 pub(super) fn runtime_baseline_values(
@@ -200,6 +236,17 @@ pub(super) fn runtime_shocked_values(
     baseline: &BTreeMap<LocalitySemanticOutputId, i64>,
     mutations: &[FinancialLocalityMutation],
 ) -> Result<BTreeMap<LocalitySemanticOutputId, i64>, SignalError> {
+    runtime_shocked_values_for_batch(definition, baseline, mutations, 0)
+}
+
+pub(super) fn runtime_shocked_values_for_batch(
+    definition: &FinancialLocalityDefinition,
+    baseline: &BTreeMap<LocalitySemanticOutputId, i64>,
+    mutations: &[FinancialLocalityMutation],
+    batch_index: usize,
+) -> Result<BTreeMap<LocalitySemanticOutputId, i64>, SignalError> {
+    let shock_multiplier = i64::try_from(batch_index.saturating_add(1))
+        .map_err(|_| SignalError::invalid_input("performance batch index exceeds i64"))?;
     let mut shocked = BTreeMap::new();
     for output in definition.outputs() {
         let value = match output.formula {
@@ -212,7 +259,11 @@ pub(super) fn runtime_shocked_values(
                 .any(|mutation| output.id == mutation.producer) =>
             {
                 baseline_value
-                    .checked_add(mutation_delta)
+                    .checked_add(
+                        mutation_delta
+                            .checked_mul(shock_multiplier)
+                            .ok_or_else(|| SignalError::internal("locality shock overflow"))?,
+                    )
                     .ok_or_else(|| SignalError::internal("locality source shock overflow"))?
             }
             FinancialLocalityFormula::MarketSource { baseline_value, .. } => baseline_value,

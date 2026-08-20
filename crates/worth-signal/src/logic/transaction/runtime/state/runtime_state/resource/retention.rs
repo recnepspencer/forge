@@ -17,8 +17,13 @@ where
         &mut self,
         max_reclaimed: u32,
     ) -> ResourceLifecycleRetentionCompactionReport {
-        self.resource
-            .compact_lifecycle_history(max_reclaimed, &mut self.telemetry.resource)
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.resource.compact_lifecycle_history_optional(
+            max_reclaimed,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn compact_resource_lifecycle_history_with_retained_limit(
@@ -26,11 +31,15 @@ where
         max_reclaimed: u32,
         retained_history_limit: u32,
     ) -> ResourceLifecycleRetentionCompactionReport {
-        self.resource.compact_lifecycle_history_with_retained_limit(
-            max_reclaimed,
-            Some(retained_history_limit),
-            &mut self.telemetry.resource,
-        )
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.resource
+            .compact_lifecycle_history_with_retained_limit_optional(
+                max_reclaimed,
+                Some(retained_history_limit),
+                capture_telemetry.then_some(&mut self.telemetry.resource),
+            )
     }
 
     pub fn compact_resource_lifecycle_history_with_budget(
@@ -38,11 +47,15 @@ where
         max_reclaimed: u32,
         budget: ResourceRetentionCompactionBudget,
     ) -> ResourceLifecycleRetentionCompactionReport {
-        self.resource.compact_lifecycle_history_with_budget(
-            max_reclaimed,
-            budget,
-            &mut self.telemetry.resource,
-        )
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.resource
+            .compact_lifecycle_history_with_budget_optional(
+                max_reclaimed,
+                budget,
+                capture_telemetry.then_some(&mut self.telemetry.resource),
+            )
     }
 
     pub fn retained_history_availability_for_request(

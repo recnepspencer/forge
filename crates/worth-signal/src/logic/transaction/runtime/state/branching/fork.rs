@@ -157,7 +157,7 @@ where
             request.basis(),
             SignalBranchForkRequestBasis::ParentBranchSnapshot { .. }
         ) {
-            self.telemetry.transaction.explicit_fork_denial_count += 1;
+            self.with_telemetry(|telemetry| telemetry.transaction.explicit_fork_denial_count += 1);
             return TransitionOutcome::denied(
                 SignalBranchForkDenial::SnapshotPayloadRequiredForFork {
                     request: request.clone(),
@@ -183,7 +183,9 @@ where
         let resolved = match self.resolve_branch_fork_request(&request, snapshot) {
             Ok(resolved) => resolved,
             Err(denial) => {
-                self.telemetry.transaction.explicit_fork_denial_count += 1;
+                self.with_telemetry(|telemetry| {
+                    telemetry.transaction.explicit_fork_denial_count += 1
+                });
                 return TransitionOutcome::denied(denial);
             }
         };
@@ -210,9 +212,11 @@ where
             .graph_mut()
             .diagnostics_state_mut()
             .set_active_branch(handle.id);
-        self.telemetry.transaction.explicit_fork_count += 1;
+        self.with_telemetry(|telemetry| telemetry.transaction.explicit_fork_count += 1);
         if resolved.requested_snapshot_basis.is_some() {
-            self.telemetry.transaction.explicit_snapshot_fork_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.transaction.explicit_snapshot_fork_count += 1
+            });
         }
         self.branches
             .store_fork_packet(ExplicitBranchForkPacket::new(

@@ -5,13 +5,13 @@ use worth_foundational::{
     materialize_diagnostic_explanation_bundle, materialize_diagnostic_support_report,
     AdmissionReadinessProfile, BoundaryArtifactField, BoundaryArtifactId,
     CertificationPostureProfile, CompatibilityPostureProfile, DiagnosticRichnessProfile,
-    FoundationalDiagnosticArtifactKind, FoundationalDiagnosticCounterSnapshot,
-    FoundationalDiagnosticDeliveryClass, FoundationalDiagnosticExplanationInput,
-    FoundationalDiagnosticOutcomeKind, FoundationalDiagnosticPartiality,
-    FoundationalDiagnosticSubject, FoundationalDiagnosticSupportClaimStrength,
-    FoundationalDiagnosticSupportInput, FoundationalDiagnosticSurfaceAvailability,
-    FoundationalProfileSet, FoundationalProfileSetInput, RetentionDeliveryProfile,
-    SupportPostureProfile,
+    ExecutionObjectiveProfile, FoundationalDiagnosticArtifactKind,
+    FoundationalDiagnosticCounterSnapshot, FoundationalDiagnosticDeliveryClass,
+    FoundationalDiagnosticExplanationInput, FoundationalDiagnosticOutcomeKind,
+    FoundationalDiagnosticPartiality, FoundationalDiagnosticSubject,
+    FoundationalDiagnosticSupportClaimStrength, FoundationalDiagnosticSupportInput,
+    FoundationalDiagnosticSurfaceAvailability, FoundationalProfileSet, FoundationalProfileSetInput,
+    ObservationActivationProfile, RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_store_aspect_native::{
     StoreDiagnosticExplanationBundleEvidence, StoreDiagnosticSupportReportEvidence,
@@ -118,6 +118,8 @@ fn diagnostic_profile() -> FoundationalProfileSet {
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::Uncertified,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
     })
     .unwrap()
 }

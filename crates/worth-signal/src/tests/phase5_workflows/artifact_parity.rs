@@ -10,7 +10,9 @@ fn retained_vs_reconstructed_artifacts_match_after_long_churn() {
         let mut runtime = SignalRuntime::builder(SignalGraph::new())
             .with_kernel_defaults()
             .build();
-        runtime.set_runtime_policy(policy);
+        runtime.set_runtime_policy(policy.with_observation_activation(
+            worth_foundational::ObservationActivationProfile::Continuous,
+        ));
         let source = runtime.graph_mut().node().output_identity().build();
         let dependent = runtime.graph_mut().node().output_identity().build();
         runtime

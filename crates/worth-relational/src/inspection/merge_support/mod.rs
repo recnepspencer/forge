@@ -2,9 +2,9 @@ use worth_foundational::{
     admit_requested_foundational_profile, attach_support_profiled_artifact,
     foundational_profile_progression_authority, request_foundational_profile_set,
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalProfileAttachmentDenial,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalProfileAttachmentDenial,
     FoundationalProfileProgressionDenial, FoundationalProfileSet, FoundationalProfileSetInput,
-    RetentionDeliveryProfile, SupportPostureProfile,
+    ObservationActivationProfile, RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_proof::TransitionOutcome;
 
@@ -75,6 +75,12 @@ pub(crate) fn support_inspection_witness(
         )
         | TransitionOutcome::Denied(
             FoundationalProfileProgressionDenial::AdmissionReadinessCannotChangeAcrossProfileProgression,
+        )
+        | TransitionOutcome::Denied(
+            FoundationalProfileProgressionDenial::ResolutionLedgerDoesNotMatchProfileChange,
+        )
+        | TransitionOutcome::Denied(
+            FoundationalProfileProgressionDenial::ResolutionRelationMismatch(_),
         ) => return Err(RelationalMergeSupportInspectionDenial::RequestedProfileAdmissionDenied),
         TransitionOutcome::Deferred(_) => {
             return Err(RelationalMergeSupportInspectionDenial::RequestedProfileAdmissionDeferred);
@@ -139,6 +145,8 @@ fn support_profile(
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::Uncertified,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
     })
 }
 

@@ -3,6 +3,8 @@ mod canonical_assembly;
 mod completeness;
 mod durable_derivation;
 mod export;
+#[cfg(test)]
+mod operational_profile_lock;
 mod support_projection;
 #[cfg(test)]
 mod tests;

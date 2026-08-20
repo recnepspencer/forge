@@ -54,7 +54,8 @@ pub fn mark_dirty_batch(
     dirty: &DirtyBatch,
 ) -> Result<SourceRecomputeAdmission, SignalError> {
     let graph = graph.deref_mut();
-    graph.telemetry_mut().invalidation.batch_width += dirty.as_slice().len() as u64;
+    let batch_width = dirty.as_slice().len() as u64;
+    graph.with_telemetry(|telemetry| telemetry.invalidation.batch_width += batch_width);
     let admission = SourceRecomputeAdmission::new(dirty.clone());
     for seed in &admission.seeds {
         super::causality::source_seed::validate_source_seed(graph, seed)?;
@@ -69,28 +70,34 @@ pub fn mark_dirty_batch(
 
     let result = (|| {
         let plan = plan_invalidation_frontier(graph, dirty)?;
-        let mut summary = execute_invalidation_frontier(graph, &plan)?;
+        let capture_frontier = graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::FrontierTrace,
+        );
+        let Some(mut summary) = execute_invalidation_frontier(graph, &plan, capture_frontier)?
+        else {
+            return Ok(());
+        };
         let trace_records = retained_trace_records(graph, &plan)?;
         summary.counters.frontier_trace_retained_count = trace_records.len() as u64;
-        graph
-            .telemetry_mut()
-            .invalidation
-            .partition_scoped_invalidation_checks += plan.predicted.partition_scoped_checks;
-        graph
-            .telemetry_mut()
-            .invalidation
-            .frontier_trace_retained_count += summary.counters.frontier_trace_retained_count;
+        let partition_checks = plan.predicted.partition_scoped_checks;
+        let retained_count = summary.counters.frontier_trace_retained_count;
+        graph.with_telemetry(|telemetry| {
+            telemetry.invalidation.partition_scoped_invalidation_checks += partition_checks;
+            telemetry.invalidation.frontier_trace_retained_count += retained_count;
+        });
         graph.record_frontier_execution_diagnostics(plan.predicted.clone(), summary, trace_records);
         Ok(())
     })();
 
     if let Err(err) = result {
         graph.clear_pending_diagnostics_input();
-        DiagnosticsRecorder::new(graph).record_failure(ExecutionFailureContext::from_error(
-            ExecutionFailurePhase::Invalidation,
-            &err,
-            None,
-        ));
+        if graph.captures_failure_diagnostics() {
+            DiagnosticsRecorder::new(graph).record_failure(ExecutionFailureContext::from_error(
+                ExecutionFailurePhase::Invalidation,
+                &err,
+                None,
+            ));
+        }
         return Err(err);
     }
     Ok(admission)
@@ -106,8 +113,9 @@ fn plan_invalidation_frontier(
 fn execute_invalidation_frontier(
     graph: &mut SignalGraph,
     plan: &FrontierPlan,
-) -> Result<crate::data::proof::FrontierDiagnosticsSidecar, SignalError> {
-    application::execute_invalidation_frontier(graph, plan)
+    capture_frontier: bool,
+) -> Result<Option<crate::data::proof::FrontierDiagnosticsSidecar>, SignalError> {
+    application::execute_invalidation_frontier(graph, plan, capture_frontier)
 }
 
 fn retained_trace_records(

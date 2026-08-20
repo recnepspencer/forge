@@ -2,8 +2,9 @@ use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::handle::NodeId;
 use crate::data::tier::TierPolicy;
-use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsTier;
+use crate::runtime_policy::SignalRuntimePolicy;
+use crate::runtime_policy::SignalRuntimePolicyCompilationDenial;
 
 use super::{
     runtime_observation::{
@@ -12,6 +13,11 @@ use super::{
     },
     runtime_state::SignalRuntime,
     RuntimeHistory, RuntimeMerge,
+};
+
+pub use crate::observation::session::{
+    SignalObservationAdmissionDenial, SignalObservationCompletion, SignalObservationRequest,
+    SignalObservationSession, SignalObservationSurface,
 };
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
@@ -72,13 +78,6 @@ where
         self.graph.reset_runtime_policy_to_tier(profile);
     }
 
-    #[deprecated(
-        note = "use reset_runtime_policy_to_tier(...) for stock preset resets, or set_runtime_policy(...) for full policy control"
-    )]
-    pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsTier) {
-        self.reset_runtime_policy_to_tier(profile);
-    }
-
     /// Apply the full runtime policy bundle.
     ///
     /// This is the canonical owner for runtime posture and diagnostics
@@ -87,7 +86,32 @@ where
         self.graph.set_runtime_policy(policy);
     }
 
-    /// Adjust the current runtime policy in one place.
+    /// Apply a full runtime policy while preserving the compiler's typed
+    /// admission denial for caller-provided configuration.
+    pub fn try_set_runtime_policy(
+        &mut self,
+        policy: SignalRuntimePolicy,
+    ) -> Result<(), SignalRuntimePolicyCompilationDenial> {
+        self.graph.try_set_runtime_policy(policy)
+    }
+
+    /// Adjust the current runtime policy while preserving typed admission denial.
+    pub fn try_adjust_runtime_policy<F>(
+        &mut self,
+        adjust: F,
+    ) -> Result<(), SignalRuntimePolicyCompilationDenial>
+    where
+        F: FnOnce(SignalRuntimePolicy) -> SignalRuntimePolicy,
+    {
+        let next = adjust(self.runtime_policy());
+        self.try_set_runtime_policy(next)
+    }
+
+    /// Adjust the current runtime policy in one place when the result is known valid.
+    ///
+    /// Callers that construct policy values dynamically should prefer
+    /// [`try_adjust_runtime_policy`](Self::try_adjust_runtime_policy), which
+    /// returns the compiler's typed admission denial instead of panicking.
     pub fn adjust_runtime_policy<F>(&mut self, adjust: F)
     where
         F: FnOnce(SignalRuntimePolicy) -> SignalRuntimePolicy,

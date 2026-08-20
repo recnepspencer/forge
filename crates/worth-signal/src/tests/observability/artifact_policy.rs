@@ -1,6 +1,7 @@
 use crate::facade::{
     ArtifactRetentionPolicy, ChangedRegion, DiagnosticsAvailability, EvaluationRequestMode,
-    NodeEvaluationResult, NodeId, PartitionSubscription, SignalGraph, SignalRuntimePolicy,
+    NodeEvaluationResult, NodeId, PartitionSubscription, SignalGraph, SignalObservationRequest,
+    SignalRuntimePolicy,
 };
 use crate::tests::support::{evaluate, version_ab, GraphDependencyBatchExt, ASPECT_A};
 
@@ -17,6 +18,10 @@ fn explicit_omit_policy_surfaces_unavailable_artifacts() {
             .with_explanation_retention(ArtifactRetentionPolicy::Omit)
             .with_provenance_retention(ArtifactRetentionPolicy::Omit),
     );
+    let session = graph
+        .begin_observation_session(SignalObservationRequest::operation())
+        .unwrap();
+    graph.cancel_observation_session(&session).unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -85,6 +90,10 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
     );
 
     graph.set_runtime_policy(SignalRuntimePolicy::operational());
+    let session = graph
+        .begin_observation_session(SignalObservationRequest::operation())
+        .unwrap();
+    graph.cancel_observation_session(&session).unwrap();
     assert!(graph
         .observe()
         .materialize()

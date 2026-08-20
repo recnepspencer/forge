@@ -41,16 +41,8 @@ pub(crate) fn decide_stage_parallel_admission(
             kind: None,
         };
     }
-    let runtime_policy = graph.runtime_policy();
-    let min_parallel_tasks = runtime_policy
-        .parallel_admission
-        .min_parallel_tasks_for(runtime_policy.tier);
-    let semantic_cost_multiplier = match runtime_policy.retention_budget.semantic_detail {
-        crate::diagnostics::SemanticRetentionPolicy::Minimal => 1,
-        crate::diagnostics::SemanticRetentionPolicy::Development => 2,
-        crate::diagnostics::SemanticRetentionPolicy::Forensic => 3,
-    };
-    let effective_parallel_threshold = min_parallel_tasks.saturating_mul(semantic_cost_multiplier);
+    let installed_policy = graph.installed_runtime_policy();
+    let effective_parallel_threshold = installed_policy.parallel_min_tasks();
     if stage_width < effective_parallel_threshold {
         return StageParallelAdmission {
             use_parallel: false,
@@ -78,13 +70,7 @@ pub(crate) fn decide_stage_parallel_admission(
             kind: None,
         };
     }
-    if executor.is_full_parallel()
-        && stage_width
-            < runtime_policy
-                .parallel_admission
-                .full_parallel_min_tasks
-                .saturating_mul(semantic_cost_multiplier)
-    {
+    if executor.is_full_parallel() && stage_width < installed_policy.full_parallel_min_tasks() {
         return StageParallelAdmission {
             use_parallel: false,
             reason: ParallelAdmissionReason::BelowFullParallelThreshold,
@@ -93,15 +79,15 @@ pub(crate) fn decide_stage_parallel_admission(
     }
     StageParallelAdmission {
         use_parallel: true,
-        reason: match runtime_policy.tier {
-            crate::diagnostics::profile::DiagnosticsTier::Operational => {
-                ParallelAdmissionReason::AdmittedOperational
+        reason: match installed_policy.execution_objective() {
+            worth_foundational::ExecutionObjectiveProfile::Throughput => {
+                ParallelAdmissionReason::AdmittedThroughput
             }
-            crate::diagnostics::profile::DiagnosticsTier::Development => {
-                ParallelAdmissionReason::AdmittedDevelopment
+            worth_foundational::ExecutionObjectiveProfile::Balanced => {
+                ParallelAdmissionReason::AdmittedBalanced
             }
-            crate::diagnostics::profile::DiagnosticsTier::Forensic => {
-                ParallelAdmissionReason::AdmittedForensic
+            worth_foundational::ExecutionObjectiveProfile::LatencyBounded => {
+                ParallelAdmissionReason::AdmittedLatencyBounded
             }
         },
         kind: executor.parallel_kind(),

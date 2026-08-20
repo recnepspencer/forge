@@ -38,6 +38,8 @@ pub fn production_certified_profile() -> FoundationalProfileSet {
         admission_readiness: worth_foundational::AdmissionReadinessProfile::ProductionGateReady,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::ProductionCertified,
+        execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+        observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
     })
     .expect("coherent production-certified profile")
 }

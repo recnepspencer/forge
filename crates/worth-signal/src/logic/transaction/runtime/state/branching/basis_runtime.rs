@@ -20,7 +20,7 @@ where
     T: Copy + Ord,
 {
     pub fn current_branch_basis_artifact(&mut self) -> SignalBranchBasisArtifact {
-        self.telemetry.transaction.branch_basis_production_count += 1;
+        self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_production_count += 1);
         let branch = self.graph.current_branch();
         materialize_branch_basis(
             branch.name.clone(),
@@ -32,7 +32,7 @@ where
         &mut self,
         branch: SignalBranchHandle,
     ) -> TransitionOutcome<SignalBranchBasisArtifact, SignalBranchBasisDenial> {
-        self.telemetry.transaction.branch_basis_production_count += 1;
+        self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_production_count += 1);
         let live_branch = self
             .graph
             .branch_handle(branch.id)
@@ -47,7 +47,9 @@ where
                 SignalBranchBasisIdentity::from_branch_handle(&branch),
             )),
             Err(denial) => {
-                self.telemetry.transaction.branch_basis_denial_count += 1;
+                self.with_telemetry(|telemetry| {
+                    telemetry.transaction.branch_basis_denial_count += 1
+                });
                 TransitionOutcome::denied(denial)
             }
         }
@@ -58,7 +60,7 @@ where
         snapshot: &SignalSnapshotV1,
         intent: SnapshotRestoreIntent,
     ) -> TransitionOutcome<SignalBranchBasisArtifact, SignalBranchBasisDenial> {
-        self.telemetry.transaction.branch_basis_production_count += 1;
+        self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_production_count += 1);
         let branch_id = snapshot.meta.branch_id;
         let snapshot_id = snapshot.meta.snapshot_id;
         let Some(live_branch) = self
@@ -66,7 +68,7 @@ where
             .branch_handle(branch_id)
             .or_else(|| self.branches.branch_handle(branch_id))
         else {
-            self.telemetry.transaction.branch_basis_denial_count += 1;
+            self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_denial_count += 1);
             return TransitionOutcome::denied(SignalBranchBasisDenial::UnknownBranch {
                 branch_id,
                 branch_name: snapshot.meta.branch_name.clone(),
@@ -78,7 +80,7 @@ where
             .snapshot_state(branch_id, snapshot_id)
             .is_none()
         {
-            self.telemetry.transaction.branch_basis_denial_count += 1;
+            self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_denial_count += 1);
             return TransitionOutcome::denied(SignalBranchBasisDenial::UntrackedSnapshot {
                 branch_id,
                 snapshot_id,
@@ -96,13 +98,13 @@ where
         branch: SignalBranchHandle,
         snapshot: &SignalSnapshotV1,
     ) -> TransitionOutcome<SignalBranchBasisArtifact, SignalBranchBasisDenial> {
-        self.telemetry.transaction.branch_basis_production_count += 1;
+        self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_production_count += 1);
         let Some(live_branch) = self
             .graph
             .branch_handle(branch.id)
             .or_else(|| self.branches.branch_handle(branch.id))
         else {
-            self.telemetry.transaction.branch_basis_denial_count += 1;
+            self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_denial_count += 1);
             return TransitionOutcome::denied(SignalBranchBasisDenial::UnknownBranch {
                 branch_id: branch.id,
                 branch_name: branch.name,
@@ -110,7 +112,7 @@ where
         };
 
         if snapshot.meta.branch_id != live_branch.id {
-            self.telemetry.transaction.branch_basis_denial_count += 1;
+            self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_denial_count += 1);
             return TransitionOutcome::denied(SignalBranchBasisDenial::CrossBranchMismatch {
                 basis_branch_id: snapshot.meta.branch_id,
                 expected_branch_id: live_branch.id,
@@ -122,7 +124,7 @@ where
             .snapshot_state(live_branch.id, snapshot.meta.snapshot_id)
             .is_none()
         {
-            self.telemetry.transaction.branch_basis_denial_count += 1;
+            self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_denial_count += 1);
             return TransitionOutcome::denied(SignalBranchBasisDenial::UntrackedSnapshot {
                 branch_id: live_branch.id,
                 snapshot_id: snapshot.meta.snapshot_id,
@@ -143,9 +145,9 @@ where
         basis: SignalBranchBasisArtifact,
         branch: SignalBranchHandle,
     ) -> SignalBranchBasisValidationOutcome {
-        self.telemetry.transaction.branch_basis_validation_count += 1;
+        self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_validation_count += 1);
         if basis.payload().branch_id() != branch.id {
-            self.telemetry.transaction.branch_basis_denial_count += 1;
+            self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_denial_count += 1);
             return TransitionOutcome::denied(SignalBranchBasisDenial::CrossBranchMismatch {
                 basis_branch_id: basis.payload().branch_id(),
                 expected_branch_id: branch.id,
@@ -157,7 +159,7 @@ where
             .branch_handle(branch.id)
             .or_else(|| self.branches.branch_handle(branch.id))
         else {
-            self.telemetry.transaction.branch_basis_denial_count += 1;
+            self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_denial_count += 1);
             return TransitionOutcome::denied(SignalBranchBasisDenial::UnknownBranch {
                 branch_id: branch.id,
                 branch_name: branch.name,
@@ -166,7 +168,7 @@ where
 
         let live_identity = SignalBranchBasisIdentity::from_branch_handle(&live_branch);
         if basis.strong_basis().value() != &live_identity {
-            self.telemetry.transaction.branch_basis_stale_count += 1;
+            self.with_telemetry(|telemetry| telemetry.transaction.branch_basis_stale_count += 1);
             return TransitionOutcome::stale(basis.downgrade_to_stale_readable());
         }
 

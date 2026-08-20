@@ -131,10 +131,12 @@ mod data;
 pub mod diagnostics;
 pub mod easy;
 mod logic;
+pub(crate) mod observation;
 #[cfg(not(test))]
 mod presentation;
 #[cfg(test)]
 pub mod presentation;
+pub(crate) mod runtime_policy;
 pub mod schema;
 mod state;
 

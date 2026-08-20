@@ -163,6 +163,8 @@ fn support_ready_profile() -> worth_foundational::FoundationalProfileSet {
         .admission_readiness(worth_foundational::AdmissionReadinessProfile::Admitted)
         .retention_delivery(worth_foundational::RetentionDeliveryProfile::Retained)
         .certification_posture(worth_foundational::CertificationPostureProfile::Uncertified)
+        .execution_objective(worth_foundational::ExecutionObjectiveProfile::Balanced)
+        .observation_activation(worth_foundational::ObservationActivationProfile::Continuous)
         .compose()
         .unwrap()
 }

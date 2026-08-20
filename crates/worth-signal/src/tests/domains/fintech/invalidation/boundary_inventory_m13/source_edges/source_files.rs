@@ -18,7 +18,7 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
     source_file!(
         "logic/invalidation/routing.rs",
         "../../../../../../logic/invalidation/routing.rs",
-        "6343ab6c3df03823eb70267225eecad825c4cb1f6ecd2894d17f3331cecdefd5"
+        "4e03bf06f4de93a87724979bd23af8f11faac999dd0267419b00768431bc1074"
     ),
     source_file!(
         "logic/invalidation/routing/planning.rs",
@@ -28,17 +28,17 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
     source_file!(
         "logic/invalidation/routing/application.rs",
         "../../../../../../logic/invalidation/routing/application.rs",
-        "fd8501cb96f3de63409ae91464328ca7b2f6f6cd6cee9e1007543d9a4229d083"
+        "2af244431a58ce0439647bf49c3f086260fe19c18016180d7652c7390d8501c7"
     ),
     source_file!(
         "logic/invalidation/routing/counters.rs",
         "../../../../../../logic/invalidation/routing/counters.rs",
-        "efac78d5d21c67231b973a3c7c456cc011c65d5aa1e912f9f604a246ed2c55f5"
+        "2842ad8ebb465dc3fe454b58f40cfbcab4f519c95f50a24ecd982957ace7ee27"
     ),
     source_file!(
         "logic/invalidation/causality/dependency_admission.rs",
         "../../../../../../logic/invalidation/causality/dependency_admission.rs",
-        "ce0cc92f184b53b3091ff18ea3de58e78114879a3f9748e510273f46451731ac"
+        "97fda14cb53471036a5913a3cb829a0545ac964ced5101a1fa09be8b47752214"
     ),
     source_file!(
         "logic/invalidation/causality/cause_aggregation.rs",
@@ -48,7 +48,7 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
     source_file!(
         "data/graph/topology/subscriber_index/buckets.rs",
         "../../../../../../data/graph/topology/subscriber_index/buckets.rs",
-        "c2e062609e4173aeb58689dae7d44f17d1e27e5955c86b8a241d21cca5bd4ae2"
+        "2086424a82ee1efc01b86ad91936b68b5bc7bb4e333d3c741f234d9a5af310c4"
     ),
     source_file!(
         "data/graph/topology/subscriber_index/membership.rs",
@@ -63,22 +63,22 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
     source_file!(
         "data/graph/runtime/effect.rs",
         "../../../../../../data/graph/runtime/effect.rs",
-        "a4d299ef2d318924e1c1d57eda0647f3dacf0c510b3dc6b363e282c631d6c813"
+        "9c838603472927a0982999923f9df48af0ccfca7a84a7f2a7fda9e3ef0afeae8"
     ),
     source_file!(
         "data/graph/runtime/effect/admission.rs",
         "../../../../../../data/graph/runtime/effect/admission.rs",
-        "c134638b48b52f024bd7aac71aa5ad5cc19b7eee116112e02fda1a2e000693ce"
+        "21262ef9398139b97f22f4ebfba654d71d37a73beda1697712bfa49bd53436b3"
     ),
     source_file!(
         "data/graph/runtime/effect/application.rs",
         "../../../../../../data/graph/runtime/effect/application.rs",
-        "c9842378b9db2d284ea022712ffe1dfddecc100a682c930a55236f5b1c0e1255"
+        "7a9fa7d44e2fb6b7047bf9bbf01193fb23174b296e095e2d74fc6a451ae744db"
     ),
     source_file!(
         "data/graph/runtime/effect/evidence.rs",
         "../../../../../../data/graph/runtime/effect/evidence.rs",
-        "5cebede87b027b810cb2190cb8777c113e0752ec6e5a18495c50657523b1ec53"
+        "7aab9c718b7115570863d3c77008da0318dbddaf8f6f9e7536caed90c63bc84a"
     ),
     source_file!(
         "data/graph/runtime/effect/output_commit.rs",
@@ -123,7 +123,7 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
     source_file!(
         "logic/planner/precompute/eligibility.rs",
         "../../../../../../logic/planner/precompute/eligibility.rs",
-        "6501b9dd4eb98f2f8a4791777ce0c1d71e217709e68b148e943789e23f7875ef"
+        "284466c4f75e6631de66646d15a672b17fbc90641a388602eb711cd0d108a9e2"
     ),
     source_file!(
         "logic/planner/precompute/read_preparation.rs",
@@ -143,7 +143,7 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
     source_file!(
         "logic/planner/precompute/stage.rs",
         "../../../../../../logic/planner/precompute/stage.rs",
-        "a61cc771b7a82bd84fe52266097a654a786aa0e19fc616629654776a3bf2308f"
+        "75e83b9365c35cdfb67f5e91ad4482692ac23f07e736495306c7dca4f2c0da34"
     ),
     source_file!(
         "logic/planner/apply/stage.rs",
@@ -153,7 +153,7 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
     source_file!(
         "logic/planner/apply/stage/lowering.rs",
         "../../../../../../logic/planner/apply/stage/lowering.rs",
-        "f2deddf282b209d4a714589fc27e62ed76b02fbb1c90e33e8873af776f89ee60"
+        "666e0cc25a04dee067e20c347943b164e610d36a7263fb33bdc9afd3e6204704"
     ),
     source_file!(
         "logic/planner/semantic/finalization.rs",
@@ -168,22 +168,22 @@ pub(super) const SOURCE_FILES: &[SourceFile] = &[
     source_file!(
         "logic/planner/apply/stage/concurrent.rs",
         "../../../../../../logic/planner/apply/stage/concurrent.rs",
-        "dcc0a15a06a0015fad91ad08c77f10cc976514c9660606162df7bfff8dd72f3f"
+        "ddaf5715dd9926919e7291468d86e1f694e3e9b27e12fac2fc61624e1e9e667f"
     ),
     source_file!(
         "logic/planner/apply/stage/concurrent_packets.rs",
         "../../../../../../logic/planner/apply/stage/concurrent_packets.rs",
-        "8ece6c29b4ff8585bfc14f83308122497e9e338c3eae14e3956aae34d102d687"
+        "06fd0f13847274f736f39eeb0a71b2f1f98df425f572213d6ea8b1c0ed740c6e"
     ),
     source_file!(
         "logic/planner/apply/serial_batch/preparation.rs",
         "../../../../../../logic/planner/apply/serial_batch/preparation.rs",
-        "bb99b2f4f06cab59fd70863a6242f73f3a931cae667c8e4d736941150ab178a0"
+        "bca808aca2608806634f47194bd104cabf3a33ae90a17c4a6f8c1618e0ad507e"
     ),
     source_file!(
         "logic/planner/apply/serial_batch/application.rs",
         "../../../../../../logic/planner/apply/serial_batch/application.rs",
-        "cca066a0656ead4579b14af9de3ca53712878ee07331950f121d379bd32cb2fe"
+        "95803f8b828468c22737991d4a18a0e722d502a3ef9de39eaac846bfaf031481"
     ),
     source_file!(
         "logic/planner/apply/serial_batch/finalization.rs",

@@ -18,12 +18,17 @@ pub(crate) fn execute_ready<Outcome>(
             .add(InvalidationPerformedCounter::StaleWorkRejected, 1);
         return Err(error);
     }
-    let executed_binding = InvalidationProgressionOwner::ready_binding(&ready).clone();
+    let capture_performed_work = graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::PerformedWork,
+    );
+    let executed_binding =
+        capture_performed_work.then(|| InvalidationProgressionOwner::ready_binding(&ready).clone());
     match InvalidationProgressionOwner::execute(ready, |_| effect()) {
         TransitionOutcome::Success(executed) => {
-            graph
-                .invalidation_performed_counter_state()
-                .record_executed_work(executed_binding);
+            graph.record_observation_execution_boundary();
+            if let Some(executed_binding) = executed_binding {
+                graph.record_invalidation_performed_work(executed_binding);
+            }
             graph
                 .invalidation_performed_counter_state()
                 .add(InvalidationPerformedCounter::NodesEvaluated, 1);

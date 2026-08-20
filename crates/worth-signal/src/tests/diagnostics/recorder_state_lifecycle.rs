@@ -141,6 +141,7 @@ fn restore_snapshot_payload_preserving_history_keeps_latest_observation_in_sync_
         next_branch_id: 1,
         next_lineage_artifact_id: 0,
         next_lineage_sequence: 0,
+        observation_activation_mask: 0,
     };
 
     graph

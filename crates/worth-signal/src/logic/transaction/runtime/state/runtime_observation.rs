@@ -269,7 +269,7 @@ where
         self.graph.observe().diagnostics_profile()
     }
 
-    pub fn runtime_policy(&self) -> crate::diagnostics::policy::SignalRuntimePolicy {
+    pub fn runtime_policy(&self) -> crate::runtime_policy::SignalRuntimePolicy {
         self.graph.observe().runtime_policy()
     }
 

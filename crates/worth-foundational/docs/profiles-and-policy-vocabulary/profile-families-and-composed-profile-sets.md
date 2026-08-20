@@ -5,12 +5,13 @@
 This feature lets you describe one complete policy stance for a boundary
 surface. A profile set says how much diagnostic detail you want, what support
 posture applies, whether compatibility lowering is allowed, what readiness is
-required, what retention level exists, and whether the result is uncertified,
-evidence-backed, or production-certified.
+required, what retention level exists, whether the result is uncertified,
+evidence-backed, or production-certified, which execution objective is being
+selected, and when optional observation is active.
 
 ## Why You Use It
 
-- Use this when a runtime needs one explicit policy bundle instead of six loose
+- Use this when a runtime needs one explicit policy bundle instead of eight loose
   knobs.
 - Use this when you need composition legality checked up front instead of
   discovering bad combinations later.
@@ -38,6 +39,8 @@ Family vocabulary:
 - `AdmissionReadinessProfile`
 - `RetentionDeliveryProfile`
 - `CertificationPostureProfile`
+- `ExecutionObjectiveProfile`
+- `ObservationActivationProfile`
 
 Good to know:
 
@@ -63,7 +66,7 @@ weak for that strength.
 
 The front door works in three steps:
 
-1. assign all six profile families
+1. assign all eight profile families
 2. compose the set and validate cross-family legality
 3. optionally request the set immediately so progression can begin
 
@@ -79,6 +82,7 @@ Composition fails closed when:
 use worth_foundational::{
     profiles, AdmissionReadinessProfile, CertificationPostureProfile,
     CompatibilityPostureProfile, DiagnosticRichnessProfile,
+    ExecutionObjectiveProfile, ObservationActivationProfile,
     RetentionDeliveryProfile, SupportPostureProfile,
 };
 
@@ -90,6 +94,8 @@ let requested = profiles()
     .admission_readiness(AdmissionReadinessProfile::Admitted)
     .retention_delivery(RetentionDeliveryProfile::Retained)
     .certification_posture(CertificationPostureProfile::EvidenceBacked)
+    .execution_objective(ExecutionObjectiveProfile::Balanced)
+    .observation_activation(ObservationActivationProfile::Continuous)
     .request()?;
 ```
 
@@ -103,6 +109,7 @@ is valid.
 use worth_foundational::{
     profiles, AdmissionReadinessProfile, CertificationPostureProfile,
     CompatibilityPostureProfile, DiagnosticRichnessProfile,
+    ExecutionObjectiveProfile, ObservationActivationProfile,
     RetentionDeliveryProfile, SupportPostureProfile,
 };
 
@@ -114,6 +121,8 @@ let profile = profiles()
     .admission_readiness(AdmissionReadinessProfile::ProductionGateReady)
     .retention_delivery(RetentionDeliveryProfile::Durable)
     .certification_posture(CertificationPostureProfile::ProductionCertified)
+    .execution_objective(ExecutionObjectiveProfile::LatencyBounded)
+    .observation_activation(ObservationActivationProfile::Continuous)
     .compose()?;
 ```
 

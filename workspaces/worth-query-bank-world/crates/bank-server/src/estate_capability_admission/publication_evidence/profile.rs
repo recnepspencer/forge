@@ -1,7 +1,8 @@
 use worth_foundational::facade::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalProfileSet, FoundationalProfileSetInput,
-    RetentionDeliveryProfile, SupportPostureProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalProfileSet,
+    FoundationalProfileSetInput, ObservationActivationProfile, RetentionDeliveryProfile,
+    SupportPostureProfile,
 };
 
 pub(in crate::estate_capability_admission) fn publication_profile() -> FoundationalProfileSet {
@@ -12,6 +13,8 @@ pub(in crate::estate_capability_admission) fn publication_profile() -> Foundatio
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::EvidenceBacked,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
     })
     .unwrap()
 }

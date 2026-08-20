@@ -20,8 +20,10 @@
 > Runtime Phase 10's public cutover are closed by their
 > [Phase 9](./milestone-9.16-runtime-phase-9-closure-ledger.md) and
 > [Phase 10](./milestone-9.16-runtime-phase-10-closure-ledger.md) ledgers.
-> Milestone 9.16 itself remains open for Bank Phase 6 and Closure Phase 1
-> before the roadmap may advance to 9.17.
+> Milestone 9.16 itself remains open for Bank Phase 6 and Closure Phase 1.
+> The independently governed
+> [Milestone 9.16.2](./milestone-9.16.2.md) portable-package and PostgreSQL
+> runtime-durability foundation must also close before 9.17.
 
 ## Goal
 
@@ -64,11 +66,17 @@ schema-bound typed intent
     -> provisional undo / redo experimentation (not accepted product closure)
 ```
 
-The Milestone 9.17 sequence follows: 9.17.1 establishes exact owner component
-bases and Relational branch-local MVCC, 9.17.2 establishes Runtime Bridge
-composite history/publication, and 9.17.3 carries the result through Query and
-the public facade. Milestone 9.18 accepts tree-based semantic undo/redo over
-that completed composite history.
+The independently governed Milestone 9.16.2 portable-package and PostgreSQL
+durability interstitial also closes before Milestone 9.17. It establishes stable
+package identities, typed decomposition and fresh reconstruction, a neutral
+archive, canonical PostgreSQL-backed Relational recovery, and restart-safe use
+of Query's existing outbox through a stable runtime-level adapter without adding
+Worth Store integration here. The Milestone 9.17 sequence extends that same
+facade continuously: 9.17.1 adds durable component owners and Relational branch-
+local MVCC, 9.17.2 adds durable Runtime Bridge composite history/publication,
+and 9.17.3 completes Query recovery and performed-publication-gated dispatch.
+Milestone 9.18 accepts tree-based semantic undo/redo over that completed
+composite history.
 Advanced access and computation begin in Milestone 9.19 and must use the same
 public front door.
 
@@ -182,6 +190,32 @@ retaining Phase 6 query identity, parameters, bases, continuations, history,
 preview, live delivery, result shaping, and publication contracts. A 9.16.1
 cutover is incomplete if the Query monolith, public declarative journeys,
 Worth UI Query binding, or the Bank consumer loses covered behavior.
+
+### Milestone 9.16.2 Interstitial Contract
+
+Milestone 9.16.2 owns the portable-package and immediate durability gaps
+discovered by Workflow Editor. It consumes the validated package meaning and
+existing co-committed application-aftermath outbox built here. It does not
+redefine Bank behavior, outbox payload meaning, or Query/Relational publication
+authority.
+
+Its boundary is exact: Query owns package records, reconstruction, validation,
+semantic identity, existing outbox meaning, and fresh dispatch admission;
+Relational owns canonical commits, durable-before-publication, checkpoints,
+replay, and recovery law; the neutral archive owns transfer bytes; the
+runtime-level PostgreSQL adapter owns SQL, migrations, physical recovery
+mechanics, indexes, and fenced dispatch leases; the Query host facade invokes
+owner recovery and owns readiness; hosts own Git, signatures,
+providers, secrets, and activation. PostgreSQL persists the same canonical
+Relational commit containing the Query outbox. The stable Query dispatch carrier
+retains current performed product publication; 9.17.3 changes that source from
+Relational to Runtime Bridge composite publication. No shadow outbox,
+post-commit dual write, old proof, receipt, row, or lease restores authority.
+
+Milestone 9.16 Bank Phase 6 and Closure Phase 1 may continue beside 9.16.2 when
+their touched boundaries do not overlap. The roadmap handoff to 9.17.1 waits for
+both milestones rather than hiding a Workflow Editor workaround inside the
+Bank consumer.
 
 ## Why This Milestone Exists
 
@@ -4157,6 +4191,12 @@ Milestone 9.16 closes only when:
 - the closure ledger has no unresolved high- or critical-impact row.
 
 ## Handoff To Milestones 9.17 Through 9.22
+
+This handoff additionally requires Milestone 9.16.2 closure. Milestone 9.17 may
+consume stable package reconstruction, PostgreSQL-backed ordinary durability,
+and restart-safe existing-outbox dispatch. It must extend them through durable
+component and composite recovery; branch-local MVCC, product-world history, and
+runtime authority do not become archive, package-row, SQL-row, or lease content.
 
 The Milestone 9.17 sequence replaces the conservative single-product-branch
 and global-coordinator limits. Milestone 9.17.1 establishes exact owner-issued

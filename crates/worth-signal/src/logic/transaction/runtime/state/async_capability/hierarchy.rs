@@ -27,9 +27,9 @@ where
     ) -> Result<AsyncNodeHierarchyReplaySummary, SignalError> {
         self.ensure_live_async_node_owner(root, "read async node hierarchy replay summary")?;
         if self.async_node_capability_bundle_for_node(root).is_none() {
-            self.telemetry
-                .resource
-                .resource_undeclared_owner_denial_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.resource_undeclared_owner_denial_count += 1
+            });
             return Err(SignalError::invalid_input(format!(
                 "cannot read async node hierarchy replay summary for undeclared root {root}"
             )));
@@ -61,9 +61,9 @@ where
             active_request_handles.len() as u32,
             hierarchy_depth,
         );
-        self.telemetry
-            .resource
-            .record_boundary_performance_envelope(performance);
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.record_boundary_performance_envelope(performance)
+        });
         let lifecycle_digest = async_hierarchy_digest(&lifecycle_rows);
         let active_request_identities = active_request_handles
             .iter()
@@ -120,16 +120,17 @@ where
             })
             .unwrap_or_else(|| vec![root_node]);
         let propagated_hierarchy_width = affected_nodes.len().saturating_sub(1) as u32;
-        self.telemetry
-            .resource
-            .async_node_hierarchical_propagation_count += u64::from(propagated_hierarchy_width);
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.async_node_hierarchical_propagation_count +=
+                u64::from(propagated_hierarchy_width)
+        });
         let performance = ResourceBoundaryPerformanceEnvelope::async_node_hierarchy_cancellation(
             affected_nodes.len() as u32,
             propagated_hierarchy_width,
         );
-        self.telemetry
-            .resource
-            .record_boundary_performance_envelope(performance);
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.record_boundary_performance_envelope(performance)
+        });
         let replay_digest = self
             .async_node_hierarchy_replay_summary(root_node)?
             .replay_digest()

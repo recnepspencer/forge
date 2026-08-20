@@ -69,6 +69,11 @@ or completion evidence for it.
 - `MENTALITY.md` protects adversarial-first, foundation-first construction. The
   strongest constraint is that Query composition and concurrent authority must
   be made structurally real before broad Store-backed features are added.
+- Foundational Milestone 10 eight-axis profiles: Store operational and durable
+  evidence names `ExecutionObjectiveProfile::Throughput` and
+  `ObservationActivationProfile::OnDemand`. Throughput never weakens WAL,
+  acknowledgement, recovery, MVCC, integrity, custody, or authoritative
+  lineage. This roadmap does not claim a Store crash/WAL courtroom closed.
 - `arch_laws.md` protects autonomous subsystems and proof-carrying transitions.
   The strongest constraint is that the monolithic mutable Query backend must
   split into separately borrowable read, submission, lifecycle, and inspection

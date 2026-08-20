@@ -18,6 +18,8 @@ fn grouped_profile_surface_exposes_common_lower_and_stronger_lanes() {
         .admission_readiness(composition::AdmissionReadinessProfile::ProductionGateReady)
         .retention_delivery(composition::RetentionDeliveryProfile::Durable)
         .certification_posture(composition::CertificationPostureProfile::ProductionCertified)
+        .execution_objective(worth_foundational::ExecutionObjectiveProfile::Balanced)
+        .observation_activation(worth_foundational::ObservationActivationProfile::Continuous)
         .request()
         .expect("requested profile");
 

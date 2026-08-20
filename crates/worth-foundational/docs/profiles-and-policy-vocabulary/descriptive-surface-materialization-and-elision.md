@@ -4,7 +4,8 @@
 
 This feature plans which descriptive surfaces a profiled target can actually
 show. It covers surface inventories, target applicability, cost, absence
-causes, and named elision profiles such as operational summary.
+causes, observation disposition, and named elision profiles such as
+operational summary.
 
 ## Why You Use It
 
@@ -24,12 +25,14 @@ Common path:
 - `.full_fidelity()`
 - `.operational_summary()`
 - `.selected(...)`
+- `.selected_with_disposition(...)`
 
 Lower lane:
 
 - `plan_foundational_profile_materialization(...)`
 - `plan_foundational_profile_materialization_with_elision(...)`
 - `plan_selected_foundational_profile_materialization(...)`
+- `plan_selected_foundational_profile_materialization_with_disposition(...)`
 - `boundary_artifact_surface_inventory()`
 - `support_artifact_surface_inventory()`
 - `proof_bearing_artifact_surface_inventory()`
@@ -53,6 +56,18 @@ It answers:
 
 A "surface" here means a descriptive view such as history, replay, lineage,
 provenance, or forensic diagnostics.
+
+Selection and activation are separate. A selected surface under
+`FoundationalObservationDisposition::Inactive` is not silently treated as
+unsupported; its plan carries `ObservationNotActivated`. Continuous and
+explicitly activated dispositions may admit the selected surface subject to
+the normal richness, retention, target, and certification rules.
+
+The profile-only `full_fidelity`, `operational_summary`, and lower-lane
+planning functions are only shorthand for a continuously active profile. They
+return `ObservationDispositionRequired` for an `OnDemand` profile; use an
+explicit disposition entry point when the operation is inactive or
+session-activated.
 
 ## How It Executes
 
@@ -88,7 +103,7 @@ use worth_foundational::{profiles, FoundationalDescriptiveSurface};
 let support_plan = profiles()
     .materialization()
     .for_support_artifact(&support_artifact)
-    .operational_summary();
+    .operational_summary()?;
 
 let forensic = support_plan
     .decision_for(FoundationalDescriptiveSurface::ForensicDiagnostics)
@@ -98,6 +113,13 @@ if !forensic.is_available() {
     println!("forensic diagnostics unavailable: {:?}", forensic.absence_cause());
 }
 ```
+
+For an inspectable lower-lane caller, the same explicit-disposition operation
+is available at
+`profiles_api::lower_lane::materialization::plan_selected_foundational_profile_materialization_with_disposition`.
+The lower lane returns the same typed `Result` as the root and common paths;
+an `OnDemand` profile must use this operation (or the corresponding front-door
+method) when selecting `Inactive` or `ExplicitlyActivated` observation.
 
 What is authoritative here is the plan, not a guessed surface list. The plan
 tells you what the runtime can honestly show for that target and why anything

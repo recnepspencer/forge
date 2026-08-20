@@ -12,6 +12,7 @@ mod hostile_certification_world;
 mod interval_regeneration;
 mod node_disposal;
 mod node_supersession;
+mod phase7_lifecycle;
 mod policy_drift;
 mod previous_value_access;
 mod ready_frontier;

@@ -20,7 +20,7 @@ const PURE_WORLD_OWNERS: &[&str] = &[
 const ORACLE_CLOSURE_DIGEST: &str =
     "111473b947e5a716ad32578f4df6de682d15d9582b290e1bd749423e4f30fde0";
 const PURE_WORLD_CLOSURE_DIGEST: &str =
-    "8a504ad59d12441a2a4d5650612f60f0672603c6b709dad2a7d6736cd8b1a9ef";
+    "121f66b0d98b87f269566175b6d2e86a0f81256121a6d3d42e4ab8d4370e7812";
 
 #[test]
 fn complete_oracle_dependency_graph_excludes_runtime_authority() {

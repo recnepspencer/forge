@@ -23,6 +23,13 @@ pub mod runtime;
 pub mod schema;
 pub mod specialist;
 
+pub use crate::runtime_policy::{
+    compile_signal_runtime_policy, AdmittedSignalRuntimePolicy, InstalledSignalRuntimePolicy,
+    ParallelAdmissionPolicy, ResolvedSignalRuntimePolicy, SignalObservationCapturePlan,
+    SignalRuntimePolicy, SignalRuntimePolicyAdmissionDenial, SignalRuntimePolicyCompilationDenial,
+    SignalRuntimePolicyRequest,
+};
+
 #[cfg(test)]
 pub mod advanced;
 #[cfg(test)]
@@ -123,10 +130,12 @@ pub use self::runtime::{
     PlannedSignalBranchRetirement, PlannedSignalBranchRetirementBatch, PreviousValueRevision,
     ReadyTemporalWake, RecipeInstance, RetiredTemporalWake, RunSummary, RuntimeConfig,
     RuntimeMerge, RuntimePolicy, ScheduledTemporalWake, SignalBranchRetirementBatchReceipt,
-    SignalBranchRetirementReason, SignalBranchRetirementReceipt, SignalRuntime, SignalTransaction,
-    TemporalFrontierSnapshot, TemporalPreviousValueAccess, TemporalPreviousValueReference,
-    TemporalWakeId, TemporalWakeReschedule, TemporalWakeRetirementReason, TemporalWakeReuse,
-    TemporalWakeSummary, TransactionOutcome, TransactionResult, TransactionTiming, WakeOrdinal,
+    SignalBranchRetirementReason, SignalBranchRetirementReceipt, SignalObservationAdmissionDenial,
+    SignalObservationCompletion, SignalObservationRequest, SignalObservationSession,
+    SignalObservationSurface, SignalRuntime, SignalTransaction, TemporalFrontierSnapshot,
+    TemporalPreviousValueAccess, TemporalPreviousValueReference, TemporalWakeId,
+    TemporalWakeReschedule, TemporalWakeRetirementReason, TemporalWakeReuse, TemporalWakeSummary,
+    TransactionOutcome, TransactionResult, TransactionTiming, WakeOrdinal,
 };
 #[cfg(test)]
 #[allow(deprecated)]
@@ -135,9 +144,8 @@ pub use self::runtime::{
     KeyedRecipe as KeyedComputation, KeyedRecipeInstance as DefinedKeyedComputation,
     RecipeFamily as ComputationFamily, RecipeInstance as DefinedComputation,
     RunSummary as EvaluationSummary, RuntimeCheckpointPolicy as CheckpointPolicy,
-    RuntimeConfig as SignalRuntimeConfig, RuntimePolicy as SignalRuntimePolicy,
-    RuntimeRunRequest as RuntimeExecutionRequest, RuntimeTierPolicy as TierPolicy,
-    TransactionRunRequest as TransactionExecutionRequest,
+    RuntimeConfig as SignalRuntimeConfig, RuntimeRunRequest as RuntimeExecutionRequest,
+    RuntimeTierPolicy as TierPolicy, TransactionRunRequest as TransactionExecutionRequest,
 };
 #[cfg(all(feature = "parallel", not(test)))]
 pub use self::specialist::ParallelExecutionPolicy;

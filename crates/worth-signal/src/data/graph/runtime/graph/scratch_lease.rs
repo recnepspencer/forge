@@ -8,11 +8,14 @@ impl SignalGraph {
         &mut self,
         kind: ScratchLeaseKind,
     ) -> Result<TraversalScratch, SignalError> {
-        let (_, _, traversal, observation) = self.as_parts_mut();
-        if let Some(active) = traversal.scratch_lease {
-            observation.telemetry.storage.scratch_reentry_error_count += 1;
+        let active = self.as_parts_mut().2.scratch_lease;
+        if let Some(active) = active {
+            if let Some(mut telemetry) = self.telemetry_mut() {
+                telemetry.storage.scratch_reentry_error_count += 1;
+            }
             return Err(SignalError::scratch_reentry(active, kind));
         }
+        let (_, _, traversal, _) = self.as_parts_mut();
         traversal.scratch_lease = Some(kind);
         Ok(std::mem::take(&mut traversal.scratch))
     }

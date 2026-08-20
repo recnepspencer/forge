@@ -78,7 +78,8 @@ fn target_surface_inventories_and_selected_plans_stay_closed_and_explicit() {
         RetentionDeliveryProfile::Durable,
         CertificationPostureProfile::ProductionCertified,
     ));
-    let exhaustive = plan_foundational_profile_materialization::<BoundaryArtifactTarget>(&full);
+    let exhaustive = plan_foundational_profile_materialization::<BoundaryArtifactTarget>(&full)
+        .expect("continuous profile should carry its default disposition");
     let selected = plan_selected_foundational_profile_materialization::<BoundaryArtifactTarget>(
         &full,
         &[
@@ -123,7 +124,8 @@ fn target_surface_inventories_and_selected_plans_stay_closed_and_explicit() {
         plan_foundational_profile_materialization_with_elision::<SupportArtifactTarget>(
             &full,
             FoundationalDescriptiveElisionProfile::OperationalSummary,
-        );
+        )
+        .expect("continuous profile should carry its default disposition");
     assert_eq!(operational_summary.cost().requested_surface_count(), 2);
     assert!(operational_summary
         .decision_for(FoundationalDescriptiveSurface::History)
@@ -187,6 +189,7 @@ fn absence_causes_and_target_applicability_remain_structurally_distinct() {
 
     assert_eq!(
         plan_foundational_profile_materialization::<BoundaryArtifactTarget>(&omitted)
+            .expect("continuous profile should carry its default disposition")
             .decision_for(FoundationalDescriptiveSurface::History)
             .expect("history")
             .absence_cause(),
@@ -194,6 +197,7 @@ fn absence_causes_and_target_applicability_remain_structurally_distinct() {
     );
     assert_eq!(
         plan_foundational_profile_materialization::<BoundaryArtifactTarget>(&not_retained)
+            .expect("continuous profile should carry its default disposition")
             .decision_for(FoundationalDescriptiveSurface::History)
             .expect("history")
             .absence_cause(),
@@ -201,6 +205,7 @@ fn absence_causes_and_target_applicability_remain_structurally_distinct() {
     );
     assert_eq!(
         plan_foundational_profile_materialization::<BoundaryArtifactTarget>(&not_reconstructable)
+            .expect("continuous profile should carry its default disposition")
             .decision_for(FoundationalDescriptiveSurface::Replay)
             .expect("replay")
             .absence_cause(),
@@ -208,6 +213,7 @@ fn absence_causes_and_target_applicability_remain_structurally_distinct() {
     );
     assert_eq!(
         plan_foundational_profile_materialization::<SupportArtifactTarget>(&deferred)
+            .expect("continuous profile should carry its default disposition")
             .decision_for(FoundationalDescriptiveSurface::Provenance)
             .expect("provenance")
             .absence_cause(),
@@ -215,6 +221,7 @@ fn absence_causes_and_target_applicability_remain_structurally_distinct() {
     );
     assert_eq!(
         plan_foundational_profile_materialization::<SupportArtifactTarget>(&uncertified)
+            .expect("continuous profile should carry its default disposition")
             .decision_for(FoundationalDescriptiveSurface::ForensicDiagnostics)
             .expect("forensic")
             .absence_cause(),

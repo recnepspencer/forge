@@ -6,14 +6,14 @@ use crate::tests::domains::fintech::world::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(in crate::tests::domains::fintech) struct FreshFinancialRecompute {
+pub(crate) struct FreshFinancialRecompute {
     seed: u64,
     position_results: BTreeMap<InstrumentId, PositionFinancialResult>,
     economic_snapshot: FinancialEconomicSnapshot,
 }
 
 impl FreshFinancialRecompute {
-    pub(in crate::tests::domains::fintech) fn run(definition: &FinancialWorldDefinition) -> Self {
+    pub(crate) fn run(definition: &FinancialWorldDefinition) -> Self {
         let position_results = definition
             .positions()
             .iter()
@@ -51,9 +51,7 @@ impl FreshFinancialRecompute {
         self.position_results[&instrument]
     }
 
-    pub(in crate::tests::domains::fintech) fn economic_snapshot(
-        &self,
-    ) -> FinancialEconomicSnapshot {
+    pub(crate) fn economic_snapshot(&self) -> FinancialEconomicSnapshot {
         self.economic_snapshot.clone()
     }
 }

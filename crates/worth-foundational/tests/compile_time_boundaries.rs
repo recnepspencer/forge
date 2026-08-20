@@ -303,6 +303,13 @@ fn profile_grouped_public_surface_preserves_lane_boundaries() {
 }
 
 #[test]
+fn profile_phase4_facade_boundaries_preserve_public_lane_contracts() {
+    compile_fail(
+        "tests/ui/profiles/phase4_facade/lower_lane_report_cannot_enter_stronger_readiness.rs",
+    );
+}
+
+#[test]
 fn performance_primitives_and_common_path_preserve_family_boundaries() {
     compile_fail("tests/ui/performance/family_boundaries/*.rs");
     compile_fail("tests/ui/performance/grouped_surface/*.rs");

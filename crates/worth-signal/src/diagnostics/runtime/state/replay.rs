@@ -77,7 +77,7 @@ impl DiagnosticsState {
         if let Some(cursor) = self.replay_events.back().map(|latest| latest.cursor) {
             self.replay_cursor_offsets.insert(cursor, absolute_index);
         }
-        let limit = self.policy.retention_budget.history_limit.max(1) * 32;
+        let limit = self.installed_retention_budget.history_limit.max(1) * 32;
         while self.replay_events.len() > limit {
             if let Some(event) = self.replay_events.pop_front() {
                 self.replay_cursor_offset_base += 1;

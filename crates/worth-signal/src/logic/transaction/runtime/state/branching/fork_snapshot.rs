@@ -2,8 +2,7 @@ use crate::diagnostics::policy::OrdinaryAccessLane;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::logic::transaction::runtime::state::branching::fork::SignalBranchForkDenial;
 use crate::state::{
-    SignalBranchHandle, SignalSnapshotV1, SnapshotArtifactRestoreMode,
-    SnapshotDependencyRestoreMode, SnapshotRestoreIntent,
+    SignalBranchHandle, SignalSnapshotV1, SnapshotDependencyRestoreMode, SnapshotRestoreIntent,
 };
 
 use super::super::runtime_state::SignalRuntime;
@@ -57,7 +56,9 @@ where
                 parent_branch_id: parent_branch.id,
                 snapshot_id: snapshot.meta.snapshot_id,
             })?;
-    *graph.telemetry_mut() = snapshot.checkpoint_image.graph_telemetry;
+    if let Some(mut telemetry) = graph.telemetry_mut() {
+        *telemetry = snapshot.checkpoint_image.graph_telemetry;
+    }
     for requirement in &reconstructability_proof.required_rebuild {
         match requirement {
             crate::logic::transaction::RequiredDerivedRebuildSet::DependencyIndexes(_) => {
@@ -93,14 +94,6 @@ where
     graph
         .diagnostics_state_mut()
         .restore_snapshot_payload(snapshot.diagnostics.clone());
-    if matches!(
-        SnapshotRestoreIntent::restore_runtime_truth().artifacts,
-        SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
-    ) {
-        graph
-            .diagnostics_state_mut()
-            .set_policy(runtime.graph.runtime_policy());
-    }
     graph
         .diagnostics_state_mut()
         .set_active_branch(parent_branch.id);
@@ -108,7 +101,7 @@ where
         .diagnostics_state_mut()
         .set_branch_head_snapshot(parent_branch.id, snapshot.meta.snapshot_id);
     let mut state = snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry);
-    let retention_budget = state.graph().runtime_policy().retention_budget;
+    let retention_budget = state.graph().installed_runtime_policy().retention_budget();
     let profile = state.graph().diagnostics_profile();
     let history = ExecutionHistorySummary::from_graph(
         state.graph(),

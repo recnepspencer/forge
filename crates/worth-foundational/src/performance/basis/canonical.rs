@@ -16,10 +16,11 @@ use crate::performance::{
 };
 
 use super::support::{
-    access_pattern_token, allocation_posture_token, boundary_token, breadth_locality_token,
-    claim_text_entry, counter_integer_entry, counter_text_entry, evidence_strength_token,
-    execution_temperature_token, fallback_debt_token, freshness_retention_token, layout_bool_entry,
-    layout_intent_token, layout_text_entry, support_text_entry, work_class_token,
+    access_pattern_token, allocation_posture_token, append_observation_context_entries,
+    boundary_token, breadth_locality_token, claim_text_entry, counter_integer_entry,
+    counter_text_entry, evidence_strength_token, execution_temperature_token, fallback_debt_token,
+    freshness_retention_token, layout_bool_entry, layout_intent_token, layout_text_entry,
+    support_text_entry, work_class_token,
 };
 
 pub fn prepare_performance_bundle_for_canonical_basis<Claim>(
@@ -97,6 +98,7 @@ where
         claim.fallback_debt(),
         claim.included_work(),
         claim.excluded_work(),
+        claim.observation_context(),
         entries,
     );
 }
@@ -111,6 +113,9 @@ pub(super) fn append_claim_surface_entries(
     fallback_debt: FoundationalPerformanceFallbackDebtPosture,
     included_work: &[FoundationalPerformanceWorkClass],
     excluded_work: &[FoundationalPerformanceWorkClass],
+    observation_context: Option<
+        &crate::performance::claims::FoundationalPerformanceObservationContext,
+    >,
     entries: &mut Vec<CanonicalBasisEntry>,
 ) {
     entries.push(claim_text_entry("claim.boundary", boundary_token(boundary)));
@@ -150,6 +155,7 @@ pub(super) fn append_claim_surface_entries(
             work_class_token(*work_class),
         ));
     }
+    append_observation_context_entries(observation_context, entries);
 }
 
 pub(super) fn append_layout_entries(

@@ -3,6 +3,29 @@ Purpose
 
 S9.9 closeout note
 
+## M10 profile-policy boundary
+
+The M10 policy vocabulary is a contract boundary, not a benchmark label.  The
+Signal tests must prove that:
+
+- objective and observation activation are independently represented and
+  canonically carried from Foundational profile input;
+- requests progress through admitted, resolved, and installed Signal policy
+  phases before planner use;
+- a `Throughput + Continuous` request is admitted as an independent objective
+  and activation combination, while a valid throughput/on-demand preset changes
+  strategy through the installed policy;
+- planner behavior does not read a caller-supplied diagnostics tier as a
+  second authority;
+- optional observation work names its active disposition and included/excluded
+  work, with inactive observation represented by typed absence;
+- these policy choices do not alter semantic output, invalidation truth,
+  deterministic ordering, durability, or stable lineage.
+
+These tests are focused boundary and adversarial tests.  They do not claim
+zero-work or completed throughput evidence until a later runtime measurement
+phase supplies performed counters and independent workload slopes.
+
 Proof-safe grouped concurrent apply must now be certified at crate scope
 alongside honest serial fallback for ineligible full-parallel stages. The
 required owning lanes are `tests::adversarial_parallel` and

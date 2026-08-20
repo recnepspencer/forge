@@ -66,9 +66,9 @@ where
             )),
             0,
         );
-        self.telemetry
-            .resource
-            .async_keyed_node_historical_parity_count += 1;
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.async_keyed_node_historical_parity_count += 1
+        });
         Ok(AsyncKeyedNodeHistoricalParityReport::new(
             binding,
             historical_parity_report,

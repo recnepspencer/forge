@@ -119,14 +119,12 @@ impl SignalGraph {
                 bucket_probes,
             }
         };
-        self.observation
-            .telemetry
-            .invalidation
-            .reverse_subscription_bucket_probes += result.bucket_probes;
-        self.observation
-            .telemetry
-            .invalidation
-            .reverse_subscription_candidates_returned += result.candidates.len() as u64;
+        if let Some(mut telemetry) = self.telemetry_mut() {
+            telemetry.invalidation.reverse_subscription_bucket_probes += result.bucket_probes;
+            telemetry
+                .invalidation
+                .reverse_subscription_candidates_returned += result.candidates.len() as u64;
+        }
         result
             .candidates
             .retain(|candidate| self.is_alive(*candidate));

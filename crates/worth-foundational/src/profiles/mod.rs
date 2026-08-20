@@ -7,7 +7,9 @@ mod front_doors;
 mod identity;
 mod materialization;
 mod progression;
+mod progression_resolution;
 mod readiness;
+mod resolution;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FoundationalProfileProductionTestReady;
@@ -50,7 +52,8 @@ pub use difference::{
 };
 pub use families::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, RetentionDeliveryProfile, SupportPostureProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, ObservationActivationProfile,
+    RetentionDeliveryProfile, SupportPostureProfile,
 };
 pub use front_doors::{
     profiles, FoundationalProfileAttachmentFrontDoor, FoundationalProfileCertificationFrontDoor,
@@ -69,11 +72,13 @@ pub use materialization::{
     boundary_artifact_surface_inventory, foundational_profile_applicability,
     plan_foundational_profile_materialization,
     plan_foundational_profile_materialization_with_elision,
-    plan_selected_foundational_profile_materialization, proof_bearing_artifact_surface_inventory,
-    support_artifact_surface_inventory, FoundationalDescriptiveElisionProfile,
-    FoundationalDescriptiveSurface, FoundationalMaterializationCost,
-    FoundationalMaterializationPlanningDenial, FoundationalProfileApplicability,
-    FoundationalProfileDecisionKind, FoundationalProfileFamily,
+    plan_selected_foundational_profile_materialization,
+    plan_selected_foundational_profile_materialization_with_disposition,
+    proof_bearing_artifact_surface_inventory, support_artifact_surface_inventory,
+    FoundationalDescriptiveElisionProfile, FoundationalDescriptiveSurface,
+    FoundationalMaterializationCost, FoundationalMaterializationPlanningDenial,
+    FoundationalObservationActivationScope, FoundationalObservationDisposition,
+    FoundationalProfileApplicability, FoundationalProfileDecisionKind, FoundationalProfileFamily,
     FoundationalProfileMaterializationPlan, FoundationalSurfaceAbsenceCause,
     FoundationalSurfaceAvailabilityDecision, FoundationalTargetSurfaceInventory,
 };
@@ -90,18 +95,29 @@ pub use progression::{
     MaterializedFoundationalProfileSet, RequestedFoundationalProfileArtifact,
     RequestedFoundationalProfilePhase, RequestedFoundationalProfileSet,
 };
+pub use progression_resolution::{
+    admit_requested_foundational_profile_with_resolutions,
+    materialize_admitted_foundational_profile_with_resolutions,
+};
 pub use readiness::{
     certify_foundational_profile_milestone3_production_test_readiness,
+    foundational_profile_milestone10_readiness_report,
     foundational_profile_milestone3_readiness_report,
     require_foundational_profile_milestone3_production_test_readiness,
     FoundationalProfileCertifiedSurface, FoundationalProfileCertifiedSurfaceEvidence,
-    FoundationalProfileCompileFailBoundary, FoundationalProfileMilestone3PhaseGate,
+    FoundationalProfileCompileFailBoundary, FoundationalProfileMilestone10PhaseGate,
+    FoundationalProfileMilestone10ReadinessReport, FoundationalProfileMilestone3PhaseGate,
     FoundationalProfilePhaseGateEvidence, FoundationalProfileProductionReadinessAuthority,
     FoundationalProfileProductionReadinessReport, FoundationalProfileProductionReadinessScope,
     FoundationalProfileProductionTestReadyArtifact, FoundationalProfileResidualDebt,
     FoundationalProfileRuntimeAssumption, FoundationalProfileRuntimeNonAssumption,
     FoundationalProfileSyntheticRuntimePressure, FoundationalProfileWORTHProofApi,
     FoundationalProfileWORTHProofForbiddenSurface, FoundationalProfileWORTHProofSurface,
+};
+pub use resolution::{
+    FoundationalProfileResolutionFamily, FoundationalProfileResolutionLedger,
+    FoundationalProfileResolutionLedgerDenial, FoundationalProfileResolutionRecord,
+    FoundationalProfileResolutionRelation,
 };
 
 use crate::facade::ResponsibilityArea;

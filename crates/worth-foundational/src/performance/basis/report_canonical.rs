@@ -53,6 +53,7 @@ fn canonical_basis_for_materialized_report<Source>(
         report.fallback_debt(),
         report.included_work(),
         report.excluded_work(),
+        report.observation_context(),
         &mut entries,
     );
     append_section_decisions(report.section_decisions(), &mut entries);

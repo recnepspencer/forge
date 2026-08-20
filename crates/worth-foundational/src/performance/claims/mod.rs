@@ -1,4 +1,5 @@
 mod builder;
+mod context;
 mod types;
 
 pub use builder::{
@@ -8,6 +9,7 @@ pub use builder::{
     FoundationalReplayMaterializationPerformanceClaimBuilder,
     FoundationalSupportDerivedPerformanceClaimBuilder,
 };
+pub use context::FoundationalPerformanceObservationContext;
 pub use types::{
     FoundationalAuthoritativePerformanceClaim, FoundationalPerformanceClaimSurface,
     FoundationalPolicyAdmissionPerformanceClaim, FoundationalReplayMaterializationPerformanceClaim,

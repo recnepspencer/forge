@@ -1,19 +1,28 @@
 use crate::data::graph::signal_graph::SignalGraph;
-use crate::diagnostics::policy::{
-    ArtifactRetentionPolicy, DiagnosticsAvailability, SignalRuntimePolicy,
-};
+use crate::diagnostics::policy::{ArtifactRetentionPolicy, DiagnosticsAvailability};
 use crate::diagnostics::state::DiagnosticsState;
 use crate::state::{SignalSnapshotV1, SnapshotArtifactRestoreMode, SnapshotRestoreIntent};
 
 impl SignalGraph {
     pub(super) fn explanation_reconstruction_availability(&self) -> DiagnosticsAvailability {
-        let policy = self.runtime_policy();
+        let policy = self.installed_runtime_policy();
+        if policy.observation_activation()
+            == worth_foundational::ObservationActivationProfile::OnDemand
+            && !self.diagnostics_state().has_observation_activation(
+                crate::logic::transaction::SignalObservationSurface::DescriptiveFacts.bit(),
+            )
+        {
+            return DiagnosticsAvailability::ObservationNotActivated;
+        }
         if matches!(
-            policy.retention_budget.explanation_retention,
+            policy.retention_budget().explanation_retention,
             ArtifactRetentionPolicy::Omit
         ) {
             DiagnosticsAvailability::OmittedByTier
-        } else if policy.can_reconstruct_explanation() {
+        } else if policy
+            .reconstruction_budget()
+            .allow_explanation_reconstruction
+        {
             DiagnosticsAvailability::ReconstructedAvailable
         } else {
             DiagnosticsAvailability::DeniedByBudget
@@ -21,13 +30,24 @@ impl SignalGraph {
     }
 
     pub(super) fn provenance_reconstruction_availability(&self) -> DiagnosticsAvailability {
-        let policy = self.runtime_policy();
+        let policy = self.installed_runtime_policy();
+        if policy.observation_activation()
+            == worth_foundational::ObservationActivationProfile::OnDemand
+            && !self.diagnostics_state().has_observation_activation(
+                crate::logic::transaction::SignalObservationSurface::DescriptiveFacts.bit(),
+            )
+        {
+            return DiagnosticsAvailability::ObservationNotActivated;
+        }
         if matches!(
-            policy.retention_budget.provenance_retention,
+            policy.retention_budget().provenance_retention,
             ArtifactRetentionPolicy::Omit
         ) {
             DiagnosticsAvailability::OmittedByTier
-        } else if policy.can_reconstruct_provenance() {
+        } else if policy
+            .reconstruction_budget()
+            .allow_provenance_reconstruction
+        {
             DiagnosticsAvailability::ReconstructedAvailable
         } else {
             DiagnosticsAvailability::DeniedByBudget
@@ -38,7 +58,6 @@ impl SignalGraph {
         restored: &mut SignalGraph,
         snapshot: &SignalSnapshotV1,
         current_diagnostics: &DiagnosticsState,
-        current_policy: SignalRuntimePolicy,
         intent: SnapshotRestoreIntent,
     ) {
         restored
@@ -52,16 +71,18 @@ impl SignalGraph {
             intent.artifacts,
             SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
         ) {
-            restored.observation.diagnostics.set_policy(current_policy);
+            let installed = restored.installed_runtime_policy();
+            restored
+                .diagnostics_state_mut()
+                .set_installed_policy(installed);
         }
         let diagnostics_breadth = snapshot.diagnostics.recent_history.len() as u64
             + snapshot.diagnostics.replay_frames.len() as u64
             + snapshot.diagnostics.explanation_facts.len() as u64
             + snapshot.diagnostics.provenance_facts.len() as u64
             + snapshot.diagnostics.lineage_records.len() as u64;
-        restored
-            .telemetry_mut()
-            .checkpoint
-            .restore_diagnostic_richness_breadth += diagnostics_breadth;
+        restored.with_telemetry(|telemetry| {
+            telemetry.checkpoint.restore_diagnostic_richness_breadth += diagnostics_breadth;
+        });
     }
 }

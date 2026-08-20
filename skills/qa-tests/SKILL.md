@@ -8,32 +8,32 @@ description: Review and correct WORTH tests and test harnesses as production evi
 Attempt to falsify the suite's proof claims. A green test is evidence only for
 the production defect it can independently expose.
 
-## Exhaust the primary test review before independent review
+## Independent review
 
-Do not launch an independent critic at the start. The primary agent must first
-establish the proof surface, trace every relevant setup/action/observation/
-teardown path, inspect the production boundaries behind each claim, search the
-fixture and harness families for parallel weaknesses, run focused evidence,
-and correct every supported finding. Do not use a critic for initial test
-inventory, fixture discovery, broad search, or the first proof analysis.
+Launch a fresh, read-only independent test critic at the start. Do not wait
+for a self-exhausted primary pass. The critic is an independent evidence source
+for missed proof defects, not a substitute for the primary agent's repository
+work.
 
-Before requesting outside review, record a search-coverage manifest containing
-the production claims, targets, fixtures, harnesses, oracles, compiler cases,
-queries, paths, commands, and fault families already inspected. Reach a stable
-candidate on which another primary pass finds no new supported test or harness
-defect, then freeze its revision or deterministic source fingerprint.
-
-Only after that self-exhaustion gate, instantiate a fresh, read-only test
-critic. If the user names a reviewer, model, or CLI, use it. Valid choices may
-include a fresh Codex agent, Claude CLI, Cursor Agent, Grok, or another user-
-supplied non-interactive review command. Do not invent commands, install tools,
+If the user names a reviewer, model, or CLI, use it. Valid choices may include
+a fresh Codex agent, Claude CLI, Cursor Agent, Grok, or another user-supplied
+non-interactive review command. Do not invent commands, install tools,
 authenticate accounts, or grant the critic write authority.
 
-If the user does not specify a reviewer, state that the default is a fresh
-GPT-5.6 code-review instance and proceed without blocking for a choice. Prefer
-the available GPT-5.6 coding/reasoning model appropriate to the environment. If
-no fresh default or user-selected reviewer is available, report the blocker;
-the primary agent cannot serve as its own independent critic.
+If the user does not specify a reviewer, default to Luna Max and proceed
+without blocking for a choice. If neither Luna Max nor a user-selected reviewer
+can be launched, report the blocker; the primary agent cannot serve as its own
+independent critic.
+
+In parallel, the primary agent establishes the proof surface, traces every
+relevant setup/action/observation/teardown path, inspects the production
+boundaries behind each claim, searches fixture and harness families for
+parallel weaknesses, runs focused evidence, and corrects supported findings.
+Record a continuously updated search-coverage manifest containing production
+claims, targets, fixtures, harnesses, oracles, compiler cases, queries, paths,
+commands, and fault families. Continue until another primary pass finds no new
+supported test or harness defect, then freeze the stable candidate revision or
+deterministic source fingerprint for closure review.
 
 Give the critic a compact, source-bound packet of raw evidence only:
 
@@ -41,7 +41,8 @@ Give the critic a compact, source-bound packet of raw evidence only:
 - the frozen revision or deterministic source fingerprint
 - the scoped production and test diff
 - relevant fixtures, harnesses, assertions, and real production boundaries
-- the search-coverage manifest, so routine repository discovery is not repeated
+- any search-coverage already recorded; do not delay launch to finish a
+  complete manifest
 - test commands, output, timings, retained artifacts, and known environment
   constraints
 - a neutral request to identify proof claims that can remain green for the
@@ -107,10 +108,9 @@ Report findings before summaries. For each finding state:
 Do not report coverage percentage, assertion count, or stylistic preference as
 proof weakness by itself.
 
-Complete the primary test review before reading the critic's conclusions, then
-reconcile both passes. Add critic findings only when repository evidence
-supports them. Record rejected findings with the evidence that disproves them
-so consensus is never mistaken for proof.
+Reconcile the primary review and the critic against repository evidence. Add
+critic findings only when that evidence supports them. Record rejected findings
+with the evidence that disproves them so consensus is never mistaken for proof.
 
 ## Correct and repeat
 
@@ -129,8 +129,9 @@ When corrections materially change the production boundary, fixture
 provenance, oracle, harness topology, or claimed test form, obtain a closure
 pass from a new critic instance against the final revision. Do not reuse the
 initial critic's context or conclusions. First repeat the primary agent's
-affected searches and proof review to self-exhaustion; never use the critic as
-an ongoing repository search assistant.
+affected searches and proof review to self-exhaustion. The replacement critic
+defaults to Luna Max unless the user specified another reviewer. Never use the
+critic as an ongoing repository search assistant.
 
 Completion requires causally valid worlds, honest boundary labels, independent
 observations, intended-cause failures, adversarial evidence proportionate to

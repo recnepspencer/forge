@@ -3,8 +3,17 @@ mod dependency_reconciliation_rotating;
 mod dependency_reconciliation_stable_shape;
 mod dependency_reconciliation_staged;
 mod fintech_fanout;
+mod measured_packet;
+mod measured_pressure;
+mod named_scale_slopes;
 mod observability_profile;
+mod scheduled_node_bound;
 mod suppression_fanout;
+mod throughput_courtroom;
+pub(crate) mod throughput_definition;
+mod throughput_parity;
+mod throughput_slopes;
+mod throughput_world;
 mod topology_rewiring;
 
 use serde_json::json;

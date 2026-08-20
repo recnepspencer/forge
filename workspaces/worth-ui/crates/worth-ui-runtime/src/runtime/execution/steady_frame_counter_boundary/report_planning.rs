@@ -4,8 +4,9 @@ use worth_foundational::{
         FoundationalPerformanceAttachmentTargetKind,
     },
     profiles, AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalPerformanceReportMaterializationBoundary,
-    FoundationalPerformanceReportRequest, FoundationalProfileSet, RetentionDeliveryProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile,
+    FoundationalPerformanceReportMaterializationBoundary, FoundationalPerformanceReportRequest,
+    FoundationalProfileSet, ObservationActivationProfile, RetentionDeliveryProfile,
     SupportPostureProfile,
 };
 
@@ -120,6 +121,18 @@ impl WorthUiSteadyFrameReportPlanner {
                 ),
             };
 
+        let (execution_objective, observation_activation) = match self.materialization_boundary {
+            WorthUiFrameReportMaterializationBoundary::ClaimInspectionOnly => (
+                ExecutionObjectiveProfile::Throughput,
+                ObservationActivationProfile::OnDemand,
+            ),
+            WorthUiFrameReportMaterializationBoundary::ReportAssembly
+            | WorthUiFrameReportMaterializationBoundary::SupportExpansion => (
+                ExecutionObjectiveProfile::Balanced,
+                ObservationActivationProfile::Continuous,
+            ),
+        };
+
         profiles()
             .set()
             .diagnostic_richness(diagnostic_richness)
@@ -128,6 +141,8 @@ impl WorthUiSteadyFrameReportPlanner {
             .admission_readiness(AdmissionReadinessProfile::Admitted)
             .retention_delivery(RetentionDeliveryProfile::Retained)
             .certification_posture(certification_posture)
+            .execution_objective(execution_objective)
+            .observation_activation(observation_activation)
             .compose()
             .map_err(|_| report_planning_denial())
     }

@@ -81,7 +81,8 @@ fn signal_harness_bridge_captures_diagnostics_explanations_and_provenance() {
     let adapter = SignalHarnessBridge;
     let fixture = basic_fixture();
     let request = ExecutionRequest::new("pull-dependent", vec!["dependent".to_string()]);
-    let profile = ExecutionProfile::serial("serial");
+    let profile =
+        ExecutionProfile::serial("serial").with_diagnostics_level(DiagnosticsLevel::Development);
     let mut session = adapter.create_runtime().unwrap();
 
     adapter.load_fixture(&mut session, &fixture).unwrap();
@@ -108,11 +109,11 @@ fn signal_harness_bridge_captures_diagnostics_explanations_and_provenance() {
     );
     assert_eq!(
         explanations[0].extensions["artifact_materialization"],
-        "reconstructed"
+        "retained"
     );
     assert_eq!(
         provenance[0].extensions["artifact_materialization"],
-        "reconstructed"
+        "retained"
     );
 }
 
@@ -121,7 +122,8 @@ fn signal_harness_bridge_captures_v2_replay_summary() {
     let adapter = SignalHarnessBridge;
     let fixture = basic_fixture();
     let request = ExecutionRequest::new("pull-dependent", vec!["dependent".to_string()]);
-    let profile = ExecutionProfile::serial("serial");
+    let profile =
+        ExecutionProfile::serial("serial").with_diagnostics_level(DiagnosticsLevel::Development);
     let mut session = adapter.create_runtime().unwrap();
 
     adapter.load_fixture(&mut session, &fixture).unwrap();
@@ -223,6 +225,16 @@ fn operational_profile_reconstructs_rich_artifacts_without_retaining_facts() {
     adapter.load_fixture(&mut session, &fixture).unwrap();
     let _run = adapter
         .execute(&mut session, &fixture, &request, &profile)
+        .unwrap();
+
+    let runtime = session.runtime_mut().unwrap();
+    let observation = runtime
+        .graph
+        .begin_observation_session(SignalObservationRequest::operation())
+        .unwrap();
+    runtime
+        .graph
+        .cancel_observation_session(&observation)
         .unwrap();
 
     let runtime = session.runtime().unwrap();

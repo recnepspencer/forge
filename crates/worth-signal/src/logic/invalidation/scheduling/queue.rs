@@ -37,10 +37,11 @@ impl ReadyInvalidationQueue {
                     "same-epoch invalidation dedup encountered different causal authority",
                 ));
             }
-            let telemetry = &mut graph.telemetry_mut().invalidation;
-            telemetry.work_items_admitted += 1;
-            telemetry.work_items_merged += 1;
-            telemetry.ready_work_deduplicated += 1;
+            graph.with_telemetry(|telemetry| {
+                telemetry.invalidation.work_items_admitted += 1;
+                telemetry.invalidation.work_items_merged += 1;
+                telemetry.invalidation.ready_work_deduplicated += 1;
+            });
             let observed = graph.invalidation_performed_counter_state();
             observed.add(InvalidationPerformedCounter::WorkItemsAdmitted, 1);
             observed.add(InvalidationPerformedCounter::WorkItemsMerged, 1);
@@ -54,11 +55,15 @@ impl ReadyInvalidationQueue {
         self.order.push_back(key);
         self.entries.insert(key, entry);
         let width = self.entries.len() as u64;
-        let telemetry = &mut graph.telemetry_mut().invalidation;
-        telemetry.work_items_admitted += 1;
-        telemetry.ready_items_enqueued += 1;
-        telemetry.maximum_ready_frontier_width = telemetry.maximum_ready_frontier_width.max(width);
-        telemetry.retained_ready_frontier_width = width;
+        graph.with_telemetry(|telemetry| {
+            telemetry.invalidation.work_items_admitted += 1;
+            telemetry.invalidation.ready_items_enqueued += 1;
+            telemetry.invalidation.maximum_ready_frontier_width = telemetry
+                .invalidation
+                .maximum_ready_frontier_width
+                .max(width);
+            telemetry.invalidation.retained_ready_frontier_width = width;
+        });
         let observed = graph.invalidation_performed_counter_state();
         observed.add(InvalidationPerformedCounter::WorkItemsAdmitted, 1);
         observed.add(InvalidationPerformedCounter::ReadyItemsEnqueued, 1);
@@ -84,9 +89,11 @@ impl ReadyInvalidationQueue {
         let entry = self.entries.remove(&key).ok_or_else(|| {
             SignalError::internal("ready invalidation queue order drifted from stored entries")
         })?;
-        let telemetry = &mut graph.telemetry_mut().invalidation;
-        telemetry.ready_items_popped += 1;
-        telemetry.retained_ready_frontier_width = self.entries.len() as u64;
+        let retained_width = self.entries.len() as u64;
+        graph.with_telemetry(|telemetry| {
+            telemetry.invalidation.ready_items_popped += 1;
+            telemetry.invalidation.retained_ready_frontier_width = retained_width;
+        });
         let observed = graph.invalidation_performed_counter_state();
         observed.add(InvalidationPerformedCounter::ReadyItemsPopped, 1);
         observed.set(

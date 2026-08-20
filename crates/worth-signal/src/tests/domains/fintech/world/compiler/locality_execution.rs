@@ -3,23 +3,38 @@ use std::collections::BTreeMap;
 mod actions;
 mod baseline;
 mod compilation;
+mod lifecycle_boundaries;
 #[cfg(test)]
 mod lifecycle_tests;
+mod operational_digest;
+mod optional_inventory;
+mod performance;
 mod performed_work;
 #[cfg(test)]
+mod receipt_identity_tests;
+#[cfg(test)]
 mod receipt_tests;
+mod red_observation;
+#[cfg(test)]
+mod surface_selection_tests;
+mod world_access;
 
 pub(in crate::tests::domains::fintech) use actions::FinancialRestoreLifecycleEvidence;
-pub(in crate::tests::domains::fintech) use compilation::{
+pub(crate) use compilation::{
     compile_financial_locality_world, compile_financial_locality_world_at_tier,
+    compile_financial_locality_world_with_policy,
 };
+pub(crate) use optional_inventory::LocalityOptionalObservationInventory;
+pub(crate) use performance::FinancialPerformanceBatchReport;
 pub(in crate::tests::domains::fintech) use performed_work::{
     strategy_work_projection, FinancialPerformedCanonicalWork, FinancialPerformedWorkOrigin,
 };
+pub(in crate::tests::domains::fintech) use red_observation::FinancialLocalityRedObservation;
+use red_observation::{lineage_delta, RedObservationInput};
 
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
-use crate::facade::SignalRuntime;
+use crate::facade::{SignalRuntime, SignalRuntimePolicy};
 use crate::logic::context::EvaluationContext;
 use crate::tests::domains::fintech::execution_tier::FintechTier;
 
@@ -31,42 +46,7 @@ use super::topology::signal_aspect;
 
 type LocalityRuntime = SignalRuntime<(), (), (), (), FintechTier>;
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(in crate::tests::domains::fintech) struct FinancialLocalityRedObservation {
-    pub(in crate::tests::domains::fintech) performed_counters:
-        crate::data::telemetry::SignalInvalidationRealizedCounters,
-    pub(in crate::tests::domains::fintech) direct_candidates_examined: u64,
-    pub(in crate::tests::domains::fintech) reverse_candidates_returned: u64,
-    pub(in crate::tests::domains::fintech) reverse_bucket_probes: u64,
-    pub(in crate::tests::domains::fintech) contract_rejections: u64,
-    pub(in crate::tests::domains::fintech) causality_rejections: u64,
-    pub(in crate::tests::domains::fintech) nodes_visited: u64,
-    pub(in crate::tests::domains::fintech) transitive_frontier_width: u64,
-    pub(in crate::tests::domains::fintech) comparator_suppressed_count: u64,
-    pub(in crate::tests::domains::fintech) work_items_admitted: u64,
-    pub(in crate::tests::domains::fintech) work_items_merged: u64,
-    pub(in crate::tests::domains::fintech) ready_items_enqueued: u64,
-    pub(in crate::tests::domains::fintech) ready_items_popped: u64,
-    pub(in crate::tests::domains::fintech) peak_ready_width: u64,
-    pub(in crate::tests::domains::fintech) retained_ready_width: u64,
-    pub(in crate::tests::domains::fintech) evaluated_outputs:
-        std::collections::BTreeSet<LocalitySemanticOutputId>,
-    pub(in crate::tests::domains::fintech) baseline_retained_outputs:
-        std::collections::BTreeSet<LocalitySemanticOutputId>,
-    pub(in crate::tests::domains::fintech) performed_work: FinancialPerformedCanonicalWork,
-}
-
-struct RedObservationInput {
-    before: crate::data::telemetry::InvalidationTelemetry,
-    after: crate::data::telemetry::InvalidationTelemetry,
-    evaluation_before: crate::data::telemetry::EvaluationTelemetry,
-    evaluation_after: crate::data::telemetry::EvaluationTelemetry,
-    evaluated_outputs: std::collections::BTreeSet<LocalitySemanticOutputId>,
-    baseline_retained_outputs: std::collections::BTreeSet<LocalitySemanticOutputId>,
-    performed: crate::data::telemetry::SignalInvalidationRealizedCounters,
-}
-
-pub(super) struct CompiledFinancialLocalityWorld {
+pub(in crate::tests::domains::fintech) struct CompiledFinancialLocalityWorld {
     runtime: LocalityRuntime,
     definition: FinancialWorldDefinition,
     handles: BTreeMap<LocalitySemanticOutputId, NodeId>,
@@ -74,6 +54,28 @@ pub(super) struct CompiledFinancialLocalityWorld {
 }
 
 impl CompiledFinancialLocalityWorld {
+    pub(in crate::tests::domains::fintech) fn set_runtime_policy(
+        &mut self,
+        policy: SignalRuntimePolicy,
+    ) {
+        self.runtime.set_runtime_policy(policy);
+    }
+
+    pub(in crate::tests::domains::fintech) fn runtime_policy(&self) -> SignalRuntimePolicy {
+        self.runtime.graph().runtime_policy()
+    }
+
+    pub(in crate::tests::domains::fintech) fn reset_performed_observation(&mut self) {
+        self.runtime
+            .graph_mut()
+            .reset_invalidation_performed_counters();
+    }
+
+    pub(in crate::tests::domains::fintech) fn reset_optional_observation(&mut self) {
+        self.runtime.graph_mut().reset_telemetry();
+        self.reset_performed_observation();
+    }
+
     fn graph_instance(&self) -> u64 {
         self.runtime.graph().runtime_instance_id()
     }
@@ -102,11 +104,36 @@ impl CompiledFinancialLocalityWorld {
             .reset_invalidation_performed_counters();
         let before = self.runtime.graph().telemetry().invalidation;
         let evaluation_before = self.runtime.graph().telemetry().evaluation;
+        let lineage_before = self
+            .runtime
+            .graph()
+            .observe()
+            .lineage_records()
+            .back()
+            .map(|record| record.sequence);
         self.apply_declared_mutation()?;
         let evaluated_outputs = self.settle_declared_mutation()?;
         let after = self.runtime.graph().telemetry().invalidation;
         let evaluation_after = self.runtime.graph().telemetry().evaluation;
+        let lineage_after = self
+            .runtime
+            .graph()
+            .observe()
+            .lineage_records()
+            .back()
+            .map(|record| record.sequence);
         let baseline_retained_outputs = self.baseline_retained_outputs(&evaluated_outputs)?;
+        let graph = self.runtime.graph();
+        let explanation_fact_count = self
+            .handles
+            .values()
+            .filter(|node| graph.observe().explanation_fact(**node).is_some())
+            .count();
+        let provenance_fact_count = self
+            .handles
+            .values()
+            .filter(|node| graph.observe().provenance_fact(**node).is_some())
+            .count();
         Ok(self.red_observation(RedObservationInput {
             before,
             after,
@@ -115,6 +142,16 @@ impl CompiledFinancialLocalityWorld {
             evaluated_outputs,
             baseline_retained_outputs,
             performed: self.runtime.graph().invalidation_performed_counters(),
+            execution_stage_outcomes: Vec::new(),
+            lineage_records: lineage_delta(lineage_before, lineage_after),
+            explanation_fact_count,
+            provenance_fact_count,
+            frontier_summary_retained: graph
+                .observe()
+                .latest_frontier_execution_summary()
+                .is_some(),
+            replay_event_count: graph.observe().replay_events().len(),
+            flow_summary_retained: graph.observe().latest_flow_diagnostics().is_some(),
         }))
     }
 
@@ -126,62 +163,6 @@ impl CompiledFinancialLocalityWorld {
 
     fn apply_declared_mutation(&mut self) -> Result<(), SignalError> {
         self.apply_mutations(&[self.locality_definition().mutation()])
-    }
-
-    fn red_observation(&self, input: RedObservationInput) -> FinancialLocalityRedObservation {
-        let RedObservationInput {
-            before,
-            after,
-            evaluation_before,
-            evaluation_after,
-            evaluated_outputs,
-            baseline_retained_outputs,
-            performed,
-        } = input;
-        FinancialLocalityRedObservation {
-            performed_counters: performed,
-            direct_candidates_examined: delta(
-                before.direct_subscriber_candidates_examined,
-                after.direct_subscriber_candidates_examined,
-            ),
-            reverse_candidates_returned: delta(
-                before.reverse_subscription_candidates_returned,
-                after.reverse_subscription_candidates_returned,
-            ),
-            reverse_bucket_probes: delta(
-                before.reverse_subscription_bucket_probes,
-                after.reverse_subscription_bucket_probes,
-            ),
-            contract_rejections: delta(
-                before.direct_contract_rejections,
-                after.direct_contract_rejections,
-            ),
-            causality_rejections: delta(
-                before.direct_causality_rejections,
-                after.direct_causality_rejections,
-            ),
-            nodes_visited: delta(
-                before.invalidation_nodes_visited,
-                after.invalidation_nodes_visited,
-            ),
-            transitive_frontier_width: delta(
-                before.transitive_frontier_width,
-                after.transitive_frontier_width,
-            ),
-            comparator_suppressed_count: delta(
-                evaluation_before.skipped_by_comparator,
-                evaluation_after.skipped_by_comparator,
-            ),
-            work_items_admitted: performed.work_items_admitted(),
-            work_items_merged: performed.work_items_merged(),
-            ready_items_enqueued: performed.ready_items_enqueued(),
-            ready_items_popped: performed.ready_items_popped(),
-            peak_ready_width: performed.maximum_ready_frontier_width(),
-            retained_ready_width: performed.retained_ready_frontier_width(),
-            evaluated_outputs,
-            baseline_retained_outputs,
-            performed_work: self.performed_canonical_work(),
-        }
     }
 
     fn baseline_retained_outputs(
@@ -265,7 +246,7 @@ impl super::CompiledFinancialWorld {
         }
     }
 
-    fn locality(&self) -> &CompiledFinancialLocalityWorld {
+    pub(super) fn locality(&self) -> &CompiledFinancialLocalityWorld {
         match &self.kind {
             super::CompiledFinancialWorldKind::Locality(locality) => locality,
             super::CompiledFinancialWorldKind::Portfolio(_) => {
@@ -274,7 +255,7 @@ impl super::CompiledFinancialWorld {
         }
     }
 
-    fn locality_mut(&mut self) -> &mut CompiledFinancialLocalityWorld {
+    pub(super) fn locality_mut(&mut self) -> &mut CompiledFinancialLocalityWorld {
         match &mut self.kind {
             super::CompiledFinancialWorldKind::Locality(locality) => locality,
             super::CompiledFinancialWorldKind::Portfolio(_) => {
@@ -282,102 +263,4 @@ impl super::CompiledFinancialWorld {
             }
         }
     }
-
-    pub(in crate::tests::domains::fintech) fn locality_definition(
-        &self,
-    ) -> &FinancialLocalityDefinition {
-        self.locality().locality_definition()
-    }
-
-    pub(in crate::tests::domains::fintech) fn locality_graph_instance(&self) -> u64 {
-        self.locality().graph_instance()
-    }
-
-    pub(in crate::tests::domains::fintech) fn run_inherited_breadth_red_control(
-        &mut self,
-    ) -> Result<FinancialLocalityRedObservation, SignalError> {
-        self.locality_mut().run_inherited_breadth_red_control()
-    }
-
-    pub(in crate::tests::domains::fintech) fn run_locality_action_trace(
-        &mut self,
-        trace_index: usize,
-    ) -> Result<FinancialLocalityRedObservation, SignalError> {
-        self.locality_mut().run_action_trace(trace_index)
-    }
-
-    pub(in crate::tests::domains::fintech) fn run_locality_action_trace_with_executor(
-        &mut self,
-        trace_index: usize,
-        executor: crate::logic::planner::StageExecutor,
-    ) -> Result<FinancialLocalityRedObservation, SignalError> {
-        self.locality_mut()
-            .run_action_trace_with_executor(trace_index, executor)
-    }
-
-    pub(in crate::tests::domains::fintech) fn observe_locality_action_trace_with_executor(
-        &mut self,
-        trace_index: usize,
-        executor: crate::logic::planner::StageExecutor,
-    ) -> Result<
-        (
-            FinancialLocalityRedObservation,
-            crate::data::proof::SignalInvalidationExecutionReceipt,
-        ),
-        SignalError,
-    > {
-        let token = self
-            .locality_mut()
-            .runtime
-            .begin_invalidation_execution_observation();
-        let observation = self.run_locality_action_trace_with_executor(trace_index, executor)?;
-        let receipt = self
-            .locality()
-            .runtime
-            .finish_invalidation_execution_observation(token)?;
-        Ok((observation, receipt))
-    }
-
-    pub(in crate::tests::domains::fintech) fn set_locality_diagnostics_tier(
-        &mut self,
-        tier: crate::facade::DiagnosticsTier,
-    ) {
-        self.locality_mut()
-            .runtime
-            .graph_mut()
-            .reset_runtime_policy_to_tier(tier);
-    }
-
-    pub(in crate::tests::domains::fintech) fn locality_retained_fact_counts(
-        &self,
-    ) -> (usize, usize) {
-        let observer = self.locality().runtime.graph().observe();
-        self.locality()
-            .handles
-            .values()
-            .fold((0, 0), |(explanations, provenance), node| {
-                (
-                    explanations + usize::from(observer.explanation_fact(*node).is_some()),
-                    provenance + usize::from(observer.provenance_fact(*node).is_some()),
-                )
-            })
-    }
-
-    pub(in crate::tests::domains::fintech) fn certify_restore_locality_lifecycle(
-        &mut self,
-    ) -> Result<FinancialRestoreLifecycleEvidence, SignalError> {
-        self.locality_mut().certify_restore_lifecycle()
-    }
-
-    pub(in crate::tests::domains::fintech) fn committed_locality_financial_values(
-        &self,
-    ) -> Result<BTreeMap<LocalitySemanticOutputId, i64>, SignalError> {
-        self.locality().committed_financial_values()
-    }
-}
-
-fn delta(before: u64, after: u64) -> u64 {
-    after
-        .checked_sub(before)
-        .expect("locality telemetry is monotonic")
 }

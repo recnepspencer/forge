@@ -159,10 +159,9 @@ fn prepare_condition_outcome_if_blocked(
             }
         }
         EvaluationCondition::Temporal(condition) => {
-            graph
-                .telemetry_mut()
-                .temporal
-                .temporal_eligibility_lowering_count += 1;
+            graph.with_telemetry(|telemetry| {
+                telemetry.temporal.temporal_eligibility_lowering_count += 1;
+            });
             lower_temporal_condition(graph, task.node, condition, &ctx, temporal_lowering)
         }
         EvaluationCondition::Custom(key) => {

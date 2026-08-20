@@ -28,17 +28,25 @@ where
     pub(in crate::logic::transaction::runtime::state) fn capture_full_derived_state(
         &self,
     ) -> DerivedState<D, I> {
-        DerivedState::capture(
-            &self.checkpoint,
-            &self.resource,
-            &self.temporal,
-            &self.telemetry,
-        )
+        let telemetry = if self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        ) {
+            &self.telemetry
+        } else {
+            &crate::data::telemetry::RuntimeTelemetry::default()
+        };
+        DerivedState::capture(&self.checkpoint, &self.resource, &self.temporal, telemetry)
     }
 
-    fn heavy_capture_witness(&mut self) -> HeavyCaptureWitness {
-        self.telemetry.transaction.heavy_capture_count += 1;
-        HeavyCaptureWitness(())
+    fn heavy_capture_witness(&mut self) -> Option<HeavyCaptureWitness> {
+        if self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        ) {
+            self.telemetry.transaction.heavy_capture_count += 1;
+            Some(HeavyCaptureWitness(()))
+        } else {
+            None
+        }
     }
 
     pub(in crate::logic::transaction::runtime::state) fn ensure_managed_queue_branch_transfer_allowed(
@@ -100,6 +108,9 @@ where
     ) -> Result<BranchState<D, I, T>, crate::data::error::SignalError> {
         Self::ensure_managed_queue_branch_transfer_allowed(&self.resource)?;
         let _witness = self.heavy_capture_witness();
+        let captures_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         let handle = self.graph.current_branch();
         let ancestry = self
             .branches
@@ -132,7 +143,11 @@ where
             ),
             resource: std::mem::take(&mut self.resource),
             temporal: std::mem::take(&mut self.temporal),
-            telemetry: std::mem::take(&mut self.telemetry),
+            telemetry: if captures_telemetry {
+                std::mem::take(&mut self.telemetry)
+            } else {
+                crate::data::telemetry::RuntimeTelemetry::default()
+            },
         };
         Ok(self
             .branches

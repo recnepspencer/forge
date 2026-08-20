@@ -20,18 +20,19 @@ impl ResourceRuntimeState {
         &mut self,
         handle: ResourceRequestHandle,
         reason: ResourceRejectionReason,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRejectionReport {
         let in_flight = match self.validate_rejection_admission(handle) {
             Ok(in_flight) => in_flight,
             Err(class) => {
-                return self.deny_rejection(handle.request_id(), class, telemetry);
+                return self.deny_rejection(handle.request_id(), class, telemetry.as_deref_mut());
             }
         };
-        let prepared = self.prepare_rejection_admission(in_flight, handle, reason, telemetry);
-        self.apply_rejection_admission(&prepared, telemetry);
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        let prepared =
+            self.prepare_rejection_admission(in_flight, handle, reason, telemetry.as_deref_mut());
+        self.apply_rejection_admission(&prepared, telemetry.as_deref_mut());
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::rejection_admission(1, 0)
                 .with_output_continuity_classification_width(u32::from(
                     prepared.terminal_visibility_classified,
@@ -75,7 +76,7 @@ impl ResourceRuntimeState {
         in_flight: InFlightResourceRequest,
         handle: ResourceRequestHandle,
         reason: ResourceRejectionReason,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> PreparedRejectionAdmission {
         let rejection_digest = ResourcePolicyDigest::new(format!(
             "resource-rejection:{}:{}",
@@ -88,7 +89,7 @@ impl ResourceRuntimeState {
         let lifecycle_ordinal = self.issue_lifecycle_ordinal();
         let rejection_ordinal = self.issue_rejection_ordinal();
         let (output_continuity, terminal_visibility_classified) = self
-            .classify_terminal_output_continuity_for_node(
+            .classify_terminal_output_continuity_for_node_optional(
                 in_flight.node(),
                 in_flight.descriptor_id(),
                 ResourceTerminalVisibilityCause::Rejection,
@@ -124,7 +125,7 @@ impl ResourceRuntimeState {
     fn apply_rejection_admission(
         &mut self,
         prepared: &PreparedRejectionAdmission,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) {
         self.in_flight_by_request
             .get_mut(&prepared.handle.request_id())
@@ -141,15 +142,17 @@ impl ResourceRuntimeState {
         self.lifecycle_by_node
             .insert(prepared.node, prepared.lifecycle);
         self.clear_latest_denied_completion_for_node(prepared.node);
-        telemetry.resource_rejection_admission_count += 1;
-        match prepared.reason {
-            ResourceRejectionReason::HostFailure => {
-                telemetry.resource_host_failure_rejection_count += 1
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_rejection_admission_count += 1;
+            match prepared.reason {
+                ResourceRejectionReason::HostFailure => {
+                    telemetry.resource_host_failure_rejection_count += 1
+                }
+                ResourceRejectionReason::SemanticFailure => {
+                    telemetry.resource_semantic_rejection_count += 1
+                }
             }
-            ResourceRejectionReason::SemanticFailure => {
-                telemetry.resource_semantic_rejection_count += 1
-            }
+            telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
         }
-        telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
     }
 }

@@ -43,6 +43,24 @@ runtime instances that need it, in whichever mode fits the deployment.
 The same store code supports all modes. The same runtime code runs inside all
 modes. The difference is lifecycle ownership and durability contracts.
 
+Foundational profile mapping for Store operational and durable evidence is:
+
+```text
+durability = Store-owned (Durable / Embedded / Absent)
+execution objective = Throughput
+observation activation = OnDemand
+diagnostic richness = OperationalMinimal
+```
+
+Those two Foundational axes choose execution strategy and when optional
+observation work may start. They do not own WAL, acknowledgement order, MVCC,
+crash recovery, integrity, custody, CDC cursor authority, or authoritative
+identity lineage. Forensic or continuous evidence constructions may name
+Continuous observation honestly; they still may not weaken durability.
+
+This mapping is the eight-axis consumer cutover. It is not a claim that a
+Store crash, WAL, or durable-embedded-absent courtroom has closed.
+
 It is not a general-purpose database. It is a semantics-preserving persistence
 service for the Worth runtime. The runtime owns semantics. The store owns
 survival.

@@ -29,6 +29,8 @@ fn profile(
         admission_readiness,
         retention_delivery,
         certification_posture,
+        execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+        observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
     })
     .expect("coherent profile")
 }

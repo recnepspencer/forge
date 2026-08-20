@@ -8,7 +8,7 @@ impl ResourceRuntimeState {
         &mut self,
         handle: ResourceRequestHandle,
         class: ResourceRetryDenialClass,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRetryScheduleReport {
         let retry_budget_charge = if class == ResourceRetryDenialClass::RetryBudgetExhausted {
             self.in_flight_by_request
@@ -36,7 +36,7 @@ impl ResourceRuntimeState {
             class,
             retry_decision_digest,
             retry_budget_charge,
-            telemetry,
+            telemetry.as_deref_mut(),
         )
     }
 
@@ -44,11 +44,16 @@ impl ResourceRuntimeState {
         &mut self,
         handle: ResourceRequestHandle,
         class: ResourceRetryDenialClass,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRetryAdmissionReport {
         let retry_decision_digest =
             self.retry_policy_decision_digest_for_request(handle.request_id());
-        self.deny_retry_admission(handle.request_id(), class, retry_decision_digest, telemetry)
+        self.deny_retry_admission(
+            handle.request_id(),
+            class,
+            retry_decision_digest,
+            telemetry.as_deref_mut(),
+        )
     }
 
     pub(in crate::logic::transaction::runtime::state::resource::retry) fn deny_retry_schedule(
@@ -57,11 +62,11 @@ impl ResourceRuntimeState {
         class: ResourceRetryDenialClass,
         retry_decision_digest: ResourcePolicyDigest,
         retry_budget_charge: Option<ResourceRetryBudgetCharge>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRetryScheduleReport {
-        self.record_retry_denial(class, telemetry);
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        self.record_retry_denial(class, telemetry.as_deref_mut());
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::retry_schedule(
                 0,
                 1,
@@ -86,11 +91,11 @@ impl ResourceRuntimeState {
         request_id: ResourceRequestId,
         class: ResourceRetryDenialClass,
         retry_decision_digest: ResourcePolicyDigest,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRetryAdmissionReport {
-        self.record_retry_denial(class, telemetry);
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        self.record_retry_denial(class, telemetry.as_deref_mut());
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::retry_admission(
                 0,
                 1,
@@ -107,37 +112,39 @@ impl ResourceRuntimeState {
     fn record_retry_denial(
         &mut self,
         class: ResourceRetryDenialClass,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) {
-        telemetry.resource_retry_denial_count += 1;
-        match class {
-            ResourceRetryDenialClass::UnknownOrStaleRequest
-            | ResourceRetryDenialClass::MissingRetryBackoffWake => {
-                telemetry.resource_stale_retry_denial_count += 1
-            }
-            ResourceRetryDenialClass::NonRetryableRequest => {
-                telemetry.resource_non_retryable_denial_count += 1
-            }
-            ResourceRetryDenialClass::RetryPolicyDisabled => {
-                telemetry.resource_retry_policy_disabled_denial_count += 1
-            }
-            ResourceRetryDenialClass::RetryAttemptLimitReached => {
-                telemetry.resource_retry_attempt_limit_denial_count += 1
-            }
-            ResourceRetryDenialClass::RetryBudgetExhausted => {
-                telemetry.resource_retry_budget_exhaustion_denial_count += 1
-            }
-            ResourceRetryDenialClass::RetryTimeoutWindowExhausted => {
-                telemetry.resource_retry_timeout_window_exhaustion_denial_count += 1
-            }
-            ResourceRetryDenialClass::RetryAlreadyScheduled => {
-                telemetry.resource_retry_already_scheduled_denial_count += 1
-            }
-            ResourceRetryDenialClass::WakeMismatch => {
-                telemetry.resource_retry_wake_mismatch_denial_count += 1
-            }
-            ResourceRetryDenialClass::SupersededByNewerRequest => {
-                telemetry.resource_retry_superseded_denial_count += 1
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_retry_denial_count += 1;
+            match class {
+                ResourceRetryDenialClass::UnknownOrStaleRequest
+                | ResourceRetryDenialClass::MissingRetryBackoffWake => {
+                    telemetry.resource_stale_retry_denial_count += 1
+                }
+                ResourceRetryDenialClass::NonRetryableRequest => {
+                    telemetry.resource_non_retryable_denial_count += 1
+                }
+                ResourceRetryDenialClass::RetryPolicyDisabled => {
+                    telemetry.resource_retry_policy_disabled_denial_count += 1
+                }
+                ResourceRetryDenialClass::RetryAttemptLimitReached => {
+                    telemetry.resource_retry_attempt_limit_denial_count += 1
+                }
+                ResourceRetryDenialClass::RetryBudgetExhausted => {
+                    telemetry.resource_retry_budget_exhaustion_denial_count += 1
+                }
+                ResourceRetryDenialClass::RetryTimeoutWindowExhausted => {
+                    telemetry.resource_retry_timeout_window_exhaustion_denial_count += 1
+                }
+                ResourceRetryDenialClass::RetryAlreadyScheduled => {
+                    telemetry.resource_retry_already_scheduled_denial_count += 1
+                }
+                ResourceRetryDenialClass::WakeMismatch => {
+                    telemetry.resource_retry_wake_mismatch_denial_count += 1
+                }
+                ResourceRetryDenialClass::SupersededByNewerRequest => {
+                    telemetry.resource_retry_superseded_denial_count += 1
+                }
             }
         }
     }

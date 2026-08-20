@@ -2,7 +2,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 
-use super::super::execution::task_reporting::record_execution_failure;
+use super::super::execution::task_reporting::record_execution_failure_if_enabled;
 use super::super::types::{ExecutionReport, PlanSummary, StageExecutor};
 #[cfg(feature = "parallel")]
 use super::admission::StageParallelAdmission;
@@ -16,30 +16,30 @@ pub(in crate::logic::planner) fn record_stage_precompute_telemetry(
     executor: StageExecutor,
     #[cfg(feature = "parallel")] parallel_admission: StageParallelAdmission,
 ) {
-    graph.telemetry_mut().execution.execution_snapshot_nanos += snapshot_nanos;
-    graph.telemetry_mut().execution.stage_precompute_nanos += precompute_nanos;
-    graph
-        .telemetry_mut()
-        .execution
-        .prepared_evaluations_produced += execution.len() as u64;
+    let execution_len = execution.len() as u64;
+    graph.with_telemetry(|telemetry| {
+        telemetry.execution.execution_snapshot_nanos += snapshot_nanos;
+        telemetry.execution.stage_precompute_nanos += precompute_nanos;
+        telemetry.execution.prepared_evaluations_produced += execution_len;
+    });
     match executor {
         StageExecutor::Serial => {
-            graph.telemetry_mut().execution.serial_precompute_task_count += execution.len() as u64;
+            graph.with_telemetry(|telemetry| {
+                telemetry.execution.serial_precompute_task_count += execution_len;
+            });
         }
         #[cfg(feature = "parallel")]
         _ if parallel_admission.use_parallel => {
-            graph
-                .telemetry_mut()
-                .execution
-                .parallel_stage_dispatch_count += 1;
-            graph
-                .telemetry_mut()
-                .execution
-                .parallel_precompute_task_count += execution.len() as u64;
+            graph.with_telemetry(|telemetry| {
+                telemetry.execution.parallel_stage_dispatch_count += 1;
+                telemetry.execution.parallel_precompute_task_count += execution_len;
+            });
         }
         #[cfg(feature = "parallel")]
         StageExecutor::StagedParallelPrecompute { .. } | StageExecutor::FullParallel { .. } => {
-            graph.telemetry_mut().execution.serial_precompute_task_count += execution.len() as u64;
+            graph.with_telemetry(|telemetry| {
+                telemetry.execution.serial_precompute_task_count += execution_len;
+            });
         }
     }
 }
@@ -63,8 +63,7 @@ pub(crate) fn record_stage_precompute_failure(
     executor: StageExecutor,
     err: &SignalError,
 ) {
-    record_execution_failure(
-        graph,
+    record_execution_failure_if_enabled(graph, || {
         ExecutionFailureContext::new(
             ExecutionFailurePhase::Precompute,
             Some(stage_index),
@@ -73,6 +72,6 @@ pub(crate) fn record_stage_precompute_failure(
             None,
             Some(*summary),
             err.to_string(),
-        ),
-    );
+        )
+    });
 }

@@ -66,8 +66,9 @@ where
 fn forensic_support_profile() -> worth_foundational::FoundationalProfileSet {
     use worth_foundational::{
         AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-        DiagnosticRichnessProfile, FoundationalProfileSet, FoundationalProfileSetInput,
-        RetentionDeliveryProfile, SupportPostureProfile,
+        DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalProfileSet,
+        FoundationalProfileSetInput, ObservationActivationProfile, RetentionDeliveryProfile,
+        SupportPostureProfile,
     };
 
     FoundationalProfileSet::new(FoundationalProfileSetInput {
@@ -77,6 +78,8 @@ fn forensic_support_profile() -> worth_foundational::FoundationalProfileSet {
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::Uncertified,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
     })
     .expect("valid profile")
 }
@@ -84,8 +87,9 @@ fn forensic_support_profile() -> worth_foundational::FoundationalProfileSet {
 fn standard_profile() -> worth_foundational::FoundationalProfileSet {
     use worth_foundational::{
         AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-        DiagnosticRichnessProfile, FoundationalProfileSet, FoundationalProfileSetInput,
-        RetentionDeliveryProfile, SupportPostureProfile,
+        DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalProfileSet,
+        FoundationalProfileSetInput, ObservationActivationProfile, RetentionDeliveryProfile,
+        SupportPostureProfile,
     };
 
     FoundationalProfileSet::new(FoundationalProfileSetInput {
@@ -95,6 +99,8 @@ fn standard_profile() -> worth_foundational::FoundationalProfileSet {
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::Uncertified,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
     })
     .expect("valid profile")
 }

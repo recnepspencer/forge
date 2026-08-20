@@ -26,14 +26,14 @@ pub(in crate::tests::domains::fintech) use cost_slope::{
     InvalidationCostSlopeReport,
 };
 pub(in crate::tests::domains::fintech) use courtroom::run_financial_causality_courtroom;
-pub(in crate::tests::domains::fintech) use fresh_recompute::FreshFinancialRecompute;
+pub(crate) use fresh_recompute::FreshFinancialRecompute;
 pub(in crate::tests::domains::fintech) use locality_canonical_identity::verified_locality_case_identity;
 pub(in crate::tests::domains::fintech) use locality_expectation::{
     ExpectedCanonicalWork, ExpectedLocalityCounterRow, FinancialLocalityExpectationManifest,
 };
 pub(in crate::tests::domains::fintech) use locality_fresh_recompute::FreshFinancialLocalityRecompute;
-pub(in crate::tests::domains::fintech) use locality_receipt::{
-    verify_locality_case, FinancialLocalityCaseEvidence,
+pub(crate) use locality_receipt::{
+    verify_locality_case, verify_locality_case_with_policy, FinancialLocalityCaseEvidence,
 };
 pub(in crate::tests::domains::fintech) use locality_run::{
     certify_ordinary_locality_run, certify_scheduled_locality_run,

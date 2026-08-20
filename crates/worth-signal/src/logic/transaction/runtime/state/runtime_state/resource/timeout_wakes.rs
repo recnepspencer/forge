@@ -32,9 +32,9 @@ where
         generation_started_tick: crate::data::temporal::ClockTick,
         transaction_deadline: Option<TemporalDuration>,
     ) -> Result<Option<ResolvedResourceTimeoutPlan>, crate::data::error::SignalError> {
-        self.telemetry
-            .resource
-            .resource_timeout_policy_decision_count += 1;
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.resource_timeout_policy_decision_count += 1;
+        });
         let current_tick = self.clock_basis().current_tick();
         let (timeout_duration, deadline_authority) = match timeout_plan.class() {
             crate::data::resource::ResourceTimeoutDecisionClass::Disabled => return Ok(None),
@@ -75,7 +75,9 @@ where
             deadline_authority,
             ResourceTimeoutDeadlineAuthority::Descriptor
         ) {
-            self.telemetry.resource.resource_deadline_inherited_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.resource_deadline_inherited_count += 1
+            });
         }
         let due_tick = crate::data::temporal::ClockTick::new(
             current_tick.get().saturating_add(timeout_duration.get()),

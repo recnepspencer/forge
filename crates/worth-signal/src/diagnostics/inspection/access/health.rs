@@ -17,7 +17,7 @@ impl<'a> GraphHealthDiagnostics<'a> {
     }
 
     pub fn summary_now(&self) -> GraphSummary {
-        self.summary(self.graph.runtime_policy().tier)
+        self.summary(self.graph.installed_runtime_policy().tier())
     }
 
     pub fn current(&self, profile: DiagnosticsTier) -> GraphSummary {

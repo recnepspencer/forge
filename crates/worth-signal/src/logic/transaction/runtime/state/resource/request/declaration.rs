@@ -12,27 +12,31 @@ impl ResourceRuntimeState {
     pub fn declare_resource_node(
         &mut self,
         declaration: ResourceNodeDeclaration,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<ResourceDeclarationReport, crate::data::error::SignalError> {
-        let prepared = self.prepare_resource_declaration(declaration, telemetry)?;
+        let prepared = self.prepare_resource_declaration(declaration, telemetry.as_deref_mut())?;
         Ok(self.install_resource_declaration(prepared, telemetry))
     }
 
     fn prepare_resource_declaration(
         &mut self,
         declaration: ResourceNodeDeclaration,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<PreparedResourceDeclaration, crate::data::error::SignalError> {
         let node = declaration.node();
         if self.descriptors_by_node.contains_key(&node) {
-            telemetry.resource_duplicate_declaration_denial_count += 1;
+            if let Some(telemetry) = telemetry.as_deref_mut() {
+                telemetry.resource_duplicate_declaration_denial_count += 1;
+            }
             return Err(crate::data::error::SignalError::invalid_input(format!(
                 "resource node {} already has a lowered resource descriptor",
                 node.node()
             )));
         }
 
-        telemetry.resource_policy_resolution_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_policy_resolution_count += 1;
+        }
         let validated_policy_declaration =
             match ValidatedResourcePolicyDeclaration::from_declaration(
                 &declaration,
@@ -40,7 +44,9 @@ impl ResourceRuntimeState {
             ) {
                 Ok(validated) => validated,
                 Err(err) => {
-                    telemetry.resource_policy_resolution_denial_count += 1;
+                    if let Some(telemetry) = telemetry.as_deref_mut() {
+                        telemetry.resource_policy_resolution_denial_count += 1;
+                    }
                     return Err(resource_policy_resolution_signal_error(err));
                 }
             };
@@ -51,7 +57,9 @@ impl ResourceRuntimeState {
             ) {
                 Ok(frozen) => frozen,
                 Err(err) => {
-                    telemetry.resource_policy_resolution_denial_count += 1;
+                    if let Some(telemetry) = telemetry.as_deref_mut() {
+                        telemetry.resource_policy_resolution_denial_count += 1;
+                    }
                     return Err(resource_policy_resolution_signal_error(err));
                 }
             };
@@ -66,7 +74,9 @@ impl ResourceRuntimeState {
         ) {
             Ok(descriptor) => descriptor,
             Err(err) => {
-                telemetry.resource_policy_resolution_denial_count += 1;
+                if let Some(telemetry) = telemetry.as_deref_mut() {
+                    telemetry.resource_policy_resolution_denial_count += 1;
+                }
                 return Err(resource_policy_resolution_signal_error(err));
             }
         };
@@ -76,7 +86,7 @@ impl ResourceRuntimeState {
     fn install_resource_declaration(
         &mut self,
         prepared: PreparedResourceDeclaration,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceDeclarationReport {
         let PreparedResourceDeclaration { node, descriptor } = prepared;
         let descriptor_id = descriptor.descriptor_id();
@@ -99,12 +109,16 @@ impl ResourceRuntimeState {
         );
         self.lifecycle_by_node.insert(node, lifecycle);
 
-        telemetry.resource_declaration_lowering_count += 1;
-        telemetry.resource_descriptor_count = self.descriptors.len() as u64;
-        let performance = Self::record_boundary_performance(
-            telemetry,
-            ResourceBoundaryPerformanceEnvelope::declaration_lowering(1),
-        );
+        let performance = if let Some(telemetry) = telemetry {
+            telemetry.resource_declaration_lowering_count += 1;
+            telemetry.resource_descriptor_count = self.descriptors.len() as u64;
+            Self::record_boundary_performance(
+                telemetry,
+                ResourceBoundaryPerformanceEnvelope::declaration_lowering(1),
+            )
+        } else {
+            ResourceBoundaryPerformanceEnvelope::declaration_lowering(0)
+        };
 
         ResourceDeclarationReport::new(descriptor_id, lifecycle, transition, performance)
     }

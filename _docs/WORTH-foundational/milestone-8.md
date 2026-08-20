@@ -1588,6 +1588,6 @@ readiness.runtime_adoption_pressures();
     and acceptance evidence clearly enough to do so.
 - Does the milestone belong in this roadmap sequence, or is it out of order?
   - It belongs here because Milestone 7 supplies the descriptive nuance this
-    milestone depends on, and Milestone 9 migration needs this language frozen
+    milestone depends on, and Milestone 11 migration needs this language frozen
     before convergence work begins.
 

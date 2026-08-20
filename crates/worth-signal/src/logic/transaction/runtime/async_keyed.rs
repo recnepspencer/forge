@@ -37,7 +37,9 @@ where
         let bundle = runtime
             .async_node_capability_bundle_for_node(node)
             .expect("declared async capability should lower bundle for keyed node");
-        runtime.telemetry.resource.async_node_family_binding_count += 1;
+        runtime.with_resource_telemetry(|telemetry| {
+            telemetry.async_node_family_binding_count += 1;
+        });
         Ok(AsyncKeyedNodeCapabilityBinding::new(
             self.family().clone(),
             self.key().clone(),

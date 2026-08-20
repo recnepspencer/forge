@@ -913,7 +913,7 @@ profile-sensitive surface depends on it:
   breadth can be standardized.
 - Milestone 7 provenance and receipts need support/certification posture before
   those attachments can be interpreted consistently.
-- Milestone 9 migrations need one shared profile language before crate-local
+- Milestone 11 migrations need one shared profile language before crate-local
   policy dialects can retire.
 
 ## Explicit Non-Goals

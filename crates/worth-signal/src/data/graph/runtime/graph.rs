@@ -11,6 +11,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::storage::invalidation_causes::CanonicalCauseSetStore;
 use crate::data::handle::NodeId;
 use crate::data::node::{NodeColdData, NodeHotData, NodeWarmData};
+use crate::logic::transaction::SignalObservationSessionState;
 use crate::schema::data::SignalSchemaRegistry;
 
 use super::super::compaction::CompactionState;
@@ -29,6 +30,7 @@ mod counter_access;
 mod direct_invalidation_basis_tests;
 mod observation_state;
 mod performed_counter_state;
+mod performed_work_state;
 mod reconstitution;
 #[cfg(test)]
 mod reconstitution_tests;
@@ -44,8 +46,9 @@ pub use branch_mutations::{
     BranchStructuralDelta, DependencySnapshotStructuralDelta, DependencyTopologyDelta,
     RuntimeArtifactStructuralDelta,
 };
-pub(crate) use observation_state::RuntimeObservation;
+pub(crate) use observation_state::{ObservationCaptureCleanup, RuntimeObservation};
 pub(crate) use performed_counter_state::InvalidationPerformedCounterState;
+pub(crate) use performed_work_state::PerformedWorkCaptureState;
 pub use reconstitution::{SignalGraphReconstitution, SignalGraphReconstitutionReport};
 pub(crate) use reconstruction_counters::ReconstructionCounters;
 pub(crate) use topology_state::EdgeTopology;
@@ -69,7 +72,7 @@ pub(crate) struct NodeArena {
 ///
 /// An arena of `NodeEntry` values with graph-owned dependency, subscriber,
 /// and snapshot storage.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct SignalGraph {
     #[serde(skip, default)]
     pub(in crate::data::graph) lifecycle_token: std::sync::Arc<()>,
@@ -97,9 +100,56 @@ pub struct SignalGraph {
     #[serde(skip, default)]
     pub(crate) invalidation_readiness_epoch: u64,
     #[serde(skip, default)]
+    pub(crate) observation_sessions: SignalObservationSessionState,
+    #[serde(skip, default)]
+    pub(crate) observation_capture_cleanup: Option<std::sync::Arc<ObservationCaptureCleanup>>,
+    #[serde(skip, default)]
     pub(crate) invalidation_performed_counters: InvalidationPerformedCounterState,
     #[serde(skip, default)]
+    pub(crate) invalidation_performed_work: PerformedWorkCaptureState,
+    #[serde(skip, default)]
     pub(crate) pending_repeated_invalidation_admissions: BTreeMap<NodeId, u64>,
+}
+
+#[derive(Deserialize)]
+struct SignalGraphSerde {
+    arena: NodeArena,
+    topology: EdgeTopology,
+    #[serde(default)]
+    cause_sets: CanonicalCauseSetStore,
+    traversal: TraversalResources,
+    observation: RuntimeObservation,
+}
+
+impl<'de> Deserialize<'de> for SignalGraph {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire = SignalGraphSerde::deserialize(deserializer)?;
+        let mut graph = Self {
+            lifecycle_token: Default::default(),
+            instance_id: next_signal_graph_instance_id(),
+            arena: wire.arena,
+            topology: wire.topology,
+            cause_sets: wire.cause_sets,
+            cause_readmission_required: false,
+            traversal: wire.traversal,
+            observation: wire.observation,
+            schema_registry: SignalSchemaRegistry::default(),
+            aspect_lowering_owner: None,
+            conditional_dependency_versions: BTreeMap::new(),
+            authorization_policy_identities: BTreeSet::new(),
+            invalidation_readiness_epoch: 0,
+            observation_sessions: SignalObservationSessionState::default(),
+            observation_capture_cleanup: None,
+            invalidation_performed_counters: InvalidationPerformedCounterState::default(),
+            invalidation_performed_work: PerformedWorkCaptureState::default(),
+            pending_repeated_invalidation_admissions: BTreeMap::new(),
+        };
+        graph.rebind_observation_capture_state();
+        Ok(graph)
+    }
 }
 
 /// Weak liveness observation of one concrete Signal graph owner.

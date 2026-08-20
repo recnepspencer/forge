@@ -12,6 +12,7 @@ mod retirement;
 mod retirement_batch;
 mod snapshotting;
 mod targeted_transaction;
+mod transaction_head;
 
 pub use crate::branch::SignalBranchBasisAuthority;
 pub use basis::{
@@ -40,6 +41,6 @@ pub use retirement_batch::{
 pub use targeted_transaction::{
     BranchTargetedTransactionDenial, BranchTargetedTransactionExecutionOutcome,
     BranchTargetedTransactionRequest, ExecutedBranchTargetedTransactionReceipt,
-    LoweredBranchTargetedTransactionPlan, SignalBranchTransactionHead,
-    ValidatedBranchTargetedTransactionRequest,
+    LoweredBranchTargetedTransactionPlan, ValidatedBranchTargetedTransactionRequest,
 };
+pub use transaction_head::SignalBranchTransactionHead;

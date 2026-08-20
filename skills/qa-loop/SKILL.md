@@ -10,32 +10,21 @@ The specification is authoritative, but it may not exhaust the system's
 intended obligations. Green tests, completed fixes, and finding counts do not
 define completion.
 
-## Exhaust primary discovery before independent review
+## Independent review
 
-Do not launch an independent critic at the start of the QA loop. The primary
-agent must first complete the scope, ledger, risk map, source tracing, semantic-
-family searches, focused execution, and root-cause corrections described below.
-Use repository search and direct source inspection until additional queries are
-only repeating covered symbols, owners, consumers, denial paths, lifecycle
-paths, fixtures, and evidence families. Do not use a critic for initial
-excavation, inventory, broad search, ledger generation, or the primary review.
-
-Before requesting outside review, the primary agent must:
-
-- inspect every ledger guarantee and causally relevant producer, consumer,
-  authority, persistence, facade, denial, cleanup, and test boundary;
-- search each discovered defect's semantic family for parallel instances;
-- fix all supported findings and rerun the affected evidence;
-- challenge the ledger for defects that could still pass every row;
-- record a search-coverage manifest containing paths, symbols, queries,
-  boundaries, and evidence families already inspected;
-- reach a stable candidate on which another primary search pass finds no new
-  supported in-scope defect; and
-- freeze the candidate revision or deterministic source fingerprint.
-
-Only then instantiate a fresh, read-only critic. The critic is an independent
+Launch a fresh, read-only independent reviewer at the start of the QA loop.
+Do not wait for a self-exhausted primary pass. The critic is an independent
 evidence source for missed defects, not a substitute for the primary agent's
 repository work.
+
+In parallel, the primary agent completes the scope, ledger, risk map, source
+tracing, semantic-family searches, focused execution, and root-cause
+corrections described below. It inspects every ledger guarantee and causally
+relevant boundary, searches each defect family for parallel instances,
+challenges the ledger for defects that could pass every row, and records a
+search-coverage manifest of paths, symbols, queries, boundaries, and evidence
+families. Primary discovery continues until another pass finds no new supported
+in-scope defect.
 
 If the user names a reviewer, model, or CLI, use it. Supported choices may
 include a fresh Codex agent, Claude CLI, Cursor Agent, Grok, or another
@@ -43,12 +32,10 @@ user-supplied non-interactive review command. Do not invent a command, install a
 tool, authenticate an account, or substitute a similarly named service. Verify
 that the selected reviewer is available before relying on it.
 
-If the user does not name a reviewer, state that the default is a fresh GPT-5.6
-code-review instance and proceed without blocking for a choice. Prefer the
-available GPT-5.6 coding/reasoning model appropriate to the environment. If
-neither a fresh GPT-5.6 instance nor a user-selected reviewer can be launched,
-report that the independent-review requirement is blocked; do not relabel the
-primary agent's second pass as outside review.
+If the user does not name a reviewer, default to Luna Max and proceed without
+blocking for a choice. If neither Luna Max nor a user-selected reviewer can be
+launched, report that the independent-review requirement is blocked; do not
+relabel the primary agent's pass as outside review.
 
 Give the critic a compact, source-bound review packet containing only the raw
 task-local evidence it needs:
@@ -57,8 +44,8 @@ task-local evidence it needs:
 - the frozen revision or deterministic source fingerprint
 - the scoped diff and changed files
 - relevant producer, consumer, authority, persistence, and facade boundaries
-- the search-coverage manifest, so the critic does not repeat routine
-  excavation merely to rediscover already enumerated files and symbols
+- any search-coverage already recorded; do not delay launch to finish a
+  complete manifest
 - test commands, failures, logs, and evidence artifacts
 - a neutral request to find correctness, authority, lifecycle, recovery,
   performance, topology, DX, and proof defects that are causally relevant
@@ -196,11 +183,10 @@ Record every finding against the ledger rows it invalidates. State:
 
 Do not report preferences or speculative concerns as defects.
 
-Run the independent critic only after the primary self-exhaustion gate and
-candidate freeze. The critic may still change the risk map and ledger, but it
-must not perform the primary agent's first search pass. Reconcile the two
-passes only after the primary review is complete. Agreement does not prove a
-claim; disagreement requires direct source and runtime evidence.
+The independent critic runs from the start, in parallel with primary discovery.
+It may change the risk map and ledger. Reconcile both passes against source and
+runtime evidence. Agreement does not prove a claim; disagreement requires
+direct evidence.
 
 When a defect was not represented by an existing row, treat that as two
 failures: the implementation defect and a ledger-completeness defect. Add the
@@ -246,8 +232,9 @@ Before declaring completion:
 
 If the critic finds a material defect, fix it, reopen affected guarantees, and
 repeat the primary agent's semantic-family searches to self-exhaustion before
-launching a new final-source critic. Never keep one critic running as a search
-assistant across correction turns.
+launch a new final-source critic. Never keep one critic running as a search
+assistant across correction turns. The replacement critic defaults to Luna Max
+unless the user specified another reviewer.
 
 Report closure from the ledger. Never infer closure from the absence of new
 findings in a single pass. Summarize which independent reviewer was used, which

@@ -712,6 +712,51 @@ evidence; all portable, Relational, durable, Query, and consumer boundaries
 agree; and the certification bundle reports zero competing authority, semantic
 projection, proof-forging, replay-readmission, or consumer-residue findings.
 
+## Milestone 9.16.2 Required Suite
+
+`Portable Package And PostgreSQL Runtime Durability Certification` is required
+for Milestone 9.16.2. It begins at the production package and persistent
+`worth-query-host` facades, uses production `worth-runtime-postgres` adapters
+against a real PostgreSQL server, and crosses fresh process boundaries.
+
+This suite is the aggregate Milestone 9.16.2 court, not a substitute for phase
+closure. The fifteen-phase plan in
+[milestone-9.16.2.md](./milestone-9.16.2.md) must retain phase-local evidence
+for identity/provenance, typed export, reconstruction, archive trust,
+Relational backend conformance, PostgreSQL migration/lifecycle, release
+coexistence, Relational commit/replay, owner-first readiness, Query outbox
+admission, claim/fencing, dispatch/reconciliation, disaster recovery,
+capacity/isolation, and the NCR cutover. An aggregate green result cannot close
+an earlier boundary whose own authority, crash, mutation, or cost evidence is
+missing.
+
+The suite must run these named scenarios:
+
+- `portable_release_round_trips_by_exact_identity`: deterministic archive,
+  independently expected semantic identity, hostile records, coexisting
+  releases, and fresh Query validation agree without serialized authority
+- `acknowledged_relational_commit_survives_restart`: kill before commit, after
+  durable commit before response, and during checkpoint/tail recovery; a fresh
+  host observes either the complete mutation plus outbox or neither
+- `existing_outbox_restarts_without_shadow_payload`: destroy every receipt,
+  runtime id, and handle; reconciliation rediscovers the canonical outbox fact,
+  competing fenced workers preserve one current claim, and retries retain one
+  idempotency identity
+- `persistent_host_readiness_is_owner_driven`: package validation, Relational
+  recovery, provider rebinding, projection reconciliation, and claim admission
+  must all close before readiness; adapter rows cannot mint owner authority
+- `postgres_topology_admits_committed_owners`: dependency and destination-tree
+  checks prove Signal and Runtime Bridge enter as owner siblings in 9.17 without
+  moving the PostgreSQL adapter or persistent Query-host facades
+- `ncr_state_and_notification_recover`: the real NCR journey commits workflow
+  state and the existing notification outbox, restarts, dispatches safely, and
+  serves the exact resulting state through the ordinary host path
+
+Milestone 9.16.2 may report closed only when package portability, acknowledged
+state durability, existing-outbox restart, host readiness, owner/adapter
+dependency direction, scale/work counters, backup/restore, executable docs, and
+residue evidence agree.
+
 ## Milestone 9.17.1 Required Suite
 
 `Owner Component Basis And Relational Branch-Local MVCC Certification` is
@@ -720,7 +765,9 @@ authority boundaries, counters, and closure ledger are defined in
 [milestone-9.17.1.md](./milestone-9.17.1.md). The suite uses the real Relational
 schema, transaction, branch, history, inspection, and retention facades and the
 real Signal branch-basis facade. Direct head, root, version, snapshot,
-generation, id, index, or retention-table mutation cannot certify a claim.
+generation, id, index, or retention-table mutation cannot certify a claim. Its
+durability lane uses the production `worth-runtime-postgres` owner adapters
+against a real PostgreSQL server and a fresh process.
 
 ### Required world and oracle
 
@@ -947,6 +994,18 @@ independent oracle:
 - `signal_basis_reuse_is_exact_and_immutable`: consumers share one admitted
   basis with zero graph copy/evaluation/cache duplication; mutation requires an
   owner-issued transition
+- `cancellation_cleans_every_owner_phase`: cancellation before reservation,
+  after reservation, after validation, after candidate creation, and before
+  publication leaves no unauthorized head movement or unbounded residue
+- `branch_local_work_has_branch_local_slopes`: unrelated branch count, history,
+  writers, and diagnostics do not increase selected-branch validation or
+  publication counters
+- `component_owners_recover_exact_branches`: kill after acknowledged Relational
+  and Signal owner publications, destroy process-local authority, and recover
+  exact branches/bases through owner-first PostgreSQL reload and readmission
+- `durable_component_artifacts_do_not_substitute`: cross-branch Relational
+  checkpoint/tails and cross-definition/runtime Signal artifacts fail before
+  effects; SQL rows and restored descriptors mint no owner authority
 
 The closure matrix is mandatory; adding assertions without filling a row does
 not add proof:
@@ -963,6 +1022,8 @@ not add proof:
 | Retention preserves shared and unique truth | delete releases too early or never reclaims | retained M1 then release/delete | public retained read plus sharing/reclamation inspection | shared ancestor survives; only unique unretained bytes reclaim |
 | Model sequences cover interactions | hand-picked examples miss order defect | seeded fork/delta/lifecycle traces | pure semantic state and ancestry after every step | replayable/shrinkable trace and first divergent observation |
 | Signal basis reuse is zero-work | clone/use revalidates or evaluates | 1/64/1,024 holders | exact basis identity plus Signal owner counters | zero graph/evaluation/cache work after admission |
+| Component recovery is exact | global stream or foreign artifact selects the wrong owner basis | acknowledged Relational and Signal publications followed by process loss | fresh-process owner observations after PostgreSQL reload/readmission | exact recovered bases and typed cross-branch/cross-generation denials |
+| Stored artifacts mint no authority | adapter/SQL descriptor bypasses owner readmission | serialized checkpoint/tail and Signal artifact substitution | owner facade denial before effects | zero head movement and no operational authority from stored bytes |
 
 ### Required structural and cost observations
 
@@ -1010,7 +1071,8 @@ ordinary Relational path contains no combined commit/reference authority,
 global commit coordinator, broad mutable transaction entry, split visible
 root, ambient branch default, eager fork/world clone, or test-only authority
 lane; every owner basis is private-minted and readmission-bound; Signal and
-Relational use the same Foundational reference grammar; and no component
+Relational use the same Foundational reference grammar; both owners recover
+exactly from real PostgreSQL through owner-first readmission; and no component
 artifact claims composite product authority.
 
 ## Milestone 9.17.2 Required Suite
@@ -1019,7 +1081,8 @@ artifact claims composite product authority.
 required for Milestone 9.17.2. It must invoke the frozen 9.17.1 owner ports and
 the real Runtime Bridge runtime-world facade. Expected history must be produced
 by an independent action interpreter, not by Bridge classifiers or branch-head
-queries.
+queries. Publication and recovery must use the production Runtime Bridge
+PostgreSQL adapter against a real server.
 
 The suite must run these named scenarios:
 
@@ -1047,6 +1110,14 @@ The suite must run these named scenarios:
   branch contributes exactly zero waits to another branch
 - `ordinary_publication_has_bounded_structural_cost`: component, branch,
   history, and diagnostic population slopes match the fixed-component contract
+- `durable_product_head_recovers_owner_first`: kill before composite commit,
+  after durable commit/head CAS but before response, and after component reopen
+  but before Bridge readmission; a fresh process recovers the exact performed
+  result only after both component owners readmit every referenced basis
+- `owner_local_outbox_is_not_product_current`: a Relational owner candidate may
+  contain the existing Query outbox fact, but failed Signal preparation, stale
+  product head, or failed composite CAS produces no performed publication and
+  no product-notification eligibility
 
 The suite must include targeted compile-fail evidence for raw component tuple
 admission, candidate-to-current promotion, publication phase skipping, weaker
@@ -1057,8 +1128,9 @@ half-publication isolation and turn the named scenario red.
 
 Milestone 9.17.2 may report closed only when one canonical Bridge artifact owns
 each composite commit/head transition, owner failures cannot expose a half
-world, exact lifecycle/recovery evidence is bounded, and no final Query facade
-completion is claimed.
+world, exact PostgreSQL lifecycle/recovery evidence is bounded, owner-local
+outboxes remain product-ineligible, and no final Query facade completion is
+claimed.
 
 ## Milestone 9.17.3 And Umbrella Required Suite
 
@@ -1066,7 +1138,10 @@ completion is claimed.
 Milestone 9.17.3 and final Milestone 9.17 closure. It must begin at the real
 public Query composition root in a causally complete installed application
 world and observe real owner and Bridge outcomes. Query-only fixtures or direct
-lower-runtime assembly are supplemental and cannot close the suite.
+lower-runtime assembly are supplemental and cannot close the suite. The restart
+and dispatch lanes must use `WorthQueryHost::open_persistent`, production
+`worth-runtime-postgres` adapters, a real PostgreSQL server, separate processes,
+and the real external-effect transport contract.
 
 The suite must run these named scenarios:
 
@@ -1103,6 +1178,23 @@ The suite must run these named scenarios:
 - `product_branch_cost_is_population_independent`: unrelated product/component
   branches, history, consumers, subscriptions, and diagnostics do not change
   fixed basis-carriage and publication counters
+- `composite_runtime_recovers_before_readiness`: destroy every process-local
+  package, basis, receipt, and handle; a fresh host recovers package, Relational,
+  Signal, Bridge product heads, Query carriage, and pending dispatch in owner
+  order before readiness
+- `existing_outbox_requires_performed_composite_publication`: kill after the
+  Relational outbox commit while Signal/Bridge publication fails; the durable
+  outbox remains exact owner state but no claimant can dispatch it
+- `dispatch_crash_matrix_preserves_one_identity`: kill before send, after send,
+  and before acknowledgement; fresh fenced claimants retry only with the same
+  Query idempotency identity, and stale claimants cannot send or acknowledge
+- `workflow_aftermath_reenters_composite_history`: operational delivery outcomes
+  move no product head; any completed/unresolved workflow fact appears only
+  through a subsequent performed Query/Bridge composite publication
+- `external_effect_declares_relational_outbox_component`: an otherwise Signal-
+  only change with external dispatch lowers as combined component work; deleting
+  the Relational outbox footprint fails before preparation and cannot create a
+  post-publication sideband write
 
 The suite must include executable public examples and consolidated compiler
 evidence proving intended branch journeys compile while raw minting, phase
@@ -1117,6 +1209,8 @@ The final canonical certification bundle must bind:
 - the frozen 9.17.1 owner-component evidence;
 - the frozen 9.17.2 Bridge composition evidence;
 - every 9.17.3 scenario and mutation-sensitive control;
+- real-PostgreSQL component, composite, host-readiness, and dispatch crash
+  evidence;
 - exact Foundational canonical case/report identity;
 - exact Proof phase/basis/performed progression evidence under owner wrappers;
 - default/parallel, diagnostics-tier, lifecycle, performance, facade,

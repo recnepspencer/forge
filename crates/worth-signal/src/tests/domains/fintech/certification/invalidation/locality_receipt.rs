@@ -5,24 +5,26 @@ use super::{
 };
 use crate::data::error::SignalError;
 use crate::data::telemetry::{InvalidationPerformedCounter, SignalInvalidationRealizedCounters};
-use crate::facade::DiagnosticsTier;
+use crate::facade::{DiagnosticsTier, SignalRuntimePolicy};
 use crate::logic::planner::StageExecutor;
 #[cfg(feature = "parallel")]
 use crate::tests::domains::fintech::world::FinancialPerformedCanonicalWork;
 use crate::tests::domains::fintech::world::{
-    compile_financial_locality_world, compile_financial_locality_world_at_tier,
+    compile_financial_locality_world, compile_financial_locality_world_with_policy,
     FinancialLocalityScenario, FinancialWorldDefinition, LocalityLane, LocalityScaleTuple,
     LocalitySemanticOutputId,
 };
 
 #[derive(Clone, Debug)]
-pub(in crate::tests::domains::fintech) struct FinancialLocalityCaseEvidence {
+pub(crate) struct FinancialLocalityCaseEvidence {
     scenario: FinancialLocalityScenario,
     scale: LocalityScaleTuple,
     lane: LocalityLane,
     identity: FinancialCanonicalCaseIdentity,
     counters: SignalInvalidationRealizedCounters,
     canonical_work_items: usize,
+    operational_digest: worth_foundational::facade::CanonicalDigestId,
+    execution_stage_outcomes: Vec<crate::logic::planner::StageExecutionOutcome>,
     #[cfg(feature = "parallel")]
     performed_work: FinancialPerformedCanonicalWork,
     necessary_evaluations: Vec<LocalitySemanticOutputId>,
@@ -63,14 +65,26 @@ impl FinancialLocalityCaseEvidence {
         self.lane
     }
 
-    pub(in crate::tests::domains::fintech) const fn counters(
-        &self,
-    ) -> SignalInvalidationRealizedCounters {
+    pub(crate) const fn counters(&self) -> SignalInvalidationRealizedCounters {
         self.counters
     }
 
-    pub(in crate::tests::domains::fintech) const fn canonical_work_items(&self) -> usize {
+    pub(crate) const fn canonical_work_items(&self) -> usize {
         self.canonical_work_items
+    }
+
+    pub(crate) const fn operational_digest(&self) -> worth_foundational::facade::CanonicalDigestId {
+        self.operational_digest
+    }
+
+    pub(crate) fn execution_stage_outcomes(
+        &self,
+    ) -> &[crate::logic::planner::StageExecutionOutcome] {
+        &self.execution_stage_outcomes
+    }
+
+    pub(crate) fn identity_digest(&self) -> worth_foundational::facade::CanonicalDigestId {
+        self.identity.digest_id()
     }
 
     #[cfg(feature = "parallel")]
@@ -84,6 +98,10 @@ impl FinancialLocalityCaseEvidence {
         &self,
     ) -> &[LocalitySemanticOutputId] {
         &self.necessary_evaluations
+    }
+
+    pub(crate) fn necessary_evaluation_count(&self) -> usize {
+        self.necessary_evaluations.len()
     }
 
     pub(in crate::tests::domains::fintech) fn identity(&self) -> &FinancialCanonicalCaseIdentity {
@@ -101,15 +119,30 @@ impl FinancialLocalityCaseEvidence {
     }
 }
 
-pub(in crate::tests::domains::fintech) fn verify_locality_case(
+pub(crate) fn verify_locality_case(
     definition: FinancialWorldDefinition,
     trace_index: usize,
     diagnostics_tier: DiagnosticsTier,
     executor: StageExecutor,
 ) -> Result<FinancialLocalityCaseEvidence, SignalError> {
+    verify_locality_case_with_policy(
+        definition,
+        trace_index,
+        SignalRuntimePolicy::for_tier(diagnostics_tier),
+        executor,
+    )
+}
+
+pub(crate) fn verify_locality_case_with_policy(
+    definition: FinancialWorldDefinition,
+    trace_index: usize,
+    policy: SignalRuntimePolicy,
+    executor: StageExecutor,
+) -> Result<FinancialLocalityCaseEvidence, SignalError> {
     let started = std::time::Instant::now();
     report_scheduled_step(&definition, trace_index, "compile", started.elapsed());
-    let mut compiled = compile_financial_locality_world_at_tier(definition, diagnostics_tier)?;
+    let diagnostics_tier = policy.tier;
+    let mut compiled = compile_financial_locality_world_with_policy(definition, policy)?;
     let seed = compiled.locality_definition().seed();
     report_scheduled_step(
         compiled.definition(),
@@ -153,6 +186,8 @@ pub(in crate::tests::domains::fintech) fn verify_locality_case(
         diagnostics_tier,
         performed,
     )?;
+    let operational_digest =
+        compiled.locality_operational_digest_with_work(&observation.performed_work)?;
     Ok(FinancialLocalityCaseEvidence {
         scenario: manifest.scenario(),
         scale: compiled.locality_definition().scale(),
@@ -163,6 +198,8 @@ pub(in crate::tests::domains::fintech) fn verify_locality_case(
         identity,
         counters: observation.performed_counters,
         canonical_work_items: manifest.canonical_work().len(),
+        operational_digest,
+        execution_stage_outcomes: observation.execution_stage_outcomes,
         #[cfg(feature = "parallel")]
         performed_work: observation.performed_work,
         necessary_evaluations: manifest.necessary_evaluations().iter().copied().collect(),

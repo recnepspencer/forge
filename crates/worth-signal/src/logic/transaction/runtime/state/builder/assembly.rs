@@ -13,6 +13,14 @@ where
     pub fn build_validated(
         self,
     ) -> Result<SignalRuntime<D, I, E, Ctx, T>, crate::data::error::SignalError> {
+        let requested_policy = self.runtime_policy;
+        let installed_policy = crate::runtime_policy::compile_signal_runtime_policy(
+            crate::runtime_policy::SignalRuntimePolicyRequest::new(requested_policy),
+        )
+        .map_err(|_| crate::data::error::SignalError::InvalidInput {
+            message: "runtime policy admission failed".to_string(),
+            context: Some("SignalRuntimeBuilder::build_validated".to_string()),
+        })?;
         let checkpoint = CheckpointRuntime::new(self.checkpoint_policy);
         let event_bus = EventBus::new();
         let mut runtime =
@@ -29,7 +37,9 @@ where
             .resource
             .set_policy_registry(self.resource_policy_registry);
         runtime.set_fallback_comparator(self.fallback_comparator);
-        runtime.set_runtime_policy(self.runtime_policy);
+        runtime
+            .graph
+            .install_compiled_runtime_policy(requested_policy, installed_policy);
         for policy in self.tier_policies {
             runtime.set_tier_policy(policy);
         }

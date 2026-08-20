@@ -30,7 +30,11 @@ where
         let _ = self.temporal.retire_wake(
             wake_id,
             TemporalWakeRetirementReason::Disposed,
-            &mut self.telemetry.temporal,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.temporal),
         );
         Ok(Some(owner))
     }
@@ -89,8 +93,14 @@ where
         wake_id: TemporalWakeId,
     ) -> Result<ReadyTemporalWake, SignalError> {
         self.ensure_active_temporal_wake_owner_live(wake_id, "promote")?;
-        self.temporal
-            .promote_wake_ready(wake_id, &mut self.telemetry.temporal)
+        self.temporal.promote_wake_ready(
+            wake_id,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.temporal),
+        )
     }
 
     pub fn retire_temporal_wake(
@@ -98,8 +108,15 @@ where
         wake_id: TemporalWakeId,
         reason: TemporalWakeRetirementReason,
     ) -> Result<crate::data::temporal::RetiredTemporalWake, SignalError> {
-        self.temporal
-            .retire_wake(wake_id, reason, &mut self.telemetry.temporal)
+        self.temporal.retire_wake(
+            wake_id,
+            reason,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.temporal),
+        )
     }
 
     pub fn retire_temporal_wakes_for_owner(
@@ -107,8 +124,15 @@ where
         owner: TemporalWakeOwner,
         reason: TemporalWakeRetirementReason,
     ) -> Result<TemporalWakeRetirementBatch, SignalError> {
-        self.temporal
-            .retire_wakes_for_owner(owner, reason, &mut self.telemetry.temporal)
+        self.temporal.retire_wakes_for_owner(
+            owner,
+            reason,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.temporal),
+        )
     }
 
     pub fn unregister_node(
@@ -125,7 +149,11 @@ where
         self.temporal.retire_wakes_for_owner(
             TemporalWakeOwner::Node(node),
             TemporalWakeRetirementReason::Disposed,
-            &mut self.telemetry.temporal,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.temporal),
         )
     }
 
@@ -145,7 +173,11 @@ where
         self.temporal.retire_wakes_for_owner(
             TemporalWakeOwner::Node(node),
             TemporalWakeRetirementReason::Superseded,
-            &mut self.telemetry.temporal,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.temporal),
         )
     }
 
@@ -164,7 +196,11 @@ where
         self.temporal.retire_wakes_for_owner(
             TemporalWakeOwner::Node(node),
             TemporalWakeRetirementReason::Superseded,
-            &mut self.telemetry.temporal,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.temporal),
         )
     }
 
@@ -183,9 +219,15 @@ where
         maximum: NonZeroUsize,
     ) -> Result<crate::data::temporal::BoundedTemporalReadyPromotionSummary, SignalError> {
         let frontier_before = self.temporal.frontier_snapshot();
-        let broad_scan_denial_before = self.telemetry.temporal.temporal_broad_scan_denial_count;
+        let broad_scan_denial_before = self
+            .telemetry_snapshot()
+            .temporal
+            .temporal_broad_scan_denial_count;
         let ready_wakes = self.promote_due_temporal_wakes_ready_up_to(Some(maximum.get()))?;
-        let broad_scan_denial_after = self.telemetry.temporal.temporal_broad_scan_denial_count;
+        let broad_scan_denial_after = self
+            .telemetry_snapshot()
+            .temporal
+            .temporal_broad_scan_denial_count;
         let frontier_after = self.temporal.frontier_snapshot();
         let due_work_remaining = frontier_after
             .next_due_tick()
@@ -210,7 +252,9 @@ where
         maximum: Option<usize>,
     ) -> Result<Vec<ReadyTemporalWake>, SignalError> {
         let mut ready = Vec::new();
-        self.telemetry.temporal.temporal_broad_scan_denial_count += 1;
+        self.with_telemetry(|telemetry| {
+            telemetry.temporal.temporal_broad_scan_denial_count += 1;
+        });
         loop {
             if maximum.is_some_and(|maximum| ready.len() >= maximum) {
                 break;
@@ -232,7 +276,10 @@ where
             }
             ready.push(self.promote_temporal_wake_ready(wake_id)?);
         }
-        self.telemetry.temporal.temporal_eligibility_lowering_count += ready.len() as u64;
+        let ready_count = ready.len() as u64;
+        self.with_telemetry(|telemetry| {
+            telemetry.temporal.temporal_eligibility_lowering_count += ready_count;
+        });
         Ok(ready)
     }
 
@@ -240,9 +287,15 @@ where
         &mut self,
     ) -> Result<crate::data::temporal::TemporalReadyPromotionSummary, SignalError> {
         let frontier_before = self.temporal.frontier_snapshot();
-        let broad_scan_denial_before = self.telemetry.temporal.temporal_broad_scan_denial_count;
+        let broad_scan_denial_before = self
+            .telemetry_snapshot()
+            .temporal
+            .temporal_broad_scan_denial_count;
         let ready_wakes = self.promote_due_temporal_wakes_ready()?;
-        let broad_scan_denial_after = self.telemetry.temporal.temporal_broad_scan_denial_count;
+        let broad_scan_denial_after = self
+            .telemetry_snapshot()
+            .temporal
+            .temporal_broad_scan_denial_count;
         let frontier_after = self.temporal.frontier_snapshot();
         Ok(crate::data::temporal::TemporalReadyPromotionSummary::new(
             frontier_before,
@@ -258,8 +311,15 @@ where
         due_tick: crate::data::temporal::ClockTick,
     ) -> Result<crate::data::temporal::TemporalWakeReschedule, SignalError> {
         self.ensure_active_temporal_wake_owner_live(wake_id, "reschedule")?;
-        self.temporal
-            .reschedule_wake(wake_id, due_tick, &mut self.telemetry.temporal)
+        self.temporal.reschedule_wake(
+            wake_id,
+            due_tick,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.temporal),
+        )
     }
 
     pub fn supersede_temporal_wake(
@@ -273,7 +333,11 @@ where
             wake_id,
             condition,
             due_tick,
-            &mut self.telemetry.temporal,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.temporal),
         )
     }
 
@@ -282,7 +346,13 @@ where
         wake_id: TemporalWakeId,
     ) -> Result<crate::data::temporal::IntervalWakeRegeneration, SignalError> {
         self.ensure_active_temporal_wake_owner_live(wake_id, "regenerate")?;
-        self.temporal
-            .regenerate_interval_wake(wake_id, &mut self.telemetry.temporal)
+        self.temporal.regenerate_interval_wake(
+            wake_id,
+            self.graph
+                .captures_observation_surface(
+                    crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+                )
+                .then_some(&mut self.telemetry.temporal),
+        )
     }
 }
