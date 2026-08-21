@@ -1,5 +1,4 @@
 import json
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,7 +14,7 @@ from worth_ui_3141_proof_plan import prepare_claim, proofs
 
 
 class PredecessorHandoffCostTests(unittest.TestCase):
-    def test_supplied_predecessor_handoff_prevents_recursive_portfolio_replay(self) -> None:
+    def test_supplied_predecessor_handoff_is_selectively_refreshed(self) -> None:
         with tempfile.TemporaryDirectory(dir=ledger_verifier.TARGET) as directory:
             identity = Path(directory) / "p3-predecessor-handoff.json"
             identity.write_text("{}", encoding="utf-8")
@@ -29,7 +28,7 @@ class PredecessorHandoffCostTests(unittest.TestCase):
                 patch.object(governed_snapshot, "refresh_predecessor_handoff") as refresh,
             ):
                 governed_snapshot.refresh_handoff_when_required(test)
-            refresh.assert_not_called()
+                refresh.assert_called_once_with(test)
 
     def test_each_predecessor_handoff_input_is_distinct_and_rebindable(self) -> None:
         for phase in (3, 4, 5):
@@ -48,14 +47,13 @@ class PredecessorHandoffCostTests(unittest.TestCase):
                 ["runner", "--source", "fresh.json"],
             )
 
-    def test_nested_replay_does_not_consume_the_outer_candidate(self) -> None:
+    def test_selective_refresh_uses_the_exact_bound_candidate(self) -> None:
         test = ledger_runner.GovernedTest(
             "P3-PREDECESSOR-01", "worth-ui-certification", "test",
             "topology_contracts", (), "owner::test",
             ("workspaces/worth-ui/target/p3-predecessor-handoff.json",),
             "result.json", None,
         )
-        completed = subprocess.CompletedProcess([], 0, "", "")
         with (
             patch.dict(
                 "os.environ",
@@ -64,12 +62,11 @@ class PredecessorHandoffCostTests(unittest.TestCase):
                     "WORTH_UI_SHARED_WORLD_ARTIFACT": "shared.json",
                 },
             ),
-            patch.object(subprocess, "run", return_value=completed) as run,
+            patch.object(governed_snapshot, "refresh_handoff") as refresh,
         ):
             ledger_runner.refresh_predecessor_handoff(test)
-        environment = run.call_args.kwargs["env"]
-        self.assertNotIn("WORTH_UI_MILESTONE_3141_LEDGER", environment)
-        self.assertNotIn("WORTH_UI_SHARED_WORLD_ARTIFACT", environment)
+        self.assertEqual(refresh.call_args.args[1], Path("outer.csv").resolve())
+        self.assertEqual(refresh.call_args.args[2:], (3, test.sources[0]))
 
     def test_predecessor_handoff_derives_unique_process_and_world_costs(self) -> None:
         retained_defaults = {
@@ -84,6 +81,7 @@ class PredecessorHandoffCostTests(unittest.TestCase):
             "passed_test_count": 1,
             "ignored_test_count": 0,
             "exit_posture": "passed",
+            "executed_exact_command": "cargo test --exact owner::test",
             "source_revision": "revision",
             "source_identity": [],
             "source_rebindings": [],
@@ -138,15 +136,22 @@ class PredecessorHandoffCostTests(unittest.TestCase):
             artifact["rows"][0]["construction_cost"],
             "product-processes=1;courtroom-worlds=1",
         )
+        self.assertEqual(
+            artifact["rows"][0]["executed_exact_command"],
+            retained_defaults["executed_exact_command"],
+        )
         self.assertNotEqual(
             artifact["rows"][0]["runner_authentication"],
             "machine-authenticated",
         )
         projected = dict(artifact["rows"][0])
         tag = projected.pop("runner_authentication")
-        projected.pop("artifact_sha256", None)
         self.assertTrue(authenticates(projected, tag, ledger_verifier.ROOT))
         projected["test_name"] = "substituted"
+        self.assertFalse(authenticates(projected, tag, ledger_verifier.ROOT))
+        projected = dict(artifact["rows"][0])
+        tag = projected.pop("runner_authentication")
+        projected["artifact_sha256"] = "0" * 64
         self.assertFalse(authenticates(projected, tag, ledger_verifier.ROOT))
         self.assertEqual(artifact["rows"][3]["shared_main_artifact"], "mixed.json")
 

@@ -7,6 +7,9 @@ import os
 import tempfile
 from pathlib import Path
 
+from worth_ui_3141_proof_plan import COMPILE_ARTIFACT
+from worth_ui_ledger_retained_portfolio import portfolio_identity
+
 
 @contextlib.contextmanager
 def ledger_lock(identity: Path):
@@ -78,3 +81,35 @@ def serialize_row(row: dict[str, str], fields: list[str]) -> str:
 
 def csv_rows(content: str):
     return csv.DictReader(io.StringIO(content))
+
+
+def transaction_extra_identities(
+    rows: list[dict[str, str]],
+    selected: list[dict[str, str]],
+    verify_phase: int | None,
+) -> tuple[str, ...]:
+    identities = set(() if verify_phase is None else (portfolio_identity(verify_phase),))
+    if verify_phase is not None:
+        identities.update(
+            row["retained_result_artifact"]
+            for row in rows
+            if row.get("phase") == str(verify_phase)
+        )
+    predecessor_phases = [
+        int(row["requirement"][1])
+        for row in selected
+        if row["requirement"].endswith("-PREDECESSOR-01")
+    ]
+    for phase in predecessor_phases:
+        identities.add(COMPILE_ARTIFACT)
+        identities.update(
+            row["retained_result_artifact"]
+            for row in rows
+            if int(row["phase"]) < phase
+        )
+        for nested in range(3, phase + 1):
+            identities.add(
+                f"_docs/worth-ui/milestone-3.14.1-evidence/"
+                f"p{nested}-predecessor-handoff.json"
+            )
+    return tuple(sorted(identities))

@@ -182,6 +182,13 @@ fn assert_mapping_mutant(
     source_state: &str,
     expected_error: &str,
 ) {
+    for row in artifact["rows"].as_array_mut().unwrap() {
+        row.as_object_mut().unwrap().remove("runner_authentication");
+        row["runner_authentication"] = Value::from(
+            super::super::runner_artifact_authentication::sign(row)
+                .expect("mutant runner authentication"),
+        );
+    }
     artifact["mapping_digest"] = Value::from(calculate_mapping_digest(&artifact["rows"]));
     let mutant_mapping = artifact["mapping_digest"].as_str().unwrap().to_owned();
     assert_eq!(
@@ -259,7 +266,7 @@ fn fixture_row(requirement: &str, index: usize, context: &FixtureContext<'_>) ->
     let mapping = predecessor_current_mapping::expected(requirement).unwrap();
     let mapping_sources = mapping.source_identity.split(';').collect::<Vec<_>>();
     let selected_digest = source_digest::calculate(mapping.source_identity).unwrap();
-    json!({
+    let mut row = json!({
         "requirement": requirement,
         "production_entry": mapping.production_entry,
         "independent_oracle": mapping.independent_oracle,
@@ -288,5 +295,10 @@ fn fixture_row(requirement: &str, index: usize, context: &FixtureContext<'_>) ->
         "execution_receipts": execution_receipts,
         "construction_cost": claim_contract::construction_cost(requirement),
         "execution_cost": claim_contract::execution_cost(requirement),
-    })
+    });
+    row["runner_authentication"] = Value::from(
+        super::super::runner_artifact_authentication::sign(&row)
+            .expect("fixture runner authentication"),
+    );
+    row
 }

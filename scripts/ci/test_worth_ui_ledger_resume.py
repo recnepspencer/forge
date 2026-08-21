@@ -23,7 +23,8 @@ class AtomicClosureResumeTests(unittest.TestCase):
         fields = [
             "requirement", "exact_command", "matched_test_count", "source_revision",
             "source_digest", "source_state_digest", "run_nonce", "command_result",
-            "result_artifact_digest", "result", "final_source",
+            "result_artifact_digest", "result", "final_source", "source_identity",
+            "production_entry", "independent_oracle",
         ]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -54,6 +55,7 @@ class AtomicClosureResumeTests(unittest.TestCase):
                     "source_state_digest": "b" * 64,
                     "run_nonce": f"nonce-{requirement}",
                     "matched_test_count": 1,
+                    "source_identity": ["inputs/dependency.json"],
                 }
                 payload["runner_authentication"] = authentication_tag(payload, root)
                 artifact = root / identity
@@ -137,6 +139,9 @@ def row(fields: list[str], index: int) -> dict[str, str]:
             f"runner --requirement {requirement} --source inputs/dependency.json "
             f"--artifact {identity}"
         ),
+        "source_identity": "inputs/dependency.json",
+        "production_entry": "inputs/dependency.json::production",
+        "independent_oracle": "inputs/dependency.json::oracle",
         "result": "OPEN",
         "final_source": "false",
     }

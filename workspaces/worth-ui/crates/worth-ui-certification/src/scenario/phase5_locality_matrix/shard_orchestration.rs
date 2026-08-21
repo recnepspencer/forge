@@ -11,9 +11,11 @@ const EVIDENCE_PREFIX: &str = "WORTH_UI_PHASE5_PRODUCTION_LOCALITY=";
 pub(super) fn execute() -> Result<Vec<serde_json::Value>, String> {
     let executable = std::env::current_exe()
         .map_err(|denial| format!("matrix executable identity: {denial}"))?;
-    let deadline = process_execution::new_deadline()?;
     let mut rows = Vec::with_capacity(RETAINED_SIZES.len() * Phase5LocalityAxis::ALL.len());
     for wave_start in (0..SHARD_COUNT).step_by(MAXIMUM_PARALLEL_SHARDS) {
+        // Each bounded wave owns its execution window. Sharing the first
+        // wave's deadline starves later shards before they are even spawned.
+        let deadline = process_execution::new_deadline()?;
         let wave_end = (wave_start + MAXIMUM_PARALLEL_SHARDS).min(SHARD_COUNT);
         let mut workers = Vec::with_capacity(wave_end - wave_start);
         for shard in wave_start..wave_end {

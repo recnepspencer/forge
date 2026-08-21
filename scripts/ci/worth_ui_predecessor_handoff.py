@@ -118,7 +118,7 @@ def retained_row(row: dict[str, object], root: Path) -> dict[str, object]:
             "ignored_test_count", "exit_posture", "source_revision", "source_identity",
             "mapping_source_identity", "source_rebindings", "source_digest",
             "source_state_digest", "run_nonce", "artifact_sha256", "structural_counter",
-            "claim_digest",
+            "claim_digest", "executed_exact_command",
             "hostile_control", "construction_cost", "execution_cost",
             "execution_receipts", "list_command", "ignored_list_command", "test_command",
             "public_example_command",
@@ -127,10 +127,9 @@ def retained_row(row: dict[str, object], root: Path) -> dict[str, object]:
     }
     if "shared_main_artifact" in row:
         retained["shared_main_artifact"] = row["shared_main_artifact"]
-    authenticated = {
-        field: value for field, value in retained.items() if field != "artifact_sha256"
-    }
-    retained["runner_authentication"] = authentication_tag(authenticated, root)
+    if "causal_reuse" in row:
+        retained["causal_reuse"] = row["causal_reuse"]
+    retained["runner_authentication"] = authentication_tag(retained, root)
     return retained
 
 

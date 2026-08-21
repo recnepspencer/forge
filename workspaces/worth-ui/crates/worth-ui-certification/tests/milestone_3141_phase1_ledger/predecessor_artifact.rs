@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
 
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 
 use super::{
     execution_contract, future_requirement_contract, predecessor_current_mapping,
@@ -11,9 +10,17 @@ use super::{
 pub(super) const EXPECTED_MAPPING_DIGEST: &str =
     "0a45ca9be7b1084df066e6cd639b1e82cf4af3783e9d2aa1560f1dc5f48e77d5";
 const EXPECTED_PHASE_THREE_MAPPING_DIGEST: &str =
-    "d2cf9b00dabf51641254b1f46d1fed6673dbc00212e5421b14b730206df3e6de";
+    "b282900a1c03f333dc8e11419c2f91b20a5d75bcb3382e60800ac12e1cd75bf5";
 const EXPECTED_PHASE_FOUR_MAPPING_DIGEST: &str =
-    "a4d1587e7cc2ea0f4d1f7ef1a2d3510dacfdaa0c30e8a7ce6ebae22c6950a139";
+    "92f285d791ba5ecee570127cf91edbf4623aee9ba4072b7eb19d3fe523d267ba";
+
+#[path = "predecessor_artifact/causal_reuse.rs"]
+mod causal_reuse;
+#[path = "predecessor_artifact/mapping_digest.rs"]
+mod mapping_digest;
+
+#[cfg(test)]
+use mapping_digest::calculate_mapping_digest;
 
 #[cfg(test)]
 #[path = "predecessor_artifact_tests.rs"]
@@ -152,11 +159,13 @@ fn validate_rows(
     let mut nonces = BTreeSet::new();
     let mut artifacts = BTreeSet::new();
     for row in rows {
+        super::runner_artifact_authentication::validate(row)?;
         require_str(row, "exit_posture", "passed")?;
         require_str(row, "source_revision", revision)?;
         require_str(row, "source_state_digest", source_state)?;
         require_hex(row, "run_nonce", 32)?;
         require_hex(row, "artifact_sha256", 64)?;
+        causal_reuse::validate(row)?;
         validate_execution(row)?;
         requirements.insert(require_string(row, "requirement")?);
         nonces.insert(require_string(row, "run_nonce")?);
@@ -254,6 +263,13 @@ fn validate_execution_sources(row: &Value) -> Result<(), String> {
     let mapped_sources = row["mapping_source_identity"]
         .as_array()
         .ok_or_else(|| "predecessor row omits mapped sources".to_owned())?;
+    let canonical = mapped_sources
+        .iter()
+        .map(Value::as_str)
+        .collect::<Option<Vec<_>>>()
+        .ok_or_else(|| "predecessor mapped source identity is not text".to_owned())?
+        .join(";");
+    require_str(row, "source_digest", &source_digest::calculate(&canonical)?)?;
     if executed_sources.len() != mapped_sources.len() {
         return Err("predecessor source inventories have different lengths".to_owned());
     }
@@ -299,32 +315,6 @@ fn is_rebindable(identity: &str) -> bool {
             | "_docs/worth-ui/milestone-3.14.1-evidence/p4-predecessor-handoff.json"
             | "_docs/worth-ui/milestone-3.14.1-evidence/p5-predecessor-handoff.json"
     )
-}
-
-fn calculate_mapping_digest(rows: &Value) -> String {
-    let mut ordered = rows.as_array().cloned().unwrap_or_default();
-    ordered.sort_by(|left, right| {
-        left["requirement"]
-            .as_str()
-            .cmp(&right["requirement"].as_str())
-    });
-    let mut digest = Sha256::new();
-    for row in ordered {
-        for field in ["requirement", "production_entry", "independent_oracle"] {
-            digest.update(row[field].as_str().unwrap_or_default().as_bytes());
-            digest.update([0]);
-        }
-        for source in row["mapping_source_identity"]
-            .as_array()
-            .into_iter()
-            .flatten()
-        {
-            digest.update(source.as_str().unwrap_or_default().as_bytes());
-            digest.update([0]);
-        }
-        digest.update([0xff]);
-    }
-    format!("{:x}", digest.finalize())
 }
 
 fn validate_control(row: &Value, requirement: &str) -> Result<(), String> {

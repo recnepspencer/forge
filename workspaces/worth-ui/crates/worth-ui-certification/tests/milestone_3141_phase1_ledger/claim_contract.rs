@@ -171,7 +171,7 @@ pub(super) fn construction_cost(requirement: &str) -> &'static str {
     }
     if requirement.starts_with("P4-") {
         if requirement == "P4-PREDECESSOR-01" {
-            return "main-tests=26;hostile-controls=27;product-processes=3;compile-sessions=2;courtroom-worlds=6";
+            return "main-tests=26;hostile-controls=28;product-processes=3;compile-sessions=2;courtroom-worlds=6";
         }
         if requirement == "P4-FONT-COLLECTION-01" {
             return "main-tests=1;hostile-controls=1;product-processes=0;compile-sessions=1;courtroom-worlds=0";
@@ -251,7 +251,7 @@ pub(super) fn execution_cost(requirement: &str) -> &'static str {
         if let Some(cost) = super::claim_contract_phase5::execution_cost(requirement) {
             cost
         } else if requirement == "P4-PREDECESSOR-01" {
-            "executed-tests=55;presentations=28"
+            "executed-tests=56;presentations=28"
         } else if requirement.starts_with("P4-") {
             "executed-tests=2;presentations=0"
         } else {

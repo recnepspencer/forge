@@ -16,7 +16,7 @@ from worth_ui_ledger_phase_three_portfolio import PhaseThreePortfolioExecution
 import worth_ui_ledger_dependency as ledger_dependency
 import worth_ui_3141_supporting_world as supporting_world
 from worth_ui_3141_proof_plan import prepare_claim, proofs
-from verify_worth_ui_3141_ledger import bind_fresh_compile_artifact
+from worth_ui_ledger_verifier_rebinding import bind_fresh_compile_artifact
 from worth_ui_ledger_source_state import source_state_digest
 from worth_ui_ledger_closure_storage import csv_rows
 from worth_ui_ledger_dependency_tests import LedgerDependencyTests
@@ -113,12 +113,12 @@ class GovernedRaceTests(unittest.TestCase):
 
         self.assertEqual(
             construction_cost("P4-PREDECESSOR-01"),
-            "main-tests=26;hostile-controls=27;product-processes=3;compile-sessions=2;"
+            "main-tests=26;hostile-controls=28;product-processes=3;compile-sessions=2;"
             "courtroom-worlds=6",
         )
         self.assertEqual(
             execution_cost("P4-PREDECESSOR-01"),
-            "executed-tests=55;presentations=28",
+            "executed-tests=56;presentations=28",
         )
 
     def test_phase_five_predecessor_owns_the_unique_current_portfolio_cost(self) -> None:
@@ -126,12 +126,12 @@ class GovernedRaceTests(unittest.TestCase):
 
         self.assertEqual(
             construction_cost("P5-PREDECESSOR-01"),
-            "main-tests=44;hostile-controls=45;product-processes=6;compile-sessions=2;"
+            "main-tests=46;hostile-controls=48;product-processes=6;compile-sessions=2;"
             "courtroom-worlds=12",
         )
         self.assertEqual(
             execution_cost("P5-PREDECESSOR-01"),
-            "executed-tests=91;presentations=56",
+            "executed-tests=96;presentations=56",
         )
 
     def test_phase_three_control_requires_the_exact_immutable_mutation_case(self) -> None:

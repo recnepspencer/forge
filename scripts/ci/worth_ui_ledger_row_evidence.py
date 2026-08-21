@@ -94,8 +94,9 @@ class PayloadInput:
 
 
 class ExecutionRecorder:
-    def __init__(self, snapshot: GovernedSnapshot) -> None:
+    def __init__(self, snapshot: GovernedSnapshot, requirement: str) -> None:
         self._snapshot = snapshot
+        self._requirement = requirement
         self.receipts: list[dict[str, Any]] = []
 
     def execute(
@@ -107,6 +108,7 @@ class ExecutionRecorder:
             self._snapshot.revision,
             self._snapshot.source_state_digest,
             role,
+            self._requirement,
         )
         self.receipts.append({"role": role, **receipt})
         return result, duration
@@ -116,7 +118,7 @@ def result_payload(test: GovernedTest) -> tuple[dict[str, Any], int]:
     os.environ.setdefault("PYTHON", sys.executable)
     refresh_handoff_when_required(test)
     snapshot = governed_snapshot(test)
-    recorder = ExecutionRecorder(snapshot)
+    recorder = ExecutionRecorder(snapshot, test.requirement)
     supporting_world = validate_supporting_dependency(
         test, snapshot.revision, snapshot.source_state_digest, ROOT
     )

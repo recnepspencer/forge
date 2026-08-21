@@ -2,31 +2,31 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
-import json
 import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-from worth_ui_3141_proof_plan import (
-    COMPILE_ARTIFACT,
-    prepare_claim,
-    proofs,
-)
+from worth_ui_3141_proof_plan import COMPILE_ARTIFACT, prepare_claim, proofs
 from worth_ui_ledger_artifact_transaction import ArtifactTransaction, replace_bytes
+from worth_ui_ledger_acceptance import close_row
 from worth_ui_ledger_command import claim_digest, source_digest, source_revision
 from worth_ui_ledger_execution_cache import CACHE_ENV
 from worth_ui_ledger_portfolio_snapshot import DIGEST_ENV, REVISION_ENV
 from worth_ui_ledger_row_cache import RowEvidenceCache
 from worth_ui_ledger_row_execution import execute_or_restore, run_row
-from worth_ui_ledger_runner_authentication import authentication_tag
-from worth_ui_ledger_retained_portfolio import portfolio_identity, publish
+from worth_ui_ledger_retained_portfolio import publish
 from worth_ui_ledger_source_state import source_state_digest
+from worth_ui_predecessor_candidate import import_candidate_prefix
+import worth_ui_ledger_acceptance as closure_acceptance
+import worth_ui_ledger_closure_selection as closure_selection
+from worth_ui_ledger_closure_selection import phase_proofs, read_ledger, require_complete_phase_mapping
+
 from worth_ui_ledger_closure_storage import (
     ledger_lock as acquire_ledger_lock,
     render_requirement_update,
+    transaction_extra_identities,
     write_requirements as write_ledger_requirements,
 )
 
@@ -35,31 +35,66 @@ ROOT = Path(__file__).resolve().parents[2]
 LEDGER = ROOT / "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv"
 LEDGER_LOCK = LEDGER.with_suffix(".lock")
 
-
 def ledger_lock(identity: Path = LEDGER_LOCK):
     return acquire_ledger_lock(identity)
-
-
-def close_row(row: dict[str, str], result: dict[str, object]) -> None:
-    for field in [
-        "matched_test_count", "source_revision", "source_digest",
-        "source_state_digest", "run_nonce",
-    ]:
-        row[field] = str(result[field])
-    row["command_result"] = "passed"
-    row["result_artifact_digest"] = str(result["artifact_sha256"])
-    row["result"] = "PROVED"
-    row["final_source"] = "true"
 
 
 def run(command_text: str, candidate_ledger: Path | None = None) -> dict[str, object]:
     return run_row(ROOT, command_text, candidate_ledger)
 
-
-def write_requirements(
-    rows: list[dict[str, str]], fields: list[str], requirements: set[str]
-) -> None:
+def write_requirements(rows: list[dict[str, str]], fields: list[str], requirements: set[str]) -> None:
     write_ledger_requirements(LEDGER, rows, fields, requirements)
+
+
+def phase_rows_to_prepare(*arguments: object) -> list[dict[str, str]]:
+    return closure_selection.phase_rows_to_prepare(
+        *arguments, prepare=prepare_claim
+    )
+
+
+def reopen_claim(row: dict[str, str], proof: object) -> None:
+    previous_artifact = row.get("result_artifact_digest")
+    prepare_claim(row, proof)
+    closure_selection.reopen_prepared_claim(row, previous_artifact)
+
+
+def reopen_proved_downstream(
+    rows: list[dict[str, str]], through_phase: int
+) -> list[dict[str, str]]:
+    configured = proofs()
+    downstream = [
+        row
+        for row in rows
+        if int(row["phase"]) > through_phase
+        and (row["result"] == "PROVED" or row["final_source"] == "true")
+    ]
+    for row in downstream:
+        reopen_claim(row, configured[row["requirement"]])
+    return downstream
+
+
+def retain_selected_acceptance(selected: list[dict[str, str]]) -> None:
+    closure_acceptance.retain_selected_acceptance(selected, ROOT, LEDGER)
+
+
+def retain_portfolio_artifact(
+    row: dict[str, str], result: dict[str, object], retained: dict[str, bytes]
+) -> None:
+    closure_acceptance.retain_portfolio_artifact(row, result, retained, ROOT)
+
+
+def bind_current_result_mapping(
+    row: dict[str, str], result: dict[str, object]
+) -> dict[str, object]:
+    revision = source_revision()
+    return closure_acceptance.bind_current_result_mapping(
+        row,
+        result,
+        ROOT,
+        claim_digest(row["requirement"]),
+        revision,
+        source_state_digest(revision),
+    )
 
 
 def main() -> int:
@@ -114,107 +149,6 @@ def governed_main(arguments: argparse.Namespace) -> int:
         raise RuntimeError("unsupported Worth UI milestone phase")
     return 0
 
-
-def reopen_claim(row: dict[str, str], proof: object) -> None:
-    previous_artifact = row.get("result_artifact_digest")
-    prepare_claim(row, proof)
-    row.update(
-        {
-            "matched_test_count": "0",
-            "command_result": "not-run",
-            "source_revision": "not-bound",
-            "source_digest": "not-bound",
-            "source_state_digest": "not-bound",
-            "run_nonce": "not-bound",
-            "result_artifact_digest": "not-bound",
-            "result": "OPEN",
-            "final_source": "false",
-            "reopen_lineage": (
-                f"supersedes:{previous_artifact}"
-                if previous_artifact and previous_artifact != "not-bound"
-                else row.get("reopen_lineage", "none")
-            ),
-        }
-    )
-
-
-def read_ledger() -> tuple[list[str], list[dict[str, str]]]:
-    with LEDGER.open(encoding="utf-8", newline="") as stream:
-        reader = csv.DictReader(stream)
-        fields = list(reader.fieldnames or ())
-        return fields, list(reader)
-
-
-def phase_proofs(phase: int) -> dict[str, object]:
-    return {
-        requirement: proof
-        for requirement, proof in proofs().items()
-        if int(requirement[1]) == phase
-    }
-
-
-def phase_rows_to_prepare(
-    rows: list[dict[str, str]],
-    through_phase: int,
-    requirement: str | list[str] | None,
-    configured: dict[str, object],
-    current_state: str | None = None,
-) -> list[dict[str, str]]:
-    predecessor = [row for row in rows if int(row["phase"]) < through_phase]
-    if any(row["result"] != "PROVED" or row["final_source"] != "true" for row in predecessor):
-        raise RuntimeError("cannot prepare a phase before predecessor closure")
-    candidates = [
-        row for row in rows
-        if int(row["phase"]) == through_phase
-        and (
-            (row["result"] == "OPEN" and row["final_source"] == "false")
-            or (
-                through_phase > 2
-                and row["result"] == "PROVED"
-                and row["final_source"] == "true"
-                and not row_has_current_causal_sources(row, current_state)
-            )
-        )
-    ]
-    if requirement is None:
-        return candidates
-    requested = [requirement] if isinstance(requirement, str) else list(requirement)
-    if len(requested) != len(set(requested)):
-        raise RuntimeError("duplicate Phase requirement selection")
-    unmapped = [identity for identity in requested if identity not in configured]
-    if unmapped:
-        raise RuntimeError(f"{unmapped[0]} has no governed proof mapping")
-    selected = [row for row in candidates if row["requirement"] in requested]
-    selected_identities = {row["requirement"] for row in selected}
-    unavailable = [identity for identity in requested if identity not in selected_identities]
-    if unavailable:
-        raise RuntimeError(
-            f"{unavailable[0]} is not one open Phase {through_phase} row"
-        )
-    return selected
-
-
-def row_has_current_causal_sources(
-    row: dict[str, str], current_state: str | None
-) -> bool:
-    identities = row.get("source_identity")
-    if not identities:
-        return current_state is not None and row.get("source_state_digest") == current_state
-    try:
-        return row.get("source_digest") == source_digest(tuple(identities.split(";")))
-    except (OSError, RuntimeError, ValueError):
-        return False
-
-
-def require_complete_phase_mapping(
-    rows: list[dict[str, str]], phase: int, configured: dict[str, object]
-) -> None:
-    inventory = {row["requirement"] for row in rows if int(row["phase"]) == phase}
-    if set(configured) != inventory:
-        missing = sorted(inventory - set(configured))
-        raise RuntimeError(f"Phase {phase} proof mappings are incomplete: {missing}")
-
-
 def close_selected(
     rows: list[dict[str, str]], fields: list[str], selected: list[dict[str, str]]
 ) -> None:
@@ -248,7 +182,7 @@ def close_selected_atomically(
         ROOT,
         LEDGER,
         [row["exact_command"] for row in selected],
-        () if verify_phase is None else (portfolio_identity(verify_phase),),
+        transaction_extra_identities(rows, selected, verify_phase),
     )
     candidate_root = ROOT / "workspaces/worth-ui/target/milestone-3141-candidates"
     candidate_root.mkdir(parents=True, exist_ok=True)
@@ -271,7 +205,10 @@ def close_selected_atomically(
                 claim,
                 run,
                 lambda payload: bind_current_result_mapping(row, payload),
+                restore=not row["requirement"].endswith("-PREDECESSOR-01"),
             )
+            if row["requirement"].endswith("-PREDECESSOR-01"):
+                requirements.update(import_candidate_prefix(rows, candidate, int(row["phase"])))
             close_row(row, result)
             retain_portfolio_artifact(row, result, retained_artifacts)
             candidate.write_text(
@@ -300,113 +237,6 @@ def close_selected_atomically(
         restore_environment(REVISION_ENV, previous_revision)
         restore_environment(DIGEST_ENV, previous_digest)
         candidate.unlink(missing_ok=True)
-
-
-def retain_selected_acceptance(selected: list[dict[str, str]]) -> None:
-    """Retain current authenticated row evidence without publishing ledger closure."""
-    original = LEDGER.read_bytes()
-    revision = source_revision()
-    state_digest = source_state_digest(revision)
-    cache_root = (
-        ROOT / "workspaces/worth-ui/target/milestone-3141-execution-cache" / state_digest
-    )
-    row_cache = RowEvidenceCache(ROOT, cache_root, original, revision, state_digest)
-    previous_cache = os.environ.get(CACHE_ENV)
-    previous_revision = os.environ.get(REVISION_ENV)
-    previous_digest = os.environ.get(DIGEST_ENV)
-    os.environ[CACHE_ENV] = str(cache_root)
-    os.environ[REVISION_ENV] = revision
-    os.environ[DIGEST_ENV] = state_digest
-    artifacts = ArtifactTransaction(
-        ROOT, LEDGER, [row["exact_command"] for row in selected]
-    )
-    try:
-        for row in selected:
-            result = execute_or_restore(
-                row,
-                LEDGER,
-                row_cache,
-                claim_digest(row["requirement"]),
-                run,
-                lambda payload, selected_row=row: bind_current_result_mapping(
-                    selected_row, payload
-                ),
-            )
-            retain_portfolio_artifact(row, result, {})
-        if source_revision() != revision or source_state_digest(revision) != state_digest:
-            raise RuntimeError("governed source changed during batch acceptance")
-        artifacts.prepare_commit(original)
-        replace_bytes(LEDGER, original)
-        artifacts.commit()
-        print(
-            "accepted "
-            f"{len(selected)} Worth UI milestone 3.14.1 proof rows without ledger publication"
-        )
-    except BaseException:
-        artifacts.rollback()
-        raise
-    finally:
-        if previous_cache is None:
-            os.environ.pop(CACHE_ENV, None)
-        else:
-            os.environ[CACHE_ENV] = previous_cache
-        restore_environment(REVISION_ENV, previous_revision)
-        restore_environment(DIGEST_ENV, previous_digest)
-
-
-def retain_portfolio_artifact(
-    row: dict[str, str], result: dict[str, object], retained: dict[str, bytes]
-) -> None:
-    words = row["exact_command"].split()
-    identity = words[words.index("--artifact") + 1]
-    content = (ROOT / identity).read_bytes()
-    observed = hashlib.sha256(content).hexdigest()
-    if observed != result["artifact_sha256"]:
-        raise RuntimeError(f"authenticated artifact drifted for {row['requirement']}")
-    retained[identity] = content
-
-
-def bind_current_result_mapping(
-    row: dict[str, str], result: dict[str, object]
-) -> dict[str, object]:
-    canonical = row["source_identity"].split(";")
-    if result.get("source_identity") != canonical:
-        raise RuntimeError(f"atomic closer substituted a source for {row['requirement']}")
-    words = row["exact_command"].split()
-    identity = words[words.index("--artifact") + 1]
-    artifact_payload = json.loads((ROOT / identity).read_text(encoding="utf-8"))
-    payload = {**result, **artifact_payload}
-    payload.update(
-        {
-            "production_entry": row["production_entry"],
-            "independent_oracle": row["independent_oracle"],
-            "mapping_source_identity": canonical,
-            "source_rebindings": [],
-            "executed_exact_command": row["exact_command"],
-        }
-    )
-    payload.pop("artifact_sha256", None)
-    payload.pop("runner_authentication", None)
-    payload["runner_authentication"] = authentication_tag(payload, ROOT)
-    content = (json.dumps(payload, indent=2) + "\n").encode()
-    replace_bytes(ROOT / identity, content)
-    payload["artifact_sha256"] = hashlib.sha256(content).hexdigest()
-    return payload
-
-
-def reopen_proved_downstream(
-    rows: list[dict[str, str]], through_phase: int
-) -> list[dict[str, str]]:
-    configured = proofs()
-    downstream = [
-        row
-        for row in rows
-        if int(row["phase"]) > through_phase
-        and (row["result"] == "PROVED" or row["final_source"] == "true")
-    ]
-    for row in downstream:
-        reopen_claim(row, configured[row["requirement"]])
-    return downstream
 
 
 def restore_portfolio_evidence_for_close(retained: dict[str, bytes]) -> None:

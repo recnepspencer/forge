@@ -20,6 +20,25 @@ pub(super) fn validate(artifact: &Value) -> Result<(), String> {
     validate_with_key(&unsigned, tag, &runner_key()?)
 }
 
+pub(super) fn validate_tagged(value: &Value, tag: &str) -> Result<(), String> {
+    validate_with_key(value, tag, &runner_key()?)
+}
+
+pub(super) fn canonical_digest(value: &Value) -> String {
+    format!("{:x}", Sha256::digest(canonical_json(value)))
+}
+
+#[cfg(test)]
+pub(super) fn sign(value: &Value) -> Result<String, String> {
+    let key = runner_key()?;
+    Ok(hmac_sha256(&key, canonical_json(value).as_bytes())
+        .iter()
+        .fold(String::new(), |mut output, byte| {
+            write!(output, "{byte:02x}").expect("string writes are infallible");
+            output
+        }))
+}
+
 fn validate_with_key(value: &Value, tag: &str, key: &[u8]) -> Result<(), String> {
     let expected = hmac_sha256(key, canonical_json(value).as_bytes());
     let expected = expected.iter().fold(String::new(), |mut output, byte| {

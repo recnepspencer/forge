@@ -1961,8 +1961,10 @@ implementation gates, documentation, and Phase 6 handoff are governed by
 specification exists to keep this roadmap outcome-readable; it does not create
 a second milestone, ledger, or independently closable product surface.
 
-Phase 5 closed on 2026-08-18 with all twelve rows bound to one final source
-state. The retained portfolio includes deterministic alpha/color raster and
+Phase 5 closed on 2026-08-20 with all twelve rows bound to one final source
+state. Unchanged authenticated predecessor evidence was retained by exact
+causal binding, and only affected rows were reexecuted. The retained portfolio
+includes deterministic alpha/color raster and
 emoji coverage, bounded native atlas ownership and pins, exact DPI/paint
 locality, a 4×8 fresh-world cost matrix through 4,096 items, external native
 pixels, complete derived-state reconstruction, Query-owned async presentation,

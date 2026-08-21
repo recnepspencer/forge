@@ -1,9 +1,6 @@
 import hashlib
 import json
 import tempfile
-import subprocess
-import sys
-import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -12,38 +9,10 @@ import close_worth_ui_3141_ledger as ledger_closer
 import worth_ui_3141_supporting_world as supporting_world
 import worth_ui_ledger_dependency as ledger_dependency
 from worth_ui_ledger_runner_authentication import authentication_tag
+from worth_ui_ledger_settlement_lock_cases import LedgerSettlementLockCases
 
 
-class LedgerDependencyTests(unittest.TestCase):
-    def test_ledger_settlement_lock_is_cross_process_exclusive(self) -> None:
-        script = (
-            "import pathlib,sys; from close_worth_ui_3141_ledger import ledger_lock; "
-            "guard=ledger_lock(pathlib.Path(sys.argv[1])); guard.__enter__(); "
-            "print('acquired',flush=True); sys.stdin.readline(); guard.__exit__(None,None,None)"
-        )
-        with tempfile.TemporaryDirectory() as directory:
-            identity = str(Path(directory) / "ledger.lock")
-            first = subprocess.Popen(
-                [sys.executable, "-c", script, identity], cwd=Path(__file__).parent,
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
-            )
-            self.assertEqual(first.stdout.readline().strip(), "acquired")
-            second = subprocess.Popen(
-                [sys.executable, "-c", script, identity], cwd=Path(__file__).parent,
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
-            )
-            time.sleep(0.2)
-            self.assertIsNone(second.poll())
-            first.stdin.write("\n")
-            first.stdin.flush()
-            self.assertEqual(second.stdout.readline().strip(), "acquired")
-            second.stdin.write("\n")
-            second.stdin.flush()
-            self.assertEqual(first.wait(timeout=5), 0)
-            self.assertEqual(second.wait(timeout=5), 0)
-            for stream in (first.stdin, first.stdout, second.stdin, second.stdout):
-                stream.close()
-
+class LedgerDependencyTests(LedgerSettlementLockCases, unittest.TestCase):
     def test_shared_evidence_requires_a_final_producer_and_exact_artifact(self) -> None:
         import csv
         import hashlib
@@ -210,9 +179,9 @@ class LedgerDependencyTests(unittest.TestCase):
         ]
         result = {
             "matched_test_count": 1,
-            "source_revision": "revision",
+            "source_revision": "a" * 40,
             "source_digest": "sources",
-            "source_state_digest": "state",
+            "source_state_digest": "b" * 64,
             "run_nonce": "nonce",
             "artifact_sha256": "artifact",
             "source_identity": ["source.rs"],
@@ -295,9 +264,9 @@ class LedgerDependencyTests(unittest.TestCase):
         }
         result = {
             "matched_test_count": 1,
-            "source_revision": "revision",
+            "source_revision": "a" * 40,
             "source_digest": "sources",
-            "source_state_digest": "state",
+            "source_state_digest": "b" * 64,
             "run_nonce": "nonce",
             "artifact_sha256": "artifact",
             "source_identity": ["source.rs"],

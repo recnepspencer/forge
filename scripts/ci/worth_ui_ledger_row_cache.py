@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from worth_ui_ledger_runner_authentication import authentication_tag, authenticates
+from worth_ui_ledger_execution_cache import COMPILE_ARTIFACT
 
 
 SCHEMA = "worth-ui-ledger-row-receipt-v3"
@@ -233,7 +234,7 @@ def owned_artifact_identities(requirement: str, command: str) -> tuple[str, ...]
     ]
     if len(sources) != 1:
         raise ValueError("predecessor row must own exactly one handoff artifact")
-    return (result, sources[0])
+    return (result, sources[0], COMPILE_ARTIFACT)
 
 
 def source_artifact_bindings(

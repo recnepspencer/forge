@@ -66,6 +66,13 @@ def font_and_profile_proofs(proof_type: Any, control_type: Any) -> dict[str, Any
             f"{TEXT_ROOT}/font_collection/coverage.rs",
             "workspaces/worth-ui/crates/worth-ui/examples/text_platform.rs",
             "workspaces/worth-ui/docs/text-platform.md",
+            "scripts/ci/worth_ui_ledger_public_example.py",
+            "workspaces/worth-ui/crates/worth-ui/Cargo.toml",
+            "workspaces/worth-ui/crates/worth-ui/src/lib.rs",
+            "workspaces/worth-ui/crates/worth-ui/src/facade/app.rs",
+            "workspaces/worth-ui/crates/worth-ui/src/facade/declaration.rs",
+            f"{RUNTIME_ROOT}/capability/registry/component/component_semantic_text_contract.rs",
+            f"{RUNTIME_ROOT}/capability/registry/component/component_semantic_text_span_contract.rs",
         ),
         "P4-TEXT-PROFILE-01": proof(
             proof_type,

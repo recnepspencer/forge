@@ -59,6 +59,21 @@ and all 3,953 RGI emoji sequences. ZWJ families, flags, keycaps, skin-tone modif
 sequences, and VS15/VS16 stay atomic. Emoji selection carries the same exact face and font-byte
 identity into shaping, measurement, rendering, and reconstruction.
 
+## Alpha and intrinsic color
+
+Alpha glyphs produce coverage only. Presentation combines that coverage with the authored
+logical foreground color as straight RGBA; changing the foreground is paint-only work. An
+intrinsic-color glyph instead produces qualified RGBA from its admitted palette or bitmap
+source and ignores an adjacent foreground token. It is never tinted to make it resemble an
+alpha glyph.
+
+The qualified color-source set is deliberately finite: COLRv0/CPAL, the admitted COLRv1/CPAL
+paint graph, CBDT/CBLC, and sbix PNG data (including one admitted duplicate-image hop). SVG,
+sbix JPEG or TIFF data, malformed paint graphs, unknown enum values, malformed images, cycles,
+and every unlisted source are rejected during font admission. Runtime does not silently
+downgrade a rejected color source to monochrome or ask an operating-system renderer to choose
+another interpretation.
+
 ## Generations and replacement
 
 Register, replace, or remove a pack by consuming the current collection and naming the exact
@@ -83,6 +98,12 @@ substituted.
 alignment, overflow policy, font size, width, line height, letter and word spacing, tab
 interval, and line limit. Every byte of a nonempty paragraph must be covered exactly once by
 ordered, nonoverlapping `UiTextStyleSpan` ranges on UTF-8 boundaries.
+
+Authored text-paint spans use original UTF-8 ranges too. Paint ownership is attached before
+bidi reordering and remains attached to the same logical clusters afterward; it is not
+reconstructed from visual order. A shaped glyph cannot straddle two authored paint spans. A
+span boundary that would split its cluster is denied instead of assigning the glyph an
+arbitrary color.
 
 Style-span ranges, caret positions, hit results, and selection ranges refer to original UTF-8
 byte boundaries. Selection cannot bisect a grapheme or shaped cluster. Bidi carets retain their
@@ -146,6 +167,13 @@ font selection or layout identity. Runtime derives exact demand from mounted lay
 authority; text owns raster meaning; the native host alone plans capacity, stages uploads, owns GPU
 pages, reconciles physical completion, and commits atlas entries and pins.
 
+When capacity requires eviction, the native owner chooses the unpinned entry with the oldest
+completed-use epoch and then the canonical raster-key bytes. Hash-table order, registration
+order, allocator addresses, and GPU enumeration are never tie-breakers. Admission and eviction
+planning complete before rasterization or native effects begin. If the staged upload, page,
+entry, or pin budget cannot be satisfied without touching a live entry, presentation is denied
+as saturated and the previous atlas remains current.
+
 Presentation is asynchronous at both of its distinct boundaries. One bounded host-native Signal
 runtime progresses physical atlas-upload and surface-presentation work. Separately, the WORTH UI
 Query binding installs each mounted presentation attempt as a Query-owned async result and publishes
@@ -153,17 +181,48 @@ producer-local semantic invalidation. Signal eligibility never grants permission
 upload, present, or settle, and Query never owns native resources.
 
 Effects-indeterminate presentation retains an exact recovery capability. Reconstruction consumes
-current mounted/runtime authority and retained font bytes, destroys derived layout-independent
-native state, and rebuilds raster, atlas, draw-list, and target state under successor generations.
+current mounted/runtime authority and retained font bytes, independently destroys the qualified
+layout plus derived raster, atlas, draw-list, and target state, and rebuilds every layer under
+successor generations from the mounted source and font authorities.
 It never treats stale raster bytes, atlas placement, a transcript, or captured pixels as source
 truth. Ordinary locality remains bounded to changed demand and exact subscribers; the qualified
 closure portfolio separately exercises 1, 32, 2,048, and 4,096 fresh worlds.
 
+A denial before native effects leaves the previous presentation and resource owners unchanged.
+If effects may have begun, the attempt becomes unresolved and carries the exact recovery
+capability until reconstruction or terminal close consumes it. WORTH UI does not flatten that
+posture into success, retry from a formatted diagnostic, or use a lower-quality or monochrome
+fallback. Terminal close must release pending Query results, physical Signal work, uploads,
+pins, atlas pages, readbacks, draw lists, and recovery capabilities.
+
+## Authority boundary and qualified posture
+
+Applications own source text, original-range style and paint intent, font bytes, and declared
+layout constraints. Text qualification owns Unicode analysis, fallback, shaping, layout, and
+interaction geometry. Runtime mounts that qualified meaning and derives exact presentation
+demand. The native host owns raster scheduling, atlas and GPU resources, physical progress,
+and external completion. Query retains application-visible async posture and semantic
+invalidation, but neither Query nor Signal grants permission to perform native effects.
+
+Editing, selection policy, accessibility actions, keyboard input, and IME composition remain
+later semantic consumers. Phase 5 preserves the original-range and caret geometry they will
+consume; it does not make raster or atlas state an editing authority. Phase 6 input must enter
+through its own host-issued observations and may request a new qualified paragraph—it may not
+mutate a retained layout or reconstruct text from pixels.
+
+These guarantees describe WORTH's qualified profiles, admitted fonts, deterministic native
+owners, and governed Windows/WGPU evidence worlds. They are not a claim that arbitrary machine
+fonts, unsupported drivers, or all compositors produce universally byte-identical pixels.
+Unsupported input is denied rather than substituted, and external pixel evidence is compared
+only inside the qualified source/class and host posture recorded by owner-issued receipts.
+
 ## Compiling example
 
-The repository example registers an owned variable application font, selects it through an
-ordered family stack, enables `liga`, requests a `wght` coordinate, and qualifies mixed Latin,
-Arabic, and emoji text. Emoji falls back as a whole cluster to the qualified color-emoji face.
+The repository example registers two application families, selects them through explicit ordered
+family stacks, enables OpenType features, requests `wght` coordinates, and qualifies mixed Latin,
+Arabic, and emoji text in three original-range style and paint spans. Emoji falls back as a whole cluster to the
+qualified color-emoji face. It reads logical and ink bounds from the qualified layout for
+measurement; application code does not configure atlas pages, raster sources, or upload policy.
 
 ```powershell
 cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui --example text_platform

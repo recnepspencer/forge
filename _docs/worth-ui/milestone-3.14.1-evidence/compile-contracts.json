@@ -1,12 +1,12 @@
 {
   "schema": "worth-ui-compile-contract-result-v1",
   "exit_posture": "passed",
-  "run_nonce": "ec5fd907d7f062560707bfaee0959d4d",
-  "source_revision": "d3b15a14313b18196294962cda1aa49bd0f3e4d5",
-  "source_state_digest": "0b8cc025be1bcee9b6a6f9d4224b9924843867f15308b5dfd030a904ba4496ee",
+  "run_nonce": "d8479556dfbf4a70e6c5d2b555de3774",
+  "source_revision": "dec3ed3ab6aee904e2e575b8c841265ade8db5cd",
+  "source_state_digest": "c36105bb603622263024a953067f3b23714ce74b84b8e131047831af1b7baf8e",
   "cargo_sessions": 2,
-  "fail_targets": 74,
-  "pass_targets": 24,
+  "fail_targets": 78,
+  "pass_targets": 25,
   "cases": [
     {
       "owner": "certification",
@@ -22,7 +22,7 @@
       "kind": "fail",
       "target": "certification-alternate-legacy-egui-host-rejected",
       "source": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/host/alternate_host_cannot_enter_legacy_egui_transition.rs",
-      "source_sha256": "25952d26447c9a088612e70c1dd3f3eb862f093a668e0b239bfbeb2fb286e461",
+      "source_sha256": "b0f634675f5f58c5a412762da721273ff02d25bbe58cab491e6c18768a7df788",
       "snapshot": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/host/alternate_host_cannot_enter_legacy_egui_transition.stderr",
       "snapshot_sha256": "71f949df4e4176ac460f7478419534e5f7924d25069abbfc2e1c6de5181404ae"
     },
@@ -31,7 +31,7 @@
       "kind": "fail",
       "target": "certification-caller-defined-host-rejected",
       "source": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/host/caller_defined_certification_host_is_rejected.rs",
-      "source_sha256": "6d4fe6cc2bb2095ec0906ee10eccb4970a6efac136ac82b875ef12c1d9143f55",
+      "source_sha256": "0a2237680ffe6f6e93172d41077e08bd253fa35b21bb21434b82a1ca4153ae88",
       "snapshot": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/host/caller_defined_certification_host_is_rejected.stderr",
       "snapshot_sha256": "15622c5ed0f3309866c576df415dce339a1736d7bb294b22c6d1fa59ff65f79c"
     },
@@ -67,16 +67,52 @@
       "kind": "fail",
       "target": "certification-mounted-consumption-authority",
       "source": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/host/external_callers_cannot_forge_mounted_runtime_authority.rs",
-      "source_sha256": "dd0e6d50c1ead611203c90f3b13671eaedf9bca5cf73afa3516c0a69eb010850",
+      "source_sha256": "7cd79607737774ca596c20f7073fe2fdac964ef9efff62af4c46ef16df896b43",
       "snapshot": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/host/external_callers_cannot_forge_mounted_runtime_authority.stderr",
       "snapshot_sha256": "ea42572adf4d741195645913025a40ac815f15c9745de237fad9ea7c44971e37"
+    },
+    {
+      "owner": "certification",
+      "kind": "fail",
+      "target": "certification-phase5-async-authority",
+      "source": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/phase5_async_authority/live_authority_cannot_be_reconstructed_or_substituted.rs",
+      "source_sha256": "2d412a69a728c52ab3543ba25181118ef66e14cafbc70d3d812cd02e522c5b60",
+      "snapshot": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/phase5_async_authority/live_authority_cannot_be_reconstructed_or_substituted.stderr",
+      "snapshot_sha256": "259c8309690333e12462fd6c195ba9141d9c2332f1c4bc5580e14e68cbdef016"
+    },
+    {
+      "owner": "certification",
+      "kind": "fail",
+      "target": "certification-phase5-reporting-authority",
+      "source": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/phase5_async_authority/reporting_material_cannot_open_authority.rs",
+      "source_sha256": "0226615ddbf927599bd07e62333792ea5728b6222fb2558f4d298b1e2a36897e",
+      "snapshot": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/phase5_async_authority/reporting_material_cannot_open_authority.stderr",
+      "snapshot_sha256": "3e3a3aa5c1fed787afa1b29255d616f0d355496765a9f00d206f21be28baf930"
+    },
+    {
+      "owner": "certification",
+      "kind": "fail",
+      "target": "certification-phase5-serialized-recovery-authority",
+      "source": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/phase5_async_authority/recovery_authority_is_not_serializable.rs",
+      "source_sha256": "e9c65c9de59f8a14ea94ec2390fe5eed9a19f50245b1d500cf5acb156666819b",
+      "snapshot": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/phase5_async_authority/recovery_authority_is_not_serializable.stderr",
+      "snapshot_sha256": "e9845604c67c2fa0a1797307a3faca913d0da0c08515406bd9b2bf39e8b7bd54"
+    },
+    {
+      "owner": "certification",
+      "kind": "fail",
+      "target": "certification-phase5-signal-effect-authority",
+      "source": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/phase5_async_authority/physical_signal_cannot_authorize_query_effect.rs",
+      "source_sha256": "ed36da9d26d7274ed287f70834df16fc5fb0cf7b1af8e8bb0b97eefeeb3bfcba",
+      "snapshot": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/phase5_async_authority/physical_signal_cannot_authorize_query_effect.stderr",
+      "snapshot_sha256": "314f63b6e3c5b7010eca717f90ffa04a3ad6bec7efc9d0ae0da53a199f52b03d"
     },
     {
       "owner": "certification",
       "kind": "pass",
       "target": "certification-fixed-headless-host",
       "source": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/host/fixed_certification_headless_host_is_lawful.rs",
-      "source_sha256": "44f95c53fe721142b27973b8406f71c80316b874551ca7449d1a0e3ed231f638",
+      "source_sha256": "f04b6bfc96f01f2b3226d8b3060710c61f8a0baa5386a22b7bc9a6b6c38cf495",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -85,7 +121,7 @@
       "kind": "pass",
       "target": "certification-fixed-legacy-egui-host",
       "source": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/host/fixed_legacy_egui_host_is_lawful.rs",
-      "source_sha256": "488b1317de108ebb7ebe36cb2ff41715d6a8ce3d017e6f68301ca796b349c984",
+      "source_sha256": "70bf289a3977b7d3e09dbe90ee37d2b74c7200d2bb6ca992de7bc4894e578c86",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -101,9 +137,18 @@
     {
       "owner": "certification",
       "kind": "pass",
+      "target": "certification-phase5-async-authority-lawful",
+      "source": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/phase5_async_authority/live_authority_flows_through_owner_issued_values.rs",
+      "source_sha256": "4b47fcc6b4a9d7be82cce2517fa35aa56f6a2d2cfae7cff977bab82e06f0237f",
+      "snapshot": null,
+      "snapshot_sha256": null
+    },
+    {
+      "owner": "certification",
+      "kind": "pass",
       "target": "certification-shared-inspection-contract",
       "source": "workspaces/worth-ui/crates/worth-ui-certification/tests/ui/inspection/ai_and_human_callers_share_inspection_contract.rs",
-      "source_sha256": "cbe499f53472a563cffd344c8d4b8f3c7127def740d1c1abca34aef8cb02a36e",
+      "source_sha256": "91d806a30b11eb6876b506a1ec0ce469413f865ab700e3e3fc17d27388a40a46",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -112,7 +157,7 @@
       "kind": "pass",
       "target": "product-paint-identities-lawful-correlation",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/paint_identities_support_lawful_correlation.rs",
-      "source_sha256": "e003380db15c4f609e9eb579ce874fa1940637658627e4ff4a1e3507847b45ab",
+      "source_sha256": "b68a53b1d746effccda65b71c99470aeaa33c964e87486159c073ec21c8b1253",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -139,7 +184,7 @@
       "kind": "fail",
       "target": "host-phase5-alpha-color-substitution",
       "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/alpha_color_views_cannot_substitute.rs",
-      "source_sha256": "4370fc831f87e70744973e4deb1f5c898ad94029823b2cfddb73ddc74c32565a",
+      "source_sha256": "2a4da659887c78c62512b05146bf0d05839b7fb32b55b9ce2cc55e23cff6e236",
       "snapshot": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/alpha_color_views_cannot_substitute.stderr",
       "snapshot_sha256": "e78fa24f0321ed6749483c3472b971c11664ce818b1d7a3bee775d40cf295e41"
     },
@@ -148,7 +193,7 @@
       "kind": "fail",
       "target": "host-phase5-native-plan-unforgeable",
       "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/native_plan_pin_recovery_are_unforgeable.rs",
-      "source_sha256": "1e191b8af065de75734cb3aeeabdbaca8396bbccc8ce7a0fcf701e33f50c1230",
+      "source_sha256": "9451a60ecd47212fcb05d3438e27309957f1cfd3a9ca90d5d48728e158e39b65",
       "snapshot": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/native_plan_pin_recovery_are_unforgeable.stderr",
       "snapshot_sha256": "9122debf661786ad7c037b5970fbcce4776fe960e19ece9c73dfb6a339a776bd"
     },
@@ -157,7 +202,7 @@
       "kind": "fail",
       "target": "host-phase5-raster-lifetime",
       "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/raster_view_cannot_escape_owner.rs",
-      "source_sha256": "6ce9c29997a4761603f7015891cf16fc7f2e7dd5e38b3762df1bea293e0595a8",
+      "source_sha256": "fb4cc96eff85a473e9d9f588645066e8b9574df22e0ffd14e1f9d9d826bdd6d5",
       "snapshot": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/raster_view_cannot_escape_owner.stderr",
       "snapshot_sha256": "5d347e26588060563edf873fad1b047e7adf0548f54132a1b6da6d169841e0a0"
     },
@@ -166,7 +211,7 @@
       "kind": "fail",
       "target": "host-phase5-raw-text-effect-bypass",
       "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/raw_text_effects_require_runtime_authority.rs",
-      "source_sha256": "2f70886aebd5744a8d54d445046ae57c2a7a5b7682696948f85d3f38b91f9212",
+      "source_sha256": "27894063dc21321381b83d4ff234c36c1197a12b153da19fff0e693d2e0643ca",
       "snapshot": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/raw_text_effects_require_runtime_authority.stderr",
       "snapshot_sha256": "778f8c73a134c927636b086df3e5ae8a58764f031eab4bd83c2b83bcfbaab6dd"
     },
@@ -175,7 +220,7 @@
       "kind": "fail",
       "target": "host-presentation-work-authority",
       "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/presentation_work_issuance_requires_runtime_authority.rs",
-      "source_sha256": "488bfbb2ffc83e61b18d76b60ba26c638f0f53e47481dfb60e861134b1985d54",
+      "source_sha256": "3d81b40a99aa3df1026f8a175047991bc03b6b5dd9163fc09e44e00cd8e69476",
       "snapshot": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/presentation_work_issuance_requires_runtime_authority.stderr",
       "snapshot_sha256": "c132a566e9fda9e829eda19b0fce6051ead1e05da47ae33ffb87300dc776e9ce"
     },
@@ -193,7 +238,7 @@
       "kind": "pass",
       "target": "host-phase5-lawful-native-effect-authority",
       "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/lawful_native_effect_authority_is_issued_with_host.rs",
-      "source_sha256": "fe08fd372849ab98ad4cca9a67774edb93163fd2b916416cec5d0cbacf1d58ac",
+      "source_sha256": "7512d767f1155af2a8418cb0f8f622207652e68453bebfd2b5d6f2286018992a",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -202,7 +247,7 @@
       "kind": "pass",
       "target": "host-phase5-lawful-raster-views",
       "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/phase_five/lawful_raster_views_are_constructible.rs",
-      "source_sha256": "46325f5d4197b81149614ef9bec052ed9fda8305524e87273b0bbd4309800088",
+      "source_sha256": "c26c2053ff984c11adfb965380da70d2a9b3d607c2cac4484cf4ad5851626d84",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -211,7 +256,7 @@
       "kind": "pass",
       "target": "host-presentation-mechanics-consumer",
       "source": "workspaces/worth-ui/crates/worth-ui-host-contract/tests/ui/presentation_mechanics_consumer_is_lawful.rs",
-      "source_sha256": "78f1da2456979511c03c94779603177348e0400917d61e98dd73ba621e13edd5",
+      "source_sha256": "e4307da1d21d961cb992ff10312b96e1b446439bc6edcf61eef40fcd151cde83",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -229,7 +274,7 @@
       "kind": "fail",
       "target": "product-bound-builder-cannot-replace-host",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/bound_builder_cannot_replace_host.rs",
-      "source_sha256": "1c5fb2295173a4cac49de6907acebbb5996ee1e280c9401d5ef8fe62b0f2b849",
+      "source_sha256": "79ff8bfb50ea99239c0409767e62c78bbc7af3d901445d40efa1688db427d118",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/bound_builder_cannot_replace_host.stderr",
       "snapshot_sha256": "b31345b3783d21ac93deecb3326f990e174f3b22fcddb0aadb2ef12a221d498b"
     },
@@ -238,7 +283,7 @@
       "kind": "fail",
       "target": "product-cannot-bind-native-host",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/product_cannot_bind_native_host.rs",
-      "source_sha256": "931dc25064536394546969026e1c17c9fc83c994316843f56ca325469a0ce752",
+      "source_sha256": "05690aedfadeaa41b5dbffba64e26c751f21aca06a359eebc1ec028ca6a6b0cc",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/product_cannot_bind_native_host.stderr",
       "snapshot_sha256": "2fa3154813cd5cbfb934a0e496400070a1a487312592613f9d50a91e97e04ef3"
     },
@@ -445,7 +490,7 @@
       "kind": "fail",
       "target": "product-native-event-loop-client-substitution",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/product_cannot_substitute_native_event_loop_client.rs",
-      "source_sha256": "0847098b6be2b25d72eef971bfc8ea2b70b25240f29fa0ceee22e60cbad06d8a",
+      "source_sha256": "40bb23db610e3deee54886c3f33e4113df5e001905a5b15b49b3df2198d193e9",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/product_cannot_substitute_native_event_loop_client.stderr",
       "snapshot_sha256": "07c80dc4b78282ef2d2b0789e669b007d62452ed1346f84fcaed1bda37cd06c6"
     },
@@ -454,7 +499,7 @@
       "kind": "fail",
       "target": "product-native-preparation-no-builder-extraction",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/native_preparation_cannot_extract_builder.rs",
-      "source_sha256": "d485237ee493f52b72135acfa68070d8e4cbcc886e8237567dceae2184ec38b6",
+      "source_sha256": "dbd9229dd1554ed8fef7cfc04d09445988d4acd10d810416e052c7c9f68bdbaa",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/native_preparation_cannot_extract_builder.stderr",
       "snapshot_sha256": "14e07b40e12ddd68278310578da04ac5ff5897001f872914adcef0da5821f20c"
     },
@@ -472,7 +517,7 @@
       "kind": "fail",
       "target": "product-paint-identities-non-orderable",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/paint_identities_are_not_orderable.rs",
-      "source_sha256": "8e83e4927d88c0c3aff937a6cc699aef93bca89602ff734a8c0841662de44b56",
+      "source_sha256": "608cb534c2656c8b85591805f1be3b0f55d1e6e11843609627da53d72eb68893",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/paint_identities_are_not_orderable.stderr",
       "snapshot_sha256": "1b4ca9cabdedd2b4976c53c978e06476ab8837d0b60be58b019a7501dfd45751"
     },
@@ -526,7 +571,7 @@
       "kind": "fail",
       "target": "product-projection-fact-affinity",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/query_binding/fail/projection_fact_is_affine.rs",
-      "source_sha256": "82e2dcb9de9ced8b742bcf83f0a6fae9bc7d2ce01754dbc46a959e92e8f8b18f",
+      "source_sha256": "83b6cbd6ef57b58033608925104efb31e2f1b2f8b99932b0295767f7456846f2",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/query_binding/fail/projection_fact_is_affine.stderr",
       "snapshot_sha256": "deab45c1dc1f45522886f25b6f26ed2b2356deffc2e6eabdce18b95cbfa85b54"
     },
@@ -535,7 +580,7 @@
       "kind": "fail",
       "target": "product-projection-fact-construction",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/query_binding/fail/projection_fact_construction_is_private.rs",
-      "source_sha256": "7d10ecec5a812e5f4f66e325854ee91ff4a65e48ad43d66b7bda9a287a0f264d",
+      "source_sha256": "a64a43f107631730d24cd0f33e9a6e772f09a326e2fe82ecde152c7721ca7d51",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/query_binding/fail/projection_fact_construction_is_private.stderr",
       "snapshot_sha256": "8652a9a95e8ae0e15b6600efc76df87128e47b014bfc6abf840f8ddb3425b320"
     },
@@ -544,7 +589,7 @@
       "kind": "fail",
       "target": "product-raw-protocol-consumer-substitution",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/raw_protocol_contract_cannot_enter_consumers.rs",
-      "source_sha256": "0badc9771797e54474f731ee66fad16049779f6d0e079f007f571cf6bbfd8f54",
+      "source_sha256": "7f2024829ee1a462e41728df915275d7680f1181162943359d884fa2c1dd7b6f",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/raw_protocol_contract_cannot_enter_consumers.stderr",
       "snapshot_sha256": "1b7b4d3b6c491011f0d8b8de74b4941542012549ca55936b642b2b37eca946bc"
     },
@@ -562,7 +607,7 @@
       "kind": "fail",
       "target": "product-reporting-projection-non-entry",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/query_binding/fail/reporting_projection_cannot_enter_consumption.rs",
-      "source_sha256": "db177483d80aa7478a2a0ef650ec2f40aeae0448ce2ad386cf416e0f8346df83",
+      "source_sha256": "5af89edf434d9ca83639ec3237f03381f7bc3c8e4cf38719b4ba23f2b3a907a4",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/query_binding/fail/reporting_projection_cannot_enter_consumption.stderr",
       "snapshot_sha256": "41472de7962eecea20288739e5e6c38da2af24e8612b8f5c1adf9dd969cc4678"
     },
@@ -625,7 +670,7 @@
       "kind": "fail",
       "target": "product-surface-baseline-affine",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/surface_baseline_receipt_is_private.rs",
-      "source_sha256": "c1bfbab67109f4632c0b4dff129a408427672eb963ca4e101ceedd5c9e6bcd54",
+      "source_sha256": "79fd52c389558d2c4e65c1ae0d1615c84ba40178d773c6d3596f5edaba5e9693",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/surface_baseline_receipt_is_private.stderr",
       "snapshot_sha256": "5b00f7e863b69bd1e662202f27c54767092bb889f299404bbfacbf498130a75e"
     },
@@ -634,7 +679,7 @@
       "kind": "fail",
       "target": "product-surface-baseline-private",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/surface_baseline_receipt_cannot_be_reconstructed.rs",
-      "source_sha256": "7d755a1086fb0175c6bcf821b343a0d38a129b34a29825f1ff8a23f31000ddda",
+      "source_sha256": "67aeac40942de16337fef5fea515719bc00708235e6d4cfc31817027a3d2c728",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/surface_baseline_receipt_cannot_be_reconstructed.stderr",
       "snapshot_sha256": "6f2f53e06df4df97000b14298e50b94086fb9e491aa423e855365d09aca63ab6"
     },
@@ -751,7 +796,7 @@
       "kind": "pass",
       "target": "product-empty-app-named-surface",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/named_surface_pass/empty_app_uses_named_app_surface.rs",
-      "source_sha256": "a046922ae9121d7a3dea5746f675997f030c35803365359ea3387fd9347c56ea",
+      "source_sha256": "ea2df46aaa8221314f454ead2a7937c1405012ae4988159fce69088ff723fb88",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -760,7 +805,7 @@
       "kind": "pass",
       "target": "product-facade-ergonomic",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade_visibility/pass/facade_only_app_remains_ergonomic.rs",
-      "source_sha256": "3fb26eed1a48f7f86db657e34576462da457508bc111b109473875e0da5fc99c",
+      "source_sha256": "03a756997cc21a5e6d5949796f60ef7bb39249936c2d8f4b6b4cbd3d842b89ab",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -769,7 +814,7 @@
       "kind": "pass",
       "target": "product-host-neutral-builder-freezes",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/host_neutral_builder_freezes.rs",
-      "source_sha256": "7cd7c8bc39279bd006b161a56cc199c65006a503127d9943b7bcb51c61afca65",
+      "source_sha256": "de5bff4a00fbf23f8a65c530752adb6dd9401835a69c6535b03aa11a8d87cd7b",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -787,7 +832,7 @@
       "kind": "pass",
       "target": "product-inspection-named-surface",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/named_surface_pass/inspection_query_uses_named_inspection_surface.rs",
-      "source_sha256": "64d56e070cd63de88f85ccdfeec8f9d9b04b67042bfb5022463e2b5af50016e5",
+      "source_sha256": "c385170bd024b54e2b71cfa2708690c667704bad235db766758c91481e9720bf",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -796,7 +841,7 @@
       "kind": "pass",
       "target": "product-installed-view-registration",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/query_binding/pass/installed_view_registration.rs",
-      "source_sha256": "7734e6dde7e19b8d50d4044147574e8b5173c3d123cb463b26a0faa8c527d1aa",
+      "source_sha256": "93a5e8b245e79ac4bd8d4b0b5a0b4b6b9602a9c117dcd8ed05fe87927e01ea20",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -805,7 +850,7 @@
       "kind": "pass",
       "target": "product-intent-typed-valid",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/intent/pass/typed_intent_relationships.rs",
-      "source_sha256": "e24eb176edab234d2912cae597531f812d61266e38702f3a8b2f522ec758e718",
+      "source_sha256": "a215844c9199291ff1d634c78b194fb0fd26c7abb21d811055f440177e666bca",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -823,7 +868,7 @@
       "kind": "pass",
       "target": "product-mounted-frame-app-journey",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/app_journey_pass/mounted_frame_uses_app_surface.rs",
-      "source_sha256": "10b3e52ba996084f82944e4792df63c3d2df88a3d7f4068e91adb02f9c6e8c9f",
+      "source_sha256": "e0341f19f2cdf6ef3ec63b99ce841146752a0b07cb60e7954916eb387444825b",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -832,7 +877,7 @@
       "kind": "pass",
       "target": "product-native-preparation-valid",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/native_preparation_progression_is_lawful.rs",
-      "source_sha256": "31e4d4d0417d8b48c3fc314ef8e22d3d7700f799b43ced95040cbd0601a42b02",
+      "source_sha256": "2dc4e0cced4d50e09320e263e537cdef209297dbe5d09950459c2c74b3a08d36",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -841,7 +886,7 @@
       "kind": "pass",
       "target": "product-projection-contract-shapes",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/query_binding/pass/projection_contract_is_shape_specific.rs",
-      "source_sha256": "8b67cd475ee2f6962d17e610059f916728f76102714bd2894549ba46325ce9e6",
+      "source_sha256": "dd31e34cf01bc0f958b02f3a7e51d28167f995eb74865918e145cad2dd570837",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -868,7 +913,7 @@
       "kind": "pass",
       "target": "product-rust-authored-source-ingress",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/runtime_source_ingress/pass/rust_authored_input_uses_compiler_owned_handoff.rs",
-      "source_sha256": "ee55d2349b42b5515b40e245060bfe233121f6bc5562a84b1afed5e752cc54ed",
+      "source_sha256": "45fa441054de1b3cd2d76bffaca29593eb9149f2bcd42007683575791dc6e483",
       "snapshot": null,
       "snapshot_sha256": null
     },
@@ -877,7 +922,7 @@
       "kind": "pass",
       "target": "product-surface-baseline-consumption",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/known_empty_baseline_observation_is_lawful.rs",
-      "source_sha256": "59a77e7911915ac49aa7a69c1832adc76f3963a0884b4192fc08096f473532d2",
+      "source_sha256": "c09539c2d54bf73af5c2dbddbd18d1b76ef07c54271025ea2579389edcadd4a4",
       "snapshot": null,
       "snapshot_sha256": null
     },

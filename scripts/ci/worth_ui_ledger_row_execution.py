@@ -11,6 +11,10 @@ from typing import Any, Callable
 from worth_ui_ledger_row_cache import RowEvidenceCache
 
 
+class CachedEvidenceRejected(RuntimeError):
+    """A restored receipt is authentic but no longer matches the row mapping."""
+
+
 def execute_or_restore(
     row: dict[str, str],
     candidate: Path,
@@ -18,16 +22,23 @@ def execute_or_restore(
     claim: str,
     execute: Callable[[str, Path | None], dict[str, Any]],
     finalize: Callable[[dict[str, Any]], dict[str, Any]] = lambda result: result,
+    *,
+    restore: bool = True,
 ) -> dict[str, Any]:
     requirement = row["requirement"]
     started = time.perf_counter_ns()
-    result = cache.restore(requirement, row["exact_command"], claim)
+    result = cache.restore(requirement, row["exact_command"], claim) if restore else None
     if result is not None:
-        print(
-            completion_telemetry(requirement, "reuse", started),
-            flush=True,
-        )
-        return finalize(result)
+        try:
+            current = finalize(result)
+        except CachedEvidenceRejected:
+            result = None
+        else:
+            print(
+                completion_telemetry(requirement, "reuse", started),
+                flush=True,
+            )
+            return current
     print(f"[row:start] {requirement} disposition=execute", flush=True)
     result = execute(row["exact_command"], candidate)
     result = finalize(result)

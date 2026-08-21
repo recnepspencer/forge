@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import os
-import subprocess
-import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 from worth_ui_ledger_command import (
     ROOT,
@@ -12,7 +11,8 @@ from worth_ui_ledger_command import (
     source_digest,
     source_revision,
 )
-from worth_ui_ledger_portfolio_snapshot import DIGEST_ENV, REVISION_ENV, source_state_for_row
+from worth_ui_ledger_portfolio_snapshot import source_state_for_row
+from worth_ui_predecessor_causal_refresh import refresh_handoff
 
 
 @dataclass(frozen=True)
@@ -43,7 +43,6 @@ def refresh_handoff_when_required(test: GovernedTest) -> None:
         if supplied is not None:
             if supplied not in test.sources or not (ROOT / supplied).is_file():
                 raise RuntimeError("supplied predecessor handoff is not an exact governed source")
-            return
         refresh_predecessor_handoff(test)
 
 
@@ -53,33 +52,9 @@ def refresh_predecessor_handoff(test: GovernedTest) -> None:
     identity = next((source for source in test.sources if source.endswith(handoff_name)), None)
     if identity is None:
         raise ValueError("predecessor proof omits its handoff artifact")
-    environment = dict(os.environ)
-    for name in (
-        "WORTH_UI_MILESTONE_3141_LEDGER",
-        "WORTH_UI_SHARED_WORLD_ARTIFACT",
-        "WORTH_UI_SUPPORTING_WORLD_ARTIFACT",
-        REVISION_ENV,
-        DIGEST_ENV,
-    ):
-        environment.pop(name, None)
-    completed = subprocess.run(
-        [
-            sys.executable,
-            "scripts/ci/verify_worth_ui_3141_ledger.py",
-            "--through-phase",
-            str(phase - 1),
-            "--artifact",
-            identity,
-        ],
-        cwd=ROOT,
-        env=environment,
-        stdout=subprocess.PIPE,
-        text=True,
-        check=False,
-    )
-    if completed.returncode != 0:
-        sys.stderr.write(completed.stdout)
-        raise RuntimeError("fresh predecessor verification failed")
+    configured = os.environ.get("WORTH_UI_MILESTONE_3141_LEDGER")
+    ledger = Path(configured).resolve() if configured else ROOT / "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv"
+    refresh_handoff(ROOT, ledger, phase, identity)
 
 
 def governed_sources_changed(

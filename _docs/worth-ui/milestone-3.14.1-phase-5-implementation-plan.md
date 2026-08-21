@@ -28,12 +28,14 @@ owner.
 
 ## Current Readiness Boundary
 
-Phase 5 is implemented and closed on the current source. The immutable Phase
-1-4 portfolio was reexecuted through the authenticated predecessor handoff;
-all twelve Phase 5 rows were bound to real mains, independent oracles, named
-hostile controls, exact sources, owner-issued counters, and authenticated
-receipts. The stale retained atlas evidence was reopened and replaced by the
-single host-native physical Signal lifecycle proof rather than carried forward.
+Phase 5 is implemented and closed on the final source. The authenticated Phase
+1-4 predecessor portfolio was causally revalidated: unchanged rows retained
+their exact receipts, while only rows whose declared claim, command, oracle,
+sources, or evidence dependencies changed were executed again. All twelve
+Phase 5 rows are bound to real mains, independent oracles, named hostile
+controls, exact sources, owner-issued counters, and authenticated receipts. The
+stale atlas evidence was reopened and replaced by the single host-native
+physical Signal lifecycle proof rather than carried forward.
 
 The closed implementation retains two deliberately separate Signal domains:
 one host-native physical-work owner and one Query/Runtime-Bridge semantic

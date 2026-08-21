@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
 import os
@@ -10,11 +11,13 @@ import time
 from pathlib import Path
 from typing import Any
 
+from worth_ui_ledger_command import CLAIM_FIELDS
 from worth_ui_ledger_runner_authentication import authentication_tag, authenticates
 
 
 CACHE_ENV = "WORTH_UI_LEDGER_EXECUTION_CACHE"
 SCHEMA = "worth-ui-ledger-execution-receipt-v2"
+LEDGER_BINDING_SCHEMA = "worth-ui-ledger-claim-prefix-v1"
 COMPILE_ARTIFACT_ENV = "WORTH_UI_COMPILE_ARTIFACT"
 PREDECESSOR_ARTIFACT_ENV = "WORTH_UI_PREDECESSOR_ARTIFACT"
 CANDIDATE_LEDGER_ENV = "WORTH_UI_MILESTONE_3141_LEDGER"
@@ -31,9 +34,12 @@ def timed_execution(
     revision: str,
     state_digest: str,
     role: str,
+    requirement: str | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], int, dict[str, Any]]:
     dependencies = causal_artifact_dependencies(command, role)
-    binding = execution_binding(command, root, revision, state_digest, dependencies)
+    binding = execution_binding(
+        command, root, revision, state_digest, dependencies, requirement
+    )
     key = digest_json(binding)
     cached = read_cached(root, key, binding)
     if cached is not None:
@@ -81,7 +87,7 @@ def timed_execution(
 def execution_timeout_seconds(command: list[str]) -> int:
     joined = " ".join(command)
     if "phase5_locality_closure::" in joined:
-        return 530
+        return 600
     if "native_phase_f_reconstruction::" in joined:
         return 530
     return 300
@@ -93,18 +99,24 @@ def execution_binding(
     revision: str,
     state_digest: str,
     artifact_dependencies: tuple[str, ...] = (),
+    requirement: str | None = None,
 ) -> dict[str, Any]:
     return {
         "schema": SCHEMA,
         "command": command,
         "source_revision": revision,
         "source_state_digest": state_digest,
-        "artifact_bindings": artifact_bindings(root, command, artifact_dependencies),
+        "artifact_bindings": artifact_bindings(
+            root, command, artifact_dependencies, requirement
+        ),
     }
 
 
 def artifact_bindings(
-    root: Path, command: list[str], dependencies: tuple[str, ...]
+    root: Path,
+    command: list[str],
+    dependencies: tuple[str, ...],
+    requirement: str | None = None,
 ) -> dict[str, dict[str, str]]:
     result = {}
     for name in sorted(set(dependencies)):
@@ -115,13 +127,43 @@ def artifact_bindings(
         if not identity.is_absolute():
             identity = root / identity
         result[name] = {
-            "sha256": (
-                hashlib.sha256(identity.read_bytes()).hexdigest()
-                if identity.is_file()
-                else "missing"
-            ),
+            "sha256": artifact_digest(identity, name, requirement),
         }
     return result
+
+
+def artifact_digest(identity: Path, name: str, requirement: str | None) -> str:
+    if not identity.is_file():
+        return "missing"
+    if name != CANDIDATE_LEDGER_ENV:
+        return hashlib.sha256(identity.read_bytes()).hexdigest()
+    if requirement is None:
+        raise ValueError("candidate ledger dependency requires its governed row")
+    return ledger_claim_prefix_digest(identity, requirement)
+
+
+def ledger_claim_prefix_digest(identity: Path, requirement: str) -> str:
+    phase = int(requirement[1])
+    predecessor = requirement.endswith("-PREDECESSOR-01")
+    close = requirement.endswith("-CLOSE-01")
+    through_phase = phase - 1 if predecessor else 5
+    excluded = requirement if close else None
+    fields = (*CLAIM_FIELDS, "exact_command", "retained_result_artifact")
+    with identity.open(encoding="utf-8", newline="") as stream:
+        rows = [
+            {field: row[field] for field in fields}
+            for row in csv.DictReader(stream)
+            if int(row["phase"]) <= (phase if close else through_phase)
+            and row["requirement"] != excluded
+        ]
+    return digest_json(
+        {
+            "schema": LEDGER_BINDING_SCHEMA,
+            "through_phase": phase if close else through_phase,
+            "excluded_requirement": excluded,
+            "rows": rows,
+        }
+    )
 
 
 def default_artifact(name: str, command: list[str]) -> str:
@@ -144,11 +186,35 @@ def causal_artifact_dependencies(command: list[str], role: str) -> tuple[str, ..
     dependencies = []
     if "compile_contract_artifact" in joined:
         dependencies.append(COMPILE_ARTIFACT_ENV)
-    if "milestone_3141_phase1_ledger" in joined:
+    if command_reads_candidate_ledger(command):
         dependencies.append(CANDIDATE_LEDGER_ENV)
     if "predecessor_handoff" in joined or "predecessor_artifact" in joined:
         dependencies.append(PREDECESSOR_ARTIFACT_ENV)
     return tuple(dependencies)
+
+
+def command_reads_candidate_ledger(command: list[str]) -> bool:
+    joined = " ".join(command)
+    return (
+        "milestone_3141_phase1_ledger" in joined
+        and "result_artifact::mutation_tests::"
+        "phase_two_boundary_observation_rejects_each_causal_mutation" not in joined
+    )
+
+
+def artifact_bindings_match(
+    observed: object,
+    expected: dict[str, dict[str, str]],
+    command: list[str],
+) -> bool:
+    if not isinstance(observed, dict):
+        return False
+    retained = dict(observed)
+    current = dict(expected)
+    if not command_reads_candidate_ledger(command):
+        retained.pop(CANDIDATE_LEDGER_ENV, None)
+        current.pop(CANDIDATE_LEDGER_ENV, None)
+    return retained == current
 
 
 def read_cached(root: Path, key: str, binding: dict[str, Any]) -> dict[str, Any] | None:

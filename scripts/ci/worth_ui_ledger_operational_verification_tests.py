@@ -33,7 +33,7 @@ class OperationalVerificationTests(unittest.TestCase):
                 return_value=("a" * 40, "b" * 64),
             ),
             patch.object(verifier, "validate_retained_portfolio") as retained,
-            patch.object(verifier, "closure_tests", return_value=2) as closure,
+            patch.object(verifier, "validate_current_causal_sources") as causal,
             patch.object(
                 verifier,
                 "execute_portfolio",
@@ -42,9 +42,9 @@ class OperationalVerificationTests(unittest.TestCase):
         ):
             self.assertEqual(verifier.main(), 0)
         retained.assert_called_once()
-        closure.assert_called_once()
+        causal.assert_called_once_with(4)
 
-    def test_historical_retained_binding_forces_current_source_revalidation(self) -> None:
+    def test_historical_global_binding_does_not_reexecute_unchanged_rows(self) -> None:
         arguments = argparse.Namespace(through_phase=4, artifact=None)
         with (
             patch.object(verifier, "parse_args", return_value=arguments),
@@ -57,16 +57,16 @@ class OperationalVerificationTests(unittest.TestCase):
             ),
             patch.object(verifier, "persist_referenced_receipts") as persist,
             patch.object(verifier, "validate_retained_portfolio") as retained,
-            patch.object(verifier, "closure_tests") as closure,
+            patch.object(verifier, "validate_current_causal_sources") as causal,
             patch.object(verifier, "execute_current_portfolio") as execute,
         ):
             self.assertEqual(verifier.main(), 0)
-        execute.assert_called_once_with(arguments, "a" * 40, "b" * 64)
-        persist.assert_not_called()
-        retained.assert_not_called()
-        closure.assert_not_called()
+        execute.assert_not_called()
+        persist.assert_called_once()
+        retained.assert_called_once()
+        causal.assert_called_once_with(4)
 
-    def test_foreign_runner_provenance_triggers_operational_revalidation(self) -> None:
+    def test_foreign_runner_provenance_fails_without_universe_rerun(self) -> None:
         arguments = argparse.Namespace(through_phase=4, artifact=None)
         with (
             patch.object(verifier, "parse_args", return_value=arguments),
@@ -78,20 +78,13 @@ class OperationalVerificationTests(unittest.TestCase):
                 verifier, "validate_retained_portfolio",
                 side_effect=RunnerProvenanceUnavailable("foreign key"),
             ),
-            patch.object(verifier, "execute_portfolio", return_value=([], 2)) as execute,
+            patch.object(verifier, "execute_current_portfolio") as execute,
         ):
-            self.assertEqual(verifier.main(), 0)
-        execute.assert_called_once_with(arguments)
+            with self.assertRaises(RunnerProvenanceUnavailable):
+                verifier.main()
+        execute.assert_not_called()
 
-    def test_verifier_executes_rows_inside_one_revision_bound_source_snapshot(self) -> None:
-        revision = "a" * 40
-        digest = "b" * 64
-        observed = []
-
-        def execute(_arguments: argparse.Namespace):
-            observed.append(snapshot.source_state_for_row(revision))
-            return [], 2
-
+    def test_artifact_refresh_uses_selective_predecessor_builder(self) -> None:
         with (
             patch.object(
                 verifier,
@@ -100,19 +93,15 @@ class OperationalVerificationTests(unittest.TestCase):
                     through_phase=3, artifact="target/predecessor.json"
                 ),
             ),
-            patch.object(verifier, "source_revision", side_effect=[revision, revision]),
-            patch.object(verifier, "source_state_digest", return_value=digest),
-            patch.object(verifier, "execute_portfolio", side_effect=execute),
-            patch.object(verifier, "write_artifact"),
-            patch.object(snapshot, "source_state_digest", return_value="c" * 64),
-            patch.dict(
-                "os.environ",
-                {snapshot.REVISION_ENV: "", snapshot.DIGEST_ENV: ""},
-                clear=False,
-            ),
+            patch.object(verifier, "ledger_identity", return_value=Path("ledger.csv")),
+            patch.object(verifier, "refresh_handoff") as refresh,
+            patch.object(verifier, "execute_current_portfolio") as execute,
         ):
             self.assertEqual(verifier.main(), 0)
-        self.assertEqual(observed, [digest])
+        refresh.assert_called_once_with(
+            verifier.ROOT, Path("ledger.csv"), 4, "target/predecessor.json"
+        )
+        execute.assert_not_called()
 
     def test_portfolio_snapshot_rejects_a_different_revision(self) -> None:
         with snapshot.operational_source_snapshot("a" * 40, "b" * 64):

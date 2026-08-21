@@ -10,11 +10,34 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from worth_ui_ledger_row_cache import RowEvidenceCache, replace_with_retry
-from worth_ui_ledger_row_execution import execute_or_restore
+from worth_ui_ledger_row_execution import CachedEvidenceRejected, execute_or_restore
 from worth_ui_ledger_runner_authentication import authentication_tag
 
 
 class RowEvidenceCacheTests(unittest.TestCase):
+    def test_predecessor_refresh_can_bypass_row_restore(self) -> None:
+        class Cache:
+            def restore(self, *_args):
+                raise AssertionError("predecessor row cache was consulted")
+
+            def retain(self, *args):
+                self.retained = args
+
+        cache = Cache()
+        result = execute_or_restore(
+            {"requirement": "P5-PREDECESSOR-01", "exact_command": "runner"},
+            Path("candidate.csv"),
+            cache,
+            "c" * 64,
+            lambda command, candidate: {
+                "command": command,
+                "candidate": str(candidate),
+            },
+            restore=False,
+        )
+        self.assertEqual(result["candidate"], "candidate.csv")
+        self.assertEqual(cache.retained[-1], result)
+
     def test_closure_wiring_does_not_execute_a_restored_row(self) -> None:
         class Cache:
             def restore(self, requirement, command, claim):
@@ -34,6 +57,38 @@ class RowEvidenceCacheTests(unittest.TestCase):
         )
         self.assertEqual(result["exit_posture"], "passed")
         self.assertEqual(cache.observed, ("P4-ROW-01", "runner", "c" * 64))
+
+    def test_mapping_rejected_cache_executes_and_replaces_the_receipt(self) -> None:
+        class Cache:
+            def restore(self, *_args):
+                return {"mapping": "stale"}
+
+            def retain(self, *args):
+                self.retained = args
+
+        cache = Cache()
+        executions = []
+
+        def execute(command, candidate):
+            executions.append((command, candidate))
+            return {"mapping": "current"}
+
+        def finalize(result):
+            if result["mapping"] == "stale":
+                raise CachedEvidenceRejected("mapping changed")
+            return result
+
+        result = execute_or_restore(
+            {"requirement": "P5-ROW-01", "exact_command": "runner"},
+            Path("candidate.csv"),
+            cache,
+            "c" * 64,
+            execute,
+            finalize,
+        )
+        self.assertEqual(result, {"mapping": "current"})
+        self.assertEqual(executions, [("runner", Path("candidate.csv"))])
+        self.assertEqual(cache.retained[-1], result)
 
     def test_consumer_cache_never_rewinds_its_dependency_input(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -65,6 +120,10 @@ class RowEvidenceCacheTests(unittest.TestCase):
             handoff = "_docs/worth-ui/milestone-3.14.1-evidence/p4-predecessor-handoff.json"
             command = f"python runner --source {handoff} --artifact {artifact}"
             write(root / handoff, b"authenticated handoff")
+            compile_artifact = (
+                root / "_docs/worth-ui/milestone-3.14.1-evidence/compile-contracts.json"
+            )
+            write(compile_artifact, b"authenticated compile contracts")
             payload = lawful_payload(root)
             payload["requirement"] = "P4-PREDECESSOR-01"
             payload.pop("runner_authentication")
@@ -75,9 +134,13 @@ class RowEvidenceCacheTests(unittest.TestCase):
             cache.retain("P4-PREDECESSOR-01", command, "c" * 64, result)
             (root / artifact).unlink()
             (root / handoff).unlink()
+            compile_artifact.unlink()
             restored = cache.restore("P4-PREDECESSOR-01", command, "c" * 64)
             self.assertIsNotNone(restored)
             self.assertEqual((root / handoff).read_bytes(), b"authenticated handoff")
+            self.assertEqual(
+                compile_artifact.read_bytes(), b"authenticated compile contracts"
+            )
 
     def test_claim_drift_rejects_but_unrelated_source_state_drift_reuses_row(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

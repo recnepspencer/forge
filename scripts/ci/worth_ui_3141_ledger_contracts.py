@@ -296,7 +296,7 @@ def construction_cost(requirement: str) -> str:
     if requirement.startswith("P4-"):
         if requirement == "P4-PREDECESSOR-01":
             return (
-                "main-tests=26;hostile-controls=27;product-processes=3;compile-sessions=2;"
+                "main-tests=26;hostile-controls=28;product-processes=3;compile-sessions=2;"
                 "courtroom-worlds=6"
             )
         compile_sessions = int(requirement == "P4-FONT-COLLECTION-01")
@@ -359,7 +359,7 @@ def execution_cost(requirement: str) -> str:
     if requirement.startswith("P5-"):
         return p5_execution_cost(requirement)
     if requirement == "P4-PREDECESSOR-01":
-        return "executed-tests=55;presentations=28"
+        return "executed-tests=56;presentations=28"
     if requirement.startswith("P4-"):
         return "executed-tests=2;presentations=0"
     if requirement == "P1-HEADLESS-COST-01":

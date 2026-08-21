@@ -77,7 +77,7 @@ P5_FAULT_BOUNDARIES = {
 def p5_construction_cost(requirement: str) -> str:
     if requirement == "P5-PREDECESSOR-01":
         return (
-            "main-tests=44;hostile-controls=45;product-processes=6;"
+            "main-tests=46;hostile-controls=48;product-processes=6;"
             "compile-sessions=2;courtroom-worlds=12"
         )
     if requirement == "P5-ATLAS-PINNING-01":
@@ -113,7 +113,7 @@ def p5_construction_cost(requirement: str) -> str:
 
 def p5_execution_cost(requirement: str) -> str:
     if requirement == "P5-PREDECESSOR-01":
-        return "executed-tests=91;presentations=56"
+        return "executed-tests=96;presentations=56"
     if requirement == "P5-ATLAS-PINNING-01":
         return "executed-tests=2;presentations=4;atlas-transactions=4"
     if requirement in {"P5-TEXT-PIXELS-01", "P5-TEXT-ASYNC-PRESENTATION-01"}:
