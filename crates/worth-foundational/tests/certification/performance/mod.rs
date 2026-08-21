@@ -5,6 +5,7 @@ mod certified;
 mod claims;
 mod grouped_surface;
 mod layouts;
+mod observation_work_disclosure;
 mod policy;
 mod primitives;
 mod readiness;

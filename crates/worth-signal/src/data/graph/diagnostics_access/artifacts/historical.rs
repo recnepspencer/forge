@@ -22,10 +22,10 @@ impl SignalGraph {
         }
         let mut restored =
             SignalGraph::restore_from_checkpoint_authority(&snapshot.checkpoint_image.authority)?;
-        restored
-            .telemetry_mut()
-            .checkpoint
-            .restore_authority_breadth += restored.active_node_count() as u64;
+        let active_nodes = restored.active_node_count() as u64;
+        restored.with_telemetry(|telemetry| {
+            telemetry.checkpoint.restore_authority_breadth += active_nodes;
+        });
         Ok(restored)
     }
 
@@ -67,20 +67,22 @@ impl SignalGraph {
                 }
             }
         }
-        restored
-            .telemetry_mut()
-            .checkpoint
-            .restore_required_derived_breadth += rebuild_breadth;
+        restored.with_telemetry(|telemetry| {
+            telemetry.checkpoint.restore_required_derived_breadth += rebuild_breadth;
+        });
         restored.readmit_checkpoint_causes()?;
         Ok(())
     }
 
     pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
-        let policy = self.runtime_policy();
-        let artifact_retention = SnapshotArtifactRetentionPolicy::from_runtime_policy(policy);
+        self.interrupt_observation_at_boundary();
+        let installed = self.installed_runtime_policy();
+        let request_metadata = installed.requested_policy();
+        let artifact_retention =
+            SnapshotArtifactRetentionPolicy::from_retention_budget(installed.retention_budget());
         let meta = self
             .diagnostics_state_mut()
-            .allocate_snapshot_meta(policy, artifact_retention);
+            .allocate_snapshot_meta(request_metadata, artifact_retention);
         crate::diagnostics::recorder::record_snapshot_event(
             self,
             crate::diagnostics::replay::ReplayEventKind::SnapshotCaptured,
@@ -95,18 +97,25 @@ impl SignalGraph {
             .iter()
             .cloned()
             .collect::<Vec<_>>();
+        let graph_telemetry = if self.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        ) {
+            *self.telemetry()
+        } else {
+            crate::data::telemetry::RuntimeTelemetry::default()
+        };
         SignalSnapshotV1 {
             meta,
             checkpoint_image: SignalCheckpointImage {
                 authority: self.capture_checkpoint_authority(),
                 dependency_snapshot_batch: self.capture_checkpoint_dependency_snapshot_batch(),
-                graph_telemetry: *self.telemetry(),
+                graph_telemetry,
             },
             diagnostic_graph: self.clone(),
             diagnostics: self
                 .diagnostics_state()
                 .snapshot_payload_with_retention(artifact_retention),
-            graph_telemetry: *self.telemetry(),
+            graph_telemetry,
             runtime_telemetry: None,
             reconstructability: Some(
                 crate::logic::transaction::ReconstructabilityRecord::from_snapshot_boundary(
@@ -251,10 +260,19 @@ impl SignalGraph {
             ));
         }
         let current_diagnostics = self.observation.diagnostics.clone();
-        let current_policy = current_diagnostics.policy();
+        let active_policy = self.observation.installed_policy();
         let mut restored =
             self.restore_authority_from_snapshot_proof(snapshot, &reconstructability_proof)?;
-        restored.observation.telemetry = snapshot.checkpoint_image.graph_telemetry;
+        if matches!(
+            intent.artifacts,
+            crate::state::SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
+        ) {
+            restored
+                .install_compiled_runtime_policy(active_policy.requested_policy(), active_policy);
+        }
+        if let Some(mut telemetry) = restored.telemetry_mut() {
+            *telemetry = snapshot.checkpoint_image.graph_telemetry;
+        }
         Self::rebuild_required_derived_from_snapshot_proof(
             &mut restored,
             snapshot,
@@ -265,26 +283,34 @@ impl SignalGraph {
             &mut restored,
             snapshot,
             &current_diagnostics,
-            current_policy,
             intent,
         );
+        let interrupted_observation = self.interrupt_observation_at_boundary();
         *self = restored;
-        self.telemetry_mut().checkpoint.snapshot_restore_count += 1;
+        if interrupted_observation {
+            self.observation_sessions.record_completion(
+                crate::logic::transaction::SignalObservationCompletion::InterruptedByBoundary,
+            );
+        }
+        self.with_telemetry(|telemetry| telemetry.checkpoint.snapshot_restore_count += 1);
         if matches!(
             intent.artifacts,
             crate::state::SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
         ) {
-            self.telemetry_mut()
-                .checkpoint
-                .snapshot_restore_apply_active_policy_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry
+                    .checkpoint
+                    .snapshot_restore_apply_active_policy_count += 1;
+            });
         }
-        self.telemetry_mut()
-            .checkpoint
-            .snapshot_restore_shared_delta_node_count +=
-            restore_plan.dependency_snapshot_delta_node_count();
-        self.telemetry_mut()
-            .checkpoint
-            .snapshot_restore_coarse_reason_count += restore_plan.coarse_reasons().len() as u64;
+        let shared_delta_nodes = restore_plan.dependency_snapshot_delta_node_count();
+        let coarse_reasons = restore_plan.coarse_reasons().len() as u64;
+        self.with_telemetry(|telemetry| {
+            telemetry
+                .checkpoint
+                .snapshot_restore_shared_delta_node_count += shared_delta_nodes;
+            telemetry.checkpoint.snapshot_restore_coarse_reason_count += coarse_reasons;
+        });
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
             self,
             snapshot.meta.snapshot_id,

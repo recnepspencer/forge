@@ -17,7 +17,7 @@ impl ResourceRuntimeState {
     pub fn admit_resource_completion(
         &mut self,
         raw: RawCompletionEnvelope,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceCompletionAdmissionReport {
         self.admit_resource_completion_with_boundary(raw, telemetry, true)
     }
@@ -25,11 +25,13 @@ impl ResourceRuntimeState {
     pub(in crate::logic::transaction::runtime::state::resource) fn admit_resource_completion_with_boundary(
         &mut self,
         raw: RawCompletionEnvelope,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
         count_scalar_boundary: bool,
     ) -> ResourceCompletionAdmissionReport {
-        telemetry.resource_completion_validation_count += 1;
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_completion_validation_count += 1;
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         match self.validate_completion_envelope(&raw) {
             CompletionEnvelopeValidation::Denied { class, node } => {
                 self.deny_completion(&raw, class, node, telemetry, count_scalar_boundary)
@@ -144,7 +146,7 @@ impl ResourceRuntimeState {
         &mut self,
         validated: ValidatedCompletionEnvelope,
         in_flight: InFlightResourceRequest,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
         count_scalar_boundary: bool,
     ) -> ResourceCompletionAdmissionReport {
         let lifecycle_ordinal = self.issue_lifecycle_ordinal();
@@ -168,12 +170,17 @@ impl ResourceRuntimeState {
         );
 
         if count_scalar_boundary {
-            telemetry.resource_completion_admission_count += 1;
+            if let Some(telemetry) = telemetry.as_deref_mut() {
+                telemetry.resource_completion_admission_count += 1;
+            }
         }
         let performance = ResourceBoundaryPerformanceEnvelope::completion_admission(1, 0, 1)
             .with_density_strategy(ResourceDensityStrategy::scalar_completion());
         let performance = if count_scalar_boundary {
-            Self::record_boundary_performance(telemetry, performance)
+            telemetry
+                .as_deref_mut()
+                .map(|telemetry| Self::record_boundary_performance(telemetry, performance))
+                .unwrap_or(performance)
         } else {
             performance
         };

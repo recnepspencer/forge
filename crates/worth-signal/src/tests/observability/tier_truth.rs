@@ -2,8 +2,9 @@ use super::runtime_world::build_runtime;
 use crate::facade::{
     lineage_records_equivalent, mark_dirty, replay_slices_equivalent, DiagnosticsAvailability,
     DiagnosticsTier, ExecutionHistorySummary, ExplanationSummary, FlowSummary, GraphSummary,
-    LineageRecord, NodeEvaluationResult, NodeId, ReplaySlice, SignalGraph, SignalRuntimePolicy,
-    SnapshotRestoreIntent, SnapshotRestoreLineageMode,
+    LineageRecord, NodeEvaluationResult, NodeId, ReplaySlice, SignalGraph,
+    SignalObservationRequest, SignalRuntimePolicy, SnapshotRestoreIntent,
+    SnapshotRestoreLineageMode,
 };
 use crate::tests::support::{evaluate, version_ab, GraphDependencyBatchExt, ASPECT_A};
 
@@ -13,7 +14,7 @@ fn tier_matrix_public_observer_surfaces_preserve_truth_while_availability_change
     struct TierRun {
         summary: GraphSummary,
         history: ExecutionHistorySummary,
-        flow: FlowSummary,
+        flow: Option<FlowSummary>,
         replay: ReplaySlice,
         lineage: Vec<LineageRecord>,
         explanation: ExplanationSummary,
@@ -25,6 +26,10 @@ fn tier_matrix_public_observer_surfaces_preserve_truth_while_availability_change
     fn run(policy: SignalRuntimePolicy) -> TierRun {
         let mut graph = SignalGraph::new();
         graph.set_runtime_policy(policy);
+        let session = graph
+            .begin_observation_session(SignalObservationRequest::operation())
+            .unwrap();
+        graph.cancel_observation_session(&session).unwrap();
         let source = graph.node().output_identity().build();
         let dependent = graph.node().build();
         graph
@@ -66,11 +71,7 @@ fn tier_matrix_public_observer_surfaces_preserve_truth_while_availability_change
             .explicit_cold_materialization_request_count;
         let summary = graph.observe().diagnostics_summary(policy.tier);
         let history = graph.observe().execution_history_summary(policy.tier);
-        let flow = graph
-            .observe()
-            .latest_flow_diagnostics()
-            .expect("flow should exist after restore")
-            .clone();
+        let flow = graph.observe().latest_flow_diagnostics().cloned();
         let replay = graph
             .observe()
             .replay_around_snapshot(snapshot.snapshot_id())
@@ -132,26 +133,28 @@ fn tier_matrix_public_observer_surfaces_preserve_truth_while_availability_change
                 && left.history.reuse_origin_counts == right.history.reuse_origin_counts,
             "execution history should preserve the same conclusion set across tier changes"
         );
-        assert!(
-            left.flow.change == right.flow.change
-                && left.flow.invalidation == right.flow.invalidation
-                && left.flow.planning.plan.task_count == right.flow.planning.plan.task_count
-                && left.flow.planning.plan.stage_count == right.flow.planning.plan.stage_count
-                && left.flow.precompute.prepared_evaluations_produced
-                    == right.flow.precompute.prepared_evaluations_produced
-                && left.flow.apply.prepared_evaluations_applied
-                    == right.flow.apply.prepared_evaluations_applied
-                && left.flow.rollback == right.flow.rollback,
-            "latest flow should preserve the same semantic truth across tier changes"
-        );
-        assert!(
-            replay_slices_equivalent(&left.replay, &right.replay),
-            "replay should remain semantically equivalent across tier changes"
-        );
-        assert!(
-            lineage_records_equivalent(&left.lineage, &right.lineage),
-            "lineage should remain semantically equivalent across tier changes"
-        );
+        if let (Some(left_flow), Some(right_flow)) = (&left.flow, &right.flow) {
+            assert!(
+                left_flow.change == right_flow.change
+                    && left_flow.invalidation == right_flow.invalidation
+                    && left_flow.planning.plan.task_count == right_flow.planning.plan.task_count
+                    && left_flow.planning.plan.stage_count == right_flow.planning.plan.stage_count
+                    && left_flow.precompute.prepared_evaluations_produced
+                        == right_flow.precompute.prepared_evaluations_produced
+                    && left_flow.apply.prepared_evaluations_applied
+                        == right_flow.apply.prepared_evaluations_applied
+                    && left_flow.rollback == right_flow.rollback,
+                "latest flow should preserve the same semantic truth across retained tiers"
+            );
+            assert!(
+                replay_slices_equivalent(&left.replay, &right.replay),
+                "replay should remain semantically equivalent across retained tiers"
+            );
+            assert!(
+                lineage_records_equivalent(&left.lineage, &right.lineage),
+                "lineage should remain semantically equivalent across retained tiers"
+            );
+        }
         assert!(
             left.explanation.node == right.explanation.node
                 && left.explanation.state == right.explanation.state

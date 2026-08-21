@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
-use crate::diagnostics::policy::{ArtifactRetentionPolicy, SignalRuntimePolicy};
+use crate::diagnostics::policy::ArtifactRetentionPolicy;
 use crate::diagnostics::replay::ReplayCursor;
+use crate::runtime_policy::SignalRuntimePolicy;
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
@@ -42,7 +43,10 @@ pub struct SignalSnapshotMeta {
     pub branch_name: String,
     pub core_storage_profile: String,
     pub replay_head: Option<ReplayCursor>,
-    pub runtime_policy: SignalRuntimePolicy,
+    /// Descriptive caller request metadata captured with the snapshot.  It is
+    /// not the installed runtime authority used by restore or planning.
+    #[serde(rename = "runtime_policy")]
+    pub requested_runtime_policy: SignalRuntimePolicy,
     #[serde(default)]
     pub artifact_retention: SnapshotArtifactRetentionPolicy,
 }
@@ -101,7 +105,7 @@ impl SignalSnapshotMeta {
         snapshot_id: SignalSnapshotId,
         branch: &SignalBranchHandle,
         replay_head: Option<ReplayCursor>,
-        runtime_policy: SignalRuntimePolicy,
+        requested_runtime_policy: SignalRuntimePolicy,
         artifact_retention: SnapshotArtifactRetentionPolicy,
     ) -> Self {
         Self {
@@ -111,7 +115,7 @@ impl SignalSnapshotMeta {
             branch_name: branch.name.clone(),
             core_storage_profile: CORE_STORAGE_PROFILE_ID.to_string(),
             replay_head,
-            runtime_policy,
+            requested_runtime_policy,
             artifact_retention,
         }
     }
@@ -122,6 +126,13 @@ impl SnapshotArtifactRetentionPolicy {
         Self {
             explanation_retention: policy.retention_budget.explanation_retention,
             provenance_retention: policy.retention_budget.provenance_retention,
+        }
+    }
+
+    pub fn from_retention_budget(budget: crate::diagnostics::policy::RetentionBudget) -> Self {
+        Self {
+            explanation_retention: budget.explanation_retention,
+            provenance_retention: budget.provenance_retention,
         }
     }
 

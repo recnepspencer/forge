@@ -11,6 +11,27 @@ impl Clone for SignalGraph {
         let instance_id = super::next_signal_graph_instance_id();
         let mut cause_sets = self.cause_sets.clone();
         cause_sets.readmit_graph_instance(instance_id);
+        let observation_sessions: crate::logic::transaction::SignalObservationSessionState =
+            Default::default();
+        observation_sessions.set_default_surface_mask(
+            self.installed_runtime_policy()
+                .observation_capture_plan()
+                .default_surface_mask(),
+        );
+        let invalidation_performed_counters =
+            super::InvalidationPerformedCounterState::with_capture_gate(
+                observation_sessions.capture_gate(),
+            );
+        let invalidation_performed_work = super::PerformedWorkCaptureState::with_capture_gate(
+            observation_sessions.capture_gate(),
+        );
+        let observation_capture_cleanup =
+            std::sync::Arc::new(super::ObservationCaptureCleanup::new(
+                invalidation_performed_counters.shared_values(),
+                invalidation_performed_work.shared_bindings(),
+                observation_sessions.shared_completed_execution_boundaries(),
+                observation_sessions.shared_last_completion(),
+            ));
         Self {
             lifecycle_token: Default::default(),
             instance_id,
@@ -25,7 +46,10 @@ impl Clone for SignalGraph {
             conditional_dependency_versions: self.conditional_dependency_versions.clone(),
             authorization_policy_identities: self.authorization_policy_identities.clone(),
             invalidation_readiness_epoch: 0,
-            invalidation_performed_counters: Default::default(),
+            invalidation_performed_counters,
+            invalidation_performed_work,
+            observation_sessions,
+            observation_capture_cleanup: Some(observation_capture_cleanup),
             pending_repeated_invalidation_admissions: BTreeMap::new(),
         }
     }
@@ -42,6 +66,27 @@ impl SignalGraph {
     pub(super) const GC_PRESSURE_TOMBSTONE_RATIO: f32 = 0.30;
 
     pub fn new() -> Self {
+        let observation_sessions: crate::logic::transaction::SignalObservationSessionState =
+            Default::default();
+        let default_observation_mask =
+            crate::runtime_policy::InstalledSignalRuntimePolicy::default()
+                .observation_capture_plan()
+                .default_surface_mask();
+        observation_sessions.set_default_surface_mask(default_observation_mask);
+        let invalidation_performed_counters =
+            super::InvalidationPerformedCounterState::with_capture_gate(
+                observation_sessions.capture_gate(),
+            );
+        let invalidation_performed_work = super::PerformedWorkCaptureState::with_capture_gate(
+            observation_sessions.capture_gate(),
+        );
+        let observation_capture_cleanup =
+            std::sync::Arc::new(super::ObservationCaptureCleanup::new(
+                invalidation_performed_counters.shared_values(),
+                invalidation_performed_work.shared_bindings(),
+                observation_sessions.shared_completed_execution_boundaries(),
+                observation_sessions.shared_last_completion(),
+            ));
         Self {
             lifecycle_token: Default::default(),
             instance_id: super::next_signal_graph_instance_id(),
@@ -65,7 +110,10 @@ impl SignalGraph {
             conditional_dependency_versions: BTreeMap::new(),
             authorization_policy_identities: BTreeSet::new(),
             invalidation_readiness_epoch: 0,
-            invalidation_performed_counters: Default::default(),
+            invalidation_performed_counters,
+            invalidation_performed_work,
+            observation_sessions,
+            observation_capture_cleanup: Some(observation_capture_cleanup),
             pending_repeated_invalidation_admissions: BTreeMap::new(),
         }
     }

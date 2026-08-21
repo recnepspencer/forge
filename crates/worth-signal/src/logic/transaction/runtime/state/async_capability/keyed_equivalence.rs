@@ -73,9 +73,9 @@ where
                     )),
                 0,
             );
-        self.telemetry
-            .resource
-            .async_keyed_node_capability_equivalence_count += 1;
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.async_keyed_node_capability_equivalence_count += 1
+        });
         Ok(AsyncKeyedNodeCapabilityEquivalenceReport::new(
             binding,
             equivalence_report,

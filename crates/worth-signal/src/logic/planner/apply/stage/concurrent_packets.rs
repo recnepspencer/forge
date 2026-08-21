@@ -121,11 +121,11 @@ pub(super) fn reduce_grouped_concurrent_packets(
         };
         semantic_batch.push_segment(segment_for_single_update(update));
     }
-    graph
-        .telemetry_mut()
-        .execution
-        .shared_surface_publication_breadth +=
+    let publication_breadth =
         semantic_batch.segment_count() as u64 + pending_snapshots.len() as u64;
+    graph.with_telemetry(|telemetry| {
+        telemetry.execution.shared_surface_publication_breadth += publication_breadth;
+    });
     Ok(StageScratch::new(
         StageFinalizeWork::Parallel(crate::data::proof::SingleConsumer::new(semantic_batch)),
         SnapshotBatchCommit::from_unique_pending_snapshots_in_stage_order(pending_snapshots)
@@ -226,17 +226,19 @@ pub(super) fn record_grouped_apply_failure(
     if let Some(reuse_failure) = failure.reuse_failure {
         record_reuse_rejection_telemetry(graph, &reuse_failure);
     }
-    crate::logic::planner::execution::task_reporting::record_execution_failure(
+    crate::logic::planner::execution::task_reporting::record_execution_failure_if_enabled(
         graph,
-        crate::diagnostics::failure::ExecutionFailureContext::new(
-            crate::diagnostics::failure::ExecutionFailurePhase::Apply,
-            Some(stage_index),
-            Some(failure.node),
-            Some(StageExecutor::full_parallel(1)),
-            Some(failure.record_id),
-            Some(*summary),
-            failure.error.to_string(),
-        ),
+        || {
+            crate::diagnostics::failure::ExecutionFailureContext::new(
+                crate::diagnostics::failure::ExecutionFailurePhase::Apply,
+                Some(stage_index),
+                Some(failure.node),
+                Some(StageExecutor::full_parallel(1)),
+                Some(failure.record_id),
+                Some(*summary),
+                failure.error.to_string(),
+            )
+        },
     );
 }
 

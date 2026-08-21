@@ -5,6 +5,7 @@ use crate::data::node::{CheckpointNodeImage, NodeEntry};
 use crate::data::proof::SnapshotBatchCommit;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::state::DiagnosticsState;
+use crate::runtime_policy::InstalledSignalRuntimePolicy;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalCheckpointSlot {
@@ -63,6 +64,8 @@ pub struct SignalCheckpointAuthority {
     )]
     pub(crate) cause_sets: crate::data::graph::storage::invalidation_causes::CanonicalCauseSetStore,
     pub(crate) diagnostics: DiagnosticsState,
+    #[serde(default)]
+    pub(crate) installed_policy: InstalledSignalRuntimePolicy,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

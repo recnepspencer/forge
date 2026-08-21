@@ -6,6 +6,8 @@ pub enum FoundationalProfileFrontDoorFamily {
     AdmissionReadiness,
     RetentionDelivery,
     CertificationPosture,
+    ExecutionObjective,
+    ObservationActivation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

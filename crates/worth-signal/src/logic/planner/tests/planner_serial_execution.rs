@@ -29,27 +29,28 @@ where
     F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
     O: crate::data::output::IntoNodeEvaluationResult,
 {
-    graph.telemetry_mut().planner.plans_built += 1;
-    graph.telemetry_mut().planner.stages_built += plan.stages.len() as u64;
-    graph.telemetry_mut().planner.tasks_scheduled += plan.summary.task_count as u64;
-    graph.telemetry_mut().execution.max_tasks_in_stage = graph
-        .telemetry()
-        .execution
-        .max_tasks_in_stage
-        .max(plan.summary.max_stage_width as u64);
-    graph.telemetry_mut().execution.serial_executor_usage_count += 1;
-    graph.telemetry_mut().evaluation.evaluation_calls += 1;
-    graph.telemetry_mut().evaluation.evaluation_stack_peak = graph
-        .telemetry()
-        .evaluation
-        .evaluation_stack_peak
-        .max(plan.summary.task_count as u64);
-    graph.telemetry_mut().planner.maybe_stale_validation_tasks += plan
+    let maybe_stale_tasks = plan
         .stages
         .iter()
         .flat_map(|stage| &stage.tasks)
         .filter(|task| matches!(task.reason, TaskReason::MaybeStaleValidation))
         .count() as u64;
+    graph.with_telemetry(|telemetry| {
+        telemetry.planner.plans_built += 1;
+        telemetry.planner.stages_built += plan.stages.len() as u64;
+        telemetry.planner.tasks_scheduled += plan.summary.task_count as u64;
+        telemetry.execution.max_tasks_in_stage = telemetry
+            .execution
+            .max_tasks_in_stage
+            .max(plan.summary.max_stage_width as u64);
+        telemetry.execution.serial_executor_usage_count += 1;
+        telemetry.evaluation.evaluation_calls += 1;
+        telemetry.evaluation.evaluation_stack_peak = telemetry
+            .evaluation
+            .evaluation_stack_peak
+            .max(plan.summary.task_count as u64);
+        telemetry.planner.maybe_stale_validation_tasks += maybe_stale_tasks;
+    });
 
     let mut next_record_id = 1_u64;
     let mut report = empty_execution_report(plan);
@@ -57,7 +58,7 @@ where
     for stage in &plan.stages {
         let stage_start = std::time::Instant::now();
         let snapshot_start = std::time::Instant::now();
-        graph.telemetry_mut().execution.execution_snapshots_built += 1;
+        graph.with_telemetry(|telemetry| telemetry.execution.execution_snapshots_built += 1);
         let mut prepared_tasks = Vec::with_capacity(stage.tasks.len());
         let mut precompute_telemetry = TestPrecomputeTelemetry::default();
         let precompute_start = std::time::Instant::now();
@@ -79,13 +80,13 @@ where
         apply_test_precompute_telemetry(graph, &precompute_telemetry);
         let snapshot_nanos = snapshot_start.elapsed().as_nanos();
         let precompute_nanos = precompute_start.elapsed().as_nanos();
-        graph.telemetry_mut().execution.execution_snapshot_nanos += snapshot_nanos;
-        graph.telemetry_mut().execution.stage_precompute_nanos += precompute_nanos;
-        graph
-            .telemetry_mut()
-            .execution
-            .prepared_evaluations_produced += prepared_tasks.len() as u64;
-        graph.telemetry_mut().execution.serial_precompute_task_count += prepared_tasks.len() as u64;
+        let prepared_count = prepared_tasks.len() as u64;
+        graph.with_telemetry(|telemetry| {
+            telemetry.execution.execution_snapshot_nanos += snapshot_nanos;
+            telemetry.execution.stage_precompute_nanos += precompute_nanos;
+            telemetry.execution.prepared_evaluations_produced += prepared_count;
+            telemetry.execution.serial_precompute_task_count += prepared_count;
+        });
         report.execution_snapshots_built += 1;
         report.execution_snapshot_nanos += snapshot_nanos;
         report.prepared_evaluations_produced += prepared_tasks.len() as u32;
@@ -176,9 +177,11 @@ where
             );
             accumulate_report_counters(&mut report, &task_record.record);
             stage_record.task_records.push(task_record.record);
-            graph.telemetry_mut().execution.prepared_evaluations_applied += 1;
-            graph.telemetry_mut().execution.dependency_capture_updates +=
-                apply_result.dependency_updates as u64;
+            graph.with_telemetry(|telemetry| {
+                telemetry.execution.prepared_evaluations_applied += 1;
+                telemetry.execution.dependency_capture_updates +=
+                    apply_result.dependency_updates as u64;
+            });
             report.prepared_evaluations_applied += 1;
             report.dependency_capture_updates += apply_result.dependency_updates;
         }
@@ -187,9 +190,11 @@ where
         stage_record.duration_nanos = stage_start.elapsed().as_nanos();
         report.stage_apply_nanos += stage_record.apply_duration_nanos;
         report.semantic_finalize_nanos += stage_record.semantic_finalize_duration_nanos;
-        graph.telemetry_mut().execution.stage_apply_nanos += stage_record.apply_duration_nanos;
-        graph.telemetry_mut().execution.stage_execution_count += 1;
-        graph.telemetry_mut().execution.stage_execution_nanos += stage_record.duration_nanos;
+        graph.with_telemetry(|telemetry| {
+            telemetry.execution.stage_apply_nanos += stage_record.apply_duration_nanos;
+            telemetry.execution.stage_execution_count += 1;
+            telemetry.execution.stage_execution_nanos += stage_record.duration_nanos;
+        });
         report.stages.push(stage_record);
     }
 

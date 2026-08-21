@@ -1,6 +1,7 @@
 use super::families::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, RetentionDeliveryProfile, SupportPostureProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, ObservationActivationProfile,
+    RetentionDeliveryProfile, SupportPostureProfile,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -11,6 +12,8 @@ pub struct FoundationalProfileSetInput {
     pub admission_readiness: AdmissionReadinessProfile,
     pub retention_delivery: RetentionDeliveryProfile,
     pub certification_posture: CertificationPostureProfile,
+    pub execution_objective: ExecutionObjectiveProfile,
+    pub observation_activation: ObservationActivationProfile,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -31,6 +34,8 @@ pub struct FoundationalProfileSet {
     admission_readiness: AdmissionReadinessProfile,
     retention_delivery: RetentionDeliveryProfile,
     certification_posture: CertificationPostureProfile,
+    execution_objective: ExecutionObjectiveProfile,
+    observation_activation: ObservationActivationProfile,
 }
 
 impl FoundationalProfileSet {
@@ -46,6 +51,8 @@ impl FoundationalProfileSet {
             admission_readiness: input.admission_readiness,
             retention_delivery: input.retention_delivery,
             certification_posture: input.certification_posture,
+            execution_objective: input.execution_objective,
+            observation_activation: input.observation_activation,
         })
     }
 
@@ -71,6 +78,14 @@ impl FoundationalProfileSet {
 
     pub const fn certification_posture(&self) -> CertificationPostureProfile {
         self.certification_posture
+    }
+
+    pub const fn execution_objective(&self) -> ExecutionObjectiveProfile {
+        self.execution_objective
+    }
+
+    pub const fn observation_activation(&self) -> ObservationActivationProfile {
+        self.observation_activation
     }
 }
 

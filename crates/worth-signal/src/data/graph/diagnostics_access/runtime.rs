@@ -5,9 +5,12 @@ use crate::data::proof::{
     FrontierDiagnosticsSidecar, InvalidationPlanningEstimate, InvalidationTraceRecord,
 };
 use crate::diagnostics::policy::OrdinaryAccessLane;
-use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::GraphSummary;
+use crate::runtime_policy::SignalRuntimePolicy;
+use crate::runtime_policy::{
+    compile_signal_runtime_policy, SignalRuntimePolicyCompilationDenial, SignalRuntimePolicyRequest,
+};
 
 impl SignalGraph {
     /// Execute any bounded maintenance work required before entering a pure
@@ -20,8 +23,26 @@ impl SignalGraph {
         &self.observation.telemetry
     }
 
-    pub fn telemetry_mut(&mut self) -> &mut crate::data::telemetry::RuntimeTelemetry {
-        &mut self.observation.telemetry
+    pub fn telemetry_mut(
+        &mut self,
+    ) -> Option<crate::data::telemetry::RuntimeTelemetryMutation<'_>> {
+        if !self.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        ) {
+            return None;
+        }
+        Some(crate::data::telemetry::RuntimeTelemetryMutation::active(
+            &mut self.observation.telemetry,
+        ))
+    }
+
+    pub(crate) fn with_telemetry(
+        &mut self,
+        update: impl FnOnce(&mut crate::data::telemetry::RuntimeTelemetry),
+    ) {
+        if let Some(mut telemetry) = self.telemetry_mut() {
+            update(&mut telemetry);
+        }
     }
 
     pub fn reset_telemetry(&mut self) {
@@ -33,7 +54,31 @@ impl SignalGraph {
     }
 
     pub(crate) fn runtime_policy(&self) -> SignalRuntimePolicy {
-        self.observation.diagnostics.policy()
+        self.observation.installed_policy().requested_policy()
+    }
+
+    pub(crate) fn installed_runtime_policy(
+        &self,
+    ) -> crate::runtime_policy::InstalledSignalRuntimePolicy {
+        self.observation.installed_policy()
+    }
+
+    pub(crate) fn resolved_performance_policy(
+        &self,
+    ) -> crate::data::performance::ResolvedPerformancePolicy {
+        self.observation.installed_policy().performance()
+    }
+
+    pub(crate) fn installed_execution_strategy(
+        &self,
+    ) -> crate::data::performance::ResolvedExecutionStrategy {
+        self.observation.installed_policy().execution_strategy()
+    }
+
+    pub(crate) fn installed_maintenance_strategy(
+        &self,
+    ) -> crate::data::performance::ResolvedMaintenanceStrategy {
+        self.observation.installed_policy().maintenance_strategy()
     }
 
     /// Reset graph diagnostics to the stock policy for one diagnostics tier.
@@ -41,20 +86,57 @@ impl SignalGraph {
     /// This is a lower-level convenience reset. If the caller means to keep
     /// custom retention or replay overrides, they should apply a full
     /// `SignalRuntimePolicy` instead.
-    pub fn reset_runtime_policy_to_tier(&mut self, profile: DiagnosticsTier) {
-        self.observation.diagnostics.set_profile(profile);
-    }
-
-    #[deprecated(
-        note = "use reset_runtime_policy_to_tier(...) for stock preset resets, or set_runtime_policy(...) for full policy control"
-    )]
-    pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsTier) {
-        self.reset_runtime_policy_to_tier(profile);
+    pub(crate) fn reset_runtime_policy_to_tier(&mut self, profile: DiagnosticsTier) {
+        self.set_runtime_policy(SignalRuntimePolicy::for_tier(profile));
     }
 
     /// Apply the full runtime policy bundle to the graph diagnostics state.
-    pub fn set_runtime_policy(&mut self, policy: SignalRuntimePolicy) {
-        self.observation.diagnostics.set_policy(policy);
+    pub(crate) fn set_runtime_policy(&mut self, policy: SignalRuntimePolicy) {
+        self.try_set_runtime_policy(policy)
+            .expect("runtime policy request must be admitted before installation");
+    }
+
+    pub(crate) fn try_set_runtime_policy(
+        &mut self,
+        policy: SignalRuntimePolicy,
+    ) -> Result<(), SignalRuntimePolicyCompilationDenial> {
+        if self.observation_session_active_generation() != 0 {
+            return Err(SignalRuntimePolicyCompilationDenial::ObservationSessionActive);
+        }
+        let installed = compile_signal_runtime_policy(SignalRuntimePolicyRequest::new(policy))?;
+        self.observation.diagnostics.set_request_mirror(policy);
+        self.observation.diagnostics.set_installed_policy(installed);
+        self.observation.install_policy(installed);
+        self.configure_observation_capture();
+        Ok(())
+    }
+
+    pub(crate) fn install_compiled_runtime_policy(
+        &mut self,
+        policy: SignalRuntimePolicy,
+        installed: crate::runtime_policy::InstalledSignalRuntimePolicy,
+    ) {
+        self.observation.diagnostics.set_request_mirror(policy);
+        self.observation.diagnostics.set_installed_policy(installed);
+        self.observation.install_policy(installed);
+        self.configure_observation_capture();
+    }
+
+    pub(crate) fn install_rollback_runtime_policy(
+        &mut self,
+        installed: crate::runtime_policy::InstalledSignalRuntimePolicy,
+    ) {
+        self.observation.diagnostics.set_installed_policy(installed);
+        self.observation.install_policy(installed);
+        self.configure_observation_capture();
+    }
+
+    fn configure_observation_capture(&self) {
+        self.set_default_observation_surface_mask(
+            self.installed_runtime_policy()
+                .observation_capture_plan()
+                .default_surface_mask(),
+        );
     }
 
     #[cfg(any(test, doctest))]
@@ -69,7 +151,9 @@ impl SignalGraph {
         GraphSummary::from_graph(
             self,
             profile,
-            self.runtime_policy().retention_budget.detail_limit,
+            self.installed_runtime_policy()
+                .retention_budget()
+                .detail_limit,
             OrdinaryAccessLane,
         )
     }
@@ -90,6 +174,11 @@ impl SignalGraph {
         aspect: Aspect,
         changed_regions: &[crate::data::output::ChangedRegion],
     ) {
+        if !self.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        ) {
+            return;
+        }
         let causality_kind = self
             .causality_of(node)
             .ok()
@@ -107,19 +196,42 @@ impl SignalGraph {
         self.observation.diagnostics.clear_pending_input();
     }
 
+    pub(crate) fn captures_failure_diagnostics(&self) -> bool {
+        self.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::DescriptiveFacts,
+        ) && self
+            .installed_runtime_policy()
+            .retention_budget()
+            .retain_latest_failure_context
+    }
+
+    pub(crate) fn captures_rollback_diagnostics(&self) -> bool {
+        self.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::DescriptiveFacts,
+        ) && self
+            .installed_runtime_policy()
+            .retention_budget()
+            .retain_history_details
+    }
+
     pub(crate) fn record_frontier_execution_diagnostics(
         &mut self,
         planning_estimate: InvalidationPlanningEstimate,
         summary: FrontierDiagnosticsSidecar,
         trace_records: Vec<InvalidationTraceRecord>,
     ) {
+        if !self.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::FrontierTrace,
+        ) {
+            return;
+        }
         if self.diagnostics_state().pending_graph_summary().is_none() {
             if let Some(summary) = self.diagnostics_state().latest_graph_summary().cloned() {
                 self.observation
                     .diagnostics
                     .set_pending_graph_summary(summary.with_profile(self.diagnostics_profile()));
             } else {
-                let retention_budget = self.runtime_policy().retention_budget;
+                let retention_budget = self.installed_runtime_policy().retention_budget();
                 self.observation
                     .diagnostics
                     .set_pending_graph_summary(GraphSummary::from_graph(

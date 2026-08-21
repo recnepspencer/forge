@@ -19,6 +19,8 @@ fn standard_profile() -> worth_foundational::FoundationalProfileSet {
         .admission_readiness(worth_foundational::AdmissionReadinessProfile::Admitted)
         .retention_delivery(RetentionDeliveryProfile::Retained)
         .certification_posture(CertificationPostureProfile::Uncertified)
+        .execution_objective(worth_foundational::ExecutionObjectiveProfile::Balanced)
+        .observation_activation(worth_foundational::ObservationActivationProfile::Continuous)
         .compose()
         .expect("standard profile should compose")
 }
@@ -32,6 +34,8 @@ fn operational_minimal_profile() -> worth_foundational::FoundationalProfileSet {
         .admission_readiness(worth_foundational::AdmissionReadinessProfile::Admitted)
         .retention_delivery(RetentionDeliveryProfile::Retained)
         .certification_posture(CertificationPostureProfile::Uncertified)
+        .execution_objective(worth_foundational::ExecutionObjectiveProfile::Throughput)
+        .observation_activation(worth_foundational::ObservationActivationProfile::OnDemand)
         .compose()
         .expect("minimal profile should compose")
 }

@@ -15,6 +15,7 @@ pub enum FoundationalDescriptiveElisionProfile {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FoundationalSurfaceAbsenceCause {
+    ObservationNotActivated,
     OmittedByActiveRichness,
     DeniedByBudget,
     NotRetained,

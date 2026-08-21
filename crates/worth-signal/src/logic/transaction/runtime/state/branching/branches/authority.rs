@@ -214,7 +214,7 @@ where
         self.derived.temporal.retire_wakes_for_owner(
             TemporalWakeOwner::Node(node),
             TemporalWakeRetirementReason::Superseded,
-            &mut self.derived.telemetry.temporal,
+            Some(&mut self.derived.telemetry.temporal),
         )
     }
 }

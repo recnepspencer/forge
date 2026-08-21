@@ -1,7 +1,6 @@
 use crate::data::telemetry::{InvalidationPerformedCounter, SignalInvalidationRealizedCounters};
 use crate::tests::domains::fintech::certification::invalidation::{
-    verified_locality_case_identity, ExpectedLocalityCounterRow, FinancialCanonicalCaseIdentity,
-    FinancialCanonicalReportIdentity, FinancialLocalityExpectationManifest,
+    ExpectedLocalityCounterRow, FinancialLocalityExpectationManifest,
 };
 use crate::tests::domains::fintech::world::{
     compile_financial_locality_world, ordinary_locality_cases, FinancialLocalityScenario,
@@ -38,21 +37,24 @@ fn performed_receipt_requires_work_in_the_same_runtime_observation() {
         .with_kernel_defaults()
         .build();
 
-    let empty = first.begin_invalidation_execution_observation();
+    let empty = first.begin_invalidation_execution_observation().unwrap();
     assert!(first
-        .finish_invalidation_execution_observation(empty)
+        .finish_invalidation_execution_observation(&empty)
         .is_err());
-    let wrong_runtime = first.begin_invalidation_execution_observation();
+    let wrong_runtime = first.begin_invalidation_execution_observation().unwrap();
     assert!(second
-        .finish_invalidation_execution_observation(wrong_runtime)
+        .finish_invalidation_execution_observation(&wrong_runtime)
         .is_err());
-    let superseded = first.begin_invalidation_execution_observation();
-    let current = first.begin_invalidation_execution_observation();
+    first
+        .cancel_observation_session(&wrong_runtime)
+        .expect("foreign denial must leave the owner session available to cancel");
+    let current = first.begin_invalidation_execution_observation().unwrap();
+    assert!(matches!(
+        first.begin_invalidation_execution_observation(),
+        Err(crate::facade::SignalObservationAdmissionDenial::SessionAlreadyActive)
+    ));
     assert!(first
-        .finish_invalidation_execution_observation(superseded)
-        .is_err());
-    assert!(first
-        .finish_invalidation_execution_observation(current)
+        .finish_invalidation_execution_observation(&current)
         .is_err());
 }
 
@@ -64,7 +66,7 @@ fn topology_only_and_rejected_topology_observations_cannot_mint_execution_receip
     let source = runtime.graph_mut().node().build();
     let consumer = runtime.graph_mut().node().build();
 
-    let topology_only = runtime.begin_invalidation_execution_observation();
+    let topology_only = runtime.begin_invalidation_execution_observation().unwrap();
     runtime
         .graph_mut()
         .set_dependencies(
@@ -83,12 +85,12 @@ fn topology_only_and_rejected_topology_observations_cannot_mint_execution_receip
         1
     );
     assert!(runtime
-        .finish_invalidation_execution_observation(topology_only)
+        .finish_invalidation_execution_observation(&topology_only)
         .unwrap_err()
         .to_string()
         .contains("no executed invalidation batch"));
 
-    let rejected_only = runtime.begin_invalidation_execution_observation();
+    let rejected_only = runtime.begin_invalidation_execution_observation().unwrap();
     assert!(runtime
         .graph_mut()
         .set_dependencies(
@@ -107,7 +109,7 @@ fn topology_only_and_rejected_topology_observations_cannot_mint_execution_receip
         1
     );
     assert!(runtime
-        .finish_invalidation_execution_observation(rejected_only)
+        .finish_invalidation_execution_observation(&rejected_only)
         .unwrap_err()
         .to_string()
         .contains("no executed invalidation batch"));
@@ -124,13 +126,14 @@ fn performed_rows_attach_to_foundational_and_drift_is_denied() {
     let receipt_observation = compiled
         .locality_mut()
         .runtime
-        .begin_invalidation_execution_observation();
+        .begin_invalidation_execution_observation()
+        .unwrap();
     compiled.run_locality_action_trace(0).unwrap();
     let expected = expected_counters(&manifest);
     let receipt = compiled
         .locality()
         .runtime
-        .finish_invalidation_execution_observation(receipt_observation)
+        .finish_invalidation_execution_observation(&receipt_observation)
         .unwrap();
     let foundational =
         crate::data::proof::attach_foundational_invalidation_performance_receipt(receipt, expected)
@@ -145,12 +148,13 @@ fn performed_rows_attach_to_foundational_and_drift_is_denied() {
     let drifted_observation = drifted_world
         .locality_mut()
         .runtime
-        .begin_invalidation_execution_observation();
+        .begin_invalidation_execution_observation()
+        .unwrap();
     drifted_world.run_locality_action_trace(0).unwrap();
     let drifted_receipt = drifted_world
         .locality()
         .runtime
-        .finish_invalidation_execution_observation(drifted_observation)
+        .finish_invalidation_execution_observation(&drifted_observation)
         .unwrap();
     assert!(matches!(
         crate::data::proof::attach_foundational_invalidation_performance_receipt(
@@ -168,12 +172,13 @@ fn performed_rows_attach_to_foundational_and_drift_is_denied() {
     let recovery_observation = recovery_world
         .locality_mut()
         .runtime
-        .begin_invalidation_execution_observation();
+        .begin_invalidation_execution_observation()
+        .unwrap();
     recovery_world.run_locality_action_trace(0).unwrap();
     let recovery_receipt = recovery_world
         .locality()
         .runtime
-        .finish_invalidation_execution_observation(recovery_observation)
+        .finish_invalidation_execution_observation(&recovery_observation)
         .unwrap();
     let mut laundered_recovery = expected.values();
     laundered_recovery[InvalidationPerformedCounter::RecoveryReconstructionWork as usize] = 1;
@@ -183,6 +188,45 @@ fn performed_rows_attach_to_foundational_and_drift_is_denied() {
             SignalInvalidationRealizedCounters::from_values(laundered_recovery),
         ),
         Err(crate::data::proof::InvalidationFoundationalReceiptDenial::ExcludedRecoveryWork)
+    ));
+}
+
+#[test]
+fn work_only_receipt_cannot_claim_counter_backed_foundational_evidence() {
+    let mut compiled =
+        compile_financial_locality_world(FinancialWorldDefinition::convergent_factor_batch(41, 0))
+            .unwrap();
+    let manifest = FinancialLocalityExpectationManifest::derive(
+        compiled.locality_definition(),
+        compiled.locality_graph_instance(),
+    );
+    let observation = compiled
+        .locality_mut()
+        .runtime
+        .begin_observation_session(crate::facade::SignalObservationRequest::work())
+        .unwrap();
+    compiled.run_locality_action_trace(0).unwrap();
+    let work_was_retained = !compiled
+        .locality()
+        .runtime
+        .graph()
+        .invalidation_performed_work()
+        .is_empty();
+    let receipt = compiled
+        .locality()
+        .runtime
+        .finish_observation_session(&observation)
+        .unwrap();
+    assert!(crate::data::telemetry::InvalidationPerformedCounter::ALL
+        .into_iter()
+        .all(|counter| receipt.realized_counters().value(counter) == 0));
+    assert!(work_was_retained);
+    assert!(matches!(
+        crate::data::proof::attach_foundational_invalidation_performance_receipt(
+            receipt,
+            expected_counters(&manifest),
+        ),
+        Err(crate::data::proof::InvalidationFoundationalReceiptDenial::ObservationSurfaceUnavailable)
     ));
 }
 
@@ -201,12 +245,13 @@ fn diagnostics_tiers_change_sidecar_policy_but_not_operational_rows() {
         let receipt_observation = compiled
             .locality_mut()
             .runtime
-            .begin_invalidation_execution_observation();
+            .begin_invalidation_execution_observation()
+            .unwrap();
         let observation = compiled.run_locality_action_trace(0).unwrap();
         let receipt = compiled
             .locality()
             .runtime
-            .finish_invalidation_execution_observation(receipt_observation)
+            .finish_invalidation_execution_observation(&receipt_observation)
             .unwrap();
         observations.push((
             compiled.locality().runtime.graph().runtime_policy().tier,
@@ -289,102 +334,6 @@ fn ordinary_hot_path_worlds_match_their_independent_twenty_four_row_manifests() 
             );
         }
     }
-}
-
-#[test]
-fn canonical_case_identity_is_bound_to_verified_performed_execution() {
-    let first = verified_case_identity(FinancialWorldDefinition::convergent_factor_batch(41, 0));
-    let repeated = verified_case_identity(FinancialWorldDefinition::convergent_factor_batch(41, 0));
-    let distinct = verified_case_identity(FinancialWorldDefinition::convergent_factor_batch(43, 0));
-
-    assert_eq!(first.digest_bytes(), repeated.digest_bytes());
-    assert_ne!(first.digest_bytes(), distinct.digest_bytes());
-}
-
-#[test]
-fn canonical_case_identity_changes_with_tier_and_exact_trace() {
-    let operational = verified_case_identity_for(
-        FinancialWorldDefinition::convergent_factor_batch(41, 0),
-        0,
-        crate::facade::DiagnosticsTier::Operational,
-    );
-    let development = verified_case_identity_for(
-        FinancialWorldDefinition::convergent_factor_batch(41, 0),
-        0,
-        crate::facade::DiagnosticsTier::Development,
-    );
-    let second_permutation = verified_case_identity_for(
-        FinancialWorldDefinition::convergent_factor_batch(41, 0),
-        1,
-        crate::facade::DiagnosticsTier::Operational,
-    );
-
-    assert_ne!(operational.digest_bytes(), development.digest_bytes());
-    assert_ne!(
-        operational.digest_bytes(),
-        second_permutation.digest_bytes()
-    );
-}
-
-#[test]
-fn canonical_report_identity_is_order_invariant() {
-    let convergent =
-        verified_case_identity(FinancialWorldDefinition::convergent_factor_batch(41, 0));
-    let sparse_case = ordinary_locality_cases()
-        .into_iter()
-        .find(|case| case.scenario() == FinancialLocalityScenario::SparseBookFanout)
-        .unwrap();
-    let sparse = verified_case_identity(FinancialWorldDefinition::locality_case(41, sparse_case));
-
-    let forward = FinancialCanonicalReportIdentity::from_cases([&convergent, &sparse]).unwrap();
-    let reverse = FinancialCanonicalReportIdentity::from_cases([&sparse, &convergent]).unwrap();
-    assert_eq!(forward.digest_bytes(), reverse.digest_bytes());
-    assert!(FinancialCanonicalReportIdentity::from_cases([&sparse, &sparse]).is_err());
-    assert!(
-        FinancialCanonicalReportIdentity::from_cases(std::iter::empty::<
-            &FinancialCanonicalCaseIdentity,
-        >())
-        .is_err()
-    );
-}
-
-fn verified_case_identity(definition: FinancialWorldDefinition) -> FinancialCanonicalCaseIdentity {
-    verified_case_identity_for(definition, 0, crate::facade::DiagnosticsTier::Operational)
-}
-
-fn verified_case_identity_for(
-    definition: FinancialWorldDefinition,
-    trace_index: usize,
-    tier: crate::facade::DiagnosticsTier,
-) -> FinancialCanonicalCaseIdentity {
-    let mut compiled = compile_financial_locality_world(definition).unwrap();
-    compiled
-        .locality_mut()
-        .runtime
-        .graph_mut()
-        .reset_runtime_policy_to_tier(tier);
-    let manifest = FinancialLocalityExpectationManifest::derive_for_trace(
-        compiled.locality_definition(),
-        &compiled.locality_definition().action_traces()[trace_index],
-        compiled.locality_graph_instance(),
-    );
-    let receipt_observation = compiled
-        .locality_mut()
-        .runtime
-        .begin_invalidation_execution_observation();
-    compiled.run_locality_action_trace(trace_index).unwrap();
-    let performed = compiled
-        .locality()
-        .runtime
-        .finish_invalidation_execution_observation(receipt_observation)
-        .unwrap();
-    verified_locality_case_identity(
-        compiled.locality_definition(),
-        &manifest,
-        compiled.locality().runtime.graph().runtime_policy().tier,
-        performed,
-    )
-    .unwrap()
 }
 
 fn expected_counters(

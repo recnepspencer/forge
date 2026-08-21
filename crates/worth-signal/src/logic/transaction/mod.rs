@@ -5,6 +5,7 @@ mod runtime;
 #[cfg(test)]
 mod tests;
 
+pub(crate) use runtime::admit_signal_observation_request;
 pub(crate) use runtime::RuntimeObservationRegistry;
 pub use runtime::{branch_state_proof_report, canonical_digest};
 #[allow(unused_imports)]
@@ -98,8 +99,10 @@ pub use runtime::{
     SignalMergeStrategyWitness, SignalMergeStrategyWitnessDenial,
     SignalMergeStrategyWitnessDenialKind, SignalMergeSupportInspectionAbsence,
     SignalMergeSupportInspectionAbsenceKind, SignalMergeSupportInspectionOutcome,
-    SignalMergeSupportInspectionWitness, SignalMergeSupportReadinessPosture, SignalRuntime,
-    SignalRuntimeBuilder, SignalRuntimeConfig, SignalScopedMergeCanonicalBasisBundle,
+    SignalMergeSupportInspectionWitness, SignalMergeSupportReadinessPosture,
+    SignalObservationAdmissionDenial, SignalObservationCompletion, SignalObservationRequest,
+    SignalObservationSession, SignalObservationSurface, SignalRuntime, SignalRuntimeBuilder,
+    SignalRuntimeConfig, SignalScopedMergeCanonicalBasisBundle,
     SignalScopedMergeCanonicalLocatorBundle, SignalScopedMergeDiagnosticRow,
     SignalScopedMergeInspectionRow, SignalScopedMergeLocatorBundle,
     SignalSelectedAspectRequestEntry, SignalStrategyInspectionRow, SignalTransaction,
@@ -118,4 +121,7 @@ pub use runtime::{
     SIGNAL_BRANCH_BASIS_SCHEMA_VERSION, SIGNAL_MERGE_COMPATIBILITY_SCHEMA_VERSION,
     TEMPORAL_CERTIFICATION_BUNDLE_PARITY_SCHEMA_VERSION,
     TEMPORAL_CERTIFICATION_BUNDLE_SCHEMA_VERSION, TEMPORAL_REPLAY_PARITY_SCHEMA_VERSION,
+};
+pub(crate) use runtime::{
+    SignalObservationCaptureGate, SignalObservationDropCleanup, SignalObservationSessionState,
 };

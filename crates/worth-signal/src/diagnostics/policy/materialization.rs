@@ -25,6 +25,7 @@ pub enum DiagnosticsAvailability {
     ReconstructedAvailable,
     OmittedByTier,
     DeniedByBudget,
+    ObservationNotActivated,
     #[default]
     UnavailableNotRetained,
     UnavailableNotReconstructable,
@@ -51,6 +52,9 @@ impl DiagnosticsAvailability {
             Self::DeniedByBudget => {
                 "artifact detail was denied by the active reconstruction budget"
             }
+            Self::ObservationNotActivated => {
+                "artifact detail was never activated for observation on this graph"
+            }
             Self::UnavailableNotRetained => {
                 "artifact detail is not retained in the active diagnostics envelope"
             }
@@ -68,6 +72,7 @@ impl fmt::Display for DiagnosticsAvailability {
             Self::ReconstructedAvailable => write!(f, "ReconstructedAvailable"),
             Self::OmittedByTier => write!(f, "OmittedByTier"),
             Self::DeniedByBudget => write!(f, "DeniedByBudget"),
+            Self::ObservationNotActivated => write!(f, "ObservationNotActivated"),
             Self::UnavailableNotRetained => write!(f, "UnavailableNotRetained"),
             Self::UnavailableNotReconstructable => write!(f, "UnavailableNotReconstructable"),
         }

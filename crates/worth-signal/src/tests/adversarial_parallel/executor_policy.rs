@@ -1,8 +1,6 @@
 use std::num::NonZeroUsize;
 
-use crate::facade::{
-    ParallelAdmissionPolicy, ParallelExecutionPolicy, SignalRuntimePolicy, StageExecutor,
-};
+use crate::facade::{ParallelExecutionPolicy, SignalRuntimePolicy, StageExecutor};
 
 pub(super) fn hostile_executor_matrix() -> Vec<(&'static str, StageExecutor)> {
     let policies = [
@@ -52,10 +50,12 @@ pub(super) fn hostile_executor_matrix() -> Vec<(&'static str, StageExecutor)> {
 }
 
 pub(super) fn aggressive_parallel_runtime_policy() -> SignalRuntimePolicy {
-    SignalRuntimePolicy::operational().with_parallel_admission(ParallelAdmissionPolicy {
-        operational_min_parallel_tasks: 1,
-        development_min_parallel_tasks: 1,
-        forensic_min_parallel_tasks: 1,
-        full_parallel_min_tasks: 1,
-    })
+    SignalRuntimePolicy::operational()
+        .with_observation_activation(worth_foundational::ObservationActivationProfile::Continuous)
+        .with_parallel_admission(crate::runtime_policy::ParallelAdmissionPolicy {
+            throughput_min_parallel_tasks: 1,
+            balanced_min_parallel_tasks: 1,
+            latency_bounded_min_parallel_tasks: 1,
+            full_parallel_min_tasks: 1,
+        })
 }

@@ -1,7 +1,6 @@
 use crate::data::graph::runtime::strategy::{
     EvaluationStrategy, GcPressure, ObservationLevel, ParallelismHint,
 };
-use crate::diagnostics::DiagnosticsLevel;
 
 use super::{EdgeTopology, NodeArena, RuntimeObservation, SignalGraph, TraversalResources};
 
@@ -13,7 +12,6 @@ impl SignalGraph {
     pub fn derive_evaluation_strategy(&self) -> EvaluationStrategy {
         let active_nodes = self.active_node_count();
         let tombstone_ratio = self.tombstone_ratio();
-        let diagnostics_profile = self.observation.diagnostics.tier();
         EvaluationStrategy {
             parallelism: if active_nodes >= Self::PARALLELISM_NODE_THRESHOLD {
                 ParallelismHint::Preferred
@@ -29,7 +27,13 @@ impl SignalGraph {
             } else {
                 GcPressure::Deferred
             },
-            observation_level: Self::observation_level_for_profile(diagnostics_profile),
+            observation_level: if self.installed_runtime_policy().observation_activation()
+                == worth_foundational::ObservationActivationProfile::OnDemand
+            {
+                ObservationLevel::Minimal
+            } else {
+                ObservationLevel::Full
+            },
         }
     }
 
@@ -56,13 +60,6 @@ impl SignalGraph {
             0.0
         } else {
             self.arena.compaction.tombstone_count as f32 / total as f32
-        }
-    }
-
-    fn observation_level_for_profile(profile: DiagnosticsLevel) -> ObservationLevel {
-        match profile {
-            DiagnosticsLevel::Operational => ObservationLevel::Minimal,
-            DiagnosticsLevel::Development | DiagnosticsLevel::Forensic => ObservationLevel::Full,
         }
     }
 }

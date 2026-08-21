@@ -31,7 +31,12 @@ where
         &'a mut self,
         runtime_ctx: &'a mut Ctx,
     ) -> SignalTransaction<'a, D, I, E, Ctx, T> {
-        self.telemetry.transaction.transaction_begin_count += 1;
+        let captures_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        if captures_telemetry {
+            self.telemetry.transaction.transaction_begin_count += 1;
+        }
         self.config.sync_graph_capacity(&self.graph);
         SignalTransaction {
             runtime_ctx,
@@ -42,7 +47,7 @@ where
             event_bus: &mut self.event_bus,
             resource: &mut self.resource,
             temporal: &mut self.temporal,
-            telemetry: &mut self.telemetry,
+            telemetry: captures_telemetry.then_some(&mut self.telemetry),
             branches: &mut self.branches,
             scratch: TransactionScratch::new(),
             rollback_packets: super::super::transaction::TransactionRollbackPacketSet::default(),

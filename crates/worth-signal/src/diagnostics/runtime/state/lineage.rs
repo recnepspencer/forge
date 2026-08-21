@@ -60,7 +60,7 @@ impl DiagnosticsState {
                 .push_back(record.clone());
         }
         self.lineage_records.push_back(record);
-        let limit = self.policy.retention_budget.history_limit.max(1) * 32;
+        let limit = self.installed_retention_budget.history_limit.max(1) * 32;
         while self.lineage_records.len() > limit {
             if let Some(record) = self.lineage_records.pop_front() {
                 self.remove_lineage_record_from_index(&record);

@@ -20,9 +20,12 @@ where
         declaration: &AsyncNodeCapabilityDeclaration,
     ) -> Result<ValidatedAsyncNodeCapabilityDeclaration, SignalError> {
         self.ensure_live_async_node_owner(declaration.node(), "validate async node capability")?;
+        let captures_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         let validated = self.resource.validate_async_capability_declaration(
             declaration.as_resource_declaration(),
-            &mut self.telemetry.resource,
+            captures_telemetry.then_some(&mut self.telemetry.resource),
         )?;
         Ok(ValidatedAsyncNodeCapabilityDeclaration::new(
             declaration.clone(),
@@ -34,9 +37,12 @@ where
         &mut self,
         validated: &ValidatedAsyncNodeCapabilityDeclaration,
     ) -> Result<FrozenAsyncNodeCapabilityDescriptor, SignalError> {
+        let captures_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         let frozen = self.resource.freeze_async_capability_declaration(
             validated.validated(),
-            &mut self.telemetry.resource,
+            captures_telemetry.then_some(&mut self.telemetry.resource),
         )?;
         let declaration = validated.declaration();
         let payload_contract = declaration.payload_contract();
@@ -54,9 +60,13 @@ where
         &mut self,
         frozen: &FrozenAsyncNodeCapabilityDescriptor,
     ) -> LoweredAsyncNodeCapabilityBundle {
-        let lowered = self
-            .resource
-            .lower_async_capability_bundle(frozen.frozen(), &mut self.telemetry.resource);
+        let captures_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        let lowered = self.resource.lower_async_capability_bundle(
+            frozen.frozen(),
+            captures_telemetry.then_some(&mut self.telemetry.resource),
+        );
         LoweredAsyncNodeCapabilityBundle::new(
             frozen.node(),
             frozen.payload_contract_digest().clone(),
@@ -88,17 +98,20 @@ where
         let lowered = self.lower_async_node_capability_bundle(&frozen);
 
         let legacy = declaration.clone().into_legacy_resource_declaration();
+        let captures_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         let legacy_validated = self
             .resource
             .validate_resource_policy_declaration_without_async_accounting(
                 &legacy,
-                &mut self.telemetry.resource,
+                captures_telemetry.then_some(&mut self.telemetry.resource),
             )?;
         let legacy_frozen = self
             .resource
             .freeze_resource_policy_declaration_without_async_accounting(
                 &legacy_validated,
-                &mut self.telemetry.resource,
+                captures_telemetry.then_some(&mut self.telemetry.resource),
             )?;
         let legacy_lowered = self
             .resource
@@ -116,9 +129,9 @@ where
                 declaration.node()
             )));
         }
-        self.telemetry
-            .resource
-            .async_node_capability_alias_lowering_count += 1;
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.async_node_capability_alias_lowering_count += 1
+        });
         Ok(AsyncNodeCapabilityAliasLoweringProof::new(
             declaration.node(),
             lowered.registry_digest().clone(),
@@ -136,12 +149,15 @@ where
         declaration: AsyncNodeCapabilityDeclaration,
     ) -> Result<crate::data::resource::ResourceDeclarationReport, SignalError> {
         self.ensure_live_async_node_owner(declaration.node(), "declare async node capability")?;
-        self.telemetry
-            .resource
-            .async_node_capability_attachment_count += 1;
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.async_node_capability_attachment_count += 1
+        });
+        let captures_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         self.resource.declare_resource_node(
             declaration.into_legacy_resource_declaration(),
-            &mut self.telemetry.resource,
+            captures_telemetry.then_some(&mut self.telemetry.resource),
         )
     }
 

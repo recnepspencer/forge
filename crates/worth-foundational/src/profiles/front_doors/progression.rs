@@ -1,7 +1,9 @@
 use super::super::{
-    admit_requested_foundational_profile, foundational_profile_progression_authority,
-    materialize_admitted_foundational_profile, AdmittedFoundationalProfileArtifact,
-    FoundationalProfileNarrowingRecord, FoundationalProfileProgressionOutcome,
+    admit_requested_foundational_profile, admit_requested_foundational_profile_with_resolutions,
+    foundational_profile_progression_authority, materialize_admitted_foundational_profile,
+    materialize_admitted_foundational_profile_with_resolutions,
+    AdmittedFoundationalProfileArtifact, FoundationalProfileNarrowingRecord,
+    FoundationalProfileProgressionOutcome, FoundationalProfileResolutionLedger,
     FoundationalProfileSet, MaterializedFoundationalProfileArtifact,
     RequestedFoundationalProfileArtifact,
 };
@@ -32,6 +34,20 @@ impl FoundationalProfileProgressionFrontDoor {
         self.admit_as(requested, admitted, None)
     }
 
+    pub fn admit_as_with_resolutions(
+        self,
+        requested: RequestedFoundationalProfileArtifact,
+        admitted: FoundationalProfileSet,
+        resolutions: FoundationalProfileResolutionLedger,
+    ) -> FoundationalProfileProgressionOutcome<AdmittedFoundationalProfileArtifact> {
+        admit_requested_foundational_profile_with_resolutions(
+            requested,
+            admitted,
+            resolutions,
+            foundational_profile_progression_authority(),
+        )
+    }
+
     pub fn materialize_as(
         self,
         admitted: AdmittedFoundationalProfileArtifact,
@@ -52,5 +68,19 @@ impl FoundationalProfileProgressionFrontDoor {
     ) -> FoundationalProfileProgressionOutcome<MaterializedFoundationalProfileArtifact> {
         let materialized = *admitted.payload().admitted();
         self.materialize_as(admitted, materialized, None)
+    }
+
+    pub fn materialize_as_with_resolutions(
+        self,
+        admitted: AdmittedFoundationalProfileArtifact,
+        materialized: FoundationalProfileSet,
+        resolutions: FoundationalProfileResolutionLedger,
+    ) -> FoundationalProfileProgressionOutcome<MaterializedFoundationalProfileArtifact> {
+        materialize_admitted_foundational_profile_with_resolutions(
+            admitted,
+            materialized,
+            resolutions,
+            foundational_profile_progression_authority(),
+        )
     }
 }

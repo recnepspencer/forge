@@ -96,9 +96,10 @@ impl SignalGraph {
                 self.query_reverse_subscriptions(delta.producer, change, delta.scope_precision)?;
             counter_deltas.bucket_probes += query.bucket_probes;
             counter_deltas.candidates_returned += query.candidates.len() as u64;
-            self.telemetry_mut()
-                .invalidation
-                .direct_subscriber_candidates_examined += query.candidates.len() as u64;
+            let candidate_count = query.candidates.len() as u64;
+            self.with_telemetry(|telemetry| {
+                telemetry.invalidation.direct_subscriber_candidates_examined += candidate_count;
+            });
             subscribers.extend(query.candidates);
         }
         subscribers.sort_unstable();
@@ -113,13 +114,15 @@ impl SignalGraph {
                 }
                 DirectCandidateAdmission::ContractRejected(counters) => {
                     counter_deltas.merge(counters);
-                    self.telemetry_mut().invalidation.direct_contract_rejections += 1;
+                    self.with_telemetry(|telemetry| {
+                        telemetry.invalidation.direct_contract_rejections += 1;
+                    });
                 }
                 DirectCandidateAdmission::CausalityRejected(counters) => {
                     counter_deltas.merge(counters);
-                    self.telemetry_mut()
-                        .invalidation
-                        .direct_causality_rejections += 1;
+                    self.with_telemetry(|telemetry| {
+                        telemetry.invalidation.direct_causality_rejections += 1;
+                    });
                 }
             }
         }

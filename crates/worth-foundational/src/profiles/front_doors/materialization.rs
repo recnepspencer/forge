@@ -1,10 +1,11 @@
 use super::super::{
     plan_foundational_profile_materialization,
     plan_foundational_profile_materialization_with_elision,
-    plan_selected_foundational_profile_materialization, BoundaryArtifactTarget,
+    plan_selected_foundational_profile_materialization,
+    plan_selected_foundational_profile_materialization_with_disposition, BoundaryArtifactTarget,
     FoundationalDescriptiveElisionProfile, FoundationalDescriptiveSurface,
-    FoundationalMaterializationPlanningDenial, FoundationalProfileMaterializationPlan,
-    ProofBearingArtifactTarget, SupportArtifactTarget,
+    FoundationalMaterializationPlanningDenial, FoundationalObservationDisposition,
+    FoundationalProfileMaterializationPlan, ProofBearingArtifactTarget, SupportArtifactTarget,
 };
 use super::attachment::{
     MaterializedBoundaryArtifactStep, MaterializedProofBearingArtifactStep,
@@ -43,13 +44,21 @@ impl FoundationalProfileMaterializationFrontDoor {
 pub struct BoundaryArtifactMaterializationFrontDoor<'a, T>(MaterializedBoundaryArtifactStep<'a, T>);
 
 impl<'a, T> BoundaryArtifactMaterializationFrontDoor<'a, T> {
-    pub fn full_fidelity(self) -> FoundationalProfileMaterializationPlan<BoundaryArtifactTarget> {
+    pub fn full_fidelity(
+        self,
+    ) -> Result<
+        FoundationalProfileMaterializationPlan<BoundaryArtifactTarget>,
+        FoundationalMaterializationPlanningDenial,
+    > {
         plan_foundational_profile_materialization::<BoundaryArtifactTarget>(self.0.profile())
     }
 
     pub fn operational_summary(
         self,
-    ) -> FoundationalProfileMaterializationPlan<BoundaryArtifactTarget> {
+    ) -> Result<
+        FoundationalProfileMaterializationPlan<BoundaryArtifactTarget>,
+        FoundationalMaterializationPlanningDenial,
+    > {
         plan_foundational_profile_materialization_with_elision::<BoundaryArtifactTarget>(
             self.0.profile(),
             FoundationalDescriptiveElisionProfile::OperationalSummary,
@@ -68,19 +77,42 @@ impl<'a, T> BoundaryArtifactMaterializationFrontDoor<'a, T> {
             selected,
         )
     }
+
+    pub fn selected_with_disposition(
+        self,
+        selected: &[FoundationalDescriptiveSurface],
+        disposition: FoundationalObservationDisposition,
+    ) -> Result<
+        FoundationalProfileMaterializationPlan<BoundaryArtifactTarget>,
+        FoundationalMaterializationPlanningDenial,
+    > {
+        plan_selected_foundational_profile_materialization_with_disposition::<BoundaryArtifactTarget>(
+            self.0.profile(),
+            selected,
+            disposition,
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct SupportArtifactMaterializationFrontDoor<'a, T>(MaterializedSupportArtifactStep<'a, T>);
 
 impl<'a, T> SupportArtifactMaterializationFrontDoor<'a, T> {
-    pub fn full_fidelity(self) -> FoundationalProfileMaterializationPlan<SupportArtifactTarget> {
+    pub fn full_fidelity(
+        self,
+    ) -> Result<
+        FoundationalProfileMaterializationPlan<SupportArtifactTarget>,
+        FoundationalMaterializationPlanningDenial,
+    > {
         plan_foundational_profile_materialization::<SupportArtifactTarget>(self.0.profile())
     }
 
     pub fn operational_summary(
         self,
-    ) -> FoundationalProfileMaterializationPlan<SupportArtifactTarget> {
+    ) -> Result<
+        FoundationalProfileMaterializationPlan<SupportArtifactTarget>,
+        FoundationalMaterializationPlanningDenial,
+    > {
         plan_foundational_profile_materialization_with_elision::<SupportArtifactTarget>(
             self.0.profile(),
             FoundationalDescriptiveElisionProfile::OperationalSummary,
@@ -99,6 +131,21 @@ impl<'a, T> SupportArtifactMaterializationFrontDoor<'a, T> {
             selected,
         )
     }
+
+    pub fn selected_with_disposition(
+        self,
+        selected: &[FoundationalDescriptiveSurface],
+        disposition: FoundationalObservationDisposition,
+    ) -> Result<
+        FoundationalProfileMaterializationPlan<SupportArtifactTarget>,
+        FoundationalMaterializationPlanningDenial,
+    > {
+        plan_selected_foundational_profile_materialization_with_disposition::<SupportArtifactTarget>(
+            self.0.profile(),
+            selected,
+            disposition,
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -109,13 +156,19 @@ pub struct ProofBearingArtifactMaterializationFrontDoor<'a, T>(
 impl<'a, T> ProofBearingArtifactMaterializationFrontDoor<'a, T> {
     pub fn full_fidelity(
         self,
-    ) -> FoundationalProfileMaterializationPlan<ProofBearingArtifactTarget> {
+    ) -> Result<
+        FoundationalProfileMaterializationPlan<ProofBearingArtifactTarget>,
+        FoundationalMaterializationPlanningDenial,
+    > {
         plan_foundational_profile_materialization::<ProofBearingArtifactTarget>(self.0.profile())
     }
 
     pub fn operational_summary(
         self,
-    ) -> FoundationalProfileMaterializationPlan<ProofBearingArtifactTarget> {
+    ) -> Result<
+        FoundationalProfileMaterializationPlan<ProofBearingArtifactTarget>,
+        FoundationalMaterializationPlanningDenial,
+    > {
         plan_foundational_profile_materialization_with_elision::<ProofBearingArtifactTarget>(
             self.0.profile(),
             FoundationalDescriptiveElisionProfile::OperationalSummary,
@@ -133,5 +186,18 @@ impl<'a, T> ProofBearingArtifactMaterializationFrontDoor<'a, T> {
             self.0.profile(),
             selected,
         )
+    }
+
+    pub fn selected_with_disposition(
+        self,
+        selected: &[FoundationalDescriptiveSurface],
+        disposition: FoundationalObservationDisposition,
+    ) -> Result<
+        FoundationalProfileMaterializationPlan<ProofBearingArtifactTarget>,
+        FoundationalMaterializationPlanningDenial,
+    > {
+        plan_selected_foundational_profile_materialization_with_disposition::<
+            ProofBearingArtifactTarget,
+        >(self.0.profile(), selected, disposition)
     }
 }

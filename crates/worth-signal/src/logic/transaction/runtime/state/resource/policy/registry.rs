@@ -78,13 +78,17 @@ impl ResourceRuntimeState {
     pub fn validate_async_capability_declaration(
         &self,
         declaration: &ResourceNodeDeclaration,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<ValidatedResourcePolicyDeclaration, crate::data::error::SignalError> {
-        telemetry.async_node_capability_validation_count += 1;
-        telemetry.resource_policy_resolution_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.async_node_capability_validation_count += 1;
+            telemetry.resource_policy_resolution_count += 1;
+        }
         ValidatedResourcePolicyDeclaration::from_declaration(declaration, &self.policy_registry)
             .map_err(|err| {
-                telemetry.resource_policy_resolution_denial_count += 1;
+                if let Some(telemetry) = telemetry.as_deref_mut() {
+                    telemetry.resource_policy_resolution_denial_count += 1;
+                }
                 resource_policy_resolution_signal_error(err)
             })
     }
@@ -92,12 +96,16 @@ impl ResourceRuntimeState {
     pub(in crate::logic::transaction::runtime) fn validate_resource_policy_declaration_without_async_accounting(
         &self,
         declaration: &ResourceNodeDeclaration,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<ValidatedResourcePolicyDeclaration, crate::data::error::SignalError> {
-        telemetry.resource_policy_resolution_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_policy_resolution_count += 1;
+        }
         ValidatedResourcePolicyDeclaration::from_declaration(declaration, &self.policy_registry)
             .map_err(|err| {
-                telemetry.resource_policy_resolution_denial_count += 1;
+                if let Some(telemetry) = telemetry.as_deref_mut() {
+                    telemetry.resource_policy_resolution_denial_count += 1;
+                }
                 resource_policy_resolution_signal_error(err)
             })
     }
@@ -105,15 +113,19 @@ impl ResourceRuntimeState {
     pub fn freeze_async_capability_declaration(
         &self,
         validated: &ValidatedResourcePolicyDeclaration,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<FrozenResourcePolicyDescriptorSet, crate::data::error::SignalError> {
-        telemetry.async_node_capability_freeze_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.async_node_capability_freeze_count += 1;
+        }
         FrozenResourcePolicyDescriptorSet::from_validated_declaration(
             validated,
             &self.policy_registry,
         )
         .map_err(|err| {
-            telemetry.resource_policy_resolution_denial_count += 1;
+            if let Some(telemetry) = telemetry.as_deref_mut() {
+                telemetry.resource_policy_resolution_denial_count += 1;
+            }
             resource_policy_resolution_signal_error(err)
         })
     }
@@ -121,14 +133,16 @@ impl ResourceRuntimeState {
     pub(in crate::logic::transaction::runtime) fn freeze_resource_policy_declaration_without_async_accounting(
         &self,
         validated: &ValidatedResourcePolicyDeclaration,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<FrozenResourcePolicyDescriptorSet, crate::data::error::SignalError> {
         FrozenResourcePolicyDescriptorSet::from_validated_declaration(
             validated,
             &self.policy_registry,
         )
         .map_err(|err| {
-            telemetry.resource_policy_resolution_denial_count += 1;
+            if let Some(telemetry) = telemetry.as_deref_mut() {
+                telemetry.resource_policy_resolution_denial_count += 1;
+            }
             resource_policy_resolution_signal_error(err)
         })
     }
@@ -136,9 +150,11 @@ impl ResourceRuntimeState {
     pub fn lower_async_capability_bundle(
         &self,
         frozen: &FrozenResourcePolicyDescriptorSet,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> LoweredResourcePolicyBundle {
-        telemetry.async_node_capability_bundle_lowering_count += 1;
+        if let Some(telemetry) = telemetry {
+            telemetry.async_node_capability_bundle_lowering_count += 1;
+        }
         LoweredResourcePolicyBundle::from_frozen_descriptors(frozen)
     }
 

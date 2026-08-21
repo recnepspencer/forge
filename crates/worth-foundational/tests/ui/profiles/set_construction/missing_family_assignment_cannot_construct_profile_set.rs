@@ -1,7 +1,7 @@
 use worth_foundational::{
     AdmissionReadinessProfile, CompatibilityPostureProfile, DiagnosticRichnessProfile,
     FoundationalProfileSet, FoundationalProfileSetInput, RetentionDeliveryProfile,
-    SupportPostureProfile,
+    SupportPostureProfile, CertificationPostureProfile,
 };
 
 fn main() {
@@ -11,5 +11,6 @@ fn main() {
         compatibility_posture: CompatibilityPostureProfile::NativeOnly,
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
+        certification_posture: CertificationPostureProfile::Uncertified,
     });
 }

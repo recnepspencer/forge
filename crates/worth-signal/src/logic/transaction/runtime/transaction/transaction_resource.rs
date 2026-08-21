@@ -19,32 +19,48 @@ where
         &mut self,
         admitted: AdmittedResourceCompletion,
     ) -> Result<ResourceCompletionStagingReport, SignalError> {
-        self.resource
-            .stage_admitted_resource_completion(admitted, &mut self.telemetry.resource)
+        self.resource.stage_admitted_resource_completion(
+            admitted,
+            self.telemetry
+                .as_deref_mut()
+                .map(|telemetry| &mut telemetry.resource),
+        )
     }
 
     pub fn stage_denied_resource_completion(
         &mut self,
         denied: DeniedResourceCompletion,
     ) -> Result<ResourceCompletionDenialStagingReport, SignalError> {
-        self.resource
-            .stage_denied_resource_completion(denied, &mut self.telemetry.resource)
+        self.resource.stage_denied_resource_completion(
+            denied,
+            self.telemetry
+                .as_deref_mut()
+                .map(|telemetry| &mut telemetry.resource),
+        )
     }
 
     pub fn rollback_staged_resource_completion(
         &mut self,
         staged: StagedResourceCompletionEffect,
     ) -> ResourceCompletionRollbackReport {
-        self.resource
-            .rollback_staged_resource_completion(staged, &mut self.telemetry.resource)
+        self.resource.rollback_staged_resource_completion(
+            staged,
+            self.telemetry
+                .as_deref_mut()
+                .map(|telemetry| &mut telemetry.resource),
+        )
     }
 
     pub fn rollback_staged_denied_resource_completion(
         &mut self,
         staged: StagedDeniedResourceCompletionEffect,
     ) -> ResourceCompletionRollbackReport {
-        self.resource
-            .rollback_staged_denied_resource_completion(staged, &mut self.telemetry.resource)
+        self.resource.rollback_staged_denied_resource_completion(
+            staged,
+            self.telemetry
+                .as_deref_mut()
+                .map(|telemetry| &mut telemetry.resource),
+        )
     }
 
     pub fn commit_staged_resource_completion(
@@ -62,14 +78,19 @@ where
             let retired = self.temporal.retire_wake(
                 wake_id,
                 TemporalWakeRetirementReason::Consumed,
-                &mut self.telemetry.temporal,
+                self.telemetry
+                    .as_deref_mut()
+                    .map(|telemetry| &mut telemetry.temporal),
             )?;
             self.scratch.temporal.record_retired_wake(retired);
         }
 
-        let report = self
-            .resource
-            .commit_staged_resource_completion(staged, &mut self.telemetry.resource)?;
+        let report = self.resource.commit_staged_resource_completion(
+            staged,
+            self.telemetry
+                .as_deref_mut()
+                .map(|telemetry| &mut telemetry.resource),
+        )?;
         self.stage_resource_lifecycle_observation(node);
         Ok(report)
     }
@@ -84,15 +105,14 @@ where
         let after_candidate_count = self.scratch.observations.staged_candidate_count();
         let after_classified_count = self.scratch.observations.classified_event_count();
 
-        self.telemetry.transaction.staged_observation_match_count += matched as u64;
-        self.telemetry
-            .transaction
-            .staged_observation_candidate_count +=
-            after_candidate_count.saturating_sub(before_candidate_count) as u64;
-        self.telemetry.transaction.classified_observation_count +=
+        let candidate_delta = after_candidate_count.saturating_sub(before_candidate_count) as u64;
+        let classified_delta =
             after_classified_count.saturating_sub(before_classified_count) as u64;
-        self.telemetry
-            .transaction
-            .observation_classification_breadth += u64::from(matched > 0);
+        self.with_telemetry(|telemetry| {
+            telemetry.transaction.staged_observation_match_count += matched as u64;
+            telemetry.transaction.staged_observation_candidate_count += candidate_delta;
+            telemetry.transaction.classified_observation_count += classified_delta;
+            telemetry.transaction.observation_classification_breadth += u64::from(matched > 0);
+        });
     }
 }

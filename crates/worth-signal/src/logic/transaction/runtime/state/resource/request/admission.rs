@@ -66,7 +66,7 @@ impl ResourceRuntimeState {
         generation_started_tick: ClockTick,
         allow_intent_equivalence_coalescing: bool,
         resolved_timeout: Option<ScheduledResourceTimeoutAdmission>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<ResourceRequestAdmissionReport, crate::data::error::SignalError> {
         let node = intent.node();
         let descriptor_id = self
@@ -74,7 +74,9 @@ impl ResourceRuntimeState {
             .get(&node)
             .copied()
             .ok_or_else(|| {
-                telemetry.resource_undeclared_owner_denial_count += 1;
+                if let Some(telemetry) = telemetry.as_deref_mut() {
+                    telemetry.resource_undeclared_owner_denial_count += 1;
+                }
                 crate::data::error::SignalError::invalid_input(format!(
                     "cannot admit resource request for undeclared resource node {}",
                     node.node()
@@ -99,7 +101,7 @@ impl ResourceRuntimeState {
         generation_started_tick: ClockTick,
         allow_intent_equivalence_coalescing: bool,
         resolved_timeout: Option<ScheduledResourceTimeoutAdmission>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRequestAdmissionReport {
         let input = ResourceRequestAdmissionInput {
             node: intent.node(),
@@ -117,8 +119,8 @@ impl ResourceRuntimeState {
                 input.branch_id,
                 input.generation_started_tick,
             );
-            if let Some(coalesced) =
-                self.try_coalesce_equivalent_request_intent(coalescing_input, telemetry)
+            if let Some(coalesced) = self
+                .try_coalesce_equivalent_request_intent(coalescing_input, telemetry.as_deref_mut())
             {
                 return coalesced;
             }
@@ -129,10 +131,14 @@ impl ResourceRuntimeState {
             input.node,
             admitted.handle(),
             input.descriptor_id,
-            telemetry,
+            telemetry.as_deref_mut(),
         );
-        let prepared =
-            self.prepare_resource_request_admission(input, admitted, supersession, telemetry);
+        let prepared = self.prepare_resource_request_admission(
+            input,
+            admitted,
+            supersession,
+            telemetry.as_deref_mut(),
+        );
         self.install_resource_request_admission(prepared, telemetry)
     }
 
@@ -155,7 +161,7 @@ impl ResourceRuntimeState {
         input: ResourceRequestAdmissionInput,
         admitted: AdmittedResourceRequest,
         supersession: Option<ResourceSupersessionRecord>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> PreparedResourceRequestAdmission {
         let from = self
             .lifecycle_by_node
@@ -164,8 +170,11 @@ impl ResourceRuntimeState {
             .map(ResourceLifecycleSummary::lifecycle)
             .unwrap_or(ResourceLifecycleClass::Unrequested);
         let ordinal = self.issue_lifecycle_ordinal();
-        let output_continuity =
-            self.pending_output_continuity_for_node(input.node, input.descriptor_id, telemetry);
+        let output_continuity = self.pending_output_continuity_for_node_optional(
+            input.node,
+            input.descriptor_id,
+            telemetry.as_deref_mut(),
+        );
         let lifecycle = ResourceLifecycleSummary::new(
             input.node,
             ResourceLifecycleClass::Pending,
@@ -198,9 +207,11 @@ impl ResourceRuntimeState {
         );
         if let Some(wake_id) = timeout.timeout_wake_id {
             in_flight.attach_timeout_wake(wake_id);
-            telemetry.resource_timeout_temporal_wake_footprint = telemetry
-                .resource_timeout_temporal_wake_footprint
-                .saturating_add(1);
+            if let Some(telemetry) = telemetry.as_deref_mut() {
+                telemetry.resource_timeout_temporal_wake_footprint = telemetry
+                    .resource_timeout_temporal_wake_footprint
+                    .saturating_add(1);
+            }
         }
         PreparedResourceRequestAdmission {
             admitted,
@@ -215,7 +226,7 @@ impl ResourceRuntimeState {
     fn install_resource_request_admission(
         &mut self,
         prepared: PreparedResourceRequestAdmission,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRequestAdmissionReport {
         let request_id = prepared.admitted.handle().request_id();
         let node = prepared.in_flight.node();
@@ -226,11 +237,13 @@ impl ResourceRuntimeState {
         self.lifecycle_by_node.insert(node, prepared.lifecycle);
         self.clear_latest_denied_completion_for_node(node);
 
-        telemetry.resource_request_admission_count += 1;
-        telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
-        telemetry.resource_in_flight_frontier_width = telemetry
-            .resource_in_flight_frontier_width
-            .max(self.active_request_by_node.len() as u64);
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_request_admission_count += 1;
+            telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
+            telemetry.resource_in_flight_frontier_width = telemetry
+                .resource_in_flight_frontier_width
+                .max(self.active_request_by_node.len() as u64);
+        }
 
         let lifecycle_transition_count = u32::from(prepared.supersession.is_some()) + 1;
         let density_strategy =
@@ -245,7 +258,7 @@ impl ResourceRuntimeState {
                 )
             })
             .unwrap_or(0);
-        let performance = Self::record_boundary_performance(
+        let performance = Self::record_boundary_performance_optional(
             telemetry,
             ResourceBoundaryPerformanceEnvelope::request_admission(
                 1,

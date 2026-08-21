@@ -11,9 +11,10 @@ use worth_harness::facade::{
 
 use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
 use crate::data::error::SignalError;
-use crate::diagnostics::policy::{DiagnosticsAvailability, SignalRuntimePolicy};
+use crate::diagnostics::policy::DiagnosticsAvailability;
 use crate::logic::explain::NodeExplanation;
 use crate::logic::planner::{ExecutionReport, PlanSummary};
+use crate::runtime_policy::SignalRuntimePolicy;
 
 use super::super::runtime::{SignalFixtureFactory, SignalHarnessRuntime};
 use super::SignalHarnessBridge;
@@ -47,9 +48,9 @@ impl SignalHarnessBridge {
             "replay_detail": format!("{:?}", policy.retention_budget.replay_detail),
             "semantic_retention": format!("{:?}", policy.retention_budget.semantic_detail),
             "parallel_admission": {
-                "operational_min_parallel_tasks": policy.parallel_admission.operational_min_parallel_tasks,
-                "development_min_parallel_tasks": policy.parallel_admission.development_min_parallel_tasks,
-                "forensic_min_parallel_tasks": policy.parallel_admission.forensic_min_parallel_tasks,
+                "throughput_min_parallel_tasks": policy.parallel_admission.throughput_min_parallel_tasks,
+                "balanced_min_parallel_tasks": policy.parallel_admission.balanced_min_parallel_tasks,
+                "latency_bounded_min_parallel_tasks": policy.parallel_admission.latency_bounded_min_parallel_tasks,
                 "full_parallel_min_tasks": policy.parallel_admission.full_parallel_min_tasks,
             },
         })
@@ -63,6 +64,7 @@ impl SignalHarnessBridge {
             DiagnosticsAvailability::ReconstructedAvailable => "reconstructed",
             DiagnosticsAvailability::OmittedByTier => "omitted_by_tier",
             DiagnosticsAvailability::DeniedByBudget => "denied_by_budget",
+            DiagnosticsAvailability::ObservationNotActivated => "observation_not_activated",
             DiagnosticsAvailability::UnavailableNotRetained => "unavailable_not_retained",
             DiagnosticsAvailability::UnavailableNotReconstructable => {
                 "unavailable_not_reconstructable"

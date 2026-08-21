@@ -9,6 +9,14 @@ impl ResourceRuntimeState {
         declaration: &ResourceNodeDeclaration,
         telemetry: &mut ResourceTelemetry,
     ) -> Result<ResourcePolicyCompatibilityReport, crate::data::error::SignalError> {
+        self.classify_policy_compatibility_optional(declaration, Some(telemetry))
+    }
+
+    pub fn classify_policy_compatibility_optional(
+        &self,
+        declaration: &ResourceNodeDeclaration,
+        telemetry: Option<&mut ResourceTelemetry>,
+    ) -> Result<ResourcePolicyCompatibilityReport, crate::data::error::SignalError> {
         let Some(historical_descriptor) = self.descriptor_for_node(declaration.node()) else {
             return Err(crate::data::error::SignalError::invalid_input(format!(
                 "cannot classify resource policy compatibility for undeclared resource node {}",
@@ -24,14 +32,16 @@ impl ResourceRuntimeState {
             &self.policy_registry,
         )
         .map_err(resource_policy_resolution_signal_error)?;
-        telemetry.resource_policy_compatibility_count += 1;
-        telemetry.resource_policy_descriptor_comparison_count = telemetry
-            .resource_policy_descriptor_comparison_count
-            .saturating_add(report.compared_width() as u64);
-        telemetry.resource_policy_descriptor_incompatibility_count = telemetry
-            .resource_policy_descriptor_incompatibility_count
-            .saturating_add(report.incompatible_width() as u64);
-        telemetry.record_boundary_performance_envelope(report.performance());
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_policy_compatibility_count += 1;
+            telemetry.resource_policy_descriptor_comparison_count = telemetry
+                .resource_policy_descriptor_comparison_count
+                .saturating_add(report.compared_width() as u64);
+            telemetry.resource_policy_descriptor_incompatibility_count = telemetry
+                .resource_policy_descriptor_incompatibility_count
+                .saturating_add(report.incompatible_width() as u64);
+            telemetry.record_boundary_performance_envelope(report.performance());
+        }
         Ok(report)
     }
 
@@ -39,6 +49,17 @@ impl ResourceRuntimeState {
         &self,
         declaration: &ResourceNodeDeclaration,
         telemetry: &mut ResourceTelemetry,
+    ) -> Result<
+        Result<ResourcePolicyRestoreCompatibilityProof, DeniedResourcePolicyRestoreCompatibility>,
+        crate::data::error::SignalError,
+    > {
+        self.admit_policy_restore_compatibility_optional(declaration, Some(telemetry))
+    }
+
+    pub fn admit_policy_restore_compatibility_optional(
+        &self,
+        declaration: &ResourceNodeDeclaration,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<
         Result<ResourcePolicyRestoreCompatibilityProof, DeniedResourcePolicyRestoreCompatibility>,
         crate::data::error::SignalError,
@@ -60,22 +81,26 @@ impl ResourceRuntimeState {
                 &self.policy_registry,
             )
             .map_err(resource_policy_resolution_signal_error)?;
-        telemetry.resource_policy_compatibility_count += 1;
-        telemetry.resource_policy_descriptor_comparison_count = telemetry
-            .resource_policy_descriptor_comparison_count
-            .saturating_add(compatibility.compared_width() as u64);
-        telemetry.resource_policy_descriptor_incompatibility_count = telemetry
-            .resource_policy_descriptor_incompatibility_count
-            .saturating_add(compatibility.incompatible_width() as u64);
-        telemetry.record_boundary_performance_envelope(compatibility.performance());
-        telemetry.resource_replay_compatibility_decision_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_policy_compatibility_count += 1;
+            telemetry.resource_policy_descriptor_comparison_count = telemetry
+                .resource_policy_descriptor_comparison_count
+                .saturating_add(compatibility.compared_width() as u64);
+            telemetry.resource_policy_descriptor_incompatibility_count = telemetry
+                .resource_policy_descriptor_incompatibility_count
+                .saturating_add(compatibility.incompatible_width() as u64);
+            telemetry.record_boundary_performance_envelope(compatibility.performance());
+            telemetry.resource_replay_compatibility_decision_count += 1;
+        }
         if compatibility.is_compatible() {
             if compatibility
                 .families()
                 .iter()
                 .all(|family| replay_decision_plan.admits_compatible_class(family.class()))
             {
-                telemetry.resource_replay_compatible_count += 1;
+                if let Some(telemetry) = telemetry.as_deref_mut() {
+                    telemetry.resource_replay_compatible_count += 1;
+                }
                 Ok(Ok(
                     ResourcePolicyRestoreCompatibilityProof::from_compatibility(
                         compatibility,
@@ -84,7 +109,9 @@ impl ResourceRuntimeState {
                     .expect("compatible report must admit restore compatibility proof"),
                 ))
             } else {
-                telemetry.resource_replay_incompatible_count += 1;
+                if let Some(telemetry) = telemetry.as_deref_mut() {
+                    telemetry.resource_replay_incompatible_count += 1;
+                }
                 let primary_incompatible_kind = compatibility
                     .families()
                     .iter()
@@ -100,13 +127,17 @@ impl ResourceRuntimeState {
                 ))
             }
         } else {
-            telemetry.resource_replay_incompatible_count += 1;
+            if let Some(telemetry) = telemetry.as_deref_mut() {
+                telemetry.resource_replay_incompatible_count += 1;
+            }
             if compatibility
                 .families()
                 .iter()
                 .any(|family| family.class() == ResourcePolicyCompatibilityClass::MissingDescriptor)
             {
-                telemetry.resource_replay_missing_policy_count += 1;
+                if let Some(telemetry) = telemetry.as_deref_mut() {
+                    telemetry.resource_replay_missing_policy_count += 1;
+                }
             }
             Ok(Err(
                 DeniedResourcePolicyRestoreCompatibility::from_compatibility(

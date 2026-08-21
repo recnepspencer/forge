@@ -42,7 +42,7 @@ impl domain::WorthQueryWorkflowParallelAdmissionProvider<GeometryDomain, Workflo
         }
         Ok(
             worth_signal::facade::adapters::FrontierRouteEvidenceReceipt::from_reason(
-                worth_signal::facade::adapters::FrontierRouteEvidenceReason::AdmittedOperational,
+                worth_signal::facade::adapters::FrontierRouteEvidenceReason::AdmittedThroughput,
             ),
         )
     }

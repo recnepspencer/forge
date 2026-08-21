@@ -108,7 +108,6 @@ pub use crate::data::temporal::{
 };
 pub use crate::data::tier::TierPolicy as RuntimeTierPolicy;
 pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger};
-pub use crate::diagnostics::policy::SignalRuntimePolicy as RuntimePolicy;
 pub use crate::logic::invalidation::mark_dirty_batch;
 pub use crate::logic::transaction::DefinedComputation as RecipeInstance;
 pub use crate::logic::transaction::DefinedKeyedComputation as KeyedRecipeInstance;
@@ -131,14 +130,15 @@ pub use crate::logic::transaction::{
     SignalBranchRestorePosture, SignalBranchRetirementBatchDenial,
     SignalBranchRetirementBatchReceipt, SignalBranchRetirementBatchRequest,
     SignalBranchRetirementDenial, SignalBranchRetirementReason, SignalBranchRetirementReceipt,
-    SignalBranchRetirementRequest, SignalBranchTransactionHead, SignalRuntime,
-    SignalRuntimeBuilder, SignalTransaction, TemporalCertificationBuilder,
-    TemporalCertificationBundle, TemporalCertificationBundleMismatchClass,
-    TemporalCertificationBundleParityReport, TemporalCertificationFailure,
-    TemporalCertificationFamily, TemporalCertificationRecord, TemporalCertificationSummary,
-    TemporalEligibilityFact, TemporalReconstructabilityArtifact, TemporalReplayMismatchClass,
-    TemporalReplayParityReport, TemporalStateRebuildProof, TemporalTransactionEvidence,
-    TransactionOutcome, TransactionResult, TransactionTiming,
+    SignalBranchRetirementRequest, SignalBranchTransactionHead, SignalObservationAdmissionDenial,
+    SignalObservationCompletion, SignalObservationRequest, SignalObservationSession,
+    SignalObservationSurface, SignalRuntime, SignalRuntimeBuilder, SignalTransaction,
+    TemporalCertificationBuilder, TemporalCertificationBundle,
+    TemporalCertificationBundleMismatchClass, TemporalCertificationBundleParityReport,
+    TemporalCertificationFailure, TemporalCertificationFamily, TemporalCertificationRecord,
+    TemporalCertificationSummary, TemporalEligibilityFact, TemporalReconstructabilityArtifact,
+    TemporalReplayMismatchClass, TemporalReplayParityReport, TemporalStateRebuildProof,
+    TemporalTransactionEvidence, TransactionOutcome, TransactionResult, TransactionTiming,
     ValidatedBranchTargetedTransactionRequest,
 };
 pub use crate::logic::transaction::{
@@ -154,6 +154,9 @@ pub use crate::logic::transaction::{
     ObservationListener, ObservationNotice, ObservationPolicy, ObservationReadContext,
     ObservationRegistrySummary, ObservationTrigger, ObservedNodeSet, ObserverId,
 };
+pub use crate::runtime_policy::SignalObservationCapturePlan;
+pub use crate::runtime_policy::SignalRuntimePolicy;
+pub use crate::runtime_policy::SignalRuntimePolicy as RuntimePolicy;
 pub use crate::schema::data::SignalSchemaRegistry;
 pub type BatchChange = ChangeBatch;
 pub type BatchChangeResult = ChangeBatchAdmission;
@@ -172,8 +175,6 @@ pub type DirtyBatch = ChangeBatch;
 pub type SemanticBatchCommit = ChangeBatchAdmission;
 #[cfg(test)]
 pub type TierPolicy<T> = RuntimeTierPolicy<T>;
-#[cfg(test)]
-pub type SignalRuntimePolicy = RuntimePolicy;
 #[cfg(test)]
 pub type DefinedComputation<T, F> = RecipeInstance<T, F>;
 #[cfg(test)]

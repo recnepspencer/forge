@@ -158,5 +158,16 @@ fn work_class_digest(work_class: FoundationalPerformanceWorkClass) -> u64 {
         FoundationalPerformanceWorkClass::ReplayReconstruction => "work.replay_reconstruction",
         FoundationalPerformanceWorkClass::SupportReportAssembly => "work.support_report_assembly",
         FoundationalPerformanceWorkClass::ForensicParity => "work.forensic_parity",
+        FoundationalPerformanceWorkClass::StructuralCounterCapture => {
+            "work.structural_counter_capture"
+        }
+        FoundationalPerformanceWorkClass::DiagnosticFactCapture => "work.diagnostic_fact_capture",
+        FoundationalPerformanceWorkClass::DescriptiveLineageRecordMaintenance => {
+            "work.descriptive_lineage_record_maintenance"
+        }
+        FoundationalPerformanceWorkClass::ProvenanceFactCapture => "work.provenance_fact_capture",
+        FoundationalPerformanceWorkClass::ReplaySidecarMaintenance => {
+            "work.replay_sidecar_maintenance"
+        }
     })
 }

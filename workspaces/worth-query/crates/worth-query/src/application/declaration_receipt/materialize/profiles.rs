@@ -1,7 +1,7 @@
 use worth_foundational::facade::{
     profiles, AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, MaterializedFoundationalProfileSet, RetentionDeliveryProfile,
-    SupportPostureProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, MaterializedFoundationalProfileSet,
+    ObservationActivationProfile, RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_proof::TransitionOutcome;
 
@@ -23,6 +23,8 @@ fn build_default_receipt_materialized_profile() -> MaterializedFoundationalProfi
         .diagnostic_richness(DiagnosticRichnessProfile::Standard)
         .support_posture(SupportPostureProfile::SupportReady)
         .compatibility_posture(CompatibilityPostureProfile::CompatibilityLowered)
+        .execution_objective(ExecutionObjectiveProfile::Balanced)
+        .observation_activation(ObservationActivationProfile::Continuous)
         .admission_readiness(AdmissionReadinessProfile::Admitted)
         .retention_delivery(RetentionDeliveryProfile::Retained)
         .certification_posture(CertificationPostureProfile::Uncertified)

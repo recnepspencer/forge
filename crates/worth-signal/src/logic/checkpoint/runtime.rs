@@ -89,6 +89,19 @@ impl<D: Copy + Ord, I: Copy + Ord> CheckpointRuntime<D, I> {
     where
         E: CheckpointEvaluator<Domain = D, Impact = I>,
     {
+        self.flush_with_capture(barrier, evaluator, ctx, true)
+    }
+
+    pub(crate) fn flush_with_capture<E>(
+        &mut self,
+        barrier: CheckpointBarrier,
+        evaluator: &mut E,
+        ctx: &mut E::Context,
+        capture_telemetry: bool,
+    ) -> Result<usize, SignalError>
+    where
+        E: CheckpointEvaluator<Domain = D, Impact = I>,
+    {
         let flush_start = RuntimeInstant::now();
         let domains: Vec<D> = self
             .dirty
@@ -104,8 +117,10 @@ impl<D: Copy + Ord, I: Copy + Ord> CheckpointRuntime<D, I> {
             evaluator.refresh(*domain, impact, ctx)?;
         }
 
-        self.telemetry.checkpoint.checkpoint_flushes += 1;
-        self.telemetry.checkpoint.checkpoint_flush_nanos += flush_start.elapsed().as_nanos();
+        if capture_telemetry {
+            self.telemetry.checkpoint.checkpoint_flushes += 1;
+            self.telemetry.checkpoint.checkpoint_flush_nanos += flush_start.elapsed().as_nanos();
+        }
 
         Ok(domains.len())
     }

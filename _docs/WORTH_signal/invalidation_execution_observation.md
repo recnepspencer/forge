@@ -40,9 +40,10 @@ cannot prove that any work occurred. A Signal execution receipt is a runtime-
 created record of performed work. Its counters cannot be constructed through
 the public facade.
 
-The observation token is linear and runtime-local. Starting a newer
-observation supersedes the older token. Finishing on another runtime, finishing
-an empty observation, or finishing a superseded observation returns an error.
+The observation token is linear and runtime-local. A nested or concurrent
+admission is rejected while a session is active; it does not supersede the
+active token. Finishing on another runtime, finishing an empty observation, or
+finishing a stale or duplicate token returns an error.
 
 `InvalidationExecutionSummary` is a read-only convenience view derived from a
 receipt. It is descriptive; it grants no execution authority.
@@ -89,7 +90,7 @@ use worth_signal::facade::adapters::{
     SignalInvalidationRealizedCounters,
 };
 
-let observation = runtime.begin_invalidation_execution_observation();
+let observation = runtime.begin_invalidation_execution_observation()?;
 
 apply_market_data_batch(&mut runtime, &market_batch)?;
 settle_requested_portfolio_outputs(&mut runtime, &portfolio)?;
@@ -142,7 +143,7 @@ queue activity, evaluation, publication, and topology validation.
 If finishing fails, check whether:
 
 - the observation and runtime belong together
-- a newer observation superseded the token
+- the token is stale or duplicate after the session completed
 - the bounded operation performed any instrumented invalidation work
 
 Development and Forensic diagnostics can add node-level sidecar detail without

@@ -56,7 +56,7 @@ impl ResourceRuntimeState {
         branch_id: SignalBranchId,
         generation_started_tick: ClockTick,
         resolved_timeout: Option<ScheduledResourceTimeoutAdmission>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRetryAdmissionReport {
         let input = RetryAdmissionInput {
             scheduled: prepared.scheduled,
@@ -66,13 +66,15 @@ impl ResourceRuntimeState {
             generation_started_tick,
             resolved_timeout,
         };
-        let prepared = self.prepare_retry_admission_state(input, telemetry);
-        let installed = self.install_retry_admission_state(prepared, telemetry);
-        telemetry.resource_retry_temporal_wake_footprint = telemetry
-            .resource_retry_temporal_wake_footprint
-            .saturating_add(1);
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        let prepared = self.prepare_retry_admission_state(input, telemetry.as_deref_mut());
+        let installed = self.install_retry_admission_state(prepared, telemetry.as_deref_mut());
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_retry_temporal_wake_footprint = telemetry
+                .resource_retry_temporal_wake_footprint
+                .saturating_add(1);
+        }
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::retry_admission(
                 1,
                 0,
@@ -96,7 +98,7 @@ impl ResourceRuntimeState {
     fn prepare_retry_admission_state(
         &mut self,
         input: RetryAdmissionInput,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> PreparedRetryAdmissionState {
         let retry_request_id = self.issue_request_id();
         let admitted = AdmittedResourceRequest::new(
@@ -106,10 +108,10 @@ impl ResourceRuntimeState {
             input.scheduled.next_attempt(),
         );
         let ordinal = self.issue_lifecycle_ordinal();
-        let output_continuity = self.pending_output_continuity_for_node(
+        let output_continuity = self.pending_output_continuity_for_node_optional(
             input.previous.node(),
             input.previous.descriptor_id(),
-            telemetry,
+            telemetry.as_deref_mut(),
         );
         let lifecycle = ResourceLifecycleSummary::new(
             input.previous.node(),
@@ -167,9 +169,11 @@ impl ResourceRuntimeState {
         );
         if let Some(wake_id) = timeout_wake_id {
             in_flight.attach_timeout_wake(wake_id);
-            telemetry.resource_timeout_temporal_wake_footprint = telemetry
-                .resource_timeout_temporal_wake_footprint
-                .saturating_add(1);
+            if let Some(telemetry) = telemetry.as_deref_mut() {
+                telemetry.resource_timeout_temporal_wake_footprint = telemetry
+                    .resource_timeout_temporal_wake_footprint
+                    .saturating_add(1);
+            }
         }
         PreparedRetryAdmissionState {
             scheduled: input.scheduled,
@@ -186,7 +190,7 @@ impl ResourceRuntimeState {
     fn install_retry_admission_state(
         &mut self,
         prepared: PreparedRetryAdmissionState,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> InstalledRetryAdmission {
         let PreparedRetryAdmissionState {
             scheduled,
@@ -209,11 +213,13 @@ impl ResourceRuntimeState {
             .insert(previous.node(), admitted.handle().request_id());
         self.lifecycle_by_node.insert(previous.node(), lifecycle);
         self.clear_latest_denied_completion_for_node(previous.node());
-        telemetry.resource_retry_admission_count += 1;
-        telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
-        telemetry.resource_in_flight_frontier_width = telemetry
-            .resource_in_flight_frontier_width
-            .max(self.active_request_by_node.len() as u64);
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_retry_admission_count += 1;
+            telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
+            telemetry.resource_in_flight_frontier_width = telemetry
+                .resource_in_flight_frontier_width
+                .max(self.active_request_by_node.len() as u64);
+        }
         InstalledRetryAdmission {
             scheduled,
             admitted,

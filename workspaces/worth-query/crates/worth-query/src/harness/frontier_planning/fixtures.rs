@@ -3,7 +3,9 @@ use worth_signal::facade::adapters::{
     SignalInvalidationExecutionReceipt,
 };
 use worth_signal::facade::specialist::{EvaluationOutput, RunMode};
-use worth_signal::facade::{Aspect, AspectVersion, SignalError, SignalGraph};
+use worth_signal::facade::{
+    Aspect, AspectVersion, SignalError, SignalGraph, SignalObservationRequest,
+};
 
 pub(super) fn sample_signal_planning_estimate() -> InvalidationPlanningEstimate {
     InvalidationPlanningEstimate::default()
@@ -12,7 +14,9 @@ pub(super) fn sample_signal_planning_estimate() -> InvalidationPlanningEstimate 
 pub(super) fn sample_signal_execution_receipt() -> SignalInvalidationExecutionReceipt {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
-    let observation = graph.begin_invalidation_execution_observation();
+    let observation = graph
+        .begin_observation_session(SignalObservationRequest::operation())
+        .expect("observation admission should succeed for the sample graph");
     let plan = graph
         .build_evaluation_plan(&[node], RunMode::ForceOnDemand)
         .expect("force-on-demand sample plan should build");
@@ -22,7 +26,7 @@ pub(super) fn sample_signal_execution_receipt() -> SignalInvalidationExecutionRe
         })
         .expect("sample invalidation execution should succeed");
     graph
-        .finish_invalidation_execution_observation(observation)
+        .finish_observation_session(&observation)
         .expect("performed sample invalidation should mint a receipt")
 }
 

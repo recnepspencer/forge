@@ -288,16 +288,14 @@ pub(super) fn apply_test_precompute_telemetry(
     graph: &mut SignalGraph,
     telemetry: &TestPrecomputeTelemetry,
 ) {
-    graph.telemetry_mut().evaluation.nodes_evaluated += telemetry.nodes_evaluated;
-    graph.telemetry_mut().evaluation.condition_skip_count += telemetry.condition_skip_count;
-    graph.telemetry_mut().evaluation.ondemand_deferred_count += telemetry.ondemand_deferred_count;
-    graph.telemetry_mut().evaluation.debounce_deferred_count += telemetry.debounce_deferred_count;
-    graph
-        .telemetry_mut()
-        .temporal
-        .temporal_eligibility_lowering_count += telemetry.temporal_eligibility_lowering_count;
-    graph
-        .telemetry_mut()
-        .invalidation
-        .partition_scope_revert_clean_count += telemetry.partition_scope_revert_clean_count;
+    graph.with_telemetry(|runtime| {
+        runtime.evaluation.nodes_evaluated += telemetry.nodes_evaluated;
+        runtime.evaluation.condition_skip_count += telemetry.condition_skip_count;
+        runtime.evaluation.ondemand_deferred_count += telemetry.ondemand_deferred_count;
+        runtime.evaluation.debounce_deferred_count += telemetry.debounce_deferred_count;
+        runtime.temporal.temporal_eligibility_lowering_count +=
+            telemetry.temporal_eligibility_lowering_count;
+        runtime.invalidation.partition_scope_revert_clean_count +=
+            telemetry.partition_scope_revert_clean_count;
+    });
 }

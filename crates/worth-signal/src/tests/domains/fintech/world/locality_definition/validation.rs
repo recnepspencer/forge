@@ -224,7 +224,10 @@ impl FinancialLocalityDefinition {
         );
         assert_eq!(
             self.outputs.len(),
-            usize::from(2 * regions + matching_memberships + instruments_per_matching_region + 3)
+            2 * usize::from(regions)
+                + usize::from(matching_memberships)
+                + usize::from(instruments_per_matching_region)
+                + 3
         );
     }
 

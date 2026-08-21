@@ -52,10 +52,12 @@ fn profile_attachment_and_reduced_richness_do_not_weaken_receipt_evidence_floor(
     let attached_basis = ready_receipt_ref(profiled.payload().payload());
     assert_equivalent(original_basis, attached_basis);
 
-    let plan = plan_foundational_profile_materialization_with_elision::<ProofBearingArtifactTarget>(
-        profiled.payload().profile(),
-        worth_foundational::FoundationalDescriptiveElisionProfile::OperationalSummary,
-    );
+    let plan =
+        plan_foundational_profile_materialization_with_elision::<ProofBearingArtifactTarget>(
+            profiled.payload().profile(),
+            worth_foundational::FoundationalDescriptiveElisionProfile::OperationalSummary,
+        )
+        .expect("continuous profile should carry its default disposition");
     assert!(plan
         .decision_for(worth_foundational::FoundationalDescriptiveSurface::Provenance)
         .expect("proof-bearing provenance decision")
@@ -75,6 +77,8 @@ fn profile() -> FoundationalProfileSet {
         admission_readiness: AdmissionReadinessProfile::ProductionGateReady,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::ProductionCertified,
+        execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+        observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
     })
     .expect("coherent profile")
 }

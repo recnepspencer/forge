@@ -1,6 +1,6 @@
 use crate::facade::{
     ArtifactRetentionPolicy, EvaluationRequestMode, NodeEvaluationResult, SignalGraph,
-    SignalRuntimePolicy,
+    SignalObservationRequest, SignalRuntimePolicy,
 };
 use crate::tests::support::{version_ab, GraphDependencyBatchExt, ASPECT_A};
 
@@ -104,6 +104,9 @@ fn hot_effect_path_only_retains_cold_artifact_records_when_policy_requires_it() 
             .with_explanation_retention(ArtifactRetentionPolicy::Omit)
             .with_provenance_retention(ArtifactRetentionPolicy::Omit),
     );
+    let omitted_telemetry_session = omitted
+        .begin_observation_session(SignalObservationRequest::telemetry())
+        .unwrap();
 
     let op_bootstrap = omitted
         .build_evaluation_plan(
@@ -125,6 +128,9 @@ fn hot_effect_path_only_retains_cold_artifact_records_when_policy_requires_it() 
             };
             Ok(result)
         })
+        .unwrap();
+    omitted
+        .finish_observation_session(&omitted_telemetry_session)
         .unwrap();
 
     assert!(

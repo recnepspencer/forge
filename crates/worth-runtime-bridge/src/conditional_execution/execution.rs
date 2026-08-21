@@ -1,5 +1,7 @@
 use worth_signal::facade::adapters::SignalInvalidationExecutionReceipt;
-use worth_signal::facade::{SignalConditionalDecisionEvidence, SignalConditionalExecutionRequest};
+use worth_signal::facade::{
+    SignalConditionalDecisionEvidence, SignalConditionalExecutionRequest, SignalObservationRequest,
+};
 
 use super::resolver_adapters::{ComparatorAdapter, ConditionAdapter};
 use super::retained_decision::BridgeRetainedConditionalDecisionCore;
@@ -154,7 +156,13 @@ impl BridgeOwnedSignalRuntime {
         let observation = self
             .signal_runtime
             .graph_mut()
-            .begin_invalidation_execution_observation();
+            .begin_observation_session(SignalObservationRequest::operation())
+            .map_err(|denial| {
+                BridgeConditionalDenial::new(
+                    BridgeConditionalDenialKind::SignalExecution,
+                    denial.to_string(),
+                )
+            })?;
         let signal = self
             .signal_runtime
             .graph_mut()
@@ -167,7 +175,7 @@ impl BridgeOwnedSignalRuntime {
         let performed_signal_invalidation = self
             .signal_runtime
             .graph_mut()
-            .finish_optional_invalidation_execution_observation(observation)
+            .finish_optional_invalidation_execution_observation(&observation)
             .map_err(|error| {
                 BridgeConditionalDenial::new(
                     BridgeConditionalDenialKind::SignalExecution,

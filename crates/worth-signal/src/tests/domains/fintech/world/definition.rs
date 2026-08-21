@@ -51,12 +51,12 @@ enum FinancialWorldDefinitionKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(in crate::tests::domains::fintech) struct FinancialWorldDefinition {
+pub(crate) struct FinancialWorldDefinition {
     kind: FinancialWorldDefinitionKind,
 }
 
 impl FinancialWorldDefinition {
-    pub(in crate::tests::domains::fintech) fn deterministic(seed: u64) -> Self {
+    pub(crate) fn deterministic(seed: u64) -> Self {
         let positions = vec![
             FinancialPosition::rates_bond(),
             FinancialPosition::fx_forward(),
@@ -110,7 +110,7 @@ impl FinancialWorldDefinition {
         }
     }
 
-    pub(in crate::tests::domains::fintech) fn partitioned_curve_universe(
+    pub(crate) fn partitioned_curve_universe(
         seed: u64,
         regions: u16,
         matching_memberships: u16,
@@ -155,7 +155,7 @@ impl FinancialWorldDefinition {
         }
     }
 
-    pub(in crate::tests::domains::fintech) fn dense_market_close(
+    pub(crate) fn dense_market_close(
         seed: u64,
         total_outputs: u32,
         affected_ratio: super::DensityRatio,
@@ -259,6 +259,13 @@ impl FinancialWorldDefinition {
         &self.portfolio().market
     }
 
+    pub(in crate::tests::domains::fintech) fn first_market_factor(&self) -> MarketFactorKey {
+        self.market()
+            .factors()
+            .next()
+            .expect("financial world must expose a market factor")
+    }
+
     pub(in crate::tests::domains::fintech) fn positions(&self) -> &[FinancialPosition] {
         &self.portfolio().positions
     }
@@ -318,6 +325,10 @@ impl FinancialWorldDefinition {
         let portfolio = changed.portfolio_mut();
         portfolio.market = portfolio.market.with_factor_delta(factor, delta);
         changed
+    }
+
+    pub(crate) fn with_first_market_factor_delta(&self, delta: i64) -> Self {
+        self.with_market_factor_delta(self.first_market_factor(), delta)
     }
 
     pub(in crate::tests::domains::fintech) fn with_factor_output_tolerance(

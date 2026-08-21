@@ -9,8 +9,9 @@ use super::targets::WorthQueryLowerRuntimeBoundaryBoundContributionTarget;
 use super::test_support::{lower_runtime_target, ready_payload};
 use worth_foundational::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalDiagnosticDeliveryClass, FoundationalProfileSet,
-    FoundationalProfileSetInput, RetentionDeliveryProfile, SupportPostureProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, FoundationalDiagnosticDeliveryClass,
+    FoundationalProfileSet, FoundationalProfileSetInput, ObservationActivationProfile,
+    RetentionDeliveryProfile, SupportPostureProfile,
 };
 
 #[test]
@@ -73,6 +74,8 @@ fn forensic_support_profile() -> FoundationalProfileSet {
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::Uncertified,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
     })
     .expect("valid profile")
 }

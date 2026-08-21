@@ -6,9 +6,9 @@ use crate::data::output::ChangedRegion;
 use crate::logic::context::EvaluationContext;
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::invalidation::scheduling::merge_repeated_current_admission;
-use crate::logic::planner::StageExecutor;
+use crate::logic::planner::{StageExecutionOutcome, StageExecutionRecord, StageExecutor};
 
-use super::super::locality_evaluation::runtime_shocked_values;
+use super::super::locality_evaluation::runtime_shocked_values_for_batch;
 use super::{
     signal_aspect, CompiledFinancialLocalityWorld, FinancialLocalityRedObservation,
     LocalityEvaluationProgram, LocalitySemanticOutputId, RedObservationInput,
@@ -23,8 +23,15 @@ mod restore;
 
 pub(in crate::tests::domains::fintech) use restore::FinancialRestoreLifecycleEvidence;
 
+pub(super) struct LocalityExecutionSettlement {
+    pub(super) evaluated_outputs: BTreeSet<LocalitySemanticOutputId>,
+    pub(super) evaluated_sequence: Vec<LocalitySemanticOutputId>,
+    pub(super) stage_outcomes: Vec<StageExecutionOutcome>,
+    pub(super) stage_records: Vec<StageExecutionRecord>,
+}
+
 impl CompiledFinancialLocalityWorld {
-    pub(super) fn certify_restore_lifecycle(
+    pub(in crate::tests::domains::fintech::world::compiler) fn certify_restore_lifecycle(
         &mut self,
     ) -> Result<FinancialRestoreLifecycleEvidence, SignalError> {
         restore::certify_restore_lifecycle(self)
@@ -62,7 +69,7 @@ impl CompiledFinancialLocalityWorld {
                 _ => None,
             })
             .collect::<Vec<_>>();
-        let evaluated_outputs = if self.locality_definition().scenario()
+        let settlement = if self.locality_definition().scenario()
             == FinancialLocalityScenario::PortfolioDependencyChurn
         {
             churn::run_churn_trace(self, trace_index, executor)?
@@ -72,15 +79,37 @@ impl CompiledFinancialLocalityWorld {
         };
         let after = self.runtime.graph().telemetry().invalidation;
         let evaluation_after = self.runtime.graph().telemetry().evaluation;
-        let baseline_retained_outputs = self.baseline_retained_outputs(&evaluated_outputs)?;
+        let baseline_retained_outputs =
+            self.baseline_retained_outputs(&settlement.evaluated_outputs)?;
+        let graph = self.runtime.graph();
+        let explanation_fact_count = self
+            .handles
+            .values()
+            .filter(|node| graph.observe().explanation_fact(**node).is_some())
+            .count();
+        let provenance_fact_count = self
+            .handles
+            .values()
+            .filter(|node| graph.observe().provenance_fact(**node).is_some())
+            .count();
         Ok(self.red_observation(RedObservationInput {
             before,
             after,
             evaluation_before,
             evaluation_after,
-            evaluated_outputs,
+            evaluated_outputs: settlement.evaluated_outputs,
             baseline_retained_outputs,
             performed: self.runtime.graph().invalidation_performed_counters(),
+            execution_stage_outcomes: settlement.stage_outcomes,
+            lineage_records: self.runtime.graph().observe().lineage_records().len(),
+            explanation_fact_count,
+            provenance_fact_count,
+            frontier_summary_retained: graph
+                .observe()
+                .latest_frontier_execution_summary()
+                .is_some(),
+            replay_event_count: graph.observe().replay_events().len(),
+            flow_summary_retained: graph.observe().latest_flow_diagnostics().is_some(),
         }))
     }
 
@@ -94,22 +123,38 @@ impl CompiledFinancialLocalityWorld {
             .parallelism
             .stage_executor();
         self.settle_mutations_with_retries(mutations, &[], executor)
+            .map(|settlement| settlement.evaluated_outputs)
     }
 
-    fn settle_mutations_with_retries(
+    pub(super) fn settle_mutations_with_retries(
         &mut self,
         mutations: &[FinancialLocalityMutation],
         retry_targets: &[LocalitySemanticOutputId],
         executor: StageExecutor,
-    ) -> Result<BTreeSet<LocalitySemanticOutputId>, SignalError> {
-        let shocked_values =
-            runtime_shocked_values(self.locality_definition(), &self.baseline_values, mutations)?;
-        let program = LocalityEvaluationProgram::shocked(
+    ) -> Result<LocalityExecutionSettlement, SignalError> {
+        self.settle_mutations_with_retries_at_batch(mutations, retry_targets, executor, 0)
+    }
+
+    pub(super) fn settle_mutations_with_retries_at_batch(
+        &mut self,
+        mutations: &[FinancialLocalityMutation],
+        retry_targets: &[LocalitySemanticOutputId],
+        executor: StageExecutor,
+        batch_index: usize,
+    ) -> Result<LocalityExecutionSettlement, SignalError> {
+        let shocked_values = runtime_shocked_values_for_batch(
+            self.locality_definition(),
+            &self.baseline_values,
+            mutations,
+            batch_index,
+        )?;
+        let program = LocalityEvaluationProgram::shocked_for_batch(
             self.locality_definition(),
             &self.handles,
             &self.baseline_values,
             &shocked_values,
             mutations,
+            batch_index,
         );
         let evaluator = |view: &mut EvaluationContext<'_, ()>| program.evaluate(view);
         for mutation in mutations {
@@ -127,6 +172,8 @@ impl CompiledFinancialLocalityWorld {
             .workload()
             .release_waves()
             .to_vec();
+        let mut stage_outcomes = Vec::new();
+        let mut stage_records = Vec::new();
         for wave in release_waves {
             let nodes = wave
                 .iter()
@@ -145,34 +192,49 @@ impl CompiledFinancialLocalityWorld {
                 .runtime
                 .graph_mut()
                 .build_evaluation_plan(&nodes, EvaluationRequestMode::Default)?;
-            self.runtime
-                .execute_prepared_plan_with_executor(&plan, &(), &evaluator, executor)?;
+            let report = self.runtime.execute_prepared_plan_with_executor(
+                &plan,
+                &(),
+                &evaluator,
+                executor,
+            )?;
+            for stage in report.stages {
+                stage_outcomes.push(stage.outcome);
+                stage_records.push(stage);
+            }
         }
-        Ok(program.evaluated_outputs())
+        Ok(LocalityExecutionSettlement {
+            evaluated_outputs: program.evaluated_outputs(),
+            evaluated_sequence: program.evaluated_sequence(),
+            stage_outcomes,
+            stage_records,
+        })
     }
 
     pub(super) fn apply_mutations(
         &mut self,
         mutations: &[FinancialLocalityMutation],
     ) -> Result<(), SignalError> {
-        for mutation in mutations {
-            let source = self.handles[&mutation.producer];
-            let aspect = signal_aspect(mutation.aspect);
-            let region = mutation.scope.map(|scope| {
-                let mut region = ChangedRegion::new(scope.partition_label());
-                if let Some(detail) = scope.detail_label() {
-                    region = region.with_detail(detail);
-                }
-                region
-            });
-            self.runtime
-                .transaction(&mut (), |tx| match region.as_ref() {
-                    None => tx.mark_changed(source, aspect),
-                    Some(region) => {
-                        tx.mark_changed_with_regions(source, aspect, std::slice::from_ref(region))
+        self.runtime.transaction(&mut (), |tx| {
+            let mut batch = tx.batch_changes();
+            for mutation in mutations {
+                let source = self.handles[&mutation.producer];
+                let aspect = signal_aspect(mutation.aspect);
+                batch = match mutation.scope.map(|scope| {
+                    let mut region = ChangedRegion::new(scope.partition_label());
+                    if let Some(detail) = scope.detail_label() {
+                        region = region.with_detail(detail);
                     }
-                })?;
-        }
+                    region
+                }) {
+                    None => batch.mark(source, aspect),
+                    Some(region) => {
+                        batch.mark_regions(source, aspect, std::slice::from_ref(&region))
+                    }
+                };
+            }
+            batch.apply().map(|_| ())
+        })?;
         Ok(())
     }
 }

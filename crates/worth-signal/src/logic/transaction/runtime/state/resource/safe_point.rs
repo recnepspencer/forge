@@ -6,12 +6,12 @@ impl ResourceRuntimeState {
     pub fn observe_safe_point(
         &mut self,
         binding: &ResourceManagedQueueBinding,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<ResourceSafePointObservationReport, ResourceSafePointObservationDenial> {
         let counters = ResourceSafePointObservationCounters::exact_request_and_pressure();
         let (request, status, lifecycle_ordinal, pressure, timeout_wake_id) = {
             let request = self
-                .in_flight_request(binding.request(), telemetry)
+                .in_flight_request_optional(binding.request(), telemetry)
                 .ok_or_else(|| {
                     ResourceSafePointObservationDenial::request_unavailable(
                         binding.request().request_id(),

@@ -162,7 +162,22 @@ fn classify_reuse_origin(verdict: &EvaluationVerdict, reuse_basis: &ReuseBasis) 
 }
 
 pub(crate) fn record_execution_failure(graph: &mut SignalGraph, context: ExecutionFailureContext) {
+    if !graph.captures_failure_diagnostics() {
+        graph.clear_pending_diagnostics_input();
+        return;
+    }
     DiagnosticsRecorder::new(graph).record_failure(context);
+}
+
+pub(crate) fn record_execution_failure_if_enabled(
+    graph: &mut SignalGraph,
+    build: impl FnOnce() -> ExecutionFailureContext,
+) {
+    if !graph.captures_failure_diagnostics() {
+        graph.clear_pending_diagnostics_input();
+        return;
+    }
+    record_execution_failure(graph, build());
 }
 
 pub(crate) fn accumulate_report_counters(

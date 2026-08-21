@@ -33,6 +33,7 @@ where
     order: Vec<usize>,
     context: SubscriberContext<D>,
     telemetry: RuntimeTelemetry,
+    capture_telemetry: bool,
     finalized: bool,
     rollback_ready: Vec<bool>,
     begin_ready: Vec<bool>,
@@ -61,6 +62,7 @@ where
             order: Vec::new(),
             context: SubscriberContext::new(),
             telemetry: RuntimeTelemetry::default(),
+            capture_telemetry: true,
             finalized: false,
             rollback_ready: Vec::new(),
             begin_ready: Vec::new(),
@@ -87,6 +89,10 @@ where
     /// Reset runtime telemetry counters.
     pub fn reset_telemetry(&mut self) {
         self.telemetry = RuntimeTelemetry::default();
+    }
+
+    pub(crate) fn set_telemetry_capture(&mut self, capture: bool) {
+        self.capture_telemetry = capture;
     }
 
     /// Register one subscriber (must call `finalize_registration` before use).
@@ -187,6 +193,15 @@ where
         barrier: CheckpointBarrier,
         runtime: &mut C,
     ) -> Result<Vec<CompletedSubscriber>, EventFlushError<D>> {
+        self.flush_with_capture(barrier, runtime, self.capture_telemetry)
+    }
+
+    pub(crate) fn flush_with_capture(
+        &mut self,
+        barrier: CheckpointBarrier,
+        runtime: &mut C,
+        capture_telemetry: bool,
+    ) -> Result<Vec<CompletedSubscriber>, EventFlushError<D>> {
         let flush_start = RuntimeInstant::now();
         self.ensure_finalized().map_err(EventFlushError::Registry)?;
 
@@ -247,13 +262,19 @@ where
 
         self.pending.clear();
         self.context.finalize();
-        self.telemetry.checkpoint.event_flushes += 1;
-        self.telemetry.checkpoint.event_flush_nanos += flush_start.elapsed().as_nanos();
+        if capture_telemetry {
+            self.telemetry.checkpoint.event_flushes += 1;
+            self.telemetry.checkpoint.event_flush_nanos += flush_start.elapsed().as_nanos();
+        }
         Ok(completed_subscribers)
     }
 
     /// Roll back lifecycle state in reverse deterministic order.
     pub fn rollback(&mut self, runtime: &mut C) {
+        self.rollback_with_capture(runtime, self.capture_telemetry);
+    }
+
+    pub(crate) fn rollback_with_capture(&mut self, runtime: &mut C, capture_telemetry: bool) {
         self.pending.clear();
         self.context.clear_staged();
         for &idx in self.order.iter().rev() {
@@ -265,7 +286,9 @@ where
         }
         self.rollback_ready.fill(false);
         self.begin_ready.fill(false);
-        self.telemetry.checkpoint.rollback_count += 1;
+        if capture_telemetry {
+            self.telemetry.checkpoint.rollback_count += 1;
+        }
     }
 
     /// Deterministic resolved order for diagnostics/tests.

@@ -39,10 +39,12 @@ impl ResourceRuntimeState {
     pub fn prove_active_resource_revalidation_handle(
         &self,
         handle: ResourceRequestHandle,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<ActiveResourceRevalidationProof> {
-        telemetry.resource_revalidation_active_handle_proof_check_count += 1;
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_revalidation_active_handle_proof_check_count += 1;
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         let in_flight = self.in_flight_by_request.get(&handle.request_id())?;
         if in_flight.handle() != handle
             || in_flight.status() != ResourceInFlightStatus::Active
@@ -103,9 +105,11 @@ impl ResourceRuntimeState {
         &self,
         node: ResourceNodeId,
         node_state: NodeState,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<DependencyChangeResourceRevalidationProof> {
-        telemetry.resource_revalidation_dependency_change_proof_check_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_revalidation_dependency_change_proof_check_count += 1;
+        }
         let descriptor = self.descriptor_for_node(node)?;
         if !descriptor
             .revalidation_decision_plan()
@@ -172,9 +176,11 @@ impl ResourceRuntimeState {
     pub fn prove_terminal_state_resource_revalidation(
         &self,
         node: ResourceNodeId,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<TerminalStateResourceRevalidationProof> {
-        telemetry.resource_revalidation_terminal_state_proof_check_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_revalidation_terminal_state_proof_check_count += 1;
+        }
         let descriptor = self.descriptor_for_node(node)?;
         if !descriptor
             .revalidation_decision_plan()
@@ -225,9 +231,11 @@ impl ResourceRuntimeState {
     pub fn prove_fulfilled_lifecycle_resource_revalidation(
         &self,
         node: ResourceNodeId,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<FulfilledLifecycleResourceRevalidationProof> {
-        telemetry.resource_revalidation_fulfilled_lifecycle_proof_check_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_revalidation_fulfilled_lifecycle_proof_check_count += 1;
+        }
         let descriptor = self.descriptor_for_node(node)?;
         if !descriptor
             .revalidation_decision_plan()

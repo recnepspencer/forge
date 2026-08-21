@@ -39,7 +39,9 @@ where
         if self.graph.is_alive(node) {
             return Ok(());
         }
-        self.telemetry.resource.resource_non_live_owner_denial_count += 1;
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.resource_non_live_owner_denial_count += 1
+        });
         Err(SignalError::invalid_input(format!(
             "cannot {action} for non-live owner {node}"
         )))
@@ -84,9 +86,9 @@ where
             1,
         );
         if !self.graph.is_alive(handle.node()) {
-            self.telemetry
-                .resource
-                .async_node_capability_broad_scan_denial_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.async_node_capability_broad_scan_denial_count += 1
+            });
             return Err(DeniedAsyncNodeHistoricalParity::new(
                 handle.node(),
                 AsyncNodeHistoricalParityDenialClass::NonLiveOwner,
@@ -101,9 +103,9 @@ where
         }
 
         let Some(bundle) = self.async_node_capability_bundle_for_node(handle.node()) else {
-            self.telemetry
-                .resource
-                .async_node_capability_broad_scan_denial_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.async_node_capability_broad_scan_denial_count += 1
+            });
             return Err(DeniedAsyncNodeHistoricalParity::new(
                 handle.node(),
                 AsyncNodeHistoricalParityDenialClass::UndeclaredCapability,
@@ -118,9 +120,9 @@ where
         };
 
         if handle.registry_digest() != bundle.registry_digest() {
-            self.telemetry
-                .resource
-                .async_node_capability_broad_scan_denial_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.async_node_capability_broad_scan_denial_count += 1
+            });
             return Err(DeniedAsyncNodeHistoricalParity::new(
                 handle.node(),
                 AsyncNodeHistoricalParityDenialClass::RegistryDigestDrift,
@@ -134,9 +136,9 @@ where
             ));
         }
         if handle.bundle_digest() != bundle.bundle_digest() {
-            self.telemetry
-                .resource
-                .async_node_capability_broad_scan_denial_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.async_node_capability_broad_scan_denial_count += 1
+            });
             return Err(DeniedAsyncNodeHistoricalParity::new(
                 handle.node(),
                 AsyncNodeHistoricalParityDenialClass::BundleDigestDrift,
@@ -150,9 +152,9 @@ where
             ));
         }
         if handle.payload_contract_digest() != bundle.payload_contract_digest() {
-            self.telemetry
-                .resource
-                .async_node_capability_broad_scan_denial_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.async_node_capability_broad_scan_denial_count += 1
+            });
             return Err(DeniedAsyncNodeHistoricalParity::new(
                 handle.node(),
                 AsyncNodeHistoricalParityDenialClass::PayloadContractDigestDrift,

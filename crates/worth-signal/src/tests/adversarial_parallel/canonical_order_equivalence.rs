@@ -5,7 +5,7 @@ use crate::facade::{
 use crate::tests::support::{version_ab, GraphDependencyBatchExt, ASPECT_A};
 
 use super::canonical_artifact_oracle::canonical_runtime_artifacts;
-use super::executor_policy::hostile_executor_matrix;
+use super::executor_policy::{aggressive_parallel_runtime_policy, hostile_executor_matrix};
 
 #[test]
 fn logically_equivalent_region_orders_produce_identical_provenance_and_replay() {
@@ -267,6 +267,7 @@ fn reordered_dependency_and_region_orders_stay_canonical_across_executor_matrix(
 #[test]
 fn grouped_parallel_publishes_output_commits_in_global_task_order() {
     let mut baseline = SignalGraph::new();
+    baseline.set_runtime_policy(aggressive_parallel_runtime_policy());
     let producers = (0..4)
         .map(|_| baseline.node().produces_aspects(ASPECT_A).build())
         .collect::<Vec<_>>();

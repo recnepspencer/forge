@@ -17,25 +17,31 @@ impl ResourceRuntimeState {
         handle: ResourceRequestHandle,
         previous_timeout_wake_id: TemporalWakeId,
         extended_timeout_wake: ScheduledTemporalWake,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceTimeoutHeartbeatExtensionReport {
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         let candidate = match self
             .classify_timeout_heartbeat_extension(handle, Some(previous_timeout_wake_id))
         {
             Ok(candidate) => candidate,
             Err(class) => {
-                return self.deny_timeout_heartbeat_extension(handle.request_id(), class, telemetry)
+                return self.deny_timeout_heartbeat_extension(
+                    handle.request_id(),
+                    class,
+                    telemetry.as_deref_mut(),
+                )
             }
         };
         let extended = self.apply_timeout_heartbeat_extension(
             candidate,
             previous_timeout_wake_id,
             extended_timeout_wake,
-            telemetry,
+            telemetry.as_deref_mut(),
         );
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::timeout_heartbeat_extension(1, 0, 1),
         );
         ResourceTimeoutHeartbeatExtensionReport::admitted(extended, performance)
@@ -92,7 +98,7 @@ impl ResourceRuntimeState {
         candidate: ResourceTimeoutHeartbeatExtensionCandidate,
         previous_timeout_wake_id: TemporalWakeId,
         extended_timeout_wake: ScheduledTemporalWake,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> ExtendedResourceTimeoutHeartbeat {
         let in_flight = self
             .in_flight_by_request
@@ -104,10 +110,12 @@ impl ResourceRuntimeState {
             Some(candidate.active_timeout_wake_id)
         );
         in_flight.attach_timeout_wake(extended_timeout_wake.id());
-        telemetry.resource_progress_heartbeat_extension_count += 1;
-        telemetry.resource_timeout_temporal_wake_footprint = telemetry
-            .resource_timeout_temporal_wake_footprint
-            .saturating_add(1);
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_progress_heartbeat_extension_count += 1;
+            telemetry.resource_timeout_temporal_wake_footprint = telemetry
+                .resource_timeout_temporal_wake_footprint
+                .saturating_add(1);
+        }
         ExtendedResourceTimeoutHeartbeat::new(
             candidate.handle,
             previous_timeout_wake_id,
@@ -119,7 +127,7 @@ impl ResourceRuntimeState {
     pub fn timeout_heartbeat_extension_candidate(
         &self,
         handle: ResourceRequestHandle,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<
         (
             ResourceNodeId,
@@ -128,7 +136,9 @@ impl ResourceRuntimeState {
         ),
         ResourceTimeoutHeartbeatExtensionDenialClass,
     > {
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         let candidate = self.classify_timeout_heartbeat_extension(handle, None)?;
         Ok((
             candidate.node,

@@ -14,7 +14,7 @@ use worth_signal::facade::specialist::{
 #[cfg(feature = "parallel")]
 use worth_signal::facade::{
     Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge, NodeEvaluationResult,
-    SignalGraph,
+    SignalGraph, SignalRuntime,
 };
 
 #[cfg(feature = "parallel")]
@@ -133,8 +133,11 @@ fn run_deep_chain(
     runtime_policy: RuntimePolicy,
     executor: StageExecutor,
 ) -> PerfRecord {
-    let mut graph = SignalGraph::new();
-    graph.set_runtime_policy(runtime_policy);
+    let mut runtime = SignalRuntime::<(), (), (), (), ()>::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .runtime_policy(runtime_policy)
+        .build();
+    let mut graph = runtime.graph_mut();
     let mut chain = Vec::new();
     for _ in 0..512 {
         chain.push(graph.node().build());
@@ -158,7 +161,7 @@ fn run_deep_chain(
         .unwrap();
 
     mark_dirty_batch(
-        &mut graph,
+        &mut *graph,
         &BatchChange::from_sources([(chain[0], ASPECT_A)]),
     )
     .unwrap();
@@ -193,8 +196,11 @@ fn run_wide_stage(
     runtime_policy: RuntimePolicy,
     executor: StageExecutor,
 ) -> PerfRecord {
-    let mut graph = SignalGraph::new();
-    graph.set_runtime_policy(runtime_policy);
+    let mut runtime = SignalRuntime::<(), (), (), (), ()>::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .runtime_policy(runtime_policy)
+        .build();
+    let mut graph = runtime.graph_mut();
     let requested: Vec<_> = (0..256).map(|_| graph.node().build()).collect();
     let bootstrap = graph
         .build_evaluation_plan(&requested, RunMode::ForceOnDemand)
@@ -206,7 +212,7 @@ fn run_wide_stage(
         .unwrap();
 
     mark_dirty_batch(
-        &mut graph,
+        &mut *graph,
         &BatchChange::from_sources(requested.iter().copied().map(|node| (node, ASPECT_A))),
     )
     .unwrap();
@@ -241,8 +247,11 @@ fn run_partition_tolerance(
     runtime_policy: RuntimePolicy,
     executor: StageExecutor,
 ) -> PerfRecord {
-    let mut graph = SignalGraph::new();
-    graph.set_runtime_policy(runtime_policy);
+    let mut runtime = SignalRuntime::<(), (), (), (), ()>::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .runtime_policy(runtime_policy)
+        .build();
+    let mut graph = runtime.graph_mut();
     let source = graph.node().build();
     let branches: Vec<_> = (0..96).map(|_| graph.node().tolerance(1).build()).collect();
     let target = graph.node().output_identity().build();
@@ -296,7 +305,7 @@ fn run_partition_tolerance(
         .unwrap();
 
     mark_dirty_batch(
-        &mut graph,
+        &mut *graph,
         &BatchChange::singleton(
             source,
             ASPECT_A,

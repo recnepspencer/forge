@@ -4,7 +4,7 @@ use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 
 impl SignalGraph {
     pub(super) fn refresh_snapshot_summaries(&mut self) {
-        let retention_budget = self.runtime_policy().retention_budget;
+        let retention_budget = self.installed_runtime_policy().retention_budget();
         let profile = self.diagnostics_profile();
         let history = ExecutionHistorySummary::from_graph(
             self,

@@ -48,13 +48,16 @@ fn full_parallel_honest_serial_apply_emits_group_local_packet_and_reduction_coun
 
     let mut graph = SignalGraph::new();
     graph.set_runtime_policy(SignalRuntimePolicy::operational().with_parallel_admission(
-        ParallelAdmissionPolicy {
-            operational_min_parallel_tasks: 1,
-            development_min_parallel_tasks: 1,
-            forensic_min_parallel_tasks: 1,
+        crate::runtime_policy::ParallelAdmissionPolicy {
+            throughput_min_parallel_tasks: 1,
+            balanced_min_parallel_tasks: 1,
+            latency_bounded_min_parallel_tasks: 1,
             full_parallel_min_tasks: 1,
         },
     ));
+    let telemetry_session = graph
+        .begin_observation_session(SignalObservationRequest::telemetry())
+        .unwrap();
     let requested: Vec<_> = (0..4).map(|_| graph.node().build()).collect();
 
     let bootstrap = graph
@@ -104,6 +107,9 @@ fn full_parallel_honest_serial_apply_emits_group_local_packet_and_reduction_coun
             >= 4,
         "reducer publication breadth should at least cover one semantic publication per task"
     );
+    graph
+        .finish_observation_session(&telemetry_session)
+        .unwrap();
 }
 
 #[cfg(feature = "parallel")]

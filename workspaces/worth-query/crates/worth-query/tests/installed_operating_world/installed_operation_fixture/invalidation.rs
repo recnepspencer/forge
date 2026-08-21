@@ -1,7 +1,8 @@
 use worth_foundational::facade::{
     profiles, AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FieldKey, MaterializedFoundationalProfileSet,
-    RetentionDeliveryProfile, SupportPostureProfile,
+    DiagnosticRichnessProfile, ExecutionObjectiveProfile, FieldKey,
+    MaterializedFoundationalProfileSet, ObservationActivationProfile, RetentionDeliveryProfile,
+    SupportPostureProfile,
 };
 use worth_proof::TransitionOutcome;
 use worth_query::facade::{domain, foundation, runtime};
@@ -141,6 +142,8 @@ pub(crate) fn materialized_invalidation_profile() -> MaterializedFoundationalPro
         .admission_readiness(AdmissionReadinessProfile::Admitted)
         .retention_delivery(RetentionDeliveryProfile::Retained)
         .certification_posture(CertificationPostureProfile::Uncertified)
+        .execution_objective(ExecutionObjectiveProfile::Balanced)
+        .observation_activation(ObservationActivationProfile::Continuous)
         .request()
         .unwrap();
     let TransitionOutcome::Success(admitted) = profiles().progression().admit_same(requested)

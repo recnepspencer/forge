@@ -51,7 +51,6 @@ where
         }
         if let Some(snapshot_state) = snapshot_state {
             let current_diagnostics = self.graph.diagnostics_state().clone();
-            let current_policy = current_diagnostics.policy();
             return self.restore_stored_snapshot_branch(
                 snapshot,
                 intent,
@@ -59,13 +58,16 @@ where
                 &restore_plan,
                 snapshot_state,
                 &current_diagnostics,
-                current_policy,
             );
         }
 
         self.graph.restore_snapshot_with_intent(snapshot, intent)?;
-        if let Some(telemetry) = &snapshot.runtime_telemetry {
-            self.telemetry = *telemetry;
+        if self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        ) {
+            if let Some(telemetry) = &snapshot.runtime_telemetry {
+                self.telemetry = *telemetry;
+            }
         }
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
@@ -110,16 +112,15 @@ where
                 "snapshot restore intent `SeedRecomputationFromSnapshot` is not implemented yet",
             ));
         }
-        let (snapshot_state, current_diagnostics) =
+        let (snapshot_state, current_diagnostics, target_policy) =
             self.load_noncurrent_restore_inputs(&branch, snapshot)?;
-        let current_policy = current_diagnostics.policy();
         let mut graph = self.restore_snapshot_graph(
             snapshot,
             &reconstructability_proof,
             &restore_plan,
             &current_diagnostics,
-            current_policy,
             intent,
+            target_policy,
         )?;
         graph.diagnostics_state_mut().set_active_branch(branch.id);
         graph
@@ -128,6 +129,7 @@ where
         let (state, branch_catalog) =
             Self::finalize_restored_branch_state(snapshot_state, graph, snapshot);
         self.record_snapshot_restore_telemetry(intent, &restore_plan);
+        self.graph.interrupt_observation_at_boundary();
         self.branches.store_branch_state(state);
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(())
@@ -141,6 +143,7 @@ where
         (
             SnapshotBranchState<D, I, T>,
             crate::diagnostics::state::DiagnosticsState,
+            crate::runtime_policy::InstalledSignalRuntimePolicy,
         ),
         SignalError,
     > {
@@ -163,6 +166,7 @@ where
         Ok((
             snapshot_state,
             target_state.graph().diagnostics_state().clone(),
+            target_state.graph().installed_runtime_policy(),
         ))
     }
 
@@ -174,15 +178,14 @@ where
         restore_plan: &crate::state::SnapshotRestorePlan,
         snapshot_state: SnapshotBranchState<D, I, T>,
         current_diagnostics: &crate::diagnostics::state::DiagnosticsState,
-        current_policy: crate::diagnostics::policy::SignalRuntimePolicy,
     ) -> Result<(), SignalError> {
         let mut graph = self.restore_snapshot_graph(
             snapshot,
             reconstructability_proof,
             restore_plan,
             current_diagnostics,
-            current_policy,
             intent,
+            self.graph.installed_runtime_policy(),
         )?;
         graph
             .diagnostics_state_mut()
@@ -192,7 +195,8 @@ where
             .set_branch_head_snapshot(snapshot.meta.branch_id, snapshot.meta.snapshot_id);
         let (state, branch_catalog) =
             Self::finalize_restored_branch_state(snapshot_state, graph, snapshot);
-        let preserved_transaction = self.telemetry.transaction;
+        let preserved_transaction = self.telemetry_snapshot().transaction;
+        let interrupted_observation = self.graph.interrupt_observation_at_boundary();
         self.apply_branch_lifecycle_transfer(
             crate::logic::transaction::runtime::state::runtime_state::BranchLifecycleTransfer::Restore(
                 crate::logic::transaction::runtime::state::runtime_state::RestoreTransferPacket::new(
@@ -201,10 +205,15 @@ where
                 ),
             ),
         )?;
-        Self::merge_global_transaction_telemetry(
-            preserved_transaction,
-            &mut self.telemetry.transaction,
-        );
+        self.with_telemetry(|telemetry| {
+            Self::merge_global_transaction_telemetry(
+                preserved_transaction,
+                &mut telemetry.transaction,
+            );
+        });
+        if interrupted_observation {
+            self.graph.record_boundary_interruption();
+        }
         self.record_snapshot_restore_telemetry(intent, restore_plan);
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(())
@@ -215,22 +224,23 @@ where
         intent: SnapshotRestoreIntent,
         restore_plan: &crate::state::SnapshotRestorePlan,
     ) {
-        self.telemetry.checkpoint.snapshot_restore_count += 1;
-        if matches!(
-            intent.artifacts,
-            SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
-        ) {
-            self.telemetry
+        self.with_telemetry(|telemetry| {
+            telemetry.checkpoint.snapshot_restore_count += 1;
+            if matches!(
+                intent.artifacts,
+                SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
+            ) {
+                telemetry
+                    .checkpoint
+                    .snapshot_restore_apply_active_policy_count += 1;
+            }
+            telemetry
                 .checkpoint
-                .snapshot_restore_apply_active_policy_count += 1;
-        }
-        self.telemetry
-            .checkpoint
-            .snapshot_restore_shared_delta_node_count +=
-            restore_plan.dependency_snapshot_delta_node_count();
-        self.telemetry
-            .checkpoint
-            .snapshot_restore_coarse_reason_count += restore_plan.coarse_reasons().len() as u64;
+                .snapshot_restore_shared_delta_node_count +=
+                restore_plan.dependency_snapshot_delta_node_count();
+            telemetry.checkpoint.snapshot_restore_coarse_reason_count +=
+                restore_plan.coarse_reasons().len() as u64;
+        });
     }
 
     fn restore_snapshot_graph(
@@ -239,12 +249,20 @@ where
         reconstructability_proof: &crate::logic::transaction::ReconstructabilityProof,
         restore_plan: &crate::state::SnapshotRestorePlan,
         current_diagnostics: &crate::diagnostics::state::DiagnosticsState,
-        current_policy: crate::diagnostics::policy::SignalRuntimePolicy,
         intent: SnapshotRestoreIntent,
+        active_policy: crate::runtime_policy::InstalledSignalRuntimePolicy,
     ) -> Result<SignalGraph, SignalError> {
         let mut graph =
             self.restore_runtime_authority_from_snapshot_proof(snapshot, reconstructability_proof)?;
-        *graph.telemetry_mut() = snapshot.checkpoint_image.graph_telemetry;
+        if matches!(
+            intent.artifacts,
+            SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
+        ) {
+            graph.install_compiled_runtime_policy(active_policy.requested_policy(), active_policy);
+        }
+        if let Some(mut telemetry) = graph.telemetry_mut() {
+            *telemetry = snapshot.checkpoint_image.graph_telemetry;
+        }
         Self::rebuild_runtime_required_derived_from_proof(
             &mut graph,
             snapshot,
@@ -255,18 +273,18 @@ where
             &mut graph,
             snapshot,
             current_diagnostics,
-            current_policy,
             intent,
         );
-        graph.telemetry_mut().checkpoint.snapshot_restore_count += 1;
+        graph.with_telemetry(|telemetry| telemetry.checkpoint.snapshot_restore_count += 1);
         if matches!(
             intent.artifacts,
             SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
         ) {
-            graph
-                .telemetry_mut()
-                .checkpoint
-                .snapshot_restore_apply_active_policy_count += 1;
+            graph.with_telemetry(|telemetry| {
+                telemetry
+                    .checkpoint
+                    .snapshot_restore_apply_active_policy_count += 1;
+            });
         }
         Ok(graph)
     }
@@ -279,12 +297,18 @@ where
         super::branches::BranchState<D, I, T>,
         BTreeMap<SignalBranchId, SignalBranchHandle>,
     ) {
-        let mut state = snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry);
+        let restore_optional_telemetry = graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        let runtime_telemetry = restore_optional_telemetry
+            .then_some(snapshot.runtime_telemetry)
+            .flatten();
+        let mut state = snapshot_state.into_branch_state(graph, runtime_telemetry);
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
             state.graph_mut(),
             snapshot.meta.snapshot_id,
         );
-        let retention_budget = state.graph().runtime_policy().retention_budget;
+        let retention_budget = state.graph().installed_runtime_policy().retention_budget();
         let profile = state.graph().diagnostics_profile();
         let history = ExecutionHistorySummary::from_graph(
             state.graph(),

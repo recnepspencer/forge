@@ -44,6 +44,10 @@ pub enum FoundationalPerformanceMismatch {
         left: Vec<crate::performance::FoundationalPerformanceWorkClass>,
         right: Vec<crate::performance::FoundationalPerformanceWorkClass>,
     },
+    ObservationContext {
+        left: Option<crate::performance::FoundationalPerformanceObservationContext>,
+        right: Option<crate::performance::FoundationalPerformanceObservationContext>,
+    },
     LayoutIntentPresence {
         left_has_layout: bool,
         right_has_layout: bool,
@@ -147,6 +151,12 @@ where
         mismatches.push(FoundationalPerformanceMismatch::ExcludedWorkDisclosure {
             left: left.claim().excluded_work().to_vec(),
             right: right.claim().excluded_work().to_vec(),
+        });
+    }
+    if left.claim().observation_context() != right.claim().observation_context() {
+        mismatches.push(FoundationalPerformanceMismatch::ObservationContext {
+            left: left.claim().observation_context().cloned(),
+            right: right.claim().observation_context().cloned(),
         });
     }
 

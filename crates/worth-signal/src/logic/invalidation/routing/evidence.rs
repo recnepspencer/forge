@@ -7,7 +7,7 @@ pub(super) fn retained_trace_records(
     graph: &SignalGraph,
     plan: &FrontierPlan,
 ) -> Result<Vec<InvalidationTraceRecord>, SignalError> {
-    let tracing_policy = graph.runtime_policy().frontier_tracing_policy;
+    let tracing_policy = graph.installed_runtime_policy().frontier_tracing_policy();
     if matches!(tracing_policy, FrontierTracingPolicy::SummaryOnly) {
         return Ok(Vec::new());
     }

@@ -60,6 +60,25 @@ pub struct FailureSummary {
     pub message: String,
 }
 
+impl FailureSummary {
+    pub(crate) fn suppressed(profile: DiagnosticsTier, phase: ExecutionFailurePhase) -> Self {
+        Self {
+            profile,
+            phase,
+            stage_index: None,
+            node: None,
+            executor: None,
+            execution_record_id: None,
+            has_plan_summary: false,
+            rolled_back: false,
+            staged_node_patch_count: None,
+            max_touched_nodes_in_txn: None,
+            event_epochs: Vec::new(),
+            message: String::new(),
+        }
+    }
+}
+
 impl ExecutionFailureContext {
     pub fn new(
         phase: ExecutionFailurePhase,

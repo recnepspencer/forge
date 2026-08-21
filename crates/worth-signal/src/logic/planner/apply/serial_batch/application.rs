@@ -12,7 +12,7 @@ use crate::logic::planner::types::{EligibleTask, StageExecutor};
 
 use super::preparation::{DeferredSnapshotBatch, PreparedSerialStageBatch, SerialApplyInput};
 use super::witness::ExactStageWidth;
-use crate::logic::planner::execution::task_reporting::record_execution_failure;
+use crate::logic::planner::execution::task_reporting::record_execution_failure_if_enabled;
 use crate::logic::planner::types::PlanSummary;
 
 #[derive(Debug, Clone)]
@@ -82,14 +82,13 @@ impl PreparedSerialStageBatch {
 
         let applied_tasks = StageOrderedAppliedTasks::new(self.exact_width, applied_tasks)?;
         let task_count = applied_tasks.len();
-        graph.telemetry_mut().execution.group_local_packet_breadth += task_count as u64;
-        graph.telemetry_mut().execution.reduction_packet_breadth += 1;
-        graph.telemetry_mut().execution.reduction_group_count += 1;
-        graph
-            .telemetry_mut()
-            .execution
-            .shared_surface_publication_breadth +=
-            (task_count + self.pending_snapshots.len()) as u64;
+        let publication_breadth = (task_count + self.pending_snapshots.len()) as u64;
+        graph.with_telemetry(|telemetry| {
+            telemetry.execution.group_local_packet_breadth += task_count as u64;
+            telemetry.execution.reduction_packet_breadth += 1;
+            telemetry.execution.reduction_group_count += 1;
+            telemetry.execution.shared_surface_publication_breadth += publication_breadth;
+        });
 
         Ok(AppliedSerialStageBatch {
             stage_index: self.stage_index,
@@ -131,8 +130,7 @@ fn apply_serial_input(
         false,
     )
     .inspect_err(|err| {
-        record_execution_failure(
-            graph,
+        record_execution_failure_if_enabled(graph, || {
             ExecutionFailureContext::new(
                 ExecutionFailurePhase::Apply,
                 Some(stage_index),
@@ -141,8 +139,8 @@ fn apply_serial_input(
                 Some(record_id),
                 Some(*summary),
                 err.to_string(),
-            ),
-        );
+            )
+        });
     })?;
     Ok(SerialApplyResult {
         node,

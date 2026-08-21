@@ -47,6 +47,7 @@ pub enum OperationalAuditSupportDenial {
     SupportAttachmentStale,
     SupportAttachmentRequiresRebind,
     SupportAttachmentFailed,
+    MaterializationPlanningDenied,
 }
 
 impl OperationalAuditRecord {
@@ -117,7 +118,8 @@ impl RequestedOperationalAuditSupport {
         let plan = profiles()
             .materialization()
             .for_support_artifact(&artifact)
-            .full_fidelity();
+            .full_fidelity()
+            .map_err(|_| OperationalAuditSupportDenial::MaterializationPlanningDenied)?;
         Ok(OperationalAuditSupportMaterializationPlan { artifact, plan })
     }
 }

@@ -12,7 +12,7 @@ impl SignalGraph {
         cold_intent: Option<ColdArtifactIntent>,
     ) -> Option<crate::data::trace::ColdArtifactRecord> {
         let cold_intent = cold_intent?;
-        let policy = self.runtime_policy().retention_budget;
+        let policy = self.installed_runtime_policy().retention_budget();
         if matches!(
             policy.explanation_retention,
             ArtifactRetentionPolicy::Retain
@@ -20,19 +20,19 @@ impl SignalGraph {
         {
             let retained = cold_intent.materialize_record();
             if retained.is_some() {
-                self.telemetry_mut()
-                    .storage
-                    .hot_write_cold_record_materialization_count += 1;
-                self.telemetry_mut()
-                    .storage
-                    .eager_cold_artifact_materialization_count += 1;
+                if let Some(mut telemetry) = self.telemetry_mut() {
+                    telemetry
+                        .storage
+                        .hot_write_cold_record_materialization_count += 1;
+                    telemetry.storage.eager_cold_artifact_materialization_count += 1;
+                }
             }
             retained
         } else {
-            self.telemetry_mut().storage.hot_write_cold_bypass_count += 1;
-            self.telemetry_mut()
-                .storage
-                .deferred_cold_artifact_bypass_count += 1;
+            if let Some(mut telemetry) = self.telemetry_mut() {
+                telemetry.storage.hot_write_cold_bypass_count += 1;
+                telemetry.storage.deferred_cold_artifact_bypass_count += 1;
+            }
             None
         }
     }

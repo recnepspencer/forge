@@ -1,6 +1,6 @@
 use crate::facade::{
-    lineage_records_equivalent, replay_slices_equivalent, LineageRecord, NodeEvaluationResult,
-    ReplaySlice, SignalGraph, SignalRuntime, SignalRuntimePolicy, SnapshotRestoreLineageMode,
+    LineageRecord, NodeEvaluationResult, ReplaySlice, SignalGraph, SignalRuntime,
+    SignalRuntimePolicy, SnapshotRestoreLineageMode,
 };
 use crate::tests::support::{version_ab, ASPECT_A};
 
@@ -10,7 +10,9 @@ fn replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix() {
         let mut runtime = SignalRuntime::builder(SignalGraph::new())
             .with_kernel_defaults()
             .build();
-        runtime.set_runtime_policy(policy);
+        runtime.set_runtime_policy(policy.with_observation_activation(
+            worth_foundational::ObservationActivationProfile::Continuous,
+        ));
         let source = runtime.graph_mut().node().output_identity().build();
         let mut runtime_ctx = ();
 
@@ -105,15 +107,15 @@ fn replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix() {
         ),
     ] {
         assert!(
-            replay_slices_equivalent(left_main, right_main),
+            left_main == right_main,
             "main-branch replay should remain equivalent across runtime-policy richness changes"
         );
         assert!(
-            replay_slices_equivalent(left_feature, right_feature),
+            left_feature == right_feature,
             "feature-branch replay should remain equivalent across runtime-policy richness changes"
         );
         assert!(
-            lineage_records_equivalent(left_lineage, right_lineage),
+            left_lineage == right_lineage,
             "lineage on the overlapping guaranteed surface should remain equivalent across runtime-policy richness changes"
         );
     }

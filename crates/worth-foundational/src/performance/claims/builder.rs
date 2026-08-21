@@ -8,6 +8,7 @@ use crate::performance::primitives::{
     FoundationalPerformanceFreshnessRetentionPosture, FoundationalPerformanceWorkClass,
 };
 
+use super::context::FoundationalPerformanceObservationContext;
 use super::types::{
     FoundationalAuthoritativePerformanceClaim, FoundationalPerformanceClaimPayload,
     FoundationalPolicyAdmissionPerformanceClaim, FoundationalReplayMaterializationPerformanceClaim,
@@ -25,6 +26,8 @@ pub enum FoundationalPerformanceClaimConstructionDenial {
     MissingFallbackDebt,
     MissingIncludedWorkDisclosure,
     MissingExcludedWorkDisclosure,
+    MissingObservationContext,
+    ObservationWorkRequiresActiveDisposition,
     OverlappingIncludedAndExcludedWorkDisclosure,
     BoundaryNotAllowedForClaimFamily,
     EvidenceStrengthNotAllowedForClaimFamily,
@@ -45,6 +48,7 @@ struct FoundationalPerformanceClaimBuilderState {
     fallback_debt: Option<FoundationalPerformanceFallbackDebtPosture>,
     included_work: Vec<FoundationalPerformanceWorkClass>,
     excluded_work: Vec<FoundationalPerformanceWorkClass>,
+    observation_context: Option<FoundationalPerformanceObservationContext>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -150,6 +154,14 @@ macro_rules! claim_builder_methods {
 
             pub fn exclude_work(mut self, work_class: FoundationalPerformanceWorkClass) -> Self {
                 self.state.excluded_work.push(work_class);
+                self
+            }
+
+            pub fn observation_context(
+                mut self,
+                context: FoundationalPerformanceObservationContext,
+            ) -> Self {
+                self.state.observation_context = Some(context);
                 self
             }
         }
@@ -312,6 +324,19 @@ fn finalize_claim<T>(
         );
     }
 
+    let includes_optional_observation =
+        state.included_work.iter().any(is_optional_observation_work);
+    if includes_optional_observation {
+        let Some(context) = state.observation_context.as_ref() else {
+            return Err(FoundationalPerformanceClaimConstructionDenial::MissingObservationContext);
+        };
+        if !context.disposition().is_active() {
+            return Err(
+                FoundationalPerformanceClaimConstructionDenial::ObservationWorkRequiresActiveDisposition,
+            );
+        }
+    }
+
     evaluate_performance_primitive_legality(
         boundary,
         evidence_strength,
@@ -333,7 +358,19 @@ fn finalize_claim<T>(
         fallback_debt,
         included_work: state.included_work,
         excluded_work: state.excluded_work,
+        observation_context: state.observation_context,
     }))
+}
+
+fn is_optional_observation_work(work: &FoundationalPerformanceWorkClass) -> bool {
+    matches!(
+        work,
+        FoundationalPerformanceWorkClass::StructuralCounterCapture
+            | FoundationalPerformanceWorkClass::DiagnosticFactCapture
+            | FoundationalPerformanceWorkClass::DescriptiveLineageRecordMaintenance
+            | FoundationalPerformanceWorkClass::ProvenanceFactCapture
+            | FoundationalPerformanceWorkClass::ReplaySidecarMaintenance
+    )
 }
 
 fn canonicalize_work_classes(work_classes: &mut Vec<FoundationalPerformanceWorkClass>) {

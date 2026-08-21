@@ -1,6 +1,6 @@
 use crate::facade::{
     ArtifactRetentionPolicy, DiagnosticsAvailability, EvaluationRequestMode, NodeEvaluationResult,
-    NodeId, SignalGraph, SignalRuntimePolicy,
+    NodeId, SignalGraph, SignalObservationRequest, SignalRuntimePolicy,
 };
 use crate::tests::support::{evaluate, version_ab, GraphDependencyBatchExt, ASPECT_A};
 
@@ -61,6 +61,12 @@ fn artifact_access_counters_attribute_lane_api_and_denial_reason() {
         .append_dependency(reconstructed_dependent, reconstructed_source, ASPECT_A)
         .unwrap();
     reconstructed_graph.set_runtime_policy(SignalRuntimePolicy::operational());
+    let session = reconstructed_graph
+        .begin_observation_session(SignalObservationRequest::operation())
+        .unwrap();
+    reconstructed_graph
+        .cancel_observation_session(&session)
+        .unwrap();
     let mut reconstructed_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(
         &mut reconstructed_graph,
@@ -117,6 +123,10 @@ fn artifact_access_counters_attribute_lane_api_and_denial_reason() {
             .with_explanation_retention(ArtifactRetentionPolicy::Omit)
             .with_provenance_retention(ArtifactRetentionPolicy::Omit),
     );
+    let session = omitted_graph
+        .begin_observation_session(SignalObservationRequest::operation())
+        .unwrap();
+    omitted_graph.cancel_observation_session(&session).unwrap();
     let mut omitted_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut omitted_graph, omitted_source, &mut omitted_compute).unwrap();
     evaluate(&mut omitted_graph, omitted_dependent, &mut omitted_compute).unwrap();
@@ -166,6 +176,10 @@ fn artifact_access_counters_attribute_lane_api_and_denial_reason() {
         .reconstruction_budget
         .allow_provenance_reconstruction = false;
     denied_graph.set_runtime_policy(denied_policy);
+    let session = denied_graph
+        .begin_observation_session(SignalObservationRequest::operation())
+        .unwrap();
+    denied_graph.cancel_observation_session(&session).unwrap();
     let mut denied_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut denied_graph, denied_source, &mut denied_compute).unwrap();
     evaluate(&mut denied_graph, denied_dependent, &mut denied_compute).unwrap();

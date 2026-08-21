@@ -27,7 +27,7 @@ pub(in crate::tests::domains::fintech) enum SparseFanoutAxis {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::tests::domains::fintech) enum DensityRatio {
+pub(crate) enum DensityRatio {
     OneInOneHundred,
     OneInFour,
     FourInFive,

@@ -16,6 +16,8 @@ fn main() {
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Durable,
         certification_posture: CertificationPostureProfile::EvidenceBacked,
+        execution_objective: worth_foundational::ExecutionObjectiveProfile::Balanced,
+        observation_activation: worth_foundational::ObservationActivationProfile::Continuous,
     })
     .expect("profile");
     let requested = request_foundational_profile_set(profile);

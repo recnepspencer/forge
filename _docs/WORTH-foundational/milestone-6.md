@@ -237,7 +237,7 @@ its own diagnostics dialect. That would repeat the exact problem
 `worth-foundational` exists to solve.
 
 This milestone therefore owns the shared explanation boundary before Milestone
-7 deepens provenance and receipts and before Milestone 9 migrations ask real
+7 deepens provenance and receipts and before Milestone 11 migrations ask real
 runtimes to converge on one diagnostics language.
 
 It also deliberately lays groundwork for Milestone 7. If diagnostics does not

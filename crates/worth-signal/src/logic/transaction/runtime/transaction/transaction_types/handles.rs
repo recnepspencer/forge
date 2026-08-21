@@ -35,7 +35,7 @@ where
     pub(in crate::logic::transaction::runtime) event_bus: &'a mut EventBus<E, D, Ctx>,
     pub(in crate::logic::transaction::runtime) resource: &'a mut ResourceRuntimeState,
     pub(in crate::logic::transaction::runtime) temporal: &'a mut TemporalRuntimeState,
-    pub(in crate::logic::transaction::runtime) telemetry: &'a mut RuntimeTelemetry,
+    pub(in crate::logic::transaction::runtime) telemetry: Option<&'a mut RuntimeTelemetry>,
     pub(in crate::logic::transaction::runtime) branches: &'a mut BranchManager<D, I, T>,
     pub(in crate::logic::transaction::runtime) scratch: TransactionScratch<D, I, E>,
     pub(in crate::logic::transaction::runtime) rollback_packets: TransactionRollbackPacketSet<T>,
@@ -44,6 +44,30 @@ where
     pub(in crate::logic::transaction::runtime) execution_state: TransactionExecutionState,
     pub(in crate::logic::transaction::runtime) started_at: RuntimeInstant,
     pub(in crate::logic::transaction::runtime) commit_posture: TransactionCommitPosture,
+}
+
+impl<'a, D, I, E, Ctx, T> SignalTransaction<'a, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(in crate::logic::transaction::runtime) fn with_telemetry(
+        &mut self,
+        update: impl FnOnce(&mut RuntimeTelemetry),
+    ) {
+        if let Some(telemetry) = self.telemetry.as_deref_mut() {
+            update(telemetry);
+        }
+    }
+
+    pub(in crate::logic::transaction::runtime) fn telemetry_snapshot(&self) -> RuntimeTelemetry {
+        self.telemetry.as_deref().copied().unwrap_or_default()
+    }
+
+    pub(in crate::logic::transaction::runtime) fn captures_optional_telemetry(&self) -> bool {
+        self.telemetry.is_some()
+    }
 }
 
 pub struct BatchChangeSession<'tx, 'a, D, I, E, Ctx, T = ()>

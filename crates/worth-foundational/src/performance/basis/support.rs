@@ -2,6 +2,8 @@ use crate::canonicalization::{
     CanonicalBasisDomain, CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus,
     CanonicalBasisValue, CanonicalIntegerWidth, CanonicalizationRuleVersion,
 };
+use crate::identities::CanonicalDigestId;
+use crate::performance::claims::FoundationalPerformanceObservationContext;
 use crate::performance::{
     FoundationalPerformanceAccessPatternPosture, FoundationalPerformanceAllocationPosture,
     FoundationalPerformanceAttachmentTargetKind, FoundationalPerformanceBoundary,
@@ -12,6 +14,7 @@ use crate::performance::{
     FoundationalPerformanceReportSection, FoundationalPerformanceReportSectionDecisionCause,
     FoundationalPerformanceWorkClass,
 };
+use crate::profiles::{FoundationalObservationActivationScope, FoundationalObservationDisposition};
 
 pub fn performance_basis_rule_version() -> CanonicalizationRuleVersion {
     CanonicalizationRuleVersion::new("WORTH.performance.v1")
@@ -34,6 +37,88 @@ pub(super) fn claim_bool_entry(locus: &str, value: bool) -> CanonicalBasisEntry 
         CanonicalBasisEntryKind::PerformanceClaim,
         CanonicalBasisValue::Bool(value),
     )
+}
+
+pub(super) fn claim_integer_entry(locus: &str, value: u64) -> CanonicalBasisEntry {
+    CanonicalBasisEntry::new(
+        CanonicalBasisDomain::Performance,
+        CanonicalBasisLocus::Named(locus.to_string().into()),
+        CanonicalBasisEntryKind::PerformanceClaim,
+        CanonicalBasisValue::UnsignedInteger {
+            width: CanonicalIntegerWidth::Bits64,
+            value: u128::from(value),
+        },
+    )
+}
+
+pub(super) fn claim_digest_entry(locus: &str, bytes: &[u8; 32]) -> CanonicalBasisEntry {
+    CanonicalBasisEntry::new(
+        CanonicalBasisDomain::Performance,
+        CanonicalBasisLocus::Named(locus.to_string().into()),
+        CanonicalBasisEntryKind::PerformanceClaim,
+        CanonicalBasisValue::BytesDigest(CanonicalDigestId::new(*bytes)),
+    )
+}
+
+pub(super) fn append_observation_context_entries(
+    context: Option<&FoundationalPerformanceObservationContext>,
+    entries: &mut Vec<CanonicalBasisEntry>,
+) {
+    entries.push(claim_bool_entry(
+        "claim.observation_context.present",
+        context.is_some(),
+    ));
+    let Some(context) = context else {
+        return;
+    };
+    entries.push(claim_digest_entry(
+        "claim.observation_context.profile_identity",
+        context.profile_identity().digest().value().bytes(),
+    ));
+    match context.disposition() {
+        FoundationalObservationDisposition::Inactive => {
+            entries.push(claim_text_entry(
+                "claim.observation_context.disposition",
+                "inactive",
+            ));
+        }
+        FoundationalObservationDisposition::Continuous => {
+            entries.push(claim_text_entry(
+                "claim.observation_context.disposition",
+                "continuous",
+            ));
+        }
+        FoundationalObservationDisposition::ExplicitlyActivated {
+            scope,
+            session,
+            observed_epoch,
+        } => {
+            entries.push(claim_text_entry(
+                "claim.observation_context.disposition",
+                "explicitly-activated",
+            ));
+            entries.push(claim_text_entry(
+                "claim.observation_context.scope",
+                observation_scope_token(scope),
+            ));
+            entries.push(claim_integer_entry(
+                "claim.observation_context.session",
+                session.get(),
+            ));
+            entries.push(claim_integer_entry(
+                "claim.observation_context.observed_epoch",
+                observed_epoch.get(),
+            ));
+        }
+    }
+}
+
+fn observation_scope_token(scope: FoundationalObservationActivationScope) -> &'static str {
+    match scope {
+        FoundationalObservationActivationScope::Operation => "operation",
+        FoundationalObservationActivationScope::Batch => "batch",
+        FoundationalObservationActivationScope::ManagedSession => "managed-session",
+    }
 }
 
 pub(super) fn layout_text_entry(locus: &str, value: &str) -> CanonicalBasisEntry {
@@ -234,6 +319,13 @@ pub(super) fn work_class_token(value: FoundationalPerformanceWorkClass) -> &'sta
         FoundationalPerformanceWorkClass::ReplayReconstruction => "replay-reconstruction",
         FoundationalPerformanceWorkClass::SupportReportAssembly => "support-report-assembly",
         FoundationalPerformanceWorkClass::ForensicParity => "forensic-parity",
+        FoundationalPerformanceWorkClass::StructuralCounterCapture => "structural-counter-capture",
+        FoundationalPerformanceWorkClass::DiagnosticFactCapture => "diagnostic-fact-capture",
+        FoundationalPerformanceWorkClass::DescriptiveLineageRecordMaintenance => {
+            "descriptive-lineage-record-maintenance"
+        }
+        FoundationalPerformanceWorkClass::ProvenanceFactCapture => "provenance-fact-capture",
+        FoundationalPerformanceWorkClass::ReplaySidecarMaintenance => "replay-sidecar-maintenance",
     }
 }
 

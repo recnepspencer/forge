@@ -12,6 +12,7 @@ pub(in crate::logic::transaction::runtime) struct ConfigRollbackDelta<T: Copy + 
 #[derive(Debug, Clone)]
 pub(in crate::logic::transaction::runtime) struct DiagnosticsRollbackDelta {
     pub baseline: crate::diagnostics::state::DiagnosticsState,
+    pub installed_policy: crate::runtime_policy::InstalledSignalRuntimePolicy,
 }
 
 #[derive(Debug, Clone)]
@@ -93,6 +94,7 @@ impl<T: Copy + Ord> TransactionRollbackPacketSet<T> {
         if self.diagnostics.is_none() {
             self.diagnostics = Some(DiagnosticsRollbackDelta {
                 baseline: diagnostics_state.clone(),
+                installed_policy: graph.installed_runtime_policy(),
             });
         }
         if self.graph_cause_authority.is_none() {

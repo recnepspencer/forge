@@ -48,24 +48,33 @@ impl ResourceRuntimeState {
     pub(in crate::logic::transaction::runtime::state::resource::request) fn try_coalesce_equivalent_request_intent(
         &mut self,
         input: RequestIntentCoalescingInput,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<ResourceRequestAdmissionReport> {
         let candidate = self.request_intent_coalescing_candidate(&input)?;
-        telemetry.resource_supersession_policy_decision_count += 1;
-        telemetry.resource_intent_equivalence_coalescing_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_supersession_policy_decision_count += 1;
+            telemetry.resource_intent_equivalence_coalescing_count += 1;
+        }
 
-        let prepared =
-            self.prepare_request_intent_coalescing(&input, &candidate.active_in_flight, telemetry);
+        let prepared = self.prepare_request_intent_coalescing(
+            &input,
+            &candidate.active_in_flight,
+            telemetry.as_deref_mut(),
+        );
         let coalesced_request = prepared.coalesced_request;
         let coalesced_in_flight = prepared.coalesced_in_flight;
         let transition = prepared.transition;
         let supersession_ordinal = prepared.supersession_ordinal;
         let terminal_visibility_classified = prepared.terminal_visibility_classified;
-        self.install_request_intent_coalescing(coalesced_request, coalesced_in_flight, telemetry);
+        self.install_request_intent_coalescing(
+            coalesced_request,
+            coalesced_in_flight,
+            telemetry.as_deref_mut(),
+        );
 
         let density_strategy =
             ResourceDensityStrategy::request_pressure(self.in_flight_by_request.len() as u32);
-        let performance = Self::record_boundary_performance(
+        let performance = Self::record_boundary_performance_optional(
             telemetry,
             ResourceBoundaryPerformanceEnvelope::request_admission(1, 0, 1)
                 .with_density_strategy(density_strategy)
@@ -112,7 +121,7 @@ impl ResourceRuntimeState {
         &mut self,
         input: &RequestIntentCoalescingInput,
         active_in_flight: &InFlightResourceRequest,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> PreparedRequestIntentCoalescing {
         let request_id = self.issue_request_id();
         let generation = self.issue_generation();
@@ -126,11 +135,11 @@ impl ResourceRuntimeState {
         let lifecycle_ordinal = self.issue_lifecycle_ordinal();
         let supersession_ordinal = self.issue_supersession_ordinal();
         let (output_continuity, terminal_visibility_classified) = self
-            .classify_terminal_output_continuity_for_node(
+            .classify_terminal_output_continuity_for_node_optional(
                 input.node,
                 input.descriptor_id,
                 ResourceTerminalVisibilityCause::Supersession,
-                telemetry,
+                telemetry.as_deref_mut(),
             );
         let transition = ResourceLifecycleTransition::new(
             input.node,
@@ -169,16 +178,18 @@ impl ResourceRuntimeState {
         &mut self,
         coalesced_request: AdmittedResourceRequest,
         coalesced_in_flight: InFlightResourceRequest,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) {
         self.in_flight_by_request
             .insert(coalesced_request.handle().request_id(), coalesced_in_flight);
         self.mark_terminal_in_flight(coalesced_request.handle().request_id());
-        telemetry.resource_request_admission_count += 1;
-        telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
-        telemetry.resource_in_flight_frontier_width = telemetry
-            .resource_in_flight_frontier_width
-            .max(self.active_request_by_node.len() as u64);
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_request_admission_count += 1;
+            telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
+            telemetry.resource_in_flight_frontier_width = telemetry
+                .resource_in_flight_frontier_width
+                .max(self.active_request_by_node.len() as u64);
+        }
     }
 
     fn build_request_intent_coalescing_report(
