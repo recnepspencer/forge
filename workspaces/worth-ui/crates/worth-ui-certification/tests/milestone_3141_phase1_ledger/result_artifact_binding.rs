@@ -43,7 +43,7 @@ fn validate_current_source(ledger: &LedgerResult<'_>) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_source_revision(revision: &str) -> Result<(), String> {
+pub(super) fn validate_source_revision(revision: &str) -> Result<(), String> {
     if !is_lower_hex(revision, 40) {
         return Err("result artifact source revision is invalid".to_owned());
     }
@@ -149,6 +149,16 @@ pub(super) fn require_u64(value: &Value, field: &str, expected: u64) -> Result<(
     })
 }
 
+pub(super) fn require_result_schema(value: &Value, historical: u64) -> Result<(), String> {
+    let observed = value.get("schema_version").and_then(Value::as_u64);
+    if observed == Some(historical) || observed == Some(7) {
+        return Ok(());
+    }
+    Err(format!(
+        "result artifact has wrong schema_version: expected {historical} or 7, observed {observed:?}"
+    ))
+}
+
 pub(super) fn require_duration_within(
     value: &Value,
     field: &str,
@@ -185,7 +195,7 @@ pub(super) fn require_array(value: &Value, field: &str, expected: &[String]) -> 
     .ok_or_else(|| format!("result artifact has wrong {field}"))
 }
 
-fn is_lower_hex(value: &str, length: usize) -> bool {
+pub(super) fn is_lower_hex(value: &str, length: usize) -> bool {
     value.len() == length
         && value
             .bytes()

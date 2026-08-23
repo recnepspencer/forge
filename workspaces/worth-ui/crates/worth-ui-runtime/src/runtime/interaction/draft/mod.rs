@@ -6,6 +6,7 @@ mod ingress;
 mod lifecycle;
 mod model;
 mod mutation;
+mod recipient_affinity;
 mod stop;
 mod transition;
 
@@ -29,3 +30,4 @@ pub use transition::{
 };
 
 pub(crate) use model::{UiDraftProcessingOutcome, UiDraftRuntimeState, UiDraftStateSnapshot};
+pub(crate) use recipient_affinity::UiLocalInputRecipientBindingContext;

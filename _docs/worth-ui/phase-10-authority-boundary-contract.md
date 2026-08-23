@@ -1,5 +1,10 @@
 # Phase 10 Committed Allocation Authority Boundary
 
+> Terminology: every ledger in this contract is a product-domain runtime
+> authority or deletion inventory, not a QA, proof, closure, or phase ledger.
+> The historical-ledger retirement policy does not apply to these runtime
+> semantics.
+
 This contract freezes the authority topology while the Phase 10 cutover is in
 progress. It applies to production code, substrate code, diagnostics,
 certification support, and tests.

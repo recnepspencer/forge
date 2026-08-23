@@ -3,23 +3,31 @@
 ## Status and Placement
 
 Status: implementation specification for the ten-phase slice immediately
-after Milestone 3.14 and before Milestone 3.15. Phases 1-5 are closed and
-proved in the append-only ledger. `worth-ui-body-default-v1` remains immutable
-Phase 1-2 predecessor evidence; the qualified `worth-ui-global-text-v2`
-profile is the closed Phase 4 authority consumed by Phase 5. A different asset,
-dependency, capacity, signature, or platform policy is a specification change
-rather than implementation discretion. Phase 5 closed all twelve rows on one
-current source state, including freshly rebound atlas/physical-Signal evidence,
-the Query async-presentation lifecycle, the 4×8 locality portfolio, native
-reconstruction/pixels, and terminal-zero resource closure, without rewriting
-the closed Phase 1-4 prefix.
+after Milestone 3.14 and before Milestone 3.15. Phases 1-5 are implemented and
+historically reviewed. `worth-ui-body-default-v1` remains immutable Phase 1-2
+predecessor evidence; the qualified `worth-ui-global-text-v2` profile is the
+Phase 4 authority consumed by Phase 5. A different asset, dependency, capacity,
+signature, or platform policy is a specification change rather than
+implementation discretion. Phase 5 includes atlas/physical-Signal behavior,
+the Query async-presentation lifecycle, the 4×8 locality suite, native
+reconstruction/pixels, and terminal-zero resource behavior. Phase 6 is the
+current implementation phase.
 
 The detailed Phase 5 raster, atlas, native text-presentation, courtroom,
 cost, topology, and documentation contract is governed by
 [`milestone-3.14.1-phase-5.md`](milestone-3.14.1-phase-5.md). It is a
-normative subordinate specification, not a separate roadmap milestone or
-proof ledger. This parent retains the overall milestone contract, phase order,
-exact Phase 5 row inventory, and successor handoff.
+normative subordinate specification, not a separate roadmap milestone. This
+parent retains the overall milestone contract, phase order, and successor
+handoff.
+
+Historical QA artifacts, including `milestone-3.14.1-proof-ledger.csv`, are
+frozen records. They are not current implementation or release authority, are
+not updated or reopened, and ledger-only failures do not block work. Current
+phase completion follows
+[the QA review guide](../coding_guidelines/qa_review_guide.md) and
+[testing laws](../coding_guidelines/testing_laws.md): the specification states
+QA considerations in prose, relevant tests and repository checks run against
+the current commit, and code review decides whether the evidence is adequate.
 
 Milestones 3.10-3.14 established one real application lifecycle, exact mounted
 identity, observation-driven rebind, projected product data, and
@@ -29,13 +37,13 @@ focus, motion, appearance, and later native services would otherwise be built
 against a host scheduled for deletion.
 
 The milestone is deliberately broad in native mechanics and narrow in product
-meaning. It does not reopen authored meaning, broad Query migration, targeting,
+meaning. It does not redesign authored meaning, broad Query migration, targeting,
 intent admission, consequence publication, or appearance semantics. Phase 5
 does add one narrow Query-owned async presentation result through the existing
 WORTH UI Query binding boundary.
 
 Treat this as the largest single 3.x platform-migration slice. Its ten phases
-are proof and authority gates, not equal units of effort; implementation
+are implementation and authority gates, not equal units of effort; implementation
 planning must budget roughly one quarter to one third of the milestone for
 Phase 1. Earlier line-count estimates are not scope limits or acceptance
 criteria, and they do not license compressed trust handoffs, deferred
@@ -111,14 +119,14 @@ The required host-contract additions refine transport and proof carriage; they
 do not change mounted semantic meaning. If implementation discovers that
 native input cannot preserve a 3.14 interaction distinction, mounted rows do
 not determine deterministic pixels, or measurement cannot preserve the
-declared text profile, that is a reopened predecessor finding. A lossy shim or
+declared text profile, that is a defect in the current change. A lossy shim or
 adapter-local policy is not an allowed migration answer.
 
 ## Pre-Implementation Specification-Closure Gate
 
 This gate is specification work, not Phase 1 implementation. No production
-edit, dependency addition, font ingestion, protocol revision, implementation
-plan, or phase ledger may begin until both records below are committed into
+edit, dependency addition, font ingestion, protocol revision, or implementation
+plan may begin until both records below are committed into
 this specification and its continuing authoritative documents. A planning
 document may investigate candidates, but it cannot turn an unresolved choice
 into implementation discretion.
@@ -141,7 +149,7 @@ present/alpha modes, blend equations, antialiasing posture, shader inputs,
 coordinate and DPI rounding, clear/baseline behavior, dependency versions,
 bounded queue/resource capacities, and executable qualification environment.
 Repository manifests, assets, profile types, documentation, pixel manifests,
-and proof-ledger identities must all derive from this record. Phase 1 consumes
+and relevant test fixtures must all derive from this record. Phase 1 consumes
 it and proves it; Phase 1 does not choose or amend it.
 
 The closed text record is `worth-ui-body-default-v1`:
@@ -173,11 +181,11 @@ the value with tofu, omission, transliteration, or a system font.
 
 #### Framework-grade text correction and Phase 4 qualification gate
 
-`worth-ui-body-default-v1` remains the exact Phase 1-2 migration record and
-its closed ledger evidence is not rewritten. It is not the Phase 4 text
+`worth-ui-body-default-v1` remains the exact Phase 1-2 migration record and its
+historical qualification evidence is not rewritten. It is not the Phase 4 text
 destination. The product requirement for serious framework-grade text
-reopens the future text-profile gate and supersedes the earlier Basic-Latin-
-only Phase 4 plan with `worth-ui-global-text-v2`.
+supersedes the earlier Basic-Latin-only Phase 4 plan with
+`worth-ui-global-text-v2`.
 
 No Phase 4 production edit or implementation plan may begin until one
 canonical `worth-ui-global-text-v2` manifest commits the exact asset list,
@@ -265,14 +273,14 @@ identity, vendor/device IDs, driver information, observed scale factors, and
 support for every exact required mode as qualification observations. Those
 observations cannot change selection policy or silently widen the profile.
 The profile identity is the SHA-256 of the canonical UTF-8 manifest containing
-the table values above; Phase 1 checks in that manifest and records its digest
-in every affected ledger row.
+the table values above; Phase 1 checks in that manifest and focused tests verify
+its digest wherever the profile is consumed.
 
 The committed canonical manifest digests are text
 `6f140249866e6815e9284fe1c8c959a8bb1b8cab252cfbe8c7c397f9a7eb9b01`
 and native
 `1c937a22f42660267480a055e48256b25decf0c4cd5d4d7b493e5df034c6c65b`.
-These successor digests deliberately reopen and replace the earlier incomplete
+These successor digests deliberately replace the earlier incomplete
 manifest identities: every normative field above, including compiled feature
 posture, device-limits basis, saturation, and observation boundary, is now
 inside the canonical bytes rather than inferred from hard-coded production or
@@ -283,11 +291,11 @@ canonical `worth-ui-global-text-v2` candidate now has manifest digest
 `cec6005c5baef6d69ada9c30c02ced25b0f253f80c012784fe925e307935c3f2`.
 Its exact 30-face catalog, Unicode 17 source and conformance data, dependency
 pins, generated coverage/fallback indexes, capacities, licenses, and artifact
-inventory are repository-owned and mutation-validated. The qualification
-ledger row remains `OPEN` until Phase 3 predecessor closure admits the Phase 4
-gate; Phase 4 production may consume the candidate only after that row becomes
-final-source `PROVED`. Phase 4 may never reuse the v1 digest or mint a
-provisional replacement identity.
+inventory are repository-owned and adversarially tested. Phase 4 production
+may consume the candidate only after the manifest and its referenced assets,
+licenses, data, indexes, dependency posture, and digest pass focused
+qualification checks and code review. Phase 4 may never reuse the v1 digest or
+mint a provisional replacement identity.
 
 ### Public native-application authority record
 
@@ -385,29 +393,15 @@ mint a completion token. Compiler evidence attacks the real sealing and
 admission operations; it does not claim that inert data constructors are
 private merely because they cannot open an operational door.
 
-Ledger result artifacts are retained reproducibility and failure-diagnostic
-records, not unforgeable authorities. A repository file can always be
-hand-authored by someone able to edit the repository. Phase closure therefore
-comes only from the governed external closure runner listing and executing the
-exact requirement-bound tests on the current source state and then validating
-their machine-readable observations. The ledger binds canonical immutable
-claim fields while the source-state digest excludes the ledger bytes that the
-runner must update. A stored artifact alone, even with internally consistent
-digests, cannot change a row to `PROVED`.
-
-That execution authority does not license duplicate work. Within one exact
-source-state and immutable-claim snapshot, the closure runner executes each
-unique discovery, main test, hostile control, compile session, and external
-world exactly once. Content-addressed execution receipts may be shared by
-multiple requirement validators, and a successfully assembled row bundle may
-resume after a later atomic-closure failure only when its command, claim,
-ledger basis, source revision, whole-source digest, dependency artifacts, and
-retained bytes all still match. Any drift forces fresh execution. The final
-gate validates the just-produced content-addressed portfolio and every bound
-row artifact; it does not operationally replay that portfolio a second time.
-Cached or retained bytes never promote a row by themselves: only the governed
-runner may admit them into the candidate ledger, and the Rust closure laws
-independently revalidate the complete candidate before publication.
+Retained test artifacts are reproducibility and failure-diagnostic records, not
+unforgeable authorities. A repository file can always be hand-authored by
+someone able to edit the repository. Acceptance therefore comes from relevant
+tests and repository checks on the current commit plus code review of the
+actual implementation and test oracles. Tests that share an expensive native
+world should reuse that world within one run; they do not need receipt,
+portfolio, nonce, digest, or publication machinery to prove that reuse.
+Cached artifacts may speed a diagnostic rerun, but CI and reviewers judge the
+current commit and must not infer a pass from retained bytes alone.
 
 `UiNativeApplicationPreparation` owns the host-neutral
 `WorthUiApplicationBuilder` and no live subsystem resource. Its public
@@ -529,7 +523,7 @@ internal data structure instead of rendered pixels, silently changes font
 fallback, publishes after an uncertain effect, leaks native resources, or
 keeps egui as a fallback.
 
-## Supporting Proof Portfolio
+## Required Test Worlds
 
 ### `HP-02`: Delta and amplification courtroom (Phase 3 closure)
 
@@ -684,8 +678,8 @@ manifest containing literal logical coordinates, expected RGBA values and
 tolerances, DPI/profile identity, and the qualified font digest. It may share
 stable wire and identity types, but it may not import production geometry,
 order, color-selection, shaping, rasterization, damage, or expected-image
-functions. Phase 9 changes glyph-region expectations exactly once through the
-ledgered rebaseline; native source-target readback and OS client capture remain
+functions. Phase 9 changes glyph-region expectations exactly once through an
+explicitly reviewed rebaseline; native source-target readback and OS client capture remain
 separate observations. Failure retains the action manifest, profile, source,
 bounded lifecycle trace, both pixel observations where available, and complete
 teardown disposition.
@@ -743,14 +737,14 @@ DPI, surface/device acquisition, presentation-source readback,
 compositor-visible capture, normal close, and residue checks. Resize,
 minimize/restore, cross-monitor DPI, input, device loss, and held-attempt
 schedules remain deterministic protocol evidence until their later real-world
-phases; the Phase 2 ledger must not claim those paths from the startup seed.
+phases; the Phase 2 startup seed must not be treated as evidence for those paths.
 
 Only environment-qualified facts receive real-boundary credit. A single-
 monitor runner proves its observed DPI basis but not a cross-monitor DPI
 transition; injected DPI/device-loss schedules remain protocol evidence.
 Conversely, a real successful surface/device/readback path cannot substitute
-for the deterministic partial-effect matrix. The ledger names which world
-supports each `HP-04` claim.
+for the deterministic partial-effect matrix. The specification and tests state
+which world supports each `HP-04` behavior.
 
 ### `HostRetirementTopologyWorld`
 
@@ -779,11 +773,11 @@ gate, and every listed mutant must fail for its own causal reason:
 | `HP-04` | admit an illegal transition; drop or duplicate a wake; promote indeterminate effect to success; collapse IME preedit or composition commit into semantic `edit-commit`; skip resource disposal; replace a claimed real boundary with a scripted result |
 | `HP-05` | hide a retired edge behind a feature, example, fixture, lockfile entry, ignored source root, or curated metadata scope |
 
-Every courtroom ledger row records world identity and version, baseline digest,
-scenario delta, generated seed where applicable, authority provenance,
-production entry, independent oracle, fault boundary, retained failure
-artifact, teardown result, and total construction/execution cost. A broken
-world stops as fixture failure and cannot satisfy a product denial assertion.
+Every courtroom records the world identity and version, baseline, scenario,
+authority provenance, production entry, independent oracle, fault boundary,
+teardown result, and construction/execution cost needed to interpret the test.
+A broken world stops as fixture failure and cannot satisfy a product denial
+assertion.
 
 ## Product Decision Lock
 
@@ -1472,7 +1466,7 @@ diagram.
 _docs/worth-ui/
   milestone-3.14.1.md                            [create: governing design]
   milestone-3.14.1-phase-5.md                    [create: Phase 5 subordinate design]
-  milestone-3.14.1-proof-ledger.csv              [create: closure evidence]
+  milestone-3.14.1-proof-ledger.csv              [frozen: historical QA record]
 
 workspaces/worth-ui/
   crates/
@@ -1633,17 +1627,14 @@ Committed successors enter additively:
 
 ### Current implementation status
 
-Phases 1-4 are recorded as `PROVED`, `final_source=true` without rewriting
-their predecessor rows, nonces, or artifacts. Phase 5 begins with a fresh
-operational `P5-PREDECESSOR-01` handoff that reexecutes the immutable Phase 1-4
-portfolio against current source. That current-source handoff must close before
-any still-open Phase 5 feature row. `P5-ATLAS-01` is already proved on its
-prior governed source, but the physical Signal pivot changes its exact owner,
-source, lifecycle, completion/recovery semantics, and evidence. Its next
-governed candidate therefore reopens it without modifying the immutable Phase
-1-4 prefix. The other existing rows plus the new
-`P5-TEXT-ASYNC-PRESENTATION-01` row are intentionally OPEN; readiness evidence
-does not imply pixels, async completion truth, recovery, parity, or closure.
+Phases 1-5 are implemented and historically reviewed; Phase 6 is in progress.
+Their old ledger rows,
+nonces, receipts, handoffs, and artifacts are frozen and are not current QA
+state. Historical phases do not reopen. If a current change regresses an
+earlier guarantee, the regression is a finding against the current change and
+is demonstrated through the relevant product test or repository check.
+Readiness evidence alone still does not imply pixels, async completion truth,
+recovery, parity, or completion.
 
 ### Phase 1: Protocol, qualification, and topology closure
 
@@ -1669,15 +1660,15 @@ oracles, and the test-owned control-point manifest with filled-rectangle
 expectations; glyph expectations remain pending. No later phase begins while a
 hidden default, unbounded capacity, mixed protocol, host-side rediscovery path,
 headless runtime coupling, or oracle import from disputed production mechanics
-remains open. Phase closure records the committed manifest identities in the
-proof ledger and proves they match the specification; implementation code may
-not select or amend them.
+remains open. Focused qualification tests verify that the committed manifest
+identities match the specification; implementation code may not select or amend
+them.
 
 Phase 1 remains one atomic trust gate, but its implementation plan closes five
 ordered internal batches: protocol and runtime producer; egui plus the moved
 headless and certification consumer migration; materialization and proof of
 the prequalified font/native/application records; governed world compiler plus
-independent oracles; and topology/compiler enforcement plus ledger closure.
+independent oracles; and topology/compiler enforcement plus final review.
 These batches are not independently trusted phases. Phase 2 waits for their
 combined exit gate rather than advancing on partial revision-4 adoption or
 provisional manifests.
@@ -1686,22 +1677,13 @@ Phase 2 may trust complete, ordered, attributable presentation work, the frozen
 native profile, the v1 migration text profile, and mechanically enforced
 dependency direction. It may not treat v1 as Phase 4 text qualification.
 
-Phase 1 closes only when the ledger proves all twenty exact contracts:
-`P1-AFFINITY-01`, `P1-AUTHORITY-01`, `P1-BACKEND-FEATURES-01`,
-`P1-BASELINE-01`, `P1-CLOSE-01`, `P1-CONSUMERS-01`, `P1-DAMAGE-01`,
-`P1-HEADLESS-01`, `P1-HEADLESS-COST-01`, `P1-ORDER-01`,
-`P1-ORDER-SOURCE-01`, `P1-PLATFORM-AUTHORITY-01`,
-`P1-PREPARATION-LIFECYCLE-01`, `P1-PRESENTATION-AUTHORITY-01`,
-`P1-PRODUCER-01`, `P1-PRODUCER-COST-01`, `P1-PROFILE-01`,
-`P1-PROTOCOL-01`, `P1-TOPOLOGY-01`, and `P1-WORLDS-01`. Each row has a
-schema-owned exact owner, boundary, world, proof kind, authority source,
-mutation family, and counter family. A generic nonblank evidence record cannot
-stand in for one of these contracts.
-
-`P1-PRODUCER-COST-01` and `P1-HEADLESS-COST-01` are carrier-shape contracts:
-they prove exact sparse payload lengths and unchanged-zero carriage only. They
-do not satisfy or rename the Phase 3 computational-slope, retained-index, or
-native replay contracts.
+Phase 1 is complete when its protocol, authority, profile, producer, consumer,
+headless, topology, damage, ordering, affinity, world, and cleanup behavior is
+implemented; the focused tests and constitutional checks pass on the current
+commit; and code review finds the evidence adequate. Carrier-shape cost tests
+cover sparse payload lengths and unchanged-zero carriage only; they do not
+substitute for the Phase 3 computational-slope, retained-index, or native replay
+tests.
 
 ### Phase 2: First native vertical presentation
 
@@ -1724,20 +1706,13 @@ fake surface, or in-memory renderer.
 Phase 3 may trust one owned, visible native lifecycle and one attributable
 initial presentation path without continuous repaint or vendor leakage.
 
-Phase 2 closes only when the single proof ledger contains and proves these
-rows: `P2-APPLICATION-01` for the prepared-application driver handoff,
-`P2-EVENT-LOOP-01` for event-loop thread ownership, `P2-READINESS-01` for
-level-triggered scheduling and quiescence, `P2-WINDOW-01` for the real Windows
-window/surface/DPI lifecycle, `P2-GRAPHICS-01` for selected device, queue, and
-retained target ownership, `P2-PRESENT-01` for one runtime-attributed initial
-filled rectangle, `P2-PIXELS-01` for independent client-area pixels,
-`P2-PORTS-01` for the crossed production external-effect ports,
-`P2-CLOSE-01` for terminal zero-resource cleanup, and `P2-WORLD-01` for the
-environment-qualified `WindowsNativeBoundaryWorld`. Those ten rows are closed
-on the governed source revision with exact commands, sources, observations,
-teardown, cost, and mutation evidence. Their rectangle-only evidence cannot be
-reused to claim Phase 3 retained-delta or Phase 4-5 text behavior; an in-memory
-renderer or window-only smoke test cannot prove either successor.
+Phase 2 is complete when the prepared-application handoff, event-loop ownership,
+level-triggered scheduling, real Windows window/surface/DPI lifecycle, graphics
+ownership, attributable rectangle presentation, independent client pixels,
+external-effect ports, and terminal cleanup pass their focused tests and review.
+Rectangle-only evidence cannot be reused to claim Phase 3 retained-delta or
+Phase 4-5 text behavior; an in-memory renderer or window-only smoke test cannot
+prove either successor.
 
 ### Phase 3: Retained delta, total order, and damage replay
 
@@ -1749,19 +1724,14 @@ in `MountedPresentationWorld::maximum_overlap` against retained-list scans,
 changed-command-only redraw, widened damage, stale delta reuse, vacated pixels,
 and equal-layer nondeterminism.
 
-Phase 3 closes only when the append-only ledger proves
-`P3-PREDECESSOR-01`, `P3-STALE-DELTA-01`, `P3-DELTA-SOURCE-01`,
-`P3-PRODUCER-SLOPE-01`,
-`P3-DRAW-LIST-01`, `P3-TOTAL-ORDER-01`, `P3-DAMAGE-INDEX-01`,
-`P3-DAMAGE-REPLAY-01`, `P3-BASELINE-REPLAY-01`, `P3-TRANSACTION-01`,
-`P3-UNCHANGED-01`, `P3-CLIPPED-DELTA-01`,
-`P3-RECONSTRUCTION-01`, `P3-HEADLESS-COST-01`,
-`P3-PHYSICAL-AMPLIFICATION-01`, `P3-HP02-WORLD-01`, and `P3-CLOSE-01`.
-`P3-PREDECESSOR-01` records the current-source operational revalidation of the
-immutable Phase 1-2 prefix. The slope rows compare retained sizes 1, 32, 2,048,
-and 4,096 with constant changed/damage/replay widths and require exact retained-
-row scan and clone counters rather than elapsed-time thresholds. The native
-world row owns the 2,048-rectangle pixel courtroom; the mixed 4,096-command
+Phase 3 is complete when stale-delta rejection, owner-issued delta source,
+draw-list ownership, total ordering, damage indexing and replay, baseline replay,
+transactionality, unchanged-zero behavior, clipping, reconstruction, headless
+cost, physical amplification, and the native pixel world pass focused tests and
+review. The slope tests compare retained sizes 1, 32, 2,048, and 4,096 with
+constant changed/damage/replay widths and require exact retained-row scan and
+clone counters rather than elapsed-time thresholds. The native world owns the
+2,048-rectangle pixel courtroom; the mixed 4,096-command
 headless world supports carrier/index/slope rows and cannot supply native text
 pixel evidence.
 `P3-CLIPPED-DELTA-01` proves the distinct lawful case where a mounted logical
@@ -1849,20 +1819,14 @@ zero, and reconstruction portions of `HP-03`. A one-run Latin implementation,
 scalar fallback, separate measurement shaper, or output lacking original-range
 cluster/caret geometry cannot pass this gate.
 
-Phase 4 closes only when the append-only ledger proves
-`P4-PREDECESSOR-01`, `P4-TEXT-PROFILE-01`, `P4-FONT-COLLECTION-01`,
-`P4-COLOR-FONT-ADMISSION-01`, `P4-UNICODE-SEGMENTATION-01`,
-`P4-EMOJI-SEQUENCE-01`, `P4-BIDI-01`, `P4-FALLBACK-01`,
-`P4-SHAPING-01`, `P4-LINE-LAYOUT-01`, `P4-CAPACITY-01`,
-`P4-MEASUREMENT-IDENTITY-01`, `P4-ORIGINAL-RANGE-01`,
-`P4-BIDI-INTERACTION-01`, `P4-ACCESSIBILITY-GEOMETRY-01`,
-`P4-TEXT-CONTENT-LOCALITY-01`, `P4-TEXT-WIDTH-LOCALITY-01`,
-`P4-TEXT-RECONSTRUCTION-01`, `P4-UNCHANGED-01`, `P4-TEXT-COST-01`, and
-`P4-CLOSE-01`.
-Each row owns its exact
-Unicode/reference-data digest, corpus slice, production transition,
-independent oracle, mutation, counters, and artifact identity; one generic
-multilingual screenshot cannot satisfy them.
+Phase 4 is complete when the qualified text profile, font collection and color
+font admission, Unicode segmentation and emoji sequences, bidi, fallback,
+shaping, line layout, capacity, measurement identity, original-range and
+interaction geometry, accessibility geometry, locality, reconstruction,
+unchanged-zero behavior, and text cost pass focused tests and review. The tests
+must name their Unicode/reference data, corpus slice, production transition,
+independent oracle, adversarial case, and counters where those details matter;
+one generic multilingual screenshot cannot satisfy them.
 
 `P4-FONT-COLLECTION-01` is not satisfied by counting the profile's default
 faces. Its governed cases must include two application families with
@@ -1876,13 +1840,11 @@ layout oracles must reject ambient-system substitution, a hard-coded single
 family, registration-order selection, stale-generation reuse, or face/style
 matching that differs between measurement and presentation.
 
-The Phase 4 qualification gate and production closure are separate ledger
-events. `P4-TEXT-PROFILE-01` cannot become `PROVED` until the canonical v2
+Profile qualification precedes production consumption. The canonical v2
 manifest, every referenced font/license/data/corpus artifact, generated index,
-dependency feature posture, and manifest digest exist and independently
-validate. The other Phase 4 rows remain `OPEN` until that row is final-source
-green; a provisional manifest identity or dependency-default behavior cannot
-be consumed as production configuration.
+dependency feature posture, and manifest digest must exist and independently
+validate before Phase 4 production uses them. A provisional manifest identity
+or dependency-default behavior cannot be consumed as production configuration.
 
 Locality evidence keeps independent axes separate: a content-only edit holds
 width, locale, direction, font collection, profile, and text-scale generations
@@ -1929,24 +1891,18 @@ semantics, `HP-03` courtroom, resource/cost contract, implementation gates,
 destination tree, documentation, and acceptance evidence are specified in
 [`milestone-3.14.1-phase-5.md`](milestone-3.14.1-phase-5.md).
 
-Phase 5 contains exactly twelve append-only rows. It begins with
-`P5-PREDECESSOR-01`, then proves `P5-GLYPH-RASTER-01`,
-`P5-COLOR-EMOJI-01`, `P5-ATLAS-01`, `P5-ATLAS-PINNING-01`,
-`P5-TEXT-DPI-01`, `P5-TEXT-SPAN-PAINT-01`, `P5-TEXT-PIXELS-01`,
-`P5-TEXT-RECONSTRUCTION-01`, `P5-TEXT-COST-01`, and
-`P5-TEXT-ASYNC-PRESENTATION-01`, and ends with
-`P5-CLOSE-01`. The predecessor row must reexecute the immutable Phase 1-4
-prefix against current source before any Phase 5 feature row may close. The
-close row must reject any open predecessor or Phase 5 row. Feature rows include an external
-mixed-font/mixed-size/bidi/mixed-foreground observation, an external
-color-emoji observation, and separate alpha/color atlas/resource census.
-`P5-TEXT-SPAN-PAINT-01` must reject single-color substitution, visual-order
-color assignment, emoji tinting, and layout regeneration on a color-only edit.
-`P5-COLOR-EMOJI-01` must raster every exact
-RGI sequence mapping internally; native pixel evidence supplies representative
-observations for every admitted color source and sequence class and cannot
-replace the exhaustive internal corpus proof.
-`P5-TEXT-ASYNC-PRESENTATION-01` requires the public `HP-03` path to retain
+Phase 5 tests cover qualified glyph raster, exhaustive color emoji, bounded
+alpha/color atlas ownership and pinning, DPI behavior, original-range span
+paint, retained and compositor pixels, reconstruction, locality and resource
+cost, Query-owned async presentation, and terminal cleanup. They include an
+external mixed-font/mixed-size/bidi/mixed-foreground observation, an external
+color-emoji observation, and separate alpha/color atlas/resource census. Span
+paint tests reject single-color substitution, visual-order color assignment,
+emoji tinting, and layout regeneration on a color-only edit. Color-emoji tests
+raster every exact RGI sequence mapping internally; native pixel evidence
+supplies representative observations for every admitted color source and
+sequence class and cannot replace the exhaustive internal corpus test. The
+public `HP-03` path must retain
 pending/current/stale/failed/cancelled/superseded/unresolved posture in Query,
 while host-native alone decides external completion and runtime retains exact
 attempt lineage. Query remains absent from host-native and runtime; the sole
@@ -1955,10 +1911,9 @@ may import Signal for the dedicated physical runtime. Runtime owns neither
 Signal graph.
 
 Destination-topology tests may freeze ownership, type separation, and forbidden
-consumer dependencies before implementation. They are readiness evidence only:
-they emit no ledger counter or mutation receipt and cannot be mapped as the main
-or hostile control for any Phase 5 feature row. Phase 5 remains part of this
-milestone and uses this milestone's single append-only ledger.
+consumer dependencies before implementation. They are readiness evidence only
+and cannot substitute for behavioral, lifecycle, resource, or native-boundary
+tests. Phase 5 remains part of this milestone.
 
 Phase 6 may trust deterministic framework-grade text layout and attributable
 multilingual/color-emoji pixels without system fallback, environment-selected
@@ -2041,7 +1996,7 @@ work is authority cutover and predecessor removal.
 Make the Worth native host the sole native-display path, then delete the egui
 host, eframe shell, migration selector, egui-era theme/component crates, old
 glyph expectations, and every dependency edge. Close `HP-05`, continuing
-documentation, exact cost budgets, proof ledger, exhaustive host-kind repairs,
+documentation, exact cost budgets, exhaustive host-kind repairs, code review,
 and constitutional/recurrence gates through `HostRetirementTopologyWorld` on
 the exact post-deletion source. Rerun `PulseNativeParityWorld` natively so
 deletion cannot manufacture a green result by removing parity coverage.
@@ -2086,11 +2041,11 @@ every guarantee.
 | `workspaces/worth-ui/docs/visual-inspection.md` | Snapshot capture is exact presented-source-target readback with typed affinity, cancellation, budget, disposal, and a distinct compositor-visible observation posture. | Native capture and anti-substitution evidence. |
 | `workspaces/worth-ui/docs/interaction-and-intents.md` | Native observations replace egui translation without changing targeting, IME/draft phase distinctions, or intent authority. | 3.14 cumulative input evidence. |
 | `_docs/worth-ui/worth_ui_roadmap.md` | 3.14.1 contract closure and 3.15 dependency remain current. | Documentary consistency audit. |
-| `_docs/worth-ui/milestone-3.14.1-phase-5.md` | Phase 5 raster, atlas, pixels, cost, reconstruction, and proof authority remains explicit without duplicating a roadmap milestone or ledger. | Documentary consistency audit and exact Phase 5 ledger inventory check. |
+| `_docs/worth-ui/milestone-3.14.1-phase-5.md` | Phase 5 raster, atlas, pixels, cost, reconstruction, and QA considerations remain explicit without duplicating a roadmap milestone. | Documentary consistency audit and focused Phase 5 test review. |
 
 Delete or rewrite every continuing example that names eframe, egui context,
 adapter repaint, or the retired host. Do not create a milestone closeout guide
-or migration guide with no post-cutover audience; the ledger records the
+or migration guide with no post-cutover audience; version history records the
 temporary coexistence and glyph rebaseline.
 
 ## Must Ship and Preserve
@@ -2106,7 +2061,7 @@ caret geometry, multilingual and color-emoji rasterization, bounded alpha/
 color atlases, level-triggered readiness, native 3.14 input observations,
 exact presented-source-target
 capture, failure/recovery lifecycle, exact resource census, the governed
-five-world proof portfolio, independent oracles, versioned causal-action and
+five-world test suite, independent oracles, versioned causal-action and
 control-point manifests, dual-host parity, one glyph rebaseline, final egui
 deletion, and recurrence gates described above.
 
@@ -2127,91 +2082,45 @@ Preserve all closed 3.10-3.14 guarantees, especially:
 
 ## Acceptance and Successor Handoff
 
-Planning for each open phase begins only after its qualification records are
-complete and internally consistent. In particular, Phase 4 remains blocked
+Planning for each unfinished phase begins only after its qualification records
+are complete and internally consistent. In particular, text work is blocked
 until `worth-ui-global-text-v2` contains the exact asset/dependency/data/corpus
-record required above. The milestone closes only when `HP-01`-`HP-05` have independent,
-mutation-sensitive evidence; all governed native resources reach exact zero;
-the one glyph rebaseline is recorded; the Unicode 17 conformance and RGI emoji
-corpus is complete; public examples compile; continuing docs agree; the
-production headless adapter is contract-only and outside runtime;
-no egui-family dependency declaration, resolved edge, lockfile package, or path
-remains outside explicitly classified negative fixtures; and formatting,
-strict lint, line-cap, test-topology, boundary, agent-context, ordinary
-certification, compile-contract, native integration, and executable-world gates
-are green on the exact final source.
+record required above. The milestone is complete when the `HP-01`-`HP-05`
+behaviors have honest, risk-proportionate evidence; all governed native
+resources reach exact zero; the glyph rebaseline is reviewed; the Unicode 17
+conformance and RGI emoji corpus is complete; public examples compile;
+continuing docs agree; the production headless adapter is contract-only and
+outside runtime; no egui-family dependency declaration, resolved edge,
+lockfile package, or path remains outside explicitly classified negative
+fixtures; and formatting, strict lint, line-cap, test-topology, boundary,
+agent-context, ordinary certification, compile-contract, native integration,
+and executable-world checks are green on the final commit.
 
-`milestone-3.14.1-proof-ledger.csv` is the single closure ledger. Its current
-thirty-row Phase 1-2 prefix is immutable predecessor evidence. Phase 3 appends
-its seventeen rows before implementation evidence is admitted; Phase 4 appends
-its twenty-one rows before v2 qualification work begins, and later phases append
-their named rows in the same fashion. Existing rows, nonces, artifacts, claims,
-and selected-source digests are not rewritten to make room. Historical rows
-retain their recorded revision, source metadata, claim, and artifact byte-for-
-byte. The old dirty-tree source snapshots are not reconstructible from Git and
-therefore are never presented as current-source authority. The newest phase
-owns one operational predecessor-handoff row that reexecutes the immutable
-prefix against the current tree and retains a current whole-tree source-state
-digest. This keeps the historical claim immutable without allowing a new phase
-to trust stale or unreconstructible production. Every row records
-phase, requirement, owner,
-production boundary,
-world identity/version, proof kind and evidence-schema identity,
-baseline digest, scenario delta, generated seed where applicable, authority
-provenance, production entry, independent oracle, mutation control, fault-
-injection boundary, retained failure artifact, teardown result, construction/
-execution cost, exact command, exact matched-test count, command result,
-retained result-artifact identity and digest, source revision, selected-source
-digest, whole-tree source-state digest, unique run nonce, source identity,
-font/native profile identity and canonical manifest digest,
-platform/dependency versions, structural counters, result, reopen lineage, and
-final-source status for `HP-01`-`HP-05`. Font/native qualification, the
-migration candidate freeze, glyph rebaseline, and post-deletion native rerun
-are named ledger events. Presented-source readback and compositor-visible
-client observation remain distinct evidence columns. Fixture failure remains
-distinct from product denial or non-success. The ledger explains and certifies;
-it cannot configure the host or substitute for production profile types.
+Each phase specification states the relevant architecture, authority, security,
+lifecycle, recovery, performance, resource, integration, developer-experience,
+and test considerations in prose. During implementation, run the focused owner
+and integration tests affected by the change. At final review, run the required
+CI and constitutional checks once on the final commit, plus expensive native or
+scheduled lanes only when their boundary is affected. Shared maximum-table,
+GPU, window, and executable worlds should execute once per applicable test run
+and expose observations directly to the assertions that need them.
 
-The ordinary warm gate must satisfy the numerical phase budgets above.
-Closed predecessor rows retain the execution-cost claim that governed their
-historical closure. The newest phase's predecessor handoff separately owns and
-derives the current unique-execution portfolio totals from content-addressed
-receipts; it may neither rewrite an immutable predecessor row nor repeat its
-old non-deduplicated total.
-Ledger commands are executed by one governed phase-closure runner. For every
-required row through the requested phase it lists the compiled test target,
-requires the fully qualified `--exact` test name to match exactly once, runs
-it, validates requirement-specific machine-readable observations, and retains
-an artifact binding
-package, target, test name, matched count, exit posture, source revision, and
-selected-source digest. It requires exactly one executed and passed test with
-zero ignored tests. It binds the whole tracked diff except the ledger itself
-and all nonignored untracked source bytes before and after the run. The artifact
-also binds a canonical digest of the row's immutable claim fields—world,
-scenario, authority, entries, oracle, mutation, failure boundary, teardown,
-costs, counters, observations, profiles, and source identity—so recording the
-execution result cannot invalidate the source-state digest and no later ledger
-claim edit is invisible. It emits a run nonce and retains a diagnostic artifact
-whose digest is checked by the ledger. Proved rows cannot reuse a run nonce or
-result-artifact identity. The closure runner, not the retained file, is the
-evidence authority: a zero-match success, trivial unrelated passing test,
-stale source state, missing required observation, or hand-authored artifact
-cannot close a phase.
-The runner streams row start, reuse/execute disposition, completion posture,
-and measured duration. It stages successful content-addressed receipts outside
-the canonical evidence directory so a late failure can roll canonical ledger
-and artifacts back atomically without discarding valid work. A retry may reuse
-only receipts whose complete binding remains unchanged. The phase portfolio
-records unique execution identities separately from row references, so shared
-worlds and repeated test/control identities are charged once while every row
-retains its independent claim validation. The predecessor handoff performs the
-one required current-source execution of the immutable prefix; the phase-final
-verifier validates that handoff plus the newly produced portfolio rather than
-reexecuting either.
-Maximum-table model proofs reuse immutable worlds inside existing targets,
-real GPU/window startup is paid only by the serialized platform/executable
-lanes that require it, and no claim is supported solely by a rarely run soak
-lane.
+Code review is the evidence authority. Reviewers inspect the final diff, the
+specification, test-oracle independence, fixture realism, boundary coverage,
+failure handling, resource cleanup, and the actual check results. Results are
+reported as passed, failed, or environment-blocked. A product or test failure
+blocks according to its causal impact. A failure that exists only in historical
+ledger digests, receipts, nonces, artifact publication, predecessor handoffs,
+row status, or phase-reopen machinery is legacy QA infrastructure and is
+non-gating. Historical phases never reopen; a regression is handled as a
+finding against the current change.
+
+`milestone-3.14.1-proof-ledger.csv` and retained closure artifacts remain frozen
+for historical traceability. Do not update, repair, regenerate, validate, or
+consult them as current authority. Maximum-table model tests reuse immutable
+worlds inside existing targets, real GPU/window startup is paid only by the
+serialized platform/executable lanes that require it, and no claim is supported
+solely by a rarely run soak lane.
 
 Milestone 3.15 may trust a Worth-owned event loop and native presentation
 platform where exact mounted deltas become attributable pixels, 3.14 input

@@ -2,6 +2,8 @@ use std::fmt;
 use std::time::Instant;
 
 #[cfg(target_os = "windows")]
+use super::windows::WindowsInputEnvironmentDenial;
+#[cfg(target_os = "windows")]
 use crate::external_observation::{
     NativeClientPixelCapture, NativeClientPixelPoint, NativeInputDeliveryObservation,
     NativeInputProbeKind, NormalNativeCloseRequestObservation,
@@ -37,6 +39,8 @@ pub(crate) enum NativePlatformFailure {
         client: crate::external_observation::NativeClientAreaBounds,
     },
     NormalClose(String),
+    #[cfg(target_os = "windows")]
+    InputEnvironment(WindowsInputEnvironmentDenial),
     InputDelivery(String),
     ProcessWindowResidue(usize),
 }
@@ -93,6 +97,10 @@ impl fmt::Display for NativePlatformFailure {
             Self::NormalClose(error) => {
                 write!(formatter, "request normal native-window close: {error}")
             }
+            #[cfg(target_os = "windows")]
+            Self::InputEnvironment(denial) => {
+                write!(formatter, "native input environment denied: {denial}")
+            }
             Self::InputDelivery(error) => write!(formatter, "deliver native input: {error}"),
             Self::ProcessWindowResidue(count) => {
                 write!(formatter, "{count} process window(s) remained after exit")
@@ -138,6 +146,8 @@ pub(crate) trait NativePlatformContract: sealed::Sealed {
         bound: &Self::BoundClientArea,
         point: NativeClientPixelPoint,
     ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure>;
+
+    fn move_cursor(&self, screen_point: (i32, i32)) -> Result<(), NativePlatformFailure>;
 
     fn request_normal_close(
         &self,

@@ -15,34 +15,54 @@ impl UiDraftRuntimeState {
     pub(crate) fn new() -> Self {
         Self {
             next_identity: Some(1),
+            next_recipient_generation: Some(1),
             sessions: Default::default(),
             active: None,
+            active_affinity: None,
             counters: Default::default(),
         }
     }
 
-    pub(crate) fn bind(
+    pub(crate) fn bind<Install>(
         &mut self,
         activation: UiActivateInteraction,
-        generation: &WorthUiActiveApplicationGenerationIdentity,
+        context: super::recipient_affinity::UiLocalInputRecipientBindingContext<'_>,
         contract: UiLocalInputRecipientContract,
-        mounted: &crate::mounting::WorthUiMountedSessionState,
-    ) -> Result<UiLocalInputRecipientAdmission, UiLocalInputRecipientBindingStop> {
+        install: Install,
+    ) -> Result<UiLocalInputRecipientAdmission, UiLocalInputRecipientBindingStop>
+    where
+        Install: FnOnce(worth_ui_host_contract::UiHostInputRecipientBindingReceipt) -> bool,
+    {
         let target = activation.target();
         if let Err(denial) =
-            crate::runtime::interaction::targeting::require_current_target(mounted, target)
+            crate::runtime::interaction::targeting::require_current_target(context.mounted, target)
         {
             return Err(UiLocalInputRecipientBindingStop::new(
                 activation,
                 UiLocalInputRecipientBindingStopReason::TargetNoLongerCurrent(denial),
             ));
         }
-        let (next_active, binding) = match self.prepare_binding(target, generation, contract) {
+        let prepared = match self.prepare_binding(target, context, contract) {
             Ok(prepared) => prepared,
             Err(reason) => return Err(UiLocalInputRecipientBindingStop::new(activation, reason)),
         };
+        let (next_active, binding, host_binding, started_session) = prepared;
+        if !install(host_binding) {
+            if let Some(session) = started_session {
+                self.sessions.remove(&session);
+            }
+            return Err(UiLocalInputRecipientBindingStop::new(
+                activation,
+                UiLocalInputRecipientBindingStopReason::HostAffinityInstallationDenied,
+            ));
+        }
         let displaced = self.suspend_active(super::UiLocalInputStopReason::RecipientReplaced);
         self.active = Some(next_active);
+        self.active_affinity =
+            Some(super::recipient_affinity::UiLocalInputRecipientAffinityLease::new(host_binding));
+        if started_session.is_some() {
+            self.counters.sessions_started = next(self.counters.sessions_started);
+        }
         self.counters.recipients_bound = next(self.counters.recipients_bound);
         Ok(UiLocalInputRecipientAdmission::new(
             activation, binding, displaced,
@@ -52,46 +72,92 @@ impl UiDraftRuntimeState {
     fn prepare_binding(
         &mut self,
         target: crate::runtime::interaction::UiPresentedInteractionTargetView,
-        generation: &WorthUiActiveApplicationGenerationIdentity,
+        context: super::recipient_affinity::UiLocalInputRecipientBindingContext<'_>,
         contract: UiLocalInputRecipientContract,
     ) -> Result<
-        (UiActiveLocalRecipient, UiLocalInputRecipientBindingReceipt),
+        (
+            UiActiveLocalRecipient,
+            UiLocalInputRecipientBindingReceipt,
+            worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+            Option<UiDraftSessionIdentity>,
+        ),
         UiLocalInputRecipientBindingStopReason,
     > {
+        let recipient_generation = self.take_recipient_generation()?;
         Ok(match contract.kind() {
             UiLocalInputRecipientContractKind::Activation => {
                 let active = UiActiveLocalRecipient::Activation(UiRecipientContext {
                     target,
-                    generation: generation.clone(),
+                    generation: context.active_generation.clone(),
                 });
                 let receipt =
                     binding_receipt(UiLocalInputRecipientFamily::Activation, target, None, false);
-                (active, receipt)
+                let host = super::recipient_affinity::host_binding_receipt(
+                    context,
+                    recipient_generation,
+                    UiLocalInputRecipientFamily::Activation,
+                    target,
+                    None,
+                )?;
+                (active, receipt, host, None)
             }
             UiLocalInputRecipientContractKind::Submit => {
                 let active = UiActiveLocalRecipient::Submit(UiRecipientContext {
                     target,
-                    generation: generation.clone(),
+                    generation: context.active_generation.clone(),
                 });
                 let receipt =
                     binding_receipt(UiLocalInputRecipientFamily::Submit, target, None, false);
-                (active, receipt)
+                let host = super::recipient_affinity::host_binding_receipt(
+                    context,
+                    recipient_generation,
+                    UiLocalInputRecipientFamily::Submit,
+                    target,
+                    None,
+                )?;
+                (active, receipt, host, None)
             }
             UiLocalInputRecipientContractKind::Draft { field, budget } => {
-                let (session, resumed) = match self.find_session(target, generation, field) {
-                    Some(session) => (session, true),
-                    None => {
-                        let session = self.create_session(target, generation, field, budget)?;
-                        (session, false)
-                    }
-                };
+                let (session, resumed, started) =
+                    match self.find_session(target, context.active_generation, field) {
+                        Some(session) => (session, true, None),
+                        None => {
+                            let session = self.create_session(
+                                target,
+                                context.active_generation,
+                                field,
+                                budget,
+                            )?;
+                            (session, false, Some(session))
+                        }
+                    };
                 let receipt = binding_receipt(
                     UiLocalInputRecipientFamily::Draft,
                     target,
                     Some(session),
                     resumed,
                 );
-                (UiActiveLocalRecipient::Draft(session), receipt)
+                let host = match super::recipient_affinity::host_binding_receipt(
+                    context,
+                    recipient_generation,
+                    UiLocalInputRecipientFamily::Draft,
+                    target,
+                    Some(session),
+                ) {
+                    Ok(host) => host,
+                    Err(reason) => {
+                        if started.is_some() {
+                            self.sessions.remove(&session);
+                        }
+                        return Err(reason);
+                    }
+                };
+                (
+                    UiActiveLocalRecipient::Draft(session),
+                    receipt,
+                    host,
+                    started,
+                )
             }
         })
     }
@@ -126,7 +192,6 @@ impl UiDraftRuntimeState {
                 draft_revision: 0,
             },
         );
-        self.counters.sessions_started = next(self.counters.sessions_started);
         Ok(identity)
     }
 
@@ -149,6 +214,20 @@ impl UiDraftRuntimeState {
         let value = self.next_identity?;
         self.next_identity = value.checked_add(1);
         Some(UiDraftSessionIdentity::mint(value))
+    }
+
+    fn take_recipient_generation(
+        &mut self,
+    ) -> Result<
+        worth_ui_host_contract::UiHostInputRecipientGeneration,
+        UiLocalInputRecipientBindingStopReason,
+    > {
+        let value = self
+            .next_recipient_generation
+            .ok_or(UiLocalInputRecipientBindingStopReason::RecipientGenerationExhausted)?;
+        self.next_recipient_generation = value.checked_add(1);
+        worth_ui_host_contract::UiHostInputRecipientGeneration::new(value)
+            .ok_or(UiLocalInputRecipientBindingStopReason::RecipientGenerationExhausted)
     }
 }
 

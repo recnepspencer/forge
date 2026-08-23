@@ -106,6 +106,24 @@ impl UiNativePendingPresentation {
         self.settlement.take()
     }
 
+    pub(crate) fn replace_settlement(
+        &mut self,
+        settlement: super::UiNativePendingSurfaceSettlement,
+    ) {
+        debug_assert!(self.settlement.is_none());
+        self.settlement = Some(settlement);
+    }
+
+    pub(crate) fn inherit_predecessor_settlement(
+        &mut self,
+        predecessor: super::UiNativePendingSurfaceSettlement,
+    ) -> Result<(), super::UiNativePendingSurfaceSettlement> {
+        let Some(successor) = self.settlement.as_mut() else {
+            return Err(predecessor);
+        };
+        successor.inherit_predecessor(predecessor)
+    }
+
     pub(crate) const fn has_settlement(&self) -> bool {
         self.settlement.is_some()
     }

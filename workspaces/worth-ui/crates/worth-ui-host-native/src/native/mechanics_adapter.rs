@@ -77,8 +77,46 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
         WorthUiHostCapabilityReport::available(vec![
             WorthUiHostCapability::ViewportObservation,
             WorthUiHostCapability::DpiObservation,
+            WorthUiHostCapability::PointerInput,
+            WorthUiHostCapability::KeyboardInput,
+            WorthUiHostCapability::TextInput,
+            WorthUiHostCapability::Ime,
             WorthUiHostCapability::NativePaint,
         ])
+    }
+
+    fn drain_mechanical_host_observations(
+        &self,
+        host_session_identity: u64,
+    ) -> Result<
+        worth_ui_host_contract::UiHostObservationDrain,
+        worth_ui_host_contract::UiHostObservationDrainDenial,
+    > {
+        Ok(self
+            .state
+            .borrow_mut()
+            .lifecycle_protocol
+            .drain(host_session_identity))
+    }
+
+    fn install_mechanical_input_recipient(
+        &self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        self.state
+            .borrow_mut()
+            .lifecycle_protocol
+            .install_input_recipient(binding)
+    }
+
+    fn clear_mechanical_input_recipient(
+        &self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        self.state
+            .borrow_mut()
+            .lifecycle_protocol
+            .clear_input_recipient(binding)
     }
 
     fn perform_surface_registration(
@@ -229,6 +267,9 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
         host_session_identity: u64,
     ) -> UiHostSessionReleaseOutcome {
         let mut state = self.state.borrow_mut();
+        state
+            .lifecycle_protocol
+            .release_session(host_session_identity);
         let pending_tokens = state
             .pending_text_presentations
             .iter()

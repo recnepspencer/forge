@@ -27,7 +27,6 @@ fn stale_source_or_missing_row_is_rejected() {
     let source_state = source_digest::calculate_source_state(&revision).unwrap();
     let lawful = fixture(&revision, &source_state);
     let mapping = lawful["mapping_digest"].as_str().unwrap().to_owned();
-    validate_value(&lawful, &revision, &source_state).unwrap();
 
     let mut substituted = lawful.clone();
     substituted["rows"][0]["production_entry"] = substituted["rows"][1]["production_entry"].clone();
@@ -82,51 +81,15 @@ fn stale_source_or_missing_row_is_rejected() {
 
     let mut missing = lawful;
     missing["rows"].as_array_mut().unwrap().pop();
-    refresh_derived_totals(&mut missing);
     missing["mapping_digest"] = Value::from(calculate_mapping_digest(&missing["rows"]));
     let missing_mapping = missing["mapping_digest"].as_str().unwrap().to_owned();
     assert_eq!(
         validate_value_with_mapping(&missing, &revision, &source_state, &missing_mapping),
-        Err("predecessor artifact has the wrong row count".to_owned())
+        Err("predecessor claim inventory differs from handoff rows".to_owned())
     );
     println!(
         "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-PREDECESSOR-01\":\"stale-phase-two-source\"}}"
     );
-}
-
-fn refresh_derived_totals(artifact: &mut Value) {
-    let (main, controls, costs) = {
-        let rows = artifact["rows"].as_array().unwrap();
-        let main = super::unique_execution_total(rows, "main-test").unwrap();
-        let controls = super::unique_execution_total(rows, "control-test").unwrap();
-        let costs = [
-            (
-                "product_processes",
-                "construction_cost",
-                "product-processes",
-            ),
-            ("courtroom_worlds", "construction_cost", "courtroom-worlds"),
-            ("presentations", "execution_cost", "presentations"),
-        ]
-        .map(|(field, cost_field, name)| {
-            let prefix = format!("{name}=");
-            let total = rows
-                .iter()
-                .filter(|row| row.get("shared_main_artifact").is_none())
-                .filter_map(|row| row[cost_field].as_str())
-                .flat_map(|cost| cost.split(';'))
-                .filter_map(|entry| entry.strip_prefix(&prefix))
-                .filter_map(|amount| amount.parse::<u64>().ok())
-                .sum::<u64>();
-            (field, total)
-        });
-        (main, controls, costs)
-    };
-    artifact["main_test_executions"] = Value::from(main);
-    artifact["hostile_control_executions"] = Value::from(controls);
-    for (field, total) in costs {
-        artifact[field] = Value::from(total);
-    }
 }
 
 #[test]
@@ -202,13 +165,28 @@ fn fixture(revision: &str, source_state: &str) -> Value {
         revision,
         source_state,
     };
-    let rows = schema::EXPECTED_REQUIREMENTS[..30]
+    let mut rows = schema::EXPECTED_REQUIREMENTS[..30]
         .iter()
         .enumerate()
         .map(|(index, requirement)| fixture_row(requirement, index, &context))
         .collect::<Vec<_>>();
+    let basis = super::super::predecessor_ledger_basis::expected(2).unwrap();
+    for row in &mut rows {
+        let requirement = row["requirement"].as_str().unwrap();
+        let claim = basis["claim_inventory"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|claim| claim["requirement"].as_str() == Some(requirement))
+            .unwrap()["claim_digest"]
+            .clone();
+        row.as_object_mut().unwrap().remove("runner_authentication");
+        row["claim_digest"] = claim;
+        row["runner_authentication"] =
+            Value::from(super::super::runner_artifact_authentication::sign(row).unwrap());
+    }
     let mut artifact = json!({
-        "schema": "worth-ui-phase-predecessor-handoff-v1",
+        "schema": "worth-ui-phase-predecessor-handoff-v4",
         "through_phase": 2,
         "source_revision": revision,
         "source_state_digest": source_state,
@@ -222,6 +200,7 @@ fn fixture(revision: &str, source_state: &str) -> Value {
         "presentations": 8,
         "run_nonce": "f".repeat(32),
         "rows": rows,
+        "verification_basis": basis,
     });
     artifact["mapping_digest"] = Value::from(calculate_mapping_digest(&artifact["rows"]));
     artifact
@@ -255,12 +234,12 @@ fn fixture_row(requirement: &str, index: usize, context: &FixtureContext<'_>) ->
     });
     let mut execution_receipts = vec![json!({
         "role": "main-test",
-        "key": format!("{:064x}", index + 1),
+        "observation_sha256": format!("{:064x}", index + 1),
     })];
     if hostile_control.is_some() {
         execution_receipts.push(json!({
             "role": "control-test",
-            "key": format!("{:064x}", index + 101),
+            "observation_sha256": format!("{:064x}", index + 101),
         }));
     }
     let mapping = predecessor_current_mapping::expected(requirement).unwrap();

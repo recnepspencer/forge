@@ -6,20 +6,22 @@ import os
 from pathlib import Path
 
 from worth_ui_ledger_artifact_transaction import ArtifactTransaction, replace_bytes
-from worth_ui_ledger_command import claim_digest, source_revision
+from worth_ui_ledger_command import claim_digest_for_row, source_revision
 from worth_ui_ledger_causal_revalidation import (
-    SCHEMA as CAUSAL_REUSE_SCHEMA,
     encoded_payload,
     revalidate_row_payload,
-    validate_causal_reuse,
 )
-from worth_ui_ledger_execution_cache import CACHE_ENV
+from worth_ui_ledger_execution_observation_store import CACHE_ENV
 from worth_ui_ledger_portfolio_snapshot import DIGEST_ENV, REVISION_ENV
-from worth_ui_ledger_row_cache import RowEvidenceCache, source_artifact_bindings
+from worth_ui_ledger_row_cache import RowEvidenceCache
 from worth_ui_ledger_row_execution import (
     CachedEvidenceRejected,
     execute_or_restore,
     run_row,
+)
+from worth_ui_ledger_shared_execution_lineage import (
+    SharedExecutionLineageRequest,
+    inherit_shared_receipt_lineage,
 )
 from worth_ui_ledger_runner_authentication import authentication_tag
 from worth_ui_ledger_source_state import source_state_digest
@@ -71,7 +73,7 @@ def retain_selected_acceptance(
                 row,
                 ledger,
                 row_cache,
-                claim_digest(row["requirement"]),
+                claim_digest_for_row(row),
                 lambda command, candidate=None: run_row(root, command, candidate),
                 lambda payload, selected_row=row: bind_current_result_mapping(
                     selected_row, payload, root
@@ -142,7 +144,7 @@ def bind_current_result_mapping(
             row,
             payload,
             str(result["artifact_sha256"]),
-            current_claim_digest or claim_digest(row["requirement"]),
+            current_claim_digest or claim_digest_for_row(row),
             revision,
             state_digest,
         )
@@ -163,10 +165,14 @@ def bind_current_result_mapping(
             "executed_exact_command": row["exact_command"],
         }
     )
-    inherit_shared_receipt_lineage(
-        row, payload, root, revision, state_digest,
-        current_claim_digest or claim_digest(row["requirement"]),
-    )
+    inherit_shared_receipt_lineage(SharedExecutionLineageRequest(
+        row=row,
+        payload=payload,
+        root=root,
+        revision=revision,
+        state_digest=state_digest,
+        current_claim=current_claim_digest or claim_digest_for_row(row),
+    ))
     payload.pop("artifact_sha256", None)
     payload.pop("runner_authentication", None)
     payload["runner_authentication"] = authentication_tag(payload, root)
@@ -174,46 +180,6 @@ def bind_current_result_mapping(
     replace_bytes(root / identity, content)
     payload["artifact_sha256"] = hashlib.sha256(content).hexdigest()
     return payload
-
-
-def inherit_shared_receipt_lineage(
-    row: dict[str, str],
-    payload: dict[str, object],
-    root: Path,
-    revision: str,
-    state_digest: str,
-    current_claim: str,
-) -> None:
-    shared_identity = payload.get("shared_main_artifact")
-    if not isinstance(shared_identity, str):
-        return
-    shared = json.loads((root / shared_identity).read_text(encoding="utf-8"))
-    inherited = validate_causal_reuse(root, shared, revision, state_digest)
-    receipts = payload.get("execution_receipts")
-    if inherited is None or not isinstance(receipts, list):
-        return
-    receipt_keys = {
-        receipt.get("key") for receipt in receipts if isinstance(receipt, dict)
-    }
-    if receipt_keys != inherited or not all(isinstance(key, str) for key in receipt_keys):
-        return
-    shared_reuse = shared["causal_reuse"]
-    payload["causal_reuse"] = {
-        "schema": CAUSAL_REUSE_SCHEMA,
-        "predecessor_artifact_sha256": payload["shared_main_artifact_digest"],
-        "predecessor_source_revision": shared["source_revision"],
-        "predecessor_source_state_digest": shared_reuse[
-            "predecessor_source_state_digest"
-        ],
-        "predecessor_source_digest": shared["source_digest"],
-        "predecessor_run_nonce": shared["run_nonce"],
-        "claim_digest": current_claim,
-        "exact_command": row["exact_command"],
-        "source_artifact_bindings": source_artifact_bindings(
-            root, row["exact_command"], row["requirement"]
-        ),
-        "execution_receipt_keys": sorted(receipt_keys),
-    }
 
 
 def restore_environment(name: str, value: str | None) -> None:

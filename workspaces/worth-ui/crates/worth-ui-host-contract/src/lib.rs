@@ -77,8 +77,11 @@ pub use mounted_projection::{
     WorthUiHeadlessMountedResourceCache, WorthUiMountedResourceCacheDenial,
 };
 pub use observation_report::{
-    UiHostImeCompositionPhase, UiHostImePreedit, UiHostImePreeditConstructionDenial,
-    UiHostImePreeditSelection, UiHostImeRangeConversionReceipt, UiHostKey, UiHostKeyTransition,
+    UiHostApplicationGeneration, UiHostImeCompositionPhase, UiHostImePreedit,
+    UiHostImePreeditConstructionDenial, UiHostImePreeditSelection, UiHostImeRangeConversionReceipt,
+    UiHostInputDraftSessionIdentity, UiHostInputRecipientAffinityReceipt,
+    UiHostInputRecipientBindingInput, UiHostInputRecipientBindingReceipt,
+    UiHostInputRecipientFamily, UiHostInputRecipientGeneration, UiHostKey, UiHostKeyTransition,
     UiHostKeyboardModifiers, UiHostObservationBatch, UiHostObservationBatchConstructionDenial,
     UiHostObservationBatchInput, UiHostObservationCanonicalCore,
     UiHostObservationCanonicalCoreInput, UiHostObservationCoalescingIdentity,

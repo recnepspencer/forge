@@ -29,4 +29,8 @@ impl UiNativeEventLoopStopReport {
     pub fn peak_text_pins(&self) -> &[crate::native::text_atlas::UiNativeTextPinObservation] {
         &self.peak_text_pins
     }
+
+    pub fn input_observations(&self) -> &crate::UiNativeInputObservationReport {
+        &self.input_observations
+    }
 }

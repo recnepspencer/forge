@@ -1,5 +1,9 @@
 # Milestone 3.10: Mounted Receipts and Host Contract
 
+> Terminology: the allocation ledger named in this specification is a
+> product-domain runtime authority, not a QA, proof, closure, or phase ledger.
+> The historical-ledger retirement policy does not apply to it.
+
 Status: Complete (2026-07-25). Phases 1 through 10 are implemented and
 verified. The human-visible Platform Pulse requirement was adopted after
 completion and was closed as product capability by the explicit Milestone

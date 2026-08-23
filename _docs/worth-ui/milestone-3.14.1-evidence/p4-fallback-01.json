@@ -138,7 +138,7 @@
   "package": "worth-ui-text",
   "passed_test_count": 1,
   "requirement": "P4-FALLBACK-01",
-  "run_nonce": "d9a15bb8957fba7da38eec8ad3aa5522",
+  "run_nonce": "269286c6c7295c42eaf7a70855dd33c0",
   "schema_version": 5,
   "source_digest": "149f549f15136a8ea41f3cdd0bf646fe2eac8be5274b10f2669a77357d4344a4",
   "source_identity": [
@@ -146,8 +146,8 @@
     "workspaces/worth-ui/crates/worth-ui-text/src/phase4_ledger_evidence.rs",
     "workspaces/worth-ui/crates/worth-ui-text/src/font_collection/selection.rs"
   ],
-  "source_revision": "dec3ed3ab6aee904e2e575b8c841265ade8db5cd",
-  "source_state_digest": "c36105bb603622263024a953067f3b23714ce74b84b8e131047831af1b7baf8e",
+  "source_revision": "ef56a3d58523baa15ae4c253455a01ef16623e06",
+  "source_state_digest": "b51de7a501e15a402b769927b6de45024be04b58a34fbf2df55b9a932b55239f",
   "structural_counter": "fallback-probes=3953",
   "supporting_world": null,
   "target_kind": "lib",
@@ -198,10 +198,9 @@
     "execution_receipt_keys": [
       "25ed2a16557dc555eed453f948f201b4fd30eef5c5cd059115f76562d4eecb59",
       "5bbb5b7f4497f4c1bb4977d5d7e3e2619f4c53dc4e2e937430f94321b4f8b1dd",
-      "5bbb5b7f4497f4c1bb4977d5d7e3e2619f4c53dc4e2e937430f94321b4f8b1dd",
       "a80a79448d9451841ab34591a9a929de02623df3f4ff86c6e0ad9a0a7fce3e78",
       "b3743f5a6beedd58dc08ded8d3e87b6ab907f906489f3bd47a0d1137cc3ce58a"
     ]
   },
-  "runner_authentication": "2bb8075e7b80b12efe86ec486cc2a89004cfeb7b7b2a696b5e45347b02f34b50"
+  "runner_authentication": "2f624885fa5e6505ead77a6141e08040c1c6ac26c65da98f2166fece6dffa442"
 }

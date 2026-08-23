@@ -165,6 +165,17 @@ impl ScriptedPresentationHost {
         ));
     }
 
+    pub fn push_native_display_presented(&self) {
+        self.push_presentation(UiHostSurfacePresentationOutcome::Presented(
+            worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
+                UiHostSurfacePresentationMode::NativeDisplay,
+                scripted_presentation_epoch(),
+                UiMountedCompletedEffects::new(vec![UiMountedEffectFamily::NativePaint]),
+                scripted_presentation_cost(),
+            ),
+        ));
+    }
+
     pub fn push_rejected(&self) {
         self.push_presentation(UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
             worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined,
@@ -239,6 +250,15 @@ impl ScriptedPresentationHost {
         batch: crate::facade::observation_report::UiHostObservationBatch,
     ) {
         self.state.lock().unwrap().queued_observation = Some(batch);
+    }
+
+    pub fn enqueue_observation_for_next_drain(
+        &self,
+        batch: crate::facade::observation_report::UiHostObservationBatch,
+    ) {
+        self.observation_retention
+            .retain(batch)
+            .expect("scripted observation fits adapter retention");
     }
 
     pub fn pending_observation_batch_count(&self) -> usize {

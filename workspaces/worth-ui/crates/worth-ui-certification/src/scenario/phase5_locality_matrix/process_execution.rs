@@ -1,8 +1,10 @@
 use std::io::Read;
 use std::process::{Command, ExitStatus, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub(super) const DEADLINE_ENV: &str = "WORTH_UI_PHASE5_MATRIX_DEADLINE_MS";
+pub(super) const CANCEL_ENV: &str = "WORTH_UI_PHASE5_MATRIX_CANCEL_FILE";
 const MAXIMUM_EXECUTION: Duration = Duration::from_secs(8 * 60 + 30);
 
 pub(super) struct CapturedOutput {
@@ -29,6 +31,15 @@ pub(super) fn run_until(
     deadline: u128,
     label: &str,
 ) -> Result<CapturedOutput, String> {
+    run_until_with_cancellation(command, deadline, label, None)
+}
+
+pub(super) fn run_until_with_cancellation(
+    command: &mut Command,
+    deadline: u128,
+    label: &str,
+    cancellation: Option<&AtomicBool>,
+) -> Result<CapturedOutput, String> {
     let mut child = command
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
@@ -52,6 +63,11 @@ pub(super) fn run_until(
                 return Err(format!("matrix process {label} status: {denial}"));
             }
         }
+        if cancellation_requested(cancellation) {
+            stop(&mut child);
+            let _ = reader.join();
+            return Err(format!("matrix process {label} was cancelled"));
+        }
         let now = match now_millis() {
             Ok(now) => now,
             Err(denial) => {
@@ -74,6 +90,11 @@ pub(super) fn run_until(
         .map_err(|_| format!("matrix process {label} output reader panicked"))?
         .map_err(|denial| format!("matrix process {label} output: {denial}"))?;
     Ok(CapturedOutput { status, stdout })
+}
+
+fn cancellation_requested(cancellation: Option<&AtomicBool>) -> bool {
+    cancellation.is_some_and(|flag| flag.load(Ordering::Acquire))
+        || std::env::var_os(CANCEL_ENV).is_some_and(|path| std::path::Path::new(&path).exists())
 }
 
 fn stop(child: &mut std::process::Child) {

@@ -32,6 +32,9 @@ impl UiHostObservationIntegrity {
                 digest = digest.rotate_left(7) ^ basis.instance().diagnostic_value();
                 digest = digest.rotate_left(7) ^ basis.node_receipt().diagnostic_value();
             }
+            if let Some(affinity) = report.input_affinity() {
+                digest = fold_input_affinity(digest, affinity);
+            }
         }
         Self(digest)
     }
@@ -51,6 +54,36 @@ impl UiHostObservationIntegrity {
     pub const fn diagnostic_value(self) -> u64 {
         self.0
     }
+}
+
+fn fold_input_affinity(
+    mut digest: u64,
+    affinity: super::UiHostInputRecipientAffinityReceipt,
+) -> u64 {
+    let binding = affinity.binding();
+    let family = match binding.family() {
+        super::UiHostInputRecipientFamily::Activation => 1,
+        super::UiHostInputRecipientFamily::Draft => 2,
+        super::UiHostInputRecipientFamily::Submit => 3,
+    };
+    for value in [
+        binding.host_session(),
+        binding.application_generation().get(),
+        binding.recipient_generation().get(),
+        family,
+        binding.draft_session().map_or(0, |session| session.get()),
+        binding.surface().diagnostic_value(),
+        binding.binding().diagnostic_value(),
+        binding.mounted_instance().diagnostic_value(),
+        binding.node_receipt().diagnostic_value(),
+        binding.text_profile().map_or(0, |profile| profile.get()),
+        affinity.presentation().frame().diagnostic_value(),
+        affinity.presentation().binding().diagnostic_value(),
+        affinity.presentation().epoch().diagnostic_value(),
+    ] {
+        digest = digest.rotate_left(7) ^ value;
+    }
+    digest
 }
 
 fn loss_digest(loss: super::UiHostObservationLoss) -> u64 {

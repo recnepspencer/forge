@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from worth_ui_3141_p5_contracts import P5_FAULT_BOUNDARIES
+from worth_ui_3141_p6_contracts import P6_FAULT_BOUNDARIES
 
 
 def fault_boundaries(counters: dict[str, object]) -> dict[str, str]:
@@ -46,4 +47,5 @@ def fault_boundaries(counters: dict[str, object]) -> dict[str, str]:
                 "before-effects" if requirement in before_effects else "not-applicable"
             )
     boundaries.update(P5_FAULT_BOUNDARIES)
+    boundaries.update(P6_FAULT_BOUNDARIES)
     return boundaries

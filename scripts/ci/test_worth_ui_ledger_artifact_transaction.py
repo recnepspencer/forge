@@ -8,11 +8,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from worth_ui_ledger_artifact_transaction import ArtifactTransaction
+from worth_ui_ledger_artifact_transaction import (
+    ArtifactTransaction,
+    register_active_identity,
+)
 
 
-ARTIFACT = "_docs/worth-ui/milestone-3.14.1-evidence/transaction-test.json"
-COMMAND = f"cargo test --artifact {ARTIFACT}"
+ARTIFACT = "_docs/worth-ui/milestone-3.14.1-evidence/p6-transaction-test-01.json"
+COMMAND = f"cargo test --requirement P6-TRANSACTION-TEST-01 --artifact {ARTIFACT}"
 
 
 class ArtifactTransactionTests(unittest.TestCase):
@@ -49,6 +52,21 @@ class ArtifactTransactionTests(unittest.TestCase):
             transaction.rollback()
             self.assertEqual(artifact.read_bytes(), b"old-artifact")
 
+    def test_dynamic_observation_is_removed_by_rollback(self) -> None:
+        directory, root, ledger, _artifact = self.fixture()
+        with directory:
+            transaction = ArtifactTransaction(root, ledger, [COMMAND])
+            observation = (
+                root
+                / "_docs/worth-ui/milestone-3.14.1-evidence/execution-observations/aa"
+                / f"{'a' * 64}.json"
+            )
+            register_active_identity(root, observation)
+            observation.parent.mkdir(parents=True)
+            observation.write_bytes(b"candidate-observation")
+            transaction.rollback()
+            self.assertFalse(observation.exists())
+
     def test_next_transaction_recovers_a_crash_before_ledger_commit(self) -> None:
         directory, root, ledger, artifact = self.fixture()
         with directory:
@@ -78,6 +96,16 @@ class ArtifactTransactionTests(unittest.TestCase):
             ledger.write_bytes(b"foreign-ledger")
             with self.assertRaisesRegex(RuntimeError, "outside"):
                 ArtifactTransaction(root, ledger, [])
+
+    def test_transaction_rejects_cross_requirement_artifact_identity(self) -> None:
+        directory, root, ledger, _artifact = self.fixture()
+        with directory:
+            command = (
+                "cargo test --requirement P6-OTHER-01 "
+                f"--artifact {ARTIFACT}"
+            )
+            with self.assertRaisesRegex(ValueError, "artifact must be"):
+                ArtifactTransaction(root, ledger, [command])
 
 
 if __name__ == "__main__":

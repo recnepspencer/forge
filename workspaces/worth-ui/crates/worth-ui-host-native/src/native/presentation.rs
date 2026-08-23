@@ -37,7 +37,9 @@ use raster::{raster_rect, rectangle_vertices, GlyphVertex, RasterRect, RasterVer
 use retained_evidence_copy::copy_evidence_pixels;
 
 pub(crate) use delta::{present_delta, UiNativeDeltaPresentation};
-pub(crate) use pending_settlement::UiNativePendingSurfaceSettlement;
+pub(crate) use pending_settlement::{
+    UiNativePendingDeltaSettlement, UiNativePendingSurfaceSettlement,
+};
 pub(crate) use pending_wgpu_readback::{UiNativePendingWgpuObligation, UiNativeWgpuReadbackPoll};
 pub(crate) use port::{
     UiNativePresentationPort, UiNativePresentationPortFailure, UiNativePresentationPortObservation,

@@ -38,7 +38,7 @@ pub(super) fn main_for(requirement: &str) -> Option<TestIdentity> {
         ),
         "P5-TEXT-COST-01" => integration(
             "worth-ui-certification",
-            "phase5_closure",
+            "application_contracts",
             "phase5_locality_closure::all_32_fresh_native_locality_worlds_retain_owner_issued_evidence",
         ),
         "P5-CLOSE-01" => integration(
@@ -91,7 +91,7 @@ pub(super) fn control_for(requirement: &str) -> Option<TestIdentity> {
         ),
         "P5-TEXT-COST-01" => integration(
             "worth-ui-certification",
-            "phase5_closure",
+            "application_contracts",
             "phase5_locality_hostile_control::exact_owner_cost_mutants_are_convicted_by_performed_small_worlds",
         ),
         "P5-TEXT-ASYNC-PRESENTATION-01" => library(

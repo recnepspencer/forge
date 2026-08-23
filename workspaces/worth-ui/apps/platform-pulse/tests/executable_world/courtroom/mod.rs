@@ -9,6 +9,8 @@ mod native_phase2;
 #[cfg(target_os = "windows")]
 mod native_phase3;
 #[cfg(target_os = "windows")]
+mod native_phase6;
+#[cfg(target_os = "windows")]
 mod native_phase_f;
 mod native_phase_f_reconstruction;
 #[cfg(target_os = "windows")]

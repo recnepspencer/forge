@@ -1,127 +1,75 @@
 ---
 name: code-quality-qa
-description: Review and correct WORTH production-code composition and domain topology with a fresh independent reviewer at the start. Use when auditing directory structure, future insertion, file responsibilities, function decomposition, naming, facade honesty, helper placement, module boundaries, or applying the 400-line file limit and 60-line and five-argument function advisories to every dirty workspace file against `composition_laws.md` and `domain_structure_laws.md`.
+description: Review and correct WORTH code composition and domain topology within the current task's causal scope. Use when auditing responsibility, placement, naming, facades, module boundaries, future insertion, or repository size and function advisories without absorbing unrelated dirty-worktree debt.
 ---
 
 # Code Quality QA
 
-Attempt to falsify the claim that the code's physical structure preserves its
-meaning. Judge against WORTH's laws, not local precedent or generic clean-code
-taste.
+Review whether the change's physical structure preserves its meaning. Judge
+against `composition_laws.md`, `domain_structure_laws.md`, the governing
+specification, and the Composition and Architecture sections of
+`_docs/coding_guidelines/qa_review_guide.md`.
 
-## Establish the structural model
+## Establish task scope
 
-Read the repository instructions, `composition_laws.md`,
-`domain_structure_laws.md`, the governing specification or roadmap, the target
-files, and enough adjacent topology to understand ownership and dependency
-direction.
+Identify files changed by the current task and the directly affected parent,
+child, facade, consumer, and dependency modules needed to judge ownership.
+Distinguish that scope from unrelated pre-existing staged, unstaged, renamed, or
+untracked user work. Do not expand the task merely because the worktree is large
+or dirty.
 
-Before narrowing the semantic review, enumerate the complete Git worktree
-change set: staged, unstaged, renamed, and untracked files. The numeric
-discipline below applies to every dirty code, test, fixture, and support file,
-not only the requested feature, current diff hunk, or files changed by the
-reviewing agent.
+Run repository composition, function, and line-cap tools required by local
+instructions. Classify their findings by causal scope. A structural violation
+introduced, modified, or made relevant by the current task blocks completion;
+an unrelated pre-existing violation is reported as repository debt.
 
-In WORTH Rust worktrees, run
-`python scripts/quality/scrutinize_rust_functions.py --dirty .` and inspect
-every reported candidate. If that repository tool is unavailable, perform an
-equivalent dirty-file inventory rather than narrowing the rule.
-
-Identify:
-
-- current and committed future responsibilities
-- semantic, authority, truth-source, lifecycle, and volatility axes
-- the public facade and dependency direction
-- which responsibilities should be independently understood, replaced, tested,
-  evolved, or deleted
+In WORTH Rust worktrees, use
+`python scripts/quality/scrutinize_rust_functions.py --dirty .` when available,
+then inspect every reported candidate that belongs to the task's causal scope.
+Apply the 400-line limit as required by repository rules. Functions over 60
+lines or with five or more explicit arguments require judgment but are not
+defects by size alone.
 
 ## Independent review
 
-Launch a fresh, read-only independent reviewer at the start. Do not wait for a
-self-exhausted primary structural pass. The critic is an independent evidence
-source for missed composition defects, not a substitute for the primary agent's
-repository work.
+Use the structural reviewer selected by the user or repository. Do not hard-code
+a model or require a new instance after every edit. Give the reviewer the
+relevant laws, specification, current diff, task-scoped file inventory,
+destination topology, and enforcement results. A persistent reviewer must
+inspect the final diff before clearing the change.
 
-The primary agent still inspects the complete dirty set, every numeric
-advisory, relevant parent and child modules, sibling owners, facades,
-dependency edges, and the committed destination topology. Search each finding's
-semantic family for parallel bags, mixed-level coordinators, dishonest facades,
-misplaced support, duplicated owners, and unstable naming.
+Verify reviewer findings directly. If required outside review is unavailable,
+report that limitation without treating the primary pass as independent.
 
-If the user names a reviewer, model, or CLI, use it. If the user does not name
-a reviewer, default to Luna Max and proceed without blocking for a choice. If
-neither Luna Max nor a user-selected reviewer can be launched, report that the
-independent-review requirement is blocked; do not relabel the primary agent's
-pass as outside review.
+## Review lenses
 
-Give the reviewer a compact packet containing repository laws, governing
-specification, current revision or deterministic source fingerprint, scoped
-diff, destination topology, dirty-file inventory, enforcement results, and the
-raw files needed to look for missed composition defects. Keep conclusions and
-preferred fixes out of its first prompt.
-
-Verify every reviewer finding directly. If a material correction follows, use a
-new reviewer for the final-source closure pass rather than retaining the old
-reviewer as a search assistant. The replacement reviewer defaults to Luna Max
-unless the user specified another reviewer.
-
-## Review
-
-Apply these lenses:
-
-- **Destination topology:** Committed successors can enter without
-  reclassification, authority reversal, bucket growth, or facade relocation.
-- **Semantic responsibility:** Each directory, file, type, and function owns one
+- **Destination topology:** Expected successors enter without authority
+  reversal, bucket growth, or unrelated relocation.
+- **Semantic responsibility:** Each directory, file, type, and function owns a
   predictable idea at its visibility radius.
 - **Composition:** Orchestrators read as named semantic steps; decisions,
-  effects, failure paths, and control transfers are not hidden in mixed-level
-  bodies.
-- **Placement:** Logic and support code live at the narrowest honest semantic
-  radius, and stable meaning owns volatile mechanisms.
-- **Naming:** Names predict contents, exclusions, phase, authority, and truth
-  status without depending on implementation archaeology.
-- **Boundary honesty:** Facades aggregate rather than implement, external
-  mechanisms remain behind domain-owned ports, and dependency direction
-  preserves authority.
-- **Deletion and extension:** Removing or adding a responsibility has an obvious
+  effects, and failure paths are not hidden in mixed-level bodies.
+- **Placement:** Logic lives at the narrowest honest semantic radius, and stable
+  meaning owns volatile mechanisms.
+- **Naming:** Names predict contents, exclusions, authority, phase, and truth
+  status without archaeology.
+- **Boundary honesty:** Facades aggregate rather than implement, and dependency
+  direction preserves authority.
+- **Deletion and extension:** Adding or removing a responsibility has an obvious
   location and does not require unrelated edits.
-- **Size discipline:** Every dirty code, test, fixture, and support file must
-  remain at or below 400 lines unless the repository explicitly exempts it. A
-  non-exempt dirty over-limit file prevents clean QA closure. Inspect every
-  function in that dirty set; more than 60 lines or five or more explicit
-  arguments triggers inspection for collapsed responsibility or a dishonest
-  signature, but remains advisory rather than a defect by itself. If unrelated
-  user work cannot safely be restructured, report the unresolved hard-limit
-  violation rather than silently excluding the file.
+- **Size discipline:** Task-scoped files satisfy repository limits and are not
+  split into dishonest fragments merely to satisfy a number.
 
-The hard file limit does not make smaller code coherent. Judge responsibility
-and topology independently of whether a file or function stays below a numeric
-threshold.
-
-Keep this pass structural. Follow semantic, performance, or test defects only
+Keep the pass structural. Follow semantic, performance, or test defects only
 when structure conceals or causes them.
 
-## Findings
-
-Report findings before summaries. For each finding state:
-
-1. affected structural responsibility
-2. concrete defect and evidence
-3. violated composition or domain-structure law
-4. required destination structure or decomposition
-5. evidence that would close the finding
-
-Do not report subjective taste or demand movement that merely exchanges one
-equally honest structure for another.
-
-## Correct and repeat
+## Correct and complete
 
 Correct responsibility and topology rather than shuffling lines. Search the
-affected semantic family for the same structural defect, preserve public
-contracts where required, and verify compilation and repository enforcement
-after the structure stabilizes.
+affected semantic family for the same structural defect and verify compilation
+and required repository enforcement after the structure stabilizes.
 
-Reassess naming, placement, dependency direction, deletion boundaries, and
-committed future insertion after each material correction. Continue until no
-meaningful structural findings remain. Closure requires both the exhausted
-primary pass and a final independent pass over the same frozen source state.
+Review is complete when the task-scoped structure is coherent, required limits
+and checks pass, the assigned reviewer has inspected the final diff, and no
+known in-scope structural defect remains. Report unrelated repository debt as a
+caveat rather than silently absorbing or fixing it.

@@ -17,14 +17,19 @@ use crate::external_observation::{
 use super::contract::sealed::Sealed;
 use super::{NativePlatformContract, NativePlatformFailure};
 
+mod capture_consistency;
 mod capture_region;
 mod client_capture;
 mod environment;
 mod gdi_capture;
 mod input_delivery;
+mod input_environment;
 mod observation_readiness;
 mod process_windows;
 
+pub(super) use input_environment::WindowsInputEnvironmentDenial;
+
+use capture_consistency::{require_matching_capture_sources, require_matching_composited_sources};
 use capture_region::{
     capture_bound_client_area, client_bounds, monitor_capture_region, monitor_for_client,
 };
@@ -134,123 +139,12 @@ impl WindowsNativePlatform {
     }
 }
 
-fn require_matching_capture_sources(
-    monitor: &NativeClientPixelCapture,
-    window: &NativeClientPixelCapture,
-) -> Result<(), NativePlatformFailure> {
-    if monitor.process_id() != window.process_id()
-        || monitor.width() != window.width()
-        || monitor.height() != window.height()
-    {
-        return Err(capture_mismatch(monitor, window));
-    }
-    for (x, y) in capture_control_points(monitor) {
-        let observed = capture_pixel(monitor, x, y);
-        let source = capture_pixel(window, x, y);
-        if source[3] != 255 || observed != source {
-            return Err(capture_mismatch(monitor, window));
-        }
-    }
-    Ok(())
-}
-
-fn capture_mismatch(
-    monitor: &NativeClientPixelCapture,
-    window: &NativeClientPixelCapture,
-) -> NativePlatformFailure {
-    NativePlatformFailure::ClientCapture(format!(
-        "independent capture mismatch: monitor={:?}; window={:?}",
-        capture_signature(monitor),
-        capture_signature(window),
-    ))
-}
-
-fn require_matching_composited_sources(
-    monitor: &NativeClientPixelCapture,
-    gdi: &NativeClientPixelCapture,
-) -> Result<(), NativePlatformFailure> {
-    let same_identity = monitor.process_id() == gdi.process_id()
-        && monitor.width() == gdi.width()
-        && monitor.height() == gdi.height();
-    let same_rgb = capture_control_points(monitor)
-        .into_iter()
-        .all(|(x, y)| capture_pixel(monitor, x, y)[..3] == capture_pixel(gdi, x, y)[..3]);
-    if same_identity && same_rgb {
-        Ok(())
-    } else {
-        Err(capture_mismatch(monitor, gdi))
-    }
-}
-
-fn capture_control_points(capture: &NativeClientPixelCapture) -> [(u32, u32); 3] {
-    [
-        (capture.width() / 4, capture.height() / 4),
-        (capture.width() / 2, capture.height() / 2),
-        (capture.width() * 3 / 4, capture.height() * 3 / 4),
-    ]
-}
-
-fn capture_pixel(capture: &NativeClientPixelCapture, x: u32, y: u32) -> [u8; 4] {
-    let index = ((y * capture.width() + x) * 4) as usize;
-    capture.rgba()[index..index + 4].try_into().unwrap()
-}
-
-fn capture_signature(capture: &NativeClientPixelCapture) -> ([u32; 2], [[u8; 4]; 3]) {
-    let points = [
-        (0, 0),
-        (capture.width() / 2, capture.height() / 2),
-        (capture.width() - 1, capture.height() - 1),
-    ];
-    let pixels = points.map(|(x, y)| {
-        let index = ((y * capture.width() + x) * 4) as usize;
-        capture.rgba()[index..index + 4].try_into().unwrap()
-    });
-    ([capture.width(), capture.height()], pixels)
-}
+impl Sealed for WindowsNativePlatform {}
 
 #[test]
 fn independent_window_capture_rejects_monitor_pixel_substitution() {
-    let monitor = NativeClientPixelCapture::new(
-        7,
-        4,
-        1,
-        vec![
-            1, 2, 3, 4, 47, 129, 247, 255, 47, 129, 247, 255, 47, 129, 247, 255,
-        ],
-    )
-    .unwrap();
-    let exact = NativeClientPixelCapture::new(7, 4, 1, monitor.rgba().to_vec()).unwrap();
-    assert!(require_matching_capture_sources(&monitor, &exact).is_ok());
-    let gdi = NativeClientPixelCapture::new(
-        7,
-        4,
-        1,
-        vec![
-            9, 9, 9, 0, 47, 129, 247, 0, 47, 129, 247, 0, 47, 129, 247, 0,
-        ],
-    )
-    .unwrap();
-    assert!(require_matching_composited_sources(&monitor, &gdi).is_ok());
-    let substituted = NativeClientPixelCapture::new(
-        7,
-        4,
-        1,
-        vec![
-            1, 2, 3, 4, 47, 129, 247, 255, 1, 2, 3, 255, 47, 129, 247, 255,
-        ],
-    )
-    .unwrap();
-    assert!(matches!(
-        require_matching_capture_sources(&substituted, &exact),
-        Err(NativePlatformFailure::ClientCapture(_))
-    ));
-    assert!(matches!(
-        require_matching_composited_sources(&substituted, &gdi),
-        Err(NativePlatformFailure::ClientCapture(_))
-    ));
+    capture_consistency::independent_window_capture_rejects_monitor_pixel_substitution();
 }
-
-impl Sealed for WindowsNativePlatform {}
 
 impl NativePlatformContract for WindowsNativePlatform {
     type BoundClientArea = WindowsProcessBoundNativeClientArea;
@@ -364,6 +258,11 @@ impl NativePlatformContract for WindowsNativePlatform {
     ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure> {
         let observed = self.observe_bound_client_area(bound)?;
         input_delivery::deliver_pointer(&bound.window, observed, point)
+    }
+
+    fn move_cursor(&self, screen_point: (i32, i32)) -> Result<(), NativePlatformFailure> {
+        input_environment::actuate_and_observe_cursor(screen_point)
+            .map_err(NativePlatformFailure::InputEnvironment)
     }
 
     fn request_normal_close(

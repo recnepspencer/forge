@@ -11,12 +11,10 @@ const LAST_RESORT_RELEASE: &str =
 const UNICODE_RELEASE: &str = "https://www.unicode.org/license.txt";
 const UNICODE_LICENSE: &str = "licenses/unicode-data-license.txt";
 const NOTO_FONT_PREFIX: &str = "https://raw.githubusercontent.com/notofonts/notofonts.github.io/noto-monthly-release-2026.08.01/fonts/";
-const CJK_FONT_SOURCE: &str =
-    "https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/Sans/Variable/OTC/NotoSansCJK-VF.otf.ttc";
+const CJK_FONT_SOURCE: &str = "https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/Sans/Variable/OTC/NotoSansCJK-VF.otf.ttc";
 const EMOJI_FONT_SOURCE: &str =
     "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.051/fonts/NotoColorEmoji.ttf";
-const LAST_RESORT_FONT_SOURCE: &str =
-    "https://github.com/unicode-org/last-resort-font/releases/download/17.000/LastResort-Regular.ttf";
+const LAST_RESORT_FONT_SOURCE: &str = "https://github.com/unicode-org/last-resort-font/releases/download/17.000/LastResort-Regular.ttf";
 
 pub(super) fn validate(root: &Path, manifest: &toml::Value) -> Result<(), String> {
     let inventory = fs::read(root.join(super::string(manifest, "artifact_inventory")?))

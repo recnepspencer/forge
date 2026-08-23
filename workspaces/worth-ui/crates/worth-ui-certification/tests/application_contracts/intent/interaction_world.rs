@@ -8,7 +8,6 @@ use worth_ui::facade::observation_report::{
     UiHostPointerCaptureEpoch, UiHostPointerIdentity, UiHostProtocolContract,
     UiHostProtocolNegotiation, UiHostSurfacePosition, UI_HOST_SURFACE_POSITION_SUBPIXELS_PER_UNIT,
 };
-use worth_ui_host_contract::WorthUiHostMechanicsAdapter;
 use worth_ui_runtime::facade::mounted::{
     UiMountedFrameOutcome, UiMountedHitTestMechanic, UiPresentationDeadline,
     UiSurfaceBindingGeneration,
@@ -30,10 +29,7 @@ pub(super) struct InteractionWorld {
     native_host: Option<worth_ui_host_egui::WorthUiHostEgui>,
 }
 
-pub(super) struct NativeInteractionIngress {
-    adapter: worth_ui_host_egui::UiEguiRawInputIngressOutcome,
-    runtime: Box<[UiHostInteractionIngressOutcome]>,
-}
+mod native_input;
 
 impl InteractionWorld {
     pub(super) fn canonical() -> Self {
@@ -163,33 +159,6 @@ impl InteractionWorld {
         )
     }
 
-    pub(super) fn native_input(&mut self, events: Vec<egui::Event>) -> NativeInteractionIngress {
-        let host = self
-            .native_host
-            .as_ref()
-            .expect("native input requires the production egui host world");
-        let adapter = host.observe_native_input(&egui::RawInput {
-            events,
-            ..Default::default()
-        });
-        let runtime = host
-            .drain_mechanical_host_observations(self.session.host_session_identity().as_u64())
-            .expect("the native interaction drain is structurally bounded")
-            .into_batches()
-            .into_vec()
-            .into_iter()
-            .map(|batch| self.session.admit_host_interaction_batch(batch))
-            .collect::<Vec<_>>()
-            .into_boxed_slice();
-        NativeInteractionIngress { adapter, runtime }
-    }
-
-    pub(super) fn native_host(&self) -> &worth_ui_host_egui::WorthUiHostEgui {
-        self.native_host
-            .as_ref()
-            .expect("native host evidence requires the native world")
-    }
-
     pub(super) fn payload_at(
         &mut self,
         sequence: u64,
@@ -311,16 +280,6 @@ impl InteractionWorld {
         })
         .expect("gesture world emits a structurally valid raw batch");
         self.session.admit_host_interaction_batch(batch)
-    }
-}
-
-impl NativeInteractionIngress {
-    pub(super) const fn adapter(&self) -> worth_ui_host_egui::UiEguiRawInputIngressOutcome {
-        self.adapter
-    }
-
-    pub(super) fn into_runtime(self) -> Box<[UiHostInteractionIngressOutcome]> {
-        self.runtime
     }
 }
 

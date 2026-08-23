@@ -140,7 +140,7 @@
   "package": "worth-ui-certification",
   "passed_test_count": 1,
   "requirement": "P4-TEXT-COST-01",
-  "run_nonce": "d6fd28771d5d7bda13a56c76206590af",
+  "run_nonce": "4409e3b0a877331a3cb1e298d2c6cce2",
   "schema_version": 5,
   "source_digest": "24154bea891650a0068240942ddf0decbe7c9e1505b6a8e68c3755a2a25430a4",
   "source_identity": [
@@ -157,8 +157,8 @@
     "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/projection/frame_storage/mechanic_source_tests/phase4_locality/world.rs",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/projection/frame_storage/mechanic_source_tests/phase4_locality/collection.rs"
   ],
-  "source_revision": "dec3ed3ab6aee904e2e575b8c841265ade8db5cd",
-  "source_state_digest": "c36105bb603622263024a953067f3b23714ce74b84b8e131047831af1b7baf8e",
+  "source_revision": "ef56a3d58523baa15ae4c253455a01ef16623e06",
+  "source_state_digest": "b51de7a501e15a402b769927b6de45024be04b58a34fbf2df55b9a932b55239f",
   "structural_counter": "retained-scans=0",
   "supporting_world": null,
   "target_kind": "test",
@@ -233,5 +233,5 @@
       "e5042ed076b3f9f4fd5071f426a612fccff809ebb41ece371ef0a2f7967be41a"
     ]
   },
-  "runner_authentication": "c6a0a4d94d8469d59c112ec043ec8aabd0bfdbc8f58000a99090e222d58a92a8"
+  "runner_authentication": "8f6863e68545bc6a0757d9fde4c6d0afa61f8ebc4f7d143abaf07ae81596dd2c"
 }

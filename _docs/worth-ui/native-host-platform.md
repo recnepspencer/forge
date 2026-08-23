@@ -115,6 +115,22 @@ input, and inspection policy through the borrowed preparation builder. The
 Platform Pulse native seed is the smallest production example that does this
 and presents one attributed filled rectangle.
 
+## Native Input Settlement
+
+Native observations carry their presentation affinity, event tick, coordinate
+space, and unit from the event boundary into the retained batch. Pointer,
+keyboard, scroll, and IME observations use the event-time profile; preedit,
+commit, and cancel remain distinct phases. A pending successor does not
+retarget observations, and a profile or scale transition admits new input only
+after its profile evidence is complete.
+
+The readiness signal is level-triggered by retained observations. The event
+loop rearms it only after the runtime callback drains through the authorized
+interaction owner. Normal close waits for that retained input to settle. The
+close receipt preserves the input report and terminal census, while the
+Platform Pulse phase-six evidence additionally records applied, duplicate,
+quarantined, and denied ingress dispositions plus any drain denial.
+
 ## How It Relates To Other Features
 
 - Use `worth_ui` for declarations, authored input, rebind profiles, and

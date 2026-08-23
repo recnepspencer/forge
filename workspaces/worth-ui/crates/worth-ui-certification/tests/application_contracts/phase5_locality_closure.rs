@@ -1,26 +1,21 @@
 use std::collections::BTreeSet;
-use std::process::{Command, Stdio};
+use worth_ui_certification::scenario::phase5_locality_matrix::{
+    cost_hostile_cases_for_axis, execute_local_closure,
+};
 
-use worth_ui_certification::scenario::phase5_locality_matrix::cost_hostile_cases_for_axis;
+use crate::phase5_locality_worker::invocation;
 
 const EVIDENCE_PREFIX: &str = "WORTH_UI_PHASE5_PRODUCTION_LOCALITY=";
-
 #[test]
-#[ignore = "closure portfolio: 32 fresh native worlds use bounded parallel shards"]
+#[ignore = "closure portfolio: 32 fresh native worlds use controlled isolated shards"]
 fn all_32_fresh_native_locality_worlds_retain_owner_issued_evidence() {
-    let output = Command::new(env!("CARGO_BIN_EXE_worth-ui-phase5-locality-matrix"))
-        .stderr(Stdio::inherit())
-        .output()
-        .expect("the prebuilt Phase 5 locality runner launches");
-    assert!(output.status.success(), "Phase 5 locality runner failed");
-    let stdout = String::from_utf8(output.stdout).expect("locality evidence is UTF-8");
-    let payload = stdout
-        .lines()
-        .find_map(|line| line.strip_prefix(EVIDENCE_PREFIX))
-        .expect("locality runner emitted no retained evidence");
-    println!("{EVIDENCE_PREFIX}{payload}");
-    let rows: Vec<serde_json::Value> =
-        serde_json::from_str(payload).expect("locality evidence is valid JSON");
+    let (executable, arguments) = invocation();
+    let rows = execute_local_closure(&executable, &arguments)
+        .expect("the Phase 5 locality matrix completes");
+    println!(
+        "{EVIDENCE_PREFIX}{}",
+        serde_json::to_string(&rows).expect("locality evidence is valid JSON")
+    );
     assert_eq!(rows.len(), 32);
 
     let cases = rows

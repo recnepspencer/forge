@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import hashlib
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,9 +15,24 @@ if str(CI) not in sys.path:
 
 import close_worth_ui_3141_ledger as ledger_closer
 import worth_ui_ledger_closure_selection as closure_selection
+from worth_ui_ledger_closure_storage import transaction_extra_identities
 
 
 class LedgerPhaseSelectionTests(unittest.TestCase):
+    def test_open_preparation_preserves_governed_invalidation_lineage(self) -> None:
+        lineage = f"invalidation:evidence/p1.json@{'a' * 64};supersedes:{'b' * 64}"
+        row = {"reopen_lineage": lineage}
+        closure_selection.reopen_prepared_claim(row, "not-bound")
+        self.assertEqual(row["reopen_lineage"], lineage)
+
+    def test_proved_reopen_appends_without_erasing_prior_lineage(self) -> None:
+        lineage = f"invalidation:evidence/p1.json@{'a' * 64};supersedes:{'b' * 64}"
+        row = {"reopen_lineage": lineage}
+        closure_selection.reopen_prepared_claim(row, "c" * 64)
+        self.assertEqual(
+            row["reopen_lineage"], f"{lineage};supersedes:{'c' * 64}"
+        )
+
     def test_read_ledger_uses_the_selection_owner_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             identity = Path(directory) / "ledger.csv"
@@ -47,6 +63,14 @@ class LedgerPhaseSelectionTests(unittest.TestCase):
         )
         self.assertEqual([row["requirement"] for row in selected], ["P4-ONE"])
         self.assertEqual(rows[0]["result"], "PROVED")
+
+    def test_phase_six_stale_state_reopens_even_with_causal_receipts(self) -> None:
+        row = {"phase": "6", "source_state_digest": "old-state"}
+        self.assertFalse(
+            closure_selection.row_has_current_causal_binding(
+                row, object(), "new-state", lambda *_arguments: None
+            )
+        )
 
     def test_multiple_stale_phase_rows_refresh_atomically(self) -> None:
         rows = [
@@ -85,7 +109,7 @@ class LedgerPhaseSelectionTests(unittest.TestCase):
                 "final_source": "true",
                 "source_state_digest": "old-global-state",
                 "source_identity": identity,
-                "source_digest": ledger_closer.source_digest((identity,)),
+                "source_digest": closure_selection.source_digest((identity,)),
             }
         ]
         with patch.object(
@@ -109,7 +133,7 @@ class LedgerPhaseSelectionTests(unittest.TestCase):
             "result": "PROVED",
             "final_source": "true",
             "source_identity": identity,
-            "source_digest": ledger_closer.source_digest((identity,)),
+            "source_digest": closure_selection.source_digest((identity,)),
             "retained_result_artifact": "workspaces/worth-ui/target/phase-selection.json",
             "result_artifact_digest": hashlib.sha256(content).hexdigest(),
         }
@@ -118,6 +142,40 @@ class LedgerPhaseSelectionTests(unittest.TestCase):
                 [row], 5, None, {"P5-ONE": object()}, "unrelated-global-state"
             )
             self.assertEqual(selected, [row])
+        finally:
+            artifact.unlink(missing_ok=True)
+
+    def test_stale_global_state_without_causal_reuse_reopens_row(self) -> None:
+        artifact = Path("workspaces/worth-ui/target/phase-selection-stale.json")
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "requirement": "P5-ONE",
+            "source_state_digest": "old-global-state",
+        }
+        content = (json.dumps(payload) + "\n").encode()
+        artifact.write_bytes(content)
+        row = {
+            **{field: "value" for field in closure_selection.CLAIM_FIELDS},
+            "phase": "5",
+            "requirement": "P5-ONE",
+            "result": "PROVED",
+            "final_source": "true",
+            "source_identity": "scripts/ci/test_worth_ui_ledger_phase_selection.py",
+            "source_digest": "current-row-source",
+            "retained_result_artifact": artifact.as_posix(),
+            "result_artifact_digest": hashlib.sha256(content).hexdigest(),
+        }
+        try:
+            with (
+                patch.object(closure_selection, "reusable_payload", return_value=True),
+                patch.object(closure_selection, "validate_causal_reuse", return_value=None),
+                patch.object(closure_selection, "source_digest", return_value="current-row-source"),
+            ):
+                self.assertFalse(
+                    closure_selection.row_has_current_causal_binding(
+                        row, object(), "new-global-state", lambda *_arguments: None
+                    )
+                )
         finally:
             artifact.unlink(missing_ok=True)
 
@@ -147,7 +205,7 @@ class LedgerPhaseSelectionTests(unittest.TestCase):
             "final_source": "true",
             "source_state_digest": "old-global-state",
             "source_identity": identity,
-            "source_digest": ledger_closer.source_digest((identity,)),
+            "source_digest": closure_selection.source_digest((identity,)),
             "production_entry": "owner::old",
             "independent_oracle": "oracle::old",
             "exact_command": "old-command",
@@ -188,9 +246,7 @@ class LedgerPhaseSelectionTests(unittest.TestCase):
                 "retained_result_artifact": "evidence/p5-predecessor.json",
             },
         ]
-        identities = ledger_closer.transaction_extra_identities(
-            rows, [rows[1]], 5
-        )
+        identities = transaction_extra_identities(rows, [rows[1]], 5)
         self.assertEqual(
             set(identities),
             {

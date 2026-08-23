@@ -5,10 +5,9 @@
 This is the normative subordinate specification for Phase 5 of
 `Milestone 3.14.1: Aspect-Native Host Platform and egui Retirement`.
 
-It does not create a new roadmap milestone, a second proof ledger, or an
-alternate text platform. The parent milestone continues to own the overall
-goal, the ten-phase order, inherited contracts, the exact twelve-row Phase 5
-inventory, and the Phase 6 handoff. This document owns the detailed Phase 5
+It does not create a new roadmap milestone or an alternate text platform. The
+parent milestone continues to own the overall goal, the ten-phase order,
+inherited contracts, and the Phase 6 handoff. This document owns the detailed Phase 5
 product decisions, authority graph, destination topology, courtroom, cost and
 resource contract, implementation gates, and documentation obligations.
 
@@ -21,11 +20,20 @@ The sources of authority are ordered as follows:
    assets;
 5. the Phase 5 implementation plan, which is derived from this specification.
 
+Historical ledger rows and closure artifacts are frozen records, not active QA
+authority. They are not updated or reopened, and ledger-only failures do not
+block current work. Current completion follows
+[the QA review guide](../coding_guidelines/qa_review_guide.md) and
+[testing laws](../coding_guidelines/testing_laws.md): this specification states
+QA considerations in prose, relevant tests and repository checks run against
+the current commit, and code review decides whether evidence is adequate.
+
 The parent and subordinate specifications must agree. A conflict between them
 is a specification defect and blocks implementation; an implementer may not
 silently choose one. The profile is exact data and policy within the authority
-the specifications assign to it. Changing a closed Phase 4 profile contract
-requires reopening its qualification evidence, not a Phase 5 workaround.
+the specifications assign to it. Changing a Phase 4 profile contract requires
+a specification change plus affected qualification checks, not a Phase 5
+workaround.
 
 ## Goal and Central Claim
 
@@ -110,8 +118,8 @@ Phase 5 does not:
 - promise pixel-identical output across unqualified GPUs or environments;
 - implement text editing, IME semantics, focus, accessibility semantics, or
   Phase 6 input affinity;
-- reopen the closed profile merely to make an implementation easier;
-- create a second Phase 5 ledger, portfolio, or roadmap item;
+- change the qualified profile merely to make an implementation easier;
+- create a second QA authority, closure portfolio, or roadmap item;
 - accept a native-only, screenshot-only, Latin-only, one-font, one-color, or
   representative-emoji shortcut as closure.
 
@@ -129,10 +137,10 @@ The current source intentionally freezes only inert destination vocabulary:
 | Native physical progression | current Gate D source has manual pending upload, polling, recovery, and callback-settlement structures | one bounded physical `SignalRuntime` per native host/device lifecycle; WGPU resources remain native-owned |
 | Async presentation meaning | upstream scalar projection state already uses Query through `worth-ui-query-binding`; native presentation completion is not yet Query-owned | one presentation-specific Query declaration/binding and retained application-visible async result |
 | Semantic invalidation | current Query binding translates retained async states without a Phase 5 presentation graph | Runtime Bridge correspondence plus a distinct Query-semantic Signal graph using Milestone 13 locality-first execution |
-| Evidence | readiness tests and partial Phase 5 evidence | real causal feature mappings for every OPEN row |
+| Evidence | readiness tests and partial Phase 5 evidence | direct behavioral, lifecycle, resource, locality, and native-boundary tests reviewed against this specification |
 
-Readiness types and topology tests emit no Phase 5 feature counter or mutation
-receipt. They cannot close a feature row.
+Readiness types and topology tests cannot substitute for the behavioral,
+lifecycle, resource, locality, or native-boundary tests required below.
 
 ## Async Presentation Authority
 
@@ -393,21 +401,20 @@ The proof must turn red for each named fault:
 - stale raster/cache/draw-list reconstruction;
 - complete retained-document scan or complete glyph reraster on local work;
 - commit before the external handoff, rollback omission, cleanup receipt loss,
-  or an open predecessor/feature row.
+  or missing predecessor/feature behavior.
 
 Each control must inject or causally emulate its named fault at the production
 boundary. A passing nearby test, fixed marker, or self-authored output is not a
 mutation control.
 
-### Proof economy
+### Test economy
 
-Execute each unique source-bound command, exhaustive corpus, model world, and
-real Windows/WGPU world once per source-state and claim digest. Multiple rows
-may validate distinct observations from one authenticated, content-addressed
-execution receipt. The final gate validates the just-produced retained
-portfolio; it does not rerun it. A late failure retains authenticated staged
-successes and resumes only when source, claim, command, dependency, and oracle
-identities are unchanged. Row-level progress and duration are streamed.
+Execute each unique focused command, exhaustive corpus, model world, and real
+Windows/WGPU world once per applicable test run. Multiple assertions may inspect
+distinct observations from one shared execution. Retain concise diagnostics for
+failures that need reproduction, but do not require receipt, nonce, portfolio,
+digest, or publication machinery. Report progress and duration at the test or
+shard level.
 
 ## Product Decision Lock
 
@@ -698,10 +705,12 @@ local work scales with changed/damaged demand plus atlas probes and emitted
 commands, never all retained paragraphs, layouts, glyphs, entries, or pages.
 
 The thirty-two authoritative worlds are executed as sixteen source-bound
-shards. CI assigns one shard to each fresh worker; local closure admits at most
-eight concurrent shard processes under a shared nine-minute deadline. The
-deterministic join rejects partial, duplicate, missing, or timed-out evidence,
-and no test or shard may reach ten minutes.
+shards. CI assigns one shard to each fresh worker; local closure admits exactly
+eight shard processes in a large-first wave (`8..15`), followed by the eight
+ordinary/middle-retained shards (`0..7`), under one shared eight-and-a-half-
+minute runner deadline inside the nine-minute CI envelope. The deterministic
+join rejects partial, duplicate, missing, or timed-out evidence, and no test or
+shard may reach ten minutes.
 
 At each retained size, the independent matrix exercises these axes separately:
 
@@ -858,15 +867,16 @@ correspondence. It does not become a generic native-resource bag.
 
 ## Internal Implementation Gates
 
-These are proof-ordered implementation gates inside Phase 5, not roadmap
-phases and not new ledger phases.
+These are implementation gates inside Phase 5, not roadmap phases or separate
+QA state machines.
 
 ### Gate A: predecessor and protocol exactness
 
-- reexecute the immutable Phase 1-4 prefix against current source;
+- run the focused predecessor contract and integration tests affected by the
+  current change;
 - freeze borrowed demand/batch views, move-only plan, typed settlements,
   resource census, source mappings, and negative compile twins;
-- keep every feature row OPEN.
+- do not treat readiness checks as completed behavior.
 
 ### Gate B: demand and alpha outline raster
 
@@ -911,10 +921,8 @@ phases and not new ledger phases.
 - prove saturation, cancellation, retry, timeout, stale/duplicate/out-of-order
   completion rejection, recovery reconciliation, pending census, and bounded
   shutdown before real presentation integration;
-- reopen `P5-ATLAS-01` because the physical Signal owner changes its governed
-  production source, lifecycle architecture, and causal evidence basis; keep
-  it OPEN together with `P5-ATLAS-PINNING-01` until fresh exact evidence closes
-  them.
+- rerun the atlas ownership, pinning, physical Signal lifecycle, recovery, and
+  resource tests because the physical Signal owner changes their causal basis.
 
 ### Gate E: paint, scale, and Query async binding
 
@@ -962,11 +970,10 @@ phases and not new ledger phases.
   terminal physical-Signal/native/Query resource census in the same `HP-03`
   world.
 
-### Gate G: closure
+### Gate G: final review
 
-- bind every feature row to its real production main, independent oracle,
-  named hostile control, exact source mapping, structural counter, and shared
-  authenticated execution receipts;
+- review each material guarantee against its real production path, independent
+  oracle, named adversarial case, and structural counter where applicable;
 - require causal controls for complete subscriber-closure walking, late aspect
   filtering, late partition/range filtering, global mounted invalidation,
   paint-to-layout widening, DPI-to-layout widening, dropped deduplicated cause,
@@ -974,48 +981,40 @@ phases and not new ledger phases.
   Query current publication outside Query admission, Signal-as-effect
   authority, stale/duplicate/out-of-order completion, and leaked terminal
   Signal/native resources;
-- validate the retained portfolio without rerunning it;
-- close only when all twelve rows, including Query async presentation, and
-  inherited closure laws pass.
+- run the focused test suite, required constitutional checks, and affected CI
+  lanes on the final commit;
+- complete only when Query async presentation and all inherited guarantees pass
+  code review.
 
-## Exact Proof-Ledger Inventory
+## QA Considerations and Required Tests
 
-Phase 5 uses the existing append-only milestone ledger and contains exactly
-twelve rows:
+Phase 5 review covers these categories without assigning row IDs or maintaining
+progress state in this document:
 
-| Requirement | Exact guarantee | Required evidence | Named hostile family |
-|---|---|---|---|
-| `P5-PREDECESSOR-01` | current source still satisfies the immutable Phase 1-4 prefix | authenticated through-Phase-4 operational handoff | stale-phase-four-source |
-| `P5-GLYPH-RASTER-01` | qualified layouts produce exact attributable alpha/color raster records without consumer meaning | pinned raster fixtures, demand/batch identity, typed cost | consumer-reshape-or-system-font |
-| `P5-COLOR-EMOJI-01` | every exact Unicode 17 RGI mapping and admitted color source preserves cluster, selector, palette, layers, alpha, and intrinsic color | exhaustive internal corpus plus representative external classes | emoji-tint-or-split |
-| `P5-ATLAS-01` | separate bounded alpha/color atlas owners and the single host-native physical Signal lifecycle plan, submit, reconcile, recover, and commit exact resources | independent atlas/physical-progression model, native resource receipts, performed Signal observations, and bounded-shutdown census | host-atlas-escape |
-| `P5-ATLAS-PINNING-01` | live layouts pin exact entries and only deterministic unpinned candidates evict | saturation, release, replacement, peak/census evidence | live-layout-unpin |
-| `P5-TEXT-DPI-01` | pure DPI preserves layout/geometry and replaces raster/atlas generations only | before/after identities, costs, transcript, pixels | stale-dpi-raster |
-| `P5-TEXT-SPAN-PAINT-01` | original-range paint ownership survives bidi and color-only edits reuse layout/atlas | mixed-span headless/native world and local damage | single-color-or-visual-order-or-layout-regen |
-| `P5-TEXT-PIXELS-01` | headless attribution and retained/compositor pixels agree for alpha and intrinsic color | shared real Windows/WGPU world and independent capture | transcript-pixel-mismatch |
-| `P5-TEXT-RECONSTRUCTION-01` | all derived text/native state rebuilds from current mounted authority | independent destruction matrix, reconstructed model/pixels, next local delta | stale-raster-reuse |
-| `P5-TEXT-COST-01` | ordinary, reconstructive, unchanged, atlas, upload, presentation, resource, and Milestone 13 immediate-frontier costs are realized, exact, and bounded | independent 1/32/2048/4096 UI locality matrix, performed Signal counters, combined domain counters, and exact class census | complete-document-rescan |
-| `P5-TEXT-ASYNC-PRESENTATION-01` | native text completion is retained as Query-owned async state bound to the exact mounted presentation basis; only the native external owner decides completion | one public `HP-03` path with exact Query transition trace, mounted/native lineage, pixels, pending/terminal census, and indeterminate continuation/recovery | bypass-query-or-stale-presentation-completion |
-| `P5-CLOSE-01` | all inherited and Phase 5 guarantees are proved on one final source state | candidate ledger, retained authenticated portfolio, closure laws | open-requirement |
+- architecture and authority: Phase 4 remains the sole layout authority;
+  consumers cannot reshape or consult system fonts; Query and physical Signal
+  graphs remain distinct; host-native alone owns atlas and WGPU resources;
+- correctness: qualified layouts produce attributable alpha/color raster,
+  exhaustive Unicode 17 RGI mappings preserve cluster and intrinsic-color
+  semantics, and mixed bidi paint follows original source ranges;
+- lifecycle and recovery: atlas planning is effect-free, live entries remain
+  pinned, eviction is deterministic, stale/duplicate/out-of-order completion is
+  rejected, indeterminate effects require recovery, and terminal census is zero;
+- performance and resources: pure DPI preserves layout, color-only edits reuse
+  layout and atlas state, unchanged work is zero, and the independent
+  1/32/2,048/4,096 locality matrix exposes rescan or global-fanout regressions;
+- integration: headless attribution, retained-target pixels, compositor-visible
+  pixels, Query async state, mounted lineage, and reconstruction agree through
+  the real public path;
+- test quality: fixtures use qualified assets and real boundaries, oracles do
+  not import disputed production logic, adversarial cases fail for their causal
+  reason, and expensive worlds are shared rather than duplicated.
 
-Only `P5-PREDECESSOR-01` may have a closure-executable mapping before feature
-implementation. OPEN feature contracts may name readiness-only topology
-identities so the future inventory is mechanically total, but those identities
-emit no row counter or mutation receipt and cannot become result evidence. A
-row remains OPEN until its concrete production boundary, independent oracle,
-named fault, counter, source identity, and execution receipt are real.
-Topology/readiness tests cannot be substituted.
+The physical Signal integration changes atlas ownership, lifecycle, completion,
+recovery, and shutdown behavior, so those focused tests must run on the current
+commit. Historical Phase 5 ledger state is irrelevant to that decision.
 
-The physical Signal integration changes the production owner, lifecycle,
-source mapping, completion semantics, and shutdown evidence governed by
-`P5-ATLAS-01`. Its previously retained artifact is therefore stale for this
-architecture. The next governed Phase 5 candidate must reopen that row
-(`result=OPEN`, `final_source=false`) without rewriting any closed Phase 1-4
-row. `P5-ATLAS-PINNING-01`, `P5-TEXT-COST-01`, and
-`P5-TEXT-ASYNC-PRESENTATION-01` remain OPEN. This specification pass does not
-close any feature row.
-
-### `P5-TEXT-ASYNC-PRESENTATION-01` causal evidence
+### Async-presentation causal evidence
 
 The main is the ordinary public `HP-03` product path through application,
 Query admission, `worth-ui-query-binding`, mounting, runtime, host-native
@@ -1060,7 +1059,7 @@ The control uses typed owner-issued corruptions or an independently modeled
 transition adjudicator. Merely printing the mutation label, editing JSON after
 execution, or rerunning the lawful main does not satisfy the row.
 
-### `P5-TEXT-COST-01` causal frontier evidence
+### Cost and causal-frontier evidence
 
 The cost main is one shared, deterministic UI frontier world, not eight cargo
 targets and not a table of asserted constants. At each retained size 1, 32,
@@ -1099,10 +1098,27 @@ owner algorithm rather than an admissible public input. A twin consumes the
 same typed case basis as the lawful owner and is adjudicated against the
 immutable owner-issued performed observation before serialization. It may not
 construct, edit, default, or replace that observation, and it does not create a
-second large-world portfolio. The authoritative 32-world receipt must retain
-the per-row convictions, and the exact shard join must reject a missing,
+second large-world portfolio. The 32-world result must retain the per-case
+outcomes, and the exact shard join must reject a missing,
 duplicated, or unknown hostile member. A bounded small-world control may
 re-execute the minimum causal cases needed to authenticate the grouped family.
+
+The 32-world matrix runs as ignored, exactly filtered tests in the existing
+`application_contracts` integration target. Its shard workers use the explicit
+certification-only `CertificationWorker` event-loop posture because Rust's
+test harness does not invoke filtered tests on the operating-system process
+main thread. Every row must report `certification-worker` and must still prove
+that the Winit callback thread matches the worker launch thread. This posture
+changes only certification scheduling; it does not weaken the real native
+Winit/WGPU/Query world or create a certification binary or test target.
+
+Certification-worker evidence cannot prove the Phase 2 operating-system
+main-thread guarantee. That guarantee remains bound to the separately executed
+Platform Pulse product process, whose result must report
+`main-thread-required`. A change to either posture owner requires rerunning the
+affected Phase 2 lifecycle plus Phase 5 locality, async-presentation, and cleanup
+tests before Phase 6 relies on the changed behavior. Historical phases do not
+reopen.
 
 ## Public Developer Experience and Documentation
 
@@ -1147,9 +1163,9 @@ imports and product composition roots.
 - pure-DPI, text-scale, color-only, saturation, failure, reconstruction,
   unchanged, and slope behavior;
 - real retained-target and compositor-visible pixel evidence;
-- exact cost/resource receipts and mutation-sensitive ledger mappings;
+- exact cost/resource observations and risk-proportionate adversarial tests;
 - updated public text documentation and compiled example;
-- one authenticated, resumable, content-addressed retained proof portfolio.
+- concise retained diagnostics for failures that need reproduction.
 
 ## Must Preserve
 
@@ -1163,18 +1179,14 @@ imports and product composition roots.
 - mounted semantic authority over all derived raster/atlas/pixel state;
 - existing lifecycle, presentation, failure, recovery, and close semantics;
 - typed aspect/field/identity/denial authority;
-- append-only predecessor history and the single milestone ledger;
-- proof economy: no per-row duplicate exhaustive or native worlds.
+- frozen historical QA records without treating them as current authority;
+- test economy: no duplicate exhaustive or native worlds.
 
 ## Acceptance and Phase 6 Handoff
 
-Phase 5 closes only when:
+Phase 5 is complete only when:
 
-- all twelve rows are PROVED, final-source bound, and mutation-sensitive;
-- the through-Phase-4 predecessor handoff is current and authenticated;
 - exhaustive Unicode/color evidence and the shared real native world pass;
-- all source/claim/command/oracle/dependency identities match the retained
-  execution receipts;
 - the exact resource census reaches zero after ordinary, hostile, recovery,
   reconstruction, and close paths;
 - both Signal runtimes prove exact construction, distinct identity/declaration,
@@ -1183,13 +1195,15 @@ Phase 5 closes only when:
 - the public guide and example are current and governed;
 - boundary checks, agent-context checks, format, line-cap, composition,
   dependency, and topology enforcement pass;
-- the final gate validates the just-produced portfolio without duplicate
-  execution.
+- focused tests, affected CI lanes, and required constitutional checks pass on
+  the final commit; and
+- code review finds the architecture, test realism, oracle independence,
+  adversarial coverage, lifecycle handling, and resource evidence adequate.
 
 The Phase 6 handoff is narrow: Phase 6 may trust deterministic,
 framework-grade, attributable multilingual and intrinsic-color text pixels,
 canonical layout/measurement/interaction geometry, exact last-completed
 presentation affinity, bounded native text resources, and reconstruction from
-mounted authority. Phase 6 must not reopen font selection, Unicode analysis,
+mounted authority. Phase 6 must not redesign font selection, Unicode analysis,
 shaping, layout, raster policy, atlas identity, or paint-span ownership while
 adding native input and presentation affinity.

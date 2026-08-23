@@ -16,6 +16,11 @@ audience = "app"
 path = "apps/platform-pulse/src/native_frame/intent/native_ingress.rs"
 
 [[journey]]
+id = "application-text-platform"
+audience = "app"
+path = "crates/worth-ui/examples/text_platform.rs"
+
+[[journey]]
 id = "governed-visual-snapshot-app"
 audience = "app"
 path = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
@@ -226,6 +231,56 @@ symbols = [
   "WorthUiVisibleRange",
   "WorthUiVisibleRangeDenial",
   "WorthUiVisibleRangeDenialReason",
+]
+
+[[export_group]]
+audience = "app"
+source = "facade/app.rs"
+stability = "evolving-product-contract"
+authority = "application-owned font collection and immutable qualified text values"
+caller = "application-text-platform"
+symbols = [
+  "qualify_text_layout",
+  "UiApplicationFontFaceDefinition",
+  "UiApplicationFontLicenseRecord",
+  "UiApplicationFontPackDefinition",
+  "UiFontCollectionAdmissionCost",
+  "UiFontCollectionAdmissionDenial",
+  "UiFontCollectionGeneration",
+  "UiFontFamilyStack",
+  "UiFontSlant",
+  "UiFontVariationCoordinate",
+  "UiGlobalFontCollection",
+  "UiOpenTypeFeature",
+  "UiQualifiedFontFaceIdentity",
+  "UiQualifiedFontFaceReceipt",
+  "UiQualifiedFontFamilyIdentity",
+  "UiQualifiedFontFamilyReceipt",
+  "UiQualifiedFontPackIdentity",
+  "UiQualifiedFontPackReceipt",
+  "UiQualifiedTextLayout",
+  "UiQualifiedTextSelectionRect",
+  "UiTextAlignment",
+  "UiTextBaseDirection",
+  "UiTextCaretAffinity",
+  "UiTextCaretPosition",
+  "UiTextFaceRequest",
+  "UiTextHitResult",
+  "UiTextOriginalRange",
+  "UiTextOverflow",
+  "UiTextParagraphAdmissionInput",
+  "UiTextParagraphConstraints",
+  "UiTextParagraphConstraintsInput",
+  "UiTextPoint",
+  "UiTextProfileGeneration",
+  "UiTextQualificationDenial",
+  "UiTextRect",
+  "UiTextScaleGeneration",
+  "UiTextStyle",
+  "UiTextStyleInput",
+  "UiTextStyleSpan",
+  "UiTextVisualEdge",
+  "UiTextWrap",
 ]
 
 [[export_group]]

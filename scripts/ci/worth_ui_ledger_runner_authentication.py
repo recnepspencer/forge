@@ -24,12 +24,21 @@ def authentication_tag(value: object, repository_root: Path) -> str:
 
 def authenticates(value: object, tag: object, repository_root: Path) -> bool:
     return isinstance(tag, str) and hmac.compare_digest(
-        authentication_tag(value, repository_root), tag
+        hmac.new(
+            existing_machine_key(repository_root),
+            canonical_json(value),
+            hashlib.sha256,
+        ).hexdigest(),
+        tag,
     )
 
 
 def runner_key_fingerprint(repository_root: Path) -> str:
     return hashlib.sha256(machine_key(repository_root)).hexdigest()
+
+
+def existing_runner_key_fingerprint(repository_root: Path) -> str:
+    return hashlib.sha256(existing_machine_key(repository_root)).hexdigest()
 
 
 def machine_key(repository_root: Path) -> bytes:
@@ -45,6 +54,20 @@ def machine_key(repository_root: Path) -> bytes:
     else:
         with os.fdopen(descriptor, "wb") as stream:
             stream.write(secrets.token_bytes(KEY_BYTES))
+    return read_machine_key(identity)
+
+
+def existing_machine_key(repository_root: Path) -> bytes:
+    identity = machine_key_identity()
+    require_runner_private_location(identity, repository_root)
+    if not identity.exists():
+        raise RunnerProvenanceUnavailable("ledger runner key is unavailable")
+    return read_machine_key(identity)
+
+
+def read_machine_key(identity: Path) -> bytes:
+    if identity.is_symlink():
+        raise RuntimeError("ledger runner key cannot be a symbolic link")
     content = identity.read_bytes()
     if len(content) != KEY_BYTES:
         raise RuntimeError("ledger runner key has an invalid length")

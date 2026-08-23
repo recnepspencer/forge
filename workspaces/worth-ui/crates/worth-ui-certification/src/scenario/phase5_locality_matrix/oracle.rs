@@ -129,6 +129,15 @@ fn require_complete_world(
     shutdown: &worth_ui_native_platform::UiNativeClientShutdownObservation,
 ) -> Result<(), String> {
     require(
+        receipt.event_loop_thread_posture()
+            == worth_ui_host_native::UiNativeEventLoopThreadPosture::CertificationWorker,
+        "matrix world did not disclose certification-worker event-loop posture",
+    )?;
+    require(
+        receipt.event_loop_thread_matches_launch(),
+        "matrix event-loop callback diverged from its qualified launch thread",
+    )?;
+    require(
         shutdown.managed_semantic_resources_complete(),
         "Query resources did not close",
     )?;

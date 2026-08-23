@@ -128,7 +128,9 @@ pub(crate) fn settle_staged_delta(
         }
         Err(UiNativePresentationFailure::Pending(pending)) => {
             Err(UiNativePresentationFailure::Pending(
-                pending.with_settlement(super::UiNativePendingSurfaceSettlement::Delta(undo)),
+                pending.with_settlement(super::UiNativePendingSurfaceSettlement::Delta(
+                    super::UiNativePendingDeltaSettlement::new(undo),
+                )),
             ))
         }
     }

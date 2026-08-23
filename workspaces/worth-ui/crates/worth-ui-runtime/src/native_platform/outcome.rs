@@ -37,6 +37,10 @@ impl UiNativePlatformCloseReceipt {
         self.report.presentation()
     }
 
+    pub fn input_observations(&self) -> &worth_ui_host_native::UiNativeInputObservationReport {
+        self.report.input_observations()
+    }
+
     pub const fn terminal_census(&self) -> worth_ui_host_native::UiNativeResourceCensus {
         self.report.terminal_census()
     }
@@ -51,6 +55,12 @@ impl UiNativePlatformCloseReceipt {
 
     pub const fn event_loop_thread_matches_launch(&self) -> bool {
         self.report.event_loop_thread_matches_launch()
+    }
+
+    pub const fn event_loop_thread_posture(
+        &self,
+    ) -> worth_ui_host_native::UiNativeEventLoopThreadPosture {
+        self.report.event_loop_thread_posture()
     }
 
     pub const fn client_attribution(

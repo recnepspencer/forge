@@ -2,7 +2,7 @@ use worth_ui_host_contract::{UiHostSurfacePresentationDenial, UiMountedEffectFam
 
 use super::super::consumption_view::UiMountedHostPresentationAuthority;
 use super::super::work_producer::{
-    UiMountedPresentationCandidates, UiMountedPresentationState,
+    SuccessorIssueRequest, UiMountedPresentationCandidates, UiMountedPresentationState,
     UiMountedPresentationWorkProductionDenial,
 };
 
@@ -60,14 +60,16 @@ pub(super) fn prepare(
                     surface.requirement(),
                 );
                 predecessor
-                    .issue_successor(
+                    .issue_successor(SuccessorIssueRequest::new(
                         &candidate,
                         source.changed_instances(),
                         source.frame().presentation_command_changes(),
-                        source.surface_changed(surface.requirement().semantic_surface()),
-                        source.predecessor(),
                         authority.presentation(),
                     )
+                    .with_surface_changed(
+                        source.surface_changed(surface.requirement().semantic_surface()),
+                    )
+                    .with_source_predecessor(source.predecessor()))
                     .map(|work| (candidate, work))
                     .map_err(UiWorkPreparationError::from)
             }

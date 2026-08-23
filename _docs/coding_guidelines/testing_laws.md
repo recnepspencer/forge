@@ -1,98 +1,147 @@
 # Testing Evidence Laws
 
-> A test exists to expose a plausible defect in a real production claim. If it
-> cannot name that defect, establish the world in which it matters, reach the
-> relevant authority boundary, and observe the result independently, it is
-> theatre.
+> Tests protect production behavior. Code review decides whether the selected
+> evidence is adequate for the requirement and risk. Tests do not need a second
+> evidence system that certifies the tests themselves.
 
-## I. Proof Laws
+Use these laws with [QA Review Guide](qa_review_guide.md).
 
-1. Every test must own a falsifiable production claim, a plausible fault that would violate it, and an observation capable of distinguishing the violation. Passing proves only that claim under the established world; test count, line coverage, execution time, and assertion count are not evidence by themselves.
+## Evidence
 
-2. Choose the narrowest test boundary that can honestly prove the claim, not the boundary that is easiest to make green. Prefer end-to-end certification for product behavior, integration tests for contracts between real subsystems and authority boundaries, property, model, fuzz, or metamorphic tests for broad semantic spaces, and focused local tests only when the claim and an independent oracle are genuinely local.
+1. Every test or coherent parameterized family protects a named production
+   behavior or regression. Test count, coverage, runtime, and assertion count
+   are not evidence by themselves.
 
-3. The oracle must be epistemically independent of the implementation. A test may not derive its expected result through the production classifier, normalizer, comparator, formatter, query, or algorithm whose correctness it claims to prove. Shared constants and types are acceptable only when they are not the disputed semantics.
+2. Choose the narrowest boundary that can honestly protect the behavior:
+   product journeys for end-to-end claims, real subsystem boundaries for
+   integration claims, property or model tests for broad semantic spaces, and
+   focused tests for genuinely local semantics.
 
-4. A test must fail for the intended reason. Establish relevant preconditions, trigger one named cause, inspect the typed outcome and consequential state, and distinguish setup failure, rejection, partial execution, cleanup, and observation failure. A panic, generic error, empty result, or unchanged value is not sufficient when multiple causes can produce it.
+3. Expected results must be independent enough to expose the disputed defect.
+   A test must also distinguish the intended behavior from relevant setup,
+   routing, rejection, partial-effect, cleanup, and observation failures.
 
-5. Important tests must be demonstrably sensitive to removal, inversion, bypass, stale reuse, or misrouting of the behavior they certify. Mutation probes, adversarial controls, positive and negative twins, or equivalent fault injection should show that the test detects the named defect rather than merely surviving execution.
+4. Sensitivity checks are proportional to risk. Negative twins, fault
+   injection, and mutation probes are useful for high-risk or ambiguous tests,
+   but are not mandatory when sensitivity is already clear.
 
-6. Each test or deliberately parameterized family owns a unique proof obligation. If deleting a test removes no distinct evidence, consolidate or delete it. Repeating the same implementation path with different literals is not broader proof unless those values represent named semantic classes or boundary conditions.
+5. Each test or parameterized family should contribute distinct evidence.
+   Consolidate or remove cases whose deletion loses no meaningful protection.
 
-## II. Fixture and World Laws
+## Fixtures and worlds
 
-7. Fixture construction is part of the proof. Every identity, authority, capability, revision, relationship, token, resource, and persisted fact used as valid input must have causal provenance from the production mechanism that grants validity or from a fixture compiler proven to establish the same postconditions.
+6. Fixture provenance must be honest when identity, authority, persistence,
+   revision, or validity is material to the behavior under test. Irrelevant
+   local values do not require production issuance for ceremony.
 
-8. Tests declare semantically named worlds and scenario deltas rather than imperatively rebuilding incidental history. Maintain a small portfolio of canonical, causally complete baselines such as an empty installation, an ordinary governed tenant, contested collaboration, partial failure, and version boundary; derive each test world by applying only the delta relevant to its claim.
+7. A fixture or world compiler may bypass irrelevant workflow history when it
+   preserves the production invariants relevant to the claim. Review its
+   boundary and cover meaningful behavior with ordinary focused tests; do not
+   recursively certify it.
 
-9. A fixture may bypass irrelevant public workflow history only through a narrow, explicitly privileged world compiler. That compiler must produce the same representation, invariants, indexes, authority relationships, versions, and recovery posture as production. It may not bypass the behavior under test or create a state that production could neither create nor encounter, except through an explicitly named corruption or recovery fixture.
+8. Do not counterfeit authority or validity with arbitrary identifiers,
+   tokens, revisions, or timestamps when those properties are under test.
+   Literals remain appropriate when validity is irrelevant or the literal is
+   itself the subject.
 
-10. Valid identities and authority-bearing values are issued by world construction and consumed through semantic handles such as `world.alice`, `world.project_owner`, or `world.pending_commit`. Tests must not counterfeit validity with copied integers, UUIDs, digests, tokens, timestamps, or opaque strings. Exact literals are reserved for invalid-input, wire-compatibility, canonicalization, and corruption claims where the literal itself is the subject.
+9. Reuse expensive setup without shared mutable fate. Avoid ordering
+   dependencies, cross-test state, clock leakage, identifier collision, and
+   cleanup dependence.
 
-11. Expensive setup must be architected for reuse without shared mutable fate. Compile immutable worlds once where possible, then clone snapshots, allocate isolated namespaces, restore checkpoints, or apply transactional deltas. Reuse must never introduce test ordering, mutable cross-test state, clock leakage, identifier collision, or cleanup dependence.
+10. World construction, action, observation, and teardown must be separately
+    diagnosable when confusion could create a wrong-reason green result. Fixtures
+    obey production privacy, authority, retention, and secret-handling rules.
 
-12. Fixture cost has explicit layers: workspace or process compilation, suite-level immutable baselines, test-level isolated deltas, and assertion-local actions. A test must not pay repeatedly for a lower-frequency layer merely because the harness lacks a truthful reuse boundary.
+## Test forms
 
-13. Fixture realism means causal completeness for the claim, not maximal data volume or accidental resemblance to one production sample. Canonical worlds cover named semantic regimes; deterministic generators, properties, fuzzing, and recorded seeds vary values and topology within those regimes. One golden world cannot certify a state space.
+11. An end-to-end test begins at a real product entry surface and observes a
+    real consequence through the production composition root. Replacing a
+    boundary relevant to the claim narrows what the test can claim.
 
-14. World construction, action, observation, and teardown are separately diagnosable phases. Fixture APIs return typed handles and failures, record the seed and scenario identity needed for reproduction, and expose which invariant or dependency failed. A broken fixture must never be reported as a product regression or allowed to satisfy an expected-failure assertion.
+12. Integration tests cross real semantic, authority, persistence, protocol, or
+    lifecycle boundaries. Calling several in-memory objects is not integration
+    merely because several types participate.
 
-15. Fixtures obey production privacy, authority, retention, and secret-handling rules. Synthetic data is preferred; captured or replayed data requires explicit provenance, minimization, redaction, access policy, expiry, and deterministic replacement of credentials and identities.
+13. Focused tests are appropriate for parsers, algorithms, state machines,
+    canonicalizers, numerical invariants, and closed transition tables. Avoid
+    tests that only mirror private branches, assignments, getters, or incidental
+    call order.
 
-## III. Test-Form Laws
+14. Mocks, fakes, and stubs prove caller behavior against the substitute. They
+    do not certify the real adapter, external system, persistence, timing, or
+    failure topology.
 
-16. An end-to-end test begins at a real product entry surface and observes a real user- or operator-visible consequence through the production composition root. If it replaces the authority owner, persistence semantics, scheduler, protocol, or observation path relevant to the claim, it is an integration test and must be named and scoped as one.
+15. Compile-pass and compile-fail tests are for valuable public compile-time
+    guarantees. Include a valid counterpart, fail for the intended boundary,
+    avoid incidental compiler prose, and consolidate compiler sessions.
 
-17. Integration tests cross real semantic and authority boundaries. They certify serialization, persistence, routing, lifecycle, cancellation, recovery, migration, and policy interactions using production wiring. Calling several in-memory objects from one test does not make the test integrative.
+16. Snapshot and golden tests are appropriate when the artifact itself is the
+    contract. Normalize only declared nondeterminism and avoid snapshots of
+    incidental or mostly irrelevant structures.
 
-18. A focused local test is justified when it is the cheapest strong proof for a dense local semantic surface: an algorithm, parser, state machine, numerical invariant, canonicalizer, or exhaustive transition table. Tests that mirror private branches, assert constructor assignments, exercise getters, or freeze incidental call sequences are implementation surveillance and should not exist.
+17. Stateful and asynchronous systems need adversarial coverage proportional
+    to their real failure model. Reviewers select the relevant cancellation,
+    exhaustion, ordering, concurrency, partial-effect, recovery, migration, and
+    irreversible-commit cases; the full list is not automatically required.
 
-19. Mocks, fakes, and stubs prove only the behavior of the code against that substitute. They are valid for fault injection, rare external outcomes, and caller-side protocol logic when the substitute has an explicit contract; they cannot certify the real adapter, external system, persistence behavior, timing, or failure topology. Contract tests must bind substitutes and real implementations to the same observable obligations.
+## Cost and integrity
 
-20. Compile-pass and compile-fail tests are reserved for public compile-time guarantees whose product value is that invalid programs are unrepresentable. Each negative case needs a corresponding valid case, must fail because of the intended authority or type boundary, and must not canonize incidental compiler prose. Consolidate cases into the fewest practical compiler sessions; do not use `trybuild` to test private implementation shape, ordinary runtime behavior, naming preference, or facts already proven by compiling production code.
+18. Test topology is performance architecture. In Rust, group scenario families
+    into a small number of intentional integration targets and avoid duplicated
+    compiler sessions and dependency graphs.
 
-21. Snapshot and golden tests are valid only when the serialized, rendered, diagnostic, migration, or protocol artifact is itself the contract. Review semantic differences, normalize only declared nondeterminism, and pair broad snapshots with focused invariants where a reviewer could miss a meaningful change. Snapshots of incidental debug output or enormous mostly irrelevant structures are approval theatre.
+19. Assign tests to focused, CI, or scheduled lanes. Expensive suites need a
+    runtime or resource budget. Run cheap discovery, configuration, fixture,
+    exact-name, and harness checks before expensive worlds.
 
-22. Stateful and asynchronous systems require adversarial lifecycle evidence: cancellation at each effect boundary, bounded backpressure, exhaustion, retries, duplicate and reordered delivery, concurrent conflict, partial persistence, crash and reopen, checkpoint plus journal recovery, schema coexistence, and irreversible commit posture. Happy-path completion cannot certify a lifecycle.
+20. Test configuration must not weaken validation, change production semantics,
+    create authority, or introduce a composition root unavailable to the real
+    system. Narrow test support is acceptable when it preserves production
+    behavior and cannot bypass the behavior under test.
 
-## IV. Cost and Integrity Laws
+21. Flakiness is a product or harness defect. Quarantine removes the test's
+    protection and needs an owner, reason, and bounded follow-up. Retries and
+    widened timeouts must not manufacture green status.
 
-23. Test topology is performance architecture. In Rust, each integration-test file is a distinct crate and often a distinct compile and link unit; organize scenario families as modules within a small number of intentional harnesses, centralize fixture infrastructure behind stable support crates or modules, and prevent duplicated generic instantiation and dependency graphs across targets.
+22. Performance tests name the boundary, workload, scale axes, environment,
+    cold or warm posture, and useful measurements. A generous timeout alone is
+    not a performance contract.
 
-24. Every suite has named cost lanes and budgets for clean compilation, incremental compilation, linking, fixture construction, execution, external startup, retained artifacts, and flake retries. The ordinary change gate contains the cheapest evidence sufficient to reject unsafe changes; exhaustive fuzzing, soak, broad compatibility matrices, and destructive recovery may occupy scheduled lanes, but no correctness claim may depend solely on a lane that is rarely run or routinely ignored.
+23. Test and fixture code obey production composition and domain structure.
+    Remove obsolete scenarios, redundant assertions, stale snapshots, unused
+    builders, and unnecessary harness capabilities.
 
-25. Test-only production branches, alternate composition roots, weakened validation, hidden constructors, and privileged mutation backdoors are forbidden. Testability must come from honest boundaries, explicit clocks and schedulers, observable effects, replaceable external ports, and governed fixture authority that preserves production semantics.
+## Review boundary
 
-26. Flakiness is an unresolved correctness or harness defect, not statistical inconvenience. Quarantine removes a test's claim from the certified set and therefore requires an owner, reason, expiry, and explicit accounting of the lost evidence. Blind retries, widened timeouts, ordering constraints, and ignored failures may not manufacture green status.
+24. Code review is the authority for evidence adequacy. Reviewers compare the
+    specification, implementation, tests, and residual risk.
 
-27. Performance tests must measure the claimed boundary under named workloads, scale axes, environments, cold or warm posture, saturation, percentiles, and structural counters. A test that asserts only that work completed before a generous timeout is neither a performance contract nor a regression detector.
+25. Do not create proof ledgers, evidence-authentication layers, source
+    fingerprints, mutation receipts, or tests for tests merely to guarantee
+    accepted tests. Test infrastructure may have ordinary tests for meaningful
+    behavior.
 
-28. Test code obeys production composition, domain structure, and deletion discipline. Fixture infrastructure is a real subsystem with named ownership and boundaries, not a `helpers`, `common`, or `utils` bag. Remove obsolete scenarios, redundant assertions, stale snapshots, unused builders, and harness capabilities when their proof obligations disappear.
+26. Source control contains specifications, tests, and configuration. CI
+    records results against a commit. Generated run journals and execution
+    envelopes are not normally written back into source.
 
-## V. Named Failure Modes
+27. Completed historical phases remain historical. A later regression blocks
+    the current change through its tests; it does not reopen earlier portfolios.
 
-**Counterfeit world:** Validity is asserted through hard-coded identities, tokens, revisions, or relationships rather than causally established.
+28. Stop when the affected behavior has appropriate tests, required checks pass
+    on the final change, review finds the evidence adequate, and no known
+    material defect remains. Residual risk is an engineering judgment, not a
+    reason to build recursive proof machinery.
 
-**Fixture amnesia:** Each test rebuilds expensive history because the harness has no reusable world or isolated-delta architecture.
+## Named failure modes
 
-**Universal fixture:** One enormous mutable setup obscures relevant preconditions, couples unrelated tests, and makes failures nonlocal.
-
-**Self-certifying oracle:** Expected results are produced by the same semantics or implementation path under test.
-
-**Wrong-reason green:** The assertion passes because setup, routing, or observation failed before the intended behavior was exercised.
-
-**Boundary cosplay:** An in-memory call graph is labeled integration or end-to-end while replacing the authority or effect boundary that matters.
-
-**Identity theatre:** A literal identifier is mistaken for a causally valid entity or authority relationship.
-
-**Compile-contract inflation:** Compiler sessions are multiplied to police incidental syntax or private implementation rather than valuable public impossibility.
-
-**Coverage theatre:** Executed lines, snapshots, assertions, or test count are presented as proof without fault sensitivity or an independent oracle.
-
-**Test-only architecture:** Production semantics change under test configuration or a privileged bypass creates worlds unavailable to the real system.
-
-**Sedimentary testing:** New tests accumulate without unique proof obligations, consolidation, deletion, or cost accounting.
-
-## VI. Operational Review Vector
-
-For every proposed test, identify the production claim, plausible defect, authority boundary, fixture provenance, world delta, independent oracle, intended failure cause, consequential observations, mutation sensitivity, isolation mechanism, unique evidence, and total compile plus execution cost. If these cannot be stated precisely, redesign the test or omit it.
+- **Counterfeit world:** Relevant validity is asserted through arbitrary values.
+- **Self-certifying oracle:** Expected results repeat the disputed semantics.
+- **Wrong-reason green:** Setup, routing, or observation fails first.
+- **Boundary cosplay:** A test replaces the boundary its label claims to prove.
+- **Compile-contract inflation:** Compiler sessions police private shape.
+- **Coverage theatre:** Counts or snapshots replace a credible regression.
+- **Test-only architecture:** Test configuration changes production semantics.
+- **Sedimentary testing:** Tests accumulate without distinct value or deletion.
+- **Recursive certification:** Evidence machinery mainly certifies other
+  evidence machinery.

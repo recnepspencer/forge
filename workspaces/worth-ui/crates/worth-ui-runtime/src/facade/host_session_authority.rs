@@ -142,6 +142,22 @@ impl WorthUiHostSessionAuthority {
             .drain_host_observations(&self.adapter_authority)
     }
 
+    pub(crate) fn install_input_recipient(
+        &self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        self.output_adapter()
+            .install_input_recipient(&self.adapter_authority, binding)
+    }
+
+    pub(crate) fn clear_input_recipient(
+        &self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        self.output_adapter()
+            .clear_input_recipient(&self.adapter_authority, binding)
+    }
+
     pub(crate) fn release_adapter_session(&mut self) -> UiHostSessionReleaseOutcome {
         if self.adapter_session_released {
             return crate::host::adapter::UiHostSessionReleaseOutcome::Released(

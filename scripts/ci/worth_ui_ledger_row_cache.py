@@ -11,10 +11,11 @@ from pathlib import Path
 from typing import Any
 
 from worth_ui_ledger_runner_authentication import authentication_tag, authenticates
-from worth_ui_ledger_execution_cache import COMPILE_ARTIFACT
+from worth_ui_ledger_execution_binding import COMPILE_ARTIFACT
+from worth_ui_ledger_artifact_identity import requirement_phase
 
 
-SCHEMA = "worth-ui-ledger-row-receipt-v3"
+SCHEMA = "worth-ui-ledger-row-receipt-v4"
 
 
 class RowEvidenceCache:
@@ -32,6 +33,9 @@ class RowEvidenceCache:
         self._ledger_digest = digest(ledger_basis)
         self._revision = revision
         self._state_digest = state_digest
+
+    def bind_ledger(self, ledger_basis: bytes) -> None:
+        self._ledger_digest = digest(ledger_basis)
 
     def restore(
         self, requirement: str, command: str, claim_digest: str
@@ -113,16 +117,19 @@ class RowEvidenceCache:
             shutil.rmtree(preparing)
             raise RuntimeError("row cache result digest differs from its artifact")
         payload = json.loads(content.decode("utf-8"))
-        if not valid_payload(
+        rejection = payload_rejection_reason(
             payload,
             requirement,
             claim_digest,
             self._revision,
             self._state_digest,
             self._root,
-        ):
+        )
+        if rejection is not None:
             shutil.rmtree(preparing)
-            raise RuntimeError("row cache cannot retain unauthenticated result evidence")
+            raise RuntimeError(
+                "row cache cannot retain result evidence: " + rejection
+            )
         records = []
         for index, owned_identity in enumerate(owned):
             owned_content = contained_artifact(self._root, owned_identity).read_bytes()
@@ -220,13 +227,9 @@ def artifact_identity(command: str) -> str:
 
 def owned_artifact_identities(requirement: str, command: str) -> tuple[str, ...]:
     result = artifact_identity(command)
-    if requirement not in {
-        "P3-PREDECESSOR-01",
-        "P4-PREDECESSOR-01",
-        "P5-PREDECESSOR-01",
-    }:
+    if not requirement.endswith("-PREDECESSOR-01"):
         return (result,)
-    suffix = f"p{requirement[1]}-predecessor-handoff.json"
+    suffix = f"p{requirement_phase(requirement)}-predecessor-handoff.json"
     sources = [
         command.split()[index + 1]
         for index, word in enumerate(command.split()[:-1])
@@ -246,12 +249,10 @@ def source_artifact_bindings(
         if word != "--source":
             continue
         identity = words[index + 1]
-        if requirement in {
-            "P3-PREDECESSOR-01",
-            "P4-PREDECESSOR-01",
-            "P5-PREDECESSOR-01",
-        } and identity.endswith(
-            f"p{requirement[1]}-predecessor-handoff.json"
+        if requirement is not None and requirement.endswith(
+            "-PREDECESSOR-01"
+        ) and identity.endswith(
+            f"p{requirement_phase(requirement)}-predecessor-handoff.json"
         ):
             continue
         source = root / identity
@@ -259,23 +260,27 @@ def source_artifact_bindings(
     return bindings
 
 
-def valid_payload(
+def payload_rejection_reason(
     payload: dict[str, Any],
     requirement: str,
     claim_digest: str,
     revision: str,
     state_digest: str,
     root: Path,
-) -> bool:
+) -> str | None:
     unsigned = {key: value for key, value in payload.items() if key != "runner_authentication"}
-    return (
-        payload.get("requirement") == requirement
-        and payload.get("exit_posture") == "passed"
-        and payload.get("claim_digest") == claim_digest
-        and payload.get("source_revision") == revision
-        and payload.get("source_state_digest") == state_digest
-        and authenticates(unsigned, payload.get("runner_authentication"), root)
+    checks = (
+        (payload.get("requirement") == requirement, "requirement mismatch"),
+        (payload.get("exit_posture") == "passed", "exit posture is not passed"),
+        (payload.get("claim_digest") == claim_digest, "claim digest mismatch"),
+        (payload.get("source_revision") == revision, "source revision mismatch"),
+        (payload.get("source_state_digest") == state_digest, "source state mismatch"),
+        (
+            authenticates(unsigned, payload.get("runner_authentication"), root),
+            "runner authentication mismatch",
+        ),
     )
+    return next((reason for accepted, reason in checks if not accepted), None)
 
 
 def valid_restored_payload(
@@ -298,15 +303,18 @@ def causal_binding_matches(
 ) -> bool:
     if not isinstance(observed, dict):
         return False
+    fields = [
+        "schema",
+        "requirement",
+        "exact_command",
+        "claim_digest",
+        "source_artifact_bindings",
+    ]
+    if str(expected.get("requirement", "")).endswith("-PREDECESSOR-01"):
+        fields.append("ledger_basis_sha256")
     return all(
         observed.get(field) == expected.get(field)
-        for field in (
-            "schema",
-            "requirement",
-            "exact_command",
-            "claim_digest",
-            "source_artifact_bindings",
-        )
+        for field in fields
     )
 
 

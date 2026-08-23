@@ -138,7 +138,7 @@
   "package": "worth-ui-text",
   "passed_test_count": 1,
   "requirement": "P4-SHAPING-01",
-  "run_nonce": "dd0c9bec9c8ea0cb7ee9b08fc809d6ba",
+  "run_nonce": "d145645cb095107372ad33d1b8682c5d",
   "schema_version": 5,
   "source_digest": "ad2ffdb5741869738e0dbd31c9a84447be7ac1685e0a3c720ad9dacf89670d04",
   "source_identity": [
@@ -150,8 +150,8 @@
     "workspaces/worth-ui/crates/worth-ui-text/src/language.rs",
     "workspaces/worth-ui/profiles/worth-ui-global-text-v2/fixtures/hb-shape-13.0.0.json"
   ],
-  "source_revision": "dec3ed3ab6aee904e2e575b8c841265ade8db5cd",
-  "source_state_digest": "c36105bb603622263024a953067f3b23714ce74b84b8e131047831af1b7baf8e",
+  "source_revision": "ef56a3d58523baa15ae4c253455a01ef16623e06",
+  "source_state_digest": "b51de7a501e15a402b769927b6de45024be04b58a34fbf2df55b9a932b55239f",
   "structural_counter": "shaped-glyphs=15",
   "supporting_world": null,
   "target_kind": "lib",
@@ -209,11 +209,10 @@
     },
     "execution_receipt_keys": [
       "5bbb5b7f4497f4c1bb4977d5d7e3e2619f4c53dc4e2e937430f94321b4f8b1dd",
-      "5bbb5b7f4497f4c1bb4977d5d7e3e2619f4c53dc4e2e937430f94321b4f8b1dd",
       "79676d609fd257ae7d41cb940c65b8f6e7f4e2e0947321df0db894ad4a2363dd",
       "79f8daa70fa43623496714bc3aa2cc2e3251992169c940b00bc853b9d0d15e2a",
       "b3743f5a6beedd58dc08ded8d3e87b6ab907f906489f3bd47a0d1137cc3ce58a"
     ]
   },
-  "runner_authentication": "b4aa648e440bb2aa8ff404e33106b96b80be132c1dd24a8e1338cdbafeaf3762"
+  "runner_authentication": "c905a694168db1ffa235a6365cf986e947423608c884afabf14c33c265d1b0fa"
 }

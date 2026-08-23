@@ -1,6 +1,6 @@
 use worth_ui_host_native::{
     UiNativeClientPresentationAttribution, UiNativeEventLoopClient, UiNativeEventLoopClientClose,
-    UiNativeEventLoopDirective, UiNativeReadinessGrant,
+    UiNativeEventLoopDirective, UiNativeObservationReadinessGrant, UiNativeReadinessGrant,
 };
 use worth_ui_native_platform::UiPreparedNativePlatform;
 
@@ -17,6 +17,13 @@ impl UiNativeEventLoopClient for ForgedNativeClient {
     fn redraw_ready(
         &mut self,
         _grant: UiNativeReadinessGrant,
+    ) -> Result<UiNativeEventLoopDirective, ()> {
+        Ok(UiNativeEventLoopDirective::Close)
+    }
+
+    fn native_observations_ready(
+        &mut self,
+        _grant: UiNativeObservationReadinessGrant,
     ) -> Result<UiNativeEventLoopDirective, ()> {
         Ok(UiNativeEventLoopDirective::Close)
     }

@@ -8,14 +8,20 @@ use super::{
 };
 
 pub(super) const EXPECTED_MAPPING_DIGEST: &str =
-    "0a45ca9be7b1084df066e6cd639b1e82cf4af3783e9d2aa1560f1dc5f48e77d5";
+    "460b1cfebd84ca3eca981b9058bdbb50c13d914b78f830f76a649a07a6f38b2e";
 const EXPECTED_PHASE_THREE_MAPPING_DIGEST: &str =
-    "b282900a1c03f333dc8e11419c2f91b20a5d75bcb3382e60800ac12e1cd75bf5";
+    "4cfbc6d1816a90d8bd6faf30b97814e930474dd29066f9f2dea8312a8333ebfc";
 const EXPECTED_PHASE_FOUR_MAPPING_DIGEST: &str =
-    "92f285d791ba5ecee570127cf91edbf4623aee9ba4072b7eb19d3fe523d267ba";
+    "5e705480d29c02d74cd8b1ba251011286a1ec7fd50f9bc2dcd10d1a6a37a4a44";
+const EXPECTED_PHASE_FIVE_MAPPING_DIGEST: &str =
+    "cede4dc6927e32d8fca42ce96eb8dae480f996b8fb5d39bf3e5320351bb11db2";
 
 #[path = "predecessor_artifact/causal_reuse.rs"]
 mod causal_reuse;
+#[path = "predecessor_artifact/execution_identity.rs"]
+mod execution_identity;
+#[path = "predecessor_artifact/execution_observation.rs"]
+mod execution_observation;
 #[path = "predecessor_artifact/mapping_digest.rs"]
 mod mapping_digest;
 
@@ -58,23 +64,24 @@ fn validate_value_with_mapping(
     source_state: &str,
     expected_mapping: &str,
 ) -> Result<PredecessorObservation, String> {
-    require_str(artifact, "schema", "worth-ui-phase-predecessor-handoff-v1")?;
     let through_phase = artifact["through_phase"]
         .as_u64()
-        .filter(|phase| matches!(phase, 2 | 3 | 4))
+        .filter(|phase| matches!(phase, 2 | 3 | 4 | 5))
         .ok_or_else(|| "predecessor artifact has wrong through_phase".to_owned())?;
     let requirement_count = match through_phase {
         2 => 30,
         3 => 47,
         4 => 68,
+        5 => 80,
         _ => return Err("predecessor artifact has wrong through_phase".to_owned()),
     };
+    let expected_schema = "worth-ui-phase-predecessor-handoff-v4";
+    require_str(artifact, "schema", expected_schema)?;
     require_str(artifact, "source_revision", revision)?;
     require_str(artifact, "source_state_digest", source_state)?;
     require_u64(artifact, "verified_requirement_count", requirement_count)?;
     require_u64(artifact, "closure_test_executions", 2)?;
     require_u64(artifact, "compile_sessions", 2)?;
-    validate_derived_totals(artifact)?;
     require_hex(artifact, "run_nonce", 32)?;
     require_str(
         artifact,
@@ -85,10 +92,17 @@ fn validate_value_with_mapping(
         2 => expected_mapping,
         3 => EXPECTED_PHASE_THREE_MAPPING_DIGEST,
         4 => EXPECTED_PHASE_FOUR_MAPPING_DIGEST,
+        5 => EXPECTED_PHASE_FIVE_MAPPING_DIGEST,
         _ => unreachable!("through_phase was validated above"),
     };
     require_str(artifact, "mapping_digest", phase_mapping)?;
+    super::predecessor_ledger_basis::validate(
+        &artifact["verification_basis"],
+        through_phase,
+        &artifact["rows"],
+    )?;
     validate_rows(artifact, revision, source_state, requirement_count as usize)?;
+    validate_derived_totals(artifact)?;
     Ok(PredecessorObservation { requirement_count })
 }
 
@@ -96,8 +110,7 @@ fn validate_derived_totals(artifact: &Value) -> Result<(), String> {
     let rows = artifact["rows"]
         .as_array()
         .ok_or_else(|| "predecessor artifact omits rows".to_owned())?;
-    let main = unique_execution_total(rows, "main-test")?;
-    let controls = unique_execution_total(rows, "control-test")?;
+    let (main, controls) = execution_identity::totals(artifact)?;
     let product = unique_cost_total(rows, "construction_cost", "product-processes");
     let worlds = unique_cost_total(rows, "construction_cost", "courtroom-worlds");
     let presentations = unique_cost_total(rows, "execution_cost", "presentations");
@@ -111,26 +124,6 @@ fn validate_derived_totals(artifact: &Value) -> Result<(), String> {
         require_u64(artifact, field, expected)?;
     }
     Ok(())
-}
-
-fn unique_execution_total(rows: &[Value], role: &str) -> Result<u64, String> {
-    let mut identities = BTreeSet::new();
-    for row in rows {
-        let receipts = row["execution_receipts"]
-            .as_array()
-            .ok_or_else(|| "predecessor row omits execution receipts".to_owned())?;
-        for receipt in receipts {
-            if receipt["role"].as_str() != Some(role) {
-                continue;
-            }
-            let key = receipt["key"]
-                .as_str()
-                .filter(|key| key.len() == 64 && key.bytes().all(|byte| byte.is_ascii_hexdigit()))
-                .ok_or_else(|| "predecessor row has invalid execution identity".to_owned())?;
-            identities.insert(key);
-        }
-    }
-    Ok(identities.len() as u64)
 }
 
 fn unique_cost_total(rows: &[Value], field: &str, name: &str) -> u64 {
@@ -232,7 +225,7 @@ fn require_execution_role(row: &Value, role: &str) -> Result<(), String> {
         .iter()
         .find(|receipt| receipt["role"].as_str() == Some(role))
         .ok_or_else(|| format!("predecessor row omits {role} receipt"))
-        .and_then(|receipt| require_hex(receipt, "key", 64))
+        .and_then(|receipt| require_hex(receipt, "observation_sha256", 64))
 }
 
 fn validate_counter(row: &Value, requirement: &str) -> Result<(), String> {

@@ -677,6 +677,7 @@ jobs:
       - name: Execute one large row with one isolated smoke row
         shell: pwsh
         env:
+          WORTH_UI_PHASE5_MATRIX_MODE: shard
           WORTH_UI_PHASE5_MATRIX_SHARD: ${{ matrix.shard }}/16
         run: |
           $binary = Join-Path $env:RUNNER_TEMP "worth-ui-phase5-locality/worth-ui-phase5-locality-matrix.exe"
@@ -724,6 +725,7 @@ jobs:
       - name: Join exact ordinal coverage without reexecuting worlds
         shell: pwsh
         env:
+          WORTH_UI_PHASE5_MATRIX_MODE: join
           WORTH_UI_PHASE5_MATRIX_JOIN_DIR: ${{ runner.temp }}/worth-ui-phase5-locality-join/reports
         run: |
           $binary = Join-Path $env:RUNNER_TEMP "worth-ui-phase5-locality-join/bin/worth-ui-phase5-locality-matrix.exe"

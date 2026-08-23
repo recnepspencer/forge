@@ -183,3 +183,67 @@ fn host_close_retains_pending_atlas_upload_until_external_settlement() {
     assert!(state.close().is_zero());
     assert!(state.text_atlas_gpu.is_none());
 }
+
+#[test]
+fn native_input_reaches_the_mechanics_drain_boundary_with_its_presentation_basis() {
+    use winit::dpi::PhysicalPosition;
+    use winit::event::{DeviceId, WindowEvent};
+    use worth_ui_host_contract::{
+        UiHostObservationPayload, UiHostObservationPresentationBasis, UiHostPresentationEpoch,
+        UiHostProtocolContract, UiHostProtocolNegotiation, UiMountedFrameIdentity,
+        UiSurfaceBindingGeneration, WorthUiHostMechanicsAdapter,
+    };
+
+    let host_session = 97;
+    let state = std::rc::Rc::new(std::cell::RefCell::new(UiNativeHostState::new()));
+    let adapter = super::WorthUiNativeMechanicsAdapter::from_preparation(
+        std::rc::Rc::clone(&state),
+        crate::UiNativePlatformProfileIdentity::WORTH_UI_WINDOWS_DX12_V1,
+    );
+    let protocol = match UiHostProtocolContract::current().negotiate() {
+        UiHostProtocolNegotiation::Compatible(agreement) => agreement,
+        UiHostProtocolNegotiation::Incompatible(_) => unreachable!(),
+    };
+    let binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();
+    let basis = UiHostObservationPresentationBasis::new(
+        UiMountedFrameIdentity::mint_unbound().unwrap(),
+        binding,
+        UiHostPresentationEpoch::issued_by_host(1),
+    );
+    {
+        let mut state = state.borrow_mut();
+        state
+            .lifecycle_protocol
+            .install_initial_profile(1.0, [800, 600]);
+        assert_eq!(
+            state
+                .lifecycle_protocol
+                .record_completed_presentation(protocol, host_session, basis)
+                .effect(),
+            crate::native::UiNativeLifecycleEffect::PresentationCompleted
+        );
+        let transition = state.lifecycle_protocol.observe_window_event_at(
+            &WindowEvent::CursorMoved {
+                device_id: DeviceId::dummy(),
+                position: PhysicalPosition::new(12.0, 24.0),
+            },
+            0,
+            None,
+        );
+        assert_eq!(
+            transition.effect(),
+            crate::native::UiNativeLifecycleEffect::Retained
+        );
+    }
+
+    let drain = adapter
+        .drain_mechanical_host_observations(host_session)
+        .unwrap();
+    let batches = drain.into_batches();
+    assert_eq!(batches.len(), 1);
+    assert_eq!(batches[0].canonical_core().presentation(), basis);
+    assert!(matches!(
+        batches[0].reports()[0].payload(),
+        UiHostObservationPayload::PointerMotion { .. }
+    ));
+}

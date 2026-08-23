@@ -54,6 +54,7 @@ impl UiEguiInstalledInputTranslators {
         self,
         raw_input: &egui::RawInput,
         basis: UiEguiPresentedInputBasis,
+        recipient: Option<worth_ui_host_contract::UiHostInputRecipientBindingReceipt>,
         mut state: UiEguiInputTranslationState,
     ) -> Result<UiEguiTranslatedInput, UiEguiRawInputIngressStop> {
         let mut reachability = UiEguiRawInputReachability::for_event_count(raw_input.events.len());
@@ -76,7 +77,18 @@ impl UiEguiInstalledInputTranslators {
             }
             match self.translate_event(event, &mut state) {
                 Ok(Some(payload)) => {
-                    let encoded_len = 24usize.saturating_add(payload.encoded_len());
+                    let requires_recipient = payload_requires_recipient(&payload);
+                    if requires_recipient && recipient.is_none() {
+                        stop = Some(
+                            UiEguiRawInputIngressStopReason::MissingInputRecipientAffinity {
+                                index,
+                            },
+                        );
+                        continue;
+                    }
+                    let encoded_len = 24usize
+                        .saturating_add(payload.encoded_len())
+                        .saturating_add(usize::from(requires_recipient) * 96);
                     if reports.len() == UI_HOST_OBSERVATION_BATCH_REPORT_LIMIT {
                         stop = Some(UiEguiRawInputIngressStopReason::ReportLimitExceeded);
                         continue;
@@ -93,11 +105,21 @@ impl UiEguiInstalledInputTranslators {
                         stop = Some(UiEguiRawInputIngressStopReason::SequenceExhausted);
                         continue;
                     };
-                    reports.push(UiHostObservationReport::new(
+                    let report = UiHostObservationReport::new(
                         sequence,
                         UiHostObservationTimeBasis::HostMonotonicTick(sequence.value()),
                         payload,
-                    ));
+                    );
+                    reports.push(
+                        if let Some(recipient) = recipient.filter(|_| requires_recipient) {
+                            report.with_input_affinity(
+                            worth_ui_host_contract::UiHostInputRecipientAffinityReceipt::
+                                at_event_time(recipient, basis.presentation()),
+                        )
+                        } else {
+                            report
+                        },
+                    );
                     retained_bytes = next_bytes;
                 }
                 Ok(None) => {}
@@ -214,6 +236,15 @@ impl UiEguiInstalledInputTranslators {
             egui::Event::Screenshot { .. } => Ok(None),
         }
     }
+}
+
+fn payload_requires_recipient(payload: &UiHostObservationPayload) -> bool {
+    matches!(
+        payload,
+        UiHostObservationPayload::Keyboard { .. }
+            | UiHostObservationPayload::TextInput { .. }
+            | UiHostObservationPayload::ImeComposition { .. }
+    )
 }
 
 impl Default for UiEguiInstalledInputTranslators {

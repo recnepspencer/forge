@@ -138,7 +138,7 @@
   "package": "worth-ui-runtime",
   "passed_test_count": 1,
   "requirement": "P4-UNCHANGED-01",
-  "run_nonce": "0801d54be55ef14764519d986faa9809",
+  "run_nonce": "1935fa3958542eb0457aca7544260646",
   "schema_version": 5,
   "source_digest": "bc25d7f5fb88c44c7c565ecf6655e8facf5e8780dc236dd2fe0622f7e8fa359a",
   "source_identity": [
@@ -149,8 +149,8 @@
     "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/persistent_index/ranked_sequence.rs",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/persistent_index/test_observation.rs"
   ],
-  "source_revision": "dec3ed3ab6aee904e2e575b8c841265ade8db5cd",
-  "source_state_digest": "c36105bb603622263024a953067f3b23714ce74b84b8e131047831af1b7baf8e",
+  "source_revision": "ef56a3d58523baa15ae4c253455a01ef16623e06",
+  "source_state_digest": "b51de7a501e15a402b769927b6de45024be04b58a34fbf2df55b9a932b55239f",
   "structural_counter": "unchanged-analysis=0",
   "supporting_world": null,
   "target_kind": "lib",
@@ -208,9 +208,8 @@
       "23cb67f8437781a5f7355e469c7f06e04900ce5ada533e7860e03a454369bda8",
       "4905a5581165ded5956f8cfa8846a77894466b138ebd6672d6422a1eb27fc50a",
       "99792071034313b60a959a61ac7d526d0e2fa8d4fca3b6753965ed3216c13871",
-      "99792071034313b60a959a61ac7d526d0e2fa8d4fca3b6753965ed3216c13871",
       "bda44f6ea1eb5fdc756ac1fd2a4e8d6198f2e2afca7369af0eee38b9ba25522d"
     ]
   },
-  "runner_authentication": "41d9586c8f2eddcaddfe0687efc835ec366b06e2f75ec22e5ea2f58fe38a9072"
+  "runner_authentication": "b0c0ad2420ff0e1bce751affd4b939ba7826de7d58438f1a023c141faa28fa25"
 }

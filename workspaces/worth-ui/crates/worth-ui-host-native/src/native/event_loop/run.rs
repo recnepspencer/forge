@@ -1,82 +1,33 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use winit::event_loop::{ControlFlow, EventLoop};
-#[cfg(target_os = "windows")]
-use winit::platform::windows::EventLoopBuilderExtWindows;
+use winit::event_loop::ControlFlow;
 
 use super::{
-    terminal_cleanup_complete, UiNativeEventLoopApplication, UiNativeEventLoopCleanup,
-    UiNativeEventLoopClient, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
-    UiNativeEventLoopStopReport, WorthUiNativeEventLoop,
+    run_preflight, UiNativeEventLoopApplication, UiNativeEventLoopCleanup, UiNativeEventLoopClient,
+    UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport, UiNativeEventLoopStopReport,
+    WorthUiNativeEventLoop,
 };
-use crate::native::{UiNativeHostState, UiNativeReadinessRegistry, UiNativeResourceClass};
+use crate::native::UiNativeHostState;
 
 impl WorthUiNativeEventLoop {
     pub fn run<Client: UiNativeEventLoopClient>(
         self,
         client: Client,
     ) -> Result<UiNativeEventLoopRunReport, UiNativeEventLoopStopReport> {
-        let mut builder = EventLoop::<()>::builder();
-        #[cfg(target_os = "windows")]
-        builder.with_any_thread(false);
-        let event_loop = match builder.build() {
-            Ok(event_loop) => event_loop,
-            Err(_) => {
-                return Err(stop_before_callbacks(
-                    self.state,
-                    client,
-                    UiNativeEventLoopRunDenial::EventLoopCreation,
-                ));
-            }
+        let preflight = match run_preflight::prepare(&self.state, self.thread_posture) {
+            Ok(preflight) => preflight,
+            Err(cause) => return Err(stop_before_callbacks(self.state, client, cause)),
         };
-        let loop_resources = {
-            let mut state = self.state.borrow_mut();
-            state.resources.reserve(&[
-                UiNativeResourceClass::ApplicationDriver,
-                UiNativeResourceClass::EventWakeRegistration,
-            ])
-        };
-        let Ok(loop_resources) = loop_resources else {
-            return Err(stop_before_callbacks(
-                self.state,
-                client,
-                UiNativeEventLoopRunDenial::ApplicationDriver,
-            ));
-        };
+        let run_preflight::UiNativeEventLoopRunPreflight {
+            event_loop,
+            readiness,
+            readiness_owner,
+            physical_readiness_owner,
+            input_readiness_owner,
+            loop_resources,
+        } = preflight;
         event_loop.set_control_flow(ControlFlow::Wait);
-        let mut readiness = UiNativeReadinessRegistry::new();
-        let readiness_owner = match readiness.register() {
-            Ok(owner) => owner,
-            Err(()) => {
-                self.state
-                    .borrow_mut()
-                    .resources
-                    .release_all(loop_resources)
-                    .expect("event-loop preflight owners remain exact");
-                return Err(stop_before_callbacks(
-                    self.state,
-                    client,
-                    UiNativeEventLoopRunDenial::ApplicationDriver,
-                ));
-            }
-        };
-        let physical_readiness_owner = match readiness.register_level() {
-            Ok(owner) => owner,
-            Err(()) => {
-                readiness.close();
-                self.state
-                    .borrow_mut()
-                    .resources
-                    .release_all(loop_resources)
-                    .expect("event-loop preflight owners remain exact");
-                return Err(stop_before_callbacks(
-                    self.state,
-                    client,
-                    UiNativeEventLoopRunDenial::IncompleteCleanup,
-                ));
-            }
-        };
         let mut application = UiNativeEventLoopApplication {
             shared: self.state,
             configuration: self.window,
@@ -85,6 +36,7 @@ impl WorthUiNativeEventLoop {
             readiness,
             readiness_owner,
             physical_readiness_owner,
+            input_readiness_owner,
             readiness_signals: 0,
             redraw_turns: 0,
             idle_wait_turns: 0,
@@ -95,6 +47,8 @@ impl WorthUiNativeEventLoop {
             loop_resources,
             port_crossings: 0,
             physical_clock: super::physical_clock::UiNativePhysicalEventClock::new(),
+            pointer_input: None,
+            thread_posture: self.thread_posture,
         };
         if event_loop.run_app(&mut application).is_err() {
             application
@@ -112,6 +66,7 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
 ) -> UiNativeEventLoopStopReport {
     let peak_census = state.borrow().compiler_total_peak();
     let peak_text_pins = state.borrow().peak_text_pins.clone();
+    let input_observations = state.borrow().lifecycle_protocol.report();
     let effect_posture = state.borrow().effect_posture;
     let (client_cleanup, _) = client.close().into_parts();
     let client_cleanup_complete = client_cleanup.is_none();
@@ -123,7 +78,11 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
         super::physical_clock::UiNativePhysicalEventClock::new(),
     );
     UiNativeEventLoopStopReport {
-        cause: if terminal_cleanup_complete(client_cleanup_complete, true, &terminal_census) {
+        cause: if super::terminal_cleanup::terminal_cleanup_complete(
+            client_cleanup_complete,
+            true,
+            &terminal_census,
+        ) {
             cause
         } else {
             UiNativeEventLoopRunDenial::IncompleteCleanup
@@ -134,5 +93,6 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
         client_cleanup_complete,
         cleanup,
         peak_text_pins,
+        input_observations,
     }
 }

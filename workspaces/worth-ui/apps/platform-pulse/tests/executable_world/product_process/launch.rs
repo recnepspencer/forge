@@ -171,6 +171,12 @@ impl CargoBuiltPlatformPulse {
         self.launch_native(&["--worth-ui-native-phase2-world"])
     }
 
+    pub(crate) fn launch_native_phase6(
+        self,
+    ) -> Result<NativePhase2ProcessLaunch, PlatformPulseProcessLaunchFailure> {
+        self.launch_native(&["--worth-ui-native-phase6-world"])
+    }
+
     pub(crate) fn launch_native_phase3(
         self,
     ) -> Result<NativePhase2ProcessLaunch, PlatformPulseProcessLaunchFailure> {

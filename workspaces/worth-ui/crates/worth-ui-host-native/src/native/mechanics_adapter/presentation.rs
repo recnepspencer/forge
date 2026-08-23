@@ -243,6 +243,15 @@ fn completed(
             UiMountedCompletedEffects::new(effects),
             cost,
         ));
+    let _input_settlement = state.lifecycle_protocol.record_completed_presentation(
+        view.protocol(),
+        view.host_session_identity(),
+        worth_ui_host_contract::UiHostObservationPresentationBasis::new(
+            view.frame(),
+            view.binding(),
+            epoch,
+        ),
+    );
     #[cfg(feature = "certification-support")]
     state.apply_completed_qualified_derived_state_loss(key);
     outcome
@@ -276,6 +285,12 @@ fn settle_presentation_failure(
             if !pending.bind_completion_identity(token.diagnostic_value()) {
                 return mark_presentation_indeterminate(state);
             }
+            let _remembered = state.lifecycle_protocol.remember_pending_presentation(
+                view.protocol(),
+                view.host_session_identity(),
+                view.binding(),
+                token.diagnostic_value(),
+            );
             #[cfg(feature = "certification-support")]
             {
                 let qualification = state

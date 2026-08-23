@@ -3,8 +3,33 @@ use super::UiNativeRetainedDrawList;
 
 pub(crate) enum UiNativePendingSurfaceSettlement {
     Initial(UiNativeRetainedDrawList),
-    Delta(UiNativeRetainedDeltaUndo),
+    Delta(UiNativePendingDeltaSettlement),
     Reconstruction(UiNativeRetainedDrawList),
+    SupersededDeltaResolved,
+}
+
+pub(crate) struct UiNativePendingDeltaSettlement {
+    rollback_lineage: Vec<UiNativeRetainedDeltaUndo>,
+}
+
+impl UiNativePendingDeltaSettlement {
+    pub(crate) fn new(undo: UiNativeRetainedDeltaUndo) -> Self {
+        Self {
+            rollback_lineage: vec![undo],
+        }
+    }
+
+    fn inherit(&mut self, mut predecessor: Self) {
+        self.rollback_lineage
+            .append(&mut predecessor.rollback_lineage);
+    }
+
+    pub(crate) fn rollback(self, retained: &mut UiNativeRetainedDrawList) -> Result<(), ()> {
+        for undo in self.rollback_lineage {
+            retained.rollback_delta(undo).map_err(|_| ())?;
+        }
+        Ok(())
+    }
 }
 
 impl UiNativePendingSurfaceSettlement {
@@ -13,6 +38,52 @@ impl UiNativePendingSurfaceSettlement {
             Self::Initial(_) => crate::native::UiNativePresentationWorkKind::Initial,
             Self::Delta(_) => crate::native::UiNativePresentationWorkKind::Delta,
             Self::Reconstruction(_) => crate::native::UiNativePresentationWorkKind::Reconstruction,
+            Self::SupersededDeltaResolved => crate::native::UiNativePresentationWorkKind::Delta,
+        }
+    }
+
+    pub(crate) fn inherit_predecessor(&mut self, predecessor: Self) -> Result<(), Self> {
+        match (self, predecessor) {
+            (Self::Delta(successor), Self::Delta(predecessor)) => {
+                successor.inherit(predecessor);
+                Ok(())
+            }
+            (_, predecessor) => Err(predecessor),
+        }
+    }
+
+    pub(crate) const fn is_resolved_supersession(&self) -> bool {
+        matches!(self, Self::SupersededDeltaResolved)
+    }
+
+    pub(crate) fn commit_superseded_predecessor(self) {
+        match self {
+            Self::Initial(_)
+            | Self::Delta(_)
+            | Self::Reconstruction(_)
+            | Self::SupersededDeltaResolved => {}
+        }
+    }
+
+    pub(crate) fn rollback_superseded_predecessor(
+        self,
+        state: &mut crate::native::UiNativeHostState,
+        basis: crate::native::physical_work_signal::UiNativePhysicalPresentationBasis,
+    ) {
+        let key = basis.binding().diagnostic_value();
+        match self {
+            Self::Delta(lineage) => {
+                let restored = state
+                    .retained_draw_lists
+                    .get_mut(&key)
+                    .is_some_and(|retained| lineage.rollback(retained).is_ok());
+                if !restored {
+                    state.retained_draw_lists.remove(&key);
+                    state.reconstruction_required.insert(key);
+                }
+            }
+            Self::Initial(_) | Self::Reconstruction(_) => {}
+            Self::SupersededDeltaResolved => {}
         }
     }
 
@@ -20,12 +91,16 @@ impl UiNativePendingSurfaceSettlement {
         self,
         state: &mut crate::native::UiNativeHostState,
         basis: crate::native::physical_work_signal::UiNativePhysicalPresentationBasis,
+        completion_identity: Option<u64>,
     ) {
         let key = basis.binding().diagnostic_value();
-        if let Self::Delta(undo) = self {
+        state
+            .lifecycle_protocol
+            .abandon_pending_presentation(basis.binding(), completion_identity);
+        if let Self::Delta(lineage) = self {
             if let Some(retained) = state.retained_draw_lists.get_mut(&key) {
-                retained
-                    .rollback_delta(undo)
+                lineage
+                    .rollback(retained)
                     .expect("pending delta rollback must restore exact predecessor truth");
             }
         }
@@ -37,6 +112,7 @@ impl UiNativePendingSurfaceSettlement {
         self,
         state: &mut crate::native::UiNativeHostState,
         basis: crate::native::physical_work_signal::UiNativePhysicalPresentationBasis,
+        completion_identity: u64,
         observation: super::port::UiNativePresentationPortObservation,
     ) -> Option<worth_ui_host_contract::UiMountedSurfacePresentationCompletion> {
         let kind = self.work_kind();
@@ -46,8 +122,14 @@ impl UiNativePendingSurfaceSettlement {
                 state.retained_draw_lists.insert(key, retained);
             }
             Self::Delta(_) => {}
+            Self::SupersededDeltaResolved => return None,
         }
-        let retained = state.retained_draw_lists.get(&key)?;
+        let Some(retained) = state.retained_draw_lists.get(&key) else {
+            state
+                .lifecycle_protocol
+                .abandon_pending_presentation(basis.binding(), Some(completion_identity));
+            return None;
+        };
         let frame = retained.frame();
         let (pixels, cost, port_crossings) = observation.into_parts();
         let last_presentation = state.graphics.as_ref().and_then(|graphics| {
@@ -72,11 +154,17 @@ impl UiNativePendingSurfaceSettlement {
         );
         state.last_presentation = last_presentation;
         state.reconstruction_required.remove(&key);
-        state.effect_posture = crate::native::UiNativeEffectPosture::Presented;
         let epoch = worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
             basis.attempt().diagnostic_value(),
         );
         state.presentation_epochs.insert(key, epoch);
+        let _input_settlement = state.lifecycle_protocol.complete_pending_presentation(
+            frame,
+            basis.binding(),
+            epoch,
+            completion_identity,
+        );
+        state.effect_posture = crate::native::UiNativeEffectPosture::Presented;
         let completion = worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
             worth_ui_host_contract::UiHostSurfacePresentationMode::NativeDisplay,
             epoch,

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 
-RUNTIME_TESTS = (
+RUNTIME_TEST_ROOT = (
     "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/"
-    "work_producer_tests.rs"
+    "work_producer_tests/"
 )
 DAMAGE_TESTS = (
     "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/"
@@ -26,9 +26,9 @@ def retained_work_proofs(rust_lib, rust_test):
     return {
         "P1-AFFINITY-01": rust_lib(
             "worth-ui-runtime",
-            "mounting::presentation::work_producer_tests::one_replacement_carries_one_change_and_exact_predecessor_successor_damage",
+            "mounting::presentation::work_producer_tests::replacement_damage::one_replacement_carries_one_change_and_exact_predecessor_successor_damage",
             "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer.rs::issue_successor",
-            f"{RUNTIME_TESTS}::one_replacement_carries_one_change_and_exact_predecessor_successor_damage",
+            f"{RUNTIME_TEST_ROOT}replacement_damage.rs::one_replacement_carries_one_change_and_exact_predecessor_successor_damage",
         ),
         "P1-DAMAGE-01": rust_lib(
             "worth-ui-runtime",
@@ -55,24 +55,24 @@ def ordering_proofs(compile_proof, rust_lib):
     return {
         "P1-ORDER-01": rust_lib(
             "worth-ui-runtime",
-            "mounting::presentation::work_producer_tests::equal_layer_total_order_follows_authored_node_order_not_command_identity",
+            "mounting::presentation::work_producer_tests::total_order::equal_layer_total_order_follows_authored_node_order_not_command_identity",
             "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/projection/frame_storage/presentation_sources.rs::compile",
-            f"{RUNTIME_TESTS}::equal_layer_total_order_follows_authored_node_order_not_command_identity",
+            f"{RUNTIME_TEST_ROOT}total_order.rs::equal_layer_total_order_follows_authored_node_order_not_command_identity",
         ),
         "P1-ORDER-SOURCE-01": compile_proof(
             "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/projection/frame_storage/presentation_sources.rs::compile"
         ),
         "P1-PRODUCER-01": rust_lib(
             "worth-ui-runtime",
-            "mounting::presentation::work_producer_tests::removal_and_insert_carry_exact_identities_vacated_damage_and_total_order",
+            "mounting::presentation::work_producer_tests::membership_change::removal_and_insert_carry_exact_identities_vacated_damage_and_total_order",
             "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer.rs::issue_successor",
-            f"{RUNTIME_TESTS}::removal_and_insert_carry_exact_identities_vacated_damage_and_total_order",
+            f"{RUNTIME_TEST_ROOT}membership_change.rs::removal_and_insert_carry_exact_identities_vacated_damage_and_total_order",
         ),
         "P1-PRODUCER-COST-01": rust_lib(
             "worth-ui-runtime",
-            "mounting::presentation::work_producer_tests::unchanged_successor_carries_zero_command_order_and_damage_work",
+            "mounting::presentation::work_producer_tests::unchanged_progression::unchanged_successor_carries_zero_command_order_and_damage_work",
             "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer.rs::issue_successor",
-            f"{RUNTIME_TESTS}::unchanged_successor_carries_zero_command_order_and_damage_work",
+            f"{RUNTIME_TEST_ROOT}unchanged_progression.rs::unchanged_successor_carries_zero_command_order_and_damage_work",
         ),
     }
 

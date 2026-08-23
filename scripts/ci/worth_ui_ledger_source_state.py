@@ -19,6 +19,7 @@ GOVERNANCE_PATHS = (
     "scripts/ci/run_worth_ui_shared_ledger_control.py",
     "scripts/ci/worth_ui_ledger_command.py",
     "scripts/ci/close_worth_ui_3141_ledger.py",
+    "scripts/ci/worth_ui_ledger_closure_storage.py",
     "scripts/ci/verify_worth_ui_3141_ledger.py",
     "scripts/ci/worth_ui_3141_ledger_contracts.py",
     "scripts/ci/worth_ui_3141_proof_plan.py",

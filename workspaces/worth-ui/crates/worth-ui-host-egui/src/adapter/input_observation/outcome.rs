@@ -30,6 +30,9 @@ pub enum UiEguiRawInputIngressStopReason {
         index: usize,
         family: UiEguiInputTranslatorFamily,
     },
+    MissingInputRecipientAffinity {
+        index: usize,
+    },
     Coordinate {
         index: usize,
         denial: UiEguiCoordinateConversionDenial,

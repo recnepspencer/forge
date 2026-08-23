@@ -51,10 +51,13 @@ impl WorthUiActiveApplicationSession {
         );
         self.intent_admission
             .cancel_instance(&mut self.intent_execution, identity);
-        Ok(self.interaction.cancel_instance(
+        let previous_input = self.interaction.active_input_binding();
+        let settlement = self.interaction.cancel_instance(
             identity,
             UiInteractionLifecycleStopReason::MountedInstanceRemoved,
-        ))
+        );
+        self.clear_displaced_input_recipient(previous_input);
+        Ok(settlement)
     }
 
     pub(crate) fn rebind_host_surface_with_interaction_receipt(
@@ -67,9 +70,11 @@ impl WorthUiActiveApplicationSession {
             .mounted
             .deregister_host_surface_for_rebind(&self.host_session, binding)
             .map_err(UiSurfaceRebindInteractionDenial::BeforeMutation)?;
+        let previous_input = self.interaction.active_input_binding();
         let interaction = self
             .interaction
             .cancel_binding(binding, UiInteractionLifecycleStopReason::SurfaceRebound);
+        self.clear_displaced_input_recipient(previous_input);
         self.intent_confirmation.cancel_binding(
             binding,
             crate::runtime::intent::UiIntentConfirmationCancellationReason::SurfaceRebound,

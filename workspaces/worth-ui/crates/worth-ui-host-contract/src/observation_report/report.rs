@@ -15,6 +15,7 @@ pub struct UiHostObservationReport {
     time_basis: UiHostObservationTimeBasis,
     payload: UiHostObservationPayload,
     mounted_basis: Option<UiHostObservationMountedBasis>,
+    input_affinity: Option<super::UiHostInputRecipientAffinityReceipt>,
 }
 
 impl UiHostObservationMountedBasis {
@@ -48,11 +49,20 @@ impl UiHostObservationReport {
             time_basis,
             payload,
             mounted_basis: None,
+            input_affinity: None,
         }
     }
 
     pub fn with_mounted_basis(mut self, basis: UiHostObservationMountedBasis) -> Self {
         self.mounted_basis = Some(basis);
+        self
+    }
+
+    pub fn with_input_affinity(
+        mut self,
+        affinity: super::UiHostInputRecipientAffinityReceipt,
+    ) -> Self {
+        self.input_affinity = Some(affinity);
         self
     }
 
@@ -76,7 +86,17 @@ impl UiHostObservationReport {
         self.mounted_basis
     }
 
+    pub const fn input_affinity(&self) -> Option<super::UiHostInputRecipientAffinityReceipt> {
+        self.input_affinity
+    }
+
     pub fn encoded_len(&self) -> usize {
-        24 + self.payload.encoded_len() + usize::from(self.mounted_basis.is_some()) * 16
+        24 + self.payload.encoded_len()
+            + usize::from(self.mounted_basis.is_some()) * 16
+            + usize::from(self.input_affinity.is_some()) * 96
+    }
+
+    pub fn input_affine_encoded_len(payload: &UiHostObservationPayload) -> usize {
+        24 + payload.encoded_len() + 96
     }
 }

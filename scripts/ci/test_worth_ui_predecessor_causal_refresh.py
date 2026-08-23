@@ -9,6 +9,9 @@ from pathlib import Path
 from unittest.mock import Mock, call, patch
 
 import worth_ui_predecessor_causal_refresh as refresh
+import worth_ui_predecessor_refresh_runtime as refresh_runtime
+from worth_ui_ledger_artifact_identity import predecessor_handoff
+from worth_ui_ledger_command import CLAIM_FIELDS
 from worth_ui_predecessor_candidate import import_candidate_prefix
 
 
@@ -182,17 +185,20 @@ class PredecessorCausalRefreshTests(unittest.TestCase):
             ),
             patch.object(refresh, "persist_observation_receipts") as persist,
             patch.object(refresh, "publish_refreshed_prefix") as publish,
+            patch.object(refresh, "from_path", return_value=object()),
             patch.object(refresh, "predecessor_artifact", return_value={}) as build,
             patch.object(refresh, "write_artifact") as write,
         ):
-            refresh.refresh_handoff(Path("."), Path("ledger.csv"), 3, "handoff.json")
+            refresh.refresh_handoff(
+                Path("."), Path("ledger.csv"), 3, predecessor_handoff(3)
+            )
         ensure_compile.assert_called_once_with(Path("."), "a" * 40, "b" * 64)
         persist.assert_called_once_with(
             Path("."), "b" * 64, [{"requirement": "P1-ROW-01"}]
         )
         build.assert_called_once()
         publish.assert_called_once()
-        written = write.call_args.args[1]
+        written = write.call_args.args[2]
         self.assertEqual(written["causal_reused_requirement_count"], 1)
         self.assertEqual(written["executed_requirement_count"], 0)
 
@@ -243,14 +249,14 @@ class PredecessorCausalRefreshTests(unittest.TestCase):
     def test_current_compile_artifact_is_reused_without_execution(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            identity = root / refresh.COMPILE_ARTIFACT
+            identity = root / refresh_runtime.COMPILE_ARTIFACT
             identity.parent.mkdir(parents=True)
             identity.write_text(json.dumps({
                 "exit_posture": "passed",
                 "source_revision": "a" * 40,
                 "source_state_digest": "b" * 64,
             }), encoding="utf-8")
-            with patch.object(refresh.subprocess, "run") as execute:
+            with patch.object(refresh_runtime.subprocess, "run") as execute:
                 refresh.ensure_compile_artifact(root, "a" * 40, "b" * 64)
             execute.assert_not_called()
 
@@ -280,10 +286,19 @@ class PredecessorCausalRefreshTests(unittest.TestCase):
         self.assertEqual(payload["schema_version"], 5)
         self.assertNotIn("schema_version", retained)
 
+    def test_root_refresh_preserves_claims_after_candidate_reopens_a_row(self) -> None:
+        current = row("P3-PREDECESSOR-01", "row.json")
+        current["result"] = "OPEN"
+        current["final_source"] = "false"
+        with patch.object(refresh, "prepare_claim") as prepare:
+            prepared = refresh.prepared_row(current, refresh.RefreshMode.root(6))
+        self.assertEqual(prepared, current)
+        prepare.assert_not_called()
+
     def test_stale_compile_artifact_is_refreshed_once(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            with patch.object(refresh.subprocess, "run") as execute:
+            with patch.object(refresh_runtime.subprocess, "run") as execute:
                 refresh.ensure_compile_artifact(root, "a" * 40, "b" * 64)
             execute.assert_called_once()
             self.assertEqual(execute.call_args.kwargs, {"cwd": root, "check": True})
@@ -291,7 +306,7 @@ class PredecessorCausalRefreshTests(unittest.TestCase):
 
 def row(requirement: str, artifact: str) -> dict[str, str]:
     return {
-        **{field: "value" for field in refresh.CLAIM_FIELDS},
+        **{field: "value" for field in CLAIM_FIELDS},
         "phase": "1",
         "requirement": requirement,
         "retained_result_artifact": artifact,

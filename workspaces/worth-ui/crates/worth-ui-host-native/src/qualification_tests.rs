@@ -26,7 +26,7 @@ fn qualified_asset_license_and_manifests_have_exact_digests() {
     );
     assert_eq!(
         sha256(WORTH_UI_NATIVE_PROFILE_MANIFEST.as_bytes()),
-        "1c937a22f42660267480a055e48256b25decf0c4cd5d4d7b493e5df034c6c65b"
+        "a0dfb071145ee2531be8ca2fb52489185b88e13412bdb5b0231d424e6d5cdd9d"
     );
 }
 
@@ -261,7 +261,7 @@ const NATIVE_STRING_FIELDS: &[(&str, &str)] = &[
     ("client_background", "transparent"),
     (
         "qualification_observations",
-        "os-build;adapter-name;vendor-id;device-id;driver-info;scale-factors;required-modes;required-limits",
+        "os-build;adapter-name;vendor-id;device-id;driver-info;scale-factors;required-modes;required-limits;message-position;wrapped-coordinate;move-dpi-order",
     ),
     ("presented_source_observation", "retained-target-readback"),
     (
@@ -271,6 +271,10 @@ const NATIVE_STRING_FIELDS: &[(&str, &str)] = &[
     (
         "client_window_observation",
         "winsafe-0.0.28-dwm-kernel-user",
+    ),
+    (
+        "native_pointer_position_observation",
+        "winsafe-0.0.28-user:GetMessagePos;event-ordered-client-origin;low16-wrapping;no-cursor-query",
     ),
     (
         "client_input_observation",

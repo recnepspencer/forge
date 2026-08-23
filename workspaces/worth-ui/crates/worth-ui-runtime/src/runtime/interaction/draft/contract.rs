@@ -20,12 +20,7 @@ pub enum UiDraftRecipientContractDenial {
     ByteBudget(UiDraftByteBudgetDenial),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum UiLocalInputRecipientFamily {
-    Activation,
-    Draft,
-    Submit,
-}
+pub use worth_ui_host_contract::UiHostInputRecipientFamily as UiLocalInputRecipientFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiLocalInputRecipientContract {

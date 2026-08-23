@@ -46,6 +46,11 @@ impl UiNativeOwnedWindow {
         self.0.set_title("WORTH UI External Observation Ready");
     }
 
+    pub(crate) fn client_physical_size(&self) -> [u32; 2] {
+        let size = self.inner_size();
+        [size.width, size.height]
+    }
+
     pub(crate) fn request_client_physical_size(&self, extent: [u32; 2]) {
         let _ = self
             .0

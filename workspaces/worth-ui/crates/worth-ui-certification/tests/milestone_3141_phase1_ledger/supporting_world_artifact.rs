@@ -2,7 +2,9 @@ use serde_json::Value;
 
 use super::command_binding::CommandBinding;
 use super::result_artifact::SourceValidationPosture;
-use super::result_artifact_binding::{read_artifact, require_i64, require_str, require_u64};
+use super::result_artifact_binding::{
+    read_artifact, require_i64, require_result_schema, require_str, require_u64,
+};
 
 const HP02: &str = "P3-HP02-WORLD-01";
 const MIXED_REQUIREMENT: &str = "P3-DELTA-SOURCE-01";
@@ -114,7 +116,7 @@ fn validate_atlas_content(
     source_revision: &str,
     source_state_digest: &str,
 ) -> Result<(), String> {
-    require_u64(supporting, "schema_version", 5)?;
+    require_result_schema(supporting, 5)?;
     require_str(supporting, "requirement", ATLAS_REQUIREMENT)?;
     require_str(supporting, "package", "worth-ui-host-native")?;
     require_str(supporting, "target_kind", "lib")?;
@@ -141,7 +143,7 @@ fn validate_content(
     source_state_digest: &str,
     _source_validation: SourceValidationPosture,
 ) -> Result<(), String> {
-    require_u64(supporting, "schema_version", 5)?;
+    require_result_schema(supporting, 5)?;
     require_str(supporting, "requirement", MIXED_REQUIREMENT)?;
     require_str(supporting, "package", "worth-ui-certification")?;
     require_str(supporting, "target_kind", "test")?;
@@ -184,6 +186,14 @@ fn validate_content(
 #[test]
 fn hp02_support_rejects_substituted_world_identity_and_incomplete_execution() {
     let mut supporting = fixture();
+    validate_content(
+        &supporting,
+        "revision",
+        "state",
+        SourceValidationPosture::CurrentSource,
+    )
+    .unwrap();
+    supporting["schema_version"] = Value::from(7);
     validate_content(
         &supporting,
         "revision",

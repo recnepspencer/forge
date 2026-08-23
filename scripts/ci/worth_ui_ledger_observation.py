@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import subprocess
 from typing import Any
 
@@ -12,6 +13,7 @@ from worth_ui_3141_ledger_contracts import (
 )
 from worth_ui_3141_case_contracts import hostile_cases, positive_cases
 from worth_ui_ledger_command import GovernedTest, repository_path
+from worth_ui_ledger_artifact_identity import requirement_phase
 
 
 def boundary_observation(output: str) -> dict[str, Any] | None:
@@ -91,7 +93,9 @@ def observed_costs(
         return None
     if test.requirement == "P3-PREDECESSOR-01":
         return construction_cost(test.requirement), execution_cost(test.requirement)
-    if test.requirement in {"P4-PREDECESSOR-01", "P5-PREDECESSOR-01"}:
+    if test.requirement in {
+        "P4-PREDECESSOR-01", "P5-PREDECESSOR-01", "P6-PREDECESSOR-01"
+    }:
         return predecessor_costs(test, control)
     if test.requirement == "P3-HP02-WORLD-01":
         if supporting_world is None or control is None:
@@ -122,6 +126,26 @@ def observed_costs(
             "compile-sessions=0;courtroom-worlds=1",
             f"executed-tests={1 + control_tests};presentations={presentations};"
             f"atlas-transactions={atlas_transactions}",
+        )
+    if test.requirement == "P6-WINDOWS-WORLD-01":
+        if (
+            observation is None
+            or control is None
+            or observation.get("schema")
+            != "worth-ui-native-phase6-boundary-observation-v1"
+            or observation.get("terminal_zero") is not True
+            or observation.get("product_processes") != 1
+            or not isinstance(observation.get("input", {}).get("retained_events"), int)
+            or observation["input"]["retained_events"] <= 0
+        ):
+            return None
+        control_tests = control.get("executed_test_count")
+        if control_tests != 1:
+            return None
+        return (
+            "main-tests=1;hostile-controls=1;product-processes=1;"
+            "compile-sessions=0;courtroom-worlds=1",
+            "executed-tests=2;presentations=1",
         )
     p2 = test.requirement.startswith("P2-")
     compile_sessions = compile_sessions_observed(test.sources) + int(
@@ -165,7 +189,9 @@ def predecessor_costs(
         (
             source
             for source in test.sources
-            if source.endswith(f"p{test.requirement[1]}-predecessor-handoff.json")
+            if source.endswith(
+                f"p{requirement_phase(test.requirement)}-predecessor-handoff.json"
+            )
         ),
         None,
     )
@@ -207,7 +233,7 @@ def stdout_numeric(output: str, prefix: str, default: int) -> int:
 
 
 def mutation_control_observation(output: str, requirement: str) -> dict[str, str] | None:
-    if not requirement.startswith(("P3-", "P4-", "P5-")):
+    if not requirement.startswith(("P3-", "P4-", "P5-", "P6-")):
         return None
     prefix = "WORTH_UI_LEDGER_MUTATION_CONTROLS="
     matches = [line[len(prefix):] for line in output.splitlines() if line.startswith(prefix)]
@@ -221,6 +247,92 @@ def mutation_control_observation(output: str, requirement: str) -> dict[str, str
     if not isinstance(observed, dict) or observed.get(requirement) != expected:
         return None
     return {"requirement": requirement, "case": expected}
+
+
+def mutation_receipt_observation(
+    output: str,
+    requirement: str,
+    source_revision: str | None = None,
+    source_state_digest: str | None = None,
+) -> dict[str, Any] | None:
+    if not requirement.startswith("P6-"):
+        return None
+    prefix = "WORTH_UI_LEDGER_MUTATION_RECEIPTS="
+    matches = [line[len(prefix):] for line in output.splitlines() if line.startswith(prefix)]
+    if len(matches) != 1:
+        return None
+    try:
+        observed = json.loads(matches[0])
+    except json.JSONDecodeError:
+        return None
+    receipt = observed.get(requirement) if isinstance(observed, dict) else None
+    expected = MUTATIONS[requirement][1]
+    if (
+        not isinstance(receipt, dict)
+        or set(observed) != {requirement}
+        or receipt.get("schema") != "worth-ui-native-mutation-receipt-v2"
+        or receipt.get("requirement") != requirement
+        or receipt.get("case") != expected
+        or receipt.get("schedule_id") != expected
+        or receipt.get("mutation_identity") != f"{requirement}:{expected}"
+        or receipt.get("observed_failure") is not True
+    ):
+        return None
+    source_identity = receipt.get("source_identity")
+    if not (
+        isinstance(source_identity, dict)
+        and isinstance(source_identity.get("revision"), str)
+        and source_identity["revision"]
+        and isinstance(source_identity.get("state_digest"), str)
+        and source_identity["state_digest"]
+    ):
+        return None
+    if (
+        source_revision is not None
+        and source_identity["revision"] != source_revision
+    ):
+        return None
+    if (
+        source_state_digest is not None
+        and source_identity["state_digest"] != source_state_digest
+    ):
+        return None
+    baseline = receipt.get("baseline")
+    mutant = receipt.get("mutant")
+    if not all(
+        isinstance(value, dict)
+        and isinstance(value.get("posture"), str)
+        and value["posture"]
+        and isinstance(value.get("terminal_state"), str)
+        and value["terminal_state"]
+        and isinstance(value.get("trace"), list)
+        and value["trace"] == [value["posture"], value["terminal_state"]]
+        and isinstance(value.get("trace_sha256"), str)
+        and len(value["trace_sha256"]) == 64
+        and all(character in "0123456789abcdef" for character in value["trace_sha256"])
+        for value in (baseline, mutant)
+    ):
+        return None
+    for value in (baseline, mutant):
+        expected_digest = hashlib.sha256(
+            f"{value['posture']}\0{value['terminal_state']}".encode()
+        ).hexdigest()
+        if value["trace_sha256"] != expected_digest:
+            return None
+    divergence = receipt.get("first_divergence")
+    if not (
+        isinstance(divergence, dict)
+        and isinstance(divergence.get("index"), int)
+        and divergence["index"] >= 0
+        and isinstance(divergence.get("description"), str)
+        and divergence["description"]
+    ):
+        return None
+    if baseline["trace_sha256"] == mutant["trace_sha256"]:
+        return None
+    if not isinstance(receipt.get("denial"), str) or not receipt["denial"]:
+        return None
+    return receipt
 
 
 def governed_case_observation(output: str, requirement: str) -> list[str] | None:

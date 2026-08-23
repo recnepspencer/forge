@@ -32,6 +32,20 @@ impl WorthUiHostMechanicsAdapter for super::WorthUiHostEgui {
         Ok(self.drain_native_observations(host_session_identity))
     }
 
+    fn install_mechanical_input_recipient(
+        &self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        super::super::input_observation::install_input_recipient(&self.input_observation, binding)
+    }
+
+    fn clear_mechanical_input_recipient(
+        &self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        super::super::input_observation::clear_input_recipient(&self.input_observation, binding)
+    }
+
     fn mechanical_visual_capture_capability(
         &self,
     ) -> worth_ui_host_contract::UiHostCaptureCapability {

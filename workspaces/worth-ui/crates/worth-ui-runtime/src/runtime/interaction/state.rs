@@ -17,6 +17,7 @@ pub(crate) struct UiInteractionRuntimeState {
     pointer: UiPointerGestureRuntimeState,
     draft: UiDraftRuntimeState,
     semantic_interactions: u64,
+    application_generation: worth_ui_host_contract::UiHostApplicationGeneration,
 }
 
 #[derive(Clone, Copy)]
@@ -39,6 +40,8 @@ impl UiInteractionRuntimeState {
             pointer: UiPointerGestureRuntimeState::new(),
             draft: UiDraftRuntimeState::new(),
             semantic_interactions: 0,
+            application_generation: worth_ui_host_contract::UiHostApplicationGeneration::new(1)
+                .expect("the initial interaction application generation is nonzero"),
         }
     }
 
@@ -95,14 +98,29 @@ impl UiInteractionRuntimeState {
         }
     }
 
-    pub(crate) fn bind_local_recipient(
+    pub(crate) fn bind_local_recipient<Install>(
         &mut self,
         activation: UiActivateInteraction,
-        generation: &WorthUiActiveApplicationGenerationIdentity,
+        context: super::draft::UiLocalInputRecipientBindingContext<'_>,
         contract: UiLocalInputRecipientContract,
-        mounted: &crate::mounting::WorthUiMountedSessionState,
-    ) -> Result<UiLocalInputRecipientAdmission, UiLocalInputRecipientBindingStop> {
-        self.draft.bind(activation, generation, contract, mounted)
+        install: Install,
+    ) -> Result<UiLocalInputRecipientAdmission, UiLocalInputRecipientBindingStop>
+    where
+        Install: FnOnce(worth_ui_host_contract::UiHostInputRecipientBindingReceipt) -> bool,
+    {
+        self.draft.bind(activation, context, contract, install)
+    }
+
+    pub(crate) const fn application_generation(
+        &self,
+    ) -> worth_ui_host_contract::UiHostApplicationGeneration {
+        self.application_generation
+    }
+
+    pub(crate) fn active_input_binding(
+        &self,
+    ) -> Option<worth_ui_host_contract::UiHostInputRecipientBindingReceipt> {
+        self.draft.active_input_binding()
     }
 
     pub(crate) fn commit_selection(
@@ -160,6 +178,15 @@ impl UiInteractionRuntimeState {
     ) -> UiInteractionLifecycleSettlementReceipt {
         let pointer = self.pointer.cancel_all(reason.pointer_reason());
         let draft = self.draft.cancel_all(reason.local_reason());
+        if matches!(reason, UiInteractionLifecycleStopReason::ApplicationRebound) {
+            let next = self
+                .application_generation
+                .get()
+                .checked_add(1)
+                .and_then(worth_ui_host_contract::UiHostApplicationGeneration::new)
+                .expect("bounded application generation exhausted");
+            self.application_generation = next;
+        }
         self.settlement(pointer, draft)
     }
 

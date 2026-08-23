@@ -1,6 +1,6 @@
 use super::WorthUiApp;
 
-pub enum WorthUiPresentationAsyncInstallationDenial {
+pub(crate) enum WorthUiPresentationAsyncInstallationDenial {
     AlreadyInstalled(worth_ui_query_binding::WorthUiPresentationAsyncInstallation),
 }
 
@@ -13,7 +13,9 @@ impl std::fmt::Debug for WorthUiPresentationAsyncInstallationDenial {
 }
 
 impl WorthUiPresentationAsyncInstallationDenial {
-    pub fn into_installation(self) -> worth_ui_query_binding::WorthUiPresentationAsyncInstallation {
+    pub(crate) fn into_installation(
+        self,
+    ) -> worth_ui_query_binding::WorthUiPresentationAsyncInstallation {
         match self {
             Self::AlreadyInstalled(installation) => installation,
         }
@@ -21,7 +23,7 @@ impl WorthUiPresentationAsyncInstallationDenial {
 }
 
 impl WorthUiApp {
-    pub fn install_presentation_async(
+    pub(crate) fn install_presentation_async(
         &mut self,
         installation: worth_ui_query_binding::WorthUiPresentationAsyncInstallation,
     ) -> Result<(), WorthUiPresentationAsyncInstallationDenial> {

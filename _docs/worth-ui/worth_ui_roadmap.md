@@ -27,10 +27,14 @@ The governing rules remain:
 - desktop UX, runtime honesty, and performance certification are all part of
   product completeness
 
-Delivery cadence is phase- and milestone-bound: commit and push only after a
-phase ledger is closed; merge to `master` only after the milestone ledger and
-status are closed. The working branch is then synchronized from the resulting
-`master` merge.
+Delivery cadence is phase- and milestone-bound: commit and push when the phase
+implementation satisfies its specification, focused tests and required checks
+pass, and assigned reviewers clear the final diff. Merge to `master` when the
+milestone acceptance conditions and CI are green. Historical proof and closure
+ledgers are frozen, non-gating records; they are not updated or reopened. A
+ledger-only failure does not block delivery. Current QA follows
+[the QA review guide](../coding_guidelines/qa_review_guide.md) and
+[testing laws](../coding_guidelines/testing_laws.md).
 
 Worth UI must remain strong enough for workbenches, editors, topology and CAD
 tools, AI-native editing systems, operational apps, data-heavy consoles,
@@ -1623,7 +1627,7 @@ evidence with a raw pixel diff.
 - explicit observation/rebind profiles with the frozen Platform Pulse limits
 - exact-generation authored-span and production-projected rebind inspection
   targets with bounded evidence-reference lookup
-- self-audited Phase 5 command registry and RB-01/TT-01..TT-12 closure ledger
+- self-audited Phase 5 command registry and direct rebind/transition tests
 
 **Must handle**
 
@@ -1648,8 +1652,8 @@ evidence with a raw pixel diff.
 - a valid edit retains exact predecessor and successor snapshots through one
   budgeted identity-aware comparison, then disposes both without treating
   pixel equality or difference as semantic rebind evidence
-- the exact Phase 5 command registry and all thirteen causal proof-ledger rows
-  close on final source
+- the exact Phase 5 command registry and causal rebind/transition tests pass on
+  the final commit
 - rebind summary/evidence-reference inspection is available while causal
   diagnostic materialization and replay remain explicitly deferred
 
@@ -1832,8 +1836,9 @@ bidirectional and line layout, original-range and caret geometry, Unicode 17
 RGI color emoji, alpha/color raster formats, and bounded layout/atlas
 capacities under manifest digest
 `cec6005c5baef6d69ada9c30c02ced25b0f253f80c012784fe925e307935c3f2`.
-Phase 4 may consume it only after the append-only Phase 3 predecessor gate
-allows `P4-TEXT-PROFILE-01` to become final-source `PROVED`. The text work is
+Phase 4 may consume it only after the manifest and its referenced assets,
+licenses, generated indexes, dependency posture, and digest pass focused
+qualification checks and code review. The text work is
 split into canonical Unicode layout/measurement first and color glyph/emoji/
 native atlas presentation second; neither may begin from the Basic-Latin seed.
 
@@ -1841,37 +1846,23 @@ The mounted host contract is the subject under test and may not change
 meaning. `worth-ui-host-contract` semantics, the 3.12 observation turn, the
 3.13 projection path, and the 3.14 interaction and intent path are frozen; if
 replacement pressure demands a host-contract semantic change, that is a
-reopened finding against the owning milestone, not a migration convenience.
+specification defect, not a migration convenience.
 
-Phase 1-2 production requirements were closed at revision `234c3aaf4` by
-thirty final-source ledger rows. This governing-document revision requires a
-source-fresh operational-verifier execution retained by the append-only
-`P3-PREDECESSOR-01` handoff before the next implementation phase; it does not
-rewrite predecessor rows or reopen the proved rectangle/native-startup
-behavior. The native seed remains deliberately narrow: retained deltas, the v2
-text platform, input, resize, capture, recovery, Pulse parity, and egui
-deletion stay in their ordered phases. The stronger future text requirement
-separately reopens Phase 4 qualification.
+Phase 1-2 production requirements were historically reviewed at revision
+`234c3aaf4`. Their ledger artifacts are frozen and do not reopen. Current
+changes run the predecessor contract tests affected by their causal scope and
+are reviewed against the final diff. The native seed remains deliberately
+narrow: retained deltas, the v2 text platform, input, resize, capture, recovery,
+Pulse parity, and egui deletion stay in their ordered phases. The stronger
+future text requirement supersedes the earlier Phase 4 qualification target.
 
-The proof ledger advances append-only. Phase 3 adds seventeen exact retained-
-presentation rows, including one current-source handoff over the immutable
-Phase 1-2 prefix; Phase 4 adds twenty-one exact Unicode/layout rows, including
-its own current-source predecessor and final closure rows, before the v2
-qualification gate is executed. Historical row nonces, claims, artifacts, and
-selected-source digests are never regenerated merely because later governed
-source changes. Each new phase instead proves that its current source still
-lawfully consumes the closed predecessor contract.
-
-Phase closure is proof-economical as well as atomic. One source-state/claim
-snapshot executes each distinct Cargo discovery, exact main, hostile control,
-compile contract, and native world once; rows that share an execution validate
-the same content-addressed receipt rather than launching a substitute process.
-Successful row bundles remain resumable outside canonical evidence after a
-later-row failure, but source, claim, command, ledger-basis, dependency, or
-content drift invalidates them. The final gate validates the newly retained
-portfolio and Rust ledger contracts without replaying the predecessor or Phase
-4 portfolio. Row-level start/reuse/finish telemetry and measured durations are
-part of the closure runner contract.
+Each phase states its architecture, authority, lifecycle, recovery, performance,
+resource, integration, developer-experience, and test considerations in prose.
+Focused tests run during implementation; required constitutional checks and
+affected CI or native lanes run on the final commit; code review decides whether
+the evidence is adequate. Shared Cargo discovery, exhaustive corpora, compile
+contracts, and native worlds should execute once per applicable test run.
+Retained diagnostics may aid reproduction but do not create QA authority.
 
 The custody boundary moves down, not sideways. The new host owns a retained
 draw list in which every quad and glyph run carries its mounted node receipt,
@@ -1953,17 +1944,17 @@ CBDT/CBLC, and sbix `png`/one-hop-`dupe`; sbix `jpg`/`tiff` and OpenType SVG are
 explicitly rejected by this profile.
 It may not compensate for a Phase 4 sequence split.
 
-Phase 5 remains an ordered gate inside Milestone 3.14.1 and uses the same
-append-only proof ledger. Its detailed raster/atlas authority graph, staged
+Phase 5 remains an ordered gate inside Milestone 3.14.1. Its detailed raster/atlas authority graph, staged
 native transaction, `HP-03` courtroom, exact cost/resource contract,
 implementation gates, documentation, and Phase 6 handoff are governed by
 [`milestone-3.14.1-phase-5.md`](milestone-3.14.1-phase-5.md). The subordinate
 specification exists to keep this roadmap outcome-readable; it does not create
-a second milestone, ledger, or independently closable product surface.
+a second milestone or independently closable product surface.
 
-Phase 5 closed on 2026-08-20 with all twelve rows bound to one final source
-state. Unchanged authenticated predecessor evidence was retained by exact
-causal binding, and only affected rows were reexecuted. The retained portfolio
+Phase 5 was implemented and historically reviewed on 2026-08-20; Phase 6 is the
+current implementation phase. Its frozen QA
+ledger and retained artifacts are not current authority and are never reopened.
+The accepted test coverage
 includes deterministic alpha/color raster and
 emoji coverage, bounded native atlas ownership and pins, exact DPI/paint
 locality, a 4×8 fresh-world cost matrix through 4,096 items, external native
@@ -2006,8 +1997,8 @@ on the Worth-owned host. During transition both hosts present the same
 mounted content behind the unchanged host contract, and the same external
 courtroom adjudicates both: semantic, receipt, identity, and control evidence
 must be identical, while glyph-region pixel expectations are re-baselined
-exactly once for the new text metrics, with the re-baseline recorded as its
-own ledgered event. Closure requires the full inherited journey — pending,
+exactly once for the new text metrics, with the re-baseline explicitly reviewed.
+Completion requires the full inherited journey — pending,
 two current values, overlay round trip, green/malformed/recovery source
 sequence, schema stop with predecessor preservation, the 3.14 native operable
 and confirmation actions, and normal close with zero window, surface, device,
